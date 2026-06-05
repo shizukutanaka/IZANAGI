@@ -286,7 +286,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 - GitHub: [ratatui/ratatui](https://github.com/ratatui/ratatui) — TUI 描画・`TestBackend` による headless 描画アサート（描画テスト手法の参照、依存追加は不要）。
 
 **洗い出した改善点**
-1. **symmetric shadowcasting FOV**（決定的・対称な視界）。出典: stuffwithstuff, RogueBasin, libtcod。🟢 replay-safe（fixed/整数演算で実装）。
+1. ✅**実装済み** — **symmetric shadowcasting FOV**（決定的・対称な視界、`src/fov.rs`、Albert Ford 法・整数有理数スロープ）。出典: stuffwithstuff, RogueBasin, libtcod。🟢 replay-safe（整数演算で実装）。
 2. **A* / Dijkstra map pathfinding**（tie-break を決定的に固定）。出典: bracket-pathfinding。🟢 replay-safe（順序確定が条件）。
 3. **決定論的 procedural generation**（seed 駆動 BSP / room-corridor、将来 WFC）。出典: arXiv:1906.04660（Green et al., FDG'19）, 2308.07307（Nie et al., 2023、決定論的 N-WFC）。🟢 replay-safe（RNG=C3 を単一ストリームで使用）。
 4. **headless 描画スナップショットテスト**（出力セルバッファを golden 比較）。出典: ratatui TestBackend。🟢 replay-safe。
@@ -334,7 +334,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | per-frame state hash / desync 検出 | ✅ | ❌ | ❌ | ⚠️ | ✅ | C4-3 desync 二分探索 |
 | snapshot / restore（rollback） | ❌ | ❌ | ❌ | ⚠️(bevy_ggrs) | ✅ | **C6-3** snapshot API |
 | input-only 同期 / replay ハーネス | ⚠️(単機) | ❌ | ❌ | ⚠️ | ✅ | **C6-2** replay harness |
-| FOV（shadowcasting） | ❌ | ✅ | ✅ | ❌ | — | **C10-1** symmetric FOV |
+| FOV（shadowcasting） | ✅ | ✅ | ✅ | ❌ | — | ✅ 実装済み（symmetric, integer） |
 | pathfinding（A*/Dijkstra） | ❌ | ✅ | ✅ | ❌ | — | **C10-2** A*/Dijkstra |
 | procedural generation | ❌ | ✅ | ⚠️ | ❌ | — | **C10-3** 決定論 procgen |
 | parser error recovery（複数エラー） | ⚠️ | — | — | — | — | C7-1 recovery |

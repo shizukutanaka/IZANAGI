@@ -27,6 +27,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `fov`: symmetric recursive shadowcasting field-of-view (Albert Ford's
+  algorithm). Integer-only rational slopes (no float), fixed quadrant/column
+  iteration order, zero allocation — bit-identical across targets. Generic over
+  `is_opaque`/`mark_visible` closures so it works with any grid. Guarantees
+  symmetric visibility (A sees B iff B sees A); covered by open-field,
+  shadow-casting, symmetry-property, and determinism tests.
 - `fixed`: transcendental math without floats — `sqrt` (integer bit-by-bit
   square root) and `sin`/`cos`/`sin_cos`/`atan2` (rotation- and vectoring-mode
   CORDIC, 16 iterations, constants as integer literals). All results are
