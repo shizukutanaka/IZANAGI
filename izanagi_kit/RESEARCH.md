@@ -65,7 +65,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 
 **洗い出した改善点**
 1. **`sqrt()` の追加**（integer Newton–Raphson、libfixmath 準拠）。距離計算・正規化に必須。🟢 replay-safe（新規 API、既存演算不変）。
-2. **CORDIC による `sin`/`cos`/`atan2`**（テーブルではなく反復で決定的）。出典: arXiv:1605.03229, libfixmath。🟢 replay-safe。
+2. **CORDIC による `sin`/`cos`/`atan2`**（テーブルではなく反復で決定的）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
 3. **丸めモードの明示**（truncate / round-half-to-even）。乗除の丸めを文書化し API 化。出典: substrate-fixed の丸め。🟡 gated（既存の演算の丸めを変えると 🔴。新 API として追加なら 🟢）。
 4. **`Vec2`/`Vec3` 等の fixed-point ベクトル型**（dot/length/normalize）。出典: FixedMathSharp。🟢 replay-safe。
 5. **overflow 検出モード（debug 時 panic / release saturating）**の二層化を文書化。🟢 replay-safe。
@@ -202,7 +202,7 @@ span ベースの高機能診断は限定的。
 - 概念: LSP 連携（partial parse から補完/診断を返す）。
 
 **洗い出した改善点**
-1. **error recovery（複数エラー一括報告）**。1 行目で停止せず最後まで診断収集（validator は既にこの方針 → parser へ波及）。出典: arXiv:1804.07133, chumsky。🟢 replay-safe（ツール層）。
+1. **error recovery（複数エラー一括報告）**。1 行目で停止せず最後まで診断収集（validator は既にこの方針 → parser へ波及）。出典: arXiv:1804.07133（Diekmann & Tratt, ECOOP 2020; CPCT+ が 98.37% を修復）, chumsky。🟢 replay-safe（ツール層）。
 2. **span ベース診断（複数ラベル・related notes）**。出典: rustc, ariadne(C9)。🟢 replay-safe。
 3. **grammar の形式仕様 / BNF 文書化**（`.game` 形式の安定化）。🟢 replay-safe。
 4. **fuzz harness（cargo-fuzz）で panic-freedom を継続検証**。出典: C8。🟢 replay-safe。
@@ -288,7 +288,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 **洗い出した改善点**
 1. **symmetric shadowcasting FOV**（決定的・対称な視界）。出典: stuffwithstuff, RogueBasin, libtcod。🟢 replay-safe（fixed/整数演算で実装）。
 2. **A* / Dijkstra map pathfinding**（tie-break を決定的に固定）。出典: bracket-pathfinding。🟢 replay-safe（順序確定が条件）。
-3. **決定論的 procedural generation**（seed 駆動 BSP / room-corridor、将来 WFC）。出典: arXiv:1906.04660, 2308.07307。🟢 replay-safe（RNG=C3 を単一ストリームで使用）。
+3. **決定論的 procedural generation**（seed 駆動 BSP / room-corridor、将来 WFC）。出典: arXiv:1906.04660（Green et al., FDG'19）, 2308.07307（Nie et al., 2023、決定論的 N-WFC）。🟢 replay-safe（RNG=C3 を単一ストリームで使用）。
 4. **headless 描画スナップショットテスト**（出力セルバッファを golden 比較）。出典: ratatui TestBackend。🟢 replay-safe。
 5. **JPS による A* 高速化**（grid 限定の最適化）。🟢 replay-safe。
 6. **PCG 品質メトリクス**（連結性・到達可能性の自動検査、validator=C9 と連携）。出典: arXiv:2503.21474。🟢 replay-safe。
@@ -318,7 +318,29 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 - zero-dependency・`#![forbid(unsafe_code)]` を維持（テスト/fuzz は dev-dependencies で隔離可）。
 - 新規アルゴリズムは fixed-point(C2) と単一 RNG ストリーム(C3) の上に実装し、determinism property test(C8) を必ず追加。
 
+## 検証済み一次出典 (Verified primary sources)
+
+下表の arXiv 論文は、表題・著者・年・査読会場を**一次情報まで照合済み**（2026-06-05、WebSearch インデックス
+＋会場ページ ECOOP/USENIX/IEEE/FDG 等で確認）。本文中の引用はこの確定情報に基づく。
+
+| arXiv ID | 確定表題 | 著者 | 年 / 会場 | 本書での用途 |
+|----------|---------|------|-----------|-------------|
+| 1605.03229 | CORDIC-based Architecture for Powering Computation in Fixed-Point Arithmetic | Simmonds, Mack, Bellestri, Llamocca | 2016 | C2: fixed-point sqrt/pow/trig（CORDIC） |
+| 1805.01407 | Scrambled Linear Pseudorandom Number Generators | Blackman, Vigna | 2018 | C3: PRNG 品質 / xoshiro scrambler |
+| 1805.06267 | Efficient and Deterministic Record & Replay for Actor Languages | Aumayr, Marr, Béra, Gonzalez Boix, Mössenböck | 2018 / ManLang'18 | C6: 決定的 record & replay |
+| 1705.05937 | Engineering Record And Replay For Deployability | O'Callahan, Jones, Froyd, Huey, Noll, Partush | 2017 / USENIX ATC | C6: rr 低オーバーヘッド replay |
+| 1804.07133 | Don't Panic! Better, Fewer, Syntax Errors for LR Parsers | Diekmann, Tratt | 2018 / ECOOP 2020 | C7: CPCT+ error recovery（98.37% 修復） |
+| 1905.02145 | Automatic Syntax Error Reporting and Recovery in Parsing Expression Grammars | Medeiros, Alvez Junior, Mascarenhas | 2019 | C7: PEG labeled-failure 回復 |
+| 1906.04660 | Two-step Constructive Approaches for Dungeon Generation | Green, Khalifa, Alsoughayer, Surana, Liapis, Togelius | 2019 / FDG'19 | C10: 2段階ダンジョン生成 |
+| 2308.07307 | Extend Wave Function Collapse to Large-Scale Content Generation | Nie, Zheng, Zhuang, Song | 2023 / IEEE | C10: 決定論的・aperiodic な N-WFC |
+| 2410.15644 | Procedural Content Generation in Games: A Survey with Insights on Emerging LLM Integration | Farrokhi Maleki, Zhao | 2024 | C10: PCG 手法サーベイ |
+| 2503.21474 | The Procedural Content Generation Benchmark | Khalifa, Gallotta, Barthet, Liapis, Togelius, Yannakakis | 2025 / FDG'25 | C10: PCG 評価 testbed |
+
+**未昇格（search-indexed、著者/年は次イテレーションで照合）**: 2507.03007（PRNG 統計品質/ML）,
+2501.00193（multi-sequence PRNG）, 2507.03629（PEG 回復・続報）, 2602.18545（Programmable PBT）。
+
 ## 出典について（検証メモ）
-- 上記 arXiv ID・GitHub repo は WebSearch のインデックス上で実在を確認済み。arXiv の abs ページは bot 経由の取得が
-  403 となるため、本文の一次裏取りが必要な場合は `ar5iv.labs.arxiv.org/html/<id>` または Semantic Scholar を用いること。
-- 将来の更新で各 ID の表題・著者・年を追補し、本節を「検証済み」へ昇格する。
+- arXiv の abs / `ar5iv.labs.arxiv.org` / Semantic Scholar API は本環境の fetch bot に対し一律 **HTTP 403** を返すため、
+  一次裏取りは **WebSearch のインデックス＋査読会場ページ**（ECOOP/USENIX/IEEE/FDG 等）で実施した。
+- 上記「検証済み一次出典」10件は表題・著者・年・会場まで確定。GitHub repo（owner/repo）はインデックス上で実在確認済み。
+- 残りの search-indexed 出典は次の `/loop` イテレーションで著者/年まで照合し、本表へ昇格する。
