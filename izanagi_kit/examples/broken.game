@@ -1,0 +1,7 @@
+prefab a
+  glyph @
+level x 3x2
+  row ...
+  row ...
+  spawn ghost 9 9
+wobble nonsense

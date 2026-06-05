@@ -1,0 +1,12 @@
+#!/bin/sh
+# Pre-commit: format check + clippy (CLAUDE.md §6.3).
+# Enable with:  git config core.hooksPath .githooks
+set -e
+
+echo "pre-commit: cargo fmt --check"
+cargo fmt --all -- --check
+
+echo "pre-commit: cargo clippy"
+cargo clippy --all-targets -- -D warnings
+
+echo "pre-commit: ok"
