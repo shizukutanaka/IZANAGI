@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  test:
+    name: test (stable)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: rustup toolchain install stable --profile minimal
+      - name: Build
+        run: cargo build --all-targets --verbose
+      - name: Test
+        run: cargo test --all-targets --verbose
+
+  lint:
+    name: fmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: rustup toolchain install stable --profile minimal --component rustfmt --component clippy
+      - name: rustfmt
+        run: cargo fmt --all -- --check
+      - name: clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+  audit:
+    name: security audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cargo-audit
+        run: cargo install cargo-audit --locked
+      # cargo-audit reads Cargo.lock, which is .gitignored for this library, so
+      # generate it first — otherwise the job fails with "Couldn't find Cargo.lock".
+      - name: Generate lockfile
+        run: cargo generate-lockfile
+      # Zero runtime dependencies, so this should pass trivially; it guards
+      # against any future dependency introducing a known advisory.
+      - name: cargo audit
+        run: cargo audit
+
+  content-gate:
+    name: content validation (gamec)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain
+        run: rustup toolchain install stable --profile minimal
+      - name: Build gamec
+        run: cargo build --release --bin gamec
+      # Every shipped .game file must validate. A broken sample fails the build.
+      - name: Validate example content
+        run: |
+          for f in examples/*.game; do
+            case "$f" in
+              *broken*) continue ;;  # intentionally-broken fixture; skip
+            esac
+            echo "checking $f"
+            ./target/release/gamec "$f"
+          done
+      - name: Confirm broken fixture is rejected
+        run: |
+          if ./target/release/gamec examples/broken.game; then
+            echo "ERROR: broken.game should have failed validation"
+            exit 1
+          fi
+          echo "broken.game correctly rejected"

@@ -1,0 +1,29 @@
+// IZANAGI sample content — a tiny dungeon room
+prefab hero
+  glyph @
+  color #00C4CC
+  stat hp 20
+  stat atk 5
+prefab goblin
+  glyph g
+  color #f85149
+  stat hp 8
+  flag hostile
+prefab potion
+  glyph !
+  color #3fb950
+  flag item
+
+tile floor . #3A3A3A
+tile wall # #6E7681
+
+level room 8x5
+  row ########
+  row #@.....#
+  row #..g..!#
+  row #....g.#
+  row ########
+  spawn hero 1 1
+  spawn goblin 3 2
+  spawn goblin 5 3
+  spawn potion 6 2
