@@ -64,8 +64,8 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 - アルゴリズム: CORDIC（sin/cos/atan2 を加算とシフトのみで、ハードウェア乗算器なしに計算）。
 
 **洗い出した改善点**
-1. **`sqrt()` の追加**（integer Newton–Raphson、libfixmath 準拠）。距離計算・正規化に必須。🟢 replay-safe（新規 API、既存演算不変）。
-2. **CORDIC による `sin`/`cos`/`atan2`**（テーブルではなく反復で決定的）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
+1. ✅**実装済み** — **`sqrt()` の追加**（integer bit-by-bit isqrt、`src/fixed.rs`）。距離計算・正規化に必須。負入力は 0 へ飽和。🟢 replay-safe（新規 API、既存演算不変・`PINNED_FINAL_HASH` 不変）。
+2. ✅**実装済み** — **CORDIC による `sin`/`cos`/`sin_cos`/`atan2`**（テーブルではなく反復で決定的、16回・整数定数、`src/fixed.rs`）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
 3. **丸めモードの明示**（truncate / round-half-to-even）。乗除の丸めを文書化し API 化。出典: substrate-fixed の丸め。🟡 gated（既存の演算の丸めを変えると 🔴。新 API として追加なら 🟢）。
 4. **`Vec2`/`Vec3` 等の fixed-point ベクトル型**（dot/length/normalize）。出典: FixedMathSharp。🟢 replay-safe。
 5. **overflow 検出モード（debug 時 panic / release saturating）**の二層化を文書化。🟢 replay-safe。
@@ -328,7 +328,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | Generational handle / sparse-set | ✅ | ✅ | — | ✅ | — | — |
 | multi-component query / iteration | ❌ | ⚠️ | — | ✅ | — | **C1-1** query API |
 | archetype storage（大規模 iteration） | ❌ | ❌ | — | ✅ | — | C1-2 optional archetype |
-| fixed-point sqrt / trig | ❌ | ⚠️(f32) | ⚠️ | ⚠️(f32) | — | **C2-1/2** sqrt+CORDIC |
+| fixed-point sqrt / trig | ✅ | ⚠️(f32) | ⚠️ | ⚠️(f32) | — | ✅ 実装済み（決定論 integer/CORDIC） |
 | 決定論 PRNG（単一ストリーム） | ✅ | ✅ | ✅ | ⚠️ | ✅(要求) | — |
 | bias なし range 抽出 | ⚠️ | ✅ | ⚠️ | ✅ | — | **C3-1** Lemire range |
 | per-frame state hash / desync 検出 | ✅ | ❌ | ❌ | ⚠️ | ✅ | C4-3 desync 二分探索 |

@@ -27,6 +27,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `fixed`: transcendental math without floats — `sqrt` (integer bit-by-bit
+  square root) and `sin`/`cos`/`sin_cos`/`atan2` (rotation- and vectoring-mode
+  CORDIC, 16 iterations, constants as integer literals). All results are
+  bit-identical across targets and safe to feed the world hash. Negative `sqrt`
+  saturates to zero; `atan2` is four-quadrant and degenerate-input safe. Covered
+  by cardinal-angle, Pythagorean-identity, inverse, and determinism tests.
 - `parser`: column-aware diagnostics. Every parse error now carries a 1-based
   column, and `Diagnostic::render` prints the source line with a caret under the
   offending token (rustc/clang style).
