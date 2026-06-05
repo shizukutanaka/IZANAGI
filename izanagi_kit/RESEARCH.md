@@ -318,6 +318,34 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 - zero-dependency・`#![forbid(unsafe_code)]` を維持（テスト/fuzz は dev-dependencies で隔離可）。
 - 新規アルゴリズムは fixed-point(C2) と単一 RNG ストリーム(C3) の上に実装し、determinism property test(C8) を必ず追加。
 
+## 同種ソフトとの feature-parity / gap 分析 (Comparison vs. similar OSS)
+
+原プロンプトの「同種ソフトを参照して改善点を洗い出す」に対応。代表機能を OSS と比較し、**最大の gap**＝
+着手価値の高い改善点を可視化する。凡例: ✅ あり / ⚠️ 部分的 / ❌ 無し。
+
+| 機能 (capability) | izanagi_kit | bracket-lib (Rust roguelike) | libtcod (C roguelike) | bevy/entt (ECS) | ggrs (rollback) | 最大 gap → 改善点 |
+|------------------|:----:|:----:|:----:|:----:|:----:|------------------|
+| Generational handle / sparse-set | ✅ | ✅ | — | ✅ | — | — |
+| multi-component query / iteration | ❌ | ⚠️ | — | ✅ | — | **C1-1** query API |
+| archetype storage（大規模 iteration） | ❌ | ❌ | — | ✅ | — | C1-2 optional archetype |
+| fixed-point sqrt / trig | ❌ | ⚠️(f32) | ⚠️ | ⚠️(f32) | — | **C2-1/2** sqrt+CORDIC |
+| 決定論 PRNG（単一ストリーム） | ✅ | ✅ | ✅ | ⚠️ | ✅(要求) | — |
+| bias なし range 抽出 | ⚠️ | ✅ | ⚠️ | ✅ | — | **C3-1** Lemire range |
+| per-frame state hash / desync 検出 | ✅ | ❌ | ❌ | ⚠️ | ✅ | C4-3 desync 二分探索 |
+| snapshot / restore（rollback） | ❌ | ❌ | ❌ | ⚠️(bevy_ggrs) | ✅ | **C6-3** snapshot API |
+| input-only 同期 / replay ハーネス | ⚠️(単機) | ❌ | ❌ | ⚠️ | ✅ | **C6-2** replay harness |
+| FOV（shadowcasting） | ❌ | ✅ | ✅ | ❌ | — | **C10-1** symmetric FOV |
+| pathfinding（A*/Dijkstra） | ❌ | ✅ | ✅ | ❌ | — | **C10-2** A*/Dijkstra |
+| procedural generation | ❌ | ✅ | ⚠️ | ❌ | — | **C10-3** 決定論 procgen |
+| parser error recovery（複数エラー） | ⚠️ | — | — | — | — | C7-1 recovery |
+| coverage-guided fuzzing | ❌ | — | — | ⚠️ | — | C8-1 cargo-fuzz |
+| 機械可読診断（JSON/SARIF） | ❌ | — | — | — | — | C9-2 JSON 診断 |
+
+**読み取り**: izanagi_kit の**決定論コア（hash / PRNG / fixed-point / timestep）は同種ソフトと同等以上**だが、
+**roguelike アルゴリズム層（FOV / pathfinding / procgen, = C10）と rollback 運用層（snapshot / replay harness, = C6）**で
+最大の gap がある。いずれも 🟢 replay-safe に実装可能で、決定論コアの強みを活かせる領域。
+→ 実装着手の第一候補は **C10（FOV+A*+procgen）** と **C6（snapshot+replay harness）**。
+
 ## 検証済み一次出典 (Verified primary sources)
 
 下表の arXiv 論文は、表題・著者・年・査読会場を**一次情報まで照合済み**（2026-06-05、WebSearch インデックス
@@ -335,12 +363,15 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | 2308.07307 | Extend Wave Function Collapse to Large-Scale Content Generation | Nie, Zheng, Zhuang, Song | 2023 / IEEE | C10: 決定論的・aperiodic な N-WFC |
 | 2410.15644 | Procedural Content Generation in Games: A Survey with Insights on Emerging LLM Integration | Farrokhi Maleki, Zhao | 2024 | C10: PCG 手法サーベイ |
 | 2503.21474 | The Procedural Content Generation Benchmark | Khalifa, Gallotta, Barthet, Liapis, Togelius, Yannakakis | 2025 / FDG'25 | C10: PCG 評価 testbed |
+| 2501.00193 | A Pseudo-random Number Generator for Multi-Sequence Generation with Programmable Statistics | Wu, Salim, Elmitwalli, Köse, Ignjatovic | 2024 | C3: 複数ストリーム / programmable stats |
+| 2507.03007 | Statistical Quality and Reproducibility of Pseudorandom Number Generators in Machine Learning technologies | Antunes | 2025 | C3: PRNG 統計品質 / 再現性（BigCrush） |
+| 2507.03629 | Towards Automatic Error Recovery in Parsing Expression Grammars | Medeiros, Mascarenhas | SBLP 2018（arXiv 2025） | C7: PEG ラベル付き回復 |
+| 2602.18545 | Programmable Property-Based Testing | Keles, Frank, Mert, Goldstein, Lampropoulos | 2026 | C8: 生成器プログラム化 PBT |
 
-**未昇格（search-indexed、著者/年は次イテレーションで照合）**: 2507.03007（PRNG 統計品質/ML）,
-2501.00193（multi-sequence PRNG）, 2507.03629（PEG 回復・続報）, 2602.18545（Programmable PBT）。
+**未昇格（search-indexed、著者/年は次イテレーションで照合）**: なし — 本書が引用する arXiv 出典は**全件、表題・著者・年まで照合済み**。
 
 ## 出典について（検証メモ）
 - arXiv の abs / `ar5iv.labs.arxiv.org` / Semantic Scholar API は本環境の fetch bot に対し一律 **HTTP 403** を返すため、
   一次裏取りは **WebSearch のインデックス＋査読会場ページ**（ECOOP/USENIX/IEEE/FDG 等）で実施した。
-- 上記「検証済み一次出典」10件は表題・著者・年・会場まで確定。GitHub repo（owner/repo）はインデックス上で実在確認済み。
-- 残りの search-indexed 出典は次の `/loop` イテレーションで著者/年まで照合し、本表へ昇格する。
+- 上記「検証済み一次出典」**14件**は表題・著者・年・会場まで確定。GitHub repo（owner/repo）はインデックス上で実在確認済み。
+- 本書が引用する arXiv 出典は全件昇格済み。以後の `/loop` は出典照合ではなく、同種ソフトとの gap 分析・改善点の精緻化に充てる。
