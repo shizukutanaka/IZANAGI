@@ -119,7 +119,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 - GitHub: [Cyan4973/xxHash](https://github.com/Cyan4973/xxHash) — 高速非暗号 hash（per-frame コスト削減の候補）。
 
 **洗い出した改善点**
-1. **`DetHash` trait の導入**（型ごとに canonical なバイト列を定義、derive macro 化）。出典: ggrs Config checksum。🟢 replay-safe（現行 FNV をそのまま流用すれば値不変）。
+1. ✅**実装済み（一部）** — **`DetHash` trait の実装**（基本型 + `Fixed/Entity/Position/Render/Color` + `SparseSet::det_hash` で canonical 順序の容器 hash、`src/world_hash.rs` ほか）。derive macro 化は残。出典: ggrs Config checksum。🟢 replay-safe（FNV 流用で `PINNED_FINAL_HASH` 不変）。
 2. **order-independent な集合ハッシュ**（commutative combine）で sort コスト削減。出典: order-independent hashing。🔴 breaking（hash 値が変わる）→ 別 API。
 3. **desync 二分探索ツール**（per-system / per-component checksum を出力し最初に分岐した tick・型を特定）。出典: Bugnet, Gaffer。🟢 replay-safe。
 4. **xxHash/FxHash オプション**（per-frame hash の高速化）。出典: xxHash。🟡 gated（hash 関数変更で値が変わる→ feature 隔離）。
@@ -330,12 +330,12 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | archetype storage（大規模 iteration） | ❌ | ❌ | — | ✅ | — | C1-2 optional archetype |
 | fixed-point sqrt / trig | ✅ | ⚠️(f32) | ⚠️ | ⚠️(f32) | — | ✅ 実装済み（決定論 integer/CORDIC） |
 | 決定論 PRNG（単一ストリーム） | ✅ | ✅ | ✅ | ⚠️ | ✅(要求) | — |
-| bias なし range 抽出 | ⚠️ | ✅ | ⚠️ | ✅ | — | **C3-1** Lemire range |
+| bias なし range 抽出 | ✅ | ✅ | ⚠️ | ✅ | — | ✅ below=Lemire・range/coin 追加済み |
 | per-frame state hash / desync 検出 | ✅ | ❌ | ❌ | ⚠️ | ✅ | C4-3 desync 二分探索 |
 | snapshot / restore（rollback） | ❌ | ❌ | ❌ | ⚠️(bevy_ggrs) | ✅ | **C6-3** snapshot API |
 | input-only 同期 / replay ハーネス | ⚠️(単機) | ❌ | ❌ | ⚠️ | ✅ | **C6-2** replay harness |
 | FOV（shadowcasting） | ✅ | ✅ | ✅ | ❌ | — | ✅ 実装済み（symmetric, integer） |
-| pathfinding（A*/Dijkstra） | ⚠️(A*) | ✅ | ✅ | ❌ | — | A* 実装済み、Dijkstra map が残 |
+| pathfinding（A*/Dijkstra） | ✅ | ✅ | ✅ | ❌ | — | ✅ A* + Dijkstra map + descend 実装済み |
 | procedural generation | ❌ | ✅ | ⚠️ | ❌ | — | **C10-3** 決定論 procgen |
 | parser error recovery（複数エラー） | ⚠️ | — | — | — | — | C7-1 recovery |
 | coverage-guided fuzzing | ❌ | — | — | ⚠️ | — | C8-1 cargo-fuzz |

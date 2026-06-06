@@ -27,6 +27,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `SPEC.md`: a specification of the kit's API contracts, global invariants
+  (zero-dep, no-unsafe, no-float-in-sim, replay-determinism) and a completeness
+  checklist used to find and close gaps.
+- `world_hash`: `DetHash` implementations for the primitives (`u32`, `u64`,
+  `i32`, `bool`, `char`) and for the kit's value types (`Fixed`, `Entity`,
+  `Position`, `Render`, `Color`), plus `SparseSet::det_hash` which folds a
+  component store in canonical (ascending-index) order with its length — wiring
+  the determinism checksum through the actual data types.
+- `pathfinding`: `dijkstra_map` (multi-source Dijkstra distance field / flow
+  field, budgeted by `max_cost`) and `descend` (deterministic steepest-descent
+  step for chase/flee AI).
+- `rng`: `range(lo, hi)` (uniform `[lo, hi)`, empty range returns `lo` without
+  drawing) and `coin(num, den)` (probability `num/den`, degenerate odds resolved
+  without drawing) — both low-bias and draw-count-deterministic.
 - `pathfinding`: deterministic 8-directional A* grid pathfinding. Integer octile
   costs (10 orthogonal / 14 diagonal) and heuristic (no float), open set ordered
   by a total `(f, h, x, y)` key so the result is reproducible, fixed-order

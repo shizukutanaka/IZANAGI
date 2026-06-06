@@ -34,6 +34,13 @@ impl Color {
     }
 }
 
+impl crate::world_hash::DetHash for Color {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_bytes(&[self.r, self.g, self.b]);
+    }
+}
+
 /// An entity template. Instantiated once per [`Spawn`] that names it.
 #[derive(Clone, Debug)]
 pub struct Prefab {

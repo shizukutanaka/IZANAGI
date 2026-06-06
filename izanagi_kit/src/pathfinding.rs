@@ -119,6 +119,111 @@ where
     None
 }
 
+/// Multi-source Dijkstra distance field — a "flow field" / Dijkstra map (the
+/// `bracket-lib` term). Returns the minimum path cost from the *nearest* source
+/// to every reachable cell whose cost is `<= max_cost`. Sources map to 0.
+///
+/// Same 8-way moves, integer octile costs and no-corner-cutting rule as
+/// [`astar`]. Deterministic: the frontier is ordered by `(cost, x, y)`, so the
+/// computed cost of each cell is identical across runs and targets (the
+/// returned map's *iteration* order is not meaningful — look cells up by key).
+///
+/// `is_blocked` must report walls and out-of-bounds (this bounds the search).
+/// Blocked source cells are skipped; duplicate sources are harmless.
+pub fn dijkstra_map<B>(
+    sources: &[(i32, i32)],
+    max_cost: i32,
+    mut is_blocked: B,
+) -> HashMap<(i32, i32), i32>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    let mut dist: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut frontier: BinaryHeap<Reverse<(i32, i32, i32)>> = BinaryHeap::new();
+    for &(sx, sy) in sources {
+        if is_blocked(sx, sy) || dist.contains_key(&(sx, sy)) {
+            continue;
+        }
+        dist.insert((sx, sy), 0);
+        frontier.push(Reverse((0, sx, sy)));
+    }
+    while let Some(Reverse((cost, cx, cy))) = frontier.pop() {
+        // Lazy deletion: skip stale entries superseded by a cheaper relax.
+        if cost > dist[&(cx, cy)] {
+            continue;
+        }
+        for (dx, dy) in DIRS {
+            let (nx, ny) = (cx + dx, cy + dy);
+            if is_blocked(nx, ny) {
+                continue;
+            }
+            let diagonal = dx != 0 && dy != 0;
+            if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                continue;
+            }
+            let next = cost + if diagonal { COST_DIAG } else { COST_ORTHO };
+            if next > max_cost {
+                continue;
+            }
+            if next < *dist.get(&(nx, ny)).unwrap_or(&i32::MAX) {
+                dist.insert((nx, ny), next);
+                frontier.push(Reverse((next, nx, ny)));
+            }
+        }
+    }
+    dist
+}
+
+/// One step of steepest descent down a [`dijkstra_map`] — the passable
+/// neighbour with the lowest cost strictly below `from`'s. Returns `None` at a
+/// source, a local minimum, or a cell absent from the map. Useful for chase /
+/// flee (descend a map; flee by descending its negation). Ties break by fixed
+/// compass order, so the choice is deterministic.
+pub fn descend<B>(
+    map: &HashMap<(i32, i32), i32>,
+    from: (i32, i32),
+    mut is_blocked: B,
+) -> Option<(i32, i32)>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    let current = *map.get(&from)?;
+    let mut best: Option<((i32, i32), i32)> = None;
+    for (dx, dy) in DIRS {
+        let (nx, ny) = (from.0 + dx, from.1 + dy);
+        if is_blocked(nx, ny) {
+            continue;
+        }
+        let diagonal = dx != 0 && dy != 0;
+        if diagonal && (is_blocked(from.0 + dx, from.1) || is_blocked(from.0, from.1 + dy)) {
+            continue;
+        }
+        if let Some(&cost) = map.get(&(nx, ny)) {
+            // Replace only on a strict improvement, so the earliest (fixed-order)
+            // neighbour wins ties — deterministic.
+            if cost < current && best.is_none_or_lower(cost) {
+                best = Some(((nx, ny), cost));
+            }
+        }
+    }
+    best.map(|(cell, _)| cell)
+}
+
+/// Small helper to keep [`descend`]'s tie-break explicit and MSRV-friendly.
+trait BestCost {
+    fn is_none_or_lower(&self, candidate: i32) -> bool;
+}
+
+impl BestCost for Option<((i32, i32), i32)> {
+    #[inline]
+    fn is_none_or_lower(&self, candidate: i32) -> bool {
+        match self {
+            None => true,
+            Some((_, best)) => candidate < *best,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -223,5 +328,65 @@ mod tests {
         let b = astar((1, 1), (8, 8), blocker(12, 12, walls));
         assert_eq!(a, b);
         assert!(a.is_some());
+    }
+
+    #[test]
+    fn test_dijkstra_map_costs_on_open_grid() {
+        let map = dijkstra_map(&[(0, 0)], 1000, blocker(12, 12, HashSet::new()));
+        assert_eq!(map[&(0, 0)], 0);
+        assert_eq!(map[&(3, 0)], 3 * COST_ORTHO); // straight
+        assert_eq!(map[&(3, 3)], 3 * COST_DIAG); // pure diagonal
+        assert_eq!(map[&(1, 1)], COST_DIAG);
+        assert_eq!(map[&(2, 1)], COST_DIAG + COST_ORTHO); // one diag + one ortho
+    }
+
+    #[test]
+    fn test_dijkstra_map_respects_max_cost() {
+        let map = dijkstra_map(&[(0, 0)], 2 * COST_ORTHO, blocker(20, 20, HashSet::new()));
+        assert!(map.contains_key(&(2, 0)), "cost 20 is within budget");
+        assert!(!map.contains_key(&(3, 0)), "cost 30 exceeds the budget");
+        assert!(map.values().all(|&c| c <= 2 * COST_ORTHO));
+    }
+
+    #[test]
+    fn test_dijkstra_map_multi_source_takes_minimum() {
+        // Two sources at opposite ends; the midpoint takes the nearer one.
+        let map = dijkstra_map(&[(0, 0), (10, 0)], 1000, blocker(11, 3, HashSet::new()));
+        assert_eq!(map[&(0, 0)], 0);
+        assert_eq!(map[&(10, 0)], 0);
+        assert_eq!(map[&(2, 0)], 2 * COST_ORTHO); // nearer to (0,0)
+        assert_eq!(map[&(8, 0)], 2 * COST_ORTHO); // nearer to (10,0)
+    }
+
+    #[test]
+    fn test_descend_walks_to_a_source() {
+        let walls = HashSet::from([(5, 0), (5, 1), (5, 2), (5, 3)]); // partial wall
+        let blocked = blocker(12, 12, walls);
+        let map = dijkstra_map(&[(0, 0)], 10_000, &blocked);
+        // Greedily descend from a far cell; must strictly decrease and reach 0.
+        let mut cur = (9, 5);
+        let mut last = map[&cur];
+        let mut steps = 0;
+        while let Some(next) = descend(&map, cur, &blocked) {
+            assert!(map[&next] < last, "descent must strictly decrease cost");
+            last = map[&next];
+            cur = next;
+            steps += 1;
+            assert!(steps < 1000, "descent must terminate");
+        }
+        assert_eq!(map[&cur], 0, "descent ends at a source");
+    }
+
+    #[test]
+    fn test_dijkstra_map_is_deterministic() {
+        let walls = HashSet::from([(4, 2), (4, 3), (4, 4)]);
+        let a = dijkstra_map(&[(1, 1), (9, 9)], 500, blocker(12, 12, walls.clone()));
+        let b = dijkstra_map(&[(1, 1), (9, 9)], 500, blocker(12, 12, walls));
+        // Same keys and same costs (values are the deterministic part).
+        let mut ka: Vec<_> = a.iter().collect();
+        let mut kb: Vec<_> = b.iter().collect();
+        ka.sort();
+        kb.sort();
+        assert_eq!(ka, kb);
     }
 }

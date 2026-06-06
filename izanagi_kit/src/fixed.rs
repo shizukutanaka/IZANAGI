@@ -282,6 +282,13 @@ impl core::ops::Sub for Fixed {
     }
 }
 
+impl crate::world_hash::DetHash for Fixed {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_i32(self.0);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

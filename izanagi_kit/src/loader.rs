@@ -23,6 +23,22 @@ pub struct Render {
     pub color: Color,
 }
 
+impl crate::world_hash::DetHash for Position {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_u32(self.x);
+        hasher.write_u32(self.y);
+    }
+}
+
+impl crate::world_hash::DetHash for Render {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        crate::world_hash::DetHash::det_hash(&self.glyph, hasher);
+        crate::world_hash::DetHash::det_hash(&self.color, hasher);
+    }
+}
+
 /// A populated world for one level.
 pub struct LoadedLevel {
     pub alloc: EntityAllocator,

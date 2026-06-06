@@ -67,6 +67,14 @@ impl EntityAllocator {
     }
 }
 
+impl crate::world_hash::DetHash for Entity {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_u32(self.index);
+        hasher.write_u32(self.generation);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

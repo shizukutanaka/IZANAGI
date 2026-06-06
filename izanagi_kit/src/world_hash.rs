@@ -63,6 +63,43 @@ pub trait DetHash {
     fn det_hash(&self, hasher: &mut Fnv1a);
 }
 
+// Primitive impls. Fixed-width little-endian so the folded bytes are identical
+// on every target (no native-endian or pointer-width leakage).
+impl DetHash for u32 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(*self);
+    }
+}
+
+impl DetHash for u64 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u64(*self);
+    }
+}
+
+impl DetHash for i32 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i32(*self);
+    }
+}
+
+impl DetHash for bool {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_bytes(&[*self as u8]);
+    }
+}
+
+impl DetHash for char {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(*self as u32);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

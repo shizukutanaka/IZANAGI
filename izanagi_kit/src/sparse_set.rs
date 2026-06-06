@@ -119,6 +119,21 @@ impl<T> SparseSet<T> {
     }
 }
 
+impl<T: crate::world_hash::DetHash> SparseSet<T> {
+    /// Folds the set into a hasher in **canonical order** (ascending entity
+    /// index), independent of insert/swap history (invariant G6). The length is
+    /// folded first so `{}` and a set whose first element hashes to the offset
+    /// basis cannot collide. Pairs each entity handle with its component value.
+    pub fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        use crate::world_hash::DetHash;
+        hasher.write_u32(self.len() as u32);
+        for (entity, value) in self.iter_sorted() {
+            entity.det_hash(hasher);
+            value.det_hash(hasher);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,5 +187,34 @@ mod tests {
         s.insert(es[1], 10u32);
         let order: Vec<u32> = s.iter_sorted().iter().map(|(e, _)| e.index()).collect();
         assert_eq!(order, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn test_det_hash_ignores_insert_order_but_tracks_values() {
+        use crate::world_hash::Fnv1a;
+        let (_, es) = three();
+
+        let hash_of = |pairs: &[(Entity, u32)]| {
+            let mut s = SparseSet::new();
+            for &(e, v) in pairs {
+                s.insert(e, v);
+            }
+            let mut h = Fnv1a::new();
+            s.det_hash(&mut h);
+            h.finish()
+        };
+
+        // Same contents, different insert order → identical canonical hash.
+        let forward = hash_of(&[(es[0], 0), (es[1], 10), (es[2], 20)]);
+        let shuffled = hash_of(&[(es[2], 20), (es[0], 0), (es[1], 10)]);
+        assert_eq!(forward, shuffled, "canonical hash must ignore insert order");
+
+        // A changed value must change the hash.
+        let changed = hash_of(&[(es[0], 0), (es[1], 10), (es[2], 21)]);
+        assert_ne!(forward, changed, "value change must be observable");
+
+        // A different population (length) must change the hash.
+        let shorter = hash_of(&[(es[0], 0), (es[1], 10)]);
+        assert_ne!(forward, shorter, "length must be folded in");
     }
 }

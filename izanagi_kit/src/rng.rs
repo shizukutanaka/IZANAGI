@@ -42,6 +42,34 @@ impl SplitMix64 {
         (product >> 64) as u32
     }
 
+    /// Uniform integer in `[lo, hi)`. An empty range (`lo >= hi`) returns `lo`
+    /// **without** drawing, mirroring [`SplitMix64::below`] so the draw count
+    /// stays a deterministic function of the arguments. Uses a single low-bias
+    /// draw via `below`.
+    #[inline]
+    pub fn range(&mut self, lo: i32, hi: i32) -> i32 {
+        if lo >= hi {
+            return lo;
+        }
+        // hi > lo, so the span is in 1..=2^32 and fits a u32.
+        let span = (hi as i64 - lo as i64) as u32;
+        (lo as i64 + self.below(span) as i64) as i32
+    }
+
+    /// Returns `true` with probability `num/den` using one low-bias draw.
+    /// Degenerate odds are resolved without drawing (deterministic): `den == 0`
+    /// or `num == 0` is always `false`, and `num >= den` is always `true`.
+    #[inline]
+    pub fn coin(&mut self, num: u32, den: u32) -> bool {
+        if den == 0 || num == 0 {
+            return false;
+        }
+        if num >= den {
+            return true;
+        }
+        self.below(den) < num
+    }
+
     /// Snapshot of internal state — fold into the world hash to detect RNG
     /// stream divergence between two runs.
     #[inline]
@@ -93,5 +121,51 @@ mod tests {
         // Pins the algorithm so an accidental constant change is caught.
         let mut r = SplitMix64::new(0);
         assert_eq!(r.next_u64(), 0xE220_A839_7B1D_CDAF);
+    }
+
+    #[test]
+    fn test_range_stays_within_bounds() {
+        let mut r = SplitMix64::new(7);
+        for _ in 0..1000 {
+            let v = r.range(-5, 5);
+            assert!((-5..5).contains(&v));
+        }
+    }
+
+    #[test]
+    fn test_range_empty_returns_lo_without_drawing() {
+        let mut r = SplitMix64::new(7);
+        let before = r.state();
+        assert_eq!(r.range(3, 3), 3);
+        assert_eq!(r.range(9, 2), 9);
+        assert_eq!(r.state(), before, "empty range must not advance the stream");
+        // A unit range is always its single value.
+        assert_eq!(r.range(4, 5), 4);
+    }
+
+    #[test]
+    fn test_coin_degenerate_odds_do_not_draw() {
+        let mut r = SplitMix64::new(7);
+        let before = r.state();
+        assert!(!r.coin(0, 10));
+        assert!(!r.coin(5, 0));
+        assert!(r.coin(10, 10));
+        assert!(r.coin(11, 10));
+        assert_eq!(
+            r.state(),
+            before,
+            "degenerate odds must not advance the stream"
+        );
+    }
+
+    #[test]
+    fn test_coin_is_deterministic_and_plausible() {
+        let mut a = SplitMix64::new(123);
+        let mut b = SplitMix64::new(123);
+        let heads = (0..1000).filter(|_| a.coin(1, 2)).count();
+        let heads2 = (0..1000).filter(|_| b.coin(1, 2)).count();
+        assert_eq!(heads, heads2, "same seed → same coin sequence");
+        // Fair coin over 1000 trials should land well away from the extremes.
+        assert!((300..700).contains(&heads), "implausible fairness: {heads}");
     }
 }
