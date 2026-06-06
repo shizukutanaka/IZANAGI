@@ -10,7 +10,7 @@
 
 ## A. 時間とループ (Time & Loop)
 - A1 固定タイムステップ ✅ `timestep` / A2 補間 alpha ✅ / A3 death-spiral ガード ✅
-- A4 スケジューラ（タイマー・クールダウン・遅延イベント）⬜ / A5 ターン制エネルギー系（speed-based turn order）⬜
+- A4 スケジューラ（タイマー・クールダウン・遅延イベント）⬜ / A5 ターン制エネルギー系（speed-based turn order）✅ `turn`
 
 ## B. 数学 (Math)
 - B1 fixed-point Q16.16 ✅ `fixed` / B2 sqrt・CORDIC trig ✅ / B3 整数幾何（line/LOS）✅ `geometry`
@@ -52,7 +52,7 @@
 - K1 グリッド衝突（passability）🔶（pathfinding/mapgen の is_blocked）/ K2 AABB 重なり ⬜ / K3 空間ハッシュ broadphase ⬜
 
 ## L. ゲームプレイ系 (Gameplay systems)
-- L1 ターンスケジューラ（energy system）⬜ / L2 ステータス/戦闘式 ⬜ / L3 インベントリ/アイテム ⬜ / L4 状態異常（buff/debuff の期限管理）⬜
+- L1 ターンスケジューラ（energy system）✅ `turn` / L2 ステータス/戦闘式 ⬜ / L3 インベントリ/アイテム ⬜ / L4 状態異常（buff/debuff の期限管理）⬜
 
 ## M. UI
 - M1 メッセージログ ⬜ / M2 メニュー/ウィジェット ⬜ / M3 テキストレイアウト/折返し ⬜ / M4 HUD ⬜
@@ -73,8 +73,8 @@
 | 順 | カテゴリ | 理由 | 状態 |
 |----|---------|------|------|
 | 1 | **F 表示・描画**（cell buffer + ANSI + diff） | ゲームを**表示できない**最大の欠落。terminal-first 宣言と乖離 | ✅ 実装済み（`terminal`、F5 カメラのみ残） |
-| 2 | L1 ターンスケジューラ（energy system） | roguelike のコア進行 | ⬜（次の最優先） |
-| 3 | D4 weighted choice / loot table | コンテンツ/戦闘に必須 | ⬜ |
+| 2 | L1 ターンスケジューラ（energy system） | roguelike のコア進行 | ✅ 実装済み（`turn`） |
+| 3 | D4 weighted choice / loot table | コンテンツ/戦闘に必須 | ⬜（次の最優先） |
 | 4 | B4 fixed ベクトル | 移動・物理の土台 | ⬜ |
 | 5 | M1 メッセージログ / G2 コマンドキュー | UI・入力決定論 | ⬜ |
 

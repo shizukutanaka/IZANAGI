@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `turn`: energy/speed-based turn scheduler — the roguelike progression core.
+  Actors bank energy proportional to `speed` and act on reaching `ACTION_COST`;
+  faster actors act more often and leftover energy carries over. Time advances by
+  closed-form integer `ceil` division (no float), and same-unit ties break by
+  smallest id — fully deterministic. Generic over the actor id; `det_hash` folds
+  it (canonical id order) into replay-checked state. Covered by proportionality,
+  tie-break, add/remove, set_speed, and determinism tests.
 - `terminal`: the presentation layer the "terminal-first" engine was missing. A
   headless `Screen` of `Cell`s (glyph + 24-bit fg/bg) with edge-clipped drawing
   primitives (`set`/`put`/`clear`/`fill_rect`/`draw_str`), double-buffered

@@ -13,6 +13,7 @@
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
 //! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
+//! - [`turn`] — energy/speed-based turn scheduler.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
 //!   the content pipeline: author game elements as text, serialize them back,
@@ -37,6 +38,7 @@ pub mod serializer;
 pub mod sparse_set;
 pub mod terminal;
 pub mod timestep;
+pub mod turn;
 pub mod validator;
 pub mod world_hash;
 
@@ -55,5 +57,6 @@ pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use terminal::{Cell, Screen};
 pub use timestep::FixedTimestep;
+pub use turn::Scheduler;
 pub use validator::{is_loadable, validate};
 pub use world_hash::{hash_state, DetHash, Fnv1a};
