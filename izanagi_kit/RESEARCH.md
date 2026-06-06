@@ -287,7 +287,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 
 **洗い出した改善点**
 1. ✅**実装済み** — **symmetric shadowcasting FOV**（決定的・対称な視界、`src/fov.rs`、Albert Ford 法・整数有理数スロープ）。出典: stuffwithstuff, RogueBasin, libtcod。🟢 replay-safe（整数演算で実装）。
-2. **A* / Dijkstra map pathfinding**（tie-break を決定的に固定）。出典: bracket-pathfinding。🟢 replay-safe（順序確定が条件）。
+2. ⚠️**一部実装** — **A* pathfinding**（8方向・整数 octile・`(f,h,x,y)` 全順序で tie-break 固定・corner-cut 無し、`src/pathfinding.rs`）実装済み。**Dijkstra map（flow field）が残**。出典: bracket-pathfinding。🟢 replay-safe（順序確定済み）。
 3. **決定論的 procedural generation**（seed 駆動 BSP / room-corridor、将来 WFC）。出典: arXiv:1906.04660（Green et al., FDG'19）, 2308.07307（Nie et al., 2023、決定論的 N-WFC）。🟢 replay-safe（RNG=C3 を単一ストリームで使用）。
 4. **headless 描画スナップショットテスト**（出力セルバッファを golden 比較）。出典: ratatui TestBackend。🟢 replay-safe。
 5. **JPS による A* 高速化**（grid 限定の最適化）。🟢 replay-safe。
@@ -335,7 +335,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | snapshot / restore（rollback） | ❌ | ❌ | ❌ | ⚠️(bevy_ggrs) | ✅ | **C6-3** snapshot API |
 | input-only 同期 / replay ハーネス | ⚠️(単機) | ❌ | ❌ | ⚠️ | ✅ | **C6-2** replay harness |
 | FOV（shadowcasting） | ✅ | ✅ | ✅ | ❌ | — | ✅ 実装済み（symmetric, integer） |
-| pathfinding（A*/Dijkstra） | ❌ | ✅ | ✅ | ❌ | — | **C10-2** A*/Dijkstra |
+| pathfinding（A*/Dijkstra） | ⚠️(A*) | ✅ | ✅ | ❌ | — | A* 実装済み、Dijkstra map が残 |
 | procedural generation | ❌ | ✅ | ⚠️ | ❌ | — | **C10-3** 決定論 procgen |
 | parser error recovery（複数エラー） | ⚠️ | — | — | — | — | C7-1 recovery |
 | coverage-guided fuzzing | ❌ | — | — | ⚠️ | — | C8-1 cargo-fuzz |

@@ -27,6 +27,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `pathfinding`: deterministic 8-directional A* grid pathfinding. Integer octile
+  costs (10 orthogonal / 14 diagonal) and heuristic (no float), open set ordered
+  by a total `(f, h, x, y)` key so the result is reproducible, fixed-order
+  neighbour expansion, and no diagonal corner-cutting through walls. Generic over
+  an `is_blocked` closure. Covered by straight-line, diagonal, detour,
+  corner-cut, unreachable, and determinism tests.
 - `fov`: symmetric recursive shadowcasting field-of-view (Albert Ford's
   algorithm). Integer-only rational slopes (no float), fixed quadrant/column
   iteration order, zero allocation — bit-identical across targets. Generic over
