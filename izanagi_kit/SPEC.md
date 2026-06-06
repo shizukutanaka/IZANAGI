@@ -80,6 +80,10 @@
   `first_divergence(&[u64],&[u64]) -> Result<(),Divergence>`、`resimulate(&S, inputs, step) -> S`（snapshot を clone して再シミュ＝rollback 基盤）。`Divergence{tick,expected,actual}`。
 - 契約: `S: DetHash`（状態 hash は `hash_state`）。`step` クロージャでエンジン非依存。同一 `(初期状態,inputs)` で trace bit 一致、最初の分岐 tick を特定（G5、desync 二分探索の起点）。
 
+## 11.8 `terminal` — 表示層（セルバッファ）（実装済）
+- `Cell{glyph,fg,bg}`（`DetHash`）、`Screen{new,width,height,get,put,set,clear,fill_rect,draw_str,diff,present,to_ansi}`（`DetHash`）。
+- 契約: 描画は in-memory セル格子のみ（OS I/O 無し・ヘッドレス）。範囲外書込はクリップ（panic 無し, G7）。`to_ansi` は 24-bit truecolor の決定論文字列（行内で色が変わる時のみ SGR 再発行）。`diff`/`present` でダブルバッファ差分。フレームを world hash / snapshot test に畳める。
+
 ## 12. `gamec`（bin）— コンテンツゲート
 - `.game` を検証、`--fmt` で canonical 整形、エラー時非ゼロ終了（CI gate）。
 

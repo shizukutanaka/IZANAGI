@@ -11,6 +11,7 @@
 //! - [`pathfinding`] — deterministic 8-way A* grid pathfinding.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
+//! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
@@ -34,6 +35,7 @@ pub mod replay;
 pub mod rng;
 pub mod serializer;
 pub mod sparse_set;
+pub mod terminal;
 pub mod timestep;
 pub mod validator;
 pub mod world_hash;
@@ -51,6 +53,7 @@ pub use replay::{check_trace, first_divergence, record_trace, resimulate, Diverg
 pub use rng::SplitMix64;
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
+pub use terminal::{Cell, Screen};
 pub use timestep::FixedTimestep;
 pub use validator::{is_loadable, validate};
 pub use world_hash::{hash_state, DetHash, Fnv1a};

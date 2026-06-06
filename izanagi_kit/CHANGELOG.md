@@ -27,6 +27,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `terminal`: the presentation layer the "terminal-first" engine was missing. A
+  headless `Screen` of `Cell`s (glyph + 24-bit fg/bg) with edge-clipped drawing
+  primitives (`set`/`put`/`clear`/`fill_rect`/`draw_str`), double-buffered
+  `diff`/`present` change tracking, and a deterministic 24-bit ANSI serialiser
+  (`to_ansi`). `Cell`/`Screen` implement `DetHash` so a frame folds into the
+  world hash / snapshot tests. No OS I/O — writing to a tty is the caller's job.
+- `GAME_DEV_TAXONOMY.md`: thorough categorisation of what a game needs
+  (time/math/ECS/rng/determinism/rendering/input/content/world/AI/physics/
+  gameplay/UI/persistence/net/tooling), subdivided and mapped to coverage, as
+  the engine-enhancement roadmap.
 - `geometry`: integer Bresenham `line` (king-move-contiguous, endpoints
   inclusive) and `line_of_sight` (single-ray check; opaque endpoints don't
   block). Float-free and deterministic. Covered by axis/diagonal/adjacency and
