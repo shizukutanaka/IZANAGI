@@ -175,8 +175,8 @@ render 補間（interpolation alpha）や input サンプリングの tick 整�
 
 **洗い出した改善点**
 1. **input-only 同期の transport 非依存 API**（inputs を tick に紐付けて配信する trait、ネット実装は外部）。出典: ggrs/GGPO。🟢 replay-safe。
-2. **rollback/replay ハーネス**（任意 tick から seed+inputs で再シミュレートし hash 照合）。出典: rr, ggrs。🟢 replay-safe。
-3. **state snapshot/restore API**（rollback の前提。C4 の `DetHash` と対）。出典: bevy_ggrs snapshot。🟢 replay-safe。
+2. ✅**実装済み** — **rollback/replay ハーネス**（`replay::record_trace`/`check_trace`/`first_divergence`/`resimulate`、`src/replay.rs`）。出典: rr, ggrs。🟢 replay-safe。
+3. ✅**実装済み（基盤）** — **state snapshot/restore**（`replay::resimulate` が clone+再シミュで rollback 基盤を提供。`DetHash` と対）。出典: bevy_ggrs snapshot。🟢 replay-safe。
 4. **非決定 API の静的禁止**（`std::time`, `HashMap` iteration, float を lint / feature gate で遮断）。出典: yal.cc チェックリスト。🟢 replay-safe。
 5. **クロス OS/arch の決定性 CI**（Linux/macOS/Windows で `PINNED_FINAL_HASH` 一致を必須化）。出典: Deterministic Replay Survey。🟢 replay-safe。
 6. **input prediction の対応**（未着 input を前回値で予測し、誤りは rollback）。出典: GGPO。🟢 replay-safe（拡張）。
@@ -332,8 +332,8 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | 決定論 PRNG（単一ストリーム） | ✅ | ✅ | ✅ | ⚠️ | ✅(要求) | — |
 | bias なし range 抽出 | ✅ | ✅ | ⚠️ | ✅ | — | ✅ below=Lemire・range/coin 追加済み |
 | per-frame state hash / desync 検出 | ✅ | ❌ | ❌ | ⚠️ | ✅ | C4-3 desync 二分探索 |
-| snapshot / restore（rollback） | ❌ | ❌ | ❌ | ⚠️(bevy_ggrs) | ✅ | **C6-3** snapshot API |
-| input-only 同期 / replay ハーネス | ⚠️(単機) | ❌ | ❌ | ⚠️ | ✅ | **C6-2** replay harness |
+| snapshot / restore（rollback） | ✅(基盤) | ❌ | ❌ | ⚠️(bevy_ggrs) | ✅ | ✅ replay::resimulate（clone+再シミュ） |
+| input-only 同期 / replay ハーネス | ✅ | ❌ | ❌ | ⚠️ | ✅ | ✅ replay harness 実装済み（snapshot/rollback 基盤含む） |
 | FOV（shadowcasting） | ✅ | ✅ | ✅ | ❌ | — | ✅ 実装済み（symmetric, integer） |
 | pathfinding（A*/Dijkstra） | ✅ | ✅ | ✅ | ❌ | — | ✅ A* + Dijkstra map + descend 実装済み |
 | procedural generation | ✅ | ✅ | ⚠️ | ❌ | — | ✅ 実装済み（mapgen: rooms+corridors, 連結保証） |

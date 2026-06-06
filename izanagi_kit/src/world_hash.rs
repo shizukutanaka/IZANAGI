@@ -63,6 +63,15 @@ pub trait DetHash {
     fn det_hash(&self, hasher: &mut Fnv1a);
 }
 
+/// Convenience: reduce any [`DetHash`] value to a single 64-bit checksum. This
+/// is the per-frame "state hash" the replay harness compares.
+#[inline]
+pub fn hash_state<T: DetHash + ?Sized>(value: &T) -> u64 {
+    let mut hasher = Fnv1a::new();
+    value.det_hash(&mut hasher);
+    hasher.finish()
+}
+
 // Primitive impls. Fixed-width little-endian so the folded bytes are identical
 // on every target (no native-endian or pointer-width leakage).
 impl DetHash for u32 {

@@ -8,6 +8,7 @@
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
 //! - [`mapgen`] — seed-driven procedural dungeon generation (deterministic).
 //! - [`pathfinding`] — deterministic 8-way A* grid pathfinding.
+//! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
@@ -27,6 +28,7 @@ pub mod loader;
 pub mod mapgen;
 pub mod parser;
 pub mod pathfinding;
+pub mod replay;
 pub mod rng;
 pub mod serializer;
 pub mod sparse_set;
@@ -42,9 +44,10 @@ pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
 pub use parser::parse;
 pub use pathfinding::astar;
+pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
 pub use rng::SplitMix64;
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use timestep::FixedTimestep;
 pub use validator::{is_loadable, validate};
-pub use world_hash::{DetHash, Fnv1a};
+pub use world_hash::{hash_state, DetHash, Fnv1a};

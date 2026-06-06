@@ -27,6 +27,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `replay`: deterministic replay & desync-detection harness, generalising the
+  by-hand loop in `tests/determinism.rs`. `record_trace` produces a per-tick
+  state-hash trace; `check_trace`/`first_divergence` report the first diverging
+  tick (the desync-hunt starting point); `resimulate` clones a snapshot and
+  replays inputs onto it (the rollback primitive). Engine-agnostic via a
+  `step(&mut state, &input)` closure; state hashed through `DetHash`.
+- `world_hash`: `hash_state` (fold any `DetHash` value to a `u64`); `DetHash`
+  for `SplitMix64` (folds stream position) so RNG divergence shows in the hash.
 - `sparse_set`: multi-component queries `join` and `join_mut` — the inner join
   of two component stores (entities present in both), returned in canonical
   ascending-index order so iteration is deterministic. `join_mut` yields a

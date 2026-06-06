@@ -78,6 +78,14 @@ impl SplitMix64 {
     }
 }
 
+impl crate::world_hash::DetHash for SplitMix64 {
+    /// Folds the stream position so RNG divergence shows up in the world hash.
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_u64(self.state);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

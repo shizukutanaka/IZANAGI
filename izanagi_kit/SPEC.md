@@ -50,7 +50,8 @@
 ## 7. `world_hash` — 決定論 hashing
 - `Fnv1a{write_bytes/u32/u64/i32,finish}`、`trait DetHash{det_hash}`。
 - 契約: FNV-1a/64、順序依存。canonical 順序での fold は呼び手責務（G6）。
-- **新規（本仕様）**: 基本型（`u32,u64,i32,bool,char`）と kit 値型（`Fixed,Entity,Position,Render,Color`）への `DetHash` 実装（→ §13 D1）。
+- 基本型（`u32,u64,i32,bool,char`）と kit 値型（`Fixed,Entity,Position,Render,Color,SplitMix64,Dungeon`）への `DetHash` 実装。
+- `hash_state<T: DetHash>(&T) -> u64`（単一 checksum へ畳む便宜関数、`replay` が使用）。
 
 ## 8. `timestep` — 固定タイムステップ
 - `FixedTimestep{new,sixty_hz,step_ns,total_steps,advance(frame_ns)->steps,alpha_ratio()->(num,den)}`。
@@ -74,6 +75,11 @@
 - `Dungeon{width,height,rooms,is_wall,is_floor}`、`impl DetHash`（wall bitmap を pack して fold）。
 - 契約: 全乱択は渡された `SplitMix64` を固定順で消費（G3/G4）→ `(seed,params,size)` で byte 一致。room を rejection 配置（1セル境界）→ 直前 room と L 字回廊で接続 → **全 floor 連結**保証。小さすぎる盤面は all-wall（panic 無し, G7）。`is_wall` は OOB=wall で fov/pathfinding に直結。
 
+## 11.7 `replay` — リプレイ／desync 検出／rollback（実装済）
+- `record_trace(&mut S, inputs, step) -> Vec<u64>`（per-tick state hash 列）、`check_trace(...) -> Result<(),Divergence>`、
+  `first_divergence(&[u64],&[u64]) -> Result<(),Divergence>`、`resimulate(&S, inputs, step) -> S`（snapshot を clone して再シミュ＝rollback 基盤）。`Divergence{tick,expected,actual}`。
+- 契約: `S: DetHash`（状態 hash は `hash_state`）。`step` クロージャでエンジン非依存。同一 `(初期状態,inputs)` で trace bit 一致、最初の分岐 tick を特定（G5、desync 二分探索の起点）。
+
 ## 12. `gamec`（bin）— コンテンツゲート
 - `.game` を検証、`--fmt` で canonical 整形、エラー時非ゼロ終了（CI gate）。
 
@@ -94,7 +100,7 @@
 | **R1 rng `range`/`coin` エルゴノミクス** | ⬜→✅ | **本イテレーションで実装** |
 | procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | 本イテレーションで実装（rooms + corridors, 連結保証, DetHash） |
 | C1 multi-component query (`join`/`join_mut`) | ✅ | 本イテレーションで実装。archetype storage は ⬜ |
-| C6 state snapshot/restore + replay harness | ⬜ | RESEARCH C6 |
+| C6 replay harness + snapshot/rollback + desync 検出 = `replay` | ✅ | 本イテレーションで実装（record/check/first_divergence/resimulate）|
 | geometry: Bresenham line / LOS | ⬜ | FOV 補助 |
 | JPS / weighted A* / 機械可読診断(JSON) | ⬜ | RESEARCH C9/C10 |
 
