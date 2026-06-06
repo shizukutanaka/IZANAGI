@@ -101,7 +101,7 @@
 | procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | 本イテレーションで実装（rooms + corridors, 連結保証, DetHash） |
 | C1 multi-component query (`join`/`join_mut`) | ✅ | 本イテレーションで実装。archetype storage は ⬜ |
 | C6 replay harness + snapshot/rollback + desync 検出 = `replay` | ✅ | 本イテレーションで実装（record/check/first_divergence/resimulate）|
-| geometry: Bresenham line / LOS | ⬜ | FOV 補助 |
+| geometry: Bresenham line / LOS = `geometry` | ✅ | 本イテレーションで実装（`line`/`line_of_sight`）|
 | JPS / weighted A* / 機械可読診断(JSON) | ⬜ | RESEARCH C9/C10 |
 
 ### 本イテレーションで実装する不足部分

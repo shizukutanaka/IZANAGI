@@ -6,6 +6,7 @@
 //!   handles (cheap composition changes, O(1) lookup).
 //! - [`fixed`] — Q16.16 fixed-point for cross-platform-deterministic math.
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
+//! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (deterministic).
 //! - [`pathfinding`] — deterministic 8-way A* grid pathfinding.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
@@ -24,6 +25,7 @@ pub mod content;
 pub mod entity;
 pub mod fixed;
 pub mod fov;
+pub mod geometry;
 pub mod loader;
 pub mod mapgen;
 pub mod parser;
@@ -40,6 +42,7 @@ pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::compute_fov;
+pub use geometry::{line, line_of_sight};
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
 pub use parser::parse;

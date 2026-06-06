@@ -27,6 +27,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `geometry`: integer Bresenham `line` (king-move-contiguous, endpoints
+  inclusive) and `line_of_sight` (single-ray check; opaque endpoints don't
+  block). Float-free and deterministic. Covered by axis/diagonal/adjacency and
+  LOS (open / interior wall / opaque-endpoint) tests.
 - `replay`: deterministic replay & desync-detection harness, generalising the
   by-hand loop in `tests/determinism.rs`. `record_trace` produces a per-tick
   state-hash trace; `check_trace`/`first_divergence` report the first diverging
