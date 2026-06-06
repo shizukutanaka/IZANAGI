@@ -32,7 +32,9 @@
 ## 4. `sparse_set` — コンポーネント storage
 - `SparseSet<T>{insert,get,get_mut,remove(swap-remove),contains,len,iter,iter_mut,iter_sorted}`。
 - 契約: insert/get/remove は O(1)。`iter` は挿入履歴順（非 canonical）、`iter_sorted` は昇順 index（canonical, G6 用）。
-- **新規（本仕様）**: `det_hash(&Fnv1a)`（`T: DetHash`）— len と各 `(index,value)` を昇順 index で fold（→ §13 D1）。
+- `det_hash(&Fnv1a)`（`T: DetHash`）— len と各 `(index,value)` を昇順 index で fold。
+- **multi-component query（実装済）**: `join(&a,&b)->Vec<(Entity,&A,&B)>`（両在エンティティの inner join、昇順 index）、
+  `join_mut(&mut a,&b)->Vec<(Entity,&mut A,&B)>`（A を B で更新する system 向け）。小さい方を走査して probe（O(min)）。
 
 ## 5. `fixed` — Q16.16 固定小数点
 - `Fixed`：`from_int/from_ratio/raw/to_int_trunc/saturating_add/mul/div`、`Add/Sub`（飽和）。
@@ -91,7 +93,7 @@
 | **P1 Dijkstra map（flow field）＋ descend** | ⬜→✅ | **本イテレーションで実装** |
 | **R1 rng `range`/`coin` エルゴノミクス** | ⬜→✅ | **本イテレーションで実装** |
 | procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | 本イテレーションで実装（rooms + corridors, 連結保証, DetHash） |
-| C1 multi-component query / archetype | ⬜ | RESEARCH C1 |
+| C1 multi-component query (`join`/`join_mut`) | ✅ | 本イテレーションで実装。archetype storage は ⬜ |
 | C6 state snapshot/restore + replay harness | ⬜ | RESEARCH C6 |
 | geometry: Bresenham line / LOS | ⬜ | FOV 補助 |
 | JPS / weighted A* / 機械可読診断(JSON) | ⬜ | RESEARCH C9/C10 |

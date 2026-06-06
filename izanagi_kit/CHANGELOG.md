@@ -27,6 +27,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `sparse_set`: multi-component queries `join` and `join_mut` — the inner join
+  of two component stores (entities present in both), returned in canonical
+  ascending-index order so iteration is deterministic. `join_mut` yields a
+  mutable reference to the first component for systems that update `A` from `B`
+  (e.g. integrate `Position` by `Velocity`). The smaller store drives the scan.
 - `mapgen`: deterministic procedural dungeon generation. Seed-driven rooms
   (rejection-placed with a one-cell border) joined by L-shaped corridors, so the
   map is always fully connected; all randomness comes from a supplied

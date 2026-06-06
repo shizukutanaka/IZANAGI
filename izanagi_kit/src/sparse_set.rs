@@ -134,6 +134,50 @@ impl<T: crate::world_hash::DetHash> SparseSet<T> {
     }
 }
 
+/// Canonical inner join of two component stores: every entity present in
+/// **both**, in ascending-index order, paired with a reference to each
+/// component. This is the basic multi-component query — e.g. "every entity with
+/// a `Position` *and* a `Render`".
+///
+/// The smaller store is iterated and the other probed (O(min) lookups); the
+/// result is sorted by entity index so iteration order is canonical and
+/// deterministic regardless of either store's insert history (invariant G6).
+pub fn join<'a, A, B>(a: &'a SparseSet<A>, b: &'a SparseSet<B>) -> Vec<(Entity, &'a A, &'a B)> {
+    let mut out = Vec::new();
+    if a.len() <= b.len() {
+        for (entity, av) in a.iter() {
+            if let Some(bv) = b.get(entity) {
+                out.push((entity, av, bv));
+            }
+        }
+    } else {
+        for (entity, bv) in b.iter() {
+            if let Some(av) = a.get(entity) {
+                out.push((entity, av, bv));
+            }
+        }
+    }
+    out.sort_unstable_by_key(|(e, _, _)| e.index());
+    out
+}
+
+/// Like [`join`], but yields a mutable reference to the first store's component
+/// (and a shared reference to the second) — for systems that update `A` using
+/// `B` (e.g. advance `Position` by `Velocity`). Canonical ascending-index order.
+pub fn join_mut<'a, A, B>(
+    a: &'a mut SparseSet<A>,
+    b: &'a SparseSet<B>,
+) -> Vec<(Entity, &'a mut A, &'a B)> {
+    let mut out = Vec::new();
+    for (entity, av) in a.iter_mut() {
+        if let Some(bv) = b.get(entity) {
+            out.push((entity, av, bv));
+        }
+    }
+    out.sort_unstable_by_key(|(e, _, _)| e.index());
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -216,5 +260,64 @@ mod tests {
         // A different population (length) must change the hash.
         let shorter = hash_of(&[(es[0], 0), (es[1], 10)]);
         assert_ne!(forward, shorter, "length must be folded in");
+    }
+
+    #[test]
+    fn test_join_returns_only_entities_in_both_canonically() {
+        let mut alloc = EntityAllocator::new();
+        let es: Vec<Entity> = (0..4).map(|_| alloc.allocate()).collect();
+        let mut pos: SparseSet<u32> = SparseSet::new();
+        let mut vel: SparseSet<i32> = SparseSet::new();
+        // Insert in scrambled order; only es[1] and es[3] are in both.
+        pos.insert(es[3], 30);
+        pos.insert(es[0], 0);
+        pos.insert(es[1], 10);
+        vel.insert(es[1], -1);
+        vel.insert(es[3], -3);
+        vel.insert(es[2], -2); // not in pos
+
+        let joined = join(&pos, &vel);
+        let ids: Vec<u32> = joined.iter().map(|(e, _, _)| e.index()).collect();
+        assert_eq!(ids, vec![1, 3], "join is the intersection, ascending index");
+        assert_eq!(joined[0].1, &10);
+        assert_eq!(joined[0].2, &-1);
+    }
+
+    #[test]
+    fn test_join_order_independent_of_which_store_is_smaller() {
+        let mut alloc = EntityAllocator::new();
+        let es: Vec<Entity> = (0..3).map(|_| alloc.allocate()).collect();
+        let mut a: SparseSet<u32> = SparseSet::new();
+        let mut b: SparseSet<u32> = SparseSet::new();
+        for &e in &es {
+            a.insert(e, e.index());
+        }
+        // b is the smaller store (drives the other branch of `join`).
+        b.insert(es[2], 2);
+        b.insert(es[0], 0);
+        let ids: Vec<u32> = join(&a, &b).iter().map(|(e, _, _)| e.index()).collect();
+        let ids_rev: Vec<u32> = join(&b, &a).iter().map(|(e, _, _)| e.index()).collect();
+        assert_eq!(ids, vec![0, 2]);
+        assert_eq!(ids, ids_rev, "join order must not depend on argument order");
+    }
+
+    #[test]
+    fn test_join_mut_can_update_a_using_b() {
+        let mut alloc = EntityAllocator::new();
+        let es: Vec<Entity> = (0..3).map(|_| alloc.allocate()).collect();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        let mut vel: SparseSet<i32> = SparseSet::new();
+        for (i, &e) in es.iter().enumerate() {
+            pos.insert(e, (i as i32 + 1) * 100);
+        }
+        vel.insert(es[0], 5);
+        vel.insert(es[2], 7); // es[1] has no velocity
+
+        for (_, p, v) in join_mut(&mut pos, &vel) {
+            *p += *v;
+        }
+        assert_eq!(pos.get(es[0]), Some(&105));
+        assert_eq!(pos.get(es[1]), Some(&200), "no velocity → unchanged");
+        assert_eq!(pos.get(es[2]), Some(&307));
     }
 }

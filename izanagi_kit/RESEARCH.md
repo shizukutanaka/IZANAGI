@@ -37,7 +37,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 - 記事: csherratt *"Specs and Legion, two very different approaches to ECS"* — bitset filter vs archetype table の比較。
 
 **洗い出した改善点**
-1. **multi-component query / iteration API**（複数 sparse-set の同時走査、最小集合からの join）。現状は単一型走査のみ。出典: entt group/view, legion query。🟢 replay-safe（canonical 順序を保てば hash 不変）。
+1. ✅**実装済み** — **multi-component query / iteration API**（`sparse_set::join`/`join_mut`、最小集合走査・canonical 昇順）。archetype storage は残。出典: entt group/view, legion query。🟢 replay-safe（canonical 順序）。
 2. **archetype storage の optional 化**（大規模 iteration 向け）。sparse-set と併用で「変更コスト vs 走査コスト」を選択可能に。出典: bevy hybrid storage, EG 比較論文。🟡 gated（storage 切替で iteration 順序が変わるとハッシュに波及。canonical sort を hash 層で保証すれば緩和）。
 3. **bitset によるコンポーネント有無の高速判定**（query 高速化）。出典: specs bitset filter。🟢 replay-safe。
 4. **generation 枯渇（u32 wrap）時の handle 再利用ポリシー明文化**。出典: hecs generational index 解説。🟢 replay-safe（テスト追加のみ）。

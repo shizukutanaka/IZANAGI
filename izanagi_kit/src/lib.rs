@@ -44,7 +44,7 @@ pub use parser::parse;
 pub use pathfinding::astar;
 pub use rng::SplitMix64;
 pub use serializer::{content_eq, serialize};
-pub use sparse_set::SparseSet;
+pub use sparse_set::{join, join_mut, SparseSet};
 pub use timestep::FixedTimestep;
 pub use validator::{is_loadable, validate};
 pub use world_hash::{DetHash, Fnv1a};
