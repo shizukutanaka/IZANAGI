@@ -6,6 +6,7 @@
 //!   handles (cheap composition changes, O(1) lookup).
 //! - [`fixed`] — Q16.16 fixed-point for cross-platform-deterministic math.
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
+//! - [`mapgen`] — seed-driven procedural dungeon generation (deterministic).
 //! - [`pathfinding`] — deterministic 8-way A* grid pathfinding.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
@@ -23,6 +24,7 @@ pub mod entity;
 pub mod fixed;
 pub mod fov;
 pub mod loader;
+pub mod mapgen;
 pub mod parser;
 pub mod pathfinding;
 pub mod rng;
@@ -37,6 +39,7 @@ pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::compute_fov;
 pub use loader::{load_level, LoadedLevel, Position, Render};
+pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
 pub use parser::parse;
 pub use pathfinding::astar;
 pub use rng::SplitMix64;

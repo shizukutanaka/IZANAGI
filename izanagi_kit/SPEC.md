@@ -67,6 +67,11 @@
 - **新規（本仕様）**: `dijkstra_map(sources,max_cost,is_blocked)->HashMap<cell,cost>`（多源距離場 / flow field）と
   `descend(&map,from,is_blocked)->Option<cell>`（最小コスト隣接へ決定的に降下、chase AI 用）（→ §13 P1）。
 
+## 11.5 `mapgen` — 手続き的ダンジョン生成（実装済）
+- `generate_dungeon(width,height,&mut SplitMix64,GenParams) -> Dungeon`、`Rect`、`GenParams{max_rooms,min_room,max_room}`。
+- `Dungeon{width,height,rooms,is_wall,is_floor}`、`impl DetHash`（wall bitmap を pack して fold）。
+- 契約: 全乱択は渡された `SplitMix64` を固定順で消費（G3/G4）→ `(seed,params,size)` で byte 一致。room を rejection 配置（1セル境界）→ 直前 room と L 字回廊で接続 → **全 floor 連結**保証。小さすぎる盤面は all-wall（panic 無し, G7）。`is_wall` は OOB=wall で fov/pathfinding に直結。
+
 ## 12. `gamec`（bin）— コンテンツゲート
 - `.game` を検証、`--fmt` で canonical 整形、エラー時非ゼロ終了（CI gate）。
 
@@ -85,7 +90,7 @@
 | **D1 DetHash 実装（値型）＋ SparseSet 正準 hash** | ⬜→✅ | **本イテレーションで実装** |
 | **P1 Dijkstra map（flow field）＋ descend** | ⬜→✅ | **本イテレーションで実装** |
 | **R1 rng `range`/`coin` エルゴノミクス** | ⬜→✅ | **本イテレーションで実装** |
-| procedural generation（seed 駆動ダンジョン） | ⬜ | 次イテレーション候補 |
+| procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | 本イテレーションで実装（rooms + corridors, 連結保証, DetHash） |
 | C1 multi-component query / archetype | ⬜ | RESEARCH C1 |
 | C6 state snapshot/restore + replay harness | ⬜ | RESEARCH C6 |
 | geometry: Bresenham line / LOS | ⬜ | FOV 補助 |

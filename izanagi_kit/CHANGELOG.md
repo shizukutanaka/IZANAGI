@@ -27,6 +27,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `mapgen`: deterministic procedural dungeon generation. Seed-driven rooms
+  (rejection-placed with a one-cell border) joined by L-shaped corridors, so the
+  map is always fully connected; all randomness comes from a supplied
+  `SplitMix64` in fixed order, giving byte-identical maps per `(seed, params,
+  size)`. `Dungeon` exposes `is_wall`/`is_floor` (OOB = wall, drop-in for `fov`
+  and `pathfinding`) and implements `DetHash`. Covered by reproducibility,
+  border, disjoint-rooms, full-connectivity (flood via `dijkstra_map`), and
+  tiny-map tests.
 - `SPEC.md`: a specification of the kit's API contracts, global invariants
   (zero-dep, no-unsafe, no-float-in-sim, replay-determinism) and a completeness
   checklist used to find and close gaps.
