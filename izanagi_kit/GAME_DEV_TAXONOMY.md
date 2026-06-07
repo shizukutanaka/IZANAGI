@@ -22,7 +22,7 @@
 
 ## D. 乱数 (Randomness)
 - D1 決定論 PRNG ✅ `rng` / D2 range・coin ✅ / D3 stream の DetHash ✅
-- D4 重み付き抽選（weighted choice / loot table）⬜ / D5 ダイス（NdM）⬜ / D6 value/Perlin noise（整数）⬜
+- D4 重み付き抽選（weighted choice / loot table）✅ `weighted_index` / D5 ダイス（NdM）✅ `dice` / D6 value/Perlin noise（整数）⬜
 
 ## E. 決定論・リプレイ (Determinism & Replay)
 - E1 state hashing FNV-1a ✅ `world_hash` / E2 DetHash（値型＋容器）✅ / E3 replay trace・desync 検出 ✅ `replay`
@@ -74,7 +74,7 @@
 |----|---------|------|------|
 | 1 | **F 表示・描画**（cell buffer + ANSI + diff） | ゲームを**表示できない**最大の欠落。terminal-first 宣言と乖離 | ✅ 実装済み（`terminal`、F5 カメラのみ残） |
 | 2 | L1 ターンスケジューラ（energy system） | roguelike のコア進行 | ✅ 実装済み（`turn`） |
-| 3 | D4 weighted choice / loot table | コンテンツ/戦闘に必須 | ⬜（次の最優先） |
+| 3 | D4 weighted choice / loot table | コンテンツ/戦闘に必須 | ✅ 実装済み（`weighted_index`, `dice`） |
 | 4 | B4 fixed ベクトル | 移動・物理の土台 | ⬜ |
 | 5 | M1 メッセージログ / G2 コマンドキュー | UI・入力決定論 | ⬜ |
 

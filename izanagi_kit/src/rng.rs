@@ -70,6 +70,44 @@ impl SplitMix64 {
         self.below(den) < num
     }
 
+    /// Pick an index in `0..weights.len()` with probability proportional to its
+    /// weight (a loot/spawn table). Zero-weight entries are never chosen. Returns
+    /// `None` — without drawing — for an empty slice or all-zero weights. Uses a
+    /// single low-bias draw; the weight sum is accumulated in `u64`, so many
+    /// large `u32` weights cannot overflow.
+    pub fn weighted_index(&mut self, weights: &[u32]) -> Option<usize> {
+        let total: u64 = weights.iter().map(|&w| w as u64).sum();
+        if total == 0 {
+            return None;
+        }
+        // Wide-multiply pick in [0, total), the u64 analogue of `below`.
+        let mut pick = ((self.next_u64() as u128 * total as u128) >> 64) as u64;
+        for (i, &w) in weights.iter().enumerate() {
+            let w = w as u64;
+            if pick < w {
+                return Some(i);
+            }
+            pick -= w;
+        }
+        // Rounding can't normally reach here; fall back to the last real entry.
+        weights.iter().rposition(|&w| w > 0)
+    }
+
+    /// Roll `count` dice of `sides` faces and sum them (the tabletop `NdM`). Each
+    /// die yields `1..=sides`. `sides == 0` returns 0; `count == 0` returns 0.
+    /// Draws exactly `count` times (when `sides > 0`); the sum saturates rather
+    /// than overflowing.
+    pub fn dice(&mut self, count: u32, sides: u32) -> u32 {
+        if sides == 0 {
+            return 0;
+        }
+        let mut sum = 0u32;
+        for _ in 0..count {
+            sum = sum.saturating_add(self.below(sides) + 1);
+        }
+        sum
+    }
+
     /// Snapshot of internal state — fold into the world hash to detect RNG
     /// stream divergence between two runs.
     #[inline]
@@ -175,5 +213,97 @@ mod tests {
         assert_eq!(heads, heads2, "same seed → same coin sequence");
         // Fair coin over 1000 trials should land well away from the extremes.
         assert!((300..700).contains(&heads), "implausible fairness: {heads}");
+    }
+
+    #[test]
+    fn test_weighted_index_empty_and_all_zero_return_none() {
+        let mut r = SplitMix64::new(42);
+        assert_eq!(r.weighted_index(&[]), None);
+        let before = r.state();
+        assert_eq!(r.weighted_index(&[0, 0, 0]), None);
+        assert_eq!(
+            r.state(),
+            before,
+            "all-zero weights must not advance the stream"
+        );
+    }
+
+    #[test]
+    fn test_weighted_index_single_nonzero_always_chosen() {
+        let mut r = SplitMix64::new(99);
+        for _ in 0..20 {
+            assert_eq!(r.weighted_index(&[0, 0, 7, 0]), Some(2));
+        }
+    }
+
+    #[test]
+    fn test_weighted_index_proportional_distribution() {
+        let mut r = SplitMix64::new(0xABCD);
+        let mut counts = [0u32; 3];
+        let weights = [1u32, 2, 7]; // 10%, 20%, 70%
+        for _ in 0..1000 {
+            counts[r.weighted_index(&weights).unwrap()] += 1;
+        }
+        // Allow generous slack (±15%) — correctness, not statistics.
+        assert!(
+            (50..200).contains(&counts[0]),
+            "weight-1 bucket: {}",
+            counts[0]
+        );
+        assert!(
+            (100..350).contains(&counts[1]),
+            "weight-2 bucket: {}",
+            counts[1]
+        );
+        assert!(
+            (550..850).contains(&counts[2]),
+            "weight-7 bucket: {}",
+            counts[2]
+        );
+    }
+
+    #[test]
+    fn test_weighted_index_is_deterministic() {
+        let run = || {
+            let mut r = SplitMix64::new(7);
+            (0..50)
+                .map(|_| r.weighted_index(&[3, 1, 2]).unwrap())
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(run(), run());
+    }
+
+    #[test]
+    fn test_dice_sides_zero_returns_zero() {
+        let mut r = SplitMix64::new(1);
+        let before = r.state();
+        assert_eq!(r.dice(5, 0), 0);
+        assert_eq!(r.state(), before, "sides=0 must not draw");
+    }
+
+    #[test]
+    fn test_dice_count_zero_returns_zero() {
+        let mut r = SplitMix64::new(1);
+        let before = r.state();
+        assert_eq!(r.dice(0, 6), 0);
+        assert_eq!(r.state(), before, "count=0 must not draw");
+    }
+
+    #[test]
+    fn test_dice_sum_within_bounds() {
+        let mut r = SplitMix64::new(77);
+        for _ in 0..200 {
+            let v = r.dice(3, 6); // 3d6: [3, 18]
+            assert!((3..=18).contains(&v), "3d6 out of range: {v}");
+        }
+    }
+
+    #[test]
+    fn test_dice_is_deterministic() {
+        let run = || {
+            let mut r = SplitMix64::new(55);
+            (0..50).map(|_| r.dice(2, 8)).collect::<Vec<_>>()
+        };
+        assert_eq!(run(), run());
     }
 }

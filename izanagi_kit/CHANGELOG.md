@@ -27,6 +27,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `rng::weighted_index`: loot/spawn table draw — picks an index in proportion to
+  its weight using a single wide-multiply draw (u64 analogue of `below`). Returns
+  `None` without drawing for an empty slice or all-zero weights. Zero-weight
+  entries are never chosen; the weight sum accumulates in `u64` so many large
+  `u32` weights don't overflow. Covered by empty/all-zero, single-nonzero,
+  proportional-distribution, and determinism tests.
+- `rng::dice`: tabletop `NdM` roll — sums `count` independent draws from
+  `1..=sides`; `sides == 0` or `count == 0` return `0` without drawing. Sum
+  saturates instead of wrapping. Draws exactly `count` times, so draw position is
+  a deterministic function of the arguments. Covered by sides-zero, count-zero,
+  within-bounds, and determinism tests.
 - `turn`: energy/speed-based turn scheduler — the roguelike progression core.
   Actors bank energy proportional to `speed` and act on reaching `ACTION_COST`;
   faster actors act more often and leftover energy carries over. Time advances by
