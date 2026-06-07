@@ -61,6 +61,8 @@ pub struct Fixed(i32);
 impl Fixed {
     pub const ZERO: Fixed = Fixed(0);
     pub const ONE: Fixed = Fixed(ONE);
+    pub const MAX: Fixed = Fixed(i32::MAX);
+    pub const MIN: Fixed = Fixed(i32::MIN);
 
     /// Saturates rather than wrapping: `from_int(32768)` exceeds the Q16.16
     /// integer range and clamps to the maximum instead of silently flipping

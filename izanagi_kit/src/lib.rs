@@ -14,6 +14,7 @@
 //! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
 //! - [`turn`] — energy/speed-based turn scheduler.
+//! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
 //!   the content pipeline: author game elements as text, serialize them back,
@@ -40,6 +41,7 @@ pub mod terminal;
 pub mod timestep;
 pub mod turn;
 pub mod validator;
+pub mod vec;
 pub mod world_hash;
 
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
@@ -59,4 +61,5 @@ pub use terminal::{Cell, Screen};
 pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
 pub use validator::{is_loadable, validate};
+pub use vec::{Vec2, Vec3};
 pub use world_hash::{hash_state, DetHash, Fnv1a};

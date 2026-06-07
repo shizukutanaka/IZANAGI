@@ -14,7 +14,7 @@
 
 ## B. 数学 (Math)
 - B1 fixed-point Q16.16 ✅ `fixed` / B2 sqrt・CORDIC trig ✅ / B3 整数幾何（line/LOS）✅ `geometry`
-- B4 fixed ベクトル（vec2/vec3, dot/len/normalize）⬜ / B5 easing・tween（整数）⬜ / B6 補間（lerp/clamp/sign）🔶
+- B4 fixed ベクトル（vec2/vec3, dot/len/normalize）✅ `vec` / B5 easing・tween（整数）⬜ / B6 補間（lerp/clamp/sign）🔶
 
 ## C. 状態とデータ (State & Data / ECS)
 - C1 generational entity ✅ `entity` / C2 sparse-set storage ✅ / C3 多コンポーネント join ✅
@@ -75,7 +75,7 @@
 | 1 | **F 表示・描画**（cell buffer + ANSI + diff） | ゲームを**表示できない**最大の欠落。terminal-first 宣言と乖離 | ✅ 実装済み（`terminal`、F5 カメラのみ残） |
 | 2 | L1 ターンスケジューラ（energy system） | roguelike のコア進行 | ✅ 実装済み（`turn`） |
 | 3 | D4 weighted choice / loot table | コンテンツ/戦闘に必須 | ✅ 実装済み（`weighted_index`, `dice`） |
-| 4 | B4 fixed ベクトル | 移動・物理の土台 | ⬜ |
+| 4 | B4 fixed ベクトル | 移動・物理の土台 | ✅ 実装済み（`vec` — Vec2/Vec3） |
 | 5 | M1 メッセージログ / G2 コマンドキュー | UI・入力決定論 | ⬜ |
 
 **本イテレーションの着手**: F（表示層）= `terminal` モジュール（セルバッファ・ANSI 24-bit・差分・ヘッドレス検査・DetHash）。

@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `vec`: fixed-point 2-D and 3-D vectors (`Vec2`/`Vec3`) over `Fixed`. Each
+  type exposes `new`/`ZERO`, `dot`, `len_sq`, `len` (integer isqrt), `scale`,
+  `normalize` (returns `None` for the zero vector — no panic, no garbage),
+  `Add`/`Sub`/`Neg` operators (all saturating, no wrap), and `DetHash`.
+  `Vec2` additionally has `perp` (90° CCW rotation). `Fixed` gains `MAX`/`MIN`
+  constants. Covered by 21 new unit tests across arithmetic, Pythagorean
+  identity, cross-product anti-commutativity, normalize, and saturation.
 - `rng::weighted_index`: loot/spawn table draw — picks an index in proportion to
   its weight using a single wide-multiply draw (u64 analogue of `below`). Returns
   `None` without drawing for an empty slice or all-zero weights. Zero-weight
