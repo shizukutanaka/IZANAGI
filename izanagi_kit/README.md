@@ -42,7 +42,7 @@ with per-feature implementation status — lives in
 
 ## Runnable examples
 
-Thirteen self-contained demos render to the terminal via the `terminal` module
+Fourteen self-contained demos render to the terminal via the `terminal` module
 (24-bit ANSI, zero OS dependencies — they run unchanged in CI):
 
 ```
@@ -59,6 +59,7 @@ cargo run --example menu_textlayout_demo     # Menu navigation + word-wrap + tex
 cargo run --example camera_viewport_demo     # Camera viewport + TileMap + ChangeTracker + Profiler
 cargo run --example geometry_easing_demo     # line / line_of_sight / Aabb / Fixed easing sparklines
 cargo run --example input_pipeline_demo      # KeyMap / InputBuffer / CmdQueue deterministic input
+cargo run --example autotile_demo            # bitmask auto-tiling: compute_all + SimpleTileTable
 ```
 
 Pipe any of them to a truecolor terminal for full colour; in a plain pipe the
