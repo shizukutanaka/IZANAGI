@@ -1,0 +1,254 @@
+//! Deterministic integer noise functions for procedural generation.
+//!
+//! All functions are pure, float-free, and bit-identical across targets.
+//!
+//! ## Provided functions
+//!
+//! - `value_noise_1d(x, seed)` — 1-D value noise: smooth cubic-interpolated
+//!   integer noise in `[0, 65535]`.
+//! - `value_noise_2d(x, y, seed)` — 2-D value noise: bilinear-interpolated
+//!   integer noise in `[0, 65535]`.
+//! - `hash_1d(x, seed)` — fast integer hash of one coordinate + seed.
+//!   Returns a `u32` in `[0, u32::MAX]`. Use as a raw random-looking value
+//!   without smoothing (e.g. for scatter / jitter tables).
+//! - `hash_2d(x, y, seed)` — 2-D version of the same.
+//!
+//! ## Design notes
+//!
+//! The hash mixes coordinates with a seed using the same integer operations as
+//! SplitMix64 (xor-shift + multiply). Value noise interpolates between corner
+//! hashes using a cubic Hermite ("smoothstep") polynomial computed in fixed-
+//! point Q16.16 so no float is ever touched.
+//!
+//! The output range `[0, 65535]` is chosen so two values can be multiplied in
+//! `u32` without overflow (fits Q16.0 integer arithmetic).
+
+/// Fast integer hash of one coordinate + seed. Output in `[0, u32::MAX]`.
+#[inline]
+pub fn hash_1d(x: i32, seed: u64) -> u32 {
+    let mut h = seed.wrapping_add(x as u64);
+    h = h.wrapping_mul(0x9e37_79b9_7f4a_7c15);
+    h ^= h >> 30;
+    h = h.wrapping_mul(0xbf58_476d_1ce4_e5b9);
+    h ^= h >> 27;
+    h = h.wrapping_mul(0x94d0_49bb_1331_11eb);
+    h ^= h >> 31;
+    (h >> 32) as u32
+}
+
+/// Fast integer hash of two coordinates + seed. Output in `[0, u32::MAX]`.
+#[inline]
+pub fn hash_2d(x: i32, y: i32, seed: u64) -> u32 {
+    // Fold y into the seed so the two axes are independent.
+    let seed2 = seed.wrapping_add(y as u64).wrapping_mul(0x6c62272e07bb0142);
+    hash_1d(x, seed2)
+}
+
+/// Cubic Hermite smoothstep: `3t² - 2t³` in Q16.16 fixed-point.
+/// Input `t` in `[0, 65536]` (Q16.16 where 65536 = 1.0).
+/// Output in `[0, 65536]`.
+#[inline]
+fn smoothstep(t: u32) -> u32 {
+    // t_norm in [0, 256] representing t as a fraction of 256.
+    // We use 32-bit arithmetic throughout to stay in MSRV range.
+    // 3t² - 2t³  where t ∈ [0, 1] encoded as t_q = t * 65536.
+    // To avoid 64-bit overflow we work at reduced precision: scale t to [0,256].
+    let t256 = t >> 8; // [0, 256], t scaled to 1/256 precision
+    let t2 = t256 * t256; // t² * 65536, range [0, 65536]
+    let t3 = (t2 * t256) >> 8; // t³ * 65536, range [0, 65536]
+    // 3t² - 2t³ ∈ [0, 1] for t ∈ [0, 1]; both operands already scaled by 65536.
+    3 * t2 - 2 * t3
+}
+
+/// 1-D value noise: smooth cubic-interpolated noise in `[0, 65535]`.
+///
+/// `x` is the sample coordinate; `seed` differentiates noise layers.
+pub fn value_noise_1d(x: i32, seed: u64) -> u32 {
+    let x0 = x;
+    let x1 = x.wrapping_add(1);
+    // Fractional part: where in [x0, x1] are we? We use the low 16 bits of
+    // the raw coordinate cast to u32 as the fractional part in Q16.16.
+    // Since x is already an integer, the fractional part is 0 — value noise
+    // at integer coordinates returns exactly the corner hash (no interpolation).
+    // To get sub-integer samples, callers pass a fixed-point x (upper 16 bits
+    // = integer part, lower 16 bits = fractional). We extract those here.
+    let xi = x >> 16; // integer coordinate
+    let frac = (x as u32) & 0xffff; // fractional part in Q16.16
+
+    let v0 = hash_1d(xi, seed) >> 16; // [0, 65535]
+    let v1 = hash_1d(xi.wrapping_add(1), seed) >> 16;
+    let _ = (x0, x1); // used conceptually above
+
+    // Smooth interpolation: v0 + (v1 - v0) * smoothstep(frac).
+    let t = smoothstep(frac); // [0, 65536]
+    let lerped = if v1 >= v0 {
+        v0 + (((v1 - v0) * t) >> 16)
+    } else {
+        v0 - (((v0 - v1) * t) >> 16)
+    };
+    lerped.min(65535)
+}
+
+/// 2-D value noise: bilinear-interpolated noise in `[0, 65535]`.
+///
+/// `x` and `y` are fixed-point Q16.16 coordinates (upper 16 bits = integer,
+/// lower 16 bits = fraction). `seed` differentiates noise layers.
+pub fn value_noise_2d(x: i32, y: i32, seed: u64) -> u32 {
+    let xi = x >> 16;
+    let yi = y >> 16;
+    let fx = (x as u32) & 0xffff;
+    let fy = (y as u32) & 0xffff;
+
+    let v00 = hash_2d(xi, yi, seed) >> 16;
+    let v10 = hash_2d(xi.wrapping_add(1), yi, seed) >> 16;
+    let v01 = hash_2d(xi, yi.wrapping_add(1), seed) >> 16;
+    let v11 = hash_2d(xi.wrapping_add(1), yi.wrapping_add(1), seed) >> 16;
+
+    let sx = smoothstep(fx);
+    let sy = smoothstep(fy);
+
+    // Bilinear interpolation:
+    //   top    = lerp(v00, v10, sx)
+    //   bottom = lerp(v01, v11, sx)
+    //   result = lerp(top, bottom, sy)
+    let top = lerp_u32(v00, v10, sx);
+    let bottom = lerp_u32(v01, v11, sx);
+    lerp_u32(top, bottom, sy).min(65535)
+}
+
+#[inline]
+fn lerp_u32(a: u32, b: u32, t: u32) -> u32 {
+    if b >= a {
+        a + (((b - a) * t) >> 16)
+    } else {
+        a - (((a - b) * t) >> 16)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // --- hash_1d / hash_2d ---
+
+    #[test]
+    fn test_hash_1d_deterministic() {
+        assert_eq!(hash_1d(42, 0), hash_1d(42, 0));
+    }
+
+    #[test]
+    fn test_hash_1d_different_inputs_differ() {
+        assert_ne!(hash_1d(0, 0), hash_1d(1, 0));
+        assert_ne!(hash_1d(0, 0), hash_1d(0, 1));
+    }
+
+    #[test]
+    fn test_hash_2d_deterministic() {
+        assert_eq!(hash_2d(3, 7, 99), hash_2d(3, 7, 99));
+    }
+
+    #[test]
+    fn test_hash_2d_x_y_not_symmetric() {
+        // hash_2d(x,y) should differ from hash_2d(y,x) in general.
+        assert_ne!(hash_2d(1, 2, 0), hash_2d(2, 1, 0));
+    }
+
+    #[test]
+    fn test_hash_2d_different_seeds_differ() {
+        assert_ne!(hash_2d(5, 5, 0), hash_2d(5, 5, 1));
+    }
+
+    // --- smoothstep ---
+
+    #[test]
+    fn test_smoothstep_at_zero() {
+        assert_eq!(smoothstep(0), 0);
+    }
+
+    #[test]
+    fn test_smoothstep_at_one() {
+        // t=65536 → step = 3*65536^2/256^2 - 2*65536^3/(256^3*256)
+        // We just check it's at the maximum (65536/3 * 3 = 65536)
+        assert_eq!(smoothstep(65536), 65536);
+    }
+
+    #[test]
+    fn test_smoothstep_midpoint_is_half() {
+        let mid = smoothstep(32768); // 0.5 in Q16.16
+                                     // smoothstep(0.5) = 3*(0.5)^2 - 2*(0.5)^3 = 0.75 - 0.25 = 0.5
+                                     // Result should be ~32768 ± small rounding error.
+        assert!((32000..=33536).contains(&mid), "mid={mid}");
+    }
+
+    // --- value_noise_1d ---
+
+    #[test]
+    fn test_value_noise_1d_in_range() {
+        for x in -10..10 {
+            let v = value_noise_1d(x << 16, 42);
+            assert!(v <= 65535, "v={v} for x={x}");
+        }
+    }
+
+    #[test]
+    fn test_value_noise_1d_deterministic() {
+        let a = value_noise_1d(3 << 16, 7);
+        let b = value_noise_1d(3 << 16, 7);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_value_noise_1d_different_seeds_differ() {
+        let a = value_noise_1d(5 << 16, 0);
+        let b = value_noise_1d(5 << 16, 1);
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn test_value_noise_1d_integer_coords_match_hash() {
+        // At integer coordinates (frac=0), noise equals the corner hash.
+        let x = 7i32;
+        let seed = 123u64;
+        let noise = value_noise_1d(x << 16, seed);
+        let expected = hash_1d(x, seed) >> 16;
+        assert_eq!(noise, expected);
+    }
+
+    // --- value_noise_2d ---
+
+    #[test]
+    fn test_value_noise_2d_in_range() {
+        for x in -5..5 {
+            for y in -5..5 {
+                let v = value_noise_2d(x << 16, y << 16, 0);
+                assert!(v <= 65535, "v={v} at ({x},{y})");
+            }
+        }
+    }
+
+    #[test]
+    fn test_value_noise_2d_deterministic() {
+        let a = value_noise_2d(2 << 16, 3 << 16, 55);
+        let b = value_noise_2d(2 << 16, 3 << 16, 55);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_value_noise_2d_different_positions_vary() {
+        let a = value_noise_2d(0, 0, 0);
+        let b = value_noise_2d(1 << 16, 0, 0);
+        let c = value_noise_2d(0, 1 << 16, 0);
+        // Different positions should in general differ (may rarely collide).
+        assert!(a != b || b != c, "all three samples identical — suspicious");
+    }
+
+    #[test]
+    fn test_value_noise_2d_integer_coords_match_hash() {
+        let x = 4i32;
+        let y = 9i32;
+        let seed = 777u64;
+        let noise = value_noise_2d(x << 16, y << 16, seed);
+        let expected = hash_2d(x, y, seed) >> 16;
+        assert_eq!(noise, expected);
+    }
+}

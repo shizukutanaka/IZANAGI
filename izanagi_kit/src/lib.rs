@@ -36,6 +36,7 @@
 //! - [`textlayout`] — word-wrap, truncate, and alignment helpers for terminal UI.
 //! - [`inputbuf`] — input buffer with hold/repeat detection (`InputBuffer<K>`).
 //! - [`spatial_hash`] — spatial hash grid (`SpatialHash<K>`) for broad-phase queries.
+//! - [`noise`] — deterministic integer value noise and hash functions.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -60,6 +61,7 @@ pub mod loader;
 pub mod mapgen;
 pub mod menu;
 pub mod msglog;
+pub mod noise;
 pub mod parser;
 pub mod pathfinding;
 pub mod replay;
@@ -98,6 +100,7 @@ pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
 pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
+pub use noise::{hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
 pub use pathfinding::astar;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
