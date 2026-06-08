@@ -34,6 +34,7 @@
 //! - [`aabb`] — axis-aligned bounding box (`Aabb`) collision detection.
 //! - [`menu`] — keyboard-navigable list menu (`Menu<T>`) for roguelike UI.
 //! - [`textlayout`] — word-wrap, truncate, and alignment helpers for terminal UI.
+//! - [`inputbuf`] — input buffer with hold/repeat detection (`InputBuffer<K>`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -51,6 +52,7 @@ pub mod fixed;
 pub mod fov;
 pub mod fsm;
 pub mod geometry;
+pub mod inputbuf;
 pub mod inventory;
 pub mod keymap;
 pub mod loader;
@@ -87,6 +89,7 @@ pub use fixed::Fixed;
 pub use fov::compute_fov;
 pub use fsm::Fsm;
 pub use geometry::{line, line_of_sight};
+pub use inputbuf::InputBuffer;
 pub use inventory::Inventory;
 pub use keymap::KeyMap;
 pub use loader::{load_level, LoadedLevel, Position, Render};
