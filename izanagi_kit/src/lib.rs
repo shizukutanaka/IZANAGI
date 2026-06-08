@@ -20,6 +20,7 @@
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
+//! - [`fsm`] — table-driven finite state machine for game AI (`Fsm<S,E>`).
 //! - [`keymap`] — key-to-action mapping (`KeyMap<K,A>`) for deterministic input.
 //! - [`easing`] — integer easing curves (quad/cubic in/out/in-out) over `Fixed`.
 //! - [`status`] — timed status effects / buff-debuff tracking (`StatusSet<K>`).
@@ -40,6 +41,7 @@ pub mod easing;
 pub mod entity;
 pub mod fixed;
 pub mod fov;
+pub mod fsm;
 pub mod geometry;
 pub mod keymap;
 pub mod loader;
@@ -70,6 +72,7 @@ pub use easing::{
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::compute_fov;
+pub use fsm::Fsm;
 pub use geometry::{line, line_of_sight};
 pub use keymap::KeyMap;
 pub use loader::{load_level, LoadedLevel, Position, Render};

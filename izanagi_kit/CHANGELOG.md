@@ -27,6 +27,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `fsm`: table-driven finite state machine (`Fsm<S,E>`) for game AI. Transitions
+  are `(from_state, event) → to_state` triples; missing transitions are silent
+  self-loops (no panic). `fire` returns true on state change; `set_state` forces
+  a state bypass (e.g. on death). `DetHash` folds only the current state (the
+  table is constant configuration). Demonstrates a guard AI (Idle/Alert/Chase/
+  Dead) in tests. Satisfies taxonomy J7. 12 new tests.
 - `keymap`: key-to-action mapping (`KeyMap<K,A>`). Translates raw key events
   into typed game actions via a configurable binding table (one key → one
   action). `bind` adds/replaces; `unbind` removes; `get` looks up; `is_bound`

@@ -1,0 +1,279 @@
+//! Finite state machine (FSM) for deterministic game AI.
+//!
+//! A `Fsm<S, E>` is a table-driven state machine: for each `(current_state,
+//! event)` pair, it looks up the next state in a transition table. Missing
+//! transitions are self-loops (the state is unchanged). State and event are
+//! generic so the machine adapts to any AI or UI domain.
+//!
+//! Determinism: the transition function is a pure lookup (no random, no wall
+//! clock, no I/O). Given the same sequence of events it produces the same
+//! sequence of states — safe for replay and world-hash inclusion.
+//!
+//! For simple roguelike AI the state type is typically a small enum
+//! (`Idle, Patrol, Chase, Flee, Dead`); events are `PlayerSeen`, `LostPlayer`,
+//! `TookDamage`, etc. More complex behaviour trees are out of scope for this
+//! module (see taxonomy J7 for the future WFC / influence-map extensions).
+
+use crate::world_hash::{DetHash, Fnv1a};
+
+/// A table-driven finite state machine.
+///
+/// Transitions are stored as `(from_state, event) → to_state` triples.
+/// Looking up a pair not in the table returns the current state unchanged
+/// (self-loop / "don't care" semantics — no panic).
+#[derive(Clone, Debug)]
+pub struct Fsm<S, E> {
+    state: S,
+    /// Transition table: (from, event) → to. Searched linearly; small enough
+    /// that binary search or hashing would add more overhead than they save.
+    table: Vec<(S, E, S)>,
+}
+
+impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
+    /// Create a new FSM starting in `initial_state` with an empty transition table.
+    pub fn new(initial_state: S) -> Self {
+        Fsm {
+            state: initial_state,
+            table: Vec::new(),
+        }
+    }
+
+    /// Current state.
+    #[inline]
+    pub fn state(&self) -> &S {
+        &self.state
+    }
+
+    /// Add a transition: when in `from` and `event` fires, move to `to`.
+    /// Adding the same `(from, event)` pair twice replaces the earlier entry.
+    pub fn add_transition(&mut self, from: S, event: E, to: S) {
+        if let Some((_, _, t)) = self
+            .table
+            .iter_mut()
+            .find(|(f, e, _)| *f == from && *e == event)
+        {
+            *t = to;
+        } else {
+            self.table.push((from, event, to));
+        }
+    }
+
+    /// Fire `event`. Returns `true` if the state changed, `false` if no
+    /// matching transition was found (self-loop / unchanged).
+    pub fn fire(&mut self, event: &E) -> bool {
+        if let Some((_, _, to)) = self
+            .table
+            .iter()
+            .find(|(f, e, _)| *f == self.state && *e == *event)
+        {
+            let to = to.clone();
+            if to != self.state {
+                self.state = to;
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Force the machine into `state`, bypassing the transition table.
+    /// Useful for external events like entity death that override AI logic.
+    #[inline]
+    pub fn set_state(&mut self, state: S) {
+        self.state = state;
+    }
+
+    /// Whether a transition exists for `(current_state, event)`.
+    pub fn has_transition(&self, event: &E) -> bool {
+        self.table
+            .iter()
+            .any(|(f, e, _)| *f == self.state && *e == *event)
+    }
+}
+
+impl<S: DetHash + Eq + Clone, E: Eq> DetHash for Fsm<S, E> {
+    /// Folds only the current state — the transition table is constant
+    /// configuration and not part of the simulation state.
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.state.det_hash(hasher);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world_hash::hash_state;
+
+    /// Simple guard AI states.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    enum GuardState {
+        Idle,
+        Alert,
+        Chase,
+        Dead,
+    }
+
+    /// Events that drive the guard FSM.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    enum GuardEvent {
+        PlayerSpotted,
+        PlayerLost,
+        TookDamage,
+        Killed,
+    }
+
+    impl DetHash for GuardState {
+        fn det_hash(&self, hasher: &mut Fnv1a) {
+            let v: u32 = match self {
+                GuardState::Idle => 0,
+                GuardState::Alert => 1,
+                GuardState::Chase => 2,
+                GuardState::Dead => 3,
+            };
+            hasher.write_u32(v);
+        }
+    }
+
+    fn guard_fsm() -> Fsm<GuardState, GuardEvent> {
+        let mut fsm = Fsm::new(GuardState::Idle);
+        fsm.add_transition(
+            GuardState::Idle,
+            GuardEvent::PlayerSpotted,
+            GuardState::Alert,
+        );
+        fsm.add_transition(
+            GuardState::Alert,
+            GuardEvent::PlayerSpotted,
+            GuardState::Chase,
+        );
+        fsm.add_transition(GuardState::Chase, GuardEvent::PlayerLost, GuardState::Alert);
+        fsm.add_transition(GuardState::Alert, GuardEvent::PlayerLost, GuardState::Idle);
+        fsm.add_transition(GuardState::Idle, GuardEvent::TookDamage, GuardState::Chase);
+        fsm.add_transition(GuardState::Alert, GuardEvent::TookDamage, GuardState::Chase);
+        fsm.add_transition(GuardState::Chase, GuardEvent::TookDamage, GuardState::Chase);
+        fsm.add_transition(GuardState::Idle, GuardEvent::Killed, GuardState::Dead);
+        fsm.add_transition(GuardState::Alert, GuardEvent::Killed, GuardState::Dead);
+        fsm.add_transition(GuardState::Chase, GuardEvent::Killed, GuardState::Dead);
+        fsm
+    }
+
+    #[test]
+    fn test_initial_state() {
+        let fsm = guard_fsm();
+        assert_eq!(fsm.state(), &GuardState::Idle);
+    }
+
+    #[test]
+    fn test_fire_valid_transition() {
+        let mut fsm = guard_fsm();
+        let changed = fsm.fire(&GuardEvent::PlayerSpotted);
+        assert!(changed);
+        assert_eq!(fsm.state(), &GuardState::Alert);
+    }
+
+    #[test]
+    fn test_fire_unmapped_is_self_loop() {
+        let mut fsm = guard_fsm();
+        // Dead state has no transitions; any event is a self-loop.
+        fsm.set_state(GuardState::Dead);
+        let changed = fsm.fire(&GuardEvent::PlayerSpotted);
+        assert!(!changed);
+        assert_eq!(fsm.state(), &GuardState::Dead);
+    }
+
+    #[test]
+    fn test_sequence_idle_to_chase() {
+        let mut fsm = guard_fsm();
+        fsm.fire(&GuardEvent::PlayerSpotted); // → Alert
+        fsm.fire(&GuardEvent::PlayerSpotted); // → Chase
+        assert_eq!(fsm.state(), &GuardState::Chase);
+    }
+
+    #[test]
+    fn test_player_lost_from_chase_to_alert() {
+        let mut fsm = guard_fsm();
+        fsm.set_state(GuardState::Chase);
+        fsm.fire(&GuardEvent::PlayerLost);
+        assert_eq!(fsm.state(), &GuardState::Alert);
+    }
+
+    #[test]
+    fn test_killed_from_any_state() {
+        for start in [GuardState::Idle, GuardState::Alert, GuardState::Chase] {
+            let mut fsm = guard_fsm();
+            fsm.set_state(start);
+            fsm.fire(&GuardEvent::Killed);
+            assert_eq!(fsm.state(), &GuardState::Dead);
+        }
+    }
+
+    #[test]
+    fn test_has_transition_true_when_mapped() {
+        let fsm = guard_fsm();
+        assert!(fsm.has_transition(&GuardEvent::PlayerSpotted));
+    }
+
+    #[test]
+    fn test_has_transition_false_for_unmapped() {
+        let fsm = guard_fsm();
+        // From Idle, PlayerLost is not mapped.
+        assert!(!fsm.has_transition(&GuardEvent::PlayerLost));
+    }
+
+    #[test]
+    fn test_add_transition_replaces_existing() {
+        let mut fsm = Fsm::new(GuardState::Idle);
+        fsm.add_transition(
+            GuardState::Idle,
+            GuardEvent::PlayerSpotted,
+            GuardState::Alert,
+        );
+        fsm.add_transition(
+            GuardState::Idle,
+            GuardEvent::PlayerSpotted,
+            GuardState::Chase, // override
+        );
+        fsm.fire(&GuardEvent::PlayerSpotted);
+        assert_eq!(fsm.state(), &GuardState::Chase);
+    }
+
+    #[test]
+    fn test_det_hash_changes_on_state_change() {
+        let mut fsm = guard_fsm();
+        let h1 = hash_state(&fsm);
+        fsm.fire(&GuardEvent::PlayerSpotted);
+        let h2 = hash_state(&fsm);
+        assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn test_det_hash_same_state_same_hash() {
+        let mut a = guard_fsm();
+        let mut b = guard_fsm();
+        a.fire(&GuardEvent::PlayerSpotted);
+        b.fire(&GuardEvent::PlayerSpotted);
+        assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_sequence_is_deterministic() {
+        let events = [
+            GuardEvent::PlayerSpotted,
+            GuardEvent::PlayerSpotted,
+            GuardEvent::PlayerLost,
+            GuardEvent::TookDamage,
+        ];
+        let run = || {
+            let mut fsm = guard_fsm();
+            for e in &events {
+                fsm.fire(e);
+            }
+            fsm.state().clone()
+        };
+        assert_eq!(run(), run());
+    }
+}
