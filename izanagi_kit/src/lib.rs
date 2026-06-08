@@ -45,6 +45,7 @@
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
 //! - [`diag_json`] — machine-readable JSON serialization of pipeline diagnostics (`diag_json`).
+//! - [`wfc`] — Wave Function Collapse procedural tile-map generation (`WfcRules`, `wfc_solve`, `WfcGrid`).
 //! - [`multimap`] — multi-floor dungeon stack (`MultiMap`, `Connector`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
@@ -95,6 +96,7 @@ pub mod timestep;
 pub mod turn;
 pub mod validator;
 pub mod vec;
+pub mod wfc;
 pub mod world_hash;
 
 pub use aabb::Aabb;
@@ -142,4 +144,5 @@ pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
 pub use validator::{is_loadable, validate};
 pub use vec::{Vec2, Vec3};
+pub use wfc::{wfc_solve, WfcGrid, WfcResult, WfcRules};
 pub use world_hash::{hash_state, DetHash, Fnv1a};

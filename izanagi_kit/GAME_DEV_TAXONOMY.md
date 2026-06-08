@@ -42,7 +42,7 @@
 
 ## I. ワールド・マップ (World & Map)
 - I1 手続き生成（rooms+corridors）✅ `mapgen` / I2 連結保証 ✅
-- I3 タイルマップ層（複数レイヤ）✅ `tilemap` / I4 オートタイル ✅ `autotile` / I5 WFC 生成 ⬜ / I6 マルチレベル/階層 ✅ `multimap`
+- I3 タイルマップ層（複数レイヤ）✅ `tilemap` / I4 オートタイル ✅ `autotile` / I5 WFC 生成 ✅ `wfc` / I6 マルチレベル/階層 ✅ `multimap`
 
 ## J. 視界・AI・ナビ (Visibility / AI / Navigation)
 - J1 対称 FOV ✅ `fov` / J2 A* 経路 ✅ `pathfinding` / J3 Dijkstra map（flow field）✅ / J4 descend（chase/flee）✅ / J5 LOS ✅ `geometry`
