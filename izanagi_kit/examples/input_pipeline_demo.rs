@@ -160,19 +160,19 @@ fn main() {
     //  t11  release q          → no fires
     //  t12  (nothing)          → no fires
     let script: &[(&[char], &[char])] = &[
-        (&['h'], &[]),        // t00
-        (&['l'], &['h']),     // t01
-        (&[], &[]),           // t02
-        (&[], &[]),           // t03
-        (&['k'], &['l']),     // t04
-        (&['.'], &[]),        // t05
-        (&[], &['.']),        // t06
-        (&['o'], &['k']),     // t07
-        (&['>'], &['o']),     // t08
-        (&['j'], &['>']),     // t09
-        (&['q'], &['j']),     // t10
-        (&[], &['q']),        // t11
-        (&[], &[]),           // t12
+        (&['h'], &[]),    // t00
+        (&['l'], &['h']), // t01
+        (&[], &[]),       // t02
+        (&[], &[]),       // t03
+        (&['k'], &['l']), // t04
+        (&['.'], &[]),    // t05
+        (&[], &['.']),    // t06
+        (&['o'], &['k']), // t07
+        (&['>'], &['o']), // t08
+        (&['j'], &['>']), // t09
+        (&['q'], &['j']), // t10
+        (&[], &['q']),    // t11
+        (&[], &[]),       // t12
     ];
 
     // ── simulate ──────────────────────────────────────────────────────────────
@@ -251,7 +251,13 @@ fn main() {
     // Row 1: column headers.
     screen.draw_str(1, 1, "KEYMAP BINDINGS", HDR_FG, BG);
     screen.set(DIV_X, 1, '│', DIV_FG, BG);
-    screen.draw_str(RIGHT_X, 1, "TICK LOG  yellow=initial  orange=repeat", HDR_FG, BG);
+    screen.draw_str(
+        RIGHT_X,
+        1,
+        "TICK LOG  yellow=initial  orange=repeat",
+        HDR_FG,
+        BG,
+    );
 
     // Row 2: separator.
     for x in 0..SCREEN_W as i32 {
