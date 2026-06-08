@@ -27,6 +27,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `combat`: integer combat formula — `Stats` (hp/max_hp/attack/defense with
+  `take_damage`, `heal`, `is_alive`, `hp_fraction`), `base_damage` (attack −
+  defense, min 1), `melee_attack` (resolve and apply), `roll_to_hit` (draws
+  one RNG value; degenerate 0% / 100% resolved without drawing), and
+  `ranged_attack` (hit roll + melee). All integer, no float. `Stats` implements
+  `DetHash`. Satisfies taxonomy L2. 17 new tests.
 - `fsm`: table-driven finite state machine (`Fsm<S,E>`) for game AI. Transitions
   are `(from_state, event) → to_state` triples; missing transitions are silent
   self-loops (no panic). `fire` returns true on state change; `set_state` forces

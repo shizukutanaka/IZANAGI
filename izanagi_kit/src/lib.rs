@@ -20,6 +20,7 @@
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
+//! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
 //! - [`fsm`] — table-driven finite state machine for game AI (`Fsm<S,E>`).
 //! - [`keymap`] — key-to-action mapping (`KeyMap<K,A>`) for deterministic input.
 //! - [`easing`] — integer easing curves (quad/cubic in/out/in-out) over `Fixed`.
@@ -36,6 +37,7 @@
 pub mod camera;
 pub mod change;
 pub mod cmdqueue;
+pub mod combat;
 pub mod content;
 pub mod easing;
 pub mod entity;
@@ -65,6 +67,7 @@ pub mod world_hash;
 pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
+pub use combat::{base_damage, melee_attack, ranged_attack, roll_to_hit, Stats};
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use easing::{
     ease_in_cubic, ease_in_out_quad, ease_in_quad, ease_out_cubic, ease_out_quad, linear,
