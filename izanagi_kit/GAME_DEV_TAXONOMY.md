@@ -64,7 +64,7 @@
 - O1 rollback/replay 基盤 ✅ `replay` / O2 input 同期 transport ⬜ / O3 予測/補正 ⬜
 
 ## P. ツール・デバッグ (Tooling / Debug)
-- P1 コンテンツ検証 CLI ✅ `gamec` / P2 desync 二分探索 ✅ `replay::first_divergence` / P3 ロギング/プロファイル ⬜ / P4 機械可読診断(JSON/SARIF) ⬜
+- P1 コンテンツ検証 CLI ✅ `gamec` / P2 desync 二分探索 ✅ `replay::first_divergence` / P3 ロギング/プロファイル ✅ `profiler` / P4 機械可読診断(JSON/SARIF) ⬜
 
 ---
 

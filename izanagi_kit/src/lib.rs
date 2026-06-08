@@ -41,6 +41,7 @@
 //! - [`influence`] — grid-based influence map (`InfluenceMap`) for AI steering.
 //! - [`relations`] — entity parent/child relationships (`Relations`).
 //! - [`assets`] — typed asset handle store (`AssetStore<T>`, `AssetHandle<T>`).
+//! - [`profiler`] — tick profiler (`Profiler`) and structured event log (`EventLog<E>`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -70,6 +71,7 @@ pub mod msglog;
 pub mod noise;
 pub mod parser;
 pub mod pathfinding;
+pub mod profiler;
 pub mod relations;
 pub mod replay;
 pub mod rng;
@@ -113,6 +115,7 @@ pub use msglog::MsgLog;
 pub use noise::{hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
 pub use pathfinding::astar;
+pub use profiler::{EventLog, LogEntry, Profiler};
 pub use relations::Relations;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
 pub use rng::SplitMix64;
