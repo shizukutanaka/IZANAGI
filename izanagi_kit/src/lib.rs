@@ -31,10 +31,13 @@
 //!   the content pipeline: author game elements as text, serialize them back,
 //!   validate them, load into the ECS.
 //!
+//! - [`aabb`] — axis-aligned bounding box (`Aabb`) collision detection.
+//!
 //! All modules are `std`-only and contain no `unsafe`.
 
 #![forbid(unsafe_code)]
 
+pub mod aabb;
 pub mod camera;
 pub mod change;
 pub mod cmdqueue;
@@ -66,6 +69,7 @@ pub mod validator;
 pub mod vec;
 pub mod world_hash;
 
+pub use aabb::Aabb;
 pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
