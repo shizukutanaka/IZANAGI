@@ -58,7 +58,7 @@
 - M1 メッセージログ ✅ `msglog` / M2 メニュー/ウィジェット ✅ `menu` / M3 テキストレイアウト/折返し ✅ `textlayout` / M4 HUD ✅ `hud`
 
 ## N. 永続化・セーブ (Persistence)
-- N1 コンテンツ serialize ✅ / N2 ワールド save/load ⬜（replay の seed+inputs で代替可）/ N3 バージョニング ⬜
+- N1 コンテンツ serialize ✅ / N2 ワールド save/load ✅ `savefile` / N3 バージョニング ✅ `savefile::SaveHeader::version`
 
 ## O. ネットワーク (Networking)
 - O1 rollback/replay 基盤 ✅ `replay` / O2 input 同期 transport ⬜ / O3 予測/補正 ⬜

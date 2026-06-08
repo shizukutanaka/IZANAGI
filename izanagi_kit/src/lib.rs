@@ -46,6 +46,7 @@
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
 //! - [`diag_json`] — machine-readable JSON serialization of pipeline diagnostics (`diag_json`).
+//! - [`savefile`] — versioned binary save-file framing (`save_bytes`, `load_bytes`, `SaveHeader`).
 //! - [`wfc`] — Wave Function Collapse procedural tile-map generation (`WfcRules`, `wfc_solve`, `WfcGrid`).
 //! - [`multimap`] — multi-floor dungeon stack (`MultiMap`, `Connector`).
 //!
@@ -86,6 +87,7 @@ pub mod profiler;
 pub mod relations;
 pub mod replay;
 pub mod rng;
+pub mod savefile;
 pub mod serializer;
 pub mod sparse_set;
 pub mod spatial_hash;
@@ -135,6 +137,7 @@ pub use profiler::{EventLog, LogEntry, Profiler};
 pub use relations::Relations;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
 pub use rng::SplitMix64;
+pub use savefile::{load_bytes, save_bytes, LoadError, SaveHeader};
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
