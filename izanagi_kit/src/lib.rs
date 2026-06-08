@@ -46,6 +46,7 @@
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
 //! - [`diag_json`] — machine-readable JSON serialization of pipeline diagnostics (`diag_json`).
+//! - [`passability`] — grid-based passability / collision layer (`PassabilityGrid`).
 //! - [`savefile`] — versioned binary save-file framing (`save_bytes`, `load_bytes`, `SaveHeader`).
 //! - [`wfc`] — Wave Function Collapse procedural tile-map generation (`WfcRules`, `wfc_solve`, `WfcGrid`).
 //! - [`multimap`] — multi-floor dungeon stack (`MultiMap`, `Connector`).
@@ -82,6 +83,7 @@ pub mod msglog;
 pub mod multimap;
 pub mod noise;
 pub mod parser;
+pub mod passability;
 pub mod pathfinding;
 pub mod profiler;
 pub mod relations;
@@ -132,6 +134,7 @@ pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
 pub use noise::{hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
+pub use passability::PassabilityGrid;
 pub use pathfinding::{astar, weighted_astar};
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use relations::Relations;

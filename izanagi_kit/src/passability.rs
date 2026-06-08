@@ -1,0 +1,294 @@
+//! Grid-based passability / collision layer (K1).
+//!
+//! `PassabilityGrid` stores one `bool` per cell in a row-major flat array:
+//! `true` = blocked (wall, obstacle), `false` = passable (floor, open).
+//!
+//! It is the standard bridge between map data and movement systems:
+//!
+//! - Build from any map by supplying a closure: `from_fn(w, h, |x, y| …)`.
+//! - Build from a [`tilemap::TileMap`] with a tile predicate.
+//! - Mutate individual cells at runtime (`set_blocked`).
+//! - Produce a **closure** compatible with [`pathfinding::astar`] and
+//!   [`pathfinding::weighted_astar`] via `blocker()`.
+//! - `DetHash` participation for replay state checksums.
+
+use crate::world_hash::{DetHash, Fnv1a};
+
+/// A flat boolean passability grid.
+///
+/// `true` = blocked; `false` = passable.
+/// Out-of-bounds coordinates are always considered blocked.
+#[derive(Clone, Debug)]
+pub struct PassabilityGrid {
+    width: i32,
+    height: i32,
+    cells: Vec<bool>,
+}
+
+impl PassabilityGrid {
+    /// Create a grid with all cells passable (`blocked = false`).
+    pub fn new(width: i32, height: i32) -> Self {
+        let w = width.max(0);
+        let h = height.max(0);
+        Self {
+            width: w,
+            height: h,
+            cells: vec![false; (w * h) as usize],
+        }
+    }
+
+    /// Create a grid by calling `f(x, y)` for every cell.
+    pub fn from_fn<F>(width: i32, height: i32, mut f: F) -> Self
+    where
+        F: FnMut(i32, i32) -> bool,
+    {
+        let w = width.max(0);
+        let h = height.max(0);
+        let mut cells = Vec::with_capacity((w * h) as usize);
+        for y in 0..h {
+            for x in 0..w {
+                cells.push(f(x, y));
+            }
+        }
+        Self {
+            width: w,
+            height: h,
+            cells,
+        }
+    }
+
+    /// Create from a [`tilemap::TileMap<T>`], treating cells where
+    /// `is_blocked(tile)` returns `true` as walls.
+    pub fn from_tilemap<T, F>(map: &crate::tilemap::TileMap<T>, is_blocked: F) -> Self
+    where
+        T: Clone,
+        F: Fn(&T) -> bool,
+    {
+        Self::from_fn(map.width() as i32, map.height() as i32, |x, y| {
+            map.get(x, y).map_or(true, &is_blocked)
+        })
+    }
+
+    /// Create from a [`mapgen::Dungeon`], treating wall tiles as blocked.
+    pub fn from_dungeon(dungeon: &crate::mapgen::Dungeon) -> Self {
+        Self::from_fn(dungeon.width() as i32, dungeon.height() as i32, |x, y| {
+            dungeon.is_wall(x, y)
+        })
+    }
+
+    /// Width in cells.
+    pub fn width(&self) -> i32 {
+        self.width
+    }
+
+    /// Height in cells.
+    pub fn height(&self) -> i32 {
+        self.height
+    }
+
+    /// Whether `(x, y)` is blocked. Out-of-bounds always returns `true`.
+    #[inline]
+    pub fn is_blocked(&self, x: i32, y: i32) -> bool {
+        if x < 0 || y < 0 || x >= self.width || y >= self.height {
+            return true;
+        }
+        self.cells[(y * self.width + x) as usize]
+    }
+
+    /// Set the passability of cell `(x, y)`. Out-of-bounds is a no-op.
+    pub fn set_blocked(&mut self, x: i32, y: i32, blocked: bool) {
+        if x >= 0 && y >= 0 && x < self.width && y < self.height {
+            self.cells[(y * self.width + x) as usize] = blocked;
+        }
+    }
+
+    /// Return a closure `|x, y| self.is_blocked(x, y)` that borrows `self`.
+    ///
+    /// Pass the closure directly to [`pathfinding::astar`] or
+    /// [`pathfinding::weighted_astar`].
+    pub fn blocker(&self) -> impl Fn(i32, i32) -> bool + '_ {
+        move |x, y| self.is_blocked(x, y)
+    }
+
+    /// Number of cells.
+    pub fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    /// Whether the grid has no cells.
+    pub fn is_empty(&self) -> bool {
+        self.cells.is_empty()
+    }
+
+    /// Count of blocked cells.
+    pub fn blocked_count(&self) -> usize {
+        self.cells.iter().filter(|&&b| b).count()
+    }
+
+    /// Count of passable cells.
+    pub fn passable_count(&self) -> usize {
+        self.cells.iter().filter(|&&b| !b).count()
+    }
+}
+
+impl DetHash for PassabilityGrid {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i32(self.width);
+        hasher.write_i32(self.height);
+        for &b in &self.cells {
+            hasher.write_u32(b as u32);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        mapgen::{generate_dungeon, GenParams},
+        rng::SplitMix64,
+        tilemap::TileMap,
+        world_hash::hash_state,
+    };
+
+    #[test]
+    fn test_new_all_passable() {
+        let grid = PassabilityGrid::new(4, 4);
+        for y in 0..4 {
+            for x in 0..4 {
+                assert!(!grid.is_blocked(x, y));
+            }
+        }
+    }
+
+    #[test]
+    fn test_out_of_bounds_is_blocked() {
+        let grid = PassabilityGrid::new(3, 3);
+        assert!(grid.is_blocked(-1, 0));
+        assert!(grid.is_blocked(0, -1));
+        assert!(grid.is_blocked(3, 0));
+        assert!(grid.is_blocked(0, 3));
+    }
+
+    #[test]
+    fn test_set_blocked() {
+        let mut grid = PassabilityGrid::new(5, 5);
+        grid.set_blocked(2, 3, true);
+        assert!(grid.is_blocked(2, 3));
+        grid.set_blocked(2, 3, false);
+        assert!(!grid.is_blocked(2, 3));
+    }
+
+    #[test]
+    fn test_set_blocked_out_of_bounds_is_noop() {
+        let mut grid = PassabilityGrid::new(3, 3);
+        grid.set_blocked(-1, 0, true); // no panic
+        grid.set_blocked(99, 99, false); // no panic
+        assert_eq!(grid.blocked_count(), 0);
+    }
+
+    #[test]
+    fn test_from_fn() {
+        // Checkerboard: blocked when (x+y) is even.
+        let grid = PassabilityGrid::from_fn(4, 4, |x, y| (x + y) % 2 == 0);
+        assert!(grid.is_blocked(0, 0));
+        assert!(!grid.is_blocked(1, 0));
+        assert!(!grid.is_blocked(0, 1));
+        assert!(grid.is_blocked(1, 1));
+    }
+
+    #[test]
+    fn test_from_tilemap() {
+        let mut map: TileMap<u8> = TileMap::new(4, 4, 0);
+        map.set(1, 1, 1); // mark (1,1) as a wall tile
+        map.set(2, 2, 1);
+        let grid = PassabilityGrid::from_tilemap(&map, |&tile| tile == 1);
+        assert!(grid.is_blocked(1, 1));
+        assert!(grid.is_blocked(2, 2));
+        assert!(!grid.is_blocked(0, 0));
+    }
+
+    #[test]
+    fn test_from_dungeon() {
+        let mut rng = SplitMix64::new(42);
+        let dungeon = generate_dungeon(20, 15, &mut rng, GenParams::default());
+        let grid = PassabilityGrid::from_dungeon(&dungeon);
+        assert_eq!(grid.width(), dungeon.width() as i32);
+        assert_eq!(grid.height(), dungeon.height() as i32);
+        // Dungeon borders are always walls.
+        assert!(grid.is_blocked(0, 0));
+    }
+
+    #[test]
+    fn test_blocker_closure_matches_is_blocked() {
+        let mut grid = PassabilityGrid::new(6, 6);
+        grid.set_blocked(3, 3, true);
+        let b = grid.blocker();
+        assert!(b(3, 3));
+        assert!(!b(0, 0));
+        assert!(b(-1, 0)); // out of bounds
+    }
+
+    #[test]
+    fn test_blocker_with_astar() {
+        use crate::pathfinding::astar;
+        let mut grid = PassabilityGrid::new(10, 10);
+        // Vertical wall at x=5, gap at y=9.
+        for y in 0..9 {
+            grid.set_blocked(5, y, true);
+        }
+        let path = astar((1, 4), (8, 4), grid.blocker()).unwrap();
+        assert_eq!(path.first(), Some(&(1, 4)));
+        assert_eq!(path.last(), Some(&(8, 4)));
+        assert!(path.contains(&(5, 9)), "must pass through gap");
+    }
+
+    #[test]
+    fn test_len_and_is_empty() {
+        let grid = PassabilityGrid::new(3, 4);
+        assert_eq!(grid.len(), 12);
+        assert!(!grid.is_empty());
+
+        let empty = PassabilityGrid::new(0, 0);
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn test_blocked_and_passable_counts() {
+        let mut grid = PassabilityGrid::new(4, 4);
+        grid.set_blocked(0, 0, true);
+        grid.set_blocked(1, 1, true);
+        assert_eq!(grid.blocked_count(), 2);
+        assert_eq!(grid.passable_count(), 14);
+        assert_eq!(grid.blocked_count() + grid.passable_count(), grid.len());
+    }
+
+    #[test]
+    fn test_det_hash_same_state() {
+        let g1 = PassabilityGrid::from_fn(4, 4, |x, y| x == y);
+        let g2 = PassabilityGrid::from_fn(4, 4, |x, y| x == y);
+        assert_eq!(hash_state(&g1), hash_state(&g2));
+    }
+
+    #[test]
+    fn test_det_hash_differs_on_change() {
+        let g1 = PassabilityGrid::from_fn(4, 4, |_, _| false);
+        let mut g2 = PassabilityGrid::from_fn(4, 4, |_, _| false);
+        g2.set_blocked(2, 2, true);
+        assert_ne!(hash_state(&g1), hash_state(&g2));
+    }
+
+    #[test]
+    fn test_width_height() {
+        let grid = PassabilityGrid::new(7, 3);
+        assert_eq!(grid.width(), 7);
+        assert_eq!(grid.height(), 3);
+    }
+
+    #[test]
+    fn test_negative_dimensions_are_empty() {
+        let grid = PassabilityGrid::new(-5, 10);
+        assert!(grid.is_empty());
+        assert_eq!(grid.width(), 0);
+    }
+}
