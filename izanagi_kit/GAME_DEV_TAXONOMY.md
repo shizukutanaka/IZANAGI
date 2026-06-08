@@ -46,7 +46,7 @@
 
 ## J. 視界・AI・ナビ (Visibility / AI / Navigation)
 - J1 対称 FOV ✅ `fov` / J2 A* 経路 ✅ `pathfinding` / J3 Dijkstra map（flow field）✅ / J4 descend（chase/flee）✅ / J5 LOS ✅ `geometry`
-- J6 ステアリング/influence map ⬜ / J7 FSM / behavior tree ✅ `fsm` / J8 JPS / weighted A* ⬜
+- J6 ステアリング/influence map ✅ `influence` / J7 FSM / behavior tree ✅ `fsm` / J8 JPS / weighted A* ⬜
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）🔶（pathfinding/mapgen の is_blocked）/ K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`

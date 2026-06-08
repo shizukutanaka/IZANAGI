@@ -38,6 +38,7 @@
 //! - [`spatial_hash`] — spatial hash grid (`SpatialHash<K>`) for broad-phase queries.
 //! - [`noise`] — deterministic integer value noise and hash functions.
 //! - [`tilemap`] — multi-layer tile map (`TileMap<T>`, `LayeredMap<T>`).
+//! - [`influence`] — grid-based influence map (`InfluenceMap`) for AI steering.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -55,6 +56,7 @@ pub mod fixed;
 pub mod fov;
 pub mod fsm;
 pub mod geometry;
+pub mod influence;
 pub mod inputbuf;
 pub mod inventory;
 pub mod keymap;
@@ -95,6 +97,7 @@ pub use fixed::Fixed;
 pub use fov::compute_fov;
 pub use fsm::Fsm;
 pub use geometry::{line, line_of_sight};
+pub use influence::InfluenceMap;
 pub use inputbuf::InputBuffer;
 pub use inventory::Inventory;
 pub use keymap::KeyMap;
