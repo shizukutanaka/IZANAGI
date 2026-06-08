@@ -30,8 +30,8 @@
 
 ## F. 表示・描画 (Presentation / Rendering)
 - F1 セル画面バッファ（glyph + fg/bg）✅ `terminal` / F2 ANSI 24-bit 出力 ✅ `to_ansi` / F3 ダブルバッファ差分 ✅ `diff`/`present`
-- F4 ヘッドレス検査（snapshot test 用 cell アクセス）✅ `get`/`DetHash` / F5 カメラ/ビューポート（world→screen）⬜ / F6 描画プリミティブ（fill/box/text）✅ `fill_rect`/`draw_str`
-- **本イテレーションで F1–F4,F6 を実装**（`terminal`）。残: F5 カメラ/ビューポート。
+- F4 ヘッドレス検査（snapshot test 用 cell アクセス）✅ `get`/`DetHash` / F5 カメラ/ビューポート（world→screen）✅ `camera` / F6 描画プリミティブ（fill/box/text）✅ `fill_rect`/`draw_str`
+- **F1–F6 すべて実装済み**（`terminal` + `camera`）。
 
 ## G. 入力 (Input)
 - G1 キー→アクションのマッピング ⬜ / G2 コマンドキュー（決定論 input feed、replay と直結）✅ `cmdqueue` / G3 入力バッファ/長押し ⬜

@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `camera`: integer camera and viewport (`Camera`) for world↔screen coordinate
+  mapping. `new(cx, cy, screen_w, screen_h, world_w, world_h)` centres on the
+  focus and clamps so the full viewport fits within the world. `world_to_screen`
+  returns `None` for out-of-viewport world coords; `screen_to_world` clamps to
+  the viewport edge. `recenter` moves the focus; `world_rect` returns the
+  covered world rectangle. Implements `DetHash`. Satisfies taxonomy F5 —
+  completing the F (Presentation) row. 15 new tests.
 - `timer`: tick-based `Cooldown` and `TimerQueue<E>`. `Cooldown` is a simple
   saturating countdown (`tick(n)` returns `true` on the ready transition).
   `TimerQueue<E>` is a collection of future events — `schedule(delay, event)`
