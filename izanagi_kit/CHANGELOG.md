@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `easing`: integer easing curves over `Fixed` — `ease_in_quad`,
+  `ease_out_quad`, `ease_in_out_quad`, `ease_in_cubic`, `ease_out_cubic`, and
+  `linear`. All take `t ∈ [0,1]`, return values in the same range, and are
+  bit-identical across targets (no float). Satisfies taxonomy B5. 10 tests.
+- `fixed`: added `abs` (saturates MIN→MAX), `sign` (-1/0/1), `clamp(lo,hi)`,
+  and `lerp(a,b,t)` — completing taxonomy B6. Also added `Fixed::MAX` /
+  `Fixed::MIN` constants (used by `vec` module). 9 new tests.
 - `camera`: integer camera and viewport (`Camera`) for world↔screen coordinate
   mapping. `new(cx, cy, screen_w, screen_h, world_w, world_h)` centres on the
   focus and clamps so the full viewport fits within the world. `world_to_screen`

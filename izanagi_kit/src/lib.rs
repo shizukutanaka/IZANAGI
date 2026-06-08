@@ -19,6 +19,7 @@
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
+//! - [`easing`] — integer easing curves (quad/cubic in/out/in-out) over `Fixed`.
 //! - [`cmdqueue`] — deterministic command queue (replay-safe input abstraction).
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
 //!   the content pipeline: author game elements as text, serialize them back,
@@ -31,6 +32,7 @@
 pub mod camera;
 pub mod cmdqueue;
 pub mod content;
+pub mod easing;
 pub mod entity;
 pub mod fixed;
 pub mod fov;
@@ -55,6 +57,9 @@ pub mod world_hash;
 pub use camera::Camera;
 pub use cmdqueue::CmdQueue;
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
+pub use easing::{
+    ease_in_cubic, ease_in_out_quad, ease_in_quad, ease_out_cubic, ease_out_quad, linear,
+};
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::compute_fov;

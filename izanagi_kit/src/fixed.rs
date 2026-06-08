@@ -142,6 +142,47 @@ impl Fixed {
         Fixed::from_wide(((self.0 as i64) << FRAC_BITS) / rhs.0 as i64)
     }
 
+    /// Absolute value. `Fixed::MIN.abs()` saturates to `Fixed::MAX` (no panic).
+    #[inline]
+    pub fn abs(self) -> Fixed {
+        if self.0 == i32::MIN {
+            Fixed::MAX
+        } else {
+            Fixed(self.0.abs())
+        }
+    }
+
+    /// Sign: returns `Fixed::ONE` for positive, `Fixed::ZERO` for zero, and
+    /// `Fixed::ONE.neg()` (i.e. `-1`) for negative. Deterministic.
+    #[inline]
+    pub fn sign(self) -> Fixed {
+        match self.0.cmp(&0) {
+            core::cmp::Ordering::Greater => Fixed::ONE,
+            core::cmp::Ordering::Less => Fixed(-(ONE)),
+            core::cmp::Ordering::Equal => Fixed::ZERO,
+        }
+    }
+
+    /// Clamp to `[lo, hi]`. If `lo > hi` the result is `lo` (no panic).
+    #[inline]
+    pub fn clamp(self, lo: Fixed, hi: Fixed) -> Fixed {
+        if self.0 < lo.0 {
+            lo
+        } else if self.0 > hi.0 {
+            hi
+        } else {
+            self
+        }
+    }
+
+    /// Linear interpolation: `a + (b - a) * t`, where `t` is in `[0, 1]`.
+    /// `t` outside `[0, 1]` extrapolates (no clamping). Uses saturating
+    /// arithmetic so overflow is pinned rather than wrapping.
+    #[inline]
+    pub fn lerp(a: Fixed, b: Fixed, t: Fixed) -> Fixed {
+        a + (b - a).mul(t)
+    }
+
     /// Square root. Negative inputs saturate to zero (√ of a negative is
     /// undefined; clamping is the safe deterministic choice rather than panicking
     /// or producing garbage). Computed with integer-only [`isqrt_u64`] so the
@@ -492,5 +533,62 @@ mod tests {
             Fixed::atan2(a, Fixed::from_int(2))
         );
         assert_eq!(Fixed::from_int(50).sqrt(), Fixed::from_int(50).sqrt());
+    }
+
+    #[test]
+    fn test_abs_positive_unchanged() {
+        assert_eq!(Fixed::from_int(3).abs(), Fixed::from_int(3));
+    }
+
+    #[test]
+    fn test_abs_negative_negated() {
+        assert_eq!(Fixed::from_int(-5).abs(), Fixed::from_int(5));
+    }
+
+    #[test]
+    fn test_abs_min_saturates_not_wraps() {
+        assert_eq!(Fixed::MIN.abs(), Fixed::MAX);
+    }
+
+    #[test]
+    fn test_sign_positive_negative_zero() {
+        let neg_one = Fixed::ZERO - Fixed::ONE;
+        assert_eq!(Fixed::from_int(7).sign(), Fixed::ONE);
+        assert_eq!(Fixed::ZERO.sign(), Fixed::ZERO);
+        assert_eq!(Fixed::from_int(-3).sign(), neg_one);
+    }
+
+    #[test]
+    fn test_clamp_within_range_unchanged() {
+        let v = Fixed::from_int(5);
+        assert_eq!(v.clamp(Fixed::from_int(1), Fixed::from_int(10)), v);
+    }
+
+    #[test]
+    fn test_clamp_below_lo_returns_lo() {
+        let lo = Fixed::from_int(2);
+        assert_eq!(Fixed::from_int(-1).clamp(lo, Fixed::from_int(10)), lo);
+    }
+
+    #[test]
+    fn test_clamp_above_hi_returns_hi() {
+        let hi = Fixed::from_int(8);
+        assert_eq!(Fixed::from_int(100).clamp(Fixed::from_int(1), hi), hi);
+    }
+
+    #[test]
+    fn test_lerp_endpoints() {
+        let a = Fixed::from_int(0);
+        let b = Fixed::from_int(10);
+        assert_eq!(Fixed::lerp(a, b, Fixed::ZERO), a);
+        assert_eq!(Fixed::lerp(a, b, Fixed::ONE), b);
+    }
+
+    #[test]
+    fn test_lerp_midpoint() {
+        let a = Fixed::from_int(0);
+        let b = Fixed::from_int(10);
+        let half = Fixed::from_ratio(1, 2);
+        approx(Fixed::lerp(a, b, half), Fixed::from_int(5), 4);
     }
 }
