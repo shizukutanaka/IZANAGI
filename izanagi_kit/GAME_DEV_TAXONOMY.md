@@ -38,7 +38,7 @@
 
 ## H. コンテンツ・アセット (Content & Assets)
 - H1 DSL パーサ ✅ `parser` / H2 シリアライズ往復 ✅ `serializer` / H3 意味検証 ✅ `validator` / H4 ECS ロード ✅ `loader` / H5 CLI ゲート ✅ `gamec`
-- H6 ホットリロード ⬜ / H7 アセット ID/ハンドル管理 ⬜
+- H6 ホットリロード ⬜ / H7 アセット ID/ハンドル管理 ✅ `assets`
 
 ## I. ワールド・マップ (World & Map)
 - I1 手続き生成（rooms+corridors）✅ `mapgen` / I2 連結保証 ✅

@@ -40,12 +40,14 @@
 //! - [`tilemap`] — multi-layer tile map (`TileMap<T>`, `LayeredMap<T>`).
 //! - [`influence`] — grid-based influence map (`InfluenceMap`) for AI steering.
 //! - [`relations`] — entity parent/child relationships (`Relations`).
+//! - [`assets`] — typed asset handle store (`AssetStore<T>`, `AssetHandle<T>`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
 #![forbid(unsafe_code)]
 
 pub mod aabb;
+pub mod assets;
 pub mod camera;
 pub mod change;
 pub mod cmdqueue;
@@ -86,6 +88,7 @@ pub mod vec;
 pub mod world_hash;
 
 pub use aabb::Aabb;
+pub use assets::{AssetHandle, AssetStore};
 pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
