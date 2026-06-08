@@ -32,6 +32,7 @@
 //!   validate them, load into the ECS.
 //!
 //! - [`aabb`] — axis-aligned bounding box (`Aabb`) collision detection.
+//! - [`menu`] — keyboard-navigable list menu (`Menu<T>`) for roguelike UI.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -53,6 +54,7 @@ pub mod inventory;
 pub mod keymap;
 pub mod loader;
 pub mod mapgen;
+pub mod menu;
 pub mod msglog;
 pub mod parser;
 pub mod pathfinding;
@@ -87,6 +89,7 @@ pub use inventory::Inventory;
 pub use keymap::KeyMap;
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
+pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use parser::parse;
 pub use pathfinding::astar;

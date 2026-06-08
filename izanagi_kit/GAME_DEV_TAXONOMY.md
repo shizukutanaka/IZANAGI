@@ -55,7 +55,7 @@
 - L1 ターンスケジューラ（energy system）✅ `turn` / L2 ステータス/戦闘式 ✅ `combat` / L3 インベントリ/アイテム ✅ `inventory` / L4 状態異常（buff/debuff の期限管理）✅ `status`
 
 ## M. UI
-- M1 メッセージログ ✅ `msglog` / M2 メニュー/ウィジェット ⬜ / M3 テキストレイアウト/折返し ⬜ / M4 HUD ⬜
+- M1 メッセージログ ✅ `msglog` / M2 メニュー/ウィジェット ✅ `menu` / M3 テキストレイアウト/折返し ⬜ / M4 HUD ⬜
 
 ## N. 永続化・セーブ (Persistence)
 - N1 コンテンツ serialize ✅ / N2 ワールド save/load ⬜（replay の seed+inputs で代替可）/ N3 バージョニング ⬜
