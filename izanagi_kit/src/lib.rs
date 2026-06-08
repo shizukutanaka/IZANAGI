@@ -42,6 +42,7 @@
 //! - [`relations`] — entity parent/child relationships (`Relations`).
 //! - [`assets`] — typed asset handle store (`AssetStore<T>`, `AssetHandle<T>`).
 //! - [`profiler`] — tick profiler (`Profiler`) and structured event log (`EventLog<E>`).
+//! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -60,6 +61,7 @@ pub mod fixed;
 pub mod fov;
 pub mod fsm;
 pub mod geometry;
+pub mod hud;
 pub mod influence;
 pub mod inputbuf;
 pub mod inventory;
@@ -104,6 +106,7 @@ pub use fixed::Fixed;
 pub use fov::compute_fov;
 pub use fsm::Fsm;
 pub use geometry::{line, line_of_sight};
+pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;
 pub use inputbuf::InputBuffer;
 pub use inventory::Inventory;
