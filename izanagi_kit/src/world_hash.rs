@@ -74,6 +74,13 @@ pub fn hash_state<T: DetHash + ?Sized>(value: &T) -> u64 {
 
 // Primitive impls. Fixed-width little-endian so the folded bytes are identical
 // on every target (no native-endian or pointer-width leakage).
+impl DetHash for u8 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(*self as u32);
+    }
+}
+
 impl DetHash for u32 {
     #[inline]
     fn det_hash(&self, hasher: &mut Fnv1a) {

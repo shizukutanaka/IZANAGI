@@ -37,6 +37,7 @@
 //! - [`inputbuf`] — input buffer with hold/repeat detection (`InputBuffer<K>`).
 //! - [`spatial_hash`] — spatial hash grid (`SpatialHash<K>`) for broad-phase queries.
 //! - [`noise`] — deterministic integer value noise and hash functions.
+//! - [`tilemap`] — multi-layer tile map (`TileMap<T>`, `LayeredMap<T>`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -72,6 +73,7 @@ pub mod spatial_hash;
 pub mod status;
 pub mod terminal;
 pub mod textlayout;
+pub mod tilemap;
 pub mod timer;
 pub mod timestep;
 pub mod turn;
@@ -111,6 +113,7 @@ pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatusSet};
 pub use terminal::{Cell, Screen};
 pub use textlayout::{center, pad_left, pad_right, truncate, wrap_words};
+pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
