@@ -43,6 +43,7 @@
 //! - [`assets`] — typed asset handle store (`AssetStore<T>`, `AssetHandle<T>`).
 //! - [`profiler`] — tick profiler (`Profiler`) and structured event log (`EventLog<E>`).
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
+//! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -50,6 +51,7 @@
 
 pub mod aabb;
 pub mod assets;
+pub mod autotile;
 pub mod camera;
 pub mod change;
 pub mod cmdqueue;
@@ -93,6 +95,7 @@ pub mod world_hash;
 
 pub use aabb::Aabb;
 pub use assets::{AssetHandle, AssetStore};
+pub use autotile::{compute_all, compute_mask, SimpleTileTable};
 pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
