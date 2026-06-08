@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `msglog`: bounded ring-buffer message log (`MsgLog`) for roguelike UI.
+  Push is O(1); oldest messages are silently dropped when capacity is reached
+  so memory stays bounded. Exposes `push`, `iter` (oldest-to-newest), `recent(n)`,
+  `clear`, `len`, `is_empty`, and `capacity`. Implements `DetHash` (folds the
+  visible history in order, independent of internal ring-buffer position) so the
+  event log participates in snapshot/replay checks. A capacity-0 log discards
+  immediately, useful in headless tests. 11 new tests.
 - `vec`: fixed-point 2-D and 3-D vectors (`Vec2`/`Vec3`) over `Fixed`. Each
   type exposes `new`/`ZERO`, `dot`, `len_sq`, `len` (integer isqrt), `scale`,
   `normalize` (returns `None` for the zero vector — no panic, no garbage),

@@ -11,6 +11,7 @@
 //! - [`pathfinding`] — deterministic 8-way A* grid pathfinding.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
+//! - [`msglog`] — bounded ring-buffer message log with `DetHash`.
 //! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
 //! - [`turn`] — energy/speed-based turn scheduler.
@@ -31,6 +32,7 @@ pub mod fov;
 pub mod geometry;
 pub mod loader;
 pub mod mapgen;
+pub mod msglog;
 pub mod parser;
 pub mod pathfinding;
 pub mod replay;
@@ -51,6 +53,7 @@ pub use fov::compute_fov;
 pub use geometry::{line, line_of_sight};
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
+pub use msglog::MsgLog;
 pub use parser::parse;
 pub use pathfinding::astar;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};

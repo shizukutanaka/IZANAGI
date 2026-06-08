@@ -55,7 +55,7 @@
 - L1 ターンスケジューラ（energy system）✅ `turn` / L2 ステータス/戦闘式 ⬜ / L3 インベントリ/アイテム ⬜ / L4 状態異常（buff/debuff の期限管理）⬜
 
 ## M. UI
-- M1 メッセージログ ⬜ / M2 メニュー/ウィジェット ⬜ / M3 テキストレイアウト/折返し ⬜ / M4 HUD ⬜
+- M1 メッセージログ ✅ `msglog` / M2 メニュー/ウィジェット ⬜ / M3 テキストレイアウト/折返し ⬜ / M4 HUD ⬜
 
 ## N. 永続化・セーブ (Persistence)
 - N1 コンテンツ serialize ✅ / N2 ワールド save/load ⬜（replay の seed+inputs で代替可）/ N3 バージョニング ⬜
@@ -76,7 +76,7 @@
 | 2 | L1 ターンスケジューラ（energy system） | roguelike のコア進行 | ✅ 実装済み（`turn`） |
 | 3 | D4 weighted choice / loot table | コンテンツ/戦闘に必須 | ✅ 実装済み（`weighted_index`, `dice`） |
 | 4 | B4 fixed ベクトル | 移動・物理の土台 | ✅ 実装済み（`vec` — Vec2/Vec3） |
-| 5 | M1 メッセージログ / G2 コマンドキュー | UI・入力決定論 | ⬜ |
+| 5 | M1 メッセージログ / G2 コマンドキュー | UI・入力決定論 | M1 ✅（`msglog`）/ G2 ⬜ |
 
 **本イテレーションの着手**: F（表示層）= `terminal` モジュール（セルバッファ・ANSI 24-bit・差分・ヘッドレス検査・DetHash）。
 決定論（純粋セルバッファ＋差分、float なし）・zero-dep を維持し、`Color`/`Render`/`mapgen`/`fov` と接続する。
