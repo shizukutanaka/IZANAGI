@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `cmdqueue`: deterministic command queue (`CmdQueue<C>`) — the replay-safe
+  input abstraction. Commands are pushed between simulation ticks and drained
+  in one atomic FIFO batch at the tick boundary; draining is the only way to
+  consume commands so none are processed twice. Provides `push`, `push_batch`,
+  `drain`, `clear`, `peek`, `len`, `is_empty`. `DetHash` (gated on `C:
+  DetHash`) folds pending commands in insertion order so the queue participates
+  in replay hash checks. Satisfies taxonomy G2. 11 new tests.
 - `msglog`: bounded ring-buffer message log (`MsgLog`) for roguelike UI.
   Push is O(1); oldest messages are silently dropped when capacity is reached
   so memory stays bounded. Exposes `push`, `iter` (oldest-to-newest), `recent(n)`,

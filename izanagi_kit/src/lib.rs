@@ -17,6 +17,7 @@
 //! - [`turn`] — energy/speed-based turn scheduler.
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
+//! - [`cmdqueue`] — deterministic command queue (replay-safe input abstraction).
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
 //!   the content pipeline: author game elements as text, serialize them back,
 //!   validate them, load into the ECS.
@@ -25,6 +26,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod cmdqueue;
 pub mod content;
 pub mod entity;
 pub mod fixed;
@@ -46,6 +48,7 @@ pub mod validator;
 pub mod vec;
 pub mod world_hash;
 
+pub use cmdqueue::CmdQueue;
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;

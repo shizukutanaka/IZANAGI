@@ -34,7 +34,7 @@
 - **本イテレーションで F1–F4,F6 を実装**（`terminal`）。残: F5 カメラ/ビューポート。
 
 ## G. 入力 (Input)
-- G1 キー→アクションのマッピング ⬜ / G2 コマンドキュー（決定論 input feed、replay と直結）⬜ / G3 入力バッファ/長押し ⬜
+- G1 キー→アクションのマッピング ⬜ / G2 コマンドキュー（決定論 input feed、replay と直結）✅ `cmdqueue` / G3 入力バッファ/長押し ⬜
 
 ## H. コンテンツ・アセット (Content & Assets)
 - H1 DSL パーサ ✅ `parser` / H2 シリアライズ往復 ✅ `serializer` / H3 意味検証 ✅ `validator` / H4 ECS ロード ✅ `loader` / H5 CLI ゲート ✅ `gamec`
@@ -76,7 +76,7 @@
 | 2 | L1 ターンスケジューラ（energy system） | roguelike のコア進行 | ✅ 実装済み（`turn`） |
 | 3 | D4 weighted choice / loot table | コンテンツ/戦闘に必須 | ✅ 実装済み（`weighted_index`, `dice`） |
 | 4 | B4 fixed ベクトル | 移動・物理の土台 | ✅ 実装済み（`vec` — Vec2/Vec3） |
-| 5 | M1 メッセージログ / G2 コマンドキュー | UI・入力決定論 | M1 ✅（`msglog`）/ G2 ⬜ |
+| 5 | M1 メッセージログ / G2 コマンドキュー | UI・入力決定論 | ✅ 実装済み（`msglog`, `cmdqueue`） |
 
 **本イテレーションの着手**: F（表示層）= `terminal` モジュール（セルバッファ・ANSI 24-bit・差分・ヘッドレス検査・DetHash）。
 決定論（純粋セルバッファ＋差分、float なし）・zero-dep を維持し、`Color`/`Render`/`mapgen`/`fov` と接続する。
