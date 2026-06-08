@@ -44,6 +44,7 @@
 //! - [`profiler`] — tick profiler (`Profiler`) and structured event log (`EventLog<E>`).
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
+//! - [`diag_json`] — machine-readable JSON serialization of pipeline diagnostics (`diag_json`).
 //! - [`multimap`] — multi-floor dungeon stack (`MultiMap`, `Connector`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
@@ -58,6 +59,7 @@ pub mod change;
 pub mod cmdqueue;
 pub mod combat;
 pub mod content;
+pub mod diag_json;
 pub mod easing;
 pub mod entity;
 pub mod fixed;
