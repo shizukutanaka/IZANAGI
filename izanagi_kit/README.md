@@ -18,19 +18,45 @@ replay is treated as a first-class feature, not an afterthought.
 
 ## Modules
 
+The kit spans the full stack a terminal roguelike needs. The capability map —
+with per-feature implementation status — lives in
+[`GAME_DEV_TAXONOMY.md`](./GAME_DEV_TAXONOMY.md); contracts are in
+[`SPEC.md`](./SPEC.md). The core foundations:
+
 | Module | Responsibility |
 |--------|----------------|
 | `entity` | Generational entity handles; stale handles are rejected. |
-| `sparse_set` | O(1) component storage; cheap composition changes. |
+| `sparse_set` / `arch` | O(1) component storage and an archetype table; cheap composition changes. |
 | `fixed` | Q16.16 fixed-point with **saturating** arithmetic for cross-platform determinism. |
 | `rng` | SplitMix64 seeded PRNG; replay-safe randomness. |
 | `timestep` | Fixed-timestep accumulator with a death-spiral guard. |
 | `world_hash` | FNV-1a per-frame state checksum for bit-exact replay assertions. |
-| `content` | Authored data model: prefabs, tiles, levels, spawns. |
-| `parser` | Line-based content parser; panic-free, bounded, column-aware diagnostics. |
-| `serializer` | Inverse of the parser; canonical, idempotent output. |
-| `validator` | Cross-reference and bounds checks; collects every finding. |
-| `loader` | Instantiates validated content into the ECS world. |
+| `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
+| `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
+| `mapgen` / `wfc` / `multimap` | Procedural dungeons, Wave Function Collapse, multi-level worlds. |
+| `fov` / `pathfinding` / `influence` / `fsm` | Symmetric FOV, (weighted) A*, influence maps, state machines. |
+| `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
+| `turn` / `combat` / `inventory` / `status` | Energy scheduler, integer combat, items, buff/debuff timers. |
+| `savefile` | Versioned, checksummed binary save framing. |
+| `noise` | Deterministic integer value-noise and hashing for procedural generation. |
+
+## Runnable examples
+
+Seven self-contained demos render to the terminal via the `terminal` module
+(24-bit ANSI, zero OS dependencies — they run unchanged in CI):
+
+```
+cargo run --example roguelike_demo          # mapgen + A* + FOV + scheduler + combat
+cargo run --example wfc_demo                 # Wave Function Collapse biome generation
+cargo run --example noise_terrain_demo       # 3-octave FBM terrain + biome heat-map
+cargo run --example influence_demo           # influence-map heat-map + HUD panel + steering
+cargo run --example content_pipeline_demo    # parse → validate → load → render, with diagnostics
+cargo run --example replay_demo              # desync detection + rollback (exits non-zero on failure)
+cargo run --example savefile_demo            # save framing: round-trip, corruption, versioning
+```
+
+Pipe any of them to a truecolor terminal for full colour; in a plain pipe the
+ANSI bytes still flow to stdout and the summary line prints to stderr.
 
 ## The content pipeline
 
@@ -78,6 +104,7 @@ dungeon.game:2:9: error: glyph must be one character
 ```
 cargo test          # all unit + integration tests
 cargo run --bin gamec -- examples/dungeon.game
+cargo run --example roguelike_demo            # see "Runnable examples" above
 ```
 
 ## Development
