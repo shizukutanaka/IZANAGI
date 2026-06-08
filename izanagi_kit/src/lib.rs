@@ -20,6 +20,7 @@
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
+//! - [`keymap`] — key-to-action mapping (`KeyMap<K,A>`) for deterministic input.
 //! - [`easing`] — integer easing curves (quad/cubic in/out/in-out) over `Fixed`.
 //! - [`status`] — timed status effects / buff-debuff tracking (`StatusSet<K>`).
 //! - [`cmdqueue`] — deterministic command queue (replay-safe input abstraction).
@@ -40,6 +41,7 @@ pub mod entity;
 pub mod fixed;
 pub mod fov;
 pub mod geometry;
+pub mod keymap;
 pub mod loader;
 pub mod mapgen;
 pub mod msglog;
@@ -69,6 +71,7 @@ pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::compute_fov;
 pub use geometry::{line, line_of_sight};
+pub use keymap::KeyMap;
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
 pub use msglog::MsgLog;

@@ -34,7 +34,7 @@
 - **F1–F6 すべて実装済み**（`terminal` + `camera`）。
 
 ## G. 入力 (Input)
-- G1 キー→アクションのマッピング ⬜ / G2 コマンドキュー（決定論 input feed、replay と直結）✅ `cmdqueue` / G3 入力バッファ/長押し ⬜
+- G1 キー→アクションのマッピング ✅ `keymap` / G2 コマンドキュー（決定論 input feed、replay と直結）✅ `cmdqueue` / G3 入力バッファ/長押し ⬜
 
 ## H. コンテンツ・アセット (Content & Assets)
 - H1 DSL パーサ ✅ `parser` / H2 シリアライズ往復 ✅ `serializer` / H3 意味検証 ✅ `validator` / H4 ECS ロード ✅ `loader` / H5 CLI ゲート ✅ `gamec`

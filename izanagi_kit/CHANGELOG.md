@@ -27,6 +27,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `keymap`: key-to-action mapping (`KeyMap<K,A>`). Translates raw key events
+  into typed game actions via a configurable binding table (one key → one
+  action). `bind` adds/replaces; `unbind` removes; `get` looks up; `is_bound`
+  checks; `translate_all` maps a slice of keys discarding unmapped ones —
+  the typical per-tick call before pushing into `CmdQueue`. Replay-safe by
+  construction (stateless function). Satisfies taxonomy G1. 13 new tests.
 - `change`: dirty-flag change detection (`Changed<T>` and `ChangeTracker`).
   `Changed<T>` wraps a value with its `changed_at` tick; `is_changed_since(n)`
   skips updates in O(1); `get_mut(tick)` mutates and auto-marks. `ChangeTracker`
