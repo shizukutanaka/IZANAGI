@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `change`: dirty-flag change detection (`Changed<T>` and `ChangeTracker`).
+  `Changed<T>` wraps a value with its `changed_at` tick; `is_changed_since(n)`
+  skips updates in O(1); `get_mut(tick)` mutates and auto-marks. `ChangeTracker`
+  is a saturating tick counter incremented each sim step. `DetHash` folds value
+  + tick so a spurious re-mark is visible in the world hash. Mirrors Bevy's
+  `Changed<T>` filter but without global state — fully replay-safe. Satisfies
+  taxonomy C5. 10 new tests.
 - `status`: timed buff/debuff tracking (`StatusSet<K>`). Each effect has a
   remaining tick duration and a signed magnitude. `apply` inserts or refreshes
   (max-duration stacking); `tick(n)` advances all effects, removes expired ones

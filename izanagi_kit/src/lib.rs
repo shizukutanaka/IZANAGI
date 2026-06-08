@@ -19,6 +19,7 @@
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
+//! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
 //! - [`easing`] — integer easing curves (quad/cubic in/out/in-out) over `Fixed`.
 //! - [`status`] — timed status effects / buff-debuff tracking (`StatusSet<K>`).
 //! - [`cmdqueue`] — deterministic command queue (replay-safe input abstraction).
@@ -31,6 +32,7 @@
 #![forbid(unsafe_code)]
 
 pub mod camera;
+pub mod change;
 pub mod cmdqueue;
 pub mod content;
 pub mod easing;
@@ -57,6 +59,7 @@ pub mod vec;
 pub mod world_hash;
 
 pub use camera::Camera;
+pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use easing::{
