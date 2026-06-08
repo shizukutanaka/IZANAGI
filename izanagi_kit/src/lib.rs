@@ -44,6 +44,7 @@
 //! - [`profiler`] — tick profiler (`Profiler`) and structured event log (`EventLog<E>`).
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
+//! - [`multimap`] — multi-floor dungeon stack (`MultiMap`, `Connector`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -72,6 +73,7 @@ pub mod loader;
 pub mod mapgen;
 pub mod menu;
 pub mod msglog;
+pub mod multimap;
 pub mod noise;
 pub mod parser;
 pub mod pathfinding;
@@ -118,6 +120,7 @@ pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};
 pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
+pub use multimap::{Connector, MultiMap};
 pub use noise::{hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
 pub use pathfinding::astar;
