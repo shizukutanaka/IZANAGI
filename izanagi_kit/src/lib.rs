@@ -20,6 +20,7 @@
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`easing`] — integer easing curves (quad/cubic in/out/in-out) over `Fixed`.
+//! - [`status`] — timed status effects / buff-debuff tracking (`StatusSet<K>`).
 //! - [`cmdqueue`] — deterministic command queue (replay-safe input abstraction).
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
 //!   the content pipeline: author game elements as text, serialize them back,
@@ -46,6 +47,7 @@ pub mod replay;
 pub mod rng;
 pub mod serializer;
 pub mod sparse_set;
+pub mod status;
 pub mod terminal;
 pub mod timer;
 pub mod timestep;
@@ -73,6 +75,7 @@ pub use replay::{check_trace, first_divergence, record_trace, resimulate, Diverg
 pub use rng::SplitMix64;
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
+pub use status::{Effect, StatusSet};
 pub use terminal::{Cell, Screen};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;

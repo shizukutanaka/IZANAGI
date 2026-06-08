@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `status`: timed buff/debuff tracking (`StatusSet<K>`). Each effect has a
+  remaining tick duration and a signed magnitude. `apply` inserts or refreshes
+  (max-duration stacking); `tick(n)` advances all effects, removes expired ones
+  and returns their keys; `remove` discards immediately. `total_magnitude` sums
+  all active magnitudes for a net modifier. `DetHash` folds in canonical key
+  order so the hash is insertion-order-independent. Satisfies taxonomy L4.
+  11 new tests.
 - `easing`: integer easing curves over `Fixed` — `ease_in_quad`,
   `ease_out_quad`, `ease_in_out_quad`, `ease_in_cubic`, `ease_out_cubic`, and
   `linear`. All take `t ∈ [0,1]`, return values in the same range, and are
