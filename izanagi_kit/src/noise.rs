@@ -56,7 +56,7 @@ fn smoothstep(t: u32) -> u32 {
     let t256 = t >> 8; // [0, 256], t scaled to 1/256 precision
     let t2 = t256 * t256; // t² * 65536, range [0, 65536]
     let t3 = (t2 * t256) >> 8; // t³ * 65536, range [0, 65536]
-    // 3t² - 2t³ ∈ [0, 1] for t ∈ [0, 1]; both operands already scaled by 65536.
+                               // 3t² - 2t³ ∈ [0, 1] for t ∈ [0, 1]; both operands already scaled by 65536.
     3 * t2 - 2 * t3
 }
 
