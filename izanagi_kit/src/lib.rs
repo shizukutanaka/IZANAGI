@@ -22,6 +22,7 @@
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
 //! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
 //! - [`fsm`] — table-driven finite state machine for game AI (`Fsm<S,E>`).
+//! - [`inventory`] — slot-based inventory (`Inventory<T>`) for roguelike items.
 //! - [`keymap`] — key-to-action mapping (`KeyMap<K,A>`) for deterministic input.
 //! - [`easing`] — integer easing curves (quad/cubic in/out/in-out) over `Fixed`.
 //! - [`status`] — timed status effects / buff-debuff tracking (`StatusSet<K>`).
@@ -45,6 +46,7 @@ pub mod fixed;
 pub mod fov;
 pub mod fsm;
 pub mod geometry;
+pub mod inventory;
 pub mod keymap;
 pub mod loader;
 pub mod mapgen;
@@ -77,6 +79,7 @@ pub use fixed::Fixed;
 pub use fov::compute_fov;
 pub use fsm::Fsm;
 pub use geometry::{line, line_of_sight};
+pub use inventory::Inventory;
 pub use keymap::KeyMap;
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{generate_dungeon, Dungeon, GenParams, Rect};

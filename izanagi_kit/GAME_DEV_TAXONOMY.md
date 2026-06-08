@@ -52,7 +52,7 @@
 - K1 グリッド衝突（passability）🔶（pathfinding/mapgen の is_blocked）/ K2 AABB 重なり ⬜ / K3 空間ハッシュ broadphase ⬜
 
 ## L. ゲームプレイ系 (Gameplay systems)
-- L1 ターンスケジューラ（energy system）✅ `turn` / L2 ステータス/戦闘式 ✅ `combat` / L3 インベントリ/アイテム ⬜ / L4 状態異常（buff/debuff の期限管理）✅ `status`
+- L1 ターンスケジューラ（energy system）✅ `turn` / L2 ステータス/戦闘式 ✅ `combat` / L3 インベントリ/アイテム ✅ `inventory` / L4 状態異常（buff/debuff の期限管理）✅ `status`
 
 ## M. UI
 - M1 メッセージログ ✅ `msglog` / M2 メニュー/ウィジェット ⬜ / M3 テキストレイアウト/折返し ⬜ / M4 HUD ⬜
