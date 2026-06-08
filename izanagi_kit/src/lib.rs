@@ -33,6 +33,7 @@
 //!
 //! - [`aabb`] — axis-aligned bounding box (`Aabb`) collision detection.
 //! - [`menu`] — keyboard-navigable list menu (`Menu<T>`) for roguelike UI.
+//! - [`textlayout`] — word-wrap, truncate, and alignment helpers for terminal UI.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -64,6 +65,7 @@ pub mod serializer;
 pub mod sparse_set;
 pub mod status;
 pub mod terminal;
+pub mod textlayout;
 pub mod timer;
 pub mod timestep;
 pub mod turn;
@@ -99,6 +101,7 @@ pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use status::{Effect, StatusSet};
 pub use terminal::{Cell, Screen};
+pub use textlayout::{center, pad_left, pad_right, truncate, wrap_words};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
