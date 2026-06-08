@@ -14,6 +14,7 @@
 //! - [`msglog`] — bounded ring-buffer message log with `DetHash`.
 //! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
+//! - [`timer`] — tick-based `Cooldown` and `TimerQueue<E>` for delayed events.
 //! - [`turn`] — energy/speed-based turn scheduler.
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
@@ -42,6 +43,7 @@ pub mod rng;
 pub mod serializer;
 pub mod sparse_set;
 pub mod terminal;
+pub mod timer;
 pub mod timestep;
 pub mod turn;
 pub mod validator;
@@ -64,6 +66,7 @@ pub use rng::SplitMix64;
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use terminal::{Cell, Screen};
+pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
 pub use validator::{is_loadable, validate};

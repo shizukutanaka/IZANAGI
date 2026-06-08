@@ -27,6 +27,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   with "Couldn't find Cargo.lock" on every run.
 
 ### Added
+- `timer`: tick-based `Cooldown` and `TimerQueue<E>`. `Cooldown` is a simple
+  saturating countdown (`tick(n)` returns `true` on the ready transition).
+  `TimerQueue<E>` is a collection of future events — `schedule(delay, event)`
+  and `schedule_repeat(delay, period, event)` — advanced by `advance(ticks)`
+  which fires (and returns) all expired events in order and requeues repeating
+  ones. Both implement `DetHash`; no float or OS clock anywhere. Satisfies
+  taxonomy A4. 14 new tests.
 - `cmdqueue`: deterministic command queue (`CmdQueue<C>`) — the replay-safe
   input abstraction. Commands are pushed between simulation ticks and drained
   in one atomic FIFO batch at the tick boundary; draining is the only way to

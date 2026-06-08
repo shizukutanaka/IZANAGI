@@ -10,7 +10,7 @@
 
 ## A. 時間とループ (Time & Loop)
 - A1 固定タイムステップ ✅ `timestep` / A2 補間 alpha ✅ / A3 death-spiral ガード ✅
-- A4 スケジューラ（タイマー・クールダウン・遅延イベント）⬜ / A5 ターン制エネルギー系（speed-based turn order）✅ `turn`
+- A4 スケジューラ（タイマー・クールダウン・遅延イベント）✅ `timer` / A5 ターン制エネルギー系（speed-based turn order）✅ `turn`
 
 ## B. 数学 (Math)
 - B1 fixed-point Q16.16 ✅ `fixed` / B2 sqrt・CORDIC trig ✅ / B3 整数幾何（line/LOS）✅ `geometry`
