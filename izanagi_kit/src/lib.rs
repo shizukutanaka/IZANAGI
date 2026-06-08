@@ -8,7 +8,7 @@
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
 //! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (deterministic).
-//! - [`pathfinding`] — deterministic 8-way A* grid pathfinding.
+//! - [`pathfinding`] — deterministic 8-way A* and weighted A* (ε-admissible) grid pathfinding.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
 //! - [`msglog`] — bounded ring-buffer message log with `DetHash`.
@@ -123,7 +123,7 @@ pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
 pub use noise::{hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
-pub use pathfinding::astar;
+pub use pathfinding::{astar, weighted_astar};
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use relations::Relations;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};

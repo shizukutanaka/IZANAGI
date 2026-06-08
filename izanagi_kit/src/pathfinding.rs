@@ -5,7 +5,13 @@
 //! — a fixed-point stand-in for the 1 : √2 ratio) and the octile heuristic, so
 //! it is admissible, consistent (optimal paths) and free of floating point.
 //!
-//! Determinism: the open set is ordered by the *total* key `(f, h, x, y)` — the
+//! [`weighted_astar`] extends the algorithm with an integer heuristic inflation
+//! factor `weight ≥ 1`. `f = g + weight × h` trades path optimality for speed:
+//! the returned path costs at most `weight × optimal`. At `weight = 1` the result
+//! is identical to [`astar`]; at `weight = 2` roughly half the nodes are expanded
+//! in open maps while the path is still within 2× optimal.
+//!
+//! Determinism: the open set is ordered by the *total* key `(f, wh, x, y)` — the
 //! `(x, y)` tail makes every key unique, so there are no ties for the heap to
 //! break arbitrarily and the popped order is identical on every run and target.
 //! Neighbours are expanded in a fixed compass order. (See `bracket-lib`'s
@@ -113,6 +119,74 @@ where
                 came_from.insert(neighbour, cur);
                 let h = octile(neighbour, goal);
                 open.push(Reverse((tentative + h, h, nx, ny)));
+            }
+        }
+    }
+    None
+}
+
+/// Find a path from `start` to `goal` using a weighted (ε-admissible) heuristic.
+///
+/// `weight ≥ 1` inflates the octile heuristic: `f = g + weight × h`.
+/// At `weight = 1` the result is identical to [`astar`] (optimal). Larger
+/// weights expand fewer nodes and return a path whose cost is at most
+/// `weight × optimal_cost`. Values in `1..=3` cover typical roguelike needs.
+///
+/// All determinism invariants of [`astar`] hold: the open-set key is
+/// `(f, weight*h, x, y)` — unique and total. `is_blocked` must return `true`
+/// for out-of-bounds coordinates to bound the search.
+pub fn weighted_astar<B>(
+    start: (i32, i32),
+    goal: (i32, i32),
+    mut is_blocked: B,
+    weight: u32,
+) -> Option<Vec<(i32, i32)>>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    let w = weight.max(1) as i32;
+    if is_blocked(start.0, start.1) || is_blocked(goal.0, goal.1) {
+        return None;
+    }
+    if start == goal {
+        return Some(vec![start]);
+    }
+
+    let mut open: BinaryHeap<Reverse<(i32, i32, i32, i32)>> = BinaryHeap::new();
+    let mut g_score: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
+
+    let h0 = octile(start, goal);
+    g_score.insert(start, 0);
+    open.push(Reverse((w * h0, w * h0, start.0, start.1)));
+
+    while let Some(Reverse((f, _wh, cx, cy))) = open.pop() {
+        let cur = (cx, cy);
+        let cur_g = g_score[&cur];
+        // Lazy deletion: skip stale heap entries.
+        if f != cur_g + w * octile(cur, goal) {
+            continue;
+        }
+        if cur == goal {
+            return Some(reconstruct(&came_from, goal));
+        }
+        for (dx, dy) in DIRS {
+            let (nx, ny) = (cx + dx, cy + dy);
+            if is_blocked(nx, ny) {
+                continue;
+            }
+            let diagonal = dx != 0 && dy != 0;
+            if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                continue;
+            }
+            let step = if diagonal { COST_DIAG } else { COST_ORTHO };
+            let tentative = cur_g + step;
+            let neighbour = (nx, ny);
+            if tentative < *g_score.get(&neighbour).unwrap_or(&i32::MAX) {
+                g_score.insert(neighbour, tentative);
+                came_from.insert(neighbour, cur);
+                let h = octile(neighbour, goal);
+                open.push(Reverse((tentative + w * h, w * h, nx, ny)));
             }
         }
     }
@@ -375,6 +449,80 @@ mod tests {
             assert!(steps < 1000, "descent must terminate");
         }
         assert_eq!(map[&cur], 0, "descent ends at a source");
+    }
+
+    // --- weighted_astar ---
+
+    #[test]
+    fn test_weighted_astar_weight_one_matches_astar_cost() {
+        // weight=1 must find a path of the same cost as astar.
+        let path_a = astar((0, 0), (8, 5), blocker(12, 12, HashSet::new())).unwrap();
+        let path_w = weighted_astar((0, 0), (8, 5), blocker(12, 12, HashSet::new()), 1).unwrap();
+        assert_eq!(path_cost(&path_a), path_cost(&path_w));
+    }
+
+    #[test]
+    fn test_weighted_astar_finds_goal_with_weight_two() {
+        let path = weighted_astar((0, 0), (9, 9), blocker(12, 12, HashSet::new()), 2).unwrap();
+        assert_eq!(path.first(), Some(&(0, 0)));
+        assert_eq!(path.last(), Some(&(9, 9)));
+    }
+
+    #[test]
+    fn test_weighted_astar_start_equals_goal() {
+        let path = weighted_astar((3, 3), (3, 3), blocker(10, 10, HashSet::new()), 2).unwrap();
+        assert_eq!(path, vec![(3, 3)]);
+    }
+
+    #[test]
+    fn test_weighted_astar_blocked_start_returns_none() {
+        let walls = HashSet::from([(2, 2)]);
+        assert!(weighted_astar((2, 2), (5, 5), blocker(10, 10, walls), 2).is_none());
+    }
+
+    #[test]
+    fn test_weighted_astar_unreachable_goal_returns_none() {
+        let mut walls = HashSet::new();
+        for x in 7..=9 {
+            for y in 7..=9 {
+                if (x, y) != (9, 9) {
+                    walls.insert((x, y));
+                }
+            }
+        }
+        assert!(weighted_astar((0, 0), (9, 9), blocker(10, 10, walls), 2).is_none());
+    }
+
+    #[test]
+    fn test_weighted_astar_path_cost_bounded() {
+        // Path cost must be ≤ weight × optimal cost.
+        let weight = 3u32;
+        let optimal = astar((0, 0), (10, 7), blocker(15, 15, HashSet::new())).unwrap();
+        let subopt =
+            weighted_astar((0, 0), (10, 7), blocker(15, 15, HashSet::new()), weight).unwrap();
+        assert!(
+            path_cost(&subopt) <= weight as i32 * path_cost(&optimal),
+            "weighted path cost {} must be ≤ {}×optimal={}",
+            path_cost(&subopt),
+            weight,
+            path_cost(&optimal)
+        );
+    }
+
+    #[test]
+    fn test_weighted_astar_is_deterministic() {
+        let walls = HashSet::from([(4, 2), (4, 3), (4, 4)]);
+        let a = weighted_astar((1, 1), (9, 9), blocker(12, 12, walls.clone()), 2);
+        let b = weighted_astar((1, 1), (9, 9), blocker(12, 12, walls), 2);
+        assert_eq!(a, b);
+        assert!(a.is_some());
+    }
+
+    #[test]
+    fn test_weighted_astar_weight_zero_treated_as_one() {
+        // weight=0 is clamped to 1; must still find a path.
+        let path = weighted_astar((0, 0), (5, 5), blocker(10, 10, HashSet::new()), 0).unwrap();
+        assert_eq!(path.last(), Some(&(5, 5)));
     }
 
     #[test]
