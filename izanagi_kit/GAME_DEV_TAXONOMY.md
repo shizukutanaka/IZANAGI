@@ -18,7 +18,7 @@
 
 ## C. 状態とデータ (State & Data / ECS)
 - C1 generational entity ✅ `entity` / C2 sparse-set storage ✅ / C3 多コンポーネント join ✅
-- C4 archetype storage ⬜ / C5 変更検知（dirty/changed）✅ `change` / C6 エンティティ関係（parent/child, relations）⬜
+- C4 archetype storage ⬜ / C5 変更検知（dirty/changed）✅ `change` / C6 エンティティ関係（parent/child, relations）✅ `relations`
 
 ## D. 乱数 (Randomness)
 - D1 決定論 PRNG ✅ `rng` / D2 range・coin ✅ / D3 stream の DetHash ✅

@@ -39,6 +39,7 @@
 //! - [`noise`] — deterministic integer value noise and hash functions.
 //! - [`tilemap`] — multi-layer tile map (`TileMap<T>`, `LayeredMap<T>`).
 //! - [`influence`] — grid-based influence map (`InfluenceMap`) for AI steering.
+//! - [`relations`] — entity parent/child relationships (`Relations`).
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -67,6 +68,7 @@ pub mod msglog;
 pub mod noise;
 pub mod parser;
 pub mod pathfinding;
+pub mod relations;
 pub mod replay;
 pub mod rng;
 pub mod serializer;
@@ -108,6 +110,7 @@ pub use msglog::MsgLog;
 pub use noise::{hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
 pub use pathfinding::astar;
+pub use relations::Relations;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
 pub use rng::SplitMix64;
 pub use serializer::{content_eq, serialize};
