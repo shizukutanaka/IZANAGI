@@ -32,6 +32,7 @@
 //!   validate them, load into the ECS.
 //!
 //! - [`aabb`] — axis-aligned bounding box (`Aabb`) collision detection.
+//! - [`arch`] — archetype-based component storage (`ArchTable<Row>`) for cache-friendly multi-component iteration.
 //! - [`menu`] — keyboard-navigable list menu (`Menu<T>`) for roguelike UI.
 //! - [`textlayout`] — word-wrap, truncate, and alignment helpers for terminal UI.
 //! - [`inputbuf`] — input buffer with hold/repeat detection (`InputBuffer<K>`).
@@ -53,6 +54,7 @@
 #![forbid(unsafe_code)]
 
 pub mod aabb;
+pub mod arch;
 pub mod assets;
 pub mod autotile;
 pub mod camera;
@@ -100,6 +102,7 @@ pub mod wfc;
 pub mod world_hash;
 
 pub use aabb::Aabb;
+pub use arch::ArchTable;
 pub use assets::{AssetHandle, AssetStore};
 pub use autotile::{compute_all, compute_mask, SimpleTileTable};
 pub use camera::Camera;
