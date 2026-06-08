@@ -42,7 +42,7 @@ with per-feature implementation status — lives in
 
 ## Runnable examples
 
-Nine self-contained demos render to the terminal via the `terminal` module
+Ten self-contained demos render to the terminal via the `terminal` module
 (24-bit ANSI, zero OS dependencies — they run unchanged in CI):
 
 ```
@@ -55,6 +55,7 @@ cargo run --example replay_demo              # desync detection + rollback (exit
 cargo run --example savefile_demo            # save framing: round-trip, corruption, versioning
 cargo run --example status_effects_demo      # StatusSet + Inventory + Scheduler + combat
 cargo run --example ai_behavior_demo         # FSM + SpatialHash + Cooldown + TimerQueue
+cargo run --example menu_textlayout_demo     # Menu navigation + word-wrap + text layout helpers
 ```
 
 Pipe any of them to a truecolor terminal for full colour; in a plain pipe the
