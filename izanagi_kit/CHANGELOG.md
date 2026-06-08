@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- `random_table::RandomTable<T>`: weighted random selection table for loot drops
+  and depth-scaled spawn tables — the canonical roguelike pattern (cf. the *Rust
+  Roguelike Tutorial* `random_table.rs` and `bracket-lib`). A typed layer over
+  `SplitMix64::weighted_index` that *owns* the candidate values, so `roll` yields
+  the value directly. Builder (`with`) and in-place (`push`) APIs; entries with
+  weight 0 are stored but never selected; an empty/all-zero table rolls `None`
+  without drawing, so selection stays replay-deterministic (exactly one draw per
+  non-empty roll). `DetHash` (gated on `T: DetHash`) folds the table config into
+  world/replay hashes. Re-exported as `izanagi_kit::RandomTable`.
+- `geometry::Distance`: grid distance metrics (`Manhattan`, `Chebyshev`,
+  `EuclideanSquared`, `Euclidean`) via `Distance::between(a, b)` — mirrors
+  `bracket-lib`'s `DistanceAlg` for picking a metric that matches movement rules
+  (Manhattan for 4-way, Chebyshev for 8-way, the Euclidean pair for radial
+  range). `Euclidean` returns the floored integer distance using an integer
+  square root (Newton's method), so it remains float-free and cross-platform
+  deterministic; all metrics saturate rather than overflow. Re-exported as
+  `izanagi_kit::Distance`.
+
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a
   multi-byte UTF-8 char (e.g. `#aéABC`). It now parses hex straight from bytes

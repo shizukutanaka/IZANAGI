@@ -34,9 +34,10 @@ with per-feature implementation status — lives in
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
 | `mapgen` / `wfc` / `multimap` | Procedural dungeons, Wave Function Collapse, multi-level worlds. |
-| `fov` / `pathfinding` / `influence` / `fsm` | Symmetric FOV, (weighted) A*, influence maps, state machines. |
+| `fov` / `pathfinding` / `influence` / `fsm` | Symmetric FOV, (weighted) A*, Dijkstra flow maps, influence maps, state machines. |
+| `geometry` | Bresenham lines / line-of-sight and integer distance metrics (Manhattan, Chebyshev, Euclidean). |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
-| `turn` / `combat` / `inventory` / `status` | Energy scheduler, integer combat, items, buff/debuff timers. |
+| `turn` / `combat` / `inventory` / `status` / `random_table` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables. |
 | `savefile` | Versioned, checksummed binary save framing. |
 | `noise` | Deterministic integer value-noise and hashing for procedural generation. |
 
