@@ -42,7 +42,7 @@ with per-feature implementation status — lives in
 
 ## Runnable examples
 
-Seventeen self-contained demos render to the terminal via the `terminal` module
+Eighteen self-contained demos render to the terminal via the `terminal` module
 (24-bit ANSI, zero OS dependencies — they run unchanged in CI):
 
 ```
@@ -63,6 +63,7 @@ cargo run --example autotile_demo            # bitmask auto-tiling: compute_all 
 cargo run --example relations_demo           # entity parent/child forest + cycle guard
 cargo run --example multimap_demo            # multi-floor dungeon stack + stair connectors
 cargo run --example archetype_demo           # ArchTable ECS: dense iteration + O(1) migration
+cargo run --example asset_store_demo         # AssetStore<T> generational handle safety
 ```
 
 Pipe any of them to a truecolor terminal for full colour; in a plain pipe the
