@@ -75,6 +75,18 @@ impl Cooldown {
     pub fn elapsed(&self, original: u32) -> u32 {
         original.saturating_sub(self.remaining)
     }
+
+    /// Percentage of the cooldown still remaining as an integer in `[0, 100]`.
+    /// `original_ticks == 0` always returns `0` (ready). Saturates: if
+    /// `remaining > original_ticks`, returns 100. The inverse of `elapsed`.
+    /// Useful for "80% remaining on block cooldown" progress bars.
+    #[inline]
+    pub fn percent_remaining(&self, original_ticks: u32) -> u32 {
+        if original_ticks == 0 {
+            return 0;
+        }
+        (self.remaining.min(original_ticks) as u64 * 100 / original_ticks as u64) as u32
+    }
 }
 
 impl DetHash for Cooldown {
@@ -496,5 +508,29 @@ mod tests {
     fn test_reschedule_on_empty_queue_returns_false() {
         let mut q: TimerQueue<u32> = TimerQueue::new();
         assert!(!q.reschedule(|_| true, 1));
+    }
+
+    #[test]
+    fn test_percent_remaining_full() {
+        let cd = Cooldown::new(100);
+        assert_eq!(cd.percent_remaining(100), 100);
+    }
+
+    #[test]
+    fn test_percent_remaining_ready_returns_zero() {
+        let cd = Cooldown::ready();
+        assert_eq!(cd.percent_remaining(100), 0);
+    }
+
+    #[test]
+    fn test_percent_remaining_half() {
+        let cd = Cooldown::new(50);
+        assert_eq!(cd.percent_remaining(100), 50);
+    }
+
+    #[test]
+    fn test_percent_remaining_original_zero_returns_zero() {
+        let cd = Cooldown::new(5);
+        assert_eq!(cd.percent_remaining(0), 0);
     }
 }

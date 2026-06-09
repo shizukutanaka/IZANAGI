@@ -91,6 +91,16 @@ impl<T> Changed<T> {
     pub fn ticks_since_change(&self, current_tick: u32) -> u32 {
         current_tick.saturating_sub(self.changed_at)
     }
+
+    /// Returns `true` if this component has not been marked for at least
+    /// `age_threshold` ticks (i.e. `ticks_since_change >= age_threshold`).
+    ///
+    /// Useful for cache invalidation ("if no update for 30 ticks, recompute")
+    /// and TTL checks without spelling out the comparison at every call site.
+    #[inline]
+    pub fn is_stale(&self, age_threshold: u32, current_tick: u32) -> bool {
+        self.ticks_since_change(current_tick) >= age_threshold
+    }
 }
 
 impl<T: DetHash> DetHash for Changed<T> {
@@ -369,5 +379,23 @@ mod tests {
         let mut ct = ChangeTracker::new();
         ct.set_tick(50);
         assert_eq!(ct.delta_since(45), 5);
+    }
+
+    #[test]
+    fn test_is_stale_when_old_enough() {
+        let c = Changed::at(42u32, 5);
+        assert!(c.is_stale(10, 20)); // changed 15 ticks ago, threshold 10
+    }
+
+    #[test]
+    fn test_is_stale_not_stale_when_fresh() {
+        let c = Changed::at(42u32, 18);
+        assert!(!c.is_stale(10, 20)); // changed 2 ticks ago, threshold 10
+    }
+
+    #[test]
+    fn test_is_stale_at_exact_threshold() {
+        let c = Changed::at(0u32, 10);
+        assert!(c.is_stale(10, 20)); // exactly 10 ticks ago = stale
     }
 }

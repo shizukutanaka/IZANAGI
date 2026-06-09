@@ -213,6 +213,16 @@ pub fn pad_lines(lines: Vec<String>, width: usize) -> Vec<String> {
     lines.into_iter().map(|l| pad_right(&l, width)).collect()
 }
 
+/// Wrap `text` to fit inside a box of `width` columns and `height` rows.
+///
+/// Convenience that combines [`wrap_words_max_lines`] — wrapping at `width`
+/// and capping at `height` lines. If the text overflows, the last visible
+/// line ends with `…`. Both `width == 0` and `height == 0` return an empty
+/// `Vec`. The typical "dialogue box" call site pattern in roguelike UIs.
+pub fn fit_to_box(text: &str, width: usize, height: usize) -> Vec<String> {
+    wrap_words_max_lines(text, width, height)
+}
+
 /// Right-align `s`, space-padding to `width` on the left.
 /// If `s` is wider than `width` it is returned as-is.
 pub fn pad_left(s: &str, width: usize) -> String {
@@ -501,6 +511,30 @@ mod tests {
     #[test]
     fn test_pad_lines_empty_input() {
         let lines: Vec<String> = pad_lines(vec![], 10);
+        assert!(lines.is_empty());
+    }
+
+    #[test]
+    fn test_fit_to_box_wraps_and_caps() {
+        let text = "one two three four five six seven eight nine ten";
+        let lines = fit_to_box(text, 12, 3);
+        assert!(lines.len() <= 3);
+        for l in &lines {
+            assert!(l.chars().count() <= 12);
+        }
+    }
+
+    #[test]
+    fn test_fit_to_box_no_overflow_adds_ellipsis() {
+        let text = "word ".repeat(20);
+        let lines = fit_to_box(&text, 10, 2);
+        assert_eq!(lines.len(), 2);
+        assert!(lines[1].ends_with('…'), "overflowed line must end with …");
+    }
+
+    #[test]
+    fn test_fit_to_box_zero_height_returns_empty() {
+        let lines = fit_to_box("hello world", 20, 0);
         assert!(lines.is_empty());
     }
 }

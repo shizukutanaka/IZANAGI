@@ -91,6 +91,16 @@ pub fn load_bytes_owned(data: &[u8]) -> Result<(SaveHeader, Vec<u8>), LoadError>
     Ok((header, payload.to_vec()))
 }
 
+/// Check that `data` is a structurally valid save file without returning the
+/// payload. Equivalent to `load_bytes(data).map(|_| ())`.
+///
+/// Useful for save-slot browser UI that needs to show a "valid / corrupt"
+/// indicator without deserialising the full game state.
+#[inline]
+pub fn validate_integrity(data: &[u8]) -> Result<(), LoadError> {
+    load_bytes(data).map(|_| ())
+}
+
 /// Errors returned by [`load_bytes`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum LoadError {
@@ -295,5 +305,23 @@ mod tests {
         // Drop data — owned should still be valid.
         drop(data);
         assert_eq!(owned.as_slice(), payload);
+    }
+
+    #[test]
+    fn test_validate_integrity_ok_on_valid_save() {
+        let data = save_bytes(&SaveHeader::new(1), b"hello");
+        assert!(validate_integrity(&data).is_ok());
+    }
+
+    #[test]
+    fn test_validate_integrity_rejects_corrupt_payload() {
+        let mut data = save_bytes(&SaveHeader::new(1), b"hello");
+        *data.last_mut().unwrap() ^= 0xFF;
+        assert_eq!(validate_integrity(&data), Err(LoadError::ChecksumMismatch));
+    }
+
+    #[test]
+    fn test_validate_integrity_rejects_too_short() {
+        assert_eq!(validate_integrity(&[0u8; 5]), Err(LoadError::TooShort));
     }
 }

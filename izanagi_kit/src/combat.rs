@@ -177,6 +177,23 @@ pub fn critical_strike(
     StrikeResult { damage, critical }
 }
 
+/// Roll base damage plus a random variance component.
+///
+/// Returns `base + rng.below(variance + 1) as i32`, floored at `0`.
+/// `variance == 0` always returns `base.max(0)` without consuming an RNG draw.
+/// Equivalent to rolling `1d(variance+1) - 1` and adding `base`.
+///
+/// Useful for giving attacks a natural spread (e.g. `roll_damage(rng, 5, 3)`
+/// yields 5–8 damage) without spelling out the Dice formula at every call site.
+pub fn roll_damage(rng: &mut SplitMix64, base: i32, variance: u32) -> i32 {
+    let bonus = if variance > 0 {
+        rng.below(variance + 1) as i32
+    } else {
+        0
+    };
+    (base + bonus).max(0)
+}
+
 /// Ranged attack with a hit roll. Returns `Some(damage)` on hit, `None` on miss.
 pub fn ranged_attack(
     rng: &mut SplitMix64,
@@ -473,5 +490,34 @@ mod tests {
         let overkill = s.take_overkill_damage(-5);
         assert_eq!(overkill, 0);
         assert_eq!(s.hp, 10);
+    }
+
+    #[test]
+    fn test_roll_damage_zero_variance_returns_base() {
+        let mut rng = SplitMix64::new(99);
+        let state = rng.state();
+        let dmg = roll_damage(&mut rng, 7, 0);
+        assert_eq!(dmg, 7);
+        assert_eq!(
+            rng.state(),
+            state,
+            "zero variance must not consume an RNG draw"
+        );
+    }
+
+    #[test]
+    fn test_roll_damage_with_variance_in_range() {
+        let mut rng = SplitMix64::new(1);
+        for _ in 0..50 {
+            let dmg = roll_damage(&mut rng, 5, 3);
+            assert!((5..=8).contains(&dmg), "expected 5..=8 but got {dmg}");
+        }
+    }
+
+    #[test]
+    fn test_roll_damage_negative_base_floored_at_zero() {
+        let mut rng = SplitMix64::new(0);
+        let dmg = roll_damage(&mut rng, -10, 0);
+        assert_eq!(dmg, 0);
     }
 }

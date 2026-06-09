@@ -7,6 +7,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fov::fov_to_vec(origin, radius, is_opaque) -> Vec<(i32,i32)>`: collect all
+  visible cells into a `Vec` in one call. Equivalent to bracket-lib's
+  `field_of_view_set` — wraps `compute_fov` so callers don't need to manage
+  a closure-owned collection. Re-exported as `izanagi_kit::fov_to_vec`.
+- `combat::roll_damage(rng, base, variance) -> i32`: base damage plus a uniform
+  random bonus in `[0, variance]`. `variance == 0` returns `base.max(0)` without
+  consuming an RNG draw. Gives attacks a natural spread (e.g. `roll_damage(rng, 5,
+  3)` → 5–8) without spelling out the `Dice` formula at every call site.
+- `relations::Relations::siblings_of(entity) -> Vec<Entity>`: entities that share
+  the same parent as `entity`, excluding `entity` itself. Returns an empty `Vec`
+  for roots and only children. Useful for item-group queries ("other items in the
+  same container") and squad-member adjacency patterns.
+- `timer::Cooldown::percent_remaining(original_ticks) -> u32`: percentage of the
+  cooldown still pending as an integer in `[0, 100]`. The inverse of `elapsed`;
+  `original_ticks == 0` returns 0 (ready). Useful for progress-bar rendering.
+- `savefile::validate_integrity(data) -> Result<(), LoadError>`: check that `data`
+  is a structurally valid save file without deserialising the payload. Equivalent
+  to `load_bytes(data).map(|_| ())`. Useful for save-slot browser UI that needs a
+  "valid / corrupt" indicator cheaply. Re-exported as `izanagi_kit::validate_integrity`.
+- `textlayout::fit_to_box(text, width, height) -> Vec<String>`: wrap text to fit
+  a `width × height` box in one call — combines `wrap_words_max_lines` with the
+  `…` overflow indicator. The typical "dialogue box" call site in roguelike UIs.
+  Re-exported as `izanagi_kit::fit_to_box`.
+- `change::Changed::is_stale(age_threshold, current_tick) -> bool`: returns `true`
+  if the component has not been marked for at least `age_threshold` ticks
+  (`ticks_since_change >= age_threshold`). Eliminates the comparison boilerplate
+  at TTL / cache-invalidation call sites.
+- `spatial_hash::SpatialHash::iter_keys() -> impl Iterator<Item = &K>`: flat
+  iterator over every registered key across all cells, without intermediate
+  allocation. Useful for "process all entities in the spatial index" end-of-frame
+  passes where cell membership is irrelevant.
 - `keymap::KeyMap::contains_action(action)`: returns `true` if at least one key
   is currently bound to `action`. Allocation-free (no collect) — use
   `get_keys_for_action` when you also need the key list.

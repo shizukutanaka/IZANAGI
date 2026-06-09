@@ -115,7 +115,8 @@ pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
 pub use combat::{
-    base_damage, critical_strike, melee_attack, ranged_attack, roll_to_hit, Stats, StrikeResult,
+    base_damage, critical_strike, melee_attack, ranged_attack, roll_damage, roll_to_hit, Stats,
+    StrikeResult,
 };
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use dice::Dice;
@@ -128,7 +129,7 @@ pub use easing::{
 };
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
-pub use fov::{compute_fov, compute_fov_dist};
+pub use fov::{compute_fov, compute_fov_dist, fov_to_vec};
 pub use fsm::Fsm;
 pub use geometry::{diamond, line, line_of_sight, rect_contains, rect_perimeter, Distance};
 pub use hud::{BarWidget, HudPanel, StatLine};
@@ -155,13 +156,15 @@ pub use random_table::RandomTable;
 pub use relations::Relations;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
 pub use rng::SplitMix64;
-pub use savefile::{load_bytes, load_bytes_owned, save_bytes, LoadError, SaveHeader};
+pub use savefile::{
+    load_bytes, load_bytes_owned, save_bytes, validate_integrity, LoadError, SaveHeader,
+};
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatusSet};
 pub use terminal::{Cell, Screen};
-pub use textlayout::{center, justify, pad_left, pad_right, truncate, wrap_words};
+pub use textlayout::{center, fit_to_box, justify, pad_left, pad_right, truncate, wrap_words};
 pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;

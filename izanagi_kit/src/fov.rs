@@ -267,6 +267,23 @@ pub fn compute_fov_dist<O, V>(
     }
 }
 
+/// Collect all visible cells from `origin` within `radius` into a `Vec`.
+///
+/// Convenience wrapper around [`compute_fov`] for callers that need a concrete
+/// collection rather than a callback. Equivalent to bracket-lib's
+/// `field_of_view_set` but returning a `Vec` (the caller can deduplicate
+/// into a `HashSet` if needed).
+///
+/// `is_opaque(x, y)` follows the same contract as [`compute_fov`].
+pub fn fov_to_vec<O>(origin: (i32, i32), radius: i32, is_opaque: O) -> Vec<(i32, i32)>
+where
+    O: FnMut(i32, i32) -> bool,
+{
+    let mut visible = Vec::new();
+    compute_fov(origin, radius, is_opaque, |x, y| visible.push((x, y)));
+    visible
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -462,5 +479,35 @@ mod tests {
         assert_eq!(seen[&(11, 11)], 2);
         // Cell 3 east: dist_sq = 9.
         assert_eq!(seen[&(13, 10)], 9);
+    }
+
+    // --- fov_to_vec tests ---
+
+    #[test]
+    fn test_fov_to_vec_includes_origin() {
+        let visible = fov_to_vec((5, 5), 3, |_, _| false);
+        assert!(visible.contains(&(5, 5)));
+    }
+
+    #[test]
+    fn test_fov_to_vec_matches_compute_fov_set() {
+        let mut grid = Grid::new(15, 15);
+        grid.wall(7, 6);
+        grid.wall(8, 8);
+        let origin = (7, 7);
+        let radius = 5;
+        let expected: HashSet<(i32, i32)> = grid.fov(origin, radius);
+        let from_vec: HashSet<(i32, i32)> = fov_to_vec(origin, radius, |x, y| {
+            x < 0 || y < 0 || x >= 15 || y >= 15 || grid.opaque.contains(&(x, y))
+        })
+        .into_iter()
+        .collect();
+        assert_eq!(expected, from_vec);
+    }
+
+    #[test]
+    fn test_fov_to_vec_radius_zero_only_origin() {
+        let visible = fov_to_vec((3, 3), 0, |_, _| false);
+        assert_eq!(visible, vec![(3, 3)]);
     }
 }

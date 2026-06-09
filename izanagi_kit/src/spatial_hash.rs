@@ -224,6 +224,16 @@ impl<K: Eq + Clone> SpatialHash<K> {
             .iter()
             .map(|(coord, bucket)| (*coord, bucket.as_slice()))
     }
+
+    /// Iterate over every registered key across all cells. Order reflects the
+    /// internal `HashMap` bucket order — not sorted and not stable across
+    /// inserts. Allocation-free (no intermediate collection).
+    ///
+    /// Useful for "process every entity in the spatial index" passes (e.g.
+    /// end-of-frame position sync) where cell membership is irrelevant.
+    pub fn iter_keys(&self) -> impl Iterator<Item = &K> {
+        self.cells.values().flat_map(|bucket| bucket.iter())
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for SpatialHash<K> {
@@ -517,5 +527,22 @@ mod tests {
         b.insert(2, 5, 5);
         b.insert(1, 5, 5);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_iter_keys_yields_all_registered_keys() {
+        let mut g = grid();
+        g.insert(10, 0, 0);
+        g.insert(20, 50, 50); // different cell
+        g.insert(30, 5, 5); // same cell as (0,0) with cell_size=10
+        let mut keys: Vec<u32> = g.iter_keys().copied().collect();
+        keys.sort();
+        assert_eq!(keys, vec![10, 20, 30]);
+    }
+
+    #[test]
+    fn test_iter_keys_empty_grid() {
+        let g = grid();
+        assert_eq!(g.iter_keys().count(), 0);
     }
 }

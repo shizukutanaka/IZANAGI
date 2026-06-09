@@ -221,6 +221,23 @@ impl Relations {
         }
     }
 
+    /// All direct siblings of `entity` — entities that share the same parent,
+    /// **excluding** `entity` itself. Returns an empty `Vec` if `entity` is a
+    /// root (no parent) or is the only child of its parent.
+    ///
+    /// Useful for item-group queries ("other items in the same container") and
+    /// companion grouping ("adjacent squad members").
+    pub fn siblings_of(&self, entity: Entity) -> Vec<Entity> {
+        match self.parent_of(entity) {
+            None => Vec::new(),
+            Some(parent) => self
+                .children_of(parent)
+                .into_iter()
+                .filter(|&e| e != entity)
+                .collect(),
+        }
+    }
+
     /// Iterate `(child, parent)` pairs in unspecified order.
     pub fn iter(&self) -> impl Iterator<Item = (Entity, Entity)> + '_ {
         self.parents.iter().copied()
@@ -528,5 +545,35 @@ mod tests {
         r.attach(e[0], e[1]);
         r.attach(e[1], e[2]);
         assert_eq!(r.find_common_ancestor(e[0], e[1]), Some(e[1]));
+    }
+
+    #[test]
+    fn test_siblings_of_returns_other_children() {
+        // e[0], e[1], e[2] all parented to e[3]
+        let e = entities(4);
+        let mut r = Relations::new();
+        r.attach(e[0], e[3]);
+        r.attach(e[1], e[3]);
+        r.attach(e[2], e[3]);
+        let mut sibs = r.siblings_of(e[0]);
+        sibs.sort_by_key(|x| x.index());
+        assert_eq!(sibs, vec![e[1], e[2]]);
+        assert!(!sibs.contains(&e[0]));
+    }
+
+    #[test]
+    fn test_siblings_of_only_child_returns_empty() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]); // e[0] is the only child of e[1]
+        assert!(r.siblings_of(e[0]).is_empty());
+    }
+
+    #[test]
+    fn test_siblings_of_root_returns_empty() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]); // e[1] is a root
+        assert!(r.siblings_of(e[1]).is_empty());
     }
 }
