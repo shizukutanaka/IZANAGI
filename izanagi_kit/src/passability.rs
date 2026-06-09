@@ -129,6 +129,41 @@ impl PassabilityGrid {
     pub fn passable_count(&self) -> usize {
         self.cells.iter().filter(|&&b| !b).count()
     }
+
+    /// Iterate `(x, y)` coordinates of all **passable** cells in row-major order.
+    ///
+    /// Useful for placing random spawns: collect the iterator, then index it with
+    /// a `rng.below(count)` draw.
+    pub fn iter_passable(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let w = self.width;
+        let h = self.height;
+        let cells = &self.cells;
+        (0..h).flat_map(move |y| {
+            (0..w).filter_map(move |x| {
+                if !cells[(y * w + x) as usize] {
+                    Some((x, y))
+                } else {
+                    None
+                }
+            })
+        })
+    }
+
+    /// Iterate `(x, y)` coordinates of all **blocked** cells in row-major order.
+    pub fn iter_blocked(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let w = self.width;
+        let h = self.height;
+        let cells = &self.cells;
+        (0..h).flat_map(move |y| {
+            (0..w).filter_map(move |x| {
+                if cells[(y * w + x) as usize] {
+                    Some((x, y))
+                } else {
+                    None
+                }
+            })
+        })
+    }
 }
 
 impl DetHash for PassabilityGrid {
@@ -290,5 +325,33 @@ mod tests {
         let grid = PassabilityGrid::new(-5, 10);
         assert!(grid.is_empty());
         assert_eq!(grid.width(), 0);
+    }
+
+    #[test]
+    fn test_iter_passable_counts_match() {
+        let mut grid = PassabilityGrid::new(4, 4);
+        grid.set_blocked(0, 0, true);
+        grid.set_blocked(1, 1, true);
+        let passable: Vec<(i32, i32)> = grid.iter_passable().collect();
+        assert_eq!(passable.len(), grid.passable_count());
+        assert!(!passable.contains(&(0, 0)));
+        assert!(!passable.contains(&(1, 1)));
+    }
+
+    #[test]
+    fn test_iter_blocked_counts_match() {
+        let mut grid = PassabilityGrid::new(4, 4);
+        grid.set_blocked(2, 3, true);
+        let blocked: Vec<(i32, i32)> = grid.iter_blocked().collect();
+        assert_eq!(blocked.len(), grid.blocked_count());
+        assert!(blocked.contains(&(2, 3)));
+    }
+
+    #[test]
+    fn test_iter_passable_row_major_order() {
+        let grid = PassabilityGrid::new(3, 2);
+        let cells: Vec<(i32, i32)> = grid.iter_passable().collect();
+        // All passable → row-major: (0,0),(1,0),(2,0),(0,1),(1,1),(2,1)
+        assert_eq!(cells, [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]);
     }
 }

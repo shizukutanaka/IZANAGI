@@ -7,6 +7,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `passability::PassabilityGrid::iter_passable()`: row-major iterator over `(x,
+  y)` of passable cells. Collect it and index with `rng.below(count)` for uniform
+  random spawn placement without scanning the full map.
+- `passability::PassabilityGrid::iter_blocked()`: companion iterator for blocked
+  cells — useful for visualisation and testing that map generation placed walls
+  in the expected positions.
+- `relations::Relations::descendants_of(entity)`: BFS over the entity's subtree
+  (children, grandchildren, …), excluding the root itself. Enables "kill all
+  carried items" and hierarchical cleanup without repeated `children_of` calls.
+- `relations::Relations::root_of(entity)`: walk up the parent chain to the
+  topmost ancestor. Returns `entity` itself if it has no parent.
+- `msglog::MsgLog::last()`: returns a reference to the most recently pushed
+  message, or `None` if the log is empty. Avoids allocating a full `recent(1)`
+  iterator for the common "show the last line in the status bar" pattern.
 - `combat::StrikeResult` and `combat::critical_strike`: melee attack with a
   critical-hit chance — rolls `crit_chance` (1..=100 percent) via `roll_to_hit`,
   multiplies base damage by `crit_multiplier` on a crit (minimum 1×), applies to

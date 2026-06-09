@@ -100,6 +100,31 @@ impl Relations {
             .collect()
     }
 
+    /// All entities in the subtree rooted at `entity`, **excluding** `entity`
+    /// itself, in breadth-first order (children before grandchildren).
+    ///
+    /// Useful for "kill entity and all carried/mounted children" patterns.
+    pub fn descendants_of(&self, entity: Entity) -> Vec<Entity> {
+        let mut result = self.children_of(entity);
+        let mut i = 0;
+        while i < result.len() {
+            let e = result[i];
+            result.extend(self.children_of(e));
+            i += 1;
+        }
+        result
+    }
+
+    /// Walk up the tree and return the root ancestor of `entity`. If `entity`
+    /// has no parent it is its own root.
+    pub fn root_of(&self, entity: Entity) -> Entity {
+        let mut current = entity;
+        while let Some(p) = self.parent_of(current) {
+            current = p;
+        }
+        current
+    }
+
     /// True if `ancestor` is an ancestor of `descendant` (direct or indirect).
     pub fn is_ancestor(&self, ancestor: Entity, descendant: Entity) -> bool {
         let mut current = descendant;
@@ -310,6 +335,48 @@ mod tests {
         a.attach(e[0], e[1]);
         b.attach(e[0], e[1]);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_descendants_of_empty_for_leaf() {
+        let e = entities(1);
+        let r = Relations::new();
+        assert!(r.descendants_of(e[0]).is_empty());
+    }
+
+    #[test]
+    fn test_descendants_of_multi_level() {
+        // e[3] → e[2] → e[1] (e[1] is root), e[0] also child of e[2]
+        let e = entities(4);
+        let mut r = Relations::new();
+        r.attach(e[2], e[1]);
+        r.attach(e[3], e[2]);
+        r.attach(e[0], e[2]);
+        // descendants of e[1]: e[2], then e[3] and e[0]
+        let mut desc = r.descendants_of(e[1]);
+        desc.sort_by_key(|x| x.index());
+        assert!(desc.contains(&e[2]));
+        assert!(desc.contains(&e[3]));
+        assert!(desc.contains(&e[0]));
+        assert_eq!(desc.len(), 3);
+    }
+
+    #[test]
+    fn test_root_of_returns_self_when_no_parent() {
+        let e = entities(1);
+        let r = Relations::new();
+        assert_eq!(r.root_of(e[0]), e[0]);
+    }
+
+    #[test]
+    fn test_root_of_walks_to_root() {
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]); // e[0] → e[1]
+        r.attach(e[1], e[2]); // e[1] → e[2]
+        assert_eq!(r.root_of(e[0]), e[2]);
+        assert_eq!(r.root_of(e[1]), e[2]);
+        assert_eq!(r.root_of(e[2]), e[2]);
     }
 
     #[test]

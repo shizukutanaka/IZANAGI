@@ -82,6 +82,17 @@ impl MsgLog {
         (start..self.len).map(move |i| self.buf[(self.head + i) % cap].as_str())
     }
 
+    /// The most recently pushed message, or `None` if the log is empty.
+    #[inline]
+    pub fn last(&self) -> Option<&str> {
+        if self.len == 0 {
+            return None;
+        }
+        let cap = self.buf.len();
+        let idx = (self.head + self.len - 1) % cap;
+        Some(self.buf[idx].as_str())
+    }
+
     /// Clear all messages without changing capacity.
     pub fn clear(&mut self) {
         self.head = 0;
@@ -175,6 +186,25 @@ mod tests {
         log.push("c");
         let msgs: Vec<&str> = log.iter().collect();
         assert_eq!(msgs, ["c"]);
+    }
+
+    #[test]
+    fn test_last_returns_most_recent() {
+        let mut log = MsgLog::new(5);
+        assert_eq!(log.last(), None);
+        log.push("first");
+        assert_eq!(log.last(), Some("first"));
+        log.push("second");
+        assert_eq!(log.last(), Some("second"));
+    }
+
+    #[test]
+    fn test_last_after_overflow() {
+        let mut log = MsgLog::new(2);
+        log.push("a");
+        log.push("b");
+        log.push("c"); // wraps; visible = ["b","c"]
+        assert_eq!(log.last(), Some("c"));
     }
 
     #[test]
