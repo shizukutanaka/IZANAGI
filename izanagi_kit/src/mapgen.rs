@@ -86,6 +86,29 @@ impl Default for CaveParams {
     }
 }
 
+/// Tuning for [`generate_bsp`]. `Default` gives a classic rooms-and-corridors
+/// dungeon.
+#[derive(Clone, Copy, Debug)]
+pub struct BspParams {
+    /// A partition stops splitting once neither axis can yield two children of
+    /// at least this size (cells). Larger values → fewer, bigger rooms.
+    pub min_leaf: u32,
+    /// Hard cap on recursion depth (so the partition count ≤ `2^max_depth`).
+    pub max_depth: u32,
+    /// Minimum room side length (cells).
+    pub room_min: u32,
+}
+
+impl Default for BspParams {
+    fn default() -> Self {
+        Self {
+            min_leaf: 8,
+            max_depth: 5,
+            room_min: 4,
+        }
+    }
+}
+
 /// A generated dungeon: a `width × height` grid of wall/floor plus the rooms
 /// that were placed (in placement order). Out-of-bounds cells are walls.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -362,6 +385,147 @@ fn cull_to_largest_region(d: &mut Dungeon) {
     }
 }
 
+/// Generate a dungeon by **binary space partitioning** — the third classic
+/// family alongside [`generate_dungeon`] (room rejection) and [`generate_cave`]
+/// (cellular automata); cf. `bracket-lib`'s BSP builders.
+///
+/// The interior is recursively split into sub-rectangles (orientation biased by
+/// aspect ratio, split point drawn from `rng`) until a partition is too small to
+/// halve or `max_depth` is reached. One room is carved inside each leaf, and on
+/// the way back up the recursion each split joins its two child rooms with an
+/// L-shaped corridor — so the whole dungeon is guaranteed connected. Rooms never
+/// overlap because each lives in its own partition. Maps too small to partition
+/// return all-wall rather than panicking.
+pub fn generate_bsp(width: u32, height: u32, rng: &mut SplitMix64, params: BspParams) -> Dungeon {
+    let mut d = Dungeon::filled(width, height);
+    if width < 5 || height < 5 {
+        return d;
+    }
+    let min_leaf = params.min_leaf.max(3);
+    let room_min = params.room_min.max(2);
+    // Work inside a one-cell border so corridors/rooms never touch the edge.
+    let area = Rect {
+        x: 1,
+        y: 1,
+        w: width - 2,
+        h: height - 2,
+    };
+    bsp_build(&mut d, rng, area, params.max_depth, min_leaf, room_min);
+    d
+}
+
+/// Recursively partition `area`, carve rooms at the leaves, and connect each
+/// split's two children. Returns a representative connection point (a carved
+/// room centre) for this subtree so the parent can wire it to its sibling.
+fn bsp_build(
+    d: &mut Dungeon,
+    rng: &mut SplitMix64,
+    area: Rect,
+    depth: u32,
+    min_leaf: u32,
+    room_min: u32,
+) -> (i32, i32) {
+    let can_split_w = area.w >= 2 * min_leaf;
+    let can_split_h = area.h >= 2 * min_leaf;
+
+    if depth == 0 || (!can_split_w && !can_split_h) {
+        return carve_leaf_room(d, rng, area, room_min);
+    }
+
+    // Choose split orientation: bias toward halving the longer side, else coin.
+    let vertical = if can_split_w && can_split_h {
+        if area.w * 100 > area.h * 125 {
+            true
+        } else if area.h * 100 > area.w * 125 {
+            false
+        } else {
+            rng.coin(1, 2)
+        }
+    } else {
+        can_split_w
+    };
+
+    let (a, b) = if vertical {
+        let cut = rng.range(min_leaf as i32, (area.w - min_leaf) as i32 + 1) as u32;
+        (
+            Rect {
+                x: area.x,
+                y: area.y,
+                w: cut,
+                h: area.h,
+            },
+            Rect {
+                x: area.x + cut,
+                y: area.y,
+                w: area.w - cut,
+                h: area.h,
+            },
+        )
+    } else {
+        let cut = rng.range(min_leaf as i32, (area.h - min_leaf) as i32 + 1) as u32;
+        (
+            Rect {
+                x: area.x,
+                y: area.y,
+                w: area.w,
+                h: cut,
+            },
+            Rect {
+                x: area.x,
+                y: area.y + cut,
+                w: area.w,
+                h: area.h - cut,
+            },
+        )
+    };
+
+    let ca = bsp_build(d, rng, a, depth - 1, min_leaf, room_min);
+    let cb = bsp_build(d, rng, b, depth - 1, min_leaf, room_min);
+    // L-shaped corridor between the two child rooms; randomise the elbow.
+    if rng.coin(1, 2) {
+        d.carve_h(ca.0, cb.0, ca.1);
+        d.carve_v(ca.1, cb.1, cb.0);
+    } else {
+        d.carve_v(ca.1, cb.1, ca.0);
+        d.carve_h(ca.0, cb.0, cb.1);
+    }
+    ca
+}
+
+/// Carve one room inside `area` (with a 1-cell inset when the leaf is large
+/// enough so neighbouring rooms keep a wall between them), record it, and return
+/// its centre. The room always fits within `area`, so no carve escapes bounds.
+fn carve_leaf_room(d: &mut Dungeon, rng: &mut SplitMix64, area: Rect, room_min: u32) -> (i32, i32) {
+    let inset_w = if area.w >= room_min + 2 { 1 } else { 0 };
+    let inset_h = if area.h >= room_min + 2 { 1 } else { 0 };
+    let span_w = area.w - 2 * inset_w;
+    let span_h = area.h - 2 * inset_h;
+
+    let rw = if span_w <= room_min {
+        span_w.max(1)
+    } else {
+        rng.range(room_min as i32, span_w as i32 + 1) as u32
+    };
+    let rh = if span_h <= room_min {
+        span_h.max(1)
+    } else {
+        rng.range(room_min as i32, span_h as i32 + 1) as u32
+    };
+
+    let rx = area.x + inset_w + rng.range(0, (span_w - rw) as i32 + 1) as u32;
+    let ry = area.y + inset_h + rng.range(0, (span_h - rh) as i32 + 1) as u32;
+
+    let room = Rect {
+        x: rx,
+        y: ry,
+        w: rw,
+        h: rh,
+    };
+    d.carve_room(&room);
+    d.rooms.push(room);
+    room.center()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -535,5 +699,100 @@ mod tests {
                 assert!(d.is_wall(x, y));
             }
         }
+    }
+
+    // ── BSP partition dungeons ───────────────────────────────────────────────
+
+    #[test]
+    fn test_bsp_same_seed_is_byte_identical() {
+        let mut a = SplitMix64::new(0xB59);
+        let mut b = SplitMix64::new(0xB59);
+        let da = generate_bsp(64, 40, &mut a, BspParams::default());
+        let db = generate_bsp(64, 40, &mut b, BspParams::default());
+        assert_eq!(da, db, "same seed must reproduce the BSP map exactly");
+    }
+
+    #[test]
+    fn test_bsp_different_seed_differs() {
+        let mut a = SplitMix64::new(1);
+        let mut b = SplitMix64::new(2);
+        let da = generate_bsp(64, 40, &mut a, BspParams::default());
+        let db = generate_bsp(64, 40, &mut b, BspParams::default());
+        assert_ne!(da, db);
+    }
+
+    #[test]
+    fn test_bsp_border_is_solid_wall() {
+        let mut rng = SplitMix64::new(7);
+        let d = generate_bsp(50, 30, &mut rng, BspParams::default());
+        for x in 0..d.width() as i32 {
+            assert!(d.is_wall(x, 0) && d.is_wall(x, d.height() as i32 - 1));
+        }
+        for y in 0..d.height() as i32 {
+            assert!(d.is_wall(0, y) && d.is_wall(d.width() as i32 - 1, y));
+        }
+    }
+
+    #[test]
+    fn test_bsp_rooms_placed_and_disjoint() {
+        let mut rng = SplitMix64::new(99);
+        let d = generate_bsp(64, 40, &mut rng, BspParams::default());
+        assert!(!d.rooms.is_empty(), "BSP should carve rooms");
+        // Each room lives in its own partition, so no two overlap (padded).
+        for (i, a) in d.rooms.iter().enumerate() {
+            for b in &d.rooms[i + 1..] {
+                assert!(!a.intersects_padded(b), "rooms {a:?} and {b:?} overlap");
+            }
+        }
+    }
+
+    #[test]
+    fn test_bsp_is_fully_connected() {
+        // The defining guarantee: every floor cell is reachable (corridors join
+        // each split's children bottom-up).
+        let mut rng = SplitMix64::new(0xBADC0DE);
+        let d = generate_bsp(72, 44, &mut rng, BspParams::default());
+        let start = d.rooms[0].center();
+        let reach = dijkstra_map(&[start], i32::MAX, |x, y| d.is_wall(x, y));
+        for y in 0..d.height() as i32 {
+            for x in 0..d.width() as i32 {
+                if d.is_floor(x, y) {
+                    assert!(
+                        reach.contains_key(&(x, y)),
+                        "floor cell ({x},{y}) unreachable — BSP dungeon not connected"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_bsp_tiny_map_returns_all_wall_without_panicking() {
+        let mut rng = SplitMix64::new(3);
+        let d = generate_bsp(4, 4, &mut rng, BspParams::default());
+        for y in 0..d.height() as i32 {
+            for x in 0..d.width() as i32 {
+                assert!(d.is_wall(x, y));
+            }
+        }
+    }
+
+    #[test]
+    fn test_bsp_small_min_leaf_still_connected() {
+        // Aggressive splitting (small min_leaf, deep) must stay connected.
+        let mut rng = SplitMix64::new(2024);
+        let params = BspParams {
+            min_leaf: 5,
+            max_depth: 8,
+            room_min: 3,
+        };
+        let d = generate_bsp(60, 40, &mut rng, params);
+        let start = d.rooms[0].center();
+        let reach = dijkstra_map(&[start], i32::MAX, |x, y| d.is_wall(x, y));
+        let unreached = (0..d.height() as i32)
+            .flat_map(|y| (0..d.width() as i32).map(move |x| (x, y)))
+            .filter(|&(x, y)| d.is_floor(x, y) && !reach.contains_key(&(x, y)))
+            .count();
+        assert_eq!(unreached, 0, "{unreached} floor cells unreachable");
     }
 }

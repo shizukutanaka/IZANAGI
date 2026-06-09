@@ -33,7 +33,7 @@ with per-feature implementation status — lives in
 | `world_hash` | FNV-1a per-frame state checksum for bit-exact replay assertions. |
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
-| `mapgen` / `wfc` / `multimap` | Procedural dungeons (rooms + cellular-automata caves), Wave Function Collapse, multi-level worlds. |
+| `mapgen` / `wfc` / `multimap` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions), Wave Function Collapse, multi-level worlds. |
 | `fov` / `pathfinding` / `influence` / `fsm` | Symmetric FOV, (weighted) A*, Dijkstra flow maps, influence maps, state machines. |
 | `geometry` | Bresenham lines / line-of-sight and integer distance metrics (Manhattan, Chebyshev, Euclidean). |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

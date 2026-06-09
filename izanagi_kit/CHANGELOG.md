@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `mapgen::generate_bsp` / `mapgen::BspParams`: binary-space-partition dungeon
+  generation — the third classic family alongside `generate_dungeon` (room
+  rejection) and `generate_cave` (cellular automata); cf. `bracket-lib`'s BSP
+  builders. Recursively splits the interior (orientation biased by aspect ratio,
+  split point from `rng`) until partitions hit `min_leaf` or `max_depth`, carves
+  one room per leaf (disjoint by construction), and joins each split's two child
+  rooms with an L-corridor on the way back up — guaranteeing full connectivity.
+  Returns the same `Dungeon` type; too-small maps return all-wall without
+  panicking. Re-exported as `izanagi_kit::{generate_bsp, BspParams}`.
 - `noise::fbm_2d` / `noise::fbm_1d`: fractional Brownian motion — sum `octaves`
   layers of value noise at doubling frequency / halving amplitude, renormalised
   to `[0, 65535]`. This is the standard primitive for natural terrain; it was

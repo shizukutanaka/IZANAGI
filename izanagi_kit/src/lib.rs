@@ -132,7 +132,9 @@ pub use inputbuf::InputBuffer;
 pub use inventory::Inventory;
 pub use keymap::KeyMap;
 pub use loader::{load_level, LoadedLevel, Position, Render};
-pub use mapgen::{generate_cave, generate_dungeon, CaveParams, Dungeon, GenParams, Rect};
+pub use mapgen::{
+    generate_bsp, generate_cave, generate_dungeon, BspParams, CaveParams, Dungeon, GenParams, Rect,
+};
 pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
