@@ -108,6 +108,18 @@ impl SplitMix64 {
         sum
     }
 
+    /// Shuffle `slice` in-place using Fisher-Yates. Draws `slice.len() - 1`
+    /// times (or 0 for slices shorter than 2). Deterministic for a given seed
+    /// and draw position — identical to any spec-compliant Fisher-Yates
+    /// implementation using `below` for the index draw.
+    pub fn shuffle<T>(&mut self, slice: &mut [T]) {
+        let n = slice.len();
+        for i in (1..n).rev() {
+            let j = self.below((i + 1) as u32) as usize;
+            slice.swap(i, j);
+        }
+    }
+
     /// Snapshot of internal state — fold into the world hash to detect RNG
     /// stream divergence between two runs.
     #[inline]
@@ -296,6 +308,52 @@ mod tests {
             let v = r.dice(3, 6); // 3d6: [3, 18]
             assert!((3..=18).contains(&v), "3d6 out of range: {v}");
         }
+    }
+
+    #[test]
+    fn test_shuffle_is_deterministic() {
+        let mut a = SplitMix64::new(0xF00D);
+        let mut b = SplitMix64::new(0xF00D);
+        let mut va: Vec<u32> = (0..10).collect();
+        let mut vb: Vec<u32> = (0..10).collect();
+        a.shuffle(&mut va);
+        b.shuffle(&mut vb);
+        assert_eq!(va, vb);
+    }
+
+    #[test]
+    fn test_shuffle_is_permutation() {
+        let mut r = SplitMix64::new(42);
+        let mut v: Vec<u32> = (0..8).collect();
+        r.shuffle(&mut v);
+        let mut sorted = v.clone();
+        sorted.sort();
+        assert_eq!(sorted, (0..8).collect::<Vec<_>>(), "all elements survive");
+    }
+
+    #[test]
+    fn test_shuffle_empty_and_single_no_panic() {
+        let mut r = SplitMix64::new(1);
+        let mut empty: Vec<u32> = Vec::new();
+        r.shuffle(&mut empty); // no-op
+        let mut single = vec![42u32];
+        r.shuffle(&mut single); // no draw consumed
+        assert_eq!(single, [42]);
+    }
+
+    #[test]
+    fn test_shuffle_changes_order() {
+        // With a 10-element list and a fresh seed, the shuffle should differ
+        // from the identity (may rarely fail if seed happens to produce identity,
+        // but that probability is 1/10! ≈ 2.8e-7 and the seed is fixed).
+        let mut r = SplitMix64::new(12345);
+        let orig: Vec<u32> = (0..10).collect();
+        let mut v = orig.clone();
+        r.shuffle(&mut v);
+        assert_ne!(
+            v, orig,
+            "shuffle did not change order — suspicious with this seed"
+        );
     }
 
     #[test]

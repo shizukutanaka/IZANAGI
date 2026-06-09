@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `rng::SplitMix64::shuffle(slice)`: Fisher-Yates in-place shuffle. Draws
+  `slice.len() − 1` times using `below` so the draw count is deterministic and
+  the sequence replays identically given the same seed and position. Handles
+  empty and single-element slices without drawing. The missing primitive that
+  every roguelike needs for shuffling room lists, random encounter tables, and
+  ability orderings. Re-exported as `izanagi_kit::SplitMix64` (method on the type).
 - `hud::BarWidget::percentage()`: fill percentage as an integer in `[0, 100]`.
   Useful for "85% HP" status lines without float arithmetic. Saturates: negative
   current returns 0, over-max returns 100, max ≤ 0 returns 0.

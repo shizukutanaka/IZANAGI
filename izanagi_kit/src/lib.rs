@@ -120,10 +120,10 @@ pub use combat::{
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use dice::Dice;
 pub use easing::{
-    ease_in_circ, ease_in_cubic, ease_in_out_circ, ease_in_out_quad, ease_in_out_quart,
-    ease_in_out_quint, ease_in_out_sine, ease_in_quad, ease_in_quart, ease_in_quint, ease_in_sine,
-    ease_out_circ, ease_out_cubic, ease_out_quad, ease_out_quart, ease_out_quint, ease_out_sine,
-    linear,
+    ease_in_circ, ease_in_cubic, ease_in_out_circ, ease_in_out_cubic, ease_in_out_quad,
+    ease_in_out_quart, ease_in_out_quint, ease_in_out_sine, ease_in_quad, ease_in_quart,
+    ease_in_quint, ease_in_sine, ease_out_circ, ease_out_cubic, ease_out_quad, ease_out_quart,
+    ease_out_quint, ease_out_sine, linear,
 };
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
