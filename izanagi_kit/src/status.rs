@@ -113,6 +113,27 @@ impl<K: Eq + Clone> StatusSet<K> {
     pub fn iter(&self) -> impl Iterator<Item = (&K, &Effect)> {
         self.entries.iter().map(|(k, e)| (k, e))
     }
+
+    /// Remove all active effects immediately.
+    pub fn clear(&mut self) {
+        self.entries.clear();
+    }
+
+    /// Magnitude of the effect at `key`, or `0` if not active.
+    ///
+    /// Shorthand for `get(key).map_or(0, |e| e.magnitude)`.
+    #[inline]
+    pub fn magnitude_of(&self, key: &K) -> i32 {
+        self.get(key).map_or(0, |e| e.magnitude)
+    }
+
+    /// Remaining duration of the effect at `key`, or `0` if not active.
+    ///
+    /// Shorthand for `get(key).map_or(0, |e| e.remaining)`.
+    #[inline]
+    pub fn remaining_of(&self, key: &K) -> u32 {
+        self.get(key).map_or(0, |e| e.remaining)
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for StatusSet<K> {
@@ -242,5 +263,42 @@ mod tests {
         let expired = s.tick(0);
         assert!(expired.is_empty());
         assert_eq!(s.get(&1).unwrap().remaining, 5);
+    }
+
+    #[test]
+    fn test_clear_removes_all_effects() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 10);
+        s.apply(2, 3, -5);
+        s.clear();
+        assert!(s.is_empty());
+        assert_eq!(s.len(), 0);
+    }
+
+    #[test]
+    fn test_magnitude_of_returns_zero_when_inactive() {
+        let s: StatusSet<u32> = StatusSet::new();
+        assert_eq!(s.magnitude_of(&99), 0);
+    }
+
+    #[test]
+    fn test_magnitude_of_returns_correct_value() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, -7);
+        assert_eq!(s.magnitude_of(&1), -7);
+    }
+
+    #[test]
+    fn test_remaining_of_returns_zero_when_inactive() {
+        let s: StatusSet<u32> = StatusSet::new();
+        assert_eq!(s.remaining_of(&42), 0);
+    }
+
+    #[test]
+    fn test_remaining_of_decrements_with_tick() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 8, 5);
+        s.tick(3);
+        assert_eq!(s.remaining_of(&1), 5);
     }
 }

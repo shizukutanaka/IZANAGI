@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `combat::StrikeResult` and `combat::critical_strike`: melee attack with a
+  critical-hit chance — rolls `crit_chance` (1..=100 percent) via `roll_to_hit`,
+  multiplies base damage by `crit_multiplier` on a crit (minimum 1×), applies to
+  the defender, and returns `StrikeResult { damage, critical }`. The RNG contract
+  matches `roll_to_hit`: degenerate `crit_chance` (≤ 0 or ≥ 100) consumes no draw.
+  Deterministic and replay-safe. Re-exported as `izanagi_kit::{critical_strike, StrikeResult}`.
+- `combat::Stats::restore()`: refills HP to `max_hp` in one call (level-up
+  rest, potion of full healing).
+- `combat::Stats::set_max_hp(new_max)`: adjusts max HP and clamps current HP
+  to the new ceiling — the standard level-up HP-increase pattern.
+- `status::StatusSet::clear()`: removes all active effects at once (e.g.
+  "cure all conditions" spell, death cleanup).
+- `status::StatusSet::magnitude_of(key)`: direct magnitude lookup returning 0
+  when inactive — eliminates the `.get(k).map_or(0, |e| e.magnitude)` boilerplate.
+- `status::StatusSet::remaining_of(key)`: direct duration lookup returning 0
+  when inactive — mirrors `magnitude_of`.
+- `inventory::Inventory::clear()`: empties all slots while preserving capacity
+  (store re-stock, respawn, container reset).
+- `inventory::Inventory::remove_where(pred)`: removes and returns the first
+  item matching a predicate — the "remove first consumable of type X" operation.
+- `inventory::Inventory::iter_mut()`: mutable `(slot_index, &mut item)` iteration
+  for in-place updates (durability, stack-size changes, re-identification).
 - `fov::compute_fov_dist`: distance-attenuated FOV variant — same symmetric
   shadowcasting as `compute_fov` but the callback receives an extra `dist_sq: i32`
   (squared Euclidean distance from origin). Callers use it to implement light

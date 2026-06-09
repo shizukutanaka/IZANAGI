@@ -114,7 +114,9 @@ pub use autotile::{compute_all, compute_mask, SimpleTileTable};
 pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
-pub use combat::{base_damage, melee_attack, ranged_attack, roll_to_hit, Stats};
+pub use combat::{
+    base_damage, critical_strike, melee_attack, ranged_attack, roll_to_hit, Stats, StrikeResult,
+};
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use dice::Dice;
 pub use easing::{

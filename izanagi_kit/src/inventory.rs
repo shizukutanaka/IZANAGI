@@ -98,6 +98,33 @@ impl<T: Clone> Inventory<T> {
         let b = b.min(len - 1);
         self.slots.swap(a, b);
     }
+
+    /// Clear all slots, leaving every slot empty. Capacity is preserved.
+    pub fn clear(&mut self) {
+        for slot in &mut self.slots {
+            *slot = None;
+        }
+    }
+
+    /// Remove and return the first item for which `pred(item)` is true.
+    /// Returns `None` if no matching item is present.
+    pub fn remove_where<F: Fn(&T) -> bool>(&mut self, pred: F) -> Option<T> {
+        let idx = self
+            .slots
+            .iter()
+            .enumerate()
+            .find_map(|(i, s)| s.as_ref().filter(|item| pred(item)).map(|_| i))?;
+        self.remove(idx)
+    }
+
+    /// Mutable iteration: `(slot_index, &mut item)` for all occupied slots in
+    /// index order.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (usize, &mut T)> {
+        self.slots
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(i, s)| s.as_mut().map(|item| (i, item)))
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for Inventory<T> {
@@ -233,6 +260,52 @@ mod tests {
         b.add(10);
         b.add(20);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_clear_empties_all_slots_preserves_capacity() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        inv.clear();
+        assert!(inv.is_empty());
+        assert_eq!(inv.capacity(), 4);
+        // Can still add after clear.
+        let slot = inv.add(99).unwrap();
+        assert_eq!(slot, 0);
+    }
+
+    #[test]
+    fn test_remove_where_takes_first_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        let removed = inv.remove_where(|&x| x >= 20);
+        assert_eq!(removed, Some(20)); // first match at slot 1
+        assert_eq!(inv.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_where_returns_none_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        inv.add(1);
+        inv.add(2);
+        assert_eq!(inv.remove_where(|&x| x > 100), None);
+        assert_eq!(inv.len(), 2); // unchanged
+    }
+
+    #[test]
+    fn test_iter_mut_allows_in_place_mutation() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        for (_, item) in inv.iter_mut() {
+            *item *= 2;
+        }
+        let items: Vec<u32> = inv.iter().map(|(_, &v)| v).collect();
+        assert_eq!(items, [20, 40, 60]);
     }
 
     #[test]
