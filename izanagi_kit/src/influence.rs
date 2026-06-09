@@ -117,6 +117,16 @@ impl InfluenceMap {
         }
     }
 
+    /// Clamp every cell value to `[min, max]`. Values below `min` are raised;
+    /// values above `max` are lowered; values within range are unchanged.
+    /// Use after combining multiple influence layers to prevent extreme values
+    /// from dominating AI decisions.
+    pub fn clamp_cells(&mut self, min: i32, max: i32) {
+        for v in &mut self.cells {
+            *v = (*v).clamp(min, max);
+        }
+    }
+
     /// Zero all cells.
     pub fn clear(&mut self) {
         self.cells.fill(0);
@@ -476,5 +486,37 @@ mod tests {
         // returned — we only verify that a direction is produced.
         let m = InfluenceMap::new(3, 3);
         assert!(m.gradient_at(1, 1).is_some());
+    }
+
+    #[test]
+    fn test_clamp_cells_raises_values_below_min() {
+        let mut m = InfluenceMap::new(3, 1);
+        m.set(0, 0, -100);
+        m.set(1, 0, 5);
+        m.clamp_cells(0, 50);
+        assert_eq!(m.get(0, 0), Some(0), "raised to min");
+        assert_eq!(m.get(1, 0), Some(5), "in-range unchanged");
+    }
+
+    #[test]
+    fn test_clamp_cells_lowers_values_above_max() {
+        let mut m = InfluenceMap::new(3, 1);
+        m.set(0, 0, 200);
+        m.set(1, 0, 30);
+        m.clamp_cells(0, 100);
+        assert_eq!(m.get(0, 0), Some(100), "lowered to max");
+        assert_eq!(m.get(1, 0), Some(30), "in-range unchanged");
+    }
+
+    #[test]
+    fn test_clamp_cells_in_range_unchanged() {
+        let mut m = InfluenceMap::new(3, 1);
+        m.set(0, 0, 10);
+        m.set(1, 0, 50);
+        m.set(2, 0, 90);
+        m.clamp_cells(0, 100);
+        assert_eq!(m.get(0, 0), Some(10));
+        assert_eq!(m.get(1, 0), Some(50));
+        assert_eq!(m.get(2, 0), Some(90));
     }
 }

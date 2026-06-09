@@ -52,6 +52,15 @@ impl Fnv1a {
         self.write_bytes(&value.to_le_bytes());
     }
 
+    /// Hash a signed 64-bit integer in little-endian byte order.
+    /// Completes the integer-write family alongside `write_u32`, `write_u64`,
+    /// and `write_i32`. Useful for hashing large tick counters, cumulative
+    /// damage totals, or other wide simulation state fields.
+    #[inline]
+    pub fn write_i64(&mut self, value: i64) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
     #[inline]
     pub fn finish(&self) -> u64 {
         self.hash
@@ -99,6 +108,13 @@ impl DetHash for i32 {
     #[inline]
     fn det_hash(&self, hasher: &mut Fnv1a) {
         hasher.write_i32(*self);
+    }
+}
+
+impl DetHash for i64 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i64(*self);
     }
 }
 
@@ -202,5 +218,28 @@ mod tests {
         let h_manual = hasher.finish();
 
         assert_eq!(h_triple, h_manual);
+    }
+
+    #[test]
+    fn test_write_i64_differs_from_empty() {
+        let mut h = Fnv1a::new();
+        h.write_i64(0);
+        assert_ne!(h.finish(), Fnv1a::new().finish());
+    }
+
+    #[test]
+    fn test_i64_det_hash_matches_write_i64() {
+        let val: i64 = -1234567890123;
+        let h1 = hash_state(&val);
+        let mut h = Fnv1a::new();
+        h.write_i64(val);
+        assert_eq!(h1, h.finish());
+    }
+
+    #[test]
+    fn test_i64_negative_differs_from_positive() {
+        let pos = hash_state(&42i64);
+        let neg = hash_state(&(-42i64));
+        assert_ne!(pos, neg, "sign must affect the hash");
     }
 }

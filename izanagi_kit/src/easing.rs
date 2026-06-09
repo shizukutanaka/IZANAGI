@@ -9,6 +9,16 @@
 
 use crate::Fixed;
 
+/// Smooth Hermite interpolation: `3t² − 2t³`. Maps `[0,1] → [0,1]` with
+/// zero first-derivative at both endpoints — natural ease-in-out without
+/// the overshoot of `ease_in_out_back`. Returns exactly `Fixed::ZERO` at
+/// `t = 0` and `Fixed::ONE` at `t = 1`.
+pub fn ease_smoothstep(t: Fixed) -> Fixed {
+    let three = Fixed::from_int(3);
+    let two = Fixed::from_int(2);
+    three.mul(t.mul(t)) - two.mul(t.mul(t).mul(t))
+}
+
 /// Ease-in quadratic: `t²`. Starts slow, accelerates.
 #[inline]
 pub fn ease_in_quad(t: Fixed) -> Fixed {
@@ -762,5 +772,30 @@ mod tests {
         // reversed(t, linear) = 1 - (1-t) = t
         let t = fr(3, 8);
         assert_eq!(ease_reversed(t, linear), t);
+    }
+
+    #[test]
+    fn test_ease_smoothstep_endpoints() {
+        assert_eq!(ease_smoothstep(Fixed::ZERO), Fixed::ZERO);
+        assert_eq!(ease_smoothstep(Fixed::ONE), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_ease_smoothstep_midpoint_is_half() {
+        let half = Fixed::from_ratio(1, 2);
+        assert_eq!(
+            ease_smoothstep(half),
+            half,
+            "3*(0.5^2) - 2*(0.5^3) = 0.75 - 0.25 = 0.5"
+        );
+    }
+
+    #[test]
+    fn test_ease_smoothstep_symmetric_around_half() {
+        // smoothstep(t) + smoothstep(1-t) == 1 (point-symmetry).
+        let t = fr(1, 4);
+        let inv = Fixed::ONE - t;
+        let sum = ease_smoothstep(t) + ease_smoothstep(inv);
+        assert_eq!(sum, Fixed::ONE, "smoothstep symmetry");
     }
 }

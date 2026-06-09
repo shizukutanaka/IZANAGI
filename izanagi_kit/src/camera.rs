@@ -162,6 +162,35 @@ impl Camera {
         dx.max(dy)
     }
 
+    /// Lazy-follow `(wx, wy)`: pan the minimum amount to keep the point within
+    /// `margin` cells of every viewport edge. If the point is already within the
+    /// inner region no pan occurs. Useful for keeping the player visible without
+    /// constantly re-centring the view on every step.
+    pub fn follow(&mut self, wx: i32, wy: i32, margin: u32, world_w: u32, world_h: u32) {
+        let m = margin as i32;
+        let inner_l = self.top_left_x + m;
+        let inner_r = self.top_left_x + self.screen_w as i32 - m - 1;
+        let inner_t = self.top_left_y + m;
+        let inner_b = self.top_left_y + self.screen_h as i32 - m - 1;
+        let dx = if wx < inner_l {
+            wx - inner_l
+        } else if inner_r >= inner_l && wx > inner_r {
+            wx - inner_r
+        } else {
+            0
+        };
+        let dy = if wy < inner_t {
+            wy - inner_t
+        } else if inner_b >= inner_t && wy > inner_b {
+            wy - inner_b
+        } else {
+            0
+        };
+        if dx != 0 || dy != 0 {
+            self.pan(dx, dy, world_w, world_h);
+        }
+    }
+
     // Compute the top-left origin for one axis: centre on `focus`, clamp so
     // the `view` cells fit in `world`.
     fn clamp_origin(focus: i32, view: u32, world: u32) -> i32 {
@@ -435,5 +464,32 @@ mod tests {
     #[test]
     fn test_screen_distance_diagonal_uses_max() {
         assert_eq!(Camera::screen_distance(1, 1, 4, 3), 3); // dx=3, dy=2 → 3
+    }
+
+    #[test]
+    fn test_follow_no_pan_when_within_margin() {
+        let mut cam = Camera::new(10, 10, 20, 10, 100, 100);
+        let before = (cam.top_left_x, cam.top_left_y);
+        cam.follow(cam.top_left_x + 5, cam.top_left_y + 3, 2, 100, 100);
+        assert_eq!(
+            (cam.top_left_x, cam.top_left_y),
+            before,
+            "within margin — no pan"
+        );
+    }
+
+    #[test]
+    fn test_follow_pans_right_when_target_near_right_edge() {
+        let mut cam = Camera::new(0, 0, 20, 10, 100, 100);
+        let right_edge_x = cam.top_left_x + 20 - 1; // exactly on right edge
+        cam.follow(right_edge_x, cam.top_left_y + 5, 2, 100, 100);
+        assert!(cam.top_left_x > 0, "should have panned right");
+    }
+
+    #[test]
+    fn test_follow_pans_left_when_target_exits_left_margin() {
+        let mut cam = Camera::new(10, 10, 20, 10, 100, 100);
+        cam.follow(cam.top_left_x - 1, cam.top_left_y + 5, 2, 100, 100);
+        assert!(cam.top_left_x < 10, "should have panned left");
     }
 }

@@ -158,6 +158,14 @@ impl Relations {
         !self.children.iter().any(|(p, _)| *p == entity)
     }
 
+    /// Total nodes in the subtree rooted at `entity`, including `entity`
+    /// itself. A leaf returns `1`; an entity with two children returns `3`.
+    /// Useful for container-capacity budgets and UI size estimates.
+    #[inline]
+    pub fn subtree_size(&self, entity: Entity) -> usize {
+        1 + self.descendants_of(entity).len()
+    }
+
     /// Number of (child, parent) relationships.
     pub fn len(&self) -> usize {
         self.parents.len()
@@ -625,5 +633,37 @@ mod tests {
         let mut r = Relations::new();
         // e[0] has no children
         assert!(!r.reparent_all(e[0], e[1]));
+    }
+
+    #[test]
+    fn test_subtree_size_leaf_is_one() {
+        let entities = entities(3);
+        let mut r = Relations::new();
+        r.attach(entities[1], entities[0]); // 0 is parent of 1
+        r.attach(entities[2], entities[0]); // 0 is parent of 2
+        assert_eq!(r.subtree_size(entities[1]), 1, "leaf node");
+    }
+
+    #[test]
+    fn test_subtree_size_with_children() {
+        let entities = entities(3);
+        let mut r = Relations::new();
+        r.attach(entities[1], entities[0]);
+        r.attach(entities[2], entities[0]);
+        assert_eq!(r.subtree_size(entities[0]), 3, "self + 2 children");
+    }
+
+    #[test]
+    fn test_subtree_size_chain() {
+        let entities = entities(4);
+        let mut r = Relations::new();
+        r.attach(entities[1], entities[0]);
+        r.attach(entities[2], entities[1]);
+        r.attach(entities[3], entities[2]);
+        assert_eq!(
+            r.subtree_size(entities[0]),
+            4,
+            "self + 3 descendants in a chain"
+        );
     }
 }

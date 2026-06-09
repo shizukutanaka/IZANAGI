@@ -117,6 +117,15 @@ impl WfcRules {
         self.tile_count
     }
 
+    /// Count of tile types allowed adjacent to `tile` in direction `dir`.
+    /// Returns `0` for out-of-range arguments. Useful for entropy estimation
+    /// and detecting over-constrained tiles (a count of 0 will cause a
+    /// contradiction whenever that tile-direction is encountered during solve).
+    #[inline]
+    pub fn allowed_count(&self, tile: u8, dir: usize) -> usize {
+        self.get_allowed(tile, dir).count_ones() as usize
+    }
+
     /// Clear all adjacency rules for `tile` in every direction, leaving it
     /// forbidden everywhere. Out-of-range `tile` is silently ignored.
     pub fn clear_adjacencies(&mut self, tile: u8) {
@@ -664,5 +673,28 @@ mod tests {
         r.allow(0, 0, 1);
         r.clear_adjacencies(99); // out of range — should not panic
         assert_ne!(r.adj[0][0], 0, "tile 0 unaffected");
+    }
+
+    #[test]
+    fn test_allowed_count_zero_when_no_rules() {
+        let r = WfcRules::new(4);
+        assert_eq!(r.allowed_count(0, 0), 0, "fresh rules: no adjacencies");
+    }
+
+    #[test]
+    fn test_allowed_count_matches_number_of_allows() {
+        let mut r = WfcRules::new(4);
+        r.allow(0, 1, 0);
+        r.allow(0, 1, 2);
+        assert_eq!(r.allowed_count(0, 1), 2, "two tiles allowed in dir 1");
+        r.allow(0, 1, 3);
+        assert_eq!(r.allowed_count(0, 1), 3);
+    }
+
+    #[test]
+    fn test_allowed_count_oob_returns_zero() {
+        let r = WfcRules::new(4);
+        assert_eq!(r.allowed_count(99, 0), 0, "OOB tile");
+        assert_eq!(r.allowed_count(0, 9), 0, "OOB dir");
     }
 }

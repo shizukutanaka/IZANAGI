@@ -181,6 +181,25 @@ impl<Row: Clone> ArchTable<Row> {
     pub fn values_mut(&mut self) -> impl Iterator<Item = &mut Row> {
         self.dense.iter_mut().map(|(_, r)| r)
     }
+
+    /// Swap the row data of `entity1` and `entity2`. Both entities must be
+    /// present; returns `true` on success, `false` if either is absent.
+    /// O(1) index lookups plus two O(size-of-Row) copies — cheaper than
+    /// remove + insert for item-swap or position-swap operations.
+    pub fn swap_rows(&mut self, entity1: Entity, entity2: Entity) -> bool {
+        let Some(&s1) = self.index.get(&entity1) else {
+            return false;
+        };
+        let Some(&s2) = self.index.get(&entity2) else {
+            return false;
+        };
+        if s1 != s2 {
+            let r2 = self.dense[s2].1.clone();
+            let r1 = std::mem::replace(&mut self.dense[s1].1, r2);
+            self.dense[s2].1 = r1;
+        }
+        true
+    }
 }
 
 impl<Row: Clone + DetHash> DetHash for ArchTable<Row> {
@@ -502,5 +521,39 @@ mod tests {
     fn test_with_capacity_zero_is_valid() {
         let table: ArchTable<Pos> = ArchTable::with_capacity(0);
         assert!(table.is_empty());
+    }
+
+    #[test]
+    fn test_swap_rows_exchanges_data() {
+        let mut alloc = EntityAllocator::new();
+        let e1 = alloc.allocate();
+        let e2 = alloc.allocate();
+        let mut t: ArchTable<Pos> = ArchTable::new();
+        t.insert(e1, Pos { x: 1, y: 2 });
+        t.insert(e2, Pos { x: 9, y: 8 });
+        assert!(t.swap_rows(e1, e2));
+        assert_eq!(t.get(e1).unwrap(), &Pos { x: 9, y: 8 });
+        assert_eq!(t.get(e2).unwrap(), &Pos { x: 1, y: 2 });
+    }
+
+    #[test]
+    fn test_swap_rows_absent_entity_returns_false() {
+        let mut alloc = EntityAllocator::new();
+        let e1 = alloc.allocate();
+        let e_ghost = alloc.allocate(); // never inserted
+        let mut t: ArchTable<Pos> = ArchTable::new();
+        t.insert(e1, Pos { x: 0, y: 0 });
+        assert!(!t.swap_rows(e1, e_ghost));
+        assert!(!t.swap_rows(e_ghost, e1));
+    }
+
+    #[test]
+    fn test_swap_rows_same_entity_is_noop() {
+        let mut alloc = EntityAllocator::new();
+        let e = alloc.allocate();
+        let mut t: ArchTable<Pos> = ArchTable::new();
+        t.insert(e, Pos { x: 7, y: 3 });
+        assert!(t.swap_rows(e, e));
+        assert_eq!(t.get(e).unwrap(), &Pos { x: 7, y: 3 });
     }
 }

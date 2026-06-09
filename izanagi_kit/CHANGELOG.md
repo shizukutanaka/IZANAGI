@@ -913,6 +913,43 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `lib.rs`: re-export `ease_in_back`, `ease_out_back`, `ease_in_out_back`,
   `ease_in_bounce`, `ease_out_bounce`, `ease_in_out_bounce` at the crate root
   (these were implemented in easing.rs but not yet re-exported).
+- `arch::ArchTable::swap_rows(entity1, entity2) -> bool`: exchange the row data
+  of two entities in-place (O(1) — two indexed moves, no search). Returns `true`
+  when both entities are present; `false` if either is absent (no partial swap).
+  Useful for sort-swap passes and "trade equipment" mechanics without a temporary
+  staging variable.
+- `wfc::WfcRules::allowed_count(tile, dir) -> usize`: count of permitted
+  neighbour tiles for `(tile, dir)` — the popcount of the adjacency bitmask.
+  The cheapest entropy proxy before running full WFC: the lower the count, the
+  more constrained the slot. Returns `0` for out-of-range arguments.
+- `easing::ease_smoothstep(t) -> Fixed`: classic cubic Hermite smoothstep
+  `3t² − 2t³`. Zero first derivative at both endpoints; monotonically increasing
+  in `[0, 1]`. Equivalent to the GLSL `smoothstep` shape without branching or
+  float. Useful for camera lerp, fade-in/out, and any curve where a gentle
+  ease-in/ease-out is needed without Penner's asymmetry.
+- `camera::Camera::follow(wx, wy, margin, world_w, world_h)`: lazy camera follow
+  — pan the minimum distance needed to keep world point `(wx, wy)` within the
+  inner rectangle that is `margin` cells inside all four viewport edges. No-op
+  when the target is already inside the inner rect. Pans via the existing
+  `pan(dx, dy, …)` so world-boundary clamping is automatic. The standard
+  "keep the player on screen" primitive for roguelikes without snap-to-center.
+- `relations::Relations::subtree_size(entity) -> usize`: count of all entities
+  in the subtree rooted at `entity` (inclusive). Equivalent to
+  `1 + descendants_of(entity).len()`. Single-node (leaf/root) returns `1`;
+  useful for inventory-weight and hierarchy-depth budgets.
+- `loader::Stats::set(key, value)`: insert a new stat or overwrite the value of
+  an existing one. Preserves all other entries. The runtime "apply buff" primitive
+  — lets systems write stat changes back without remove+re-insert. Complements
+  the read-only `get` / `iter` API.
+- `world_hash::Fnv1a::write_i64(value)` and `impl DetHash for i64`: extends the
+  integer-write family (`write_u32`, `write_u64`, `write_i32`) with signed 64-bit
+  support. Useful for hashing large tick counters, cumulative damage totals, or
+  other wide simulation state fields. `write_i64` folds the 8 little-endian bytes
+  identically across targets; `DetHash for i64` delegates to it.
+- `influence::InfluenceMap::clamp_cells(min, max)`: clamp every cell value to
+  `[min, max]` in-place. Prevents influence values from growing unbounded when
+  many sources overlap, and implements "floor of zero" for threat maps that must
+  not go negative. O(n) in map size; no allocation.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

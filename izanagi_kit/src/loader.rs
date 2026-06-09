@@ -44,6 +44,17 @@ impl Stats {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    /// Set `key` to `value`. Updates an existing entry in-place or appends a
+    /// new one. Use this to apply runtime buffs or overrides without removing
+    /// and re-inserting the whole `Stats` component.
+    pub fn set(&mut self, key: &str, value: i32) {
+        if let Some(e) = self.entries.iter_mut().find(|(k, _)| k == key) {
+            e.1 = value;
+        } else {
+            self.entries.push((key.to_string(), value));
+        }
+    }
 }
 
 impl DetHash for Stats {
@@ -250,5 +261,33 @@ level room 1x1
         let keys: Vec<&str> = s.iter().map(|(k, _)| k).collect();
         // BTreeMap → alphabetical: atk, hp, zap
         assert_eq!(keys, vec!["atk", "hp", "zap"]);
+    }
+
+    #[test]
+    fn test_stats_set_inserts_new_key() {
+        let mut s = Stats::new();
+        s.set("hp", 10);
+        assert_eq!(s.get("hp"), Some(10));
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn test_stats_set_updates_existing_key() {
+        let mut s = Stats::new();
+        s.set("hp", 10);
+        s.set("hp", 25);
+        assert_eq!(s.get("hp"), Some(25));
+        assert_eq!(s.len(), 1, "no duplicate entry created");
+    }
+
+    #[test]
+    fn test_stats_set_preserves_other_keys() {
+        let mut s = Stats::new();
+        s.set("hp", 10);
+        s.set("atk", 3);
+        s.set("hp", 20);
+        assert_eq!(s.get("hp"), Some(20));
+        assert_eq!(s.get("atk"), Some(3));
+        assert_eq!(s.len(), 2);
     }
 }
