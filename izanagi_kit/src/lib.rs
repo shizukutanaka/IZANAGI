@@ -125,7 +125,7 @@ pub use easing::{
 };
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
-pub use fov::compute_fov;
+pub use fov::{compute_fov, compute_fov_dist};
 pub use fsm::Fsm;
 pub use geometry::{line, line_of_sight, Distance};
 pub use hud::{BarWidget, HudPanel, StatLine};
@@ -143,7 +143,7 @@ pub use multimap::{Connector, MultiMap};
 pub use noise::{fbm_1d, fbm_2d, hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
 pub use passability::PassabilityGrid;
-pub use pathfinding::{astar, weighted_astar};
+pub use pathfinding::{astar, descend, dijkstra_map, smooth_path, weighted_astar};
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use random_table::RandomTable;
 pub use relations::Relations;

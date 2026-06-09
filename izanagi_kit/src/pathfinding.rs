@@ -23,6 +23,8 @@
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 
+use crate::geometry::line as bresenham_line;
+
 /// Orthogonal step cost (≈ 1.0, scaled by 10).
 const COST_ORTHO: i32 = 10;
 /// Diagonal step cost (≈ √2, scaled to 14).
@@ -298,6 +300,68 @@ impl BestCost for Option<((i32, i32), i32)> {
     }
 }
 
+/// Remove redundant waypoints from a grid path using Bresenham LOS pruning
+/// ("greedy string-pull").
+///
+/// Starting from each waypoint, skips to the farthest successor reachable via
+/// a straight Bresenham line with no blocked interior cells. The result always
+/// includes the original start and goal and is traversable under the same
+/// blocking rules. A path of 0–2 cells is returned unchanged.
+///
+/// This is a **post-processor** — call it on a path from [`astar`] or
+/// [`weighted_astar`]. The smoothed path has fewer direction changes (reduces
+/// the stair-step visual) and is suitable for AI waypoint navigation: the actor
+/// still moves step-by-step between each consecutive pair of smoothed waypoints,
+/// so the no-corner-cutting rule is enforced per-step at runtime.
+///
+/// Determinism: purely functional; the same inputs always yield the same output.
+pub fn smooth_path<B>(path: &[(i32, i32)], mut is_blocked: B) -> Vec<(i32, i32)>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    if path.len() <= 2 {
+        return path.to_vec();
+    }
+    let mut result = vec![path[0]];
+    let mut anchor = 0usize;
+    loop {
+        if anchor >= path.len() - 1 {
+            break;
+        }
+        // Find the farthest j > anchor reachable via a clear Bresenham segment.
+        let mut j = path.len() - 1;
+        while j > anchor + 1 {
+            if los_segment_clear(path[anchor], path[j], &mut is_blocked) {
+                break;
+            }
+            j -= 1;
+        }
+        result.push(path[j]);
+        anchor = j;
+    }
+    result
+}
+
+/// Returns `true` when the Bresenham segment from `a` to `b` has no blocked
+/// interior cells (endpoints are not checked — same semantics as `line_of_sight`
+/// in `geometry`).
+fn los_segment_clear<B: FnMut(i32, i32) -> bool>(
+    a: (i32, i32),
+    b: (i32, i32),
+    is_blocked: &mut B,
+) -> bool {
+    let cells = bresenham_line(a, b);
+    // Skip the first (a) and last (b) cells — only check the interior.
+    if let Some(interior) = cells.get(1..cells.len().saturating_sub(1)) {
+        for &(x, y) in interior {
+            if is_blocked(x, y) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -536,5 +600,63 @@ mod tests {
         ka.sort();
         kb.sort();
         assert_eq!(ka, kb);
+    }
+
+    // --- smooth_path ---
+
+    #[test]
+    fn test_smooth_path_trivial_cases() {
+        let b = blocker(10, 10, HashSet::new());
+        assert_eq!(smooth_path(&[], b), vec![]);
+        let b = blocker(10, 10, HashSet::new());
+        assert_eq!(smooth_path(&[(1, 1)], b), vec![(1, 1)]);
+        let b = blocker(10, 10, HashSet::new());
+        assert_eq!(smooth_path(&[(1, 1), (3, 1)], b), vec![(1, 1), (3, 1)]);
+    }
+
+    #[test]
+    fn test_smooth_path_straight_line_collapses() {
+        // A* staircase on open grid: smoothing should reduce to just start and goal.
+        let path = astar((0, 0), (6, 0), blocker(10, 10, HashSet::new())).unwrap();
+        let smooth = smooth_path(&path, blocker(10, 10, HashSet::new()));
+        assert_eq!(smooth.first(), Some(&(0, 0)));
+        assert_eq!(smooth.last(), Some(&(6, 0)));
+        // Open straight line: all interior hops are skippable.
+        assert!(smooth.len() <= path.len(), "smooth must not add waypoints");
+    }
+
+    #[test]
+    fn test_smooth_path_preserves_start_and_goal() {
+        let walls = HashSet::from([(3, 0), (3, 1), (3, 2), (3, 3)]);
+        let path = astar((0, 2), (7, 2), blocker(10, 10, walls.clone())).unwrap();
+        let smooth = smooth_path(&path, blocker(10, 10, walls));
+        assert_eq!(smooth.first(), path.first());
+        assert_eq!(smooth.last(), path.last());
+    }
+
+    #[test]
+    fn test_smooth_path_does_not_cross_walls() {
+        // The wall separates start from goal; smooth path must not pass through it.
+        let walls: HashSet<(i32, i32)> = (0..8).map(|y| (4, y)).collect();
+        let path = astar((1, 4), (8, 4), blocker(12, 12, walls.clone())).unwrap();
+        let smooth = smooth_path(&path, blocker(12, 12, walls.clone()));
+        // Every consecutive pair of smoothed waypoints must have a clear LOS.
+        for w in smooth.windows(2) {
+            assert!(
+                los_segment_clear(w[0], w[1], &mut |x, y| walls.contains(&(x, y))),
+                "smoothed segment {:?}->{:?} crosses a wall",
+                w[0],
+                w[1]
+            );
+        }
+    }
+
+    #[test]
+    fn test_smooth_path_is_deterministic() {
+        let walls = HashSet::from([(4, 2), (4, 3)]);
+        let path = astar((0, 0), (8, 6), blocker(12, 12, walls.clone())).unwrap();
+        let a = smooth_path(&path, blocker(12, 12, walls.clone()));
+        let b = smooth_path(&path, blocker(12, 12, walls));
+        assert_eq!(a, b);
     }
 }

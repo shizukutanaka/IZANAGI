@@ -82,8 +82,9 @@ struct Row {
     end: Frac,
 }
 
-/// Per-quadrant scan context bundling the origin, radius and the caller's
-/// callbacks. Held by reference so the recursion shares one borrow.
+/// Per-quadrant scan context. The callback receives `(x, y, dist_sq)` so that
+/// both [`compute_fov`] (which ignores `dist_sq`) and [`compute_fov_dist`]
+/// (which passes it through) can share the same scan logic.
 struct Quadrant<'a, O, V> {
     ox: i32,
     oy: i32,
@@ -91,13 +92,14 @@ struct Quadrant<'a, O, V> {
     /// 0 = north, 1 = east, 2 = south, 3 = west.
     index: u8,
     is_opaque: &'a mut O,
-    mark_visible: &'a mut V,
+    /// Called for each visible cell as `callback(x, y, dist_sq)`.
+    callback: &'a mut V,
 }
 
 impl<O, V> Quadrant<'_, O, V>
 where
     O: FnMut(i32, i32) -> bool,
-    V: FnMut(i32, i32),
+    V: FnMut(i32, i32, i64),
 {
     /// Map quadrant-local `(depth, col)` to absolute map coordinates.
     #[inline]
@@ -123,8 +125,9 @@ where
         let (x, y) = self.transform(depth, col);
         let dx = (x - self.ox) as i64;
         let dy = (y - self.oy) as i64;
-        if dx * dx + dy * dy <= self.radius * self.radius {
-            (self.mark_visible)(x, y);
+        let dist_sq = dx * dx + dy * dy;
+        if dist_sq <= self.radius * self.radius {
+            (self.callback)(x, y, dist_sq);
         }
     }
 
@@ -190,6 +193,7 @@ where
     if radius <= 0 {
         return;
     }
+    let mut cb = |x: i32, y: i32, _dsq: i64| mark_visible(x, y);
     for index in 0..4u8 {
         let mut quadrant = Quadrant {
             ox: origin.0,
@@ -197,7 +201,63 @@ where
             radius: radius as i64,
             index,
             is_opaque: &mut is_opaque,
-            mark_visible: &mut mark_visible,
+            callback: &mut cb,
+        };
+        quadrant.scan(Row {
+            depth: 1,
+            start: Frac::new(-1, 1),
+            end: Frac::new(1, 1),
+        });
+    }
+}
+
+/// Compute the field of view, reporting the squared Euclidean distance from
+/// the origin to each visible cell alongside its coordinates.
+///
+/// Like [`compute_fov`] but `mark_visible(x, y, dist_sq)` receives an extra
+/// `dist_sq: i32` — the integer squared distance from `origin` to `(x, y)`.
+/// The origin itself is reported with `dist_sq == 0`.
+///
+/// Use `dist_sq` to implement light-falloff, range checks, or
+/// distance-graded fog-of-war without a second sqrt pass:
+///
+/// ```
+/// # use izanagi_kit::fov::compute_fov_dist;
+/// let mut lit: Vec<(i32, i32, i32)> = Vec::new();
+/// compute_fov_dist(
+///     (10, 10), 8,
+///     |_x, _y| false,                        // open field
+///     |x, y, d| lit.push((x, y, d)),
+/// );
+/// // Cells closer to origin have smaller d (light falloff).
+/// assert!(lit.iter().any(|&(_, _, d)| d == 0)); // origin
+/// ```
+///
+/// Symmetry, determinism, and radius semantics are identical to [`compute_fov`].
+pub fn compute_fov_dist<O, V>(
+    origin: (i32, i32),
+    radius: i32,
+    mut is_opaque: O,
+    mut mark_visible: V,
+) where
+    O: FnMut(i32, i32) -> bool,
+    V: FnMut(i32, i32, i32),
+{
+    mark_visible(origin.0, origin.1, 0);
+    if radius <= 0 {
+        return;
+    }
+    let mut cb = |x: i32, y: i32, dist_sq: i64| {
+        mark_visible(x, y, dist_sq.min(i32::MAX as i64) as i32);
+    };
+    for index in 0..4u8 {
+        let mut quadrant = Quadrant {
+            ox: origin.0,
+            oy: origin.1,
+            radius: radius as i64,
+            index,
+            is_opaque: &mut is_opaque,
+            callback: &mut cb,
         };
         quadrant.scan(Row {
             depth: 1,
@@ -210,7 +270,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use std::collections::{HashMap, HashSet};
 
     /// A small opaque-cell grid; out-of-bounds counts as opaque (a wall).
     struct Grid {
@@ -244,6 +304,24 @@ mod tests {
                 |x, y| {
                     if x >= 0 && y >= 0 && x < self.w && y < self.h {
                         seen.insert((x, y));
+                    }
+                },
+            );
+            seen
+        }
+
+        /// Visible cells with their squared distances.
+        fn fov_dist(&self, origin: (i32, i32), radius: i32) -> HashMap<(i32, i32), i32> {
+            let mut seen: HashMap<(i32, i32), i32> = HashMap::new();
+            compute_fov_dist(
+                origin,
+                radius,
+                |x, y| {
+                    x < 0 || y < 0 || x >= self.w || y >= self.h || self.opaque.contains(&(x, y))
+                },
+                |x, y, d| {
+                    if x >= 0 && y >= 0 && x < self.w && y < self.h {
+                        seen.insert((x, y), d);
                     }
                 },
             );
@@ -347,5 +425,42 @@ mod tests {
         let a = grid.fov((7, 7), 7);
         let b = grid.fov((7, 7), 7);
         assert_eq!(a, b);
+    }
+
+    // --- compute_fov_dist tests ---
+
+    #[test]
+    fn test_fov_dist_origin_reports_zero() {
+        let grid = Grid::new(11, 11);
+        let seen = grid.fov_dist((5, 5), 4);
+        assert_eq!(seen[&(5, 5)], 0, "origin must have dist_sq == 0");
+    }
+
+    #[test]
+    fn test_fov_dist_matches_fov_visible_set() {
+        let mut grid = Grid::new(15, 15);
+        grid.wall(8, 7);
+        grid.wall(6, 9);
+        let origin = (7, 7);
+        let radius = 5;
+        let plain: HashSet<(i32, i32)> = grid.fov(origin, radius);
+        let dist: HashSet<(i32, i32)> = grid.fov_dist(origin, radius).into_keys().collect();
+        assert_eq!(
+            plain, dist,
+            "compute_fov_dist must report the same cells as compute_fov"
+        );
+    }
+
+    #[test]
+    fn test_fov_dist_values_are_correct() {
+        let grid = Grid::new(21, 21);
+        let origin = (10, 10);
+        let seen = grid.fov_dist(origin, 6);
+        // Orthogonal neighbour: dist_sq = 1.
+        assert_eq!(seen[&(11, 10)], 1);
+        // Diagonal neighbour: dist_sq = 2.
+        assert_eq!(seen[&(11, 11)], 2);
+        // Cell 3 east: dist_sq = 9.
+        assert_eq!(seen[&(13, 10)], 9);
     }
 }

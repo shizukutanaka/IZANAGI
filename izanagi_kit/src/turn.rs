@@ -76,6 +76,26 @@ impl<A: Copy + Ord> Scheduler<A> {
         }
     }
 
+    /// Current banked energy for actor `id`, or `None` if not registered.
+    ///
+    /// Useful for save/load (restore exact energy) and diagnostics. A value
+    /// ≥ [`ACTION_COST`] means the actor will act on the next
+    /// [`next_turn`](Self::next_turn) call.
+    pub fn energy(&self, id: A) -> Option<i32> {
+        self.actors.iter().find(|a| a.id == id).map(|a| a.energy)
+    }
+
+    /// Directly set banked energy for actor `id`. No-op if not registered.
+    ///
+    /// Values ≥ [`ACTION_COST`] make the actor immediately ready on the next
+    /// [`next_turn`](Self::next_turn) call; negative values add a delay.
+    /// Primarily used to restore saved state exactly.
+    pub fn set_energy(&mut self, id: A, energy: i32) {
+        if let Some(a) = self.actors.iter_mut().find(|a| a.id == id) {
+            a.energy = energy;
+        }
+    }
+
     /// Index of the ready actor (energy ≥ cost) with the smallest id, if any.
     fn ready(&self) -> Option<usize> {
         let mut best: Option<usize> = None;
@@ -221,6 +241,36 @@ mod tests {
             }
         }
         assert!(a1 > 250, "hastened actor should dominate ({a1}/400)");
+    }
+
+    #[test]
+    fn test_energy_returns_none_for_unknown_actor() {
+        let s: Scheduler<u32> = Scheduler::new();
+        assert_eq!(s.energy(42), None);
+    }
+
+    #[test]
+    fn test_energy_starts_at_zero_and_set_energy_restores_state() {
+        let mut s = Scheduler::new();
+        s.add(1u32, ACTION_COST);
+        assert_eq!(s.energy(1), Some(0));
+        // Advance one turn; energy returns to 0 after the cost is deducted.
+        s.next_turn();
+        assert_eq!(s.energy(1), Some(0));
+        // Restore to a specific value (e.g. mid-save point).
+        s.set_energy(1, 50);
+        assert_eq!(s.energy(1), Some(50));
+    }
+
+    #[test]
+    fn test_set_energy_to_action_cost_makes_actor_immediately_ready() {
+        let mut s = Scheduler::new();
+        s.add(1u32, ACTION_COST);
+        s.add(2u32, ACTION_COST);
+        // Force actor 2 to act before actor 1 by giving it a full energy bank.
+        s.set_energy(2, ACTION_COST);
+        // Actor 2 should be ready first (energy >= ACTION_COST).
+        assert_eq!(s.next_turn(), Some(2));
     }
 
     #[test]

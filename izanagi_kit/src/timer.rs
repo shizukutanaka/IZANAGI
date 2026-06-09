@@ -126,6 +126,14 @@ impl<E: Clone> TimerQueue<E> {
         n
     }
 
+    /// Cancel all pending entries whose event satisfies `pred`. Both one-shot
+    /// and repeating entries are eligible. Returns how many were removed.
+    pub fn cancel_where<P: Fn(&E) -> bool>(&mut self, pred: P) -> usize {
+        let before = self.entries.len();
+        self.entries.retain(|e| !pred(&e.event));
+        before - self.entries.len()
+    }
+
     /// How many entries (including repeating) are currently scheduled.
     #[inline]
     pub fn len(&self) -> usize {
@@ -299,6 +307,30 @@ mod tests {
         assert!(q.is_empty());
         let fired = q.advance(100);
         assert!(fired.is_empty());
+    }
+
+    #[test]
+    fn test_cancel_where_removes_matching_entries() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(1, 10);
+        q.schedule(2, 20);
+        q.schedule(3, 30);
+        let removed = q.cancel_where(|&e| e >= 20);
+        assert_eq!(removed, 2);
+        assert_eq!(q.len(), 1);
+        // Only event 10 should fire.
+        let fired = q.advance(10);
+        assert_eq!(fired, vec![10]);
+    }
+
+    #[test]
+    fn test_cancel_where_none_removed_when_no_match() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(1, 5);
+        q.schedule(2, 6);
+        let removed = q.cancel_where(|&e| e > 100);
+        assert_eq!(removed, 0);
+        assert_eq!(q.len(), 2);
     }
 
     #[test]

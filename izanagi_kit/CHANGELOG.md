@@ -7,6 +7,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fov::compute_fov_dist`: distance-attenuated FOV variant — same symmetric
+  shadowcasting as `compute_fov` but the callback receives an extra `dist_sq: i32`
+  (squared Euclidean distance from origin). Callers use it to implement light
+  falloff, range-scaled fog-of-war, or ambient darkness without a separate sqrt
+  pass. Origin is always reported with `dist_sq == 0`. Deterministic and replay-safe;
+  the underlying scan logic is shared with `compute_fov` (no duplication). Re-exported
+  as `izanagi_kit::compute_fov_dist` (cf. libtcod / rot.js light-source patterns).
+- `pathfinding::smooth_path`: greedy Bresenham LOS path simplification ("string
+  pull"). Post-processes any `astar`/`weighted_astar` path by skipping waypoints
+  for which a straight Bresenham segment has no blocked interior cells, reducing
+  the staircase visual of grid paths. Suitable for AI waypoint navigation: the
+  actor still steps through each smoothed segment, so no-corner-cutting is
+  enforced at runtime. Fully deterministic (same path + same `is_blocked` → same
+  output). Re-exported as `izanagi_kit::smooth_path`.
+- `pathfinding::dijkstra_map` and `pathfinding::descend` re-exported at the crate
+  root (`izanagi_kit::{dijkstra_map, descend}`). These existed in the module but
+  were not previously in `lib.rs` — closing the API gap.
+- `turn::Scheduler::energy(id)`: returns the current banked energy for an actor
+  (`None` if not registered). Useful for save/load and diagnostics; values ≥
+  `ACTION_COST` indicate the actor is immediately ready.
+- `turn::Scheduler::set_energy(id, energy)`: directly sets banked energy — negative
+  values add a delay, values ≥ `ACTION_COST` grant an immediate turn. Designed for
+  restoring exact scheduler state from a save file.
+- `timer::TimerQueue::cancel_where(pred)`: selectively cancels pending entries whose
+  event satisfies a predicate. Returns the count removed. Both one-shot and repeating
+  entries are eligible. Fills the gap between `cancel_all` (nuke everything) and
+  the lack of any partial cancellation API.
 - `dice::Dice`: tabletop dice-notation parsing and rolling — `Dice::parse("3d6+2")`
   (panic-free, `None` on malformed input), `roll(&mut rng)` (replay-deterministic
   via `SplitMix64::dice`), plus `min`/`max`/`average_x100` range queries for
