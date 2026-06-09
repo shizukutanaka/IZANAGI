@@ -129,6 +129,23 @@ impl Dice {
         let b = self.roll(rng);
         a.min(b)
     }
+
+    /// Roll `n` copies of this expression and return the sum of the `keep`
+    /// highest results (classic "4d6 drop lowest" mechanic).
+    ///
+    /// `keep` is clamped to `min(keep, n)`. `n == 0` or `keep == 0` returns the
+    /// modifier alone without drawing. Consumes exactly `n` `roll` calls from
+    /// `rng`. Sum saturates rather than overflowing.
+    pub fn roll_n_keep_highest(&self, n: u32, keep: u32, rng: &mut SplitMix64) -> i32 {
+        if n == 0 || keep == 0 {
+            return self.modifier;
+        }
+        let keep = keep.min(n) as usize;
+        let mut rolls: Vec<i32> = (0..n).map(|_| self.roll(rng)).collect();
+        rolls.sort_unstable_by(|a, b| b.cmp(a)); // descending
+        let sum: i64 = rolls[..keep].iter().map(|&v| v as i64).sum();
+        sum.clamp(i32::MIN as i64, i32::MAX as i64) as i32
+    }
 }
 
 impl core::fmt::Display for Dice {
@@ -281,5 +298,56 @@ mod tests {
         let orig = Dice::new(4, 6, 1);
         let s = orig.to_string();
         assert_eq!(Dice::parse(&s), Some(orig));
+    }
+
+    #[test]
+    fn test_roll_n_keep_highest_sum_within_bounds() {
+        // 4d6 keep 3: min = 3 (each die rolls 1), max = 18 (each die rolls 6)
+        let d = Dice::new(1, 6, 0);
+        let mut rng = SplitMix64::new(0xBEEF);
+        for _ in 0..500 {
+            let v = d.roll_n_keep_highest(4, 3, &mut rng);
+            assert!((3..=18).contains(&v), "got {v}");
+        }
+    }
+
+    #[test]
+    fn test_roll_n_keep_highest_keep_clamped_to_n() {
+        // keep=99 is clamped to n=2
+        let d = Dice::new(1, 6, 0);
+        let mut rng = SplitMix64::new(1);
+        let v = d.roll_n_keep_highest(2, 99, &mut rng);
+        assert!((2..=12).contains(&v));
+    }
+
+    #[test]
+    fn test_roll_n_keep_highest_zero_n_returns_modifier() {
+        let d = Dice::new(1, 6, 5);
+        let mut rng = SplitMix64::new(0);
+        assert_eq!(d.roll_n_keep_highest(0, 3, &mut rng), 5);
+    }
+
+    #[test]
+    fn test_roll_n_keep_highest_zero_keep_returns_modifier() {
+        let d = Dice::new(1, 6, -2);
+        let mut rng = SplitMix64::new(0);
+        // Should not draw and return modifier
+        let state_before = rng.state();
+        let v = d.roll_n_keep_highest(4, 0, &mut rng);
+        assert_eq!(v, -2);
+        assert_eq!(rng.state(), state_before);
+    }
+
+    #[test]
+    fn test_roll_n_keep_highest_deterministic() {
+        let d = Dice::new(1, 8, 0);
+        let roll = |seed: u64| {
+            let mut rng = SplitMix64::new(seed);
+            (0..20)
+                .map(|_| d.roll_n_keep_highest(4, 3, &mut rng))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(roll(42), roll(42));
+        assert_ne!(roll(1), roll(2));
     }
 }

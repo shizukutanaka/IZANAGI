@@ -157,6 +157,21 @@ impl PassabilityGrid {
         })
     }
 
+    /// Bulk-set all cells in the axis-aligned rectangle `[x1, x2] × [y1, y2]`
+    /// (both endpoints inclusive). Out-of-bounds cells are silently skipped.
+    /// Coordinates are treated in any order (`x1 > x2` is the same as `x1 ≤ x2`).
+    pub fn set_region(&mut self, x1: i32, y1: i32, x2: i32, y2: i32, blocked: bool) {
+        let xs = x1.min(x2).max(0);
+        let xe = x1.max(x2).min(self.width - 1);
+        let ys = y1.min(y2).max(0);
+        let ye = y1.max(y2).min(self.height - 1);
+        for y in ys..=ye {
+            for x in xs..=xe {
+                self.cells[(y * self.width + x) as usize] = blocked;
+            }
+        }
+    }
+
     /// Iterate `(x, y)` coordinates of all **blocked** cells in row-major order.
     pub fn iter_blocked(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
         let w = self.width;
@@ -377,5 +392,50 @@ mod tests {
         assert!(!grid.is_passable(-1, 0));
         assert!(!grid.is_passable(0, -1));
         assert!(!grid.is_passable(3, 0));
+    }
+
+    #[test]
+    fn test_set_region_marks_all_cells() {
+        let mut grid = PassabilityGrid::new(6, 6);
+        grid.set_region(1, 1, 3, 3, true);
+        for y in 1..=3 {
+            for x in 1..=3 {
+                assert!(grid.is_blocked(x, y), "({x},{y}) should be blocked");
+            }
+        }
+        // Cells outside the region should be unaffected.
+        assert!(!grid.is_blocked(0, 0));
+        assert!(!grid.is_blocked(4, 4));
+    }
+
+    #[test]
+    fn test_set_region_reversed_coords_same_result() {
+        let mut a = PassabilityGrid::new(5, 5);
+        let mut b = PassabilityGrid::new(5, 5);
+        a.set_region(1, 1, 3, 3, true);
+        b.set_region(3, 3, 1, 1, true);
+        assert_eq!(a.blocked_count(), b.blocked_count());
+    }
+
+    #[test]
+    fn test_set_region_out_of_bounds_clipped() {
+        let mut grid = PassabilityGrid::new(4, 4);
+        grid.set_region(-5, -5, 1, 1, true); // only (0,0)-(1,1) is valid
+                                             // Should not panic and should mark the valid overlap.
+        assert!(grid.is_blocked(0, 0));
+        assert!(grid.is_blocked(1, 1));
+        assert!(!grid.is_blocked(2, 2));
+    }
+
+    #[test]
+    fn test_set_region_clear_cells() {
+        let mut grid = PassabilityGrid::from_fn(5, 5, |_, _| true); // all blocked
+        grid.set_region(1, 1, 3, 3, false);
+        for y in 1..=3 {
+            for x in 1..=3 {
+                assert!(!grid.is_blocked(x, y));
+            }
+        }
+        assert!(grid.is_blocked(0, 0)); // border still blocked
     }
 }

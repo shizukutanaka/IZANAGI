@@ -551,6 +551,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   an unknown section. Enables displaying the best-case timing alongside `peak` in
   profiler overlays and automated regression checks ("min pathfinding latency
   regressed above baseline").
+- `dice::Dice::roll_n_keep_highest(n, keep, rng)`: roll `n` copies of the
+  expression, sum the `keep` highest results (classic "4d6 drop lowest" ability-
+  score mechanic). `keep` is clamped to `min(keep, n)`; `n == 0` or `keep == 0`
+  returns the modifier without drawing. Consumes exactly `n` draws. Sum saturates.
+- `relations::Relations::path_to_root(entity)`: return the full ancestor chain
+  from `entity` to its root, inclusive — `[entity, parent, grandparent, …, root]`.
+  Single-element for root entities. Useful for debug visualisation, access-control
+  checks, and any system that needs to walk the ownership hierarchy.
+- `relations::Relations::find_common_ancestor(e1, e2)`: lowest common ancestor of
+  two entities, or `None` if they share no ancestor (disjoint trees). Builds
+  `path_to_root(e1)` as the search set, then walks `e2`'s chain. Essential for
+  evaluating whether two entities are in the same "inventory tree" or
+  ownership group.
+- `passability::PassabilityGrid::set_region(x1, y1, x2, y2, blocked)`: bulk-set
+  all cells in the axis-aligned rectangle `[x1, x2] × [y1, y2]` (both endpoints
+  inclusive, coordinates in any order). Out-of-bounds cells are silently clipped.
+  Equivalent to calling `set_blocked` in a nested loop but O(area) without
+  allocation — the standard primitive for sealing doors, opening corridors, and
+  placing rectangular obstacles.
+- `entity::EntityAllocator::batch_free(entities)`: free multiple entities in one
+  call. Stale and duplicate entries are silently ignored (same contract as `free`).
+  Enables frame-end bulk cleanup ("free all dead entities this tick") without an
+  explicit loop at each call site.
+- `multimap::MultiMap::find_connector_to(dest_floor)`: return the first
+  `Connector` whose `to_floor` matches `dest_floor`, or `None`. The "find the
+  staircase that returns to floor N" navigation primitive — avoids scanning
+  `exits_from` on every floor when the caller only knows the destination.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

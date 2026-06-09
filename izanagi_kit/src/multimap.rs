@@ -117,6 +117,14 @@ impl MultiMap {
             .iter()
             .find(|c| c.from_floor == floor && c.from_x == x && c.from_y == y)
     }
+
+    /// Find the first connector on any floor that leads to `dest_floor`.
+    /// Returns `None` if no such connector exists.
+    /// Useful for "navigate up" patterns where the player needs to find a
+    /// stair that returns to the previous level without knowing its position.
+    pub fn find_connector_to(&self, dest_floor: u32) -> Option<&Connector> {
+        self.connectors.iter().find(|c| c.to_floor == dest_floor)
+    }
 }
 
 impl DetHash for MultiMap {
@@ -263,5 +271,51 @@ mod tests {
         let b = MultiMap::new(floors, 0);
         a.set_floor(1);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_find_connector_to_finds_matching() {
+        let floors = vec![make_floor(1), make_floor(2), make_floor(3)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 3,
+            from_y: 3,
+            to_floor: 1,
+            to_x: 5,
+            to_y: 5,
+        });
+        m.add_connector(Connector {
+            from_floor: 1,
+            from_x: 7,
+            from_y: 2,
+            to_floor: 2,
+            to_x: 4,
+            to_y: 4,
+        });
+        let c = m.find_connector_to(2).unwrap();
+        assert_eq!(c.to_floor, 2);
+        assert_eq!(c.from_floor, 1);
+    }
+
+    #[test]
+    fn test_find_connector_to_none_when_absent() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 1,
+            to_x: 2,
+            to_y: 2,
+        });
+        assert!(m.find_connector_to(99).is_none());
+    }
+
+    #[test]
+    fn test_find_connector_to_empty_map_returns_none() {
+        let m = MultiMap::new(vec![], 0);
+        assert!(m.find_connector_to(0).is_none());
     }
 }

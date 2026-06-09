@@ -187,6 +187,40 @@ impl Relations {
         children
     }
 
+    /// Walk up the parent chain and return the full path from `entity` to the
+    /// root, **inclusive** of both endpoints.
+    ///
+    /// The returned `Vec` is ordered `[entity, parent, grandparent, …, root]`.
+    /// If `entity` has no parent the result is `[entity]`.
+    pub fn path_to_root(&self, entity: Entity) -> Vec<Entity> {
+        let mut path = vec![entity];
+        let mut current = entity;
+        while let Some(p) = self.parent_of(current) {
+            path.push(p);
+            current = p;
+        }
+        path
+    }
+
+    /// Lowest common ancestor of `e1` and `e2`, or `None` if they share no
+    /// ancestor (including if both are roots in different trees).
+    ///
+    /// Uses the `path_to_root` of `e1` as a lookup set and walks `e2`'s chain
+    /// until a common node is found.
+    pub fn find_common_ancestor(&self, e1: Entity, e2: Entity) -> Option<Entity> {
+        let chain1 = self.path_to_root(e1);
+        let mut current = e2;
+        loop {
+            if chain1.contains(&current) {
+                return Some(current);
+            }
+            match self.parent_of(current) {
+                None => return None,
+                Some(p) => current = p,
+            }
+        }
+    }
+
     /// Iterate `(child, parent)` pairs in unspecified order.
     pub fn iter(&self) -> impl Iterator<Item = (Entity, Entity)> + '_ {
         self.parents.iter().copied()
@@ -438,5 +472,61 @@ mod tests {
         r.detach_all_children(e[1]);
         assert!(r.is_root(e[0]));
         assert_eq!(r.parent_of(e[1]), Some(e[2])); // e[1] still has its parent
+    }
+
+    #[test]
+    fn test_path_to_root_root_entity_returns_self() {
+        let e = entities(1);
+        let r = Relations::new();
+        assert_eq!(r.path_to_root(e[0]), vec![e[0]]);
+    }
+
+    #[test]
+    fn test_path_to_root_three_levels() {
+        // e[0] → e[1] → e[2]  (e[2] is root)
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]);
+        r.attach(e[1], e[2]);
+        assert_eq!(r.path_to_root(e[0]), vec![e[0], e[1], e[2]]);
+        assert_eq!(r.path_to_root(e[2]), vec![e[2]]);
+    }
+
+    #[test]
+    fn test_find_common_ancestor_same_entity_is_itself() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]);
+        // e[1] and e[1] share e[1] as ancestor
+        assert_eq!(r.find_common_ancestor(e[1], e[1]), Some(e[1]));
+    }
+
+    #[test]
+    fn test_find_common_ancestor_direct_parent() {
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[0], e[2]);
+        r.attach(e[1], e[2]);
+        // siblings — common ancestor is e[2]
+        assert_eq!(r.find_common_ancestor(e[0], e[1]), Some(e[2]));
+    }
+
+    #[test]
+    fn test_find_common_ancestor_none_for_disjoint_trees() {
+        let e = entities(4);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]); // tree 1: e[0]→e[1]
+        r.attach(e[2], e[3]); // tree 2: e[2]→e[3]
+        assert_eq!(r.find_common_ancestor(e[0], e[2]), None);
+    }
+
+    #[test]
+    fn test_find_common_ancestor_ancestor_is_one_of_inputs() {
+        // e[0]→e[1]→e[2]; LCA of e[0] and e[1] is e[1]
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]);
+        r.attach(e[1], e[2]);
+        assert_eq!(r.find_common_ancestor(e[0], e[1]), Some(e[1]));
     }
 }

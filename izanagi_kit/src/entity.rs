@@ -74,6 +74,14 @@ impl EntityAllocator {
         self.generations.len() - self.free.len()
     }
 
+    /// Free every entity in `entities`. Equivalent to calling `free` for each
+    /// element; stale and duplicate entries are ignored (no-op per `free`).
+    pub fn batch_free(&mut self, entities: &[Entity]) {
+        for &e in entities {
+            self.free(e);
+        }
+    }
+
     /// All currently live entities in ascending index order.
     ///
     /// Useful for systems that need to enumerate every spawned entity without
@@ -185,6 +193,42 @@ mod tests {
         assert_eq!(live[0], e0);
         assert_eq!(live[1], e1);
         assert_eq!(live[2], e2);
+    }
+
+    #[test]
+    fn test_batch_free_frees_all_live() {
+        let mut a = EntityAllocator::new();
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        let e2 = a.allocate();
+        a.batch_free(&[e0, e1, e2]);
+        assert_eq!(a.count(), 0);
+        assert!(!a.is_alive(e0));
+        assert!(!a.is_alive(e1));
+        assert!(!a.is_alive(e2));
+    }
+
+    #[test]
+    fn test_batch_free_ignores_stale_and_unknown() {
+        let mut a = EntityAllocator::new();
+        let e = a.allocate();
+        a.free(e); // stale now
+                   // Should not panic or corrupt allocator.
+        a.batch_free(&[e]);
+        assert_eq!(a.count(), 0);
+    }
+
+    #[test]
+    fn test_batch_free_partial() {
+        let mut a = EntityAllocator::new();
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        let e2 = a.allocate();
+        a.batch_free(&[e0, e2]);
+        assert!(!a.is_alive(e0));
+        assert!(a.is_alive(e1));
+        assert!(!a.is_alive(e2));
+        assert_eq!(a.count(), 1);
     }
 
     #[test]
