@@ -161,6 +161,23 @@ impl<T: Clone> Menu<T> {
         self.items.iter().enumerate()
     }
 
+    /// Enable or disable item at `idx`. Silently ignores out-of-range indices.
+    ///
+    /// When the cursor lands on a now-disabled item (because the game just
+    /// greyed it out), the caller should drive the cursor away with `move_down`
+    /// or `move_up` to keep the invariant that the cursor is on an enabled item.
+    pub fn set_enabled(&mut self, idx: usize, enabled: bool) {
+        if let Some(item) = self.items.get_mut(idx) {
+            item.disabled = !enabled;
+        }
+    }
+
+    /// Return the index of the first item whose label equals `label`, or
+    /// `None` if no match is found. Case-sensitive.
+    pub fn find_by_label(&self, label: &str) -> Option<usize> {
+        self.items.iter().position(|it| it.label == label)
+    }
+
     /// Remove all items and reset cursor to 0.
     pub fn clear(&mut self) {
         self.items.clear();
@@ -329,6 +346,58 @@ mod tests {
         let m = sample();
         let v: Vec<(usize, &str)> = m.iter().map(|(i, it)| (i, it.label.as_str())).collect();
         assert_eq!(v, [(0, "Item A"), (1, "Item B"), (2, "Item C")]);
+    }
+
+    #[test]
+    fn test_set_enabled_toggles_disabled_state() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_item("A", 1);
+        m.add_disabled("B", 2);
+        // Enable the disabled item.
+        m.set_enabled(1, true);
+        assert!(!m.items[1].disabled);
+        // Disable an enabled item.
+        m.set_enabled(0, false);
+        assert!(m.items[0].disabled);
+    }
+
+    #[test]
+    fn test_set_enabled_out_of_range_is_noop() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_item("A", 1);
+        m.set_enabled(99, false); // should not panic
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn test_set_enabled_gates_selection() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_item("Buy", 10);
+        // Disable the only item — select should now return None.
+        m.set_enabled(0, false);
+        assert_eq!(m.select(), None);
+        // Re-enable — select should return Some again.
+        m.set_enabled(0, true);
+        assert_eq!(m.select(), Some(10));
+    }
+
+    #[test]
+    fn test_find_by_label_found() {
+        let m = sample();
+        assert_eq!(m.find_by_label("Item B"), Some(1));
+    }
+
+    #[test]
+    fn test_find_by_label_not_found() {
+        let m = sample();
+        assert_eq!(m.find_by_label("Item Z"), None);
+    }
+
+    #[test]
+    fn test_find_by_label_case_sensitive() {
+        let m = sample();
+        assert_eq!(m.find_by_label("item a"), None); // lowercase — no match
+        assert_eq!(m.find_by_label("Item A"), Some(0));
     }
 
     #[test]

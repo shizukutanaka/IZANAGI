@@ -122,6 +122,12 @@ impl<K: Eq + Clone> InputBuffer<K> {
             .find(|h| &h.key == key)
             .map(|h| h.held_ticks)
     }
+
+    /// Iterate all currently held key values. Useful for modifier queries:
+    /// "is Shift / Ctrl held while I process another key event?"
+    pub fn all_held(&self) -> impl Iterator<Item = &K> {
+        self.held.iter().map(|h| &h.key)
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for InputBuffer<K> {
@@ -263,6 +269,22 @@ mod tests {
         assert_eq!(fired.len(), 2);
         assert!(fired.contains(&1));
         assert!(fired.contains(&2));
+    }
+
+    #[test]
+    fn test_all_held_returns_held_keys() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(3, 2);
+        b.press(1);
+        b.press(3);
+        let held: Vec<u32> = b.all_held().copied().collect();
+        assert_eq!(held.len(), 2);
+        assert!(held.contains(&1) && held.contains(&3));
+    }
+
+    #[test]
+    fn test_all_held_empty_when_nothing_pressed() {
+        let b: InputBuffer<u32> = InputBuffer::new(3, 2);
+        assert_eq!(b.all_held().count(), 0);
     }
 
     #[test]

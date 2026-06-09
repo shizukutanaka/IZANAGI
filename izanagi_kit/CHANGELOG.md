@@ -292,6 +292,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   deterministic; all metrics saturate rather than overflow. Re-exported as
   `izanagi_kit::Distance`.
 
+- `fsm::Fsm::transitions_from(state)`: iterate all events with a defined
+  outgoing transition from `state`. Returns `&E` in insertion order. Does not
+  include self-loops for unmapped events — only explicitly added transitions.
+  Useful for "available actions" UIs and AI planners that need to enumerate what
+  can happen from a given state.
+- `inputbuf::InputBuffer::all_held()`: iterator over all currently held key
+  values. The missing modifier-query API: "is Shift/Ctrl held while I process
+  this event?" without having to track modifier keys separately.
+- `cmdqueue::CmdQueue::drain_if(pred)`: drain only commands matching a
+  predicate; unmatched commands stay in the queue in their original order.
+  Enables per-system selective consumption when multiple subsystems share one
+  queue (e.g. movement commands vs. UI commands).
+- `menu::Menu::set_enabled(idx, enabled)`: toggle the disabled flag on an item
+  at runtime. Fills the gap between create-time `add_disabled` and run-time
+  "grey out unavailable actions" (shop items you can't afford, abilities on
+  cooldown). Silently ignores out-of-range indices.
+- `menu::Menu::find_by_label(label)`: linear search for the first item with
+  a matching label, returning `Some(idx)` or `None`. Case-sensitive. The missing
+  link for search-and-jump-to-item patterns in large menus.
 - `arch::ArchTable::retain(pred)`: remove all entries for which `pred(entity,
   &row)` returns `false`. Iterates in reverse dense-array order so swap-removes
   stay O(n) — the canonical "cull dead entities" frame-cleanup primitive,

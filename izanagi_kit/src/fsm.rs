@@ -88,6 +88,18 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
             .iter()
             .any(|(f, e, _)| *f == self.state && *e == *event)
     }
+
+    /// Iterate all events that have a defined outgoing transition from `state`.
+    /// Useful for "show valid actions" UIs and AI planning ("what can I do from
+    /// here?"). Returns an iterator of `&E` in table-insertion order. Does not
+    /// deduplicate (duplicate events won't appear because `add_transition`
+    /// already prevents them).
+    pub fn transitions_from<'a>(&'a self, state: &'a S) -> impl Iterator<Item = &'a E> {
+        self.table
+            .iter()
+            .filter(move |(f, _, _)| f == state)
+            .map(|(_, e, _)| e)
+    }
 }
 
 impl<S: DetHash + Eq + Clone, E: Eq> DetHash for Fsm<S, E> {
@@ -257,6 +269,25 @@ mod tests {
         a.fire(&GuardEvent::PlayerSpotted);
         b.fire(&GuardEvent::PlayerSpotted);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_transitions_from_current_state() {
+        let fsm = guard_fsm();
+        // Idle can respond to PlayerSpotted, TookDamage, Killed.
+        let events: Vec<&GuardEvent> = fsm.transitions_from(&GuardState::Idle).collect();
+        assert!(events.contains(&&GuardEvent::PlayerSpotted));
+        assert!(events.contains(&&GuardEvent::TookDamage));
+        assert!(events.contains(&&GuardEvent::Killed));
+        // PlayerLost is not mapped from Idle.
+        assert!(!events.contains(&&GuardEvent::PlayerLost));
+    }
+
+    #[test]
+    fn test_transitions_from_dead_is_empty() {
+        let fsm = guard_fsm();
+        let events: Vec<&GuardEvent> = fsm.transitions_from(&GuardState::Dead).collect();
+        assert!(events.is_empty(), "Dead has no outgoing transitions");
     }
 
     #[test]

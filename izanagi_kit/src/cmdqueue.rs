@@ -76,6 +76,27 @@ impl<C> CmdQueue<C> {
     pub fn peek(&self) -> &[C] {
         &self.buf
     }
+
+    /// Drain and return only commands for which `pred` returns `true`.
+    /// Commands that don't match are kept in the queue in their original
+    /// relative order. Useful when two subsystems share one queue but each
+    /// should only see its own command variants.
+    pub fn drain_if<F>(&mut self, mut pred: F) -> Vec<C>
+    where
+        F: FnMut(&C) -> bool,
+    {
+        let mut drained = Vec::new();
+        let mut kept = Vec::new();
+        for cmd in self.buf.drain(..) {
+            if pred(&cmd) {
+                drained.push(cmd);
+            } else {
+                kept.push(cmd);
+            }
+        }
+        self.buf = kept;
+        drained
+    }
 }
 
 impl<C: DetHash> DetHash for CmdQueue<C> {
@@ -158,6 +179,41 @@ mod tests {
         assert_eq!(peeked, [42, 43]);
         // Commands still in queue.
         assert_eq!(q.drain(), vec![42, 43]);
+    }
+
+    #[test]
+    fn test_drain_if_splits_matching_and_nonmatching() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 2, 3, 4, 5]);
+        let evens = q.drain_if(|x| x % 2 == 0);
+        assert_eq!(evens, vec![2, 4]);
+        assert_eq!(q.peek(), &[1, 3, 5]);
+    }
+
+    #[test]
+    fn test_drain_if_all_match_clears_queue() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[10, 20]);
+        let all = q.drain_if(|_| true);
+        assert_eq!(all, vec![10, 20]);
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn test_drain_if_none_match_leaves_queue_intact() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 3, 5]);
+        let none = q.drain_if(|x| x % 2 == 0);
+        assert!(none.is_empty());
+        assert_eq!(q.drain(), vec![1, 3, 5]);
+    }
+
+    #[test]
+    fn test_drain_if_preserves_order_of_kept() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[5, 1, 4, 1, 3]);
+        q.drain_if(|&x| x > 3); // drain 5 and 4
+        assert_eq!(q.drain(), vec![1, 1, 3]);
     }
 
     #[test]
