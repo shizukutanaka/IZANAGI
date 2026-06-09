@@ -199,6 +199,54 @@ impl HudPanel {
             h: self.h,
         }
     }
+
+    /// Divide this panel into `n` horizontal strips (top to bottom), each with
+    /// the same width. Returns an empty `Vec` when `n == 0`. Heights are
+    /// distributed by integer division; any remainder rows go to the first strip.
+    pub fn split_h(&self, n: u32) -> Vec<HudPanel> {
+        if n == 0 {
+            return Vec::new();
+        }
+        let base_h = self.h / n;
+        let extra = self.h % n;
+        let mut panels = Vec::with_capacity(n as usize);
+        let mut y = self.y;
+        for i in 0..n {
+            let h = base_h + if i == 0 { extra } else { 0 };
+            panels.push(HudPanel {
+                x: self.x,
+                y,
+                w: self.w,
+                h,
+            });
+            y = y.saturating_add(h as i32);
+        }
+        panels
+    }
+
+    /// Divide this panel into `n` vertical strips (left to right), each with
+    /// the same height. Returns an empty `Vec` when `n == 0`. Widths are
+    /// distributed by integer division; any remainder columns go to the first strip.
+    pub fn split_v(&self, n: u32) -> Vec<HudPanel> {
+        if n == 0 {
+            return Vec::new();
+        }
+        let base_w = self.w / n;
+        let extra = self.w % n;
+        let mut panels = Vec::with_capacity(n as usize);
+        let mut x = self.x;
+        for i in 0..n {
+            let w = base_w + if i == 0 { extra } else { 0 };
+            panels.push(HudPanel {
+                x,
+                y: self.y,
+                w,
+                h: self.h,
+            });
+            x = x.saturating_add(w as i32);
+        }
+        panels
+    }
 }
 
 impl DetHash for HudPanel {
@@ -354,6 +402,46 @@ mod tests {
         assert_eq!(t.y, 2);
         assert_eq!(t.w, 4);
         assert_eq!(t.h, 3);
+    }
+
+    #[test]
+    fn test_split_h_produces_n_strips() {
+        let p = HudPanel::new(0, 0, 10, 9);
+        let strips = p.split_h(3);
+        assert_eq!(strips.len(), 3);
+        // Heights must sum to parent height.
+        let total_h: u32 = strips.iter().map(|s| s.h).sum();
+        assert_eq!(total_h, p.h);
+        // All strips share the parent's width and x.
+        assert!(strips.iter().all(|s| s.w == p.w && s.x == p.x));
+    }
+
+    #[test]
+    fn test_split_h_y_positions_tile() {
+        let p = HudPanel::new(2, 3, 5, 6);
+        let strips = p.split_h(2);
+        assert_eq!(strips[0].y, 3);
+        assert_eq!(strips[1].y, 3 + strips[0].h as i32);
+    }
+
+    #[test]
+    fn test_split_h_zero_returns_empty() {
+        assert!(HudPanel::new(0, 0, 10, 10).split_h(0).is_empty());
+    }
+
+    #[test]
+    fn test_split_v_produces_n_strips() {
+        let p = HudPanel::new(0, 0, 10, 4);
+        let strips = p.split_v(5);
+        assert_eq!(strips.len(), 5);
+        let total_w: u32 = strips.iter().map(|s| s.w).sum();
+        assert_eq!(total_w, p.w);
+        assert!(strips.iter().all(|s| s.h == p.h && s.y == p.y));
+    }
+
+    #[test]
+    fn test_split_v_zero_returns_empty() {
+        assert!(HudPanel::new(0, 0, 10, 10).split_v(0).is_empty());
     }
 
     #[test]

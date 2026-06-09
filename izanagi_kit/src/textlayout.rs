@@ -75,6 +75,34 @@ pub fn wrap_words(text: &str, max_cols: usize) -> Vec<String> {
     lines
 }
 
+/// Like [`wrap_words`] but caps the output at `max_lines` lines.
+///
+/// If the wrapped text would produce more lines than `max_lines`, the last
+/// visible line is truncated with an `…` ellipsis to signal overflow. A
+/// `max_lines` of 0 (or `max_cols` of 0) returns an empty `Vec`.
+pub fn wrap_words_max_lines(text: &str, max_cols: usize, max_lines: usize) -> Vec<String> {
+    if max_lines == 0 || max_cols == 0 {
+        return Vec::new();
+    }
+    let mut lines = wrap_words(text, max_cols);
+    if lines.len() > max_lines {
+        lines.truncate(max_lines);
+        if let Some(last) = lines.last_mut() {
+            // Force an ellipsis on the last visible line to signal that more
+            // content was cut. If there is room, append; otherwise replace the
+            // final char.
+            let ch_count = last.chars().count();
+            if ch_count < max_cols {
+                last.push('…');
+            } else {
+                let keep: String = last.chars().take(max_cols.saturating_sub(1)).collect();
+                *last = keep + "…";
+            }
+        }
+    }
+    lines
+}
+
 /// Split `word` into chunks of `max_cols` chars, push all but the last into
 /// `out`, and push the last chunk too (caller may pop it into `current`).
 fn hard_break_word(word: &str, max_cols: usize, out: &mut Vec<String>) {
@@ -205,6 +233,49 @@ mod tests {
     fn test_wrap_single_col() {
         let lines = wrap_words("abc", 1);
         assert_eq!(lines, vec!["a", "b", "c"]);
+    }
+
+    // --- wrap_words_max_lines ---
+
+    #[test]
+    fn test_wrap_max_lines_no_overflow() {
+        // Fits within limit: no ellipsis.
+        let lines = wrap_words_max_lines("one two", 10, 3);
+        assert_eq!(lines, vec!["one two"]);
+    }
+
+    #[test]
+    fn test_wrap_max_lines_truncates_with_ellipsis() {
+        // "the quick" / "brown fox" / "jumps over" — only first 2 lines kept.
+        let lines = wrap_words_max_lines("the quick brown fox jumps over", 9, 2);
+        assert_eq!(lines.len(), 2);
+        // Last line must end with ellipsis.
+        assert!(
+            lines.last().unwrap().contains('…'),
+            "last line must have ellipsis, got: {:?}",
+            lines
+        );
+    }
+
+    #[test]
+    fn test_wrap_max_lines_zero_max_lines_empty() {
+        assert_eq!(wrap_words_max_lines("hello", 10, 0), Vec::<String>::new());
+    }
+
+    #[test]
+    fn test_wrap_max_lines_respects_max_cols() {
+        let lines = wrap_words_max_lines("a b c d e f", 3, 2);
+        for l in &lines {
+            assert!(l.chars().count() <= 3, "line too wide: {l:?}");
+        }
+    }
+
+    #[test]
+    fn test_wrap_max_lines_one_line_limit() {
+        // max_cols=10 forces: "hello", "world foo", "bar" — 3 lines capped to 1.
+        let lines = wrap_words_max_lines("hello world foo bar", 10, 1);
+        assert_eq!(lines.len(), 1);
+        assert!(lines[0].contains('…'), "got: {:?}", lines[0]);
     }
 
     // --- truncate ---

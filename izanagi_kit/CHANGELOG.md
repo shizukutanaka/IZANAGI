@@ -292,6 +292,42 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   deterministic; all metrics saturate rather than overflow. Re-exported as
   `izanagi_kit::Distance`.
 
+- `arch::ArchTable::retain(pred)`: remove all entries for which `pred(entity,
+  &row)` returns `false`. Iterates in reverse dense-array order so swap-removes
+  stay O(n) — the canonical "cull dead entities" frame-cleanup primitive,
+  matching `Vec::retain` semantics. Parallel to `SparseSet::retain`.
+- `arch::ArchTable::values()` / `values_mut()`: entity-handle-free row iterators.
+  Mirrors the `SparseSet::values()`/`values_mut()` additions — avoids unpacking
+  the entity handle when only component data is needed (e.g. ticking all AI rows).
+- `content::Color::invert()`: channel-wise complement `rgb(255−r, 255−g, 255−b)`.
+  `const` fn, zero-cost. Useful for selection highlights, contrast checks, and
+  visual effects. Double inversion is the identity: `c.invert().invert() == c`.
+- `content::Color::luminance()`: perceived luma as a single `u8` using integer
+  Rec. 601 weights — the same value as each channel of `grayscale()`, exposed
+  directly. Avoids constructing a full `Color` when only the brightness scalar is
+  needed (e.g. "is the foreground readable on this background?").
+- `loader::Stats`: numeric stats component. Loaded from each spawned prefab's
+  `stats` BTreeMap in deterministic (alphabetical) order. Stored in
+  `LoadedLevel::stats` (a `SparseSet<Stats>`); absent for prefabs with no stats so
+  the common case (no stat block) pays no memory. `get(key)` / `iter()` / `len()`
+  / `is_empty()` API. `DetHash`-capable for world hashing.
+- `textlayout::wrap_words_max_lines(text, max_cols, max_lines)`: like `wrap_words`
+  but caps the output at `max_lines`. When overflow occurs, the last visible line is
+  truncated with `…` to signal cut-off content. Useful for bounded text areas such
+  as in-game book pages, dialogue boxes, and log panels.
+- `hud::HudPanel::split_h(n)` / `split_v(n)`: divide a panel into `n` equal
+  horizontal strips (top-to-bottom) or vertical strips (left-to-right). Heights /
+  widths are distributed by integer division; any remainder goes to the first strip.
+  Returns an empty `Vec` for `n == 0`. Enables declarative multi-pane HUD layouts
+  without hard-coding pixel offsets.
+- `validator::validate`: glyph printability check — control characters (U+0000–
+  U+001F, U+007F) in a prefab or tile glyph are reported as errors. Terminal cells
+  have no sensible rendering for control chars; the check prevents invisible/corrupt
+  glyphs from reaching `loader::load_level`.
+- `validator::validate`: unused-prefab warning — prefabs defined but never
+  referenced by any level spawn emit a `Severity::Warning`. Helps authors catch
+  dead definitions and renamed-but-not-updated spawn tables.
+
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a
   multi-byte UTF-8 char (e.g. `#aéABC`). It now parses hex straight from bytes

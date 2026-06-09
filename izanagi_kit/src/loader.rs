@@ -8,6 +8,55 @@
 use crate::content::{Color, Content};
 use crate::entity::{Entity, EntityAllocator};
 use crate::sparse_set::SparseSet;
+use crate::world_hash::{DetHash, Fnv1a};
+
+/// Numeric stats loaded from the prefab template onto a spawned entity.
+///
+/// Entries are stored in insertion (BTreeMap alphabetical) order so the
+/// component hashes deterministically. Use `get` for O(n) key lookup or
+/// iterate with `iter` for canonical enumeration.
+#[derive(Clone, Debug, Default)]
+pub struct Stats {
+    entries: Vec<(String, i32)>,
+}
+
+impl Stats {
+    pub fn new() -> Self {
+        Stats {
+            entries: Vec::new(),
+        }
+    }
+
+    /// Look up `key`, returning `Some(value)` if present.
+    pub fn get(&self, key: &str) -> Option<i32> {
+        self.entries.iter().find(|(k, _)| k == key).map(|(_, v)| *v)
+    }
+
+    /// Iterate `(key, value)` pairs in insertion order.
+    pub fn iter(&self) -> impl Iterator<Item = (&str, i32)> + '_ {
+        self.entries.iter().map(|(k, v)| (k.as_str(), *v))
+    }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+}
+
+impl DetHash for Stats {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.entries.len() as u32);
+        for (k, v) in &self.entries {
+            for b in k.as_bytes() {
+                hasher.write_u32(*b as u32);
+            }
+            hasher.write_i32(*v);
+        }
+    }
+}
 
 /// Grid position of an instantiated entity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -44,6 +93,9 @@ pub struct LoadedLevel {
     pub alloc: EntityAllocator,
     pub positions: SparseSet<Position>,
     pub renders: SparseSet<Render>,
+    /// Numeric stats from the prefab template. Only populated for entities
+    /// whose prefab defines at least one stat; absent entities have no entry.
+    pub stats: SparseSet<Stats>,
     pub entities: Vec<Entity>,
 }
 
@@ -65,6 +117,7 @@ pub fn load_level(content: &Content, level_name: &str) -> Result<LoadedLevel, St
         alloc: EntityAllocator::new(),
         positions: SparseSet::new(),
         renders: SparseSet::new(),
+        stats: SparseSet::new(),
         entities: Vec::new(),
     };
 
@@ -87,6 +140,11 @@ pub fn load_level(content: &Content, level_name: &str) -> Result<LoadedLevel, St
                 color: prefab.color,
             },
         );
+        if !prefab.stats.is_empty() {
+            // BTreeMap iterates in alphabetical key order — deterministic.
+            let entries = prefab.stats.iter().map(|(k, v)| (k.clone(), *v)).collect();
+            world.stats.insert(e, Stats { entries });
+        }
         world.entities.push(e);
     }
 
@@ -139,5 +197,58 @@ level cave 5x3
     fn test_load_missing_level_errs() {
         let (c, _) = parse("prefab g\n  glyph g\n");
         assert!(load_level(&c, "nope").is_err());
+    }
+
+    #[test]
+    fn test_stats_loaded_from_prefab() {
+        let src = "\
+prefab goblin
+  glyph g
+  color #f85149
+  stat hp 10
+  stat atk 3
+level cave 3x1
+  row ###
+  spawn goblin 1 0
+";
+        let (c, d) = parse(src);
+        assert!(d.iter().all(|x| !x.is_error()), "parse diags: {d:?}");
+        let w = load_level(&c, "cave").unwrap();
+        let e = w.entities[0];
+        let s = w.stats.get(e).expect("goblin should have Stats");
+        assert_eq!(s.get("hp"), Some(10));
+        assert_eq!(s.get("atk"), Some(3));
+        assert_eq!(s.get("missing"), None);
+        assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_stats_absent_for_no_stat_prefab() {
+        let w = loaded();
+        // goblin and rat have no stats in the fixture, so stats sparse set is empty.
+        for &e in &w.entities {
+            assert!(w.stats.get(e).is_none());
+        }
+    }
+
+    #[test]
+    fn test_stats_iter_alphabetical_order() {
+        let src = "\
+prefab orc
+  glyph o
+  stat zap 1
+  stat atk 5
+  stat hp 20
+level room 1x1
+  row #
+  spawn orc 0 0
+";
+        let (c, _) = parse(src);
+        let w = load_level(&c, "room").unwrap();
+        let e = w.entities[0];
+        let s = w.stats.get(e).unwrap();
+        let keys: Vec<&str> = s.iter().map(|(k, _)| k).collect();
+        // BTreeMap → alphabetical: atk, hp, zap
+        assert_eq!(keys, vec!["atk", "hp", "zap"]);
     }
 }

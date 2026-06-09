@@ -103,6 +103,25 @@ impl Color {
         Color { r: y, g: y, b: y }
     }
 
+    /// Channel-wise complement: `rgb(255 − r, 255 − g, 255 − b)`.
+    /// Useful for contrast highlights and selection indicators.
+    #[inline]
+    pub const fn invert(self) -> Color {
+        Color {
+            r: 255 - self.r,
+            g: 255 - self.g,
+            b: 255 - self.b,
+        }
+    }
+
+    /// Perceived luma as a single `u8`, using integer Rec. 601 weights
+    /// (`0.299 r + 0.587 g + 0.114 b`, scaled to sum 256). Returns the same
+    /// value as all three channels of [`grayscale`](Self::grayscale).
+    #[inline]
+    pub fn luminance(self) -> u8 {
+        ((self.r as u32 * 77 + self.g as u32 * 150 + self.b as u32 * 29) >> 8).min(255) as u8
+    }
+
     /// Scale every channel by the ratio `num/den` (integer), clamping to
     /// `0..=255`. `num < den` dims, `num > den` brightens; a zero denominator
     /// returns the color unchanged. Handy for shading by distance or light.
@@ -470,6 +489,30 @@ mod tests {
             Color::from_hsv(480, 255, 255),
             Color::from_hsv(120, 255, 255)
         );
+    }
+
+    #[test]
+    fn test_color_invert_black_white() {
+        assert_eq!(Color::rgb(0, 0, 0).invert(), Color::rgb(255, 255, 255));
+        assert_eq!(Color::rgb(255, 255, 255).invert(), Color::rgb(0, 0, 0));
+    }
+
+    #[test]
+    fn test_color_invert_double_is_identity() {
+        let c = Color::rgb(100, 150, 200);
+        assert_eq!(c.invert().invert(), c);
+    }
+
+    #[test]
+    fn test_color_luminance_matches_grayscale() {
+        let c = Color::rgb(77, 200, 30);
+        assert_eq!(c.luminance(), c.grayscale().r);
+    }
+
+    #[test]
+    fn test_color_luminance_extremes() {
+        assert_eq!(Color::rgb(0, 0, 0).luminance(), 0);
+        assert_eq!(Color::rgb(255, 255, 255).luminance(), 255);
     }
 
     #[test]

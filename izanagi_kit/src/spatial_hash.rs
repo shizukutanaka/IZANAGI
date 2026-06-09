@@ -136,6 +136,43 @@ impl<K: Eq + Clone> SpatialHash<K> {
         )
     }
 
+    /// All keys within Euclidean distance `radius` of `(qx, qy)`.
+    ///
+    /// Unlike [`query_radius`](Self::query_radius) (Chebyshev / square), this
+    /// uses `dx² + dy² ≤ radius²` on the *cell rectangle's closest point* to
+    /// the query centre, so cells that partly overlap the circle are
+    /// conservatively included (no false negatives). Returns an empty `Vec` for
+    /// negative `radius`.
+    pub fn query_radius_euclidean(&self, qx: i32, qy: i32, radius: i32) -> Vec<K> {
+        if radius < 0 {
+            return Vec::new();
+        }
+        let r2 = (radius as i64) * (radius as i64);
+        let cs = self.cell_size as i64;
+        let qcx = self.cell_coord(qx);
+        let qcy = self.cell_coord(qy);
+        // How many cells can radius span?
+        let cr = radius / self.cell_size + 1;
+        let mut out = Vec::new();
+        for cy in (qcy - cr)..=(qcy + cr) {
+            for cx_cell in (qcx - cr)..=(qcx + cr) {
+                // Physical bounds of this cell: [cx_cell*cs, (cx_cell+1)*cs)
+                let cell_x0 = cx_cell as i64 * cs;
+                let cell_y0 = cy as i64 * cs;
+                let closest_x = (qx as i64).clamp(cell_x0, cell_x0 + cs - 1);
+                let closest_y = (qy as i64).clamp(cell_y0, cell_y0 + cs - 1);
+                let dx = qx as i64 - closest_x;
+                let dy = qy as i64 - closest_y;
+                if dx * dx + dy * dy <= r2 {
+                    if let Some(bucket) = self.cells.get(&(cx_cell, cy)) {
+                        out.extend_from_slice(bucket);
+                    }
+                }
+            }
+        }
+        out
+    }
+
     /// Total number of entity-cell registrations (not unique entities).
     pub fn len(&self) -> usize {
         self.cells.values().map(|v| v.len()).sum()
@@ -338,6 +375,48 @@ mod tests {
         a.insert(1, 5, 5);
         b.insert(1, 15, 5);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_query_radius_euclidean_contains_nearby() {
+        let mut g: SpatialHash<i32> = SpatialHash::new(1);
+        g.insert(1, 3, 0); // distance 3 from origin
+        g.insert(2, 0, 4); // distance 4 from origin
+        g.insert(3, 6, 6); // distance > 5 from origin (≈8.5)
+        let res = g.query_radius_euclidean(0, 0, 5);
+        assert!(res.contains(&1));
+        assert!(res.contains(&2));
+        assert!(!res.contains(&3));
+    }
+
+    #[test]
+    fn test_query_radius_euclidean_centre_included() {
+        let mut g: SpatialHash<i32> = SpatialHash::new(1);
+        g.insert(42, 5, 5);
+        let res = g.query_radius_euclidean(5, 5, 0);
+        assert!(res.contains(&42));
+    }
+
+    #[test]
+    fn test_query_radius_euclidean_empty_for_negative_radius() {
+        let mut g: SpatialHash<i32> = SpatialHash::new(1);
+        g.insert(1, 0, 0);
+        assert!(g.query_radius_euclidean(0, 0, -1).is_empty());
+    }
+
+    #[test]
+    fn test_query_radius_euclidean_subset_of_chebyshev() {
+        // Euclidean query should return a subset of Chebyshev query (or equal).
+        let mut g: SpatialHash<i32> = SpatialHash::new(1);
+        for i in -5i32..=5 {
+            for j in -5i32..=5 {
+                g.insert(i * 11 + j, i, j);
+            }
+        }
+        let cheb: std::collections::HashSet<i32> = g.query_radius(0, 0, 4).into_iter().collect();
+        let eucl: std::collections::HashSet<i32> =
+            g.query_radius_euclidean(0, 0, 4).into_iter().collect();
+        assert!(eucl.is_subset(&cheb), "euclidean must be ⊆ chebyshev");
     }
 
     #[test]

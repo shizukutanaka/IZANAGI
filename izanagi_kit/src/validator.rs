@@ -32,7 +32,48 @@ pub fn validate(content: &Content) -> Vec<Diagnostic> {
         &mut diags,
     );
 
+    // Glyph printability: control characters (e.g. NUL, ESC, DEL) are never
+    // renderable in a terminal cell and almost certainly an authoring error.
+    for prefab in &content.prefabs {
+        if prefab.glyph.is_control() {
+            diags.push(Diagnostic::error(
+                0,
+                format!(
+                    "prefab '{}': glyph U+{:04X} is a control character",
+                    prefab.name, prefab.glyph as u32
+                ),
+            ));
+        }
+    }
+    for tile in &content.tiles {
+        if tile.glyph.is_control() {
+            diags.push(Diagnostic::error(
+                0,
+                format!(
+                    "tile '{}': glyph U+{:04X} is a control character",
+                    tile.name, tile.glyph as u32
+                ),
+            ));
+        }
+    }
+
     let known_prefabs: HashSet<&str> = content.prefabs.iter().map(|p| p.name.as_str()).collect();
+
+    // Unused-prefab warnings: defined but never spawned in any level.
+    let used_prefabs: HashSet<&str> = content
+        .levels
+        .iter()
+        .flat_map(|l| l.spawns.iter())
+        .map(|s| s.prefab.as_str())
+        .collect();
+    for prefab in &content.prefabs {
+        if !used_prefabs.contains(prefab.name.as_str()) {
+            diags.push(Diagnostic::warning(
+                0,
+                format!("prefab '{}' is defined but never spawned", prefab.name),
+            ));
+        }
+    }
 
     for level in &content.levels {
         // Grid consistency.
@@ -163,5 +204,50 @@ level a 3x2
         let (c, _) = parse(src);
         let vd = validate(&c);
         assert!(vd.iter().any(|d| d.message.contains("duplicate prefab")));
+    }
+
+    #[test]
+    fn test_unused_prefab_warns() {
+        // Prefab 'ghost' is defined but not spawned anywhere.
+        let src = "prefab ghost\n  glyph g\n";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| !d.is_error() && d.message.contains("never spawned")),
+            "expected unused-prefab warning; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_spawned_prefab_has_no_unused_warning() {
+        let src = "\
+prefab g
+  glyph g
+level a 1x1
+  row #
+  spawn g 0 0
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            !vd.iter().any(|d| d.message.contains("never spawned")),
+            "spawned prefab must not trigger unused warning"
+        );
+    }
+
+    #[test]
+    fn test_control_glyph_in_prefab_is_error() {
+        use crate::content::Prefab;
+        let mut c = crate::content::Content::default();
+        let mut p = Prefab::new("bad".into());
+        p.glyph = '\x1B'; // ESC — a control character
+        c.prefabs.push(p);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| d.is_error() && d.message.contains("control character")),
+            "expected control-char error; got: {vd:?}"
+        );
     }
 }

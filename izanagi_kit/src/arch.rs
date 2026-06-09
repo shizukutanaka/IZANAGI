@@ -138,6 +138,40 @@ impl<Row: Clone> ArchTable<Row> {
         self.dense.clear();
         self.index.clear();
     }
+
+    /// Retain only entries for which `keep(entity, row)` returns `true`;
+    /// drop the rest. Iterates the dense array in reverse to amortise
+    /// swap-removes, keeping one array pass without extra allocation.
+    pub fn retain<F>(&mut self, mut keep: F)
+    where
+        F: FnMut(Entity, &Row) -> bool,
+    {
+        let mut i = self.dense.len();
+        while i > 0 {
+            i -= 1;
+            let (e, ref r) = self.dense[i];
+            if !keep(e, r) {
+                let last = self.dense.len() - 1;
+                if i != last {
+                    self.dense.swap(i, last);
+                    let moved = self.dense[i].0;
+                    self.index.insert(moved, i);
+                }
+                self.index.remove(&e);
+                self.dense.pop();
+            }
+        }
+    }
+
+    /// Iterate just the row values (no entity handles), in dense array order.
+    pub fn values(&self) -> impl Iterator<Item = &Row> {
+        self.dense.iter().map(|(_, r)| r)
+    }
+
+    /// Mutably iterate just the row values, in dense array order.
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut Row> {
+        self.dense.iter_mut().map(|(_, r)| r)
+    }
 }
 
 impl<Row: Clone + DetHash> DetHash for ArchTable<Row> {
@@ -362,6 +396,64 @@ mod tests {
         t1.insert(e, Pos { x: 1, y: 2 });
         t2.insert(e, Pos { x: 9, y: 9 });
         assert_ne!(hash_state(&t1), hash_state(&t2));
+    }
+
+    #[test]
+    fn test_retain_keeps_matching_entries() {
+        let mut a = alloc();
+        let mut table: ArchTable<Pos> = ArchTable::new();
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        let e2 = a.allocate();
+        table.insert(e0, Pos { x: 1, y: 0 });
+        table.insert(e1, Pos { x: 2, y: 0 });
+        table.insert(e2, Pos { x: 3, y: 0 });
+        table.retain(|_, r| r.x != 2); // drop e1
+        assert_eq!(table.len(), 2);
+        assert!(!table.contains(e1));
+        assert!(table.contains(e0));
+        assert!(table.contains(e2));
+    }
+
+    #[test]
+    fn test_retain_all_true_changes_nothing() {
+        let mut a = alloc();
+        let mut table: ArchTable<Pos> = ArchTable::new();
+        let e = a.allocate();
+        table.insert(e, Pos { x: 5, y: 5 });
+        table.retain(|_, _| true);
+        assert_eq!(table.len(), 1);
+        assert!(table.contains(e));
+    }
+
+    #[test]
+    fn test_retain_all_false_clears_table() {
+        let mut a = alloc();
+        let mut table: ArchTable<Pos> = ArchTable::new();
+        for _ in 0..4 {
+            let e = a.allocate();
+            table.insert(e, Pos { x: 0, y: 0 });
+        }
+        table.retain(|_, _| false);
+        assert!(table.is_empty());
+    }
+
+    #[test]
+    fn test_values_and_values_mut() {
+        let mut a = alloc();
+        let mut table: ArchTable<Pos> = ArchTable::new();
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        table.insert(e0, Pos { x: 1, y: 0 });
+        table.insert(e1, Pos { x: 2, y: 0 });
+        let xs: Vec<i32> = table.values().map(|r| r.x).collect();
+        assert_eq!(xs.len(), 2);
+        assert!(xs.contains(&1) && xs.contains(&2));
+        for r in table.values_mut() {
+            r.x *= 10;
+        }
+        let xs2: Vec<i32> = table.values().map(|r| r.x).collect();
+        assert!(xs2.contains(&10) && xs2.contains(&20));
     }
 
     #[test]
