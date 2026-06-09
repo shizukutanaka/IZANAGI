@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `tilemap::TileMap::iter_mut()`: mutable `(x, y, &mut tile)` row-major iteration.
+  Fills the symmetric gap left by the existing shared `iter()`. Needed for any
+  in-place map update (fog-of-war ageing, post-gen tile transformations, render
+  passes that write back per-cell state). Follows the same coordinate computation
+  as `iter()` so no separate index book-keeping is required.
+- `random_table::RandomTable::roll_owned(rng)`: returns a cloned `T` instead of
+  a `&T`. Removes the borrow chain that `roll()` carries so callers can store the
+  loot result in a variable, pass it to another function, or push it into a
+  container without lifetime headaches. Requires `T: Clone`; implemented as
+  `.roll(rng).cloned()` — no separate draw logic.
 - `sparse_set::SparseSet::retain(pred)`: bulk removal of all entries for which
   `pred(entity, &value)` returns `false`. O(n) — each removed entry pays one
   swap-remove. The canonical "remove dead entities at end-of-frame cleanup" pattern,

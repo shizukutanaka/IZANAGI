@@ -108,6 +108,17 @@ impl<T: Clone> TileMap<T> {
             .enumerate()
             .map(move |(i, t)| ((i % w as usize) as i32, (i / w as usize) as i32, t))
     }
+
+    /// Iterate `(x, y, &mut tile)` in row-major order, yielding mutable access
+    /// to each cell. Useful for in-place map updates such as ageing fog-of-war,
+    /// applying environmental effects, or re-colouring tiles after an event.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (i32, i32, &mut T)> {
+        let w = self.width;
+        self.cells
+            .iter_mut()
+            .enumerate()
+            .map(move |(i, t)| ((i % w as usize) as i32, (i / w as usize) as i32, t))
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for TileMap<T> {
@@ -272,6 +283,29 @@ mod tests {
         assert_eq!(items[0], (0, 0, 0));
         assert_eq!(items[1], (1, 0, 10));
         assert_eq!(items[5], (2, 1, 20));
+    }
+
+    #[test]
+    fn test_iter_mut_updates_in_place() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 0);
+        m.set(1, 1, 5);
+        for (_, _, v) in m.iter_mut() {
+            *v = v.saturating_add(10);
+        }
+        assert_eq!(m.get(1, 1), Some(&15));
+        assert_eq!(m.get(0, 0), Some(&10)); // 0 + 10
+    }
+
+    #[test]
+    fn test_iter_mut_preserves_row_major_coords() {
+        let mut m: TileMap<u8> = TileMap::new(4, 3, 0);
+        for (x, y, v) in m.iter_mut() {
+            *v = (y as u8) * 4 + x as u8;
+        }
+        assert_eq!(m.get(0, 0), Some(&0));
+        assert_eq!(m.get(3, 0), Some(&3));
+        assert_eq!(m.get(0, 1), Some(&4));
+        assert_eq!(m.get(3, 2), Some(&11));
     }
 
     #[test]

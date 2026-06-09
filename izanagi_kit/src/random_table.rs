@@ -82,6 +82,16 @@ impl<T> RandomTable<T> {
             .map(|e| &e.value)
     }
 
+    /// Like [`roll`](Self::roll) but returns an owned (cloned) value — removes
+    /// the borrow that `roll` carries so the result can be stored without keeping
+    /// a reference to the table alive.
+    pub fn roll_owned(&self, rng: &mut SplitMix64) -> Option<T>
+    where
+        T: Clone,
+    {
+        self.roll(rng).cloned()
+    }
+
     /// Sum of all entry weights.
     #[inline]
     pub fn total_weight(&self) -> u64 {
@@ -160,6 +170,22 @@ mod tests {
         for _ in 0..100 {
             assert_eq!(table.roll(&mut rng), Some(&"common"));
         }
+    }
+
+    #[test]
+    fn test_roll_owned_returns_cloned_value() {
+        let table = RandomTable::new().with(1, "sword").with(1, "shield");
+        let mut rng = SplitMix64::new(0xABCD);
+        // roll_owned must return Some(_) and the value must be owned (no borrow).
+        let result: Option<&str> = table.roll_owned(&mut rng);
+        assert!(result.is_some());
+    }
+
+    #[test]
+    fn test_roll_owned_empty_is_none() {
+        let table: RandomTable<u32> = RandomTable::new();
+        let mut rng = SplitMix64::new(1);
+        assert_eq!(table.roll_owned(&mut rng), None);
     }
 
     #[test]
