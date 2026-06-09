@@ -67,6 +67,19 @@ impl<Row: Clone> ArchTable<Row> {
         true
     }
 
+    /// Insert `entity` with `row` if not present; overwrite the existing row if
+    /// already present. The upsert-on-move pattern (common in position systems):
+    /// call `upsert(entity, new_pos)` instead of remove+insert.
+    pub fn upsert(&mut self, entity: Entity, row: Row) {
+        if let Some(&slot) = self.index.get(&entity) {
+            self.dense[slot].1 = row;
+        } else {
+            let slot = self.dense.len();
+            self.dense.push((entity, row));
+            self.index.insert(entity, slot);
+        }
+    }
+
     /// Remove `entity` and return its row, or `None` if absent.
     /// Uses swap-remove: O(1) but does not preserve order.
     pub fn remove(&mut self, entity: Entity) -> Option<Row> {
@@ -294,6 +307,39 @@ mod tests {
         table.clear();
         assert!(table.is_empty());
         assert_eq!(table.len(), 0);
+    }
+
+    #[test]
+    fn test_upsert_inserts_when_absent() {
+        let mut a = alloc();
+        let e = a.allocate();
+        let mut table: ArchTable<Pos> = ArchTable::new();
+        table.upsert(e, Pos { x: 1, y: 2 });
+        assert_eq!(table.get(e), Some(&Pos { x: 1, y: 2 }));
+        assert_eq!(table.len(), 1);
+    }
+
+    #[test]
+    fn test_upsert_overwrites_when_present() {
+        let mut a = alloc();
+        let e = a.allocate();
+        let mut table: ArchTable<Pos> = ArchTable::new();
+        table.insert(e, Pos { x: 0, y: 0 });
+        table.upsert(e, Pos { x: 99, y: 99 });
+        assert_eq!(table.get(e), Some(&Pos { x: 99, y: 99 }));
+        assert_eq!(table.len(), 1); // no duplicate
+    }
+
+    #[test]
+    fn test_upsert_does_not_duplicate() {
+        let mut a = alloc();
+        let e = a.allocate();
+        let mut table: ArchTable<Pos> = ArchTable::new();
+        for i in 0..5 {
+            table.upsert(e, Pos { x: i, y: 0 });
+        }
+        assert_eq!(table.len(), 1);
+        assert_eq!(table.get(e).unwrap().x, 4);
     }
 
     #[test]

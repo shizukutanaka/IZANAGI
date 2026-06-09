@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `hud::BarWidget::percentage()`: fill percentage as an integer in `[0, 100]`.
+  Useful for "85% HP" status lines without float arithmetic. Saturates: negative
+  current returns 0, over-max returns 100, max ≤ 0 returns 0.
+- `arch::ArchTable::upsert(entity, row)`: insert if absent, overwrite if present.
+  Complements `insert` (which silently ignores duplicates) with the common
+  "move entity = update position" pattern. Implemented as a branch in the hot
+  path (checks the HashMap index, updates in-place if found).
 - `tilemap::TileMap::iter_mut()`: mutable `(x, y, &mut tile)` row-major iteration.
   Fills the symmetric gap left by the existing shared `iter()`. Needed for any
   in-place map update (fog-of-war ageing, post-gen tile transformations, render

@@ -45,6 +45,16 @@ impl BarWidget {
         }
     }
 
+    /// Fill percentage as an integer in `[0, 100]`. Useful for showing "85% HP"
+    /// in a status line without floats. Result is clamped: negative `current`
+    /// returns `0`; `current > max` returns `100`; `max <= 0` returns `0`.
+    pub fn percentage(&self) -> i32 {
+        if self.max <= 0 {
+            return 0;
+        }
+        (self.current.max(0) as i64 * 100 / self.max as i64).clamp(0, 100) as i32
+    }
+
     /// Compute the number of filled cells (integer, `current/max * width`).
     /// Clamped to `[0, width]`.
     pub fn filled_cells(&self) -> u32 {
@@ -206,6 +216,36 @@ mod tests {
     use crate::world_hash::hash_state;
 
     // --- BarWidget ---
+
+    #[test]
+    fn test_percentage_full() {
+        assert_eq!(BarWidget::new(10, 10, 5).percentage(), 100);
+    }
+
+    #[test]
+    fn test_percentage_empty() {
+        assert_eq!(BarWidget::new(0, 10, 5).percentage(), 0);
+    }
+
+    #[test]
+    fn test_percentage_half() {
+        assert_eq!(BarWidget::new(5, 10, 5).percentage(), 50);
+    }
+
+    #[test]
+    fn test_percentage_clamped_above() {
+        assert_eq!(BarWidget::new(20, 10, 5).percentage(), 100);
+    }
+
+    #[test]
+    fn test_percentage_negative_current() {
+        assert_eq!(BarWidget::new(-5, 10, 5).percentage(), 0);
+    }
+
+    #[test]
+    fn test_percentage_zero_max() {
+        assert_eq!(BarWidget::new(5, 0, 5).percentage(), 0);
+    }
 
     #[test]
     fn test_bar_full() {
