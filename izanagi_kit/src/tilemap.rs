@@ -175,6 +175,16 @@ impl<T: Clone> TileMap<T> {
             .collect()
     }
 
+    /// Return the `(x, y)` position of the first cell (row-major order) for
+    /// which `pred` returns `true`, or `None` if no cell matches. The
+    /// single-result complement of [`find_all`](Self::find_all) — avoids
+    /// allocating a full `Vec` when only the first match is needed.
+    pub fn find_first<P: Fn(&T) -> bool>(&self, pred: P) -> Option<(i32, i32)> {
+        self.iter()
+            .find(|(_, _, t)| pred(t))
+            .map(|(x, y, _)| (x, y))
+    }
+
     /// The minimal [`Aabb`](crate::aabb::Aabb) enclosing every cell for which
     /// `pred` returns `true`, or `None` if no cell matches. The returned box
     /// uses the half-open convention (`right = max_x + 1`), so a single matching
@@ -689,5 +699,25 @@ mod tests {
     fn test_bounds_of_no_match_returns_none() {
         let m: TileMap<u8> = TileMap::new(4, 4, 0);
         assert!(m.bounds_of(|&t| t == 99).is_none());
+    }
+
+    #[test]
+    fn test_find_first_returns_none_on_no_match() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 0);
+        assert!(m.find_first(|&t| t == 99).is_none());
+    }
+
+    #[test]
+    fn test_find_first_returns_first_match_row_major() {
+        let mut m: TileMap<u8> = TileMap::new(4, 4, 0);
+        m.set(3, 3, 1);
+        m.set(0, 1, 1); // earlier in row-major order (y=1 < y=3)
+        assert_eq!(m.find_first(|&t| t == 1), Some((0, 1)));
+    }
+
+    #[test]
+    fn test_find_first_single_cell_map() {
+        let m: TileMap<u8> = TileMap::new(1, 1, 7);
+        assert_eq!(m.find_first(|&t| t == 7), Some((0, 0)));
     }
 }

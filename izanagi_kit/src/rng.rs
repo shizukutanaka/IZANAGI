@@ -198,6 +198,18 @@ impl SplitMix64 {
             self.next_u64();
         }
     }
+
+    /// Construct a `SplitMix64` whose internal state is set to the exact raw
+    /// `state` value — the inverse of [`state()`](Self::state). Use this to
+    /// restore a previously snapshotted RNG stream exactly (e.g. when loading
+    /// a save file that serialised `state()`, or to fork a second generator at
+    /// the same position in a longer stream). Semantically equivalent to
+    /// `new(state)` but names the intent: restoring raw state rather than
+    /// seeding from a game-world integer.
+    #[inline]
+    pub fn with_state(state: u64) -> Self {
+        Self { state }
+    }
 }
 
 impl crate::world_hash::DetHash for SplitMix64 {
@@ -600,5 +612,34 @@ mod tests {
         let idx = a.pick_index(items.len()).unwrap();
         let val = b.pick(&items).unwrap();
         assert_eq!(&items[idx], val);
+    }
+
+    #[test]
+    fn test_with_state_produces_same_stream_as_new() {
+        let mut a = SplitMix64::new(42);
+        let mut b = SplitMix64::with_state(42);
+        for _ in 0..10 {
+            assert_eq!(a.next_u64(), b.next_u64());
+        }
+    }
+
+    #[test]
+    fn test_with_state_restores_mid_stream() {
+        let mut rng = SplitMix64::new(7);
+        rng.next_u64();
+        rng.next_u64();
+        rng.next_u64();
+        let snap = rng.state();
+        let v1 = rng.next_u64();
+        let mut restored = SplitMix64::with_state(snap);
+        let v2 = restored.next_u64();
+        assert_eq!(v1, v2);
+    }
+
+    #[test]
+    fn test_with_state_zero_is_valid() {
+        let mut r = SplitMix64::with_state(0);
+        let v = r.next_u64();
+        assert_ne!(v, 0, "output should not be zero even for zero state");
     }
 }

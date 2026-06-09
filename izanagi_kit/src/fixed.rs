@@ -331,6 +331,24 @@ impl Fixed {
         Fixed::ONE.div(self)
     }
 
+    /// Returns `true` when this value is exactly zero.
+    #[inline]
+    pub fn is_zero(self) -> bool {
+        self.0 == 0
+    }
+
+    /// Returns `true` when this value is strictly greater than zero.
+    #[inline]
+    pub fn is_positive(self) -> bool {
+        self.0 > 0
+    }
+
+    /// Returns `true` when this value is strictly less than zero.
+    #[inline]
+    pub fn is_negative(self) -> bool {
+        self.0 < 0
+    }
+
     /// Integer exponentiation: `self` raised to `exp`, via repeated saturating
     /// multiplication. `pow(0)` is `Fixed::ONE` for any base; `pow(1)` is `self`
     /// exactly. Each multiply saturates (overflow pins to `Fixed::MAX`/`MIN`
@@ -882,5 +900,26 @@ mod tests {
         // 30000^2 far exceeds the Q16.16 range → pins to MAX, never flips sign.
         let r = Fixed::from_int(30000).pow(2);
         assert_eq!(r.raw(), i32::MAX);
+    }
+
+    #[test]
+    fn test_is_zero_only_for_zero() {
+        assert!(Fixed::ZERO.is_zero());
+        assert!(!Fixed::ONE.is_zero());
+        assert!(!Fixed::from_int(-1).is_zero());
+    }
+
+    #[test]
+    fn test_is_positive_for_positive_values() {
+        assert!(Fixed::ONE.is_positive());
+        assert!(!Fixed::ZERO.is_positive());
+        assert!(!Fixed::from_int(-1).is_positive());
+    }
+
+    #[test]
+    fn test_is_negative_for_negative_values() {
+        assert!(Fixed::from_int(-1).is_negative());
+        assert!(!Fixed::ZERO.is_negative());
+        assert!(!Fixed::ONE.is_negative());
     }
 }

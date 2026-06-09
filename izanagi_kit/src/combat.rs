@@ -216,6 +216,19 @@ pub fn ranged_attack(
     }
 }
 
+/// Reduce `damage` by a percentage resistance, clamping `resist_percent`
+/// to `[0, 100]`. The remaining damage is always ≥ 0. Negative `damage`
+/// returns `0`. Formula: `max(0, damage × (100 − resist_percent) / 100)`.
+///
+/// The standard "armour/resistance" primitive for systems where defensive
+/// stats are expressed as a flat percentage rather than an additive defense
+/// score — complements [`base_damage`] which uses the subtraction model.
+pub fn apply_resistance(damage: i32, resist_percent: u32) -> i32 {
+    let resist = resist_percent.min(100) as i64;
+    let remaining = damage.max(0) as i64 * (100 - resist) / 100;
+    remaining as i32
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -548,5 +561,25 @@ mod tests {
         let mut s = Stats::new(30, 5, 2);
         s.hp = 40; // contrived overheal
         assert_eq!(s.missing_hp(), 0);
+    }
+
+    #[test]
+    fn test_apply_resistance_zero_resist_unchanged() {
+        assert_eq!(apply_resistance(50, 0), 50);
+    }
+
+    #[test]
+    fn test_apply_resistance_full_resist_is_zero() {
+        assert_eq!(apply_resistance(50, 100), 0);
+    }
+
+    #[test]
+    fn test_apply_resistance_partial_and_edge_cases() {
+        assert_eq!(apply_resistance(50, 50), 25);
+        assert_eq!(apply_resistance(100, 25), 75);
+        // Negative damage always returns 0.
+        assert_eq!(apply_resistance(-10, 50), 0);
+        // Over-100 percent clamps to 100.
+        assert_eq!(apply_resistance(50, 150), 0);
     }
 }

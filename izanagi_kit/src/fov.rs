@@ -311,6 +311,20 @@ where
     visible
 }
 
+/// Count visible cells within `radius` without allocating a `Vec`.
+/// Equivalent to `fov_to_vec(origin, radius, is_opaque).len()` but skips
+/// the intermediate allocation — use for broad-phase budget checks and
+/// lighting-budget queries where only the count matters.
+pub fn fov_count<O: FnMut(i32, i32) -> bool>(
+    origin: (i32, i32),
+    radius: i32,
+    is_opaque: O,
+) -> usize {
+    let mut count = 0usize;
+    compute_fov(origin, radius, is_opaque, |_, _| count += 1);
+    count
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -572,5 +586,30 @@ mod tests {
         assert!(visible.contains(&(0, 1)), "south");
         assert!(visible.contains(&(0, -1)), "north");
         assert!(!visible.contains(&(1, 1)), "diagonal excluded (dist_sq=2)");
+    }
+
+    #[test]
+    fn test_fov_count_matches_fov_to_vec_len() {
+        let origin = (5, 5);
+        let radius = 4;
+        let expected = fov_to_vec(origin, radius, |_, _| false).len();
+        assert_eq!(fov_count(origin, radius, |_, _| false), expected);
+    }
+
+    #[test]
+    fn test_fov_count_zero_radius_is_one() {
+        // Radius 0 means only the origin cell.
+        assert_eq!(fov_count((0, 0), 0, |_, _| false), 1);
+    }
+
+    #[test]
+    fn test_fov_count_fully_blocked_matches_vec() {
+        // When every cell is opaque fov_count must still equal fov_to_vec.len()
+        // (opaque cells adjacent to the origin are visible as blocking walls).
+        let origin = (5, 5);
+        let radius = 5;
+        let expected = fov_to_vec(origin, radius, |_, _| true).len();
+        let count = fov_count(origin, radius, |_, _| true);
+        assert_eq!(count, expected);
     }
 }

@@ -1018,6 +1018,44 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Aabb` becomes a 1×1 box at the point. Saturating arithmetic; never creates
   an invalid AABB. Useful for computing aggregate bounding boxes over a stream
   of points without pre-collecting them.
+- `fixed::Fixed::is_zero() -> bool`, `is_positive() -> bool`,
+  `is_negative() -> bool`: inline sign-predicate helpers. Eliminate the
+  `.raw() == 0` / `.raw() > 0` / `.raw() < 0` patterns at call sites —
+  especially useful in guard clauses and branch predicates where the
+  intent ("the velocity is positive") is clearer than the raw comparison.
+- `rng::SplitMix64::with_state(state: u64) -> Self`: construct a generator
+  from a raw state snapshot — the inverse of `state()`. Semantically
+  distinct from `new(seed)`: restoring an exact stream position rather than
+  seeding from a game-world integer. The canonical "load RNG from save file"
+  constructor.
+- `pathfinding::path_cost(path: &[(i32, i32)]) -> i32`: total octile cost of
+  a path — sums `octile_distance` for each consecutive step pair. An empty
+  or single-cell path has cost 0. Matches the A* internal scale (10 ortho,
+  14 diag), so the result is directly comparable to A* `g`-scores and
+  heuristic estimates.
+- `tilemap::TileMap::find_first<P>(pred) -> Option<(i32, i32)>`: first
+  matching cell in row-major order, or `None`. The single-result complement
+  of `find_all` — avoids allocating a full `Vec` when only the first match
+  is needed (e.g. "where is the exit?").
+- `combat::apply_resistance(damage: i32, resist_percent: u32) -> i32`:
+  reduce damage by a percentage resistance (`max(0, damage*(100−r)/100)`),
+  clamping `resist_percent` to `[0, 100]`. Negative damage returns 0.
+  Complements `base_damage` (subtraction model) with a percentage-based
+  defensive layer common in action RPGs and card games.
+- `mapgen::Dungeon::floor_cells() -> Vec<(i32, i32)>`: all floor cells in
+  row-major order. The primary convenience primitive for spawn placement when
+  the full list is needed at once — avoids a manual `is_floor` scan at every
+  call site.
+- `easing`: elastic family — `ease_in_elastic`, `ease_out_elastic`,
+  `ease_in_out_elastic`. Penner elastic curves: the in-variant oscillates
+  below 0 near `t=0` (spring pull-back), the out-variant overshoots above
+  1 near `t=1` (spring finish). Computed with the existing CORDIC `sin` and
+  Taylor-series `exp2` (same primitives as the expo family). Float-free and
+  deterministic. Brings total easing coverage to 21 functions.
+- `fov::fov_count(origin, radius, is_opaque) -> usize`: count visible cells
+  without allocating a `Vec`. Equivalent to `fov_to_vec(...).len()` but
+  skips the intermediate allocation. Use for broad-phase lighting-budget
+  queries and per-frame FOV coverage checks.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

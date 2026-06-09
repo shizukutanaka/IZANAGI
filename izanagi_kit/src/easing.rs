@@ -366,6 +366,68 @@ pub fn ease_in_out_expo(t: Fixed) -> Fixed {
     }
 }
 
+/// Ease-in elastic: `−2^(10t−10) · sin((10t − 10.75) · 2π/3)`.
+/// Oscillates below zero near `t = 0`, passes through `(0, 0)` and `(1, 1)`
+/// exactly, giving a "spring pull-back" entrance. Float-free; uses the same
+/// CORDIC `sin` and Taylor-series `exp2` as the exponential family.
+pub fn ease_in_elastic(t: Fixed) -> Fixed {
+    if t <= Fixed::ZERO {
+        return Fixed::ZERO;
+    }
+    if t >= Fixed::ONE {
+        return Fixed::ONE;
+    }
+    // c4 = 2π/3 ≈ 2.094395; Fixed::from_ratio(2094395, 1_000_000) ≈ Q16.16 137258
+    let c4 = Fixed::from_ratio(2094395, 1_000_000);
+    let x = Fixed::from_int(10).mul(t - Fixed::ONE); // 10*(t-1), in (-10, 0)
+    let angle = (x - Fixed::from_ratio(3, 4)).mul(c4);
+    let pow_val = exp2_tween(t); // 2^(10*(t-1))
+    -(pow_val.mul(angle.sin()))
+}
+
+/// Ease-out elastic: `2^(−10t) · sin((10t − 0.75) · 2π/3) + 1`.
+/// Overshoots above 1 near `t = 1`, decelerating to the endpoint with a
+/// "spring overshoot" finish.
+pub fn ease_out_elastic(t: Fixed) -> Fixed {
+    if t <= Fixed::ZERO {
+        return Fixed::ZERO;
+    }
+    if t >= Fixed::ONE {
+        return Fixed::ONE;
+    }
+    let c4 = Fixed::from_ratio(2094395, 1_000_000);
+    let ten_t = Fixed::from_int(10).mul(t);
+    let angle = (ten_t - Fixed::from_ratio(3, 4)).mul(c4);
+    let pow_val = exp2_tween(Fixed::ONE - t); // 2^(-10t)
+    pow_val.mul(angle.sin()) + Fixed::ONE
+}
+
+/// Ease-in-out elastic: elastic in for the first half, elastic out for the
+/// second. Oscillates slightly below 0 near `t = 0` and above 1 near `t = 1`.
+pub fn ease_in_out_elastic(t: Fixed) -> Fixed {
+    if t <= Fixed::ZERO {
+        return Fixed::ZERO;
+    }
+    if t >= Fixed::ONE {
+        return Fixed::ONE;
+    }
+    // c5 = 2π/4.5 = 4π/9 ≈ 1.39626; Fixed::from_ratio(1396263, 1_000_000) ≈ 91506
+    let c5 = Fixed::from_ratio(1396263, 1_000_000);
+    // 11.125 = 89/8
+    let phase = Fixed::from_ratio(89, 8);
+    let twenty = Fixed::from_int(20);
+    let two = Fixed::from_int(2);
+    let half = Fixed::from_ratio(1, 2);
+    let angle = (twenty.mul(t) - phase).mul(c5);
+    if t < half {
+        let pow_val = exp2_tween(two.mul(t)); // 2^(20t-10)
+        -(pow_val.mul(angle.sin()).mul(half))
+    } else {
+        let pow_val = exp2_tween(two.mul(Fixed::ONE - t)); // 2^(-20t+10)
+        pow_val.mul(angle.sin()).mul(half) + Fixed::ONE
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -797,5 +859,43 @@ mod tests {
         let inv = Fixed::ONE - t;
         let sum = ease_smoothstep(t) + ease_smoothstep(inv);
         assert_eq!(sum, Fixed::ONE, "smoothstep symmetry");
+    }
+
+    // ── elastic easing tests ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_elastic_endpoints() {
+        let z = Fixed::ZERO;
+        let one = Fixed::ONE;
+        assert_eq!(ease_in_elastic(z), z);
+        assert_eq!(ease_in_elastic(one), one);
+        assert_eq!(ease_out_elastic(z), z);
+        assert_eq!(ease_out_elastic(one), one);
+        assert_eq!(ease_in_out_elastic(z), z);
+        assert_eq!(ease_in_out_elastic(one), one);
+    }
+
+    #[test]
+    fn test_in_elastic_oscillates_below_zero() {
+        // ease_in_elastic(0.3) is in the negative-oscillation phase.
+        // At t=0.3: angle=(10*0.3-10.75)*(2π/3)=-7.75*2.094≈-16.23 rad,
+        // sin≈+0.5, pow=2^(-7)≈0.0078, result≈-0.004 < 0.
+        let t = fr(3, 10);
+        assert!(
+            ease_in_elastic(t).raw() < 0,
+            "ease_in_elastic(0.3) should go below 0"
+        );
+    }
+
+    #[test]
+    fn test_out_elastic_oscillates_above_one() {
+        // ease_out_elastic(0.7) is in the positive-oscillation phase.
+        // At t=0.7: angle=(7-0.75)*(2π/3)=6.25*2.094≈13.09 rad,
+        // sin≈+0.5, pow=2^(-3)≈0.125, result≈1.063 > 1.
+        let t = fr(7, 10);
+        assert!(
+            ease_out_elastic(t).raw() > Fixed::ONE.raw(),
+            "ease_out_elastic(0.7) should exceed 1"
+        );
     }
 }

@@ -370,6 +370,14 @@ where
     result
 }
 
+/// Total octile cost of a path — the sum of [`octile_distance`] for each
+/// consecutive step pair. An empty or single-cell path has cost `0`. Matches
+/// the cost scale A* uses (`10` per orthogonal step, `14` per diagonal step),
+/// so the value is directly comparable to A* `g`-scores and heuristic estimates.
+pub fn path_cost(path: &[(i32, i32)]) -> i32 {
+    path.windows(2).map(|w| octile_distance(w[0], w[1])).sum()
+}
+
 /// Returns `true` when the Bresenham segment from `a` to `b` has no blocked
 /// interior cells (endpoints are not checked — same semantics as `line_of_sight`
 /// in `geometry`).
@@ -756,5 +764,27 @@ mod tests {
         // On an open grid the heuristic equals the actual optimal path cost.
         let path = astar((0, 0), (8, 5), blocker(15, 15, HashSet::new())).unwrap();
         assert_eq!(octile_distance((0, 0), (8, 5)), path_cost(&path));
+    }
+
+    #[test]
+    fn test_path_cost_empty_and_single_is_zero() {
+        assert_eq!(path_cost(&[]), 0);
+        assert_eq!(path_cost(&[(3, 3)]), 0);
+    }
+
+    #[test]
+    fn test_path_cost_orthogonal_steps() {
+        // Three cells right: 2 orthogonal steps = 2 * 10 = 20.
+        let path = [(0i32, 0i32), (1, 0), (2, 0)];
+        assert_eq!(path_cost(&path), 20);
+    }
+
+    #[test]
+    fn test_path_cost_matches_astar_path() {
+        // A* on an open grid: path cost equals octile_distance(start, goal).
+        let start = (0i32, 0i32);
+        let goal = (3i32, 4i32);
+        let path = astar(start, goal, blocker(15, 15, HashSet::new())).unwrap();
+        assert_eq!(path_cost(&path), octile_distance(start, goal));
     }
 }

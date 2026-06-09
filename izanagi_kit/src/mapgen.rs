@@ -169,6 +169,23 @@ impl Dungeon {
         self.rooms.iter().max_by_key(|r| r.w * r.h).copied()
     }
 
+    /// All floor cell coordinates `(x, y)` in row-major order (`y` outer,
+    /// `x` inner). The primary source for spawn placement when every walkable
+    /// cell is needed at once — cheaper than scanning with `is_floor` in
+    /// calling code and avoids repeated bounds checks. Returns an empty `Vec`
+    /// for an all-wall dungeon.
+    pub fn floor_cells(&self) -> Vec<(i32, i32)> {
+        let mut out = Vec::new();
+        for y in 0..self.height as i32 {
+            for x in 0..self.width as i32 {
+                if self.is_floor(x, y) {
+                    out.push((x, y));
+                }
+            }
+        }
+        out
+    }
+
     #[inline]
     fn carve(&mut self, x: i32, y: i32) {
         if self.in_bounds(x, y) {
@@ -832,5 +849,38 @@ mod tests {
             .filter(|&(x, y)| d.is_floor(x, y) && !reach.contains_key(&(x, y)))
             .count();
         assert_eq!(unreached, 0, "{unreached} floor cells unreachable");
+    }
+
+    #[test]
+    fn test_floor_cells_matches_is_floor_scan() {
+        let mut rng = SplitMix64::new(999);
+        let d = generate_dungeon(20, 15, &mut rng, GenParams::default());
+        let expected: Vec<(i32, i32)> = (0..15i32)
+            .flat_map(|y| (0..20i32).map(move |x| (x, y)))
+            .filter(|&(x, y)| d.is_floor(x, y))
+            .collect();
+        assert_eq!(d.floor_cells(), expected);
+    }
+
+    #[test]
+    fn test_floor_cells_cave_has_floor_cells() {
+        let mut rng = SplitMix64::new(42);
+        let d = generate_cave(20, 15, &mut rng, CaveParams::default());
+        let cells = d.floor_cells();
+        assert!(!cells.is_empty(), "cave should have floor cells");
+        for &(x, y) in &cells {
+            assert!(d.is_floor(x, y), "({x},{y}) must be a floor cell");
+        }
+    }
+
+    #[test]
+    fn test_floor_cells_bsp_count_matches_manual() {
+        let mut rng = SplitMix64::new(77);
+        let d = generate_bsp(30, 20, &mut rng, BspParams::default());
+        let manual_count = (0..20i32)
+            .flat_map(|y| (0..30i32).map(move |x| (x, y)))
+            .filter(|&(x, y)| d.is_floor(x, y))
+            .count();
+        assert_eq!(d.floor_cells().len(), manual_count);
     }
 }
