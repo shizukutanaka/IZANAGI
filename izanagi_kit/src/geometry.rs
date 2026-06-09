@@ -174,6 +174,52 @@ pub fn ring_annulus(cx: i32, cy: i32, inner_r: i32, outer_r: i32) -> Vec<(i32, i
     pts
 }
 
+/// Cells on the perimeter (outer border) of the rectangle `[x, x+w) × [y, y+h)`,
+/// in row-major order `(y then x)`. Returns an empty `Vec` for non-positive `w`
+/// or `h`. For `w == 1` or `h == 1` every cell is a border cell, so this
+/// degenerates to [`rect`].
+///
+/// Use this for dungeon-room outlines, bordered UI panels, and rectangular
+/// blast-edge AoE indicators without filling the interior.
+pub fn rect_perimeter(x: i32, y: i32, w: i32, h: i32) -> Vec<(i32, i32)> {
+    if w <= 0 || h <= 0 {
+        return Vec::new();
+    }
+    if w == 1 || h == 1 {
+        return rect(x, y, w, h);
+    }
+    let mut pts = Vec::with_capacity(2 * (w + h - 2) as usize);
+    for dy in 0..h {
+        for dx in 0..w {
+            if dy == 0 || dy == h - 1 || dx == 0 || dx == w - 1 {
+                pts.push((x + dx, y + dy));
+            }
+        }
+    }
+    pts
+}
+
+/// Cells at exactly Manhattan distance `r` from `(cx, cy)` — the "diamond
+/// ring" used in 4-directional movement range queries and targeted blast
+/// outlines. Returns empty for `r < 0`; just `(cx, cy)` for `r == 0`.
+/// The `4·r` unique cells are returned in ascending `(x, y)` order.
+pub fn diamond(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
+    if r < 0 {
+        return Vec::new();
+    }
+    if r == 0 {
+        return vec![(cx, cy)];
+    }
+    use std::collections::BTreeSet;
+    let mut pts: BTreeSet<(i32, i32)> = BTreeSet::new();
+    for dy in -r..=r {
+        let dx = r - dy.abs();
+        pts.insert((cx - dx, cy + dy));
+        pts.insert((cx + dx, cy + dy));
+    }
+    pts.into_iter().collect()
+}
+
 /// Grid distance metrics between two cells.
 ///
 /// Mirrors the distance algorithms a roguelike toolkit needs (cf. `bracket-lib`
@@ -461,5 +507,94 @@ mod tests {
         }
         // Large value stays correct.
         assert_eq!(isqrt(1_000_000), 1000);
+    }
+
+    // ── rect_perimeter ────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_rect_perimeter_empty_for_zero_dimension() {
+        assert!(rect_perimeter(0, 0, 0, 5).is_empty());
+        assert!(rect_perimeter(0, 0, 5, 0).is_empty());
+        assert!(rect_perimeter(0, 0, -1, 3).is_empty());
+    }
+
+    #[test]
+    fn test_rect_perimeter_1x1_is_single_cell() {
+        assert_eq!(rect_perimeter(3, 4, 1, 1), vec![(3, 4)]);
+    }
+
+    #[test]
+    fn test_rect_perimeter_1xh_is_full_column() {
+        let p = rect_perimeter(0, 0, 1, 3);
+        assert_eq!(p, vec![(0, 0), (0, 1), (0, 2)]);
+    }
+
+    #[test]
+    fn test_rect_perimeter_count_for_3x3() {
+        // 3×3 border: 4 corners + 4 edges of length 1 = 8 cells
+        let p = rect_perimeter(0, 0, 3, 3);
+        assert_eq!(p.len(), 8);
+        assert!(p.contains(&(0, 0)));
+        assert!(p.contains(&(2, 2)));
+        assert!(!p.contains(&(1, 1))); // interior excluded
+    }
+
+    #[test]
+    fn test_rect_perimeter_all_cells_on_border() {
+        // Every returned point must be on the border.
+        let (x, y, w, h) = (5, 3, 6, 4);
+        for (px, py) in rect_perimeter(x, y, w, h) {
+            let on_border = px == x || px == x + w - 1 || py == y || py == y + h - 1;
+            assert!(on_border, "({px},{py}) is not on the border");
+        }
+    }
+
+    #[test]
+    fn test_rect_perimeter_count_formula() {
+        // Perimeter cell count = 2*(w+h-2) for w,h >= 2.
+        for w in 2..=10i32 {
+            for h in 2..=10i32 {
+                let expected = 2 * (w + h - 2) as usize;
+                assert_eq!(rect_perimeter(0, 0, w, h).len(), expected, "w={w} h={h}");
+            }
+        }
+    }
+
+    // ── diamond ───────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_diamond_negative_r_is_empty() {
+        assert!(diamond(0, 0, -1).is_empty());
+    }
+
+    #[test]
+    fn test_diamond_r0_is_centre() {
+        assert_eq!(diamond(5, 5, 0), vec![(5, 5)]);
+    }
+
+    #[test]
+    fn test_diamond_r1_is_four_cardinals() {
+        let d = diamond(0, 0, 1);
+        assert_eq!(d.len(), 4);
+        assert!(d.contains(&(-1, 0)));
+        assert!(d.contains(&(1, 0)));
+        assert!(d.contains(&(0, -1)));
+        assert!(d.contains(&(0, 1)));
+        assert!(!d.contains(&(0, 0))); // centre excluded
+    }
+
+    #[test]
+    fn test_diamond_count_is_4r() {
+        for r in 1..=8i32 {
+            assert_eq!(diamond(0, 0, r).len(), (4 * r) as usize, "r={r}");
+        }
+    }
+
+    #[test]
+    fn test_diamond_all_cells_at_exact_manhattan_distance() {
+        let r = 5;
+        for (x, y) in diamond(3, 7, r) {
+            assert_eq!((x - 3).abs() + (y - 7).abs(), r, "({x},{y}) wrong distance");
+        }
     }
 }

@@ -120,16 +120,17 @@ pub use combat::{
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use dice::Dice;
 pub use easing::{
-    ease_in_circ, ease_in_cubic, ease_in_out_circ, ease_in_out_cubic, ease_in_out_quad,
+    ease_in_back, ease_in_bounce, ease_in_circ, ease_in_cubic, ease_in_expo, ease_in_out_back,
+    ease_in_out_bounce, ease_in_out_circ, ease_in_out_cubic, ease_in_out_expo, ease_in_out_quad,
     ease_in_out_quart, ease_in_out_quint, ease_in_out_sine, ease_in_quad, ease_in_quart,
-    ease_in_quint, ease_in_sine, ease_out_circ, ease_out_cubic, ease_out_quad, ease_out_quart,
-    ease_out_quint, ease_out_sine, linear,
+    ease_in_quint, ease_in_sine, ease_out_back, ease_out_bounce, ease_out_circ, ease_out_cubic,
+    ease_out_expo, ease_out_quad, ease_out_quart, ease_out_quint, ease_out_sine, linear,
 };
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::{compute_fov, compute_fov_dist};
 pub use fsm::Fsm;
-pub use geometry::{line, line_of_sight, Distance};
+pub use geometry::{diamond, line, line_of_sight, rect_perimeter, Distance};
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;
 pub use inputbuf::InputBuffer;
@@ -143,7 +144,7 @@ pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
 pub use noise::{
-    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, hash_1d, hash_2d, value_noise_1d,
+    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, hash_1d, hash_2d, normalize_noise, value_noise_1d,
     value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap,
 };
 pub use parser::parse;

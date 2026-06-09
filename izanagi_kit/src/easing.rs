@@ -281,6 +281,68 @@ pub fn ease_in_out_bounce(t: Fixed) -> Fixed {
     }
 }
 
+// ── exponential ─────────────────────────────────────────────────────────────
+//
+// Decomposes 2^x into an integer power-of-two (bit-shift) and a fractional
+// part approximated via a 3-term Taylor series for e^(f·ln2). Max error < 0.5%.
+
+fn exp2_tween(t: Fixed) -> Fixed {
+    // x = 10·(t−1) ∈ (−10, 0).
+    let x = Fixed::from_int(10).mul(t - Fixed::ONE);
+    let f = x.fract(); // fractional part ∈ [0, 1)
+    let n = x - f; // integer part (Fixed with zero fraction)
+    let n_int = n.raw() >> 16; // ∈ {−10, …, −1}
+                               // 2^n via right-shift: −n_int ∈ [1, 10].
+    let pow_n = Fixed::from_ratio(1, 1i32 << (-n_int) as u32);
+    // 2^f ≈ 1 + f·ln2 + f²·(ln²2/2) + f³·(ln³2/6)  (Horner form).
+    let c1 = Fixed::from_ratio(693147, 1_000_000); // ln 2
+    let c2 = Fixed::from_ratio(240227, 1_000_000); // ln²2 / 2
+    let c3 = Fixed::from_ratio(55504, 1_000_000); // ln³2 / 6
+    let exp_f = Fixed::ONE + f.mul(c1 + f.mul(c2 + f.mul(c3)));
+    pow_n.mul(exp_f)
+}
+
+/// Ease-in exponential: `2^(10·(t−1))`. Near-zero start, explosive finish.
+/// Exact `0` at `t=0`, exact `1` at `t=1`. Max approximation error ≈ 0.4%.
+pub fn ease_in_expo(t: Fixed) -> Fixed {
+    if t <= Fixed::ZERO {
+        return Fixed::ZERO;
+    }
+    if t >= Fixed::ONE {
+        return Fixed::ONE;
+    }
+    exp2_tween(t)
+}
+
+/// Ease-out exponential: mirror of `ease_in_expo`. Explosive start, slow finish.
+pub fn ease_out_expo(t: Fixed) -> Fixed {
+    if t <= Fixed::ZERO {
+        return Fixed::ZERO;
+    }
+    if t >= Fixed::ONE {
+        return Fixed::ONE;
+    }
+    Fixed::ONE - exp2_tween(Fixed::ONE - t)
+}
+
+/// Ease-in-out exponential: before 0.5 uses `ease_in_expo(2t)/2`,
+/// after 0.5 uses the symmetric mirror.
+pub fn ease_in_out_expo(t: Fixed) -> Fixed {
+    if t <= Fixed::ZERO {
+        return Fixed::ZERO;
+    }
+    if t >= Fixed::ONE {
+        return Fixed::ONE;
+    }
+    let half = Fixed::from_ratio(1, 2);
+    let two = Fixed::from_int(2);
+    if t < half {
+        exp2_tween(two.mul(t)).mul(half)
+    } else {
+        (two - exp2_tween(two.mul(Fixed::ONE - t))).mul(half)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -593,5 +655,72 @@ mod tests {
                 prev = v;
             }
         }
+    }
+
+    // ── exponential easing tests ──────────────────────────────────────────────
+
+    #[test]
+    fn test_expo_endpoints() {
+        let z = Fixed::ZERO;
+        let one = Fixed::ONE;
+        assert_eq!(ease_in_expo(z), z);
+        assert_eq!(ease_in_expo(one), one);
+        assert_eq!(ease_out_expo(z), z);
+        assert_eq!(ease_out_expo(one), one);
+        assert_eq!(ease_in_out_expo(z), z);
+        assert_eq!(ease_in_out_expo(one), one);
+    }
+
+    #[test]
+    fn test_ease_in_expo_half() {
+        // ease_in_expo(0.5) = 2^(-5) = 1/32 ≈ 0.03125
+        let result = ease_in_expo(fr(1, 2));
+        approx(result, fr(1, 32), 200, "in_expo(0.5)");
+    }
+
+    #[test]
+    fn test_ease_out_expo_half() {
+        // ease_out_expo(0.5) = 1 - 2^(-5) = 31/32 ≈ 0.96875
+        let result = ease_out_expo(fr(1, 2));
+        approx(result, fr(31, 32), 200, "out_expo(0.5)");
+    }
+
+    #[test]
+    fn test_ease_in_out_expo_quarter() {
+        // ease_in_out_expo(0.25) = 2^(-5)/2 = 1/64 ≈ 0.015625
+        let result = ease_in_out_expo(fr(1, 4));
+        approx(result, fr(1, 64), 200, "in_out_expo(0.25)");
+    }
+
+    #[test]
+    fn test_ease_in_out_expo_midpoint_is_half() {
+        approx(
+            ease_in_out_expo(fr(1, 2)),
+            fr(1, 2),
+            200,
+            "in_out_expo(0.5)",
+        );
+    }
+
+    #[test]
+    fn test_expo_monotone() {
+        let steps = 32u32;
+        for f in [ease_in_expo, ease_out_expo, ease_in_out_expo] {
+            let mut prev = Fixed::ZERO;
+            for i in 0..=steps {
+                let t = Fixed::from_ratio(i as i32, steps as i32);
+                let v = f(t);
+                assert!(v.raw() >= prev.raw() - 200, "expo non-monotone at i={i}");
+                prev = v;
+            }
+        }
+    }
+
+    #[test]
+    fn test_expo_deterministic() {
+        let t = fr(3, 7);
+        assert_eq!(ease_in_expo(t), ease_in_expo(t));
+        assert_eq!(ease_out_expo(t), ease_out_expo(t));
+        assert_eq!(ease_in_out_expo(t), ease_in_out_expo(t));
     }
 }

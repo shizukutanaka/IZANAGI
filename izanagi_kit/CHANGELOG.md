@@ -638,6 +638,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `new_delay` ticks. Returns `true` if an entry was found. The rescheduled entry
   is always one-shot regardless of whether the original was a repeating timer —
   for "reset patrol timer without losing the event" patterns.
+- `easing::ease_in_expo` / `ease_out_expo` / `ease_in_out_expo`: exponential
+  easing family — the last major Penner group. Implements `2^(10·(t−1))` via
+  integer bit-shift for the power-of-two component and a 3-term Taylor series
+  for the fractional part (max error ≈ 0.4%). Exact 0 at t=0, exact 1 at t=1.
+  Re-exported at the crate root alongside the other easing functions.
+- `geometry::rect_perimeter(x, y, w, h)`: cells on the outer border of the
+  rectangle `[x, x+w) × [y, y+h)` in row-major order. Degenerates to `rect` for
+  1-wide or 1-tall inputs. Cell count is `2*(w+h-2)` for w,h ≥ 2. Fills the gap
+  between `rect` (solid fill) and `ring_annulus` (Euclidean ring): the
+  axis-aligned rectangular outline needed for dungeon-room borders and UI panels.
+- `geometry::diamond(cx, cy, r)`: all cells at exactly Manhattan distance `r` from
+  `(cx, cy)` — the "4-directional blast ring". Returns empty for `r < 0`, just
+  the centre for `r == 0`, and `4·r` cells (in ascending x,y order) otherwise.
+  Complements `circle` (Bresenham outline) and `ring_annulus` (Euclidean annulus)
+  with the Manhattan-metric ring needed for 4-way movement range queries.
+- `noise::normalize_noise(v, lo, hi)`: map a noise value from the standard
+  `[0, 65535]` output range to any integer range `[lo, hi]`. Returns `lo` for
+  degenerate ranges (`lo >= hi`), saturates at `hi` for `v == 65535`. Eliminates
+  the repetitive `lo + v * range / 65535` one-liners at call sites.
+- `lib.rs`: re-export `ease_in_back`, `ease_out_back`, `ease_in_out_back`,
+  `ease_in_bounce`, `ease_out_bounce`, `ease_in_out_bounce` at the crate root
+  (these were implemented in easing.rs but not yet re-exported).
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

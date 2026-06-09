@@ -288,6 +288,22 @@ pub fn fbm_2d_wrap(x: i32, y: i32, seed: u64, octaves: u32, period: i32) -> u32 
     }
 }
 
+/// Map a noise value from the standard `[0, 65535]` output range to the
+/// caller-defined integer range `[lo, hi]`. Returns `lo` for `v == 0` and
+/// `hi` for `v == 65535`. Returns `lo` immediately when `lo >= hi` (no-op /
+/// degenerate range). Result is clamped to `[lo, hi]`.
+///
+/// Useful for converting raw noise to game values: elevation, temperature,
+/// wealth, or any other integer attribute that spans a specific range.
+#[inline]
+pub fn normalize_noise(v: u32, lo: i32, hi: i32) -> i32 {
+    if lo >= hi {
+        return lo;
+    }
+    let range = (hi - lo) as i64;
+    lo + (((v as i64) * range) / 65535).min(range) as i32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -577,5 +593,39 @@ mod tests {
             fbm_1d_wrap(x, seed, 1, period),
             value_noise_1d_wrap(x, seed, period)
         );
+    }
+
+    // --- normalize_noise ---
+
+    #[test]
+    fn test_normalize_noise_min_maps_to_lo() {
+        assert_eq!(normalize_noise(0, -100, 100), -100);
+    }
+
+    #[test]
+    fn test_normalize_noise_max_maps_to_hi() {
+        assert_eq!(normalize_noise(65535, -100, 100), 100);
+    }
+
+    #[test]
+    fn test_normalize_noise_midpoint() {
+        // 32767/65535 ≈ 0.4999923...; maps to approximately 0 in [-100, 100]
+        let v = normalize_noise(32767, -100, 100);
+        assert!((-1..=0).contains(&v), "midpoint should be near 0, got {v}");
+    }
+
+    #[test]
+    fn test_normalize_noise_degenerate_range_returns_lo() {
+        assert_eq!(normalize_noise(32000, 5, 5), 5);
+        assert_eq!(normalize_noise(32000, 10, 5), 10); // lo > hi
+    }
+
+    #[test]
+    fn test_normalize_noise_positive_range() {
+        // Any v in [0, 65535] should map to [0, 255].
+        assert_eq!(normalize_noise(0, 0, 255), 0);
+        assert_eq!(normalize_noise(65535, 0, 255), 255);
+        let mid = normalize_noise(32768, 0, 255);
+        assert!((127..=128).contains(&mid));
     }
 }
