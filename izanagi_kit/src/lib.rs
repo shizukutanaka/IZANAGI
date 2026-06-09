@@ -136,7 +136,7 @@ pub use mapgen::{generate_cave, generate_dungeon, CaveParams, Dungeon, GenParams
 pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
-pub use noise::{hash_1d, hash_2d, value_noise_1d, value_noise_2d};
+pub use noise::{fbm_1d, fbm_2d, hash_1d, hash_2d, value_noise_1d, value_noise_2d};
 pub use parser::parse;
 pub use passability::PassabilityGrid;
 pub use pathfinding::{astar, weighted_astar};

@@ -125,6 +125,63 @@ fn lerp_u32(a: u32, b: u32, t: u32) -> u32 {
     }
 }
 
+/// Fractional Brownian motion in 2-D: sum `octaves` layers of [`value_noise_2d`],
+/// each at double the frequency and half the amplitude of the previous, then
+/// renormalise to `[0, 65535]`. This is the standard way to turn flat value
+/// noise into natural-looking terrain (mountains, clouds, biome fields).
+///
+/// `x`/`y` are Q16.16 coordinates (as for [`value_noise_2d`]); each octave uses
+/// a distinct seed derived from `seed`. `octaves == 0` returns `0`. Frequency
+/// shifts and the amplitude taper are bounded so any octave count is panic-free
+/// and deterministic — 1–6 octaves is the useful range.
+pub fn fbm_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
+    let mut acc: u64 = 0;
+    let mut amplitude: u64 = 65536;
+    let mut total_amp: u64 = 0;
+    for i in 0..octaves {
+        let shift = i.min(30);
+        let sx = x.wrapping_shl(shift);
+        let sy = y.wrapping_shl(shift);
+        let v = value_noise_2d(sx, sy, seed.wrapping_add(i as u64)) as u64;
+        acc += v * amplitude;
+        total_amp += amplitude * 65535;
+        amplitude >>= 1;
+        if amplitude == 0 {
+            break; // further octaves contribute nothing
+        }
+    }
+    if total_amp == 0 {
+        0
+    } else {
+        ((acc * 65535) / total_amp).min(65535) as u32
+    }
+}
+
+/// Fractional Brownian motion in 1-D — the [`fbm_2d`] analogue over
+/// [`value_noise_1d`]. Useful for height-lines, audio-style ramps, and 1-D
+/// terrain silhouettes. Returns `[0, 65535]`; `octaves == 0` returns `0`.
+pub fn fbm_1d(x: i32, seed: u64, octaves: u32) -> u32 {
+    let mut acc: u64 = 0;
+    let mut amplitude: u64 = 65536;
+    let mut total_amp: u64 = 0;
+    for i in 0..octaves {
+        let shift = i.min(30);
+        let sx = x.wrapping_shl(shift);
+        let v = value_noise_1d(sx, seed.wrapping_add(i as u64)) as u64;
+        acc += v * amplitude;
+        total_amp += amplitude * 65535;
+        amplitude >>= 1;
+        if amplitude == 0 {
+            break;
+        }
+    }
+    if total_amp == 0 {
+        0
+    } else {
+        ((acc * 65535) / total_amp).min(65535) as u32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -250,5 +307,55 @@ mod tests {
         let noise = value_noise_2d(x << 16, y << 16, seed);
         let expected = hash_2d(x, y, seed) >> 16;
         assert_eq!(noise, expected);
+    }
+
+    // --- fractional Brownian motion ---
+
+    #[test]
+    fn test_fbm_2d_in_range() {
+        let seed = 0xF00D;
+        for y in 0..40i32 {
+            for x in 0..40i32 {
+                let v = fbm_2d(x << 13, y << 13, seed, 4);
+                assert!(v <= 65535, "fbm_2d out of range: {v}");
+            }
+        }
+    }
+
+    #[test]
+    fn test_fbm_zero_octaves_is_zero() {
+        assert_eq!(fbm_2d(123 << 16, 45 << 16, 9, 0), 0);
+        assert_eq!(fbm_1d(123 << 16, 9, 0), 0);
+    }
+
+    #[test]
+    fn test_fbm_one_octave_matches_value_noise() {
+        // With a single octave, FBM is just the base value noise (same seed
+        // offset 0), renormalised by the identity 65535/65535.
+        let (x, y, seed) = (3 << 16 | 0x4000, 7 << 16 | 0x8000, 42u64);
+        assert_eq!(fbm_2d(x, y, seed, 1), value_noise_2d(x, y, seed));
+        assert_eq!(fbm_1d(x, seed, 1), value_noise_1d(x, seed));
+    }
+
+    #[test]
+    fn test_fbm_2d_deterministic() {
+        let a = fbm_2d(11 << 14, 5 << 14, 1, 5);
+        let b = fbm_2d(11 << 14, 5 << 14, 1, 5);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_fbm_many_octaves_no_panic() {
+        // Large octave counts must not panic (shift saturation + amplitude break).
+        let v = fbm_2d(1 << 16, 1 << 16, 7, 40);
+        assert!(v <= 65535);
+    }
+
+    #[test]
+    fn test_fbm_1d_in_range() {
+        for x in 0..200i32 {
+            let v = fbm_1d(x << 12, 3, 4);
+            assert!(v <= 65535);
+        }
     }
 }

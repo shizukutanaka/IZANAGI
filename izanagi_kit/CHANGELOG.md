@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `noise::fbm_2d` / `noise::fbm_1d`: fractional Brownian motion — sum `octaves`
+  layers of value noise at doubling frequency / halving amplitude, renormalised
+  to `[0, 65535]`. This is the standard primitive for natural terrain; it was
+  previously hand-rolled in `noise_terrain_demo`, which now calls the library
+  function (output unchanged). Frequency shifts and the amplitude taper are
+  bounded so any octave count is panic-free and deterministic. Re-exported at the
+  crate root.
 - `easing`: extended the Penner family with twelve new integer easers —
   `ease_{in,out,in_out}_quart` (t⁴), `_quint` (t⁵), `_sine` (via the CORDIC
   `Fixed::sin_cos`), and `_circ` (via `Fixed::sqrt`). All float-free and

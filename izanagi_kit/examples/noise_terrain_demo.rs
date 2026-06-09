@@ -12,7 +12,7 @@
 //! Run with `cargo run --example noise_terrain_demo`.
 
 use izanagi_kit::content::Color;
-use izanagi_kit::noise::{hash_2d, value_noise_2d};
+use izanagi_kit::noise::{fbm_2d, hash_2d};
 use izanagi_kit::{Cell, Screen};
 use std::io::{self, Write};
 
@@ -154,29 +154,9 @@ const ALL_BIOMES: [Biome; 7] = [
 ];
 
 // ── noise / terrain ───────────────────────────────────────────────────────────
-
-/// Fractional Brownian Motion: sum `octaves` layers of value_noise_2d.
-/// Each octave doubles frequency and halves amplitude.
-/// Returns a value in [0, 65535].
-fn fbm(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
-    let mut acc: u64 = 0;
-    let mut amplitude: u64 = 65536;
-    let mut total_amp: u64 = 0;
-    for (freq_shift, i) in (0..octaves).enumerate() {
-        let sx = x << freq_shift;
-        let sy = y << freq_shift;
-        let v = value_noise_2d(sx, sy, seed.wrapping_add(i as u64)) as u64;
-        acc += v * amplitude;
-        total_amp += amplitude * 65535;
-        amplitude >>= 1;
-    }
-    // Normalise to [0, 65535].
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
-}
+//
+// Terrain height comes from `noise::fbm_2d` (fractional Brownian motion: octaves
+// of value noise summed at doubling frequency / halving amplitude).
 
 // ── layout ────────────────────────────────────────────────────────────────────
 
@@ -220,7 +200,7 @@ fn main() {
             // Convert screen cell to Q16.16 noise coordinate.
             let nx = (sx << 16) / SCALE as i32;
             let ny = (sy << 16) / SCALE as i32;
-            let height = fbm(nx, ny, SEED, OCTAVES);
+            let height = fbm_2d(nx, ny, SEED, OCTAVES);
             let biome = Biome::from_height(height);
 
             // Sparse "feature" symbols at high-entropy hash positions.
