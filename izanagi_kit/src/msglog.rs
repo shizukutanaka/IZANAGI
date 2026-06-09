@@ -131,6 +131,16 @@ impl MsgLog {
         self.head = 0;
         self.len = 0;
     }
+
+    /// `true` if any stored message contains `needle` as a substring.
+    pub fn contains(&self, needle: &str) -> bool {
+        self.iter().any(|msg| msg.contains(needle))
+    }
+
+    /// Count messages for which `pred` returns `true`.
+    pub fn count_where<P: Fn(&str) -> bool>(&self, pred: P) -> usize {
+        self.iter().filter(|msg| pred(msg)).count()
+    }
 }
 
 impl DetHash for MsgLog {
@@ -346,5 +356,44 @@ mod tests {
         let msgs: Vec<&str> = log.iter().collect();
         assert_eq!(msgs, ["msg9", "msg10", "msg11"]);
         assert_eq!(log.len(), 3);
+    }
+
+    #[test]
+    fn test_contains_finds_substring() {
+        let mut log = MsgLog::new(5);
+        log.push("You attack the goblin");
+        log.push("The goblin hits you");
+        assert!(log.contains("goblin"));
+        assert!(log.contains("You attack"));
+    }
+
+    #[test]
+    fn test_contains_returns_false_when_absent() {
+        let mut log = MsgLog::new(5);
+        log.push("hello world");
+        assert!(!log.contains("dragon"));
+    }
+
+    #[test]
+    fn test_contains_empty_log_returns_false() {
+        let log = MsgLog::new(5);
+        assert!(!log.contains("anything"));
+    }
+
+    #[test]
+    fn test_count_where_counts_matching_messages() {
+        let mut log = MsgLog::new(8);
+        log.push("hit");
+        log.push("miss");
+        log.push("hit");
+        log.push("crit");
+        assert_eq!(log.count_where(|m| m.contains("hit")), 2);
+        assert_eq!(log.count_where(|m| m == "miss"), 1);
+    }
+
+    #[test]
+    fn test_count_where_empty_log_returns_zero() {
+        let log = MsgLog::new(5);
+        assert_eq!(log.count_where(|_| true), 0);
     }
 }

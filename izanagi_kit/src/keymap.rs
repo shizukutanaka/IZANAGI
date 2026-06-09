@@ -82,6 +82,43 @@ impl<K: Eq + Clone, A: Clone> KeyMap<K, A> {
     }
 }
 
+impl<K: Eq + Clone, A: Eq + Clone> KeyMap<K, A> {
+    /// All keys currently bound to `action`, in insertion order.
+    /// Returns an empty `Vec` if none are bound.
+    pub fn get_keys_for_action(&self, action: &A) -> Vec<&K> {
+        self.bindings
+            .iter()
+            .filter_map(|(k, a)| if a == action { Some(k) } else { None })
+            .collect()
+    }
+
+    /// Atomically exchange the actions at `key1` and `key2`.
+    ///
+    /// If only one key is bound the bound action moves to the unbound key and
+    /// the formerly-bound key becomes unbound. If neither is bound this is a
+    /// no-op.
+    pub fn swap_bindings(&mut self, key1: &K, key2: &K) {
+        let a1 = self
+            .bindings
+            .iter()
+            .find(|(k, _)| k == key1)
+            .map(|(_, a)| a.clone());
+        let a2 = self
+            .bindings
+            .iter()
+            .find(|(k, _)| k == key2)
+            .map(|(_, a)| a.clone());
+        // Remove both first (order matters for uniqueness).
+        self.bindings.retain(|(k, _)| k != key1 && k != key2);
+        if let Some(a) = a2 {
+            self.bindings.push((key1.clone(), a));
+        }
+        if let Some(a) = a1 {
+            self.bindings.push((key2.clone(), a));
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -218,5 +255,54 @@ mod tests {
         m.bind('x', Action::Quit);
         assert_eq!(m.len(), 1);
         assert_eq!(m.get(&'x'), Some(&Action::Quit));
+    }
+
+    #[test]
+    fn test_get_keys_for_action_finds_bound_keys() {
+        let m = default_map();
+        let keys = m.get_keys_for_action(&Action::MoveNorth);
+        assert_eq!(keys, vec![&'k']);
+    }
+
+    #[test]
+    fn test_get_keys_for_action_multiple_keys_same_action() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.bind('k', Action::MoveNorth);
+        m.bind('w', Action::MoveNorth); // second binding for same action
+        let mut keys = m.get_keys_for_action(&Action::MoveNorth);
+        keys.sort();
+        assert_eq!(keys, vec![&'k', &'w']);
+    }
+
+    #[test]
+    fn test_get_keys_for_action_unbound_returns_empty() {
+        let m = default_map();
+        assert!(!m.get_keys_for_action(&Action::MoveNorth).is_empty());
+        let empty: KeyMap<char, Action> = KeyMap::new();
+        assert!(empty.get_keys_for_action(&Action::Quit).is_empty());
+    }
+
+    #[test]
+    fn test_swap_bindings_exchanges_actions() {
+        let mut m = default_map();
+        m.swap_bindings(&'k', &'j'); // swap MoveNorth ↔ MoveSouth
+        assert_eq!(m.get(&'k'), Some(&Action::MoveSouth));
+        assert_eq!(m.get(&'j'), Some(&Action::MoveNorth));
+    }
+
+    #[test]
+    fn test_swap_bindings_one_unbound_moves_action() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.bind('a', Action::Wait);
+        m.swap_bindings(&'a', &'b'); // 'b' is unbound
+        assert_eq!(m.get(&'a'), None);
+        assert_eq!(m.get(&'b'), Some(&Action::Wait));
+    }
+
+    #[test]
+    fn test_swap_bindings_both_unbound_is_noop() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.swap_bindings(&'x', &'y'); // both unbound — no panic
+        assert!(m.is_empty());
     }
 }

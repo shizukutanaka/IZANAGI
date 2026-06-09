@@ -578,6 +578,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Connector` whose `to_floor` matches `dest_floor`, or `None`. The "find the
   staircase that returns to floor N" navigation primitive — avoids scanning
   `exits_from` on every floor when the caller only knows the destination.
+- `status::StatusSet::max_remaining()`: the longest remaining duration across
+  all active effects (0 when empty). Complements `total_magnitude` with a
+  duration-based aggregate — useful for "how long before all buffs wear off?" UI.
+- `status::StatusSet::first_expiring()`: the key and remaining ticks of the
+  effect that expires soonest (`None` when empty). Predictive UI primitive for
+  "next status change in N ticks" indicators and AI decisions.
+- `inventory::Inventory::count_where(pred)`: count occupied slots for which
+  `pred` returns `true`. Avoids `.iter().filter().count()` boilerplate for
+  common queries like "how many potions?", "how many identified items?".
+- `inventory::Inventory::first_empty_slot()`: index of the first unoccupied slot,
+  or `None` if full. Non-consuming (read-only). Used for "show next free slot"
+  UI indicators and pre-flight add-item checks.
+- `msglog::MsgLog::contains(needle)`: `true` if any stored message contains
+  `needle` as a substring. One-liner for the common "has the player seen X yet?"
+  check without an explicit `iter().any()` chain.
+- `msglog::MsgLog::count_where(pred)`: count messages matching a predicate.
+  Useful for "how many combat hits this session?" counters and test assertions
+  on log content.
+- `keymap::KeyMap::get_keys_for_action(action)`: all keys currently bound to
+  `action` in insertion order (empty `Vec` if none). The reverse-lookup
+  complement of `get` — required for "which key opens inventory?" UI tooltips
+  and conflict-detection during control remapping.
+- `keymap::KeyMap::swap_bindings(key1, key2)`: atomically exchange the actions
+  at two keys. If only one is bound the action migrates to the unbound key; if
+  neither is bound it is a no-op. The canonical one-call rebind primitive.
+- `change::Changed::was_written_at(tick)`: `true` iff `changed_at == tick` —
+  exact-match check stricter than `is_changed_since`, for "did this change THIS
+  frame?" patterns without risk of matching earlier unprocessed ticks.
+- `change::Changed::ticks_since_change(current_tick)`: saturating elapsed ticks
+  since the last `mark` call (`current_tick − changed_at`). Per-component age
+  query without passing `ChangeTracker` everywhere — use for cache invalidation,
+  freshness indicators, and idle-trigger conditions.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

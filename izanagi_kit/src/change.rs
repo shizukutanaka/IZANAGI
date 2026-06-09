@@ -74,6 +74,23 @@ impl<T> Changed<T> {
     pub fn reset(&mut self, tick: u32) {
         self.changed_at = tick;
     }
+
+    /// `true` if this component was marked *exactly* at `tick` (i.e.
+    /// `changed_at == tick`). Stricter than `is_changed_since`, which also
+    /// matches earlier ticks.
+    #[inline]
+    pub fn was_written_at(&self, tick: u32) -> bool {
+        self.changed_at == tick
+    }
+
+    /// How many ticks ago this component was last changed, relative to
+    /// `current_tick` (i.e. `current_tick − changed_at`, saturating). Useful
+    /// for "show a freshness indicator" or "invalidate stale cache entries"
+    /// patterns without passing the `ChangeTracker` everywhere.
+    #[inline]
+    pub fn ticks_since_change(&self, current_tick: u32) -> u32 {
+        current_tick.saturating_sub(self.changed_at)
+    }
 }
 
 impl<T: DetHash> DetHash for Changed<T> {
@@ -285,5 +302,41 @@ mod tests {
             .count();
         // Only component[1] changed after tick 0.
         assert_eq!(changed_count, 1);
+    }
+
+    #[test]
+    fn test_was_written_at_true_on_exact_tick() {
+        let mut c = Changed::new(0u32);
+        c.mark(7);
+        assert!(c.was_written_at(7));
+    }
+
+    #[test]
+    fn test_was_written_at_false_on_different_tick() {
+        let mut c = Changed::new(0u32);
+        c.mark(5);
+        assert!(!c.was_written_at(4));
+        assert!(!c.was_written_at(6));
+    }
+
+    #[test]
+    fn test_ticks_since_change_zero_when_just_written() {
+        let mut c = Changed::new(0u32);
+        c.mark(10);
+        assert_eq!(c.ticks_since_change(10), 0);
+    }
+
+    #[test]
+    fn test_ticks_since_change_counts_elapsed() {
+        let mut c = Changed::new(0u32);
+        c.mark(3);
+        assert_eq!(c.ticks_since_change(8), 5);
+    }
+
+    #[test]
+    fn test_ticks_since_change_saturates_below_zero() {
+        let mut c = Changed::new(0u32);
+        c.mark(10);
+        assert_eq!(c.ticks_since_change(5), 0); // saturating sub
     }
 }

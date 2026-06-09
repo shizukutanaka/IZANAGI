@@ -134,6 +134,27 @@ impl<K: Eq + Clone> StatusSet<K> {
     pub fn remaining_of(&self, key: &K) -> u32 {
         self.get(key).map_or(0, |e| e.remaining)
     }
+
+    /// The longest remaining duration across all active effects.
+    /// Returns `0` when no effects are active.
+    pub fn max_remaining(&self) -> u32 {
+        self.entries
+            .iter()
+            .map(|(_, e)| e.remaining)
+            .max()
+            .unwrap_or(0)
+    }
+
+    /// The key and remaining ticks of the effect that will expire soonest
+    /// (lowest `remaining`). Returns `None` when no effects are active.
+    ///
+    /// Useful for "time until next status change" UI and AI predictions.
+    pub fn first_expiring(&self) -> Option<(&K, u32)> {
+        self.entries
+            .iter()
+            .min_by_key(|(_, e)| e.remaining)
+            .map(|(k, e)| (k, e.remaining))
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for StatusSet<K> {
@@ -300,5 +321,55 @@ mod tests {
         s.apply(1, 8, 5);
         s.tick(3);
         assert_eq!(s.remaining_of(&1), 5);
+    }
+
+    #[test]
+    fn test_max_remaining_empty_returns_zero() {
+        let s: StatusSet<u32> = StatusSet::new();
+        assert_eq!(s.max_remaining(), 0);
+    }
+
+    #[test]
+    fn test_max_remaining_returns_longest() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 3, 1);
+        s.apply(2, 10, 1);
+        s.apply(3, 7, 1);
+        assert_eq!(s.max_remaining(), 10);
+    }
+
+    #[test]
+    fn test_max_remaining_after_tick() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 1);
+        s.apply(2, 2, 1);
+        s.tick(3); // effect 2 expires
+        assert_eq!(s.max_remaining(), 2); // 5 - 3 = 2
+    }
+
+    #[test]
+    fn test_first_expiring_empty_returns_none() {
+        let s: StatusSet<u32> = StatusSet::new();
+        assert!(s.first_expiring().is_none());
+    }
+
+    #[test]
+    fn test_first_expiring_returns_shortest() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 10, 1);
+        s.apply(2, 2, 1);
+        s.apply(3, 7, 1);
+        let (k, remaining) = s.first_expiring().unwrap();
+        assert_eq!(*k, 2);
+        assert_eq!(remaining, 2);
+    }
+
+    #[test]
+    fn test_first_expiring_single_effect() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(5, 4, 3);
+        let (k, r) = s.first_expiring().unwrap();
+        assert_eq!(*k, 5);
+        assert_eq!(r, 4);
     }
 }

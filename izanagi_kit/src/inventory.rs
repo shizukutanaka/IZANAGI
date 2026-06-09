@@ -125,6 +125,20 @@ impl<T: Clone> Inventory<T> {
             .enumerate()
             .filter_map(|(i, s)| s.as_mut().map(|item| (i, item)))
     }
+
+    /// Count occupied slots for which `pred` returns `true`.
+    pub fn count_where<F: Fn(&T) -> bool>(&self, pred: F) -> usize {
+        self.slots
+            .iter()
+            .filter(|s| s.as_ref().is_some_and(&pred))
+            .count()
+    }
+
+    /// Index of the first empty (unoccupied) slot, or `None` if the inventory
+    /// is full. Does not consume the slot.
+    pub fn first_empty_slot(&self) -> Option<usize> {
+        self.slots.iter().position(|s| s.is_none())
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for Inventory<T> {
@@ -318,5 +332,61 @@ mod tests {
         b.add(20);
         b.remove(0);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_count_where_all_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(2);
+        inv.add(4);
+        inv.add(6);
+        assert_eq!(inv.count_where(|&v| v % 2 == 0), 3);
+    }
+
+    #[test]
+    fn test_count_where_partial_match() {
+        let mut inv: Inventory<u32> = Inventory::new(5);
+        inv.add(1);
+        inv.add(2);
+        inv.add(3);
+        assert_eq!(inv.count_where(|&v| v > 1), 2);
+    }
+
+    #[test]
+    fn test_count_where_empty_inventory_returns_zero() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert_eq!(inv.count_where(|_| true), 0);
+    }
+
+    #[test]
+    fn test_first_empty_slot_new_inventory() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert_eq!(inv.first_empty_slot(), Some(0));
+    }
+
+    #[test]
+    fn test_first_empty_slot_after_partial_fill() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10); // slot 0
+        inv.add(20); // slot 1
+        assert_eq!(inv.first_empty_slot(), Some(2));
+    }
+
+    #[test]
+    fn test_first_empty_slot_full_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(2);
+        inv.add(1);
+        inv.add(2);
+        assert_eq!(inv.first_empty_slot(), None);
+    }
+
+    #[test]
+    fn test_first_empty_slot_after_remove() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        inv.add(3);
+        inv.remove(1); // slot 1 is now free
+        assert_eq!(inv.first_empty_slot(), Some(1));
     }
 }
