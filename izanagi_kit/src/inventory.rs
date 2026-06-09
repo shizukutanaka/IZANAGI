@@ -139,6 +139,13 @@ impl<T: Clone> Inventory<T> {
     pub fn first_empty_slot(&self) -> Option<usize> {
         self.slots.iter().position(|s| s.is_none())
     }
+
+    /// `true` when every slot is occupied — no space for another item.
+    /// Shorthand for `!has_space()`.
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        !self.has_space()
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for Inventory<T> {
@@ -388,5 +395,21 @@ mod tests {
         inv.add(3);
         inv.remove(1); // slot 1 is now free
         assert_eq!(inv.first_empty_slot(), Some(1));
+    }
+
+    #[test]
+    fn test_is_full_when_all_slots_occupied() {
+        let mut inv: Inventory<u32> = Inventory::new(2);
+        inv.add(1);
+        inv.add(2);
+        assert!(inv.is_full());
+        assert!(!inv.has_space());
+    }
+
+    #[test]
+    fn test_is_full_false_when_space_available() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        inv.add(1);
+        assert!(!inv.is_full());
     }
 }

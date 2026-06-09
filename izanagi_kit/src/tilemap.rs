@@ -166,6 +166,15 @@ impl<T: Clone> TileMap<T> {
         self.cells.iter().filter(|t| pred(t)).count()
     }
 
+    /// Collect `(x, y)` of all cells for which `pred` returns `true`, in
+    /// row-major order. The equivalent of `iter().filter_map(|(x,y,t)| …)`.
+    pub fn find_all<P: Fn(&T) -> bool>(&self, pred: P) -> Vec<(i32, i32)> {
+        self.iter()
+            .filter(|(_, _, t)| pred(t))
+            .map(|(x, y, _)| (x, y))
+            .collect()
+    }
+
     /// Iterate `(x, y, &tile)` in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, &T)> {
         let w = self.width;
@@ -553,5 +562,32 @@ mod tests {
         let mut c = a.clone();
         c.set(1, 0, 0, 5);
         assert_ne!(hash_state(&b), hash_state(&c));
+    }
+
+    #[test]
+    fn test_find_all_returns_matching_coords() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 0);
+        m.set(0, 0, 1);
+        m.set(2, 2, 1);
+        let coords = m.find_all(|&t| t == 1);
+        assert_eq!(coords.len(), 2);
+        assert!(coords.contains(&(0, 0)));
+        assert!(coords.contains(&(2, 2)));
+    }
+
+    #[test]
+    fn test_find_all_empty_when_no_match() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 0);
+        assert!(m.find_all(|&t| t == 99).is_empty());
+    }
+
+    #[test]
+    fn test_find_all_row_major_order() {
+        let mut m: TileMap<u8> = TileMap::new(3, 2, 0);
+        m.set(1, 0, 1);
+        m.set(0, 1, 1);
+        let coords = m.find_all(|&t| t == 1);
+        // Row-major: (1,0) comes before (0,1)
+        assert_eq!(coords, [(1, 0), (0, 1)]);
     }
 }

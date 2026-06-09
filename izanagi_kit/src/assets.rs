@@ -190,6 +190,23 @@ impl<T> AssetStore<T> {
         })
     }
 
+    /// Remove all assets. All existing handles are permanently invalidated.
+    pub fn clear(&mut self) {
+        for slot in &mut self.slots {
+            if slot.value.take().is_some() {
+                slot.generation = slot.generation.wrapping_add(1);
+            }
+        }
+        self.free.clear();
+        self.free.extend(0..self.slots.len() as u32);
+    }
+
+    /// Return the handle of the first live asset for which `pred(&asset)` is
+    /// `true`, searching in ascending index order. Returns `None` if no match.
+    pub fn find_by<F: Fn(&T) -> bool>(&self, pred: F) -> Option<AssetHandle<T>> {
+        self.iter().find(|(_, asset)| pred(asset)).map(|(h, _)| h)
+    }
+
     /// Retain only assets for which `pred(handle, &asset)` returns `true`.
     /// Assets failing the predicate are removed and their handles invalidated.
     pub fn retain<F: Fn(AssetHandle<T>, &T) -> bool>(&mut self, pred: F) {
@@ -400,5 +417,42 @@ mod tests {
         b.insert(2);
         let _ = h;
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_clear_removes_all_assets() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        s.insert(2);
+        s.insert(3);
+        s.clear();
+        assert!(s.is_empty());
+        assert_eq!(s.len(), 0);
+    }
+
+    #[test]
+    fn test_clear_invalidates_existing_handles() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        let h = s.insert(42);
+        s.clear();
+        assert_eq!(s.get(h), None);
+    }
+
+    #[test]
+    fn test_find_by_returns_matching_handle() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(10);
+        let h = s.insert(20);
+        s.insert(30);
+        let found = s.find_by(|&v| v == 20).unwrap();
+        assert_eq!(found.index(), h.index());
+    }
+
+    #[test]
+    fn test_find_by_no_match_returns_none() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        s.insert(2);
+        assert!(s.find_by(|&v| v == 99).is_none());
     }
 }

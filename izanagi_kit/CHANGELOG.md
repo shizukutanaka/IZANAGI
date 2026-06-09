@@ -731,6 +731,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   one-liner that wraps `astar` and plucks `path[1]`. `is_blocked` must return
   `true` for out-of-bounds coordinates to bound the search. Re-exported at the
   crate root as `izanagi_kit::step_toward`.
+- `inventory::Inventory::is_full()`: shorthand for `!has_space()` — `true` when
+  every slot is occupied. Eliminates the double negation at call sites where the
+  positive "full?" condition is clearer than "not has_space?".
+- `status::StatusSet::extend_duration(key, added_ticks)`: add ticks to the
+  remaining duration of an active effect. Saturating. No-op when the effect is
+  not active. The "haste doubles buff duration" primitive without requiring a
+  `remove` + `apply` pair that would lose the current magnitude.
+- `status::StatusSet::count_with(pred)`: count effects for which
+  `pred(key, &effect)` is `true`. Allocation-free alternative to
+  `iter().filter().count()` — the natural query for "how many buffs active?",
+  "how many debuffs with magnitude ≤ −5?".
+- `tilemap::TileMap::find_all(pred)`: collect `(x, y)` of all cells for which
+  `pred(&tile)` returns `true`, in row-major order. Closes the gap between
+  `count_where` (count only) and `iter()` (full iteration with manual collect).
+  Mirrors `bracket-lib`'s `TileMap::find_all` semantics.
+- `assets::AssetStore::clear()`: remove all assets in one call, bumping every
+  occupied slot's generation so all existing handles are permanently invalidated.
+  Repopulates the free list with all indices so subsequent inserts reuse slots.
+  O(n) — implements the "flush the asset cache" pattern without a loop over
+  individual `remove` calls.
+- `assets::AssetStore::find_by(pred)`: return the handle of the first live asset
+  for which `pred(&asset)` is `true` (ascending index order), or `None`. The
+  standard "where is my player sprite?" asset-manager lookup without requiring
+  callers to maintain their own reverse index.
+- `aabb::Aabb::corners()`: return all four corners in clockwise order from
+  top-left — `[top-left, top-right, bottom-right, bottom-left]` — as
+  inclusive-coordinate `(i32, i32)` pairs. Empty boxes return all four equal to
+  `(x, y)`. Useful for raycasting, decal placement, and bounding-polygon tests.
+- `aabb::Aabb::distance_to_point(px, py)`: Chebyshev distance from `(px, py)` to
+  the nearest cell on (or inside) the box. Returns `0` for points inside or for
+  empty boxes. The standard "how far is this entity from the room?" query for
+  aggro radius, fog-of-war, and attraction-field seeding.
 - `menu::Menu::prev_enabled()`: symmetric counterpart to `next_enabled()` —
   return the index of the previous enabled item (wrapping backwards), or `None`
   when all items are disabled. Does not move the cursor. The missing reverse-

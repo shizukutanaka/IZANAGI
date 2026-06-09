@@ -145,6 +145,19 @@ impl<K: Eq + Clone> StatusSet<K> {
             .unwrap_or(0)
     }
 
+    /// Add `added_ticks` to the remaining duration of the effect keyed by `key`.
+    /// No-op if the key is not currently active. Saturating on overflow.
+    pub fn extend_duration(&mut self, key: &K, added_ticks: u32) {
+        if let Some((_, e)) = self.entries.iter_mut().find(|(k, _)| k == key) {
+            e.remaining = e.remaining.saturating_add(added_ticks);
+        }
+    }
+
+    /// Count effects for which `pred(key, &effect)` returns `true`.
+    pub fn count_with<F: Fn(&K, &Effect) -> bool>(&self, pred: F) -> usize {
+        self.entries.iter().filter(|(k, e)| pred(k, e)).count()
+    }
+
     /// The key and remaining ticks of the effect that will expire soonest
     /// (lowest `remaining`). Returns `None` when no effects are active.
     ///
@@ -371,5 +384,45 @@ mod tests {
         let (k, r) = s.first_expiring().unwrap();
         assert_eq!(*k, 5);
         assert_eq!(r, 4);
+    }
+
+    #[test]
+    fn test_extend_duration_active_effect() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 10);
+        s.extend_duration(&1, 3);
+        assert_eq!(s.remaining_of(&1), 8);
+    }
+
+    #[test]
+    fn test_extend_duration_inactive_key_is_noop() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.extend_duration(&99, 10); // not active — no panic, no effect
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_extend_duration_saturates() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, u32::MAX - 1, 1);
+        s.extend_duration(&1, 10); // saturates
+        assert_eq!(s.remaining_of(&1), u32::MAX);
+    }
+
+    #[test]
+    fn test_count_with_matches_predicate() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 10); // positive magnitude
+        s.apply(2, 3, -5); // negative magnitude (debuff)
+        s.apply(3, 7, 8); // positive magnitude
+        let buffs = s.count_with(|_, e| e.magnitude > 0);
+        assert_eq!(buffs, 2);
+    }
+
+    #[test]
+    fn test_count_with_no_matches() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 3);
+        assert_eq!(s.count_with(|_, e| e.magnitude < 0), 0);
     }
 }

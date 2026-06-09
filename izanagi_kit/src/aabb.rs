@@ -198,6 +198,44 @@ impl Aabb {
         )
     }
 
+    /// The four corners in clockwise order from top-left:
+    /// `[top-left, top-right, bottom-right, bottom-left]`.
+    /// Corners use *inclusive* coordinates: `(x, y)`, `(right−1, y)`,
+    /// `(right−1, bottom−1)`, `(x, bottom−1)`.
+    /// Returns all four equal to `(x, y)` for an empty box.
+    pub fn corners(&self) -> [(i32, i32); 4] {
+        if self.is_empty() {
+            [(self.x, self.y); 4]
+        } else {
+            let r = self.right() - 1;
+            let b = self.bottom() - 1;
+            [(self.x, self.y), (r, self.y), (r, b), (self.x, b)]
+        }
+    }
+
+    /// Chebyshev distance from `(px, py)` to the nearest point on (or inside)
+    /// this box. Returns `0` for an empty box or a point inside.
+    pub fn distance_to_point(&self, px: i32, py: i32) -> i32 {
+        if self.is_empty() || self.contains_point(px, py) {
+            return 0;
+        }
+        let dx = if px < self.x {
+            self.x - px
+        } else if px >= self.right() {
+            px - self.right() + 1
+        } else {
+            0
+        };
+        let dy = if py < self.y {
+            self.y - py
+        } else if py >= self.bottom() {
+            py - self.bottom() + 1
+        } else {
+            0
+        };
+        dx.max(dy)
+    }
+
     /// Iterate every interior cell `(x, y)` in row-major order (top-to-bottom,
     /// left-to-right). Empty for a zero-area box. Handy for filling or scanning
     /// a rectangular region without manual nested loops.
@@ -543,5 +581,57 @@ mod tests {
     fn test_clamp_point_empty_box_returns_top_left() {
         let b = r(5, 5, 0, 0);
         assert_eq!(b.clamp_point(10, 10), (5, 5));
+    }
+
+    #[test]
+    fn test_corners_normal_box() {
+        let b = r(1, 2, 4, 3); // right=5, bottom=5
+        let c = b.corners();
+        assert_eq!(c[0], (1, 2)); // top-left
+        assert_eq!(c[1], (4, 2)); // top-right (right-1 = 4)
+        assert_eq!(c[2], (4, 4)); // bottom-right (bottom-1 = 4)
+        assert_eq!(c[3], (1, 4)); // bottom-left
+    }
+
+    #[test]
+    fn test_corners_empty_box_all_same() {
+        let b = r(3, 4, 0, 0);
+        let c = b.corners();
+        assert!(c.iter().all(|&p| p == (3, 4)));
+    }
+
+    #[test]
+    fn test_corners_clockwise_order() {
+        // All four corners should be distinct for a non-degenerate box.
+        let b = r(0, 0, 5, 5);
+        let c = b.corners();
+        let unique: std::collections::HashSet<_> = c.iter().collect();
+        assert_eq!(unique.len(), 4, "all four corners must be distinct");
+    }
+
+    #[test]
+    fn test_distance_to_point_inside_is_zero() {
+        let b = r(0, 0, 10, 10);
+        assert_eq!(b.distance_to_point(5, 5), 0);
+    }
+
+    #[test]
+    fn test_distance_to_point_outside_right() {
+        let b = r(0, 0, 5, 5); // right=5, bottom=5
+                               // Point at (7, 2): dx = 7-5+1 = 3, dy = 0 → max = 3
+        assert_eq!(b.distance_to_point(7, 2), 3);
+    }
+
+    #[test]
+    fn test_distance_to_point_diagonal() {
+        let b = r(0, 0, 4, 4); // right=4, bottom=4
+                               // Point at (5, 6): dx=5-4+1=2, dy=6-4+1=3 → max=3
+        assert_eq!(b.distance_to_point(5, 6), 3);
+    }
+
+    #[test]
+    fn test_distance_to_point_empty_box_is_zero() {
+        let b = r(5, 5, 0, 0);
+        assert_eq!(b.distance_to_point(100, 100), 0);
     }
 }
