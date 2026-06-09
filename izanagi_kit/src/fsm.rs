@@ -131,6 +131,15 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
     pub fn transition_count(&self, from: &S) -> usize {
         self.table.iter().filter(|(f, _, _)| f == from).count()
     }
+
+    /// Whether the machine is currently in `state`.
+    ///
+    /// Shorthand for `self.state() == state` — avoids call sites that would
+    /// otherwise need to import and compare state variants directly.
+    #[inline]
+    pub fn is_in(&self, state: &S) -> bool {
+        &self.state == state
+    }
 }
 
 impl<S: DetHash + Eq + Clone, E: Eq> DetHash for Fsm<S, E> {
@@ -414,5 +423,28 @@ mod tests {
         let before = fsm.transition_count(&GuardState::Idle);
         fsm.remove_transition(&GuardState::Idle, &GuardEvent::PlayerSpotted);
         assert_eq!(fsm.transition_count(&GuardState::Idle), before - 1);
+    }
+
+    #[test]
+    fn test_is_in_matches_initial_state() {
+        let fsm = guard_fsm();
+        assert!(fsm.is_in(&GuardState::Idle));
+        assert!(!fsm.is_in(&GuardState::Chase));
+    }
+
+    #[test]
+    fn test_is_in_reflects_state_change() {
+        let mut fsm = guard_fsm();
+        fsm.fire(&GuardEvent::PlayerSpotted); // Idle → Alert
+        assert!(fsm.is_in(&GuardState::Alert));
+        assert!(!fsm.is_in(&GuardState::Idle));
+    }
+
+    #[test]
+    fn test_is_in_after_set_state() {
+        let mut fsm = guard_fsm();
+        fsm.set_state(GuardState::Dead);
+        assert!(fsm.is_in(&GuardState::Dead));
+        assert!(!fsm.is_in(&GuardState::Idle));
     }
 }

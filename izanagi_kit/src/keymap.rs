@@ -119,6 +119,21 @@ impl<K: Eq + Clone, A: Eq + Clone> KeyMap<K, A> {
             .collect()
     }
 
+    /// Number of distinct actions that have at least one binding.
+    ///
+    /// Useful for "are all expected actions mapped?" completeness checks.
+    /// O(n²) in the number of bindings, which is acceptable for the small
+    /// key layouts typical of roguelikes.
+    pub fn action_count(&self) -> usize {
+        let mut seen: Vec<&A> = Vec::new();
+        for (_, a) in &self.bindings {
+            if !seen.contains(&a) {
+                seen.push(a);
+            }
+        }
+        seen.len()
+    }
+
     /// Atomically exchange the actions at `key1` and `key2`.
     ///
     /// If only one key is bound the bound action moves to the unbound key and
@@ -395,5 +410,26 @@ mod tests {
         m.unbind_action(&Action::Quit);
         assert!(m.is_bound(&'k')); // MoveNorth untouched
         assert!(!m.is_bound(&'q')); // Quit removed
+    }
+
+    #[test]
+    fn test_action_count_empty_map() {
+        let m: KeyMap<char, Action> = KeyMap::new();
+        assert_eq!(m.action_count(), 0);
+    }
+
+    #[test]
+    fn test_action_count_distinct_actions() {
+        let m = default_map(); // 6 bindings, 6 distinct actions
+        assert_eq!(m.action_count(), 6);
+    }
+
+    #[test]
+    fn test_action_count_with_duplicate_actions() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.bind('k', Action::MoveNorth);
+        m.bind('w', Action::MoveNorth); // second key for same action
+        m.bind('j', Action::MoveSouth);
+        assert_eq!(m.action_count(), 2); // MoveNorth and MoveSouth
     }
 }

@@ -7,6 +7,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `dice::Dice::span() -> u32`: spread between minimum and maximum outcomes
+  (`max() − min()`). Modifier cancels so only `count × (sides − 1)` matters;
+  useful for balance heuristics and variance comparisons.
+- `timer::Cooldown::extend(extra)`: add ticks to an existing cooldown (saturating).
+  The "slow" counterpart to `tick`; pushes back ability availability without
+  resetting the full timer.
+- `msglog::MsgLog::push_unique(msg)`: push only when the message differs from the
+  most recent entry. Deduplicates consecutive identical strings ("you hit the orc"
+  spam) without requiring the caller to track the last message.
+- `inventory::Inventory::move_to_slot(from, to) -> bool`: relocate an item between
+  two slots without a remove/add round-trip. Returns `false` if `from` is empty,
+  `to` is occupied, or either index is out of bounds.
+- `fsm::Fsm::is_in(state) -> bool`: `self.state() == state` shorthand. Avoids
+  importing and comparing state variants at every AI call site.
+- `turn::Scheduler::drain() -> Vec<A>`: remove all actors and return their ids in
+  insertion order. End-of-floor cleanup in one pass without iterating the scheduler.
+- `multimap::MultiMap::remove_connector(from_floor, from_x, from_y) -> bool`:
+  remove the connector at a source position. The inverse of `add_connector`; returns
+  `false` if no matching connector is found.
+- `keymap::KeyMap::action_count() -> usize`: count distinct actions with at least
+  one binding. Useful for "are all N actions mapped?" completeness checks.
 - `entity::EntityAllocator::free_count() -> usize`: O(1) count of freed (reusable)
   slots. Equivalent to `total_slots() - count()`. Memory diagnostics for systems
   monitoring allocator pressure.

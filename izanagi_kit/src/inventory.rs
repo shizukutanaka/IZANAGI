@@ -163,6 +163,29 @@ impl<T: Clone> Inventory<T> {
     pub fn is_full(&self) -> bool {
         !self.has_space()
     }
+
+    /// Move the item at `from` to `to`, leaving `from` empty.
+    ///
+    /// Returns `true` on success. Returns `false` if `from` is empty, `to` is
+    /// already occupied, or either index is out of bounds. When `from == to`
+    /// the item stays in place and `true` is returned as long as the slot is
+    /// occupied.
+    pub fn move_to_slot(&mut self, from: usize, to: usize) -> bool {
+        if from >= self.slots.len() || to >= self.slots.len() {
+            return false;
+        }
+        if self.slots[from].is_none() {
+            return false;
+        }
+        if from == to {
+            return true;
+        }
+        if self.slots[to].is_some() {
+            return false;
+        }
+        self.slots.swap(from, to);
+        true
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for Inventory<T> {
@@ -478,5 +501,31 @@ mod tests {
         *inv.find_mut(|&x| x >= 20).unwrap() += 1;
         assert_eq!(inv.get(1), Some(&21));
         assert_eq!(inv.get(2), Some(&30)); // later match untouched
+    }
+
+    #[test]
+    fn test_move_to_slot_relocates_item() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(42); // slot 0
+        assert!(inv.move_to_slot(0, 2));
+        assert_eq!(inv.get(0), None);
+        assert_eq!(inv.get(2), Some(&42));
+    }
+
+    #[test]
+    fn test_move_to_slot_returns_false_when_from_empty() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        assert!(!inv.move_to_slot(0, 1));
+    }
+
+    #[test]
+    fn test_move_to_slot_returns_false_when_to_occupied() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1); // slot 0
+        inv.add(2); // slot 1
+        assert!(!inv.move_to_slot(0, 1)); // slot 1 is occupied
+                                          // both items remain in place
+        assert_eq!(inv.get(0), Some(&1));
+        assert_eq!(inv.get(1), Some(&2));
     }
 }

@@ -147,6 +147,16 @@ impl Dice {
         sum.clamp(i32::MIN as i64, i32::MAX as i64) as i32
     }
 
+    /// The spread of outcomes: `max() − min()` as a non-negative integer.
+    /// For a constant expression (`sides == 0`) this is `0`. Useful for quick
+    /// variance comparisons and balance heuristics without computing both
+    /// bounds separately.
+    #[inline]
+    pub fn span(&self) -> u32 {
+        let s = self.max() as i64 - self.min() as i64;
+        s.max(0) as u32
+    }
+
     /// Roll once; if the result is ≤ `reroll_on`, roll a second time and
     /// return that result (regardless of whether it is better). Consumes
     /// exactly two `roll` draws when a reroll triggers, one otherwise.
@@ -393,6 +403,26 @@ mod tests {
                 "reroll result {r} out of bounds"
             );
         }
+    }
+
+    #[test]
+    fn test_span_standard_die() {
+        // 3d6+5: min=8, max=23, span=15 = 3*(6-1)
+        let d = Dice::new(3, 6, 5);
+        assert_eq!(d.span(), 15);
+    }
+
+    #[test]
+    fn test_span_modifier_does_not_affect_span() {
+        let pos = Dice::new(2, 8, 10);
+        let neg = Dice::new(2, 8, -10);
+        assert_eq!(pos.span(), neg.span(), "modifier cancels in span");
+    }
+
+    #[test]
+    fn test_span_one_sided_die_is_zero() {
+        let d = Dice::new(4, 1, 0); // all rolls are 1 → span = 0
+        assert_eq!(d.span(), 0);
     }
 
     #[test]

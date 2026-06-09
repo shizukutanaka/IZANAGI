@@ -126,6 +126,18 @@ impl MultiMap {
         self.connectors.iter().find(|c| c.to_floor == dest_floor)
     }
 
+    /// Remove the connector(s) that originate at `(from_floor, from_x, from_y)`.
+    ///
+    /// Returns `true` if at least one connector was removed, `false` if none
+    /// matched. The typical use case has at most one connector per position
+    /// (a staircase or portal), so this removes exactly one entry.
+    pub fn remove_connector(&mut self, from_floor: u32, from_x: i32, from_y: i32) -> bool {
+        let before = self.connectors.len();
+        self.connectors
+            .retain(|c| !(c.from_floor == from_floor && c.from_x == from_x && c.from_y == from_y));
+        self.connectors.len() < before
+    }
+
     /// All connectors that originate on `from_floor` and lead to `to_floor`.
     /// Returns an empty `Vec` when no such connectors exist.
     ///
@@ -371,6 +383,55 @@ mod tests {
         });
         let between = m.connectors_between(1, 0); // reverse direction — none
         assert!(between.is_empty());
+    }
+
+    #[test]
+    fn test_remove_connector_returns_true_when_found() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 3,
+            from_y: 4,
+            to_floor: 1,
+            to_x: 1,
+            to_y: 1,
+        });
+        assert!(m.remove_connector(0, 3, 4));
+        assert!(m.exits_from(0).is_empty());
+    }
+
+    #[test]
+    fn test_remove_connector_returns_false_when_absent() {
+        let floors = vec![make_floor(1)];
+        let mut m = MultiMap::new(floors, 0);
+        assert!(!m.remove_connector(0, 5, 5));
+    }
+
+    #[test]
+    fn test_remove_connector_leaves_other_connectors() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 1,
+            to_x: 2,
+            to_y: 2,
+        });
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 5,
+            from_y: 5,
+            to_floor: 1,
+            to_x: 6,
+            to_y: 6,
+        });
+        m.remove_connector(0, 1, 1);
+        let exits = m.exits_from(0);
+        assert_eq!(exits.len(), 1);
+        assert_eq!(exits[0].from_x, 5);
     }
 
     #[test]

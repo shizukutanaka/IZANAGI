@@ -155,6 +155,17 @@ impl MsgLog {
         self.iter().filter(|msg| pred(msg)).count()
     }
 
+    /// Push `msg` only when it differs from the most recently pushed message.
+    /// Consecutive identical strings are silently dropped, preventing "you
+    /// attack the orc" spam. A capacity-0 log ignores the call. An empty log
+    /// always accepts the first message.
+    pub fn push_unique(&mut self, msg: impl Into<String>) {
+        let s = msg.into();
+        if self.last() != Some(s.as_str()) {
+            self.push(s);
+        }
+    }
+
     /// Collect references to all messages for which `pred` returns `true`, in
     /// oldest-to-newest order. Non-destructive (unlike [`retain`](Self::retain),
     /// which rebuilds the buffer). Useful for "show only combat messages" views
@@ -461,6 +472,32 @@ mod tests {
         }
         let hits = log.filtered(|s| s.starts_with('a'));
         assert_eq!(hits, ["a1", "a2", "a3"]);
+    }
+
+    #[test]
+    fn test_push_unique_deduplicates_consecutive() {
+        let mut log = MsgLog::new(10);
+        log.push_unique("you hit the orc");
+        log.push_unique("you hit the orc");
+        log.push_unique("you hit the orc");
+        assert_eq!(log.len(), 1);
+    }
+
+    #[test]
+    fn test_push_unique_allows_non_consecutive_duplicates() {
+        let mut log = MsgLog::new(10);
+        log.push_unique("a");
+        log.push_unique("b");
+        log.push_unique("a"); // not consecutive — should be added
+        assert_eq!(log.len(), 3);
+    }
+
+    #[test]
+    fn test_push_unique_empty_log_accepts_first() {
+        let mut log = MsgLog::new(5);
+        log.push_unique("first");
+        assert_eq!(log.len(), 1);
+        assert_eq!(log.last(), Some("first"));
     }
 
     #[test]

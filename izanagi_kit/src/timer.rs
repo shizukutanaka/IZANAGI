@@ -89,6 +89,14 @@ impl Cooldown {
         (self.remaining.min(original_ticks) as u64 * 100 / original_ticks as u64) as u32
     }
 
+    /// Extend the cooldown by `extra` ticks. Saturates at `u32::MAX` rather
+    /// than overflowing. Use for "slow" or "anti-haste" effects that push back
+    /// an ability without replacing its current remaining time.
+    #[inline]
+    pub fn extend(&mut self, extra: u32) {
+        self.remaining = self.remaining.saturating_add(extra);
+    }
+
     /// Fractional progress through the cooldown as a [`Fixed`]-point value in
     /// `[0, 1]`: `0` means just started, `1` means ready.
     ///
@@ -562,6 +570,28 @@ mod tests {
         use crate::fixed::Fixed;
         let cd = Cooldown::new(5);
         assert_eq!(cd.fractional_progress(0), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_cooldown_extend_adds_ticks() {
+        let mut cd = Cooldown::new(5);
+        cd.extend(3);
+        assert_eq!(cd.remaining, 8);
+    }
+
+    #[test]
+    fn test_cooldown_extend_on_ready_arms_it() {
+        let mut cd = Cooldown::ready();
+        cd.extend(10);
+        assert!(!cd.is_ready());
+        assert_eq!(cd.remaining, 10);
+    }
+
+    #[test]
+    fn test_cooldown_extend_saturates() {
+        let mut cd = Cooldown::new(u32::MAX);
+        cd.extend(1); // must not overflow
+        assert_eq!(cd.remaining, u32::MAX);
     }
 
     #[test]

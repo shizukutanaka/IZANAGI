@@ -171,6 +171,17 @@ impl<A: Copy + Ord> Scheduler<A> {
         self.ready().map(|i| self.actors[i].id)
     }
 
+    /// Remove all actors and return their ids in insertion order.
+    ///
+    /// Useful for "end of floor" cleanup where every actor's ECS entity needs
+    /// to be despawned: drain the scheduler once, then remove all entities in
+    /// one pass. After the call the scheduler is empty.
+    pub fn drain(&mut self) -> Vec<A> {
+        let ids: Vec<A> = self.actors.iter().map(|a| a.id).collect();
+        self.actors.clear();
+        ids
+    }
+
     /// Advance time until an actor is ready, then return it and deduct one
     /// action's worth of energy. Returns `None` only when empty.
     ///
@@ -494,5 +505,32 @@ mod tests {
     fn test_peek_next_turn_empty_scheduler_returns_none() {
         let s: Scheduler<u32> = Scheduler::new();
         assert_eq!(s.peek_next_turn(), None);
+    }
+
+    #[test]
+    fn test_drain_returns_all_ids_in_insertion_order() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(3, ACTION_COST);
+        s.add(1, ACTION_COST);
+        s.add(2, ACTION_COST);
+        let ids = s.drain();
+        assert_eq!(ids, vec![3, 1, 2]);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_drain_on_empty_returns_empty_vec() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        assert!(s.drain().is_empty());
+    }
+
+    #[test]
+    fn test_drain_clears_scheduler() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(5, ACTION_COST);
+        s.add(6, ACTION_COST);
+        s.drain();
+        assert_eq!(s.len(), 0);
+        assert_eq!(s.next_turn(), None);
     }
 }
