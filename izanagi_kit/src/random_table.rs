@@ -109,6 +109,12 @@ impl<T> RandomTable<T> {
         self.total_weight
     }
 
+    /// The highest single-entry weight in the table, or `0` if the table is
+    /// empty or all weights are 0. Useful for "is this table uniform?" checks.
+    pub fn max_weight(&self) -> u32 {
+        self.entries.iter().map(|e| e.weight).max().unwrap_or(0)
+    }
+
     /// Number of entries (including any with weight 0).
     #[inline]
     pub fn len(&self) -> usize {
@@ -395,5 +401,26 @@ mod tests {
         for _ in 0..10 {
             assert_eq!(*t.roll(&mut rng).unwrap(), 20);
         }
+    }
+
+    #[test]
+    fn test_max_weight_empty_table_is_zero() {
+        let t: RandomTable<u32> = RandomTable::new();
+        assert_eq!(t.max_weight(), 0);
+    }
+
+    #[test]
+    fn test_max_weight_returns_highest() {
+        let t = RandomTable::new()
+            .with(3u32, 'a')
+            .with(10u32, 'b')
+            .with(1u32, 'c');
+        assert_eq!(t.max_weight(), 10);
+    }
+
+    #[test]
+    fn test_max_weight_all_zero_weights_is_zero() {
+        let t = RandomTable::new().with(0u32, 1u32).with(0u32, 2u32);
+        assert_eq!(t.max_weight(), 0);
     }
 }

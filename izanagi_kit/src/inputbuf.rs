@@ -150,6 +150,17 @@ impl<K: Eq + Clone> InputBuffer<K> {
         }
     }
 
+    /// True if `key` is held **and** has passed the `initial_delay` threshold —
+    /// i.e. it is in the repeating phase rather than the initial-press phase.
+    /// Returns `false` if the key is not held or has not yet reached repeat.
+    pub fn is_repeating(&self, key: &K) -> bool {
+        self.held
+            .iter()
+            .find(|h| &h.key == key)
+            .map(|h| h.fired_initial && h.held_ticks > self.initial_delay)
+            .unwrap_or(false)
+    }
+
     /// Update the hold-repeat timing parameters without clearing the buffer.
     ///
     /// The new timing takes effect on the next `tick` call. Held keys are not
@@ -421,5 +432,29 @@ mod tests {
                    // With repeat_period clamped to 1: held_ticks=1, repeat_ticks=1, new=1 → fire
         let f = b.tick(1);
         assert_eq!(f, vec![3]);
+    }
+
+    #[test]
+    fn test_is_repeating_false_on_initial_press() {
+        // initial_delay=3, repeat_period=2
+        let mut b: InputBuffer<u32> = InputBuffer::new(3, 2);
+        b.press(1u32);
+        b.tick(1); // fires initial, held_ticks=1 ≤ initial_delay
+        assert!(!b.is_repeating(&1u32), "not repeating yet");
+    }
+
+    #[test]
+    fn test_is_repeating_true_after_delay() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(2, 1);
+        b.press(5u32);
+        b.tick(1); // initial fire, held_ticks=1
+        b.tick(2); // held_ticks=3 > initial_delay(2) → repeat phase
+        assert!(b.is_repeating(&5u32));
+    }
+
+    #[test]
+    fn test_is_repeating_false_for_unheld_key() {
+        let b: InputBuffer<u32> = InputBuffer::new(0, 1);
+        assert!(!b.is_repeating(&99u32));
     }
 }

@@ -152,6 +152,16 @@ impl<C> CmdQueue<C> {
         self.buf = kept;
         drained
     }
+
+    /// Return `true` if any queued command satisfies `pred`, without consuming
+    /// the queue. Useful for "is there a Cancel command pending?" checks before
+    /// committing to a long operation.
+    pub fn contains<F>(&self, pred: F) -> bool
+    where
+        F: Fn(&C) -> bool,
+    {
+        self.buf.iter().any(pred)
+    }
 }
 
 impl<C: DetHash> DetHash for CmdQueue<C> {
@@ -430,5 +440,30 @@ mod tests {
         assert_eq!(q.len(), 1);
         let drained = q.drain();
         assert_eq!(drained, vec![99]);
+    }
+
+    #[test]
+    fn test_contains_returns_true_when_match_exists() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(1);
+        q.push(2);
+        q.push(3);
+        assert!(q.contains(|c| *c == 2));
+    }
+
+    #[test]
+    fn test_contains_returns_false_when_no_match() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(1);
+        q.push(3);
+        assert!(!q.contains(|c| *c == 99));
+    }
+
+    #[test]
+    fn test_contains_does_not_consume_queue() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(5);
+        let _ = q.contains(|c| *c == 5);
+        assert_eq!(q.len(), 1);
     }
 }

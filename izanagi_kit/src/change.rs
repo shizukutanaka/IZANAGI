@@ -113,6 +113,18 @@ impl<T> Changed<T> {
     pub fn is_fresh(&self, max_age_ticks: u32, current_tick: u32) -> bool {
         !self.is_stale(max_age_ticks, current_tick)
     }
+
+    /// Return a reference to the inner value if it changed at or after
+    /// `since_tick`, otherwise `None`. Combines `is_changed_since` with value
+    /// access to avoid the two-step pattern at every call site.
+    #[inline]
+    pub fn if_changed(&self, since_tick: u32) -> Option<&T> {
+        if self.is_changed_since(since_tick) {
+            Some(&self.value)
+        } else {
+            None
+        }
+    }
 }
 
 impl<T: DetHash> DetHash for Changed<T> {
@@ -429,5 +441,24 @@ mod tests {
         // at exact threshold: is_stale returns true, is_fresh must return false
         assert!(c.is_stale(10, 20));
         assert!(!c.is_fresh(10, 20));
+    }
+
+    #[test]
+    fn test_if_changed_returns_some_when_changed() {
+        let c = Changed::at(99u32, 5);
+        assert_eq!(c.if_changed(3), Some(&99u32));
+        assert_eq!(c.if_changed(5), Some(&99u32));
+    }
+
+    #[test]
+    fn test_if_changed_returns_none_when_not_changed() {
+        let c = Changed::at(42u32, 3);
+        assert_eq!(c.if_changed(10), None);
+    }
+
+    #[test]
+    fn test_if_changed_new_value_always_returns_some() {
+        let c = Changed::new(7u32); // changed_at == 0
+        assert_eq!(c.if_changed(0), Some(&7u32));
     }
 }

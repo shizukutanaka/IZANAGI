@@ -182,6 +182,12 @@ impl<K: Eq + Clone> StatusSet<K> {
         let max = self.entries.iter().map(|(_, e)| e.magnitude).max().unwrap();
         (min, max)
     }
+
+    /// All keys that currently have an active effect, in application order.
+    /// Returns an empty `Vec` when no effects are active.
+    pub fn active_keys(&self) -> Vec<&K> {
+        self.entries.iter().map(|(k, _)| k).collect()
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for StatusSet<K> {
@@ -460,5 +466,33 @@ mod tests {
         s.apply(2, 3, -3);
         s.apply(3, 8, 5);
         assert_eq!(s.magnitude_range(), (-3, 10));
+    }
+
+    #[test]
+    fn test_active_keys_empty_set() {
+        let s: StatusSet<u32> = StatusSet::new();
+        assert!(s.active_keys().is_empty());
+    }
+
+    #[test]
+    fn test_active_keys_returns_all_keys() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 10, 5);
+        s.apply(2, 5, -3);
+        let keys = s.active_keys();
+        assert_eq!(keys.len(), 2);
+        assert!(keys.contains(&&1u32));
+        assert!(keys.contains(&&2u32));
+    }
+
+    #[test]
+    fn test_active_keys_removes_expired() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 3, 0);
+        s.apply(2, 10, 0);
+        s.tick(3);
+        let keys = s.active_keys();
+        assert_eq!(keys.len(), 1);
+        assert_eq!(keys[0], &2u32);
     }
 }

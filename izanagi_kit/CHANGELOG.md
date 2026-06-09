@@ -7,6 +7,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `camera::Camera::world_to_screen_unclamped(wx, wy) -> (i32, i32)`: convert a
+  world-space point to a screen-space offset without bounds checking. Returns
+  negative values or out-of-range coordinates for off-screen points. Complement
+  of `world_to_screen` for renderers that need raw offset math (e.g. partial
+  sprites, infinite worlds).
+- `change::Changed::if_changed(since_tick) -> Option<&T>`: return the inner value
+  only when changed at or after `since_tick`, otherwise `None`. Combines
+  `is_changed_since` with value access to avoid the two-step pattern at every call
+  site in system code.
+- `status::StatusSet::active_keys() -> Vec<&K>`: list all keys with active effects
+  in application order. Useful for rendering a status HUD, serialising active
+  debuffs, or iterating all active effects without exposing the internal `entries`
+  field.
+- `menu::Menu::cursor_label() -> Option<&str>`: label of the item currently under
+  the cursor, or `None` on an empty menu. Avoids `current()?.label.as_str()` at
+  every rendering call site.
+- `random_table::RandomTable::max_weight() -> u32`: highest single-entry weight in
+  the table (`0` for empty/all-zero tables). Useful for "is this table uniform?"
+  checks and tuning loot balance without manual iteration.
+- `cmdqueue::CmdQueue::contains(pred) -> bool`: check whether any queued command
+  satisfies a predicate without consuming the queue. Useful for abort-before-commit
+  patterns ("is a Cancel command already queued?").
+- `inputbuf::InputBuffer::is_repeating(key) -> bool`: `true` if the key is held
+  and past the `initial_delay` threshold — i.e. in the repeat phase. Lets UI code
+  distinguish first-press from auto-repeat to suppress single-fire effects.
+- `relations::Relations::child_count(entity) -> usize`: count direct children
+  without allocating a `Vec`. Drop-in replacement for `children_of(e).len()` in
+  hot loops and capacity guards.
 - `dice::Dice::span() -> u32`: spread between minimum and maximum outcomes
   (`max() − min()`). Modifier cancels so only `count × (sides − 1)` matters;
   useful for balance heuristics and variance comparisons.

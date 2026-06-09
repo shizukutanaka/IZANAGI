@@ -99,6 +99,15 @@ impl Camera {
         (self.top_left_x + sx as i32, self.top_left_y + sy as i32)
     }
 
+    /// Convert a world-space point `(wx, wy)` to a screen-space offset without
+    /// bounds checking. May return negative values or coordinates outside the
+    /// viewport for points that are off-screen. Use `world_to_screen` when you
+    /// only need visible points.
+    #[inline]
+    pub fn world_to_screen_unclamped(&self, wx: i32, wy: i32) -> (i32, i32) {
+        (wx - self.top_left_x, wy - self.top_left_y)
+    }
+
     /// Whether a world-space point is visible in the current viewport.
     #[inline]
     pub fn is_visible(&self, wx: i32, wy: i32) -> bool {
@@ -491,5 +500,48 @@ mod tests {
         let mut cam = Camera::new(10, 10, 20, 10, 100, 100);
         cam.follow(cam.top_left_x - 1, cam.top_left_y + 5, 2, 100, 100);
         assert!(cam.top_left_x < 10, "should have panned left");
+    }
+
+    #[test]
+    fn test_world_to_screen_unclamped_visible_point() {
+        // Direct struct init so top_left is exactly known.
+        let cam = Camera {
+            top_left_x: 5,
+            top_left_y: 3,
+            screen_w: 20,
+            screen_h: 10,
+        };
+        let (sx, sy) = cam.world_to_screen_unclamped(7, 5);
+        assert_eq!(sx, 2);
+        assert_eq!(sy, 2);
+    }
+
+    #[test]
+    fn test_world_to_screen_unclamped_offscreen_negative() {
+        let cam = Camera {
+            top_left_x: 10,
+            top_left_y: 10,
+            screen_w: 20,
+            screen_h: 10,
+        };
+        let (sx, sy) = cam.world_to_screen_unclamped(5, 7);
+        assert!(sx < 0, "point left of viewport should give negative sx");
+        assert!(sy < 0, "point above viewport should give negative sy");
+    }
+
+    #[test]
+    fn test_world_to_screen_unclamped_matches_world_to_screen_for_visible() {
+        let cam = Camera {
+            top_left_x: 0,
+            top_left_y: 0,
+            screen_w: 20,
+            screen_h: 10,
+        };
+        let wx = 3;
+        let wy = 4;
+        let (sx, sy) = cam.world_to_screen_unclamped(wx, wy);
+        let visible = cam.world_to_screen(wx, wy).unwrap();
+        assert_eq!(sx as u32, visible.0);
+        assert_eq!(sy as u32, visible.1);
     }
 }

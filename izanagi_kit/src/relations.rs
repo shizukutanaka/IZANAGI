@@ -100,6 +100,12 @@ impl Relations {
             .collect()
     }
 
+    /// Number of direct children of `entity`. Avoids the `Vec` allocation of
+    /// `children_of` when only the count is needed.
+    pub fn child_count(&self, entity: Entity) -> usize {
+        self.children.iter().filter(|(p, _)| *p == entity).count()
+    }
+
     /// All entities in the subtree rooted at `entity`, **excluding** `entity`
     /// itself, in breadth-first order (children before grandchildren).
     ///
@@ -665,5 +671,32 @@ mod tests {
             4,
             "self + 3 descendants in a chain"
         );
+    }
+
+    #[test]
+    fn test_child_count_no_children() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]);
+        assert_eq!(r.child_count(e[0]), 0);
+    }
+
+    #[test]
+    fn test_child_count_multiple_children() {
+        let e = entities(4);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        r.attach(e[2], e[0]);
+        r.attach(e[3], e[0]);
+        assert_eq!(r.child_count(e[0]), 3);
+    }
+
+    #[test]
+    fn test_child_count_matches_children_of_len() {
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        r.attach(e[2], e[0]);
+        assert_eq!(r.child_count(e[0]), r.children_of(e[0]).len());
     }
 }

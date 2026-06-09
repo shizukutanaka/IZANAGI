@@ -261,6 +261,13 @@ impl<T: Clone> Menu<T> {
     pub fn count_enabled(&self) -> usize {
         self.items.iter().filter(|it| !it.disabled).count()
     }
+
+    /// The display label of the item currently under the cursor, or `None` if
+    /// the menu is empty.
+    #[inline]
+    pub fn cursor_label(&self) -> Option<&str> {
+        self.items.get(self.cursor).map(|it| it.label.as_str())
+    }
 }
 
 impl<T: Clone> Default for Menu<T> {
@@ -643,5 +650,24 @@ mod tests {
     fn test_label_at_empty_menu_is_none() {
         let m: Menu<u32> = Menu::new();
         assert_eq!(m.label_at(0), None);
+    }
+
+    #[test]
+    fn test_cursor_label_returns_current_item_label() {
+        let m = sample();
+        assert_eq!(m.cursor_label(), Some("Item A"));
+    }
+
+    #[test]
+    fn test_cursor_label_after_move_down() {
+        let mut m = sample();
+        m.move_down();
+        assert_eq!(m.cursor_label(), Some("Item B"));
+    }
+
+    #[test]
+    fn test_cursor_label_empty_menu_returns_none() {
+        let m: Menu<u32> = Menu::new();
+        assert_eq!(m.cursor_label(), None);
     }
 }
