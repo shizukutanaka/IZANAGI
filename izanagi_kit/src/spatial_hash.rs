@@ -246,6 +246,29 @@ impl<K: Eq + Clone> SpatialHash<K> {
     {
         self.cells.get(&(cx, cy)).cloned().unwrap_or_default()
     }
+
+    /// Count of keys in any cell overlapping `[x, x+w) × [y, y+h)` without
+    /// allocating a `Vec`. The allocation-free alternative to
+    /// `query_rect(…).len()` for hot broad-phase budget checks. Returns `0`
+    /// for non-positive `w` or `h`.
+    pub fn query_rect_count(&self, x: i32, y: i32, w: i32, h: i32) -> usize {
+        if w <= 0 || h <= 0 {
+            return 0;
+        }
+        let x1 = self.cell_coord(x);
+        let y1 = self.cell_coord(y);
+        let x2 = self.cell_coord(x.saturating_add(w) - 1);
+        let y2 = self.cell_coord(y.saturating_add(h) - 1);
+        let mut count = 0;
+        for cy in y1..=y2 {
+            for cx in x1..=x2 {
+                if let Some(bucket) = self.cells.get(&(cx, cy)) {
+                    count += bucket.len();
+                }
+            }
+        }
+        count
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for SpatialHash<K> {
@@ -584,5 +607,29 @@ mod tests {
         v.clear();
         // Grid still has the key.
         assert_eq!(g.query_cell(0, 0).len(), 1);
+    }
+
+    #[test]
+    fn test_query_rect_count_empty_returns_zero() {
+        let g = grid();
+        assert_eq!(g.query_rect_count(0, 0, 100, 100), 0);
+    }
+
+    #[test]
+    fn test_query_rect_count_matches_query_rect_len() {
+        let mut g = grid();
+        g.insert(1u32, 5, 5);
+        g.insert(2u32, 15, 5);
+        g.insert(3u32, 100, 100); // outside
+        let count = g.query_rect_count(0, 0, 20, 20);
+        assert_eq!(count, g.query_rect(0, 0, 20, 20).len());
+    }
+
+    #[test]
+    fn test_query_rect_count_nonpositive_size_returns_zero() {
+        let mut g = grid();
+        g.insert(1u32, 5, 5);
+        assert_eq!(g.query_rect_count(0, 0, 0, 10), 0);
+        assert_eq!(g.query_rect_count(0, 0, 10, 0), 0);
     }
 }

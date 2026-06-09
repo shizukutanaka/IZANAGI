@@ -132,6 +132,17 @@ impl<T> RandomTable<T> {
         self.entries.iter().map(|e| (e.weight, &e.value))
     }
 
+    /// Update the weight of the entry at `idx`. Silently ignores out-of-range
+    /// indices. Adjusts `total_weight` to stay consistent with the new value.
+    /// Setting a weight to `0` makes the entry permanently unselectable without
+    /// removing it from the table — useful for "sold out" items in a shop.
+    pub fn set_weight(&mut self, idx: usize, weight: u32) {
+        if let Some(entry) = self.entries.get_mut(idx) {
+            self.total_weight = self.total_weight - entry.weight as u64 + weight as u64;
+            entry.weight = weight;
+        }
+    }
+
     /// Like [`roll`](Self::roll) but returns the **entry index** instead of the
     /// value, so the caller can post-process, remove, or count the rolled slot.
     /// Draws exactly once from `rng`; returns `None` without drawing when all
@@ -358,5 +369,31 @@ mod tests {
         // The entry at `idx` must be the same as what `roll` picked.
         let (_, &entry_val) = t.iter().nth(idx).unwrap();
         assert_eq!(entry_val, *val);
+    }
+
+    #[test]
+    fn test_set_weight_updates_total_weight() {
+        let mut t = RandomTable::new().with(3u32, 10u32).with(2u32, 20u32);
+        assert_eq!(t.total_weight(), 5);
+        t.set_weight(0, 7);
+        assert_eq!(t.total_weight(), 9); // 7 + 2
+    }
+
+    #[test]
+    fn test_set_weight_out_of_bounds_is_noop() {
+        let mut t = RandomTable::new().with(5u32, 42u32);
+        t.set_weight(99, 1); // out of range — must not panic
+        assert_eq!(t.total_weight(), 5);
+    }
+
+    #[test]
+    fn test_set_weight_to_zero_excludes_entry() {
+        let mut t = RandomTable::new().with(1u32, 10u32).with(10u32, 20u32);
+        t.set_weight(0, 0); // entry 0 now has weight 0
+                            // With only entry 1 having non-zero weight, every roll must return 20.
+        let mut rng = SplitMix64::new(99);
+        for _ in 0..10 {
+            assert_eq!(*t.roll(&mut rng).unwrap(), 20);
+        }
     }
 }

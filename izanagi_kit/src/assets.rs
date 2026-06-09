@@ -207,6 +207,18 @@ impl<T> AssetStore<T> {
         self.iter().find(|(_, asset)| pred(asset)).map(|(h, _)| h)
     }
 
+    /// Return handles of **all** live assets for which `pred(&asset)` is
+    /// `true`, in ascending index order. Returns an empty `Vec` when no
+    /// assets match or the store is empty. The plural companion to `find_by`
+    /// — use when multiple assets can satisfy a condition (e.g. "all loaded
+    /// textures for layer 3") and you need every handle, not just the first.
+    pub fn find_all_by<F: Fn(&T) -> bool>(&self, pred: F) -> Vec<AssetHandle<T>> {
+        self.iter()
+            .filter(|(_, asset)| pred(asset))
+            .map(|(h, _)| h)
+            .collect()
+    }
+
     /// Iterate over live asset handles without their values.
     /// Useful when you need a list of handles for bulk operations (remove, pass
     /// to another system) without borrowing the asset values at the same time.
@@ -497,5 +509,32 @@ mod tests {
     fn test_handles_empty_store_returns_empty() {
         let s: AssetStore<u32> = AssetStore::new();
         assert!(s.handles().next().is_none());
+    }
+
+    #[test]
+    fn test_find_all_by_no_match_returns_empty() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(10);
+        s.insert(20);
+        let handles = s.find_all_by(|&v| v == 99);
+        assert!(handles.is_empty());
+    }
+
+    #[test]
+    fn test_find_all_by_returns_all_matching() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        let h1 = s.insert(5);
+        s.insert(99);
+        let h3 = s.insert(5);
+        let handles = s.find_all_by(|&v| v == 5);
+        assert_eq!(handles.len(), 2);
+        assert!(handles.contains(&h1));
+        assert!(handles.contains(&h3));
+    }
+
+    #[test]
+    fn test_find_all_by_empty_store_returns_empty() {
+        let s: AssetStore<u32> = AssetStore::new();
+        assert!(s.find_all_by(|_| true).is_empty());
     }
 }

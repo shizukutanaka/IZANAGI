@@ -950,6 +950,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `[min, max]` in-place. Prevents influence values from growing unbounded when
   many sources overlap, and implements "floor of zero" for threat maps that must
   not go negative. O(n) in map size; no allocation.
+- `spatial_hash::SpatialHash::query_rect_count(x, y, w, h) -> usize`: count of
+  keys in any cell overlapping the rectangle without allocating a `Vec` — the
+  allocation-free complement to `query_rect(…).len()`. Returns `0` for
+  non-positive `w` or `h`. Suitable for hot broad-phase budget checks.
+- `passability::PassabilityGrid::fill(blocked)`: set every cell to `blocked`
+  without reallocation. The single-call "seal entire map" / "clear all walls"
+  primitive before carving a new layout. O(n) in map size.
+- `cmdqueue::CmdQueue::index(i) -> Option<&C>`: read the command at position
+  `i` (0 = oldest) without consuming it. The random-access complement to `peek()`;
+  equivalent to `peek().get(i)`. Does not advance the queue.
+- `random_table::RandomTable::set_weight(idx, weight)`: update the weight of
+  the entry at `idx`; adjusts `total_weight` to stay consistent. Setting to `0`
+  makes an entry permanently unselectable ("sold out") without removing it from
+  the table. Silently ignores out-of-range indices.
+- `replay::find_all_divergences(expected, actual) -> Vec<Divergence>`: collect
+  every diverging tick into a `Vec`, unlike `first_divergence` (stops at first)
+  or `count_divergences` (count only). Ticks beyond the shorter trace count as
+  divergences. Re-exported at the crate root.
+- `profiler::EventLog::last() -> Option<&LogEntry<E>>`: the most recently pushed
+  entry, or `None` for an empty log. Equivalent to `recent(1).last()` but avoids
+  constructing an iterator. The "show last event" status-line primitive.
+- `autotile::count_set_bits(mask: u8) -> u32`: popcount of an 8-bit auto-tile
+  neighbour mask — `0` = isolated, `8` = fully surrounded interior. Delegates to
+  `u8::count_ones`. Useful for terrain classification without decoding individual
+  bit directions.
+- `assets::AssetStore::find_all_by<F>(pred) -> Vec<AssetHandle<T>>`: collect
+  handles of all live assets matching `pred`, in ascending index order. The plural
+  complement to `find_by` — use when multiple assets can satisfy a condition.
+  Returns an empty `Vec` when the store is empty or no assets match.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

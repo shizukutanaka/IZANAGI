@@ -181,6 +181,16 @@ impl PassabilityGrid {
         rng.pick(&candidates).copied()
     }
 
+    /// Set every cell to `blocked`. Equivalent to reconstructing the grid with
+    /// `from_fn(w, h, |_, _| blocked)` but without reallocation. Useful for
+    /// "seal entire floor as solid" / "clear all walls" primitives before
+    /// carving a new layout.
+    pub fn fill(&mut self, blocked: bool) {
+        for cell in &mut self.cells {
+            *cell = blocked;
+        }
+    }
+
     /// Iterate `(x, y)` coordinates of all **blocked** cells in row-major order.
     pub fn iter_blocked(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
         let w = self.width;
@@ -469,5 +479,29 @@ mod tests {
         let cell1 = grid.random_passable(&mut SplitMix64::new(77)).unwrap();
         let cell2 = grid.random_passable(&mut SplitMix64::new(77)).unwrap();
         assert_eq!(cell1, cell2);
+    }
+
+    #[test]
+    fn test_fill_blocked_makes_all_blocked() {
+        let mut g = PassabilityGrid::new(4, 4);
+        g.fill(true);
+        assert_eq!(g.blocked_count(), 16);
+        assert_eq!(g.passable_count(), 0);
+    }
+
+    #[test]
+    fn test_fill_passable_clears_all_blocks() {
+        let mut g = PassabilityGrid::new(3, 3);
+        g.fill(true); // block first
+        g.fill(false); // then clear
+        assert_eq!(g.passable_count(), 9);
+        assert_eq!(g.blocked_count(), 0);
+    }
+
+    #[test]
+    fn test_fill_empty_grid_is_noop() {
+        let mut g = PassabilityGrid::new(0, 0);
+        g.fill(true); // must not panic
+        assert_eq!(g.blocked_count(), 0);
     }
 }

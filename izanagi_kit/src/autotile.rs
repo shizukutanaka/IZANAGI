@@ -123,6 +123,18 @@ where
     out
 }
 
+/// Count the number of set bits (1s) in an 8-bit auto-tile `mask`.
+///
+/// The result tells you how many of the 8 surrounding neighbours share the
+/// same terrain type as the centre cell — useful for quickly classifying cells:
+/// `0` = isolated, `1`–`3` = edge/corner, `4`–`7` = partially surrounded,
+/// `8` = fully surrounded interior.  Delegates to the CPU's native popcount
+/// instruction via `u8::count_ones`.
+#[inline]
+pub fn count_set_bits(mask: u8) -> u32 {
+    mask.count_ones()
+}
+
 // ---------------------------------------------------------------------------
 // SimpleTileTable
 // ---------------------------------------------------------------------------
@@ -367,5 +379,23 @@ mod tests {
         for mask in 10u8..=20 {
             assert_eq!(t.get(mask), 0);
         }
+    }
+
+    #[test]
+    fn test_count_set_bits_zero_is_zero() {
+        // Isolated cell — no matching neighbours.
+        assert_eq!(count_set_bits(0), 0);
+    }
+
+    #[test]
+    fn test_count_set_bits_all_set_is_eight() {
+        // Fully surrounded interior — all 8 neighbour bits set.
+        assert_eq!(count_set_bits(0xFF), 8);
+    }
+
+    #[test]
+    fn test_count_set_bits_matches_manual_count() {
+        // 0b0001_0101 = bits 0, 2, 4 set → 3
+        assert_eq!(count_set_bits(0b0001_0101), 3);
     }
 }

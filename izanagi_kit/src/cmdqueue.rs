@@ -123,6 +123,15 @@ impl<C> CmdQueue<C> {
         self.buf.pop()
     }
 
+    /// Return a reference to the command at position `i` (0 = oldest), or
+    /// `None` if `i >= len`. Does not consume or advance the queue — use
+    /// `drain` or `pop_front` for that. Follows the same insertion order as
+    /// `peek()`; equivalent to `peek().get(i)`.
+    #[inline]
+    pub fn index(&self, i: usize) -> Option<&C> {
+        self.buf.get(i)
+    }
+
     /// Drain and return only commands for which `pred` returns `true`.
     /// Commands that don't match are kept in the queue in their original
     /// relative order. Useful when two subsystems share one queue but each
@@ -392,5 +401,34 @@ mod tests {
         q.push(1);
         let _ = q.as_slice();
         assert_eq!(q.len(), 1); // still in the queue
+    }
+
+    #[test]
+    fn test_index_returns_element_at_position() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(10);
+        q.push(20);
+        q.push(30);
+        assert_eq!(q.index(0), Some(&10));
+        assert_eq!(q.index(1), Some(&20));
+        assert_eq!(q.index(2), Some(&30));
+    }
+
+    #[test]
+    fn test_index_out_of_bounds_returns_none() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(5);
+        assert_eq!(q.index(1), None);
+        assert_eq!(q.index(100), None);
+    }
+
+    #[test]
+    fn test_index_does_not_consume() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(99);
+        let _ = q.index(0);
+        assert_eq!(q.len(), 1);
+        let drained = q.drain();
+        assert_eq!(drained, vec![99]);
     }
 }

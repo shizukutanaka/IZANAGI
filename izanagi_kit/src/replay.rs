@@ -99,6 +99,30 @@ pub fn count_divergences(expected: &[u64], actual: &[u64]) -> usize {
         .count()
 }
 
+/// Collect **all** ticks where `expected` and `actual` disagree into a
+/// `Vec<Divergence>`. Unlike [`first_divergence`] (stops at the first mismatch)
+/// or [`count_divergences`] (returns only a count), this returns every
+/// divergence so that multiple desyncs can be inspected at once. Ticks beyond
+/// the shorter trace are included as divergences (missing hash treated as `0`).
+pub fn find_all_divergences(expected: &[u64], actual: &[u64]) -> Vec<Divergence> {
+    let ticks = expected.len().max(actual.len());
+    (0..ticks)
+        .filter_map(|tick| {
+            let e = expected.get(tick).copied();
+            let a = actual.get(tick).copied();
+            if e != a {
+                Some(Divergence {
+                    tick,
+                    expected: e.unwrap_or(0),
+                    actual: a.unwrap_or(0),
+                })
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 /// Replay `inputs` onto a **clone** of `snapshot`, returning the resulting
 /// state and leaving `snapshot` untouched. This is the core rollback operation:
 /// keep a confirmed-good snapshot, then re-simulate the inputs received since.
@@ -250,5 +274,33 @@ mod tests {
         let shorter = vec![1u64, 2];
         // ticks 2 and 3 are in longer but not shorter → 2 divergences
         assert_eq!(count_divergences(&longer, &shorter), 2);
+    }
+
+    #[test]
+    fn test_find_all_divergences_identical_is_empty() {
+        let t = vec![1u64, 2, 3];
+        assert!(find_all_divergences(&t, &t).is_empty());
+    }
+
+    #[test]
+    fn test_find_all_divergences_returns_all() {
+        let a = vec![1u64, 2, 3];
+        let b = vec![1u64, 9, 3]; // tick 1 diverges
+        let divs = find_all_divergences(&a, &b);
+        assert_eq!(divs.len(), 1);
+        assert_eq!(divs[0].tick, 1);
+        assert_eq!(divs[0].expected, 2);
+        assert_eq!(divs[0].actual, 9);
+    }
+
+    #[test]
+    fn test_find_all_divergences_length_mismatch_included() {
+        let longer = vec![1u64, 2, 3];
+        let shorter = vec![1u64];
+        let divs = find_all_divergences(&longer, &shorter);
+        // ticks 1 and 2 are missing from shorter → 2 divergences
+        assert_eq!(divs.len(), 2);
+        assert_eq!(divs[0].tick, 1);
+        assert_eq!(divs[1].tick, 2);
     }
 }

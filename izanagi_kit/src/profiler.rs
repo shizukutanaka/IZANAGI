@@ -319,6 +319,18 @@ impl<E: Clone> EventLog<E> {
     pub fn count_by<F: Fn(&E) -> bool>(&self, pred: F) -> usize {
         self.iter().filter(|entry| pred(&entry.event)).count()
     }
+
+    /// The most recently pushed log entry, or `None` if the log is empty.
+    /// Equivalent to `recent(1).last()` but avoids constructing an iterator.
+    /// Useful for "show the last event" status lines without allocating.
+    pub fn last(&self) -> Option<&LogEntry<E>> {
+        if self.len == 0 {
+            return None;
+        }
+        let cap = self.buf.len();
+        let idx = (self.head + self.len - 1) % cap;
+        self.buf[idx].as_ref()
+    }
 }
 
 impl<E: Clone + DetHash> DetHash for EventLog<E> {
@@ -613,5 +625,34 @@ mod tests {
         let mut log: EventLog<u32> = EventLog::new(4);
         log.push(1, 42);
         assert_eq!(log.count_by(|&e| e == 99), 0);
+    }
+
+    #[test]
+    fn test_last_empty_log_returns_none() {
+        let log: EventLog<u32> = EventLog::new(4);
+        assert!(log.last().is_none());
+    }
+
+    #[test]
+    fn test_last_returns_most_recently_pushed() {
+        let mut log: EventLog<u32> = EventLog::new(4);
+        log.push(1, 10);
+        log.push(2, 20);
+        log.push(3, 30);
+        let entry = log.last().unwrap();
+        assert_eq!(entry.tick, 3);
+        assert_eq!(entry.event, 30);
+    }
+
+    #[test]
+    fn test_last_is_consistent_with_recent_one() {
+        let mut log: EventLog<u32> = EventLog::new(8);
+        for i in 0..6u32 {
+            log.push(i, i * 10);
+        }
+        let via_last = log.last().unwrap();
+        let via_recent = log.recent(1).next().unwrap();
+        assert_eq!(via_last.tick, via_recent.tick);
+        assert_eq!(via_last.event, via_recent.event);
     }
 }
