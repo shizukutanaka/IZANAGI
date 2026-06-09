@@ -93,6 +93,39 @@ impl MsgLog {
         Some(self.buf[idx].as_str())
     }
 
+    /// Get the message at logical position `index` (0 = oldest). Returns `None`
+    /// if `index >= len`. Complements `iter()` when random access is needed
+    /// (e.g. rendering a scrollable log with a cursor).
+    pub fn get(&self, index: usize) -> Option<&str> {
+        if index >= self.len {
+            return None;
+        }
+        let cap = self.buf.len();
+        Some(self.buf[(self.head + index) % cap].as_str())
+    }
+
+    /// The oldest message in the log, or `None` if empty. Mirrors `last()`.
+    #[inline]
+    pub fn first(&self) -> Option<&str> {
+        self.get(0)
+    }
+
+    /// Retain only messages for which `pred` returns `true`, preserving their
+    /// original oldest-to-newest order. Rebuilds the ring buffer in-place;
+    /// capacity is unchanged.
+    pub fn retain<P: Fn(&str) -> bool>(&mut self, pred: P) {
+        let kept: Vec<String> = self
+            .iter()
+            .filter(|&s| pred(s))
+            .map(str::to_owned)
+            .collect();
+        self.head = 0;
+        self.len = 0;
+        for s in kept {
+            self.push(s);
+        }
+    }
+
     /// Clear all messages without changing capacity.
     pub fn clear(&mut self) {
         self.head = 0;
@@ -240,6 +273,67 @@ mod tests {
         b.push("z"); // same visible content
 
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_get_by_index() {
+        let mut log = MsgLog::new(5);
+        log.push("a");
+        log.push("b");
+        log.push("c");
+        assert_eq!(log.get(0), Some("a"));
+        assert_eq!(log.get(2), Some("c"));
+        assert_eq!(log.get(3), None);
+    }
+
+    #[test]
+    fn test_get_after_overflow() {
+        let mut log = MsgLog::new(3);
+        log.push("x");
+        log.push("y");
+        log.push("z");
+        log.push("w"); // visible: y z w
+        assert_eq!(log.get(0), Some("y"));
+        assert_eq!(log.get(2), Some("w"));
+    }
+
+    #[test]
+    fn test_first_returns_oldest() {
+        let mut log = MsgLog::new(5);
+        assert_eq!(log.first(), None);
+        log.push("oldest");
+        log.push("newest");
+        assert_eq!(log.first(), Some("oldest"));
+    }
+
+    #[test]
+    fn test_retain_keeps_matching() {
+        let mut log = MsgLog::new(8);
+        for msg in ["attack", "move", "attack", "spell"] {
+            log.push(msg);
+        }
+        log.retain(|s| s.starts_with('a'));
+        let msgs: Vec<&str> = log.iter().collect();
+        assert_eq!(msgs, ["attack", "attack"]);
+    }
+
+    #[test]
+    fn test_retain_all_false_empties_log() {
+        let mut log = MsgLog::new(4);
+        log.push("hello");
+        log.retain(|_| false);
+        assert!(log.is_empty());
+    }
+
+    #[test]
+    fn test_retain_preserves_order() {
+        let mut log = MsgLog::new(6);
+        for i in 0u32..5 {
+            log.push(format!("{i}"));
+        }
+        log.retain(|s| s.parse::<u32>().unwrap() % 2 == 0);
+        let msgs: Vec<&str> = log.iter().collect();
+        assert_eq!(msgs, ["0", "2", "4"]);
     }
 
     #[test]

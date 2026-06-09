@@ -100,6 +100,72 @@ impl<T: Clone> TileMap<T> {
         }
     }
 
+    /// Copy a rectangular region `[x, x+w) × [y, y+h)` from this map, row by
+    /// row. Cells outside the map boundary are replaced with `default`. The
+    /// returned `Vec` has length `w * h` (or 0 for zero-area regions); index
+    /// `row * w + col` gives the tile at offset `(col, row)` from `(x, y)`.
+    pub fn copy_region(&self, x: i32, y: i32, w: i32, h: i32, default: T) -> Vec<T>
+    where
+        T: Clone,
+    {
+        if w <= 0 || h <= 0 {
+            return Vec::new();
+        }
+        let mut out = Vec::with_capacity((w * h) as usize);
+        for row in 0..h {
+            for col in 0..w {
+                let cell = self
+                    .get(x + col, y + row)
+                    .cloned()
+                    .unwrap_or(default.clone());
+                out.push(cell);
+            }
+        }
+        out
+    }
+
+    /// Paste a `w × h` rectangular region from `data` into this map at `(x, y)`.
+    /// `data` must have at least `w * h` elements (any excess is ignored); use
+    /// index `row * w + col` for the tile at offset `(col, row)`. Clips silently
+    /// to the map boundary.
+    pub fn paste_region(&mut self, x: i32, y: i32, w: i32, h: i32, data: &[T])
+    where
+        T: Clone,
+    {
+        if w <= 0 || h <= 0 {
+            return;
+        }
+        for row in 0..h {
+            for col in 0..w {
+                let src = row * w + col;
+                if let Some(tile) = data.get(src as usize) {
+                    self.set(x + col, y + row, tile.clone());
+                }
+            }
+        }
+    }
+
+    /// Returns `true` if `(x, y)` is within the map boundaries.
+    #[inline]
+    pub fn contains(&self, x: i32, y: i32) -> bool {
+        self.idx(x, y).is_some()
+    }
+
+    /// Swap the tiles at `(x1, y1)` and `(x2, y2)`. No-op if either coordinate
+    /// is out of bounds or both coordinates are equal.
+    pub fn swap(&mut self, x1: i32, y1: i32, x2: i32, y2: i32) {
+        let Some(a) = self.idx(x1, y1) else { return };
+        let Some(b) = self.idx(x2, y2) else { return };
+        if a != b {
+            self.cells.swap(a, b);
+        }
+    }
+
+    /// Count cells for which `pred` returns `true`.
+    pub fn count_where<P: Fn(&T) -> bool>(&self, pred: P) -> usize {
+        self.cells.iter().filter(|t| pred(t)).count()
+    }
+
     /// Iterate `(x, y, &tile)` in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, &T)> {
         let w = self.width;
@@ -193,6 +259,14 @@ impl<T: Clone> LayeredMap<T> {
     pub fn set(&mut self, layer_idx: usize, x: i32, y: i32, tile: T) {
         if let Some(layer) = self.layers.get_mut(layer_idx) {
             layer.set(x, y, tile);
+        }
+    }
+
+    /// Fill every cell of every layer with `tile`. The one-call equivalent of
+    /// calling `layer_mut(i).fill(tile)` for all layers.
+    pub fn fill_all(&mut self, tile: T) {
+        for layer in &mut self.layers {
+            layer.fill(tile.clone());
         }
     }
 }
@@ -355,6 +429,120 @@ mod tests {
         m.set(0, 1, 1, 99);
         // layer 1 at same position should still be 0
         assert_eq!(m.get(1, 1, 1), Some(&0));
+    }
+
+    #[test]
+    fn test_copy_region_basic() {
+        let mut m: TileMap<u8> = TileMap::new(4, 4, 0);
+        m.set(1, 1, 10);
+        m.set(2, 1, 20);
+        m.set(1, 2, 30);
+        m.set(2, 2, 40);
+        let data = m.copy_region(1, 1, 2, 2, 0);
+        assert_eq!(data, vec![10, 20, 30, 40]);
+    }
+
+    #[test]
+    fn test_copy_region_oob_fills_default() {
+        let m: TileMap<u8> = TileMap::new(2, 2, 7);
+        // Region starting at (-1,-1) — half out of bounds.
+        let data = m.copy_region(-1, -1, 3, 3, 99);
+        assert_eq!(data.len(), 9); // 3*3
+                                   // Top-left corner cells are out of bounds → 99
+        assert_eq!(data[0], 99); // (-1,-1) → OOB
+                                 // (0,0) is in bounds → 7
+        assert_eq!(data[4], 7); // (0+1=0, 0+1=0) in row 1, col 1 of the copy
+    }
+
+    #[test]
+    fn test_copy_region_zero_size_returns_empty() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 1);
+        assert!(m.copy_region(0, 0, 0, 4, 0).is_empty());
+        assert!(m.copy_region(0, 0, 4, 0, 0).is_empty());
+    }
+
+    #[test]
+    fn test_paste_region_basic() {
+        let mut m: TileMap<u8> = TileMap::new(4, 4, 0);
+        let data = vec![1u8, 2, 3, 4];
+        m.paste_region(1, 1, 2, 2, &data);
+        assert_eq!(m.get(1, 1), Some(&1));
+        assert_eq!(m.get(2, 1), Some(&2));
+        assert_eq!(m.get(1, 2), Some(&3));
+        assert_eq!(m.get(2, 2), Some(&4));
+        // Other cells unchanged
+        assert_eq!(m.get(0, 0), Some(&0));
+    }
+
+    #[test]
+    fn test_copy_paste_roundtrip() {
+        let mut src: TileMap<u8> = TileMap::new(4, 4, 0);
+        src.set(0, 0, 1);
+        src.set(1, 0, 2);
+        src.set(0, 1, 3);
+        src.set(1, 1, 4);
+        let data = src.copy_region(0, 0, 2, 2, 0);
+        let mut dst: TileMap<u8> = TileMap::new(4, 4, 0);
+        dst.paste_region(2, 2, 2, 2, &data);
+        assert_eq!(dst.get(2, 2), Some(&1));
+        assert_eq!(dst.get(3, 2), Some(&2));
+        assert_eq!(dst.get(2, 3), Some(&3));
+        assert_eq!(dst.get(3, 3), Some(&4));
+    }
+
+    #[test]
+    fn test_contains_in_bounds() {
+        let m: TileMap<u8> = TileMap::new(4, 3, 0);
+        assert!(m.contains(0, 0));
+        assert!(m.contains(3, 2));
+        assert!(!m.contains(-1, 0));
+        assert!(!m.contains(4, 0));
+        assert!(!m.contains(0, 3));
+    }
+
+    #[test]
+    fn test_swap_two_cells() {
+        let mut m: TileMap<u8> = TileMap::new(4, 4, 0);
+        m.set(1, 0, 10);
+        m.set(2, 3, 20);
+        m.swap(1, 0, 2, 3);
+        assert_eq!(m.get(1, 0), Some(&20));
+        assert_eq!(m.get(2, 3), Some(&10));
+    }
+
+    #[test]
+    fn test_swap_oob_is_noop() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 0);
+        m.set(0, 0, 5);
+        m.swap(0, 0, 99, 99); // OOB second coord
+        assert_eq!(m.get(0, 0), Some(&5)); // unchanged
+    }
+
+    #[test]
+    fn test_swap_same_cell_is_noop() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 7);
+        m.swap(1, 1, 1, 1);
+        assert_eq!(m.get(1, 1), Some(&7));
+    }
+
+    #[test]
+    fn test_count_where() {
+        let mut m: TileMap<u8> = TileMap::new(4, 4, 0);
+        m.set(0, 0, 1);
+        m.set(1, 1, 1);
+        m.set(2, 2, 2);
+        assert_eq!(m.count_where(|&v| v == 1), 2);
+        assert_eq!(m.count_where(|&v| v == 0), 13);
+        assert_eq!(m.count_where(|&v| v > 0), 3);
+    }
+
+    #[test]
+    fn test_fill_all_fills_every_layer() {
+        let mut m: LayeredMap<u8> = LayeredMap::new(3, 3, 3, 0);
+        m.fill_all(7);
+        for i in 0..3 {
+            assert_eq!(m.get(i, 1, 1), Some(&7));
+        }
     }
 
     #[test]

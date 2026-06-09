@@ -59,6 +59,22 @@ impl Cooldown {
     pub fn reset(&mut self, ticks: u32) {
         self.remaining = ticks;
     }
+
+    /// Instantly mark the cooldown as ready (`remaining = 0`). Use when an
+    /// ability should be available immediately (e.g. on level-up or a "haste"
+    /// effect that clears all cooldowns).
+    #[inline]
+    pub fn set_ready(&mut self) {
+        self.remaining = 0;
+    }
+
+    /// Ticks consumed from an original charge of `original`. Returns
+    /// `original.saturating_sub(remaining)` so calls against a ready cooldown
+    /// always return `original`. Useful for progress bars and UI countdowns.
+    #[inline]
+    pub fn elapsed(&self, original: u32) -> u32 {
+        original.saturating_sub(self.remaining)
+    }
 }
 
 impl DetHash for Cooldown {
@@ -143,6 +159,18 @@ impl<E: Clone> TimerQueue<E> {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
+    }
+
+    /// The minimum number of ticks until the next event fires, or `None` if the
+    /// queue is empty. Useful for UI countdowns ("next ability in N turns") and
+    /// for skipping ahead in headless simulations.
+    pub fn peek_next(&self) -> Option<u32> {
+        self.entries.iter().map(|e| e.remaining).min()
+    }
+
+    /// Number of repeating entries (those scheduled with `schedule_repeat`).
+    pub fn count_repeating(&self) -> usize {
+        self.entries.iter().filter(|e| e.period.is_some()).count()
     }
 
     /// Advance by `ticks`. Fires (and returns) every event whose delay expires
@@ -350,6 +378,58 @@ mod tests {
         b.schedule(3, 1);
         b.schedule(5, 2);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_cooldown_set_ready() {
+        let mut cd = Cooldown::new(10);
+        cd.set_ready();
+        assert!(cd.is_ready());
+        assert_eq!(cd.remaining, 0);
+    }
+
+    #[test]
+    fn test_cooldown_elapsed() {
+        let cd = Cooldown::new(3);
+        assert_eq!(cd.elapsed(10), 7); // 10 - 3 = 7 ticks consumed
+    }
+
+    #[test]
+    fn test_cooldown_elapsed_ready() {
+        let cd = Cooldown::ready();
+        assert_eq!(cd.elapsed(5), 5); // fully consumed
+    }
+
+    #[test]
+    fn test_timer_queue_peek_next_empty() {
+        let q: TimerQueue<u32> = TimerQueue::new();
+        assert_eq!(q.peek_next(), None);
+    }
+
+    #[test]
+    fn test_timer_queue_peek_next_returns_min() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(5, 1);
+        q.schedule(2, 2);
+        q.schedule(8, 3);
+        assert_eq!(q.peek_next(), Some(2));
+    }
+
+    #[test]
+    fn test_timer_queue_count_repeating() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(1, 10);
+        q.schedule_repeat(2, 3, 20);
+        q.schedule_repeat(4, 5, 30);
+        assert_eq!(q.count_repeating(), 2);
+    }
+
+    #[test]
+    fn test_timer_queue_count_repeating_zero_when_all_oneshot() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(1, 1);
+        q.schedule(2, 2);
+        assert_eq!(q.count_repeating(), 0);
     }
 
     #[test]

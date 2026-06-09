@@ -381,6 +381,39 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Leaves `parent`'s own parent relationship intact. The canonical "drop all
   carried items on death" pattern — call it, then dispatch the returned entities
   to the spawner or inventory-drop system.
+- `msglog::MsgLog::get(index)`: random access by logical position (0 = oldest).
+  Returns `None` for `index >= len`. Complements `iter()` when a scrollable log
+  cursor needs to read a specific line without collecting the full iterator.
+- `msglog::MsgLog::first()`: the oldest visible message, or `None` if empty.
+  Mirrors `last()` — useful for "show oldest unread event" patterns.
+- `msglog::MsgLog::retain(pred)`: keep only messages for which `pred` returns
+  `true`, preserving oldest-to-newest order. Rebuilds the ring buffer in-place;
+  capacity is unchanged. Useful for filtering combat-only vs. exploration events
+  in a multi-channel log.
+- `tilemap::TileMap::contains(x, y)`: `true` if `(x, y)` is within map bounds.
+  Saves the `get(x,y).is_some()` pattern; works as a bounds guard before calling
+  `get_mut` or `swap`.
+- `tilemap::TileMap::swap(x1, y1, x2, y2)`: exchange tiles at two cells. No-op
+  if either coordinate is out of bounds or both are equal. Useful for sliding-
+  puzzle mechanics and map editing without a temporary variable.
+- `tilemap::TileMap::count_where(pred)`: count cells for which `pred` returns
+  `true`. The idiomatic way to answer "how many walls?", "how many lit cells?",
+  etc. without a manual `iter().filter().count()` chain.
+- `tilemap::LayeredMap::fill_all(tile)`: fill every cell of every layer with
+  `tile`. The single-call equivalent of iterating `layer_mut(i).fill(tile)` for
+  all layers — useful for resetting the entire world state on scene transitions.
+- `timer::Cooldown::set_ready()`: instantly set `remaining = 0` so
+  `is_ready()` returns `true` on the next check. Used by "haste" effects and
+  level-up resets that clear all ability cooldowns.
+- `timer::Cooldown::elapsed(original)`: ticks consumed from the original charge
+  (`original.saturating_sub(remaining)`). Turns a cooldown into a forward
+  progress counter for UI fill-bars without storing the original value twice.
+- `timer::TimerQueue::peek_next()`: the minimum `remaining` ticks across all
+  scheduled entries, or `None` if empty. Answers "when does the next event fire?"
+  for UI countdown labels and headless simulation fast-forward.
+- `timer::TimerQueue::count_repeating()`: count entries added via
+  `schedule_repeat`. Useful for diagnostics and save-file inspection that need
+  to distinguish persistent periodic timers from one-shot callbacks.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a
