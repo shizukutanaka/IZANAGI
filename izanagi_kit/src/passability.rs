@@ -12,6 +12,7 @@
 //!   [`pathfinding::weighted_astar`] via `blocker()`.
 //! - `DetHash` participation for replay state checksums.
 
+use crate::rng::SplitMix64;
 use crate::world_hash::{DetHash, Fnv1a};
 
 /// A flat boolean passability grid.
@@ -170,6 +171,14 @@ impl PassabilityGrid {
                 self.cells[(y * self.width + x) as usize] = blocked;
             }
         }
+    }
+
+    /// Pick a uniformly random passable cell, or `None` if every cell is blocked.
+    /// Deterministic: draws exactly one value from `rng` when at least one
+    /// passable cell exists; draws nothing when all cells are blocked.
+    pub fn random_passable(&self, rng: &mut SplitMix64) -> Option<(i32, i32)> {
+        let candidates: Vec<(i32, i32)> = self.iter_passable().collect();
+        rng.pick(&candidates).copied()
     }
 
     /// Iterate `(x, y)` coordinates of all **blocked** cells in row-major order.
@@ -437,5 +446,28 @@ mod tests {
             }
         }
         assert!(grid.is_blocked(0, 0)); // border still blocked
+    }
+
+    #[test]
+    fn test_random_passable_returns_passable_cell() {
+        let grid = PassabilityGrid::new(4, 4); // all passable
+        let mut rng = SplitMix64::new(42);
+        let cell = grid.random_passable(&mut rng).unwrap();
+        assert!(!grid.is_blocked(cell.0, cell.1));
+    }
+
+    #[test]
+    fn test_random_passable_all_blocked_returns_none() {
+        let grid = PassabilityGrid::from_fn(3, 3, |_, _| true); // all blocked
+        let mut rng = SplitMix64::new(1);
+        assert!(grid.random_passable(&mut rng).is_none());
+    }
+
+    #[test]
+    fn test_random_passable_deterministic() {
+        let grid = PassabilityGrid::new(5, 5);
+        let cell1 = grid.random_passable(&mut SplitMix64::new(77)).unwrap();
+        let cell2 = grid.random_passable(&mut SplitMix64::new(77)).unwrap();
+        assert_eq!(cell1, cell2);
     }
 }

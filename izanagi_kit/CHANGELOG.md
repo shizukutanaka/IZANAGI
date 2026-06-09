@@ -7,6 +7,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `wfc::WfcRules::clear_adjacencies(tile: u8)`: clear all adjacency bitmasks for
+  `tile` in every direction, resetting it to "forbidden everywhere". Silently
+  ignores out-of-range tile indices. Supports rule-mutation workflows where a tile
+  is conditionally disabled at runtime.
+- `passability::PassabilityGrid::random_passable(rng: &mut SplitMix64) -> Option<(i32, i32)>`:
+  pick a uniformly random passable cell via `SplitMix64::pick`. Draws exactly one
+  RNG value when at least one passable cell exists; draws nothing for an all-blocked
+  grid. Primary use: spawn-placement, random patrol targets.
+- `profiler::EventLog::count_by<F>(pred: F) -> usize`: count stored events
+  matching a predicate without allocating — `self.iter().filter(|e| pred(&e.event)).count()`
+  packaged as a named method. Avoids the iterator boilerplate in common "how many
+  damage events this tick?" patterns.
+- `random_table::RandomTable::weighted_idx(&self, rng: &mut SplitMix64) -> Option<usize>`:
+  like `roll` but returns the entry index instead of the value. Draws once;
+  returns `None` for empty/all-zero tables. Useful when the caller needs to inspect
+  or remove the rolled entry rather than just use its value.
+- `replay::count_divergences(expected: &[u64], actual: &[u64]) -> usize`: count
+  all diverging ticks (unlike `first_divergence` which stops at the first one).
+  Ticks beyond the shorter trace count as divergences. Also re-exported at the
+  crate root.
+- `relations::Relations::reparent_all(old_parent, new_parent) -> bool`: move all
+  children of `old_parent` to `new_parent` in one call. Returns `true` if at least
+  one child was moved; `false` for same-parent or childless cases. Builds on
+  `detach_all_children` + `attach` and preserves the existing `DetHash` contract.
+- `assets::AssetStore::handles() -> impl Iterator<Item = AssetHandle<T>>`: iterate
+  over live handles without borrowing values. Useful when constructing a list of
+  handles for batch remove / validity checks without holding a value borrow.
+- `spatial_hash::SpatialHash::all_in_cell(cx, cy) -> Vec<K>`: return an owned
+  `Vec` of all keys in cell-space cell `(cx, cy)`. Unlike `query_cell` which
+  returns a borrowed slice, the owned `Vec` lets the caller mutate the hash during
+  iteration. Returns an empty `Vec` for unoccupied cells.
 - `arch::ArchTable::with_capacity(n) -> Self`: pre-allocate both the dense Vec
   and the HashMap for `n` entities, avoiding repeated reallocation on bulk
   insertions. Equivalent to `new()` in all other respects; deterministic hash is

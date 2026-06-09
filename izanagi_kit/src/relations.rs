@@ -238,6 +238,23 @@ impl Relations {
         }
     }
 
+    /// Move all children of `old_parent` to `new_parent`. Returns `true` if at
+    /// least one child was reparented. A no-op (returns `false`) when
+    /// `old_parent == new_parent` or `old_parent` has no children.
+    pub fn reparent_all(&mut self, old_parent: Entity, new_parent: Entity) -> bool {
+        if old_parent == new_parent {
+            return false;
+        }
+        let children = self.detach_all_children(old_parent);
+        if children.is_empty() {
+            return false;
+        }
+        for child in children {
+            self.attach(child, new_parent);
+        }
+        true
+    }
+
     /// Iterate `(child, parent)` pairs in unspecified order.
     pub fn iter(&self) -> impl Iterator<Item = (Entity, Entity)> + '_ {
         self.parents.iter().copied()
@@ -575,5 +592,38 @@ mod tests {
         let mut r = Relations::new();
         r.attach(e[0], e[1]); // e[1] is a root
         assert!(r.siblings_of(e[1]).is_empty());
+    }
+
+    #[test]
+    fn test_reparent_all_moves_children() {
+        let e = entities(5);
+        let mut r = Relations::new();
+        r.attach(e[0], e[3]); // e[0], e[1], e[2] are children of e[3]
+        r.attach(e[1], e[3]);
+        r.attach(e[2], e[3]);
+        assert!(r.reparent_all(e[3], e[4]));
+        // All children should now be under e[4].
+        let children = r.children_of(e[4]);
+        assert_eq!(children.len(), 3);
+        for &child in &[e[0], e[1], e[2]] {
+            assert_eq!(r.parent_of(child), Some(e[4]));
+        }
+        assert!(r.children_of(e[3]).is_empty());
+    }
+
+    #[test]
+    fn test_reparent_all_same_parent_returns_false() {
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[0], e[2]);
+        assert!(!r.reparent_all(e[2], e[2]));
+    }
+
+    #[test]
+    fn test_reparent_all_no_children_returns_false() {
+        let e = entities(3);
+        let mut r = Relations::new();
+        // e[0] has no children
+        assert!(!r.reparent_all(e[0], e[1]));
     }
 }

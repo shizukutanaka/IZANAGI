@@ -89,6 +89,16 @@ pub fn first_divergence(expected: &[u64], actual: &[u64]) -> Result<(), Divergen
     Ok(())
 }
 
+/// Count the number of ticks where `expected` and `actual` disagree.
+/// Ticks beyond the shorter trace count as divergences (the two runs produced
+/// different lengths). Returns 0 for identical traces.
+pub fn count_divergences(expected: &[u64], actual: &[u64]) -> usize {
+    let ticks = expected.len().max(actual.len());
+    (0..ticks)
+        .filter(|&i| expected.get(i) != actual.get(i))
+        .count()
+}
+
 /// Replay `inputs` onto a **clone** of `snapshot`, returning the resulting
 /// state and leaving `snapshot` untouched. This is the core rollback operation:
 /// keep a confirmed-good snapshot, then re-simulate the inputs received since.
@@ -219,5 +229,26 @@ mod tests {
         assert_eq!(hash_state(&rolled), hash_state(&inline));
         // Snapshot itself is untouched (still at tick 1).
         assert_ne!(hash_state(&snapshot), hash_state(&inline));
+    }
+
+    #[test]
+    fn test_count_divergences_identical_traces_is_zero() {
+        let trace = vec![1u64, 2, 3, 4];
+        assert_eq!(count_divergences(&trace, &trace.clone()), 0);
+    }
+
+    #[test]
+    fn test_count_divergences_all_differ() {
+        let a = vec![1u64, 2, 3];
+        let b = vec![4u64, 5, 6];
+        assert_eq!(count_divergences(&a, &b), 3);
+    }
+
+    #[test]
+    fn test_count_divergences_length_mismatch_counts_extra() {
+        let longer = vec![1u64, 2, 3, 4];
+        let shorter = vec![1u64, 2];
+        // ticks 2 and 3 are in longer but not shorter → 2 divergences
+        assert_eq!(count_divergences(&longer, &shorter), 2);
     }
 }

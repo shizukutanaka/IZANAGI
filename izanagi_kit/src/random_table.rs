@@ -131,6 +131,31 @@ impl<T> RandomTable<T> {
     pub fn iter(&self) -> impl Iterator<Item = (u32, &T)> {
         self.entries.iter().map(|e| (e.weight, &e.value))
     }
+
+    /// Like [`roll`](Self::roll) but returns the **entry index** instead of the
+    /// value, so the caller can post-process, remove, or count the rolled slot.
+    /// Draws exactly once from `rng`; returns `None` without drawing when all
+    /// weights are 0 or the table is empty.
+    pub fn weighted_idx(&self, rng: &mut SplitMix64) -> Option<usize> {
+        if self.total_weight == 0 {
+            return None;
+        }
+        let mut pick = ((rng.next_u64() as u128 * self.total_weight as u128) >> 64) as u64;
+        for (i, e) in self.entries.iter().enumerate() {
+            let w = e.weight as u64;
+            if pick < w {
+                return Some(i);
+            }
+            pick -= w;
+        }
+        // Rounding fallback: last non-zero-weight entry.
+        self.entries
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, e)| e.weight > 0)
+            .map(|(i, _)| i)
+    }
 }
 
 impl<T: DetHash> DetHash for RandomTable<T> {
@@ -299,5 +324,39 @@ mod tests {
         let c = RandomTable::new().with(2, 7u32).with(2, 9u32); // different weight
         assert_eq!(hash_state(&a), hash_state(&b));
         assert_ne!(hash_state(&a), hash_state(&c));
+    }
+
+    #[test]
+    fn test_weighted_idx_empty_returns_none() {
+        let t: RandomTable<u32> = RandomTable::new();
+        let mut rng = SplitMix64::new(1);
+        assert_eq!(t.weighted_idx(&mut rng), None);
+    }
+
+    #[test]
+    fn test_weighted_idx_in_bounds() {
+        let t = RandomTable::new().with(1, "a").with(2, "b").with(3, "c");
+        let mut rng = SplitMix64::new(42);
+        for _ in 0..20 {
+            let idx = t.weighted_idx(&mut rng).unwrap();
+            assert!(idx < 3, "idx {idx} out of range");
+        }
+    }
+
+    #[test]
+    fn test_weighted_idx_consistent_with_roll() {
+        // Same RNG state → weighted_idx and roll should pick same entry.
+        let t = RandomTable::new()
+            .with(1, 10u32)
+            .with(4, 20u32)
+            .with(2, 30u32);
+        let seed = 77u64;
+        let mut rng_a = SplitMix64::new(seed);
+        let mut rng_b = SplitMix64::new(seed);
+        let idx = t.weighted_idx(&mut rng_a).unwrap();
+        let val = t.roll(&mut rng_b).unwrap();
+        // The entry at `idx` must be the same as what `roll` picked.
+        let (_, &entry_val) = t.iter().nth(idx).unwrap();
+        assert_eq!(entry_val, *val);
     }
 }

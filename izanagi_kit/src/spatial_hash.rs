@@ -234,6 +234,18 @@ impl<K: Eq + Clone> SpatialHash<K> {
     pub fn iter_keys(&self) -> impl Iterator<Item = &K> {
         self.cells.values().flat_map(|bucket| bucket.iter())
     }
+
+    /// Return an owned `Vec` of all keys in the grid cell with coordinates
+    /// `(cx, cy)` (cell-space, not world-space). Unlike [`query_cell`](Self::query_cell)
+    /// which returns a borrowed slice, the owned `Vec` lets the caller mutate
+    /// the hash while iterating over the result. Returns an empty `Vec` for
+    /// unoccupied cells.
+    pub fn all_in_cell(&self, cx: i32, cy: i32) -> Vec<K>
+    where
+        K: Clone,
+    {
+        self.cells.get(&(cx, cy)).cloned().unwrap_or_default()
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for SpatialHash<K> {
@@ -544,5 +556,33 @@ mod tests {
     fn test_iter_keys_empty_grid() {
         let g = grid();
         assert_eq!(g.iter_keys().count(), 0);
+    }
+
+    #[test]
+    fn test_all_in_cell_returns_owned_vec() {
+        let mut g = grid(); // cell_size = 10
+        g.insert(1u32, 0, 0);
+        g.insert(2u32, 5, 5); // same cell (0,0)
+        g.insert(3u32, 15, 0); // cell (1,0)
+        let mut v = g.all_in_cell(0, 0);
+        v.sort();
+        assert_eq!(v, vec![1, 2]);
+    }
+
+    #[test]
+    fn test_all_in_cell_empty_cell_returns_empty() {
+        let g = grid();
+        assert!(g.all_in_cell(99, 99).is_empty());
+    }
+
+    #[test]
+    fn test_all_in_cell_does_not_alias_internal_bucket() {
+        // Modifying the returned Vec must not affect the hash.
+        let mut g = grid();
+        g.insert(42u32, 0, 0);
+        let mut v = g.all_in_cell(0, 0);
+        v.clear();
+        // Grid still has the key.
+        assert_eq!(g.query_cell(0, 0).len(), 1);
     }
 }

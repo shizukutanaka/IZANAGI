@@ -312,6 +312,13 @@ impl<E: Clone> EventLog<E> {
         self.iter()
             .filter(move |e| e.tick >= start_tick && e.tick <= end_tick)
     }
+
+    /// Count stored entries for which `pred(&event)` returns `true`.
+    /// Memory-efficient alternative to `iter().filter(…).count()` that avoids
+    /// constructing an intermediate collection.
+    pub fn count_by<F: Fn(&E) -> bool>(&self, pred: F) -> usize {
+        self.iter().filter(|entry| pred(&entry.event)).count()
+    }
 }
 
 impl<E: Clone + DetHash> DetHash for EventLog<E> {
@@ -581,5 +588,30 @@ mod tests {
         let mut p = Profiler::new(4);
         p.record("work", 777);
         assert_eq!(p.min("work"), 777);
+    }
+
+    #[test]
+    fn test_count_by_counts_matching_events() {
+        let mut log: EventLog<u32> = EventLog::new(10);
+        log.push(1, 10);
+        log.push(2, 20);
+        log.push(3, 10);
+        log.push(4, 30);
+        assert_eq!(log.count_by(|&e| e == 10), 2);
+        assert_eq!(log.count_by(|&e| e == 20), 1);
+        assert_eq!(log.count_by(|_| true), 4);
+    }
+
+    #[test]
+    fn test_count_by_empty_log_returns_zero() {
+        let log: EventLog<u32> = EventLog::new(4);
+        assert_eq!(log.count_by(|_| true), 0);
+    }
+
+    #[test]
+    fn test_count_by_no_match_returns_zero() {
+        let mut log: EventLog<u32> = EventLog::new(4);
+        log.push(1, 42);
+        assert_eq!(log.count_by(|&e| e == 99), 0);
     }
 }

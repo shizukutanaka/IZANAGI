@@ -207,6 +207,19 @@ impl<T> AssetStore<T> {
         self.iter().find(|(_, asset)| pred(asset)).map(|(h, _)| h)
     }
 
+    /// Iterate over live asset handles without their values.
+    /// Useful when you need a list of handles for bulk operations (remove, pass
+    /// to another system) without borrowing the asset values at the same time.
+    pub fn handles(&self) -> impl Iterator<Item = AssetHandle<T>> + '_ {
+        self.slots.iter().enumerate().filter_map(|(i, s)| {
+            s.value.as_ref().map(|_| AssetHandle {
+                index: i as u32,
+                generation: s.generation,
+                _marker: PhantomData,
+            })
+        })
+    }
+
     /// Retain only assets for which `pred(handle, &asset)` returns `true`.
     /// Assets failing the predicate are removed and their handles invalidated.
     pub fn retain<F: Fn(AssetHandle<T>, &T) -> bool>(&mut self, pred: F) {
@@ -454,5 +467,35 @@ mod tests {
         s.insert(1);
         s.insert(2);
         assert!(s.find_by(|&v| v == 99).is_none());
+    }
+
+    #[test]
+    fn test_handles_returns_all_live_handles() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        let h0 = s.insert(10);
+        let h1 = s.insert(20);
+        let h2 = s.insert(30);
+        let handles: Vec<_> = s.handles().collect();
+        assert_eq!(handles.len(), 3);
+        assert!(handles.iter().any(|h| h.index() == h0.index()));
+        assert!(handles.iter().any(|h| h.index() == h1.index()));
+        assert!(handles.iter().any(|h| h.index() == h2.index()));
+    }
+
+    #[test]
+    fn test_handles_excludes_removed() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        let h0 = s.insert(1);
+        let h1 = s.insert(2);
+        s.remove(h0);
+        let handles: Vec<_> = s.handles().collect();
+        assert_eq!(handles.len(), 1);
+        assert_eq!(handles[0].index(), h1.index());
+    }
+
+    #[test]
+    fn test_handles_empty_store_returns_empty() {
+        let s: AssetStore<u32> = AssetStore::new();
+        assert!(s.handles().next().is_none());
     }
 }

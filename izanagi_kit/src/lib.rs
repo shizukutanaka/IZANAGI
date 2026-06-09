@@ -156,7 +156,9 @@ pub use pathfinding::{astar, descend, dijkstra_map, smooth_path, step_toward, we
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use random_table::RandomTable;
 pub use relations::Relations;
-pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
+pub use replay::{
+    check_trace, count_divergences, first_divergence, record_trace, resimulate, Divergence,
+};
 pub use rng::SplitMix64;
 pub use savefile::{
     load_bytes, load_bytes_owned, save_bytes, validate_integrity, LoadError, SaveHeader,

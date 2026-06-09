@@ -117,6 +117,14 @@ impl WfcRules {
         self.tile_count
     }
 
+    /// Clear all adjacency rules for `tile` in every direction, leaving it
+    /// forbidden everywhere. Out-of-range `tile` is silently ignored.
+    pub fn clear_adjacencies(&mut self, tile: u8) {
+        if (tile as usize) < self.adj.len() {
+            self.adj[tile as usize] = [0u64; 4];
+        }
+    }
+
     /// Bitmask with one bit set per valid tile index.
     fn all_tiles(&self) -> u64 {
         if self.tile_count >= 64 {
@@ -625,5 +633,36 @@ mod tests {
             }
             WfcResult::Contradiction => panic!(),
         }
+    }
+
+    #[test]
+    fn test_clear_adjacencies_removes_all_bits() {
+        let mut r = WfcRules::new(3);
+        for dir in 0..4 {
+            r.allow(0, dir, 1);
+            r.allow(0, dir, 2);
+        }
+        r.clear_adjacencies(0);
+        for dir in 0..4 {
+            assert_eq!(r.adj[0][dir], 0, "dir {dir} should be 0 after clear");
+        }
+    }
+
+    #[test]
+    fn test_clear_adjacencies_does_not_affect_other_tiles() {
+        let mut r = WfcRules::new(3);
+        r.allow(0, 0, 1);
+        r.allow(1, 0, 0); // other tile
+        r.clear_adjacencies(0);
+        assert_eq!(r.adj[0][0], 0);
+        assert_ne!(r.adj[1][0], 0, "tile 1 should be unaffected");
+    }
+
+    #[test]
+    fn test_clear_adjacencies_oob_is_noop() {
+        let mut r = WfcRules::new(2);
+        r.allow(0, 0, 1);
+        r.clear_adjacencies(99); // out of range — should not panic
+        assert_ne!(r.adj[0][0], 0, "tile 0 unaffected");
     }
 }
