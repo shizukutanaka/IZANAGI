@@ -130,7 +130,7 @@ pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::{compute_fov, compute_fov_dist};
 pub use fsm::Fsm;
-pub use geometry::{diamond, line, line_of_sight, rect_perimeter, Distance};
+pub use geometry::{diamond, line, line_of_sight, rect_contains, rect_perimeter, Distance};
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;
 pub use inputbuf::InputBuffer;
@@ -144,8 +144,8 @@ pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
 pub use noise::{
-    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, hash_1d, hash_2d, normalize_noise, value_noise_1d,
-    value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap,
+    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, hash_1d, hash_2d, normalize_noise, ridge_noise_2d,
+    value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap,
 };
 pub use parser::parse;
 pub use passability::PassabilityGrid;

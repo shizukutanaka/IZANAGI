@@ -116,6 +116,23 @@ impl DetHash for char {
     }
 }
 
+impl<A: DetHash, B: DetHash> DetHash for (A, B) {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.0.det_hash(hasher);
+        self.1.det_hash(hasher);
+    }
+}
+
+impl<A: DetHash, B: DetHash, C: DetHash> DetHash for (A, B, C) {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.0.det_hash(hasher);
+        self.1.det_hash(hasher);
+        self.2.det_hash(hasher);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -151,5 +168,39 @@ mod tests {
         let mut h = Fnv1a::new();
         h.write_bytes(b"abc");
         assert_eq!(h.finish(), 0xe71f_a219_0541_574b);
+    }
+
+    #[test]
+    fn test_tuple2_det_hash_same_as_sequential_writes() {
+        let pair = (1u32, 2u32);
+        let h_tuple = hash_state(&pair);
+
+        let mut hasher = Fnv1a::new();
+        1u32.det_hash(&mut hasher);
+        2u32.det_hash(&mut hasher);
+        let h_manual = hasher.finish();
+
+        assert_eq!(h_tuple, h_manual);
+    }
+
+    #[test]
+    fn test_tuple2_order_matters() {
+        let a = (1u32, 2u32);
+        let b = (2u32, 1u32);
+        assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_tuple3_det_hash_same_as_sequential_writes() {
+        let triple = (1u32, 2u32, 3u32);
+        let h_triple = hash_state(&triple);
+
+        let mut hasher = Fnv1a::new();
+        1u32.det_hash(&mut hasher);
+        2u32.det_hash(&mut hasher);
+        3u32.det_hash(&mut hasher);
+        let h_manual = hasher.finish();
+
+        assert_eq!(h_triple, h_manual);
     }
 }

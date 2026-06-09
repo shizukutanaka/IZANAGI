@@ -83,6 +83,24 @@ impl<K: Eq + Clone, A: Clone> KeyMap<K, A> {
 }
 
 impl<K: Eq + Clone, A: Eq + Clone> KeyMap<K, A> {
+    /// `true` if at least one key is currently bound to `action`.
+    /// Allocation-free — does not collect; use `get_keys_for_action` when
+    /// you also need the key list.
+    pub fn contains_action(&self, action: &A) -> bool {
+        self.bindings.iter().any(|(_, a)| a == action)
+    }
+
+    /// Bind every key in `keys` to `action` in a single call.
+    /// Existing bindings for any key in `keys` are replaced.
+    pub fn bind_multiple(&mut self, keys: &[K], action: A)
+    where
+        A: Clone,
+    {
+        for key in keys {
+            self.bind(key.clone(), action.clone());
+        }
+    }
+
     /// All keys currently bound to `action`, in insertion order.
     /// Returns an empty `Vec` if none are bound.
     pub fn get_keys_for_action(&self, action: &A) -> Vec<&K> {
@@ -304,5 +322,36 @@ mod tests {
         let mut m: KeyMap<char, Action> = KeyMap::new();
         m.swap_bindings(&'x', &'y'); // both unbound — no panic
         assert!(m.is_empty());
+    }
+
+    #[test]
+    fn test_contains_action_bound() {
+        let m = default_map();
+        assert!(m.contains_action(&Action::MoveNorth));
+        assert!(m.contains_action(&Action::Quit));
+    }
+
+    #[test]
+    fn test_contains_action_unbound() {
+        let m: KeyMap<char, Action> = KeyMap::new();
+        assert!(!m.contains_action(&Action::MoveNorth));
+    }
+
+    #[test]
+    fn test_bind_multiple_binds_all_keys() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.bind_multiple(&['w', 'k', '8'], Action::MoveNorth);
+        assert_eq!(m.get(&'w'), Some(&Action::MoveNorth));
+        assert_eq!(m.get(&'k'), Some(&Action::MoveNorth));
+        assert_eq!(m.get(&'8'), Some(&Action::MoveNorth));
+    }
+
+    #[test]
+    fn test_bind_multiple_replaces_existing() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.bind('k', Action::MoveEast);
+        m.bind_multiple(&['k'], Action::MoveNorth);
+        assert_eq!(m.get(&'k'), Some(&Action::MoveNorth));
+        assert_eq!(m.len(), 1); // still one entry (replaced)
     }
 }

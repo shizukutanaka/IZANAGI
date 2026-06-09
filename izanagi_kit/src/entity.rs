@@ -74,6 +74,14 @@ impl EntityAllocator {
         self.generations.len() - self.free.len()
     }
 
+    /// Total slots that have ever been created (both live and freed). O(1).
+    /// Useful for metrics ("the allocator has seen up to N distinct entities"),
+    /// memory-budget checks, and save-file headers.
+    #[inline]
+    pub fn total_slots(&self) -> usize {
+        self.generations.len()
+    }
+
     /// Free every entity in `entities`. Equivalent to calling `free` for each
     /// element; stale and duplicate entries are ignored (no-op per `free`).
     pub fn batch_free(&mut self, entities: &[Entity]) {
@@ -229,6 +237,27 @@ mod tests {
         assert!(a.is_alive(e1));
         assert!(!a.is_alive(e2));
         assert_eq!(a.count(), 1);
+    }
+
+    #[test]
+    fn test_total_slots_grows_with_allocations() {
+        let mut a = EntityAllocator::new();
+        assert_eq!(a.total_slots(), 0);
+        a.allocate();
+        a.allocate();
+        assert_eq!(a.total_slots(), 2);
+        let e = a.allocate();
+        a.free(e); // freed, but slot still exists
+        assert_eq!(a.total_slots(), 3); // slot count does not shrink
+    }
+
+    #[test]
+    fn test_total_slots_reuse_does_not_grow() {
+        let mut a = EntityAllocator::new();
+        let e = a.allocate();
+        a.free(e);
+        a.allocate(); // reuses e's slot — no new slot created
+        assert_eq!(a.total_slots(), 1);
     }
 
     #[test]

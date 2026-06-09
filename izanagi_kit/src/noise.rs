@@ -304,6 +304,40 @@ pub fn normalize_noise(v: u32, lo: i32, hi: i32) -> i32 {
     lo + (((v as i64) * range) / 65535).min(range) as i32
 }
 
+/// Ridge (absolute-value) 2-D fractional Brownian motion.
+///
+/// Applies the ridge transform `|2v − 65535|` to each FBM layer *before*
+/// accumulation, producing sharp ridgelines and valley-folds instead of
+/// smooth rolling terrain. The output is in `[0, 65535]`; `octaves == 0`
+/// returns 0. Deterministic and float-free.
+///
+/// Use this for dramatic mountain chains, clifffaces, and lightning-shaped
+/// damage radii where regular FBM would be too gentle.
+pub fn ridge_noise_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
+    let mut acc: u64 = 0;
+    let mut amplitude: u64 = 65536;
+    let mut total_amp: u64 = 0;
+    for i in 0..octaves {
+        let shift = i.min(30);
+        let sx = x.wrapping_shl(shift);
+        let sy = y.wrapping_shl(shift);
+        let raw = value_noise_2d(sx, sy, seed.wrapping_add(i as u64)) as u64;
+        // Ridge transform: absolute distance from midpoint → sharpens peaks.
+        let ridged = if raw < 32768 { raw } else { 65535 - raw };
+        acc += ridged * amplitude;
+        total_amp += 32768 * amplitude; // midpoint is the max of the ridged signal
+        amplitude >>= 1;
+        if amplitude == 0 {
+            break;
+        }
+    }
+    if total_amp == 0 {
+        0
+    } else {
+        ((acc * 65535) / total_amp).min(65535) as u32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -627,5 +661,33 @@ mod tests {
         assert_eq!(normalize_noise(65535, 0, 255), 255);
         let mid = normalize_noise(32768, 0, 255);
         assert!((127..=128).contains(&mid));
+    }
+
+    #[test]
+    fn test_ridge_noise_2d_deterministic() {
+        assert_eq!(ridge_noise_2d(5, 10, 42, 3), ridge_noise_2d(5, 10, 42, 3));
+    }
+
+    #[test]
+    fn test_ridge_noise_2d_in_range() {
+        for y in 0..8i32 {
+            for x in 0..8i32 {
+                let v = ridge_noise_2d(x, y, 0, 4);
+                assert!(v <= 65535, "ridge_noise_2d out of range at ({x},{y}): {v}");
+            }
+        }
+    }
+
+    #[test]
+    fn test_ridge_noise_2d_zero_octaves_is_zero() {
+        assert_eq!(ridge_noise_2d(1, 2, 99, 0), 0);
+    }
+
+    #[test]
+    fn test_ridge_noise_2d_differs_from_fbm() {
+        // Ridge and standard FBM should differ for the same inputs.
+        let ridge = ridge_noise_2d(3, 7, 1234, 3);
+        let standard = fbm_2d(3, 7, 1234, 3);
+        assert_ne!(ridge, standard, "ridge and fbm should differ");
     }
 }

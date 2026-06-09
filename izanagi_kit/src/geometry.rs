@@ -149,6 +149,17 @@ pub fn rect(x: i32, y: i32, w: i32, h: i32) -> Vec<(i32, i32)> {
     pts
 }
 
+/// Test whether the point `(px, py)` lies within the axis-aligned rectangle
+/// `[x, x+w) × [y, y+h)`. Returns `false` for non-positive `w` or `h`.
+///
+/// Equivalent to the point-in-AABB check but without constructing an `Aabb`
+/// struct — use this for quick inline predicate lambdas:
+/// `rect_contains(rx, ry, rw, rh, px, py)`.
+#[inline]
+pub fn rect_contains(x: i32, y: i32, w: i32, h: i32, px: i32, py: i32) -> bool {
+    w > 0 && h > 0 && px >= x && px < x + w && py >= y && py < y + h
+}
+
 /// Cells in the annular ring between `inner_r` and `outer_r` (inclusive on
 /// both boundaries): `(x,y)` where `inner_r² ≤ (x−cx)²+(y−cy)² ≤ outer_r²`.
 /// Returns an empty `Vec` for non-positive `outer_r` or `inner_r ≥ outer_r`.
@@ -596,5 +607,30 @@ mod tests {
         for (x, y) in diamond(3, 7, r) {
             assert_eq!((x - 3).abs() + (y - 7).abs(), r, "({x},{y}) wrong distance");
         }
+    }
+
+    // --- rect_contains ---
+
+    #[test]
+    fn test_rect_contains_point_inside() {
+        assert!(rect_contains(0, 0, 5, 5, 2, 3));
+    }
+
+    #[test]
+    fn test_rect_contains_point_on_left_top_boundary() {
+        assert!(rect_contains(0, 0, 5, 5, 0, 0));
+    }
+
+    #[test]
+    fn test_rect_contains_point_on_exclusive_right_bottom() {
+        assert!(!rect_contains(0, 0, 5, 5, 5, 5)); // right/bottom are exclusive
+        assert!(!rect_contains(0, 0, 5, 5, 5, 0));
+        assert!(!rect_contains(0, 0, 5, 5, 0, 5));
+    }
+
+    #[test]
+    fn test_rect_contains_degenerate_zero_size() {
+        assert!(!rect_contains(1, 1, 0, 5, 1, 1));
+        assert!(!rect_contains(1, 1, 5, 0, 1, 1));
     }
 }

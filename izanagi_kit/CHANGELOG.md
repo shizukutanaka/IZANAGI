@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `keymap::KeyMap::contains_action(action)`: returns `true` if at least one key
+  is currently bound to `action`. Allocation-free (no collect) — use
+  `get_keys_for_action` when you also need the key list.
+- `keymap::KeyMap::bind_multiple(keys, action)`: bind every key in a slice to
+  the same action in one call; existing bindings for any key in the slice are
+  replaced. Ergonomic alias for the repeated `bind` pattern seen in default
+  key-layout setup code.
+- `entity::EntityAllocator::total_slots()`: O(1) count of all slots ever
+  created (both live and freed). Useful for memory-budget checks and save-file
+  headers that need to know the allocator high-water mark.
+- `geometry::rect_contains(x, y, w, h, px, py)`: fast inline rectangle
+  point-in-bounds check. Returns `false` for empty rectangles (`w ≤ 0` or
+  `h ≤ 0`). Replaces the recurring `px >= x && px < x+w && py >= y && py < y+h`
+  pattern at call sites.
+- `world_hash::DetHash for (A, B)` and `DetHash for (A, B, C)`: folds tuple
+  fields left-to-right, identical to sequential individual `det_hash` calls.
+  Enables hashing heterogeneous pairs/triples (e.g. `(Entity, Position)`) used
+  as canonical map keys without an intermediate struct.
+- `noise::ridge_noise_2d(x, y, seed, octaves)`: ridged multifractal noise —
+  folds each FBM octave through `|raw − 32768|` to produce sharp ridges.
+  Normalised to `[0, 65535]`. Builds mountain-range and river-valley heightmaps
+  from the same deterministic value-noise primitive.
 - `aabb::Aabb::from_corners(x1, y1, x2, y2)`: construct from two corners in any
   order — the result always has non-negative `w`/`h`. Matches the bracket-lib and
   glam `from_min_max` convention; avoids manual `min`/`max` arithmetic at call sites.
