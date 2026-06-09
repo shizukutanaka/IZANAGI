@@ -86,6 +86,47 @@ impl Vec2 {
             y: self.x,
         }
     }
+
+    /// Rotate counter-clockwise by `angle` radians using the fixed-point CORDIC
+    /// [`Fixed::sin_cos`] — no float, deterministic across targets. Applies the
+    /// standard 2-D rotation matrix `(x·cos − y·sin, x·sin + y·cos)`.
+    pub fn rotate(self, angle: Fixed) -> Vec2 {
+        let (sin, cos) = angle.sin_cos();
+        Vec2 {
+            x: self.x.mul(cos) - self.y.mul(sin),
+            y: self.x.mul(sin) + self.y.mul(cos),
+        }
+    }
+
+    /// Angle of this vector from the +x axis, in radians within `(-π, π]`, via
+    /// [`Fixed::atan2`]. The zero vector returns `0`.
+    #[inline]
+    pub fn angle(self) -> Fixed {
+        Fixed::atan2(self.y, self.x)
+    }
+
+    /// Component-wise linear interpolation: `a + (b − a)·t`. Mirrors
+    /// [`Fixed::lerp`]; `t` is typically in `[0, 1]` but is not clamped.
+    #[inline]
+    pub fn lerp(a: Vec2, b: Vec2, t: Fixed) -> Vec2 {
+        Vec2 {
+            x: Fixed::lerp(a.x, b.x, t),
+            y: Fixed::lerp(a.y, b.y, t),
+        }
+    }
+
+    /// Squared distance to `rhs`: `(self − rhs).len_sq()`. Cheaper than
+    /// [`distance`](Self::distance) when only comparing ranges.
+    #[inline]
+    pub fn distance_sq(self, rhs: Vec2) -> Fixed {
+        (self - rhs).len_sq()
+    }
+
+    /// Euclidean distance to `rhs`: `(self − rhs).len()`.
+    #[inline]
+    pub fn distance(self, rhs: Vec2) -> Fixed {
+        (self - rhs).len()
+    }
 }
 
 impl core::ops::Add for Vec2 {
@@ -202,6 +243,29 @@ impl Vec3 {
             y: self.y.div(l),
             z: self.z.div(l),
         })
+    }
+
+    /// Component-wise linear interpolation: `a + (b − a)·t`. Mirrors
+    /// [`Fixed::lerp`]; `t` is typically in `[0, 1]` but is not clamped.
+    #[inline]
+    pub fn lerp(a: Vec3, b: Vec3, t: Fixed) -> Vec3 {
+        Vec3 {
+            x: Fixed::lerp(a.x, b.x, t),
+            y: Fixed::lerp(a.y, b.y, t),
+            z: Fixed::lerp(a.z, b.z, t),
+        }
+    }
+
+    /// Squared distance to `rhs`: `(self − rhs).len_sq()`.
+    #[inline]
+    pub fn distance_sq(self, rhs: Vec3) -> Fixed {
+        (self - rhs).len_sq()
+    }
+
+    /// Euclidean distance to `rhs`: `(self − rhs).len()`.
+    #[inline]
+    pub fn distance(self, rhs: Vec3) -> Fixed {
+        (self - rhs).len()
     }
 }
 
@@ -331,6 +395,79 @@ mod tests {
     }
 
     #[test]
+    fn test_vec2_rotate_zero_is_near_identity() {
+        // CORDIC sin_cos(0) ≈ (0, 1) to a few LSBs, so a zero rotation returns
+        // the same vector within CORDIC precision (not bit-exact).
+        let v = Vec2::new(fi(3), fi(-4));
+        let r = v.rotate(Fixed::ZERO);
+        let dx = (r.x.raw() - v.x.raw()).abs();
+        let dy = (r.y.raw() - v.y.raw()).abs();
+        assert!(
+            dx < 600 && dy < 600,
+            "rotate(0)≈identity, got ({dx},{dy}) raw"
+        );
+    }
+
+    #[test]
+    fn test_vec2_rotate_quarter_turn_matches_perp() {
+        // Rotating +x by ~π/2 should land near +y, i.e. near perp().
+        let quarter = fr(355, 226); // ≈ π/2
+        let v = Vec2::new(fi(1), fi(0));
+        let r = v.rotate(quarter);
+        let p = v.perp(); // (0, 1)
+        let dx = (r.x.raw() - p.x.raw()).abs();
+        let dy = (r.y.raw() - p.y.raw()).abs();
+        assert!(dx < 600 && dy < 600, "rotate≈perp, got ({dx},{dy}) raw");
+    }
+
+    #[test]
+    fn test_vec2_rotate_preserves_length() {
+        let v = Vec2::new(fi(3), fi(4)); // len² = 25
+        let r = v.rotate(fr(1, 2)); // 0.5 rad
+        let diff = (r.len_sq().raw() - fi(25).raw()).abs();
+        // Allow CORDIC/mul rounding (a handful of LSBs scaled by the magnitude).
+        assert!(
+            diff < 4096,
+            "rotation should preserve length², raw diff {diff}"
+        );
+    }
+
+    #[test]
+    fn test_vec2_angle_round_trips() {
+        // +x axis → angle ≈ 0.
+        assert!(Vec2::new(fi(1), fi(0)).angle().raw().abs() < 600);
+        // +y axis → angle ≈ π/2 (raw ≈ 102944).
+        let a = Vec2::new(fi(0), fi(1)).angle().raw();
+        assert!((a - 102_944).abs() < 600, "angle(+y)≈π/2, got raw {a}");
+    }
+
+    #[test]
+    fn test_vec2_rotate_then_angle_adds() {
+        // Rotating +x by θ should give a vector whose angle ≈ θ.
+        let theta = fr(1, 2); // 0.5 rad
+        let r = Vec2::new(fi(1), fi(0)).rotate(theta);
+        let diff = (r.angle().raw() - theta.raw()).abs();
+        assert!(diff < 600, "angle after rotate ≈ θ, raw diff {diff}");
+    }
+
+    #[test]
+    fn test_vec2_lerp_endpoints_and_midpoint() {
+        let a = Vec2::new(fi(0), fi(10));
+        let b = Vec2::new(fi(10), fi(0));
+        assert_eq!(Vec2::lerp(a, b, Fixed::ZERO), a);
+        assert_eq!(Vec2::lerp(a, b, Fixed::ONE), b);
+        assert_eq!(Vec2::lerp(a, b, fr(1, 2)), Vec2::new(fi(5), fi(5)));
+    }
+
+    #[test]
+    fn test_vec2_distance_3_4_5() {
+        let a = Vec2::new(fi(1), fi(1));
+        let b = Vec2::new(fi(4), fi(5)); // dx=3, dy=4
+        assert_eq!(a.distance(b), fi(5));
+        assert_eq!(a.distance_sq(b), fi(25));
+    }
+
+    #[test]
     fn test_vec2_det_hash_changes_on_mutation() {
         use crate::world_hash::hash_state;
         let a = Vec2::new(fi(1), fi(2));
@@ -417,6 +554,24 @@ mod tests {
         let a = Vec3::new(fi(1), fi(2), fi(3));
         let b = Vec3::new(fi(1), fi(2), fi(4));
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_vec3_lerp_endpoints_and_midpoint() {
+        let a = Vec3::new(fi(0), fi(10), fi(2));
+        let b = Vec3::new(fi(10), fi(0), fi(6));
+        assert_eq!(Vec3::lerp(a, b, Fixed::ZERO), a);
+        assert_eq!(Vec3::lerp(a, b, Fixed::ONE), b);
+        assert_eq!(Vec3::lerp(a, b, fr(1, 2)), Vec3::new(fi(5), fi(5), fi(4)));
+    }
+
+    #[test]
+    fn test_vec3_distance() {
+        // dx=2, dy=3, dz=6 → len = 7
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(2), fi(3), fi(6));
+        assert_eq!(a.distance(b), fi(7));
+        assert_eq!(a.distance_sq(b), fi(49));
     }
 
     #[test]

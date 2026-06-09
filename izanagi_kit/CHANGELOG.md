@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `vec::Vec2` rotation and interpolation: `rotate(angle)` (2-D rotation matrix
+  driven by the fixed-point CORDIC `Fixed::sin_cos` — no float, deterministic),
+  `angle()` (vector heading via `Fixed::atan2`), `lerp(a, b, t)`,
+  `distance(rhs)` and `distance_sq(rhs)`. Closes the gap where the kit shipped
+  fixed-point trig but vectors could not rotate or report their heading — the
+  core operation for steering, projectiles, and tweening. `Vec3` gains the
+  matching `lerp` / `distance` / `distance_sq` for parity.
 - `examples/cave_spawn_demo.rs`: ties the three new primitives into one screen — `generate_cave` carves a 64×20 connected cavern, a depth-scaled `RandomTable<Spawn>` (monster weights rising with depth, items flat) scatters monsters and items onto floor cells, and `Distance::Chebyshev` tints the player's awareness radius and counts nearby monsters. Fully deterministic from one seed; the right panel lists the table's weights. (`cargo run --example cave_spawn_demo`)
 - `mapgen::generate_cave` / `mapgen::CaveParams`: organic cave generation via the
   **cellular-automata** method (RogueBasin "cave-like levels"; cf. `bracket-lib`
