@@ -66,6 +66,26 @@ impl Default for GenParams {
     }
 }
 
+/// Tuning for [`generate_cave`]. `Default` gives a balanced open cave.
+#[derive(Clone, Copy, Debug)]
+pub struct CaveParams {
+    /// Initial wall probability for interior cells, as a percent (`0..=100`).
+    /// Around 45 gives classic open caverns; higher yields tighter tunnels.
+    pub wall_percent: u32,
+    /// Number of cellular-automata smoothing passes. 4–6 is typical; more
+    /// passes produce smoother, blobbier walls.
+    pub steps: u32,
+}
+
+impl Default for CaveParams {
+    fn default() -> Self {
+        Self {
+            wall_percent: 45,
+            steps: 5,
+        }
+    }
+}
+
 /// A generated dungeon: a `width × height` grid of wall/floor plus the rooms
 /// that were placed (in placement order). Out-of-bounds cells are walls.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -215,6 +235,133 @@ pub fn generate_dungeon(
     dungeon
 }
 
+/// Generate an organic cave with the **cellular-automata** method (the
+/// RogueBasin "cave-like levels" technique; cf. `bracket-lib` and `rot.js`
+/// `Cellular`). Complements the rectangular [`generate_dungeon`]: where that
+/// places rooms, this grows winding caverns.
+///
+/// The pipeline is fully deterministic from `rng`:
+/// 1. **Seed** — each interior cell starts as floor with probability
+///    `100 - wall_percent`; the one-cell border is always wall.
+/// 2. **Smooth** — `steps` passes of the 4-5 rule: a cell becomes wall when 5+
+///    of its 8 neighbours (out-of-bounds counts as wall) are walls, else floor.
+/// 3. **Connect** — every floor cell outside the single largest 4-connected
+///    region is filled back to wall, so the returned cave is one connected
+///    space with no isolated pockets.
+///
+/// `rooms` is left empty (caves have no rectangular rooms). The result plugs
+/// straight into [`crate::fov`] / [`crate::pathfinding`] via [`Dungeon::is_wall`].
+pub fn generate_cave(width: u32, height: u32, rng: &mut SplitMix64, params: CaveParams) -> Dungeon {
+    let mut d = Dungeon::filled(width, height);
+    if width < 3 || height < 3 {
+        return d;
+    }
+    let (w, h) = (width as i32, height as i32);
+    let wp = params.wall_percent.min(100);
+
+    // 1. Random seed (interior only; border stays wall).
+    for y in 1..h - 1 {
+        for x in 1..w - 1 {
+            // Floor with probability (100 - wp)%. Draw once per interior cell.
+            if rng.below(100) >= wp {
+                d.carve(x, y);
+            }
+        }
+    }
+
+    // 2. Cellular-automata smoothing passes (4-5 rule, OOB = wall).
+    for _ in 0..params.steps {
+        // Start the next grid all-wall so the border is preserved untouched.
+        let mut next = vec![true; (width * height) as usize];
+        for y in 1..h - 1 {
+            for x in 1..w - 1 {
+                let walls = wall_neighbours(&d, x, y);
+                let idx = (y as u32 * width + x as u32) as usize;
+                next[idx] = walls >= 5;
+            }
+        }
+        d.tiles = next;
+    }
+
+    // 3. Cull everything but the largest connected floor region.
+    cull_to_largest_region(&mut d);
+    d
+}
+
+/// Count wall cells in the 8-neighbourhood of `(x, y)`; out-of-bounds is wall.
+fn wall_neighbours(d: &Dungeon, x: i32, y: i32) -> u32 {
+    let mut n = 0;
+    for dy in -1..=1 {
+        for dx in -1..=1 {
+            if dx == 0 && dy == 0 {
+                continue;
+            }
+            if d.is_wall(x + dx, y + dy) {
+                n += 1;
+            }
+        }
+    }
+    n
+}
+
+/// Keep only the largest 4-connected region of floor cells; fill the rest.
+/// No-op when there is no floor.
+fn cull_to_largest_region(d: &mut Dungeon) {
+    let (w, h) = (d.width as i32, d.height as i32);
+    let size = (d.width * d.height) as usize;
+    let mut region = vec![u32::MAX; size]; // region id per cell; MAX = unassigned/wall
+    let mut sizes: Vec<u32> = Vec::new();
+    let idx = |x: i32, y: i32| (y as u32 * d.width + x as u32) as usize;
+
+    let mut stack: Vec<(i32, i32)> = Vec::new();
+    for sy in 0..h {
+        for sx in 0..w {
+            if d.is_wall(sx, sy) || region[idx(sx, sy)] != u32::MAX {
+                continue;
+            }
+            // Flood-fill a new region (4-connectivity).
+            let id = sizes.len() as u32;
+            let mut count = 0u32;
+            stack.push((sx, sy));
+            region[idx(sx, sy)] = id;
+            while let Some((cx, cy)) = stack.pop() {
+                count += 1;
+                for (dx, dy) in [(0, -1), (0, 1), (-1, 0), (1, 0)] {
+                    let (nx, ny) = (cx + dx, cy + dy);
+                    if nx < 0 || ny < 0 || nx >= w || ny >= h {
+                        continue;
+                    }
+                    if d.is_floor(nx, ny) && region[idx(nx, ny)] == u32::MAX {
+                        region[idx(nx, ny)] = id;
+                        stack.push((nx, ny));
+                    }
+                }
+            }
+            sizes.push(count);
+        }
+    }
+
+    // Find the largest region; ties resolve to the lowest id (deterministic).
+    let Some(best) = sizes
+        .iter()
+        .enumerate()
+        .max_by(|a, b| a.1.cmp(b.1).then(b.0.cmp(&a.0)))
+        .map(|(i, _)| i as u32)
+    else {
+        return; // no floor at all
+    };
+
+    // Fill any floor cell not in the winning region.
+    for y in 0..h {
+        for x in 0..w {
+            let i = idx(x, y);
+            if region[i] != u32::MAX && region[i] != best {
+                d.tiles[i] = true;
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -295,5 +442,98 @@ mod tests {
         let d = generate_dungeon(2, 2, &mut rng, GenParams::default());
         assert!(d.rooms.is_empty());
         assert!(d.is_wall(0, 0) && d.is_wall(1, 1));
+    }
+
+    // ── cellular-automata caves ──────────────────────────────────────────────
+
+    #[test]
+    fn test_cave_same_seed_is_byte_identical() {
+        let mut a = SplitMix64::new(0x5EED);
+        let mut b = SplitMix64::new(0x5EED);
+        let ca = generate_cave(64, 40, &mut a, CaveParams::default());
+        let cb = generate_cave(64, 40, &mut b, CaveParams::default());
+        assert_eq!(ca, cb, "same seed must reproduce the cave exactly");
+    }
+
+    #[test]
+    fn test_cave_different_seed_differs() {
+        let mut a = SplitMix64::new(1);
+        let mut b = SplitMix64::new(2);
+        let ca = generate_cave(64, 40, &mut a, CaveParams::default());
+        let cb = generate_cave(64, 40, &mut b, CaveParams::default());
+        assert_ne!(ca, cb, "different seeds should produce different caves");
+    }
+
+    #[test]
+    fn test_cave_border_is_solid_wall() {
+        let mut rng = SplitMix64::new(7);
+        let d = generate_cave(50, 30, &mut rng, CaveParams::default());
+        for x in 0..d.width() as i32 {
+            assert!(d.is_wall(x, 0) && d.is_wall(x, d.height() as i32 - 1));
+        }
+        for y in 0..d.height() as i32 {
+            assert!(d.is_wall(0, y) && d.is_wall(d.width() as i32 - 1, y));
+        }
+    }
+
+    #[test]
+    fn test_cave_is_fully_connected_and_has_floor() {
+        // Connectivity is the headline guarantee: after culling there must be a
+        // single reachable floor region.
+        let mut rng = SplitMix64::new(0xCAFE);
+        let d = generate_cave(80, 45, &mut rng, CaveParams::default());
+
+        // Find any floor cell to seed the flood.
+        let mut start = None;
+        'outer: for y in 0..d.height() as i32 {
+            for x in 0..d.width() as i32 {
+                if d.is_floor(x, y) {
+                    start = Some((x, y));
+                    break 'outer;
+                }
+            }
+        }
+        let start = start.expect("a default cave should contain floor");
+        let reach = dijkstra_map(&[start], i32::MAX, |x, y| d.is_wall(x, y));
+        for y in 0..d.height() as i32 {
+            for x in 0..d.width() as i32 {
+                if d.is_floor(x, y) {
+                    assert!(
+                        reach.contains_key(&(x, y)),
+                        "floor cell ({x},{y}) unreachable — cave not connected"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_cave_has_no_rectangular_rooms() {
+        let mut rng = SplitMix64::new(11);
+        let d = generate_cave(60, 40, &mut rng, CaveParams::default());
+        assert!(d.rooms.is_empty(), "caves carry no Rect rooms");
+    }
+
+    #[test]
+    fn test_cave_tiny_map_returns_all_wall_without_panicking() {
+        let mut rng = SplitMix64::new(3);
+        let d = generate_cave(2, 2, &mut rng, CaveParams::default());
+        assert!(d.is_wall(0, 0) && d.is_wall(1, 1));
+    }
+
+    #[test]
+    fn test_cave_all_walls_when_fully_solid_seed() {
+        // wall_percent = 100 → no floor seeded → CA keeps it solid → no panic.
+        let mut rng = SplitMix64::new(5);
+        let params = CaveParams {
+            wall_percent: 100,
+            steps: 4,
+        };
+        let d = generate_cave(40, 25, &mut rng, params);
+        for y in 0..d.height() as i32 {
+            for x in 0..d.width() as i32 {
+                assert!(d.is_wall(x, y));
+            }
+        }
     }
 }

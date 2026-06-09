@@ -33,7 +33,7 @@ with per-feature implementation status — lives in
 | `world_hash` | FNV-1a per-frame state checksum for bit-exact replay assertions. |
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
-| `mapgen` / `wfc` / `multimap` | Procedural dungeons, Wave Function Collapse, multi-level worlds. |
+| `mapgen` / `wfc` / `multimap` | Procedural dungeons (rooms + cellular-automata caves), Wave Function Collapse, multi-level worlds. |
 | `fov` / `pathfinding` / `influence` / `fsm` | Symmetric FOV, (weighted) A*, Dijkstra flow maps, influence maps, state machines. |
 | `geometry` | Bresenham lines / line-of-sight and integer distance metrics (Manhattan, Chebyshev, Euclidean). |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
@@ -43,7 +43,7 @@ with per-feature implementation status — lives in
 
 ## Runnable examples
 
-Twenty self-contained demos render to the terminal via the `terminal` module
+Twenty-one self-contained demos render to the terminal via the `terminal` module
 (24-bit ANSI, zero OS dependencies — they run unchanged in CI):
 
 ```
@@ -67,6 +67,7 @@ cargo run --example archetype_demo           # ArchTable ECS: dense iteration + 
 cargo run --example asset_store_demo         # AssetStore<T> generational handle safety
 cargo run --example hud_panels_demo          # HudPanel + BarWidget + StatLine status screen
 cargo run --example timestep_demo            # FixedTimestep accumulator + death-spiral guard
+cargo run --example cave_spawn_demo          # cellular cave + depth-scaled RandomTable + Distance
 ```
 
 Pipe any of them to a truecolor terminal for full colour; in a plain pipe the

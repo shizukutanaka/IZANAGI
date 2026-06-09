@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `examples/cave_spawn_demo.rs`: ties the three new primitives into one screen — `generate_cave` carves a 64×20 connected cavern, a depth-scaled `RandomTable<Spawn>` (monster weights rising with depth, items flat) scatters monsters and items onto floor cells, and `Distance::Chebyshev` tints the player's awareness radius and counts nearby monsters. Fully deterministic from one seed; the right panel lists the table's weights. (`cargo run --example cave_spawn_demo`)
+- `mapgen::generate_cave` / `mapgen::CaveParams`: organic cave generation via the
+  **cellular-automata** method (RogueBasin "cave-like levels"; cf. `bracket-lib`
+  ch.27 and `rot.js` `Cellular`), complementing the rectangular
+  `generate_dungeon`. Deterministic three-stage pipeline driven by `SplitMix64`:
+  (1) random seed at `wall_percent`, border kept solid; (2) `steps` passes of the
+  4-5 rule (cell becomes wall with 5+ wall neighbours, out-of-bounds counts as
+  wall); (3) connectivity cull — every floor cell outside the largest 4-connected
+  region is filled back to wall, so the returned cave is guaranteed to be a single
+  connected space with no isolated pockets. Returns the same `Dungeon` type (with
+  `rooms` empty), so it plugs straight into `fov`/`pathfinding` via
+  `Dungeon::is_wall`. Re-exported as `izanagi_kit::{generate_cave, CaveParams}`.
 - `random_table::RandomTable<T>`: weighted random selection table for loot drops
   and depth-scaled spawn tables — the canonical roguelike pattern (cf. the *Rust
   Roguelike Tutorial* `random_table.rs` and `bracket-lib`). A typed layer over
