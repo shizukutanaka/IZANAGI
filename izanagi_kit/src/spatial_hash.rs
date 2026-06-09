@@ -119,6 +119,23 @@ impl<K: Eq + Clone> SpatialHash<K> {
         out
     }
 
+    /// All keys within Chebyshev distance `radius` of `(cx, cy)`.
+    ///
+    /// Chebyshev distance (king-move) is equivalent to a square: this queries
+    /// the cell range `[cx-radius, cx+radius] × [cy-radius, cy+radius]`.
+    /// Returns an empty vec for negative `radius`.
+    pub fn query_radius(&self, cx: i32, cy: i32, radius: i32) -> Vec<K> {
+        if radius < 0 {
+            return Vec::new();
+        }
+        self.query_rect(
+            cx.saturating_sub(radius),
+            cy.saturating_sub(radius),
+            2 * radius + 1,
+            2 * radius + 1,
+        )
+    }
+
     /// Total number of entity-cell registrations (not unique entities).
     pub fn len(&self) -> usize {
         self.cells.values().map(|v| v.len()).sum()
@@ -275,6 +292,32 @@ mod tests {
         assert_eq!(g.cell_count(), 2);
         g.remove(&1, 0, 0);
         assert_eq!(g.cell_count(), 1);
+    }
+
+    #[test]
+    fn test_query_radius_includes_center() {
+        let mut g = grid();
+        g.insert(1, 5, 5);
+        assert!(g.query_radius(5, 5, 0).contains(&1));
+    }
+
+    #[test]
+    fn test_query_radius_includes_nearby() {
+        let mut g = grid();
+        g.insert(1, 5, 5);
+        g.insert(2, 14, 14); // within Chebyshev radius 10 of (5,5)
+        g.insert(3, 100, 100); // far away
+        let result = g.query_radius(5, 5, 10);
+        assert!(result.contains(&1));
+        assert!(result.contains(&2));
+        assert!(!result.contains(&3));
+    }
+
+    #[test]
+    fn test_query_radius_negative_returns_empty() {
+        let mut g = grid();
+        g.insert(1, 5, 5);
+        assert!(g.query_radius(5, 5, -1).is_empty());
     }
 
     #[test]

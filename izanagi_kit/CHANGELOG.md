@@ -7,6 +7,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `sparse_set::SparseSet::retain(pred)`: bulk removal of all entries for which
+  `pred(entity, &value)` returns `false`. O(n) — each removed entry pays one
+  swap-remove. The canonical "remove dead entities at end-of-frame cleanup" pattern,
+  matching `Vec::retain` semantics. Avoids collecting entity IDs and calling
+  `remove` in a separate pass.
+- `influence::InfluenceMap::combine(other, num, den)`: cell-wise weighted addition
+  — `self[i] += other[i] * num / den` (saturating). Enables composing multiple
+  influence layers with different weights in one call (e.g. threat at −1× plus
+  food at +⅔). `den == 0` is treated as 1; maps of different sizes are a no-op.
+- `easing::ease_in_out_cubic`: completes the cubic easing family (the `in` and
+  `out` variants existed but `in_out` was missing). Formula: `4t³` for `t < 0.5`,
+  `1 − 4(1−t)³` for `t ≥ 0.5`. The most widely used of the cubic trio.
+- `aabb::Aabb::union(other)`: the smallest AABB enclosing both `self` and `other`.
+  Empty boxes are excluded from the result (a union with an empty box returns the
+  non-empty side). Equivalent to `bracket-lib`'s `Rect::union`. Useful for
+  computing aggregate bounding boxes over a set of colliders.
+- `spatial_hash::SpatialHash::query_radius(cx, cy, radius)`: all keys within
+  Chebyshev distance `radius` of a center point (equivalent to a square query
+  `[cx-r, cx+r] × [cy-r, cy+r]`). Complements `query_rect` with a center+radius
+  ergonomic API common to most roguelike spatial indices. Returns empty for
+  negative `radius`.
+- `multimap::MultiMap::current_mut()`: mutable borrow of the currently active
+  `Dungeon` floor. Complements the existing `current()` shared borrow — needed for
+  any map-edit operation (door open/close, terrain mutation, item placement) on the
+  live floor.
 - `entity::EntityAllocator::count()`: O(1) live entity count (`total_slots −
   free_slots`). Useful for diagnostics and save-file headers ("32 entities saved").
 - `camera::Camera::pan(dx, dy, world_w, world_h)`: scroll the viewport by a

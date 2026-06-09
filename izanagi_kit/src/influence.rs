@@ -122,6 +122,22 @@ impl InfluenceMap {
         self.cells.fill(0);
     }
 
+    /// Add `other * (num / den)` cell-wise into `self` (saturating). A no-op
+    /// if the maps differ in size. `den == 0` is treated as `1`.
+    ///
+    /// Useful for composing multiple influence layers with different weights,
+    /// e.g. `pref.combine(&threat, -1, 1); pref.combine(&food, 2, 3);`
+    pub fn combine(&mut self, other: &InfluenceMap, num: i32, den: i32) {
+        if other.width != self.width || other.height != self.height {
+            return;
+        }
+        let d = if den == 0 { 1 } else { den };
+        for (dst, &src) in self.cells.iter_mut().zip(other.cells.iter()) {
+            let scaled = src.saturating_mul(num) / d;
+            *dst = dst.saturating_add(scaled);
+        }
+    }
+
     /// The highest-valued immediate neighbour (8-directional) of `(x, y)`.
     /// Returns `(dx, dy, value)` where `(dx, dy)` is the step direction.
     /// Returns `None` if there are no in-bounds neighbours or the map is 1×1.
@@ -294,6 +310,54 @@ mod tests {
         let (dx, dy, v) = m.lowest_neighbour(1, 1).unwrap();
         assert_eq!((dx, dy), (-1, -1));
         assert_eq!(v, -50);
+    }
+
+    #[test]
+    fn test_combine_half_weight() {
+        let mut base = InfluenceMap::new(3, 3);
+        let mut other = InfluenceMap::new(3, 3);
+        other.set(1, 1, 100);
+        base.combine(&other, 1, 2); // add 50
+        assert_eq!(base.get(1, 1), Some(50));
+        assert_eq!(base.get(0, 0), Some(0));
+    }
+
+    #[test]
+    fn test_combine_full_weight_is_additive() {
+        let mut base = InfluenceMap::new(3, 3);
+        base.set(1, 1, 40);
+        let mut other = InfluenceMap::new(3, 3);
+        other.set(1, 1, 60);
+        base.combine(&other, 1, 1);
+        assert_eq!(base.get(1, 1), Some(100));
+    }
+
+    #[test]
+    fn test_combine_negative_weight_subtracts() {
+        let mut base = InfluenceMap::new(3, 3);
+        base.set(1, 1, 100);
+        let mut threat = InfluenceMap::new(3, 3);
+        threat.set(1, 1, 30);
+        base.combine(&threat, -1, 1);
+        assert_eq!(base.get(1, 1), Some(70));
+    }
+
+    #[test]
+    fn test_combine_mismatched_size_is_noop() {
+        let mut base = InfluenceMap::new(3, 3);
+        base.set(0, 0, 50);
+        let other = InfluenceMap::new(4, 4);
+        base.combine(&other, 1, 1);
+        assert_eq!(base.get(0, 0), Some(50)); // unchanged
+    }
+
+    #[test]
+    fn test_combine_zero_den_treated_as_one() {
+        let mut base = InfluenceMap::new(2, 2);
+        let mut other = InfluenceMap::new(2, 2);
+        other.set(0, 0, 10);
+        base.combine(&other, 3, 0); // den=0 → den=1, scaled=30
+        assert_eq!(base.get(0, 0), Some(30));
     }
 
     #[test]

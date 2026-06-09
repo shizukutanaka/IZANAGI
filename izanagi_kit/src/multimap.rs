@@ -93,6 +93,11 @@ impl MultiMap {
         self.floors.get(self.current_floor as usize)
     }
 
+    /// Mutably borrow the currently active `Dungeon`.
+    pub fn current_mut(&mut self) -> Option<&mut Dungeon> {
+        self.floors.get_mut(self.current_floor as usize)
+    }
+
     /// Add a connector between two floor positions.
     pub fn add_connector(&mut self, connector: Connector) {
         self.connectors.push(connector);
@@ -242,6 +247,13 @@ mod tests {
         a.add_connector(conn.clone());
         b.add_connector(conn);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_current_mut_returns_active_floor() {
+        let floors = vec![make_floor(10)];
+        let mut m = MultiMap::new(floors, 0);
+        assert!(m.current_mut().is_some());
     }
 
     #[test]

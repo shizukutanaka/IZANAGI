@@ -122,6 +122,23 @@ impl Aabb {
         (self.x + self.w / 2, self.y + self.h / 2)
     }
 
+    /// The smallest AABB enclosing both `self` and `other`. Empty boxes are
+    /// excluded from the result: if one side is empty the other is returned; if
+    /// both are empty, an empty box at the origin is returned.
+    pub fn union(&self, other: &Aabb) -> Aabb {
+        if self.is_empty() {
+            return *other;
+        }
+        if other.is_empty() {
+            return *self;
+        }
+        let x = self.x.min(other.x);
+        let y = self.y.min(other.y);
+        let r = self.right().max(other.right());
+        let b = self.bottom().max(other.bottom());
+        Aabb::new(x, y, r - x, b - y)
+    }
+
     /// True when `other` lies entirely within `self` (boundary inclusive). An
     /// empty `other` is never contained.
     #[inline]
@@ -315,6 +332,34 @@ mod tests {
     fn test_center_biases_top_left_on_even() {
         assert_eq!(r(0, 0, 4, 4).center(), (2, 2));
         assert_eq!(r(2, 3, 5, 3).center(), (4, 4));
+    }
+
+    // --- union ---
+
+    #[test]
+    fn test_union_two_disjoint_boxes() {
+        let u = r(0, 0, 4, 4).union(&r(6, 6, 4, 4));
+        assert_eq!(u, r(0, 0, 10, 10));
+    }
+
+    #[test]
+    fn test_union_overlapping_boxes() {
+        let u = r(0, 0, 4, 4).union(&r(2, 2, 4, 4));
+        assert_eq!(u, r(0, 0, 6, 6));
+    }
+
+    #[test]
+    fn test_union_with_empty_returns_other() {
+        let non_empty = r(1, 2, 3, 4);
+        assert_eq!(r(0, 0, 0, 4).union(&non_empty), non_empty);
+        assert_eq!(non_empty.union(&r(0, 0, 0, 4)), non_empty);
+    }
+
+    #[test]
+    fn test_union_symmetric() {
+        let a = r(1, 2, 3, 4);
+        let b = r(5, 6, 2, 2);
+        assert_eq!(a.union(&b), b.union(&a));
     }
 
     // --- contains (rect-in-rect) ---

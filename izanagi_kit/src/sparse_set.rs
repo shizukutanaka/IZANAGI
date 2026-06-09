@@ -80,6 +80,23 @@ impl<T> SparseSet<T> {
         self.slot(entity).is_some()
     }
 
+    /// Remove all entries for which `pred(entity, &value)` returns `false`.
+    /// Useful for bulk-removing dead entities at the end of a frame. O(n).
+    /// Each surviving entry is visited once; each removed entry pays one
+    /// swap-remove (the last element moves into the vacated slot, so after a
+    /// removal the same index is re-examined without advancing).
+    pub fn retain<F: Fn(Entity, &T) -> bool>(&mut self, pred: F) {
+        let mut i = 0;
+        while i < self.dense_entities.len() {
+            let entity = self.dense_entities[i];
+            if !pred(entity, &self.dense_values[i]) {
+                self.remove(entity);
+            } else {
+                i += 1;
+            }
+        }
+    }
+
     /// Removes via swap-remove, returning the value. O(1).
     pub fn remove(&mut self, entity: Entity) -> Option<T> {
         let pos = self.slot(entity)? as usize;
@@ -299,6 +316,47 @@ mod tests {
         let ids_rev: Vec<u32> = join(&b, &a).iter().map(|(e, _, _)| e.index()).collect();
         assert_eq!(ids, vec![0, 2]);
         assert_eq!(ids, ids_rev, "join order must not depend on argument order");
+    }
+
+    #[test]
+    fn test_retain_keeps_matching() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 2);
+        s.insert(es[2], 3);
+        // Keep only even values.
+        s.retain(|_, v| v % 2 == 0);
+        assert_eq!(s.len(), 1);
+        assert_eq!(s.get(es[1]), Some(&2));
+        assert_eq!(s.get(es[0]), None);
+        assert_eq!(s.get(es[2]), None);
+    }
+
+    #[test]
+    fn test_retain_false_clears_all() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        for (i, &e) in es.iter().enumerate() {
+            s.insert(e, i as u32);
+        }
+        s.retain(|_, _| false);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_retain_true_keeps_all() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        for (i, &e) in es.iter().enumerate() {
+            s.insert(e, i as u32);
+        }
+        s.retain(|_, _| true);
+        assert_eq!(s.len(), 3);
+        // All original values survive.
+        for (i, &e) in es.iter().enumerate() {
+            assert_eq!(s.get(e), Some(&(i as u32)));
+        }
     }
 
     #[test]

@@ -23,6 +23,19 @@ pub fn ease_out_quad(t: Fixed) -> Fixed {
     one - inv.mul(inv)
 }
 
+/// Ease-in-out cubic: blends `ease_in_cubic` and `ease_out_cubic` at the midpoint.
+/// Formula: `4t³` for `t < 0.5`, `1 - 4(1-t)³` for `t ≥ 0.5`.
+pub fn ease_in_out_cubic(t: Fixed) -> Fixed {
+    let half = Fixed::from_ratio(1, 2);
+    let four = Fixed::from_int(4);
+    if t < half {
+        four.mul(t.mul(t).mul(t))
+    } else {
+        let inv = Fixed::ONE - t;
+        Fixed::ONE - four.mul(inv.mul(inv).mul(inv))
+    }
+}
+
 /// Ease-in-out quadratic: blends `ease_in` and `ease_out` at the midpoint.
 pub fn ease_in_out_quad(t: Fixed) -> Fixed {
     let two = Fixed::from_int(2);
@@ -227,6 +240,36 @@ mod tests {
         // ease_out_quad(0.5) = 1 - 0.25 = 0.75
         let h = fr(1, 2);
         approx(ease_out_quad(h), fr(3, 4), 4, "out_quad(0.5)");
+    }
+
+    #[test]
+    fn test_ease_in_out_cubic_endpoints() {
+        let tol = 4;
+        approx(
+            ease_in_out_cubic(Fixed::ZERO),
+            Fixed::ZERO,
+            tol,
+            "in_out_cubic(0)",
+        );
+        approx(
+            ease_in_out_cubic(Fixed::ONE),
+            Fixed::ONE,
+            tol,
+            "in_out_cubic(1)",
+        );
+    }
+
+    #[test]
+    fn test_ease_in_out_cubic_midpoint_is_half() {
+        let h = fr(1, 2);
+        approx(ease_in_out_cubic(h), h, 4, "in_out_cubic(0.5)");
+    }
+
+    #[test]
+    fn test_ease_in_out_cubic_quarter_value() {
+        // ease_in_out_cubic(0.25) = 4 * (0.25)^3 = 4 * 0.015625 = 0.0625 = 1/16
+        let q = fr(1, 4);
+        approx(ease_in_out_cubic(q), fr(1, 16), 4, "in_out_cubic(0.25)");
     }
 
     #[test]
