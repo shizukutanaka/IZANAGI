@@ -163,6 +163,42 @@ impl Screen {
         self.prev.copy_from_slice(&self.cells);
     }
 
+    /// Draw a single-line box border with corners `┌┐└┘` and edges `─│`.
+    /// `w` and `h` are the outer dimensions in cells. The interior is untouched.
+    /// Fully clipped — no panic for out-of-bounds positions.
+    pub fn draw_box(&mut self, x: i32, y: i32, w: u32, h: u32, fg: Color, bg: Color) {
+        if w == 0 || h == 0 {
+            return;
+        }
+        let x1 = x + w as i32 - 1;
+        let y1 = y + h as i32 - 1;
+        // Corners
+        self.set(x, y, '┌', fg, bg);
+        self.set(x1, y, '┐', fg, bg);
+        self.set(x, y1, '└', fg, bg);
+        self.set(x1, y1, '┘', fg, bg);
+        // Top and bottom edges
+        for dx in 1..w as i32 - 1 {
+            self.set(x + dx, y, '─', fg, bg);
+            self.set(x + dx, y1, '─', fg, bg);
+        }
+        // Left and right edges
+        for dy in 1..h as i32 - 1 {
+            self.set(x, y + dy, '│', fg, bg);
+            self.set(x1, y + dy, '│', fg, bg);
+        }
+    }
+
+    /// Resize the screen to `width × height`, discarding all previous content.
+    /// Both the front and back buffers are reset to blank cells.
+    pub fn resize(&mut self, width: u32, height: u32) {
+        let len = (width as usize) * (height as usize);
+        self.width = width;
+        self.height = height;
+        self.cells = vec![Cell::blank(); len];
+        self.prev = vec![Cell::blank(); len];
+    }
+
     /// Serialise the whole frame to a 24-bit-ANSI string: cursor home, then each
     /// row with truecolor SGR sequences, ending with a reset. Deterministic
     /// (SGR is re-emitted only when a cell's colours differ from the previous
@@ -277,6 +313,54 @@ mod tests {
         assert!(sa.contains('@'));
         assert!(sa.contains("38;2;255;0;0"), "truecolor fg SGR for red");
         assert!(sa.starts_with("\x1b[H"));
+    }
+
+    #[test]
+    fn test_draw_box_corners_and_edges() {
+        let mut s = Screen::new(5, 4);
+        s.draw_box(0, 0, 5, 4, DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, '┌');
+        assert_eq!(s.get(4, 0).unwrap().glyph, '┐');
+        assert_eq!(s.get(0, 3).unwrap().glyph, '└');
+        assert_eq!(s.get(4, 3).unwrap().glyph, '┘');
+        assert_eq!(s.get(1, 0).unwrap().glyph, '─');
+        assert_eq!(s.get(0, 1).unwrap().glyph, '│');
+        // Interior is untouched.
+        assert_eq!(s.get(1, 1).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_box_zero_size_is_noop() {
+        let mut s = Screen::new(4, 4);
+        s.draw_box(0, 0, 0, 4, DEFAULT_FG, DEFAULT_BG);
+        s.draw_box(0, 0, 4, 0, DEFAULT_FG, DEFAULT_BG);
+        assert!(s.diff().is_empty());
+    }
+
+    #[test]
+    fn test_draw_box_clipped_no_panic() {
+        let mut s = Screen::new(4, 4);
+        s.draw_box(-1, -1, 6, 6, DEFAULT_FG, DEFAULT_BG); // must not panic
+    }
+
+    #[test]
+    fn test_resize_resets_content() {
+        let mut s = Screen::new(4, 4);
+        s.set(1, 1, '@', RED, DEFAULT_BG);
+        s.present();
+        s.resize(6, 3);
+        assert_eq!(s.width(), 6);
+        assert_eq!(s.height(), 3);
+        assert_eq!(s.get(1, 1).unwrap().glyph, ' ');
+        assert!(s.diff().is_empty(), "resize resets the diff baseline");
+    }
+
+    #[test]
+    fn test_resize_allows_drawing_at_new_bounds() {
+        let mut s = Screen::new(2, 2);
+        s.resize(5, 5);
+        s.set(4, 4, 'Z', RED, DEFAULT_BG);
+        assert_eq!(s.get(4, 4).unwrap().glyph, 'Z');
     }
 
     #[test]

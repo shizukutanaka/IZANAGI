@@ -7,6 +7,27 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `vec::Vec2`: `abs()`, `min(a, b)`, `max(a, b)`, `clamp(lo, hi)` — component-wise
+  utilities present in bracket-lib's geometry crate. `abs` maps each component
+  through `Fixed::abs`; `min`/`max` use component-wise comparisons; `clamp`
+  composes them. All operations are deterministic and saturating, safe to include
+  in world hashes.
+- `vec::Vec3`: same `abs()`, `min()`, `max()`, `clamp()` additions plus `xy()` —
+  project to `Vec2` by dropping `z`. Mirrors the `glam::Vec3::xy()` convention and
+  covers the common top-down 2D view of a 3D world-space position.
+- `vec::Vec2::Neg`, `vec::Vec3::Neg`, `vec::Vec2::perp`: replaced `Fixed::ZERO - v`
+  workarounds with idiomatic `-v` now that `Fixed::Neg` is implemented. Behaviour
+  is identical (saturating subtraction and saturating negation are equivalent for
+  all Q16.16 values); the change is purely for readability.
+- `terminal::Screen::draw_box(x, y, w, h, fg, bg)`: draws a single-line box border
+  using Unicode box-drawing characters `┌┐└┘─│`. The interior is untouched.
+  Out-of-bounds positions are silently clipped via the existing `put` contract —
+  no panic. The missing primitive for roguelike panels, inventory windows, and HUD
+  borders.
+- `terminal::Screen::resize(width, height)`: replace the front and back buffers
+  with blank cells at the new dimensions, discarding all previous content. Required
+  for real-world `SIGWINCH` / terminal-resize handling where the caller redraws
+  from scratch.
 - `profiler::Profiler::avg(section)`: rolling average tick-total for a section
   over the history window. The method was documented in the module doc-comment but
   never implemented; this fills the gap. Only ticks where the section recorded at

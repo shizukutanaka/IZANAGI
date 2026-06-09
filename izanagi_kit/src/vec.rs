@@ -82,7 +82,7 @@ impl Vec2 {
     #[inline]
     pub fn perp(self) -> Vec2 {
         Vec2 {
-            x: Fixed::ZERO - self.y,
+            x: -self.y,
             y: self.x,
         }
     }
@@ -113,6 +113,39 @@ impl Vec2 {
             x: Fixed::lerp(a.x, b.x, t),
             y: Fixed::lerp(a.y, b.y, t),
         }
+    }
+
+    /// Component-wise absolute value: `(|x|, |y|)`.
+    #[inline]
+    pub fn abs(self) -> Vec2 {
+        Vec2 {
+            x: self.x.abs(),
+            y: self.y.abs(),
+        }
+    }
+
+    /// Component-wise minimum: `(min(a.x, b.x), min(a.y, b.y))`.
+    #[inline]
+    pub fn min(a: Vec2, b: Vec2) -> Vec2 {
+        Vec2 {
+            x: if a.x <= b.x { a.x } else { b.x },
+            y: if a.y <= b.y { a.y } else { b.y },
+        }
+    }
+
+    /// Component-wise maximum: `(max(a.x, b.x), max(a.y, b.y))`.
+    #[inline]
+    pub fn max(a: Vec2, b: Vec2) -> Vec2 {
+        Vec2 {
+            x: if a.x >= b.x { a.x } else { b.x },
+            y: if a.y >= b.y { a.y } else { b.y },
+        }
+    }
+
+    /// Component-wise clamp: each component clamped to `[lo, hi]`.
+    #[inline]
+    pub fn clamp(self, lo: Vec2, hi: Vec2) -> Vec2 {
+        Vec2::min(Vec2::max(self, lo), hi)
     }
 
     /// Squared distance to `rhs`: `(self − rhs).len_sq()`. Cheaper than
@@ -156,8 +189,8 @@ impl core::ops::Neg for Vec2 {
     #[inline]
     fn neg(self) -> Vec2 {
         Vec2 {
-            x: Fixed::ZERO - self.x,
-            y: Fixed::ZERO - self.y,
+            x: -self.x,
+            y: -self.y,
         }
     }
 }
@@ -256,6 +289,51 @@ impl Vec3 {
         }
     }
 
+    /// Project to a [`Vec2`] by dropping `z`.
+    #[inline]
+    pub fn xy(self) -> Vec2 {
+        Vec2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
+
+    /// Component-wise absolute value.
+    #[inline]
+    pub fn abs(self) -> Vec3 {
+        Vec3 {
+            x: self.x.abs(),
+            y: self.y.abs(),
+            z: self.z.abs(),
+        }
+    }
+
+    /// Component-wise minimum.
+    #[inline]
+    pub fn min(a: Vec3, b: Vec3) -> Vec3 {
+        Vec3 {
+            x: if a.x <= b.x { a.x } else { b.x },
+            y: if a.y <= b.y { a.y } else { b.y },
+            z: if a.z <= b.z { a.z } else { b.z },
+        }
+    }
+
+    /// Component-wise maximum.
+    #[inline]
+    pub fn max(a: Vec3, b: Vec3) -> Vec3 {
+        Vec3 {
+            x: if a.x >= b.x { a.x } else { b.x },
+            y: if a.y >= b.y { a.y } else { b.y },
+            z: if a.z >= b.z { a.z } else { b.z },
+        }
+    }
+
+    /// Component-wise clamp to `[lo, hi]`.
+    #[inline]
+    pub fn clamp(self, lo: Vec3, hi: Vec3) -> Vec3 {
+        Vec3::min(Vec3::max(self, lo), hi)
+    }
+
     /// Squared distance to `rhs`: `(self − rhs).len_sq()`.
     #[inline]
     pub fn distance_sq(self, rhs: Vec3) -> Fixed {
@@ -298,9 +376,9 @@ impl core::ops::Neg for Vec3 {
     #[inline]
     fn neg(self) -> Vec3 {
         Vec3 {
-            x: Fixed::ZERO - self.x,
-            y: Fixed::ZERO - self.y,
-            z: Fixed::ZERO - self.z,
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
         }
     }
 }
@@ -580,5 +658,65 @@ mod tests {
         let v = Vec2::new(fi(4), fi(8));
         let half = fr(1, 2);
         assert_eq!(v.scale(half), Vec2::new(fi(2), fi(4)));
+    }
+
+    #[test]
+    fn test_vec2_abs() {
+        assert_eq!(Vec2::new(fi(-3), fi(4)).abs(), Vec2::new(fi(3), fi(4)));
+        assert_eq!(Vec2::ZERO.abs(), Vec2::ZERO);
+    }
+
+    #[test]
+    fn test_vec2_min_max() {
+        let a = Vec2::new(fi(1), fi(5));
+        let b = Vec2::new(fi(3), fi(2));
+        assert_eq!(Vec2::min(a, b), Vec2::new(fi(1), fi(2)));
+        assert_eq!(Vec2::max(a, b), Vec2::new(fi(3), fi(5)));
+    }
+
+    #[test]
+    fn test_vec2_clamp() {
+        let lo = Vec2::new(fi(0), fi(0));
+        let hi = Vec2::new(fi(10), fi(10));
+        assert_eq!(
+            Vec2::new(fi(-1), fi(15)).clamp(lo, hi),
+            Vec2::new(fi(0), fi(10))
+        );
+        assert_eq!(
+            Vec2::new(fi(5), fi(5)).clamp(lo, hi),
+            Vec2::new(fi(5), fi(5))
+        );
+    }
+
+    #[test]
+    fn test_vec3_xy_drops_z() {
+        let v = Vec3::new(fi(1), fi(2), fi(99));
+        assert_eq!(v.xy(), Vec2::new(fi(1), fi(2)));
+    }
+
+    #[test]
+    fn test_vec3_abs() {
+        assert_eq!(
+            Vec3::new(fi(-1), fi(2), fi(-3)).abs(),
+            Vec3::new(fi(1), fi(2), fi(3))
+        );
+    }
+
+    #[test]
+    fn test_vec3_min_max() {
+        let a = Vec3::new(fi(1), fi(5), fi(3));
+        let b = Vec3::new(fi(2), fi(1), fi(4));
+        assert_eq!(Vec3::min(a, b), Vec3::new(fi(1), fi(1), fi(3)));
+        assert_eq!(Vec3::max(a, b), Vec3::new(fi(2), fi(5), fi(4)));
+    }
+
+    #[test]
+    fn test_vec3_clamp() {
+        let lo = Vec3::new(fi(0), fi(0), fi(0));
+        let hi = Vec3::new(fi(5), fi(5), fi(5));
+        assert_eq!(
+            Vec3::new(fi(-1), fi(3), fi(9)).clamp(lo, hi),
+            Vec3::new(fi(0), fi(3), fi(5))
+        );
     }
 }
