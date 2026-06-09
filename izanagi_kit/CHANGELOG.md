@@ -7,6 +7,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `profiler::Profiler::avg(section)`: rolling average tick-total for a section
+  over the history window. The method was documented in the module doc-comment but
+  never implemented; this fills the gap. Only ticks where the section recorded at
+  least one sample are counted (silent ticks don't dilute the average).
+- `fixed::Fixed`: `core::ops::Neg` implementation. Previous code had to write
+  `Fixed::ZERO - v` to negate; the new impl makes `-v` work directly. Saturating:
+  `-Fixed::MIN` returns `Fixed::MAX` instead of overflowing.
+- `assets::AssetStore::iter_mut()`: mutable `(handle, &mut asset)` iteration in
+  ascending slot-index order. Fills the symmetric gap left by `iter()`. Enables
+  in-place mass updates (e.g. ticking all sprite animation frames) without
+  collect-then-update round-trips.
+- `assets::AssetStore::retain(pred)`: remove all assets for which
+  `pred(handle, &asset)` returns `false`. Parallel to `SparseSet::retain` — the
+  end-of-frame cleanup pattern without a collect+remove loop. Removed slots are
+  freed and handles permanently invalidated.
+- `keymap::KeyMap::clear()`: remove all bindings at once. Useful for rebuilding a
+  key layout at runtime (e.g. when the player changes the control scheme in the
+  options menu).
+- `wfc::WfcRules::disallow(tile, dir, neighbor)`: the symmetric counterpart of
+  `allow`. Clears the corresponding adjacency bit so the combination is no longer
+  permitted. Out-of-range arguments are silently ignored (same contract as
+  `allow`).
+- `savefile::LoadError`: `std::fmt::Display` and `std::error::Error` implementations.
+  The type previously only derived `Debug`; the new impls allow it to be used in
+  `?`-chains with `anyhow` / `thiserror`-style error plumbing, and to be printed
+  as a human-readable message (e.g. "save file checksum mismatch").
 - `rng::SplitMix64::shuffle(slice)`: Fisher-Yates in-place shuffle. Draws
   `slice.len() − 1` times using `below` so the draw count is deterministic and
   the sequence replays identically given the same seed and position. Handles

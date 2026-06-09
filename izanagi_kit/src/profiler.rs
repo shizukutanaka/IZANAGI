@@ -130,6 +130,32 @@ impl Profiler {
     pub fn section_names(&self) -> impl Iterator<Item = &str> {
         self.sections.iter().map(|s| s.name)
     }
+
+    /// Rolling average tick-total for `section` over the history window.
+    ///
+    /// Only ticks where the section was actually recorded are included in the
+    /// average (ticks where it was silent don't count). Returns `0` if the
+    /// section is unknown or has no history entries yet (i.e. `begin_tick` has
+    /// not been called since the first `record`).
+    pub fn avg(&self, section: &str) -> u64 {
+        let Some(idx) = self.sections.iter().position(|s| s.name == section) else {
+            return 0;
+        };
+        let idx = idx as u32;
+        let mut sum = 0u64;
+        let mut count = 0u64;
+        for &(i, total) in &self.history {
+            if i == idx {
+                sum = sum.saturating_add(total);
+                count += 1;
+            }
+        }
+        if count == 0 {
+            0
+        } else {
+            sum / count
+        }
+    }
 }
 
 impl DetHash for Profiler {
@@ -294,6 +320,38 @@ mod tests {
         let names: Vec<&str> = p.section_names().collect();
         assert!(names.contains(&"a"));
         assert!(names.contains(&"b"));
+    }
+
+    #[test]
+    fn test_avg_over_multiple_ticks() {
+        let mut p = Profiler::new(4);
+        p.record("work", 100);
+        p.begin_tick();
+        p.record("work", 200);
+        p.begin_tick();
+        // avg over 2 flushed ticks: (100 + 200) / 2 = 150
+        assert_eq!(p.avg("work"), 150);
+    }
+
+    #[test]
+    fn test_avg_unknown_section_returns_zero() {
+        let p = Profiler::new(4);
+        assert_eq!(p.avg("missing"), 0);
+    }
+
+    #[test]
+    fn test_avg_no_history_returns_zero() {
+        let mut p = Profiler::new(4);
+        p.record("work", 100); // not yet flushed by begin_tick
+        assert_eq!(p.avg("work"), 0);
+    }
+
+    #[test]
+    fn test_avg_single_tick() {
+        let mut p = Profiler::new(8);
+        p.record("render", 300);
+        p.begin_tick();
+        assert_eq!(p.avg("render"), 300);
     }
 
     #[test]

@@ -70,6 +70,12 @@ impl<K: Eq + Clone, A: Clone> KeyMap<K, A> {
         keys.iter().filter_map(|k| self.get(k).cloned()).collect()
     }
 
+    /// Remove all bindings. Useful for resetting to a clean state before
+    /// rebuilding a key layout at runtime.
+    pub fn clear(&mut self) {
+        self.bindings.clear();
+    }
+
     /// Iterate all bindings in insertion order.
     pub fn iter(&self) -> impl Iterator<Item = (&K, &A)> {
         self.bindings.iter().map(|(k, a)| (k, a))
@@ -194,5 +200,23 @@ mod tests {
     fn test_new_is_default_empty() {
         let m: KeyMap<char, Action> = KeyMap::new();
         assert!(m.is_empty());
+    }
+
+    #[test]
+    fn test_clear_removes_all_bindings() {
+        let mut m = default_map();
+        m.clear();
+        assert!(m.is_empty());
+        assert_eq!(m.len(), 0);
+        assert_eq!(m.get(&'k'), None);
+    }
+
+    #[test]
+    fn test_clear_then_rebind() {
+        let mut m = default_map();
+        m.clear();
+        m.bind('x', Action::Quit);
+        assert_eq!(m.len(), 1);
+        assert_eq!(m.get(&'x'), Some(&Action::Quit));
     }
 }

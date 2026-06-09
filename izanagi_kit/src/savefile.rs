@@ -88,6 +88,25 @@ pub enum LoadError {
     ChecksumMismatch,
 }
 
+impl core::fmt::Display for LoadError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            LoadError::TooShort => write!(
+                f,
+                "save file too short or declared payload length exceeds buffer"
+            ),
+            LoadError::BadMagic => {
+                write!(f, "save file magic mismatch (expected b\"IZNG\")")
+            }
+            LoadError::ChecksumMismatch => {
+                write!(f, "save file checksum mismatch: payload may be corrupted")
+            }
+        }
+    }
+}
+
+impl std::error::Error for LoadError {}
+
 /// FNV-1a 64-bit hash over raw bytes. Not exposed; callers use the checksums
 /// embedded in save files rather than hashing payloads directly.
 fn fnv1a(data: &[u8]) -> u64 {
@@ -204,6 +223,19 @@ mod tests {
         let data = save_bytes(&SaveHeader { version: 100 }, &payload);
         let (_, p) = load_bytes(&data).unwrap();
         assert_eq!(p, payload.as_slice());
+    }
+
+    #[test]
+    fn test_load_error_display_non_empty() {
+        assert!(!LoadError::TooShort.to_string().is_empty());
+        assert!(!LoadError::BadMagic.to_string().is_empty());
+        assert!(!LoadError::ChecksumMismatch.to_string().is_empty());
+    }
+
+    #[test]
+    fn test_load_error_is_std_error() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+        assert_error(&LoadError::TooShort);
     }
 
     #[test]

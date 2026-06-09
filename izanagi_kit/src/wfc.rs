@@ -86,6 +86,14 @@ impl WfcRules {
         }
     }
 
+    /// Remove the adjacency permission: `tile` may no longer have `neighbor` in
+    /// direction `dir`. Out-of-range arguments are silently ignored.
+    pub fn disallow(&mut self, tile: u8, dir: usize, neighbor: u8) {
+        if (tile as usize) < self.adj.len() && dir < 4 && neighbor < self.tile_count {
+            self.adj[tile as usize][dir] &= !(1u64 << neighbor);
+        }
+    }
+
     /// Allow `tile_a` to be in direction `dir` next to `tile_b`, and
     /// symmetrically allow `tile_b` to be in the opposite direction next to
     /// `tile_a`. Use this to keep rules consistent without duplication.
@@ -465,6 +473,37 @@ mod tests {
             }
             WfcResult::Contradiction => panic!(),
         }
+    }
+
+    #[test]
+    fn test_disallow_removes_adjacency() {
+        let mut r = WfcRules::new(2);
+        r.allow(0, 0, 1);
+        assert!(r.adj[0][0] & (1 << 1) != 0);
+        r.disallow(0, 0, 1);
+        assert_eq!(r.adj[0][0] & (1 << 1), 0);
+    }
+
+    #[test]
+    fn test_disallow_out_of_range_is_noop() {
+        let mut r = WfcRules::new(2);
+        r.allow(0, 0, 1);
+        r.disallow(5, 0, 1); // tile out of range
+        r.disallow(0, 5, 1); // dir out of range
+        assert!(r.adj[0][0] & (1 << 1) != 0, "original bit must survive");
+    }
+
+    #[test]
+    fn test_disallow_does_not_affect_other_dirs() {
+        let mut r = WfcRules::new(2);
+        for dir in 0..4 {
+            r.allow(0, dir, 1);
+        }
+        r.disallow(0, 1, 1); // remove only East
+        assert_eq!(r.adj[0][1] & (1 << 1), 0); // East cleared
+        assert!(r.adj[0][0] & (1 << 1) != 0); // North intact
+        assert!(r.adj[0][2] & (1 << 1) != 0); // South intact
+        assert!(r.adj[0][3] & (1 << 1) != 0); // West intact
     }
 
     #[test]

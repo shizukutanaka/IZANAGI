@@ -325,6 +325,19 @@ impl core::ops::Sub for Fixed {
     }
 }
 
+impl core::ops::Neg for Fixed {
+    type Output = Fixed;
+    /// Saturating negation: `Fixed::MIN.neg()` returns `Fixed::MAX` (no panic).
+    #[inline]
+    fn neg(self) -> Fixed {
+        if self.0 == i32::MIN {
+            Fixed::MAX
+        } else {
+            Fixed(-self.0)
+        }
+    }
+}
+
 impl crate::world_hash::DetHash for Fixed {
     #[inline]
     fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
@@ -574,6 +587,32 @@ mod tests {
     fn test_clamp_above_hi_returns_hi() {
         let hi = Fixed::from_int(8);
         assert_eq!(Fixed::from_int(100).clamp(Fixed::from_int(1), hi), hi);
+    }
+
+    #[test]
+    fn test_neg_positive() {
+        assert_eq!((-Fixed::from_int(3)).to_int_trunc(), -3);
+    }
+
+    #[test]
+    fn test_neg_negative() {
+        assert_eq!((-Fixed::from_int(-5)).to_int_trunc(), 5);
+    }
+
+    #[test]
+    fn test_neg_zero() {
+        assert_eq!(-Fixed::ZERO, Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_neg_min_saturates_to_max() {
+        assert_eq!(-Fixed::MIN, Fixed::MAX);
+    }
+
+    #[test]
+    fn test_neg_double_is_identity() {
+        let v = Fixed::from_int(7);
+        assert_eq!(-(-v), v);
     }
 
     #[test]

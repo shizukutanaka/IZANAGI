@@ -172,6 +172,50 @@ impl<T> AssetStore<T> {
             })
         })
     }
+
+    /// Iterate `(handle, &mut asset)` for all live assets in ascending index order.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (AssetHandle<T>, &mut T)> + '_ {
+        self.slots.iter_mut().enumerate().filter_map(|(i, s)| {
+            let gen = s.generation;
+            s.value.as_mut().map(|v| {
+                (
+                    AssetHandle {
+                        index: i as u32,
+                        generation: gen,
+                        _marker: PhantomData,
+                    },
+                    v,
+                )
+            })
+        })
+    }
+
+    /// Retain only assets for which `pred(handle, &asset)` returns `true`.
+    /// Assets failing the predicate are removed and their handles invalidated.
+    pub fn retain<F: Fn(AssetHandle<T>, &T) -> bool>(&mut self, pred: F) {
+        let to_remove: Vec<AssetHandle<T>> = self
+            .slots
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| {
+                s.value.as_ref().and_then(|v| {
+                    let handle = AssetHandle {
+                        index: i as u32,
+                        generation: s.generation,
+                        _marker: PhantomData,
+                    };
+                    if !pred(handle, v) {
+                        Some(handle)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+        for handle in to_remove {
+            self.remove(handle);
+        }
+    }
 }
 
 impl<T: DetHash> DetHash for AssetStore<T> {
@@ -288,6 +332,55 @@ mod tests {
         assert_eq!(s.get(h0), Some(&1));
         assert_eq!(s.get(h1), Some(&2));
         assert_eq!(s.get(h2), Some(&3));
+    }
+
+    #[test]
+    fn test_iter_mut_modifies_assets() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        let h0 = s.insert(1);
+        let h1 = s.insert(2);
+        for (_, v) in s.iter_mut() {
+            *v *= 10;
+        }
+        assert_eq!(s.get(h0), Some(&10));
+        assert_eq!(s.get(h1), Some(&20));
+    }
+
+    #[test]
+    fn test_iter_mut_empty_store_is_noop() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        assert_eq!(s.iter_mut().count(), 0);
+    }
+
+    #[test]
+    fn test_retain_keeps_matching() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        let h0 = s.insert(1);
+        let h1 = s.insert(2);
+        let h2 = s.insert(3);
+        s.retain(|_, &v| v > 1);
+        assert_eq!(s.get(h0), None);
+        assert_eq!(s.get(h1), Some(&2));
+        assert_eq!(s.get(h2), Some(&3));
+        assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_retain_false_removes_all() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        s.insert(2);
+        s.retain(|_, _| false);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_retain_true_keeps_all() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        s.insert(2);
+        s.retain(|_, _| true);
+        assert_eq!(s.len(), 2);
     }
 
     #[test]
