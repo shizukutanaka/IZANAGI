@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `entity::EntityAllocator::count()`: O(1) live entity count (`total_slots −
+  free_slots`). Useful for diagnostics and save-file headers ("32 entities saved").
+- `camera::Camera::pan(dx, dy, world_w, world_h)`: scroll the viewport by a
+  world-space delta, clamped at the world boundary. The natural mapping for
+  arrow-key map scrolling or tracking a fast-moving entity.
+- `camera::Camera::center()`: world-space coordinate at the centre of the
+  viewport (`top_left + screen_size/2`). Replaces the manual arithmetic callers
+  previously wrote to answer "what is the camera looking at?".
 - `passability::PassabilityGrid::iter_passable()`: row-major iterator over `(x,
   y)` of passable cells. Collect it and index with `rng.below(count)` for uniform
   random spawn placement without scanning the full map.

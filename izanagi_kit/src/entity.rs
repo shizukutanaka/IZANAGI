@@ -65,6 +65,14 @@ impl EntityAllocator {
             .get(entity.index as usize)
             .is_some_and(|&g| g == entity.generation)
     }
+
+    /// Number of currently live (allocated and not yet freed) entities.
+    ///
+    /// O(1) — computed as `total_slots − free_slots`.
+    #[inline]
+    pub fn count(&self) -> usize {
+        self.generations.len() - self.free.len()
+    }
 }
 
 impl crate::world_hash::DetHash for Entity {
@@ -113,5 +121,20 @@ mod tests {
         a.free(e);
         a.free(e); // must not corrupt the free list
         assert_eq!(a.allocate().index(), e.index());
+    }
+
+    #[test]
+    fn test_count_tracks_live_entities() {
+        let mut a = EntityAllocator::new();
+        assert_eq!(a.count(), 0);
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        assert_eq!(a.count(), 2);
+        a.free(e0);
+        assert_eq!(a.count(), 1);
+        let _ = a.allocate(); // reuse e0's slot
+        assert_eq!(a.count(), 2);
+        a.free(e1);
+        assert_eq!(a.count(), 1);
     }
 }

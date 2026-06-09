@@ -52,6 +52,26 @@ impl Camera {
         self.top_left_y = Self::clamp_origin(cy, self.screen_h, world_h);
     }
 
+    /// Scroll the viewport by `(dx, dy)` world cells, clamped so it stays
+    /// within the world. Useful for arrow-key map scrolling.
+    pub fn pan(&mut self, dx: i32, dy: i32, world_w: u32, world_h: u32) {
+        let max_x = (world_w as i32 - self.screen_w as i32).max(0);
+        let max_y = (world_h as i32 - self.screen_h as i32).max(0);
+        self.top_left_x = self.top_left_x.saturating_add(dx).clamp(0, max_x);
+        self.top_left_y = self.top_left_y.saturating_add(dy).clamp(0, max_y);
+    }
+
+    /// World-space coordinate at the centre of the viewport.
+    ///
+    /// Uses integer division so the result is exact for even viewport sizes.
+    #[inline]
+    pub fn center(&self) -> (i32, i32) {
+        (
+            self.top_left_x + self.screen_w as i32 / 2,
+            self.top_left_y + self.screen_h as i32 / 2,
+        )
+    }
+
     /// Convert a world-space point `(wx, wy)` to a screen-space cell
     /// `(sx, sy)`. Returns `None` if the point falls outside the viewport.
     #[inline]
@@ -245,6 +265,34 @@ mod tests {
         let c1 = cam(20, 15);
         let c2 = cam(5, 5);
         assert_ne!(hash_state(&c1), hash_state(&c2));
+    }
+
+    #[test]
+    fn test_pan_shifts_top_left() {
+        let mut c = cam(20, 15); // top_left = (15, 11)
+        c.pan(3, 2, 40, 30);
+        assert_eq!(c.top_left_x, 18);
+        assert_eq!(c.top_left_y, 13);
+    }
+
+    #[test]
+    fn test_pan_clamps_at_world_boundaries() {
+        let mut c = Camera::new(0, 0, 10, 8, 40, 30); // top_left = (0,0)
+        c.pan(-10, -10, 40, 30); // can't go negative
+        assert_eq!(c.top_left_x, 0);
+        assert_eq!(c.top_left_y, 0);
+        c.pan(100, 100, 40, 30); // can't push viewport off the right/bottom
+        assert_eq!(c.top_left_x, 30); // 40 - 10
+        assert_eq!(c.top_left_y, 22); // 30 - 8
+    }
+
+    #[test]
+    fn test_center_returns_world_midpoint() {
+        let c = cam(20, 15); // top_left = (15, 11), screen = 10×8
+        let (cx, cy) = c.center();
+        // 15 + 10/2 = 20, 11 + 8/2 = 15
+        assert_eq!(cx, 20);
+        assert_eq!(cy, 15);
     }
 
     #[test]
