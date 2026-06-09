@@ -366,6 +366,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `validator::validate`: unused-prefab warning — prefabs defined but never
   referenced by any level spawn emit a `Severity::Warning`. Helps authors catch
   dead definitions and renamed-but-not-updated spawn tables.
+- `passability::PassabilityGrid::is_passable(x, y)`: convenience inverse of
+  `is_blocked` — returns `true` when the cell is open, `false` when blocked or
+  out-of-bounds. Eliminates the repetitive `!grid.is_blocked(…)` negation at
+  call sites where the positive condition ("can the actor step here?") is cleaner
+  to read.
+- `camera::Camera::set_screen_size(screen_w, screen_h, world_w, world_h)`:
+  resize the viewport dimensions and re-clamp so the full viewport stays within
+  the world. The world-space centre is preserved so the view expands
+  symmetrically — the correct behaviour for terminal `SIGWINCH` handlers where
+  the game redraws after a resize.
+- `relations::Relations::detach_all_children(parent)`: orphan every direct child
+  of `parent`, making them root entities, and return them as a `Vec<Entity>`.
+  Leaves `parent`'s own parent relationship intact. The canonical "drop all
+  carried items on death" pattern — call it, then dispatch the returned entities
+  to the spawner or inventory-drop system.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

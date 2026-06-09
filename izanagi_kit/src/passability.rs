@@ -86,6 +86,14 @@ impl PassabilityGrid {
         self.height
     }
 
+    /// Whether `(x, y)` is passable (not blocked). Out-of-bounds always returns
+    /// `false`. Convenience inverse of `is_blocked` — avoids `!grid.is_blocked(…)`
+    /// at call sites where the positive condition is cleaner.
+    #[inline]
+    pub fn is_passable(&self, x: i32, y: i32) -> bool {
+        !self.is_blocked(x, y)
+    }
+
     /// Whether `(x, y)` is blocked. Out-of-bounds always returns `true`.
     #[inline]
     pub fn is_blocked(&self, x: i32, y: i32) -> bool {
@@ -353,5 +361,21 @@ mod tests {
         let cells: Vec<(i32, i32)> = grid.iter_passable().collect();
         // All passable → row-major: (0,0),(1,0),(2,0),(0,1),(1,1),(2,1)
         assert_eq!(cells, [(0, 0), (1, 0), (2, 0), (0, 1), (1, 1), (2, 1)]);
+    }
+
+    #[test]
+    fn test_is_passable_is_inverse_of_is_blocked() {
+        let mut grid = PassabilityGrid::new(4, 4);
+        grid.set_blocked(1, 2, true);
+        assert!(!grid.is_passable(1, 2));
+        assert!(grid.is_passable(0, 0));
+    }
+
+    #[test]
+    fn test_is_passable_out_of_bounds_returns_false() {
+        let grid = PassabilityGrid::new(3, 3);
+        assert!(!grid.is_passable(-1, 0));
+        assert!(!grid.is_passable(0, -1));
+        assert!(!grid.is_passable(3, 0));
     }
 }

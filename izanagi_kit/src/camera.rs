@@ -105,6 +105,17 @@ impl Camera {
         self.world_to_screen(wx, wy).is_some()
     }
 
+    /// Resize the viewport to `screen_w × screen_h` and re-clamp so the full
+    /// viewport stays within the world. The current world-space centre is
+    /// preserved so the view "grows out" symmetrically on a terminal resize.
+    pub fn set_screen_size(&mut self, screen_w: u32, screen_h: u32, world_w: u32, world_h: u32) {
+        let (cx, cy) = self.center();
+        self.screen_w = screen_w;
+        self.screen_h = screen_h;
+        self.top_left_x = Self::clamp_origin(cx, screen_w, world_w);
+        self.top_left_y = Self::clamp_origin(cy, screen_h, world_h);
+    }
+
     /// The world-space rect covered by this viewport:
     /// `(left, top, right_exclusive, bottom_exclusive)`.
     #[inline]
@@ -300,5 +311,33 @@ mod tests {
         let c1 = cam(20, 15);
         let c2 = cam(20, 15);
         assert_eq!(hash_state(&c1), hash_state(&c2));
+    }
+
+    #[test]
+    fn test_set_screen_size_updates_dimensions() {
+        let mut c = cam(20, 15); // screen_w=10, screen_h=8
+        c.set_screen_size(20, 16, 40, 30);
+        assert_eq!(c.screen_w, 20);
+        assert_eq!(c.screen_h, 16);
+    }
+
+    #[test]
+    fn test_set_screen_size_reclamps_within_world() {
+        // Start near the right edge so growing the viewport forces reclamping.
+        let mut c = Camera::new(38, 28, 10, 8, 40, 30); // top_left = (30, 22)
+                                                        // Grow to 20×16 — needs top_left ≤ (20, 14) to fit.
+        c.set_screen_size(20, 16, 40, 30);
+        assert!(c.top_left_x + c.screen_w as i32 <= 40);
+        assert!(c.top_left_y + c.screen_h as i32 <= 30);
+    }
+
+    #[test]
+    fn test_set_screen_size_preserves_centre() {
+        let mut c = cam(20, 15); // centre = (20, 15)
+                                 // Resize to the same viewport: centre should be unchanged.
+        c.set_screen_size(10, 8, 40, 30);
+        let (cx, cy) = c.center();
+        assert_eq!(cx, 20);
+        assert_eq!(cy, 15);
     }
 }

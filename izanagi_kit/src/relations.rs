@@ -174,6 +174,19 @@ impl Relations {
         self.children.clear();
     }
 
+    /// Detach every direct child of `parent`, making them root entities, and
+    /// return them. Returns an empty `Vec` if `parent` has no children.
+    ///
+    /// Useful for "drop all carried items on death" patterns where the caller
+    /// needs the list of newly-freed entities to process further.
+    pub fn detach_all_children(&mut self, parent: Entity) -> Vec<Entity> {
+        let children = self.children_of(parent);
+        for &child in &children {
+            self.detach(child);
+        }
+        children
+    }
+
     /// Iterate `(child, parent)` pairs in unspecified order.
     pub fn iter(&self) -> impl Iterator<Item = (Entity, Entity)> + '_ {
         self.parents.iter().copied()
@@ -387,5 +400,43 @@ mod tests {
         a.attach(e[0], e[1]);
         b.attach(e[0], e[2]);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_detach_all_children_returns_and_removes() {
+        let e = entities(4);
+        let mut r = Relations::new();
+        r.attach(e[0], e[3]);
+        r.attach(e[1], e[3]);
+        r.attach(e[2], e[3]);
+        let mut freed = r.detach_all_children(e[3]);
+        freed.sort_by_key(|x| x.index());
+        assert_eq!(freed.len(), 3);
+        // All children are now roots.
+        for &child in e.iter().take(3) {
+            assert!(r.is_root(child));
+        }
+        assert!(r.children_of(e[3]).is_empty());
+    }
+
+    #[test]
+    fn test_detach_all_children_empty_parent_returns_empty() {
+        let e = entities(1);
+        let mut r = Relations::new();
+        let freed = r.detach_all_children(e[0]);
+        assert!(freed.is_empty());
+    }
+
+    #[test]
+    fn test_detach_all_children_does_not_remove_parent_of_entity() {
+        // e[0] is a child of e[1]; e[1] is a child of e[2].
+        // detach_all_children(e[1]) should free e[0] but leave e[1]→e[2].
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[0], e[1]);
+        r.attach(e[1], e[2]);
+        r.detach_all_children(e[1]);
+        assert!(r.is_root(e[0]));
+        assert_eq!(r.parent_of(e[1]), Some(e[2])); // e[1] still has its parent
     }
 }
