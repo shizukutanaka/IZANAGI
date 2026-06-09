@@ -175,6 +175,27 @@ impl<T: Clone> TileMap<T> {
             .collect()
     }
 
+    /// Apply `transform` to every cell for which `pred` returns `true`,
+    /// replacing the cell value in place. `transform` receives the current
+    /// value by move and returns the new one (allows non-`Copy` items).
+    ///
+    /// The typical "apply poison decay to all poisoned tiles" call:
+    /// `map.mutate_where(|t| t.poisoned, |mut t| { t.hp -= 1; t })`.
+    pub fn mutate_where<P, F>(&mut self, pred: P, mut transform: F)
+    where
+        P: Fn(&T) -> bool,
+        F: FnMut(T) -> T,
+    {
+        for cell in &mut self.cells {
+            if pred(cell) {
+                // Temporarily replace with a clone to satisfy the borrow
+                // checker; the original value is moved into `transform`.
+                let old = cell.clone();
+                *cell = transform(old);
+            }
+        }
+    }
+
     /// Iterate `(x, y, &tile)` in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, &T)> {
         let w = self.width;
@@ -589,5 +610,30 @@ mod tests {
         let coords = m.find_all(|&t| t == 1);
         // Row-major: (1,0) comes before (0,1)
         assert_eq!(coords, [(1, 0), (0, 1)]);
+    }
+
+    #[test]
+    fn test_mutate_where_transforms_matching_cells() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 0);
+        m.set(1, 1, 5);
+        m.set(2, 0, 5);
+        m.mutate_where(|&t| t == 5, |t| t * 2);
+        assert_eq!(m.get(1, 1), Some(&10));
+        assert_eq!(m.get(2, 0), Some(&10));
+        assert_eq!(m.get(0, 0), Some(&0)); // unmatched unchanged
+    }
+
+    #[test]
+    fn test_mutate_where_no_match_unchanged() {
+        let mut m: TileMap<u8> = TileMap::new(2, 2, 3);
+        m.mutate_where(|&t| t == 99, |t| t + 1);
+        assert!(m.iter().all(|(_, _, &t)| t == 3));
+    }
+
+    #[test]
+    fn test_mutate_where_all_cells() {
+        let mut m: TileMap<u8> = TileMap::new(2, 2, 1);
+        m.mutate_where(|_| true, |t| t + 10);
+        assert!(m.iter().all(|(_, _, &t)| t == 11));
     }
 }

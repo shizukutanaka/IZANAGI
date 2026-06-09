@@ -7,6 +7,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `rng::SplitMix64::pick_mut(&mut [T]) -> Option<&mut T>`: mutable variant of
+  `pick` — select a uniform-random element and hand back a mutable reference so
+  the caller can modify it in-place without an index round-trip. No draw for
+  empty slices.
+- `fixed::Fixed::hypot(a, b) -> Fixed`: Euclidean distance `sqrt(a²+b²)`,
+  computed with the existing `mul`+`sqrt` chain. Replaces the manual
+  `(a.mul(a).saturating_add(b.mul(b))).sqrt()` pattern at call sites. Saturates
+  for very large inputs the same way `mul` does.
+- `aabb::Aabb::from_center_size(cx, cy, w, h) -> Aabb`: construct a box from a
+  center point and dimensions. Top-left is `(cx - w/2, cy - h/2)` (integer
+  division, same truncation bias as `center()`). Negative sizes are clamped to 0.
+  Mirrors `glam`'s `from_center_half_size` convention.
+- `tilemap::TileMap::mutate_where(pred, transform)`: apply a `FnMut(T) -> T`
+  transformation to every cell for which `pred` returns `true`, modifying in
+  place. The standard "apply poison decay / environmental effect to all matching
+  tiles" primitive. O(n) in map size; no allocation.
+- `menu::Menu::remove_item(idx)`: delete the item at `idx` and keep the cursor
+  valid — decrements if the cursor was past the removed item, clamps to the new
+  last item otherwise. No-op for out-of-bounds indices. Needed for dynamic menus
+  (quest log entries, loot picks).
+- `inventory::Inventory::get_mut(slot) -> Option<&mut T>`: mutable borrow of the
+  item at `slot`. Allows in-place modification (durability tick, stack count)
+  without the `remove` + `add` round-trip that changes the slot index.
+- `turn::Scheduler::time_until_ready(id) -> Option<i32>`: time units until actor
+  `id` first accumulates `ACTION_COST` energy. Returns `Some(0)` when already
+  ready, `None` when the actor is unknown. Does not advance the queue — pure read.
+  Useful for AI look-ahead ("the goblin acts in N turns") and UI countdowns.
+- `msglog::MsgLog::pop() -> Option<String>`: remove and return the most recently
+  pushed message (LIFO). Returns `None` for an empty log. Useful for "undo last
+  event message" and round-trip tests.
 - `fov::fov_to_vec(origin, radius, is_opaque) -> Vec<(i32,i32)>`: collect all
   visible cells into a `Vec` in one call. Equivalent to bracket-lib's
   `field_of_view_set` — wraps `compute_fov` so callers don't need to manage

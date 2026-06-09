@@ -70,6 +70,13 @@ impl<T: Clone> Inventory<T> {
         self.slots.get(slot)?.as_ref()
     }
 
+    /// Mutably borrow the item at `slot`, or `None` if empty / out-of-bounds.
+    /// Allows in-place modification without a `remove` + `add` round-trip.
+    #[inline]
+    pub fn get_mut(&mut self, slot: usize) -> Option<&mut T> {
+        self.slots.get_mut(slot)?.as_mut()
+    }
+
     /// Find the first slot for which `pred(item)` is true. Returns the slot
     /// index or `None` if no matching item is present.
     pub fn find<F: Fn(&T) -> bool>(&self, pred: F) -> Option<usize> {
@@ -411,5 +418,25 @@ mod tests {
         let mut inv: Inventory<u32> = Inventory::new(3);
         inv.add(1);
         assert!(!inv.is_full());
+    }
+
+    #[test]
+    fn test_get_mut_modifies_item() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        let slot = inv.add(10).unwrap();
+        *inv.get_mut(slot).unwrap() = 42;
+        assert_eq!(inv.get(slot), Some(&42));
+    }
+
+    #[test]
+    fn test_get_mut_empty_slot_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        assert!(inv.get_mut(0).is_none());
+    }
+
+    #[test]
+    fn test_get_mut_out_of_bounds_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(1);
+        assert!(inv.get_mut(99).is_none());
     }
 }

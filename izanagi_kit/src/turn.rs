@@ -129,6 +129,22 @@ impl<A: Copy + Ord> Scheduler<A> {
         self.actors.iter().map(|a| a.id)
     }
 
+    /// How many time units until actor `id` first accumulates ≥ `ACTION_COST`
+    /// energy. Returns `Some(0)` if the actor is already ready. Returns `None`
+    /// if `id` is not registered. Does **not** advance the queue.
+    ///
+    /// Useful for AI planning ("the goblin acts in 3 turns") and UI countdown
+    /// displays without driving the scheduler forward.
+    pub fn time_until_ready(&self, id: A) -> Option<i32> {
+        let actor = self.actors.iter().find(|a| a.id == id)?;
+        let deficit = ACTION_COST - actor.energy;
+        if deficit <= 0 {
+            Some(0)
+        } else {
+            Some((deficit + actor.speed - 1) / actor.speed)
+        }
+    }
+
     /// Index of the ready actor (energy ≥ cost) with the smallest id, if any.
     fn ready(&self) -> Option<usize> {
         let mut best: Option<usize> = None;
@@ -412,5 +428,33 @@ mod tests {
         s.add(1, 100);
         s.reset_actor(99); // unknown — must not panic
         assert_eq!(s.energy(1), Some(0));
+    }
+
+    #[test]
+    fn test_time_until_ready_already_ready() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.set_energy(1, ACTION_COST);
+        assert_eq!(s.time_until_ready(1), Some(0));
+    }
+
+    #[test]
+    fn test_time_until_ready_needs_one_unit() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100); // speed 100, energy 0: needs 1 unit
+        assert_eq!(s.time_until_ready(1), Some(1));
+    }
+
+    #[test]
+    fn test_time_until_ready_unknown_returns_none() {
+        let s: Scheduler<u32> = Scheduler::new();
+        assert_eq!(s.time_until_ready(42), None);
+    }
+
+    #[test]
+    fn test_time_until_ready_slow_actor_needs_more_units() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 50); // speed 50, energy 0: needs ceil(100/50)=2 units
+        assert_eq!(s.time_until_ready(1), Some(2));
     }
 }

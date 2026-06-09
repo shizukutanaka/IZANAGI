@@ -184,6 +184,24 @@ impl<T: Clone> Menu<T> {
         self.cursor = 0;
     }
 
+    /// Remove the item at `idx`, adjusting the cursor so it stays valid.
+    /// - If `idx` is out of bounds: no-op.
+    /// - If the cursor was past the removed item: decremented by 1.
+    /// - After removal the cursor is clamped to `[0, len - 1]`.
+    pub fn remove_item(&mut self, idx: usize) {
+        if idx >= self.items.len() {
+            return;
+        }
+        self.items.remove(idx);
+        if self.items.is_empty() {
+            self.cursor = 0;
+        } else {
+            if self.cursor > 0 && self.cursor >= self.items.len() {
+                self.cursor = self.items.len() - 1;
+            }
+        }
+    }
+
     /// Move the cursor to the first item with a matching label and return its
     /// value (if enabled). Returns `None` if no matching label exists, or if
     /// the matching item is disabled. Case-sensitive.
@@ -567,5 +585,37 @@ mod tests {
     fn test_count_enabled_all_enabled() {
         let m = sample();
         assert_eq!(m.count_enabled(), 3);
+    }
+
+    #[test]
+    fn test_remove_item_removes_and_shifts() {
+        let mut m = sample(); // ["Item A", "Item B", "Item C"], cursor=0
+        m.remove_item(0);
+        assert_eq!(m.len(), 2);
+        assert_eq!(m.current().map(|it| it.label.as_str()), Some("Item B"));
+    }
+
+    #[test]
+    fn test_remove_item_adjusts_cursor_when_past_removed() {
+        let mut m = sample();
+        m.set_cursor(2); // cursor at "Gamma"
+        m.remove_item(0); // remove "Alpha", cursor shifts to 1
+        assert!(m.cursor() <= 1);
+    }
+
+    #[test]
+    fn test_remove_item_out_of_bounds_is_noop() {
+        let mut m = sample();
+        m.remove_item(99);
+        assert_eq!(m.len(), 3);
+    }
+
+    #[test]
+    fn test_remove_item_last_clears_cursor() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_item("only", 1);
+        m.remove_item(0);
+        assert!(m.is_empty());
+        assert_eq!(m.cursor(), 0);
     }
 }

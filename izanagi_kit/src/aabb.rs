@@ -48,6 +48,21 @@ impl Aabb {
         }
     }
 
+    /// Construct from a center point and size. `w` and `h` are clamped to `0`.
+    /// The top-left corner is `(cx - w/2, cy - h/2)` (integer division, biased
+    /// toward the origin — same truncation as `center()` on the returned box).
+    #[inline]
+    pub fn from_center_size(cx: i32, cy: i32, w: i32, h: i32) -> Self {
+        let w = w.max(0);
+        let h = h.max(0);
+        Aabb {
+            x: cx - w / 2,
+            y: cy - h / 2,
+            w,
+            h,
+        }
+    }
+
     /// Construct from two corners `(x1, y1)` and `(x2, y2)`. The corners need
     /// not be in top-left/bottom-right order; the result always has `w, h ≥ 0`.
     #[inline]
@@ -633,5 +648,30 @@ mod tests {
     fn test_distance_to_point_empty_box_is_zero() {
         let b = r(5, 5, 0, 0);
         assert_eq!(b.distance_to_point(100, 100), 0);
+    }
+
+    #[test]
+    fn test_from_center_size_basic() {
+        let b = Aabb::from_center_size(10, 10, 6, 4);
+        // x = 10 - 6/2 = 7, y = 10 - 4/2 = 8
+        assert_eq!(b.x, 7);
+        assert_eq!(b.y, 8);
+        assert_eq!(b.w, 6);
+        assert_eq!(b.h, 4);
+    }
+
+    #[test]
+    fn test_from_center_size_center_roundtrip() {
+        let b = Aabb::from_center_size(5, 5, 4, 4);
+        let (cx, cy) = b.center();
+        assert_eq!(cx, 5);
+        assert_eq!(cy, 5);
+    }
+
+    #[test]
+    fn test_from_center_size_negative_clamped() {
+        let b = Aabb::from_center_size(0, 0, -5, -5);
+        assert_eq!(b.w, 0);
+        assert_eq!(b.h, 0);
     }
 }

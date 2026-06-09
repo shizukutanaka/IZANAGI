@@ -131,6 +131,18 @@ impl SplitMix64 {
         Some(&slice[self.below(slice.len() as u32) as usize])
     }
 
+    /// Uniform random mutable reference to an element of `slice`, or `None`
+    /// for an empty slice (no draw consumed). The mutable variant of [`pick`](Self::pick)
+    /// — allows the caller to modify the chosen element in place without a
+    /// separate index round-trip.
+    pub fn pick_mut<'a, T>(&mut self, slice: &'a mut [T]) -> Option<&'a mut T> {
+        if slice.is_empty() {
+            return None;
+        }
+        let idx = self.below(slice.len() as u32) as usize;
+        Some(&mut slice[idx])
+    }
+
     /// Advance the stream and return the upper 32 bits of the 64-bit output.
     /// Useful when the caller only needs a 32-bit integer and wants to avoid
     /// discarding bits in a subsequent narrow cast.
@@ -524,5 +536,28 @@ mod tests {
         a.skip(10);
         b.skip(10);
         assert_eq!(a.next_u64(), b.next_u64());
+    }
+
+    #[test]
+    fn test_pick_mut_returns_element() {
+        let mut r = SplitMix64::new(1);
+        let mut v = vec![10u32, 20, 30];
+        let elem = r.pick_mut(&mut v).expect("non-empty slice");
+        assert!([10u32, 20, 30].contains(elem));
+    }
+
+    #[test]
+    fn test_pick_mut_empty_returns_none() {
+        let mut r = SplitMix64::new(1);
+        let mut v: Vec<u32> = vec![];
+        assert!(r.pick_mut(&mut v).is_none());
+    }
+
+    #[test]
+    fn test_pick_mut_allows_modification() {
+        let mut r = SplitMix64::new(42);
+        let mut v = vec![1u32, 2, 3];
+        *r.pick_mut(&mut v).unwrap() = 99;
+        assert!(v.contains(&99));
     }
 }

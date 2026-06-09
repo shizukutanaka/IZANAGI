@@ -93,6 +93,19 @@ impl MsgLog {
         Some(self.buf[idx].as_str())
     }
 
+    /// Remove and return the most recently pushed message (LIFO order), or
+    /// `None` if the log is empty. Useful for "undo last log entry" patterns
+    /// and round-trip tests that push then pop.
+    pub fn pop(&mut self) -> Option<String> {
+        if self.len == 0 {
+            return None;
+        }
+        let cap = self.buf.len();
+        let idx = (self.head + self.len - 1) % cap;
+        self.len -= 1;
+        Some(std::mem::take(&mut self.buf[idx]))
+    }
+
     /// Get the message at logical position `index` (0 = oldest). Returns `None`
     /// if `index >= len`. Complements `iter()` when random access is needed
     /// (e.g. rendering a scrollable log with a cursor).
@@ -395,5 +408,30 @@ mod tests {
     fn test_count_where_empty_log_returns_zero() {
         let log = MsgLog::new(5);
         assert_eq!(log.count_where(|_| true), 0);
+    }
+
+    #[test]
+    fn test_pop_returns_last_message() {
+        let mut log = MsgLog::new(4);
+        log.push("first");
+        log.push("second");
+        assert_eq!(log.pop(), Some("second".to_owned()));
+        assert_eq!(log.len(), 1);
+        assert_eq!(log.last(), Some("first"));
+    }
+
+    #[test]
+    fn test_pop_on_empty_log_returns_none() {
+        let mut log = MsgLog::new(4);
+        assert_eq!(log.pop(), None);
+    }
+
+    #[test]
+    fn test_pop_to_empty() {
+        let mut log = MsgLog::new(2);
+        log.push("only");
+        let msg = log.pop();
+        assert_eq!(msg, Some("only".to_owned()));
+        assert!(log.is_empty());
     }
 }

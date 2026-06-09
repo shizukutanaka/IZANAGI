@@ -331,6 +331,15 @@ impl Fixed {
         Fixed::ONE.div(self)
     }
 
+    /// Euclidean distance `sqrt(a² + b²)`, rounded down. Useful for 2-D range
+    /// checks and normalisation without a separate manual `sqrt`. Saturates for
+    /// very large inputs the same way `mul` and `sqrt` do — safe for typical
+    /// roguelike coordinate ranges.
+    #[inline]
+    pub fn hypot(a: Fixed, b: Fixed) -> Fixed {
+        a.mul(a).saturating_add(b.mul(b)).sqrt()
+    }
+
     /// Four-quadrant arctangent of `y/x` in radians, via vectoring-mode CORDIC.
     /// Result is in (-π, π]. The rotation runs in `i64` because the CORDIC gain
     /// grows the working vector ~1.6× and `y`/`x` may already be near the `i32`
@@ -812,5 +821,26 @@ mod tests {
     fn test_recip_of_zero_saturates() {
         // 1 / 0 → Fixed::MAX (saturating divide)
         assert_eq!(Fixed::ZERO.recip(), Fixed::MAX);
+    }
+
+    #[test]
+    fn test_hypot_3_4_gives_5() {
+        let a = Fixed::from_int(3);
+        let b = Fixed::from_int(4);
+        let h = Fixed::hypot(a, b);
+        // sqrt(9 + 16) = 5.0 exactly in Q16.16
+        assert_eq!(h, Fixed::from_int(5));
+    }
+
+    #[test]
+    fn test_hypot_zero_gives_zero() {
+        assert_eq!(Fixed::hypot(Fixed::ZERO, Fixed::ZERO), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_hypot_symmetric() {
+        let a = Fixed::from_int(6);
+        let b = Fixed::from_int(8);
+        assert_eq!(Fixed::hypot(a, b), Fixed::hypot(b, a));
     }
 }
