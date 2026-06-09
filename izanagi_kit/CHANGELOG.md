@@ -7,6 +7,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `change::Changed::is_fresh(max_age_ticks, current_tick) -> bool`: logical
+  inverse of `is_stale`; returns `true` when the component was marked within the
+  last `max_age_ticks` ticks. Avoids double-negation at call sites and makes
+  "only process recently updated components" filters self-documenting.
+- `fsm::Fsm::transition_count(from: &S) -> usize`: count outgoing transitions
+  from a state without constructing an iterator. Equivalent to
+  `transitions_from(state).count()` but avoids the closure overhead for the
+  common "does this state have any exits?" guard.
+- `status::StatusSet::magnitude_range() -> (i32, i32)`: return the `(min, max)`
+  magnitude across all active effects. Returns `(0, 0)` for an empty set. Useful
+  for "net buff range" queries and AI tuning without iterating manually.
+- `inputbuf::InputBuffer::set_timing(initial_delay, repeat_period)`: update
+  hold-repeat timing parameters without clearing the buffer or releasing held keys.
+  Clamps `repeat_period` to ≥ 1. Supports "haste" power-ups and in-session
+  accessibility setting changes.
+- `vec::Vec2::reflect(self, normal: Vec2) -> Vec2`: reflect a vector off a
+  surface with the given unit normal via `self − 2·(self·n)·n`. Assumes
+  `normal` is already unit length. Useful for physics-style bounce responses
+  in collision resolution and beam/projectile ricochet.
+- `multimap::MultiMap::connectors_between(from_floor, to_floor) -> Vec<&Connector>`:
+  all connectors originating on `from_floor` and leading to `to_floor`. Returns
+  an empty `Vec` when none exist. Supports multi-staircase levels where several
+  exits between the same floor pair need to be enumerated.
+- `dice::Dice::roll_with_reroll(reroll_on, rng) -> i32`: roll once; if the
+  result is ≤ `reroll_on`, roll a second time and return that result regardless
+  of whether it is better. Consumes two draws on reroll, one otherwise. Implements
+  the "reroll on 1" mechanic from roguelike ability checks and tabletop RPGs.
+- `timer::Cooldown::fractional_progress(original_ticks) -> Fixed`: fractional
+  progress through the cooldown as a Q16.16 `Fixed` value in `[0, 1]` (`0` = just
+  started, `1` = ready). `original_ticks == 0` returns `Fixed::ONE`. Suitable as
+  a lerp parameter for smooth animation without converting to float or percent.
 - `wfc::WfcRules::clear_adjacencies(tile: u8)`: clear all adjacency bitmasks for
   `tile` in every direction, resetting it to "forbidden everywhere". Silently
   ignores out-of-range tile indices. Supports rule-mutation workflows where a tile

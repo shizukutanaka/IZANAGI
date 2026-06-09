@@ -125,6 +125,18 @@ impl MultiMap {
     pub fn find_connector_to(&self, dest_floor: u32) -> Option<&Connector> {
         self.connectors.iter().find(|c| c.to_floor == dest_floor)
     }
+
+    /// All connectors that originate on `from_floor` and lead to `to_floor`.
+    /// Returns an empty `Vec` when no such connectors exist.
+    ///
+    /// Useful for multi-staircase levels: enumerate every stairwell between
+    /// two specific floors without filtering through all exits.
+    pub fn connectors_between(&self, from_floor: u32, to_floor: u32) -> Vec<&Connector> {
+        self.connectors
+            .iter()
+            .filter(|c| c.from_floor == from_floor && c.to_floor == to_floor)
+            .collect()
+    }
 }
 
 impl DetHash for MultiMap {
@@ -317,5 +329,71 @@ mod tests {
     fn test_find_connector_to_empty_map_returns_none() {
         let m = MultiMap::new(vec![], 0);
         assert!(m.find_connector_to(0).is_none());
+    }
+
+    #[test]
+    fn test_connectors_between_finds_matching() {
+        let floors = vec![make_floor(1), make_floor(2), make_floor(3)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 1,
+            to_x: 2,
+            to_y: 2,
+        });
+        m.add_connector(Connector {
+            from_floor: 1,
+            from_x: 5,
+            from_y: 5,
+            to_floor: 2,
+            to_x: 3,
+            to_y: 3,
+        });
+        let between = m.connectors_between(0, 1);
+        assert_eq!(between.len(), 1);
+        assert_eq!(between[0].from_floor, 0);
+        assert_eq!(between[0].to_floor, 1);
+    }
+
+    #[test]
+    fn test_connectors_between_returns_empty_when_none() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 1,
+            to_x: 2,
+            to_y: 2,
+        });
+        let between = m.connectors_between(1, 0); // reverse direction — none
+        assert!(between.is_empty());
+    }
+
+    #[test]
+    fn test_connectors_between_returns_multiple() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 1,
+            to_x: 2,
+            to_y: 2,
+        });
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 3,
+            from_y: 3,
+            to_floor: 1,
+            to_x: 4,
+            to_y: 4,
+        });
+        let between = m.connectors_between(0, 1);
+        assert_eq!(between.len(), 2);
     }
 }

@@ -160,6 +160,18 @@ impl Vec2 {
     pub fn distance(self, rhs: Vec2) -> Fixed {
         (self - rhs).len()
     }
+
+    /// Reflect this vector off a surface with the given unit `normal`.
+    ///
+    /// `reflect(n) = self − 2·(self·n)·n`
+    ///
+    /// The component along `normal` is negated; the perpendicular component is
+    /// preserved. Assumes `normal` is already unit length — non-unit normals
+    /// produce geometrically incorrect results (scale the reflection).
+    pub fn reflect(self, normal: Vec2) -> Vec2 {
+        let two_dot = self.dot(normal).mul(Fixed::from_int(2));
+        self - normal.scale(two_dot)
+    }
 }
 
 impl core::ops::Add for Vec2 {
@@ -718,5 +730,31 @@ mod tests {
             Vec3::new(fi(-1), fi(3), fi(9)).clamp(lo, hi),
             Vec3::new(fi(0), fi(3), fi(5))
         );
+    }
+
+    #[test]
+    fn test_vec2_reflect_off_floor_reverses_y() {
+        // v = (1, 1), normal = (0, 1): dot = 1, 2*dot = 2
+        // reflect = (1,1) - (0,2) = (1,-1)
+        let v = Vec2::new(fi(1), fi(1));
+        let n = Vec2::new(fi(0), fi(1));
+        assert_eq!(v.reflect(n), Vec2::new(fi(1), fi(-1)));
+    }
+
+    #[test]
+    fn test_vec2_reflect_perpendicular_to_normal_unchanged() {
+        // v = (1, 0), normal = (0, 1): dot = 0 → reflect = v
+        let v = Vec2::new(fi(1), fi(0));
+        let n = Vec2::new(fi(0), fi(1));
+        assert_eq!(v.reflect(n), v);
+    }
+
+    #[test]
+    fn test_vec2_reflect_against_vertical_wall() {
+        // v = (3, 4), normal = (1, 0): dot = 3, 2*dot = 6
+        // reflect = (3,4) - (6,0) = (-3, 4)
+        let v = Vec2::new(fi(3), fi(4));
+        let n = Vec2::new(fi(1), fi(0));
+        assert_eq!(v.reflect(n), Vec2::new(fi(-3), fi(4)));
     }
 }

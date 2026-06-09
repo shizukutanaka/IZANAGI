@@ -149,6 +149,19 @@ impl<K: Eq + Clone> InputBuffer<K> {
             h.fired_initial = false;
         }
     }
+
+    /// Update the hold-repeat timing parameters without clearing the buffer.
+    ///
+    /// The new timing takes effect on the next `tick` call. Held keys are not
+    /// released and their hold counters continue from where they were.
+    /// `repeat_period` is clamped to at least 1.
+    ///
+    /// Useful for "haste" power-ups that halve repeat period, or accessibility
+    /// settings that let players configure auto-repeat speed mid-session.
+    pub fn set_timing(&mut self, initial_delay: u32, repeat_period: u32) {
+        self.initial_delay = initial_delay;
+        self.repeat_period = repeat_period.max(1);
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for InputBuffer<K> {
@@ -372,5 +385,41 @@ mod tests {
         a.press(1);
         b.press(2);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_set_timing_updates_delay_and_period() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(10, 5);
+        b.set_timing(2, 1);
+        // Verify the new period by observing faster repeats.
+        b.press(1);
+        b.tick(1); // initial fire
+        let f = b.tick(1); // held_ticks=2, repeat_ticks=2-2=0, threshold crossed
+                           // With initial_delay=2, repeat_period=1: repeat_ticks=0 → no repeat yet
+                           // tick to 3: repeat_ticks=1, new=1 → fire
+        let _ = f;
+        let f2 = b.tick(1);
+        assert_eq!(f2, vec![1]);
+    }
+
+    #[test]
+    fn test_set_timing_keeps_held_keys() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(10, 5);
+        b.press(7);
+        b.tick(1);
+        b.set_timing(2, 2);
+        assert!(b.is_held(&7), "key must remain held after set_timing");
+        assert_eq!(b.held_count(), 1);
+    }
+
+    #[test]
+    fn test_set_timing_clamps_period_to_one() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(0, 1);
+        b.set_timing(0, 0); // period 0 should become 1
+        b.press(3u32);
+        b.tick(1); // initial fire
+                   // With repeat_period clamped to 1: held_ticks=1, repeat_ticks=1, new=1 → fire
+        let f = b.tick(1);
+        assert_eq!(f, vec![3]);
     }
 }

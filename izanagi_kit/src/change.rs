@@ -101,6 +101,18 @@ impl<T> Changed<T> {
     pub fn is_stale(&self, age_threshold: u32, current_tick: u32) -> bool {
         self.ticks_since_change(current_tick) >= age_threshold
     }
+
+    /// Returns `true` if this component was marked within the last
+    /// `max_age_ticks` ticks — the logical inverse of
+    /// [`is_stale`](Self::is_stale).
+    ///
+    /// Useful for "only process if recently updated" filters: sparkle effects,
+    /// cache-warming systems, or network delta-compression that skips unchanged
+    /// data.
+    #[inline]
+    pub fn is_fresh(&self, max_age_ticks: u32, current_tick: u32) -> bool {
+        !self.is_stale(max_age_ticks, current_tick)
+    }
 }
 
 impl<T: DetHash> DetHash for Changed<T> {
@@ -397,5 +409,25 @@ mod tests {
     fn test_is_stale_at_exact_threshold() {
         let c = Changed::at(0u32, 10);
         assert!(c.is_stale(10, 20)); // exactly 10 ticks ago = stale
+    }
+
+    #[test]
+    fn test_is_fresh_when_recently_changed() {
+        let c = Changed::at(42u32, 18);
+        assert!(c.is_fresh(10, 20)); // changed 2 ticks ago, threshold 10 → fresh
+    }
+
+    #[test]
+    fn test_is_fresh_false_when_stale() {
+        let c = Changed::at(42u32, 5);
+        assert!(!c.is_fresh(10, 20)); // changed 15 ticks ago, threshold 10 → not fresh
+    }
+
+    #[test]
+    fn test_is_fresh_is_exact_inverse_of_is_stale() {
+        let c = Changed::at(0u32, 10);
+        // at exact threshold: is_stale returns true, is_fresh must return false
+        assert!(c.is_stale(10, 20));
+        assert!(!c.is_fresh(10, 20));
     }
 }

@@ -14,6 +14,7 @@
 //!   expires within `n` ticks and returns them in firing order. Repeat timers
 //!   re-enqueue themselves automatically. Generic over the event type `E`.
 
+use crate::fixed::Fixed;
 use crate::world_hash::{DetHash, Fnv1a};
 
 // ---------------------------------------------------------------------------
@@ -86,6 +87,21 @@ impl Cooldown {
             return 0;
         }
         (self.remaining.min(original_ticks) as u64 * 100 / original_ticks as u64) as u32
+    }
+
+    /// Fractional progress through the cooldown as a [`Fixed`]-point value in
+    /// `[0, 1]`: `0` means just started, `1` means ready.
+    ///
+    /// `original_ticks == 0` always returns `Fixed::ONE` (already ready).
+    /// If `remaining > original_ticks`, progress saturates at `0`.
+    ///
+    /// Useful as an animation lerp parameter or smooth progress-bar fill
+    /// without converting to float or percent-integer.
+    pub fn fractional_progress(&self, original_ticks: u32) -> Fixed {
+        if original_ticks == 0 {
+            return Fixed::ONE;
+        }
+        Fixed::from_ratio(self.elapsed(original_ticks) as i32, original_ticks as i32)
     }
 }
 
@@ -532,5 +548,29 @@ mod tests {
     fn test_percent_remaining_original_zero_returns_zero() {
         let cd = Cooldown::new(5);
         assert_eq!(cd.percent_remaining(0), 0);
+    }
+
+    #[test]
+    fn test_fractional_progress_ready_is_one() {
+        use crate::fixed::Fixed;
+        let cd = Cooldown::ready();
+        assert_eq!(cd.fractional_progress(10), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_fractional_progress_original_zero_is_one() {
+        use crate::fixed::Fixed;
+        let cd = Cooldown::new(5);
+        assert_eq!(cd.fractional_progress(0), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_fractional_progress_half() {
+        use crate::fixed::Fixed;
+        // original=10, remaining=5 → elapsed=5/10 = 0.5
+        let cd = Cooldown::new(5);
+        let p = cd.fractional_progress(10);
+        let half = Fixed::from_ratio(1, 2);
+        assert_eq!(p, half);
     }
 }

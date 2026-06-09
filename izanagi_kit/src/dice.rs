@@ -146,6 +146,23 @@ impl Dice {
         let sum: i64 = rolls[..keep].iter().map(|&v| v as i64).sum();
         sum.clamp(i32::MIN as i64, i32::MAX as i64) as i32
     }
+
+    /// Roll once; if the result is ≤ `reroll_on`, roll a second time and
+    /// return that result (regardless of whether it is better). Consumes
+    /// exactly two `roll` draws when a reroll triggers, one otherwise.
+    ///
+    /// `reroll_on == 0` never triggers a reroll because the minimum total of
+    /// any non-trivial dice expression is ≥ 1. This is the "reroll on 1"
+    /// mechanic common in roguelike ability checks and tabletop RPGs.
+    #[inline]
+    pub fn roll_with_reroll(&self, reroll_on: u32, rng: &mut SplitMix64) -> i32 {
+        let first = self.roll(rng);
+        if first <= reroll_on as i32 {
+            self.roll(rng)
+        } else {
+            first
+        }
+    }
 }
 
 impl core::fmt::Display for Dice {
@@ -349,5 +366,45 @@ mod tests {
         };
         assert_eq!(roll(42), roll(42));
         assert_ne!(roll(1), roll(2));
+    }
+
+    #[test]
+    fn test_roll_with_reroll_zero_threshold_never_rerolls() {
+        // reroll_on=0: min possible is 1 (1d6 ≥ 1), so first ≤ 0 is never true
+        let d = Dice::new(1, 6, 0);
+        let mut rng = SplitMix64::new(42);
+        let _state_before = rng.state();
+        d.roll_with_reroll(0, &mut rng);
+        let state_after = rng.state();
+        // Exactly one draw consumed (no reroll).
+        let mut rng2 = SplitMix64::new(42);
+        d.roll(&mut rng2);
+        assert_eq!(state_after, rng2.state(), "zero threshold must not reroll");
+    }
+
+    #[test]
+    fn test_roll_with_reroll_result_within_bounds() {
+        let d = Dice::parse("1d6").unwrap();
+        let mut rng = SplitMix64::new(0xDEAD_BEEF);
+        for _ in 0..500 {
+            let r = d.roll_with_reroll(3, &mut rng);
+            assert!(
+                r >= d.min() && r <= d.max(),
+                "reroll result {r} out of bounds"
+            );
+        }
+    }
+
+    #[test]
+    fn test_roll_with_reroll_is_deterministic() {
+        let d = Dice::new(1, 6, 0);
+        let run = |seed: u64| {
+            let mut rng = SplitMix64::new(seed);
+            (0..20)
+                .map(|_| d.roll_with_reroll(2, &mut rng))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(run(77), run(77));
+        assert_ne!(run(1), run(2));
     }
 }

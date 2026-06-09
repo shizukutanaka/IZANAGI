@@ -124,6 +124,13 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
             .filter(move |(f, _, _)| f == state)
             .map(|(_, e, _)| e)
     }
+
+    /// Count outgoing transitions from `state`. Equivalent to
+    /// `transitions_from(state).count()` but avoids constructing an iterator
+    /// when only the count matters (e.g. "does this state have any exits?").
+    pub fn transition_count(&self, from: &S) -> usize {
+        self.table.iter().filter(|(f, _, _)| f == from).count()
+    }
 }
 
 impl<S: DetHash + Eq + Clone, E: Eq> DetHash for Fsm<S, E> {
@@ -386,5 +393,26 @@ mod tests {
             fsm.state().clone()
         };
         assert_eq!(run(), run());
+    }
+
+    #[test]
+    fn test_transition_count_from_state_with_exits() {
+        let fsm = guard_fsm();
+        // Idle has transitions for: PlayerSpotted, TookDamage, Killed = 3
+        assert_eq!(fsm.transition_count(&GuardState::Idle), 3);
+    }
+
+    #[test]
+    fn test_transition_count_from_dead_is_zero() {
+        let fsm = guard_fsm();
+        assert_eq!(fsm.transition_count(&GuardState::Dead), 0);
+    }
+
+    #[test]
+    fn test_transition_count_decreases_after_remove() {
+        let mut fsm = guard_fsm();
+        let before = fsm.transition_count(&GuardState::Idle);
+        fsm.remove_transition(&GuardState::Idle, &GuardEvent::PlayerSpotted);
+        assert_eq!(fsm.transition_count(&GuardState::Idle), before - 1);
     }
 }

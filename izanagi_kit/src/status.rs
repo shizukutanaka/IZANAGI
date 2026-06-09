@@ -168,6 +168,20 @@ impl<K: Eq + Clone> StatusSet<K> {
             .min_by_key(|(_, e)| e.remaining)
             .map(|(k, e)| (k, e.remaining))
     }
+
+    /// The `(min, max)` magnitude across all active effects.
+    /// Returns `(0, 0)` when no effects are active.
+    ///
+    /// Useful for "net buff range" queries and AI tuning: apply a debuff only
+    /// if it would extend the current range below the current minimum.
+    pub fn magnitude_range(&self) -> (i32, i32) {
+        if self.entries.is_empty() {
+            return (0, 0);
+        }
+        let min = self.entries.iter().map(|(_, e)| e.magnitude).min().unwrap();
+        let max = self.entries.iter().map(|(_, e)| e.magnitude).max().unwrap();
+        (min, max)
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for StatusSet<K> {
@@ -424,5 +438,27 @@ mod tests {
         let mut s: StatusSet<u32> = StatusSet::new();
         s.apply(1, 5, 3);
         assert_eq!(s.count_with(|_, e| e.magnitude < 0), 0);
+    }
+
+    #[test]
+    fn test_magnitude_range_empty_is_zero_zero() {
+        let s: StatusSet<u32> = StatusSet::new();
+        assert_eq!(s.magnitude_range(), (0, 0));
+    }
+
+    #[test]
+    fn test_magnitude_range_single_effect() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, -7);
+        assert_eq!(s.magnitude_range(), (-7, -7));
+    }
+
+    #[test]
+    fn test_magnitude_range_mixed_effects() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 10);
+        s.apply(2, 3, -3);
+        s.apply(3, 8, 5);
+        assert_eq!(s.magnitude_range(), (-3, 10));
     }
 }
