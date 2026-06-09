@@ -39,6 +39,18 @@ fn json_escape(s: &str) -> String {
     out
 }
 
+/// Return only the diagnostics matching `severity`, preserving input order.
+///
+/// Useful for splitting a combined diagnostic list into errors-only or
+/// warnings-only lists before rendering or routing to separate outputs.
+pub fn severity_filter(diags: &[Diagnostic], severity: Severity) -> Vec<Diagnostic> {
+    diags
+        .iter()
+        .filter(|d| d.severity == severity)
+        .cloned()
+        .collect()
+}
+
 /// Serialize `diags` to a JSON object string for `file`.
 ///
 /// The returned string is a self-contained JSON object (no trailing newline).
@@ -223,5 +235,51 @@ mod tests {
         let diags: Vec<Diagnostic> = (0..5).map(|i| Diagnostic::error(i, "e")).collect();
         let json = diag_json("j.game", &diags);
         assert!(json.contains("\"errors\": 5"));
+    }
+
+    // --- severity_filter ---
+
+    #[test]
+    fn test_severity_filter_errors_only() {
+        let diags = vec![
+            Diagnostic::error(1, "e1"),
+            Diagnostic::warning(2, "w1"),
+            Diagnostic::error(3, "e2"),
+        ];
+        let errors = severity_filter(&diags, Severity::Error);
+        assert_eq!(errors.len(), 2);
+        assert!(errors.iter().all(|d| d.severity == Severity::Error));
+    }
+
+    #[test]
+    fn test_severity_filter_warnings_only() {
+        let diags = vec![
+            Diagnostic::error(1, "e"),
+            Diagnostic::warning(2, "w1"),
+            Diagnostic::warning(3, "w2"),
+        ];
+        let warnings = severity_filter(&diags, Severity::Warning);
+        assert_eq!(warnings.len(), 2);
+        assert!(warnings.iter().all(|d| d.severity == Severity::Warning));
+    }
+
+    #[test]
+    fn test_severity_filter_empty_input_returns_empty() {
+        let result = severity_filter(&[], Severity::Error);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_severity_filter_preserves_order() {
+        let diags = vec![
+            Diagnostic::error(5, "last"),
+            Diagnostic::warning(1, "skip"),
+            Diagnostic::error(3, "middle"),
+            Diagnostic::error(1, "first"),
+        ];
+        let errors = severity_filter(&diags, Severity::Error);
+        assert_eq!(errors[0].line, 5);
+        assert_eq!(errors[1].line, 3);
+        assert_eq!(errors[2].line, 1);
     }
 }

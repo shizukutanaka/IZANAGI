@@ -152,6 +152,16 @@ impl Camera {
         dx.max(dy)
     }
 
+    /// Chebyshev distance between two screen-space cells `(sx1, sy1)` and
+    /// `(sx2, sy2)`. Returns `max(|sx1−sx2|, |sy1−sy2|)`.
+    /// Both inputs are in viewport coordinates (0-based from top-left).
+    #[inline]
+    pub fn screen_distance(sx1: u32, sy1: u32, sx2: u32, sy2: u32) -> u32 {
+        let dx = sx1.abs_diff(sx2);
+        let dy = sy1.abs_diff(sy2);
+        dx.max(dy)
+    }
+
     // Compute the top-left origin for one axis: centre on `focus`, clamp so
     // the `view` cells fit in `world`.
     fn clamp_origin(focus: i32, view: u32, world: u32) -> i32 {
@@ -410,5 +420,20 @@ mod tests {
     fn test_chebyshev_to_center_asymmetric_uses_max() {
         let c = cam(20, 15); // centre = (20, 15)
         assert_eq!(c.chebyshev_to_center(22, 19), 4); // dx=2, dy=4 → 4
+    }
+
+    #[test]
+    fn test_screen_distance_same_cell_is_zero() {
+        assert_eq!(Camera::screen_distance(3, 5, 3, 5), 0);
+    }
+
+    #[test]
+    fn test_screen_distance_horizontal() {
+        assert_eq!(Camera::screen_distance(0, 0, 4, 0), 4);
+    }
+
+    #[test]
+    fn test_screen_distance_diagonal_uses_max() {
+        assert_eq!(Camera::screen_distance(1, 1, 4, 3), 3); // dx=3, dy=2 → 3
     }
 }

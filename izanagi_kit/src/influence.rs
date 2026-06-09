@@ -202,6 +202,14 @@ impl InfluenceMap {
         best
     }
 
+    /// Direction `(dx, dy)` of steepest ascent from `(x, y)`: the step toward
+    /// the highest-valued immediate neighbour. Returns `None` when there are no
+    /// in-bounds neighbours (same condition as [`highest_neighbour`](Self::highest_neighbour)).
+    pub fn gradient_at(&self, x: i32, y: i32) -> Option<(i32, i32)> {
+        let (dx, dy, _) = self.highest_neighbour(x, y)?;
+        Some((dx, dy))
+    }
+
     /// Iterate `(x, y, value)` for all cells in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, i32)> + '_ {
         let w = self.width;
@@ -445,5 +453,28 @@ mod tests {
         m.set(0, 0, 5);
         let peaks = m.find_peaks(5);
         assert_eq!(peaks, vec![(0, 0)]);
+    }
+
+    #[test]
+    fn test_gradient_at_points_toward_highest_neighbour() {
+        let mut m = InfluenceMap::new(3, 3);
+        // Peak at (2, 1) — east of (1, 1).
+        m.set(2, 1, 100);
+        let grad = m.gradient_at(1, 1).unwrap();
+        assert_eq!(grad, (1, 0)); // step east
+    }
+
+    #[test]
+    fn test_gradient_at_no_neighbours_returns_none() {
+        let m = InfluenceMap::new(1, 1); // only cell (0,0), no neighbours
+        assert!(m.gradient_at(0, 0).is_none());
+    }
+
+    #[test]
+    fn test_gradient_at_all_zero_neighbours_returns_some() {
+        // All neighbours exist but have equal (zero) values; any of them may be
+        // returned — we only verify that a direction is produced.
+        let m = InfluenceMap::new(3, 3);
+        assert!(m.gradient_at(1, 1).is_some());
     }
 }

@@ -248,6 +248,20 @@ impl HudPanel {
         panels
     }
 
+    /// Shrink this panel by explicit per-side margins (in cells), returning a
+    /// new panel. Width and height are clamped to 0 if the margins exceed the
+    /// panel's outer size.
+    pub fn pad(&self, left: u32, top: u32, right: u32, bottom: u32) -> HudPanel {
+        let pad_w = left.saturating_add(right);
+        let pad_h = top.saturating_add(bottom);
+        HudPanel {
+            x: self.x.saturating_add(left as i32),
+            y: self.y.saturating_add(top as i32),
+            w: self.w.saturating_sub(pad_w),
+            h: self.h.saturating_sub(pad_h),
+        }
+    }
+
     /// Compute the smallest `HudPanel` enclosing all panels in `panels`.
     /// Returns `None` for an empty slice. Useful for "group selection" bounding
     /// boxes and computing a containing region for composite HUD layouts.
@@ -509,5 +523,35 @@ mod tests {
         assert_eq!(m.y, 1);
         assert_eq!(m.w, 6);
         assert_eq!(m.h, 5);
+    }
+
+    // --- HudPanel::pad ---
+
+    #[test]
+    fn test_pad_uniform_shrinks_correctly() {
+        let p = HudPanel::new(0, 0, 10, 8);
+        let inner = p.pad(1, 1, 1, 1);
+        assert_eq!(inner.x, 1);
+        assert_eq!(inner.y, 1);
+        assert_eq!(inner.w, 8);
+        assert_eq!(inner.h, 6);
+    }
+
+    #[test]
+    fn test_pad_asymmetric_margins() {
+        let p = HudPanel::new(2, 3, 20, 12);
+        let inner = p.pad(2, 1, 3, 4);
+        assert_eq!(inner.x, 4); // 2 + 2
+        assert_eq!(inner.y, 4); // 3 + 1
+        assert_eq!(inner.w, 15); // 20 - 2 - 3
+        assert_eq!(inner.h, 7); // 12 - 1 - 4
+    }
+
+    #[test]
+    fn test_pad_exceeds_size_clamps_to_zero() {
+        let p = HudPanel::new(0, 0, 4, 3);
+        let inner = p.pad(3, 2, 3, 2); // pad_w=6 > 4, pad_h=4 > 3
+        assert_eq!(inner.w, 0);
+        assert_eq!(inner.h, 0);
     }
 }

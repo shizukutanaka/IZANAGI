@@ -77,6 +77,14 @@ impl<C> CmdQueue<C> {
         &self.buf
     }
 
+    /// View the pending commands as a slice. Follows the Rust `as_slice`
+    /// convention; identical in result to [`peek`](Self::peek) but preferred
+    /// when callers want slice-specific APIs (e.g. `windows`, `chunks`).
+    #[inline]
+    pub fn as_slice(&self) -> &[C] {
+        &self.buf
+    }
+
     /// Insert a command at the *front* of the queue (LIFO-priority insertion).
     ///
     /// Use for priority commands that must be processed before already-queued
@@ -362,5 +370,27 @@ mod tests {
         assert_eq!(q.len(), 2);
         let _ = q.drain();
         assert_eq!(q.len(), 0);
+    }
+
+    #[test]
+    fn test_as_slice_returns_pending_commands() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(10);
+        q.push(20);
+        assert_eq!(q.as_slice(), &[10, 20]);
+    }
+
+    #[test]
+    fn test_as_slice_empty_queue_is_empty_slice() {
+        let q: CmdQueue<i32> = CmdQueue::new();
+        assert!(q.as_slice().is_empty());
+    }
+
+    #[test]
+    fn test_as_slice_does_not_consume() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(1);
+        let _ = q.as_slice();
+        assert_eq!(q.len(), 1); // still in the queue
     }
 }

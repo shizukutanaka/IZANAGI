@@ -281,6 +281,19 @@ pub fn ease_in_out_bounce(t: Fixed) -> Fixed {
     }
 }
 
+// ── ease reversal ────────────────────────────────────────────────────────────
+
+/// Convert an ease-in function to its ease-out mirror by time-reversal:
+/// `ease_reversed(t, f) = 1 − f(1 − t)`.
+///
+/// Works with any function that maps `[0, 1] → [0, 1]` and satisfies
+/// `f(0) = 0`, `f(1) = 1` (all standard ease-in curves). Result maps
+/// `0 → 0` and `1 → 1`, starting fast and decelerating.
+#[inline]
+pub fn ease_reversed(t: Fixed, ease_in: fn(Fixed) -> Fixed) -> Fixed {
+    Fixed::ONE - ease_in(Fixed::ONE - t)
+}
+
 // ── exponential ─────────────────────────────────────────────────────────────
 //
 // Decomposes 2^x into an integer power-of-two (bit-shift) and a fractional
@@ -722,5 +735,32 @@ mod tests {
         assert_eq!(ease_in_expo(t), ease_in_expo(t));
         assert_eq!(ease_out_expo(t), ease_out_expo(t));
         assert_eq!(ease_in_out_expo(t), ease_in_out_expo(t));
+    }
+
+    #[test]
+    fn test_ease_reversed_endpoints() {
+        // reversed(0, ease_in_quad) = 1 - ease_in_quad(1) = 1 - 1 = 0
+        // reversed(1, ease_in_quad) = 1 - ease_in_quad(0) = 1 - 0 = 1
+        assert_eq!(ease_reversed(Fixed::ZERO, ease_in_quad), Fixed::ZERO);
+        assert_eq!(ease_reversed(Fixed::ONE, ease_in_quad), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_ease_reversed_matches_ease_out_quad() {
+        // ease_reversed(t, ease_in_quad) should equal ease_out_quad(t).
+        for n in [0i32, 1, 2, 3, 4] {
+            let t = fr(n, 4);
+            let rev = ease_reversed(t, ease_in_quad);
+            let out = ease_out_quad(t);
+            let diff = (rev.raw() - out.raw()).abs();
+            assert!(diff <= 2, "t={n}/4: rev={rev:?} out={out:?}");
+        }
+    }
+
+    #[test]
+    fn test_ease_reversed_linear_is_identity() {
+        // reversed(t, linear) = 1 - (1-t) = t
+        let t = fr(3, 8);
+        assert_eq!(ease_reversed(t, linear), t);
     }
 }

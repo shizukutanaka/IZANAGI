@@ -7,6 +7,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `arch::ArchTable::with_capacity(n) -> Self`: pre-allocate both the dense Vec
+  and the HashMap for `n` entities, avoiding repeated reallocation on bulk
+  insertions. Equivalent to `new()` in all other respects; deterministic hash is
+  unchanged.
+- `camera::Camera::screen_distance(sx1, sy1, sx2, sy2) -> u32`: Chebyshev
+  distance between two screen-space cells — `max(|sx1−sx2|, |sy1−sy2|)`.
+  Static method; requires no camera state. Matches the king-move metric used by
+  `chebyshev_to_center`. Useful for "is this enemy within cursor range?" UI checks.
+- `cmdqueue::CmdQueue::as_slice(&self) -> &[C]`: view pending commands as a
+  slice without consuming them. Follows the Rust `as_slice` convention and
+  complements the existing `peek()`; callers that need slice-specific methods
+  (`windows`, `chunks`, `starts_with`) can use this directly.
+- `diag_json::severity_filter(diags, severity) -> Vec<Diagnostic>`: filter a
+  diagnostic slice to a given severity level, preserving order. Useful for
+  routing errors and warnings to separate outputs (stderr vs. log) before calling
+  `diag_json`. Also re-exported at the crate root.
+- `hud::HudPanel::pad(left, top, right, bottom) -> HudPanel`: shrink a panel by
+  explicit per-side margins, returning a new panel. Width and height saturate at 0
+  when margins exceed the panel size. Complements the fixed-1-cell `inner_*`
+  helpers with caller-controlled insets.
+- `influence::InfluenceMap::gradient_at(x, y) -> Option<(i32, i32)>`: the step
+  direction `(dx, dy)` of steepest ascent from `(x, y)` — equivalent to
+  `highest_neighbour` without the value. Returns `None` when there are no
+  in-bounds neighbours (same condition as `highest_neighbour`). Primary use:
+  AI pathfinding step "move toward maximum influence."
+- `easing::ease_reversed(t, ease_in) -> Fixed`: converts any ease-in function to
+  its ease-out mirror by time-reversal (`1 − f(1 − t)`). Works with all standard
+  Penner ease-in functions. Also re-exported at the crate root.
+- `autotile::SimpleTileTable::fill_range(start, end, tile_id)`: set all 256-entry
+  table slots in the inclusive range `[start, end]` to `tile_id`. Replaces
+  repeated `set()` calls when initialising consecutive mask groups (e.g. all
+  cardinal-only masks). No-op when `start > end`.
 - `rng::SplitMix64::pick_mut(&mut [T]) -> Option<&mut T>`: mutable variant of
   `pick` — select a uniform-random element and hand back a mutable reference so
   the caller can modify it in-place without an index round-trip. No draw for

@@ -162,6 +162,17 @@ impl SimpleTileTable {
     pub fn get(&self, mask: u8) -> u32 {
         self.table[mask as usize]
     }
+
+    /// Set all entries in the inclusive range `[start, end]` to `tile_id`.
+    /// If `start > end` the call is a no-op.
+    pub fn fill_range(&mut self, start: u8, end: u8, tile_id: u32) {
+        if start > end {
+            return;
+        }
+        for mask in start..=end {
+            self.table[mask as usize] = tile_id;
+        }
+    }
 }
 
 impl crate::world_hash::DetHash for SimpleTileTable {
@@ -326,5 +337,35 @@ mod tests {
         let mut b = SimpleTileTable::new();
         b.set(5, 99);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_fill_range_sets_all_entries() {
+        let mut t = SimpleTileTable::new();
+        t.fill_range(10, 14, 42);
+        for mask in 10u8..=14 {
+            assert_eq!(t.get(mask), 42, "mask={mask}");
+        }
+        // Adjacent entries outside the range remain 0.
+        assert_eq!(t.get(9), 0);
+        assert_eq!(t.get(15), 0);
+    }
+
+    #[test]
+    fn test_fill_range_single_entry() {
+        let mut t = SimpleTileTable::new();
+        t.fill_range(7, 7, 99);
+        assert_eq!(t.get(7), 99);
+        assert_eq!(t.get(6), 0);
+        assert_eq!(t.get(8), 0);
+    }
+
+    #[test]
+    fn test_fill_range_inverted_is_noop() {
+        let mut t = SimpleTileTable::new();
+        t.fill_range(20, 10, 5); // start > end → no-op
+        for mask in 10u8..=20 {
+            assert_eq!(t.get(mask), 0);
+        }
     }
 }

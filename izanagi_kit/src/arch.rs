@@ -55,6 +55,15 @@ impl<Row: Clone> ArchTable<Row> {
         Self::default()
     }
 
+    /// Create an empty table pre-allocated for `n` entities, avoiding
+    /// reallocation for the first `n` inserts.
+    pub fn with_capacity(n: usize) -> Self {
+        ArchTable {
+            dense: Vec::with_capacity(n),
+            index: HashMap::with_capacity(n),
+        }
+    }
+
     /// Insert `entity` with row data `row`. Returns `true` if newly inserted,
     /// `false` if the entity was already present (row is left unchanged).
     pub fn insert(&mut self, entity: Entity, row: Row) -> bool {
@@ -469,5 +478,29 @@ mod tests {
         t2.insert(e1, Pos { x: 2, y: 0 });
         t2.insert(e0, Pos { x: 1, y: 0 });
         assert_eq!(hash_state(&t1), hash_state(&t2));
+    }
+
+    #[test]
+    fn test_with_capacity_starts_empty() {
+        let table: ArchTable<Pos> = ArchTable::with_capacity(64);
+        assert!(table.is_empty());
+        assert_eq!(table.len(), 0);
+    }
+
+    #[test]
+    fn test_with_capacity_behaves_like_new() {
+        let mut a = alloc();
+        let e = a.allocate();
+        let mut t1: ArchTable<Pos> = ArchTable::new();
+        let mut t2: ArchTable<Pos> = ArchTable::with_capacity(10);
+        t1.insert(e, Pos { x: 5, y: 7 });
+        t2.insert(e, Pos { x: 5, y: 7 });
+        assert_eq!(hash_state(&t1), hash_state(&t2));
+    }
+
+    #[test]
+    fn test_with_capacity_zero_is_valid() {
+        let table: ArchTable<Pos> = ArchTable::with_capacity(0);
+        assert!(table.is_empty());
     }
 }
