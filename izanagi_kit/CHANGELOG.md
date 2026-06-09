@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `dice::Dice`: tabletop dice-notation parsing and rolling — `Dice::parse("3d6+2")`
+  (panic-free, `None` on malformed input), `roll(&mut rng)` (replay-deterministic
+  via `SplitMix64::dice`), plus `min`/`max`/`average_x100` range queries for
+  balancing without floats. The standard data-driven way to author damage / hit
+  dice (cf. `bracket-random`'s `roll_str`). Re-exported as `izanagi_kit::Dice`.
+- `content::Color::from_hsv`: integer HSV→RGB conversion (`hue` in degrees mod
+  360, `sat`/`val` in `0..=255`) for procedural palettes and rainbow/heat
+  gradients — no float, deterministic across targets.
 - `mapgen::generate_bsp` / `mapgen::BspParams`: binary-space-partition dungeon
   generation — the third classic family alongside `generate_dungeon` (room
   rejection) and `generate_cave` (cellular automata); cf. `bracket-lib`'s BSP

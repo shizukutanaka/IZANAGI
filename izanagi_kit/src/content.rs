@@ -39,6 +39,41 @@ impl Color {
         format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
     }
 
+    /// Build a color from HSV: `hue` in degrees (wrapped mod 360), `sat` and
+    /// `val` in `0..=255`. Pure integer arithmetic (no float), so it is
+    /// deterministic across targets — handy for procedural palettes and
+    /// rainbow/heat gradients. `sat == 0` yields a gray of brightness `val`.
+    pub fn from_hsv(hue: u32, sat: u8, val: u8) -> Color {
+        let v = val as u32;
+        if sat == 0 {
+            return Color {
+                r: val,
+                g: val,
+                b: val,
+            };
+        }
+        let s = sat as u32;
+        let h = hue % 360;
+        let region = h / 60; // 0..=5
+        let rem = (h % 60) * 255 / 60; // fractional position within the sextant, 0..=255
+        let p = v * (255 - s) / 255;
+        let q = v * (255 - s * rem / 255) / 255;
+        let t = v * (255 - s * (255 - rem) / 255) / 255;
+        let (r, g, b) = match region {
+            0 => (v, t, p),
+            1 => (q, v, p),
+            2 => (p, v, t),
+            3 => (p, q, v),
+            4 => (t, p, v),
+            _ => (v, p, q),
+        };
+        Color {
+            r: r as u8,
+            g: g as u8,
+            b: b as u8,
+        }
+    }
+
     /// Linearly interpolate each channel from `a` to `b` by the ratio
     /// `num/den` (integer, no float). `num == 0` yields `a`, `num == den`
     /// yields `b`; values outside `[0, den]` extrapolate and clamp per channel
@@ -413,5 +448,34 @@ mod tests {
         assert_eq!(c.scale(1, 2), Color::rgb(50, 100, 25)); // half
         assert_eq!(c.scale(4, 1).g, 255); // brighten clamps
         assert_eq!(c.scale(1, 0), c); // zero den is a no-op
+    }
+
+    #[test]
+    fn test_color_from_hsv_primaries() {
+        assert_eq!(Color::from_hsv(0, 255, 255), Color::rgb(255, 0, 0)); // red
+        assert_eq!(Color::from_hsv(120, 255, 255), Color::rgb(0, 255, 0)); // green
+        assert_eq!(Color::from_hsv(240, 255, 255), Color::rgb(0, 0, 255)); // blue
+    }
+
+    #[test]
+    fn test_color_from_hsv_zero_sat_is_gray() {
+        assert_eq!(Color::from_hsv(200, 0, 137), Color::rgb(137, 137, 137));
+        assert_eq!(Color::from_hsv(0, 0, 0), Color::rgb(0, 0, 0));
+    }
+
+    #[test]
+    fn test_color_from_hsv_hue_wraps() {
+        assert_eq!(Color::from_hsv(360, 255, 255), Color::from_hsv(0, 255, 255));
+        assert_eq!(
+            Color::from_hsv(480, 255, 255),
+            Color::from_hsv(120, 255, 255)
+        );
+    }
+
+    #[test]
+    fn test_color_from_hsv_value_scales_brightness() {
+        // Half value on pure red → darker red, no other channel introduced.
+        let dim = Color::from_hsv(0, 255, 128);
+        assert_eq!(dim, Color::rgb(128, 0, 0));
     }
 }

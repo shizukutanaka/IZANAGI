@@ -65,6 +65,7 @@ pub mod cmdqueue;
 pub mod combat;
 pub mod content;
 pub mod diag_json;
+pub mod dice;
 pub mod easing;
 pub mod entity;
 pub mod fixed;
@@ -115,6 +116,7 @@ pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
 pub use combat::{base_damage, melee_attack, ranged_attack, roll_to_hit, Stats};
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
+pub use dice::Dice;
 pub use easing::{
     ease_in_circ, ease_in_cubic, ease_in_out_circ, ease_in_out_quad, ease_in_out_quart,
     ease_in_out_quint, ease_in_out_sine, ease_in_quad, ease_in_quart, ease_in_quint, ease_in_sine,
