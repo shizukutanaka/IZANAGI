@@ -111,6 +111,38 @@ impl Dice {
         }
         self.count as i64 * (self.sides as i64 + 1) * 50 + self.modifier as i64 * 100
     }
+
+    /// Roll twice and return the **higher** result ("roll with advantage" in 5e
+    /// parlance). Consumes exactly two `roll` calls from `rng`.
+    #[inline]
+    pub fn roll_advantage(&self, rng: &mut SplitMix64) -> i32 {
+        let a = self.roll(rng);
+        let b = self.roll(rng);
+        a.max(b)
+    }
+
+    /// Roll twice and return the **lower** result ("roll with disadvantage").
+    /// Consumes exactly two `roll` calls from `rng`.
+    #[inline]
+    pub fn roll_disadvantage(&self, rng: &mut SplitMix64) -> i32 {
+        let a = self.roll(rng);
+        let b = self.roll(rng);
+        a.min(b)
+    }
+}
+
+impl core::fmt::Display for Dice {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        if self.count != 1 {
+            write!(f, "{}", self.count)?;
+        }
+        write!(f, "d{}", self.sides)?;
+        match self.modifier.cmp(&0) {
+            core::cmp::Ordering::Greater => write!(f, "+{}", self.modifier),
+            core::cmp::Ordering::Less => write!(f, "{}", self.modifier),
+            core::cmp::Ordering::Equal => Ok(()),
+        }
+    }
 }
 
 impl DetHash for Dice {
@@ -195,5 +227,59 @@ mod tests {
             hash_state(&Dice::new(2, 6, 0)),
             hash_state(&Dice::new(3, 6, 0))
         );
+    }
+
+    #[test]
+    fn test_roll_advantage_at_least_as_high_as_single_roll() {
+        let d = Dice::parse("2d6").unwrap();
+        let mut rng = SplitMix64::new(0xAD_FA);
+        for _ in 0..500 {
+            let mut r2 = rng.clone();
+            let single = d.roll(&mut rng);
+            let _ = d.roll(&mut rng); // consume same pair
+            let adv = {
+                let a = d.roll(&mut r2);
+                let b = d.roll(&mut r2);
+                a.max(b)
+            };
+            assert!(adv >= d.min() && adv <= d.max(), "adv={adv} out of range");
+            let _ = single;
+        }
+    }
+
+    #[test]
+    fn test_roll_advantage_consumes_two_draws() {
+        let d = Dice::new(1, 6, 0);
+        let mut rng = SplitMix64::new(42);
+        let state_before = rng.state();
+        d.roll_advantage(&mut rng);
+        let state_after = rng.state();
+        // Must have drawn (state advances twice via roll×2).
+        assert_ne!(state_before, state_after);
+    }
+
+    #[test]
+    fn test_roll_disadvantage_at_most_as_high_as_max() {
+        let d = Dice::parse("1d20").unwrap();
+        let mut rng = SplitMix64::new(7);
+        for _ in 0..500 {
+            let v = d.roll_disadvantage(&mut rng);
+            assert!(v >= d.min() && v <= d.max());
+        }
+    }
+
+    #[test]
+    fn test_display_basic() {
+        assert_eq!(Dice::new(3, 6, 0).to_string(), "3d6");
+        assert_eq!(Dice::new(1, 20, 0).to_string(), "d20");
+        assert_eq!(Dice::new(2, 8, 3).to_string(), "2d8+3");
+        assert_eq!(Dice::new(1, 10, -2).to_string(), "d10-2");
+    }
+
+    #[test]
+    fn test_display_roundtrip_parse() {
+        let orig = Dice::new(4, 6, 1);
+        let s = orig.to_string();
+        assert_eq!(Dice::parse(&s), Some(orig));
     }
 }

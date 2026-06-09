@@ -120,6 +120,25 @@ impl SplitMix64 {
         }
     }
 
+    /// Return a random element from `slice`, or `None` if it is empty. Consumes
+    /// one draw (via [`below`](Self::below)). Mirrors `rot.js getItem` and
+    /// `bracket-random`'s implicit random-element API.
+    #[inline]
+    pub fn pick<'a, T>(&mut self, slice: &'a [T]) -> Option<&'a T> {
+        if slice.is_empty() {
+            return None;
+        }
+        Some(&slice[self.below(slice.len() as u32) as usize])
+    }
+
+    /// Advance the stream and return the upper 32 bits of the 64-bit output.
+    /// Useful when the caller only needs a 32-bit integer and wants to avoid
+    /// discarding bits in a subsequent narrow cast.
+    #[inline]
+    pub fn next_u32(&mut self) -> u32 {
+        (self.next_u64() >> 32) as u32
+    }
+
     /// Snapshot of internal state — fold into the world hash to detect RNG
     /// stream divergence between two runs.
     #[inline]
@@ -363,5 +382,53 @@ mod tests {
             (0..50).map(|_| r.dice(2, 8)).collect::<Vec<_>>()
         };
         assert_eq!(run(), run());
+    }
+
+    #[test]
+    fn test_pick_returns_element_from_slice() {
+        let mut r = SplitMix64::new(1);
+        let items = [10u32, 20, 30, 40, 50];
+        for _ in 0..200 {
+            let v = r.pick(&items).unwrap();
+            assert!(items.contains(v));
+        }
+    }
+
+    #[test]
+    fn test_pick_empty_returns_none() {
+        let mut r = SplitMix64::new(7);
+        let empty: &[u32] = &[];
+        assert_eq!(r.pick(empty), None);
+        // State must not advance on empty pick.
+        let state_before = r.state();
+        r.pick(empty);
+        assert_eq!(r.state(), state_before);
+    }
+
+    #[test]
+    fn test_pick_single_element_always_returns_it() {
+        let mut r = SplitMix64::new(99);
+        let single = [42u32];
+        for _ in 0..50 {
+            assert_eq!(r.pick(&single), Some(&42));
+        }
+    }
+
+    #[test]
+    fn test_next_u32_produces_varied_values() {
+        let mut r = SplitMix64::new(0xABCD);
+        let vals: Vec<u32> = (0..16).map(|_| r.next_u32()).collect();
+        // Not all the same — genuine variation expected from a good PRNG.
+        assert!(vals.windows(2).any(|w| w[0] != w[1]));
+    }
+
+    #[test]
+    fn test_next_u32_is_deterministic() {
+        let run = |seed: u64| {
+            let mut r = SplitMix64::new(seed);
+            (0..16).map(|_| r.next_u32()).collect::<Vec<_>>()
+        };
+        assert_eq!(run(5), run(5));
+        assert_ne!(run(5), run(6));
     }
 }

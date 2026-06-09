@@ -7,6 +7,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `rng::SplitMix64::pick(slice)`: uniform random element from a non-empty slice,
+  returning `Option<&T>`. Returns `None` without drawing for an empty slice so
+  draw count stays a deterministic function of arguments (mirrors `rot.js getItem`).
+- `rng::SplitMix64::next_u32()`: advances the stream and returns the upper 32 bits
+  of the 64-bit output. Useful when only a 32-bit integer is needed.
+- `sparse_set::SparseSet::clear()`: bulk removal of all entries; resets the sparse
+  index so no stale slots remain. Equivalent to `retain(|_,_| false)` but O(n)
+  without the per-element predicate call overhead.
+- `sparse_set::SparseSet::entities()`: entity-handle-only dense iterator. Mirrors
+  the `keys()` / `iter_entities()` convention of Bevy and EnTT, avoiding an
+  unnecessary component dereference when only entity membership matters.
+- `sparse_set::SparseSet::values()` / `values_mut()`: component-value-only iterators.
+  Avoids the entity-handle unpacking boilerplate when the caller only needs to read
+  or mutate all stored values (e.g. ticking every AI state machine).
+- `dice::Dice::roll_advantage(rng)` / `roll_disadvantage(rng)`: D&D 5e advantage
+  mechanics — roll twice, keep max / min respectively. Each call consumes exactly
+  two draws so the draw count is fixed and replay-deterministic.
+- `dice::Dice`: `std::fmt::Display` — pretty-prints as `"3d6+2"`, `"d20"`,
+  `"2d8-1"`, etc. Enables round-trip `parse(dice.to_string())` and human-readable
+  logging without heap allocation beyond the format string.
+- `easing`: back easing family — `ease_in_back`, `ease_out_back`, `ease_in_out_back`.
+  Standard Penner overshoot curves (c1 ≈ 1.70158). The ease-in version briefly goes
+  below 0; ease-out briefly exceeds 1. Endpoints are exactly 0→1. Pure polynomial,
+  no trig, no float.
+- `easing`: bounce easing family — `ease_out_bounce`, `ease_in_bounce`,
+  `ease_in_out_bounce`. Piecewise polynomial (7.5625·t² in 4 segments) approximating
+  a bouncing ball. Stays in `[0, 1]` by construction. No float, no trig.
 - `vec::Vec2`: `abs()`, `min(a, b)`, `max(a, b)`, `clamp(lo, hi)` — component-wise
   utilities present in bracket-lib's geometry crate. `abs` maps each component
   through `Fixed::abs`; `min`/`max` use component-wise comparisons; `clamp`

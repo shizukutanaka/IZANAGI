@@ -190,6 +190,97 @@ pub fn ease_in_out_circ(t: Fixed) -> Fixed {
     }
 }
 
+// ── back (overshoot) ─────────────────────────────────────────────────────────
+//
+// c1 ≈ 1.70158 (standard Penner overshoot constant).
+// ease_in_back(t)  = c3·t³ − c1·t²   where c3 = c1 + 1 ≈ 2.70158
+// ease_out_back(t) = 1 + c3·(t−1)³ + c1·(t−1)²
+
+#[inline]
+fn c1() -> Fixed {
+    Fixed::from_ratio(170158, 100000) // ≈ 1.70158
+}
+#[inline]
+fn c3() -> Fixed {
+    Fixed::from_ratio(270158, 100000) // ≈ 2.70158 = c1 + 1
+}
+#[inline]
+fn c2() -> Fixed {
+    Fixed::from_ratio(259870, 100000) // ≈ 2.5949 = c1 * 1.525
+}
+/// Ease-in back: overshoots at the start (`t` briefly goes slightly below 0).
+pub fn ease_in_back(t: Fixed) -> Fixed {
+    let c1 = c1();
+    let c3 = c3();
+    c3.mul(t.mul(t).mul(t)) - c1.mul(t.mul(t))
+}
+
+/// Ease-out back: overshoots at the end (`t` briefly exceeds 1).
+pub fn ease_out_back(t: Fixed) -> Fixed {
+    let c1 = c1();
+    let c3 = c3();
+    let u = t - Fixed::ONE;
+    Fixed::ONE + c3.mul(u.mul(u).mul(u)) + c1.mul(u.mul(u))
+}
+
+/// Ease-in-out back: overshoots on both ends.
+pub fn ease_in_out_back(t: Fixed) -> Fixed {
+    let half = Fixed::from_ratio(1, 2);
+    let two = Fixed::from_int(2);
+    let c2 = c2();
+    if t < half {
+        let u = two.mul(t);
+        u.mul(u).mul((c2 + Fixed::ONE).mul(u) - c2).mul(half)
+    } else {
+        let u = two.mul(t) - two;
+        (u.mul(u).mul((c2 + Fixed::ONE).mul(u) + c2) + two).mul(half)
+    }
+}
+
+// ── bounce ───────────────────────────────────────────────────────────────────
+//
+// Piecewise polynomial approximation of a bouncing ball. The `out_bounce`
+// version is the base; `in_bounce` inverts it, and `in_out_bounce` halves both.
+
+fn bounce_out(t: Fixed) -> Fixed {
+    let n1 = Fixed::from_ratio(121, 16); // 7.5625 = 121/16
+    if t < Fixed::from_ratio(4, 11) {
+        n1.mul(t.mul(t))
+    } else if t < Fixed::from_ratio(8, 11) {
+        let u = t - Fixed::from_ratio(6, 11);
+        n1.mul(u.mul(u)) + Fixed::from_ratio(3, 4)
+    } else if t < Fixed::from_ratio(10, 11) {
+        let u = t - Fixed::from_ratio(9, 11);
+        n1.mul(u.mul(u)) + Fixed::from_ratio(15, 16)
+    } else {
+        let u = t - Fixed::from_ratio(21, 22);
+        n1.mul(u.mul(u)) + Fixed::from_ratio(63, 64)
+    }
+}
+
+/// Ease-out bounce: ball dropped and bouncing to rest.
+#[inline]
+pub fn ease_out_bounce(t: Fixed) -> Fixed {
+    bounce_out(t)
+}
+
+/// Ease-in bounce: mirror of `ease_out_bounce`.
+#[inline]
+pub fn ease_in_bounce(t: Fixed) -> Fixed {
+    Fixed::ONE - bounce_out(Fixed::ONE - t)
+}
+
+/// Ease-in-out bounce.
+pub fn ease_in_out_bounce(t: Fixed) -> Fixed {
+    let half = Fixed::from_ratio(1, 2);
+    let two = Fixed::from_int(2);
+    if t < half {
+        (Fixed::ONE - bounce_out(Fixed::ONE - two.mul(t))).mul(half)
+    } else {
+        (Fixed::ONE + bounce_out(two.mul(t) - Fixed::ONE)).mul(half)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,6 +432,12 @@ mod tests {
             (ease_in_circ, "in_circ"),
             (ease_out_circ, "out_circ"),
             (ease_in_out_circ, "in_out_circ"),
+            (ease_in_back, "in_back"),
+            (ease_out_back, "out_back"),
+            (ease_in_out_back, "in_out_back"),
+            (ease_in_bounce, "in_bounce"),
+            (ease_out_bounce, "out_bounce"),
+            (ease_in_out_bounce, "in_out_bounce"),
         ];
         for (f, name) in easers {
             approx(f(z), z, tol, &format!("{name}(0)"));
@@ -391,6 +488,81 @@ mod tests {
             fr(86603, 100000),
             64,
             "out_circ(0.5)",
+        );
+    }
+
+    // ── back (overshoot) tests ───────────────────────────────────────────────
+
+    #[test]
+    fn test_back_endpoints() {
+        let z = Fixed::ZERO;
+        let one = Fixed::ONE;
+        let tol = 8;
+        approx(ease_in_back(z), z, tol, "in_back(0)");
+        approx(ease_out_back(one), one, tol, "out_back(1)");
+        approx(ease_in_out_back(z), z, tol, "in_out_back(0)");
+        approx(ease_in_out_back(one), one, tol, "in_out_back(1)");
+    }
+
+    #[test]
+    fn test_in_back_undershoots_at_start() {
+        // ease_in_back(t) briefly goes negative for small t.
+        let small = fr(1, 10);
+        assert!(
+            ease_in_back(small).raw() < 0,
+            "ease_in_back should undershoot near 0"
+        );
+    }
+
+    #[test]
+    fn test_out_back_overshoots_at_end() {
+        // ease_out_back(t) briefly exceeds 1 near t=1.
+        let near_one = fr(9, 10);
+        assert!(
+            ease_out_back(near_one).raw() > Fixed::ONE.raw(),
+            "ease_out_back should overshoot near 1"
+        );
+    }
+
+    // ── bounce tests ─────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_bounce_endpoints() {
+        let z = Fixed::ZERO;
+        let one = Fixed::ONE;
+        let tol = 8;
+        approx(ease_in_bounce(z), z, tol, "in_bounce(0)");
+        approx(ease_in_bounce(one), one, tol, "in_bounce(1)");
+        approx(ease_out_bounce(z), z, tol, "out_bounce(0)");
+        approx(ease_out_bounce(one), one, tol, "out_bounce(1)");
+        approx(ease_in_out_bounce(z), z, tol, "in_out_bounce(0)");
+        approx(ease_in_out_bounce(one), one, tol, "in_out_bounce(1)");
+    }
+
+    #[test]
+    fn test_bounce_stays_in_range() {
+        // Bounce functions should stay within [0, 1] (no overshoot by design).
+        let steps = 64u32;
+        for f in [ease_out_bounce, ease_in_bounce, ease_in_out_bounce] {
+            for i in 0..=steps {
+                let t = Fixed::from_ratio(i as i32, steps as i32);
+                let v = f(t);
+                assert!(
+                    v.raw() >= -4 && v.raw() <= Fixed::ONE.raw() + 4,
+                    "bounce out of [0,1] at t={i}/{steps}: {v:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_bounce_in_out_midpoint() {
+        // ease_in_out_bounce(0.5) should be close to 0.5.
+        approx(
+            ease_in_out_bounce(fr(1, 2)),
+            fr(1, 2),
+            512,
+            "in_out_bounce(0.5)",
         );
     }
 

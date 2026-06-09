@@ -110,6 +110,34 @@ impl<T> SparseSet<T> {
         self.dense_values.pop()
     }
 
+    /// Remove all entries. The sparse index is also cleared so no stale slots
+    /// remain. Equivalent to `retain(|_,_| false)` but avoids per-element
+    /// overhead.
+    pub fn clear(&mut self) {
+        for e in &self.dense_entities {
+            if let Some(slot) = self.sparse.get_mut(e.index() as usize) {
+                *slot = None;
+            }
+        }
+        self.dense_entities.clear();
+        self.dense_values.clear();
+    }
+
+    /// Iterate entity handles only, in dense (insertion) order.
+    pub fn entities(&self) -> impl Iterator<Item = Entity> + '_ {
+        self.dense_entities.iter().copied()
+    }
+
+    /// Iterate component values only, in dense (insertion) order.
+    pub fn values(&self) -> impl Iterator<Item = &T> {
+        self.dense_values.iter()
+    }
+
+    /// Iterate mutable component values only, in dense (insertion) order.
+    pub fn values_mut(&mut self) -> impl Iterator<Item = &mut T> {
+        self.dense_values.iter_mut()
+    }
+
     /// Dense iteration (fast). Order follows insert/swap history — stable for a
     /// fixed op sequence, but not canonical. Use `iter_sorted` when a
     /// deterministic-across-content order is required.
@@ -357,6 +385,76 @@ mod tests {
         for (i, &e) in es.iter().enumerate() {
             assert_eq!(s.get(e), Some(&(i as u32)));
         }
+    }
+
+    #[test]
+    fn test_clear_removes_all_entries() {
+        let mut alloc = EntityAllocator::new();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        let e0 = alloc.allocate();
+        let e1 = alloc.allocate();
+        s.insert(e0, 1);
+        s.insert(e1, 2);
+        s.clear();
+        assert!(s.is_empty());
+        assert_eq!(s.len(), 0);
+        assert_eq!(s.get(e0), None);
+        assert_eq!(s.get(e1), None);
+    }
+
+    #[test]
+    fn test_clear_then_reinsert() {
+        let mut alloc = EntityAllocator::new();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        let e = alloc.allocate();
+        s.insert(e, 10);
+        s.clear();
+        s.insert(e, 99);
+        assert_eq!(s.get(e), Some(&99));
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn test_entities_iterator() {
+        let mut alloc = EntityAllocator::new();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        let e0 = alloc.allocate();
+        let e1 = alloc.allocate();
+        s.insert(e0, 1);
+        s.insert(e1, 2);
+        let ents: Vec<Entity> = s.entities().collect();
+        assert!(ents.contains(&e0));
+        assert!(ents.contains(&e1));
+        assert_eq!(ents.len(), 2);
+    }
+
+    #[test]
+    fn test_values_iterator() {
+        let mut alloc = EntityAllocator::new();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        let e0 = alloc.allocate();
+        let e1 = alloc.allocate();
+        s.insert(e0, 10);
+        s.insert(e1, 20);
+        let vals: Vec<i32> = s.values().copied().collect();
+        assert!(vals.contains(&10));
+        assert!(vals.contains(&20));
+        assert_eq!(vals.len(), 2);
+    }
+
+    #[test]
+    fn test_values_mut_modifies_components() {
+        let mut alloc = EntityAllocator::new();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        let e0 = alloc.allocate();
+        let e1 = alloc.allocate();
+        s.insert(e0, 3);
+        s.insert(e1, 5);
+        for v in s.values_mut() {
+            *v *= 2;
+        }
+        assert_eq!(s.get(e0), Some(&6));
+        assert_eq!(s.get(e1), Some(&10));
     }
 
     #[test]
