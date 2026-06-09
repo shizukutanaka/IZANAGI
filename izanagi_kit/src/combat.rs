@@ -77,6 +77,29 @@ impl Stats {
     pub fn hp_fraction(&self) -> (i32, i32) {
         (self.hp, self.max_hp.max(1))
     }
+
+    /// HP remaining as an integer percentage in `[0, 100]`. Saturates: HP
+    /// above `max_hp` returns 100, zero or negative HP returns 0. Useful for
+    /// `BarWidget` fill values and health thresholds without float division.
+    #[inline]
+    pub fn hp_percent(&self) -> u32 {
+        if self.max_hp <= 0 {
+            return 0;
+        }
+        (self.hp.max(0) as u64 * 100 / self.max_hp as u64).min(100) as u32
+    }
+
+    /// Apply `amount` damage and return the **overkill** — the excess damage
+    /// beyond the current HP (always ≥ 0). HP is clamped to 0 as usual.
+    ///
+    /// Useful for death events and chaining AoE damage to other targets.
+    #[inline]
+    pub fn take_overkill_damage(&mut self, amount: i32) -> i32 {
+        let amount = amount.max(0);
+        let overkill = (amount - self.hp).max(0);
+        self.hp = (self.hp - amount).max(0);
+        overkill
+    }
 }
 
 impl DetHash for Stats {
@@ -392,5 +415,63 @@ mod tests {
             })
             .collect();
         assert_eq!(results, results2);
+    }
+
+    #[test]
+    fn test_hp_percent_full_hp() {
+        let s = Stats::new(100, 5, 2);
+        assert_eq!(s.hp_percent(), 100);
+    }
+
+    #[test]
+    fn test_hp_percent_half() {
+        let mut s = Stats::new(100, 5, 2);
+        s.take_damage(50);
+        assert_eq!(s.hp_percent(), 50);
+    }
+
+    #[test]
+    fn test_hp_percent_zero_hp() {
+        let mut s = Stats::new(10, 5, 2);
+        s.take_damage(10);
+        assert_eq!(s.hp_percent(), 0);
+    }
+
+    #[test]
+    fn test_hp_percent_zero_max_hp_returns_zero() {
+        let s = Stats::new(0, 5, 2);
+        assert_eq!(s.hp_percent(), 0);
+    }
+
+    #[test]
+    fn test_take_overkill_damage_exact_kill() {
+        let mut s = Stats::new(10, 5, 2);
+        let overkill = s.take_overkill_damage(10);
+        assert_eq!(overkill, 0);
+        assert_eq!(s.hp, 0);
+    }
+
+    #[test]
+    fn test_take_overkill_damage_excess() {
+        let mut s = Stats::new(5, 5, 2);
+        let overkill = s.take_overkill_damage(8);
+        assert_eq!(overkill, 3);
+        assert_eq!(s.hp, 0);
+    }
+
+    #[test]
+    fn test_take_overkill_damage_no_kill() {
+        let mut s = Stats::new(20, 5, 2);
+        let overkill = s.take_overkill_damage(6);
+        assert_eq!(overkill, 0);
+        assert_eq!(s.hp, 14);
+    }
+
+    #[test]
+    fn test_take_overkill_damage_negative_amount_is_noop() {
+        let mut s = Stats::new(10, 5, 2);
+        let overkill = s.take_overkill_damage(-5);
+        assert_eq!(overkill, 0);
+        assert_eq!(s.hp, 10);
     }
 }

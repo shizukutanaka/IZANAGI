@@ -610,6 +610,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   since the last `mark` call (`current_tick − changed_at`). Per-component age
   query without passing `ChangeTracker` everywhere — use for cache invalidation,
   freshness indicators, and idle-trigger conditions.
+- `combat::Stats::hp_percent()`: current HP as an integer percentage `[0, 100]`.
+  Uses `u64` intermediate arithmetic to avoid overflow for large HP values; clamps
+  at 100; returns 0 for dead or zero-`max_hp` actors. Replaces the common
+  `(hp * 100 / max_hp)` one-liner which overflows for `hp > i32::MAX / 100`.
+- `combat::Stats::take_overkill_damage(amount)`: apply `amount` damage and return
+  how many hit points overshot zero (overkill). Negative amounts are treated as
+  zero. Useful for chaining "excess damage propagates" mechanics (e.g. shield →
+  HP spillover, cleave damage to adjacent targets, one-hit-kill detection).
+- `camera::Camera::contains_rect(l, t, r, b)`: test whether the world-space
+  axis-aligned rectangle `[l, r) × [t, b)` (exclusive right/bottom) overlaps the
+  camera's current viewport. Empty rects (`l >= r` or `t >= b`) always return
+  `false`. Standard broad-phase visibility cull for particle systems, light
+  sources, and HUD markers — cheaper than projecting each corner with
+  `world_to_screen`.
+- `camera::Camera::chebyshev_to_center(wx, wy)`: Chebyshev ("king-moves") distance
+  from the viewport's world-space centre to `(wx, wy)`. `max(|cx−wx|, |cy−wy|)` —
+  the natural metric for 8-directional grids. Returns `0` when the point equals
+  the centre. Useful for depth-of-field / fog-of-war intensity calculations and
+  radial scroll-speed curves without branching on octant.
+- `sparse_set::SparseSet::count_matching(pred)`: count entries for which
+  `pred(&value)` returns `true`. Non-allocating (no intermediate `Vec`);
+  equivalent to `.values().filter(pred).count()` but named for clarity at call
+  sites ("how many poisoned entities?", "how many full-HP enemies?").
+- `timer::TimerQueue::reschedule(pred, new_delay)`: cancel the first pending entry
+  matching `pred` and immediately re-schedule its event as a one-shot at
+  `new_delay` ticks. Returns `true` if an entry was found. The rescheduled entry
+  is always one-shot regardless of whether the original was a repeating timer —
+  for "reset patrol timer without losing the event" patterns.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

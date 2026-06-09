@@ -128,6 +128,30 @@ impl Camera {
         )
     }
 
+    /// Whether the world-space axis-aligned rectangle `[l, r) × [t, b)` (all
+    /// exclusive-right/bottom) overlaps the camera's current viewport.
+    /// An empty rect (`l >= r` or `t >= b`) never overlaps.
+    #[inline]
+    pub fn contains_rect(&self, l: i32, t: i32, r: i32, b: i32) -> bool {
+        if l >= r || t >= b {
+            return false;
+        }
+        let (vl, vt, vr, vb) = self.world_rect();
+        l < vr && r > vl && t < vb && b > vt
+    }
+
+    /// Chebyshev distance from the viewport centre to world point `(wx, wy)`.
+    /// Chebyshev distance is `max(|cx - wx|, |cy - wy|)` — the natural
+    /// "number of king moves" metric for 8-directional tile grids. Returns 0
+    /// when the point equals the centre.
+    #[inline]
+    pub fn chebyshev_to_center(&self, wx: i32, wy: i32) -> u32 {
+        let (cx, cy) = self.center();
+        let dx = (cx - wx).unsigned_abs();
+        let dy = (cy - wy).unsigned_abs();
+        dx.max(dy)
+    }
+
     // Compute the top-left origin for one axis: centre on `focus`, clamp so
     // the `view` cells fit in `world`.
     fn clamp_origin(focus: i32, view: u32, world: u32) -> i32 {
@@ -339,5 +363,52 @@ mod tests {
         let (cx, cy) = c.center();
         assert_eq!(cx, 20);
         assert_eq!(cy, 15);
+    }
+
+    #[test]
+    fn test_contains_rect_empty_rect_never_overlaps() {
+        let c = cam(20, 15);
+        assert!(!c.contains_rect(5, 5, 5, 10)); // l == r
+        assert!(!c.contains_rect(5, 5, 10, 5)); // t == b
+        assert!(!c.contains_rect(10, 5, 5, 10)); // l > r
+    }
+
+    #[test]
+    fn test_contains_rect_overlapping() {
+        let c = cam(20, 15); // viewport: x [15,25), y [11,19)
+        assert!(c.contains_rect(10, 10, 20, 16)); // overlaps left side
+        assert!(c.contains_rect(20, 15, 30, 25)); // overlaps right side
+        assert!(c.contains_rect(0, 0, 40, 30)); // fully contains viewport
+    }
+
+    #[test]
+    fn test_contains_rect_non_overlapping() {
+        let c = cam(20, 15); // viewport: x [15,25), y [11,19)
+        assert!(!c.contains_rect(0, 0, 15, 11)); // just outside top-left
+        assert!(!c.contains_rect(25, 19, 35, 25)); // just outside bottom-right
+    }
+
+    #[test]
+    fn test_chebyshev_to_center_at_center_is_zero() {
+        let c = cam(20, 15); // centre = (20, 15)
+        assert_eq!(c.chebyshev_to_center(20, 15), 0);
+    }
+
+    #[test]
+    fn test_chebyshev_to_center_horizontal_offset() {
+        let c = cam(20, 15); // centre = (20, 15)
+        assert_eq!(c.chebyshev_to_center(23, 15), 3); // dx=3, dy=0 → 3
+    }
+
+    #[test]
+    fn test_chebyshev_to_center_diagonal_offset() {
+        let c = cam(20, 15); // centre = (20, 15)
+        assert_eq!(c.chebyshev_to_center(17, 12), 3); // dx=3, dy=3 → 3
+    }
+
+    #[test]
+    fn test_chebyshev_to_center_asymmetric_uses_max() {
+        let c = cam(20, 15); // centre = (20, 15)
+        assert_eq!(c.chebyshev_to_center(22, 19), 4); // dx=2, dy=4 → 4
     }
 }

@@ -173,6 +173,23 @@ impl<E: Clone> TimerQueue<E> {
         self.entries.iter().filter(|e| e.period.is_some()).count()
     }
 
+    /// Cancel the first pending entry matching `pred` and re-schedule it at
+    /// `new_delay` ticks from now (one-shot). Returns `true` if an entry was
+    /// found and rescheduled, `false` if no entry matched.
+    ///
+    /// Use this to "reset" a pending ability or patrol timer without losing
+    /// track of which event to reschedule. The rescheduled entry is always
+    /// one-shot regardless of whether the original was repeating.
+    pub fn reschedule<P: Fn(&E) -> bool>(&mut self, pred: P, new_delay: u32) -> bool {
+        if let Some(pos) = self.entries.iter().position(|e| pred(&e.event)) {
+            let event = self.entries.remove(pos).event;
+            self.schedule(new_delay, event);
+            true
+        } else {
+            false
+        }
+    }
+
     /// Advance by `ticks`. Fires (and returns) every event whose delay expires
     /// within those ticks, in firing order (earliest first; ties preserve
     /// insertion order). Repeating entries requeue themselves.
@@ -439,5 +456,45 @@ mod tests {
         a.schedule(3, 1);
         b.schedule(4, 1);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_reschedule_returns_false_when_not_found() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(5, 10);
+        assert!(!q.reschedule(|&e| e == 99, 2));
+        assert_eq!(q.len(), 1);
+    }
+
+    #[test]
+    fn test_reschedule_returns_true_and_fires_at_new_delay() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(10, 42);
+        let found = q.reschedule(|&e| e == 42, 3);
+        assert!(found);
+        assert_eq!(q.len(), 1);
+        let not_yet = q.advance(2);
+        assert!(not_yet.is_empty());
+        let fired = q.advance(1);
+        assert_eq!(fired, vec![42]);
+    }
+
+    #[test]
+    fn test_reschedule_repeating_becomes_oneshot() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule_repeat(5, 5, 7);
+        assert_eq!(q.count_repeating(), 1);
+        q.reschedule(|&e| e == 7, 2);
+        // After reschedule the rescheduled entry is one-shot.
+        assert_eq!(q.count_repeating(), 0);
+        let fired = q.advance(2);
+        assert_eq!(fired, vec![7]);
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn test_reschedule_on_empty_queue_returns_false() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        assert!(!q.reschedule(|_| true, 1));
     }
 }

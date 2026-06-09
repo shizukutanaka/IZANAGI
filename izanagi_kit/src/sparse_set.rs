@@ -162,6 +162,12 @@ impl<T> SparseSet<T> {
         pairs.sort_unstable_by_key(|(e, _)| e.index());
         pairs
     }
+
+    /// Count entries for which `pred` returns `true`. Non-allocating alternative
+    /// to `.iter().filter(|(_,v)| pred(v)).count()`.
+    pub fn count_matching<F: Fn(&T) -> bool>(&self, pred: F) -> usize {
+        self.values().filter(|v| pred(v)).count()
+    }
 }
 
 impl<T: crate::world_hash::DetHash> SparseSet<T> {
@@ -475,5 +481,40 @@ mod tests {
         assert_eq!(pos.get(es[0]), Some(&105));
         assert_eq!(pos.get(es[1]), Some(&200), "no velocity → unchanged");
         assert_eq!(pos.get(es[2]), Some(&307));
+    }
+
+    #[test]
+    fn test_count_matching_zero_on_empty() {
+        let s: SparseSet<i32> = SparseSet::new();
+        assert_eq!(s.count_matching(|_| true), 0);
+    }
+
+    #[test]
+    fn test_count_matching_all() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 2);
+        s.insert(es[2], 3);
+        assert_eq!(s.count_matching(|_| true), 3);
+    }
+
+    #[test]
+    fn test_count_matching_none() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 3);
+        assert_eq!(s.count_matching(|v| v % 2 == 0), 0);
+    }
+
+    #[test]
+    fn test_count_matching_partial() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 10);
+        s.insert(es[1], 7);
+        s.insert(es[2], 4);
+        assert_eq!(s.count_matching(|v| *v > 5), 2);
     }
 }
