@@ -168,6 +168,16 @@ impl<T> SparseSet<T> {
     pub fn count_matching<F: Fn(&T) -> bool>(&self, pred: F) -> usize {
         self.values().filter(|v| pred(v)).count()
     }
+
+    /// Return the first entity whose component satisfies `pred`, or `None` if
+    /// no component matches. Scans in dense (insertion) order, so when several
+    /// match the result depends on insert history; use [`iter_sorted`](Self::iter_sorted)
+    /// at the call site if a canonical pick is required. The component-query
+    /// complement to `count_matching`.
+    pub fn find_entity_where<F: Fn(&T) -> bool>(&self, pred: F) -> Option<Entity> {
+        self.iter()
+            .find_map(|(entity, value)| if pred(value) { Some(entity) } else { None })
+    }
 }
 
 impl<T: crate::world_hash::DetHash> SparseSet<T> {
@@ -516,5 +526,30 @@ mod tests {
         s.insert(es[1], 7);
         s.insert(es[2], 4);
         assert_eq!(s.count_matching(|v| *v > 5), 2);
+    }
+
+    #[test]
+    fn test_find_entity_where_returns_matching_entity() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 10);
+        s.insert(es[1], 20);
+        s.insert(es[2], 30);
+        assert_eq!(s.find_entity_where(|v| *v == 20), Some(es[1]));
+    }
+
+    #[test]
+    fn test_find_entity_where_no_match_returns_none() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 2);
+        assert_eq!(s.find_entity_where(|v| *v > 100), None);
+    }
+
+    #[test]
+    fn test_find_entity_where_empty_returns_none() {
+        let s: SparseSet<i32> = SparseSet::new();
+        assert_eq!(s.find_entity_where(|_| true), None);
     }
 }

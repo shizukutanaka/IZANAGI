@@ -175,6 +175,35 @@ impl<T: Clone> TileMap<T> {
             .collect()
     }
 
+    /// The minimal [`Aabb`](crate::aabb::Aabb) enclosing every cell for which
+    /// `pred` returns `true`, or `None` if no cell matches. The returned box
+    /// uses the half-open convention (`right = max_x + 1`), so a single matching
+    /// cell yields a `1×1` box. Useful for "bounds of this room / spell area /
+    /// painted region" without manual min/max bookkeeping.
+    pub fn bounds_of<P: Fn(&T) -> bool>(&self, pred: P) -> Option<crate::aabb::Aabb> {
+        let mut min_x = i32::MAX;
+        let mut min_y = i32::MAX;
+        let mut max_x = i32::MIN;
+        let mut max_y = i32::MIN;
+        for (x, y, tile) in self.iter() {
+            if pred(tile) {
+                min_x = min_x.min(x);
+                min_y = min_y.min(y);
+                max_x = max_x.max(x);
+                max_y = max_y.max(y);
+            }
+        }
+        if min_x > max_x {
+            return None;
+        }
+        Some(crate::aabb::Aabb::from_corners(
+            min_x,
+            min_y,
+            max_x + 1,
+            max_y + 1,
+        ))
+    }
+
     /// Apply `transform` to every cell for which `pred` returns `true`,
     /// replacing the cell value in place. `transform` receives the current
     /// value by move and returns the new one (allows non-`Copy` items).
@@ -635,5 +664,30 @@ mod tests {
         let mut m: TileMap<u8> = TileMap::new(2, 2, 1);
         m.mutate_where(|_| true, |t| t + 10);
         assert!(m.iter().all(|(_, _, &t)| t == 11));
+    }
+
+    #[test]
+    fn test_bounds_of_single_cell_is_one_by_one() {
+        let mut m: TileMap<u8> = TileMap::new(5, 5, 0);
+        m.set(2, 3, 1);
+        let b = m.bounds_of(|&t| t == 1).unwrap();
+        assert_eq!((b.x, b.y, b.w, b.h), (2, 3, 1, 1));
+    }
+
+    #[test]
+    fn test_bounds_of_scattered_cells_minimal_box() {
+        let mut m: TileMap<u8> = TileMap::new(8, 8, 0);
+        m.set(1, 1, 1);
+        m.set(4, 2, 1);
+        m.set(2, 5, 1);
+        let b = m.bounds_of(|&t| t == 1).unwrap();
+        // min (1,1), max (4,5) → half-open box [1,5) x [1,6)
+        assert_eq!((b.x, b.y, b.w, b.h), (1, 1, 4, 5));
+    }
+
+    #[test]
+    fn test_bounds_of_no_match_returns_none() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 0);
+        assert!(m.bounds_of(|&t| t == 99).is_none());
     }
 }

@@ -7,6 +7,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `aabb::Aabb::touches(&self, other: &Aabb) -> bool`: true when two boxes are
+  adjacent (shared edge or corner) but do not overlap. Empty boxes never touch;
+  diagonal corner contact counts. Built on `grow(1)` + `overlaps`, all saturating.
+  Supports roguelike adjacency / "reach" interaction checks.
+- `combat::Stats::missing_hp(&self) -> i32`: health deficit below maximum
+  (`max(0, max_hp − hp)`), i.e. healing needed to reach full. Clamps at 0 for
+  over-full HP. Useful for healing AI and damage-preview UI.
+- `inventory::Inventory::find_mut<F>(pred) -> Option<&mut T>`: mutable complement
+  to `find`; returns the first item matching the predicate so it can be modified
+  in place without a slot round-trip.
+- `msglog::MsgLog::filtered<P>(pred) -> Vec<&str>`: collect references to all
+  messages matching a predicate, oldest-to-newest, without mutating the log
+  (unlike `retain`). Supports "show only combat messages" filtered views.
+- `rng::SplitMix64::pick_index(len) -> Option<usize>`: uniform random index in
+  `0..len` (`None` for `len == 0`, no draw). The index-only primitive behind
+  `pick`/`pick_mut`, for when data lives in parallel arrays or an ECS store.
+  Consumes exactly one draw — replay-deterministic.
+- `sparse_set::SparseSet::find_entity_where<F>(pred) -> Option<Entity>`: return
+  the first entity whose component satisfies the predicate. The component-query
+  complement to `count_matching`; scans in dense order.
+- `tilemap::TileMap::bounds_of<P>(pred) -> Option<Aabb>`: minimal half-open
+  `Aabb` enclosing every cell matching the predicate (`None` if none match). A
+  single cell yields a 1×1 box. Useful for room / spell-area / painted-region
+  bounds without manual min/max bookkeeping.
+- `turn::Scheduler::peek_next_turn(&self) -> Option<A>`: id of the actor who
+  would act on the next `next_turn`, without advancing time or deducting energy.
+  Uses the same smallest-id tie-break, so it is a true non-destructive preview
+  for "whose turn?" UI and AI look-ahead.
 - `change::Changed::is_fresh(max_age_ticks, current_tick) -> bool`: logical
   inverse of `is_stale`; returns `true` when the component was marked within the
   last `max_age_ticks` ticks. Avoids double-negation at call sites and makes

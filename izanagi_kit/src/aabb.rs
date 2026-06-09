@@ -115,6 +115,20 @@ impl Aabb {
             && other.y < self.bottom()
     }
 
+    /// True when the two boxes are *adjacent* — their edges or corners touch —
+    /// but they do **not** overlap. Two empty boxes (or an empty box and any
+    /// other) never touch. Diagonal corner contact counts as touching.
+    ///
+    /// Useful for roguelike adjacency / "reach" checks where a creature in one
+    /// room can interact with the tile in the next without standing on it.
+    #[inline]
+    pub fn touches(&self, other: &Aabb) -> bool {
+        !self.is_empty()
+            && !other.is_empty()
+            && self.grow(1).overlaps(other)
+            && !self.overlaps(other)
+    }
+
     /// True when the point `(px, py)` lies within the box (boundary inclusive).
     #[inline]
     pub fn contains_point(&self, px: i32, py: i32) -> bool {
@@ -673,5 +687,39 @@ mod tests {
         let b = Aabb::from_center_size(0, 0, -5, -5);
         assert_eq!(b.w, 0);
         assert_eq!(b.h, 0);
+    }
+
+    // --- touches ---
+
+    #[test]
+    fn test_touches_shared_edge() {
+        // right edge of first == left edge of second → adjacent, not overlapping
+        assert!(r(0, 0, 4, 4).touches(&r(4, 0, 4, 4)));
+        // shared bottom edge
+        assert!(r(0, 0, 4, 4).touches(&r(0, 4, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_diagonal_corner() {
+        // corner contact at (4, 4)
+        assert!(r(0, 0, 4, 4).touches(&r(4, 4, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_overlapping_returns_false() {
+        // boxes that share interior do not "touch"
+        assert!(!r(0, 0, 4, 4).touches(&r(2, 2, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_gap_returns_false() {
+        // one-cell gap between boxes → not touching
+        assert!(!r(0, 0, 4, 4).touches(&r(5, 0, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_empty_box_never_touches() {
+        assert!(!r(0, 0, 0, 4).touches(&r(0, 0, 4, 4)));
+        assert!(!r(0, 0, 4, 4).touches(&r(4, 0, 0, 4)));
     }
 }

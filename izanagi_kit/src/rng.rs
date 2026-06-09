@@ -143,6 +143,19 @@ impl SplitMix64 {
         Some(&mut slice[idx])
     }
 
+    /// Return a uniform random index in `0..len`, or `None` for `len == 0`
+    /// (no draw consumed). The index-only primitive behind [`pick`](Self::pick)
+    /// and [`pick_mut`](Self::pick_mut): use it when the caller holds the data
+    /// elsewhere (parallel arrays, a `HashMap`, an ECS store) and only needs a
+    /// random position. Consumes exactly one draw when `len > 0`.
+    #[inline]
+    pub fn pick_index(&mut self, len: usize) -> Option<usize> {
+        if len == 0 {
+            return None;
+        }
+        Some(self.below(len as u32) as usize)
+    }
+
     /// Advance the stream and return the upper 32 bits of the 64-bit output.
     /// Useful when the caller only needs a 32-bit integer and wants to avoid
     /// discarding bits in a subsequent narrow cast.
@@ -559,5 +572,33 @@ mod tests {
         let mut v = vec![1u32, 2, 3];
         *r.pick_mut(&mut v).unwrap() = 99;
         assert!(v.contains(&99));
+    }
+
+    #[test]
+    fn test_pick_index_within_bounds() {
+        let mut r = SplitMix64::new(1);
+        for _ in 0..200 {
+            let i = r.pick_index(5).unwrap();
+            assert!(i < 5, "index {i} out of range");
+        }
+    }
+
+    #[test]
+    fn test_pick_index_zero_len_returns_none_without_drawing() {
+        let mut r = SplitMix64::new(7);
+        let before = r.state();
+        assert_eq!(r.pick_index(0), None);
+        assert_eq!(r.state(), before, "len 0 must not advance the stream");
+    }
+
+    #[test]
+    fn test_pick_index_matches_pick_position() {
+        // pick_index and pick must select the same element for the same draw.
+        let items = [10u32, 20, 30, 40];
+        let mut a = SplitMix64::new(123);
+        let mut b = SplitMix64::new(123);
+        let idx = a.pick_index(items.len()).unwrap();
+        let val = b.pick(&items).unwrap();
+        assert_eq!(&items[idx], val);
     }
 }

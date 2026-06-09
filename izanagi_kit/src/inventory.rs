@@ -86,6 +86,16 @@ impl<T: Clone> Inventory<T> {
         })
     }
 
+    /// Find the first item for which `pred(item)` is true and return a mutable
+    /// reference to it, or `None` if no item matches. The mutable complement to
+    /// [`find`](Self::find) — modify an item in place without a slot round-trip.
+    pub fn find_mut<F: Fn(&T) -> bool>(&mut self, pred: F) -> Option<&mut T> {
+        self.slots.iter_mut().find_map(|s| match s {
+            Some(item) if pred(item) => Some(item),
+            _ => None,
+        })
+    }
+
     /// Iterate `(slot_index, &item)` for all occupied slots in index order.
     pub fn iter(&self) -> impl Iterator<Item = (usize, &T)> {
         self.slots
@@ -438,5 +448,35 @@ mod tests {
     fn test_get_mut_out_of_bounds_returns_none() {
         let mut inv: Inventory<u32> = Inventory::new(1);
         assert!(inv.get_mut(99).is_none());
+    }
+
+    #[test]
+    fn test_find_mut_modifies_matching_item() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        *inv.find_mut(|&x| x == 20).unwrap() = 99;
+        assert_eq!(inv.get(1), Some(&99));
+    }
+
+    #[test]
+    fn test_find_mut_returns_none_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        assert!(inv.find_mut(|&x| x == 99).is_none());
+    }
+
+    #[test]
+    fn test_find_mut_returns_first_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        // First item >= 20 is at slot 1 (value 20); mutate to prove identity.
+        *inv.find_mut(|&x| x >= 20).unwrap() += 1;
+        assert_eq!(inv.get(1), Some(&21));
+        assert_eq!(inv.get(2), Some(&30)); // later match untouched
     }
 }

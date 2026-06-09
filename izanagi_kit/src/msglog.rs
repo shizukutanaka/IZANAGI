@@ -154,6 +154,14 @@ impl MsgLog {
     pub fn count_where<P: Fn(&str) -> bool>(&self, pred: P) -> usize {
         self.iter().filter(|msg| pred(msg)).count()
     }
+
+    /// Collect references to all messages for which `pred` returns `true`, in
+    /// oldest-to-newest order. Non-destructive (unlike [`retain`](Self::retain),
+    /// which rebuilds the buffer). Useful for "show only combat messages" views
+    /// without mutating the underlying log.
+    pub fn filtered<P: Fn(&str) -> bool>(&self, pred: P) -> Vec<&str> {
+        self.iter().filter(|msg| pred(msg)).collect()
+    }
 }
 
 impl DetHash for MsgLog {
@@ -433,5 +441,32 @@ mod tests {
         let msg = log.pop();
         assert_eq!(msg, Some("only".to_owned()));
         assert!(log.is_empty());
+    }
+
+    #[test]
+    fn test_filtered_returns_matching_only() {
+        let mut log = MsgLog::new(8);
+        for m in ["attack", "move", "attack", "spell"] {
+            log.push(m);
+        }
+        let hits = log.filtered(|s| s == "attack");
+        assert_eq!(hits, ["attack", "attack"]);
+    }
+
+    #[test]
+    fn test_filtered_preserves_order() {
+        let mut log = MsgLog::new(8);
+        for m in ["a1", "b", "a2", "c", "a3"] {
+            log.push(m);
+        }
+        let hits = log.filtered(|s| s.starts_with('a'));
+        assert_eq!(hits, ["a1", "a2", "a3"]);
+    }
+
+    #[test]
+    fn test_filtered_empty_when_no_match() {
+        let mut log = MsgLog::new(4);
+        log.push("hello");
+        assert!(log.filtered(|s| s.contains("dragon")).is_empty());
     }
 }

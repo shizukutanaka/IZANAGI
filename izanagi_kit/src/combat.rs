@@ -89,6 +89,14 @@ impl Stats {
         (self.hp.max(0) as u64 * 100 / self.max_hp as u64).min(100) as u32
     }
 
+    /// Health deficit below the maximum: `max(0, max_hp − hp)`. Returns the
+    /// amount of healing needed to reach full HP. `0` at (or above) full HP.
+    /// Useful for healing AI ("how much do I need?") and damage-preview UI.
+    #[inline]
+    pub fn missing_hp(&self) -> i32 {
+        (self.max_hp - self.hp).max(0)
+    }
+
     /// Apply `amount` damage and return the **overkill** — the excess damage
     /// beyond the current HP (always ≥ 0). HP is clamped to 0 as usual.
     ///
@@ -519,5 +527,26 @@ mod tests {
         let mut rng = SplitMix64::new(0);
         let dmg = roll_damage(&mut rng, -10, 0);
         assert_eq!(dmg, 0);
+    }
+
+    #[test]
+    fn test_missing_hp_full_health_is_zero() {
+        let s = Stats::new(30, 5, 2);
+        assert_eq!(s.missing_hp(), 0);
+    }
+
+    #[test]
+    fn test_missing_hp_after_damage() {
+        let mut s = Stats::new(30, 5, 2);
+        s.take_damage(12);
+        assert_eq!(s.missing_hp(), 12);
+    }
+
+    #[test]
+    fn test_missing_hp_never_negative() {
+        // Lower max below current hp; deficit clamps at 0.
+        let mut s = Stats::new(30, 5, 2);
+        s.hp = 40; // contrived overheal
+        assert_eq!(s.missing_hp(), 0);
     }
 }

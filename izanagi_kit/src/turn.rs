@@ -161,6 +161,16 @@ impl<A: Copy + Ord> Scheduler<A> {
         best
     }
 
+    /// The id of the actor who is ready right now and would act on the next
+    /// [`next_turn`](Self::next_turn) call, without advancing time or deducting
+    /// energy. Returns `None` if no actor is currently ready (or the scheduler
+    /// is empty). Uses the same smallest-id tie-break as `next_turn`, so it is a
+    /// true non-destructive preview. Useful for "whose turn is it?" UI and AI
+    /// look-ahead.
+    pub fn peek_next_turn(&self) -> Option<A> {
+        self.ready().map(|i| self.actors[i].id)
+    }
+
     /// Advance time until an actor is ready, then return it and deduct one
     /// action's worth of energy. Returns `None` only when empty.
     ///
@@ -456,5 +466,33 @@ mod tests {
         let mut s: Scheduler<u32> = Scheduler::new();
         s.add(1, 50); // speed 50, energy 0: needs ceil(100/50)=2 units
         assert_eq!(s.time_until_ready(1), Some(2));
+    }
+
+    #[test]
+    fn test_peek_next_turn_none_when_no_actor_ready() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100); // energy 0, not yet ready
+        assert_eq!(s.peek_next_turn(), None);
+    }
+
+    #[test]
+    fn test_peek_next_turn_matches_next_turn_without_side_effects() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.add(2, 100);
+        s.set_energy(2, ACTION_COST); // make 2 ready
+        let peeked = s.peek_next_turn();
+        let energy_before = s.energy(2);
+        assert_eq!(peeked, Some(2));
+        // Peeking must not deduct energy.
+        assert_eq!(s.energy(2), energy_before);
+        // And the actual next_turn returns the same actor.
+        assert_eq!(s.next_turn(), Some(2));
+    }
+
+    #[test]
+    fn test_peek_next_turn_empty_scheduler_returns_none() {
+        let s: Scheduler<u32> = Scheduler::new();
+        assert_eq!(s.peek_next_turn(), None);
     }
 }
