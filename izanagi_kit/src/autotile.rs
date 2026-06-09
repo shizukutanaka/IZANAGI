@@ -96,6 +96,33 @@ where
     out
 }
 
+/// Compute auto-tile masks for a rectangular subregion of a larger grid.
+///
+/// Returns a `Vec<u8>` of length `w * h` in row-major order covering the
+/// rectangle `[x, x+w) × [y, y+h)`. `is_same` is called with absolute
+/// coordinates (including neighbours outside the region boundary). An empty
+/// `Vec` is returned for non-positive `w` or `h`.
+///
+/// Use this to recompute only the cells that changed (e.g. after a wall is
+/// placed or removed) rather than recalculating the entire map with
+/// `compute_all`.
+pub fn compute_region<F>(x: i32, y: i32, w: i32, h: i32, is_same: F) -> Vec<u8>
+where
+    F: Fn(i32, i32) -> bool,
+{
+    if w <= 0 || h <= 0 {
+        return Vec::new();
+    }
+    let size = (w as usize) * (h as usize);
+    let mut out = Vec::with_capacity(size);
+    for ry in y..y + h {
+        for rx in x..x + w {
+            out.push(compute_mask(rx, ry, &is_same));
+        }
+    }
+    out
+}
+
 // ---------------------------------------------------------------------------
 // SimpleTileTable
 // ---------------------------------------------------------------------------
@@ -238,6 +265,36 @@ mod tests {
         // N(0), NE(1), NW(7) clear; W(6), NW(7) clear
         assert_eq!(tl & (1 << 0), 0); // N absent
         assert_eq!(tl & (1 << 6), 0); // W absent
+    }
+
+    // --- compute_region ---
+
+    #[test]
+    fn test_compute_region_size() {
+        let masks = compute_region(2, 2, 3, 2, none_same);
+        assert_eq!(masks.len(), 6); // 3 * 2
+    }
+
+    #[test]
+    fn test_compute_region_matches_compute_all_slice() {
+        // 5×5 all-same grid; region (1,1,3,3) should match the center 3×3 of compute_all.
+        let is_same = |x: i32, y: i32| (0..5).contains(&x) && (0..5).contains(&y);
+        let all = compute_all(5, 5, is_same);
+        let region = compute_region(1, 1, 3, 3, is_same);
+        // Extract same rows/cols from compute_all result.
+        let mut expected = Vec::new();
+        for ry in 1..4i32 {
+            for rx in 1..4i32 {
+                expected.push(all[(ry * 5 + rx) as usize]);
+            }
+        }
+        assert_eq!(region, expected);
+    }
+
+    #[test]
+    fn test_compute_region_zero_size_returns_empty() {
+        assert!(compute_region(0, 0, 0, 3, none_same).is_empty());
+        assert!(compute_region(0, 0, 3, 0, none_same).is_empty());
     }
 
     // --- SimpleTileTable ---

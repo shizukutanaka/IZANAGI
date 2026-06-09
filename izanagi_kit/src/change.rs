@@ -65,6 +65,15 @@ impl<T> Changed<T> {
         self.mark(tick);
         &mut self.value
     }
+
+    /// Acknowledge this component as "seen at `tick`" without modifying its
+    /// value. Sets `changed_at` to `tick` so a subsequent `is_changed_since(tick)`
+    /// returns `false` — the canonical way for a system to record that it has
+    /// processed this change and should not re-process on the next query.
+    #[inline]
+    pub fn reset(&mut self, tick: u32) {
+        self.changed_at = tick;
+    }
 }
 
 impl<T: DetHash> DetHash for Changed<T> {
@@ -104,6 +113,14 @@ impl ChangeTracker {
     #[inline]
     pub fn current(&self) -> u32 {
         self.tick
+    }
+
+    /// Reset the tick counter to `0`. Useful when restoring from a save file
+    /// or rewinding a replay: sets the baseline so `is_changed_since(0)` treats
+    /// everything as fresh.
+    #[inline]
+    pub fn reset(&mut self) {
+        self.tick = 0;
     }
 }
 
@@ -192,6 +209,37 @@ mod tests {
         let mut ct = ChangeTracker { tick: u32::MAX };
         ct.advance();
         assert_eq!(ct.tick, u32::MAX);
+    }
+
+    #[test]
+    fn test_reset_makes_subsequent_is_changed_false() {
+        let mut c = Changed::at(42u32, 5);
+        assert!(c.is_changed_since(5));
+        // Acknowledge: reset to tick 5, then query since 5 → not changed.
+        c.reset(5);
+        assert!(
+            !c.is_changed_since(6),
+            "after reset(5), changed_since(6) must be false"
+        );
+        // But it IS still changed since an earlier tick.
+        assert!(c.is_changed_since(5));
+    }
+
+    #[test]
+    fn test_reset_does_not_modify_value() {
+        let mut c = Changed::new(99u32);
+        c.reset(10);
+        assert_eq!(c.value, 99u32);
+    }
+
+    #[test]
+    fn test_change_tracker_reset_to_zero() {
+        let mut ct = ChangeTracker::new();
+        ct.advance();
+        ct.advance();
+        assert_eq!(ct.current(), 2);
+        ct.reset();
+        assert_eq!(ct.current(), 0);
     }
 
     #[test]

@@ -292,6 +292,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   deterministic; all metrics saturate rather than overflow. Re-exported as
   `izanagi_kit::Distance`.
 
+- `change::Changed::reset(tick)`: acknowledge a change without modifying the
+  wrapped value — sets `changed_at` to `tick` so a subsequent
+  `is_changed_since(tick + 1)` returns `false`. The canonical "mark as seen"
+  operation for multi-pass systems that should not re-process a change they
+  already handled.
+- `change::ChangeTracker::reset()`: reset the tick counter to `0`. Needed when
+  restoring world state from a save file or rewinding a replay so that all
+  `is_changed_since` queries treat restored state as fresh.
+- `profiler::Profiler::budget_exceeded(section, budget)`: returns `true` if the
+  current-tick total for `section` exceeds `budget`. Zero-overhead convenience
+  check for per-frame budget monitoring ("did pathfinding exceed 1 ms this
+  tick?") without repeating the `this_tick > N` comparison at each call site.
+- `profiler::EventLog::filter_by_tick_range(start, end)`: iterate entries whose
+  tick falls within `[start, end]` (inclusive), oldest first. Enables replay
+  inspection and assertion patterns like "what events occurred during turns 5–10?"
+- `autotile::compute_region(x, y, w, h, is_same)`: compute auto-tile masks for
+  only the `w × h` subregion starting at `(x, y)` rather than the entire map.
+  `is_same` receives absolute coordinates so diagonal-corner clearing works
+  correctly across region boundaries. Use this after any terrain mutation to
+  avoid recalculating masks for the whole map.
 - `fsm::Fsm::transitions_from(state)`: iterate all events with a defined
   outgoing transition from `state`. Returns `&E` in insertion order. Does not
   include self-loops for unmapped events — only explicitly added transitions.

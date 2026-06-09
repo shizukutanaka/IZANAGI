@@ -131,6 +131,15 @@ impl Profiler {
         self.sections.iter().map(|s| s.name)
     }
 
+    /// Returns `true` if the current-tick total for `section` exceeds `budget`.
+    /// Zero for an unknown section (never recorded) is never over budget.
+    /// Use this for per-frame budget monitoring: "did pathfinding take too long
+    /// this tick?" without keeping a manual threshold comparison everywhere.
+    #[inline]
+    pub fn budget_exceeded(&self, section: &str, budget: u64) -> bool {
+        self.this_tick(section) > budget
+    }
+
     /// Rolling average tick-total for `section` over the history window.
     ///
     /// Only ticks where the section was actually recorded are included in the
@@ -252,6 +261,19 @@ impl<E: Clone> EventLog<E> {
         self.head = 0;
         self.len = 0;
     }
+
+    /// Iterate entries whose tick falls within `[start_tick, end_tick]` (inclusive),
+    /// oldest first. Useful for replays and test assertions like "what happened
+    /// during turns 5–10?". Returns all entries if the log's ring buffer hasn't
+    /// been pruned past this range.
+    pub fn filter_by_tick_range(
+        &self,
+        start_tick: u32,
+        end_tick: u32,
+    ) -> impl Iterator<Item = &LogEntry<E>> {
+        self.iter()
+            .filter(move |e| e.tick >= start_tick && e.tick <= end_tick)
+    }
 }
 
 impl<E: Clone + DetHash> DetHash for EventLog<E> {
@@ -363,6 +385,27 @@ mod tests {
         assert_eq!(hash_state(&a), hash_state(&b));
     }
 
+    #[test]
+    fn test_budget_exceeded_true_when_over() {
+        let mut p = Profiler::new(4);
+        p.record("ai", 500);
+        assert!(p.budget_exceeded("ai", 499));
+    }
+
+    #[test]
+    fn test_budget_exceeded_false_when_equal_or_under() {
+        let mut p = Profiler::new(4);
+        p.record("ai", 100);
+        assert!(!p.budget_exceeded("ai", 100)); // equal is not exceeded
+        assert!(!p.budget_exceeded("ai", 200));
+    }
+
+    #[test]
+    fn test_budget_exceeded_false_for_unknown_section() {
+        let p = Profiler::new(4);
+        assert!(!p.budget_exceeded("missing", 0));
+    }
+
     // --- EventLog ---
 
     #[test]
@@ -411,6 +454,35 @@ mod tests {
         a.push(1, 42);
         b.push(1, 42);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_filter_by_tick_range_returns_matching_entries() {
+        let mut log: EventLog<&str> = EventLog::new(10);
+        log.push(1, "a");
+        log.push(3, "b");
+        log.push(5, "c");
+        log.push(7, "d");
+        let events: Vec<&str> = log.filter_by_tick_range(3, 5).map(|e| e.event).collect();
+        assert_eq!(events, vec!["b", "c"]);
+    }
+
+    #[test]
+    fn test_filter_by_tick_range_empty_when_no_match() {
+        let mut log: EventLog<u32> = EventLog::new(4);
+        log.push(1, 10);
+        log.push(2, 20);
+        let events: Vec<u32> = log.filter_by_tick_range(10, 20).map(|e| e.event).collect();
+        assert!(events.is_empty());
+    }
+
+    #[test]
+    fn test_filter_by_tick_range_inclusive_bounds() {
+        let mut log: EventLog<u32> = EventLog::new(4);
+        log.push(5, 50);
+        log.push(10, 100);
+        let events: Vec<u32> = log.filter_by_tick_range(5, 10).map(|e| e.event).collect();
+        assert_eq!(events, vec![50, 100]); // both endpoints included
     }
 
     #[test]
