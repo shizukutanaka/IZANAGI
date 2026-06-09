@@ -255,6 +255,42 @@ impl Fixed {
         self.sin_cos().1
     }
 
+    /// Round toward negative infinity (largest integer ≤ self).
+    ///
+    /// Implemented as arithmetic-shift-right then shift-left, which propagates
+    /// the sign bit and never overflows for any in-range value.
+    #[inline]
+    pub fn floor(self) -> Fixed {
+        Fixed((self.0 >> FRAC_BITS) << FRAC_BITS)
+    }
+
+    /// Round toward positive infinity (smallest integer ≥ self).
+    #[inline]
+    pub fn ceil(self) -> Fixed {
+        let frac = self.0 & (ONE - 1);
+        if frac == 0 {
+            self
+        } else {
+            Fixed(self.floor().0.saturating_add(ONE))
+        }
+    }
+
+    /// Round to the nearest integer. Ties round away from negative infinity
+    /// (i.e. `round(0.5) == 1`, `round(-0.5) == 0`).
+    #[inline]
+    pub fn round(self) -> Fixed {
+        Fixed(self.0.saturating_add(ONE / 2)).floor()
+    }
+
+    /// Fractional part: `self - self.floor()`. Always in `[0, 1)`.
+    ///
+    /// Note: this follows the floor convention, not IEEE 754 (where `fract` of a
+    /// negative number is negative). `fract(-1.5)` returns `0.5`, not `-0.5`.
+    #[inline]
+    pub fn fract(self) -> Fixed {
+        Fixed(self.0.wrapping_sub(self.floor().0))
+    }
+
     /// Four-quadrant arctangent of `y/x` in radians, via vectoring-mode CORDIC.
     /// Result is in (-π, π]. The rotation runs in `i64` because the CORDIC gain
     /// grows the working vector ~1.6× and `y`/`x` may already be near the `i32`
@@ -629,5 +665,61 @@ mod tests {
         let b = Fixed::from_int(10);
         let half = Fixed::from_ratio(1, 2);
         approx(Fixed::lerp(a, b, half), Fixed::from_int(5), 4);
+    }
+
+    #[test]
+    fn test_floor_positive() {
+        assert_eq!(Fixed::from_ratio(3, 2).floor(), Fixed::from_int(1)); // 1.5 → 1
+        assert_eq!(Fixed::from_int(3).floor(), Fixed::from_int(3)); // integer exact
+    }
+
+    #[test]
+    fn test_floor_negative() {
+        let neg15 = -(Fixed::from_ratio(3, 2)); // -1.5
+        assert_eq!(neg15.floor(), Fixed::from_int(-2)); // -1.5 → -2
+        assert_eq!(Fixed::from_int(-2).floor(), Fixed::from_int(-2)); // exact
+    }
+
+    #[test]
+    fn test_ceil_positive() {
+        assert_eq!(Fixed::from_ratio(3, 2).ceil(), Fixed::from_int(2)); // 1.5 → 2
+        assert_eq!(Fixed::from_int(2).ceil(), Fixed::from_int(2)); // exact
+    }
+
+    #[test]
+    fn test_ceil_negative() {
+        let neg15 = -(Fixed::from_ratio(3, 2)); // -1.5
+        assert_eq!(neg15.ceil(), Fixed::from_int(-1)); // -1.5 → -1
+    }
+
+    #[test]
+    fn test_round_half_rounds_up() {
+        assert_eq!(Fixed::from_ratio(1, 2).round(), Fixed::from_int(1)); // 0.5 → 1
+        assert_eq!(Fixed::from_ratio(3, 2).round(), Fixed::from_int(2)); // 1.5 → 2
+    }
+
+    #[test]
+    fn test_round_negative_half() {
+        // -0.5 rounds to 0 (half-up convention: -0.5 + 0.5 = 0, then floor = 0)
+        let neg_half = -Fixed::from_ratio(1, 2);
+        assert_eq!(neg_half.round(), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_fract_positive() {
+        let f = Fixed::from_ratio(3, 2).fract(); // fract(1.5) = 0.5
+        assert_eq!(f, Fixed::from_ratio(1, 2));
+    }
+
+    #[test]
+    fn test_fract_negative() {
+        let f = (-(Fixed::from_ratio(3, 2))).fract(); // fract(-1.5) = 0.5 (floor convention)
+        assert_eq!(f, Fixed::from_ratio(1, 2));
+    }
+
+    #[test]
+    fn test_fract_integer_is_zero() {
+        assert_eq!(Fixed::from_int(3).fract(), Fixed::ZERO);
+        assert_eq!(Fixed::from_int(-2).fract(), Fixed::ZERO);
     }
 }

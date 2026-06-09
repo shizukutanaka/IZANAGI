@@ -73,6 +73,29 @@ impl EntityAllocator {
     pub fn count(&self) -> usize {
         self.generations.len() - self.free.len()
     }
+
+    /// All currently live entities in ascending index order.
+    ///
+    /// Useful for systems that need to enumerate every spawned entity without
+    /// access to a `SparseSet` or `ArchTable` (e.g. serialisation, debug
+    /// overlays, end-of-frame cleanup). O(n · m) where n = total slots and
+    /// m = free-list length; for typical game entity counts this is fast.
+    pub fn live_entities(&self) -> Vec<Entity> {
+        self.generations
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &gen)| {
+                if self.free.contains(&(i as u32)) {
+                    None
+                } else {
+                    Some(Entity {
+                        index: i as u32,
+                        generation: gen,
+                    })
+                }
+            })
+            .collect()
+    }
 }
 
 impl crate::world_hash::DetHash for Entity {
@@ -121,6 +144,47 @@ mod tests {
         a.free(e);
         a.free(e); // must not corrupt the free list
         assert_eq!(a.allocate().index(), e.index());
+    }
+
+    #[test]
+    fn test_live_entities_empty_allocator() {
+        let a = EntityAllocator::new();
+        assert!(a.live_entities().is_empty());
+    }
+
+    #[test]
+    fn test_live_entities_all_allocated() {
+        let mut a = EntityAllocator::new();
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        let live = a.live_entities();
+        assert_eq!(live.len(), 2);
+        assert!(live.contains(&e0));
+        assert!(live.contains(&e1));
+    }
+
+    #[test]
+    fn test_live_entities_excludes_freed() {
+        let mut a = EntityAllocator::new();
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        a.free(e0);
+        let live = a.live_entities();
+        assert_eq!(live.len(), 1);
+        assert!(!live.contains(&e0));
+        assert!(live.contains(&e1));
+    }
+
+    #[test]
+    fn test_live_entities_sorted_by_index() {
+        let mut a = EntityAllocator::new();
+        let e0 = a.allocate();
+        let e1 = a.allocate();
+        let e2 = a.allocate();
+        let live = a.live_entities();
+        assert_eq!(live[0], e0);
+        assert_eq!(live[1], e1);
+        assert_eq!(live[2], e2);
     }
 
     #[test]

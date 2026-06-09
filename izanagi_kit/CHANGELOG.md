@@ -414,6 +414,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `timer::TimerQueue::count_repeating()`: count entries added via
   `schedule_repeat`. Useful for diagnostics and save-file inspection that need
   to distinguish persistent periodic timers from one-shot callbacks.
+- `entity::EntityAllocator::live_entities()`: returns all currently allocated
+  (not freed) entities as a `Vec<Entity>` in ascending index order. Essential
+  for serialisation, debug overlays, and end-of-frame cleanup passes that need
+  to enumerate every spawned entity without iterating a component store.
+- `fixed::Fixed::floor()`: round toward negative infinity. Implemented with
+  arithmetic-shift-right then shift-left — no branches, no overflow.
+- `fixed::Fixed::ceil()`: round toward positive infinity. No-op on integers;
+  adds one unit then floors otherwise.
+- `fixed::Fixed::round()`: round to nearest integer, ties round away from
+  negative infinity (0.5 → 1, -0.5 → 0).
+- `fixed::Fixed::fract()`: fractional part `self - self.floor()`. Always in
+  `[0, 1)` — follows the floor convention rather than IEEE 754's sign-preserving
+  convention.
+- `replay::Divergence`: implements `Display` — formats as "replay divergence at
+  tick N: expected 0x…, got 0x…". Allows desync reports to be printed directly
+  in logs and error messages without manual formatting.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

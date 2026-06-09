@@ -28,6 +28,16 @@ pub struct Divergence {
     pub actual: u64,
 }
 
+impl core::fmt::Display for Divergence {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "replay divergence at tick {}: expected {:#018x}, got {:#018x}",
+            self.tick, self.expected, self.actual
+        )
+    }
+}
+
 /// Advance `state` through `inputs` with `step`, recording the state hash after
 /// each tick. The returned trace has length `inputs.len()`.
 pub fn record_trace<S, I, F>(state: &mut S, inputs: &[I], mut step: F) -> Vec<u64>
@@ -127,6 +137,18 @@ mod tests {
     fn step(s: &mut Sim, input: &i32) {
         let jitter = s.rng.range(0, 3);
         s.pos = s.pos + Fixed::from_int(*input + jitter);
+    }
+
+    #[test]
+    fn test_divergence_display_contains_tick_and_hashes() {
+        let d = Divergence {
+            tick: 7,
+            expected: 0xDEAD_BEEF_0000_1234,
+            actual: 0xCAFE_BABE_5678_9ABC,
+        };
+        let s = d.to_string();
+        assert!(s.contains("7"), "tick must appear in output");
+        assert!(s.contains("0xdeadbeef00001234") || s.contains("0xDEADBEEF00001234"));
     }
 
     #[test]
