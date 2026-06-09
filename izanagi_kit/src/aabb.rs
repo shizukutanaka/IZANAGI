@@ -180,6 +180,24 @@ impl Aabb {
             && other.bottom() <= self.bottom()
     }
 
+    /// Clamp `(px, py)` to the nearest point inside the box.
+    ///
+    /// If the box is empty (`w == 0` or `h == 0`) the top-left corner is
+    /// returned. Otherwise `x` is clamped to `[self.x, self.right() - 1]` and
+    /// `y` to `[self.y, self.bottom() - 1]` — the same half-open boundary used
+    /// by `contains_point`. Useful for keeping a cursor or projectile inside an
+    /// AABB without manual min/max arithmetic.
+    #[inline]
+    pub fn clamp_point(&self, px: i32, py: i32) -> (i32, i32) {
+        if self.is_empty() {
+            return (self.x, self.y);
+        }
+        (
+            px.clamp(self.x, self.right() - 1),
+            py.clamp(self.y, self.bottom() - 1),
+        )
+    }
+
     /// Iterate every interior cell `(x, y)` in row-major order (top-to-bottom,
     /// left-to-right). Empty for a zero-area box. Handy for filling or scanning
     /// a rectangular region without manual nested loops.
@@ -498,5 +516,32 @@ mod tests {
     fn test_shrink_symmetric_with_grow() {
         let b = r(2, 2, 8, 8);
         assert_eq!(b.shrink(3), b.grow(-3));
+    }
+
+    // --- clamp_point ---
+
+    #[test]
+    fn test_clamp_point_inside_unchanged() {
+        let b = r(2, 3, 6, 5);
+        assert_eq!(b.clamp_point(4, 4), (4, 4));
+    }
+
+    #[test]
+    fn test_clamp_point_outside_left_top() {
+        let b = r(2, 3, 6, 5);
+        assert_eq!(b.clamp_point(0, 0), (2, 3));
+    }
+
+    #[test]
+    fn test_clamp_point_outside_right_bottom() {
+        let b = r(2, 3, 6, 5);
+        // right-1 = 7, bottom-1 = 7
+        assert_eq!(b.clamp_point(100, 100), (7, 7));
+    }
+
+    #[test]
+    fn test_clamp_point_empty_box_returns_top_left() {
+        let b = r(5, 5, 0, 0);
+        assert_eq!(b.clamp_point(10, 10), (5, 5));
     }
 }

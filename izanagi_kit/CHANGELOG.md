@@ -523,6 +523,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `glyph`/`fg`/`bg`. Out-of-bounds cells are silently clipped via the existing `set`
   contract. Delegates to `geometry::line` for the coordinate sequence — the standard
   primitive for laser beams, aiming cursors, and debug overlays.
+- `aabb::Aabb::clamp_point(px, py)`: return the nearest point inside the AABB to
+  `(px, py)`. Points already inside are returned unchanged; points outside are
+  clamped to the boundary. An empty box returns its origin `(x, y)`. The standard
+  primitive for confining entity positions to a region without overlap checks.
+- `rng::SplitMix64::reseed(seed)`: replace the generator state with `seed`,
+  restarting the stream from that point. Equivalent to constructing a new
+  `SplitMix64::new(seed)` but in-place — the canonical "restart simulation from
+  a new random seed" operation without reallocating the RNG struct.
+- `rng::SplitMix64::next_bool()`: return a uniformly random `bool` (50/50
+  coin flip) via `coin(1, 2)`. Consumes one draw so the stream advances
+  deterministically; mirrors the `coin` method but for callers who want a direct
+  boolean rather than a conditional.
+- `turn::Scheduler::speed(id)`: return the current speed for actor `id`, or
+  `None` if not registered. The read-only counterpart to `set_speed` — useful
+  for status displays ("Actor X has speed 150") and save-file serialisation.
+- `turn::Scheduler::iter_actors()`: iterate all registered actor ids in insertion
+  order. Does not drive the turn queue. Used for serialisation, debug overlays,
+  and tests that need to enumerate every actor independently of turn order.
+- `profiler::Profiler::section_count(section)`: number of `record()` calls for
+  `section` in the current (unflushed) tick. Returns `0` for an unknown or silent
+  section. Complements `this_tick` with a call-frequency view — useful for
+  detecting runaway per-frame invocations ("pathfinding was called 47 times this
+  tick").
+- `profiler::Profiler::min(section)`: all-time minimum single-call elapsed for
+  `section`. Persists across `begin_tick` calls, mirroring `peak`. Returns `0` for
+  an unknown section. Enables displaying the best-case timing alongside `peak` in
+  profiler overlays and automated regression checks ("min pathfinding latency
+  regressed above baseline").
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

@@ -24,12 +24,25 @@ use crate::world_hash::{DetHash, Fnv1a};
 // ---------------------------------------------------------------------------
 
 /// One named timing section's accumulated statistics for the current tick.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 struct Section {
     name: &'static str,
     total: u64,
     calls: u32,
     peak: u64,
+    min: u64,
+}
+
+impl Default for Section {
+    fn default() -> Self {
+        Section {
+            name: "",
+            total: 0,
+            calls: 0,
+            peak: 0,
+            min: u64::MAX,
+        }
+    }
 }
 
 /// A per-tick section-based profiler.
@@ -93,12 +106,16 @@ impl Profiler {
             if elapsed > s.peak {
                 s.peak = elapsed;
             }
+            if elapsed < s.min {
+                s.min = elapsed;
+            }
         } else {
             self.sections.push(Section {
                 name: section,
                 total: elapsed,
                 calls: 1,
                 peak: elapsed,
+                min: elapsed,
             });
         }
     }
@@ -165,6 +182,26 @@ impl Profiler {
             sum / count
         }
     }
+
+    /// Number of `record()` calls for `section` in the current (unflushed) tick.
+    /// Returns `0` for an unknown or silent section.
+    pub fn section_count(&self, section: &str) -> u32 {
+        self.sections
+            .iter()
+            .find(|s| s.name == section)
+            .map(|s| s.calls)
+            .unwrap_or(0)
+    }
+
+    /// All-time minimum single-call elapsed for `section`.
+    /// Returns `0` for an unknown section (never recorded).
+    pub fn min(&self, section: &str) -> u64 {
+        self.sections
+            .iter()
+            .find(|s| s.name == section)
+            .map(|s| if s.min == u64::MAX { 0 } else { s.min })
+            .unwrap_or(0)
+    }
 }
 
 impl DetHash for Profiler {
@@ -178,6 +215,7 @@ impl DetHash for Profiler {
             hasher.write_u64(s.total);
             hasher.write_u32(s.calls);
             hasher.write_u64(s.peak);
+            hasher.write_u64(s.min);
         }
     }
 }
@@ -492,5 +530,56 @@ mod tests {
         a.push(1, 10);
         b.push(1, 20);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    // --- section_count ---
+
+    #[test]
+    fn test_section_count_zero_for_unknown() {
+        let p = Profiler::new(4);
+        assert_eq!(p.section_count("missing"), 0);
+    }
+
+    #[test]
+    fn test_section_count_increments_with_record() {
+        let mut p = Profiler::new(4);
+        p.record("ai", 10);
+        p.record("ai", 20);
+        assert_eq!(p.section_count("ai"), 2);
+    }
+
+    #[test]
+    fn test_section_count_resets_on_begin_tick() {
+        let mut p = Profiler::new(4);
+        p.record("ai", 10);
+        p.record("ai", 10);
+        p.begin_tick();
+        assert_eq!(p.section_count("ai"), 0);
+    }
+
+    // --- min ---
+
+    #[test]
+    fn test_min_zero_for_unknown_section() {
+        let p = Profiler::new(4);
+        assert_eq!(p.min("missing"), 0);
+    }
+
+    #[test]
+    fn test_min_tracks_all_time_minimum() {
+        let mut p = Profiler::new(4);
+        p.record("render", 200);
+        p.record("render", 50);
+        p.begin_tick();
+        p.record("render", 300);
+        // min across all ticks should be 50
+        assert_eq!(p.min("render"), 50);
+    }
+
+    #[test]
+    fn test_min_single_record() {
+        let mut p = Profiler::new(4);
+        p.record("work", 777);
+        assert_eq!(p.min("work"), 777);
     }
 }

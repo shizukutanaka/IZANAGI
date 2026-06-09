@@ -96,6 +96,19 @@ impl<A: Copy + Ord> Scheduler<A> {
         }
     }
 
+    /// Current speed for actor `id`, or `None` if not registered.
+    /// Mirrors the `energy` API — a read-only complement to `set_speed`.
+    pub fn speed(&self, id: A) -> Option<i32> {
+        self.actors.iter().find(|a| a.id == id).map(|a| a.speed)
+    }
+
+    /// Iterate all registered actor ids in insertion order.
+    /// Useful for serialisation, debug overlays, and tests that need to
+    /// enumerate every actor without driving the turn queue.
+    pub fn iter_actors(&self) -> impl Iterator<Item = A> + '_ {
+        self.actors.iter().map(|a| a.id)
+    }
+
     /// Index of the ready actor (energy ≥ cost) with the smallest id, if any.
     fn ready(&self) -> Option<usize> {
         let mut best: Option<usize> = None;
@@ -271,6 +284,53 @@ mod tests {
         s.set_energy(2, ACTION_COST);
         // Actor 2 should be ready first (energy >= ACTION_COST).
         assert_eq!(s.next_turn(), Some(2));
+    }
+
+    #[test]
+    fn test_speed_returns_none_for_unknown_actor() {
+        let s: Scheduler<u32> = Scheduler::new();
+        assert_eq!(s.speed(99), None);
+    }
+
+    #[test]
+    fn test_speed_returns_registered_speed() {
+        let mut s = Scheduler::new();
+        s.add(5u32, ACTION_COST * 2);
+        assert_eq!(s.speed(5), Some(ACTION_COST * 2));
+    }
+
+    #[test]
+    fn test_speed_reflects_set_speed() {
+        let mut s = Scheduler::new();
+        s.add(1u32, ACTION_COST);
+        s.set_speed(1, ACTION_COST * 3);
+        assert_eq!(s.speed(1), Some(ACTION_COST * 3));
+    }
+
+    #[test]
+    fn test_iter_actors_empty() {
+        let s: Scheduler<u32> = Scheduler::new();
+        assert_eq!(s.iter_actors().count(), 0);
+    }
+
+    #[test]
+    fn test_iter_actors_yields_all_ids_in_insertion_order() {
+        let mut s = Scheduler::new();
+        s.add(3u32, ACTION_COST);
+        s.add(1u32, ACTION_COST);
+        s.add(2u32, ACTION_COST);
+        let ids: Vec<u32> = s.iter_actors().collect();
+        assert_eq!(ids, vec![3, 1, 2]);
+    }
+
+    #[test]
+    fn test_iter_actors_excludes_removed_actor() {
+        let mut s = Scheduler::new();
+        s.add(1u32, ACTION_COST);
+        s.add(2u32, ACTION_COST);
+        s.remove(1);
+        let ids: Vec<u32> = s.iter_actors().collect();
+        assert_eq!(ids, vec![2]);
     }
 
     #[test]

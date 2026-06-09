@@ -145,6 +145,23 @@ impl SplitMix64 {
     pub fn state(&self) -> u64 {
         self.state
     }
+
+    /// Reset the RNG stream to `seed`. Subsequent draws will be identical to
+    /// `SplitMix64::new(seed)`. Useful for deterministic branching in replay
+    /// scenarios and for re-rolling a sub-generation with a different seed
+    /// without allocating a new instance.
+    #[inline]
+    pub fn reseed(&mut self, seed: u64) {
+        self.state = seed;
+    }
+
+    /// Return `true` with 50% probability — equivalent to `coin(1, 2)` but
+    /// without the extra arithmetic. Consumes one draw. Never draws for empty
+    /// ranges (same contract as `coin`).
+    #[inline]
+    pub fn next_bool(&mut self) -> bool {
+        self.coin(1, 2)
+    }
 }
 
 impl crate::world_hash::DetHash for SplitMix64 {
@@ -430,5 +447,42 @@ mod tests {
         };
         assert_eq!(run(5), run(5));
         assert_ne!(run(5), run(6));
+    }
+
+    #[test]
+    fn test_reseed_resets_stream() {
+        let mut a = SplitMix64::new(42);
+        let mut b = SplitMix64::new(42);
+        // Advance a, then reseed back to 42.
+        a.next_u64();
+        a.next_u64();
+        a.reseed(42);
+        // Both should now produce the same sequence.
+        assert_eq!(a.next_u64(), b.next_u64());
+    }
+
+    #[test]
+    fn test_reseed_to_different_seed_diverges() {
+        let mut r = SplitMix64::new(1);
+        let v1 = r.next_u64();
+        r.reseed(99);
+        let v2 = r.next_u64();
+        assert_ne!(v1, v2);
+    }
+
+    #[test]
+    fn test_next_bool_is_bool() {
+        let mut r = SplitMix64::new(0);
+        for _ in 0..20 {
+            let _ = r.next_bool(); // must not panic
+        }
+    }
+
+    #[test]
+    fn test_next_bool_roughly_half_true() {
+        let mut r = SplitMix64::new(12345);
+        let trues = (0..1000).filter(|_| r.next_bool()).count();
+        // With 1000 draws expect ~500 trues; allow generous margin.
+        assert!((400..=600).contains(&trues), "trues={trues}");
     }
 }
