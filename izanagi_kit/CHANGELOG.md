@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `easing`: extended the Penner family with twelve new integer easers —
+  `ease_{in,out,in_out}_quart` (t⁴), `_quint` (t⁵), `_sine` (via the CORDIC
+  `Fixed::sin_cos`), and `_circ` (via `Fixed::sqrt`). All float-free and
+  bit-identical across targets, matching the kit's determinism guarantee. Brings
+  easing coverage from 6 to 18 functions; all re-exported at the crate root.
+- `content::Color` operations: `Color::rgb` (const constructor), `lerp(a, b,
+  num, den)` (integer-ratio per-channel interpolation for heat-map gradients and
+  fades), `grayscale()` (integer Rec. 601 luma), and `scale(num, den)`
+  (ratio dimming/brightening). All integer-only and clamping — replaces the
+  hand-rolled channel math the demos previously needed.
 - `aabb::Aabb` region queries: `area()` (saturating `w*h`), `is_empty()`,
   `center()` (matching `mapgen::Rect::center`'s top-left bias), `contains(&Aabb)`
   (rect-in-rect, boundary-inclusive), and `iter_points()` — row-major iteration

@@ -29,8 +29,58 @@ pub struct Color {
 }
 
 impl Color {
+    /// Construct a color from its channels. `const` so it can seed palettes.
+    #[inline]
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Color {
+        Color { r, g, b }
+    }
+
     pub fn to_hex(self) -> String {
         format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
+    }
+
+    /// Linearly interpolate each channel from `a` to `b` by the ratio
+    /// `num/den` (integer, no float). `num == 0` yields `a`, `num == den`
+    /// yields `b`; values outside `[0, den]` extrapolate and clamp per channel
+    /// to `0..=255`. A zero denominator returns `a` unchanged. Use this for
+    /// heat-map gradients and fades instead of hand-rolling channel math.
+    pub fn lerp(a: Color, b: Color, num: i32, den: i32) -> Color {
+        if den == 0 {
+            return a;
+        }
+        let ch = |ca: u8, cb: u8| -> u8 {
+            let v = ca as i32 + (cb as i32 - ca as i32) * num / den;
+            v.clamp(0, 255) as u8
+        };
+        Color {
+            r: ch(a.r, b.r),
+            g: ch(a.g, b.g),
+            b: ch(a.b, b.b),
+        }
+    }
+
+    /// Desaturate to a gray of equal perceived luma, using integer Rec. 601
+    /// weights (`0.299, 0.587, 0.114` scaled to sum 256). No float.
+    #[inline]
+    pub fn grayscale(self) -> Color {
+        let y =
+            ((self.r as u32 * 77 + self.g as u32 * 150 + self.b as u32 * 29) >> 8).min(255) as u8;
+        Color { r: y, g: y, b: y }
+    }
+
+    /// Scale every channel by the ratio `num/den` (integer), clamping to
+    /// `0..=255`. `num < den` dims, `num > den` brightens; a zero denominator
+    /// returns the color unchanged. Handy for shading by distance or light.
+    pub fn scale(self, num: i32, den: i32) -> Color {
+        if den == 0 {
+            return self;
+        }
+        let ch = |c: u8| -> u8 { (c as i32 * num / den).clamp(0, 255) as u8 };
+        Color {
+            r: ch(self.r),
+            g: ch(self.g),
+            b: ch(self.b),
+        }
     }
 }
 
@@ -295,5 +345,73 @@ mod tests {
         let d = Diagnostic::error(0, "duplicate prefab 'g'");
         let r = d.render("x.game", "");
         assert_eq!(r, "x.game: error: duplicate prefab 'g'");
+    }
+
+    // --- Color operations ---
+
+    #[test]
+    fn test_color_rgb_const() {
+        const C: Color = Color::rgb(10, 20, 30);
+        assert_eq!(
+            C,
+            Color {
+                r: 10,
+                g: 20,
+                b: 30
+            }
+        );
+    }
+
+    #[test]
+    fn test_color_lerp_endpoints_and_midpoint() {
+        let black = Color::rgb(0, 0, 0);
+        let white = Color::rgb(255, 255, 255);
+        assert_eq!(Color::lerp(black, white, 0, 1), black);
+        assert_eq!(Color::lerp(black, white, 1, 1), white);
+        assert_eq!(Color::lerp(black, white, 1, 2), Color::rgb(127, 127, 127));
+    }
+
+    #[test]
+    fn test_color_lerp_per_channel() {
+        let a = Color::rgb(0, 100, 200);
+        let b = Color::rgb(100, 100, 0);
+        // quarter of the way: r 0→25, g unchanged, b 200→150
+        assert_eq!(Color::lerp(a, b, 1, 4), Color::rgb(25, 100, 150));
+    }
+
+    #[test]
+    fn test_color_lerp_zero_den_returns_a() {
+        let a = Color::rgb(1, 2, 3);
+        assert_eq!(Color::lerp(a, Color::rgb(9, 9, 9), 1, 0), a);
+    }
+
+    #[test]
+    fn test_color_lerp_extrapolation_clamps() {
+        // num > den extrapolates past b but channels clamp to 0..=255.
+        let a = Color::rgb(200, 0, 0);
+        let b = Color::rgb(255, 0, 0);
+        assert_eq!(Color::lerp(a, b, 4, 1).r, 255);
+    }
+
+    #[test]
+    fn test_color_grayscale_extremes_and_luma() {
+        assert_eq!(Color::rgb(0, 0, 0).grayscale(), Color::rgb(0, 0, 0));
+        assert_eq!(
+            Color::rgb(255, 255, 255).grayscale(),
+            Color::rgb(255, 255, 255)
+        );
+        // Pure green carries the most luma weight (150/256 ≈ 0.586).
+        let g = Color::rgb(0, 255, 0).grayscale();
+        assert_eq!(g.r, g.g);
+        assert_eq!(g.g, g.b);
+        assert!((149..=150).contains(&g.r), "green luma ≈149, got {}", g.r);
+    }
+
+    #[test]
+    fn test_color_scale_dim_brighten_clamp() {
+        let c = Color::rgb(100, 200, 50);
+        assert_eq!(c.scale(1, 2), Color::rgb(50, 100, 25)); // half
+        assert_eq!(c.scale(4, 1).g, 255); // brighten clamps
+        assert_eq!(c.scale(1, 0), c); // zero den is a no-op
     }
 }
