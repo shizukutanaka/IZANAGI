@@ -148,6 +148,14 @@ impl ChangeTracker {
     pub fn delta_since(&self, last_tick: u32) -> u32 {
         self.tick.saturating_sub(last_tick)
     }
+
+    /// Set the tick counter to `tick`. Use when restoring exact simulation
+    /// state from a save file: preserves the tick offset recorded in each
+    /// `Changed<T>` component without requiring a sequence of `advance` calls.
+    #[inline]
+    pub fn set_tick(&mut self, tick: u32) {
+        self.tick = tick;
+    }
 }
 
 impl DetHash for ChangeTracker {
@@ -338,5 +346,28 @@ mod tests {
         let mut c = Changed::new(0u32);
         c.mark(10);
         assert_eq!(c.ticks_since_change(5), 0); // saturating sub
+    }
+
+    #[test]
+    fn test_set_tick_sets_tick_counter() {
+        let mut ct = ChangeTracker::new();
+        ct.advance();
+        ct.advance(); // tick = 2
+        ct.set_tick(100);
+        assert_eq!(ct.current(), 100);
+    }
+
+    #[test]
+    fn test_set_tick_zero_resets_like_reset() {
+        let mut ct = ChangeTracker { tick: 42 };
+        ct.set_tick(0);
+        assert_eq!(ct.current(), 0);
+    }
+
+    #[test]
+    fn test_set_tick_restores_delta_correctly() {
+        let mut ct = ChangeTracker::new();
+        ct.set_tick(50);
+        assert_eq!(ct.delta_since(45), 5);
     }
 }

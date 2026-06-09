@@ -96,6 +96,25 @@ impl<C> CmdQueue<C> {
         self.buf.retain(pred);
     }
 
+    /// Remove and return the front command (oldest / first-in), or `None` if
+    /// the queue is empty. O(n) — shifts remaining elements. Use `drain` for
+    /// bulk consumption; this is for the "process exactly one command per tick"
+    /// rate-limiting pattern.
+    pub fn pop_front(&mut self) -> Option<C> {
+        if self.buf.is_empty() {
+            None
+        } else {
+            Some(self.buf.remove(0))
+        }
+    }
+
+    /// Remove and return the back command (newest / last-in), or `None` if
+    /// the queue is empty. O(1). Useful for LIFO (stack) semantics or
+    /// "cancel last queued command" patterns.
+    pub fn pop_back(&mut self) -> Option<C> {
+        self.buf.pop()
+    }
+
     /// Drain and return only commands for which `pred` returns `true`.
     /// Commands that don't match are kept in the queue in their original
     /// relative order. Useful when two subsystems share one queue but each
@@ -303,6 +322,34 @@ mod tests {
         let mut nonempty: CmdQueue<u32> = CmdQueue::new();
         nonempty.push(0);
         assert_ne!(hash_state(&empty), hash_state(&nonempty));
+    }
+
+    #[test]
+    fn test_pop_front_removes_first_element() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 2, 3]);
+        assert_eq!(q.pop_front(), Some(1));
+        assert_eq!(q.peek(), &[2, 3]);
+    }
+
+    #[test]
+    fn test_pop_back_removes_last_element() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 2, 3]);
+        assert_eq!(q.pop_back(), Some(3));
+        assert_eq!(q.peek(), &[1, 2]);
+    }
+
+    #[test]
+    fn test_pop_front_empty_returns_none() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        assert_eq!(q.pop_front(), None);
+    }
+
+    #[test]
+    fn test_pop_back_empty_returns_none() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        assert_eq!(q.pop_back(), None);
     }
 
     #[test]

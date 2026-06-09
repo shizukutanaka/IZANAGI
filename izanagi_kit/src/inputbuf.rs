@@ -110,6 +110,14 @@ impl<K: Eq + Clone> InputBuffer<K> {
         self.held.clear();
     }
 
+    /// Release every currently held key — semantic alias for `clear()`, named
+    /// for focus-loss handlers where the intent is "simulate a key-up event for
+    /// every pressed key." Callers that want explicit key-up semantics should
+    /// prefer this over `clear` for readability.
+    pub fn release_all(&mut self) {
+        self.held.clear();
+    }
+
     /// Number of currently held keys.
     pub fn held_count(&self) -> usize {
         self.held.len()
@@ -327,6 +335,25 @@ mod tests {
         b.reset_hold(&5);
         assert!(b.is_held(&5)); // still held
         assert_eq!(b.held_ticks(&5), Some(0));
+    }
+
+    #[test]
+    fn test_release_all_drops_all_held_keys() {
+        let mut b = buf();
+        b.press(1);
+        b.press(2);
+        b.tick(1);
+        b.release_all();
+        assert_eq!(b.held_count(), 0);
+        assert!(!b.is_held(&1));
+        assert!(!b.is_held(&2));
+    }
+
+    #[test]
+    fn test_release_all_empty_is_noop() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(1, 2);
+        b.release_all(); // no panic
+        assert_eq!(b.held_count(), 0);
     }
 
     #[test]

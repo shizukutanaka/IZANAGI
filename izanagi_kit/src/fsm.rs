@@ -101,6 +101,18 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
         self.table.clear();
     }
 
+    /// Return the state this FSM would transition to if `event` were fired now,
+    /// without actually changing state. Returns `None` when no transition is
+    /// defined for `(current_state, event)` — i.e. the event would be a
+    /// self-loop. Useful for AI lookahead ("would attacking now trigger Dead?")
+    /// and UI "show next state" indicators without committing to the transition.
+    pub fn peek_next(&self, event: &E) -> Option<&S> {
+        self.table
+            .iter()
+            .find(|(f, e, _)| *f == self.state && *e == *event)
+            .map(|(_, _, t)| t)
+    }
+
     /// Iterate all events that have a defined outgoing transition from `state`.
     /// Useful for "show valid actions" UIs and AI planning ("what can I do from
     /// here?"). Returns an iterator of `&E` in table-insertion order. Does not
@@ -281,6 +293,26 @@ mod tests {
         a.fire(&GuardEvent::PlayerSpotted);
         b.fire(&GuardEvent::PlayerSpotted);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_peek_next_returns_next_state() {
+        let fsm = guard_fsm(); // Idle
+        let next = fsm.peek_next(&GuardEvent::PlayerSpotted);
+        assert_eq!(next, Some(&GuardState::Alert));
+    }
+
+    #[test]
+    fn test_peek_next_no_transition_returns_none() {
+        let fsm = guard_fsm(); // Idle — PlayerLost not mapped from Idle
+        assert_eq!(fsm.peek_next(&GuardEvent::PlayerLost), None);
+    }
+
+    #[test]
+    fn test_peek_next_does_not_change_state() {
+        let fsm = guard_fsm();
+        let _ = fsm.peek_next(&GuardEvent::PlayerSpotted);
+        assert_eq!(fsm.state(), &GuardState::Idle); // unchanged
     }
 
     #[test]

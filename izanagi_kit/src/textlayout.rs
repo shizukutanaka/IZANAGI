@@ -155,6 +155,46 @@ pub fn pad_right(s: &str, width: usize) -> String {
     format!("{}{}", s, " ".repeat(width - len))
 }
 
+/// Distribute extra spaces between words to fill `width` exactly
+/// (typographic full justification / newspaper-column style).
+///
+/// - A single-word line (or a line already at or wider than `width`) is
+///   returned left-aligned via `pad_right`.
+/// - For `n` gaps between words, extra spaces are distributed left-to-right:
+///   the first `total_spaces % gaps` gaps each receive one extra space.
+/// - `width == 0` returns an empty string.
+pub fn justify(s: &str, width: usize) -> String {
+    if width == 0 {
+        return String::new();
+    }
+    let words: Vec<&str> = s.split_whitespace().collect();
+    if words.is_empty() {
+        return " ".repeat(width);
+    }
+    if words.len() == 1 {
+        return pad_right(words[0], width);
+    }
+    let content_len: usize = words.iter().map(|w| w.chars().count()).sum();
+    if content_len >= width {
+        return words.join(" ");
+    }
+    let gaps = words.len() - 1;
+    let total_spaces = width - content_len;
+    let base = total_spaces / gaps;
+    let extra = total_spaces % gaps;
+    let mut result = String::new();
+    for (i, word) in words.iter().enumerate() {
+        result.push_str(word);
+        if i < gaps {
+            let spaces = base + if i < extra { 1 } else { 0 };
+            for _ in 0..spaces {
+                result.push(' ');
+            }
+        }
+    }
+    result
+}
+
 /// Return `(max_width, line_count)` for a slice of string lines.
 ///
 /// `max_width` is the char count of the longest line; `line_count` is
@@ -378,6 +418,50 @@ mod tests {
     #[test]
     fn test_pad_left_wider() {
         assert_eq!(pad_left("hello", 3), "hello");
+    }
+
+    // --- justify ---
+
+    #[test]
+    fn test_justify_two_words_fills_width() {
+        // "ab cd" at width 8 → "ab    cd" (4 spaces between)
+        assert_eq!(justify("ab cd", 8), "ab    cd");
+        assert_eq!(justify("ab cd", 8).chars().count(), 8);
+    }
+
+    #[test]
+    fn test_justify_three_words_distributes_evenly() {
+        // "a b c" content=3, gaps=2, width=7, total_spaces=4, base=2, extra=0
+        // "a  b  c" but extra=0 so both gaps get 2 spaces
+        let j = justify("a b c", 7);
+        assert_eq!(j.chars().count(), 7);
+        assert!(j.starts_with('a'));
+        assert!(j.ends_with('c'));
+    }
+
+    #[test]
+    fn test_justify_extra_space_goes_to_left_gaps() {
+        // "a b c" width=8, content=3, gaps=2, total_spaces=5, base=2, extra=1
+        // gap0=3, gap1=2 → "a   b  c"
+        let j = justify("a b c", 8);
+        assert_eq!(j.chars().count(), 8);
+        assert_eq!(j, "a   b  c");
+    }
+
+    #[test]
+    fn test_justify_single_word_pads_right() {
+        assert_eq!(justify("hi", 5), "hi   ");
+    }
+
+    #[test]
+    fn test_justify_already_wide_returns_as_is() {
+        let j = justify("hello world", 5);
+        assert_eq!(j, "hello world");
+    }
+
+    #[test]
+    fn test_justify_zero_width_returns_empty() {
+        assert_eq!(justify("hello", 0), "");
     }
 
     // --- measure_lines ---

@@ -209,6 +209,33 @@ impl<T: Clone> Menu<T> {
         }
         None
     }
+
+    /// Return the cursor index of the previous enabled item before the current
+    /// cursor, wrapping around. Returns `None` if there are no enabled items.
+    /// Does *not* move the cursor — symmetric counterpart to `next_enabled`.
+    pub fn prev_enabled(&self) -> Option<usize> {
+        if self.items.is_empty() {
+            return None;
+        }
+        let n = self.items.len();
+        let mut prev = if self.cursor == 0 {
+            n - 1
+        } else {
+            self.cursor - 1
+        };
+        for _ in 0..n {
+            if !self.items[prev].disabled {
+                return Some(prev);
+            }
+            prev = if prev == 0 { n - 1 } else { prev - 1 };
+        }
+        None
+    }
+
+    /// Count the number of enabled (selectable) items.
+    pub fn count_enabled(&self) -> usize {
+        self.items.iter().filter(|it| !it.disabled).count()
+    }
 }
 
 impl<T: Clone> Default for Menu<T> {
@@ -491,5 +518,54 @@ mod tests {
     fn test_next_enabled_empty_menu_returns_none() {
         let m: Menu<u32> = Menu::new();
         assert_eq!(m.next_enabled(), None);
+    }
+
+    #[test]
+    fn test_prev_enabled_wraps_backward() {
+        let m = sample(); // A(0), B(1), C(2), cursor=0
+                          // cursor=0 → previous (wrapping) is C at index 2
+        assert_eq!(m.prev_enabled(), Some(2));
+    }
+
+    #[test]
+    fn test_prev_enabled_skips_disabled() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_item("A", 1);
+        m.add_disabled("B", 2);
+        m.add_item("C", 3);
+        m.set_cursor(2); // cursor at C
+                         // Previous enabled before C, skipping disabled B, lands on A(0).
+        assert_eq!(m.prev_enabled(), Some(0));
+    }
+
+    #[test]
+    fn test_prev_enabled_all_disabled_returns_none() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_disabled("A", 1);
+        m.add_disabled("B", 2);
+        assert_eq!(m.prev_enabled(), None);
+    }
+
+    #[test]
+    fn test_count_enabled_counts_selectable_items() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_item("A", 1);
+        m.add_disabled("B", 2);
+        m.add_item("C", 3);
+        assert_eq!(m.count_enabled(), 2);
+    }
+
+    #[test]
+    fn test_count_enabled_all_disabled() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_disabled("A", 1);
+        m.add_disabled("B", 2);
+        assert_eq!(m.count_enabled(), 0);
+    }
+
+    #[test]
+    fn test_count_enabled_all_enabled() {
+        let m = sample();
+        assert_eq!(m.count_enabled(), 3);
     }
 }

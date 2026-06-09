@@ -731,6 +731,40 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   one-liner that wraps `astar` and plucks `path[1]`. `is_blocked` must return
   `true` for out-of-bounds coordinates to bound the search. Re-exported at the
   crate root as `izanagi_kit::step_toward`.
+- `menu::Menu::prev_enabled()`: symmetric counterpart to `next_enabled()` —
+  return the index of the previous enabled item (wrapping backwards), or `None`
+  when all items are disabled. Does not move the cursor. The missing reverse-
+  navigation lookahead for "show previous selectable" UI indicators and
+  accessible backward-traversal patterns.
+- `menu::Menu::count_enabled()`: number of selectable (non-disabled) items.
+  Allocation-free alternative to `.iter().filter(|(_, it)| !it.disabled).count()`.
+  Useful for "are any items available?" checks and progress indicators ("3 of 5
+  abilities unlocked").
+- `inputbuf::InputBuffer::release_all()`: release all currently held keys at
+  once — semantic alias for `clear()`, named for focus-loss handlers where the
+  intent is "simulate a key-up for every pressed key." Ensures no held state
+  survives a window-blur or scene transition.
+- `fsm::Fsm::peek_next(event)`: returns `Option<&S>` — the state this FSM would
+  transition to if `event` were fired now, without actually changing state.
+  Returns `None` for unmapped events (self-loop). Useful for AI lookahead ("would
+  attacking now trigger Dead?") and "show next state" UI tooltips without
+  committing the transition.
+- `change::ChangeTracker::set_tick(tick)`: set the tick counter to an explicit
+  value. The companion to `reset()` (which always resets to `0`): needed when
+  restoring exact simulation state from a save file to preserve the tick offsets
+  recorded in all `Changed<T>` components.
+- `textlayout::justify(s, width)`: typographic full-justification — distribute
+  spaces between words so the line fills exactly `width` columns. Extra spaces
+  (when `total_spaces % gaps != 0`) are placed left-to-right. Single-word lines
+  and lines wider than `width` fall back to `pad_right`. Re-exported at the crate
+  root as `izanagi_kit::justify`.
+- `cmdqueue::CmdQueue::pop_front()`: remove and return the front (oldest /
+  first-in) command, or `None` if empty. O(n) — shifts remaining elements. For
+  the "process exactly one command per tick" rate-limiting pattern without
+  draining the entire queue.
+- `cmdqueue::CmdQueue::pop_back()`: remove and return the back (newest /
+  last-in) command, or `None` if empty. O(1). For LIFO / "cancel last queued
+  command" patterns.
 - `examples/savefile_demo.rs`: save-file framing demo. Exercises four scenarios — clean round-trip, corrupted payload byte (→ `ChecksumMismatch`), truncated buffer (→ `TooShort`), version mismatch (→ caller-side rejection) — with a hex dump of the 20-byte framing header rendered to the terminal. (`cargo run --example savefile_demo`)
 - `examples/replay_demo.rs`: replay & desync-detection demo. Exercises all four `replay` primitives: `record_trace`, `check_trace`, `first_divergence`, `resimulate`. Runs four checks (clean replay → OK, wrong seed → diverges at tick 0, tampered hash → diverges at the correct tick, rollback resimulate == direct run), renders a green/red ANSI report card, and exits with code 1 on any failure — making it directly usable as a smoke test. (`cargo run --example replay_demo`)
 - `examples/wfc_demo.rs`: Wave Function Collapse terrain demo. Defines a 5-tile biome tileset (deep water→shallow→sand→grass→mountain) with gradient adjacency constraints, generates an 80×44 fully-collapsed grid via `wfc_solve`, computes grass-layer autotile masks via `compute_all`, and renders an 80×24 24-bit-ANSI snapshot with a tile legend. (`cargo run --example wfc_demo`)

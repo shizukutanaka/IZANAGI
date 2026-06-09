@@ -161,7 +161,7 @@ pub use sparse_set::{join, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatusSet};
 pub use terminal::{Cell, Screen};
-pub use textlayout::{center, pad_left, pad_right, truncate, wrap_words};
+pub use textlayout::{center, justify, pad_left, pad_right, truncate, wrap_words};
 pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
