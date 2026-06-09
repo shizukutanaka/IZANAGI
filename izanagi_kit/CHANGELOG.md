@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `aabb::Aabb` region queries: `area()` (saturating `w*h`), `is_empty()`,
+  `center()` (matching `mapgen::Rect::center`'s top-left bias), `contains(&Aabb)`
+  (rect-in-rect, boundary-inclusive), and `iter_points()` — row-major iteration
+  over the interior cells, closing the parity gap with `bracket-geometry`'s
+  `Rect::for_each`/`point_set` for filling and scanning rectangular regions.
 - `vec::Vec2` rotation and interpolation: `rotate(angle)` (2-D rotation matrix
   driven by the fixed-point CORDIC `Fixed::sin_cos` — no float, deterministic),
   `angle()` (vector heading via `Fixed::atan2`), `lerp(a, b, t)`,

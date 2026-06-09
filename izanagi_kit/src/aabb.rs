@@ -11,7 +11,10 @@
 //! - `contains_point` — true when a point lies strictly inside (or on the
 //!   boundary of) the box.
 //! - `intersection` — the overlapping sub-box, or `None` if disjoint.
+//! - `contains` — true when another box lies entirely inside this one.
 //! - `translate` — shift by an offset (saturating so the box never wraps).
+//! - `area` / `is_empty` / `center` — size and midpoint queries.
+//! - `iter_points` — row-major iteration over the interior cells.
 //!
 //! All arithmetic is integer and saturating; no float anywhere.
 
@@ -96,6 +99,47 @@ impl Aabb {
             w: self.w,
             h: self.h,
         }
+    }
+
+    /// Area in cells (`w * h`), computed in `i64` and saturated to `i32` so a
+    /// large box never wraps.
+    #[inline]
+    pub fn area(&self) -> i32 {
+        let a = self.w as i64 * self.h as i64;
+        a.min(i32::MAX as i64) as i32
+    }
+
+    /// True when the box encloses no cells (`w == 0` or `h == 0`).
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.w == 0 || self.h == 0
+    }
+
+    /// Centre cell (integer, biased toward the top-left on even extents) — the
+    /// same convention as [`crate::mapgen::Rect::center`].
+    #[inline]
+    pub fn center(&self) -> (i32, i32) {
+        (self.x + self.w / 2, self.y + self.h / 2)
+    }
+
+    /// True when `other` lies entirely within `self` (boundary inclusive). An
+    /// empty `other` is never contained.
+    #[inline]
+    pub fn contains(&self, other: &Aabb) -> bool {
+        !other.is_empty()
+            && other.x >= self.x
+            && other.y >= self.y
+            && other.right() <= self.right()
+            && other.bottom() <= self.bottom()
+    }
+
+    /// Iterate every interior cell `(x, y)` in row-major order (top-to-bottom,
+    /// left-to-right). Empty for a zero-area box. Handy for filling or scanning
+    /// a rectangular region without manual nested loops.
+    pub fn iter_points(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let (x0, y0) = (self.x, self.y);
+        let (x1, y1) = (self.right(), self.bottom());
+        (y0..y1).flat_map(move |y| (x0..x1).map(move |x| (x, y)))
     }
 }
 
@@ -248,5 +292,74 @@ mod tests {
     #[test]
     fn test_det_hash_different_boxes_different_hash() {
         assert_ne!(hash_state(&r(0, 0, 4, 4)), hash_state(&r(1, 0, 4, 4)));
+    }
+
+    // --- area / is_empty / center ---
+
+    #[test]
+    fn test_area_and_is_empty() {
+        assert_eq!(r(0, 0, 4, 3).area(), 12);
+        assert!(!r(0, 0, 4, 3).is_empty());
+        assert_eq!(r(0, 0, 0, 5).area(), 0);
+        assert!(r(0, 0, 0, 5).is_empty());
+        assert!(r(0, 0, 5, 0).is_empty());
+    }
+
+    #[test]
+    fn test_area_saturates() {
+        // 50000 * 50000 = 2.5e9 > i32::MAX → saturates rather than wraps.
+        assert_eq!(r(0, 0, 50_000, 50_000).area(), i32::MAX);
+    }
+
+    #[test]
+    fn test_center_biases_top_left_on_even() {
+        assert_eq!(r(0, 0, 4, 4).center(), (2, 2));
+        assert_eq!(r(2, 3, 5, 3).center(), (4, 4));
+    }
+
+    // --- contains (rect-in-rect) ---
+
+    #[test]
+    fn test_contains_fully_inside() {
+        assert!(r(0, 0, 10, 10).contains(&r(2, 2, 3, 3)));
+        // Boundary-inclusive: an inner box flush to the edges is contained.
+        assert!(r(0, 0, 10, 10).contains(&r(0, 0, 10, 10)));
+    }
+
+    #[test]
+    fn test_contains_partially_outside_is_false() {
+        assert!(!r(0, 0, 10, 10).contains(&r(8, 8, 5, 5)));
+        assert!(!r(0, 0, 10, 10).contains(&r(-1, 0, 3, 3)));
+    }
+
+    #[test]
+    fn test_contains_empty_other_is_false() {
+        assert!(!r(0, 0, 10, 10).contains(&r(2, 2, 0, 4)));
+    }
+
+    // --- iter_points ---
+
+    #[test]
+    fn test_iter_points_row_major_order() {
+        let pts: Vec<_> = r(1, 1, 2, 2).iter_points().collect();
+        assert_eq!(pts, vec![(1, 1), (2, 1), (1, 2), (2, 2)]);
+    }
+
+    #[test]
+    fn test_iter_points_count_matches_area() {
+        let b = r(-3, 5, 4, 6);
+        assert_eq!(b.iter_points().count() as i32, b.area());
+    }
+
+    #[test]
+    fn test_iter_points_empty_box_yields_nothing() {
+        assert_eq!(r(0, 0, 0, 5).iter_points().count(), 0);
+        assert_eq!(r(0, 0, 5, 0).iter_points().count(), 0);
+    }
+
+    #[test]
+    fn test_iter_points_all_inside() {
+        let b = r(2, 2, 3, 3);
+        assert!(b.iter_points().all(|(x, y)| b.contains_point(x, y)));
     }
 }
