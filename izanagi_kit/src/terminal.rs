@@ -189,6 +189,22 @@ impl Screen {
         }
     }
 
+    /// Draw a Bresenham line from `from` to `to` (inclusive of both endpoints),
+    /// setting each visited cell to `glyph`/`fg`/`bg`. Cells outside the
+    /// screen boundary are silently clipped.
+    pub fn draw_line(
+        &mut self,
+        from: (i32, i32),
+        to: (i32, i32),
+        glyph: char,
+        fg: Color,
+        bg: Color,
+    ) {
+        for (x, y) in crate::geometry::line(from, to) {
+            self.set(x, y, glyph, fg, bg);
+        }
+    }
+
     /// Resize the screen to `width × height`, discarding all previous content.
     /// Both the front and back buffers are reset to blank cells.
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -361,6 +377,32 @@ mod tests {
         s.resize(5, 5);
         s.set(4, 4, 'Z', RED, DEFAULT_BG);
         assert_eq!(s.get(4, 4).unwrap().glyph, 'Z');
+    }
+
+    #[test]
+    fn test_draw_line_horizontal() {
+        let mut s = Screen::new(10, 10);
+        s.draw_line((1, 3), (5, 3), '-', RED, DEFAULT_BG);
+        for x in 1..=5 {
+            assert_eq!(s.get(x, 3).map(|c| c.glyph), Some('-'));
+        }
+        assert_eq!(s.get(0, 3).map(|c| c.glyph), Some(' ')); // not drawn
+    }
+
+    #[test]
+    fn test_draw_line_clips_out_of_bounds() {
+        let mut s = Screen::new(5, 5);
+        // Line partially outside — should not panic.
+        s.draw_line((-2, 2), (3, 2), '*', RED, DEFAULT_BG);
+        assert_eq!(s.get(0, 2).map(|c| c.glyph), Some('*'));
+        assert_eq!(s.get(3, 2).map(|c| c.glyph), Some('*'));
+    }
+
+    #[test]
+    fn test_draw_line_single_point() {
+        let mut s = Screen::new(5, 5);
+        s.draw_line((2, 2), (2, 2), '#', RED, DEFAULT_BG);
+        assert_eq!(s.get(2, 2).map(|c| c.glyph), Some('#'));
     }
 
     #[test]

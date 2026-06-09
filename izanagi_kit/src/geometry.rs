@@ -64,6 +64,116 @@ where
     true
 }
 
+/// The grid cells on the perimeter of a circle centred at `(cx, cy)` with
+/// the given `radius`, using the Bresenham midpoint circle algorithm. The
+/// returned cells are in ascending `(y, x)` order, without duplicates. An
+/// empty `Vec` is returned for negative `radius`; `radius == 0` yields just
+/// the centre cell.
+///
+/// Use this for drawing AoE rings, targeting outlines, and splash-attack
+/// indicators.
+pub fn circle(cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
+    if radius < 0 {
+        return Vec::new();
+    }
+    if radius == 0 {
+        return vec![(cx, cy)];
+    }
+    let mut pts = std::collections::BTreeSet::new();
+    let mut x = radius;
+    let mut y = 0;
+    let mut p: i32 = 1 - radius;
+    while x >= y {
+        let plots = [
+            (cx + x, cy + y),
+            (cx - x, cy + y),
+            (cx + x, cy - y),
+            (cx - x, cy - y),
+            (cx + y, cy + x),
+            (cx - y, cy + x),
+            (cx + y, cy - x),
+            (cx - y, cy - x),
+        ];
+        for pt in plots {
+            pts.insert(pt);
+        }
+        y += 1;
+        if p < 0 {
+            p += 2 * y + 1;
+        } else {
+            x -= 1;
+            p += 2 * (y - x) + 1;
+        }
+    }
+    pts.into_iter().collect()
+}
+
+/// All grid cells strictly within (and on the boundary of) a circle centred
+/// at `(cx, cy)` with the given `radius` — i.e. cells `(x, y)` where
+/// `(x − cx)² + (y − cy)² ≤ radius²`. Results are in ascending `(y, x)`
+/// order. An empty `Vec` for negative `radius`; just the centre for
+/// `radius == 0`.
+///
+/// Use this for AoE fill effects, fog-of-war circles, and region queries.
+pub fn filled_circle(cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
+    if radius < 0 {
+        return Vec::new();
+    }
+    let r2 = (radius as i64) * (radius as i64);
+    let mut pts = Vec::new();
+    for dy in -radius..=radius {
+        for dx in -radius..=radius {
+            if (dx as i64) * (dx as i64) + (dy as i64) * (dy as i64) <= r2 {
+                pts.push((cx + dx, cy + dy));
+            }
+        }
+    }
+    pts
+}
+
+/// All cells in the axis-aligned rectangle `[x, x+w) × [y, y+h)`, in
+/// row-major order `(y then x)`. Returns an empty `Vec` for non-positive `w`
+/// or `h`.
+///
+/// Use this for room fill operations, AoE rectangles, and region seeds.
+pub fn rect(x: i32, y: i32, w: i32, h: i32) -> Vec<(i32, i32)> {
+    if w <= 0 || h <= 0 {
+        return Vec::new();
+    }
+    let mut pts = Vec::with_capacity((w * h) as usize);
+    for dy in 0..h {
+        for dx in 0..w {
+            pts.push((x + dx, y + dy));
+        }
+    }
+    pts
+}
+
+/// Cells in the annular ring between `inner_r` and `outer_r` (inclusive on
+/// both boundaries): `(x,y)` where `inner_r² ≤ (x−cx)²+(y−cy)² ≤ outer_r²`.
+/// Returns an empty `Vec` for non-positive `outer_r` or `inner_r ≥ outer_r`.
+/// `inner_r ≤ 0` is treated as 0, producing a filled circle.
+///
+/// Use this for doughnut-shaped AoE effects, targeting rings that skip the
+/// immediate vicinity, and ambient light falloff halos.
+pub fn ring_annulus(cx: i32, cy: i32, inner_r: i32, outer_r: i32) -> Vec<(i32, i32)> {
+    if outer_r <= 0 || inner_r >= outer_r {
+        return Vec::new();
+    }
+    let inner_r2 = (inner_r.max(0) as i64) * (inner_r.max(0) as i64);
+    let outer_r2 = (outer_r as i64) * (outer_r as i64);
+    let mut pts = Vec::new();
+    for dy in -outer_r..=outer_r {
+        for dx in -outer_r..=outer_r {
+            let d2 = (dx as i64) * (dx as i64) + (dy as i64) * (dy as i64);
+            if d2 >= inner_r2 && d2 <= outer_r2 {
+                pts.push((cx + dx, cy + dy));
+            }
+        }
+    }
+    pts
+}
+
 /// Grid distance metrics between two cells.
 ///
 /// Mirrors the distance algorithms a roguelike toolkit needs (cf. `bracket-lib`
@@ -123,6 +233,56 @@ fn isqrt(n: i64) -> i64 {
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn test_rect_basic() {
+        let r = rect(1, 2, 3, 2);
+        assert_eq!(r, vec![(1, 2), (2, 2), (3, 2), (1, 3), (2, 3), (3, 3)]);
+    }
+
+    #[test]
+    fn test_rect_zero_dimension_is_empty() {
+        assert!(rect(0, 0, 0, 4).is_empty());
+        assert!(rect(0, 0, 4, 0).is_empty());
+        assert!(rect(0, 0, -1, 3).is_empty());
+    }
+
+    #[test]
+    fn test_rect_area_matches_dimensions() {
+        let r = rect(5, 5, 4, 3);
+        assert_eq!(r.len(), 12);
+    }
+
+    #[test]
+    fn test_ring_annulus_excludes_inner() {
+        let ring = ring_annulus(0, 0, 2, 4);
+        // Centre (0,0): d²=0 < inner²=4 → excluded
+        assert!(!ring.contains(&(0, 0)));
+        // (2,0): d²=4 = inner² → included
+        assert!(ring.contains(&(2, 0)));
+        // (4,0): d²=16 = outer² → included
+        assert!(ring.contains(&(4, 0)));
+        // (5,0): d²=25 > outer²=16 → excluded
+        assert!(!ring.contains(&(5, 0)));
+    }
+
+    #[test]
+    fn test_ring_annulus_zero_outer_is_empty() {
+        assert!(ring_annulus(0, 0, 0, 0).is_empty());
+        assert!(ring_annulus(0, 0, 1, -1).is_empty());
+    }
+
+    #[test]
+    fn test_ring_annulus_inner_zero_is_filled_circle() {
+        let ring = ring_annulus(0, 0, 0, 3);
+        let filled = filled_circle(0, 0, 3);
+        // Both should contain the same cells (order may differ).
+        let mut r2 = ring.clone();
+        let mut f2 = filled.clone();
+        r2.sort_unstable();
+        f2.sort_unstable();
+        assert_eq!(r2, f2);
+    }
 
     #[test]
     fn test_single_cell_when_endpoints_equal() {
@@ -216,6 +376,81 @@ mod tests {
             assert_eq!(m.between(a, b), m.between(b, a), "{m:?} not symmetric");
             assert_eq!(m.between(a, a), 0, "{m:?} self-distance not zero");
         }
+    }
+
+    // ── circle / filled_circle ───────────────────────────────────────────────
+
+    #[test]
+    fn test_circle_zero_radius_is_centre() {
+        assert_eq!(circle(3, 4, 0), vec![(3, 4)]);
+    }
+
+    #[test]
+    fn test_circle_negative_radius_is_empty() {
+        assert!(circle(0, 0, -1).is_empty());
+    }
+
+    #[test]
+    fn test_circle_radius_1_has_4_cells() {
+        // A radius-1 circle in king-move terms visits the 4 cardinal neighbours.
+        let c = circle(0, 0, 1);
+        // Should contain exactly the cardinal directions (Bresenham r=1).
+        assert!(c.contains(&(-1, 0)));
+        assert!(c.contains(&(1, 0)));
+        assert!(c.contains(&(0, -1)));
+        assert!(c.contains(&(0, 1)));
+    }
+
+    #[test]
+    fn test_circle_no_duplicates() {
+        for r in 0..=10 {
+            let c = circle(5, 5, r);
+            let mut s = c.clone();
+            s.sort_unstable();
+            s.dedup();
+            assert_eq!(c.len(), s.len(), "radius {r} has duplicates");
+        }
+    }
+
+    #[test]
+    fn test_circle_sorted_ascending() {
+        let c = circle(0, 0, 5);
+        for w in c.windows(2) {
+            assert!(w[0] <= w[1], "not sorted: {:?} > {:?}", w[0], w[1]);
+        }
+    }
+
+    #[test]
+    fn test_filled_circle_contains_centre() {
+        let f = filled_circle(2, 3, 2);
+        assert!(f.contains(&(2, 3)));
+    }
+
+    #[test]
+    fn test_filled_circle_zero_radius_is_centre_only() {
+        assert_eq!(filled_circle(1, 1, 0), vec![(1, 1)]);
+    }
+
+    #[test]
+    fn test_filled_circle_euclidean_criterion() {
+        // Every cell in filled_circle must satisfy dx²+dy² ≤ r².
+        let r = 5;
+        for (x, y) in filled_circle(0, 0, r) {
+            let d2 = (x as i64) * (x as i64) + (y as i64) * (y as i64);
+            assert!(d2 <= (r as i64) * (r as i64), "({x},{y}) outside circle");
+        }
+    }
+
+    #[test]
+    fn test_filled_circle_area_approx_pi_r_sq() {
+        // Area should be roughly π·r² ± a few cells.
+        let r = 10;
+        let area = filled_circle(0, 0, r).len() as f64;
+        let expected = std::f64::consts::PI * (r as f64) * (r as f64);
+        assert!(
+            (area - expected).abs() < expected * 0.05,
+            "area={area} expected≈{expected:.1}"
+        );
     }
 
     #[test]

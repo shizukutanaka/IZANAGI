@@ -430,6 +430,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `replay::Divergence`: implements `Display` — formats as "replay divergence at
   tick N: expected 0x…, got 0x…". Allows desync reports to be printed directly
   in logs and error messages without manual formatting.
+- `geometry::rect(x, y, w, h)`: all cells in the rectangle `[x, x+w) × [y, y+h)`
+  in row-major order — returns empty for non-positive dimensions. The natural
+  primitive for filling rectangular map regions and iterating tile areas without
+  a manual nested loop. Mirrors `bracket-lib`'s `Rect::for_each`/`point_set`
+  patterns.
+- `geometry::ring_annulus(cx, cy, inner_r, outer_r)`: all integer-coordinate points
+  whose squared Euclidean distance from `(cx, cy)` falls in `[inner_r², outer_r²]`.
+  A negative `inner_r` is treated as 0 (filled circle). Returns empty if
+  `outer_r ≤ 0` or `inner_r ≥ outer_r`. Useful for area-of-effect rings, blast
+  radii, and torchlight annuli without float sqrt.
+- `wfc::WfcRules::get_allowed(tile, dir)`: read back the adjacency bitmask for a
+  tile+direction pair — the symmetric counterpart of `allow`/`disallow`. Returns `0`
+  for out-of-range arguments. Enables serialising rule sets and writing assertions
+  on rule construction without re-exposing the internal `adj` array.
+- `wfc::WfcGrid::count_tiles(tile)`: count collapsed cells whose value equals
+  `tile`. Useful for post-collapse assertions and debugging ("how many floor tiles
+  were generated?").
+- `wfc::WfcGrid::to_vec()`: export the grid as `Vec<Option<u8>>` in row-major order.
+  `Some(t)` for cells collapsed to tile `t`; `None` for cells still in superposition
+  or contradiction. The ergonomic bridge between the WFC representation and downstream
+  `TileMap`/renderer code.
+- `terminal::Screen::draw_line(from, to, glyph, fg, bg)`: draw a Bresenham line
+  from `from` to `to` (both endpoints inclusive), setting every visited cell to
+  `glyph`/`fg`/`bg`. Out-of-bounds cells are silently clipped via the existing `set`
+  contract. Delegates to `geometry::line` for the coordinate sequence — the standard
+  primitive for laser beams, aiming cursors, and debug overlays.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

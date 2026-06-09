@@ -78,6 +78,16 @@ impl WfcRules {
         }
     }
 
+    /// Read back the adjacency bitmask for `tile` in `dir`. Returns `0` for
+    /// out-of-range arguments. Useful for debugging and serialising rule sets.
+    pub fn get_allowed(&self, tile: u8, dir: usize) -> u64 {
+        if (tile as usize) < self.adj.len() && dir < 4 {
+            self.adj[tile as usize][dir]
+        } else {
+            0
+        }
+    }
+
     /// Allow `tile` in direction `dir` to be adjacent to `neighbor`.
     /// `dir` must be in `0..4`; out-of-range values are ignored.
     pub fn allow(&mut self, tile: u8, dir: usize, neighbor: u8) {
@@ -156,6 +166,28 @@ impl WfcGrid {
     /// True if the grid has no cells.
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()
+    }
+
+    /// Count how many fully-collapsed cells have the given `tile` type.
+    pub fn count_tiles(&self, tile: u8) -> usize {
+        let mask = 1u64 << tile;
+        self.cells.iter().filter(|&&v| v == mask).count()
+    }
+
+    /// Export collapsed tiles as a flat row-major `Vec<Option<u8>>`. Each cell
+    /// is `Some(tile)` if fully collapsed or `None` if still ambiguous.
+    /// Length is always `width * height`.
+    pub fn to_vec(&self) -> Vec<Option<u8>> {
+        self.cells
+            .iter()
+            .map(|&v| {
+                if v.count_ones() == 1 {
+                    Some(v.trailing_zeros() as u8)
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     /// Iterate `(x, y, tile)` over all fully-collapsed cells in row-major order.
@@ -556,5 +588,42 @@ mod tests {
             cells: vec![],
         };
         assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn test_get_allowed_roundtrip() {
+        let mut r = WfcRules::new(3);
+        r.allow(0, 1, 2); // tile 0 East may have tile 2
+        assert_eq!(r.get_allowed(0, 1), 1 << 2);
+        assert_eq!(r.get_allowed(0, 0), 0); // North not set
+        assert_eq!(r.get_allowed(99, 0), 0); // OOB tile
+        assert_eq!(r.get_allowed(0, 9), 0); // OOB dir
+    }
+
+    #[test]
+    fn test_count_tiles_counts_collapsed() {
+        let mut rng = SplitMix64::new(1);
+        match wfc_solve(6, 6, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                let total: usize = (0..open_rules().tile_count())
+                    .map(|t| grid.count_tiles(t))
+                    .sum();
+                assert_eq!(total, 36); // all 36 cells counted exactly once
+            }
+            WfcResult::Contradiction => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_to_vec_length_and_some_for_collapsed() {
+        let mut rng = SplitMix64::new(7);
+        match wfc_solve(4, 4, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                let v = grid.to_vec();
+                assert_eq!(v.len(), 16);
+                assert!(v.iter().all(|t| t.is_some())); // all collapsed
+            }
+            WfcResult::Contradiction => panic!(),
+        }
     }
 }
