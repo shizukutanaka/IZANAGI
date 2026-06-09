@@ -77,6 +77,25 @@ impl<C> CmdQueue<C> {
         &self.buf
     }
 
+    /// Insert a command at the *front* of the queue (LIFO-priority insertion).
+    ///
+    /// Use for priority commands that must be processed before already-queued
+    /// ones (e.g. "abort" overrides pending movement). O(n) — not for hot paths
+    /// with large queues.
+    pub fn prepend(&mut self, cmd: C) {
+        self.buf.insert(0, cmd);
+    }
+
+    /// Keep only commands for which `pred` returns `true`; discard the rest.
+    /// The complement of [`drain_if`](Self::drain_if) — use when you want to
+    /// filter in-place without taking ownership of the discarded commands.
+    pub fn retain<F>(&mut self, pred: F)
+    where
+        F: FnMut(&C) -> bool,
+    {
+        self.buf.retain(pred);
+    }
+
     /// Drain and return only commands for which `pred` returns `true`.
     /// Commands that don't match are kept in the queue in their original
     /// relative order. Useful when two subsystems share one queue but each
@@ -214,6 +233,46 @@ mod tests {
         q.push_batch(&[5, 1, 4, 1, 3]);
         q.drain_if(|&x| x > 3); // drain 5 and 4
         assert_eq!(q.drain(), vec![1, 1, 3]);
+    }
+
+    #[test]
+    fn test_prepend_inserts_at_front() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(2);
+        q.push(3);
+        q.prepend(1);
+        assert_eq!(q.drain(), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_prepend_empty_queue() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.prepend(42);
+        assert_eq!(q.drain(), vec![42]);
+    }
+
+    #[test]
+    fn test_retain_keeps_matching() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 2, 3, 4, 5]);
+        q.retain(|x| x % 2 != 0); // keep odds
+        assert_eq!(q.drain(), vec![1, 3, 5]);
+    }
+
+    #[test]
+    fn test_retain_all_removed() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[2, 4, 6]);
+        q.retain(|x| x % 2 != 0);
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn test_retain_all_kept() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 3, 5]);
+        q.retain(|_| true);
+        assert_eq!(q.len(), 3);
     }
 
     #[test]

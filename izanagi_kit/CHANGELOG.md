@@ -451,6 +451,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Some(t)` for cells collapsed to tile `t`; `None` for cells still in superposition
   or contradiction. The ergonomic bridge between the WFC representation and downstream
   `TileMap`/renderer code.
+- `influence::InfluenceMap::fill(value)`: set every cell to `value`. The
+  inverse of `clear()` — used to establish a non-zero baseline (e.g. neutral
+  territory, ambient light level) before layering sources on top.
+- `influence::InfluenceMap::find_peaks(threshold)`: return `(x, y)` coordinates
+  of all cells whose value is ≥ `threshold`, in row-major order. The standard
+  "gather candidate targets / spawn points" AI query without a manual iteration.
+- `change::ChangeTracker::delta_since(last_tick)`: ticks elapsed since
+  `last_tick` (`current − last_tick`, saturating). Eliminates the repetitive
+  subtraction at call sites — the canonical "has N ticks passed since last
+  action?" check for cooldown logic and idle-trigger patterns.
+- `cmdqueue::CmdQueue::prepend(cmd)`: insert a command at the front of the
+  queue (LIFO priority). For "abort / interrupt" commands that must be processed
+  before already-queued actions.
+- `cmdqueue::CmdQueue::retain(pred)`: keep only commands for which `pred`
+  returns `true`, discard the rest in-place. The complement of `drain_if` — use
+  when you want to filter without taking ownership of discarded items.
+- `inputbuf::InputBuffer::reset_hold(key)`: reset the hold counter for a key to
+  `0` without releasing it. The key stays pressed but the repeat timer restarts,
+  so the next fire will re-trigger the initial press. For interrupt patterns such
+  as "player jumps mid-repeat — pause movement until the key is re-evaluated."
 - `spatial_hash::SpatialHash::contains(key, x, y)`: targeted membership test —
   `true` if `key` is registered in the cell that contains world point `(x, y)`.
   O(k) where k is the cell occupancy (usually very small). Avoids the

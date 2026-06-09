@@ -122,6 +122,30 @@ impl InfluenceMap {
         self.cells.fill(0);
     }
 
+    /// Set every cell to `value`. The inverse of `clear()` — use to establish
+    /// a non-zero baseline (e.g. a uniform "unknown territory" starting value).
+    pub fn fill(&mut self, value: i32) {
+        self.cells.fill(value);
+    }
+
+    /// Return the `(x, y)` coordinates of all cells whose value is ≥ `threshold`,
+    /// in row-major order. Useful for AI "gather potential targets" queries.
+    pub fn find_peaks(&self, threshold: i32) -> Vec<(i32, i32)> {
+        self.cells
+            .iter()
+            .enumerate()
+            .filter_map(|(i, &v)| {
+                if v >= threshold {
+                    let x = (i % self.width as usize) as i32;
+                    let y = (i / self.width as usize) as i32;
+                    Some((x, y))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     /// Add `other * (num / den)` cell-wise into `self` (saturating). A no-op
     /// if the maps differ in size. `den == 0` is treated as `1`.
     ///
@@ -376,5 +400,50 @@ mod tests {
         a.set(1, 1, 10);
         b.set(1, 1, 20);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_fill_sets_all_cells() {
+        let mut m = InfluenceMap::new(3, 3);
+        m.fill(42);
+        for (_, _, v) in m.iter() {
+            assert_eq!(v, 42);
+        }
+    }
+
+    #[test]
+    fn test_fill_then_clear_zeros_all() {
+        let mut m = InfluenceMap::new(3, 3);
+        m.fill(100);
+        m.clear();
+        for (_, _, v) in m.iter() {
+            assert_eq!(v, 0);
+        }
+    }
+
+    #[test]
+    fn test_find_peaks_empty_map() {
+        let m = InfluenceMap::new(3, 3);
+        assert!(m.find_peaks(1).is_empty());
+    }
+
+    #[test]
+    fn test_find_peaks_above_threshold() {
+        let mut m = InfluenceMap::new(3, 3);
+        m.set(0, 0, 10);
+        m.set(1, 1, 50);
+        m.set(2, 2, 30);
+        let peaks = m.find_peaks(30);
+        assert!(peaks.contains(&(1, 1)));
+        assert!(peaks.contains(&(2, 2)));
+        assert!(!peaks.contains(&(0, 0)));
+    }
+
+    #[test]
+    fn test_find_peaks_threshold_inclusive() {
+        let mut m = InfluenceMap::new(2, 2);
+        m.set(0, 0, 5);
+        let peaks = m.find_peaks(5);
+        assert_eq!(peaks, vec![(0, 0)]);
     }
 }

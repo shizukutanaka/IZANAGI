@@ -122,6 +122,15 @@ impl ChangeTracker {
     pub fn reset(&mut self) {
         self.tick = 0;
     }
+
+    /// Ticks elapsed since `last_tick` (i.e. `current − last_tick`, saturating).
+    ///
+    /// Useful for "if > N ticks have passed since last action, do X" patterns
+    /// without manually computing the difference at every call site.
+    #[inline]
+    pub fn delta_since(&self, last_tick: u32) -> u32 {
+        self.tick.saturating_sub(last_tick)
+    }
 }
 
 impl DetHash for ChangeTracker {
@@ -240,6 +249,23 @@ mod tests {
         assert_eq!(ct.current(), 2);
         ct.reset();
         assert_eq!(ct.current(), 0);
+    }
+
+    #[test]
+    fn test_delta_since_returns_elapsed() {
+        let mut ct = ChangeTracker::new();
+        ct.advance();
+        ct.advance();
+        ct.advance(); // tick = 3
+        assert_eq!(ct.delta_since(1), 2);
+        assert_eq!(ct.delta_since(0), 3);
+        assert_eq!(ct.delta_since(3), 0);
+    }
+
+    #[test]
+    fn test_delta_since_saturates_at_zero() {
+        let ct = ChangeTracker { tick: 5 };
+        assert_eq!(ct.delta_since(10), 0); // last_tick > current → saturate
     }
 
     #[test]

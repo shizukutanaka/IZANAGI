@@ -128,6 +128,19 @@ impl<K: Eq + Clone> InputBuffer<K> {
     pub fn all_held(&self) -> impl Iterator<Item = &K> {
         self.held.iter().map(|h| &h.key)
     }
+
+    /// Reset the hold counter for `key` to `0` without releasing it.
+    ///
+    /// The key stays held but the repeat timer restarts: the next repeat will
+    /// not fire until `initial_delay + repeat_period` ticks have passed again.
+    /// Useful for interrupts where the action should pause mid-repeat (e.g. a
+    /// player jumps while a movement key is held). No-op if the key is not held.
+    pub fn reset_hold(&mut self, key: &K) {
+        if let Some(h) = self.held.iter_mut().find(|h| &h.key == key) {
+            h.held_ticks = 0;
+            h.fired_initial = false;
+        }
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for InputBuffer<K> {
@@ -285,6 +298,35 @@ mod tests {
     fn test_all_held_empty_when_nothing_pressed() {
         let b: InputBuffer<u32> = InputBuffer::new(3, 2);
         assert_eq!(b.all_held().count(), 0);
+    }
+
+    #[test]
+    fn test_reset_hold_restarts_repeat_timer() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(0, 2);
+        b.press(1);
+        b.tick(1); // initial fire, held_ticks=1
+        b.tick(1); // held_ticks=2, repeat fires
+        b.reset_hold(&1); // restart timer
+                          // Next tick is the new initial fire.
+        let fired = b.tick(1);
+        assert_eq!(fired, vec![1]); // re-fires as initial
+    }
+
+    #[test]
+    fn test_reset_hold_noop_for_unheld_key() {
+        let mut b = buf();
+        b.reset_hold(&99); // should not panic
+        assert_eq!(b.held_count(), 0);
+    }
+
+    #[test]
+    fn test_reset_hold_keeps_key_held() {
+        let mut b = buf();
+        b.press(5u32);
+        b.tick(1);
+        b.reset_hold(&5);
+        assert!(b.is_held(&5)); // still held
+        assert_eq!(b.held_ticks(&5), Some(0));
     }
 
     #[test]
