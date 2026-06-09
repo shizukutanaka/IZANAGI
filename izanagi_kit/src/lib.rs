@@ -142,7 +142,10 @@ pub use mapgen::{
 pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
-pub use noise::{fbm_1d, fbm_2d, hash_1d, hash_2d, value_noise_1d, value_noise_2d};
+pub use noise::{
+    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, hash_1d, hash_2d, value_noise_1d,
+    value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap,
+};
 pub use parser::parse;
 pub use passability::PassabilityGrid;
 pub use pathfinding::{astar, descend, dijkstra_map, smooth_path, weighted_astar};
@@ -151,7 +154,7 @@ pub use random_table::RandomTable;
 pub use relations::Relations;
 pub use replay::{check_trace, first_divergence, record_trace, resimulate, Divergence};
 pub use rng::SplitMix64;
-pub use savefile::{load_bytes, save_bytes, LoadError, SaveHeader};
+pub use savefile::{load_bytes, load_bytes_owned, save_bytes, LoadError, SaveHeader};
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;

@@ -217,6 +217,50 @@ pub fn value_noise_2d_wrap(x: i32, y: i32, seed: u64, period_x: i32, period_y: i
     lerp_u32(top, bottom, sy).min(65535)
 }
 
+/// 1-D value noise that tiles seamlessly with integer period `period`.
+///
+/// `x` is a Q16.16 fixed-point coordinate (upper 16 bits = integer part).
+/// Corner hashes wrap at `period` via `rem_euclid`, so the noise is identical
+/// at `(0)` and `(period)`. A `period` of `0` is treated as `1`. Returns
+/// `[0, 65535]`.
+pub fn value_noise_1d_wrap(x: i32, seed: u64, period: i32) -> u32 {
+    let p = period.max(1);
+    let xi = x >> 16;
+    let frac = (x as u32) & 0xffff;
+    let xi0 = xi.rem_euclid(p);
+    let xi1 = (xi0 + 1).rem_euclid(p);
+    let v0 = hash_1d(xi0, seed) >> 16;
+    let v1 = hash_1d(xi1, seed) >> 16;
+    let t = smoothstep(frac);
+    lerp_u32(v0, v1, t).min(65535)
+}
+
+/// Tileable 1-D FBM — like [`fbm_1d`] but each octave tiles at `period`
+/// (doubled per octave so harmonics also tile). Completes the wrap family
+/// alongside [`fbm_2d_wrap`]. Returns `[0, 65535]`; `octaves == 0` returns `0`.
+pub fn fbm_1d_wrap(x: i32, seed: u64, octaves: u32, period: i32) -> u32 {
+    let mut acc: u64 = 0;
+    let mut amplitude: u64 = 65536;
+    let mut total_amp: u64 = 0;
+    for i in 0..octaves {
+        let shift = i.min(15);
+        let sx = x.wrapping_shl(shift);
+        let px = (period << shift).max(1);
+        let v = value_noise_1d_wrap(sx, seed.wrapping_add(i as u64), px) as u64;
+        acc += v * amplitude;
+        total_amp += amplitude * 65535;
+        amplitude >>= 1;
+        if amplitude == 0 {
+            break;
+        }
+    }
+    if total_amp == 0 {
+        0
+    } else {
+        ((acc * 65535) / total_amp).min(65535) as u32
+    }
+}
+
 /// Tileable 2-D FBM — like [`fbm_2d`] but each octave tiles at `period`
 /// (halved per octave so harmonics also tile). Useful for seamlessly wrapping
 /// level maps and world textures.
@@ -479,5 +523,59 @@ mod tests {
         let a = fbm_2d_wrap(1 << 16, 2 << 16, 42, 4, 8);
         let b = fbm_2d_wrap(1 << 16, 2 << 16, 42, 4, 8);
         assert_eq!(a, b);
+    }
+
+    // ── 1-D tileable noise ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_value_noise_1d_wrap_in_range() {
+        for x in 0..20i32 {
+            let v = value_noise_1d_wrap(x << 14, 7, 8);
+            assert!(v <= 65535, "out of range at {x}: {v}");
+        }
+    }
+
+    #[test]
+    fn test_value_noise_1d_wrap_tiles() {
+        let period = 8i32;
+        let v0 = value_noise_1d_wrap(0, 42, period);
+        let vp = value_noise_1d_wrap(period << 16, 42, period);
+        assert_eq!(v0, vp, "wrap: noise(0) != noise(period)");
+    }
+
+    #[test]
+    fn test_value_noise_1d_wrap_deterministic() {
+        let a = value_noise_1d_wrap(3 << 16, 5, 8);
+        let b = value_noise_1d_wrap(3 << 16, 5, 8);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_fbm_1d_wrap_in_range() {
+        for x in 0..30i32 {
+            let v = fbm_1d_wrap(x << 13, 11, 4, 16);
+            assert!(v <= 65535, "fbm_1d_wrap out of range at {x}: {v}");
+        }
+    }
+
+    #[test]
+    fn test_fbm_1d_wrap_zero_octaves_is_zero() {
+        assert_eq!(fbm_1d_wrap(1 << 16, 99, 0, 8), 0);
+    }
+
+    #[test]
+    fn test_fbm_1d_wrap_deterministic() {
+        let a = fbm_1d_wrap(5 << 14, 17, 3, 8);
+        let b = fbm_1d_wrap(5 << 14, 17, 3, 8);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_fbm_1d_wrap_one_octave_matches_value_noise_wrap() {
+        let (x, seed, period) = (3 << 16 | 0x4000, 42u64, 8i32);
+        assert_eq!(
+            fbm_1d_wrap(x, seed, 1, period),
+            value_noise_1d_wrap(x, seed, period)
+        );
     }
 }

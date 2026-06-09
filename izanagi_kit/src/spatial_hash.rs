@@ -192,6 +192,38 @@ impl<K: Eq + Clone> SpatialHash<K> {
     pub fn cell_count(&self) -> usize {
         self.cells.len()
     }
+
+    /// Return `true` if `key` is registered in the cell containing `(x, y)`.
+    ///
+    /// This is a targeted membership test — it does not search other cells.
+    /// O(k) where k is the number of keys in the cell (usually very small).
+    pub fn contains(&self, key: &K, x: i32, y: i32) -> bool {
+        let cx = self.cell_coord(x);
+        let cy = self.cell_coord(y);
+        self.cells
+            .get(&(cx, cy))
+            .map(|bucket| bucket.contains(key))
+            .unwrap_or(false)
+    }
+
+    /// Number of keys registered in the cell containing `(x, y)`.
+    /// Returns `0` for an empty or absent cell. Allocation-free.
+    pub fn density(&self, x: i32, y: i32) -> usize {
+        let cx = self.cell_coord(x);
+        let cy = self.cell_coord(y);
+        self.cells.get(&(cx, cy)).map(|v| v.len()).unwrap_or(0)
+    }
+
+    /// Iterate over all non-empty cells as `(cell_coord, keys)` pairs.
+    ///
+    /// `cell_coord` is the grid-cell index (not world coords); multiply by
+    /// `cell_size()` to get the world-space top-left corner of the cell.
+    /// Iteration order reflects the internal `HashMap` — not sorted.
+    pub fn iter_cells(&self) -> impl Iterator<Item = ((i32, i32), &[K])> {
+        self.cells
+            .iter()
+            .map(|(coord, bucket)| (*coord, bucket.as_slice()))
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for SpatialHash<K> {
@@ -417,6 +449,63 @@ mod tests {
         let eucl: std::collections::HashSet<i32> =
             g.query_radius_euclidean(0, 0, 4).into_iter().collect();
         assert!(eucl.is_subset(&cheb), "euclidean must be ⊆ chebyshev");
+    }
+
+    #[test]
+    fn test_contains_true_when_present() {
+        let mut g = grid();
+        g.insert(7u32, 3, 3);
+        assert!(g.contains(&7, 3, 3));
+        assert!(g.contains(&7, 9, 9)); // same cell (cell_size=10)
+    }
+
+    #[test]
+    fn test_contains_false_when_absent() {
+        let mut g = grid();
+        g.insert(7u32, 3, 3);
+        assert!(!g.contains(&7, 15, 3)); // different cell
+        assert!(!g.contains(&99, 3, 3)); // different key
+    }
+
+    #[test]
+    fn test_contains_false_after_remove() {
+        let mut g = grid();
+        g.insert(1u32, 0, 0);
+        g.remove(&1, 0, 0);
+        assert!(!g.contains(&1, 0, 0));
+    }
+
+    #[test]
+    fn test_density_zero_for_empty_cell() {
+        let g = grid();
+        assert_eq!(g.density(5, 5), 0);
+    }
+
+    #[test]
+    fn test_density_counts_keys_in_cell() {
+        let mut g = grid();
+        g.insert(1u32, 0, 0);
+        g.insert(2, 5, 5); // same cell
+        g.insert(3, 50, 50); // different cell
+        assert_eq!(g.density(0, 0), 2);
+        assert_eq!(g.density(50, 50), 1);
+    }
+
+    #[test]
+    fn test_iter_cells_covers_all_occupied() {
+        let mut g = grid();
+        g.insert(1u32, 0, 0);
+        g.insert(2, 100, 100);
+        let cell_keys: Vec<_> = g.iter_cells().flat_map(|(_, ks)| ks.to_vec()).collect();
+        assert!(cell_keys.contains(&1));
+        assert!(cell_keys.contains(&2));
+        assert_eq!(cell_keys.len(), 2);
+    }
+
+    #[test]
+    fn test_iter_cells_empty_grid() {
+        let g = grid();
+        assert_eq!(g.iter_cells().count(), 0);
     }
 
     #[test]

@@ -451,6 +451,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Some(t)` for cells collapsed to tile `t`; `None` for cells still in superposition
   or contradiction. The ergonomic bridge between the WFC representation and downstream
   `TileMap`/renderer code.
+- `spatial_hash::SpatialHash::contains(key, x, y)`: targeted membership test —
+  `true` if `key` is registered in the cell that contains world point `(x, y)`.
+  O(k) where k is the cell occupancy (usually very small). Avoids the
+  `query_cell(x,y).contains(&key)` pattern that unpacks a slice unnecessarily.
+- `spatial_hash::SpatialHash::density(x, y)`: entity count in the cell
+  containing `(x, y)`. Returns `0` for absent cells. Allocation-free crowding
+  heuristic used by mob AI and spawn systems to avoid over-populated cells.
+- `spatial_hash::SpatialHash::iter_cells()`: iterate all non-empty cells as
+  `(cell_coord, &[K])` pairs. Enables bulk serialisation and rendering passes
+  that want to enumerate every occupied cell without repeated spatial queries.
+- `savefile::SaveHeader::new(version)`: `const fn` constructor for `SaveHeader`.
+  Removes `SaveHeader { version }` struct-literal boilerplate at call sites and
+  enables `const` save-header constants in user code.
+- `savefile::load_bytes_owned(data)`: like `load_bytes` but returns an owned
+  `Vec<u8>` payload. Useful when the caller cannot hold a reference to the raw
+  buffer long enough, or when the payload must outlive the source slice.
+  Re-exported at the crate root.
+- `noise::value_noise_1d_wrap(x, seed, period)`: 1-D value noise that tiles
+  seamlessly at integer period `period`. Completes the wrap family alongside
+  `value_noise_2d_wrap` — the missing primitive for seamless 1-D terrain height
+  profiles, audio ramps, and scrolling textures.
+- `noise::fbm_1d_wrap(x, seed, octaves, period)`: tileable 1-D FBM, mirroring
+  `fbm_2d_wrap`. Each octave tiles at `period << octave_index` so all harmonics
+  also tile. Returns `[0, 65535]`; `octaves == 0` returns `0`. Re-exported at
+  the crate root alongside the other noise functions.
 - `terminal::Screen::draw_line(from, to, glyph, fg, bg)`: draw a Bresenham line
   from `from` to `to` (both endpoints inclusive), setting every visited cell to
   `glyph`/`fg`/`bg`. Out-of-bounds cells are silently clipped via the existing `set`

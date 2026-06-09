@@ -31,6 +31,13 @@ pub struct SaveHeader {
     pub version: u32,
 }
 
+impl SaveHeader {
+    /// Construct a header with the given version number.
+    pub const fn new(version: u32) -> Self {
+        SaveHeader { version }
+    }
+}
+
 /// Encode `payload` with `header` into a portable byte buffer.
 ///
 /// The result begins with [`MAGIC`], followed by the version, a FNV-1a
@@ -74,6 +81,14 @@ pub fn load_bytes(data: &[u8]) -> Result<(SaveHeader, &[u8]), LoadError> {
         return Err(LoadError::ChecksumMismatch);
     }
     Ok((SaveHeader { version }, payload))
+}
+
+/// Like [`load_bytes`] but returns an owned `Vec<u8>` payload instead of a
+/// borrowed slice. Useful when the caller cannot hold a reference to `data`
+/// long enough, or when the payload needs to outlive `data`.
+pub fn load_bytes_owned(data: &[u8]) -> Result<(SaveHeader, Vec<u8>), LoadError> {
+    let (header, payload) = load_bytes(data)?;
+    Ok((header, payload.to_vec()))
 }
 
 /// Errors returned by [`load_bytes`].
@@ -243,5 +258,42 @@ mod tests {
         let data = save_bytes(&SaveHeader { version: 0 }, b"v0 data");
         let (h, _) = load_bytes(&data).unwrap();
         assert_eq!(h.version, 0);
+    }
+
+    #[test]
+    fn test_new_constructor_sets_version() {
+        let h = SaveHeader::new(7);
+        assert_eq!(h.version, 7);
+        assert_eq!(h, SaveHeader { version: 7 });
+    }
+
+    #[test]
+    fn test_new_constructor_is_const() {
+        const H: SaveHeader = SaveHeader::new(42);
+        assert_eq!(H.version, 42);
+    }
+
+    #[test]
+    fn test_load_bytes_owned_roundtrip() {
+        let payload = b"owned payload";
+        let data = save_bytes(&SaveHeader::new(3), payload);
+        let (h, owned) = load_bytes_owned(&data).unwrap();
+        assert_eq!(h.version, 3);
+        assert_eq!(owned.as_slice(), payload);
+    }
+
+    #[test]
+    fn test_load_bytes_owned_error_propagates() {
+        assert_eq!(load_bytes_owned(&[]), Err(LoadError::TooShort));
+    }
+
+    #[test]
+    fn test_load_bytes_owned_payload_is_independent() {
+        let payload = b"independent";
+        let data = save_bytes(&SaveHeader::new(1), payload);
+        let (_h, owned) = load_bytes_owned(&data).unwrap();
+        // Drop data — owned should still be valid.
+        drop(data);
+        assert_eq!(owned.as_slice(), payload);
     }
 }
