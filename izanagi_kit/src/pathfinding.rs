@@ -312,6 +312,24 @@ impl BestCost for Option<((i32, i32), i32)> {
 /// [`weighted_astar`]. The smoothed path has fewer direction changes (reduces
 /// the stair-step visual) and is suitable for AI waypoint navigation: the actor
 /// still moves step-by-step between each consecutive pair of smoothed waypoints,
+/// Take one step from `from` toward `goal` on the shortest unblocked path,
+/// returning the next cell to move to. Returns `None` when no path exists or
+/// `from == goal`. The canonical "move AI one cell per turn" primitive:
+/// avoids storing a full path when only the next step matters.
+///
+/// Internally runs `astar`; if repeated single-step calls are expensive,
+/// cache the full path with `astar` and consume it a step at a time.
+pub fn step_toward<B>(from: (i32, i32), goal: (i32, i32), is_blocked: B) -> Option<(i32, i32)>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    if from == goal {
+        return None;
+    }
+    let path = astar(from, goal, is_blocked)?;
+    path.get(1).copied()
+}
+
 /// so the no-corner-cutting rule is enforced per-step at runtime.
 ///
 /// Determinism: purely functional; the same inputs always yield the same output.
@@ -657,6 +675,54 @@ mod tests {
         let path = astar((0, 0), (8, 6), blocker(12, 12, walls.clone())).unwrap();
         let a = smooth_path(&path, blocker(12, 12, walls.clone()));
         let b = smooth_path(&path, blocker(12, 12, walls));
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_step_toward_adjacent_returns_goal() {
+        let step = step_toward((0, 0), (1, 0), |_, _| false);
+        assert_eq!(step, Some((1, 0)));
+    }
+
+    #[test]
+    fn test_step_toward_same_position_returns_none() {
+        let step = step_toward((3, 3), (3, 3), |_, _| false);
+        assert_eq!(step, None);
+    }
+
+    #[test]
+    fn test_step_toward_no_path_returns_none() {
+        // Surround start with walls on all 8 neighbours — A* terminates immediately.
+        let walls: std::collections::HashSet<(i32, i32)> = [
+            (-1, 0),
+            (1, 0),
+            (0, -1),
+            (0, 1),
+            (-1, -1),
+            (1, -1),
+            (-1, 1),
+            (1, 1),
+        ]
+        .into();
+        let step = step_toward((0, 0), (5, 5), |x, y| walls.contains(&(x, y)));
+        assert_eq!(step, None);
+    }
+
+    #[test]
+    fn test_step_toward_moves_one_cell_closer() {
+        // Open field: step should decrease Chebyshev distance by 1.
+        let from = (0, 0);
+        let goal = (5, 5);
+        let step = step_toward(from, goal, |_, _| false).unwrap();
+        let before = (from.0 - goal.0).abs().max((from.1 - goal.1).abs());
+        let after = (step.0 - goal.0).abs().max((step.1 - goal.1).abs());
+        assert!(after < before, "step {step:?} did not get closer");
+    }
+
+    #[test]
+    fn test_step_toward_is_deterministic() {
+        let a = step_toward((0, 0), (5, 3), |_, _| false);
+        let b = step_toward((0, 0), (5, 3), |_, _| false);
         assert_eq!(a, b);
     }
 }

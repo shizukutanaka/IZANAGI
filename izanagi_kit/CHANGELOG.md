@@ -701,6 +701,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `examples/noise_terrain_demo.rs`: procedural terrain demo. Generates an 80×22 biome map using 3-octave fractional Brownian motion (`value_noise_2d`) and `hash_2d` for sparse landmark scatter. Seven biomes (deep water → coast → sand → grass → forest → mountain → snow) with 24-bit background gradients and a biome-distribution legend bar. (`cargo run --example noise_terrain_demo`)
 - `examples/content_pipeline_demo.rs`: content pipeline demo. Runs the full `parse → validate → load_level → render` pipeline on an embedded DSL bundle (hero, goblin, potion, dungeon room). Side by side: left panel shows entity overlay on the tile grid; right panel shows parser diagnostics for an intentionally broken DSL — matching `gamec` human-mode output. (`cargo run --example content_pipeline_demo`)
 - `examples/influence_demo.rs`: influence-map + HUD demo. Generates a dungeon, seeds an `InfluenceMap` with monster sources (positive, r=10) and trap sources (negative, r=6), renders the scalar field as a 24-bit heat-map (blue→grey→red), overlays a HUD panel with `BarWidget`/`StatLine` widgets and `highest_neighbour`/`lowest_neighbour` steering arrows. (`cargo run --example influence_demo`)
+- `fixed::Fixed::to_int_round()`: round to nearest integer and return as `i32`.
+  Combines `round()` + `to_int_trunc()` in a single call — the natural counterpart
+  to the existing `to_int_trunc()` for callers that want normal rounding semantics.
+- `fixed::Fixed::min(other)` / `max(other)`: component-wise saturating minimum and
+  maximum. Deterministic ordering — same as `Ord`-based comparison on the raw `i32`
+  representation. The missing scalar clamp primitives; complement `Vec2::min`/`max`
+  with the same API on the underlying scalar type.
+- `fixed::Fixed::recip()`: multiplicative reciprocal `1 / self`. Implemented as
+  `Fixed::ONE.div(self)` — inherits the existing saturating-division contract
+  (division by zero returns `Fixed::MAX` or `Fixed::MIN` by sign). Useful for
+  computing inverse speeds and normalisation denominators without a double divide.
+- `rng::SplitMix64::skip(n)`: advance the stream by `n` draws without returning
+  values. Useful for fast-forwarding a seeded replay to a known position, or
+  skipping over the draws used by a sub-system without branching on the draw
+  count. Consumes exactly `n` draws; `skip(0)` is a no-op.
+- `turn::Scheduler::actors_ready()`: returns all actor IDs whose banked energy is
+  ≥ `ACTION_COST` — i.e. every actor that would be returned by the next
+  `next_actor()` call if ties were broken differently. Does not advance the queue.
+  Useful for "who can act this tick?" batch queries in parallel-resolution
+  turn modes and test assertions.
+- `turn::Scheduler::reset_actor(id)`: set the banked energy for `id` to `0`,
+  effectively spending a full turn's worth of energy. The canonical "this actor
+  just acted — deduct energy" primitive. No-op for unknown actors. Mirrors the
+  `set_energy` contract but named for clarity at call sites.
+- `pathfinding::step_toward(from, goal, is_blocked)`: single-step A* helper —
+  returns the first waypoint on the shortest path from `from` toward `goal`, or
+  `None` if `from == goal` or no path exists. The canonical "monster chases player"
+  one-liner that wraps `astar` and plucks `path[1]`. `is_blocked` must return
+  `true` for out-of-bounds coordinates to bound the search. Re-exported at the
+  crate root as `izanagi_kit::step_toward`.
 - `examples/savefile_demo.rs`: save-file framing demo. Exercises four scenarios — clean round-trip, corrupted payload byte (→ `ChecksumMismatch`), truncated buffer (→ `TooShort`), version mismatch (→ caller-side rejection) — with a hex dump of the 20-byte framing header rendered to the terminal. (`cargo run --example savefile_demo`)
 - `examples/replay_demo.rs`: replay & desync-detection demo. Exercises all four `replay` primitives: `record_trace`, `check_trace`, `first_divergence`, `resimulate`. Runs four checks (clean replay → OK, wrong seed → diverges at tick 0, tampered hash → diverges at the correct tick, rollback resimulate == direct run), renders a green/red ANSI report card, and exits with code 1 on any failure — making it directly usable as a smoke test. (`cargo run --example replay_demo`)
 - `examples/wfc_demo.rs`: Wave Function Collapse terrain demo. Defines a 5-tile biome tileset (deep water→shallow→sand→grass→mountain) with gradient adjacency constraints, generates an 80×44 fully-collapsed grid via `wfc_solve`, computes grass-layer autotile masks via `compute_all`, and renders an 80×24 24-bit-ANSI snapshot with a tile legend. (`cargo run --example wfc_demo`)

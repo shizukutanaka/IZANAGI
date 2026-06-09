@@ -102,6 +102,26 @@ impl<A: Copy + Ord> Scheduler<A> {
         self.actors.iter().find(|a| a.id == id).map(|a| a.speed)
     }
 
+    /// All actors whose banked energy is ≥ [`ACTION_COST`] right now, in
+    /// insertion order. Does **not** advance the queue or deduct energy — purely
+    /// a diagnostic read. Useful for "who can act on this turn?" planning, AI
+    /// look-ahead, and save-file inspection.
+    pub fn actors_ready(&self) -> Vec<A> {
+        self.actors
+            .iter()
+            .filter(|a| a.energy >= ACTION_COST)
+            .map(|a| a.id)
+            .collect()
+    }
+
+    /// Set an actor's banked energy to 0 — the "stun / interrupt" primitive.
+    /// No-op if `id` is not registered. Equivalent to `set_energy(id, 0)` but
+    /// clarifies intent at call sites: "this actor loses its current turn".
+    #[inline]
+    pub fn reset_actor(&mut self, id: A) {
+        self.set_energy(id, 0);
+    }
+
     /// Iterate all registered actor ids in insertion order.
     /// Useful for serialisation, debug overlays, and tests that need to
     /// enumerate every actor without driving the turn queue.
@@ -343,5 +363,54 @@ mod tests {
             (0..50).map(|_| s.next_turn().unwrap()).collect::<Vec<_>>()
         };
         assert_eq!(run(), run());
+    }
+
+    #[test]
+    fn test_actors_ready_empty_when_none_have_enough_energy() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.add(2, 100);
+        // No time has passed; energy = 0.
+        assert!(s.actors_ready().is_empty());
+    }
+
+    #[test]
+    fn test_actors_ready_returns_all_with_enough_energy() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.add(2, 100);
+        s.set_energy(1, ACTION_COST); // ready
+        s.set_energy(2, ACTION_COST + 50); // also ready
+        let ready = s.actors_ready();
+        assert!(ready.contains(&1));
+        assert!(ready.contains(&2));
+        assert_eq!(ready.len(), 2);
+    }
+
+    #[test]
+    fn test_actors_ready_does_not_advance_queue() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.set_energy(1, ACTION_COST);
+        let _ = s.actors_ready();
+        // Actor 1 must still be ready (no energy deducted).
+        assert_eq!(s.energy(1), Some(ACTION_COST));
+    }
+
+    #[test]
+    fn test_reset_actor_sets_energy_to_zero() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.set_energy(1, 200);
+        s.reset_actor(1);
+        assert_eq!(s.energy(1), Some(0));
+    }
+
+    #[test]
+    fn test_reset_actor_noop_for_unknown_id() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.reset_actor(99); // unknown — must not panic
+        assert_eq!(s.energy(1), Some(0));
     }
 }

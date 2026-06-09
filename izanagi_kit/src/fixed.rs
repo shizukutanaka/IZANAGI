@@ -291,6 +291,46 @@ impl Fixed {
         Fixed(self.0.wrapping_sub(self.floor().0))
     }
 
+    /// Round to the nearest integer and return it as `i32`.
+    /// Ties round away from negative infinity (`0.5 → 1`, `-0.5 → 0`), matching
+    /// `self.round().to_int_trunc()`. More ergonomic than chaining both calls when
+    /// only the integer result is needed (e.g., UI pixel coordinates, grid snapping).
+    #[inline]
+    pub fn to_int_round(self) -> i32 {
+        self.round().to_int_trunc()
+    }
+
+    /// Component-wise minimum: `self` if `self <= other`, otherwise `other`.
+    /// Saturates rather than panicking on extremes. Useful for bounding
+    /// fixed-point positions to map extents without branching at call sites.
+    #[inline]
+    pub fn min(self, other: Fixed) -> Fixed {
+        if self.0 <= other.0 {
+            self
+        } else {
+            other
+        }
+    }
+
+    /// Component-wise maximum: `self` if `self >= other`, otherwise `other`.
+    #[inline]
+    pub fn max(self, other: Fixed) -> Fixed {
+        if self.0 >= other.0 {
+            self
+        } else {
+            other
+        }
+    }
+
+    /// Reciprocal: `1 / self`. Saturates to `Fixed::MAX` for `self = 0`.
+    /// Equivalent to `Fixed::ONE.div(self)` — provided as a named method for
+    /// readability at call sites where division by a variable is the intent
+    /// (e.g., normalising a vector component: `v.mul(magnitude.recip())`).
+    #[inline]
+    pub fn recip(self) -> Fixed {
+        Fixed::ONE.div(self)
+    }
+
     /// Four-quadrant arctangent of `y/x` in radians, via vectoring-mode CORDIC.
     /// Result is in (-π, π]. The rotation runs in `i64` because the CORDIC gain
     /// grows the working vector ~1.6× and `y`/`x` may already be near the `i32`
@@ -721,5 +761,56 @@ mod tests {
     fn test_fract_integer_is_zero() {
         assert_eq!(Fixed::from_int(3).fract(), Fixed::ZERO);
         assert_eq!(Fixed::from_int(-2).fract(), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_to_int_round_half_rounds_up() {
+        // 0.5 → 1, -0.5 → 0 (floor-convention ties).
+        assert_eq!(Fixed::from_ratio(1, 2).to_int_round(), 1);
+        assert_eq!((-Fixed::from_ratio(1, 2)).to_int_round(), 0);
+    }
+
+    #[test]
+    fn test_to_int_round_integer_unchanged() {
+        assert_eq!(Fixed::from_int(3).to_int_round(), 3);
+        assert_eq!(Fixed::from_int(-2).to_int_round(), -2);
+    }
+
+    #[test]
+    fn test_to_int_round_fraction_truncated() {
+        assert_eq!(Fixed::from_ratio(7, 4).to_int_round(), 2); // 1.75 → 2
+        assert_eq!(Fixed::from_ratio(5, 4).to_int_round(), 1); // 1.25 → 1
+    }
+
+    #[test]
+    fn test_min_max_return_extremes() {
+        let a = Fixed::from_int(3);
+        let b = Fixed::from_int(7);
+        assert_eq!(a.min(b), a);
+        assert_eq!(a.max(b), b);
+        assert_eq!(b.min(a), a);
+        assert_eq!(b.max(a), b);
+    }
+
+    #[test]
+    fn test_min_max_equal_returns_self() {
+        let v = Fixed::from_ratio(3, 4);
+        assert_eq!(v.min(v), v);
+        assert_eq!(v.max(v), v);
+    }
+
+    #[test]
+    fn test_recip_of_two() {
+        // 1 / 2.0 = 0.5
+        let result = Fixed::from_int(2).recip();
+        let expected = Fixed::from_ratio(1, 2);
+        let diff = (result.raw() - expected.raw()).abs();
+        assert!(diff <= 2, "recip(2) off by {diff} LSBs");
+    }
+
+    #[test]
+    fn test_recip_of_zero_saturates() {
+        // 1 / 0 → Fixed::MAX (saturating divide)
+        assert_eq!(Fixed::ZERO.recip(), Fixed::MAX);
     }
 }

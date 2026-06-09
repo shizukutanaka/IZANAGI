@@ -162,6 +162,17 @@ impl SplitMix64 {
     pub fn next_bool(&mut self) -> bool {
         self.coin(1, 2)
     }
+
+    /// Advance the stream by exactly `n` draws, discarding all output. Use for
+    /// deterministic "skip-ahead": two callers that seed identically and each
+    /// call `skip(k)` before sampling will produce the same values as if they
+    /// both simply drew `k` dummy values first.
+    #[inline]
+    pub fn skip(&mut self, n: u32) {
+        for _ in 0..n {
+            self.next_u64();
+        }
+    }
 }
 
 impl crate::world_hash::DetHash for SplitMix64 {
@@ -484,5 +495,34 @@ mod tests {
         let trues = (0..1000).filter(|_| r.next_bool()).count();
         // With 1000 draws expect ~500 trues; allow generous margin.
         assert!((400..=600).contains(&trues), "trues={trues}");
+    }
+
+    #[test]
+    fn test_skip_advances_stream() {
+        let mut a = SplitMix64::new(42);
+        let mut b = SplitMix64::new(42);
+        // Skip 5 draws in 'a'; manually draw 5 in 'b'.
+        a.skip(5);
+        for _ in 0..5 {
+            b.next_u64();
+        }
+        assert_eq!(a.next_u64(), b.next_u64(), "streams must align after skip");
+    }
+
+    #[test]
+    fn test_skip_zero_is_noop() {
+        let mut r = SplitMix64::new(99);
+        let s_before = r.state();
+        r.skip(0);
+        assert_eq!(r.state(), s_before);
+    }
+
+    #[test]
+    fn test_skip_is_deterministic() {
+        let mut a = SplitMix64::new(7);
+        let mut b = SplitMix64::new(7);
+        a.skip(10);
+        b.skip(10);
+        assert_eq!(a.next_u64(), b.next_u64());
     }
 }

@@ -149,7 +149,7 @@ pub use noise::{
 };
 pub use parser::parse;
 pub use passability::PassabilityGrid;
-pub use pathfinding::{astar, descend, dijkstra_map, smooth_path, weighted_astar};
+pub use pathfinding::{astar, descend, dijkstra_map, smooth_path, step_toward, weighted_astar};
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use random_table::RandomTable;
 pub use relations::Relations;
