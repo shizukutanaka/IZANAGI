@@ -113,6 +113,19 @@ pub enum LoadError {
     ChecksumMismatch,
 }
 
+impl LoadError {
+    /// Returns `true` when the error indicates a wrong-file condition rather
+    /// than data corruption — i.e. the save slot should be treated as empty
+    /// rather than damaged. Only [`BadMagic`](Self::BadMagic) qualifies (the
+    /// buffer simply is not a save file). [`TooShort`](Self::TooShort) and
+    /// [`ChecksumMismatch`](Self::ChecksumMismatch) indicate truncation or
+    /// payload corruption and are not recoverable.
+    #[inline]
+    pub fn is_recoverable(&self) -> bool {
+        matches!(self, LoadError::BadMagic)
+    }
+}
+
 impl core::fmt::Display for LoadError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
@@ -323,5 +336,20 @@ mod tests {
     #[test]
     fn test_validate_integrity_rejects_too_short() {
         assert_eq!(validate_integrity(&[0u8; 5]), Err(LoadError::TooShort));
+    }
+
+    #[test]
+    fn test_bad_magic_is_recoverable() {
+        assert!(LoadError::BadMagic.is_recoverable());
+    }
+
+    #[test]
+    fn test_too_short_is_not_recoverable() {
+        assert!(!LoadError::TooShort.is_recoverable());
+    }
+
+    #[test]
+    fn test_checksum_mismatch_is_not_recoverable() {
+        assert!(!LoadError::ChecksumMismatch.is_recoverable());
     }
 }

@@ -65,6 +65,62 @@ pub fn content_eq(a: &Content, b: &Content) -> bool {
     prefabs_eq(a, b) && tiles_eq(a, b) && levels_eq(a, b)
 }
 
+/// Returns a human-readable description of the first semantic difference
+/// between `a` and `b`, or `None` when they are equal under [`content_eq`].
+/// Use this to diagnose round-trip failures: instead of knowing only that two
+/// `Content` values differ, callers learn *where* the first divergence is.
+pub fn first_diff(a: &Content, b: &Content) -> Option<String> {
+    if a.prefabs.len() != b.prefabs.len() {
+        return Some(format!(
+            "prefab count {} vs {}",
+            a.prefabs.len(),
+            b.prefabs.len()
+        ));
+    }
+    if a.tiles.len() != b.tiles.len() {
+        return Some(format!("tile count {} vs {}", a.tiles.len(), b.tiles.len()));
+    }
+    if a.levels.len() != b.levels.len() {
+        return Some(format!(
+            "level count {} vs {}",
+            a.levels.len(),
+            b.levels.len()
+        ));
+    }
+    for (i, (pa, pb)) in a.prefabs.iter().zip(&b.prefabs).enumerate() {
+        if pa.name != pb.name {
+            return Some(format!("prefab[{i}].name {:?} vs {:?}", pa.name, pb.name));
+        }
+        if pa.glyph != pb.glyph {
+            return Some(format!(
+                "prefab[{i}].glyph {:?} vs {:?}",
+                pa.glyph, pb.glyph
+            ));
+        }
+        if pa.color != pb.color {
+            return Some(format!(
+                "prefab[{i}].color {:?} vs {:?}",
+                pa.color, pb.color
+            ));
+        }
+        if pa.stats != pb.stats {
+            return Some(format!("prefab[{i}].stats differ"));
+        }
+        if pa.flags != pb.flags {
+            return Some(format!("prefab[{i}].flags differ"));
+        }
+    }
+    for (i, (la, lb)) in a.levels.iter().zip(&b.levels).enumerate() {
+        if la.name != lb.name {
+            return Some(format!("level[{i}].name {:?} vs {:?}", la.name, lb.name));
+        }
+        if la.rows != lb.rows {
+            return Some(format!("level[{i}].rows differ"));
+        }
+    }
+    None
+}
+
 fn prefabs_eq(a: &Content, b: &Content) -> bool {
     if a.prefabs.len() != b.prefabs.len() {
         return false;
@@ -162,5 +218,34 @@ level cave 5x3
         let (a, _) = parse(SAMPLE);
         let (b, _) = parse("prefab x\n  glyph x\n");
         assert!(!content_eq(&a, &b));
+    }
+
+    #[test]
+    fn test_first_diff_equal_content_is_none() {
+        let (c1, _) = parse(SAMPLE);
+        let (c2, _) = parse(SAMPLE);
+        assert!(first_diff(&c1, &c2).is_none());
+    }
+
+    #[test]
+    fn test_first_diff_detects_prefab_count_mismatch() {
+        let (a, _) = parse(SAMPLE);
+        let (b, _) = parse("tile floor . #3A3A3A\n");
+        let diff = first_diff(&a, &b);
+        assert!(diff.is_some());
+        assert!(
+            diff.as_ref().unwrap().contains("prefab count"),
+            "got: {diff:?}"
+        );
+    }
+
+    #[test]
+    fn test_first_diff_detects_level_row_change() {
+        let (a, _) = parse(SAMPLE);
+        let modified = SAMPLE.replace("  row #.g.#", "  row #####");
+        let (b, _) = parse(&modified);
+        let diff = first_diff(&a, &b);
+        assert!(diff.is_some());
+        assert!(diff.as_ref().unwrap().contains("rows"), "got: {diff:?}");
     }
 }

@@ -162,6 +162,13 @@ impl Dungeon {
         self.in_bounds(x, y) && !self.is_wall(x, y)
     }
 
+    /// Return the room with the greatest area (`w × h`), or `None` for an
+    /// all-wall dungeon (e.g. a cave or a too-small map). Useful for placing
+    /// bosses, exit stairs, or treasure in the most prominent room.
+    pub fn largest_room(&self) -> Option<Rect> {
+        self.rooms.iter().max_by_key(|r| r.w * r.h).copied()
+    }
+
     #[inline]
     fn carve(&mut self, x: i32, y: i32) {
         if self.in_bounds(x, y) {
@@ -775,6 +782,37 @@ mod tests {
                 assert!(d.is_wall(x, y));
             }
         }
+    }
+
+    // --- largest_room tests ---
+
+    #[test]
+    fn test_largest_room_none_when_no_rooms() {
+        let mut rng = SplitMix64::new(1);
+        let d = generate_cave(40, 25, &mut rng, CaveParams::default());
+        assert!(d.largest_room().is_none(), "caves carry no Rect rooms");
+    }
+
+    #[test]
+    fn test_largest_room_returns_biggest_by_area() {
+        let mut rng = SplitMix64::new(42);
+        let d = generate_dungeon(80, 50, &mut rng, GenParams::default());
+        assert!(!d.rooms.is_empty());
+        let biggest = d.largest_room().unwrap();
+        let biggest_area = biggest.w * biggest.h;
+        for r in &d.rooms {
+            assert!(
+                r.w * r.h <= biggest_area,
+                "a larger room {r:?} exceeds reported largest"
+            );
+        }
+    }
+
+    #[test]
+    fn test_largest_room_consistent_across_calls() {
+        let mut rng = SplitMix64::new(99);
+        let d = generate_dungeon(60, 40, &mut rng, GenParams::default());
+        assert_eq!(d.largest_room(), d.largest_room(), "must be deterministic");
     }
 
     #[test]

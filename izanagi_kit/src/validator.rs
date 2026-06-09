@@ -134,6 +134,12 @@ pub fn is_loadable(parse_diags: &[Diagnostic], validate_diags: &[Diagnostic]) ->
         .any(|d| d.is_error())
 }
 
+/// Count error-severity diagnostics in a slice. Convenience for CI gates and
+/// tool integrations that need a tally rather than an iteration.
+pub fn error_count(diags: &[Diagnostic]) -> usize {
+    diags.iter().filter(|d| d.is_error()).count()
+}
+
 fn check_unique<'a>(names: impl Iterator<Item = &'a str>, kind: &str, diags: &mut Vec<Diagnostic>) {
     let mut seen = HashSet::new();
     for name in names {
@@ -249,5 +255,31 @@ level a 1x1
                 .any(|d| d.is_error() && d.message.contains("control character")),
             "expected control-char error; got: {vd:?}"
         );
+    }
+
+    #[test]
+    fn test_error_count_empty_is_zero() {
+        assert_eq!(error_count(&[]), 0);
+    }
+
+    #[test]
+    fn test_error_count_counts_only_errors_not_warnings() {
+        let src = "prefab ghost\n  glyph g\n";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        // "ghost" is unused — a warning, not an error.
+        assert_eq!(error_count(&vd), 0);
+        assert!(
+            vd.iter().any(|d| !d.is_error()),
+            "expected an unused-prefab warning"
+        );
+    }
+
+    #[test]
+    fn test_error_count_detects_errors() {
+        let src = "level a 2x2\n  row ..\n  row ..\n  spawn missing 0 0\n";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert_eq!(error_count(&vd), 1, "one undefined-prefab error expected");
     }
 }

@@ -136,6 +136,19 @@ impl Color {
             b: ch(self.b),
         }
     }
+
+    /// Composite `fg` over `bg` with integer alpha: `alpha = 0` yields `fg`,
+    /// `alpha = 255` yields `bg`. Formula: `(fg * (255 − alpha) + bg * alpha) / 255`
+    /// per channel — no float, deterministic across targets.
+    pub fn alpha_blend(fg: Color, bg: Color, alpha: u8) -> Color {
+        let a = alpha as u32;
+        let ia = 255 - a;
+        Color {
+            r: ((fg.r as u32 * ia + bg.r as u32 * a) / 255) as u8,
+            g: ((fg.g as u32 * ia + bg.g as u32 * a) / 255) as u8,
+            b: ((fg.b as u32 * ia + bg.b as u32 * a) / 255) as u8,
+        }
+    }
 }
 
 impl crate::world_hash::DetHash for Color {
@@ -520,5 +533,30 @@ mod tests {
         // Half value on pure red → darker red, no other channel introduced.
         let dim = Color::from_hsv(0, 255, 128);
         assert_eq!(dim, Color::rgb(128, 0, 0));
+    }
+
+    #[test]
+    fn test_alpha_blend_zero_alpha_yields_fg() {
+        let fg = Color::rgb(200, 100, 50);
+        let bg = Color::rgb(10, 20, 30);
+        assert_eq!(Color::alpha_blend(fg, bg, 0), fg);
+    }
+
+    #[test]
+    fn test_alpha_blend_full_alpha_yields_bg() {
+        let fg = Color::rgb(200, 100, 50);
+        let bg = Color::rgb(10, 20, 30);
+        assert_eq!(Color::alpha_blend(fg, bg, 255), bg);
+    }
+
+    #[test]
+    fn test_alpha_blend_midpoint_channels() {
+        let fg = Color::rgb(0, 0, 0);
+        let bg = Color::rgb(255, 200, 100);
+        let mid = Color::alpha_blend(fg, bg, 128);
+        // (0*127 + 255*128)/255 = 128, (0*127 + 200*128)/255 = 100, (0*127 + 100*128)/255 = 50
+        assert_eq!(mid.r, 128);
+        assert_eq!(mid.g, 100);
+        assert_eq!(mid.b, 50);
     }
 }

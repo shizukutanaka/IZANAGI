@@ -284,6 +284,33 @@ where
     visible
 }
 
+/// Collect visible cells filtered by a squared-distance limit.
+///
+/// Like [`fov_to_vec`] but only includes cells where `dist_sq <= max_dist_sq`.
+/// Use this for light-falloff queries ("torch radius 4 → max_dist_sq 16")
+/// without a separate filtering pass. `radius` is still the outer shadow-cast
+/// limit; `max_dist_sq` is a tighter inner clamp.
+///
+/// The result may contain duplicates (axis/diagonal cells can fire twice from
+/// different quadrants); deduplicate with a `HashSet` if uniqueness matters.
+pub fn fov_to_vec_dist<O>(
+    origin: (i32, i32),
+    radius: i32,
+    max_dist_sq: i32,
+    is_opaque: O,
+) -> Vec<(i32, i32)>
+where
+    O: FnMut(i32, i32) -> bool,
+{
+    let mut visible = Vec::new();
+    compute_fov_dist(origin, radius, is_opaque, |x, y, d| {
+        if d <= max_dist_sq {
+            visible.push((x, y));
+        }
+    });
+    visible
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -509,5 +536,41 @@ mod tests {
     fn test_fov_to_vec_radius_zero_only_origin() {
         let visible = fov_to_vec((3, 3), 0, |_, _| false);
         assert_eq!(visible, vec![(3, 3)]);
+    }
+
+    // --- fov_to_vec_dist tests ---
+
+    #[test]
+    fn test_fov_to_vec_dist_zero_max_includes_only_origin() {
+        let visible = fov_to_vec_dist((5, 5), 5, 0, |_, _| false);
+        assert_eq!(visible, vec![(5, 5)], "only origin has dist_sq == 0");
+    }
+
+    #[test]
+    fn test_fov_to_vec_dist_large_max_matches_fov_to_vec() {
+        let origin = (10, 10);
+        let radius = 4;
+        let full: HashSet<(i32, i32)> = fov_to_vec(origin, radius, |_, _| false)
+            .into_iter()
+            .collect();
+        let filtered: HashSet<(i32, i32)> =
+            fov_to_vec_dist(origin, radius, radius * radius, |_, _| false)
+                .into_iter()
+                .collect();
+        assert_eq!(full, filtered);
+    }
+
+    #[test]
+    fn test_fov_to_vec_dist_one_excludes_diagonals() {
+        let origin = (0, 0);
+        let visible: HashSet<(i32, i32)> = fov_to_vec_dist(origin, 10, 1, |_, _| false)
+            .into_iter()
+            .collect();
+        assert!(visible.contains(&(0, 0)), "origin");
+        assert!(visible.contains(&(1, 0)), "east");
+        assert!(visible.contains(&(-1, 0)), "west");
+        assert!(visible.contains(&(0, 1)), "south");
+        assert!(visible.contains(&(0, -1)), "north");
+        assert!(!visible.contains(&(1, 1)), "diagonal excluded (dist_sq=2)");
     }
 }

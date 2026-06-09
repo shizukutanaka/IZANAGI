@@ -7,6 +7,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `content::Color::alpha_blend(fg, bg, alpha) -> Color`: composite `fg` over
+  `bg` with integer alpha (`0` = fg, `255` = bg) using per-channel
+  `(fg*(255-alpha) + bg*alpha)/255`. No float; deterministic. For UI overlays,
+  particle fading, and damage indicators.
+- `parser::error_count(diags) -> usize`: count error-severity diagnostics in a
+  slice — CI / tool convenience, avoids manual iteration.
+- `serializer::first_diff(a, b) -> Option<String>`: describe the first semantic
+  difference between two `Content` values (prefab count, level rows, etc.) for
+  debugging round-trip failures.
+- `validator::error_count(diags) -> usize`: same helper as `parser::error_count`
+  but exposed from the validator module for gate-check idioms.
+- `entity::EntityAllocator::highest_generation() -> u32`: max generation counter
+  across all slots (`0` when empty). Useful for diagnostics and save-file audits
+  to detect near-exhausted generation space.
+- `fov::fov_to_vec_dist(origin, radius, max_dist_sq, is_opaque) -> Vec<(i32,i32)>`:
+  like `fov_to_vec` but further filtered to `dist_sq <= max_dist_sq`. One-pass
+  light-falloff/torch-radius queries without a second Vec filter.
+- `mapgen::Dungeon::largest_room() -> Option<Rect>`: room with the greatest area
+  (`w × h`); `None` for all-wall dungeons (caves, tiny maps). Spawn bosses,
+  stairs, and treasure in the biggest room.
+- `savefile::LoadError::is_recoverable() -> bool`: `true` for `BadMagic` (wrong
+  file — treat as empty slot), `false` for `TooShort` or `ChecksumMismatch`
+  (corruption — warn and offer to clear). Guides save-slot UI error handling.
 - `fixed::Fixed::pow(exp: u32) -> Fixed`: integer exponentiation via repeated
   saturating multiplication. `pow(0)` is `Fixed::ONE`, `pow(1)` is `self`
   exactly; overflow pins to `Fixed::MAX`/`MIN` rather than wrapping. Float-free

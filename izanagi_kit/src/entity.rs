@@ -90,6 +90,15 @@ impl EntityAllocator {
         }
     }
 
+    /// The highest generation counter across all slots, or `0` when the
+    /// allocator is empty. A value near [`u32::MAX`] means a slot has been
+    /// recycled an extraordinary number of times — useful for diagnostics and
+    /// long-running save-file audits.
+    #[inline]
+    pub fn highest_generation(&self) -> u32 {
+        self.generations.iter().copied().max().unwrap_or(0)
+    }
+
     /// All currently live entities in ascending index order.
     ///
     /// Useful for systems that need to enumerate every spawned entity without
@@ -273,5 +282,34 @@ mod tests {
         assert_eq!(a.count(), 2);
         a.free(e1);
         assert_eq!(a.count(), 1);
+    }
+
+    #[test]
+    fn test_highest_generation_empty_is_zero() {
+        let a = EntityAllocator::new();
+        assert_eq!(a.highest_generation(), 0);
+    }
+
+    #[test]
+    fn test_highest_generation_fresh_allocs_is_zero() {
+        let mut a = EntityAllocator::new();
+        a.allocate();
+        a.allocate();
+        assert_eq!(
+            a.highest_generation(),
+            0,
+            "no frees yet — all generations at 0"
+        );
+    }
+
+    #[test]
+    fn test_highest_generation_tracks_frees() {
+        let mut a = EntityAllocator::new();
+        let e = a.allocate();
+        a.free(e);
+        assert_eq!(a.highest_generation(), 1);
+        let e2 = a.allocate(); // reuses slot at gen 1
+        a.free(e2);
+        assert_eq!(a.highest_generation(), 2);
     }
 }

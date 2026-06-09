@@ -200,6 +200,12 @@ pub fn parse(source: &str) -> (Content, Vec<Diagnostic>) {
     (content, diags)
 }
 
+/// Count error-severity diagnostics in a slice. Convenience for CI pipelines
+/// and tool integrations that need a quick pass/fail tally without iterating.
+pub fn error_count(diags: &[Diagnostic]) -> usize {
+    diags.iter().filter(|d| d.is_error()).count()
+}
+
 fn parse_dim(s: &str) -> Result<(u32, u32), String> {
     let (w, h) = s
         .split_once('x')
@@ -450,5 +456,24 @@ level cave 5x3
         let (_, d) = parse("prefab");
         let err = d.iter().find(|x| x.is_error()).unwrap();
         assert_eq!(err.col, 7, "caret at end-of-line for missing name");
+    }
+
+    #[test]
+    fn test_error_count_empty_slice_is_zero() {
+        assert_eq!(error_count(&[]), 0);
+    }
+
+    #[test]
+    fn test_error_count_counts_only_errors() {
+        // "wobble" gives a warning; "prefab" with no name gives an error.
+        let (_, d) = parse("wobble foo\nprefab");
+        assert_eq!(error_count(&d), 1);
+    }
+
+    #[test]
+    fn test_error_count_all_warnings_is_zero() {
+        let (_, d) = parse("wobble a\nwobble b");
+        assert!(d.iter().all(|x| !x.is_error()));
+        assert_eq!(error_count(&d), 0);
     }
 }
