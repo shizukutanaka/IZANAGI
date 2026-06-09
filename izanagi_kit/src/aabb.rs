@@ -48,6 +48,36 @@ impl Aabb {
         }
     }
 
+    /// Construct from two corners `(x1, y1)` and `(x2, y2)`. The corners need
+    /// not be in top-left/bottom-right order; the result always has `w, h ≥ 0`.
+    #[inline]
+    pub fn from_corners(x1: i32, y1: i32, x2: i32, y2: i32) -> Self {
+        let x = x1.min(x2);
+        let y = y1.min(y2);
+        let w = x1.max(x2).saturating_sub(x);
+        let h = y1.max(y2).saturating_sub(y);
+        Aabb { x, y, w, h }
+    }
+
+    /// Expand this AABB by `amount` on every side: `x -= amount`, `y -= amount`,
+    /// `w += 2·amount`, `h += 2·amount`. Saturating. Negative `amount` shrinks;
+    /// the size is clamped to zero so the result is always a valid AABB.
+    #[inline]
+    pub fn grow(&self, amount: i32) -> Aabb {
+        let x = self.x.saturating_sub(amount);
+        let y = self.y.saturating_sub(amount);
+        let w = (self.w as i64).saturating_add(2 * amount as i64).max(0) as i32;
+        let h = (self.h as i64).saturating_add(2 * amount as i64).max(0) as i32;
+        Aabb { x, y, w, h }
+    }
+
+    /// Contract this AABB by `amount` on every side. Equivalent to
+    /// `grow(-amount)`. The size is clamped to zero.
+    #[inline]
+    pub fn shrink(&self, amount: i32) -> Aabb {
+        self.grow(-amount)
+    }
+
     /// Exclusive right edge (`x + w`).
     #[inline]
     pub fn right(&self) -> i32 {
@@ -406,5 +436,67 @@ mod tests {
     fn test_iter_points_all_inside() {
         let b = r(2, 2, 3, 3);
         assert!(b.iter_points().all(|(x, y)| b.contains_point(x, y)));
+    }
+
+    #[test]
+    fn test_from_corners_ordered() {
+        let b = Aabb::from_corners(1, 2, 5, 6);
+        assert_eq!(b.x, 1);
+        assert_eq!(b.y, 2);
+        assert_eq!(b.w, 4);
+        assert_eq!(b.h, 4);
+    }
+
+    #[test]
+    fn test_from_corners_reversed() {
+        // Works regardless of which corner is first.
+        let b = Aabb::from_corners(5, 6, 1, 2);
+        assert_eq!(b.x, 1);
+        assert_eq!(b.y, 2);
+        assert_eq!(b.w, 4);
+        assert_eq!(b.h, 4);
+    }
+
+    #[test]
+    fn test_from_corners_single_point() {
+        let b = Aabb::from_corners(3, 4, 3, 4);
+        assert_eq!(b.w, 0);
+        assert_eq!(b.h, 0);
+        assert!(b.is_empty());
+    }
+
+    #[test]
+    fn test_grow_expands_all_sides() {
+        let b = r(5, 5, 10, 10);
+        let g = b.grow(2);
+        assert_eq!(g.x, 3);
+        assert_eq!(g.y, 3);
+        assert_eq!(g.w, 14);
+        assert_eq!(g.h, 14);
+    }
+
+    #[test]
+    fn test_grow_negative_is_shrink() {
+        let b = r(0, 0, 10, 10);
+        let s = b.grow(-2);
+        assert_eq!(s.x, 2);
+        assert_eq!(s.y, 2);
+        assert_eq!(s.w, 6);
+        assert_eq!(s.h, 6);
+    }
+
+    #[test]
+    fn test_grow_beyond_zero_clamps() {
+        let b = r(0, 0, 4, 4);
+        let g = b.grow(-10);
+        assert_eq!(g.w, 0);
+        assert_eq!(g.h, 0);
+        assert!(g.is_empty());
+    }
+
+    #[test]
+    fn test_shrink_symmetric_with_grow() {
+        let b = r(2, 2, 8, 8);
+        assert_eq!(b.shrink(3), b.grow(-3));
     }
 }

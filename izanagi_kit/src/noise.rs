@@ -182,6 +182,68 @@ pub fn fbm_1d(x: i32, seed: u64, octaves: u32) -> u32 {
     }
 }
 
+/// 2-D value noise that tiles seamlessly with period `(period_x, period_y)`.
+///
+/// `x` and `y` are Q16.16 fixed-point coordinates (upper 16 bits = integer).
+/// Corner hashes wrap at the given integer period, so the noise is identical
+/// at `(0, y)` and `(period_x, y)` (and equivalently for `y`). This is the
+/// standard technique for tileable dungeon-level textures and seamless world-
+/// map wrapping. Returns `[0, 65535]`.
+///
+/// A `period` of `0` is treated as `1` (constant noise) rather than panicking.
+pub fn value_noise_2d_wrap(x: i32, y: i32, seed: u64, period_x: i32, period_y: i32) -> u32 {
+    let px = period_x.max(1);
+    let py = period_y.max(1);
+    let xi = x >> 16;
+    let yi = y >> 16;
+    let fx = (x as u32) & 0xffff;
+    let fy = (y as u32) & 0xffff;
+
+    // Positive modulo so negative coordinates wrap cleanly.
+    let xi0 = xi.rem_euclid(px);
+    let xi1 = (xi0 + 1).rem_euclid(px);
+    let yi0 = yi.rem_euclid(py);
+    let yi1 = (yi0 + 1).rem_euclid(py);
+
+    let v00 = hash_2d(xi0, yi0, seed) >> 16;
+    let v10 = hash_2d(xi1, yi0, seed) >> 16;
+    let v01 = hash_2d(xi0, yi1, seed) >> 16;
+    let v11 = hash_2d(xi1, yi1, seed) >> 16;
+
+    let sx = smoothstep(fx);
+    let sy = smoothstep(fy);
+    let top = lerp_u32(v00, v10, sx);
+    let bottom = lerp_u32(v01, v11, sx);
+    lerp_u32(top, bottom, sy).min(65535)
+}
+
+/// Tileable 2-D FBM — like [`fbm_2d`] but each octave tiles at `period`
+/// (halved per octave so harmonics also tile). Useful for seamlessly wrapping
+/// level maps and world textures.
+pub fn fbm_2d_wrap(x: i32, y: i32, seed: u64, octaves: u32, period: i32) -> u32 {
+    let mut acc: u64 = 0;
+    let mut amplitude: u64 = 65536;
+    let mut total_amp: u64 = 0;
+    for i in 0..octaves {
+        let shift = i.min(15);
+        let sx = x.wrapping_shl(shift);
+        let sy = y.wrapping_shl(shift);
+        let px = (period << shift).max(1);
+        let v = value_noise_2d_wrap(sx, sy, seed.wrapping_add(i as u64), px, px) as u64;
+        acc += v * amplitude;
+        total_amp += amplitude * 65535;
+        amplitude >>= 1;
+        if amplitude == 0 {
+            break;
+        }
+    }
+    if total_amp == 0 {
+        0
+    } else {
+        ((acc * 65535) / total_amp).min(65535) as u32
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -357,5 +419,65 @@ mod tests {
             let v = fbm_1d(x << 12, 3, 4);
             assert!(v <= 65535);
         }
+    }
+
+    // ── tileable noise ───────────────────────────────────────────────────────
+
+    #[test]
+    fn test_value_noise_2d_wrap_in_range() {
+        for x in 0..20i32 {
+            for y in 0..20i32 {
+                let v = value_noise_2d_wrap(x << 14, y << 14, 42, 8, 8);
+                assert!(v <= 65535, "out of range at ({x},{y}): {v}");
+            }
+        }
+    }
+
+    #[test]
+    fn test_value_noise_2d_wrap_tiles_x() {
+        // Wrapping: noise at x=0 should equal noise at x=period.
+        let period = 8i32;
+        for y in 0..8i32 {
+            let frac = 0i32; // integer coordinates
+            let v0 = value_noise_2d_wrap(0, y << 16, 99, period, period);
+            let vp = value_noise_2d_wrap(period << 16, y << 16, 99, period, period);
+            assert_eq!(
+                v0, vp,
+                "wrap failed at y={y}: noise(0,y)={v0} != noise(period,y)={vp}",
+            );
+            let _ = frac;
+        }
+    }
+
+    #[test]
+    fn test_value_noise_2d_wrap_tiles_y() {
+        let period = 6i32;
+        for x in 0..6i32 {
+            let v0 = value_noise_2d_wrap(x << 16, 0, 77, period, period);
+            let vp = value_noise_2d_wrap(x << 16, period << 16, 77, period, period);
+            assert_eq!(v0, vp, "y-wrap failed at x={x}");
+        }
+    }
+
+    #[test]
+    fn test_value_noise_2d_wrap_deterministic() {
+        let v1 = value_noise_2d_wrap(3 << 16, 4 << 16, 5, 8, 8);
+        let v2 = value_noise_2d_wrap(3 << 16, 4 << 16, 5, 8, 8);
+        assert_eq!(v1, v2);
+    }
+
+    #[test]
+    fn test_fbm_2d_wrap_in_range() {
+        for i in 0..20i32 {
+            let v = fbm_2d_wrap(i << 14, i << 13, 13, 3, 16);
+            assert!(v <= 65535);
+        }
+    }
+
+    #[test]
+    fn test_fbm_2d_wrap_deterministic() {
+        let a = fbm_2d_wrap(1 << 16, 2 << 16, 42, 4, 8);
+        let b = fbm_2d_wrap(1 << 16, 2 << 16, 42, 4, 8);
+        assert_eq!(a, b);
     }
 }

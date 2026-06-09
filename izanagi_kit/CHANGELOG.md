@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `aabb::Aabb::from_corners(x1, y1, x2, y2)`: construct from two corners in any
+  order — the result always has non-negative `w`/`h`. Matches the bracket-lib and
+  glam `from_min_max` convention; avoids manual `min`/`max` arithmetic at call sites.
+- `aabb::Aabb::grow(amount)` / `shrink(amount)`: expand or contract by a uniform
+  margin on all four sides. Saturating arithmetic. Negative `amount` to `grow` is
+  equivalent to `shrink`. Size clamps to zero so the result is always a valid AABB.
+- `noise::value_noise_2d_wrap(x, y, seed, period_x, period_y)`: 2-D value noise
+  that tiles seamlessly at the given integer period. Corner hashes use `rem_euclid`
+  to wrap, so `noise(0, y) == noise(period_x, y)` exactly. Essential for seamless
+  dungeon level textures and world-map wrapping.
+- `noise::fbm_2d_wrap(x, y, seed, octaves, period)`: tileable 2-D FBM — each octave
+  wraps at `period << octave_index` so harmonics also tile. Builds naturally-looking
+  wrapping terrain via layered `value_noise_2d_wrap`.
+- `random_table::RandomTable::roll_n(n, rng)`: draw `n` independent samples with
+  replacement, returning `Vec<T>`. Consumes no draws for `n == 0` or an empty table.
+  The canonical "roll the encounter table three times" primitive.
 - `rng::SplitMix64::pick(slice)`: uniform random element from a non-empty slice,
   returning `Option<&T>`. Returns `None` without drawing for an empty slice so
   draw count stays a deterministic function of arguments (mirrors `rot.js getItem`).

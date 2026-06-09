@@ -92,6 +92,17 @@ impl<T> RandomTable<T> {
         self.roll(rng).cloned()
     }
 
+    /// Draw `n` independent samples **with replacement** and return them as a
+    /// `Vec<T>` (cloned). Each draw consumes exactly one RNG call (same as
+    /// `roll_owned`). Returns an empty `Vec` when the table is empty or
+    /// `n == 0` — no draws are consumed for empty/zero cases.
+    pub fn roll_n(&self, n: u32, rng: &mut SplitMix64) -> Vec<T>
+    where
+        T: Clone,
+    {
+        (0..n).filter_map(|_| self.roll_owned(rng)).collect()
+    }
+
     /// Sum of all entry weights.
     #[inline]
     pub fn total_weight(&self) -> u64 {
@@ -234,6 +245,50 @@ mod tests {
                 .collect::<Vec<_>>()
         };
         assert_eq!(seq(42), seq(42), "same seed must replay identically");
+    }
+
+    #[test]
+    fn test_roll_n_returns_correct_count() {
+        let table = RandomTable::new().with(1, 'a').with(1, 'b').with(1, 'c');
+        let mut rng = SplitMix64::new(77);
+        let results = table.roll_n(5, &mut rng);
+        assert_eq!(results.len(), 5);
+        assert!(results.iter().all(|&c| matches!(c, 'a' | 'b' | 'c')));
+    }
+
+    #[test]
+    fn test_roll_n_zero_returns_empty() {
+        let table = RandomTable::new().with(1, 1u32);
+        let mut rng = SplitMix64::new(1);
+        let state_before = rng.state();
+        let r = table.roll_n(0, &mut rng);
+        assert!(r.is_empty());
+        assert_eq!(rng.state(), state_before, "zero draws must not advance RNG");
+    }
+
+    #[test]
+    fn test_roll_n_empty_table_returns_empty() {
+        let table: RandomTable<u32> = RandomTable::new();
+        let mut rng = SplitMix64::new(1);
+        let state_before = rng.state();
+        let r = table.roll_n(5, &mut rng);
+        assert!(r.is_empty());
+        assert_eq!(
+            rng.state(),
+            state_before,
+            "empty table must not advance RNG"
+        );
+    }
+
+    #[test]
+    fn test_roll_n_is_deterministic() {
+        let table = RandomTable::new().with(3, 10u32).with(7, 20u32);
+        let run = |seed: u64| {
+            let mut rng = SplitMix64::new(seed);
+            table.roll_n(10, &mut rng)
+        };
+        assert_eq!(run(42), run(42));
+        assert_ne!(run(42), run(99));
     }
 
     #[test]
