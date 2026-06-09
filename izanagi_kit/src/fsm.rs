@@ -89,6 +89,18 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
             .any(|(f, e, _)| *f == self.state && *e == *event)
     }
 
+    /// Remove the transition for `(from, event)` if it exists. No-op if absent.
+    pub fn remove_transition(&mut self, from: &S, event: &E) {
+        self.table.retain(|(f, e, _)| !(f == from && e == event));
+    }
+
+    /// Remove all transitions, leaving the current state and an empty table.
+    /// Useful for resetting AI behaviour at runtime (e.g. a simplified "stunned"
+    /// state that ignores all events until recovered).
+    pub fn clear_transitions(&mut self) {
+        self.table.clear();
+    }
+
     /// Iterate all events that have a defined outgoing transition from `state`.
     /// Useful for "show valid actions" UIs and AI planning ("what can I do from
     /// here?"). Returns an iterator of `&E` in table-insertion order. Does not
@@ -288,6 +300,42 @@ mod tests {
         let fsm = guard_fsm();
         let events: Vec<&GuardEvent> = fsm.transitions_from(&GuardState::Dead).collect();
         assert!(events.is_empty(), "Dead has no outgoing transitions");
+    }
+
+    #[test]
+    fn test_remove_transition_prevents_fire() {
+        let mut fsm = guard_fsm();
+        fsm.remove_transition(&GuardState::Idle, &GuardEvent::PlayerSpotted);
+        let changed = fsm.fire(&GuardEvent::PlayerSpotted);
+        assert!(!changed);
+        assert_eq!(fsm.state(), &GuardState::Idle);
+    }
+
+    #[test]
+    fn test_remove_transition_nonexistent_is_noop() {
+        let mut fsm = guard_fsm();
+        // Dead has no transitions. Removing a non-existent entry is a no-op —
+        // firing the event still results in a self-loop (no panic, no state change).
+        fsm.remove_transition(&GuardState::Dead, &GuardEvent::PlayerSpotted);
+        fsm.set_state(GuardState::Dead);
+        assert!(!fsm.fire(&GuardEvent::PlayerSpotted));
+    }
+
+    #[test]
+    fn test_clear_transitions_makes_all_events_self_loop() {
+        let mut fsm = guard_fsm();
+        fsm.clear_transitions();
+        assert!(!fsm.fire(&GuardEvent::PlayerSpotted));
+        assert!(!fsm.fire(&GuardEvent::Killed));
+        assert_eq!(fsm.state(), &GuardState::Idle);
+    }
+
+    #[test]
+    fn test_clear_transitions_does_not_change_state() {
+        let mut fsm = guard_fsm();
+        fsm.set_state(GuardState::Chase);
+        fsm.clear_transitions();
+        assert_eq!(fsm.state(), &GuardState::Chase);
     }
 
     #[test]

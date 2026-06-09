@@ -247,6 +247,27 @@ impl HudPanel {
         }
         panels
     }
+
+    /// Compute the smallest `HudPanel` enclosing all panels in `panels`.
+    /// Returns `None` for an empty slice. Useful for "group selection" bounding
+    /// boxes and computing a containing region for composite HUD layouts.
+    pub fn merge(panels: &[HudPanel]) -> Option<HudPanel> {
+        let mut iter = panels.iter();
+        let first = iter.next()?;
+        let mut x0 = first.x;
+        let mut y0 = first.y;
+        let mut x1 = first.x.saturating_add(first.w as i32);
+        let mut y1 = first.y.saturating_add(first.h as i32);
+        for p in iter {
+            x0 = x0.min(p.x);
+            y0 = y0.min(p.y);
+            x1 = x1.max(p.x.saturating_add(p.w as i32));
+            y1 = y1.max(p.y.saturating_add(p.h as i32));
+        }
+        let w = (x1 - x0).max(0) as u32;
+        let h = (y1 - y0).max(0) as u32;
+        Some(HudPanel { x: x0, y: y0, w, h })
+    }
 }
 
 impl DetHash for HudPanel {
@@ -451,5 +472,42 @@ mod tests {
         assert_eq!(hash_state(&a), hash_state(&b));
         let c = HudPanel::new(1, 0, 10, 5);
         assert_ne!(hash_state(&a), hash_state(&c));
+    }
+
+    // --- HudPanel::merge ---
+
+    #[test]
+    fn test_merge_empty_returns_none() {
+        assert!(HudPanel::merge(&[]).is_none());
+    }
+
+    #[test]
+    fn test_merge_single_is_identity() {
+        let p = HudPanel::new(2, 3, 5, 4);
+        assert_eq!(HudPanel::merge(&[p]), Some(p));
+    }
+
+    #[test]
+    fn test_merge_two_adjacent_panels() {
+        let a = HudPanel::new(0, 0, 5, 4);
+        let b = HudPanel::new(5, 0, 5, 4);
+        let m = HudPanel::merge(&[a, b]).unwrap();
+        assert_eq!(m.x, 0);
+        assert_eq!(m.y, 0);
+        assert_eq!(m.w, 10);
+        assert_eq!(m.h, 4);
+    }
+
+    #[test]
+    fn test_merge_offset_panels() {
+        // a: x=[1,4), y=[2,5); b: x=[5,7), y=[1,6)
+        // bounding: x0=1, y0=1, x1=7, y1=6 → w=6, h=5
+        let a = HudPanel::new(1, 2, 3, 3);
+        let b = HudPanel::new(5, 1, 2, 5);
+        let m = HudPanel::merge(&[a, b]).unwrap();
+        assert_eq!(m.x, 1);
+        assert_eq!(m.y, 1);
+        assert_eq!(m.w, 6);
+        assert_eq!(m.h, 5);
     }
 }

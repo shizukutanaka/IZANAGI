@@ -155,6 +155,24 @@ pub fn pad_right(s: &str, width: usize) -> String {
     format!("{}{}", s, " ".repeat(width - len))
 }
 
+/// Return `(max_width, line_count)` for a slice of string lines.
+///
+/// `max_width` is the char count of the longest line; `line_count` is
+/// `lines.len()`. Both are `0` for an empty slice. Allocation-free — useful
+/// for layout planning before committing to a render pass.
+pub fn measure_lines(lines: &[&str]) -> (usize, usize) {
+    let max_w = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0);
+    (max_w, lines.len())
+}
+
+/// Pad every line in `lines` to `width` columns using [`pad_right`], returning
+/// a new `Vec<String>`. Lines already at or beyond `width` are returned as-is.
+/// Produces a uniform-width block suitable for bordered panels and column
+/// rendering.
+pub fn pad_lines(lines: Vec<String>, width: usize) -> Vec<String> {
+    lines.into_iter().map(|l| pad_right(&l, width)).collect()
+}
+
 /// Right-align `s`, space-padding to `width` on the left.
 /// If `s` is wider than `width` it is returned as-is.
 pub fn pad_left(s: &str, width: usize) -> String {
@@ -360,5 +378,45 @@ mod tests {
     #[test]
     fn test_pad_left_wider() {
         assert_eq!(pad_left("hello", 3), "hello");
+    }
+
+    // --- measure_lines ---
+
+    #[test]
+    fn test_measure_lines_empty() {
+        assert_eq!(measure_lines(&[]), (0, 0));
+    }
+
+    #[test]
+    fn test_measure_lines_single() {
+        assert_eq!(measure_lines(&["hello"]), (5, 1));
+    }
+
+    #[test]
+    fn test_measure_lines_multi() {
+        let (max_w, count) = measure_lines(&["hi", "hello", "yo"]);
+        assert_eq!(max_w, 5);
+        assert_eq!(count, 3);
+    }
+
+    // --- pad_lines ---
+
+    #[test]
+    fn test_pad_lines_all_padded() {
+        let lines = pad_lines(vec!["hi".to_owned(), "hello".to_owned()], 8);
+        assert_eq!(lines[0].chars().count(), 8);
+        assert_eq!(lines[1].chars().count(), 8);
+    }
+
+    #[test]
+    fn test_pad_lines_no_truncation_for_wide() {
+        let lines = pad_lines(vec!["hello world".to_owned()], 5);
+        assert_eq!(lines[0], "hello world"); // not truncated
+    }
+
+    #[test]
+    fn test_pad_lines_empty_input() {
+        let lines: Vec<String> = pad_lines(vec![], 10);
+        assert!(lines.is_empty());
     }
 }

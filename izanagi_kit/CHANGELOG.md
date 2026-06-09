@@ -451,6 +451,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `Some(t)` for cells collapsed to tile `t`; `None` for cells still in superposition
   or contradiction. The ergonomic bridge between the WFC representation and downstream
   `TileMap`/renderer code.
+- `fsm::Fsm::remove_transition(from, event)`: remove a specific `(from, event)`
+  entry from the transition table. No-op if absent. Enables runtime AI behaviour
+  modification without rebuilding the entire FSM (e.g. temporarily strip all
+  "FleeFromPlayer" transitions to create a berserk state).
+- `fsm::Fsm::clear_transitions()`: remove all transitions, leaving the current
+  state unchanged. Simplifies the "stunned / frozen" pattern where every event
+  must be a self-loop until a recovery signal fires.
+- `menu::Menu::select_by_label(label)`: find the first item with a matching
+  label, move the cursor there, and return its value (or `None` if not found or
+  disabled). The "click by name" primitive for script-driven menus and tests.
+- `menu::Menu::next_enabled()`: return the index of the next enabled item after
+  the current cursor (wrapping), without moving the cursor. Useful for "preview
+  next selection" UI indicators and accessible navigation lookaheads.
+- `textlayout::measure_lines(lines)`: return `(max_width, line_count)` for a
+  slice of `&str` lines in one allocation-free pass. Allows layout engines to
+  size containers before rendering.
+- `textlayout::pad_lines(lines, width)`: pad every line to `width` columns using
+  `pad_right`, returning a uniform-width block. The standard step before
+  rendering a bordered text panel where all content rows must be the same width.
+- `hud::HudPanel::merge(panels)`: compute the smallest enclosing `HudPanel` for
+  a slice of panels. Returns `None` for an empty slice. Useful for computing
+  composite HUD region bounding boxes in layout code.
 - `influence::InfluenceMap::fill(value)`: set every cell to `value`. The
   inverse of `clear()` — used to establish a non-zero baseline (e.g. neutral
   territory, ambient light level) before layering sources on top.

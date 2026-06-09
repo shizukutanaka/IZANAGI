@@ -183,6 +183,32 @@ impl<T: Clone> Menu<T> {
         self.items.clear();
         self.cursor = 0;
     }
+
+    /// Move the cursor to the first item with a matching label and return its
+    /// value (if enabled). Returns `None` if no matching label exists, or if
+    /// the matching item is disabled. Case-sensitive.
+    pub fn select_by_label(&mut self, label: &str) -> Option<T> {
+        let idx = self.find_by_label(label)?;
+        self.set_cursor(idx);
+        self.select()
+    }
+
+    /// Return the cursor index of the next enabled item after the current
+    /// cursor, wrapping around. Returns `None` if there are no enabled items.
+    /// Does *not* move the cursor — use `set_cursor` to act on the result.
+    pub fn next_enabled(&self) -> Option<usize> {
+        if self.items.is_empty() {
+            return None;
+        }
+        let mut next = (self.cursor + 1) % self.items.len();
+        for _ in 0..self.items.len() {
+            if !self.items[next].disabled {
+                return Some(next);
+            }
+            next = (next + 1) % self.items.len();
+        }
+        None
+    }
 }
 
 impl<T: Clone> Default for Menu<T> {
@@ -413,5 +439,57 @@ mod tests {
         let mut m2 = sample();
         m2.move_down();
         assert_ne!(hash_state(&m1), hash_state(&m2));
+    }
+
+    #[test]
+    fn test_select_by_label_moves_cursor_and_returns_value() {
+        let mut m = sample();
+        assert_eq!(m.select_by_label("Item C"), Some(3u32));
+        assert_eq!(m.cursor(), 2);
+    }
+
+    #[test]
+    fn test_select_by_label_not_found_returns_none() {
+        let mut m = sample();
+        assert_eq!(m.select_by_label("No Such Item"), None);
+        assert_eq!(m.cursor(), 0); // cursor unchanged
+    }
+
+    #[test]
+    fn test_select_by_label_disabled_returns_none() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_disabled("X", 99);
+        assert_eq!(m.select_by_label("X"), None);
+    }
+
+    #[test]
+    fn test_next_enabled_skips_disabled() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_item("A", 1);
+        m.add_disabled("B", 2);
+        m.add_item("C", 3);
+        // cursor at 0 → next enabled after 0 is 2 (index 1 is disabled)
+        assert_eq!(m.next_enabled(), Some(2));
+    }
+
+    #[test]
+    fn test_next_enabled_wraps_around() {
+        let m = sample();
+        // cursor at 0, items are A(0), B(1), C(2) — all enabled; next = 1
+        assert_eq!(m.next_enabled(), Some(1));
+    }
+
+    #[test]
+    fn test_next_enabled_all_disabled_returns_none() {
+        let mut m: Menu<u32> = Menu::new();
+        m.add_disabled("A", 1);
+        m.add_disabled("B", 2);
+        assert_eq!(m.next_enabled(), None);
+    }
+
+    #[test]
+    fn test_next_enabled_empty_menu_returns_none() {
+        let m: Menu<u32> = Menu::new();
+        assert_eq!(m.next_enabled(), None);
     }
 }
