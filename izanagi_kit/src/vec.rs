@@ -105,6 +105,16 @@ impl Vec2 {
         Fixed::atan2(self.y, self.x)
     }
 
+    /// Unit vector at `angle` radians from the +x axis — the inverse of `angle()`.
+    /// Uses CORDIC `sin_cos` so it is float-free and deterministic. The result
+    /// has length ≈ 1 (within the Q16.16 rounding of `sin_cos`). Useful for
+    /// "aim turret" and "spawn projectile" operations.
+    #[inline]
+    pub fn from_angle(angle: Fixed) -> Vec2 {
+        let (sin, cos) = angle.sin_cos();
+        Vec2 { x: cos, y: sin }
+    }
+
     /// Component-wise linear interpolation: `a + (b − a)·t`. Mirrors
     /// [`Fixed::lerp`]; `t` is typically in `[0, 1]` but is not clamped.
     #[inline]
@@ -756,5 +766,36 @@ mod tests {
         let v = Vec2::new(fi(3), fi(4));
         let n = Vec2::new(fi(1), fi(0));
         assert_eq!(v.reflect(n), Vec2::new(fi(-3), fi(4)));
+    }
+
+    #[test]
+    fn test_from_angle_zero_is_east() {
+        // angle 0 → (cos 0, sin 0) = (1, 0)
+        let v = Vec2::from_angle(Fixed::ZERO);
+        // CORDIC approximation: within 0.001 of the true value
+        let tol = Fixed::from_ratio(1, 1000);
+        assert!((v.x - fi(1)).abs() <= tol, "cos(0) ≈ 1, got {:?}", v.x);
+        assert!(v.y.abs() <= tol, "sin(0) ≈ 0, got {:?}", v.y);
+    }
+
+    #[test]
+    fn test_from_angle_round_trips_with_angle() {
+        // from_angle(theta).angle() ≈ theta (within CORDIC error)
+        let pi = Fixed::from_ratio(355, 113); // approx π
+        let half_pi = pi.div(Fixed::from_int(2));
+        let v = Vec2::from_angle(half_pi);
+        let recovered = v.angle();
+        let err = (recovered - half_pi).abs();
+        // Allow tolerance of 0.01 radians (CORDIC 16-iter precision)
+        assert!(err <= Fixed::from_ratio(1, 100), "err={:?}", err);
+    }
+
+    #[test]
+    fn test_from_angle_preserves_unit_length() {
+        let angle = Fixed::from_ratio(1, 3); // ~0.33 rad
+        let v = Vec2::from_angle(angle);
+        let len = v.len();
+        let diff = (len - fi(1)).abs();
+        assert!(diff <= Fixed::from_ratio(1, 100), "len={:?}", len);
     }
 }

@@ -66,6 +66,14 @@ impl BarWidget {
         (cells as u32).min(self.width)
     }
 
+    /// Count of unfilled (empty) cells — the complement of `filled_cells()`.
+    /// Always in `[0, width]`. Useful for "remaining capacity" queries such as
+    /// "how much stamina can I restore?" without subtracting from `width`.
+    #[inline]
+    pub fn empty_cells(&self) -> u32 {
+        self.width - self.filled_cells()
+    }
+
     /// Render to a `String` of the form `[====    ]` (width + 2 chars).
     pub fn render(&self) -> String {
         let filled = self.filled_cells() as usize;
@@ -553,5 +561,23 @@ mod tests {
         let inner = p.pad(3, 2, 3, 2); // pad_w=6 > 4, pad_h=4 > 3
         assert_eq!(inner.w, 0);
         assert_eq!(inner.h, 0);
+    }
+
+    #[test]
+    fn test_empty_cells_full_bar_is_zero() {
+        let b = BarWidget::new(10, 10, 8);
+        assert_eq!(b.empty_cells(), 0);
+    }
+
+    #[test]
+    fn test_empty_cells_empty_bar_is_width() {
+        let b = BarWidget::new(0, 10, 8);
+        assert_eq!(b.empty_cells(), 8);
+    }
+
+    #[test]
+    fn test_empty_cells_plus_filled_cells_equals_width() {
+        let b = BarWidget::new(3, 10, 8);
+        assert_eq!(b.filled_cells() + b.empty_cells(), b.width);
     }
 }

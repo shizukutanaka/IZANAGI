@@ -44,6 +44,17 @@ pub fn hash_2d(x: i32, y: i32, seed: u64) -> u32 {
     hash_1d(x, seed2)
 }
 
+/// Fast integer hash of three coordinates + seed. Output in `[0, u32::MAX]`.
+///
+/// Extends the `hash_1d`/`hash_2d` family to 3-D for voxel terrain, layered
+/// world generation, and any system that uses a third axis (e.g. dungeon depth
+/// or time slice) as part of the hash input.
+#[inline]
+pub fn hash_3d(x: i32, y: i32, z: i32, seed: u64) -> u32 {
+    let seed2 = seed.wrapping_add(z as u64).wrapping_mul(0x9e3779b97f4a7c15);
+    hash_2d(x, y, seed2)
+}
+
 /// Cubic Hermite smoothstep: `3t² - 2t³` in Q16.16 fixed-point.
 /// Input `t` in `[0, 65536]` (Q16.16 where 65536 = 1.0).
 /// Output in `[0, 65536]`.
@@ -736,5 +747,25 @@ mod tests {
     fn test_hash_range_deterministic() {
         let h = hash_2d(3, 4, 99);
         assert_eq!(hash_range(h, -50, 50), hash_range(h, -50, 50));
+    }
+
+    #[test]
+    fn test_hash_3d_deterministic() {
+        assert_eq!(hash_3d(1, 2, 3, 77), hash_3d(1, 2, 3, 77));
+    }
+
+    #[test]
+    fn test_hash_3d_z_changes_output() {
+        let a = hash_3d(1, 2, 0, 77);
+        let b = hash_3d(1, 2, 1, 77);
+        assert_ne!(a, b, "different z must produce different hash");
+    }
+
+    #[test]
+    fn test_hash_3d_differs_from_hash_2d() {
+        // hash_3d and hash_2d for the same (x, y) should differ (different seed path).
+        let h2 = hash_2d(5, 7, 42);
+        let h3 = hash_3d(5, 7, 0, 42);
+        assert_ne!(h2, h3);
     }
 }

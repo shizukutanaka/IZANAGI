@@ -189,6 +189,31 @@ impl Screen {
         }
     }
 
+    /// Draw a double-line box border using Unicode double box-drawing characters
+    /// `╔╗╚╝═║`. The interior is untouched. Out-of-bounds positions are silently
+    /// clipped via the existing `set` contract. No-op for `w == 0` or `h == 0`.
+    /// Complements `draw_box` (single-line) — use for dialogue frames and
+    /// important UI windows that need visual weight.
+    pub fn draw_double_box(&mut self, x: i32, y: i32, w: u32, h: u32, fg: Color, bg: Color) {
+        if w == 0 || h == 0 {
+            return;
+        }
+        let x1 = x + w as i32 - 1;
+        let y1 = y + h as i32 - 1;
+        self.set(x, y, '╔', fg, bg);
+        self.set(x1, y, '╗', fg, bg);
+        self.set(x, y1, '╚', fg, bg);
+        self.set(x1, y1, '╝', fg, bg);
+        for dx in 1..w as i32 - 1 {
+            self.set(x + dx, y, '═', fg, bg);
+            self.set(x + dx, y1, '═', fg, bg);
+        }
+        for dy in 1..h as i32 - 1 {
+            self.set(x, y + dy, '║', fg, bg);
+            self.set(x1, y + dy, '║', fg, bg);
+        }
+    }
+
     /// Draw a Bresenham line from `from` to `to` (inclusive of both endpoints),
     /// setting each visited cell to `glyph`/`fg`/`bg`. Cells outside the
     /// screen boundary are silently clipped.
@@ -416,5 +441,31 @@ mod tests {
             hash_state(&b),
             "a change must alter the hash"
         );
+    }
+
+    #[test]
+    fn test_draw_double_box_corners_and_edges() {
+        let mut s = Screen::new(6, 5);
+        s.draw_double_box(0, 0, 6, 5, DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, '╔');
+        assert_eq!(s.get(5, 0).unwrap().glyph, '╗');
+        assert_eq!(s.get(0, 4).unwrap().glyph, '╚');
+        assert_eq!(s.get(5, 4).unwrap().glyph, '╝');
+        assert_eq!(s.get(1, 0).unwrap().glyph, '═');
+        assert_eq!(s.get(0, 1).unwrap().glyph, '║');
+    }
+
+    #[test]
+    fn test_draw_double_box_zero_size_is_noop() {
+        let mut s = Screen::new(4, 4);
+        s.draw_double_box(0, 0, 0, 4, DEFAULT_FG, DEFAULT_BG);
+        s.draw_double_box(0, 0, 4, 0, DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_double_box_clipped_no_panic() {
+        let mut s = Screen::new(4, 4);
+        s.draw_double_box(-1, -1, 6, 6, DEFAULT_FG, DEFAULT_BG); // must not panic
     }
 }

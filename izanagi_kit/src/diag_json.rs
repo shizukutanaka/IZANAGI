@@ -39,6 +39,16 @@ fn json_escape(s: &str) -> String {
     out
 }
 
+/// Count errors and warnings in a single pass over `diags`.
+/// Returns `(errors, warnings)`. Saves the double-filter boilerplate of
+/// `severity_filter(…, Error).len()` + `severity_filter(…, Warning).len()`
+/// when both counts are needed at once (e.g. for a CI summary line like
+/// "3 errors, 2 warnings").
+pub fn diag_count(diags: &[Diagnostic]) -> (usize, usize) {
+    let errors = diags.iter().filter(|d| d.is_error()).count();
+    (errors, diags.len() - errors)
+}
+
 /// Return only the diagnostics matching `severity`, preserving input order.
 ///
 /// Useful for splitting a combined diagnostic list into errors-only or
@@ -281,5 +291,28 @@ mod tests {
         assert_eq!(errors[0].line, 5);
         assert_eq!(errors[1].line, 3);
         assert_eq!(errors[2].line, 1);
+    }
+
+    #[test]
+    fn test_diag_count_empty_is_zero_zero() {
+        assert_eq!(diag_count(&[]), (0, 0));
+    }
+
+    #[test]
+    fn test_diag_count_returns_errors_and_warnings() {
+        let diags = vec![
+            Diagnostic::error(1, "e1"),
+            Diagnostic::warning(2, "w1"),
+            Diagnostic::error(3, "e2"),
+        ];
+        assert_eq!(diag_count(&diags), (2, 1));
+    }
+
+    #[test]
+    fn test_diag_count_all_warnings() {
+        let diags = vec![Diagnostic::warning(1, "a"), Diagnostic::warning(2, "b")];
+        let (errors, warnings) = diag_count(&diags);
+        assert_eq!(errors, 0);
+        assert_eq!(warnings, 2);
     }
 }

@@ -273,6 +273,23 @@ impl Aabb {
         let (x1, y1) = (self.right(), self.bottom());
         (y0..y1).flat_map(move |y| (x0..x1).map(move |x| (x, y)))
     }
+
+    /// Return the smallest `Aabb` that contains both `self` and the point
+    /// `(px, py)`. Empty boxes grow to contain the point (a 1×1 box at `(px,
+    /// py)` if the source is empty, or a cover of the source corners plus the
+    /// point otherwise). Useful for computing bounds of a point cloud without
+    /// constructing intermediate AABB values.
+    #[inline]
+    pub fn expand_to_include(&self, px: i32, py: i32) -> Aabb {
+        if self.is_empty() {
+            return Aabb::new(px, py, 1, 1);
+        }
+        let x0 = self.x.min(px);
+        let y0 = self.y.min(py);
+        let x1 = self.right().max(px + 1);
+        let y1 = self.bottom().max(py + 1);
+        Aabb::new(x0, y0, x1 - x0, y1 - y0)
+    }
 }
 
 impl DetHash for Aabb {
@@ -721,5 +738,29 @@ mod tests {
     fn test_touches_empty_box_never_touches() {
         assert!(!r(0, 0, 0, 4).touches(&r(0, 0, 4, 4)));
         assert!(!r(0, 0, 4, 4).touches(&r(4, 0, 0, 4)));
+    }
+
+    #[test]
+    fn test_expand_to_include_inside_is_unchanged() {
+        let b = r(0, 0, 10, 10);
+        let e = b.expand_to_include(5, 5);
+        assert_eq!(e, b);
+    }
+
+    #[test]
+    fn test_expand_to_include_outside_grows_box() {
+        let b = r(0, 0, 5, 5);
+        let e = b.expand_to_include(9, 9);
+        assert_eq!(e.x, 0);
+        assert_eq!(e.y, 0);
+        assert_eq!(e.w, 10); // covers 0..10
+        assert_eq!(e.h, 10);
+    }
+
+    #[test]
+    fn test_expand_to_include_empty_box_becomes_point() {
+        let b = r(0, 0, 0, 0);
+        let e = b.expand_to_include(3, 7);
+        assert_eq!(e, r(3, 7, 1, 1));
     }
 }

@@ -979,6 +979,45 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   handles of all live assets matching `pred`, in ascending index order. The plural
   complement to `find_by` — use when multiple assets can satisfy a condition.
   Returns an empty `Vec` when the store is empty or no assets match.
+- `hud::BarWidget::empty_cells() -> u32`: unfilled cell count (`width −
+  filled_cells()`). The complement of `filled_cells` — returns the number of
+  blank segments in a health/mana bar without a manual subtraction at every
+  call site.
+- `diag_json::diag_count(diags) -> (usize, usize)`: count `(errors, warnings)`
+  in a diagnostic slice in one pass. Avoids two separate `filter().count()` calls
+  when both totals are needed (e.g. CI gate: "fail if errors > 0, warn if
+  warnings > 0").
+- `terminal::Screen::draw_double_box(x, y, w, h, fg, bg)`: draws a double-line
+  box border using Unicode box-drawing characters `╔╗╚╝═║`. Interior untouched;
+  out-of-bounds positions silently clipped via `set`. The "dialogue / title"
+  variant of `draw_box` — standard in roguelike UIs for emphasising important
+  panels.
+- `vec::Vec2::from_angle(angle: Fixed) -> Vec2`: construct a unit vector from a
+  heading angle (radians as Q16.16 `Fixed`). Delegates to `Fixed::sin_cos`
+  (CORDIC) — `(x: cos, y: sin)`. Float-free and deterministic. The inverse of
+  `angle()`, enabling angle→vector round-trips for steering, projectile launch,
+  and FOV cone calculations.
+- `noise::hash_3d(x, y, z, seed) -> u32`: deterministic 3-D integer hash —
+  folds `z` into the seed with a mixing multiply, then delegates to `hash_2d`.
+  Consistent with `hash_2d` in distribution; distinct from it for any non-zero
+  `z`. Useful for voxel terrain, layered dungeon generation, and 3-D particle
+  systems.
+- `geometry::chebyshev_ring(cx, cy, r) -> Vec<(i32, i32)>`: all cells at
+  exactly Chebyshev distance `r` from `(cx, cy)` — the rectangular perimeter
+  `rect_perimeter(cx-r, cy-r, 2r+1, 2r+1)`. Returns empty for `r < 0`, the
+  single centre cell for `r == 0`. Complements `diamond` (Manhattan ring) with
+  the 8-directional movement ring needed for king-move range queries and aura
+  effects.
+- `timestep::FixedTimestep::accumulator_ns() -> u64`: current sub-step time
+  buffered in the accumulator (always in `[0, step_ns)`). Exposes the value
+  normally hidden inside the struct so callers can serialise it alongside
+  `total_steps` for an exact save/restore of the timestep state — or verify
+  that two replay runs are at identical accumulator positions.
+- `aabb::Aabb::expand_to_include(px, py) -> Aabb`: grow the box to include
+  point `(px, py)`. Points already inside return `self` unchanged; an empty
+  `Aabb` becomes a 1×1 box at the point. Saturating arithmetic; never creates
+  an invalid AABB. Useful for computing aggregate bounding boxes over a stream
+  of points without pre-collecting them.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

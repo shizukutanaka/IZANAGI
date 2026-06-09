@@ -226,6 +226,25 @@ pub fn rect_perimeter(x: i32, y: i32, w: i32, h: i32) -> Vec<(i32, i32)> {
 /// ring" used in 4-directional movement range queries and targeted blast
 /// outlines. Returns empty for `r < 0`; just `(cx, cy)` for `r == 0`.
 /// The `4·r` unique cells are returned in ascending `(x, y)` order.
+/// All cells at exactly **Chebyshev** ("king-move") distance `r` from `(cx, cy)`.
+///
+/// Returns empty for `r < 0`, just the centre for `r == 0`, and the four sides
+/// of the square perimeter at radius `r` (i.e. `rect_perimeter(cx-r, cy-r,
+/// 2r+1, 2r+1)`) otherwise. Cell count is `8r` for `r ≥ 1`.
+///
+/// Complements `diamond` (Manhattan ring) and `circle` (Euclidean outline).
+/// Useful for "all cells an 8-way actor can reach in exactly r steps" and
+/// scrolling collision rings.
+pub fn chebyshev_ring(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
+    if r < 0 {
+        return Vec::new();
+    }
+    if r == 0 {
+        return vec![(cx, cy)];
+    }
+    rect_perimeter(cx - r, cy - r, 2 * r + 1, 2 * r + 1)
+}
+
 pub fn diamond(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
     if r < 0 {
         return Vec::new();
@@ -673,5 +692,25 @@ mod tests {
     fn test_line_len_diagonal_is_chebyshev_plus_one() {
         // (0,0)->(3,3): 4 cells (chebyshev 3 + 1).
         assert_eq!(line_len((0, 0), (3, 3)), 4);
+    }
+
+    #[test]
+    fn test_chebyshev_ring_negative_r_is_empty() {
+        assert!(chebyshev_ring(0, 0, -1).is_empty());
+    }
+
+    #[test]
+    fn test_chebyshev_ring_r0_is_centre() {
+        assert_eq!(chebyshev_ring(3, 5, 0), vec![(3, 5)]);
+    }
+
+    #[test]
+    fn test_chebyshev_ring_r1_has_eight_cells() {
+        let ring = chebyshev_ring(0, 0, 1);
+        assert_eq!(ring.len(), 8);
+        // All cells must be at Chebyshev distance exactly 1.
+        for (x, y) in &ring {
+            assert_eq!(x.abs().max(y.abs()), 1);
+        }
     }
 }

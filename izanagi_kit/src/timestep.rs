@@ -56,6 +56,16 @@ impl FixedTimestep {
         self.total_steps
     }
 
+    /// Current sub-step time buffered in the accumulator (nanoseconds).
+    /// Always in `[0, step_ns)`. Exposes the value normally hidden inside the
+    /// struct so callers can serialise it alongside `total_steps` for an exact
+    /// save/restore of the timestep state — or verify that two replay runs are
+    /// at identical accumulator positions.
+    #[inline]
+    pub fn accumulator_ns(&self) -> u64 {
+        self.accumulator_ns
+    }
+
     /// Deposits one real frame's elapsed time and returns how many fixed steps
     /// to run now. Surplus beyond `max_steps` is discarded (death-spiral guard).
     pub fn advance(&mut self, frame_ns: u64) -> u32 {
@@ -175,6 +185,28 @@ mod tests {
         assert_eq!(ts.total_steps(), 2);
         ts.reset_accumulator();
         assert_eq!(ts.total_steps(), 2, "reset must not touch total_steps");
+    }
+
+    #[test]
+    fn test_accumulator_ns_starts_zero() {
+        let ts = FixedTimestep::new(60, 5);
+        assert_eq!(ts.accumulator_ns(), 0);
+    }
+
+    #[test]
+    fn test_accumulator_ns_tracks_partial_frame() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let half = ts.step_ns() / 2;
+        ts.advance(half);
+        assert_eq!(ts.accumulator_ns(), half);
+    }
+
+    #[test]
+    fn test_accumulator_ns_clears_after_reset() {
+        let mut ts = FixedTimestep::new(60, 5);
+        ts.advance(ts.step_ns() / 3);
+        ts.reset_accumulator();
+        assert_eq!(ts.accumulator_ns(), 0);
     }
 
     #[test]
