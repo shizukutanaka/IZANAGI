@@ -242,6 +242,17 @@ pub fn pad_left(s: &str, width: usize) -> String {
     format!("{}{}", " ".repeat(width - len), s)
 }
 
+/// Apply [`truncate`] to each line in `lines`, returning a new `Vec<String>`.
+/// Lines at or below `max_cols` chars are copied unchanged; longer lines are
+/// clipped with a trailing `…`. An empty slice or `max_cols == 0` returns an
+/// empty `Vec`.
+pub fn truncate_lines(lines: &[&str], max_cols: usize) -> Vec<String> {
+    if max_cols == 0 {
+        return Vec::new();
+    }
+    lines.iter().map(|l| truncate(l, max_cols)).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -565,5 +576,29 @@ mod tests {
         let text = "the quick brown fox";
         assert_eq!(count_lines(text, 9), wrap_words(text, 9).len());
         assert_eq!(count_lines(text, 9), 2);
+    }
+
+    // --- truncate_lines ---
+
+    #[test]
+    fn test_truncate_lines_all_fit() {
+        let lines = truncate_lines(&["hi", "hello", "ok"], 10);
+        assert_eq!(lines, vec!["hi", "hello", "ok"]);
+    }
+
+    #[test]
+    fn test_truncate_lines_truncates_long() {
+        let lines = truncate_lines(&["short", "this is too long for five"], 5);
+        assert_eq!(lines[0], "short");
+        assert_eq!(lines[1].chars().count(), 5);
+        assert!(lines[1].ends_with('…'));
+    }
+
+    #[test]
+    fn test_truncate_lines_empty_slice() {
+        let lines = truncate_lines(&[], 10);
+        assert!(lines.is_empty());
+        let lines2 = truncate_lines(&["hello"], 0);
+        assert!(lines2.is_empty());
     }
 }

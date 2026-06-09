@@ -39,6 +39,14 @@ impl Color {
         format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
     }
 
+    /// Parse a color from a `#RRGGBB` hex string — the inverse of
+    /// [`to_hex`](Self::to_hex). Delegates to [`parse_color`] so all
+    /// validation and error messages are consistent.
+    #[inline]
+    pub fn from_hex(s: &str) -> Result<Color, String> {
+        parse_color(s)
+    }
+
     /// Build a color from HSV: `hue` in degrees (wrapped mod 360), `sat` and
     /// `val` in `0..=255`. Pure integer arithmetic (no float), so it is
     /// deterministic across targets — handy for procedural palettes and
@@ -225,6 +233,12 @@ impl Content {
 
     pub fn level(&self, name: &str) -> Option<&Level> {
         self.levels.iter().find(|l| l.name == name)
+    }
+
+    /// Look up a tile definition by name. Symmetric with [`prefab`](Self::prefab)
+    /// and [`level`](Self::level). Returns `None` if no tile with that name exists.
+    pub fn tile(&self, name: &str) -> Option<&Tile> {
+        self.tiles.iter().find(|t| t.name == name)
     }
 }
 
@@ -558,5 +572,57 @@ mod tests {
         assert_eq!(mid.r, 128);
         assert_eq!(mid.g, 100);
         assert_eq!(mid.b, 50);
+    }
+
+    // --- Color::from_hex ---
+
+    #[test]
+    fn test_from_hex_valid_roundtrip() {
+        let c = Color::rgb(0xDE, 0xAD, 0xBE);
+        assert_eq!(Color::from_hex(&c.to_hex()).unwrap(), c);
+    }
+
+    #[test]
+    fn test_from_hex_invalid_returns_err() {
+        assert!(Color::from_hex("not-a-color").is_err());
+        assert!(Color::from_hex("#GGGGGG").is_err());
+    }
+
+    #[test]
+    fn test_from_hex_matches_parse_color() {
+        let s = "#A1B2C3";
+        assert_eq!(Color::from_hex(s).unwrap(), parse_color(s).unwrap());
+    }
+
+    // --- Content::tile ---
+
+    #[test]
+    fn test_tile_returns_none_on_empty_content() {
+        let c = Content::default();
+        assert!(c.tile("floor").is_none());
+    }
+
+    #[test]
+    fn test_tile_returns_matching_tile() {
+        let mut c = Content::default();
+        c.tiles.push(Tile {
+            name: "grass".to_string(),
+            glyph: '.',
+            color: Color::rgb(0, 200, 0),
+        });
+        let t = c.tile("grass").unwrap();
+        assert_eq!(t.glyph, '.');
+    }
+
+    #[test]
+    fn test_tile_returns_none_for_wrong_name() {
+        let mut c = Content::default();
+        c.tiles.push(Tile {
+            name: "wall".to_string(),
+            glyph: '#',
+            color: Color::rgb(128, 128, 128),
+        });
+        assert!(c.tile("floor").is_none());
+        assert!(c.tile("wall").is_some());
     }
 }

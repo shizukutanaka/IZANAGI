@@ -206,6 +206,12 @@ pub fn error_count(diags: &[Diagnostic]) -> usize {
     diags.iter().filter(|d| d.is_error()).count()
 }
 
+/// Count warning-severity diagnostics in a slice. The complement of
+/// [`error_count`]; together they account for all diagnostics.
+pub fn warning_count(diags: &[Diagnostic]) -> usize {
+    diags.iter().filter(|d| !d.is_error()).count()
+}
+
 fn parse_dim(s: &str) -> Result<(u32, u32), String> {
     let (w, h) = s
         .split_once('x')
@@ -475,5 +481,25 @@ level cave 5x3
         let (_, d) = parse("wobble a\nwobble b");
         assert!(d.iter().all(|x| !x.is_error()));
         assert_eq!(error_count(&d), 0);
+    }
+
+    #[test]
+    fn test_warning_count_empty_slice_is_zero() {
+        assert_eq!(warning_count(&[]), 0);
+    }
+
+    #[test]
+    fn test_warning_count_counts_only_warnings() {
+        // "wobble" gives a warning; "prefab" with no name gives an error.
+        let (_, d) = parse("wobble foo\nprefab");
+        assert_eq!(warning_count(&d), 1);
+        assert_eq!(error_count(&d), 1);
+    }
+
+    #[test]
+    fn test_warning_count_all_errors_is_zero() {
+        let (_, d) = parse("prefab\nprefab");
+        assert!(d.iter().all(|x| x.is_error()));
+        assert_eq!(warning_count(&d), 0);
     }
 }

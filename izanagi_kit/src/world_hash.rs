@@ -61,6 +61,14 @@ impl Fnv1a {
         self.write_bytes(&value.to_le_bytes());
     }
 
+    /// Hash the UTF-8 bytes of `s`. Equivalent to `write_bytes(s.as_bytes())`
+    /// but named for call-site clarity when hashing entity names, config keys,
+    /// or other string fields. Also powers `impl DetHash for str` and `String`.
+    #[inline]
+    pub fn write_str(&mut self, s: &str) {
+        self.write_bytes(s.as_bytes());
+    }
+
     #[inline]
     pub fn finish(&self) -> u64 {
         self.hash
@@ -146,6 +154,20 @@ impl<A: DetHash, B: DetHash, C: DetHash> DetHash for (A, B, C) {
         self.0.det_hash(hasher);
         self.1.det_hash(hasher);
         self.2.det_hash(hasher);
+    }
+}
+
+impl DetHash for str {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_str(self);
+    }
+}
+
+impl DetHash for String {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_str(self.as_str());
     }
 }
 
@@ -241,5 +263,39 @@ mod tests {
         let pos = hash_state(&42i64);
         let neg = hash_state(&(-42i64));
         assert_ne!(pos, neg, "sign must affect the hash");
+    }
+
+    #[test]
+    fn test_write_str_matches_write_bytes() {
+        let s = "hello";
+        let mut a = Fnv1a::new();
+        a.write_str(s);
+        let mut b = Fnv1a::new();
+        b.write_bytes(s.as_bytes());
+        assert_eq!(a.finish(), b.finish());
+    }
+
+    #[test]
+    fn test_write_str_different_strings_differ() {
+        let h1 = {
+            let mut h = Fnv1a::new();
+            h.write_str("abc");
+            h.finish()
+        };
+        let h2 = {
+            let mut h = Fnv1a::new();
+            h.write_str("xyz");
+            h.finish()
+        };
+        assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn test_write_str_empty_matches_empty_bytes() {
+        let mut a = Fnv1a::new();
+        a.write_str("");
+        let mut b = Fnv1a::new();
+        b.write_bytes(&[]);
+        assert_eq!(a.finish(), b.finish());
     }
 }

@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `entity::EntityAllocator::free_count() -> usize`: O(1) count of freed (reusable)
+  slots. Equivalent to `total_slots() - count()`. Memory diagnostics for systems
+  monitoring allocator pressure.
+- `sparse_set::SparseSet::remove_where(pred) -> usize`: bulk-remove all entries
+  matching a predicate; returns the count removed. Avoids a temporary Vec for
+  filtered despawn passes.
+- `world_hash::Fnv1a::write_str(s)` + `DetHash for str` / `DetHash for String`:
+  fold UTF-8 string bytes into the hasher. Lets entity names, config keys, and
+  string fields participate in world state checksums without manual `.as_bytes()`.
+- `content::Color::from_hex(s) -> Result<Color, String>`: inverse of `to_hex`;
+  delegates to `parse_color` for consistent validation and error messages.
+- `content::Content::tile(name) -> Option<&Tile>`: look up a tile definition by
+  name. Symmetric with `Content::prefab` and `Content::level`.
+- `parser::warning_count(diags) -> usize`: count warning-severity diagnostics —
+  the complement of `error_count`. Exposes the warning tally for CI gates that
+  report warnings separately from errors.
+- `savefile::estimate_save_size(payload_len) -> usize`: predict the byte length
+  of a `save_bytes` buffer (`20 + payload_len`) before allocating or writing to
+  storage. Avoids over-allocation for streaming writers.
+- `textlayout::truncate_lines(lines, max_cols) -> Vec<String>`: apply `truncate`
+  to every line in a slice. Batch-clips multi-line HUD panels and dialogue boxes
+  to a fixed column width with one call.
 - `content::Color::alpha_blend(fg, bg, alpha) -> Color`: composite `fg` over
   `bg` with integer alpha (`0` = fg, `255` = bg) using per-channel
   `(fg*(255-alpha) + bg*alpha)/255`. No float; deterministic. For UI overlays,

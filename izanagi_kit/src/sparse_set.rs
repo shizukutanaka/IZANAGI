@@ -82,6 +82,25 @@ impl<T> SparseSet<T> {
 
     /// Remove all entries for which `pred(entity, &value)` returns `false`.
     /// Useful for bulk-removing dead entities at the end of a frame. O(n).
+    /// Remove all entries for which `pred(entity, &value)` returns `true`,
+    /// returning the count removed. Semantically the inverse of `retain` —
+    /// use when the natural phrasing is "remove entities that satisfy X"
+    /// rather than "keep entities that do NOT satisfy X".
+    pub fn remove_where<F: Fn(Entity, &T) -> bool>(&mut self, pred: F) -> usize {
+        let mut removed = 0usize;
+        let mut i = 0;
+        while i < self.dense_entities.len() {
+            let entity = self.dense_entities[i];
+            if pred(entity, &self.dense_values[i]) {
+                self.remove(entity);
+                removed += 1;
+            } else {
+                i += 1;
+            }
+        }
+        removed
+    }
+
     /// Each surviving entry is visited once; each removed entry pays one
     /// swap-remove (the last element moves into the vacated slot, so after a
     /// removal the same index is re-examined without advancing).
@@ -551,5 +570,38 @@ mod tests {
     fn test_find_entity_where_empty_returns_none() {
         let s: SparseSet<i32> = SparseSet::new();
         assert_eq!(s.find_entity_where(|_| true), None);
+    }
+
+    #[test]
+    fn test_remove_where_returns_count_removed() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 2);
+        s.insert(es[2], 3);
+        let removed = s.remove_where(|_, v| *v > 1);
+        assert_eq!(removed, 2);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_where_no_match_returns_zero() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        let removed = s.remove_where(|_, v| *v > 100);
+        assert_eq!(removed, 0);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_where_all_match_clears_set() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 2);
+        let removed = s.remove_where(|_, _| true);
+        assert_eq!(removed, 2);
+        assert!(s.is_empty());
     }
 }

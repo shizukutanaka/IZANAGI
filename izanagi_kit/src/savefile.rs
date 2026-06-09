@@ -145,6 +145,16 @@ impl core::fmt::Display for LoadError {
 
 impl std::error::Error for LoadError {}
 
+/// Compute the total byte size of a save file that [`save_bytes`] would produce
+/// for a payload of `payload_len` bytes. The header is always 20 bytes
+/// (magic 4 + version 4 + checksum 8 + len 4), so the result is
+/// `20 + payload_len`. Use this to pre-allocate or budget storage before
+/// calling `save_bytes`.
+#[inline]
+pub fn estimate_save_size(payload_len: usize) -> usize {
+    20 + payload_len
+}
+
 /// FNV-1a 64-bit hash over raw bytes. Not exposed; callers use the checksums
 /// embedded in save files rather than hashing payloads directly.
 fn fnv1a(data: &[u8]) -> u64 {
@@ -351,5 +361,24 @@ mod tests {
     #[test]
     fn test_checksum_mismatch_is_not_recoverable() {
         assert!(!LoadError::ChecksumMismatch.is_recoverable());
+    }
+
+    #[test]
+    fn test_estimate_save_size_empty_payload() {
+        assert_eq!(estimate_save_size(0), 20);
+    }
+
+    #[test]
+    fn test_estimate_save_size_matches_actual() {
+        let payload = b"hello save";
+        let actual = save_bytes(&SaveHeader::new(1), payload).len();
+        assert_eq!(estimate_save_size(payload.len()), actual);
+    }
+
+    #[test]
+    fn test_estimate_save_size_is_additive() {
+        for n in [0, 1, 100, 4096] {
+            assert_eq!(estimate_save_size(n), 20 + n);
+        }
     }
 }

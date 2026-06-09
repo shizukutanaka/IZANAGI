@@ -150,7 +150,7 @@ pub use noise::{
     fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, hash_1d, hash_2d, normalize_noise, ridge_noise_2d,
     value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap,
 };
-pub use parser::parse;
+pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{astar, descend, dijkstra_map, smooth_path, step_toward, weighted_astar};
 pub use profiler::{EventLog, LogEntry, Profiler};
@@ -161,14 +161,18 @@ pub use replay::{
 };
 pub use rng::SplitMix64;
 pub use savefile::{
-    load_bytes, load_bytes_owned, save_bytes, validate_integrity, LoadError, SaveHeader,
+    estimate_save_size, load_bytes, load_bytes_owned, save_bytes, validate_integrity, LoadError,
+    SaveHeader,
 };
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatusSet};
 pub use terminal::{Cell, Screen};
-pub use textlayout::{center, fit_to_box, justify, pad_left, pad_right, truncate, wrap_words};
+pub use textlayout::{
+    center, count_lines, fit_to_box, justify, measure_lines, pad_left, pad_lines, pad_right,
+    truncate, truncate_lines, wrap_words, wrap_words_max_lines,
+};
 pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
