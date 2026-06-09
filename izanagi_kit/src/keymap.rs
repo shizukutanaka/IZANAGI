@@ -101,6 +101,15 @@ impl<K: Eq + Clone, A: Eq + Clone> KeyMap<K, A> {
         }
     }
 
+    /// Remove every binding whose action equals `action`. Returns the number
+    /// of keys unbound (0 if none matched). The inverse of [`bind_multiple`]:
+    /// clear all keys for one command in a single call before rebinding it.
+    pub fn unbind_action(&mut self, action: &A) -> usize {
+        let before = self.bindings.len();
+        self.bindings.retain(|(_, a)| a != action);
+        before - self.bindings.len()
+    }
+
     /// All keys currently bound to `action`, in insertion order.
     /// Returns an empty `Vec` if none are bound.
     pub fn get_keys_for_action(&self, action: &A) -> Vec<&K> {
@@ -353,5 +362,38 @@ mod tests {
         m.bind_multiple(&['k'], Action::MoveNorth);
         assert_eq!(m.get(&'k'), Some(&Action::MoveNorth));
         assert_eq!(m.len(), 1); // still one entry (replaced)
+    }
+
+    #[test]
+    fn test_unbind_action_removes_all_keys_and_returns_count() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.bind_multiple(&['k', 'w', '8'], Action::MoveNorth);
+        m.bind('j', Action::MoveSouth);
+        let removed = m.unbind_action(&Action::MoveNorth);
+        assert_eq!(removed, 3);
+        assert!(!m.contains_action(&Action::MoveNorth));
+        // Unrelated binding survives.
+        assert_eq!(m.get(&'j'), Some(&Action::MoveSouth));
+        assert_eq!(m.len(), 1);
+    }
+
+    #[test]
+    fn test_unbind_action_no_match_returns_zero() {
+        let mut m = default_map();
+        let before = m.len();
+        // MoveNorth is bound, but rebind 'k' away first to make a clean miss.
+        let removed = m.unbind_action(&Action::MoveNorth);
+        assert_eq!(removed, 1); // only 'k'
+        let removed2 = m.unbind_action(&Action::MoveNorth);
+        assert_eq!(removed2, 0); // none left
+        assert_eq!(m.len(), before - 1);
+    }
+
+    #[test]
+    fn test_unbind_action_leaves_other_actions() {
+        let mut m = default_map();
+        m.unbind_action(&Action::Quit);
+        assert!(m.is_bound(&'k')); // MoveNorth untouched
+        assert!(!m.is_bound(&'q')); // Quit removed
     }
 }

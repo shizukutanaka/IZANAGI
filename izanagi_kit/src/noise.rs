@@ -304,6 +304,24 @@ pub fn normalize_noise(v: u32, lo: i32, hi: i32) -> i32 {
     lo + (((v as i64) * range) / 65535).min(range) as i32
 }
 
+/// Map a raw hash `h` (full `u32` range, e.g. from [`hash_1d`] / [`hash_2d`])
+/// into the half-open integer range `[lo, hi)` with an unbiased wide multiply.
+/// Returns `lo` when `lo >= hi` (degenerate range). `h == 0` maps to `lo`;
+/// `h == u32::MAX` maps to `hi - 1`.
+///
+/// Unlike [`normalize_noise`] (which scales the smooth `[0, 65535]` noise
+/// range, inclusive), this consumes a full-width hash, so it suits per-cell
+/// scatter tables: `hash_range(hash_2d(x, y, seed), 0, 6)` rolls a `0..6` value
+/// independently at each cell. Deterministic and float-free.
+#[inline]
+pub fn hash_range(h: u32, lo: i32, hi: i32) -> i32 {
+    if lo >= hi {
+        return lo;
+    }
+    let span = (hi as i64 - lo as i64) as u64;
+    (lo as i64 + ((h as u64 * span) >> 32) as i64) as i32
+}
+
 /// Ridge (absolute-value) 2-D fractional Brownian motion.
 ///
 /// Applies the ridge transform `|2v − 65535|` to each FBM layer *before*
@@ -689,5 +707,34 @@ mod tests {
         let ridge = ridge_noise_2d(3, 7, 1234, 3);
         let standard = fbm_2d(3, 7, 1234, 3);
         assert_ne!(ridge, standard, "ridge and fbm should differ");
+    }
+
+    // --- hash_range ---
+
+    #[test]
+    fn test_hash_range_within_bounds() {
+        for x in 0..200i32 {
+            let v = hash_range(hash_1d(x, 42), 0, 6);
+            assert!((0..6).contains(&v), "v={v} out of [0,6)");
+        }
+    }
+
+    #[test]
+    fn test_hash_range_endpoints() {
+        // h=0 → lo; h=u32::MAX → hi-1.
+        assert_eq!(hash_range(0, 10, 20), 10);
+        assert_eq!(hash_range(u32::MAX, 10, 20), 19);
+    }
+
+    #[test]
+    fn test_hash_range_degenerate_returns_lo() {
+        assert_eq!(hash_range(12345, 5, 5), 5);
+        assert_eq!(hash_range(12345, 10, 3), 10); // lo > hi
+    }
+
+    #[test]
+    fn test_hash_range_deterministic() {
+        let h = hash_2d(3, 4, 99);
+        assert_eq!(hash_range(h, -50, 50), hash_range(h, -50, 50));
     }
 }

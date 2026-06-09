@@ -52,6 +52,16 @@ fn octile(a: (i32, i32), b: (i32, i32)) -> i32 {
     COST_ORTHO * (dx + dy) - (2 * COST_ORTHO - COST_DIAG) * dx.min(dy)
 }
 
+/// Octile heuristic cost between `a` and `b` on this module's integer scale
+/// (`10` orthogonal, `14` diagonal): `10·(dx+dy) − 6·min(dx,dy)`. This is the
+/// exact cost [`astar`] pays to cross open ground, so callers can estimate a
+/// path's length or test "is the goal within N cost?" without running a search.
+/// Admissible and consistent for 8-way movement.
+#[inline]
+pub fn octile_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
+    octile(a, b)
+}
+
 fn reconstruct(came_from: &HashMap<(i32, i32), (i32, i32)>, goal: (i32, i32)) -> Vec<(i32, i32)> {
     let mut path = vec![goal];
     let mut cur = goal;
@@ -724,5 +734,27 @@ mod tests {
         let a = step_toward((0, 0), (5, 3), |_, _| false);
         let b = step_toward((0, 0), (5, 3), |_, _| false);
         assert_eq!(a, b);
+    }
+
+    // --- octile_distance ---
+
+    #[test]
+    fn test_octile_distance_orthogonal() {
+        // 5 cells right: 5 orthogonal steps.
+        assert_eq!(octile_distance((0, 0), (5, 0)), 5 * COST_ORTHO);
+    }
+
+    #[test]
+    fn test_octile_distance_diagonal() {
+        // 4 cells diagonal: 4 diagonal steps.
+        assert_eq!(octile_distance((0, 0), (4, 4)), 4 * COST_DIAG);
+    }
+
+    #[test]
+    fn test_octile_distance_zero_and_matches_open_astar() {
+        assert_eq!(octile_distance((3, 3), (3, 3)), 0);
+        // On an open grid the heuristic equals the actual optimal path cost.
+        let path = astar((0, 0), (8, 5), blocker(15, 15, HashSet::new())).unwrap();
+        assert_eq!(octile_distance((0, 0), (8, 5)), path_cost(&path));
     }
 }

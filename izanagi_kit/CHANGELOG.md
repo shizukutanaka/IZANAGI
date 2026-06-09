@@ -7,6 +7,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fixed::Fixed::pow(exp: u32) -> Fixed`: integer exponentiation via repeated
+  saturating multiplication. `pow(0)` is `Fixed::ONE`, `pow(1)` is `self`
+  exactly; overflow pins to `Fixed::MAX`/`MIN` rather than wrapping. Float-free
+  and deterministic.
+- `geometry::line_len(a, b) -> usize`: number of cells [`line`] returns without
+  allocating — Chebyshev distance plus one. For sizing buffers or range checks
+  before tracing a Bresenham ray.
+- `menu::Menu::label_at(idx) -> Option<&str>`: display label of the item at
+  `idx` (`None` if out of range), without exposing the whole `MenuItem`.
+- `keymap::KeyMap::unbind_action(action) -> usize`: remove every binding for a
+  given action, returning the count removed. The inverse of `bind_multiple`.
+- `noise::hash_range(h, lo, hi) -> i32`: map a raw `u32` hash into `[lo, hi)`
+  with an unbiased wide multiply (`lo` for degenerate ranges). Suits per-cell
+  scatter tables; distinct from `normalize_noise` which scales the `[0,65535]`
+  smooth-noise range. Deterministic and float-free.
+- `pathfinding::octile_distance(a, b) -> i32`: the octile heuristic cost A* pays
+  to cross open ground (`10`/`14` scale). Estimate path length or range without
+  running a search.
+- `textlayout::count_lines(text, max_cols) -> usize`: number of lines
+  `wrap_words` would produce, for pre-measuring wrapped-block height (dialogue
+  boxes, tooltips) without keeping the wrapped `Vec`.
+- `timestep::FixedTimestep::reset_accumulator() -> u64`: discard accumulated
+  sub-step time (returning the dropped nanoseconds) so a resume after a pause or
+  level load does not replay buffered time as a burst of catch-up steps. Leaves
+  `total_steps` and the configured rate untouched.
 - `aabb::Aabb::touches(&self, other: &Aabb) -> bool`: true when two boxes are
   adjacent (shared edge or corner) but do not overlap. Empty boxes never touch;
   diagonal corner contact counts. Built on `grow(1)` + `overlaps`, all saturating.

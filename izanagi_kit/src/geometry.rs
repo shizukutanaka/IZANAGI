@@ -42,6 +42,18 @@ pub fn line(a: (i32, i32), b: (i32, i32)) -> Vec<(i32, i32)> {
     cells
 }
 
+/// Number of cells [`line`] returns from `a` to `b`, computed without
+/// allocating. Equals the Chebyshev distance plus one — each Bresenham step
+/// advances by exactly one king-move, so the cell count is `max(|dx|,|dy|)+1`.
+/// `a == b` yields `1`. Useful for sizing buffers or range checks before
+/// tracing the full ray.
+#[inline]
+pub fn line_len(a: (i32, i32), b: (i32, i32)) -> usize {
+    let dx = (a.0 as i64 - b.0 as i64).abs();
+    let dy = (a.1 as i64 - b.1 as i64).abs();
+    dx.max(dy) as usize + 1
+}
+
 /// Is there a clear line of sight from `a` to `b`? Walks the Bresenham ray and
 /// returns `false` if any cell **strictly between** the endpoints is opaque.
 ///
@@ -632,5 +644,34 @@ mod tests {
     fn test_rect_contains_degenerate_zero_size() {
         assert!(!rect_contains(1, 1, 0, 5, 1, 1));
         assert!(!rect_contains(1, 1, 5, 0, 1, 1));
+    }
+
+    // --- line_len ---
+
+    #[test]
+    fn test_line_len_same_point_is_one() {
+        assert_eq!(line_len((4, 4), (4, 4)), 1);
+    }
+
+    #[test]
+    fn test_line_len_matches_line_cell_count() {
+        for &(a, b) in &[
+            ((0, 0), (5, 0)),
+            ((0, 0), (0, -3)),
+            ((1, 2), (9, 5)),
+            ((3, 3), (-4, 8)),
+        ] {
+            assert_eq!(
+                line_len(a, b),
+                line(a, b).len(),
+                "mismatch for {a:?}->{b:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_line_len_diagonal_is_chebyshev_plus_one() {
+        // (0,0)->(3,3): 4 cells (chebyshev 3 + 1).
+        assert_eq!(line_len((0, 0), (3, 3)), 4);
     }
 }

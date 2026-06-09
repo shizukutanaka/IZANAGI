@@ -331,6 +331,19 @@ impl Fixed {
         Fixed::ONE.div(self)
     }
 
+    /// Integer exponentiation: `self` raised to `exp`, via repeated saturating
+    /// multiplication. `pow(0)` is `Fixed::ONE` for any base; `pow(1)` is `self`
+    /// exactly. Each multiply saturates (overflow pins to `Fixed::MAX`/`MIN`
+    /// rather than wrapping). Cost is `exp` multiplies — keep `exp` small.
+    #[inline]
+    pub fn pow(self, exp: u32) -> Fixed {
+        let mut result = Fixed::ONE;
+        for _ in 0..exp {
+            result = result.mul(self);
+        }
+        result
+    }
+
     /// Euclidean distance `sqrt(a² + b²)`, rounded down. Useful for 2-D range
     /// checks and normalisation without a separate manual `sqrt`. Saturates for
     /// very large inputs the same way `mul` and `sqrt` do — safe for typical
@@ -842,5 +855,32 @@ mod tests {
         let a = Fixed::from_int(6);
         let b = Fixed::from_int(8);
         assert_eq!(Fixed::hypot(a, b), Fixed::hypot(b, a));
+    }
+
+    #[test]
+    fn test_pow_zero_is_one() {
+        assert_eq!(Fixed::from_int(7).pow(0), Fixed::ONE);
+        assert_eq!(Fixed::ZERO.pow(0), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_pow_one_is_self() {
+        let v = Fixed::from_ratio(3, 2);
+        assert_eq!(v.pow(1), v);
+    }
+
+    #[test]
+    fn test_pow_squares_and_cubes() {
+        assert_eq!(Fixed::from_int(3).pow(2), Fixed::from_int(9));
+        assert_eq!(Fixed::from_int(2).pow(3), Fixed::from_int(8));
+        // (1/2)^2 = 1/4
+        assert_eq!(Fixed::from_ratio(1, 2).pow(2), Fixed::from_ratio(1, 4));
+    }
+
+    #[test]
+    fn test_pow_saturates_not_wraps() {
+        // 30000^2 far exceeds the Q16.16 range → pins to MAX, never flips sign.
+        let r = Fixed::from_int(30000).pow(2);
+        assert_eq!(r.raw(), i32::MAX);
     }
 }

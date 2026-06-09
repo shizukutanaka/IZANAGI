@@ -79,6 +79,17 @@ impl FixedTimestep {
     pub fn alpha_ratio(&self) -> (u64, u64) {
         (self.accumulator_ns, self.step_ns)
     }
+
+    /// Discard any accumulated sub-step time, returning the nanoseconds dropped.
+    /// Call on resume after a pause, a breakpoint, or a level load so the first
+    /// new frame does not replay buffered time as a burst of catch-up steps.
+    /// Leaves `total_steps` and the configured rate untouched.
+    #[inline]
+    pub fn reset_accumulator(&mut self) -> u64 {
+        let dropped = self.accumulator_ns;
+        self.accumulator_ns = 0;
+        dropped
+    }
 }
 
 #[cfg(test)]
@@ -135,6 +146,35 @@ mod tests {
         ts.advance(ts.step_ns() * 2);
         ts.advance(ts.step_ns());
         assert_eq!(ts.total_steps(), 3);
+    }
+
+    #[test]
+    fn test_reset_accumulator_returns_dropped_time() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let part = ts.step_ns() / 2;
+        assert_eq!(ts.advance(part), 0); // below one step
+        assert_eq!(ts.reset_accumulator(), part, "must return the dropped ns");
+        // Accumulator now empty: re-dropping yields 0.
+        assert_eq!(ts.reset_accumulator(), 0);
+    }
+
+    #[test]
+    fn test_reset_accumulator_prevents_carryover() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let step = ts.step_ns();
+        ts.advance(step - 1); // 0 steps, accumulator = step-1
+        ts.reset_accumulator();
+        // Without the reset, (step-1)+2 >= step would fire a step; after reset it must not.
+        assert_eq!(ts.advance(2), 0, "reset must clear buffered time");
+    }
+
+    #[test]
+    fn test_reset_accumulator_keeps_total_steps() {
+        let mut ts = FixedTimestep::new(60, 5);
+        ts.advance(ts.step_ns() * 2);
+        assert_eq!(ts.total_steps(), 2);
+        ts.reset_accumulator();
+        assert_eq!(ts.total_steps(), 2, "reset must not touch total_steps");
     }
 
     #[test]

@@ -161,6 +161,13 @@ impl<T: Clone> Menu<T> {
         self.items.iter().enumerate()
     }
 
+    /// The display label of the item at `idx`, or `None` if out of range. A
+    /// lightweight accessor for rendering a specific row without exposing the
+    /// whole `MenuItem`.
+    pub fn label_at(&self, idx: usize) -> Option<&str> {
+        self.items.get(idx).map(|it| it.label.as_str())
+    }
+
     /// Enable or disable item at `idx`. Silently ignores out-of-range indices.
     ///
     /// When the cursor lands on a now-disabled item (because the game just
@@ -617,5 +624,24 @@ mod tests {
         m.remove_item(0);
         assert!(m.is_empty());
         assert_eq!(m.cursor(), 0);
+    }
+
+    #[test]
+    fn test_label_at_returns_label() {
+        let m = sample();
+        assert_eq!(m.label_at(0), Some("Item A"));
+        assert_eq!(m.label_at(2), Some("Item C"));
+    }
+
+    #[test]
+    fn test_label_at_out_of_range_is_none() {
+        let m = sample();
+        assert_eq!(m.label_at(3), None);
+    }
+
+    #[test]
+    fn test_label_at_empty_menu_is_none() {
+        let m: Menu<u32> = Menu::new();
+        assert_eq!(m.label_at(0), None);
     }
 }

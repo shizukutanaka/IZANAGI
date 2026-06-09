@@ -205,6 +205,15 @@ pub fn measure_lines(lines: &[&str]) -> (usize, usize) {
     (max_w, lines.len())
 }
 
+/// Number of lines [`wrap_words`] would produce for `text` at `max_cols`
+/// columns, without the caller retaining the wrapped `Vec`. Returns `0` for
+/// `max_cols == 0` or empty/whitespace-only text. Useful for pre-measuring how
+/// tall a wrapped block will be (dialogue boxes, tooltips) before allocating
+/// screen rows.
+pub fn count_lines(text: &str, max_cols: usize) -> usize {
+    wrap_words(text, max_cols).len()
+}
+
 /// Pad every line in `lines` to `width` columns using [`pad_right`], returning
 /// a new `Vec<String>`. Lines already at or beyond `width` are returned as-is.
 /// Produces a uniform-width block suitable for bordered panels and column
@@ -536,5 +545,25 @@ mod tests {
     fn test_fit_to_box_zero_height_returns_empty() {
         let lines = fit_to_box("hello world", 20, 0);
         assert!(lines.is_empty());
+    }
+
+    // --- count_lines ---
+
+    #[test]
+    fn test_count_lines_empty_and_zero_cols() {
+        assert_eq!(count_lines("", 10), 0);
+        assert_eq!(count_lines("hello", 0), 0);
+    }
+
+    #[test]
+    fn test_count_lines_single_line() {
+        assert_eq!(count_lines("hello world", 20), 1);
+    }
+
+    #[test]
+    fn test_count_lines_matches_wrap_words() {
+        let text = "the quick brown fox";
+        assert_eq!(count_lines(text, 9), wrap_words(text, 9).len());
+        assert_eq!(count_lines(text, 9), 2);
     }
 }
