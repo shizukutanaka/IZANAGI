@@ -262,6 +262,17 @@ pub fn diamond(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
     pts.into_iter().collect()
 }
 
+/// Centre cell of the rectangle `[x, x+w) × [y, y+h)` using floor division.
+///
+/// Returns `(x + w/2, y + h/2)` — identical truncation bias to
+/// `Aabb::center()`. For zero-size dimensions the result equals the origin
+/// corner. The standalone complement to `midpoint` for "where is the middle
+/// of this room?" spawn placement and camera targeting.
+#[inline]
+pub fn rect_center(x: i32, y: i32, w: i32, h: i32) -> (i32, i32) {
+    (x + w / 2, y + h / 2)
+}
+
 /// Grid distance metrics between two cells.
 ///
 /// Mirrors the distance algorithms a roguelike toolkit needs (cf. `bracket-lib`
@@ -773,5 +784,21 @@ mod tests {
                 assert!(vx.abs() <= 1 && vy.abs() <= 1);
             }
         }
+    }
+
+    #[test]
+    fn test_rect_center_even_dimensions() {
+        assert_eq!(rect_center(0, 0, 4, 6), (2, 3));
+    }
+
+    #[test]
+    fn test_rect_center_odd_floors_toward_origin() {
+        // 5/2 == 2, 3/2 == 1 (integer floor)
+        assert_eq!(rect_center(10, 20, 5, 3), (12, 21));
+    }
+
+    #[test]
+    fn test_rect_center_zero_size_is_origin() {
+        assert_eq!(rect_center(7, 9, 0, 0), (7, 9));
     }
 }

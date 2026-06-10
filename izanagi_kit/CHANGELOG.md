@@ -1354,6 +1354,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Iterates the `positions` sparse-set in insertion order; makes no uniqueness
   assumption. The position-to-entity reverse-lookup needed by interaction and
   line-of-sight systems.
+- `profiler::Profiler::sections_count() -> usize`: number of distinct profiling
+  sections recorded at least once. Diagnostics and save-file headers that need
+  the profiler footprint without enumerating each name via `section_names`.
+- `replay::divergence_percent(expected, actual) -> u32`: integer percentage
+  (0–100) of ticks at which two traces diverge; ticks past the shorter trace
+  count as divergences. Empty traces return `0`. For "reject if > N% diverged"
+  CI gates and replay-quality dashboards without floating-point.
+- `savefile::SaveHeader::is_compatible(current_version) -> bool`: `true` when
+  the header's version matches `current_version`. The canonical "can I load
+  this save?" guard before deserialising the payload; `false` signals a needed
+  migration or an incompatible-save error.
+- `noise::turbulence_1d(x, seed, octaves) -> u32`: 1-D turbulence (absolute-value
+  FBM) mirroring `turbulence_2d`. Folds each octave through `|raw − 32768|`
+  before accumulating, normalised to `[0, 65535]`. Builds sharp height-line
+  profiles and audio-style ramps from the same deterministic value-noise base.
+- `easing::ease_clamp(t, ease_fn) -> Fixed`: apply `ease_fn` to `t` after
+  clamping it to `[0, 1]`. Guard for callers that cannot guarantee `t ∈ [0, 1]`
+  (timers that overshoot, progress values that briefly exceed 1). Equivalent to
+  `ease_fn(t.clamp01())`; generic over any `Fn(Fixed) -> Fixed`.
+- `geometry::rect_center(x, y, w, h) -> (i32, i32)`: centre cell of the
+  rectangle via floor division (`(x + w/2, y + h/2)`) — same truncation bias as
+  `Aabb::center()`. The standalone complement to `midpoint` for "where is the
+  middle of this room?" spawn placement and camera targeting.
+- `fixed::Fixed::abs_diff(self, other) -> Fixed`: saturating absolute difference
+  `|self − other|`. Avoids the sign-loss of a saturated subtraction followed by
+  `abs`. The correct primitive for "how far apart are two fixed-point values?"
+  range checks.
+- `wfc::WfcGrid::possibilities_at(x, y) -> usize`: count of remaining tile
+  possibilities at a cell — `0` for out-of-bounds or contradiction, `1` when
+  fully collapsed, `> 1` for superposition. Exposes WFC entropy for debugging
+  and custom collapse strategies.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

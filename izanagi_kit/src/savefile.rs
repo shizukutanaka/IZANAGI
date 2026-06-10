@@ -36,6 +36,17 @@ impl SaveHeader {
     pub const fn new(version: u32) -> Self {
         SaveHeader { version }
     }
+
+    /// Returns `true` when this header's version matches `current_version`.
+    ///
+    /// The canonical "can I load this save?" guard — compare the loaded header
+    /// against the application's current schema version constant before
+    /// deserialising the payload. `false` means the format changed and a
+    /// migration or "incompatible save" error message is needed.
+    #[inline]
+    pub fn is_compatible(&self, current_version: u32) -> bool {
+        self.version == current_version
+    }
 }
 
 /// Encode `payload` with `header` into a portable byte buffer.
@@ -409,5 +420,24 @@ mod tests {
     fn test_load_error_message_checksum_mentions_corrupt() {
         let msg = LoadError::ChecksumMismatch.message();
         assert!(msg.contains("corrupt") || msg.contains("checksum"));
+    }
+
+    #[test]
+    fn test_is_compatible_matching_version() {
+        let h = SaveHeader::new(3);
+        assert!(h.is_compatible(3));
+    }
+
+    #[test]
+    fn test_is_compatible_mismatched_version() {
+        let h = SaveHeader::new(2);
+        assert!(!h.is_compatible(3));
+    }
+
+    #[test]
+    fn test_is_compatible_zero_version() {
+        let h = SaveHeader::new(0);
+        assert!(h.is_compatible(0));
+        assert!(!h.is_compatible(1));
     }
 }

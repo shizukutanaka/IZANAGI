@@ -206,6 +206,19 @@ impl WfcGrid {
         self.cells.iter().filter(|&&v| v == mask).count()
     }
 
+    /// Number of remaining tile possibilities at cell `(x, y)`.
+    ///
+    /// Returns `0` for out-of-bounds coordinates or cells in contradiction
+    /// (bitmask `0`). Returns `1` for a fully-collapsed cell. Values `> 1`
+    /// indicate superposition — use this to inspect WFC entropy during
+    /// debugging or to drive custom collapse strategies.
+    pub fn possibilities_at(&self, x: i32, y: i32) -> usize {
+        if x < 0 || y < 0 || x >= self.width || y >= self.height {
+            return 0;
+        }
+        self.cells[(y * self.width + x) as usize].count_ones() as usize
+    }
+
     /// Export collapsed tiles as a flat row-major `Vec<Option<u8>>`. Each cell
     /// is `Some(tile)` if fully collapsed or `None` if still ambiguous.
     /// Length is always `width * height`.
@@ -760,6 +773,38 @@ mod tests {
         let mut rng = SplitMix64::new(2);
         if let WfcResult::Ok(grid) = wfc_solve(5, 5, &uniform_rules(), &mut rng) {
             assert_eq!(grid.count_uncollapsed(), 0);
+        }
+    }
+
+    #[test]
+    fn test_possibilities_at_collapsed_is_one() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &uniform_rules(), &mut rng) {
+            // Every cell is collapsed after a successful solve.
+            assert_eq!(grid.possibilities_at(0, 0), 1);
+            assert_eq!(grid.possibilities_at(3, 3), 1);
+        }
+    }
+
+    #[test]
+    fn test_possibilities_at_out_of_bounds_is_zero() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &uniform_rules(), &mut rng) {
+            assert_eq!(grid.possibilities_at(-1, 0), 0);
+            assert_eq!(grid.possibilities_at(0, 99), 0);
+        }
+    }
+
+    #[test]
+    fn test_possibilities_at_matches_count_uncollapsed() {
+        let mut rng = SplitMix64::new(3);
+        if let WfcResult::Ok(grid) = wfc_solve(5, 5, &uniform_rules(), &mut rng) {
+            // Fully collapsed: every cell has exactly one possibility.
+            let multi = (0..5)
+                .flat_map(|y| (0..5).map(move |x| (x, y)))
+                .filter(|&(x, y)| grid.possibilities_at(x, y) > 1)
+                .count();
+            assert_eq!(multi, grid.count_uncollapsed());
         }
     }
 }

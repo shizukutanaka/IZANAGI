@@ -131,6 +131,21 @@ pub fn replay_ok(expected: &[u64], actual: &[u64]) -> bool {
     first_divergence(expected, actual).is_ok()
 }
 
+/// Percentage of ticks (0–100) at which the two traces diverge.
+///
+/// Ticks beyond the shorter trace count as divergences. Returns `0` when both
+/// traces are empty. Result is integer-rounded toward zero — use this for
+/// "reject if > 5% of ticks diverged" CI gates and replay-quality dashboards
+/// without floating-point arithmetic.
+pub fn divergence_percent(expected: &[u64], actual: &[u64]) -> u32 {
+    let total = expected.len().max(actual.len());
+    if total == 0 {
+        return 0;
+    }
+    let diverged = count_divergences(expected, actual);
+    (diverged.saturating_mul(100) / total) as u32
+}
+
 /// Replay `inputs` onto a **clone** of `snapshot`, returning the resulting
 /// state and leaving `snapshot` untouched. This is the core rollback operation:
 /// keep a confirmed-good snapshot, then re-simulate the inputs received since.
@@ -328,5 +343,23 @@ mod tests {
     #[test]
     fn test_replay_ok_empty_traces_are_ok() {
         assert!(replay_ok(&[], &[]));
+    }
+
+    #[test]
+    fn test_divergence_percent_zero_for_identical_traces() {
+        let t = vec![1u64, 2, 3, 4];
+        assert_eq!(divergence_percent(&t, &t), 0);
+    }
+
+    #[test]
+    fn test_divergence_percent_100_for_all_diverged() {
+        let a = vec![1u64, 2, 3];
+        let b = vec![9u64, 8, 7];
+        assert_eq!(divergence_percent(&a, &b), 100);
+    }
+
+    #[test]
+    fn test_divergence_percent_empty_returns_zero() {
+        assert_eq!(divergence_percent(&[], &[]), 0);
     }
 }

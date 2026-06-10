@@ -152,6 +152,20 @@ impl Fixed {
         }
     }
 
+    /// Absolute difference `|self − other|`. Saturating — never wraps.
+    ///
+    /// Equivalent to `(self - other).abs()` but without the intermediate
+    /// saturated subtraction losing sign information. The correct primitive
+    /// for "how far apart are two fixed-point values?" range checks.
+    #[inline]
+    pub fn abs_diff(self, other: Fixed) -> Fixed {
+        if self.0 >= other.0 {
+            Fixed(self.0.saturating_sub(other.0))
+        } else {
+            Fixed(other.0.saturating_sub(self.0))
+        }
+    }
+
     /// Sign: returns `Fixed::ONE` for positive, `Fixed::ZERO` for zero, and
     /// `Fixed::ONE.neg()` (i.e. `-1`) for negative. Deterministic.
     #[inline]
@@ -976,5 +990,26 @@ mod tests {
     fn test_clamp01_interior_unchanged() {
         let half = Fixed::from_ratio(1, 2);
         assert_eq!(half.clamp01(), half);
+    }
+
+    #[test]
+    fn test_abs_diff_positive_operands() {
+        let a = Fixed::from_int(5);
+        let b = Fixed::from_int(3);
+        assert_eq!(a.abs_diff(b), Fixed::from_int(2));
+        assert_eq!(b.abs_diff(a), Fixed::from_int(2));
+    }
+
+    #[test]
+    fn test_abs_diff_across_zero() {
+        let a = Fixed::from_int(-2);
+        let b = Fixed::from_int(3);
+        assert_eq!(a.abs_diff(b), Fixed::from_int(5));
+    }
+
+    #[test]
+    fn test_abs_diff_equal_is_zero() {
+        let a = Fixed::from_ratio(7, 4);
+        assert_eq!(a.abs_diff(a), Fixed::ZERO);
     }
 }

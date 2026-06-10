@@ -315,6 +315,17 @@ pub fn ease_reversed(t: Fixed, ease_in: fn(Fixed) -> Fixed) -> Fixed {
     Fixed::ONE - ease_in(Fixed::ONE - t)
 }
 
+/// Apply `ease_fn` to `t` after clamping it to `[0, 1]`.
+///
+/// Convenience guard for callers that cannot guarantee `t ∈ [0, 1]` —
+/// e.g. animation timers that may slightly over-shoot or UI progress values
+/// that can momentarily exceed 1. Equivalent to `ease_fn(t.clamp01())`.
+/// Works with any easing function that accepts a `Fixed` parameter.
+#[inline]
+pub fn ease_clamp<F: Fn(Fixed) -> Fixed>(t: Fixed, ease_fn: F) -> Fixed {
+    ease_fn(t.clamp01())
+}
+
 // ── exponential ─────────────────────────────────────────────────────────────
 //
 // Decomposes 2^x into an integer power-of-two (bit-shift) and a fractional
@@ -958,5 +969,25 @@ mod tests {
         let half = Fixed::from_ratio(1, 2);
         // 6*(0.5)^5 - 15*(0.5)^4 + 10*(0.5)^3 = 6/32 - 15/16 + 10/8 = 0.5
         assert_eq!(ease_smootherstep(half), half);
+    }
+
+    #[test]
+    fn test_ease_clamp_clamps_below_zero() {
+        let neg = Fixed::from_int(-1);
+        // clamped to 0, ease_in_quad(0) == 0
+        assert_eq!(ease_clamp(neg, ease_in_quad), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_ease_clamp_clamps_above_one() {
+        let big = Fixed::from_int(2);
+        // clamped to 1, ease_in_quad(1) == 1
+        assert_eq!(ease_clamp(big, ease_in_quad), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_ease_clamp_interior_matches_direct() {
+        let half = Fixed::from_ratio(1, 2);
+        assert_eq!(ease_clamp(half, ease_in_quad), ease_in_quad(half));
     }
 }

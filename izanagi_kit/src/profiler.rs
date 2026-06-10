@@ -202,6 +202,15 @@ impl Profiler {
             .map(|s| if s.min == u64::MAX { 0 } else { s.min })
             .unwrap_or(0)
     }
+
+    /// Number of distinct section names that have been recorded at least once.
+    ///
+    /// Useful for diagnostics ("how many profiling sections are active?") and
+    /// save-file headers that need to know the profiler's footprint without
+    /// enumerating each name via `section_names`.
+    pub fn sections_count(&self) -> usize {
+        self.sections.len()
+    }
 }
 
 impl DetHash for Profiler {
@@ -610,6 +619,28 @@ mod tests {
         let mut p = Profiler::new(4);
         p.record("work", 777);
         assert_eq!(p.min("work"), 777);
+    }
+
+    #[test]
+    fn test_sections_count_zero_for_new_profiler() {
+        let p = Profiler::new(4);
+        assert_eq!(p.sections_count(), 0);
+    }
+
+    #[test]
+    fn test_sections_count_increments_per_distinct_section() {
+        let mut p = Profiler::new(4);
+        p.record("a", 1);
+        p.record("b", 2);
+        assert_eq!(p.sections_count(), 2);
+    }
+
+    #[test]
+    fn test_sections_count_same_section_no_duplicate() {
+        let mut p = Profiler::new(4);
+        p.record("a", 1);
+        p.record("a", 2);
+        assert_eq!(p.sections_count(), 1);
     }
 
     #[test]
