@@ -191,6 +191,22 @@ impl<C> CmdQueue<C> {
     {
         self.buf.iter().filter(|c| pred(c)).count()
     }
+
+    /// Reference to the last (most recently pushed) command, or `None` if
+    /// empty. Mirrors `peek_mut` / `pop_back` for the back end — useful for
+    /// "what did the player just queue?" checks without consuming the command.
+    #[inline]
+    pub fn peek_back(&self) -> Option<&C> {
+        self.buf.last()
+    }
+
+    /// Keep only the first `n` commands, discarding everything after them.
+    /// No-op if the queue already has ≤ `n` entries. Useful for hard caps on
+    /// input buffering — `truncate(0)` is equivalent to `clear`.
+    #[inline]
+    pub fn truncate(&mut self, n: usize) {
+        self.buf.truncate(n);
+    }
 }
 
 impl<C: DetHash> DetHash for CmdQueue<C> {
@@ -571,5 +587,58 @@ mod tests {
     fn test_peek_mut_empty_queue_returns_none() {
         let mut q: CmdQueue<u32> = CmdQueue::new();
         assert_eq!(q.peek_mut(), None);
+    }
+
+    // --- peek_back ---
+
+    #[test]
+    fn test_peek_back_returns_last_pushed() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(1);
+        q.push(2);
+        q.push(3);
+        assert_eq!(q.peek_back(), Some(&3));
+    }
+
+    #[test]
+    fn test_peek_back_empty_returns_none() {
+        let q: CmdQueue<i32> = CmdQueue::new();
+        assert_eq!(q.peek_back(), None);
+    }
+
+    #[test]
+    fn test_peek_back_does_not_consume() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(42);
+        let _ = q.peek_back();
+        assert_eq!(q.len(), 1);
+        assert_eq!(q.peek_back(), Some(&42));
+    }
+
+    // --- truncate ---
+
+    #[test]
+    fn test_truncate_keeps_first_n() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 2, 3, 4, 5]);
+        q.truncate(3);
+        assert_eq!(q.as_slice(), &[1, 2, 3]);
+    }
+
+    #[test]
+    fn test_truncate_zero_empties_queue() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[10, 20, 30]);
+        q.truncate(0);
+        assert!(q.is_empty());
+    }
+
+    #[test]
+    fn test_truncate_beyond_len_is_noop() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push_batch(&[1, 2]);
+        q.truncate(10);
+        assert_eq!(q.len(), 2);
+        assert_eq!(q.as_slice(), &[1, 2]);
     }
 }

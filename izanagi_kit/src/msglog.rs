@@ -51,6 +51,14 @@ impl MsgLog {
         self.buf.len()
     }
 
+    /// `true` when the log is at capacity and the next `push` will evict the
+    /// oldest message. Useful for UI indicators ("log full") or guards that
+    /// drain the log before it overflows.
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        self.len == self.buf.len()
+    }
+
     /// Append a message. If the log is at capacity the oldest entry is
     /// overwritten. A capacity-0 log discards immediately.
     pub fn push(&mut self, msg: impl Into<String>) {
@@ -647,5 +655,33 @@ mod tests {
         assert_eq!(drained, vec!["b".to_owned(), "c".to_owned()]);
         assert_eq!(log.len(), 1);
         assert_eq!(log.first(), Some("d"));
+    }
+
+    // --- is_full ---
+
+    #[test]
+    fn test_is_full_when_at_capacity() {
+        let mut log = MsgLog::new(3);
+        assert!(!log.is_full());
+        log.push("a");
+        log.push("b");
+        log.push("c");
+        assert!(log.is_full());
+    }
+
+    #[test]
+    fn test_is_full_false_when_partial() {
+        let mut log = MsgLog::new(4);
+        log.push("x");
+        assert!(!log.is_full());
+    }
+
+    #[test]
+    fn test_is_full_remains_true_after_wrap() {
+        let mut log = MsgLog::new(2);
+        log.push("a");
+        log.push("b"); // full
+        log.push("c"); // overwrite oldest — still full
+        assert!(log.is_full());
     }
 }

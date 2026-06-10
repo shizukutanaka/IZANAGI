@@ -204,6 +204,24 @@ impl<T: Clone> Inventory<T> {
         self.slots.swap(from, to);
         true
     }
+
+    /// Indices of all occupied slots in ascending order. Useful for
+    /// serialising the inventory or iterating occupied positions without
+    /// carrying the item reference: `for idx in inv.filled_slots() { … }`.
+    pub fn filled_slots(&self) -> Vec<usize> {
+        self.slots
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| s.as_ref().map(|_| i))
+            .collect()
+    }
+
+    /// Count of occupied (non-empty) slots. Equivalent to
+    /// `count_where(|_| true)` but avoids an extra predicate allocation.
+    #[inline]
+    pub fn count_occupied(&self) -> usize {
+        self.slots.iter().filter(|s| s.is_some()).count()
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for Inventory<T> {
@@ -593,5 +611,58 @@ mod tests {
         inv.add(99);
         let (slot, _) = inv.remove_where_indexed(|_| true).unwrap();
         assert!(inv.get(slot).is_none());
+    }
+
+    // --- filled_slots ---
+
+    #[test]
+    fn test_filled_slots_returns_occupied_indices() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10); // slot 0
+        inv.add(20); // slot 1
+        inv.add(30); // slot 2
+        assert_eq!(inv.filled_slots(), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn test_filled_slots_skips_removed_slots() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10); // slot 0
+        inv.add(20); // slot 1
+        inv.add(30); // slot 2
+        inv.remove(1); // slot 1 now empty
+        assert_eq!(inv.filled_slots(), vec![0, 2]);
+    }
+
+    #[test]
+    fn test_filled_slots_empty_inventory() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert!(inv.filled_slots().is_empty());
+    }
+
+    // --- count_occupied ---
+
+    #[test]
+    fn test_count_occupied_all_slots() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        inv.add(1);
+        inv.add(2);
+        inv.add(3);
+        assert_eq!(inv.count_occupied(), 3);
+    }
+
+    #[test]
+    fn test_count_occupied_partial() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(7);
+        inv.add(8);
+        inv.remove(0);
+        assert_eq!(inv.count_occupied(), 1);
+    }
+
+    #[test]
+    fn test_count_occupied_empty() {
+        let inv: Inventory<u32> = Inventory::new(5);
+        assert_eq!(inv.count_occupied(), 0);
     }
 }

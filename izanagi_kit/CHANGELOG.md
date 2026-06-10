@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `cmdqueue::CmdQueue::peek_back() -> Option<&C>`: reference to the most
+  recently pushed command without consuming it. Mirrors `peek_mut` for the back
+  end — useful for "what did the player just queue?" checks (3 tests).
+- `cmdqueue::CmdQueue::truncate(n: usize)`: keep only the first `n` commands,
+  discarding the rest. Equivalent to a hard input-buffer cap; `truncate(0)` is
+  `clear` (3 tests).
+- `inventory::Inventory::filled_slots() -> Vec<usize>`: indices of all occupied
+  slots in ascending order. Saves callers from filtering `iter()` when only
+  positions are needed (3 tests).
+- `inventory::Inventory::count_occupied() -> usize`: count of non-empty slots.
+  Cleaner than `count_where(|_| true)` at call sites (3 tests).
+- `rng::SplitMix64::range_closed(lo, hi) -> i32`: uniform draw from the closed
+  interval `[lo, hi]`. More natural for "d20 roll" semantics than `range(1, 21)`
+  (3 tests).
+- `msglog::MsgLog::is_full() -> bool`: `true` when `len == capacity`, i.e. the
+  next push will evict the oldest message. Useful for UI overflow indicators (3 tests).
+- `turn::Scheduler::all_actors() -> Vec<A>`: collect all registered actor ids
+  into a `Vec`. Convenience wrapper over `iter_actors().collect()` (3 tests).
+- `geometry::rotate_90_cw(x, y) -> (i32, i32)` / `rotate_90_ccw(x, y) ->
+  (i32, i32)`: 90° rotation in screen coordinates (y-down). CW maps
+  Right→Down→Left→Up; CCW is the inverse. Integer-only, replay-safe (4 tests
+  each; also re-exported from `izanagi_kit::` top level).
 - `fixed::Fixed::step_toward(target, step) -> Fixed`: advance toward `target`
   by at most `|step|`; saturates, never overshoots. Useful for velocity ramps
   and AI approach without manual clamp branches (4 tests).

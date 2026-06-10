@@ -361,6 +361,24 @@ pub fn chebyshev_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
     (b.0 - a.0).abs().max((b.1 - a.1).abs())
 }
 
+/// Rotate point `(x, y)` 90° clockwise around the origin in **screen
+/// coordinates** (y increases downward). The sequence Right→Down→Left→Up
+/// cycles as `(1,0)→(0,1)→(-1,0)→(0,-1)`.
+///
+/// Useful for rotating room templates, projectile direction tables, and
+/// symmetry generation without floating-point math.
+#[inline]
+pub fn rotate_90_cw(x: i32, y: i32) -> (i32, i32) {
+    (-y, x)
+}
+
+/// Rotate point `(x, y)` 90° counter-clockwise around the origin in **screen
+/// coordinates** (y increases downward). Inverse of [`rotate_90_cw`].
+#[inline]
+pub fn rotate_90_ccw(x: i32, y: i32) -> (i32, i32) {
+    (y, -x)
+}
+
 /// Floor of the square root of a non-negative `i64`, computed with integer
 /// arithmetic only (Newton's method). `isqrt(n)² <= n < (isqrt(n)+1)²`.
 fn isqrt(n: i64) -> i64 {
@@ -883,5 +901,45 @@ mod tests {
             p,
             "double reflection returns original"
         );
+    }
+
+    // --- rotate_90_cw / rotate_90_ccw ---
+
+    #[test]
+    fn test_rotate_90_cw_cardinal_directions() {
+        // Screen coords (y-down): Right→Down→Left→Up
+        assert_eq!(rotate_90_cw(1, 0), (0, 1), "Right → Down");
+        assert_eq!(rotate_90_cw(0, 1), (-1, 0), "Down → Left");
+        assert_eq!(rotate_90_cw(-1, 0), (0, -1), "Left → Up");
+        assert_eq!(rotate_90_cw(0, -1), (1, 0), "Up → Right");
+    }
+
+    #[test]
+    fn test_rotate_90_ccw_cardinal_directions() {
+        // CCW is the inverse of CW
+        assert_eq!(rotate_90_ccw(1, 0), (0, -1), "Right → Up");
+        assert_eq!(rotate_90_ccw(0, -1), (-1, 0), "Up → Left");
+        assert_eq!(rotate_90_ccw(-1, 0), (0, 1), "Left → Down");
+        assert_eq!(rotate_90_ccw(0, 1), (1, 0), "Down → Right");
+    }
+
+    #[test]
+    fn test_rotate_90_cw_then_ccw_is_identity() {
+        let cases = [(1, 2), (-3, 4), (0, 0), (7, -5)];
+        for (x, y) in cases {
+            let (rx, ry) = rotate_90_cw(x, y);
+            assert_eq!(rotate_90_ccw(rx, ry), (x, y));
+        }
+    }
+
+    #[test]
+    fn test_rotate_90_cw_four_times_is_identity() {
+        let (mut x, mut y) = (3, -7);
+        for _ in 0..4 {
+            let (nx, ny) = rotate_90_cw(x, y);
+            x = nx;
+            y = ny;
+        }
+        assert_eq!((x, y), (3, -7));
     }
 }

@@ -140,6 +140,13 @@ impl<A: Copy + Ord> Scheduler<A> {
         self.actors.iter().map(|a| a.id)
     }
 
+    /// Collect all registered actor ids into a `Vec` in insertion order.
+    /// Convenience wrapper around `iter_actors().collect()` — avoids the
+    /// explicit type annotation at call sites where a `Vec` is expected.
+    pub fn all_actors(&self) -> Vec<A> {
+        self.iter_actors().collect()
+    }
+
     /// How many time units until actor `id` first accumulates ≥ `ACTION_COST`
     /// energy. Returns `Some(0)` if the actor is already ready. Returns `None`
     /// if `id` is not registered. Does **not** advance the queue.
@@ -607,5 +614,36 @@ mod tests {
         s.add(3, ACTION_COST);
         s.next_turn(); // pop one ready actor
         assert_eq!(s.pending_count() + s.actors_ready().len(), s.len());
+    }
+
+    // --- all_actors ---
+
+    #[test]
+    fn test_all_actors_returns_all_ids() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(10, ACTION_COST);
+        s.add(20, ACTION_COST);
+        s.add(30, ACTION_COST);
+        let all = s.all_actors();
+        assert_eq!(all.len(), 3);
+        assert!(all.contains(&10));
+        assert!(all.contains(&20));
+        assert!(all.contains(&30));
+    }
+
+    #[test]
+    fn test_all_actors_empty_scheduler() {
+        let s: Scheduler<u32> = Scheduler::new();
+        assert!(s.all_actors().is_empty());
+    }
+
+    #[test]
+    fn test_all_actors_matches_iter_actors() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, ACTION_COST);
+        s.add(2, ACTION_COST);
+        let from_all: Vec<u32> = s.all_actors();
+        let from_iter: Vec<u32> = s.iter_actors().collect();
+        assert_eq!(from_all, from_iter);
     }
 }

@@ -66,6 +66,20 @@ impl SplitMix64 {
         (lo as i64 + self.below(span) as i64) as i32
     }
 
+    /// Draw from the **closed** range `[lo, hi]` uniformly. Returns `lo` when
+    /// `lo >= hi` (degenerate range, no draw consumed). Useful wherever both
+    /// endpoints are valid values — e.g. `range_closed(1, 20)` for a d20 roll
+    /// or `range_closed(0, 100)` for a percent check (can roll exactly 100).
+    #[inline]
+    pub fn range_closed(&mut self, lo: i32, hi: i32) -> i32 {
+        if lo >= hi {
+            return lo;
+        }
+        // span fits a u32 because hi − lo is in 1..=i32::MAX < 2^31.
+        let span = (hi as i64 - lo as i64 + 1) as u32;
+        (lo as i64 + self.below(span) as i64) as i32
+    }
+
     /// Draw from the half-open range `[lo, hi)` uniformly. Returns `lo` when
     /// `lo >= hi` (degenerate range, no draw consumed). Unsigned counterpart of
     /// [`range`](Self::range) for inventory indices and non-negative offsets.
@@ -854,5 +868,44 @@ mod tests {
         let a = SplitMix64::from_u32_pair(1, 2);
         let b = SplitMix64::from_u32_pair(2, 1);
         assert_ne!(a.state(), b.state());
+    }
+
+    // --- range_closed ---
+
+    #[test]
+    fn test_range_closed_includes_both_endpoints() {
+        let mut rng = SplitMix64::new(0);
+        let mut saw_lo = false;
+        let mut saw_hi = false;
+        for _ in 0..200 {
+            let v = rng.range_closed(1, 3);
+            assert!(v >= 1 && v <= 3, "out of [1,3]: {v}");
+            if v == 1 {
+                saw_lo = true;
+            }
+            if v == 3 {
+                saw_hi = true;
+            }
+        }
+        assert!(saw_lo, "never rolled lo=1");
+        assert!(saw_hi, "never rolled hi=3");
+    }
+
+    #[test]
+    fn test_range_closed_degenerate_returns_lo() {
+        let mut rng = SplitMix64::new(42);
+        assert_eq!(rng.range_closed(5, 5), 5);
+        assert_eq!(rng.range_closed(7, 3), 7);
+    }
+
+    #[test]
+    fn test_range_closed_consistent_with_range_plus_one() {
+        let mut rng_a = SplitMix64::new(123);
+        let mut rng_b = SplitMix64::new(123);
+        // range_closed(lo, hi) draws one value; range(lo, hi+1) draws one value.
+        // They should draw the same underlying random number.
+        for _ in 0..50 {
+            assert_eq!(rng_a.range_closed(0, 9), rng_b.range(0, 10));
+        }
     }
 }
