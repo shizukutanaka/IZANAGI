@@ -150,11 +150,11 @@ impl<T> AssetStore<T> {
 
     /// Number of currently live assets.
     pub fn len(&self) -> usize {
-        self.slots.iter().filter(|s| s.value.is_some()).count()
+        self.iter().count()
     }
 
     pub fn is_empty(&self) -> bool {
-        self.slots.iter().all(|s| s.value.is_none())
+        self.iter().next().is_none()
     }
 
     /// Iterate `(handle, &asset)` for all live assets in ascending index order.
@@ -223,37 +223,14 @@ impl<T> AssetStore<T> {
     /// Useful when you need a list of handles for bulk operations (remove, pass
     /// to another system) without borrowing the asset values at the same time.
     pub fn handles(&self) -> impl Iterator<Item = AssetHandle<T>> + '_ {
-        self.slots.iter().enumerate().filter_map(|(i, s)| {
-            s.value.as_ref().map(|_| AssetHandle {
-                index: i as u32,
-                generation: s.generation,
-                _marker: PhantomData,
-            })
-        })
+        self.iter().map(|(h, _)| h)
     }
 
     /// Remove all assets for which `pred(&asset)` returns `true`. Returns the
     /// count of assets removed. Unlike `retain` this takes only the value (no
     /// handle) so it is simpler for "remove all expired items" patterns.
     pub fn remove_where<F: Fn(&T) -> bool>(&mut self, pred: F) -> usize {
-        let to_remove: Vec<AssetHandle<T>> = self
-            .slots
-            .iter()
-            .enumerate()
-            .filter_map(|(i, s)| {
-                s.value.as_ref().and_then(|v| {
-                    if pred(v) {
-                        Some(AssetHandle {
-                            index: i as u32,
-                            generation: s.generation,
-                            _marker: PhantomData,
-                        })
-                    } else {
-                        None
-                    }
-                })
-            })
-            .collect();
+        let to_remove = self.find_all_by(pred);
         let count = to_remove.len();
         for handle in to_remove {
             self.remove(handle);
@@ -265,23 +242,9 @@ impl<T> AssetStore<T> {
     /// Assets failing the predicate are removed and their handles invalidated.
     pub fn retain<F: Fn(AssetHandle<T>, &T) -> bool>(&mut self, pred: F) {
         let to_remove: Vec<AssetHandle<T>> = self
-            .slots
             .iter()
-            .enumerate()
-            .filter_map(|(i, s)| {
-                s.value.as_ref().and_then(|v| {
-                    let handle = AssetHandle {
-                        index: i as u32,
-                        generation: s.generation,
-                        _marker: PhantomData,
-                    };
-                    if !pred(handle, v) {
-                        Some(handle)
-                    } else {
-                        None
-                    }
-                })
-            })
+            .filter(|&(h, asset)| !pred(h, asset))
+            .map(|(h, _)| h)
             .collect();
         for handle in to_remove {
             self.remove(handle);

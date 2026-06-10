@@ -1423,6 +1423,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - `inventory`: `find` now builds on the existing `iter()` occupied-slot
   iterator instead of re-implementing the `enumerate().filter_map(as_ref)`
   scan. Same index-order first-match semantics; no API or hash change.
+- `assets`: `len`, `is_empty`, `handles`, `remove_where`, and `retain` now
+  all route through the canonical `iter()` / `find_all_by()` methods, eliminating
+  five separate `slots.iter().enumerate().filter_map(...)` slot-scanning expansions.
+  `len` → `iter().count()`, `is_empty` → `iter().next().is_none()`,
+  `handles` → `iter().map(|(h, _)| h)`, `remove_where` → `find_all_by(pred)`
+  + remove loop, `retain` → `iter().filter(!pred).collect()` + remove loop.
+  Behaviour identical; no API or hash change; pinned hashes verified.
 
 ### Changed
 - `README.md`: documented the seven runnable examples (`cargo run --example …`) and refreshed the module overview from 11 to a representative cross-section of the ~50 shipped modules, linking to `GAME_DEV_TAXONOMY.md` and `SPEC.md` for the full capability map and contracts.
