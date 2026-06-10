@@ -254,6 +254,13 @@ impl<T: Clone> TileMap<T> {
             .enumerate()
             .map(move |(i, t)| ((i % w as usize) as i32, (i / w as usize) as i32, t))
     }
+
+    /// Returns `true` if at least one cell satisfies `pred`, stopping as soon
+    /// as the first match is found. Allocation-free alternative to
+    /// `find_all(pred).is_empty()` for simple "does any cell match?" queries.
+    pub fn any_where<P: FnMut(&T) -> bool>(&self, pred: P) -> bool {
+        self.cells.iter().any(pred)
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for TileMap<T> {
@@ -719,5 +726,30 @@ mod tests {
     fn test_find_first_single_cell_map() {
         let m: TileMap<u8> = TileMap::new(1, 1, 7);
         assert_eq!(m.find_first(|&t| t == 7), Some((0, 0)));
+    }
+
+    #[test]
+    fn test_any_where_finds_match() {
+        let mut m: TileMap<u8> = TileMap::new(4, 4, 0);
+        m.set(2, 2, 9);
+        assert!(m.any_where(|&t| t == 9));
+    }
+
+    #[test]
+    fn test_any_where_returns_false_when_no_match() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 0);
+        assert!(!m.any_where(|&t| t == 99));
+    }
+
+    #[test]
+    fn test_any_where_short_circuits() {
+        let mut m: TileMap<u8> = TileMap::new(4, 4, 0);
+        m.set(0, 0, 1); // first cell matches
+        let mut count = 0usize;
+        m.any_where(|t| {
+            count += 1;
+            *t == 1
+        });
+        assert_eq!(count, 1, "should stop after first match");
     }
 }

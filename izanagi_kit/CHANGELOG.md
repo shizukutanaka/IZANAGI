@@ -7,6 +7,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `aabb::Aabb::perimeter() -> i32`: sum of all four edge lengths `2 × (w + h)`,
+  with saturating arithmetic. Returns `0` for empty boxes. For AoE radius
+  estimation, hitbox tuning, and "perimeter ≤ budget?" guards.
+- `geometry::midpoint(a, b) -> (i32, i32)`: integer midpoint of two grid cells,
+  flooring toward `a` on odd separations. Overflow-safe. Useful for marker
+  placement, segment bisection, and symmetric projectile arcs.
+- `tilemap::TileMap::any_where(pred) -> bool`: short-circuit scan that returns
+  `true` as soon as one cell satisfies the predicate. Avoids the allocating
+  `find_all(pred).is_empty()` pattern for simple "does a wall exist here?" checks.
+- `combat::Stats::is_bloodied() -> bool`: `true` when HP is below 50% of
+  `max_hp`. Classic D&D 4e "bloodied" condition. Useful for AI aggression
+  thresholds, conditional abilities, and low-health visual indicators.
+- `spatial_hash::SpatialHash::count_in_radius_euclidean(qx, qy, radius) -> usize`:
+  count entities within Euclidean radius without allocating a `Vec`. Allocation-
+  free counterpart to `query_radius_euclidean` for "how many enemies are nearby?"
+  density checks.
+- `pathfinding::is_reachable(start, goal, is_blocked) -> bool`: thin wrapper
+  around `astar` that discards the path and returns only the reachability boolean.
+  Avoids constructing the full path Vec for connectivity-only checks.
+- `easing::lerp(a, b, t) -> Fixed`: linear interpolation `a + (b−a)×t`. The
+  fundamental building block for all easing curves — pair with any ease function
+  via `lerp(a, b, ease_fn(t))`.
+- `noise::noise_2d_in_range(x, y, seed, lo, hi) -> i32`: convenience combinator
+  for `hash_range(hash_2d(x, y, seed), lo, hi)`. Scatter distinct values across a
+  map with a single call; avoids repeating the two-call pattern everywhere.
 - `camera::Camera::world_to_screen_unclamped(wx, wy) -> (i32, i32)`: convert a
   world-space point to a screen-space offset without bounds checking. Returns
   negative values or out-of-range coordinates for off-screen points. Complement

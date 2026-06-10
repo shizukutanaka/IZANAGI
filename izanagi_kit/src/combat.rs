@@ -108,6 +108,16 @@ impl Stats {
         self.hp = (self.hp - amount).max(0);
         overkill
     }
+
+    /// Returns `true` when this combatant's HP is below half of `max_hp`
+    /// (the D&D "bloodied" condition). `false` when `max_hp == 0`.
+    ///
+    /// Useful for AI aggression triggers, visual damage indicators, and
+    /// conditional abilities that activate when the target is weakened.
+    #[inline]
+    pub fn is_bloodied(&self) -> bool {
+        self.max_hp > 0 && self.hp * 2 < self.max_hp
+    }
 }
 
 impl DetHash for Stats {
@@ -581,5 +591,30 @@ mod tests {
         assert_eq!(apply_resistance(-10, 50), 0);
         // Over-100 percent clamps to 100.
         assert_eq!(apply_resistance(50, 150), 0);
+    }
+
+    #[test]
+    fn test_is_bloodied_below_half_hp() {
+        let mut s = Stats::new(10, 5, 0);
+        s.take_damage(6); // hp = 4, max = 10: 4*2=8 < 10 → bloodied
+        assert!(s.is_bloodied());
+    }
+
+    #[test]
+    fn test_is_bloodied_at_half_hp_is_false() {
+        let mut s = Stats::new(10, 5, 0);
+        s.take_damage(5); // hp = 5, 5*2 = 10 which is NOT < 10 → not bloodied
+        assert!(!s.is_bloodied());
+    }
+
+    #[test]
+    fn test_is_bloodied_zero_max_hp_is_false() {
+        let s = Stats {
+            hp: 0,
+            max_hp: 0,
+            attack: 0,
+            defense: 0,
+        };
+        assert!(!s.is_bloodied());
     }
 }

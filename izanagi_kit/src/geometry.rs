@@ -301,6 +301,17 @@ impl Distance {
     }
 }
 
+/// Integer midpoint of two grid cells. For cells separated by an odd number of
+/// units the result rounds toward `a` (floor of the true average). Safe for any
+/// `i32` inputs — avoids overflow by computing `a + (b - a) / 2`.
+///
+/// Useful for placing a marker at the middle of a segment: `midpoint(from, to)`
+/// returns the cell that Bresenham `line(from, to)` visits closest to halfway.
+#[inline]
+pub fn midpoint(a: (i32, i32), b: (i32, i32)) -> (i32, i32) {
+    (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2)
+}
+
 /// Floor of the square root of a non-negative `i64`, computed with integer
 /// arithmetic only (Newton's method). `isqrt(n)² <= n < (isqrt(n)+1)²`.
 fn isqrt(n: i64) -> i64 {
@@ -712,5 +723,20 @@ mod tests {
         for (x, y) in &ring {
             assert_eq!(x.abs().max(y.abs()), 1);
         }
+    }
+
+    #[test]
+    fn test_midpoint_horizontal() {
+        assert_eq!(midpoint((0, 0), (4, 0)), (2, 0));
+    }
+
+    #[test]
+    fn test_midpoint_diagonal() {
+        assert_eq!(midpoint((0, 0), (6, 6)), (3, 3));
+    }
+
+    #[test]
+    fn test_midpoint_same_point_is_itself() {
+        assert_eq!(midpoint((5, 7), (5, 7)), (5, 7));
     }
 }

@@ -428,6 +428,17 @@ pub fn ease_in_out_elastic(t: Fixed) -> Fixed {
     }
 }
 
+/// Linear interpolation between `a` and `b` at parameter `t ∈ [0, 1]`.
+/// Formula: `a + (b − a) × t`. At `t = 0` returns `a`; at `t = 1` returns `b`.
+///
+/// This is the fundamental building block for all the other easing functions —
+/// pass `lerp(a, b, ease_fn(t))` to apply any ease curve to a value pair.
+/// Deterministic and float-free.
+#[inline]
+pub fn lerp(a: Fixed, b: Fixed, t: Fixed) -> Fixed {
+    a + (b - a).mul(t)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -897,5 +908,27 @@ mod tests {
             ease_out_elastic(t).raw() > Fixed::ONE.raw(),
             "ease_out_elastic(0.7) should exceed 1"
         );
+    }
+
+    #[test]
+    fn test_lerp_at_zero_returns_a() {
+        let a = Fixed::from_int(10);
+        let b = Fixed::from_int(20);
+        assert_eq!(lerp(a, b, Fixed::ZERO), a);
+    }
+
+    #[test]
+    fn test_lerp_at_one_returns_b() {
+        let a = Fixed::from_int(10);
+        let b = Fixed::from_int(20);
+        assert_eq!(lerp(a, b, Fixed::ONE), b);
+    }
+
+    #[test]
+    fn test_lerp_at_half_is_midpoint() {
+        let a = Fixed::from_int(0);
+        let b = Fixed::from_int(10);
+        let half = Fixed::from_ratio(1, 2);
+        assert_eq!(lerp(a, b, half), Fixed::from_int(5));
     }
 }

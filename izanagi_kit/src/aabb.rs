@@ -290,6 +290,18 @@ impl Aabb {
         let y1 = self.bottom().max(py + 1);
         Aabb::new(x0, y0, x1 - x0, y1 - y0)
     }
+
+    /// Perimeter of the bounding box: `2 × (w + h)`. Returns `0` for an empty
+    /// box (`w ≤ 0` or `h ≤ 0`). Uses saturating arithmetic to avoid overflow
+    /// for extreme coordinates.
+    #[inline]
+    pub fn perimeter(&self) -> i32 {
+        if self.is_empty() {
+            0
+        } else {
+            2i32.saturating_mul(self.w.saturating_add(self.h))
+        }
+    }
 }
 
 impl DetHash for Aabb {
@@ -762,5 +774,21 @@ mod tests {
         let b = r(0, 0, 0, 0);
         let e = b.expand_to_include(3, 7);
         assert_eq!(e, r(3, 7, 1, 1));
+    }
+
+    #[test]
+    fn test_perimeter_unit_square() {
+        assert_eq!(r(0, 0, 1, 1).perimeter(), 4);
+    }
+
+    #[test]
+    fn test_perimeter_rectangle() {
+        assert_eq!(r(0, 0, 3, 5).perimeter(), 16); // 2*(3+5)
+    }
+
+    #[test]
+    fn test_perimeter_empty_box_is_zero() {
+        assert_eq!(r(0, 0, 0, 0).perimeter(), 0);
+        assert_eq!(r(0, 0, -1, 4).perimeter(), 0);
     }
 }

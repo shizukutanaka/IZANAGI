@@ -378,6 +378,19 @@ pub fn path_cost(path: &[(i32, i32)]) -> i32 {
     path.windows(2).map(|w| octile_distance(w[0], w[1])).sum()
 }
 
+/// Returns `true` if `goal` is reachable from `start` under the `is_blocked`
+/// predicate, without retaining the path.
+///
+/// This is a thin wrapper around [`astar`] that discards the path Vec and
+/// returns only the reachability boolean. Avoids allocating the full path when
+/// connectivity alone is needed (e.g. "can the player reach the exit?").
+pub fn is_reachable<B>(start: (i32, i32), goal: (i32, i32), is_blocked: B) -> bool
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    astar(start, goal, is_blocked).is_some()
+}
+
 /// Returns `true` when the Bresenham segment from `a` to `b` has no blocked
 /// interior cells (endpoints are not checked — same semantics as `line_of_sight`
 /// in `geometry`).
@@ -786,5 +799,30 @@ mod tests {
         let goal = (3i32, 4i32);
         let path = astar(start, goal, blocker(15, 15, HashSet::new())).unwrap();
         assert_eq!(path_cost(&path), octile_distance(start, goal));
+    }
+
+    #[test]
+    fn test_is_reachable_open_grid() {
+        let start = (0, 0);
+        let goal = (5, 5);
+        assert!(is_reachable(start, goal, blocker(20, 20, HashSet::new())));
+    }
+
+    #[test]
+    fn test_is_reachable_blocked_path() {
+        let start = (0, 0);
+        let goal = (5, 0);
+        // Full-height wall at x=2 — spans the entire grid so A* cannot go around.
+        let wall: HashSet<(i32, i32)> = (0..20).map(|y| (2, y)).collect();
+        assert!(!is_reachable(start, goal, blocker(20, 20, wall)));
+    }
+
+    #[test]
+    fn test_is_reachable_same_point() {
+        assert!(is_reachable(
+            (3, 3),
+            (3, 3),
+            blocker(10, 10, HashSet::new())
+        ));
     }
 }

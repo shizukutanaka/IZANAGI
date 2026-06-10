@@ -367,6 +367,17 @@ pub fn ridge_noise_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
     }
 }
 
+/// Sample 2-D noise at `(x, y)` and map the result to the half-open integer
+/// range `[lo, hi)`. Convenience combinator for `hash_range(hash_2d(…), lo, hi)`.
+///
+/// Useful for scattering distinct values across a map without repeating the
+/// two-call pattern: `noise_2d_in_range(room_x, room_y, seed, 0, 6)` rolls a
+/// `0..6` value independently at every cell. Returns `lo` when `lo >= hi`.
+#[inline]
+pub fn noise_2d_in_range(x: i32, y: i32, seed: u64, lo: i32, hi: i32) -> i32 {
+    hash_range(hash_2d(x, y, seed), lo, hi)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -767,5 +778,34 @@ mod tests {
         let h2 = hash_2d(5, 7, 42);
         let h3 = hash_3d(5, 7, 0, 42);
         assert_ne!(h2, h3);
+    }
+
+    #[test]
+    fn test_noise_2d_in_range_within_bounds() {
+        for x in -5i32..5 {
+            for y in -5i32..5 {
+                let v = noise_2d_in_range(x, y, 99, 3, 10);
+                assert!((3..10).contains(&v), "got {v} at ({x},{y})");
+            }
+        }
+    }
+
+    #[test]
+    fn test_noise_2d_in_range_degenerate_range_returns_lo() {
+        assert_eq!(noise_2d_in_range(0, 0, 1, 5, 5), 5);
+        assert_eq!(noise_2d_in_range(0, 0, 1, 7, 3), 7); // lo > hi → lo
+    }
+
+    #[test]
+    fn test_noise_2d_in_range_matches_hash_range_hash_2d() {
+        let x = 3;
+        let y = -2;
+        let seed = 12345u64;
+        let lo = -10;
+        let hi = 10;
+        assert_eq!(
+            noise_2d_in_range(x, y, seed, lo, hi),
+            hash_range(hash_2d(x, y, seed), lo, hi)
+        );
     }
 }

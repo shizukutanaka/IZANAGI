@@ -269,6 +269,38 @@ impl<K: Eq + Clone> SpatialHash<K> {
         }
         count
     }
+
+    /// Count entities within Euclidean distance `radius` of `(qx, qy)` without
+    /// allocating a `Vec`. Uses the same cell-conservatism as
+    /// [`query_radius_euclidean`](Self::query_radius_euclidean) (no false
+    /// negatives). Returns `0` for negative `radius`.
+    pub fn count_in_radius_euclidean(&self, qx: i32, qy: i32, radius: i32) -> usize {
+        if radius < 0 {
+            return 0;
+        }
+        let r2 = (radius as i64) * (radius as i64);
+        let cs = self.cell_size as i64;
+        let qcx = self.cell_coord(qx);
+        let qcy = self.cell_coord(qy);
+        let cr = radius / self.cell_size + 1;
+        let mut count = 0;
+        for gy in (qcy - cr)..=(qcy + cr) {
+            for gx in (qcx - cr)..=(qcx + cr) {
+                let cell_x0 = gx as i64 * cs;
+                let cell_y0 = gy as i64 * cs;
+                let closest_x = (qx as i64).clamp(cell_x0, cell_x0 + cs - 1);
+                let closest_y = (qy as i64).clamp(cell_y0, cell_y0 + cs - 1);
+                let dx = qx as i64 - closest_x;
+                let dy = qy as i64 - closest_y;
+                if dx * dx + dy * dy <= r2 {
+                    if let Some(bucket) = self.cells.get(&(gx, gy)) {
+                        count += bucket.len();
+                    }
+                }
+            }
+        }
+        count
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for SpatialHash<K> {
@@ -631,5 +663,29 @@ mod tests {
         g.insert(1u32, 5, 5);
         assert_eq!(g.query_rect_count(0, 0, 0, 10), 0);
         assert_eq!(g.query_rect_count(0, 0, 10, 0), 0);
+    }
+
+    #[test]
+    fn test_count_in_radius_euclidean_matches_query_len() {
+        let mut g = grid();
+        g.insert(1u32, 3, 4);
+        g.insert(2u32, 5, 5);
+        g.insert(3u32, 20, 20);
+        let r = 10;
+        let count = g.count_in_radius_euclidean(0, 0, r);
+        let expected = g.query_radius_euclidean(0, 0, r).len();
+        assert_eq!(count, expected);
+    }
+
+    #[test]
+    fn test_count_in_radius_euclidean_negative_radius_is_zero() {
+        let g = grid();
+        assert_eq!(g.count_in_radius_euclidean(0, 0, -1), 0);
+    }
+
+    #[test]
+    fn test_count_in_radius_euclidean_empty_grid_is_zero() {
+        let g: SpatialHash<u32> = SpatialHash::new(4);
+        assert_eq!(g.count_in_radius_euclidean(0, 0, 100), 0);
     }
 }
