@@ -102,6 +102,17 @@ impl<A: Copy + Ord> Scheduler<A> {
         self.actors.iter().find(|a| a.id == id).map(|a| a.speed)
     }
 
+    /// Count of actors whose banked energy has not yet reached [`ACTION_COST`].
+    /// Complement of `actors_ready().len()` but avoids the allocation — use
+    /// for UI countdowns ("N actors still waiting to act") and early-exit
+    /// checks in AI planning loops.
+    pub fn pending_count(&self) -> usize {
+        self.actors
+            .iter()
+            .filter(|a| a.energy < ACTION_COST)
+            .count()
+    }
+
     /// All actors whose banked energy is ≥ [`ACTION_COST`] right now, in
     /// insertion order. Does **not** advance the queue or deduct energy — purely
     /// a diagnostic read. Useful for "who can act on this turn?" planning, AI
@@ -566,5 +577,35 @@ mod tests {
         s.add(2, ACTION_COST);
         s.clear();
         assert_eq!(s.next_turn(), None);
+    }
+
+    // --- pending_count ---
+
+    #[test]
+    fn test_pending_count_all_not_ready() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, ACTION_COST);
+        s.add(2, ACTION_COST);
+        assert_eq!(s.pending_count(), 2);
+    }
+
+    #[test]
+    fn test_pending_count_decreases_as_actors_become_ready() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, ACTION_COST);
+        s.add(2, ACTION_COST);
+        s.add(3, ACTION_COST);
+        s.next_turn(); // advances time until someone is ready and pops them
+        assert!(s.pending_count() <= 3);
+    }
+
+    #[test]
+    fn test_pending_count_plus_ready_equals_total() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, ACTION_COST);
+        s.add(2, ACTION_COST * 2); // fast actor, ready immediately after advance
+        s.add(3, ACTION_COST);
+        s.next_turn(); // pop one ready actor
+        assert_eq!(s.pending_count() + s.actors_ready().len(), s.len());
     }
 }

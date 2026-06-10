@@ -433,6 +433,17 @@ pub fn noise_2d_in_range(x: i32, y: i32, seed: u64, lo: i32, hi: i32) -> i32 {
     hash_range(hash_2d(x, y, seed), lo, hi)
 }
 
+/// fBm 2-D noise mapped to an integer range `[lo, hi)`.
+///
+/// Combines [`fbm_2d`] with [`normalize_noise`] in a single call — the common
+/// pattern for terrain generation where you want height or biome attributes in a
+/// specific integer range without an extra variable. Returns `lo` when `lo >= hi`
+/// or `octaves == 0`.
+#[inline]
+pub fn fbm_2d_in_range(x: i32, y: i32, seed: u64, octaves: u32, lo: i32, hi: i32) -> i32 {
+    normalize_noise(fbm_2d(x, y, seed, octaves), lo, hi)
+}
+
 /// 3-D value noise: trilinear-interpolated noise in `[0, 65535]`.
 ///
 /// `x`, `y`, and `z` are Q16.16 fixed-point coordinates (upper 16 bits =
@@ -1013,5 +1024,28 @@ mod tests {
             let v = noise_3d_in_range(0, 0, z, 0, 10, 20);
             assert!((10..20).contains(&v), "out of [10,20) at z={z}: {v}");
         }
+    }
+
+    // --- fbm_2d_in_range ---
+
+    #[test]
+    fn test_fbm_2d_in_range_within_bounds() {
+        for y in -3i32..=3 {
+            let v = fbm_2d_in_range(y << 16, 0, 42, 4, 0, 100);
+            assert!((0..100).contains(&v), "out of [0,100) at y={y}: {v}");
+        }
+    }
+
+    #[test]
+    fn test_fbm_2d_in_range_deterministic() {
+        let a = fbm_2d_in_range(1 << 16, 2 << 16, 99, 3, -50, 50);
+        let b = fbm_2d_in_range(1 << 16, 2 << 16, 99, 3, -50, 50);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn test_fbm_2d_in_range_degenerate_range_returns_lo() {
+        let v = fbm_2d_in_range(0, 0, 1, 2, 7, 7);
+        assert_eq!(v, 7, "lo == hi should return lo");
     }
 }

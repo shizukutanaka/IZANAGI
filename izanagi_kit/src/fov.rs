@@ -325,6 +325,24 @@ pub fn fov_count<O: FnMut(i32, i32) -> bool>(
     count
 }
 
+/// Count visible cells that satisfy `pred`, without allocating a full list.
+/// Equivalent to `fov_to_vec(...).iter().filter(|(x,y)| pred(*x,*y)).count()`
+/// but avoids the intermediate `Vec`. Use for "how many hostile cells are
+/// visible?" queries where only the count matters.
+pub fn fov_count_filtered<O, F>(origin: (i32, i32), radius: i32, is_opaque: O, mut pred: F) -> usize
+where
+    O: FnMut(i32, i32) -> bool,
+    F: FnMut(i32, i32) -> bool,
+{
+    let mut count = 0usize;
+    compute_fov(origin, radius, is_opaque, |x, y| {
+        if pred(x, y) {
+            count += 1;
+        }
+    });
+    count
+}
+
 /// All visible cells at **exactly** `radius` Chebyshev distance from `origin`.
 ///
 /// Equivalent to `fov_to_vec(origin, radius, is_opaque)` filtered to cells
@@ -767,5 +785,33 @@ mod tests {
         let target = (10, 0);
         // Radius 5 — target is 10 cells away, beyond radius.
         assert!(!can_see(origin, target, 5, |_, _| false));
+    }
+
+    // --- fov_count_filtered ---
+
+    #[test]
+    fn test_fov_count_filtered_all_match_equals_fov_count() {
+        let origin = (5, 5);
+        let total = fov_count(origin, 3, |_, _| false);
+        let filtered = fov_count_filtered(origin, 3, |_, _| false, |_, _| true);
+        assert_eq!(filtered, total);
+    }
+
+    #[test]
+    fn test_fov_count_filtered_none_match_returns_zero() {
+        let origin = (0, 0);
+        let count = fov_count_filtered(origin, 4, |_, _| false, |_, _| false);
+        assert_eq!(count, 0);
+    }
+
+    #[test]
+    fn test_fov_count_filtered_only_origin_row() {
+        let origin = (5, 5);
+        let count = fov_count_filtered(origin, 3, |_, _| false, |_, y| y == 5);
+        let total = fov_count(origin, 3, |_, _| false);
+        assert!(
+            count > 0 && count < total,
+            "row filter should select a subset"
+        );
     }
 }

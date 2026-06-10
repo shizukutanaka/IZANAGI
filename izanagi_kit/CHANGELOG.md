@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `content::Color::min_channel(self) -> u8`: minimum of the three RGB channels.
+  Complement of `max_channel()`. Useful for computing color saturation
+  (`max - min`) and shadow/darkness threshold checks.
+- `influence::InfluenceMap::add_map(other: &InfluenceMap)`: pixel-wise addition
+  shorthand for `combine(other, 1, 1)`. Clears boilerplate when compositing
+  equal-weight influence layers (threat + hunger, etc.). No-op on size mismatch.
+- `fov::fov_count_filtered(origin, radius, is_opaque, pred) -> usize`:
+  allocation-free count of visible cells matching a predicate. Avoids the
+  intermediate `Vec` of `fov_to_vec(...).filter(...)`. Use for "how many hostile
+  cells are in view?" queries.
+- `turn::Scheduler::pending_count() -> usize`: count of actors whose energy has
+  not yet reached `ACTION_COST`. Complement of `actors_ready().len()` without
+  the allocation. Useful for UI countdowns and AI planning early-exit.
+- `noise::fbm_2d_in_range(x, y, seed, octaves, lo, hi) -> i32`: combines
+  `fbm_2d` + `normalize_noise` in one call. Eliminates the two-step pattern
+  for range-mapped terrain generation.
 - `aabb::Aabb::iter_border() -> impl Iterator<Item = (i32, i32)>`: iterate
   only the perimeter cells of the bounding box (top row → bottom row → left
   column interior → right column interior). Useful for placing walls, rendering

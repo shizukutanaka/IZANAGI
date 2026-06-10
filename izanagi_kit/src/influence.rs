@@ -172,6 +172,15 @@ impl InfluenceMap {
         }
     }
 
+    /// Pixel-wise addition shorthand: add every cell of `other` to `self` at
+    /// full weight. Equivalent to `self.combine(other, 1, 1)`. Use when
+    /// composing multiple same-weight influence layers (e.g. threat + hunger).
+    /// No-op if the two maps differ in dimensions.
+    #[inline]
+    pub fn add_map(&mut self, other: &InfluenceMap) {
+        self.combine(other, 1, 1);
+    }
+
     /// The highest-valued immediate neighbour (8-directional) of `(x, y)`.
     /// Returns `(dx, dy, value)` where `(dx, dy)` is the step direction.
     /// Returns `None` if there are no in-bounds neighbours or the map is 1×1.
@@ -636,5 +645,38 @@ mod tests {
         let mut m = InfluenceMap::new(0, 0);
         m.normalize(0, 100); // must not panic
         assert_eq!(m.min_value(), None);
+    }
+
+    // --- add_map ---
+
+    #[test]
+    fn test_add_map_sums_cells() {
+        let mut a = InfluenceMap::new(2, 1);
+        a.set(0, 0, 10);
+        a.set(1, 0, 20);
+        let mut b = InfluenceMap::new(2, 1);
+        b.set(0, 0, 3);
+        b.set(1, 0, 7);
+        a.add_map(&b);
+        assert_eq!(a.get(0, 0), Some(13));
+        assert_eq!(a.get(1, 0), Some(27));
+    }
+
+    #[test]
+    fn test_add_map_size_mismatch_is_noop() {
+        let mut a = InfluenceMap::new(2, 2);
+        a.set(0, 0, 5);
+        let b = InfluenceMap::new(3, 3);
+        a.add_map(&b);
+        assert_eq!(a.get(0, 0), Some(5), "should be unchanged");
+    }
+
+    #[test]
+    fn test_add_map_adds_zeros_is_noop() {
+        let mut a = InfluenceMap::new(2, 1);
+        a.set(0, 0, 100);
+        let b = InfluenceMap::new(2, 1);
+        a.add_map(&b);
+        assert_eq!(a.get(0, 0), Some(100));
     }
 }

@@ -153,6 +153,14 @@ impl Color {
         self.r.max(self.g).max(self.b)
     }
 
+    /// Minimum value among the three channels. Useful for computing color
+    /// saturation (`max - min`) and for darkness or shadow threshold checks
+    /// without allocating an HSV decomposition.
+    #[inline]
+    pub fn min_channel(self) -> u8 {
+        self.r.min(self.g).min(self.b)
+    }
+
     /// Composite `fg` over `bg` with integer alpha: `alpha = 0` yields `fg`,
     /// `alpha = 255` yields `bg`. Formula: `(fg * (255 − alpha) + bg * alpha) / 255`
     /// per channel — no float, deterministic across targets.
@@ -649,5 +657,30 @@ mod tests {
     #[test]
     fn test_max_channel_black_is_zero() {
         assert_eq!(Color::rgb(0, 0, 0).max_channel(), 0);
+    }
+
+    // --- min_channel ---
+
+    #[test]
+    fn test_min_channel_picks_lowest() {
+        assert_eq!(Color::rgb(200, 100, 50).min_channel(), 50);
+        assert_eq!(Color::rgb(10, 250, 30).min_channel(), 10);
+        assert_eq!(Color::rgb(5, 5, 255).min_channel(), 5);
+    }
+
+    #[test]
+    fn test_min_channel_all_equal() {
+        assert_eq!(Color::rgb(128, 128, 128).min_channel(), 128);
+    }
+
+    #[test]
+    fn test_min_channel_white_is_255() {
+        assert_eq!(Color::rgb(255, 255, 255).min_channel(), 255);
+    }
+
+    #[test]
+    fn test_min_channel_le_max_channel() {
+        let c = Color::rgb(80, 160, 40);
+        assert!(c.min_channel() <= c.max_channel());
     }
 }
