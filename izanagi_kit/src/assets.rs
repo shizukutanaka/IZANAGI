@@ -232,6 +232,35 @@ impl<T> AssetStore<T> {
         })
     }
 
+    /// Remove all assets for which `pred(&asset)` returns `true`. Returns the
+    /// count of assets removed. Unlike `retain` this takes only the value (no
+    /// handle) so it is simpler for "remove all expired items" patterns.
+    pub fn remove_where<F: Fn(&T) -> bool>(&mut self, pred: F) -> usize {
+        let to_remove: Vec<AssetHandle<T>> = self
+            .slots
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| {
+                s.value.as_ref().and_then(|v| {
+                    if pred(v) {
+                        Some(AssetHandle {
+                            index: i as u32,
+                            generation: s.generation,
+                            _marker: PhantomData,
+                        })
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+        let count = to_remove.len();
+        for handle in to_remove {
+            self.remove(handle);
+        }
+        count
+    }
+
     /// Retain only assets for which `pred(handle, &asset)` returns `true`.
     /// Assets failing the predicate are removed and their handles invalidated.
     pub fn retain<F: Fn(AssetHandle<T>, &T) -> bool>(&mut self, pred: F) {
@@ -536,5 +565,36 @@ mod tests {
     fn test_find_all_by_empty_store_returns_empty() {
         let s: AssetStore<u32> = AssetStore::new();
         assert!(s.find_all_by(|_| true).is_empty());
+    }
+
+    #[test]
+    fn test_remove_where_removes_matching() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        s.insert(2);
+        s.insert(3);
+        let removed = s.remove_where(|&v| v % 2 == 0);
+        assert_eq!(removed, 1);
+        assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_where_none_match_returns_zero() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        s.insert(3);
+        let removed = s.remove_where(|&v| v == 99);
+        assert_eq!(removed, 0);
+        assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_where_all_match_empties_store() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(10);
+        s.insert(20);
+        let removed = s.remove_where(|_| true);
+        assert_eq!(removed, 2);
+        assert!(s.is_empty());
     }
 }

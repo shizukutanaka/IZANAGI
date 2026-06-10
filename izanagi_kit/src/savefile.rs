@@ -124,6 +124,17 @@ impl LoadError {
     pub fn is_recoverable(&self) -> bool {
         matches!(self, LoadError::BadMagic)
     }
+
+    /// A short human-readable description of the error, suitable for logging.
+    /// Does not allocate; returns a `'static str`.
+    #[inline]
+    pub fn message(&self) -> &'static str {
+        match self {
+            LoadError::TooShort => "save file too short",
+            LoadError::BadMagic => "not a save file (bad magic)",
+            LoadError::ChecksumMismatch => "save file corrupted (checksum mismatch)",
+        }
+    }
 }
 
 impl core::fmt::Display for LoadError {
@@ -380,5 +391,23 @@ mod tests {
         for n in [0, 1, 100, 4096] {
             assert_eq!(estimate_save_size(n), 20 + n);
         }
+    }
+
+    #[test]
+    fn test_load_error_message_is_static() {
+        assert!(!LoadError::TooShort.message().is_empty());
+        assert!(!LoadError::BadMagic.message().is_empty());
+        assert!(!LoadError::ChecksumMismatch.message().is_empty());
+    }
+
+    #[test]
+    fn test_load_error_message_bad_magic_mentions_file() {
+        assert!(LoadError::BadMagic.message().contains("file"));
+    }
+
+    #[test]
+    fn test_load_error_message_checksum_mentions_corrupt() {
+        let msg = LoadError::ChecksumMismatch.message();
+        assert!(msg.contains("corrupt") || msg.contains("checksum"));
     }
 }

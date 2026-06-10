@@ -253,6 +253,21 @@ pub fn truncate_lines(lines: &[&str], max_cols: usize) -> Vec<String> {
     lines.iter().map(|l| truncate(l, max_cols)).collect()
 }
 
+/// Prefix `s` with `n` ASCII space characters.
+pub fn indent(s: &str, n: usize) -> String {
+    let mut out = String::with_capacity(n + s.len());
+    for _ in 0..n {
+        out.push(' ');
+    }
+    out.push_str(s);
+    out
+}
+
+/// Returns `true` if `s` is empty or contains only ASCII whitespace.
+pub fn is_blank(s: &str) -> bool {
+    s.chars().all(|c| c.is_ascii_whitespace())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -600,5 +615,35 @@ mod tests {
         assert!(lines.is_empty());
         let lines2 = truncate_lines(&["hello"], 0);
         assert!(lines2.is_empty());
+    }
+
+    #[test]
+    fn test_indent_prepends_spaces() {
+        assert_eq!(indent("hello", 3), "   hello");
+    }
+
+    #[test]
+    fn test_indent_zero_is_identity() {
+        assert_eq!(indent("world", 0), "world");
+    }
+
+    #[test]
+    fn test_indent_empty_string() {
+        assert_eq!(indent("", 4), "    ");
+    }
+
+    #[test]
+    fn test_is_blank_empty_string() {
+        assert!(is_blank(""));
+    }
+
+    #[test]
+    fn test_is_blank_whitespace_only() {
+        assert!(is_blank("   \t  "));
+    }
+
+    #[test]
+    fn test_is_blank_nonblank() {
+        assert!(!is_blank("  a  "));
     }
 }

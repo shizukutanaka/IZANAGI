@@ -161,6 +161,26 @@ impl Camera {
         dx.max(dy)
     }
 
+    /// The centre of the screen viewport in screen-space, i.e.
+    /// `(screen_w / 2, screen_h / 2)`. Useful for centering HUD elements or
+    /// computing the screen midpoint for radial spawns.
+    #[inline]
+    pub fn screen_center(&self) -> (u32, u32) {
+        (self.screen_w / 2, self.screen_h / 2)
+    }
+
+    /// Convert world coordinates to screen coordinates, clamping to the screen
+    /// bounds. Off-screen points land on the nearest edge pixel rather than
+    /// returning `None`. Useful for "draw an arrow toward an off-screen target."
+    #[inline]
+    pub fn clamp_world_to_screen(&self, wx: i32, wy: i32) -> (u32, u32) {
+        let max_x = self.screen_w.saturating_sub(1) as i32;
+        let max_y = self.screen_h.saturating_sub(1) as i32;
+        let sx = (wx - self.top_left_x).clamp(0, max_x) as u32;
+        let sy = (wy - self.top_left_y).clamp(0, max_y) as u32;
+        (sx, sy)
+    }
+
     /// Chebyshev distance between two screen-space cells `(sx1, sy1)` and
     /// `(sx2, sy2)`. Returns `max(|sx1−sx2|, |sy1−sy2|)`.
     /// Both inputs are in viewport coordinates (0-based from top-left).
@@ -543,5 +563,72 @@ mod tests {
         let visible = cam.world_to_screen(wx, wy).unwrap();
         assert_eq!(sx as u32, visible.0);
         assert_eq!(sy as u32, visible.1);
+    }
+
+    #[test]
+    fn test_screen_center_is_half_dimensions() {
+        let cam = Camera {
+            top_left_x: 0,
+            top_left_y: 0,
+            screen_w: 40,
+            screen_h: 24,
+        };
+        assert_eq!(cam.screen_center(), (20, 12));
+    }
+
+    #[test]
+    fn test_screen_center_truncates_on_odd() {
+        let cam = Camera {
+            top_left_x: 0,
+            top_left_y: 0,
+            screen_w: 5,
+            screen_h: 3,
+        };
+        assert_eq!(cam.screen_center(), (2, 1));
+    }
+
+    #[test]
+    fn test_screen_center_zero_size() {
+        let cam = Camera {
+            top_left_x: 0,
+            top_left_y: 0,
+            screen_w: 0,
+            screen_h: 0,
+        };
+        assert_eq!(cam.screen_center(), (0, 0));
+    }
+
+    #[test]
+    fn test_clamp_world_to_screen_in_bounds_identity() {
+        let cam = Camera {
+            top_left_x: 0,
+            top_left_y: 0,
+            screen_w: 20,
+            screen_h: 10,
+        };
+        assert_eq!(cam.clamp_world_to_screen(5, 3), (5, 3));
+    }
+
+    #[test]
+    fn test_clamp_world_to_screen_off_screen_clamps() {
+        let cam = Camera {
+            top_left_x: 0,
+            top_left_y: 0,
+            screen_w: 20,
+            screen_h: 10,
+        };
+        assert_eq!(cam.clamp_world_to_screen(-5, 50), (0, 9));
+    }
+
+    #[test]
+    fn test_clamp_world_to_screen_offset_viewport() {
+        let cam = Camera {
+            top_left_x: 10,
+            top_left_y: 5,
+            screen_w: 20,
+            screen_h: 10,
+        };
+        assert_eq!(cam.clamp_world_to_screen(10, 5), (0, 0));
+        assert_eq!(cam.clamp_world_to_screen(29, 14), (19, 9));
     }
 }

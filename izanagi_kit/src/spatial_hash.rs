@@ -270,6 +270,30 @@ impl<K: Eq + Clone> SpatialHash<K> {
         count
     }
 
+    /// Count entities within Chebyshev distance `radius` of `(qx, qy)` without
+    /// allocating a `Vec`. The Chebyshev radius corresponds to a square of side
+    /// `2*radius+1`; this is the allocation-free counterpart to `query_radius`.
+    /// Returns `0` for negative `radius`.
+    pub fn query_radius_count(&self, cx: i32, cy: i32, radius: i32) -> usize {
+        if radius < 0 {
+            return 0;
+        }
+        let r = radius / self.cell_size + 1;
+        let x1 = self.cell_coord(cx) - r;
+        let x2 = self.cell_coord(cx) + r;
+        let y1 = self.cell_coord(cy) - r;
+        let y2 = self.cell_coord(cy) + r;
+        let mut count = 0;
+        for cy_cell in y1..=y2 {
+            for cx_cell in x1..=x2 {
+                if let Some(bucket) = self.cells.get(&(cx_cell, cy_cell)) {
+                    count += bucket.len();
+                }
+            }
+        }
+        count
+    }
+
     /// Count entities within Euclidean distance `radius` of `(qx, qy)` without
     /// allocating a `Vec`. Uses the same cell-conservatism as
     /// [`query_radius_euclidean`](Self::query_radius_euclidean) (no false
@@ -687,5 +711,24 @@ mod tests {
     fn test_count_in_radius_euclidean_empty_grid_is_zero() {
         let g: SpatialHash<u32> = SpatialHash::new(4);
         assert_eq!(g.count_in_radius_euclidean(0, 0, 100), 0);
+    }
+
+    #[test]
+    fn test_query_radius_count_matches_query_radius_len() {
+        let g = grid();
+        let r = 8;
+        assert_eq!(g.query_radius_count(0, 0, r), g.query_radius(0, 0, r).len());
+    }
+
+    #[test]
+    fn test_query_radius_count_negative_radius_is_zero() {
+        let g = grid();
+        assert_eq!(g.query_radius_count(0, 0, -1), 0);
+    }
+
+    #[test]
+    fn test_query_radius_count_empty_grid_is_zero() {
+        let g: SpatialHash<u32> = SpatialHash::new(4);
+        assert_eq!(g.query_radius_count(0, 0, 100), 0);
     }
 }

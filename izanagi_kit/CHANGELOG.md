@@ -7,6 +7,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `assets::AssetStore::remove_where<F>(pred) -> usize`: bulk-remove all assets for
+  which `pred(&asset)` returns `true`. Returns the count removed. Simpler than
+  `retain` for "remove all expired / dead items" patterns that don't need the handle.
+- `camera::Camera::screen_center() -> (u32, u32)`: integer midpoint of the viewport
+  `(screen_w/2, screen_h/2)`. Useful for centering HUD elements, computing radial
+  spawns, and "where is the middle of the screen?" queries.
+- `camera::Camera::clamp_world_to_screen(wx, wy) -> (u32, u32)`: convert world
+  coords to screen coords, clamping off-screen points to the nearest edge pixel
+  instead of returning `None`. Useful for "draw an arrow toward an off-screen target."
+- `spatial_hash::SpatialHash::query_radius_count(cx, cy, radius) -> usize`:
+  allocation-free Chebyshev-radius count (the count-only complement to `query_radius`).
+  Returns 0 for negative radius. Mirrors `count_in_radius_euclidean` for the
+  square-radius metric.
+- `textlayout::indent(s, n) -> String`: prefix `s` with `n` ASCII spaces. The
+  minimal indentation primitive — combined with `wrap_words` for indented dialogue
+  boxes and nested list rendering.
+- `textlayout::is_blank(s) -> bool`: `true` when `s` is empty or contains only
+  ASCII whitespace. The complement of "has content" — useful for filtering empty
+  lines from wrapped text and skipping blank tooltips.
+- `savefile::LoadError::message() -> &'static str`: short static description of the
+  error for logging. Avoids `format!("{}", err)` when only a static string is
+  needed; no allocation.
+- `diag_json::has_errors(diags) -> bool`: `true` if any diagnostic is
+  error-severity. Thin wrapper around `diag_count().0 > 0` for CI abort guards that
+  only need a boolean.
 - `arch::ArchTable::count_where<F>(pred) -> usize`: count rows where
   `pred(entity, &row)` is true. Allocation-free complement to `iter().filter().count()`
   boilerplate. Useful for "how many enemies have > 50 HP?" queries.

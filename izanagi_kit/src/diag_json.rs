@@ -42,6 +42,13 @@ fn json_escape(s: &str) -> String {
 /// Count errors and warnings in a single pass over `diags`.
 /// Returns `(errors, warnings)`. Saves the double-filter boilerplate of
 /// `severity_filter(…, Error).len()` + `severity_filter(…, Warning).len()`
+/// Returns `true` when `diags` contains at least one error-severity diagnostic.
+/// Thin wrapper around `diag_count` for the common "abort if any errors" CI gate.
+#[inline]
+pub fn has_errors(diags: &[Diagnostic]) -> bool {
+    diags.iter().any(|d| d.is_error())
+}
+
 /// when both counts are needed at once (e.g. for a CI summary line like
 /// "3 errors, 2 warnings").
 pub fn diag_count(diags: &[Diagnostic]) -> (usize, usize) {
@@ -314,5 +321,22 @@ mod tests {
         let (errors, warnings) = diag_count(&diags);
         assert_eq!(errors, 0);
         assert_eq!(warnings, 2);
+    }
+
+    #[test]
+    fn test_has_errors_true_when_error_present() {
+        let diags = vec![Diagnostic::error(1, "oops"), Diagnostic::warning(2, "meh")];
+        assert!(has_errors(&diags));
+    }
+
+    #[test]
+    fn test_has_errors_false_when_only_warnings() {
+        let diags = vec![Diagnostic::warning(1, "meh")];
+        assert!(!has_errors(&diags));
+    }
+
+    #[test]
+    fn test_has_errors_false_on_empty() {
+        assert!(!has_errors(&[]));
     }
 }
