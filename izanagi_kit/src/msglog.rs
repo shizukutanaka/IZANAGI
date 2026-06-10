@@ -74,6 +74,18 @@ impl MsgLog {
         (0..self.len).map(move |i| self.buf[(self.head + i) % cap].as_str())
     }
 
+    /// Iterate messages in newest-to-oldest order (reverse of `iter`). Useful
+    /// for log UIs that render from the bottom of the screen upward, showing
+    /// the most recent message first without building a temporary reversed copy.
+    pub fn iter_rev(&self) -> impl Iterator<Item = &str> {
+        let cap = self.buf.len();
+        let len = self.len;
+        let head = self.head;
+        (0..len)
+            .rev()
+            .map(move |i| self.buf[(head + i) % cap].as_str())
+    }
+
     /// The `n` most recent messages, oldest-first within the slice. If fewer
     /// than `n` are stored, all stored messages are returned.
     pub fn recent(&self, n: usize) -> impl Iterator<Item = &str> {
@@ -541,5 +553,33 @@ mod tests {
         log.push("b");
         log.push("c");
         assert_eq!(log.join("|"), "a|b|c");
+    }
+
+    #[test]
+    fn test_iter_rev_reverses_order() {
+        let mut log = MsgLog::new(5);
+        log.push("a");
+        log.push("b");
+        log.push("c");
+        let rev: Vec<&str> = log.iter_rev().collect();
+        assert_eq!(rev, vec!["c", "b", "a"]);
+    }
+
+    #[test]
+    fn test_iter_rev_empty_yields_nothing() {
+        let log = MsgLog::new(4);
+        assert_eq!(log.iter_rev().count(), 0);
+    }
+
+    #[test]
+    fn test_iter_rev_is_inverse_of_iter() {
+        let mut log = MsgLog::new(6);
+        for msg in ["x", "y", "z"] {
+            log.push(msg);
+        }
+        let fwd: Vec<&str> = log.iter().collect();
+        let rev: Vec<&str> = log.iter_rev().collect();
+        let reversed: Vec<&str> = rev.into_iter().rev().collect();
+        assert_eq!(fwd, reversed);
     }
 }

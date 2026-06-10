@@ -125,6 +125,14 @@ impl<T> Changed<T> {
             None
         }
     }
+
+    /// Consume the wrapper and return the inner value, discarding the change
+    /// tick. Useful for extracting the final value when the component is being
+    /// removed or serialised and the dirty-flag metadata is no longer needed.
+    #[inline]
+    pub fn into_value(self) -> T {
+        self.value
+    }
 }
 
 impl<T: DetHash> DetHash for Changed<T> {
@@ -493,5 +501,25 @@ mod tests {
         ct.set_tick(42);
         assert!(ct.is_at_tick(42));
         assert!(!ct.is_at_tick(43));
+    }
+
+    #[test]
+    fn test_into_value_returns_inner_value() {
+        let c = Changed::new(42u32);
+        assert_eq!(c.into_value(), 42u32);
+    }
+
+    #[test]
+    fn test_into_value_discards_tick() {
+        let c = Changed::at(String::from("hello"), 99);
+        let v = c.into_value();
+        assert_eq!(v, "hello");
+    }
+
+    #[test]
+    fn test_into_value_consumes_wrapper() {
+        let c: Changed<Vec<u32>> = Changed::new(vec![1, 2, 3]);
+        let v = c.into_value();
+        assert_eq!(v, vec![1, 2, 3]);
     }
 }

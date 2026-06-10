@@ -7,6 +7,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fsm::Fsm::reset()`: return the FSM to its initial state (the state passed to
+  `Fsm::new`) without touching the transition table. Also adds
+  `Fsm::initial_state() -> &S` to read it back. Stores the initial state as a
+  new private `initial` field (no public API breakage). Useful for "respawn"
+  patterns where an actor reverts to its original AI state.
+- `msglog::MsgLog::iter_rev() -> impl Iterator<Item = &str>`: iterate messages
+  in newest-to-oldest order — the reverse of `iter()`. Useful for terminal UIs
+  that draw from the bottom of the screen upward without building a temporary
+  reversed `Vec`.
+- `change::Changed::into_value(self) -> T`: consume the wrapper and return the
+  inner value, discarding the change tick. The move-semantics complement of
+  `.value` for contexts where the dirty-flag metadata is no longer needed (e.g.
+  removing a component, serialising a final snapshot).
+- `aabb::Aabb::split_v(x) -> (Aabb, Aabb)`: split an AABB vertically at world-x
+  `x`, returning `(left, right)`. Widths sum to the original. One half is empty
+  if `x` is outside the box. Together with `split_h`, forms the BSP primitive
+  used in recursive dungeon partitioning.
+- `aabb::Aabb::split_h(y) -> (Aabb, Aabb)`: split horizontally at world-y `y`,
+  returning `(top, bottom)`. Heights sum to the original.
 - `mapgen::Rect::shrink(n) -> Option<Rect>`: inset a room rectangle by `n` cells
   on every side. Returns `None` when the inset would produce zero or negative
   width or height (`n*2 >= w` or `n*2 >= h`). Useful for spawn zones and

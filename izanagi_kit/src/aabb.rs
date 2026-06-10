@@ -311,6 +311,34 @@ impl Aabb {
     pub fn half_extents(&self) -> (i32, i32) {
         (self.w / 2, self.h / 2)
     }
+
+    /// Split the box vertically at world-x `x`, returning `(left, right)`.
+    /// `left` covers `[self.x, x)` and `right` covers `[x, self.right())`.
+    /// If `x` is outside the box one half will be empty (`w == 0`). If the box
+    /// is empty both halves are empty. Used for BSP dungeon partitioning.
+    #[inline]
+    pub fn split_v(&self, x: i32) -> (Aabb, Aabb) {
+        let left_w = (x - self.x).clamp(0, self.w);
+        let right_w = self.w - left_w;
+        (
+            Aabb::new(self.x, self.y, left_w, self.h),
+            Aabb::new(self.x + left_w, self.y, right_w, self.h),
+        )
+    }
+
+    /// Split the box horizontally at world-y `y`, returning `(top, bottom)`.
+    /// `top` covers `[self.y, y)` and `bottom` covers `[y, self.bottom())`.
+    /// If `y` is outside the box one half will be empty (`h == 0`). If the box
+    /// is empty both halves are empty.
+    #[inline]
+    pub fn split_h(&self, y: i32) -> (Aabb, Aabb) {
+        let top_h = (y - self.y).clamp(0, self.h);
+        let bot_h = self.h - top_h;
+        (
+            Aabb::new(self.x, self.y, self.w, top_h),
+            Aabb::new(self.x, self.y + top_h, self.w, bot_h),
+        )
+    }
 }
 
 impl DetHash for Aabb {
@@ -814,5 +842,51 @@ mod tests {
     #[test]
     fn test_half_extents_empty_box() {
         assert_eq!(r(0, 0, 0, 0).half_extents(), (0, 0));
+    }
+
+    #[test]
+    fn test_split_v_halves_cover_full_width() {
+        let b = r(2, 3, 10, 6);
+        let (left, right) = b.split_v(7); // split at x=7 (5 from left edge)
+        assert_eq!(left, r(2, 3, 5, 6));
+        assert_eq!(right, r(7, 3, 5, 6));
+    }
+
+    #[test]
+    fn test_split_v_outside_left_gives_empty_left() {
+        let b = r(5, 0, 10, 4);
+        let (left, right) = b.split_v(0); // split before box
+        assert_eq!(left.w, 0);
+        assert_eq!(right, b);
+    }
+
+    #[test]
+    fn test_split_h_halves_cover_full_height() {
+        let b = r(1, 2, 8, 10);
+        let (top, bottom) = b.split_h(7); // split at y=7 (5 from top)
+        assert_eq!(top, r(1, 2, 8, 5));
+        assert_eq!(bottom, r(1, 7, 8, 5));
+    }
+
+    #[test]
+    fn test_split_h_outside_top_gives_empty_top() {
+        let b = r(0, 5, 6, 10);
+        let (top, bottom) = b.split_h(2); // split before box
+        assert_eq!(top.h, 0);
+        assert_eq!(bottom, b);
+    }
+
+    #[test]
+    fn test_split_v_widths_sum_to_original() {
+        let b = r(0, 0, 12, 8);
+        let (left, right) = b.split_v(4);
+        assert_eq!(left.w + right.w, b.w);
+    }
+
+    #[test]
+    fn test_split_h_heights_sum_to_original() {
+        let b = r(0, 0, 8, 12);
+        let (top, bottom) = b.split_h(5);
+        assert_eq!(top.h + bottom.h, b.h);
     }
 }

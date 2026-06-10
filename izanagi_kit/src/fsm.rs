@@ -23,6 +23,7 @@ use crate::world_hash::{DetHash, Fnv1a};
 /// (self-loop / "don't care" semantics — no panic).
 #[derive(Clone, Debug)]
 pub struct Fsm<S, E> {
+    initial: S,
     state: S,
     /// Transition table: (from, event) → to. Searched linearly; small enough
     /// that binary search or hashing would add more overhead than they save.
@@ -33,9 +34,26 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
     /// Create a new FSM starting in `initial_state` with an empty transition table.
     pub fn new(initial_state: S) -> Self {
         Fsm {
+            initial: initial_state.clone(),
             state: initial_state,
             table: Vec::new(),
         }
+    }
+
+    /// Return to the initial state passed to `new`, bypassing the transition
+    /// table. Useful for "respawn" and "reset AI" patterns where the actor
+    /// reverts to its starting configuration without re-constructing the FSM.
+    #[inline]
+    pub fn reset(&mut self) {
+        self.state = self.initial.clone();
+    }
+
+    /// The state this FSM was constructed with. Read-only; does not change when
+    /// `fire` or `set_state` is called. Useful for save/load (verify that the
+    /// FSM type hasn't changed) and "are we back to our starting state?" queries.
+    #[inline]
+    pub fn initial_state(&self) -> &S {
+        &self.initial
     }
 
     /// Current state.
@@ -444,5 +462,30 @@ mod tests {
         fsm.set_state(GuardState::Dead);
         assert!(fsm.is_in(&GuardState::Dead));
         assert!(!fsm.is_in(&GuardState::Idle));
+    }
+
+    #[test]
+    fn test_reset_returns_to_initial_state() {
+        let mut fsm = guard_fsm();
+        fsm.fire(&GuardEvent::PlayerSpotted);
+        fsm.fire(&GuardEvent::PlayerSpotted);
+        assert_eq!(fsm.state(), &GuardState::Chase);
+        fsm.reset();
+        assert_eq!(fsm.state(), &GuardState::Idle);
+    }
+
+    #[test]
+    fn test_reset_on_initial_state_is_noop() {
+        let mut fsm = guard_fsm();
+        fsm.reset();
+        assert_eq!(fsm.state(), &GuardState::Idle);
+    }
+
+    #[test]
+    fn test_initial_state_unchanged_after_transitions() {
+        let mut fsm = guard_fsm();
+        fsm.fire(&GuardEvent::PlayerSpotted);
+        fsm.fire(&GuardEvent::Killed);
+        assert_eq!(fsm.initial_state(), &GuardState::Idle);
     }
 }
