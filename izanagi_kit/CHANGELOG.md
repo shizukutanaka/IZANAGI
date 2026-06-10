@@ -1406,6 +1406,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `cargo audit`; `Cargo.lock` is `.gitignored`, so the job previously failed
   with "Couldn't find Cargo.lock" on every run.
 
+### Refactored
+- `profiler`: extracted a private `Profiler::section(name) -> Option<&Section>`
+  helper and routed the read-only accessors (`this_tick`, `peak`,
+  `section_count`, `min`) through it, replacing four copies of the
+  `iter().find(|s| s.name == ...)` scan with one. Behaviour and the `DetHash`
+  output are unchanged; pinned hashes verified identical.
+- `spatial_hash`: `insert`, `remove`, and `query_cell` now delegate to the
+  public `cell_coord_from_world` helper instead of computing `cell_coord(x)` /
+  `cell_coord(y)` inline, consolidating the world→cell mapping on one code path.
+  Pure cleanup — identical cell math, no API or hash change.
+
 ### Changed
 - `README.md`: documented the seven runnable examples (`cargo run --example …`) and refreshed the module overview from 11 to a representative cross-section of the ~50 shipped modules, linking to `GAME_DEV_TAXONOMY.md` and `SPEC.md` for the full capability map and contracts.
 

@@ -120,22 +120,23 @@ impl Profiler {
         }
     }
 
+    /// Look up the stored statistics for `section`, if it has been recorded.
+    /// Private helper backing the read-only accessors (`this_tick`, `peak`,
+    /// `section_count`, `min`) so they share one lookup instead of repeating
+    /// the `iter().find(...)` scan.
+    #[inline]
+    fn section(&self, name: &str) -> Option<&Section> {
+        self.sections.iter().find(|s| s.name == name)
+    }
+
     /// Total elapsed for `section` in the current (not yet flushed) tick.
     pub fn this_tick(&self, section: &str) -> u64 {
-        self.sections
-            .iter()
-            .find(|s| s.name == section)
-            .map(|s| s.total)
-            .unwrap_or(0)
+        self.section(section).map(|s| s.total).unwrap_or(0)
     }
 
     /// All-time peak single-call elapsed for `section`.
     pub fn peak(&self, section: &str) -> u64 {
-        self.sections
-            .iter()
-            .find(|s| s.name == section)
-            .map(|s| s.peak)
-            .unwrap_or(0)
+        self.section(section).map(|s| s.peak).unwrap_or(0)
     }
 
     /// Current tick number (incremented by `begin_tick`).
@@ -186,19 +187,13 @@ impl Profiler {
     /// Number of `record()` calls for `section` in the current (unflushed) tick.
     /// Returns `0` for an unknown or silent section.
     pub fn section_count(&self, section: &str) -> u32 {
-        self.sections
-            .iter()
-            .find(|s| s.name == section)
-            .map(|s| s.calls)
-            .unwrap_or(0)
+        self.section(section).map(|s| s.calls).unwrap_or(0)
     }
 
     /// All-time minimum single-call elapsed for `section`.
     /// Returns `0` for an unknown section (never recorded).
     pub fn min(&self, section: &str) -> u64 {
-        self.sections
-            .iter()
-            .find(|s| s.name == section)
+        self.section(section)
             .map(|s| if s.min == u64::MAX { 0 } else { s.min })
             .unwrap_or(0)
     }

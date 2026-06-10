@@ -66,16 +66,14 @@ impl<K: Eq + Clone> SpatialHash<K> {
     /// Inserting the same key at the same position twice is harmless but adds
     /// a duplicate; callers should `remove` before re-inserting at a new pos.
     pub fn insert(&mut self, key: K, x: i32, y: i32) {
-        let cx = self.cell_coord(x);
-        let cy = self.cell_coord(y);
-        self.cells.entry((cx, cy)).or_default().push(key);
+        let cell = self.cell_coord_from_world(x, y);
+        self.cells.entry(cell).or_default().push(key);
     }
 
     /// Remove `key` from the cell at `(x, y)`.  Removes the first occurrence
     /// only; no-op if the key is not present in that cell.
     pub fn remove(&mut self, key: &K, x: i32, y: i32) {
-        let cx = self.cell_coord(x);
-        let cy = self.cell_coord(y);
+        let (cx, cy) = self.cell_coord_from_world(x, y);
         if let Some(bucket) = self.cells.get_mut(&(cx, cy)) {
             if let Some(pos) = bucket.iter().position(|k| k == key) {
                 bucket.swap_remove(pos);
@@ -95,12 +93,8 @@ impl<K: Eq + Clone> SpatialHash<K> {
     /// All keys whose anchor lies in the same cell as `(x, y)`.
     /// Returns an empty slice if the cell is unoccupied.
     pub fn query_cell(&self, x: i32, y: i32) -> &[K] {
-        let cx = self.cell_coord(x);
-        let cy = self.cell_coord(y);
-        self.cells
-            .get(&(cx, cy))
-            .map(|v| v.as_slice())
-            .unwrap_or(&[])
+        let cell = self.cell_coord_from_world(x, y);
+        self.cells.get(&cell).map(|v| v.as_slice()).unwrap_or(&[])
     }
 
     /// All keys in any cell that overlaps the axis-aligned rectangle
