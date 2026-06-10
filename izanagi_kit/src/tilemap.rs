@@ -295,6 +295,41 @@ impl<T: Clone> TileMap<T> {
             .map(move |(i, t)| ((i % w as usize) as i32, (i / w as usize) as i32, t))
     }
 
+    /// Iterate `(x, y, &tile)` for every cell inside the rectangle `(rx, ry,
+    /// rw, rh)` in row-major order. Cells outside the map bounds are silently
+    /// skipped. Useful for fog-of-view updates or local A* searches without
+    /// allocating a copy of the region.
+    pub fn iter_rect(
+        &self,
+        rx: i32,
+        ry: i32,
+        rw: i32,
+        rh: i32,
+    ) -> impl Iterator<Item = (i32, i32, &T)> {
+        let x0 = rx.max(0);
+        let y0 = ry.max(0);
+        let x1 = (rx + rw).min(self.width as i32);
+        let y1 = (ry + rh).min(self.height as i32);
+        let cells = &self.cells;
+        let w = self.width as usize;
+        (y0..y1)
+            .flat_map(move |y| (x0..x1).map(move |x| (x, y, &cells[y as usize * w + x as usize])))
+    }
+
+    /// Iterate `(x, &tile)` for every cell in row `y`. Returns an empty
+    /// iterator if `y` is out of bounds. Unlike `row_slice()`, yields
+    /// coordinates alongside each tile reference — handy for wall-detection
+    /// or corridor scanning where the x position matters.
+    pub fn enumerate_row(&self, y: i32) -> impl Iterator<Item = (i32, &T)> {
+        let slice: &[T] = if y < 0 || y as u32 >= self.height {
+            &self.cells[..0]
+        } else {
+            let start = y as usize * self.width as usize;
+            &self.cells[start..start + self.width as usize]
+        };
+        slice.iter().enumerate().map(|(i, t)| (i as i32, t))
+    }
+
     /// Returns `true` if at least one cell satisfies `pred`, stopping as soon
     /// as the first match is found. Allocation-free alternative to
     /// `find_all(pred).is_empty()` for simple "does any cell match?" queries.
@@ -1013,5 +1048,63 @@ mod tests {
         assert_eq!(r.get(1, 0).copied(), Some(6));
         assert_eq!(r.get(0, 2).copied(), Some(1));
         assert_eq!(r.get(1, 2).copied(), Some(4));
+    }
+
+    // --- iter_rect ---
+
+    #[test]
+    fn test_iter_rect_returns_correct_count() {
+        let m: TileMap<u8> = TileMap::new(6, 6, 1);
+        let pts: Vec<_> = m.iter_rect(1, 1, 3, 2).collect();
+        assert_eq!(pts.len(), 6);
+    }
+
+    #[test]
+    fn test_iter_rect_coords_within_bounds() {
+        let m: TileMap<u8> = TileMap::new(8, 8, 0);
+        for (x, y, _) in m.iter_rect(2, 3, 4, 3) {
+            assert!(x >= 2 && x < 6, "x={x} out of range");
+            assert!(y >= 3 && y < 6, "y={y} out of range");
+        }
+    }
+
+    #[test]
+    fn test_iter_rect_clamps_to_map_bounds() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 5);
+        let pts: Vec<_> = m.iter_rect(2, 2, 10, 10).collect();
+        for (x, y, _) in &pts {
+            assert!(*x < 4 && *y < 4, "out-of-bounds cell ({x},{y}) returned");
+        }
+        assert_eq!(pts.len(), 4);
+    }
+
+    // --- enumerate_row ---
+
+    #[test]
+    fn test_enumerate_row_yields_x_and_tile() {
+        let mut m: TileMap<u8> = TileMap::new(4, 3, 0);
+        for x in 0..4_i32 {
+            m.set(x, 1, x as u8 + 1);
+        }
+        let row: Vec<_> = m.enumerate_row(1).collect();
+        assert_eq!(row.len(), 4);
+        assert_eq!(row[0], (0, &1u8));
+        assert_eq!(row[3], (3, &4u8));
+    }
+
+    #[test]
+    fn test_enumerate_row_oob_returns_empty() {
+        let m: TileMap<u8> = TileMap::new(4, 3, 0);
+        assert_eq!(m.enumerate_row(5).count(), 0);
+        assert_eq!(m.enumerate_row(-1).count(), 0);
+    }
+
+    #[test]
+    fn test_enumerate_row_x_matches_column_index() {
+        let m: TileMap<u8> = TileMap::new(5, 2, 0);
+        for (x, _) in m.enumerate_row(0) {
+            assert!(x >= 0 && x < 5, "x={x} out of column range");
+        }
+        assert_eq!(m.enumerate_row(0).count(), 5);
     }
 }

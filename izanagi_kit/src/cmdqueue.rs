@@ -85,6 +85,14 @@ impl<C> CmdQueue<C> {
         &self.buf
     }
 
+    /// Mutable reference to the first command in the queue, or `None` if
+    /// empty. Lets callers modify a pending command in-place (e.g. update a
+    /// target position) without popping and re-inserting.
+    #[inline]
+    pub fn peek_mut(&mut self) -> Option<&mut C> {
+        self.buf.first_mut()
+    }
+
     /// Insert a command at the *front* of the queue (LIFO-priority insertion).
     ///
     /// Use for priority commands that must be processed before already-queued
@@ -537,5 +545,31 @@ mod tests {
         q1.push(10);
         q2.push(10);
         assert_eq!(q1.pop(), q2.pop_front());
+    }
+
+    // --- peek_mut ---
+
+    #[test]
+    fn test_peek_mut_returns_first_element() {
+        let mut q: CmdQueue<u32> = CmdQueue::new();
+        q.push(1);
+        q.push(2);
+        assert_eq!(q.peek_mut(), Some(&mut 1u32));
+    }
+
+    #[test]
+    fn test_peek_mut_allows_in_place_modification() {
+        let mut q: CmdQueue<u32> = CmdQueue::new();
+        q.push(10);
+        q.push(20);
+        *q.peek_mut().unwrap() = 99;
+        assert_eq!(q.as_slice()[0], 99);
+        assert_eq!(q.as_slice()[1], 20);
+    }
+
+    #[test]
+    fn test_peek_mut_empty_queue_returns_none() {
+        let mut q: CmdQueue<u32> = CmdQueue::new();
+        assert_eq!(q.peek_mut(), None);
     }
 }

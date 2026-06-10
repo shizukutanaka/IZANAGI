@@ -142,6 +142,22 @@ impl<T> SparseSet<T> {
         self.dense_values.clear();
     }
 
+    /// Remove all entries and return them as a `Vec<(Entity, T)>` in dense
+    /// (insertion) order. Equivalent to collecting `iter()` and then calling
+    /// `clear()`, but avoids cloning by taking ownership of the values.
+    /// Useful for batch-despawn after a frame: drain all dead entities and
+    /// process their components without a separate collect+remove loop.
+    pub fn drain(&mut self) -> Vec<(Entity, T)> {
+        for e in &self.dense_entities {
+            if let Some(slot) = self.sparse.get_mut(e.index() as usize) {
+                *slot = None;
+            }
+        }
+        let entities = core::mem::take(&mut self.dense_entities);
+        let values = core::mem::take(&mut self.dense_values);
+        entities.into_iter().zip(values).collect()
+    }
+
     /// Iterate entity handles only, in dense (insertion) order.
     pub fn entities(&self) -> impl Iterator<Item = Entity> + '_ {
         self.dense_entities.iter().copied()
@@ -747,5 +763,48 @@ mod tests {
         s.insert(es[0], 42);
         assert!(s.swap(es[0], es[0]));
         assert_eq!(s.get(es[0]), Some(&42));
+    }
+
+    // --- drain ---
+
+    #[test]
+    fn test_drain_returns_all_entries_and_empties_set() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 10);
+        s.insert(es[1], 20);
+        s.insert(es[2], 30);
+        let drained = s.drain();
+        assert_eq!(drained.len(), 3);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_drain_values_match_what_was_inserted() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 7);
+        s.insert(es[1], 13);
+        let drained = s.drain();
+        let vals: Vec<u32> = drained.iter().map(|(_, v)| *v).collect();
+        assert!(vals.contains(&7));
+        assert!(vals.contains(&13));
+    }
+
+    #[test]
+    fn test_drain_empty_set_returns_empty_vec() {
+        let mut s: SparseSet<u32> = SparseSet::new();
+        let drained = s.drain();
+        assert!(drained.is_empty());
+    }
+
+    #[test]
+    fn test_drain_then_reinsert_works() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.drain();
+        s.insert(es[0], 99);
+        assert_eq!(s.get(es[0]), Some(&99));
     }
 }

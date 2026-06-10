@@ -7,6 +7,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `aabb::Aabb::iter_border() -> impl Iterator<Item = (i32, i32)>`: iterate
+  only the perimeter cells of the bounding box (top row → bottom row → left
+  column interior → right column interior). Useful for placing walls, rendering
+  outlines, or scanning edge cells without visiting the interior. Empty boxes
+  yield nothing; single-row/column boxes behave like `iter_points`.
+- `tilemap::TileMap::iter_rect(rx, ry, rw, rh) -> impl Iterator<Item = (i32, i32, &T)>`:
+  iterate tiles in a rectangular sub-region in row-major order. Cells outside
+  the map are silently skipped. Allocation-free alternative to `iter().filter()`
+  for fog-of-view updates or local A* searches.
+- `tilemap::TileMap::enumerate_row(y) -> impl Iterator<Item = (i32, &T)>`:
+  yields `(x, &tile)` for every cell in row `y`. Unlike `row_slice`, includes
+  the column coordinate — useful for wall-detection or corridor scanning.
+  Returns empty iterator for out-of-bounds `y`.
+- `sparse_set::SparseSet::drain() -> Vec<(Entity, T)>`: take all entries and
+  clear the set in one call. Equivalent to collecting `iter()` then calling
+  `clear()`, but avoids cloning by taking ownership. Useful for batch-despawn
+  after a frame without a separate collect+remove loop.
+- `cmdqueue::CmdQueue::peek_mut() -> Option<&mut C>`: mutable reference to the
+  first command without popping. Lets callers modify a pending command in-place
+  (e.g. update a target position) without the overhead of pop + modify + prepend.
 - `rng::SplitMix64::from_u32_pair(lo: u32, hi: u32) -> Self`: construct from
   two independent `u32` seeds combined as `lo | (hi << 32)`. Avoids manual
   bit-shifting at call sites that hold a map seed and a run counter separately.

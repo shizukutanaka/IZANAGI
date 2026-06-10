@@ -274,6 +274,29 @@ impl Aabb {
         (y0..y1).flat_map(move |y| (x0..x1).map(move |x| (x, y)))
     }
 
+    /// Iterate only the border (perimeter) cells of the bounding box in
+    /// row-major order: top row → bottom row → left column (interior) →
+    /// right column (interior). Empty boxes (`w ≤ 0` or `h ≤ 0`) yield
+    /// nothing. A 1×n or n×1 box yields the same cells as `iter_points`.
+    /// Useful for placing walls, rendering outlines, or scanning edge cells
+    /// without visiting the interior.
+    pub fn iter_border(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let (x0, y0) = (self.x, self.y);
+        let (x1, y1) = (self.right(), self.bottom());
+        let empty = self.is_empty();
+        let top = (x0..x1).filter(move |_| !empty).map(move |x| (x, y0));
+        let bottom = (x0..x1)
+            .filter(move |_| !empty && y1 - y0 > 1)
+            .map(move |x| (x, y1 - 1));
+        let left = ((y0 + 1)..(y1 - 1))
+            .filter(move |_| !empty && y1 - y0 > 1)
+            .map(move |y| (x0, y));
+        let right = ((y0 + 1)..(y1 - 1))
+            .filter(move |_| !empty && y1 - y0 > 1 && x1 - x0 > 1)
+            .map(move |y| (x1 - 1, y));
+        top.chain(bottom).chain(left).chain(right)
+    }
+
     /// Return the smallest `Aabb` that contains both `self` and the point
     /// `(px, py)`. Empty boxes grow to contain the point (a 1×1 box at `(px,
     /// py)` if the source is empty, or a cover of the source corners plus the
@@ -888,5 +911,52 @@ mod tests {
         let b = r(0, 0, 8, 12);
         let (top, bottom) = b.split_h(5);
         assert_eq!(top.h + bottom.h, b.h);
+    }
+
+    // --- iter_border ---
+
+    #[test]
+    fn test_iter_border_count_matches_perimeter_3x3() {
+        let b = r(0, 0, 3, 3);
+        let pts: Vec<_> = b.iter_border().collect();
+        // 3×3 box: perimeter = 8 cells (9 total minus 1 center)
+        assert_eq!(pts.len(), 8);
+    }
+
+    #[test]
+    fn test_iter_border_all_points_on_edge() {
+        let b = r(1, 1, 4, 4);
+        for (x, y) in b.iter_border() {
+            assert!(
+                x == b.x || x == b.right() - 1 || y == b.y || y == b.bottom() - 1,
+                "point ({x},{y}) is not on the border of {b:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_iter_border_empty_box_yields_nothing() {
+        assert_eq!(r(0, 0, 0, 4).iter_border().count(), 0);
+        assert_eq!(r(0, 0, 4, 0).iter_border().count(), 0);
+    }
+
+    #[test]
+    fn test_iter_border_single_row_equals_iter_points() {
+        let b = r(2, 5, 5, 1);
+        let border: Vec<_> = b.iter_border().collect();
+        let all: Vec<_> = b.iter_points().collect();
+        assert_eq!(border, all);
+    }
+
+    #[test]
+    fn test_iter_border_no_interior_points_in_5x5() {
+        let b = r(0, 0, 5, 5);
+        let inner = r(1, 1, 3, 3);
+        for (x, y) in b.iter_border() {
+            assert!(
+                !inner.contains_point(x, y),
+                "interior point ({x},{y}) leaked into border"
+            );
+        }
     }
 }
