@@ -80,10 +80,7 @@ impl<T: Clone> Inventory<T> {
     /// Find the first slot for which `pred(item)` is true. Returns the slot
     /// index or `None` if no matching item is present.
     pub fn find<F: Fn(&T) -> bool>(&self, pred: F) -> Option<usize> {
-        self.slots.iter().enumerate().find_map(|(i, s)| {
-            s.as_ref()
-                .and_then(|item| if pred(item) { Some(i) } else { None })
-        })
+        self.iter().find(|(_, item)| pred(item)).map(|(i, _)| i)
     }
 
     /// Find the first item for which `pred(item)` is true and return a mutable

@@ -1420,6 +1420,9 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `children_of`, `child_count`, `child_at_index`, and `remove_entity` through
   it, collapsing four copies of the `self.children` filter-by-parent scan into
   one. Behaviour and `DetHash` output unchanged; pinned hashes verified.
+- `inventory`: `find` now builds on the existing `iter()` occupied-slot
+  iterator instead of re-implementing the `enumerate().filter_map(as_ref)`
+  scan. Same index-order first-match semantics; no API or hash change.
 
 ### Changed
 - `README.md`: documented the seven runnable examples (`cargo run --example …`) and refreshed the module overview from 11 to a representative cross-section of the ~50 shipped modules, linking to `GAME_DEV_TAXONOMY.md` and `SPEC.md` for the full capability map and contracts.
