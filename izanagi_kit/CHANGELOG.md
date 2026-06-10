@@ -1416,6 +1416,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   public `cell_coord_from_world` helper instead of computing `cell_coord(x)` /
   `cell_coord(y)` inline, consolidating the world→cell mapping on one code path.
   Pure cleanup — identical cell math, no API or hash change.
+- `relations`: extracted a private `children_iter(entity)` iterator and routed
+  `children_of`, `child_count`, `child_at_index`, and `remove_entity` through
+  it, collapsing four copies of the `self.children` filter-by-parent scan into
+  one. Behaviour and `DetHash` output unchanged; pinned hashes verified.
 
 ### Changed
 - `README.md`: documented the seven runnable examples (`cargo run --example …`) and refreshed the module overview from 11 to a representative cross-section of the ~50 shipped modules, linking to `GAME_DEV_TAXONOMY.md` and `SPEC.md` for the full capability map and contracts.

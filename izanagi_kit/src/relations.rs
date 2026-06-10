@@ -72,13 +72,9 @@ impl Relations {
     /// Remove all relationships involving `entity` (as parent or child).
     /// Children of `entity` become root entities (their parent entry is removed).
     pub fn remove_entity(&mut self, entity: Entity) {
-        // Remove all children of entity.
-        let child_entities: Vec<Entity> = self
-            .children
-            .iter()
-            .filter_map(|(p, c)| if *p == entity { Some(*c) } else { None })
-            .collect();
-        for child in child_entities {
+        // Remove all children of entity (collect first to avoid borrowing
+        // `self.children` while `detach` mutates it).
+        for child in self.children_of(entity) {
             self.detach(child);
         }
         // Also detach entity from its own parent.
@@ -92,18 +88,25 @@ impl Relations {
             .find_map(|(c, p)| if *c == entity { Some(*p) } else { None })
     }
 
-    /// Get all direct children of `entity` as a `Vec`.
-    pub fn children_of(&self, entity: Entity) -> Vec<Entity> {
+    /// Iterate the direct children of `entity` in insertion order. Private
+    /// helper backing `children_of` / `child_count` / `child_at_index` so the
+    /// `self.children` filter-by-parent scan lives in one place.
+    fn children_iter(&self, entity: Entity) -> impl Iterator<Item = Entity> + '_ {
         self.children
             .iter()
-            .filter_map(|(p, c)| if *p == entity { Some(*c) } else { None })
-            .collect()
+            .filter(move |(p, _)| *p == entity)
+            .map(|(_, c)| *c)
+    }
+
+    /// Get all direct children of `entity` as a `Vec`.
+    pub fn children_of(&self, entity: Entity) -> Vec<Entity> {
+        self.children_iter(entity).collect()
     }
 
     /// Number of direct children of `entity`. Avoids the `Vec` allocation of
     /// `children_of` when only the count is needed.
     pub fn child_count(&self, entity: Entity) -> usize {
-        self.children.iter().filter(|(p, _)| *p == entity).count()
+        self.children_iter(entity).count()
     }
 
     /// Return the `idx`-th direct child of `entity` in insertion order, or
@@ -113,11 +116,7 @@ impl Relations {
     /// when only a single child is needed (e.g. "next in sequence" patterns or
     /// index-based child selection for AI).
     pub fn child_at_index(&self, entity: Entity, idx: usize) -> Option<Entity> {
-        self.children
-            .iter()
-            .filter(|(p, _)| *p == entity)
-            .nth(idx)
-            .map(|(_, c)| *c)
+        self.children_iter(entity).nth(idx)
     }
 
     /// All entities in the subtree rooted at `entity`, **excluding** `entity`
