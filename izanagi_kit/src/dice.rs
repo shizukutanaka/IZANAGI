@@ -157,6 +157,14 @@ impl Dice {
         s.max(0) as u32
     }
 
+    /// Returns `true` when all rolls produce the same value regardless of RNG
+    /// outcome — i.e. when `sides <= 1` so the only outcome is `count + modifier`.
+    /// Useful for filtering "trivial" dice expressions in AI balance tables.
+    #[inline]
+    pub fn is_flat(&self) -> bool {
+        self.sides <= 1
+    }
+
     /// Roll once; if the result is ≤ `reroll_on`, roll a second time and
     /// return that result (regardless of whether it is better). Consumes
     /// exactly two `roll` draws when a reroll triggers, one otherwise.
@@ -436,5 +444,23 @@ mod tests {
         };
         assert_eq!(run(77), run(77));
         assert_ne!(run(1), run(2));
+    }
+
+    #[test]
+    fn test_is_flat_true_for_d1() {
+        let d = Dice::new(3, 1, 0);
+        assert!(d.is_flat());
+    }
+
+    #[test]
+    fn test_is_flat_false_for_d6() {
+        let d = Dice::new(1, 6, 0);
+        assert!(!d.is_flat());
+    }
+
+    #[test]
+    fn test_is_flat_true_when_sides_zero() {
+        let d = Dice::new(2, 0, 5);
+        assert!(d.is_flat());
     }
 }

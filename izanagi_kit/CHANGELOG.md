@@ -1227,6 +1227,39 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   without allocating a `Vec`. Equivalent to `fov_to_vec(...).len()` but
   skips the intermediate allocation. Use for broad-phase lighting-budget
   queries and per-frame FOV coverage checks.
+- `combat::Stats::is_full_hp() -> bool`: `true` when `hp >= max_hp`. The
+  complement of `is_bloodied` — used for "suppress heal prompt" guards,
+  "skip regen tick" optimisations, and post-battle status summaries.
+- `easing::ease_smootherstep(t) -> Fixed`: Ken Perlin's quintic smootherstep
+  `6t⁵ − 15t⁴ + 10t³`. Zero first and second derivative at both endpoints;
+  eliminates the visible curvature kink of the cubic `smoothstep` at t=0 and
+  t=1. The standard choice for terrain-gradient interpolation and high-quality
+  camera lerp.
+- `noise::turbulence_2d(x, y, seed, octaves) -> u32`: turbulence (absolute-value
+  FBM) — folds each octave through `raw.abs_diff(32768)` (mid-fold) before
+  accumulating, producing sharp discontinuities analogous to Perlin's original
+  turbulence. Normalised to `[0, 65535]`. Builds fire textures, cloud detail,
+  and marble-vein heightmaps from the same deterministic value-noise primitive.
+- `dice::Dice::is_flat() -> bool`: `true` when `sides <= 1`, meaning every roll
+  returns the same value (`count + modifier`). The standard "is this a fixed-
+  value entry?" check for loot-table normalisers and display code that skips
+  the `d` notation for non-random entries.
+- `timer::Cooldown::is_near_ready(threshold) -> bool`: `true` when
+  `remaining <= threshold`. Lets UI code highlight an ability that is "almost
+  ready" (e.g. glow when ≤ 2 ticks remain) without a manual comparison at
+  every render site.
+- `timer::TimerQueue::count_where<P>(pred) -> usize`: count scheduled entries
+  whose event satisfies `pred`. Non-consuming; complements `cancel_where` with
+  a read-only query — useful for "how many heal-over-time ticks are pending?"
+  diagnostics and assertions.
+- `msglog::MsgLog::join(sep) -> String`: concatenate all log messages
+  (oldest-to-newest) with `sep` between each pair. Allocation-lazy: builds
+  exactly one `String`. Useful for serialising the full log to a single line,
+  snapshot testing, and embedding recent messages in a status report.
+- `inventory::Inventory::contains_where<F>(pred) -> bool`: `true` if any
+  occupied slot satisfies `pred`. Short-circuits on the first match.
+  The "do I have at least one potion?" check without index arithmetic or
+  collecting a temporary `Vec`.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

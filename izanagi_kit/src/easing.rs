@@ -19,6 +19,17 @@ pub fn ease_smoothstep(t: Fixed) -> Fixed {
     three.mul(t.mul(t)) - two.mul(t.mul(t).mul(t))
 }
 
+/// Ken Perlin's improved (5th-degree) smoothstep: `6t⁵ − 15t⁴ + 10t³`.
+/// Zero first *and* second derivatives at both endpoints — superior to the
+/// cubic `smoothstep` for noise-gradient interpolation and avoids visible
+/// "kinks" at tile boundaries.
+pub fn ease_smootherstep(t: Fixed) -> Fixed {
+    let t3 = t.mul(t).mul(t);
+    let t4 = t3.mul(t);
+    let t5 = t4.mul(t);
+    Fixed::from_int(6).mul(t5) - Fixed::from_int(15).mul(t4) + Fixed::from_int(10).mul(t3)
+}
+
 /// Ease-in quadratic: `t²`. Starts slow, accelerates.
 #[inline]
 pub fn ease_in_quad(t: Fixed) -> Fixed {
@@ -930,5 +941,22 @@ mod tests {
         let b = Fixed::from_int(10);
         let half = Fixed::from_ratio(1, 2);
         assert_eq!(lerp(a, b, half), Fixed::from_int(5));
+    }
+
+    #[test]
+    fn test_smootherstep_zero_is_zero() {
+        assert_eq!(ease_smootherstep(Fixed::ZERO), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_smootherstep_one_is_one() {
+        assert_eq!(ease_smootherstep(Fixed::ONE), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_smootherstep_half_is_half() {
+        let half = Fixed::from_ratio(1, 2);
+        // 6*(0.5)^5 - 15*(0.5)^4 + 10*(0.5)^3 = 6/32 - 15/16 + 10/8 = 0.5
+        assert_eq!(ease_smootherstep(half), half);
     }
 }

@@ -164,6 +164,12 @@ impl<T: Clone> Inventory<T> {
         !self.has_space()
     }
 
+    /// Returns `true` when any item satisfies `pred`. Short-circuits on the
+    /// first match. Simpler than `find(pred).is_some()` at call sites.
+    pub fn contains_where<F: Fn(&T) -> bool>(&self, pred: F) -> bool {
+        self.slots.iter().flatten().any(pred)
+    }
+
     /// Move the item at `from` to `to`, leaving `from` empty.
     ///
     /// Returns `true` on success. Returns `false` if `from` is empty, `to` is
@@ -527,5 +533,26 @@ mod tests {
                                           // both items remain in place
         assert_eq!(inv.get(0), Some(&1));
         assert_eq!(inv.get(1), Some(&2));
+    }
+
+    #[test]
+    fn test_contains_where_true_when_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(5);
+        inv.add(10);
+        assert!(inv.contains_where(|&v| v == 10));
+    }
+
+    #[test]
+    fn test_contains_where_false_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(5);
+        assert!(!inv.contains_where(|&v| v == 99));
+    }
+
+    #[test]
+    fn test_contains_where_false_on_empty() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert!(!inv.contains_where(|_| true));
     }
 }

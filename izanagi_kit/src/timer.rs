@@ -97,6 +97,14 @@ impl Cooldown {
         self.remaining = self.remaining.saturating_add(extra);
     }
 
+    /// Returns `true` when `remaining <= threshold`. Useful for "almost ready"
+    /// UI indicators (flash the ability button when within 2 ticks of cooldown
+    /// expiry) and AI pre-emptive action triggers.
+    #[inline]
+    pub fn is_near_ready(&self, threshold: u32) -> bool {
+        self.remaining <= threshold
+    }
+
     /// Fractional progress through the cooldown as a [`Fixed`]-point value in
     /// `[0, 1]`: `0` means just started, `1` means ready.
     ///
@@ -207,6 +215,12 @@ impl<E: Clone> TimerQueue<E> {
     /// Number of repeating entries (those scheduled with `schedule_repeat`).
     pub fn count_repeating(&self) -> usize {
         self.entries.iter().filter(|e| e.period.is_some()).count()
+    }
+
+    /// Count pending entries whose event satisfies `pred`. Allocation-free;
+    /// useful for "how many poison-tick events are pending?" queries.
+    pub fn count_where<P: Fn(&E) -> bool>(&self, pred: P) -> usize {
+        self.entries.iter().filter(|e| pred(&e.event)).count()
     }
 
     /// Cancel the first pending entry matching `pred` and re-schedule it at
@@ -602,5 +616,51 @@ mod tests {
         let p = cd.fractional_progress(10);
         let half = Fixed::from_ratio(1, 2);
         assert_eq!(p, half);
+    }
+
+    #[test]
+    fn test_is_near_ready_at_zero_always_true() {
+        let cd = Cooldown::ready();
+        assert!(cd.is_near_ready(0));
+    }
+
+    #[test]
+    fn test_is_near_ready_within_threshold() {
+        let cd = Cooldown::new(3);
+        assert!(cd.is_near_ready(3));
+        assert!(cd.is_near_ready(5));
+        assert!(!cd.is_near_ready(2));
+    }
+
+    #[test]
+    fn test_is_near_ready_after_tick_decreases_remaining() {
+        let mut cd = Cooldown::new(5);
+        cd.tick(3);
+        // remaining = 2
+        assert!(cd.is_near_ready(2));
+        assert!(!cd.is_near_ready(1));
+    }
+
+    #[test]
+    fn test_count_where_zero_on_empty() {
+        let q: TimerQueue<u32> = TimerQueue::new();
+        assert_eq!(q.count_where(|_| true), 0);
+    }
+
+    #[test]
+    fn test_count_where_matches_matching_events() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(10, 1);
+        q.schedule(10, 2);
+        q.schedule(10, 3);
+        assert_eq!(q.count_where(|&v| v % 2 == 1), 2);
+    }
+
+    #[test]
+    fn test_count_where_all_match() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(5, 10);
+        q.schedule(5, 20);
+        assert_eq!(q.count_where(|_| true), 2);
     }
 }

@@ -367,6 +367,34 @@ pub fn ridge_noise_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
     }
 }
 
+/// 2-D turbulence noise — FBM with per-octave absolute-value folding for
+/// cloud-like, swirling patterns. Each octave value is folded through
+/// `|raw − 32768|` before accumulation, producing sharp features rather than
+/// smooth blends. Normalised to `[0, 65535]`.
+pub fn turbulence_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
+    let mut acc: u64 = 0;
+    let mut amplitude: u64 = 65536;
+    let mut total_amp: u64 = 0;
+    for i in 0..octaves {
+        let shift = i.min(30);
+        let sx = x.wrapping_shl(shift);
+        let sy = y.wrapping_shl(shift);
+        let raw = value_noise_2d(sx, sy, seed.wrapping_add(i as u64)) as u64;
+        let folded = raw.abs_diff(32768);
+        acc += folded * amplitude;
+        total_amp += 32768 * amplitude;
+        amplitude >>= 1;
+        if amplitude == 0 {
+            break;
+        }
+    }
+    if total_amp == 0 {
+        0
+    } else {
+        ((acc * 65535) / total_amp).min(65535) as u32
+    }
+}
+
 /// Sample 2-D noise at `(x, y)` and map the result to the half-open integer
 /// range `[lo, hi)`. Convenience combinator for `hash_range(hash_2d(…), lo, hi)`.
 ///
@@ -807,5 +835,21 @@ mod tests {
             noise_2d_in_range(x, y, seed, lo, hi),
             hash_range(hash_2d(x, y, seed), lo, hi)
         );
+    }
+
+    #[test]
+    fn test_turbulence_2d_in_range() {
+        let v = turbulence_2d(3, 7, 42, 4);
+        assert!(v <= 65535);
+    }
+
+    #[test]
+    fn test_turbulence_2d_zero_octaves_is_zero() {
+        assert_eq!(turbulence_2d(0, 0, 0, 0), 0);
+    }
+
+    #[test]
+    fn test_turbulence_2d_deterministic() {
+        assert_eq!(turbulence_2d(1, 2, 99, 4), turbulence_2d(1, 2, 99, 4));
     }
 }

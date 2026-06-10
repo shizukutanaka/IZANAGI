@@ -173,6 +173,20 @@ impl MsgLog {
     pub fn filtered<P: Fn(&str) -> bool>(&self, pred: P) -> Vec<&str> {
         self.iter().filter(|msg| pred(msg)).collect()
     }
+
+    /// Concatenate all messages (oldest-to-newest) with `sep` between them.
+    /// Returns an empty `String` for an empty log. Useful for test assertions
+    /// and exporting the log as a single string (e.g. a save-file note field).
+    pub fn join(&self, sep: &str) -> String {
+        let mut out = String::new();
+        for (i, msg) in self.iter().enumerate() {
+            if i > 0 {
+                out.push_str(sep);
+            }
+            out.push_str(msg);
+        }
+        out
+    }
 }
 
 impl DetHash for MsgLog {
@@ -505,5 +519,27 @@ mod tests {
         let mut log = MsgLog::new(4);
         log.push("hello");
         assert!(log.filtered(|s| s.contains("dragon")).is_empty());
+    }
+
+    #[test]
+    fn test_join_empty_log() {
+        let log = MsgLog::new(4);
+        assert_eq!(log.join(", "), "");
+    }
+
+    #[test]
+    fn test_join_single_message() {
+        let mut log = MsgLog::new(4);
+        log.push("hello");
+        assert_eq!(log.join(", "), "hello");
+    }
+
+    #[test]
+    fn test_join_multiple_messages() {
+        let mut log = MsgLog::new(4);
+        log.push("a");
+        log.push("b");
+        log.push("c");
+        assert_eq!(log.join("|"), "a|b|c");
     }
 }

@@ -118,6 +118,14 @@ impl Stats {
     pub fn is_bloodied(&self) -> bool {
         self.max_hp > 0 && self.hp * 2 < self.max_hp
     }
+
+    /// Returns `true` when HP is at or above `max_hp`.
+    /// Complements `is_bloodied`; useful for suppressing heal prompts and
+    /// disabling "restore" ability options when already at full health.
+    #[inline]
+    pub fn is_full_hp(&self) -> bool {
+        self.hp >= self.max_hp
+    }
 }
 
 impl DetHash for Stats {
@@ -616,5 +624,29 @@ mod tests {
             defense: 0,
         };
         assert!(!s.is_bloodied());
+    }
+
+    #[test]
+    fn test_is_full_hp_at_max() {
+        let s = Stats::new(10, 5, 2);
+        assert!(s.is_full_hp());
+    }
+
+    #[test]
+    fn test_is_full_hp_false_when_damaged() {
+        let mut s = Stats::new(10, 5, 2);
+        s.take_damage(1);
+        assert!(!s.is_full_hp());
+    }
+
+    #[test]
+    fn test_is_full_hp_true_when_overfull() {
+        let s = Stats {
+            hp: 15,
+            max_hp: 10,
+            attack: 0,
+            defense: 0,
+        };
+        assert!(s.is_full_hp());
     }
 }
