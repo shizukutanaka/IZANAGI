@@ -331,6 +331,16 @@ impl<E: Clone> EventLog<E> {
         let idx = (self.head + self.len - 1) % cap;
         self.buf[idx].as_ref()
     }
+
+    /// The oldest (first pushed) entry still retained in the ring, or `None`
+    /// if the log is empty. Complement of `last` — useful for "how long ago
+    /// did the first visible event happen?" UI annotations.
+    pub fn oldest(&self) -> Option<&LogEntry<E>> {
+        if self.len == 0 {
+            return None;
+        }
+        self.buf[self.head].as_ref()
+    }
 }
 
 impl<E: Clone + DetHash> DetHash for EventLog<E> {
@@ -654,5 +664,33 @@ mod tests {
         let via_recent = log.recent(1).next().unwrap();
         assert_eq!(via_last.tick, via_recent.tick);
         assert_eq!(via_last.event, via_recent.event);
+    }
+
+    #[test]
+    fn test_oldest_empty_log_is_none() {
+        let log: EventLog<u32> = EventLog::new(4);
+        assert!(log.oldest().is_none());
+    }
+
+    #[test]
+    fn test_oldest_is_first_pushed() {
+        let mut log: EventLog<u32> = EventLog::new(4);
+        log.push(1, 100);
+        log.push(2, 200);
+        log.push(3, 300);
+        let entry = log.oldest().unwrap();
+        assert_eq!(entry.tick, 1);
+        assert_eq!(entry.event, 100);
+    }
+
+    #[test]
+    fn test_oldest_updates_when_overwritten() {
+        let mut log: EventLog<u32> = EventLog::new(2);
+        log.push(1, 10);
+        log.push(2, 20);
+        // Ring is full; pushing drops oldest (tick 1).
+        log.push(3, 30);
+        let entry = log.oldest().unwrap();
+        assert_eq!(entry.tick, 2);
     }
 }

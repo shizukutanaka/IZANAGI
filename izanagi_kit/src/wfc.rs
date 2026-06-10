@@ -134,6 +134,14 @@ impl WfcRules {
         }
     }
 
+    /// Returns `true` if `tile` is within the valid tile index range
+    /// (`tile < tile_count()`). Out-of-range tiles are silently ignored by
+    /// `allow`/`disallow`; this lets callers check before calling those.
+    #[inline]
+    pub fn is_valid_tile(&self, tile: u8) -> bool {
+        (tile as usize) < self.adj.len()
+    }
+
     /// Bitmask with one bit set per valid tile index.
     fn all_tiles(&self) -> u64 {
         if self.tile_count >= 64 {
@@ -173,6 +181,13 @@ impl WfcGrid {
     /// Whether every cell is fully collapsed to exactly one tile.
     pub fn is_fully_collapsed(&self) -> bool {
         self.cells.iter().all(|&v| v.count_ones() == 1)
+    }
+
+    /// Number of cells that are **not** yet fully collapsed (still have more
+    /// than one possibility remaining). Complement of the count yielded by
+    /// `is_fully_collapsed`.
+    pub fn count_uncollapsed(&self) -> usize {
+        self.cells.iter().filter(|&&v| v.count_ones() != 1).count()
     }
 
     /// Width times height.
@@ -696,5 +711,55 @@ mod tests {
         let r = WfcRules::new(4);
         assert_eq!(r.allowed_count(99, 0), 0, "OOB tile");
         assert_eq!(r.allowed_count(0, 9), 0, "OOB dir");
+    }
+
+    #[test]
+    fn test_is_valid_tile_in_range() {
+        let r = WfcRules::new(3);
+        assert!(r.is_valid_tile(0));
+        assert!(r.is_valid_tile(2));
+        assert!(!r.is_valid_tile(3));
+    }
+
+    #[test]
+    fn test_is_valid_tile_clamped_min_allows_zero() {
+        // new(0) clamps to 1, so tile 0 is valid and tile 1 is not.
+        let r = WfcRules::new(0);
+        assert!(r.is_valid_tile(0));
+        assert!(!r.is_valid_tile(1));
+    }
+
+    #[test]
+    fn test_is_valid_tile_boundary_values() {
+        let r = WfcRules::new(64);
+        assert!(r.is_valid_tile(63));
+        assert!(!r.is_valid_tile(64));
+    }
+
+    #[test]
+    fn test_count_uncollapsed_zero_after_solve() {
+        let mut rng = SplitMix64::new(1);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &open_rules(), &mut rng) {
+            assert_eq!(grid.count_uncollapsed(), 0);
+        }
+    }
+
+    #[test]
+    fn test_count_uncollapsed_complement_of_collapsed() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(3, 3, &open_rules(), &mut rng) {
+            assert_eq!(
+                grid.count_uncollapsed() + grid.to_vec().iter().filter(|c| c.is_some()).count(),
+                grid.len()
+            );
+        }
+    }
+
+    #[test]
+    fn test_count_uncollapsed_uniform_is_zero() {
+        let mut rng = SplitMix64::new(2);
+        if let WfcResult::Ok(grid) = wfc_solve(5, 5, &uniform_rules(), &mut rng) {
+            assert_eq!(grid.count_uncollapsed(), 0);
+        }
     }
 }

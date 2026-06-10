@@ -29,6 +29,12 @@ impl Rect {
         ((self.x + self.w / 2) as i32, (self.y + self.h / 2) as i32)
     }
 
+    /// Area in cells (`w × h`).
+    #[inline]
+    pub fn area(&self) -> u32 {
+        self.w * self.h
+    }
+
     /// Do the two rooms touch or overlap when `self` is grown by one cell on
     /// every side? The padding guarantees at least a one-cell wall between
     /// placed rooms.
@@ -160,6 +166,12 @@ impl Dungeon {
     #[inline]
     pub fn is_floor(&self, x: i32, y: i32) -> bool {
         self.in_bounds(x, y) && !self.is_wall(x, y)
+    }
+
+    /// Number of rooms placed (zero for all-wall or cave dungeons).
+    #[inline]
+    pub fn room_count(&self) -> usize {
+        self.rooms.len()
     }
 
     /// Return the room with the greatest area (`w × h`), or `None` for an
@@ -882,5 +894,59 @@ mod tests {
             .filter(|&(x, y)| d.is_floor(x, y))
             .count();
         assert_eq!(d.floor_cells().len(), manual_count);
+    }
+
+    #[test]
+    fn test_rect_area() {
+        let r = Rect {
+            x: 0,
+            y: 0,
+            w: 5,
+            h: 3,
+        };
+        assert_eq!(r.area(), 15);
+    }
+
+    #[test]
+    fn test_rect_area_zero_dimension() {
+        let r = Rect {
+            x: 0,
+            y: 0,
+            w: 0,
+            h: 10,
+        };
+        assert_eq!(r.area(), 0);
+    }
+
+    #[test]
+    fn test_rect_area_unit() {
+        let r = Rect {
+            x: 3,
+            y: 3,
+            w: 1,
+            h: 1,
+        };
+        assert_eq!(r.area(), 1);
+    }
+
+    #[test]
+    fn test_room_count_matches_rooms_len() {
+        let mut rng = SplitMix64::new(55);
+        let d = generate_dungeon(40, 30, &mut rng, GenParams::default());
+        assert_eq!(d.room_count(), d.rooms.len());
+    }
+
+    #[test]
+    fn test_room_count_bsp_nonzero() {
+        let mut rng = SplitMix64::new(42);
+        let d = generate_bsp(30, 20, &mut rng, BspParams::default());
+        assert!(d.room_count() > 0);
+    }
+
+    #[test]
+    fn test_room_count_at_least_one_when_large_enough() {
+        let mut rng = SplitMix64::new(1);
+        let d = generate_dungeon(50, 40, &mut rng, GenParams::default());
+        assert!(d.room_count() >= 1);
     }
 }

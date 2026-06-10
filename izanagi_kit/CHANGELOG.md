@@ -7,6 +7,29 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `arch::ArchTable::count_where<F>(pred) -> usize`: count rows where
+  `pred(entity, &row)` is true. Allocation-free complement to `iter().filter().count()`
+  boilerplate. Useful for "how many enemies have > 50 HP?" queries.
+- `arch::ArchTable::any<F>(pred) -> bool`: short-circuit scan returning `true` as
+  soon as one row satisfies the predicate. Mirrors `Iterator::any`; avoids
+  constructing and discarding iterators in "does any entity have X?" guards.
+- `mapgen::Rect::area() -> u32`: product `w × h`. The fundamental size metric for
+  rooms — used by `largest_room` internally; now exposed for caller sorting, area
+  budget checks, and treasure density calculations.
+- `mapgen::Dungeon::room_count() -> usize`: count placed rooms without exposing the
+  `rooms` field. An O(1) `rooms.len()` shorthand; zero for caves and all-wall maps.
+- `wfc::WfcGrid::count_uncollapsed() -> usize`: cells still awaiting collapse
+  (bitmask popcount ≠ 1). Complement of `is_fully_collapsed`; useful for progress
+  bars and "abort after N tries" limits during WFC post-processing.
+- `wfc::WfcRules::is_valid_tile(tile) -> bool`: range-check `tile < tile_count()`.
+  The `allow`/`disallow` family silently ignores out-of-range tiles; this lets
+  callers validate before mutating rules.
+- `profiler::EventLog::oldest() -> Option<&LogEntry<E>>`: oldest entry still
+  retained in the ring (complement of `last`). Useful for "how long since the first
+  visible event?" TTL calculations and replay-window diagnostics.
+- `replay::replay_ok(expected, actual) -> bool`: `first_divergence().is_ok()`
+  shorthand. Removes the `.is_ok()` boilerplate at assert sites and CI gate checks
+  that only need a boolean result.
 - `fixed::Fixed::clamp01(self) -> Fixed`: clamp a fixed-point value into `[0, 1]`
   with one call. Delegates to `clamp(Fixed::ZERO, Fixed::ONE)`. Eliminates the
   two-argument `clamp` boilerplate for the most common case — normalised weights,

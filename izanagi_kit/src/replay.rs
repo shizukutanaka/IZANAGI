@@ -123,6 +123,14 @@ pub fn find_all_divergences(expected: &[u64], actual: &[u64]) -> Vec<Divergence>
         .collect()
 }
 
+/// Returns `true` when `expected` and `actual` are identical (no divergence).
+/// Thin wrapper around [`first_divergence`] for callers that only need a boolean
+/// answer — avoids `.is_ok()` boilerplate on the `Result`.
+#[inline]
+pub fn replay_ok(expected: &[u64], actual: &[u64]) -> bool {
+    first_divergence(expected, actual).is_ok()
+}
+
 /// Replay `inputs` onto a **clone** of `snapshot`, returning the resulting
 /// state and leaving `snapshot` untouched. This is the core rollback operation:
 /// keep a confirmed-good snapshot, then re-simulate the inputs received since.
@@ -302,5 +310,23 @@ mod tests {
         assert_eq!(divs.len(), 2);
         assert_eq!(divs[0].tick, 1);
         assert_eq!(divs[1].tick, 2);
+    }
+
+    #[test]
+    fn test_replay_ok_identical_traces() {
+        let trace = vec![1u64, 2, 3, 4];
+        assert!(replay_ok(&trace, &trace));
+    }
+
+    #[test]
+    fn test_replay_ok_false_on_divergence() {
+        let a = vec![1u64, 2, 3];
+        let b = vec![1u64, 9, 3];
+        assert!(!replay_ok(&a, &b));
+    }
+
+    #[test]
+    fn test_replay_ok_empty_traces_are_ok() {
+        assert!(replay_ok(&[], &[]));
     }
 }

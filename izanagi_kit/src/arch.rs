@@ -182,6 +182,22 @@ impl<Row: Clone> ArchTable<Row> {
         self.dense.iter_mut().map(|(_, r)| r)
     }
 
+    /// Count rows for which `pred(entity, row)` returns `true`.
+    pub fn count_where<F>(&self, mut pred: F) -> usize
+    where
+        F: FnMut(Entity, &Row) -> bool,
+    {
+        self.dense.iter().filter(|(e, r)| pred(*e, r)).count()
+    }
+
+    /// Returns `true` if any row satisfies `pred(entity, row)`.
+    pub fn any<F>(&self, mut pred: F) -> bool
+    where
+        F: FnMut(Entity, &Row) -> bool,
+    {
+        self.dense.iter().any(|(e, r)| pred(*e, r))
+    }
+
     /// Swap the row data of `entity1` and `entity2`. Both entities must be
     /// present; returns `true` on success, `false` if either is absent.
     /// O(1) index lookups plus two O(size-of-Row) copies — cheaper than
@@ -555,5 +571,63 @@ mod tests {
         t.insert(e, Pos { x: 7, y: 3 });
         assert!(t.swap_rows(e, e));
         assert_eq!(t.get(e).unwrap(), &Pos { x: 7, y: 3 });
+    }
+
+    #[test]
+    fn test_count_where_matches_manual() {
+        let mut alloc = EntityAllocator::new();
+        let mut t: ArchTable<Pos> = ArchTable::new();
+        let e1 = alloc.allocate();
+        let e2 = alloc.allocate();
+        let e3 = alloc.allocate();
+        t.insert(e1, Pos { x: 1, y: 0 });
+        t.insert(e2, Pos { x: 2, y: 0 });
+        t.insert(e3, Pos { x: 3, y: 0 });
+        assert_eq!(t.count_where(|_, r| r.x > 1), 2);
+    }
+
+    #[test]
+    fn test_count_where_empty_returns_zero() {
+        let t: ArchTable<Pos> = ArchTable::new();
+        assert_eq!(t.count_where(|_, _| true), 0);
+    }
+
+    #[test]
+    fn test_count_where_all_match() {
+        let mut alloc = EntityAllocator::new();
+        let mut t: ArchTable<Pos> = ArchTable::new();
+        let e1 = alloc.allocate();
+        let e2 = alloc.allocate();
+        t.insert(e1, Pos { x: 5, y: 0 });
+        t.insert(e2, Pos { x: 5, y: 0 });
+        assert_eq!(t.count_where(|_, r| r.x == 5), 2);
+    }
+
+    #[test]
+    fn test_any_true_when_match_exists() {
+        let mut alloc = EntityAllocator::new();
+        let mut t: ArchTable<Pos> = ArchTable::new();
+        let e = alloc.allocate();
+        t.insert(e, Pos { x: 99, y: 0 });
+        assert!(t.any(|_, r| r.x == 99));
+        assert!(!t.any(|_, r| r.x == 0));
+    }
+
+    #[test]
+    fn test_any_false_on_empty_table() {
+        let t: ArchTable<Pos> = ArchTable::new();
+        assert!(!t.any(|_, _| true));
+    }
+
+    #[test]
+    fn test_any_checks_entity_id() {
+        let mut alloc = EntityAllocator::new();
+        let mut t: ArchTable<Pos> = ArchTable::new();
+        let e1 = alloc.allocate();
+        let e2 = alloc.allocate();
+        t.insert(e1, Pos { x: 0, y: 0 });
+        t.insert(e2, Pos { x: 0, y: 0 });
+        assert!(t.any(|e, _| e == e1));
+        assert!(!t.any(|e, _| e.index() == 999));
     }
 }
