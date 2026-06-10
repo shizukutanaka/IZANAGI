@@ -357,6 +357,15 @@ impl Fixed {
         self.0 < 0
     }
 
+    /// Returns `true` when the fractional part is exactly zero (i.e. the value
+    /// represents a whole number). Equivalent to `self.fract().is_zero()`.
+    /// Useful for grid-snapping guards ("only move if the position is on a cell
+    /// boundary") and animation completion checks.
+    #[inline]
+    pub fn is_integer(self) -> bool {
+        self.fract().is_zero()
+    }
+
     /// Integer exponentiation: `self` raised to `exp`, via repeated saturating
     /// multiplication. `pow(0)` is `Fixed::ONE` for any base; `pow(1)` is `self`
     /// exactly. Each multiply saturates (overflow pins to `Fixed::MAX`/`MIN`
@@ -929,6 +938,28 @@ mod tests {
         assert!(Fixed::from_int(-1).is_negative());
         assert!(!Fixed::ZERO.is_negative());
         assert!(!Fixed::ONE.is_negative());
+    }
+
+    #[test]
+    fn test_is_integer_whole_numbers() {
+        assert!(Fixed::from_int(0).is_integer());
+        assert!(Fixed::from_int(5).is_integer());
+        assert!(Fixed::from_int(-3).is_integer());
+    }
+
+    #[test]
+    fn test_is_integer_fractional_returns_false() {
+        assert!(!Fixed::from_ratio(1, 2).is_integer());
+        assert!(!Fixed::from_ratio(3, 4).is_integer());
+        assert!(!Fixed::from_ratio(-1, 3).is_integer());
+    }
+
+    #[test]
+    fn test_is_integer_floor_and_ceil() {
+        let v = Fixed::from_ratio(7, 2);
+        assert!(!v.is_integer());
+        assert!(v.floor().is_integer());
+        assert!(v.ceil().is_integer());
     }
 
     #[test]

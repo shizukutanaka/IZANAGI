@@ -66,6 +66,15 @@ impl FixedTimestep {
         self.accumulator_ns
     }
 
+    /// Total nanoseconds of simulation time stepped so far:
+    /// `total_steps × step_ns`. Saturating — wraps only at ~585 years of
+    /// 1-ns ticks. Useful for save files that record an in-game clock, and for
+    /// time-based event triggers that fire after N nanoseconds of simulation.
+    #[inline]
+    pub fn total_time_ns(&self) -> u64 {
+        self.total_steps.saturating_mul(self.step_ns)
+    }
+
     /// Deposits one real frame's elapsed time and returns how many fixed steps
     /// to run now. Surplus beyond `max_steps` is discarded (death-spiral guard).
     pub fn advance(&mut self, frame_ns: u64) -> u32 {
@@ -220,5 +229,31 @@ mod tests {
             b.advance(total / 200); // many small frames
         }
         assert_eq!(a.total_steps(), b.total_steps());
+    }
+
+    #[test]
+    fn test_total_time_ns_zero_before_any_steps() {
+        let ts = FixedTimestep::new(60, 5);
+        assert_eq!(ts.total_time_ns(), 0);
+    }
+
+    #[test]
+    fn test_total_time_ns_equals_steps_times_step_ns() {
+        let mut ts = FixedTimestep::new(60, 100);
+        let step = ts.step_ns();
+        ts.advance(step * 10);
+        assert_eq!(ts.total_time_ns(), ts.total_steps() * step);
+    }
+
+    #[test]
+    fn test_total_time_ns_consistent_across_pacing() {
+        let step = FixedTimestep::new(60, 1000).step_ns();
+        let mut a = FixedTimestep::new(60, 1000);
+        a.advance(step * 50);
+        let mut b = FixedTimestep::new(60, 1000);
+        for _ in 0..100 {
+            b.advance(step / 2);
+        }
+        assert_eq!(a.total_time_ns(), b.total_time_ns());
     }
 }

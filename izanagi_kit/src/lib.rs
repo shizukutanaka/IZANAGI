@@ -133,7 +133,9 @@ pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::{compute_fov, compute_fov_dist, fov_to_vec};
 pub use fsm::Fsm;
-pub use geometry::{diamond, line, line_of_sight, rect_contains, rect_perimeter, Distance};
+pub use geometry::{
+    diamond, line, line_of_sight, rect_contains, rect_perimeter, vec_toward, Distance,
+};
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;
 pub use inputbuf::InputBuffer;
@@ -152,7 +154,9 @@ pub use noise::{
 };
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
-pub use pathfinding::{astar, descend, dijkstra_map, smooth_path, step_toward, weighted_astar};
+pub use pathfinding::{
+    astar, descend, dijkstra_map, flood_fill, smooth_path, step_toward, weighted_astar,
+};
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use random_table::RandomTable;
 pub use relations::Relations;

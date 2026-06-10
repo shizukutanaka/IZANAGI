@@ -391,6 +391,45 @@ where
     astar(start, goal, is_blocked).is_some()
 }
 
+/// BFS from `start`, collecting all cells reachable within `max_dist` steps
+/// (orthogonal or diagonal, non-corner-cutting). `start` itself is always
+/// included unless `is_blocked(start)` is `true`. Returns cells in BFS
+/// expansion order — deterministic because the 8-direction neighbour order is
+/// fixed (same compass order as A*). Use for "reveal connected room",
+/// "spread fire", and "count reachable floor cells" patterns.
+pub fn flood_fill<B>(start: (i32, i32), max_dist: i32, mut is_blocked: B) -> Vec<(i32, i32)>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    if max_dist < 0 || is_blocked(start.0, start.1) {
+        return Vec::new();
+    }
+    let mut visited: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut queue = std::collections::VecDeque::new();
+    visited.insert(start, 0);
+    queue.push_back((start.0, start.1, 0i32));
+    let mut result = Vec::new();
+    while let Some((cx, cy, dist)) = queue.pop_front() {
+        result.push((cx, cy));
+        if dist >= max_dist {
+            continue;
+        }
+        for (dx, dy) in DIRS {
+            let (nx, ny) = (cx + dx, cy + dy);
+            if visited.contains_key(&(nx, ny)) || is_blocked(nx, ny) {
+                continue;
+            }
+            let diagonal = dx != 0 && dy != 0;
+            if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                continue;
+            }
+            visited.insert((nx, ny), dist + 1);
+            queue.push_back((nx, ny, dist + 1));
+        }
+    }
+    result
+}
+
 /// Returns `true` when the Bresenham segment from `a` to `b` has no blocked
 /// interior cells (endpoints are not checked — same semantics as `line_of_sight`
 /// in `geometry`).
@@ -824,5 +863,29 @@ mod tests {
             (3, 3),
             blocker(10, 10, HashSet::new())
         ));
+    }
+
+    #[test]
+    fn test_flood_fill_open_area() {
+        let cells = flood_fill((5, 5), 2, |_x, _y| false);
+        // All cells within Chebyshev 2 of (5,5) = (2*2+1)^2 = 25 cells.
+        assert_eq!(cells.len(), 25);
+        for &(x, y) in &cells {
+            let dx = (x - 5).abs();
+            let dy = (y - 5).abs();
+            assert!(dx.max(dy) <= 2);
+        }
+    }
+
+    #[test]
+    fn test_flood_fill_blocked_start_returns_empty() {
+        let cells = flood_fill((0, 0), 5, |x, y| x == 0 && y == 0);
+        assert!(cells.is_empty());
+    }
+
+    #[test]
+    fn test_flood_fill_zero_max_dist_is_just_start() {
+        let cells = flood_fill((3, 7), 0, |_x, _y| false);
+        assert_eq!(cells, vec![(3, 7)]);
     }
 }

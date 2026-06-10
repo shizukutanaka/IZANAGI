@@ -52,6 +52,14 @@ impl Fnv1a {
         self.write_bytes(&value.to_le_bytes());
     }
 
+    /// Hash a 16-bit unsigned integer in little-endian byte order.
+    /// Fills the gap between `write_bytes(&[u8])` and `write_u32` for
+    /// 16-bit state values (e.g., tile IDs, screen dimensions, colour channels).
+    #[inline]
+    pub fn write_u16(&mut self, value: u16) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
     /// Hash a signed 64-bit integer in little-endian byte order.
     /// Completes the integer-write family alongside `write_u32`, `write_u64`,
     /// and `write_i32`. Useful for hashing large tick counters, cumulative
@@ -95,6 +103,13 @@ impl DetHash for u8 {
     #[inline]
     fn det_hash(&self, hasher: &mut Fnv1a) {
         hasher.write_u32(*self as u32);
+    }
+}
+
+impl DetHash for u16 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u16(*self);
     }
 }
 
@@ -297,5 +312,30 @@ mod tests {
         let mut b = Fnv1a::new();
         b.write_bytes(&[]);
         assert_eq!(a.finish(), b.finish());
+    }
+
+    #[test]
+    fn test_write_u16_differs_from_empty() {
+        let mut h = Fnv1a::new();
+        h.write_u16(0xABCD);
+        assert_ne!(h.finish(), Fnv1a::new().finish());
+    }
+
+    #[test]
+    fn test_u16_det_hash_matches_write_u16() {
+        let val: u16 = 0x1234;
+        let h1 = hash_state(&val);
+        let mut h = Fnv1a::new();
+        h.write_u16(val);
+        assert_eq!(h1, h.finish());
+    }
+
+    #[test]
+    fn test_u16_distinct_values_produce_distinct_hashes() {
+        let h1 = hash_state(&(0u16));
+        let h2 = hash_state(&(1u16));
+        let h3 = hash_state(&(u16::MAX));
+        assert_ne!(h1, h2);
+        assert_ne!(h2, h3);
     }
 }

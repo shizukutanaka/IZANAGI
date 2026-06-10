@@ -121,6 +121,75 @@ pub fn first_diff(a: &Content, b: &Content) -> Option<String> {
     None
 }
 
+/// Collect **all** semantic differences between `a` and `b` as human-readable
+/// strings, in the order they are discovered. Returns an empty `Vec` when
+/// `content_eq(a, b)` is `true`. Unlike [`first_diff`], which stops at the
+/// first divergence, `diff` provides a complete picture — useful for "show
+/// all errors after a failed round-trip" debugging and structured test output.
+pub fn diff(a: &Content, b: &Content) -> Vec<String> {
+    let mut out = Vec::new();
+    if a.prefabs.len() != b.prefabs.len() {
+        out.push(format!(
+            "prefab count {} vs {}",
+            a.prefabs.len(),
+            b.prefabs.len()
+        ));
+    }
+    if a.tiles.len() != b.tiles.len() {
+        out.push(format!("tile count {} vs {}", a.tiles.len(), b.tiles.len()));
+    }
+    if a.levels.len() != b.levels.len() {
+        out.push(format!(
+            "level count {} vs {}",
+            a.levels.len(),
+            b.levels.len()
+        ));
+    }
+    for (i, (pa, pb)) in a.prefabs.iter().zip(&b.prefabs).enumerate() {
+        if pa.name != pb.name {
+            out.push(format!("prefab[{i}].name {:?} vs {:?}", pa.name, pb.name));
+        }
+        if pa.glyph != pb.glyph {
+            out.push(format!(
+                "prefab[{i}].glyph {:?} vs {:?}",
+                pa.glyph, pb.glyph
+            ));
+        }
+        if pa.color != pb.color {
+            out.push(format!(
+                "prefab[{i}].color {:?} vs {:?}",
+                pa.color, pb.color
+            ));
+        }
+        if pa.stats != pb.stats {
+            out.push(format!("prefab[{i}].stats differ"));
+        }
+        if pa.flags != pb.flags {
+            out.push(format!("prefab[{i}].flags differ"));
+        }
+    }
+    for (i, (ta, tb)) in a.tiles.iter().zip(&b.tiles).enumerate() {
+        if ta.name != tb.name {
+            out.push(format!("tile[{i}].name {:?} vs {:?}", ta.name, tb.name));
+        }
+        if ta.glyph != tb.glyph {
+            out.push(format!("tile[{i}].glyph {:?} vs {:?}", ta.glyph, tb.glyph));
+        }
+        if ta.color != tb.color {
+            out.push(format!("tile[{i}].color {:?} vs {:?}", ta.color, tb.color));
+        }
+    }
+    for (i, (la, lb)) in a.levels.iter().zip(&b.levels).enumerate() {
+        if la.name != lb.name {
+            out.push(format!("level[{i}].name {:?} vs {:?}", la.name, lb.name));
+        }
+        if la.rows != lb.rows {
+            out.push(format!("level[{i}].rows differ"));
+        }
+    }
+    out
+}
+
 fn prefabs_eq(a: &Content, b: &Content) -> bool {
     if a.prefabs.len() != b.prefabs.len() {
         return false;
@@ -244,8 +313,33 @@ level cave 5x3
         let (a, _) = parse(SAMPLE);
         let modified = SAMPLE.replace("  row #.g.#", "  row #####");
         let (b, _) = parse(&modified);
-        let diff = first_diff(&a, &b);
-        assert!(diff.is_some());
-        assert!(diff.as_ref().unwrap().contains("rows"), "got: {diff:?}");
+        let d = first_diff(&a, &b);
+        assert!(d.is_some());
+        assert!(d.as_ref().unwrap().contains("rows"), "got: {d:?}");
+    }
+
+    #[test]
+    fn test_diff_equal_content_is_empty() {
+        let (c1, _) = parse(SAMPLE);
+        let (c2, _) = parse(SAMPLE);
+        assert!(diff(&c1, &c2).is_empty());
+    }
+
+    #[test]
+    fn test_diff_collects_count_mismatch() {
+        let (a, _) = parse(SAMPLE);
+        let (b, _) = parse("tile floor . #3A3A3A\n");
+        let ds = diff(&a, &b);
+        assert!(!ds.is_empty(), "expected at least one diff");
+        assert!(ds.iter().any(|s| s.contains("prefab count")), "got: {ds:?}");
+    }
+
+    #[test]
+    fn test_diff_reports_row_change() {
+        let (a, _) = parse(SAMPLE);
+        let modified = SAMPLE.replace("  row #.g.#", "  row #####");
+        let (b, _) = parse(&modified);
+        let ds = diff(&a, &b);
+        assert!(ds.iter().any(|s| s.contains("rows")), "got: {ds:?}");
     }
 }

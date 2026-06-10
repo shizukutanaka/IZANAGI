@@ -199,6 +199,21 @@ impl SplitMix64 {
         self.coin(1, 2)
     }
 
+    /// Return a uniformly random grid point `(x, y)` inside the half-open
+    /// rectangle `[x, x+w) × [y, y+h)`. Draws exactly two values when both
+    /// dimensions are positive; returns the corner `(x, y)` without drawing for
+    /// degenerate rectangles (`w ≤ 0` or `h ≤ 0`). The canonical random-spawn
+    /// primitive for bounded rooms and rectangular spawn regions.
+    pub fn within_rect(&mut self, x: i32, y: i32, w: i32, h: i32) -> (i32, i32) {
+        if w <= 0 || h <= 0 {
+            return (x, y);
+        }
+        (
+            self.range(x, x.saturating_add(w)),
+            self.range(y, y.saturating_add(h)),
+        )
+    }
+
     /// Advance the stream by exactly `n` draws, discarding all output. Use for
     /// deterministic "skip-ahead": two callers that seed identically and each
     /// call `skip(k)` before sampling will produce the same values as if they
@@ -675,5 +690,32 @@ mod tests {
         let mut r = SplitMix64::new(0xABCD);
         let v = r.range_u32(0, u32::MAX);
         assert!(v < u32::MAX);
+    }
+
+    #[test]
+    fn test_within_rect_stays_inside() {
+        let mut r = SplitMix64::new(42);
+        for _ in 0..200 {
+            let (x, y) = r.within_rect(10, 20, 5, 8);
+            assert!((10..15).contains(&x), "x={x} not in [10,15)");
+            assert!((20..28).contains(&y), "y={y} not in [20,28)");
+        }
+    }
+
+    #[test]
+    fn test_within_rect_degenerate_no_draw() {
+        let mut r = SplitMix64::new(7);
+        let s0 = r.state();
+        assert_eq!(r.within_rect(3, 4, 0, 5), (3, 4));
+        assert_eq!(r.within_rect(3, 4, 5, 0), (3, 4));
+        assert_eq!(r.within_rect(3, 4, -1, 3), (3, 4));
+        assert_eq!(r.state(), s0, "degenerate rect must not draw");
+    }
+
+    #[test]
+    fn test_within_rect_1x1_returns_corner() {
+        let mut r = SplitMix64::new(99);
+        let (x, y) = r.within_rect(-5, 7, 1, 1);
+        assert_eq!((x, y), (-5, 7));
     }
 }

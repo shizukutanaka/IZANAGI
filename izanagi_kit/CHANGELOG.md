@@ -1260,6 +1260,42 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   occupied slot satisfies `pred`. Short-circuits on the first match.
   The "do I have at least one potion?" check without index arithmetic or
   collecting a temporary `Vec`.
+- `fixed::Fixed::is_integer() -> bool`: `true` when the fractional part is
+  exactly zero (whole-number value). Equivalent to `self.fract().is_zero()`.
+  Useful for grid-snapping guards ("only move if position is on a cell
+  boundary") and animation completion checks.
+- `rng::SplitMix64::within_rect(x, y, w, h) -> (i32, i32)`: uniform random
+  grid point in `[x, x+w) × [y, y+h)`. Draws exactly two values for valid
+  rectangles; returns corner `(x, y)` without drawing for degenerate `w ≤ 0`
+  or `h ≤ 0`. The canonical random-spawn primitive for bounded rooms.
+- `world_hash::Fnv1a::write_u16(v: u16)` + `impl DetHash for u16`: fills
+  the gap between `u8` and `u32` in the write family. Folds two little-endian
+  bytes into the hasher. Useful for 16-bit tile IDs, screen dimensions, and
+  colour channel pairs that need to participate in world checksums.
+- `timestep::FixedTimestep::total_time_ns() -> u64`: total nanoseconds of
+  simulation time stepped so far (`total_steps × step_ns`, saturating). Used
+  for save files that record an in-game clock and for time-based event triggers
+  that fire after N nanoseconds of simulation.
+- `geometry::vec_toward(from, to) -> (i32, i32)`: unit direction vector from
+  `from` toward `to` — each component is `−1`, `0`, or `+1`. Returns `(0, 0)`
+  for same-point input. The cheapest "which way should I face?" primitive for
+  enemy AI and melee direction indicators. Re-exported at the crate root.
+- `pathfinding::flood_fill(start, max_dist, is_blocked) -> Vec<(i32,i32)>`:
+  BFS collecting all passable cells reachable from `start` within `max_dist`
+  steps (8-directional, no corner-cutting). Returns cells in BFS order
+  (deterministic — fixed compass neighbour order). Use for "reveal connected
+  room", "spread fire", and "count reachable floor cells" patterns.
+  Re-exported at the crate root.
+- `terminal::Screen::draw_h_line(x, y, len, glyph, fg, bg)`: draw a
+  horizontal run of `len` cells all set to `glyph`/`fg`/`bg`. Out-of-bounds
+  cells are silently clipped. The common separator line primitive for HUD
+  panels and dialogue box dividers — avoids the allocation overhead of
+  `draw_line` for the purely horizontal case.
+- `serializer::diff(a, b) -> Vec<String>`: collect **all** semantic
+  differences between two `Content` values in discovery order. Unlike
+  `first_diff` (stops at first divergence), `diff` provides a complete picture
+  — useful for "show all errors after a failed round-trip" debugging and
+  structured test output. Returns an empty `Vec` when `content_eq(a, b)`.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

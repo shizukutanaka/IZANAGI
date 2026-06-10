@@ -230,6 +230,16 @@ impl Screen {
         }
     }
 
+    /// Draw a horizontal run of `len` cells at row `y` starting at column `x`,
+    /// all set to `glyph`/`fg`/`bg`. Out-of-bounds cells are silently clipped
+    /// via the existing `set` contract. Equivalent to `draw_line((x,y),(x+len-1,y),…)`
+    /// but avoids the allocation and sign-flip path of the Bresenham fallback.
+    pub fn draw_h_line(&mut self, x: i32, y: i32, len: u32, glyph: char, fg: Color, bg: Color) {
+        for i in 0..len as i32 {
+            self.set(x + i, y, glyph, fg, bg);
+        }
+    }
+
     /// Resize the screen to `width × height`, discarding all previous content.
     /// Both the front and back buffers are reset to blank cells.
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -467,5 +477,33 @@ mod tests {
     fn test_draw_double_box_clipped_no_panic() {
         let mut s = Screen::new(4, 4);
         s.draw_double_box(-1, -1, 6, 6, DEFAULT_FG, DEFAULT_BG); // must not panic
+    }
+
+    #[test]
+    fn test_draw_h_line_sets_correct_cells() {
+        let mut s = Screen::new(10, 5);
+        s.draw_h_line(2, 1, 4, '-', DEFAULT_FG, DEFAULT_BG);
+        for x in 2i32..6 {
+            assert_eq!(s.get(x, 1).unwrap().glyph, '-', "x={x}");
+        }
+        // Cells before and after should remain blank.
+        assert_eq!(s.get(1, 1).unwrap().glyph, ' ');
+        assert_eq!(s.get(6, 1).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_h_line_zero_len_is_noop() {
+        let mut s = Screen::new(8, 4);
+        s.draw_h_line(0, 0, 0, 'X', DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_h_line_clips_out_of_bounds() {
+        let mut s = Screen::new(5, 3);
+        s.draw_h_line(-2, 1, 10, '*', DEFAULT_FG, DEFAULT_BG); // must not panic
+        for x in 0i32..5 {
+            assert_eq!(s.get(x, 1).unwrap().glyph, '*', "x={x}");
+        }
     }
 }

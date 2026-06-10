@@ -312,6 +312,16 @@ pub fn midpoint(a: (i32, i32), b: (i32, i32)) -> (i32, i32) {
     (a.0 + (b.0 - a.0) / 2, a.1 + (b.1 - a.1) / 2)
 }
 
+/// Unit direction vector from `from` toward `to` — each component is `−1`, `0`,
+/// or `+1` (the sign of the difference). Returns `(0, 0)` when `from == to`.
+/// The cheapest "which way should I face?" primitive for enemy AI and melee
+/// indicators. Does **not** check passability; use [`crate::pathfinding::step_toward`]
+/// for passability-aware movement.
+#[inline]
+pub fn vec_toward(from: (i32, i32), to: (i32, i32)) -> (i32, i32) {
+    ((to.0 - from.0).signum(), (to.1 - from.1).signum())
+}
+
 /// Floor of the square root of a non-negative `i64`, computed with integer
 /// arithmetic only (Newton's method). `isqrt(n)² <= n < (isqrt(n)+1)²`.
 fn isqrt(n: i64) -> i64 {
@@ -738,5 +748,30 @@ mod tests {
     #[test]
     fn test_midpoint_same_point_is_itself() {
         assert_eq!(midpoint((5, 7), (5, 7)), (5, 7));
+    }
+
+    #[test]
+    fn test_vec_toward_cardinal_directions() {
+        assert_eq!(vec_toward((0, 0), (5, 0)), (1, 0));
+        assert_eq!(vec_toward((0, 0), (-3, 0)), (-1, 0));
+        assert_eq!(vec_toward((0, 0), (0, 10)), (0, 1));
+        assert_eq!(vec_toward((0, 0), (0, -7)), (0, -1));
+    }
+
+    #[test]
+    fn test_vec_toward_diagonal_and_same() {
+        assert_eq!(vec_toward((3, 3), (7, 1)), (1, -1));
+        assert_eq!(vec_toward((3, 3), (1, 9)), (-1, 1));
+        assert_eq!(vec_toward((5, 5), (5, 5)), (0, 0));
+    }
+
+    #[test]
+    fn test_vec_toward_components_are_unit() {
+        for dx in -2i32..=2 {
+            for dy in -2i32..=2 {
+                let (vx, vy) = vec_toward((0, 0), (dx * 100, dy * 100));
+                assert!(vx.abs() <= 1 && vy.abs() <= 1);
+            }
+        }
     }
 }
