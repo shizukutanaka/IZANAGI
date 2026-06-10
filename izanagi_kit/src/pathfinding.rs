@@ -430,6 +430,55 @@ where
     result
 }
 
+/// BFS from `start`, returning the nearest passable non-start cell for which
+/// `pred(x, y)` is `true`. "Nearest" is BFS depth (hop count), which is
+/// deterministic because neighbours are expanded in the fixed `DIRS` compass
+/// order. Uses the same corner-cutting rule as `flood_fill`: a diagonal move
+/// is only taken when both adjacent orthogonal cells are passable.
+///
+/// `is_passable(x, y)` must return `false` for out-of-bounds cells (the
+/// search terminates naturally when no passable neighbours can be found).
+/// `pred` is tested only on passable cells; if the target cell itself may be
+/// blocked, widen `is_passable` to include it.
+///
+/// Returns `None` when no reachable cell satisfies `pred` or when `start` is
+/// itself impassable.
+pub fn nearest_reachable<P, F>(
+    start: (i32, i32),
+    mut is_passable: P,
+    mut pred: F,
+) -> Option<(i32, i32)>
+where
+    P: FnMut(i32, i32) -> bool,
+    F: FnMut(i32, i32) -> bool,
+{
+    if !is_passable(start.0, start.1) {
+        return None;
+    }
+    let mut visited = std::collections::HashSet::new();
+    let mut queue = std::collections::VecDeque::new();
+    visited.insert(start);
+    queue.push_back(start);
+    while let Some((cx, cy)) = queue.pop_front() {
+        for (dx, dy) in DIRS {
+            let (nx, ny) = (cx + dx, cy + dy);
+            if visited.contains(&(nx, ny)) || !is_passable(nx, ny) {
+                continue;
+            }
+            let diagonal = dx != 0 && dy != 0;
+            if diagonal && (!is_passable(cx + dx, cy) || !is_passable(cx, cy + dy)) {
+                continue;
+            }
+            visited.insert((nx, ny));
+            if pred(nx, ny) {
+                return Some((nx, ny));
+            }
+            queue.push_back((nx, ny));
+        }
+    }
+    None
+}
+
 /// Returns `true` when the Bresenham segment from `a` to `b` has no blocked
 /// interior cells (endpoints are not checked — same semantics as `line_of_sight`
 /// in `geometry`).
@@ -887,5 +936,38 @@ mod tests {
     fn test_flood_fill_zero_max_dist_is_just_start() {
         let cells = flood_fill((3, 7), 0, |_x, _y| false);
         assert_eq!(cells, vec![(3, 7)]);
+    }
+
+    // --- nearest_reachable --------------------------------------------------
+
+    #[test]
+    fn test_nearest_reachable_finds_first_matching_cell() {
+        // Open 10×10 grid; start = (0,0); target = (3,3) and (7,7).
+        let pass = blocker(10, 10, HashSet::new());
+        // Find first cell with x==y==3; BFS should reach it before (7,7).
+        let result = nearest_reachable((0, 0), |x, y| !pass(x, y), |x, y| x == 3 && y == 3);
+        assert_eq!(result, Some((3, 3)));
+    }
+
+    #[test]
+    fn test_nearest_reachable_impassable_start_returns_none() {
+        // Start cell is itself blocked → None immediately.
+        let result = nearest_reachable(
+            (5, 5),
+            |x, y| !(x == 5 && y == 5), // (5,5) is impassable
+            |_x, _y| true,
+        );
+        assert_eq!(result, None);
+    }
+
+    #[test]
+    fn test_nearest_reachable_no_match_returns_none() {
+        // A 3×3 open grid; pred is never true → None.
+        let result = nearest_reachable(
+            (1, 1),
+            |x, y| x >= 0 && y >= 0 && x < 3 && y < 3,
+            |_x, _y| false,
+        );
+        assert_eq!(result, None);
     }
 }

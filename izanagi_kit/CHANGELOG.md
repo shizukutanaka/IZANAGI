@@ -7,6 +7,34 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `rng::SplitMix64::sample_n<T: Clone>(slice, n) -> Vec<T>`: partial Fisher-Yates
+  without-replacement sampling — returns exactly `min(n, slice.len())` distinct
+  elements in a uniformly random order. Draws one value per selected element, so
+  the draw count is deterministic: `min(n, len)` draws. Empty slice or `n == 0`
+  returns `Vec::new()` without drawing. The canonical "pick k items from a pool"
+  primitive for loot tables, draft mechanics, and random encounter rosters.
+  Replay-safe.
+- `pathfinding::nearest_reachable<P, F>(start, is_passable, pred) -> Option<(i32,i32)>`:
+  BFS to the nearest passable cell satisfying `pred`, starting from `start`.
+  Returns `None` when `start` is not passable, or when no reachable cell matches
+  the predicate. Uses the same 8-directional DIRS compass order and no-corner-
+  cutting rule as `flood_fill`. Useful for "find the nearest exit / altar /
+  healing station" AI and spawn-placement queries. Re-exported at the crate root.
+- `combat::StatsModifier { attack, defense, max_hp }`: additive stat modifier
+  struct. `Stats::modified(&self, modifier: &StatsModifier) -> Stats` applies
+  the modifier to a snapshot: adds each field, clamps `max_hp` at 0, and clamps
+  `hp` to the new ceiling. Pure function — does not mutate the receiver.
+  Deterministic and replay-safe; suitable for buff/debuff preview and item
+  stat sheets. Re-exported at the crate root.
+- `combat::splash_attack(attacker, targets, falloff) -> Vec<i32>`: area-of-effect
+  attack — delivers `max(1, attack − falloff×i − defense)` damage to each target
+  in `targets` (index 0 = primary hit, `i ≥ 1` = splash), returning the damage
+  dealt per target. Applies damage in place via `take_damage`. No RNG involved —
+  deterministic given fixed inputs. Re-exported at the crate root.
+- `lib.rs`: re-export `apply_resistance`, `splash_attack`, `StatsModifier`
+  (combat) and `is_reachable`, `nearest_reachable`, `octile_distance`, `path_cost`
+  (pathfinding) at the crate root — closing four previously unexported public
+  functions.
 - `assets::AssetStore::remove_where<F>(pred) -> usize`: bulk-remove all assets for
   which `pred(&asset)` returns `true`. Returns the count removed. Simpler than
   `retain` for "remove all expired / dead items" patterns that don't need the handle.

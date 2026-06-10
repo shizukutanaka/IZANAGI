@@ -115,8 +115,8 @@ pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
 pub use combat::{
-    base_damage, critical_strike, melee_attack, ranged_attack, roll_damage, roll_to_hit, Stats,
-    StrikeResult,
+    apply_resistance, base_damage, critical_strike, melee_attack, ranged_attack, roll_damage,
+    roll_to_hit, splash_attack, Stats, StatsModifier, StrikeResult,
 };
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use diag_json::severity_filter;
@@ -155,7 +155,8 @@ pub use noise::{
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{
-    astar, descend, dijkstra_map, flood_fill, smooth_path, step_toward, weighted_astar,
+    astar, descend, dijkstra_map, flood_fill, is_reachable, nearest_reachable, octile_distance,
+    path_cost, smooth_path, step_toward, weighted_astar,
 };
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use random_table::RandomTable;

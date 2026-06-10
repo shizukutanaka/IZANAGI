@@ -147,6 +147,44 @@ impl DetHash for Stats {
 }
 
 // ---------------------------------------------------------------------------
+// Stat modifiers
+// ---------------------------------------------------------------------------
+
+/// Additive stat modifier applied to a [`Stats`] snapshot — for equipment,
+/// spells, and buffs that temporarily or permanently change a combatant's
+/// capabilities. All fields are signed: positive = bonus, negative = penalty.
+/// Apply with [`Stats::modified`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct StatsModifier {
+    /// Bonus or penalty added to `attack`.
+    pub attack: i32,
+    /// Bonus or penalty added to `defense`.
+    pub defense: i32,
+    /// Bonus or penalty added to `max_hp`. A positive value increases the HP
+    /// ceiling; a negative value reduces it (current HP is clamped to the new
+    /// ceiling). `max_hp` is always clamped to `≥ 0` after application.
+    pub max_hp: i32,
+}
+
+impl Stats {
+    /// Return a new `Stats` with `modifier` applied additively.
+    ///
+    /// `max_hp` is clamped to `≥ 0`; current `hp` is clamped to the new
+    /// `max_hp` (it can only decrease — the modifier does not heal). `attack`
+    /// and `defense` are unbounded signed integers; callers should validate
+    /// that gameplay invariants hold after application.
+    pub fn modified(&self, modifier: &StatsModifier) -> Stats {
+        let new_max_hp = (self.max_hp + modifier.max_hp).max(0);
+        Stats {
+            hp: self.hp.min(new_max_hp),
+            max_hp: new_max_hp,
+            attack: self.attack + modifier.attack,
+            defense: self.defense + modifier.defense,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Combat resolution
 // ---------------------------------------------------------------------------
 
@@ -241,6 +279,31 @@ pub fn ranged_attack(
     } else {
         None
     }
+}
+
+/// Apply area-of-effect damage from `attacker` to every target in `targets`.
+///
+/// The attacker's effective attack is reduced by `falloff` for each successive
+/// target: target `i` receives `max(1, attacker.attack − falloff · i)` raw
+/// damage, then the target's own defense is subtracted (`max(1, raw −
+/// target.defense)`). Every target always takes at least 1 damage.
+///
+/// Returns a `Vec<i32>` of the actual damage dealt to each target, in order.
+/// Returns an empty `Vec` for an empty slice (no side effects, no RNG draw).
+///
+/// Typical use: `splash_attack(&mage, &mut targets, 3)` — a fireball centred
+/// on the primary target, with each outer ring taking 3 less raw damage.
+pub fn splash_attack(attacker: &Stats, targets: &mut [Stats], falloff: i32) -> Vec<i32> {
+    targets
+        .iter_mut()
+        .enumerate()
+        .map(|(i, target)| {
+            let raw = (attacker.attack - falloff * i as i32).max(1);
+            let dmg = (raw - target.defense).max(1);
+            target.take_damage(dmg);
+            dmg
+        })
+        .collect()
 }
 
 /// Reduce `damage` by a percentage resistance, clamping `resist_percent`
@@ -676,5 +739,85 @@ mod tests {
             defense: 0,
         };
         assert!(s.is_full_hp());
+    }
+
+    // --- StatsModifier / modified -------------------------------------------
+
+    #[test]
+    fn test_modified_applies_attack_bonus() {
+        let base = Stats::new(20, 5, 2);
+        let m = StatsModifier {
+            attack: 3,
+            defense: 0,
+            max_hp: 0,
+        };
+        let s = base.modified(&m);
+        assert_eq!(s.attack, 8);
+        assert_eq!(s.defense, 2);
+        assert_eq!(s.max_hp, 20);
+        assert_eq!(s.hp, 20);
+    }
+
+    #[test]
+    fn test_modified_max_hp_reduction_clamps_hp() {
+        let mut base = Stats::new(20, 5, 2);
+        base.take_damage(5); // hp = 15
+        let m = StatsModifier {
+            attack: 0,
+            defense: 0,
+            max_hp: -10, // new max_hp = 10
+        };
+        let s = base.modified(&m);
+        assert_eq!(s.max_hp, 10);
+        assert_eq!(s.hp, 10); // clamped from 15
+    }
+
+    #[test]
+    fn test_modified_max_hp_floor_at_zero() {
+        let base = Stats::new(10, 5, 2);
+        let m = StatsModifier {
+            attack: 0,
+            defense: 0,
+            max_hp: -999,
+        };
+        let s = base.modified(&m);
+        assert_eq!(s.max_hp, 0);
+        assert_eq!(s.hp, 0);
+    }
+
+    // --- splash_attack -------------------------------------------------------
+
+    #[test]
+    fn test_splash_attack_all_targets_take_damage() {
+        let att = Stats::new(20, 10, 0); // attack=10
+        let mut targets = vec![
+            Stats::new(30, 1, 2), // defense=2, takes max(1, 10-0-2)=8
+            Stats::new(30, 1, 2), // takes max(1, 10-3-2)=5
+            Stats::new(30, 1, 2), // takes max(1, 10-6-2)=2
+        ];
+        let dmgs = splash_attack(&att, &mut targets, 3);
+        assert_eq!(dmgs, vec![8, 5, 2]);
+        assert_eq!(targets[0].hp, 22);
+        assert_eq!(targets[1].hp, 25);
+        assert_eq!(targets[2].hp, 28);
+    }
+
+    #[test]
+    fn test_splash_attack_minimum_one_damage() {
+        let att = Stats::new(20, 1, 0); // attack=1
+        let mut targets = vec![
+            Stats::new(30, 1, 0), // raw=1 → dmg=1
+            Stats::new(30, 1, 0), // raw=max(1,1-5)=1 → dmg=1
+        ];
+        let dmgs = splash_attack(&att, &mut targets, 5);
+        assert_eq!(dmgs, vec![1, 1]);
+        assert!(targets.iter().all(|t| t.hp == 29));
+    }
+
+    #[test]
+    fn test_splash_attack_empty_targets_is_noop() {
+        let att = Stats::new(20, 10, 0);
+        let dmgs = splash_attack(&att, &mut [], 3);
+        assert!(dmgs.is_empty());
     }
 }

@@ -236,6 +236,24 @@ impl SplitMix64 {
     pub fn with_state(state: u64) -> Self {
         Self { state }
     }
+
+    /// Sample up to `n` items from `slice` **without replacement**, returning
+    /// them as a cloned `Vec`. If `n >= slice.len()`, returns a shuffled copy
+    /// of the whole slice. Draws `min(n, len).saturating_sub(1)` times — a
+    /// partial Fisher-Yates on a local index copy so `slice` is never modified.
+    /// Returns an empty `Vec` when `slice` is empty or `n == 0` (no draws).
+    pub fn sample_n<T: Clone>(&mut self, slice: &[T], n: usize) -> Vec<T> {
+        let k = n.min(slice.len());
+        if k == 0 {
+            return Vec::new();
+        }
+        let mut indices: Vec<usize> = (0..slice.len()).collect();
+        for i in 0..k {
+            let j = i + self.below((slice.len() - i) as u32) as usize;
+            indices.swap(i, j);
+        }
+        indices[..k].iter().map(|&i| slice[i].clone()).collect()
+    }
 }
 
 impl crate::world_hash::DetHash for SplitMix64 {
@@ -717,5 +735,42 @@ mod tests {
         let mut r = SplitMix64::new(99);
         let (x, y) = r.within_rect(-5, 7, 1, 1);
         assert_eq!((x, y), (-5, 7));
+    }
+
+    // --- sample_n -----------------------------------------------------------
+
+    #[test]
+    fn test_sample_n_returns_distinct_items() {
+        let items = vec![10u32, 20, 30, 40, 50];
+        let mut rng = SplitMix64::new(42);
+        let sample = rng.sample_n(&items, 3);
+        assert_eq!(sample.len(), 3);
+        // All returned items must be from the source slice.
+        assert!(sample.iter().all(|v| items.contains(v)));
+        // No duplicates (without-replacement).
+        let mut sorted = sample.clone();
+        sorted.dedup();
+        assert_eq!(sorted.len(), 3);
+    }
+
+    #[test]
+    fn test_sample_n_zero_returns_empty_without_drawing() {
+        let items = vec![1u32, 2, 3];
+        let mut rng = SplitMix64::new(7);
+        let state_before = rng.state();
+        let sample = rng.sample_n(&items, 0);
+        assert!(sample.is_empty());
+        assert_eq!(rng.state(), state_before, "n=0 must not draw");
+    }
+
+    #[test]
+    fn test_sample_n_more_than_len_returns_all() {
+        let items = vec!['a', 'b', 'c'];
+        let mut rng = SplitMix64::new(55);
+        let sample = rng.sample_n(&items, 100);
+        assert_eq!(sample.len(), 3);
+        let mut got: Vec<char> = sample.clone();
+        got.sort();
+        assert_eq!(got, vec!['a', 'b', 'c']);
     }
 }
