@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fixed::Fixed::pow2(self) -> Fixed`: squared value (`self.mul(self)`). Saves
+  the `x.mul(x)` pattern in squared-distance checks and quadratic formulas.
+- `pathfinding::path_to_direction_vec(path) -> Vec<(i32, i32)>`: convert a
+  waypoint list to unit-direction steps. Each `(a, b)` pair yields
+  `(sign(dx), sign(dy))`. Empty/single-point paths return empty Vec.
+- `spatial_hash::SpatialHash::all_occupied_cells() -> Vec<(i32, i32)>`:
+  collect all non-empty cell coordinates. Useful for "rescan all regions" and
+  debug visualisation without traversing all world entities.
+- `world_hash::Fnv1a::write_bool(value: bool)`: explicit bool writer (0/1 byte).
+  Completes the write-family; avoids `as u8` casts in `DetHash` impls.
+- `loader::LoadedLevel::entities_in_rect(x, y, w, h) -> Vec<Entity>`: all
+  entities whose position lies within `[x, x+w) × [y, y+h)`. Avoids building
+  a separate spatial index for "all actors in this room" queries.
 - `msglog::MsgLog::drain_oldest(n: usize) -> Vec<String>`: remove and return up
   to `n` oldest messages in FIFO order, advancing the ring-buffer head. Use for
   log-rotation ("save recent messages only") without allocating a full snapshot.

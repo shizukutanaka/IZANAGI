@@ -403,6 +403,18 @@ pub fn is_path_clear<B: FnMut(i32, i32) -> bool>(path: &[(i32, i32)], mut is_blo
     path.iter().all(|&(x, y)| !is_blocked(x, y))
 }
 
+/// Convert a sequence of waypoints into unit direction vectors between
+/// consecutive cells. For each pair `(a, b)` of adjacent path entries the
+/// result contains `((b.0−a.0).signum(), (b.1−a.1).signum())`. Returns an
+/// empty `Vec` for paths of length `< 2`. Useful for driving animation ("face
+/// this direction on each step") and smooth movement without storing full
+/// coordinates.
+pub fn path_to_direction_vec(path: &[(i32, i32)]) -> Vec<(i32, i32)> {
+    path.windows(2)
+        .map(|w| ((w[1].0 - w[0].0).signum(), (w[1].1 - w[0].1).signum()))
+        .collect()
+}
+
 /// BFS from `start`, collecting all cells reachable within `max_dist` steps
 /// (orthogonal or diagonal, non-corner-cutting). `start` itself is always
 /// included unless `is_blocked(start)` is `true`. Returns cells in BFS
@@ -1000,5 +1012,26 @@ mod tests {
             |_x, _y| false,
         );
         assert_eq!(result, None);
+    }
+
+    // --- path_to_direction_vec ---
+
+    #[test]
+    fn test_path_to_direction_vec_right_then_down() {
+        let path = vec![(0, 0), (1, 0), (2, 0), (2, 1)];
+        let dirs = path_to_direction_vec(&path);
+        assert_eq!(dirs, vec![(1, 0), (1, 0), (0, 1)]);
+    }
+
+    #[test]
+    fn test_path_to_direction_vec_single_point_returns_empty() {
+        let dirs = path_to_direction_vec(&[(3, 5)]);
+        assert!(dirs.is_empty());
+    }
+
+    #[test]
+    fn test_path_to_direction_vec_length_is_path_len_minus_one() {
+        let path = vec![(0, 0), (1, 1), (2, 0), (3, 1)];
+        assert_eq!(path_to_direction_vec(&path).len(), path.len() - 1);
     }
 }

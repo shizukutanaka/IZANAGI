@@ -239,6 +239,13 @@ impl<K: Eq + Clone> SpatialHash<K> {
         self.cells.values().flat_map(|bucket| bucket.iter())
     }
 
+    /// Collect the cell-space coordinates of every non-empty cell in the grid.
+    /// The order reflects the internal `HashMap` — not sorted. Useful for
+    /// "process all populated regions" passes and debug visualisations.
+    pub fn all_occupied_cells(&self) -> Vec<(i32, i32)> {
+        self.cells.keys().copied().collect()
+    }
+
     /// Return an owned `Vec` of all keys in the grid cell with coordinates
     /// `(cx, cy)` (cell-space, not world-space). Unlike [`query_cell`](Self::query_cell)
     /// which returns a borrowed slice, the owned `Vec` lets the caller mutate
@@ -797,5 +804,31 @@ mod tests {
         assert_eq!(g.cell_count(), 2);
         g.clear_at(0, 0);
         assert_eq!(g.cell_count(), 1);
+    }
+
+    // --- all_occupied_cells ---
+
+    #[test]
+    fn test_all_occupied_cells_returns_one_per_cell() {
+        let mut g = grid();
+        g.insert(1u32, 0, 0);
+        g.insert(2u32, 50, 50);
+        let cells = g.all_occupied_cells();
+        assert_eq!(cells.len(), 2);
+    }
+
+    #[test]
+    fn test_all_occupied_cells_empty_grid_returns_empty() {
+        let g: SpatialHash<u32> = SpatialHash::new(10);
+        assert!(g.all_occupied_cells().is_empty());
+    }
+
+    #[test]
+    fn test_all_occupied_cells_same_cell_still_one_coord() {
+        let mut g = grid();
+        g.insert(1u32, 0, 0);
+        g.insert(2u32, 0, 0);
+        let cells = g.all_occupied_cells();
+        assert_eq!(cells.len(), 1);
     }
 }

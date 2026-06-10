@@ -166,6 +166,14 @@ impl Fixed {
         }
     }
 
+    /// Square: equivalent to `self.mul(self)`. Saturates at `Fixed::MAX`/`MIN`
+    /// like `mul`. Useful for squared-distance checks and quadratic formulas
+    /// without writing `x.mul(x)` at every call site.
+    #[inline]
+    pub fn pow2(self) -> Fixed {
+        self.mul(self)
+    }
+
     /// Sign: returns `Fixed::ONE` for positive, `Fixed::ZERO` for zero, and
     /// `Fixed::ONE.neg()` (i.e. `-1`) for negative. Deterministic.
     #[inline]
@@ -1011,5 +1019,24 @@ mod tests {
     fn test_abs_diff_equal_is_zero() {
         let a = Fixed::from_ratio(7, 4);
         assert_eq!(a.abs_diff(a), Fixed::ZERO);
+    }
+
+    // --- pow2 ---
+
+    #[test]
+    fn test_pow2_integer_two() {
+        assert_eq!(Fixed::from_int(2).pow2(), Fixed::from_int(4));
+    }
+
+    #[test]
+    fn test_pow2_negative_same_as_positive() {
+        let pos = Fixed::from_int(3).pow2();
+        let neg = Fixed::from_int(-3).pow2();
+        assert_eq!(pos, neg);
+    }
+
+    #[test]
+    fn test_pow2_zero_is_zero() {
+        assert_eq!(Fixed::ZERO.pow2(), Fixed::ZERO);
     }
 }

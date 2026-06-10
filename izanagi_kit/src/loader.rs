@@ -127,6 +127,24 @@ impl LoadedLevel {
             .copied()
             .find(|&e| self.positions.get(e) == Some(&Position { x, y }))
     }
+
+    /// All entities whose position lies within `[x, x+w) × [y, y+h)`,
+    /// in insertion order. Entities without a position component are skipped.
+    /// Use for "all actors in this room" sweeps and region queries without
+    /// building a separate spatial index.
+    pub fn entities_in_rect(&self, x: u32, y: u32, w: u32, h: u32) -> Vec<Entity> {
+        self.entities
+            .iter()
+            .copied()
+            .filter(|&e| {
+                if let Some(pos) = self.positions.get(e) {
+                    pos.x >= x && pos.x < x + w && pos.y >= y && pos.y < y + h
+                } else {
+                    false
+                }
+            })
+            .collect()
+    }
 }
 
 /// Instantiates the named level's spawns into a fresh world. Expects content
@@ -324,5 +342,30 @@ level room 1x1
         let w = loaded();
         let r = w.find_entity_at(1, 1);
         assert_eq!(r, Some(w.entities[1]));
+    }
+
+    // --- entities_in_rect ---
+
+    #[test]
+    fn test_entities_in_rect_finds_all_in_region() {
+        let w = loaded();
+        // goblin at (3,1), rat at (1,1) → rect [0,4)×[0,2) covers both
+        let found = w.entities_in_rect(0, 0, 4, 2);
+        assert_eq!(found.len(), 2, "both entities should be in the rect");
+    }
+
+    #[test]
+    fn test_entities_in_rect_empty_region_returns_none() {
+        let w = loaded();
+        let found = w.entities_in_rect(5, 5, 3, 3);
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn test_entities_in_rect_partial_overlap() {
+        let w = loaded();
+        // rect [0,3)×[0,2) includes rat at (1,1) but not goblin at (3,1)
+        let found = w.entities_in_rect(0, 0, 3, 2);
+        assert_eq!(found.len(), 1, "only the rat at (1,1) should match");
     }
 }

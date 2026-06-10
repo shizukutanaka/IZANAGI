@@ -77,6 +77,15 @@ impl Fnv1a {
         self.write_bytes(s.as_bytes());
     }
 
+    /// Hash a boolean as a single byte (`0x00` = false, `0x01` = true).
+    /// Completes the write-family alongside the integer writers. Using a
+    /// dedicated method avoids the cast-to-byte ceremony at every call site
+    /// and makes `DetHash` impls on structs with boolean fields readable.
+    #[inline]
+    pub fn write_bool(&mut self, value: bool) {
+        self.write_bytes(&[value as u8]);
+    }
+
     #[inline]
     pub fn finish(&self) -> u64 {
         self.hash
@@ -416,5 +425,34 @@ mod tests {
         let mut hasher = Fnv1a::new();
         hasher.write_u32(0);
         assert_eq!(h_option, hasher.finish());
+    }
+
+    // --- write_bool ---
+
+    #[test]
+    fn test_write_bool_true_differs_from_false() {
+        let mut h_true = Fnv1a::new();
+        h_true.write_bool(true);
+        let mut h_false = Fnv1a::new();
+        h_false.write_bool(false);
+        assert_ne!(h_true.finish(), h_false.finish());
+    }
+
+    #[test]
+    fn test_write_bool_true_matches_write_bytes_one() {
+        let mut h_method = Fnv1a::new();
+        h_method.write_bool(true);
+        let mut h_bytes = Fnv1a::new();
+        h_bytes.write_bytes(&[1u8]);
+        assert_eq!(h_method.finish(), h_bytes.finish());
+    }
+
+    #[test]
+    fn test_write_bool_false_matches_write_bytes_zero() {
+        let mut h_method = Fnv1a::new();
+        h_method.write_bool(false);
+        let mut h_bytes = Fnv1a::new();
+        h_bytes.write_bytes(&[0u8]);
+        assert_eq!(h_method.finish(), h_bytes.finish());
     }
 }

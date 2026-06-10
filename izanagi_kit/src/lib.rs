@@ -158,7 +158,7 @@ pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{
     astar, descend, dijkstra_map, flood_fill, is_path_clear, is_reachable, nearest_reachable,
-    octile_distance, path_cost, smooth_path, step_toward, weighted_astar,
+    octile_distance, path_cost, path_to_direction_vec, smooth_path, step_toward, weighted_astar,
 };
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use random_table::RandomTable;
