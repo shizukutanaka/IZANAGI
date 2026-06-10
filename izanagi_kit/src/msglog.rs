@@ -157,6 +157,26 @@ impl MsgLog {
         self.len = 0;
     }
 
+    /// Remove and return up to `n` oldest messages. Fewer than `n` are returned
+    /// if the log holds fewer messages. Draining 0 or from an empty log returns
+    /// an empty `Vec`. Useful for log-rotation ("save the last 20 messages")
+    /// without allocating a snapshot of the full history.
+    pub fn drain_oldest(&mut self, n: usize) -> Vec<String> {
+        let cap = self.buf.len();
+        let to_take = n.min(self.len);
+        let mut result = Vec::with_capacity(to_take);
+        if cap == 0 {
+            return result;
+        }
+        for i in 0..to_take {
+            let idx = (self.head + i) % cap;
+            result.push(std::mem::take(&mut self.buf[idx]));
+        }
+        self.head = (self.head + to_take) % cap;
+        self.len -= to_take;
+        result
+    }
+
     /// `true` if any stored message contains `needle` as a substring.
     pub fn contains(&self, needle: &str) -> bool {
         self.iter().any(|msg| msg.contains(needle))
@@ -581,5 +601,51 @@ mod tests {
         let rev: Vec<&str> = log.iter_rev().collect();
         let reversed: Vec<&str> = rev.into_iter().rev().collect();
         assert_eq!(fwd, reversed);
+    }
+
+    // --- drain_oldest ---
+
+    #[test]
+    fn test_drain_oldest_returns_oldest_messages() {
+        let mut log = MsgLog::new(5);
+        for msg in ["a", "b", "c", "d"] {
+            log.push(msg);
+        }
+        let drained = log.drain_oldest(2);
+        assert_eq!(drained, vec!["a".to_owned(), "b".to_owned()]);
+        assert_eq!(log.len(), 2);
+        assert_eq!(log.first(), Some("c"));
+    }
+
+    #[test]
+    fn test_drain_oldest_all_returns_all_and_empties_log() {
+        let mut log = MsgLog::new(4);
+        log.push("x");
+        log.push("y");
+        let drained = log.drain_oldest(10);
+        assert_eq!(drained.len(), 2);
+        assert!(log.is_empty());
+    }
+
+    #[test]
+    fn test_drain_oldest_zero_returns_empty() {
+        let mut log = MsgLog::new(4);
+        log.push("hello");
+        let drained = log.drain_oldest(0);
+        assert!(drained.is_empty());
+        assert_eq!(log.len(), 1);
+    }
+
+    #[test]
+    fn test_drain_oldest_on_wrapped_ring_buffer() {
+        let mut log = MsgLog::new(3);
+        log.push("a");
+        log.push("b");
+        log.push("c"); // full
+        log.push("d"); // wraps: evicts "a", oldest is now "b"
+        let drained = log.drain_oldest(2);
+        assert_eq!(drained, vec!["b".to_owned(), "c".to_owned()]);
+        assert_eq!(log.len(), 1);
+        assert_eq!(log.first(), Some("d"));
     }
 }

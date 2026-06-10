@@ -212,6 +212,17 @@ impl HudPanel {
         px >= self.x && px < self.x + self.w as i32 && py >= self.y && py < self.y + self.h as i32
     }
 
+    /// The four corner cells in order: top-left, top-right, bottom-left,
+    /// bottom-right. For a 0×0 or 1×1 panel all corners collapse to the same
+    /// point. Useful for drawing box characters at precise corner positions
+    /// without recomputing `x + w - 1` at every call site.
+    #[inline]
+    pub fn corners(&self) -> [(i32, i32); 4] {
+        let x1 = self.x + (self.w as i32).saturating_sub(1);
+        let y1 = self.y + (self.h as i32).saturating_sub(1);
+        [(self.x, self.y), (x1, self.y), (self.x, y1), (x1, y1)]
+    }
+
     /// Translate by `(dx, dy)`, returning a new panel.
     #[inline]
     pub fn translate(&self, dx: i32, dy: i32) -> HudPanel {
@@ -656,5 +667,31 @@ mod tests {
     fn test_bar_is_empty_true_when_current_negative() {
         let b = BarWidget::new(-3, 10, 10);
         assert!(b.is_empty());
+    }
+
+    // --- HudPanel::corners ---
+
+    #[test]
+    fn test_corners_4x3_panel() {
+        let p = HudPanel::new(2, 1, 4, 3);
+        let c = p.corners();
+        assert_eq!(c[0], (2, 1)); // top-left
+        assert_eq!(c[1], (5, 1)); // top-right
+        assert_eq!(c[2], (2, 3)); // bottom-left
+        assert_eq!(c[3], (5, 3)); // bottom-right
+    }
+
+    #[test]
+    fn test_corners_1x1_panel_all_same() {
+        let p = HudPanel::new(5, 7, 1, 1);
+        let c = p.corners();
+        assert!(c.iter().all(|&pt| pt == (5, 7)));
+    }
+
+    #[test]
+    fn test_corners_top_row_same_y() {
+        let p = HudPanel::new(0, 0, 10, 5);
+        let c = p.corners();
+        assert_eq!(c[0].1, c[1].1, "top corners share y");
     }
 }

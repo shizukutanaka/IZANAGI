@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `msglog::MsgLog::drain_oldest(n: usize) -> Vec<String>`: remove and return up
+  to `n` oldest messages in FIFO order, advancing the ring-buffer head. Use for
+  log-rotation ("save recent messages only") without allocating a full snapshot.
+- `keymap::KeyMap::all_actions() -> Vec<A>`: collect all distinct actions that
+  have at least one key bound. Complement of `action_count()` that returns owned
+  values rather than a count. `A: PartialEq` bound required.
+- `menu::Menu::value_at(idx: usize) -> Option<&T>`: payload reference at index.
+  Symmetric complement of `label_at()`; avoids going through `select()` when
+  a renderer needs the data for a specific row.
+- `hud::HudPanel::corners() -> [(i32, i32); 4]`: top-left, top-right,
+  bottom-left, bottom-right corners. Avoids recomputing `x + w - 1` at every
+  call site when drawing box characters.
+- `geometry::reflect_point(point, center) -> (i32, i32)`: reflect a point
+  through a center: `(2·cx − px, 2·cy − py)`. Saturating i64 arithmetic prevents
+  overflow. Useful for symmetric dungeon layouts and mirror-image rooms.
 - `content::Color::min_channel(self) -> u8`: minimum of the three RGB channels.
   Complement of `max_channel()`. Useful for computing color saturation
   (`max - min`) and shadow/darkness threshold checks.

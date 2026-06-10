@@ -134,6 +134,22 @@ impl<K: Eq + Clone, A: Eq + Clone> KeyMap<K, A> {
         seen.len()
     }
 
+    /// Collect all distinct actions that have at least one key bound to them.
+    /// Order is the first-occurrence order from `iter()`. Useful for "show all
+    /// configured actions" UI without a separate set data structure.
+    pub fn all_actions(&self) -> Vec<A>
+    where
+        A: PartialEq,
+    {
+        let mut seen: Vec<A> = Vec::new();
+        for (_, a) in &self.bindings {
+            if !seen.contains(a) {
+                seen.push(a.clone());
+            }
+        }
+        seen
+    }
+
     /// Atomically exchange the actions at `key1` and `key2`.
     ///
     /// If only one key is bound the bound action moves to the unbound key and
@@ -431,5 +447,30 @@ mod tests {
         m.bind('w', Action::MoveNorth); // second key for same action
         m.bind('j', Action::MoveSouth);
         assert_eq!(m.action_count(), 2); // MoveNorth and MoveSouth
+    }
+
+    // --- all_actions ---
+
+    #[test]
+    fn test_all_actions_returns_distinct_actions() {
+        let m = default_map();
+        let actions = m.all_actions();
+        assert_eq!(actions.len(), 6, "6 distinct actions expected");
+    }
+
+    #[test]
+    fn test_all_actions_deduplicates_shared_bindings() {
+        let mut m: KeyMap<char, Action> = KeyMap::new();
+        m.bind('k', Action::MoveNorth);
+        m.bind('w', Action::MoveNorth);
+        m.bind('j', Action::MoveSouth);
+        let actions = m.all_actions();
+        assert_eq!(actions.len(), 2);
+    }
+
+    #[test]
+    fn test_all_actions_empty_map_returns_empty() {
+        let m: KeyMap<char, Action> = KeyMap::new();
+        assert!(m.all_actions().is_empty());
     }
 }

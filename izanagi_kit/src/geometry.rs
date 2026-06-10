@@ -333,6 +333,18 @@ pub fn vec_toward(from: (i32, i32), to: (i32, i32)) -> (i32, i32) {
     ((to.0 - from.0).signum(), (to.1 - from.1).signum())
 }
 
+/// Reflect `point` through `center`: `(2·cx − px, 2·cy − py)`. Useful for
+/// symmetric dungeon layouts, mirror-image room templates, and paired-entity
+/// positioning (e.g. place a second torch on the opposite side of a door).
+/// Uses saturating arithmetic so extreme coordinates never wrap.
+#[inline]
+pub fn reflect_point(point: (i32, i32), center: (i32, i32)) -> (i32, i32) {
+    (
+        (2 * center.0 as i64 - point.0 as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32,
+        (2 * center.1 as i64 - point.1 as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32,
+    )
+}
+
 /// Manhattan distance between `a` and `b`: `|dx| + |dy|`. Shorthand for
 /// `Distance::Manhattan.between(a, b)` — avoids the enum at call sites where
 /// only the taxi-cab metric is needed.
@@ -847,5 +859,29 @@ mod tests {
     #[test]
     fn test_chebyshev_distance_same_point_zero() {
         assert_eq!(chebyshev_distance((2, 3), (2, 3)), 0);
+    }
+
+    // --- reflect_point ---
+
+    #[test]
+    fn test_reflect_point_across_center() {
+        assert_eq!(reflect_point((1, 1), (5, 5)), (9, 9));
+    }
+
+    #[test]
+    fn test_reflect_point_identity_at_center() {
+        assert_eq!(reflect_point((3, 4), (3, 4)), (3, 4));
+    }
+
+    #[test]
+    fn test_reflect_point_symmetric() {
+        let p = (2, 8);
+        let center = (5, 5);
+        let r = reflect_point(p, center);
+        assert_eq!(
+            reflect_point(r, center),
+            p,
+            "double reflection returns original"
+        );
     }
 }

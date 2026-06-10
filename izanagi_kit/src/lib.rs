@@ -135,7 +135,7 @@ pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to
 pub use fsm::Fsm;
 pub use geometry::{
     chebyshev_distance, diamond, line, line_of_sight, manhattan_distance, rect_contains,
-    rect_perimeter, vec_toward, Distance,
+    rect_perimeter, reflect_point, vec_toward, Distance,
 };
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;

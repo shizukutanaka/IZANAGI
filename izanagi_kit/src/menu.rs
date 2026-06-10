@@ -168,6 +168,13 @@ impl<T: Clone> Menu<T> {
         self.items.get(idx).map(|it| it.label.as_str())
     }
 
+    /// The payload value of the item at `idx`, or `None` if out of range.
+    /// Symmetric complement of `label_at` — useful when a renderer needs the
+    /// data associated with a row without going through `select()`.
+    pub fn value_at(&self, idx: usize) -> Option<&T> {
+        self.items.get(idx).map(|it| &it.value)
+    }
+
     /// Enable or disable item at `idx`. Silently ignores out-of-range indices.
     ///
     /// When the cursor lands on a now-disabled item (because the game just
@@ -669,5 +676,30 @@ mod tests {
     fn test_cursor_label_empty_menu_returns_none() {
         let m: Menu<u32> = Menu::new();
         assert_eq!(m.cursor_label(), None);
+    }
+
+    // --- value_at ---
+
+    #[test]
+    fn test_value_at_returns_payload_at_index() {
+        let m = sample();
+        assert_eq!(m.value_at(0), Some(&1u32));
+        assert_eq!(m.value_at(1), Some(&2u32));
+        assert_eq!(m.value_at(2), Some(&3u32));
+    }
+
+    #[test]
+    fn test_value_at_out_of_range_returns_none() {
+        let m = sample();
+        assert_eq!(m.value_at(99), None);
+    }
+
+    #[test]
+    fn test_value_at_matches_label_at_same_index() {
+        let m = sample();
+        for idx in 0..m.len() {
+            assert!(m.value_at(idx).is_some());
+            assert!(m.label_at(idx).is_some());
+        }
     }
 }
