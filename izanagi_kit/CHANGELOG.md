@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fixed::Fixed::step_toward(target, step) -> Fixed`: advance toward `target`
+  by at most `|step|`; saturates, never overshoots. Useful for velocity ramps
+  and AI approach without manual clamp branches (4 tests).
+- `fixed::Fixed::in_range(lo, hi) -> bool`: closed-interval membership check
+  (`self >= lo && self <= hi`); clarifies complex call sites (3 tests).
+- `vec::Vec2::min_component() / max_component() -> Fixed`: smallest / largest
+  component. Useful for aspect-ratio clamping and Chebyshev-distance helpers
+  without destructuring the vector (4 tests).
+- `mapgen::Dungeon::room_at(index) -> Option<&Rect>`: O(1) named room accessor
+  by placement index (2 tests).
+- `mapgen::Dungeon::room_containing(x, y) -> Option<Rect>`: returns the first
+  room that encloses the world point; negative coordinates return `None` (2 tests).
 - `fixed::Fixed::pow2(self) -> Fixed`: squared value (`self.mul(self)`). Saves
   the `x.mul(x)` pattern in squared-distance checks and quadratic formulas.
 - `pathfinding::path_to_direction_vec(path) -> Vec<(i32, i32)>`: convert a

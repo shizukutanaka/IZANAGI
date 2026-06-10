@@ -205,6 +205,29 @@ impl Fixed {
         self.clamp(Fixed::ZERO, Fixed::ONE)
     }
 
+    /// Advance `self` toward `target` by at most `|step|`. If already at
+    /// `target` (or `step == 0`) returns `self` unchanged. Saturates, never
+    /// overshoots. Useful for velocity ramps, health-bar drains, and AI
+    /// approach logic without manual clamp branches at call sites.
+    #[inline]
+    pub fn step_toward(self, target: Fixed, step: Fixed) -> Fixed {
+        let step = step.abs();
+        if self.0 < target.0 {
+            Fixed(self.0.saturating_add(step.0).min(target.0))
+        } else if self.0 > target.0 {
+            Fixed(self.0.saturating_sub(step.0).max(target.0))
+        } else {
+            self
+        }
+    }
+
+    /// True when `self` lies in the closed interval `[lo, hi]`. Equivalent to
+    /// `self >= lo && self <= hi` but reads more clearly at complex call sites.
+    #[inline]
+    pub fn in_range(self, lo: Fixed, hi: Fixed) -> bool {
+        self.0 >= lo.0 && self.0 <= hi.0
+    }
+
     /// Linear interpolation: `a + (b - a) * t`, where `t` is in `[0, 1]`.
     /// `t` outside `[0, 1]` extrapolates (no clamping). Uses saturating
     /// arithmetic so overflow is pinned rather than wrapping.
@@ -1038,5 +1061,55 @@ mod tests {
     #[test]
     fn test_pow2_zero_is_zero() {
         assert_eq!(Fixed::ZERO.pow2(), Fixed::ZERO);
+    }
+
+    // --- step_toward ---
+
+    #[test]
+    fn test_step_toward_advances_by_step() {
+        let v = Fixed::from_int(0).step_toward(Fixed::from_int(10), Fixed::from_int(3));
+        assert_eq!(v, Fixed::from_int(3));
+    }
+
+    #[test]
+    fn test_step_toward_does_not_overshoot() {
+        let v = Fixed::from_int(8).step_toward(Fixed::from_int(10), Fixed::from_int(5));
+        assert_eq!(v, Fixed::from_int(10));
+    }
+
+    #[test]
+    fn test_step_toward_already_at_target() {
+        let v = Fixed::from_int(7).step_toward(Fixed::from_int(7), Fixed::from_int(3));
+        assert_eq!(v, Fixed::from_int(7));
+    }
+
+    #[test]
+    fn test_step_toward_decreasing() {
+        let v = Fixed::from_int(10).step_toward(Fixed::from_int(0), Fixed::from_int(4));
+        assert_eq!(v, Fixed::from_int(6));
+    }
+
+    // --- in_range ---
+
+    #[test]
+    fn test_in_range_inclusive_bounds() {
+        let lo = Fixed::from_int(1);
+        let hi = Fixed::from_int(5);
+        assert!(Fixed::from_int(1).in_range(lo, hi));
+        assert!(Fixed::from_int(5).in_range(lo, hi));
+        assert!(Fixed::from_int(3).in_range(lo, hi));
+    }
+
+    #[test]
+    fn test_in_range_outside_returns_false() {
+        let lo = Fixed::from_int(1);
+        let hi = Fixed::from_int(5);
+        assert!(!Fixed::from_int(0).in_range(lo, hi));
+        assert!(!Fixed::from_int(6).in_range(lo, hi));
+    }
+
+    #[test]
+    fn test_in_range_inverted_bounds_always_false() {
+        assert!(!Fixed::from_int(3).in_range(Fixed::from_int(5), Fixed::from_int(1)));
     }
 }

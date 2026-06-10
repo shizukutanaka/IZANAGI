@@ -198,6 +198,28 @@ impl Dungeon {
         self.rooms.iter().max_by_key(|r| r.w * r.h).copied()
     }
 
+    /// Room at `index` in placement order, or `None` if `index ≥ room_count()`.
+    /// Provides O(1) named access to `self.rooms[index]` without exposing the
+    /// internal `Vec` API everywhere.
+    #[inline]
+    pub fn room_at(&self, index: usize) -> Option<&Rect> {
+        self.rooms.get(index)
+    }
+
+    /// The first room that contains `(x, y)` (inclusive on all edges), or
+    /// `None` if the point is not inside any room. Negative coordinates never
+    /// match. For determinism, the first match in placement order is returned.
+    pub fn room_containing(&self, x: i32, y: i32) -> Option<Rect> {
+        if x < 0 || y < 0 {
+            return None;
+        }
+        let (ux, uy) = (x as u32, y as u32);
+        self.rooms
+            .iter()
+            .find(|r| ux >= r.x && ux < r.x + r.w && uy >= r.y && uy < r.y + r.h)
+            .copied()
+    }
+
     /// All floor cell coordinates `(x, y)` in row-major order (`y` outer,
     /// `x` inner). The primary source for spawn placement when every walkable
     /// cell is needed at once — cheaper than scanning with `is_floor` in
@@ -1037,5 +1059,43 @@ mod tests {
         let mut r1 = SplitMix64::new(5);
         let mut r2 = SplitMix64::new(5);
         assert_eq!(d.random_floor_cell(&mut r1), d.random_floor_cell(&mut r2));
+    }
+
+    // --- room_at / room_containing ---
+
+    #[test]
+    fn test_room_at_returns_room_by_index() {
+        let mut rng = SplitMix64::new(1);
+        let d = generate_dungeon(40, 30, &mut rng, GenParams::default());
+        assert!(d.room_count() > 0);
+        assert!(d.room_at(0).is_some());
+        assert_eq!(d.room_at(0), d.rooms.first());
+    }
+
+    #[test]
+    fn test_room_at_out_of_range_returns_none() {
+        let mut rng = SplitMix64::new(1);
+        let d = generate_dungeon(40, 30, &mut rng, GenParams::default());
+        assert!(d.room_at(d.room_count()).is_none());
+    }
+
+    #[test]
+    fn test_room_containing_finds_center_cell() {
+        let mut rng = SplitMix64::new(2);
+        let d = generate_dungeon(40, 30, &mut rng, GenParams::default());
+        for r in &d.rooms {
+            let (cx, cy) = r.center();
+            assert!(
+                d.room_containing(cx, cy).is_some(),
+                "center ({cx},{cy}) of room should be inside a room"
+            );
+        }
+    }
+
+    #[test]
+    fn test_room_containing_negative_coord_returns_none() {
+        let mut rng = SplitMix64::new(3);
+        let d = generate_dungeon(40, 30, &mut rng, GenParams::default());
+        assert!(d.room_containing(-1, 5).is_none());
     }
 }

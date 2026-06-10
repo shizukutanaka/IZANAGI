@@ -150,6 +150,20 @@ impl Vec2 {
         self.x.is_zero() && self.y.is_zero()
     }
 
+    /// Smallest component value. Useful for aspect-ratio clamping and
+    /// uniform-scale guards where the limiting axis matters.
+    #[inline]
+    pub fn min_component(self) -> Fixed {
+        self.x.min(self.y)
+    }
+
+    /// Largest component value. Dual of `min_component`; useful for
+    /// extent checks and Chebyshev-distance computation.
+    #[inline]
+    pub fn max_component(self) -> Fixed {
+        self.x.max(self.y)
+    }
+
     /// Component-wise minimum: `(min(a.x, b.x), min(a.y, b.y))`.
     #[inline]
     pub fn min(a: Vec2, b: Vec2) -> Vec2 {
@@ -892,5 +906,31 @@ mod tests {
         let b = Vec3::new(fi(100), fi(100), fi(100));
         let half = fr(1, 2);
         assert_eq!(Vec3::lerp_clamped(a, b, half), Vec3::lerp(a, b, half));
+    }
+
+    // --- min_component / max_component ---
+
+    #[test]
+    fn test_min_component_picks_smaller() {
+        let v = Vec2::new(fi(3), fi(7));
+        assert_eq!(v.min_component(), fi(3));
+    }
+
+    #[test]
+    fn test_max_component_picks_larger() {
+        let v = Vec2::new(fi(3), fi(7));
+        assert_eq!(v.max_component(), fi(7));
+    }
+
+    #[test]
+    fn test_min_max_component_equal_when_same() {
+        let v = Vec2::new(fi(5), fi(5));
+        assert_eq!(v.min_component(), v.max_component());
+    }
+
+    #[test]
+    fn test_min_component_negative() {
+        let v = Vec2::new(fi(-2), fi(4));
+        assert_eq!(v.min_component(), fi(-2));
     }
 }
