@@ -298,6 +298,17 @@ impl<K: Eq + Clone> SpatialHash<K> {
         count
     }
 
+    /// Remove all keys from the cell that contains world position `(x, y)`.
+    /// Returns the number of keys removed. A no-op (returns 0) if the cell is
+    /// empty or was never populated.
+    ///
+    /// Useful for "clear the cell when a room is reset" or "remove all actors
+    /// from a trap tile" without having to iterate and call `remove` per key.
+    pub fn clear_at(&mut self, x: i32, y: i32) -> usize {
+        let (cx, cy) = self.cell_coord_from_world(x, y);
+        self.cells.remove(&(cx, cy)).map(|v| v.len()).unwrap_or(0)
+    }
+
     /// Count entities within Euclidean distance `radius` of `(qx, qy)` without
     /// allocating a `Vec`. Uses the same cell-conservatism as
     /// [`query_radius_euclidean`](Self::query_radius_euclidean) (no false
@@ -756,5 +767,35 @@ mod tests {
         let (cx, cy) = g.cell_coord_from_world(55, 35);
         assert_eq!((cx, cy), (5, 3));
         assert!(g.query_cell(55, 35).contains(&42));
+    }
+
+    // --- clear_at ---
+
+    #[test]
+    fn test_clear_at_removes_all_keys_in_cell() {
+        let mut g = grid(); // cell_size = 10
+        g.insert(1u32, 0, 0);
+        g.insert(2u32, 5, 5); // same cell as (0,0)
+        g.insert(3u32, 15, 0); // different cell
+        let count = g.clear_at(0, 0);
+        assert_eq!(count, 2);
+        assert_eq!(g.query_cell(0, 0).len(), 0);
+        assert_eq!(g.query_cell(15, 0).len(), 1); // other cell unchanged
+    }
+
+    #[test]
+    fn test_clear_at_empty_cell_returns_zero() {
+        let mut g = grid();
+        assert_eq!(g.clear_at(0, 0), 0);
+    }
+
+    #[test]
+    fn test_clear_at_reduces_cell_count() {
+        let mut g = grid();
+        g.insert(1u32, 0, 0);
+        g.insert(2u32, 50, 50);
+        assert_eq!(g.cell_count(), 2);
+        g.clear_at(0, 0);
+        assert_eq!(g.cell_count(), 1);
     }
 }

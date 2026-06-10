@@ -177,6 +177,30 @@ impl<T: Clone> TileMap<T> {
         }
     }
 
+    /// Borrow the cells of row `y` as a contiguous slice, or `None` if `y` is
+    /// out of bounds. Row-major layout means a row is always contiguous.
+    pub fn row_slice(&self, y: i32) -> Option<&[T]> {
+        if y < 0 || y as u32 >= self.height {
+            return None;
+        }
+        let start = y as usize * self.width as usize;
+        Some(&self.cells[start..start + self.width as usize])
+    }
+
+    /// Collect all cells in column `x` into a `Vec`, top-to-bottom. Returns
+    /// an empty `Vec` if `x` is out of bounds. Column cells are strided in
+    /// row-major memory so this always allocates.
+    pub fn column_vec(&self, x: i32) -> Vec<T> {
+        if x < 0 || x as u32 >= self.width {
+            return Vec::new();
+        }
+        let xi = x as usize;
+        let w = self.width as usize;
+        (0..self.height as usize)
+            .map(|row| self.cells[row * w + xi].clone())
+            .collect()
+    }
+
     /// Count cells for which `pred` returns `true`.
     pub fn count_where<P: Fn(&T) -> bool>(&self, pred: P) -> usize {
         self.cells.iter().filter(|t| pred(t)).count()
@@ -932,6 +956,44 @@ mod tests {
         assert_eq!(r.get(1, 0).copied(), Some(1));
         assert_eq!(r.get(0, 2).copied(), Some(6));
         assert_eq!(r.get(1, 2).copied(), Some(3));
+    }
+
+    // --- row_slice / column_vec ---
+
+    #[test]
+    fn test_row_slice_returns_correct_tiles() {
+        let m = make_3x2(); // row 0 = [1,2,3], row 1 = [4,5,6]
+        let row = m.row_slice(0).unwrap();
+        assert_eq!(row, &[1u8, 2, 3]);
+        let row1 = m.row_slice(1).unwrap();
+        assert_eq!(row1, &[4u8, 5, 6]);
+    }
+
+    #[test]
+    fn test_row_slice_oob_returns_none() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 0);
+        assert!(m.row_slice(-1).is_none());
+        assert!(m.row_slice(4).is_none());
+    }
+
+    #[test]
+    fn test_column_vec_returns_correct_tiles() {
+        let m = make_3x2(); // col 1 = [2 (row0), 5 (row1)]
+        assert_eq!(m.column_vec(1), vec![2u8, 5]);
+        assert_eq!(m.column_vec(0), vec![1u8, 4]);
+    }
+
+    #[test]
+    fn test_column_vec_oob_returns_empty() {
+        let m: TileMap<u8> = TileMap::new(4, 4, 0);
+        assert!(m.column_vec(-1).is_empty());
+        assert!(m.column_vec(4).is_empty());
+    }
+
+    #[test]
+    fn test_column_vec_length_equals_height() {
+        let m: TileMap<u8> = TileMap::new(5, 7, 0);
+        assert_eq!(m.column_vec(2).len(), 7);
     }
 
     #[test]

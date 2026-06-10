@@ -7,6 +7,26 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `tilemap::TileMap::row_slice(y: i32) -> Option<&[T]>`: borrow a row as a
+  contiguous slice. Row-major layout makes this O(1); `None` for OOB rows.
+- `tilemap::TileMap::column_vec(x: i32) -> Vec<T>`: collect column `x` into a
+  `Vec` (top-to-bottom). Columns are strided in row-major memory so this
+  always allocates; empty `Vec` for OOB columns.
+- `sparse_set::SparseSet::find_all_entities(pred) -> Vec<Entity>`: collect
+  all entities whose component satisfies `pred`. The multi-result complement
+  of `find_entity_where`. Use `iter_sorted` on the result for canonical order.
+- `sparse_set::SparseSet::remove_where_returning(pred) -> Vec<(Entity, T)>`:
+  like `remove_where` but returns the removed `(entity, value)` pairs instead
+  of discarding them — use for "cull dead actors and process their components
+  in despawn callbacks."
+- `entity::EntityAllocator::live_at_index(index: u32) -> Option<Entity>`: O(1)
+  slot lookup with free-list liveness check. Fills the gap between
+  `live_entities()` (full scan) and `is_alive(entity)` (needs a handle) for
+  serialisation and debug tools that have an index but not a handle.
+- `spatial_hash::SpatialHash::clear_at(x, y) -> usize`: remove all keys from
+  the cell containing world position `(x, y)`. Returns the count removed; 0
+  if the cell was empty. Faster than calling `remove` per key when the entire
+  cell needs to be wiped (e.g. room reset, trap triggered).
 - `fov::can_see(origin, target, radius, is_opaque) -> bool`: single-cell
   visibility query without materialising the full FOV set. Uses the same
   symmetric shadowcasting as `compute_fov`; result is identical to

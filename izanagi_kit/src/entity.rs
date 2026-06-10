@@ -114,6 +114,23 @@ impl EntityAllocator {
         self.generations.iter().copied().max().unwrap_or(0)
     }
 
+    /// Return the live entity at slot `index`, or `None` if the slot is out of
+    /// range or the entity has been freed.
+    ///
+    /// O(1) generation lookup plus an O(free-list) liveness check. Useful for
+    /// serialisation round-trips and debug tools that need "what entity is at
+    /// this exact index?" without enumerating all live entities.
+    pub fn live_at_index(&self, index: u32) -> Option<Entity> {
+        let gen = self.generations.get(index as usize).copied()?;
+        if self.free.contains(&index) {
+            return None;
+        }
+        Some(Entity {
+            index,
+            generation: gen,
+        })
+    }
+
     /// All currently live entities in ascending index order.
     ///
     /// Useful for systems that need to enumerate every spawned entity without
@@ -377,5 +394,29 @@ mod tests {
         for e in a.batch_alloc(3) {
             assert!(a.is_alive(e));
         }
+    }
+
+    // --- live_at_index ---
+
+    #[test]
+    fn test_live_at_index_returns_live_entity() {
+        let mut a = EntityAllocator::new();
+        let e = a.allocate();
+        let found = a.live_at_index(e.index()).unwrap();
+        assert_eq!(found, e);
+    }
+
+    #[test]
+    fn test_live_at_index_freed_entity_returns_none() {
+        let mut a = EntityAllocator::new();
+        let e = a.allocate();
+        a.free(e);
+        assert_eq!(a.live_at_index(e.index()), None);
+    }
+
+    #[test]
+    fn test_live_at_index_out_of_range_returns_none() {
+        let a = EntityAllocator::new();
+        assert_eq!(a.live_at_index(99), None);
     }
 }

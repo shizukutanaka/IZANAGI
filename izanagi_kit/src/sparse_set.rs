@@ -208,6 +208,34 @@ impl<T> SparseSet<T> {
         self.values().filter(|v| pred(v)).count()
     }
 
+    /// Return all entities whose component satisfies `pred`, in dense order.
+    /// Use [`iter_sorted`](Self::iter_sorted) if a canonical ascending-index
+    /// order is required.
+    pub fn find_all_entities<F: Fn(&T) -> bool>(&self, pred: F) -> Vec<Entity> {
+        self.iter()
+            .filter_map(|(e, v)| if pred(v) { Some(e) } else { None })
+            .collect()
+    }
+
+    /// Remove every entry for which `pred(entity, &value)` is `true`, returning
+    /// the removed `(entity, value)` pairs in removal order. Like
+    /// [`remove_where`](Self::remove_where) but the caller receives the values
+    /// — use for "cull dead entities and trigger despawn callbacks with their
+    /// components."
+    pub fn remove_where_returning<F: Fn(Entity, &T) -> bool>(
+        &mut self,
+        pred: F,
+    ) -> Vec<(Entity, T)> {
+        let to_remove: Vec<Entity> = self
+            .iter()
+            .filter_map(|(e, v)| if pred(e, v) { Some(e) } else { None })
+            .collect();
+        to_remove
+            .into_iter()
+            .filter_map(|e| self.remove(e).map(|v| (e, v)))
+            .collect()
+    }
+
     /// Return the first entity whose component satisfies `pred`, or `None` if
     /// no component matches. Scans in dense (insertion) order, so when several
     /// match the result depends on insert history; use [`iter_sorted`](Self::iter_sorted)
@@ -622,6 +650,72 @@ mod tests {
         s.insert(es[1], 2);
         let removed = s.remove_where(|_, _| true);
         assert_eq!(removed, 2);
+        assert!(s.is_empty());
+    }
+
+    // --- find_all_entities / remove_where_returning ---
+
+    #[test]
+    fn test_find_all_entities_returns_all_matching() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 10);
+        s.insert(es[1], 20);
+        s.insert(es[2], 30);
+        let mut found = s.find_all_entities(|v| *v >= 20);
+        found.sort_by_key(|e| e.index());
+        assert_eq!(found, vec![es[1], es[2]]);
+    }
+
+    #[test]
+    fn test_find_all_entities_empty_when_no_match() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 5);
+        assert!(s.find_all_entities(|v| *v > 100).is_empty());
+    }
+
+    #[test]
+    fn test_find_all_entities_all_match() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 2);
+        s.insert(es[2], 3);
+        assert_eq!(s.find_all_entities(|_| true).len(), 3);
+    }
+
+    #[test]
+    fn test_remove_where_returning_returns_removed_values() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 10);
+        s.insert(es[1], 20);
+        s.insert(es[2], 30);
+        let mut removed = s.remove_where_returning(|_, v| *v >= 20);
+        removed.sort_by_key(|(e, _)| e.index());
+        assert_eq!(removed, vec![(es[1], 20), (es[2], 30)]);
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_where_returning_empty_when_no_match() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 5);
+        let removed = s.remove_where_returning(|_, v| *v > 100);
+        assert!(removed.is_empty());
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_where_returning_all_match_clears_set() {
+        let (_, es) = three();
+        let mut s: SparseSet<i32> = SparseSet::new();
+        s.insert(es[0], 1);
+        s.insert(es[1], 2);
+        let removed = s.remove_where_returning(|_, _| true);
+        assert_eq!(removed.len(), 2);
         assert!(s.is_empty());
     }
 
