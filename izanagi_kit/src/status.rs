@@ -202,6 +202,24 @@ impl<K: Eq + Clone> StatusSet<K> {
     pub fn active_keys(&self) -> Vec<&K> {
         self.entries.iter().map(|(k, _)| k).collect()
     }
+
+    /// Apply multiple effects at once. Equivalent to calling `apply` for each
+    /// `(key, Effect)` pair in order. Useful for equipping items and area
+    /// spells that apply several buffs/debuffs simultaneously.
+    pub fn apply_all(&mut self, effects: &[(K, Effect)]) {
+        for (k, e) in effects {
+            self.apply(k.clone(), e.remaining, e.magnitude);
+        }
+    }
+
+    /// Extend all currently active effects by `extra_ticks`. Saturating on
+    /// overflow. No-op when no effects are active. Useful for a "haste" or
+    /// "duration boost" mechanic that prolongs everything at once.
+    pub fn extend_all(&mut self, extra_ticks: u32) {
+        for (_, e) in &mut self.entries {
+            e.remaining = e.remaining.saturating_add(extra_ticks);
+        }
+    }
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for StatusSet<K> {
@@ -532,5 +550,78 @@ mod tests {
         s.apply(2, 8, 1);
         s.tick(2); // both still active: 3 and 6 remaining
         assert_eq!(s.min_remaining(), 3);
+    }
+
+    #[test]
+    fn test_apply_all_inserts_all_effects() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        let effects = vec![
+            (
+                1u32,
+                Effect {
+                    remaining: 3,
+                    magnitude: 5,
+                },
+            ),
+            (
+                2u32,
+                Effect {
+                    remaining: 5,
+                    magnitude: -2,
+                },
+            ),
+        ];
+        s.apply_all(&effects);
+        assert!(s.is_active(&1));
+        assert!(s.is_active(&2));
+        assert_eq!(s.get(&1).unwrap().magnitude, 5);
+        assert_eq!(s.get(&2).unwrap().magnitude, -2);
+    }
+
+    #[test]
+    fn test_apply_all_empty_slice_is_noop() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply_all(&[]);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_apply_all_uses_max_duration_on_existing_key() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 10, 5);
+        let effects = vec![(
+            1u32,
+            Effect {
+                remaining: 3,
+                magnitude: 5,
+            },
+        )];
+        s.apply_all(&effects);
+        assert_eq!(s.get(&1).unwrap().remaining, 10); // max(10, 3)
+    }
+
+    #[test]
+    fn test_extend_all_extends_every_effect() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 3, 1);
+        s.apply(2, 5, -1);
+        s.extend_all(2);
+        assert_eq!(s.get(&1).unwrap().remaining, 5);
+        assert_eq!(s.get(&2).unwrap().remaining, 7);
+    }
+
+    #[test]
+    fn test_extend_all_empty_is_noop() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.extend_all(100);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_extend_all_saturates_at_max() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, u32::MAX, 0);
+        s.extend_all(1);
+        assert_eq!(s.get(&1).unwrap().remaining, u32::MAX);
     }
 }

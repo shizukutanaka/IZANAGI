@@ -240,6 +240,15 @@ impl<E: Clone> TimerQueue<E> {
         }
     }
 
+    /// Iterate all pending entries as `(remaining_ticks, &event)` pairs in
+    /// insertion order. Does **not** advance time or consume entries.
+    ///
+    /// Useful for UI inspection ("show countdown for every pending event"),
+    /// save/load serialisation, and test assertions without driving the queue.
+    pub fn iter(&self) -> impl Iterator<Item = (u32, &E)> {
+        self.entries.iter().map(|e| (e.remaining, &e.event))
+    }
+
     /// Advance by `ticks`. Fires (and returns) every event whose delay expires
     /// within those ticks, in firing order (earliest first; ties preserve
     /// insertion order). Repeating entries requeue themselves.
@@ -662,5 +671,31 @@ mod tests {
         q.schedule(5, 10);
         q.schedule(5, 20);
         assert_eq!(q.count_where(|_| true), 2);
+    }
+
+    #[test]
+    fn test_iter_yields_all_pending_in_order() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(3, 10);
+        q.schedule(5, 20);
+        let pairs: Vec<(u32, u32)> = q.iter().map(|(r, &e)| (r, e)).collect();
+        assert_eq!(pairs, vec![(3, 10), (5, 20)]);
+    }
+
+    #[test]
+    fn test_iter_empty_queue_yields_nothing() {
+        let q: TimerQueue<u32> = TimerQueue::new();
+        assert_eq!(q.iter().count(), 0);
+    }
+
+    #[test]
+    fn test_iter_does_not_consume_entries() {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        q.schedule(2, 42);
+        let _ = q.iter().count();
+        let _ = q.iter().count();
+        assert_eq!(q.len(), 1);
+        let fired = q.advance(2);
+        assert_eq!(fired, vec![42]);
     }
 }

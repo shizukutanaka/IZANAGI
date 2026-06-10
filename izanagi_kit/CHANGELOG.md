@@ -7,6 +7,31 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `mapgen::Rect::shrink(n) -> Option<Rect>`: inset a room rectangle by `n` cells
+  on every side. Returns `None` when the inset would produce zero or negative
+  width or height (`n*2 >= w` or `n*2 >= h`). Useful for spawn zones and
+  interior decoration placement that must stay away from room walls.
+- `mapgen::Dungeon::random_floor_cell(rng) -> Option<(i32, i32)>`: pick a
+  uniformly random floor cell using a single `rng` draw. Returns `None` for
+  all-wall dungeons. Deterministic and replay-safe; the canonical one-liner for
+  "place an item / monster on a random walkable tile."
+- `timer::TimerQueue::iter() -> impl Iterator<Item=(u32, &E)>`: iterate all
+  pending entries as `(remaining_ticks, &event)` pairs in insertion order
+  without consuming or advancing the queue. Useful for UI countdowns, save/load
+  serialisation, and test assertions.
+- `status::StatusSet::apply_all(effects: &[(K, Effect)])`: batch-apply multiple
+  status effects. Equivalent to calling `apply` for each pair in order — same
+  max-duration stacking policy. Useful for equipping items and area spells that
+  apply several buffs/debuffs at once.
+- `status::StatusSet::extend_all(extra_ticks: u32)`: add `extra_ticks` to every
+  currently active effect. Saturating on overflow. The "haste / duration boost"
+  primitive that avoids iterating the set manually.
+- `turn::Scheduler::clear()`: remove all actors without returning their ids.
+  Cheaper than `drain` when the id list is not needed (full scene reset). The
+  scheduler is empty after the call.
+- `combat::Stats::clamp_hp()`: force HP into `[0, max_hp]`. The "repair"
+  primitive for HP values set by direct field assignment (save/load, editor
+  operations) that may be out of range.
 - `world_hash::DetHash for [T]` / `Vec<T>` / `Option<T>`: the three most
   commonly needed collection/wrapper impls were missing. `[T]` folds length
   then elements in order (length-prefix prevents the empty-slice / default-item

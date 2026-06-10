@@ -135,6 +135,17 @@ impl Stats {
     pub fn is_full_hp(&self) -> bool {
         self.hp >= self.max_hp
     }
+
+    /// Force HP into `[0, max_hp]`. Equivalent to `hp = hp.clamp(0, max_hp)`.
+    ///
+    /// Needed after external mutations (direct field assignments during
+    /// save/load or editor operations) that may leave HP out of range. Most
+    /// combat helpers already clamp, so this is the "belt-and-suspenders"
+    /// repair primitive for boundary conditions.
+    #[inline]
+    pub fn clamp_hp(&mut self) {
+        self.hp = self.hp.clamp(0, self.max_hp.max(0));
+    }
 }
 
 impl DetHash for Stats {
@@ -819,5 +830,41 @@ mod tests {
         let att = Stats::new(20, 10, 0);
         let dmgs = splash_attack(&att, &mut [], 3);
         assert!(dmgs.is_empty());
+    }
+
+    #[test]
+    fn test_clamp_hp_above_max_clamps_down() {
+        let mut s = Stats {
+            hp: 50,
+            max_hp: 30,
+            attack: 1,
+            defense: 1,
+        };
+        s.clamp_hp();
+        assert_eq!(s.hp, 30);
+    }
+
+    #[test]
+    fn test_clamp_hp_below_zero_clamps_up() {
+        let mut s = Stats {
+            hp: -5,
+            max_hp: 20,
+            attack: 1,
+            defense: 1,
+        };
+        s.clamp_hp();
+        assert_eq!(s.hp, 0);
+    }
+
+    #[test]
+    fn test_clamp_hp_within_range_unchanged() {
+        let mut s = Stats {
+            hp: 10,
+            max_hp: 20,
+            attack: 1,
+            defense: 1,
+        };
+        s.clamp_hp();
+        assert_eq!(s.hp, 10);
     }
 }

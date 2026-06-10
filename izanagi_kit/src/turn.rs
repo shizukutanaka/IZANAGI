@@ -182,6 +182,14 @@ impl<A: Copy + Ord> Scheduler<A> {
         ids
     }
 
+    /// Remove all actors without returning them. Cheaper than `drain` when
+    /// the caller does not need the id list (e.g. a full scene reset that
+    /// destroys everything at once). After the call the scheduler is empty.
+    #[inline]
+    pub fn clear(&mut self) {
+        self.actors.clear();
+    }
+
     /// Advance time until an actor is ready, then return it and deduct one
     /// action's worth of energy. Returns `None` only when empty.
     ///
@@ -531,6 +539,32 @@ mod tests {
         s.add(6, ACTION_COST);
         s.drain();
         assert_eq!(s.len(), 0);
+        assert_eq!(s.next_turn(), None);
+    }
+
+    #[test]
+    fn test_clear_removes_all_actors() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, ACTION_COST);
+        s.add(2, ACTION_COST);
+        s.clear();
+        assert!(s.is_empty());
+        assert_eq!(s.len(), 0);
+    }
+
+    #[test]
+    fn test_clear_on_empty_is_noop() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.clear();
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_clear_leaves_scheduler_empty_like_drain() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, ACTION_COST);
+        s.add(2, ACTION_COST);
+        s.clear();
         assert_eq!(s.next_turn(), None);
     }
 }

@@ -35,6 +35,23 @@ impl Rect {
         self.w * self.h
     }
 
+    /// Inset the rectangle by `n` cells on every side, returning `None` when
+    /// the result would have zero (or negative) width or height.
+    /// Useful for placing interior decorations and spawn-zones that must stay
+    /// away from room walls.
+    pub fn shrink(&self, n: u32) -> Option<Rect> {
+        let n2 = n.saturating_mul(2);
+        if n2 >= self.w || n2 >= self.h {
+            return None;
+        }
+        Some(Rect {
+            x: self.x + n,
+            y: self.y + n,
+            w: self.w - n2,
+            h: self.h - n2,
+        })
+    }
+
     /// Do the two rooms touch or overlap when `self` is grown by one cell on
     /// every side? The padding guarantees at least a one-cell wall between
     /// placed rooms.
@@ -196,6 +213,13 @@ impl Dungeon {
             }
         }
         out
+    }
+
+    /// Pick a random floor cell using `rng`. Returns `None` for an all-wall
+    /// dungeon. Uses a single `rng` draw so the choice is replay-safe.
+    pub fn random_floor_cell(&self, rng: &mut SplitMix64) -> Option<(i32, i32)> {
+        let cells = self.floor_cells();
+        rng.pick(&cells).copied()
     }
 
     #[inline]
@@ -948,5 +972,70 @@ mod tests {
         let mut rng = SplitMix64::new(1);
         let d = generate_dungeon(50, 40, &mut rng, GenParams::default());
         assert!(d.room_count() >= 1);
+    }
+
+    #[test]
+    fn test_rect_shrink_returns_inset_rect() {
+        let r = Rect {
+            x: 2,
+            y: 3,
+            w: 10,
+            h: 8,
+        };
+        let s = r.shrink(2).unwrap();
+        assert_eq!(s.x, 4);
+        assert_eq!(s.y, 5);
+        assert_eq!(s.w, 6);
+        assert_eq!(s.h, 4);
+    }
+
+    #[test]
+    fn test_rect_shrink_too_large_returns_none() {
+        let r = Rect {
+            x: 0,
+            y: 0,
+            w: 4,
+            h: 4,
+        };
+        assert!(r.shrink(2).is_none());
+    }
+
+    #[test]
+    fn test_rect_shrink_zero_is_identity() {
+        let r = Rect {
+            x: 1,
+            y: 2,
+            w: 5,
+            h: 7,
+        };
+        assert_eq!(r.shrink(0).unwrap(), r);
+    }
+
+    #[test]
+    fn test_random_floor_cell_is_valid_floor() {
+        let mut rng = SplitMix64::new(42);
+        let d = generate_dungeon(30, 20, &mut rng, GenParams::default());
+        let mut rng2 = SplitMix64::new(1);
+        let cell = d
+            .random_floor_cell(&mut rng2)
+            .expect("dungeon has floor cells");
+        assert!(d.is_floor(cell.0, cell.1));
+    }
+
+    #[test]
+    fn test_random_floor_cell_all_wall_returns_none() {
+        let mut rng = SplitMix64::new(0);
+        let d = generate_dungeon(2, 2, &mut rng, GenParams::default());
+        let mut rng2 = SplitMix64::new(0);
+        assert!(d.random_floor_cell(&mut rng2).is_none());
+    }
+
+    #[test]
+    fn test_random_floor_cell_is_deterministic() {
+        let mut rng = SplitMix64::new(99);
+        let d = generate_dungeon(40, 30, &mut rng, GenParams::default());
+        let mut r1 = SplitMix64::new(5);
+        let mut r2 = SplitMix64::new(5);
+        assert_eq!(d.random_floor_cell(&mut r1), d.random_floor_cell(&mut r2));
     }
 }
