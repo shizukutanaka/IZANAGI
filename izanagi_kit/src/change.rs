@@ -190,6 +190,15 @@ impl ChangeTracker {
     pub fn set_tick(&mut self, tick: u32) {
         self.tick = tick;
     }
+
+    /// Returns `true` if the current tick equals `target`.
+    ///
+    /// A concise predicate for "fire exactly on tick N" patterns — e.g. trigger
+    /// a cutscene at tick 1000 or assert a deterministic checkpoint.
+    #[inline]
+    pub fn is_at_tick(&self, target: u32) -> bool {
+        self.tick == target
+    }
 }
 
 impl DetHash for ChangeTracker {
@@ -460,5 +469,29 @@ mod tests {
     fn test_if_changed_new_value_always_returns_some() {
         let c = Changed::new(7u32); // changed_at == 0
         assert_eq!(c.if_changed(0), Some(&7u32));
+    }
+
+    #[test]
+    fn test_is_at_tick_matches_current() {
+        let mut ct = ChangeTracker::new();
+        ct.advance(); // tick == 1
+        assert!(ct.is_at_tick(1));
+    }
+
+    #[test]
+    fn test_is_at_tick_false_for_other_tick() {
+        let mut ct = ChangeTracker::new();
+        ct.advance();
+        ct.advance(); // tick == 2
+        assert!(!ct.is_at_tick(1));
+        assert!(!ct.is_at_tick(3));
+    }
+
+    #[test]
+    fn test_is_at_tick_after_set_tick() {
+        let mut ct = ChangeTracker::new();
+        ct.set_tick(42);
+        assert!(ct.is_at_tick(42));
+        assert!(!ct.is_at_tick(43));
     }
 }

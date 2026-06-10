@@ -145,6 +145,20 @@ impl<K: Eq + Clone> StatusSet<K> {
             .unwrap_or(0)
     }
 
+    /// The shortest remaining duration across all active effects.
+    /// Returns `0` when no effects are active.
+    ///
+    /// Mirrors [`max_remaining`](Self::max_remaining). Useful for "how soon
+    /// will a buff wear off?" or "apply debuff only if its duration exceeds the
+    /// shortest existing effect" queries.
+    pub fn min_remaining(&self) -> u32 {
+        self.entries
+            .iter()
+            .map(|(_, e)| e.remaining)
+            .min()
+            .unwrap_or(0)
+    }
+
     /// Add `added_ticks` to the remaining duration of the effect keyed by `key`.
     /// No-op if the key is not currently active. Saturating on overflow.
     pub fn extend_duration(&mut self, key: &K, added_ticks: u32) {
@@ -494,5 +508,29 @@ mod tests {
         let keys = s.active_keys();
         assert_eq!(keys.len(), 1);
         assert_eq!(keys[0], &2u32);
+    }
+
+    #[test]
+    fn test_min_remaining_empty_returns_zero() {
+        let s: StatusSet<u32> = StatusSet::new();
+        assert_eq!(s.min_remaining(), 0);
+    }
+
+    #[test]
+    fn test_min_remaining_returns_shortest() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 3, 1);
+        s.apply(2, 10, 1);
+        s.apply(3, 7, 1);
+        assert_eq!(s.min_remaining(), 3);
+    }
+
+    #[test]
+    fn test_min_remaining_after_tick() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 1);
+        s.apply(2, 8, 1);
+        s.tick(2); // both still active: 3 and 6 remaining
+        assert_eq!(s.min_remaining(), 3);
     }
 }

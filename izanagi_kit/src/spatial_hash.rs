@@ -52,6 +52,16 @@ impl<K: Eq + Clone> SpatialHash<K> {
         v.div_euclid(self.cell_size)
     }
 
+    /// Convert world position `(x, y)` to the cell coordinates that contain it.
+    ///
+    /// Exposes the same Euclidean-division mapping used internally by `insert`
+    /// and `query_cell`, so callers can reason about cell boundaries without
+    /// replicating the formula.
+    #[inline]
+    pub fn cell_coord_from_world(&self, x: i32, y: i32) -> (i32, i32) {
+        (self.cell_coord(x), self.cell_coord(y))
+    }
+
     /// Insert `key` at world position `(x, y)`.
     /// Inserting the same key at the same position twice is harmless but adds
     /// a duplicate; callers should `remove` before re-inserting at a new pos.
@@ -730,5 +740,27 @@ mod tests {
     fn test_query_radius_count_empty_grid_is_zero() {
         let g: SpatialHash<u32> = SpatialHash::new(4);
         assert_eq!(g.query_radius_count(0, 0, 100), 0);
+    }
+
+    #[test]
+    fn test_cell_coord_from_world_positive() {
+        let g: SpatialHash<u32> = SpatialHash::new(10);
+        assert_eq!(g.cell_coord_from_world(15, 25), (1, 2));
+    }
+
+    #[test]
+    fn test_cell_coord_from_world_negative() {
+        let g: SpatialHash<u32> = SpatialHash::new(10);
+        // Euclidean division: -1.div_euclid(10) == -1
+        assert_eq!(g.cell_coord_from_world(-1, -10), (-1, -1));
+    }
+
+    #[test]
+    fn test_cell_coord_from_world_matches_query_cell() {
+        let mut g: SpatialHash<u32> = SpatialHash::new(10);
+        g.insert(42, 55, 35); // cell (5, 3)
+        let (cx, cy) = g.cell_coord_from_world(55, 35);
+        assert_eq!((cx, cy), (5, 3));
+        assert!(g.query_cell(55, 35).contains(&42));
     }
 }

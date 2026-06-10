@@ -161,6 +161,18 @@ impl<K: Eq + Clone> InputBuffer<K> {
             .unwrap_or(false)
     }
 
+    /// Count of keys that are currently in the **repeating phase** — held past
+    /// the initial-delay threshold.
+    ///
+    /// Useful for "slow time while any key is repeating" or "disable menu
+    /// animation when inputs are rapid-firing" without allocating a `Vec`.
+    pub fn count_repeating(&self) -> usize {
+        self.held
+            .iter()
+            .filter(|h| h.fired_initial && h.held_ticks > self.initial_delay)
+            .count()
+    }
+
     /// Update the hold-repeat timing parameters without clearing the buffer.
     ///
     /// The new timing takes effect on the next `tick` call. Held keys are not
@@ -456,5 +468,29 @@ mod tests {
     fn test_is_repeating_false_for_unheld_key() {
         let b: InputBuffer<u32> = InputBuffer::new(0, 1);
         assert!(!b.is_repeating(&99u32));
+    }
+
+    #[test]
+    fn test_count_repeating_zero_when_no_keys_held() {
+        let b: InputBuffer<u32> = InputBuffer::new(3, 1);
+        assert_eq!(b.count_repeating(), 0);
+    }
+
+    #[test]
+    fn test_count_repeating_zero_before_initial_delay() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(5, 1);
+        b.press(1);
+        b.tick(1); // held_ticks == 1, initial_delay == 5 → not yet repeating
+        assert_eq!(b.count_repeating(), 0);
+    }
+
+    #[test]
+    fn test_count_repeating_counts_keys_past_initial_delay() {
+        let mut b: InputBuffer<u32> = InputBuffer::new(2, 1);
+        b.press(1);
+        b.press(2);
+        // Advance past initial_delay (2) for both keys
+        b.tick(5);
+        assert_eq!(b.count_repeating(), 2);
     }
 }

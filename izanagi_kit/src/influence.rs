@@ -225,6 +225,14 @@ impl InfluenceMap {
         self.cells.iter().copied().max()
     }
 
+    /// Return the minimum influence value stored in any cell, or `None` if empty.
+    ///
+    /// Useful for "flee from minimum threat" and normalising the map into
+    /// a 0-1 range: `(v - min) / (max - min)`.
+    pub fn min_value(&self) -> Option<i32> {
+        self.cells.iter().copied().min()
+    }
+
     /// Iterate `(x, y, value)` for all cells in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, i32)> + '_ {
         let w = self.width;
@@ -544,5 +552,26 @@ mod tests {
     fn test_max_value_all_zero_is_zero() {
         let m = InfluenceMap::new(2, 2);
         assert_eq!(m.max_value(), Some(0));
+    }
+
+    #[test]
+    fn test_min_value_empty_map_is_none() {
+        let m = InfluenceMap::new(0, 0);
+        assert_eq!(m.min_value(), None);
+    }
+
+    #[test]
+    fn test_min_value_returns_smallest_cell() {
+        let mut m = InfluenceMap::new(3, 1);
+        m.set(0, 0, 5);
+        m.set(1, 0, -99);
+        m.set(2, 0, 10);
+        assert_eq!(m.min_value(), Some(-99));
+    }
+
+    #[test]
+    fn test_min_value_all_zero_is_zero() {
+        let m = InfluenceMap::new(2, 2);
+        assert_eq!(m.min_value(), Some(0));
     }
 }

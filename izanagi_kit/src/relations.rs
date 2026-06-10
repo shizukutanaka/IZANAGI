@@ -106,6 +106,20 @@ impl Relations {
         self.children.iter().filter(|(p, _)| *p == entity).count()
     }
 
+    /// Return the `idx`-th direct child of `entity` in insertion order, or
+    /// `None` if `entity` has fewer than `idx + 1` children.
+    ///
+    /// Avoids the full `Vec` allocation of [`children_of`](Self::children_of)
+    /// when only a single child is needed (e.g. "next in sequence" patterns or
+    /// index-based child selection for AI).
+    pub fn child_at_index(&self, entity: Entity, idx: usize) -> Option<Entity> {
+        self.children
+            .iter()
+            .filter(|(p, _)| *p == entity)
+            .nth(idx)
+            .map(|(_, c)| *c)
+    }
+
     /// All entities in the subtree rooted at `entity`, **excluding** `entity`
     /// itself, in breadth-first order (children before grandchildren).
     ///
@@ -698,5 +712,29 @@ mod tests {
         r.attach(e[1], e[0]);
         r.attach(e[2], e[0]);
         assert_eq!(r.child_count(e[0]), r.children_of(e[0]).len());
+    }
+
+    #[test]
+    fn test_child_at_index_first_child() {
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        r.attach(e[2], e[0]);
+        assert_eq!(r.child_at_index(e[0], 0), Some(e[1]));
+    }
+
+    #[test]
+    fn test_child_at_index_out_of_bounds_is_none() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        assert_eq!(r.child_at_index(e[0], 1), None);
+    }
+
+    #[test]
+    fn test_child_at_index_no_children_is_none() {
+        let e = entities(1);
+        let r = Relations::new();
+        assert_eq!(r.child_at_index(e[0], 0), None);
     }
 }

@@ -162,6 +162,19 @@ impl<C> CmdQueue<C> {
     {
         self.buf.iter().any(pred)
     }
+
+    /// Count queued commands for which `pred` returns `true`, without draining
+    /// the queue.
+    ///
+    /// Mirrors [`contains`](Self::contains) but returns the exact count rather
+    /// than a boolean — useful for "how many move commands are pending?" or
+    /// rate-limiting guards that allow at most N commands of a given type.
+    pub fn count<F>(&self, pred: F) -> usize
+    where
+        F: Fn(&C) -> bool,
+    {
+        self.buf.iter().filter(|c| pred(c)).count()
+    }
 }
 
 impl<C: DetHash> DetHash for CmdQueue<C> {
@@ -465,5 +478,32 @@ mod tests {
         q.push(5);
         let _ = q.contains(|c| *c == 5);
         assert_eq!(q.len(), 1);
+    }
+
+    #[test]
+    fn test_count_returns_zero_for_no_matches() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(1);
+        q.push(3);
+        assert_eq!(q.count(|c| *c == 99), 0);
+    }
+
+    #[test]
+    fn test_count_returns_exact_match_count() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(2);
+        q.push(3);
+        q.push(2);
+        q.push(5);
+        assert_eq!(q.count(|c| *c == 2), 2);
+    }
+
+    #[test]
+    fn test_count_does_not_consume_queue() {
+        let mut q: CmdQueue<i32> = CmdQueue::new();
+        q.push(7);
+        q.push(7);
+        let _ = q.count(|c| *c == 7);
+        assert_eq!(q.len(), 2);
     }
 }

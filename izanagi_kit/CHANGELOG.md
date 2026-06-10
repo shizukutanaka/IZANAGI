@@ -1323,6 +1323,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   len`, or `0` for an empty table. Useful for "is this table roughly uniform?"
   distribution checks and depth-scaling balance heuristics without manual
   iteration.
+- `influence::InfluenceMap::min_value() -> Option<i32>`: minimum value in any
+  cell (`None` for a zero-size map). The counterpart to `max_value` — useful for
+  "flee from minimum threat" AI and normalising an influence layer to a `[0, 1]`
+  range via `(v − min) / (max − min)`.
+- `spatial_hash::SpatialHash::cell_coord_from_world(x, y) -> (i32, i32)`:
+  expose the internal Euclidean-division world→cell mapping as a public method.
+  Lets callers reason about cell boundaries without replicating the formula and
+  confirms that `insert(k, x, y)` and `query_cell(x, y)` use the same mapping.
+- `status::StatusSet::min_remaining() -> u32`: shortest remaining duration
+  across all active effects (0 when empty). Mirrors `max_remaining` — useful for
+  "how soon will a buff wear off?" UI and "apply debuff only if it exceeds the
+  current shortest" AI guards.
+- `relations::Relations::child_at_index(entity, idx) -> Option<Entity>`:
+  `idx`-th direct child of `entity` in insertion order, or `None` if fewer than
+  `idx + 1` children exist. Avoids the `Vec` allocation of `children_of` when
+  only a single child is needed (random child selection, next-in-sequence).
+- `change::ChangeTracker::is_at_tick(target: u32) -> bool`: `true` when the
+  current tick equals `target`. Concise predicate for "fire exactly on tick N"
+  checkpoint and cutscene triggers without a manual `== target` comparison.
+- `inputbuf::InputBuffer::count_repeating() -> usize`: count of keys currently
+  in the repeating phase (held past `initial_delay`). Useful for "slow time while
+  any key auto-repeats" and "disable menu animation during rapid input" effects
+  without allocating a `Vec`.
+- `cmdqueue::CmdQueue::count<F>(pred) -> usize`: count queued commands matching
+  `pred` without draining the queue. The exact-count mirror of `contains` — use
+  for rate-limiting guards that allow at most N pending commands of a given type.
+- `loader::LoadedLevel::find_entity_at(x, y) -> Option<Entity>`: return the
+  first entity at grid position `(x, y)`, or `None` if the cell is empty.
+  Iterates the `positions` sparse-set in insertion order; makes no uniqueness
+  assumption. The position-to-entity reverse-lookup needed by interaction and
+  line-of-sight systems.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

@@ -114,6 +114,19 @@ impl LoadedLevel {
     pub fn entity_count(&self) -> usize {
         self.entities.len()
     }
+
+    /// Return the first entity at grid position `(x, y)`, or `None` if no
+    /// entity occupies that cell.
+    ///
+    /// Iterates the `positions` sparse-set in insertion order; returns the
+    /// first match (there is normally at most one entity per cell, but the
+    /// method makes no uniqueness assumption).
+    pub fn find_entity_at(&self, x: u32, y: u32) -> Option<Entity> {
+        self.entities
+            .iter()
+            .copied()
+            .find(|&e| self.positions.get(e) == Some(&Position { x, y }))
+    }
 }
 
 /// Instantiates the named level's spawns into a fresh world. Expects content
@@ -289,5 +302,27 @@ level room 1x1
         assert_eq!(s.get("hp"), Some(20));
         assert_eq!(s.get("atk"), Some(3));
         assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_find_entity_at_returns_entity() {
+        let w = loaded();
+        // entities[0] = goblin at (3, 1); entities[1] = rat at (1, 1)
+        let g = w.find_entity_at(3, 1);
+        assert_eq!(g, Some(w.entities[0]));
+    }
+
+    #[test]
+    fn test_find_entity_at_absent_returns_none() {
+        let w = loaded();
+        assert_eq!(w.find_entity_at(0, 0), None);
+        assert_eq!(w.find_entity_at(2, 2), None);
+    }
+
+    #[test]
+    fn test_find_entity_at_second_entity() {
+        let w = loaded();
+        let r = w.find_entity_at(1, 1);
+        assert_eq!(r, Some(w.entities[1]));
     }
 }
