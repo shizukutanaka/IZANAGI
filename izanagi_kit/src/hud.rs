@@ -81,6 +81,14 @@ impl BarWidget {
         self.max <= 0 || self.current >= self.max
     }
 
+    /// Whether the bar is empty (`current <= 0`). The complement of `is_full`;
+    /// useful for "out of fuel / mana / HP" checks and for graying out UI elements
+    /// when a resource is completely depleted.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.current <= 0
+    }
+
     /// Render to a `String` of the form `[====    ]` (width + 2 chars).
     pub fn render(&self) -> String {
         let filled = self.filled_cells() as usize;
@@ -630,5 +638,23 @@ mod tests {
     fn test_is_landscape_tall_panel() {
         let p = HudPanel::new(0, 0, 3, 8);
         assert!(!p.is_landscape());
+    }
+
+    #[test]
+    fn test_bar_is_empty_when_current_zero() {
+        let b = BarWidget::new(0, 10, 10);
+        assert!(b.is_empty());
+    }
+
+    #[test]
+    fn test_bar_is_empty_false_when_current_positive() {
+        let b = BarWidget::new(5, 10, 10);
+        assert!(!b.is_empty());
+    }
+
+    #[test]
+    fn test_bar_is_empty_true_when_current_negative() {
+        let b = BarWidget::new(-3, 10, 10);
+        assert!(b.is_empty());
     }
 }

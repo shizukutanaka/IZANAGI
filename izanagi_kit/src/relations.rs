@@ -109,6 +109,14 @@ impl Relations {
         self.children_iter(entity).count()
     }
 
+    /// Whether `entity` has at least one direct child. Shorthand for
+    /// `child_count > 0` — avoids spelling out the comparison at every call site
+    /// that only needs a boolean ("is this a leaf?").
+    #[inline]
+    pub fn has_children(&self, entity: Entity) -> bool {
+        self.children_iter(entity).next().is_some()
+    }
+
     /// Return the `idx`-th direct child of `entity` in insertion order, or
     /// `None` if `entity` has fewer than `idx + 1` children.
     ///
@@ -735,5 +743,30 @@ mod tests {
         let e = entities(1);
         let r = Relations::new();
         assert_eq!(r.child_at_index(e[0], 0), None);
+    }
+
+    #[test]
+    fn test_has_children_true_when_children_present() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        assert!(r.has_children(e[0]));
+    }
+
+    #[test]
+    fn test_has_children_false_for_leaf() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        assert!(!r.has_children(e[1]));
+    }
+
+    #[test]
+    fn test_has_children_false_after_detach() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        r.detach(e[1]);
+        assert!(!r.has_children(e[0]));
     }
 }

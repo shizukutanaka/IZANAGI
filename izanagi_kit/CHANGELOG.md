@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `relations::Relations::has_children(entity) -> bool`: shorthand for
+  `child_count(entity) > 0`. Avoids spelling out the comparison at call sites
+  that only need "is this a leaf?" without allocating a children list.
+- `hud::BarWidget::is_empty() -> bool`: `current <= 0`. The complement of
+  `is_full` — useful for "out of mana/HP/fuel" checks and disabling UI elements
+  when a resource is fully depleted.
+- `profiler::EventLog::since_tick(start_tick: u32) -> impl Iterator`: iterate
+  all entries at or after `start_tick`, oldest first. Convenience shorthand for
+  `filter_by_tick_range(tick, u32::MAX)`.
+- `random_table::RandomTable::remove_at(idx: usize) -> Option<T>`: remove an
+  entry by index and return its value. `total_weight` is updated. Entries after
+  `idx` shift left. Combined with `weighted_idx`, enables "roll-and-remove"
+  without-replacement loot draws.
+- `cmdqueue::CmdQueue::pop() -> Option<C>`: FIFO alias for `pop_front`. Reads
+  more naturally at typical consumption sites where LIFO/FIFO semantics do not
+  need to be highlighted.
 - `fsm::Fsm::reset()`: return the FSM to its initial state (the state passed to
   `Fsm::new`) without touching the transition table. Also adds
   `Fsm::initial_state() -> &S` to read it back. Stores the initial state as a

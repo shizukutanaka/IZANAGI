@@ -161,6 +161,20 @@ impl<T> RandomTable<T> {
         }
     }
 
+    /// Remove the entry at `idx` and return its value. Returns `None` when
+    /// `idx` is out of range. Entries after `idx` shift left (indices change).
+    /// The `total_weight` is updated to stay consistent. Use this in combination
+    /// with [`weighted_idx`](Self::weighted_idx) to roll-and-remove items from a
+    /// loot pool (a "without-replacement" draw).
+    pub fn remove_at(&mut self, idx: usize) -> Option<T> {
+        if idx >= self.entries.len() {
+            return None;
+        }
+        let entry = self.entries.remove(idx);
+        self.total_weight -= entry.weight as u64;
+        Some(entry.value)
+    }
+
     /// Like [`roll`](Self::roll) but returns the **entry index** instead of the
     /// value, so the caller can post-process, remove, or count the rolled slot.
     /// Draws exactly once from `rng`; returns `None` without drawing when all
@@ -456,5 +470,31 @@ mod tests {
         let t = RandomTable::new().with(2u32, 'a').with(6u32, 'b');
         // total = 8, len = 2, avg = 4
         assert_eq!(t.average_weight(), 4);
+    }
+
+    #[test]
+    fn test_remove_at_returns_value_and_shrinks_table() {
+        let mut t = RandomTable::new()
+            .with(3u32, 'a')
+            .with(5u32, 'b')
+            .with(2u32, 'c');
+        let val = t.remove_at(1).unwrap();
+        assert_eq!(val, 'b');
+        assert_eq!(t.len(), 2);
+        assert_eq!(t.total_weight(), 5); // 3 + 2
+    }
+
+    #[test]
+    fn test_remove_at_out_of_range_returns_none() {
+        let mut t: RandomTable<char> = RandomTable::new().with(1, 'x');
+        assert!(t.remove_at(5).is_none());
+        assert_eq!(t.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_at_adjusts_total_weight() {
+        let mut t = RandomTable::new().with(10u32, 'a').with(20u32, 'b');
+        t.remove_at(0);
+        assert_eq!(t.total_weight(), 20);
     }
 }

@@ -317,6 +317,14 @@ impl<E: Clone> EventLog<E> {
             .filter(move |e| e.tick >= start_tick && e.tick <= end_tick)
     }
 
+    /// Iterate all entries pushed at or after `start_tick`, oldest first.
+    /// Convenience shorthand for `filter_by_tick_range(start_tick, u32::MAX)`.
+    /// Useful for "what happened since last checkpoint?" queries and streaming
+    /// replay inspection.
+    pub fn since_tick(&self, start_tick: u32) -> impl Iterator<Item = &LogEntry<E>> {
+        self.iter().filter(move |e| e.tick >= start_tick)
+    }
+
     /// Count stored entries for which `pred(&event)` returns `true`.
     /// Memory-efficient alternative to `iter().filter(…).count()` that avoids
     /// constructing an intermediate collection.
@@ -718,5 +726,31 @@ mod tests {
         log.push(3, 30);
         let entry = log.oldest().unwrap();
         assert_eq!(entry.tick, 2);
+    }
+
+    #[test]
+    fn test_since_tick_returns_entries_at_or_after() {
+        let mut log: EventLog<u32> = EventLog::new(10);
+        log.push(1, 10);
+        log.push(3, 30);
+        log.push(5, 50);
+        let result: Vec<u32> = log.since_tick(3).map(|e| e.event).collect();
+        assert_eq!(result, vec![30, 50]);
+    }
+
+    #[test]
+    fn test_since_tick_empty_when_all_before() {
+        let mut log: EventLog<u32> = EventLog::new(5);
+        log.push(1, 1);
+        log.push(2, 2);
+        assert_eq!(log.since_tick(5).count(), 0);
+    }
+
+    #[test]
+    fn test_since_tick_all_when_start_is_zero() {
+        let mut log: EventLog<u32> = EventLog::new(5);
+        log.push(1, 1);
+        log.push(2, 2);
+        assert_eq!(log.since_tick(0).count(), 2);
     }
 }

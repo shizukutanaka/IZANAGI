@@ -123,6 +123,14 @@ impl<C> CmdQueue<C> {
         self.buf.pop()
     }
 
+    /// Remove and return the front command (oldest / first-in), or `None` if
+    /// the queue is empty. Alias for `pop_front` — use whichever reads more
+    /// naturally at the call site for typical FIFO consumption.
+    #[inline]
+    pub fn pop(&mut self) -> Option<C> {
+        self.pop_front()
+    }
+
     /// Return a reference to the command at position `i` (0 = oldest), or
     /// `None` if `i >= len`. Does not consume or advance the queue — use
     /// `drain` or `pop_front` for that. Follows the same insertion order as
@@ -505,5 +513,29 @@ mod tests {
         q.push(7);
         let _ = q.count(|c| *c == 7);
         assert_eq!(q.len(), 2);
+    }
+
+    #[test]
+    fn test_pop_returns_front_command() {
+        let mut q: CmdQueue<u32> = CmdQueue::new();
+        q.push(1);
+        q.push(2);
+        assert_eq!(q.pop(), Some(1));
+        assert_eq!(q.pop(), Some(2));
+    }
+
+    #[test]
+    fn test_pop_empty_returns_none() {
+        let mut q: CmdQueue<u32> = CmdQueue::new();
+        assert_eq!(q.pop(), None);
+    }
+
+    #[test]
+    fn test_pop_matches_pop_front() {
+        let mut q1: CmdQueue<u32> = CmdQueue::new();
+        let mut q2: CmdQueue<u32> = CmdQueue::new();
+        q1.push(10);
+        q2.push(10);
+        assert_eq!(q1.pop(), q2.pop_front());
     }
 }
