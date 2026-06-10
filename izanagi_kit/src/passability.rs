@@ -207,6 +207,19 @@ impl PassabilityGrid {
         })
     }
 
+    /// Count orthogonal (4-direction) neighbours of `(x, y)` that are blocked.
+    ///
+    /// The result is in `0..=4`. Out-of-bounds neighbours count as blocked.
+    /// Used in cellular-automaton cave generation (if ≥ 5 neighbours blocked →
+    /// become wall) and dungeon connectivity checks without allocating a list.
+    #[inline]
+    pub fn count_neighbors_blocked(&self, x: i32, y: i32) -> usize {
+        [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+            .iter()
+            .filter(|&&(nx, ny)| self.is_blocked(nx, ny))
+            .count()
+    }
+
     /// Flip every cell in place: passable → blocked, blocked → passable.
     /// Useful for testing ("treat walls as floor") and negative-space queries.
     pub fn invert(&mut self) {
@@ -542,5 +555,32 @@ mod tests {
         g.fill(true);
         g.invert();
         assert_eq!(g.passable_count(), 4);
+    }
+
+    // --- count_neighbors_blocked ---
+
+    #[test]
+    fn test_count_neighbors_blocked_all_walls_is_four() {
+        let mut g = PassabilityGrid::new(3, 3);
+        // Set all four orthogonal neighbors of center (1,1) to blocked.
+        g.set_blocked(0, 1, true);
+        g.set_blocked(2, 1, true);
+        g.set_blocked(1, 0, true);
+        g.set_blocked(1, 2, true);
+        assert_eq!(g.count_neighbors_blocked(1, 1), 4);
+    }
+
+    #[test]
+    fn test_count_neighbors_blocked_oob_counts_as_blocked() {
+        let g = PassabilityGrid::new(1, 1);
+        // (0,0) has no in-bounds neighbors; all 4 are OOB → all blocked.
+        assert_eq!(g.count_neighbors_blocked(0, 0), 4);
+    }
+
+    #[test]
+    fn test_count_neighbors_blocked_open_field_is_zero() {
+        let g = PassabilityGrid::new(5, 5);
+        // Interior cell — all 4 neighbors are passable.
+        assert_eq!(g.count_neighbors_blocked(2, 2), 0);
     }
 }

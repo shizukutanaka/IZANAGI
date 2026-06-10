@@ -16,6 +16,16 @@ impl SplitMix64 {
         Self { state: seed }
     }
 
+    /// Construct a generator from two independent `u32` seeds.
+    ///
+    /// `(lo as u64) | ((hi as u64) << 32)` produces the `u64` state — the same
+    /// result as combining manually, but named for call sites that hold two
+    /// separate entropy sources (e.g. `map_seed` and `run_counter`).
+    #[inline]
+    pub fn from_u32_pair(lo: u32, hi: u32) -> Self {
+        Self::new((lo as u64) | ((hi as u64) << 32))
+    }
+
     /// Advances and returns the next 64-bit value.
     #[inline]
     pub fn next_u64(&mut self) -> u64 {
@@ -820,5 +830,29 @@ mod tests {
         for _ in 0..10 {
             assert_eq!(rng_a.gaussian_approx(0, 20), rng_b.gaussian_approx(0, 20));
         }
+    }
+
+    // --- from_u32_pair ---
+
+    #[test]
+    fn test_from_u32_pair_matches_manual_combination() {
+        let lo = 0xDEAD_BEEFu32;
+        let hi = 0x0102_0304u32;
+        let expected = SplitMix64::new((lo as u64) | ((hi as u64) << 32));
+        let from_pair = SplitMix64::from_u32_pair(lo, hi);
+        assert_eq!(expected.state(), from_pair.state());
+    }
+
+    #[test]
+    fn test_from_u32_pair_zero_zero_is_new_zero() {
+        let rng = SplitMix64::from_u32_pair(0, 0);
+        assert_eq!(rng.state(), SplitMix64::new(0).state());
+    }
+
+    #[test]
+    fn test_from_u32_pair_different_pairs_different_states() {
+        let a = SplitMix64::from_u32_pair(1, 2);
+        let b = SplitMix64::from_u32_pair(2, 1);
+        assert_ne!(a.state(), b.state());
     }
 }

@@ -7,6 +7,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `rng::SplitMix64::from_u32_pair(lo: u32, hi: u32) -> Self`: construct from
+  two independent `u32` seeds combined as `lo | (hi << 32)`. Avoids manual
+  bit-shifting at call sites that hold a map seed and a run counter separately.
+- `inventory::Inventory::remove_where_indexed(pred) -> Option<(usize, T)>`:
+  like `remove_where` but also returns the slot index. Use when the UI or log
+  needs to report which slot was consumed without a preceding `find` round-trip.
+- `passability::PassabilityGrid::count_neighbors_blocked(x, y) -> usize`:
+  count of orthogonal (4-direction) blocked neighbours. Out-of-bounds count as
+  blocked. Result in `0..=4`. For cellular-automaton rules, connectivity checks,
+  and maze-generation CA transitions without allocating a list.
+- `vec::Vec2::lerp_clamped(a, b, t)` / `vec::Vec3::lerp_clamped(a, b, t)`:
+  component-wise linear interpolation with `t` clamped to `[0, 1]` via
+  `Fixed::clamp01`. Use when `t` may exceed the range (user input, animation
+  clocks) and extrapolation beyond `[a, b]` is undesired.
 - `tilemap::TileMap::row_slice(y: i32) -> Option<&[T]>`: borrow a row as a
   contiguous slice. Row-major layout makes this O(1); `None` for OOB rows.
 - `tilemap::TileMap::column_vec(x: i32) -> Vec<T>`: collect column `x` into a

@@ -125,6 +125,16 @@ impl Vec2 {
         }
     }
 
+    /// Component-wise linear interpolation with `t` clamped to `[0, 1]`.
+    ///
+    /// Equivalent to `Vec2::lerp(a, b, t.clamp01())`. Use when `t` may come
+    /// from user input or an animation clock and should not extrapolate beyond
+    /// the `[a, b]` segment. The unclamped variant is [`lerp`](Self::lerp).
+    #[inline]
+    pub fn lerp_clamped(a: Vec2, b: Vec2, t: Fixed) -> Vec2 {
+        Vec2::lerp(a, b, t.clamp01())
+    }
+
     /// Component-wise absolute value: `(|x|, |y|)`.
     #[inline]
     pub fn abs(self) -> Vec2 {
@@ -315,6 +325,15 @@ impl Vec3 {
             y: Fixed::lerp(a.y, b.y, t),
             z: Fixed::lerp(a.z, b.z, t),
         }
+    }
+
+    /// Component-wise linear interpolation with `t` clamped to `[0, 1]`.
+    ///
+    /// Equivalent to `Vec3::lerp(a, b, t.clamp01())`. The unclamped variant is
+    /// [`lerp`](Self::lerp).
+    #[inline]
+    pub fn lerp_clamped(a: Vec3, b: Vec3, t: Fixed) -> Vec3 {
+        Vec3::lerp(a, b, t.clamp01())
     }
 
     /// Project to a [`Vec2`] by dropping `z`.
@@ -826,5 +845,52 @@ mod tests {
             y: fi(-1),
         };
         assert!(!v.is_zero());
+    }
+
+    // --- lerp_clamped ---
+
+    #[test]
+    fn test_lerp_clamped_t_zero_returns_a() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(20));
+        assert_eq!(Vec2::lerp_clamped(a, b, Fixed::ZERO), a);
+    }
+
+    #[test]
+    fn test_lerp_clamped_t_one_returns_b() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(20));
+        assert_eq!(Vec2::lerp_clamped(a, b, Fixed::ONE), b);
+    }
+
+    #[test]
+    fn test_lerp_clamped_t_above_one_clamps_to_b() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(20));
+        let over = Fixed::ONE + Fixed::ONE; // t = 2
+        assert_eq!(Vec2::lerp_clamped(a, b, over), b);
+    }
+
+    #[test]
+    fn test_vec3_lerp_clamped_t_below_zero_clamps_to_a() {
+        let a = Vec3::new(fi(5), fi(5), fi(5));
+        let b = Vec3::new(fi(15), fi(15), fi(15));
+        let neg = Fixed::ZERO - Fixed::ONE; // t = -1
+        assert_eq!(Vec3::lerp_clamped(a, b, neg), a);
+    }
+
+    #[test]
+    fn test_vec3_lerp_clamped_t_one_returns_b() {
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(4), fi(8), fi(16));
+        assert_eq!(Vec3::lerp_clamped(a, b, Fixed::ONE), b);
+    }
+
+    #[test]
+    fn test_vec3_lerp_clamped_matches_lerp_for_t_in_range() {
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(100), fi(100), fi(100));
+        let half = fr(1, 2);
+        assert_eq!(Vec3::lerp_clamped(a, b, half), Vec3::lerp(a, b, half));
     }
 }

@@ -120,6 +120,21 @@ impl<T: Clone> Inventory<T> {
         }
     }
 
+    /// Remove the first item for which `pred` is true and return `(slot, item)`.
+    ///
+    /// Like [`remove_where`](Self::remove_where) but also returns the slot index
+    /// — useful when the UI or log needs to report *which* slot was consumed
+    /// (e.g. "used potion from slot 3") without a separate `find` round-trip.
+    /// Returns `None` if no item matches.
+    pub fn remove_where_indexed<F: Fn(&T) -> bool>(&mut self, pred: F) -> Option<(usize, T)> {
+        let idx = self
+            .slots
+            .iter()
+            .enumerate()
+            .find_map(|(i, s)| s.as_ref().filter(|item| pred(item)).map(|_| i))?;
+        self.remove(idx).map(|item| (idx, item))
+    }
+
     /// Remove and return the first item for which `pred(item)` is true.
     /// Returns `None` if no matching item is present.
     pub fn remove_where<F: Fn(&T) -> bool>(&mut self, pred: F) -> Option<T> {
@@ -551,5 +566,32 @@ mod tests {
     fn test_contains_where_false_on_empty() {
         let inv: Inventory<u32> = Inventory::new(4);
         assert!(!inv.contains_where(|_| true));
+    }
+
+    // --- remove_where_indexed ---
+
+    #[test]
+    fn test_remove_where_indexed_returns_slot_and_item() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        let result = inv.remove_where_indexed(|&v| v == 20).unwrap();
+        assert_eq!(result, (1, 20));
+        assert_eq!(inv.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_where_indexed_returns_none_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(5);
+        assert!(inv.remove_where_indexed(|&v| v > 100).is_none());
+    }
+
+    #[test]
+    fn test_remove_where_indexed_slot_is_then_empty() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(99);
+        let (slot, _) = inv.remove_where_indexed(|_| true).unwrap();
+        assert!(inv.get(slot).is_none());
     }
 }
