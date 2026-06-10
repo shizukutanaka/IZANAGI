@@ -115,6 +115,18 @@ impl<T> RandomTable<T> {
         self.entries.iter().map(|e| e.weight).max().unwrap_or(0)
     }
 
+    /// Average weight across all entries: `total_weight / len` (integer
+    /// division). Returns `0` for an empty table. Useful for "is the table
+    /// roughly uniform?" distribution checks and balance heuristics without
+    /// iterating manually.
+    pub fn average_weight(&self) -> u32 {
+        if self.entries.is_empty() {
+            0
+        } else {
+            (self.total_weight / self.entries.len() as u64) as u32
+        }
+    }
+
     /// Number of entries (including any with weight 0).
     #[inline]
     pub fn len(&self) -> usize {
@@ -422,5 +434,27 @@ mod tests {
     fn test_max_weight_all_zero_weights_is_zero() {
         let t = RandomTable::new().with(0u32, 1u32).with(0u32, 2u32);
         assert_eq!(t.max_weight(), 0);
+    }
+
+    #[test]
+    fn test_average_weight_empty_is_zero() {
+        let t: RandomTable<u32> = RandomTable::new();
+        assert_eq!(t.average_weight(), 0);
+    }
+
+    #[test]
+    fn test_average_weight_uniform_table() {
+        let t = RandomTable::new()
+            .with(10u32, 'a')
+            .with(10u32, 'b')
+            .with(10u32, 'c');
+        assert_eq!(t.average_weight(), 10);
+    }
+
+    #[test]
+    fn test_average_weight_mixed_table() {
+        let t = RandomTable::new().with(2u32, 'a').with(6u32, 'b');
+        // total = 8, len = 2, avg = 4
+        assert_eq!(t.average_weight(), 4);
     }
 }

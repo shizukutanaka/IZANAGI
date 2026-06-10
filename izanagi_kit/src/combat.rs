@@ -47,6 +47,15 @@ impl Stats {
         self.hp > 0
     }
 
+    /// Whether this combatant is dead (`hp <= 0`). The explicit complement of
+    /// `is_alive` — avoids the `!is_alive()` double-negation at sites where
+    /// the positive "is dead?" condition is clearer: death triggers, loot drops,
+    /// and "remove all dead entities this tick" cleanup passes.
+    #[inline]
+    pub fn is_dead(&self) -> bool {
+        self.hp <= 0
+    }
+
     /// Apply `amount` damage (clamped to the current HP; HP floor is 0).
     #[inline]
     pub fn take_damage(&mut self, amount: i32) {
@@ -326,6 +335,25 @@ mod tests {
         let mut s = Stats::new(5, 1, 0);
         s.take_damage(5);
         assert!(!s.is_alive());
+    }
+
+    #[test]
+    fn test_is_dead_at_zero_hp() {
+        let mut s = Stats::new(5, 1, 0);
+        s.take_damage(5);
+        assert!(s.is_dead());
+    }
+
+    #[test]
+    fn test_is_dead_false_when_alive() {
+        let s = Stats::new(10, 2, 1);
+        assert!(!s.is_dead());
+    }
+
+    #[test]
+    fn test_is_dead_complements_is_alive() {
+        let s = Stats::new(3, 1, 0);
+        assert_ne!(s.is_dead(), s.is_alive());
     }
 
     #[test]

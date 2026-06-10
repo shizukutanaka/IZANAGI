@@ -345,6 +345,30 @@ pub fn fov_ring<O: FnMut(i32, i32) -> bool>(
         .collect()
 }
 
+/// Visible cells within an **Euclidean** circle of `radius` — a strict disc
+/// rather than the Chebyshev square that `fov_to_vec` returns. Filters
+/// `fov_to_vec` to cells where `dx² + dy² ≤ radius²`. Returns empty for
+/// `radius < 0`. Useful for torch-light and ranged-attack indicators where
+/// a round boundary is expected.
+pub fn fov_circle<O: FnMut(i32, i32) -> bool>(
+    origin: (i32, i32),
+    radius: i32,
+    is_opaque: O,
+) -> Vec<(i32, i32)> {
+    if radius < 0 {
+        return Vec::new();
+    }
+    let r2 = (radius as i64) * (radius as i64);
+    fov_to_vec(origin, radius, is_opaque)
+        .into_iter()
+        .filter(|&(x, y)| {
+            let dx = (x - origin.0) as i64;
+            let dy = (y - origin.1) as i64;
+            dx * dx + dy * dy <= r2
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -661,5 +685,31 @@ mod tests {
         for pt in fov_ring(origin, radius, |_, _| false) {
             assert!(all.contains(&pt), "{:?} not in fov_to_vec", pt);
         }
+    }
+
+    #[test]
+    fn test_fov_circle_includes_origin() {
+        let cells = fov_circle((0, 0), 5, |_, _| false);
+        assert!(cells.contains(&(0, 0)), "origin must be visible");
+    }
+
+    #[test]
+    fn test_fov_circle_subset_of_square_fov() {
+        let origin = (10, 10);
+        let radius = 4;
+        let square: std::collections::HashSet<_> = fov_to_vec(origin, radius, |_, _| false)
+            .into_iter()
+            .collect();
+        for &(x, y) in &fov_circle(origin, radius, |_, _| false) {
+            assert!(square.contains(&(x, y)));
+            let dx = (x - origin.0) as i64;
+            let dy = (y - origin.1) as i64;
+            assert!(dx * dx + dy * dy <= (radius as i64) * (radius as i64));
+        }
+    }
+
+    #[test]
+    fn test_fov_circle_negative_radius_empty() {
+        assert!(fov_circle((5, 5), -1, |_, _| false).is_empty());
     }
 }

@@ -85,6 +85,22 @@ impl<T: Clone> TileMap<T> {
         self.cells.fill(tile);
     }
 
+    /// Fill the outermost border cells (top row, bottom row, left column, right
+    /// column) with `tile`, leaving the interior unchanged. For a map smaller
+    /// than 2×2 this fills every cell. The standard "seal the dungeon in walls"
+    /// primitive, equivalent to four `fill_rect` calls but in a single method.
+    pub fn fill_border(&mut self, tile: T) {
+        if self.width == 0 || self.height == 0 {
+            return;
+        }
+        let w = self.width as i32;
+        let h = self.height as i32;
+        self.fill_rect(0, 0, w, 1, tile.clone());
+        self.fill_rect(0, h - 1, w, 1, tile.clone());
+        self.fill_rect(0, 0, 1, h, tile.clone());
+        self.fill_rect(w - 1, 0, 1, h, tile);
+    }
+
     /// Fill a rectangular region `[x, x+w) × [y, y+h)` with `tile`.
     /// Clips silently to the map boundary.
     pub fn fill_rect(&mut self, x: i32, y: i32, w: i32, h: i32, tile: T) {
@@ -751,5 +767,41 @@ mod tests {
             *t == 1
         });
         assert_eq!(count, 1, "should stop after first match");
+    }
+
+    #[test]
+    fn test_fill_border_sets_perimeter_cells() {
+        let mut m: TileMap<u8> = TileMap::new(5, 4, 0);
+        m.fill_border(1);
+        // All top/bottom row cells should be 1.
+        for x in 0..5i32 {
+            assert_eq!(*m.get(x, 0).unwrap(), 1);
+            assert_eq!(*m.get(x, 3).unwrap(), 1);
+        }
+        // All left/right column cells should be 1.
+        for y in 0..4i32 {
+            assert_eq!(*m.get(0, y).unwrap(), 1);
+            assert_eq!(*m.get(4, y).unwrap(), 1);
+        }
+        // Interior cell (1,1) should remain 0.
+        assert_eq!(*m.get(1, 1).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_fill_border_small_map_fills_all() {
+        let mut m: TileMap<u8> = TileMap::new(1, 1, 0);
+        m.fill_border(7);
+        assert_eq!(*m.get(0, 0).unwrap(), 7);
+    }
+
+    #[test]
+    fn test_fill_border_2x2_fills_all() {
+        let mut m: TileMap<u8> = TileMap::new(2, 2, 0);
+        m.fill_border(9);
+        for y in 0..2i32 {
+            for x in 0..2i32 {
+                assert_eq!(*m.get(x, y).unwrap(), 9);
+            }
+        }
     }
 }

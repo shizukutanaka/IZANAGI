@@ -145,6 +145,14 @@ impl Color {
         }
     }
 
+    /// Highest of the three channels — `max(r, g, b)`. Returns `0` for black.
+    /// Useful for normalising a colour to full brightness (divide each channel
+    /// by `max_channel / 255`) and as an overflow guard when brightening.
+    #[inline]
+    pub fn max_channel(self) -> u8 {
+        self.r.max(self.g).max(self.b)
+    }
+
     /// Composite `fg` over `bg` with integer alpha: `alpha = 0` yields `fg`,
     /// `alpha = 255` yields `bg`. Formula: `(fg * (255 − alpha) + bg * alpha) / 255`
     /// per channel — no float, deterministic across targets.
@@ -624,5 +632,22 @@ mod tests {
         });
         assert!(c.tile("floor").is_none());
         assert!(c.tile("wall").is_some());
+    }
+
+    #[test]
+    fn test_max_channel_picks_highest() {
+        assert_eq!(Color::rgb(200, 100, 50).max_channel(), 200);
+        assert_eq!(Color::rgb(10, 250, 30).max_channel(), 250);
+        assert_eq!(Color::rgb(5, 5, 255).max_channel(), 255);
+    }
+
+    #[test]
+    fn test_max_channel_all_equal() {
+        assert_eq!(Color::rgb(128, 128, 128).max_channel(), 128);
+    }
+
+    #[test]
+    fn test_max_channel_black_is_zero() {
+        assert_eq!(Color::rgb(0, 0, 0).max_channel(), 0);
     }
 }

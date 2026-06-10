@@ -220,6 +220,14 @@ impl Camera {
         }
     }
 
+    /// Total number of cells in the viewport: `screen_w × screen_h`. Useful
+    /// for per-frame draw-call budgets, renderer pre-allocation, and broad-phase
+    /// "is the map larger than the screen?" checks without two separate reads.
+    #[inline]
+    pub fn viewport_area(&self) -> u32 {
+        self.screen_w.saturating_mul(self.screen_h)
+    }
+
     // Compute the top-left origin for one axis: centre on `focus`, clamp so
     // the `view` cells fit in `world`.
     fn clamp_origin(focus: i32, view: u32, world: u32) -> i32 {
@@ -630,5 +638,23 @@ mod tests {
         };
         assert_eq!(cam.clamp_world_to_screen(10, 5), (0, 0));
         assert_eq!(cam.clamp_world_to_screen(29, 14), (19, 9));
+    }
+
+    #[test]
+    fn test_viewport_area_is_product() {
+        let cam = Camera::new(10, 10, 20, 15, 100, 100);
+        assert_eq!(cam.viewport_area(), 20 * 15);
+    }
+
+    #[test]
+    fn test_viewport_area_zero_screen() {
+        let cam = Camera::new(0, 0, 0, 5, 100, 100);
+        assert_eq!(cam.viewport_area(), 0);
+    }
+
+    #[test]
+    fn test_viewport_area_unit_screen() {
+        let cam = Camera::new(0, 0, 1, 1, 10, 10);
+        assert_eq!(cam.viewport_area(), 1);
     }
 }

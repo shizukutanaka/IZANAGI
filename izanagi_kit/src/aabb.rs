@@ -302,6 +302,15 @@ impl Aabb {
             2i32.saturating_mul(self.w.saturating_add(self.h))
         }
     }
+
+    /// Half-width and half-height as a tuple: `(w / 2, h / 2)` (integer
+    /// division, same floor bias as `center()`). Returns `(0, 0)` for empty
+    /// boxes. Useful for constructing symmetric offsets from the center without
+    /// repeating the `/2` at every call site.
+    #[inline]
+    pub fn half_extents(&self) -> (i32, i32) {
+        (self.w / 2, self.h / 2)
+    }
 }
 
 impl DetHash for Aabb {
@@ -790,5 +799,20 @@ mod tests {
     fn test_perimeter_empty_box_is_zero() {
         assert_eq!(r(0, 0, 0, 0).perimeter(), 0);
         assert_eq!(r(0, 0, -1, 4).perimeter(), 0);
+    }
+
+    #[test]
+    fn test_half_extents_normal_box() {
+        assert_eq!(r(0, 0, 10, 6).half_extents(), (5, 3));
+    }
+
+    #[test]
+    fn test_half_extents_odd_dimensions() {
+        assert_eq!(r(0, 0, 7, 5).half_extents(), (3, 2));
+    }
+
+    #[test]
+    fn test_half_extents_empty_box() {
+        assert_eq!(r(0, 0, 0, 0).half_extents(), (0, 0));
     }
 }

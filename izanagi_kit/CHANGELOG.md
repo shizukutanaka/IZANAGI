@@ -1296,6 +1296,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `first_diff` (stops at first divergence), `diff` provides a complete picture
   — useful for "show all errors after a failed round-trip" debugging and
   structured test output. Returns an empty `Vec` when `content_eq(a, b)`.
+- `aabb::Aabb::half_extents() -> (i32, i32)`: `(w / 2, h / 2)` — integer
+  half-dimensions. Mirrors `center()`'s floor bias. Avoids repeating the `/2`
+  arithmetic at every symmetric collision or spawn-offset call site.
+- `fov::fov_circle(origin, radius, is_opaque) -> Vec<(i32,i32)>`: visible cells
+  within an Euclidean circle (`dx² + dy² ≤ radius²`). Filters `fov_to_vec`
+  to a strict disc rather than the Chebyshev square. Returns empty for
+  `radius < 0`. Re-exported at the crate root alongside `fov_to_vec`.
+- `hud::HudPanel::is_landscape() -> bool`: `true` when `w >= h`. Simple layout
+  predicate for adaptive UI: split wide panels horizontally, tall panels
+  vertically, without hard-coding orientation at each call site.
+- `content::Color::max_channel() -> u8`: `max(r, g, b)`. Useful for
+  normalising a colour to full brightness and as an overflow guard when
+  brightening — the "value" in HSV terms but computed per-channel.
+- `tilemap::TileMap::fill_border(tile)`: set all cells on the outermost
+  perimeter (top row, bottom row, left and right columns) to `tile`, leaving
+  the interior unchanged. Equivalent to four `fill_rect` calls; the standard
+  "seal the dungeon in walls" primitive for post-generation clean-up.
+- `camera::Camera::viewport_area() -> u32`: `screen_w × screen_h` (saturating).
+  Useful for pre-frame draw-call budgets, renderer pre-allocation, and
+  "is the map larger than the screen?" checks without two separate reads.
+- `combat::Stats::is_dead() -> bool`: `self.hp <= 0` — the positive complement
+  of `is_alive`. Eliminates `!is_alive()` double-negation at death-trigger,
+  loot-drop, and "remove dead entities this tick" cleanup sites.
+- `random_table::RandomTable::average_weight() -> u32`: integer `total /
+  len`, or `0` for an empty table. Useful for "is this table roughly uniform?"
+  distribution checks and depth-scaling balance heuristics without manual
+  iteration.
 
 ### Fixed
 - `content::parse_color`: no longer panics on a 7-byte input containing a

@@ -297,6 +297,14 @@ impl HudPanel {
         let h = (y1 - y0).max(0) as u32;
         Some(HudPanel { x: x0, y: y0, w, h })
     }
+
+    /// Returns `true` when the panel is wider than it is tall (`w >= h`).
+    /// Useful for adaptive layouts: split wide panels horizontally, tall panels
+    /// vertically, without hard-coding orientation at each call site.
+    #[inline]
+    pub fn is_landscape(&self) -> bool {
+        self.w >= self.h
+    }
 }
 
 impl DetHash for HudPanel {
@@ -604,5 +612,23 @@ mod tests {
     fn test_is_full_false_when_partial() {
         let b = BarWidget::new(5, 10, 8);
         assert!(!b.is_full());
+    }
+
+    #[test]
+    fn test_is_landscape_wide_panel() {
+        let p = HudPanel::new(0, 0, 10, 5);
+        assert!(p.is_landscape());
+    }
+
+    #[test]
+    fn test_is_landscape_square_panel() {
+        let p = HudPanel::new(0, 0, 4, 4);
+        assert!(p.is_landscape());
+    }
+
+    #[test]
+    fn test_is_landscape_tall_panel() {
+        let p = HudPanel::new(0, 0, 3, 8);
+        assert!(!p.is_landscape());
     }
 }
