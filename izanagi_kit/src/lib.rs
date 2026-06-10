@@ -134,7 +134,8 @@ pub use fixed::Fixed;
 pub use fov::{compute_fov, compute_fov_dist, fov_to_vec};
 pub use fsm::Fsm;
 pub use geometry::{
-    diamond, line, line_of_sight, rect_contains, rect_perimeter, vec_toward, Distance,
+    chebyshev_distance, diamond, line, line_of_sight, manhattan_distance, rect_contains,
+    rect_perimeter, vec_toward, Distance,
 };
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;
