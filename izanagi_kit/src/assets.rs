@@ -250,6 +250,19 @@ impl<T> AssetStore<T> {
             self.remove(handle);
         }
     }
+
+    /// Count live assets for which `pred(&asset)` returns `true`. Allocation-
+    /// free alternative to `find_all_by(pred).len()` — avoids building the
+    /// handle `Vec` when only the count is needed.
+    pub fn count_by<F: Fn(&T) -> bool>(&self, pred: F) -> usize {
+        self.iter().filter(|(_, a)| pred(a)).count()
+    }
+
+    /// Whether any live asset satisfies `pred`. Short-circuits on the first
+    /// match. Lighter than `find_by(pred).is_some()` (same semantics).
+    pub fn any_by<F: Fn(&T) -> bool>(&self, pred: F) -> bool {
+        self.iter().any(|(_, a)| pred(a))
+    }
 }
 
 impl<T: DetHash> DetHash for AssetStore<T> {
@@ -559,5 +572,41 @@ mod tests {
         let removed = s.remove_where(|_| true);
         assert_eq!(removed, 2);
         assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_count_by_returns_matching_count() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        s.insert(2);
+        s.insert(3);
+        assert_eq!(s.count_by(|&v| v > 1), 2);
+    }
+
+    #[test]
+    fn test_count_by_empty_store_returns_zero() {
+        let s: AssetStore<u32> = AssetStore::new();
+        assert_eq!(s.count_by(|_| true), 0);
+    }
+
+    #[test]
+    fn test_any_by_true_when_match_exists() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(5);
+        s.insert(10);
+        assert!(s.any_by(|&v| v == 10));
+    }
+
+    #[test]
+    fn test_any_by_false_when_no_match() {
+        let mut s: AssetStore<u32> = AssetStore::new();
+        s.insert(1);
+        assert!(!s.any_by(|&v| v == 99));
+    }
+
+    #[test]
+    fn test_any_by_false_on_empty_store() {
+        let s: AssetStore<u32> = AssetStore::new();
+        assert!(!s.any_by(|_| true));
     }
 }

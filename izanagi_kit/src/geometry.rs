@@ -333,6 +333,22 @@ pub fn vec_toward(from: (i32, i32), to: (i32, i32)) -> (i32, i32) {
     ((to.0 - from.0).signum(), (to.1 - from.1).signum())
 }
 
+/// Manhattan distance between `a` and `b`: `|dx| + |dy|`. Shorthand for
+/// `Distance::Manhattan.between(a, b)` — avoids the enum at call sites where
+/// only the taxi-cab metric is needed.
+#[inline]
+pub fn manhattan_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
+    (b.0 - a.0).abs() + (b.1 - a.1).abs()
+}
+
+/// Chebyshev distance between `a` and `b`: `max(|dx|, |dy|)`. Shorthand for
+/// `Distance::Chebyshev.between(a, b)` — the "king moves" metric used for
+/// 8-directional range checks and adjacency tests.
+#[inline]
+pub fn chebyshev_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
+    (b.0 - a.0).abs().max((b.1 - a.1).abs())
+}
+
 /// Floor of the square root of a non-negative `i64`, computed with integer
 /// arithmetic only (Newton's method). `isqrt(n)² <= n < (isqrt(n)+1)²`.
 fn isqrt(n: i64) -> i64 {
@@ -800,5 +816,36 @@ mod tests {
     #[test]
     fn test_rect_center_zero_size_is_origin() {
         assert_eq!(rect_center(7, 9, 0, 0), (7, 9));
+    }
+
+    #[test]
+    fn test_manhattan_distance_axis_aligned() {
+        assert_eq!(manhattan_distance((0, 0), (3, 0)), 3);
+        assert_eq!(manhattan_distance((0, 0), (0, 4)), 4);
+    }
+
+    #[test]
+    fn test_manhattan_distance_diagonal() {
+        assert_eq!(manhattan_distance((1, 1), (4, 5)), 7);
+    }
+
+    #[test]
+    fn test_manhattan_distance_same_point_zero() {
+        assert_eq!(manhattan_distance((5, 5), (5, 5)), 0);
+    }
+
+    #[test]
+    fn test_chebyshev_distance_diagonal_equals_max_component() {
+        assert_eq!(chebyshev_distance((0, 0), (3, 5)), 5);
+    }
+
+    #[test]
+    fn test_chebyshev_distance_horizontal() {
+        assert_eq!(chebyshev_distance((0, 0), (7, 0)), 7);
+    }
+
+    #[test]
+    fn test_chebyshev_distance_same_point_zero() {
+        assert_eq!(chebyshev_distance((2, 3), (2, 3)), 0);
     }
 }

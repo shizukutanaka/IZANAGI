@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `wfc::WfcGrid::solved_count() -> usize`: count of fully-collapsed cells.
+  Shorthand for `len() - count_uncollapsed()`. Useful for "WFC is N% done"
+  progress indicators and partial-result consumers.
+- `assets::AssetStore::count_by(pred) -> usize`: allocation-free count of
+  assets satisfying `pred`. Avoids the `find_all_by(pred).len()` pattern.
+- `assets::AssetStore::any_by(pred) -> bool`: short-circuit existence check.
+  Equivalent to `find_by(pred).is_some()` but without the `Option<Handle>`.
+- `geometry::manhattan_distance(a, b) -> i32`: `|dx| + |dy|`. Named shorthand
+  for `Distance::Manhattan.between(a, b)` for use without the enum.
+- `geometry::chebyshev_distance(a, b) -> i32`: `max(|dx|, |dy|)`. Named
+  shorthand for `Distance::Chebyshev.between` — "king moves" range checks.
 - `relations::Relations::has_children(entity) -> bool`: shorthand for
   `child_count(entity) > 0`. Avoids spelling out the comparison at call sites
   that only need "is this a leaf?" without allocating a children list.

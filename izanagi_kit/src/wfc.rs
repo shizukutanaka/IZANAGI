@@ -190,6 +190,14 @@ impl WfcGrid {
         self.cells.iter().filter(|&&v| v.count_ones() != 1).count()
     }
 
+    /// Number of cells that **are** fully collapsed (exactly one possibility
+    /// remaining). Shorthand for `len() - count_uncollapsed()`. Useful for
+    /// "WFC is N% done" progress bars and partial-result consumers.
+    #[inline]
+    pub fn solved_count(&self) -> usize {
+        self.len() - self.count_uncollapsed()
+    }
+
     /// Width times height.
     pub fn len(&self) -> usize {
         self.cells.len()
@@ -805,6 +813,33 @@ mod tests {
                 .filter(|&(x, y)| grid.possibilities_at(x, y) > 1)
                 .count();
             assert_eq!(multi, grid.count_uncollapsed());
+        }
+    }
+
+    #[test]
+    fn test_solved_count_plus_uncollapsed_equals_len() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &uniform_rules(), &mut rng) {
+            assert_eq!(grid.solved_count() + grid.count_uncollapsed(), grid.len());
+        }
+    }
+
+    #[test]
+    fn test_solved_count_equals_len_when_fully_collapsed() {
+        let mut rng = SplitMix64::new(42);
+        if let WfcResult::Ok(grid) = wfc_solve(3, 3, &uniform_rules(), &mut rng) {
+            if grid.is_fully_collapsed() {
+                assert_eq!(grid.solved_count(), grid.len());
+            }
+        }
+    }
+
+    #[test]
+    fn test_solved_count_zero_for_empty_grid() {
+        let rules = uniform_rules();
+        let mut rng = SplitMix64::new(0);
+        if let WfcResult::Ok(grid) = wfc_solve(0, 0, &rules, &mut rng) {
+            assert_eq!(grid.solved_count(), 0);
         }
     }
 }
