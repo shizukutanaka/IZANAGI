@@ -337,6 +337,25 @@ impl<T: Clone> TileMap<T> {
         self.cells.iter().any(pred)
     }
 
+    /// Returns `true` if **every** cell satisfies `pred`. Dual of `any_where`.
+    /// Useful for "all cells are passable?" connectivity guards without building
+    /// an intermediate collection.
+    pub fn all_where<P: FnMut(&T) -> bool>(&self, pred: P) -> bool {
+        self.cells.iter().all(pred)
+    }
+
+    /// Fill an entire row with `tile`. Out-of-range `y` is silently ignored.
+    pub fn fill_row(&mut self, y: i32, tile: T) {
+        if y < 0 || y as u32 >= self.height {
+            return;
+        }
+        let w = self.width as usize;
+        let start = y as usize * w;
+        for cell in &mut self.cells[start..start + w] {
+            *cell = tile.clone();
+        }
+    }
+
     /// Mirror the map horizontally (left↔right): each row is reversed in place.
     /// Dimensions are unchanged. Useful for room-template mirroring without
     /// creating a new allocation.
@@ -1106,5 +1125,57 @@ mod tests {
             assert!(x >= 0 && x < 5, "x={x} out of column range");
         }
         assert_eq!(m.enumerate_row(0).count(), 5);
+    }
+
+    // --- all_where ---
+
+    #[test]
+    fn test_all_where_true_on_uniform_map() {
+        let m: TileMap<u8> = TileMap::new(3, 3, 7);
+        assert!(m.all_where(|&v| v == 7));
+    }
+
+    #[test]
+    fn test_all_where_false_when_one_differs() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 0);
+        m.set(1, 1, 1);
+        assert!(!m.all_where(|&v| v == 0));
+    }
+
+    #[test]
+    fn test_all_where_empty_map_is_trivially_true() {
+        let m: TileMap<u8> = TileMap::new(0, 0, 0);
+        assert!(m.all_where(|_| false), "vacuous truth for empty map");
+    }
+
+    // --- fill_row ---
+
+    #[test]
+    fn test_fill_row_fills_correct_row() {
+        let mut m: TileMap<u8> = TileMap::new(4, 3, 0);
+        m.fill_row(1, 9);
+        for x in 0..4i32 {
+            assert_eq!(m.get(x, 1), Some(&9), "row 1 cell {x}");
+            assert_eq!(m.get(x, 0), Some(&0), "row 0 untouched at {x}");
+        }
+    }
+
+    #[test]
+    fn test_fill_row_oob_is_silent() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 0);
+        m.fill_row(5, 1); // silently ignored
+        m.fill_row(-1, 1); // silently ignored
+        assert!(m.all_where(|&v| v == 0));
+    }
+
+    #[test]
+    fn test_fill_row_leaves_other_rows_unchanged() {
+        let mut m: TileMap<u8> = TileMap::new(3, 3, 0);
+        m.fill_row(2, 5);
+        for y in 0..2i32 {
+            for x in 0..3i32 {
+                assert_eq!(m.get(x, y), Some(&0));
+            }
+        }
     }
 }

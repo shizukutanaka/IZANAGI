@@ -228,6 +228,14 @@ impl Fixed {
         self.0 >= lo.0 && self.0 <= hi.0
     }
 
+    /// Midpoint of `self` and `other`: `(self + other) / 2` (rounds toward
+    /// zero). Avoids the manual `(a + b) / 2` overflow hazard — intermediate
+    /// addition uses `i64`. Useful for bisection and centering.
+    #[inline]
+    pub fn mid(self, other: Fixed) -> Fixed {
+        Fixed(((self.0 as i64 + other.0 as i64) >> 1) as i32)
+    }
+
     /// Linear interpolation: `a + (b - a) * t`, where `t` is in `[0, 1]`.
     /// `t` outside `[0, 1]` extrapolates (no clamping). Uses saturating
     /// arithmetic so overflow is pinned rather than wrapping.
@@ -1111,5 +1119,27 @@ mod tests {
     #[test]
     fn test_in_range_inverted_bounds_always_false() {
         assert!(!Fixed::from_int(3).in_range(Fixed::from_int(5), Fixed::from_int(1)));
+    }
+
+    // --- mid ---
+
+    #[test]
+    fn test_mid_integers() {
+        let a = Fixed::from_int(2);
+        let b = Fixed::from_int(8);
+        assert_eq!(a.mid(b), Fixed::from_int(5));
+    }
+
+    #[test]
+    fn test_mid_symmetric() {
+        let a = Fixed::from_int(3);
+        let b = Fixed::from_int(9);
+        assert_eq!(a.mid(b), b.mid(a));
+    }
+
+    #[test]
+    fn test_mid_self_is_identity() {
+        let v = Fixed::from_int(7);
+        assert_eq!(v.mid(v), v);
     }
 }

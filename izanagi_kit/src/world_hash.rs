@@ -60,6 +60,22 @@ impl Fnv1a {
         self.write_bytes(&value.to_le_bytes());
     }
 
+    /// Hash a single unsigned byte. Fills the gap between `write_bytes` (slice)
+    /// and `write_u16` (two bytes) — useful for single-byte enum discriminants,
+    /// status flags, and small palette indices.
+    #[inline]
+    pub fn write_u8(&mut self, value: u8) {
+        self.write_bytes(&[value]);
+    }
+
+    /// Hash a signed 16-bit integer in little-endian byte order. Completes the
+    /// 16-bit pair alongside `write_u16`. Useful for signed tile offsets and
+    /// small health deltas stored as `i16`.
+    #[inline]
+    pub fn write_i16(&mut self, value: i16) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
     /// Hash a signed 64-bit integer in little-endian byte order.
     /// Completes the integer-write family alongside `write_u32`, `write_u64`,
     /// and `write_i32`. Useful for hashing large tick counters, cumulative
@@ -454,5 +470,71 @@ mod tests {
         let mut h_bytes = Fnv1a::new();
         h_bytes.write_bytes(&[0u8]);
         assert_eq!(h_method.finish(), h_bytes.finish());
+    }
+
+    // --- write_u8 ---
+
+    #[test]
+    fn test_write_u8_matches_write_bytes_single_byte() {
+        let mut h_method = Fnv1a::new();
+        h_method.write_u8(0xAB);
+        let mut h_bytes = Fnv1a::new();
+        h_bytes.write_bytes(&[0xAB]);
+        assert_eq!(h_method.finish(), h_bytes.finish());
+    }
+
+    #[test]
+    fn test_write_u8_differs_from_write_u16() {
+        let mut h_u8 = Fnv1a::new();
+        h_u8.write_u8(5);
+        let mut h_u16 = Fnv1a::new();
+        h_u16.write_u16(5);
+        assert_ne!(h_u8.finish(), h_u16.finish());
+    }
+
+    #[test]
+    fn test_write_u8_distinct_values_differ() {
+        let mut h1 = Fnv1a::new();
+        h1.write_u8(0);
+        let mut h2 = Fnv1a::new();
+        h2.write_u8(1);
+        assert_ne!(h1.finish(), h2.finish());
+    }
+
+    // --- write_i16 ---
+
+    #[test]
+    fn test_write_i16_matches_write_bytes_le() {
+        let val: i16 = -1000;
+        let mut h_method = Fnv1a::new();
+        h_method.write_i16(val);
+        let mut h_bytes = Fnv1a::new();
+        h_bytes.write_bytes(&val.to_le_bytes());
+        assert_eq!(h_method.finish(), h_bytes.finish());
+    }
+
+    #[test]
+    fn test_write_i16_negative_differs_from_positive() {
+        let mut h_pos = Fnv1a::new();
+        h_pos.write_i16(100);
+        let mut h_neg = Fnv1a::new();
+        h_neg.write_i16(-100);
+        assert_ne!(h_pos.finish(), h_neg.finish());
+    }
+
+    #[test]
+    fn test_write_i16_differs_from_write_u16_same_bits_when_negative() {
+        let signed: i16 = -1;
+        let unsigned: u16 = 0xFFFF;
+        // Both are 0xFFFF in bits; they should hash identically (LE bytes are the same).
+        let mut h_i16 = Fnv1a::new();
+        h_i16.write_i16(signed);
+        let mut h_u16 = Fnv1a::new();
+        h_u16.write_u16(unsigned);
+        assert_eq!(
+            h_i16.finish(),
+            h_u16.finish(),
+            "same bit pattern = same hash"
+        );
     }
 }

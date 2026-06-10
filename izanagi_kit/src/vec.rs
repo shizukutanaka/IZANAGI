@@ -212,6 +212,26 @@ impl Vec2 {
         let two_dot = self.dot(normal).mul(Fixed::from_int(2));
         self - normal.scale(two_dot)
     }
+
+    /// 2-D "pseudo-cross product" — the scalar `self.x * rhs.y - self.y * rhs.x`.
+    /// Positive means `rhs` is to the left of `self` (CCW turn); negative means
+    /// right (CW turn); zero means collinear. Cheaper than computing a full 3-D
+    /// cross product when only the turn direction is needed.
+    #[inline]
+    pub fn cross_2d(self, rhs: Vec2) -> Fixed {
+        self.x.mul(rhs.y) - self.y.mul(rhs.x)
+    }
+
+    /// Midpoint between `self` and `other`: `(self + other) / 2` (truncates).
+    /// Useful for bisection, spawn-point centering, and lerp parameter probing
+    /// without the floating-point hazard of `lerp(a, b, 0.5)`.
+    #[inline]
+    pub fn mid(self, other: Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x.mid(other.x),
+            y: self.y.mid(other.y),
+        }
+    }
 }
 
 impl core::ops::Add for Vec2 {
@@ -405,6 +425,36 @@ impl Vec3 {
     #[inline]
     pub fn distance(self, rhs: Vec3) -> Fixed {
         (self - rhs).len()
+    }
+
+    /// `true` if all three components are zero.
+    #[inline]
+    pub fn is_zero(self) -> bool {
+        self.x.is_zero() && self.y.is_zero() && self.z.is_zero()
+    }
+
+    /// Smallest component value. Useful for extent checks and axis-aligned
+    /// minimum-size computations.
+    #[inline]
+    pub fn min_component(self) -> Fixed {
+        self.x.min(self.y).min(self.z)
+    }
+
+    /// Largest component value. Dual of `min_component`; useful for
+    /// extent checks and axis-aligned maximum-size computations.
+    #[inline]
+    pub fn max_component(self) -> Fixed {
+        self.x.max(self.y).max(self.z)
+    }
+
+    /// Midpoint between `self` and `other`: `(self + other) / 2` (truncates).
+    #[inline]
+    pub fn mid(self, other: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.x.mid(other.x),
+            y: self.y.mid(other.y),
+            z: self.z.mid(other.z),
+        }
     }
 }
 
@@ -932,5 +982,112 @@ mod tests {
     fn test_min_component_negative() {
         let v = Vec2::new(fi(-2), fi(4));
         assert_eq!(v.min_component(), fi(-2));
+    }
+
+    // --- Vec2::cross_2d ---
+
+    #[test]
+    fn test_cross_2d_orthogonal_right_up() {
+        // Right (1,0) cross Up (0,-1) in screen coords: 1*(-1) - 0*0 = -1 (CW turn)
+        let r = Vec2::new(fi(1), fi(0));
+        let u = Vec2::new(fi(0), fi(-1));
+        assert_eq!(r.cross_2d(u), fi(-1));
+    }
+
+    #[test]
+    fn test_cross_2d_collinear_is_zero() {
+        let a = Vec2::new(fi(3), fi(1));
+        let b = Vec2::new(fi(6), fi(2)); // same direction, scaled
+        assert_eq!(a.cross_2d(b), fi(0));
+    }
+
+    #[test]
+    fn test_cross_2d_anticommutative() {
+        let a = Vec2::new(fi(2), fi(3));
+        let b = Vec2::new(fi(5), fi(1));
+        assert_eq!(a.cross_2d(b), fi(0) - b.cross_2d(a));
+    }
+
+    // --- Vec2::mid ---
+
+    #[test]
+    fn test_vec2_mid_average() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(4));
+        assert_eq!(Vec2::mid(a, b), Vec2::new(fi(5), fi(2)));
+    }
+
+    #[test]
+    fn test_vec2_mid_symmetric() {
+        let a = Vec2::new(fi(1), fi(7));
+        let b = Vec2::new(fi(9), fi(3));
+        assert_eq!(a.mid(b), b.mid(a));
+    }
+
+    #[test]
+    fn test_vec2_mid_self_is_identity() {
+        let v = Vec2::new(fi(4), fi(-2));
+        assert_eq!(v.mid(v), v);
+    }
+
+    // --- Vec3::is_zero ---
+
+    #[test]
+    fn test_vec3_is_zero_for_zero() {
+        assert!(Vec3::ZERO.is_zero());
+    }
+
+    #[test]
+    fn test_vec3_is_zero_false_for_nonzero_z() {
+        let v = Vec3::new(fi(0), fi(0), fi(1));
+        assert!(!v.is_zero());
+    }
+
+    #[test]
+    fn test_vec3_is_zero_false_for_nonzero_x() {
+        let v = Vec3::new(fi(1), fi(0), fi(0));
+        assert!(!v.is_zero());
+    }
+
+    // --- Vec3::min_component / max_component ---
+
+    #[test]
+    fn test_vec3_min_component() {
+        let v = Vec3::new(fi(3), fi(-1), fi(7));
+        assert_eq!(v.min_component(), fi(-1));
+    }
+
+    #[test]
+    fn test_vec3_max_component() {
+        let v = Vec3::new(fi(3), fi(-1), fi(7));
+        assert_eq!(v.max_component(), fi(7));
+    }
+
+    #[test]
+    fn test_vec3_min_max_equal_when_uniform() {
+        let v = Vec3::new(fi(5), fi(5), fi(5));
+        assert_eq!(v.min_component(), v.max_component());
+    }
+
+    // --- Vec3::mid ---
+
+    #[test]
+    fn test_vec3_mid_average() {
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(10), fi(6), fi(4));
+        assert_eq!(a.mid(b), Vec3::new(fi(5), fi(3), fi(2)));
+    }
+
+    #[test]
+    fn test_vec3_mid_symmetric() {
+        let a = Vec3::new(fi(2), fi(8), fi(6));
+        let b = Vec3::new(fi(4), fi(2), fi(0));
+        assert_eq!(a.mid(b), b.mid(a));
+    }
+
+    #[test]
+    fn test_vec3_mid_self_is_identity() {
+        let v = Vec3::new(fi(3), fi(-3), fi(0));
+        assert_eq!(v.mid(v), v);
     }
 }

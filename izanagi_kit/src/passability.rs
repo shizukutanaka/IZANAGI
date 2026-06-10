@@ -220,6 +220,18 @@ impl PassabilityGrid {
             .count()
     }
 
+    /// Count of passable 4-directional neighbours of `(x, y)`. Out-of-bounds
+    /// cells count as **blocked** (not passable). Complement of
+    /// `count_neighbors_blocked`: at most `4 − blocked` but avoids the subtraction
+    /// at call sites and the edge-case (OOB cells count as blocked in both).
+    #[inline]
+    pub fn count_neighbors_passable(&self, x: i32, y: i32) -> usize {
+        [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
+            .iter()
+            .filter(|&&(nx, ny)| self.is_passable(nx, ny))
+            .count()
+    }
+
     /// Flip every cell in place: passable → blocked, blocked → passable.
     /// Useful for testing ("treat walls as floor") and negative-space queries.
     pub fn invert(&mut self) {
@@ -582,5 +594,32 @@ mod tests {
         let g = PassabilityGrid::new(5, 5);
         // Interior cell — all 4 neighbors are passable.
         assert_eq!(g.count_neighbors_blocked(2, 2), 0);
+    }
+
+    // --- count_neighbors_passable ---
+
+    #[test]
+    fn test_count_neighbors_passable_complements_blocked() {
+        let mut g = PassabilityGrid::new(3, 3);
+        g.set_blocked(1, 0, true); // above (1,1)
+                                   // 3 neighbors are passable, 1 blocked
+        assert_eq!(g.count_neighbors_passable(1, 1), 3);
+        assert_eq!(
+            g.count_neighbors_passable(1, 1) + g.count_neighbors_blocked(1, 1),
+            4
+        );
+    }
+
+    #[test]
+    fn test_count_neighbors_passable_oob_counts_as_blocked() {
+        let g = PassabilityGrid::new(1, 1);
+        // (0,0): all 4 neighbours are OOB → 0 passable
+        assert_eq!(g.count_neighbors_passable(0, 0), 0);
+    }
+
+    #[test]
+    fn test_count_neighbors_passable_open_field_is_four() {
+        let g = PassabilityGrid::new(5, 5);
+        assert_eq!(g.count_neighbors_passable(2, 2), 4);
     }
 }

@@ -362,6 +362,33 @@ impl Aabb {
             Aabb::new(self.x, self.y + top_h, self.w, bot_h),
         )
     }
+
+    /// `true` when the box is non-empty and its width equals its height.
+    #[inline]
+    pub fn is_square(&self) -> bool {
+        !self.is_empty() && self.w == self.h
+    }
+
+    /// The corner of the box nearest to `(px, py)`. Returns one of the four
+    /// axis-aligned corners: `(x, y)`, `(right, y)`, `(x, bottom)`, or
+    /// `(right, bottom)`, where `right = x + w` and `bottom = y + h`.
+    /// Returns `(self.x, self.y)` for an empty box.
+    ///
+    /// Useful for snap-to-corner placement, minimum-separation geometry, and
+    /// anchor-point selection in room-joining algorithms.
+    pub fn nearest_corner(&self, px: i32, py: i32) -> (i32, i32) {
+        let cx = if (px - self.x).abs() <= (px - self.right()).abs() {
+            self.x
+        } else {
+            self.right()
+        };
+        let cy = if (py - self.y).abs() <= (py - self.bottom()).abs() {
+            self.y
+        } else {
+            self.bottom()
+        };
+        (cx, cy)
+    }
 }
 
 impl DetHash for Aabb {
@@ -958,5 +985,46 @@ mod tests {
                 "interior point ({x},{y}) leaked into border"
             );
         }
+    }
+
+    // --- is_square ---
+
+    #[test]
+    fn test_is_square_equal_dims() {
+        assert!(r(0, 0, 4, 4).is_square());
+    }
+
+    #[test]
+    fn test_is_square_unequal_dims() {
+        assert!(!r(0, 0, 4, 3).is_square());
+        assert!(!r(0, 0, 3, 4).is_square());
+    }
+
+    #[test]
+    fn test_is_square_empty_is_false() {
+        assert!(!r(0, 0, 0, 0).is_square());
+        assert!(!r(0, 0, 0, 4).is_square()); // w == 0 → empty
+    }
+
+    // --- nearest_corner ---
+
+    #[test]
+    fn test_nearest_corner_top_left() {
+        // box [2,6) x [3,7) — corners: (2,3),(6,3),(2,7),(6,7)
+        // point (1,2) is closest to top-left corner (2,3)
+        assert_eq!(r(2, 3, 4, 4).nearest_corner(1, 2), (2, 3));
+    }
+
+    #[test]
+    fn test_nearest_corner_bottom_right() {
+        assert_eq!(r(0, 0, 4, 4).nearest_corner(5, 5), (4, 4));
+    }
+
+    #[test]
+    fn test_nearest_corner_equidistant_picks_left_top() {
+        // midpoint of x is 2; exact midpoint → picks left (abs equal, <= wins)
+        let b = r(0, 0, 4, 4); // right = 4
+        let (cx, _) = b.nearest_corner(2, 0); // equal dist to 0 and 4
+        assert_eq!(cx, 0, "equidistant prefers left corner");
     }
 }

@@ -7,6 +7,32 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `aabb::Aabb::is_square() -> bool`: `true` when non-empty and `w == h`.
+  Simple predicate for symmetric-region checks and room-template validation (3 tests).
+- `aabb::Aabb::nearest_corner(px, py) -> (i32, i32)`: the box corner closest to
+  the given point. Equidistant ties prefer left/top. Useful for snap-to-corner
+  placement and minimum-separation geometry (3 tests).
+- `sparse_set::SparseSet::any(pred) -> bool`: short-circuit predicate test over
+  component values. Non-allocating "does anyone have X?" check (3 tests).
+- `passability::PassabilityGrid::count_neighbors_passable(x, y) -> usize`:
+  complement of `count_neighbors_blocked`; OOB counts as blocked in both (3 tests).
+- `tilemap::TileMap::all_where(pred) -> bool`: dual of `any_where`; `true` when
+  every cell satisfies the predicate (3 tests).
+- `tilemap::TileMap::fill_row(y, tile)`: fill an entire row with one value.
+  Out-of-bounds `y` is silently ignored (3 tests).
+- `world_hash::Fnv1a::write_u8(value: u8)`: hash a single byte. Fills the gap
+  between `write_bytes` and `write_u16` (3 tests).
+- `world_hash::Fnv1a::write_i16(value: i16)`: hash a signed 16-bit integer in
+  LE byte order; same bits as `write_u16` produce the same hash (3 tests).
+- `fixed::Fixed::mid(other) -> Fixed`: midpoint `(self + other) / 2` using i64
+  intermediate to avoid overflow (3 tests).
+- `vec::Vec2::cross_2d(rhs) -> Fixed`: 2-D pseudo-cross product
+  `x * rhs.y − y * rhs.x`. Sign indicates turn direction (3 tests).
+- `vec::Vec2::mid(other) -> Vec2`: per-component midpoint via `Fixed::mid` (3 tests).
+- `vec::Vec3::is_zero() -> bool`: `true` when all three components are zero (3 tests).
+- `vec::Vec3::min_component() / max_component() -> Fixed`: per-axis extremes,
+  mirrors Vec2 equivalents (3 tests each).
+- `vec::Vec3::mid(other) -> Vec3`: per-component midpoint (3 tests).
 - `cmdqueue::CmdQueue::peek_back() -> Option<&C>`: reference to the most
   recently pushed command without consuming it. Mirrors `peek_mut` for the back
   end — useful for "what did the player just queue?" checks (3 tests).

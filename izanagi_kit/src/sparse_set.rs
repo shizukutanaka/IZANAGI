@@ -261,6 +261,13 @@ impl<T> SparseSet<T> {
         self.iter()
             .find_map(|(entity, value)| if pred(value) { Some(entity) } else { None })
     }
+
+    /// Returns `true` if any component satisfies `pred`. Short-circuits on the
+    /// first match. Non-allocating — prefer this over `count_matching > 0` in
+    /// "does anyone have a status effect?" or "is any inventory slot empty?" checks.
+    pub fn any<F: Fn(&T) -> bool>(&self, pred: F) -> bool {
+        self.values().any(|v| pred(v))
+    }
 }
 
 impl<T: crate::world_hash::DetHash> SparseSet<T> {
@@ -806,5 +813,32 @@ mod tests {
         s.drain();
         s.insert(es[0], 99);
         assert_eq!(s.get(es[0]), Some(&99));
+    }
+
+    // --- any ---
+
+    #[test]
+    fn test_any_returns_true_on_match() {
+        let (alloc, es) = three();
+        let _ = alloc;
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 10);
+        s.insert(es[1], 20);
+        assert!(s.any(|&v| v == 20));
+    }
+
+    #[test]
+    fn test_any_returns_false_when_no_match() {
+        let (alloc, es) = three();
+        let _ = alloc;
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 5);
+        assert!(!s.any(|&v| v > 100));
+    }
+
+    #[test]
+    fn test_any_empty_set_returns_false() {
+        let s: SparseSet<u32> = SparseSet::new();
+        assert!(!s.any(|_| true));
     }
 }
