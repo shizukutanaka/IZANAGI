@@ -391,6 +391,18 @@ where
     astar(start, goal, is_blocked).is_some()
 }
 
+/// Returns `true` if every cell in `path` is passable under `is_blocked`.
+///
+/// Use this to validate a cached path against the current map state before
+/// following it — dynamic obstacles (doors, actors) may have blocked cells
+/// that were open when the path was originally computed.
+///
+/// An empty path is considered clear. `is_blocked` is called once per cell
+/// in path order and short-circuits on the first blocked cell.
+pub fn is_path_clear<B: FnMut(i32, i32) -> bool>(path: &[(i32, i32)], mut is_blocked: B) -> bool {
+    path.iter().all(|&(x, y)| !is_blocked(x, y))
+}
+
 /// BFS from `start`, collecting all cells reachable within `max_dist` steps
 /// (orthogonal or diagonal, non-corner-cutting). `start` itself is always
 /// included unless `is_blocked(start)` is `true`. Returns cells in BFS
@@ -936,6 +948,25 @@ mod tests {
     fn test_flood_fill_zero_max_dist_is_just_start() {
         let cells = flood_fill((3, 7), 0, |_x, _y| false);
         assert_eq!(cells, vec![(3, 7)]);
+    }
+
+    // --- is_path_clear ---
+
+    #[test]
+    fn test_is_path_clear_no_blocked_cells_returns_true() {
+        let path = [(0i32, 0i32), (1, 0), (2, 0), (3, 0)];
+        assert!(is_path_clear(&path, |_, _| false));
+    }
+
+    #[test]
+    fn test_is_path_clear_one_blocked_cell_returns_false() {
+        let path = [(0i32, 0i32), (1, 0), (2, 0), (3, 0)];
+        assert!(!is_path_clear(&path, |x, y| x == 2 && y == 0));
+    }
+
+    #[test]
+    fn test_is_path_clear_empty_path_returns_true() {
+        assert!(is_path_clear(&[], |_, _| false));
     }
 
     // --- nearest_reachable --------------------------------------------------

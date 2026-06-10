@@ -138,6 +138,27 @@ impl MultiMap {
         self.connectors.len() < before
     }
 
+    /// Advance to the next floor (deeper / higher floor index). Returns `true`
+    /// when the move succeeded, `false` when already on the last floor.
+    pub fn move_down(&mut self) -> bool {
+        let next = self.current_floor + 1;
+        if next >= self.floors.len() as u32 {
+            return false;
+        }
+        self.current_floor = next;
+        true
+    }
+
+    /// Return to the previous floor (shallower / lower floor index). Returns
+    /// `true` when the move succeeded, `false` when already on floor 0.
+    pub fn move_up(&mut self) -> bool {
+        if self.current_floor == 0 {
+            return false;
+        }
+        self.current_floor -= 1;
+        true
+    }
+
     /// All connectors that originate on `from_floor` and lead to `to_floor`.
     /// Returns an empty `Vec` when no such connectors exist.
     ///
@@ -432,6 +453,56 @@ mod tests {
         let exits = m.exits_from(0);
         assert_eq!(exits.len(), 1);
         assert_eq!(exits[0].from_x, 5);
+    }
+
+    #[test]
+    fn test_move_down_advances_floor() {
+        let floors = vec![make_floor(1), make_floor(2), make_floor(3)];
+        let mut m = MultiMap::new(floors, 0);
+        assert!(m.move_down());
+        assert_eq!(m.current_floor(), 1);
+    }
+
+    #[test]
+    fn test_move_down_at_last_floor_returns_false() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 1);
+        assert!(!m.move_down());
+        assert_eq!(m.current_floor(), 1);
+    }
+
+    #[test]
+    fn test_move_up_decrements_floor() {
+        let floors = vec![make_floor(1), make_floor(2), make_floor(3)];
+        let mut m = MultiMap::new(floors, 2);
+        assert!(m.move_up());
+        assert_eq!(m.current_floor(), 1);
+    }
+
+    #[test]
+    fn test_move_up_at_floor_zero_returns_false() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        assert!(!m.move_up());
+        assert_eq!(m.current_floor(), 0);
+    }
+
+    #[test]
+    fn test_move_down_then_up_returns_to_original() {
+        let floors = vec![make_floor(1), make_floor(2), make_floor(3)];
+        let mut m = MultiMap::new(floors, 1);
+        assert!(m.move_down());
+        assert!(m.move_up());
+        assert_eq!(m.current_floor(), 1);
+    }
+
+    #[test]
+    fn test_move_up_on_single_floor_returns_false() {
+        let floors = vec![make_floor(1)];
+        let mut m = MultiMap::new(floors, 0);
+        assert!(!m.move_up());
+        assert!(!m.move_down());
+        assert_eq!(m.current_floor(), 0);
     }
 
     #[test]

@@ -220,6 +220,24 @@ impl Camera {
         }
     }
 
+    /// Minimum signed distance from world point `(wx, wy)` to any viewport edge.
+    ///
+    /// Returns the smallest of the four edge distances (left, right, top, bottom)
+    /// measured in cells. A positive value means the point is that many cells
+    /// away from the nearest edge (fully inside). Zero means the point is on an
+    /// edge. A negative value means the point is off-screen.
+    ///
+    /// Useful for "is the player close to the scroll boundary?" checks and for
+    /// deciding when to trigger the lazy-follow camera.
+    #[inline]
+    pub fn distance_to_edge(&self, wx: i32, wy: i32) -> i32 {
+        let d_left = wx - self.top_left_x;
+        let d_right = self.top_left_x + self.screen_w as i32 - 1 - wx;
+        let d_top = wy - self.top_left_y;
+        let d_bottom = self.top_left_y + self.screen_h as i32 - 1 - wy;
+        d_left.min(d_right).min(d_top).min(d_bottom)
+    }
+
     /// Total number of cells in the viewport: `screen_w × screen_h`. Useful
     /// for per-frame draw-call budgets, renderer pre-allocation, and broad-phase
     /// "is the map larger than the screen?" checks without two separate reads.
@@ -638,6 +656,31 @@ mod tests {
         };
         assert_eq!(cam.clamp_world_to_screen(10, 5), (0, 0));
         assert_eq!(cam.clamp_world_to_screen(29, 14), (19, 9));
+    }
+
+    #[test]
+    fn test_distance_to_edge_center_returns_min_of_four_edges() {
+        // cam(20,15): top_left=(15,11), screen=10×8
+        // Point at center (20,15): d_left=5, d_right=4, d_top=4, d_bottom=3 → min=3
+        let c = cam(20, 15);
+        assert_eq!(c.distance_to_edge(20, 15), 3);
+    }
+
+    #[test]
+    fn test_distance_to_edge_on_edge_returns_zero() {
+        // cam(20,15): top_left=(15,11), right edge at x=24, bottom at y=18
+        let c = cam(20, 15);
+        assert_eq!(c.distance_to_edge(c.top_left_x, c.top_left_y + 2), 0); // on left edge
+        assert_eq!(
+            c.distance_to_edge(c.top_left_x + c.screen_w as i32 - 1, c.top_left_y + 2),
+            0
+        ); // on right edge
+    }
+
+    #[test]
+    fn test_distance_to_edge_outside_viewport_returns_negative() {
+        let c = cam(20, 15); // viewport x in [15,25), y in [11,19)
+        assert!(c.distance_to_edge(0, 15) < 0); // x=0 is left of viewport
     }
 
     #[test]

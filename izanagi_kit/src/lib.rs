@@ -131,7 +131,7 @@ pub use easing::{
 };
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
-pub use fov::{compute_fov, compute_fov_dist, fov_to_vec};
+pub use fov::{can_see, compute_fov, compute_fov_dist, fov_to_vec};
 pub use fsm::Fsm;
 pub use geometry::{
     chebyshev_distance, diamond, line, line_of_sight, manhattan_distance, rect_contains,
@@ -157,8 +157,8 @@ pub use noise::{
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{
-    astar, descend, dijkstra_map, flood_fill, is_reachable, nearest_reachable, octile_distance,
-    path_cost, smooth_path, step_toward, weighted_astar,
+    astar, descend, dijkstra_map, flood_fill, is_path_clear, is_reachable, nearest_reachable,
+    octile_distance, path_cost, smooth_path, step_toward, weighted_astar,
 };
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use random_table::RandomTable;

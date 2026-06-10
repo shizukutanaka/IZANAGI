@@ -7,6 +7,28 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fov::can_see(origin, target, radius, is_opaque) -> bool`: single-cell
+  visibility query without materialising the full FOV set. Uses the same
+  symmetric shadowcasting as `compute_fov`; result is identical to
+  `fov_to_vec(…).contains(&target)` but avoids the allocation. Replay-safe
+  (integer-only, deterministic).
+- `pathfinding::is_path_clear(path, is_blocked) -> bool`: validate a cached
+  path against the current map state. Returns `true` iff every cell in `path`
+  is passable. Short-circuits on the first blocked cell. Empty paths are
+  considered clear. Use before following a stale A* path to avoid stepping
+  through newly-closed doors or actors.
+- `influence::InfluenceMap::normalize(target_min, target_max)`: linearly
+  rescale all cell values into `[target_min, target_max]`. When all cells are
+  equal (span = 0) every cell is set to `target_min`. No-op on empty maps.
+  Integer arithmetic; no float. Replay-safe.
+- `multimap::MultiMap::move_down() -> bool`: advance to the next (deeper)
+  floor. Returns `true` on success, `false` when already on the last floor.
+- `multimap::MultiMap::move_up() -> bool`: return to the previous (shallower)
+  floor. Returns `true` on success, `false` when already on floor 0.
+- `camera::Camera::distance_to_edge(wx, wy) -> i32`: minimum signed distance
+  from a world-space point to any viewport edge. Positive = inside the
+  viewport by that many cells; 0 = on an edge; negative = off-screen.
+  Deterministic integer arithmetic; safe to hash.
 - `wfc::WfcGrid::solved_count() -> usize`: count of fully-collapsed cells.
   Shorthand for `len() - count_uncollapsed()`. Useful for "WFC is N% done"
   progress indicators and partial-result consumers.

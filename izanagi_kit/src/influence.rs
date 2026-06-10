@@ -233,6 +233,36 @@ impl InfluenceMap {
         self.cells.iter().copied().min()
     }
 
+    /// Linearly rescale all cell values into `[target_min, target_max]`.
+    ///
+    /// Each cell `v` maps to `target_min + (v - cur_min) * range / span` where
+    /// `span = cur_max - cur_min` and `range = target_max - target_min`. When
+    /// all cells are equal (`span == 0`) every cell is set to `target_min`. A
+    /// no-op on empty maps.
+    ///
+    /// Useful after combining influence layers to bring disparate magnitude
+    /// ranges onto a common `[0, 100]` or `[-1000, 1000]` scale for AI
+    /// comparison without floating-point.
+    pub fn normalize(&mut self, target_min: i32, target_max: i32) {
+        let cur_min = match self.min_value() {
+            Some(v) => v,
+            None => return,
+        };
+        let cur_max = match self.max_value() {
+            Some(v) => v,
+            None => return,
+        };
+        let span = cur_max - cur_min;
+        let target_span = target_max - target_min;
+        for v in &mut self.cells {
+            *v = if span == 0 {
+                target_min
+            } else {
+                target_min + ((*v - cur_min) * target_span) / span
+            };
+        }
+    }
+
     /// Iterate `(x, y, value)` for all cells in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, i32)> + '_ {
         let w = self.width;
@@ -573,5 +603,38 @@ mod tests {
     fn test_min_value_all_zero_is_zero() {
         let m = InfluenceMap::new(2, 2);
         assert_eq!(m.min_value(), Some(0));
+    }
+
+    // --- normalize ---
+
+    #[test]
+    fn test_normalize_scales_values_to_target_range() {
+        let mut m = InfluenceMap::new(3, 1);
+        m.set(0, 0, 0);
+        m.set(1, 0, 50);
+        m.set(2, 0, 100);
+        m.normalize(0, 200);
+        assert_eq!(m.get(0, 0), Some(0));
+        assert_eq!(m.get(1, 0), Some(100)); // midpoint maps to midpoint
+        assert_eq!(m.get(2, 0), Some(200));
+    }
+
+    #[test]
+    fn test_normalize_uniform_map_sets_to_target_min() {
+        let mut m = InfluenceMap::new(3, 1);
+        m.set(0, 0, 42);
+        m.set(1, 0, 42);
+        m.set(2, 0, 42);
+        m.normalize(10, 90);
+        for (_, _, v) in m.iter() {
+            assert_eq!(v, 10, "all-equal map should map to target_min");
+        }
+    }
+
+    #[test]
+    fn test_normalize_empty_map_is_noop() {
+        let mut m = InfluenceMap::new(0, 0);
+        m.normalize(0, 100); // must not panic
+        assert_eq!(m.min_value(), None);
     }
 }

@@ -345,6 +345,36 @@ pub fn fov_ring<O: FnMut(i32, i32) -> bool>(
         .collect()
 }
 
+/// Single-cell visibility query: can `origin` see `target` within `radius`?
+///
+/// Equivalent to `fov_to_vec(origin, radius, is_opaque).contains(&target)` but
+/// avoids allocating the full visible set. Internally runs the same symmetric
+/// shadowcasting as [`compute_fov`], so the result is identical to checking
+/// membership in the FOV set — including the symmetry guarantee (A sees B ⟺
+/// B sees A).
+///
+/// Returns `true` when `target` is within `radius` and in line-of-sight of
+/// `origin` (or when `origin == target`). Returns `false` when `target` is
+/// outside the radius or blocked.
+///
+/// `is_opaque(x, y)` follows the same contract as [`compute_fov`].
+pub fn can_see<O: FnMut(i32, i32) -> bool>(
+    origin: (i32, i32),
+    target: (i32, i32),
+    radius: i32,
+    is_opaque: O,
+) -> bool {
+    let mut found = false;
+    let tx = target.0;
+    let ty = target.1;
+    compute_fov(origin, radius, is_opaque, |x, y| {
+        if x == tx && y == ty {
+            found = true;
+        }
+    });
+    found
+}
+
 /// Visible cells within an **Euclidean** circle of `radius` — a strict disc
 /// rather than the Chebyshev square that `fov_to_vec` returns. Filters
 /// `fov_to_vec` to cells where `dx² + dy² ≤ radius²`. Returns empty for
@@ -711,5 +741,31 @@ mod tests {
     #[test]
     fn test_fov_circle_negative_radius_empty() {
         assert!(fov_circle((5, 5), -1, |_, _| false).is_empty());
+    }
+
+    // --- can_see tests ---
+
+    #[test]
+    fn test_can_see_open_field_returns_true() {
+        let origin = (5, 5);
+        let target = (8, 5);
+        assert!(can_see(origin, target, 10, |_, _| false));
+    }
+
+    #[test]
+    fn test_can_see_blocked_by_wall_returns_false() {
+        // A wall column directly between origin and target on the same row.
+        let origin = (5, 5);
+        let target = (8, 5);
+        // Wall at (7, 5) blocks line of sight.
+        assert!(!can_see(origin, target, 10, |x, y| x == 7 && y == 5));
+    }
+
+    #[test]
+    fn test_can_see_out_of_radius_returns_false() {
+        let origin = (0, 0);
+        let target = (10, 0);
+        // Radius 5 — target is 10 cells away, beyond radius.
+        assert!(!can_see(origin, target, 5, |_, _| false));
     }
 }
