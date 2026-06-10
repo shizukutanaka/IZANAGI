@@ -7,6 +7,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `fixed::Fixed::clamp01(self) -> Fixed`: clamp a fixed-point value into `[0, 1]`
+  with one call. Delegates to `clamp(Fixed::ZERO, Fixed::ONE)`. Eliminates the
+  two-argument `clamp` boilerplate for the most common case — normalised weights,
+  alpha values, and easing `t` parameters.
+- `rng::SplitMix64::range_u32(lo, hi) -> u32`: uniform draw from `[lo, hi)` over
+  `u32` values. Mirrors `range` but without the `i32` sign-extension concern;
+  `lo >= hi` returns `lo` without drawing (same contract as `range`). Deterministic
+  and replay-safe.
+- `fov::fov_ring(origin, radius, is_opaque) -> Vec<(i32,i32)>`: visible cells
+  exactly on the Chebyshev shell at `radius`. Filters `fov_to_vec` to cells where
+  `max(|dx|, |dy|) == radius`. Useful for "what can I see at exactly range R?"
+  ring queries (area denial, light halos).
+- `passability::PassabilityGrid::invert()`: flip every cell: passable becomes
+  blocked, blocked becomes passable. The "negative" of the current grid. Useful for
+  building complement masks, "invert the dungeon" effects, and test scaffolding.
+- `influence::InfluenceMap::max_value() -> Option<i32>`: maximum value stored in
+  any cell (`None` for a zero-size map). O(n) scan via `Iterator::max`. Useful for
+  normalising influence layers before rendering a heatmap overlay.
+- `hud::BarWidget::is_full() -> bool`: `true` when `current >= max` (or `max <= 0`
+  for degenerate bars). Lets callers skip the render or suppress a "healing
+  available" prompt without a manual comparison.
+- `autotile::SimpleTileTable::set_count() -> usize`: number of entries with a
+  non-zero tile id — i.e. how many mask patterns have been explicitly assigned.
+  Useful for validating that a table is fully or partially initialised.
+- `vec::Vec2::is_zero(self) -> bool`: `true` when both `x` and `y` are
+  `Fixed::ZERO`. Delegates to `Fixed::is_zero` so it shares the same zero-check
+  semantics. Useful for direction guards ("don't normalise a zero vector").
 - `aabb::Aabb::perimeter() -> i32`: sum of all four edge lengths `2 × (w + h)`,
   with saturating arithmetic. Returns `0` for empty boxes. For AoE radius
   estimation, hitbox tuning, and "perimeter ≤ budget?" guards.

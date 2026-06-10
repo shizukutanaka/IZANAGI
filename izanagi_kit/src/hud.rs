@@ -74,6 +74,13 @@ impl BarWidget {
         self.width - self.filled_cells()
     }
 
+    /// Returns `true` when the bar is at maximum capacity (`current >= max`).
+    /// Also returns `true` when `max <= 0` (degenerate bar).
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        self.max <= 0 || self.current >= self.max
+    }
+
     /// Render to a `String` of the form `[====    ]` (width + 2 chars).
     pub fn render(&self) -> String {
         let filled = self.filled_cells() as usize;
@@ -579,5 +586,23 @@ mod tests {
     fn test_empty_cells_plus_filled_cells_equals_width() {
         let b = BarWidget::new(3, 10, 8);
         assert_eq!(b.filled_cells() + b.empty_cells(), b.width);
+    }
+
+    #[test]
+    fn test_is_full_when_current_equals_max() {
+        let b = BarWidget::new(10, 10, 8);
+        assert!(b.is_full());
+    }
+
+    #[test]
+    fn test_is_full_when_current_exceeds_max() {
+        let b = BarWidget::new(15, 10, 8);
+        assert!(b.is_full());
+    }
+
+    #[test]
+    fn test_is_full_false_when_partial() {
+        let b = BarWidget::new(5, 10, 8);
+        assert!(!b.is_full());
     }
 }

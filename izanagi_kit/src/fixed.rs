@@ -175,6 +175,14 @@ impl Fixed {
         }
     }
 
+    /// Clamp to `[0, 1]` — shorthand for `clamp(Fixed::ZERO, Fixed::ONE)`.
+    /// Used so frequently in easing and animation code that the common case
+    /// deserves a dedicated name.
+    #[inline]
+    pub fn clamp01(self) -> Fixed {
+        self.clamp(Fixed::ZERO, Fixed::ONE)
+    }
+
     /// Linear interpolation: `a + (b - a) * t`, where `t` is in `[0, 1]`.
     /// `t` outside `[0, 1]` extrapolates (no clamping). Uses saturating
     /// arithmetic so overflow is pinned rather than wrapping.
@@ -921,5 +929,21 @@ mod tests {
         assert!(Fixed::from_int(-1).is_negative());
         assert!(!Fixed::ZERO.is_negative());
         assert!(!Fixed::ONE.is_negative());
+    }
+
+    #[test]
+    fn test_clamp01_clamps_below_zero() {
+        assert_eq!(Fixed::from_int(-5).clamp01(), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_clamp01_clamps_above_one() {
+        assert_eq!(Fixed::from_int(3).clamp01(), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_clamp01_interior_unchanged() {
+        let half = Fixed::from_ratio(1, 2);
+        assert_eq!(half.clamp01(), half);
     }
 }

@@ -185,6 +185,11 @@ impl SimpleTileTable {
             self.table[mask as usize] = tile_id;
         }
     }
+
+    /// Number of entries that have been set (i.e. tile_id != 0).
+    pub fn set_count(&self) -> usize {
+        self.table.iter().filter(|&&v| v != 0).count()
+    }
 }
 
 impl crate::world_hash::DetHash for SimpleTileTable {
@@ -397,5 +402,26 @@ mod tests {
     fn test_count_set_bits_matches_manual_count() {
         // 0b0001_0101 = bits 0, 2, 4 set → 3
         assert_eq!(count_set_bits(0b0001_0101), 3);
+    }
+
+    #[test]
+    fn test_set_count_empty_table_is_zero() {
+        let t = SimpleTileTable::new();
+        assert_eq!(t.set_count(), 0);
+    }
+
+    #[test]
+    fn test_set_count_after_set() {
+        let mut t = SimpleTileTable::new();
+        t.set(0b0000_0001, 7);
+        t.set(0b0000_0011, 3);
+        assert_eq!(t.set_count(), 2);
+    }
+
+    #[test]
+    fn test_set_count_fill_range_increases_count() {
+        let mut t = SimpleTileTable::new();
+        t.fill_range(0, 9, 1);
+        assert_eq!(t.set_count(), 10);
     }
 }

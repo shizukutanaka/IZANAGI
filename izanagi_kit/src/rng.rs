@@ -56,6 +56,17 @@ impl SplitMix64 {
         (lo as i64 + self.below(span) as i64) as i32
     }
 
+    /// Draw from the half-open range `[lo, hi)` uniformly. Returns `lo` when
+    /// `lo >= hi` (degenerate range, no draw consumed). Unsigned counterpart of
+    /// [`range`](Self::range) for inventory indices and non-negative offsets.
+    #[inline]
+    pub fn range_u32(&mut self, lo: u32, hi: u32) -> u32 {
+        if lo >= hi {
+            return lo;
+        }
+        lo + self.below(hi - lo)
+    }
+
     /// Returns `true` with probability `num/den` using one low-bias draw.
     /// Degenerate odds are resolved without drawing (deterministic): `den == 0`
     /// or `num == 0` is always `false`, and `num >= den` is always `true`.
@@ -641,5 +652,28 @@ mod tests {
         let mut r = SplitMix64::with_state(0);
         let v = r.next_u64();
         assert_ne!(v, 0, "output should not be zero even for zero state");
+    }
+
+    #[test]
+    fn test_range_u32_stays_in_bounds() {
+        let mut r = SplitMix64::new(99);
+        for _ in 0..1000 {
+            let v = r.range_u32(5, 15);
+            assert!((5..15).contains(&v));
+        }
+    }
+
+    #[test]
+    fn test_range_u32_empty_range_returns_lo() {
+        let mut r = SplitMix64::new(1);
+        assert_eq!(r.range_u32(7, 7), 7);
+        assert_eq!(r.range_u32(10, 5), 10);
+    }
+
+    #[test]
+    fn test_range_u32_full_u32_range() {
+        let mut r = SplitMix64::new(0xABCD);
+        let v = r.range_u32(0, u32::MAX);
+        assert!(v < u32::MAX);
     }
 }

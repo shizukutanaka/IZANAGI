@@ -206,6 +206,14 @@ impl PassabilityGrid {
             })
         })
     }
+
+    /// Flip every cell in place: passable → blocked, blocked → passable.
+    /// Useful for testing ("treat walls as floor") and negative-space queries.
+    pub fn invert(&mut self) {
+        for cell in &mut self.cells {
+            *cell = !*cell;
+        }
+    }
 }
 
 impl DetHash for PassabilityGrid {
@@ -503,5 +511,36 @@ mod tests {
         let mut g = PassabilityGrid::new(0, 0);
         g.fill(true); // must not panic
         assert_eq!(g.blocked_count(), 0);
+    }
+
+    #[test]
+    fn test_invert_flips_all_cells() {
+        let mut g = PassabilityGrid::new(3, 3);
+        g.set_blocked(1, 1, true); // one blocked cell
+        g.invert();
+        // was passable → now blocked (8 cells), was blocked → now passable (1)
+        assert_eq!(g.blocked_count(), 8);
+        assert!(!g.is_blocked(1, 1));
+    }
+
+    #[test]
+    fn test_invert_twice_is_identity() {
+        let mut g = PassabilityGrid::new(4, 4);
+        g.set_blocked(0, 0, true);
+        g.set_blocked(3, 3, true);
+        let before_blocked = g.blocked_count();
+        g.invert();
+        g.invert();
+        assert_eq!(g.blocked_count(), before_blocked);
+        assert!(g.is_blocked(0, 0));
+        assert!(g.is_blocked(3, 3));
+    }
+
+    #[test]
+    fn test_invert_all_blocked_makes_all_passable() {
+        let mut g = PassabilityGrid::new(2, 2);
+        g.fill(true);
+        g.invert();
+        assert_eq!(g.passable_count(), 4);
     }
 }

@@ -325,6 +325,26 @@ pub fn fov_count<O: FnMut(i32, i32) -> bool>(
     count
 }
 
+/// All visible cells at **exactly** `radius` Chebyshev distance from `origin`.
+///
+/// Equivalent to `fov_to_vec(origin, radius, is_opaque)` filtered to cells
+/// where `max(|dx|, |dy|) == radius`. Useful for AoE ring effects that should
+/// hit only the outer edge of a blast without touching the interior cells.
+pub fn fov_ring<O: FnMut(i32, i32) -> bool>(
+    origin: (i32, i32),
+    radius: i32,
+    is_opaque: O,
+) -> Vec<(i32, i32)> {
+    fov_to_vec(origin, radius, is_opaque)
+        .into_iter()
+        .filter(|&(x, y)| {
+            let dx = (x - origin.0).abs();
+            let dy = (y - origin.1).abs();
+            dx.max(dy) == radius
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -611,5 +631,35 @@ mod tests {
         let expected = fov_to_vec(origin, radius, |_, _| true).len();
         let count = fov_count(origin, radius, |_, _| true);
         assert_eq!(count, expected);
+    }
+
+    #[test]
+    fn test_fov_ring_all_at_chebyshev_radius() {
+        let origin = (10, 10);
+        let radius = 3;
+        let ring = fov_ring(origin, radius, |_, _| false);
+        for (x, y) in &ring {
+            let dx = (x - origin.0).abs();
+            let dy = (y - origin.1).abs();
+            assert_eq!(dx.max(dy), radius, "({},{}) not on ring", x, y);
+        }
+    }
+
+    #[test]
+    fn test_fov_ring_zero_radius_is_origin() {
+        let ring = fov_ring((5, 5), 0, |_, _| false);
+        assert_eq!(ring, vec![(5, 5)]);
+    }
+
+    #[test]
+    fn test_fov_ring_subset_of_fov_to_vec() {
+        let origin = (8, 8);
+        let radius = 4;
+        let all: std::collections::HashSet<_> = fov_to_vec(origin, radius, |_, _| false)
+            .into_iter()
+            .collect();
+        for pt in fov_ring(origin, radius, |_, _| false) {
+            assert!(all.contains(&pt), "{:?} not in fov_to_vec", pt);
+        }
     }
 }

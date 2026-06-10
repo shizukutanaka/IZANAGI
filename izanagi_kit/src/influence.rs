@@ -220,6 +220,11 @@ impl InfluenceMap {
         Some((dx, dy))
     }
 
+    /// Return the maximum influence value stored in any cell, or `None` if empty.
+    pub fn max_value(&self) -> Option<i32> {
+        self.cells.iter().copied().max()
+    }
+
     /// Iterate `(x, y, value)` for all cells in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, i32)> + '_ {
         let w = self.width;
@@ -518,5 +523,26 @@ mod tests {
         assert_eq!(m.get(0, 0), Some(10));
         assert_eq!(m.get(1, 0), Some(50));
         assert_eq!(m.get(2, 0), Some(90));
+    }
+
+    #[test]
+    fn test_max_value_empty_map_is_none() {
+        let m = InfluenceMap::new(0, 0);
+        assert_eq!(m.max_value(), None);
+    }
+
+    #[test]
+    fn test_max_value_returns_largest_cell() {
+        let mut m = InfluenceMap::new(3, 1);
+        m.set(0, 0, 5);
+        m.set(1, 0, 99);
+        m.set(2, 0, -10);
+        assert_eq!(m.max_value(), Some(99));
+    }
+
+    #[test]
+    fn test_max_value_all_zero_is_zero() {
+        let m = InfluenceMap::new(2, 2);
+        assert_eq!(m.max_value(), Some(0));
     }
 }

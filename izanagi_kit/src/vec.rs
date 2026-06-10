@@ -134,6 +134,12 @@ impl Vec2 {
         }
     }
 
+    /// Returns `true` when both components are zero.
+    #[inline]
+    pub fn is_zero(self) -> bool {
+        self.x.is_zero() && self.y.is_zero()
+    }
+
     /// Component-wise minimum: `(min(a.x, b.x), min(a.y, b.y))`.
     #[inline]
     pub fn min(a: Vec2, b: Vec2) -> Vec2 {
@@ -797,5 +803,28 @@ mod tests {
         let len = v.len();
         let diff = (len - fi(1)).abs();
         assert!(diff <= Fixed::from_ratio(1, 100), "len={:?}", len);
+    }
+
+    #[test]
+    fn test_is_zero_for_zero_vector() {
+        assert!(Vec2::ZERO.is_zero());
+    }
+
+    #[test]
+    fn test_is_zero_false_for_nonzero_x() {
+        let v = Vec2 {
+            x: fi(1),
+            y: Fixed::ZERO,
+        };
+        assert!(!v.is_zero());
+    }
+
+    #[test]
+    fn test_is_zero_false_for_nonzero_y() {
+        let v = Vec2 {
+            x: Fixed::ZERO,
+            y: fi(-1),
+        };
+        assert!(!v.is_zero());
     }
 }
