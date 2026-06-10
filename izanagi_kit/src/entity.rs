@@ -98,6 +98,13 @@ impl EntityAllocator {
         }
     }
 
+    /// Allocate `n` entities in a single call, returning them as a `Vec`.
+    /// Equivalent to `(0..n).map(|_| alloc.allocate()).collect()` but named
+    /// for clarity at bulk-spawn call sites (e.g. "spawn 20 enemies at once").
+    pub fn batch_alloc(&mut self, n: usize) -> Vec<Entity> {
+        (0..n).map(|_| self.allocate()).collect()
+    }
+
     /// The highest generation counter across all slots, or `0` when the
     /// allocator is empty. A value near [`u32::MAX`] means a slot has been
     /// recycled an extraordinary number of times — useful for diagnostics and
@@ -344,5 +351,31 @@ mod tests {
         assert_eq!(a.free_count(), 1);
         a.allocate(); // reuses the freed slot
         assert_eq!(a.free_count(), 0);
+    }
+
+    #[test]
+    fn test_batch_alloc_returns_n_live_distinct_entities() {
+        let mut a = EntityAllocator::new();
+        let batch = a.batch_alloc(5);
+        assert_eq!(batch.len(), 5);
+        assert_eq!(a.count(), 5);
+        let indices: std::collections::HashSet<u32> = batch.iter().map(|e| e.index()).collect();
+        assert_eq!(indices.len(), 5, "all indices must be distinct");
+    }
+
+    #[test]
+    fn test_batch_alloc_zero_returns_empty() {
+        let mut a = EntityAllocator::new();
+        let batch = a.batch_alloc(0);
+        assert!(batch.is_empty());
+        assert_eq!(a.count(), 0);
+    }
+
+    #[test]
+    fn test_batch_alloc_entities_are_alive() {
+        let mut a = EntityAllocator::new();
+        for e in a.batch_alloc(3) {
+            assert!(a.is_alive(e));
+        }
     }
 }

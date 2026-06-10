@@ -149,8 +149,9 @@ pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
 pub use noise::{
-    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, hash_1d, hash_2d, normalize_noise, ridge_noise_2d,
-    value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap,
+    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, hash_1d, hash_2d, hash_3d, noise_3d_in_range,
+    normalize_noise, ridge_noise_2d, value_noise_1d, value_noise_1d_wrap, value_noise_2d,
+    value_noise_2d_wrap, value_noise_3d,
 };
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;

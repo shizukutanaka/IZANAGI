@@ -182,6 +182,26 @@ impl<T> SparseSet<T> {
         pairs
     }
 
+    /// Exchange the components of `a` and `b` in place. Returns `true` when both
+    /// entities are present; returns `false` (no change) if either is absent.
+    /// O(1) — both dense positions are looked up via the sparse index and the
+    /// values are swapped without searching. Useful for trading inventory items
+    /// or applying a permutation to a component pool.
+    pub fn swap(&mut self, a: Entity, b: Entity) -> bool {
+        let pa = match self.slot(a) {
+            Some(p) => p as usize,
+            None => return false,
+        };
+        let pb = match self.slot(b) {
+            Some(p) => p as usize,
+            None => return false,
+        };
+        if pa != pb {
+            self.dense_values.swap(pa, pb);
+        }
+        true
+    }
+
     /// Count entries for which `pred` returns `true`. Non-allocating alternative
     /// to `.iter().filter(|(_,v)| pred(v)).count()`.
     pub fn count_matching<F: Fn(&T) -> bool>(&self, pred: F) -> usize {
@@ -603,5 +623,35 @@ mod tests {
         let removed = s.remove_where(|_, _| true);
         assert_eq!(removed, 2);
         assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_swap_exchanges_component_values() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 10);
+        s.insert(es[1], 20);
+        assert!(s.swap(es[0], es[1]));
+        assert_eq!(s.get(es[0]), Some(&20));
+        assert_eq!(s.get(es[1]), Some(&10));
+    }
+
+    #[test]
+    fn test_swap_returns_false_when_either_absent() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 1);
+        assert!(!s.swap(es[0], es[1]), "es[1] absent → false");
+        assert!(!s.swap(es[2], es[1]), "both absent → false");
+        assert_eq!(s.get(es[0]), Some(&1), "no mutation on failure");
+    }
+
+    #[test]
+    fn test_swap_same_entity_is_noop_and_returns_true() {
+        let (_, es) = three();
+        let mut s: SparseSet<u32> = SparseSet::new();
+        s.insert(es[0], 42);
+        assert!(s.swap(es[0], es[0]));
+        assert_eq!(s.get(es[0]), Some(&42));
     }
 }

@@ -254,6 +254,25 @@ impl SplitMix64 {
         }
         indices[..k].iter().map(|&i| slice[i].clone()).collect()
     }
+
+    /// Integer Bates-distribution approximation to a normal distribution.
+    ///
+    /// Draws 4 uniform samples from `[0, spread]` (inclusive), averages them,
+    /// and centers the result at `center`. Output range is
+    /// `[center − spread, center + spread]`; the distribution is
+    /// bell-shaped (Bates/Irwin-Hall with 4 samples). Consumes exactly 4 draws
+    /// for `spread > 0`, 0 draws for `spread == 0`. Deterministic and
+    /// replay-safe. Useful for damage variance, difficulty curves, and
+    /// procedural stat generation.
+    pub fn gaussian_approx(&mut self, center: i32, spread: u32) -> i32 {
+        if spread == 0 {
+            return center;
+        }
+        let sum: i32 = (0..4).map(|_| self.below(spread + 1) as i32).sum();
+        // sum ∈ [0, 4*spread], mean = 2*spread
+        // sum/2 − spread ∈ [−spread, spread], mean = 0
+        center + sum / 2 - spread as i32
+    }
 }
 
 impl crate::world_hash::DetHash for SplitMix64 {
@@ -772,5 +791,34 @@ mod tests {
         let mut got: Vec<char> = sample.clone();
         got.sort();
         assert_eq!(got, vec!['a', 'b', 'c']);
+    }
+
+    #[test]
+    fn test_gaussian_approx_zero_spread_returns_center_no_draw() {
+        let mut rng = SplitMix64::new(1);
+        let state_before = rng.state();
+        assert_eq!(rng.gaussian_approx(42, 0), 42);
+        assert_eq!(rng.state(), state_before, "must not draw for spread=0");
+    }
+
+    #[test]
+    fn test_gaussian_approx_result_within_center_plus_minus_spread() {
+        let mut rng = SplitMix64::new(0xABC);
+        for _ in 0..200 {
+            let v = rng.gaussian_approx(100, 50);
+            assert!(
+                (50..=150).contains(&v),
+                "gaussian_approx(100, 50) = {v} out of [50, 150]"
+            );
+        }
+    }
+
+    #[test]
+    fn test_gaussian_approx_deterministic_given_same_state() {
+        let mut rng_a = SplitMix64::new(99);
+        let mut rng_b = SplitMix64::new(99);
+        for _ in 0..10 {
+            assert_eq!(rng_a.gaussian_approx(0, 20), rng_b.gaussian_approx(0, 20));
+        }
     }
 }

@@ -433,6 +433,83 @@ pub fn noise_2d_in_range(x: i32, y: i32, seed: u64, lo: i32, hi: i32) -> i32 {
     hash_range(hash_2d(x, y, seed), lo, hi)
 }
 
+/// 3-D value noise: trilinear-interpolated noise in `[0, 65535]`.
+///
+/// `x`, `y`, and `z` are Q16.16 fixed-point coordinates (upper 16 bits =
+/// integer, lower 16 bits = fraction). `seed` differentiates layers. Builds on
+/// [`hash_3d`] in the same way `value_noise_2d` builds on `hash_2d`.
+pub fn value_noise_3d(x: i32, y: i32, z: i32, seed: u64) -> u32 {
+    let xi = x >> 16;
+    let yi = y >> 16;
+    let zi = z >> 16;
+    let fx = (x as u32) & 0xffff;
+    let fy = (y as u32) & 0xffff;
+    let fz = (z as u32) & 0xffff;
+
+    let v000 = hash_3d(xi, yi, zi, seed) >> 16;
+    let v100 = hash_3d(xi.wrapping_add(1), yi, zi, seed) >> 16;
+    let v010 = hash_3d(xi, yi.wrapping_add(1), zi, seed) >> 16;
+    let v110 = hash_3d(xi.wrapping_add(1), yi.wrapping_add(1), zi, seed) >> 16;
+    let v001 = hash_3d(xi, yi, zi.wrapping_add(1), seed) >> 16;
+    let v101 = hash_3d(xi.wrapping_add(1), yi, zi.wrapping_add(1), seed) >> 16;
+    let v011 = hash_3d(xi, yi.wrapping_add(1), zi.wrapping_add(1), seed) >> 16;
+    let v111 = hash_3d(
+        xi.wrapping_add(1),
+        yi.wrapping_add(1),
+        zi.wrapping_add(1),
+        seed,
+    ) >> 16;
+
+    let sx = smoothstep(fx);
+    let sy = smoothstep(fy);
+    let sz = smoothstep(fz);
+
+    // Trilinear interpolation (bottom z-slice then top, then z-blend).
+    let top0 = lerp_u32(v000, v100, sx);
+    let bot0 = lerp_u32(v010, v110, sx);
+    let z0 = lerp_u32(top0, bot0, sy);
+    let top1 = lerp_u32(v001, v101, sx);
+    let bot1 = lerp_u32(v011, v111, sx);
+    let z1 = lerp_u32(top1, bot1, sy);
+    lerp_u32(z0, z1, sz).min(65535)
+}
+
+/// Fractional Brownian motion in 3-D — the [`fbm_2d`] analogue over
+/// [`value_noise_3d`]. Returns `[0, 65535]`; `octaves == 0` returns `0`.
+/// Useful for voxel terrain, layered cave systems, and 3-D particle density
+/// fields from the same deterministic value-noise base.
+pub fn fbm_3d(x: i32, y: i32, z: i32, seed: u64, octaves: u32) -> u32 {
+    let mut acc: u64 = 0;
+    let mut amplitude: u64 = 65536;
+    let mut total_amp: u64 = 0;
+    for i in 0..octaves {
+        let shift = i.min(30);
+        let sx = x.wrapping_shl(shift);
+        let sy = y.wrapping_shl(shift);
+        let sz = z.wrapping_shl(shift);
+        let v = value_noise_3d(sx, sy, sz, seed.wrapping_add(i as u64)) as u64;
+        acc += v * amplitude;
+        total_amp += amplitude * 65535;
+        amplitude >>= 1;
+        if amplitude == 0 {
+            break;
+        }
+    }
+    if total_amp == 0 {
+        0
+    } else {
+        ((acc * 65535) / total_amp).min(65535) as u32
+    }
+}
+
+/// Sample 3-D noise at `(x, y, z)` and map the result to `[lo, hi)`.
+/// Convenience combinator matching `noise_2d_in_range`. Returns `lo` when
+/// `lo >= hi`. Useful for voxel density tables and 3-D scatter fields.
+#[inline]
+pub fn noise_3d_in_range(x: i32, y: i32, z: i32, seed: u64, lo: i32, hi: i32) -> i32 {
+    hash_range(hash_3d(x, y, z, seed), lo, hi)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -895,6 +972,46 @@ mod tests {
         for x in -5i32..=5 {
             let v = turbulence_1d(x, 1, 3);
             assert!(v <= 65535, "turbulence_1d({x}) = {v} out of range");
+        }
+    }
+
+    #[test]
+    fn test_value_noise_3d_in_range_and_deterministic() {
+        for z in -2i32..=2 {
+            let v = value_noise_3d(0, 0, z << 16, 42);
+            assert!(v <= 65535, "value_noise_3d out of range at z={z}: {v}");
+        }
+        assert_eq!(
+            value_noise_3d(3 << 16, 5 << 16, 7 << 16, 99),
+            value_noise_3d(3 << 16, 5 << 16, 7 << 16, 99),
+            "must be deterministic"
+        );
+    }
+
+    #[test]
+    fn test_value_noise_3d_different_z_differs() {
+        let v0 = value_noise_3d(1 << 16, 1 << 16, 0, 0);
+        let v1 = value_noise_3d(1 << 16, 1 << 16, 1 << 16, 0);
+        assert_ne!(v0, v1, "different z must produce different noise");
+    }
+
+    #[test]
+    fn test_fbm_3d_zero_octaves_is_zero() {
+        assert_eq!(fbm_3d(0, 0, 0, 1, 0), 0);
+    }
+
+    #[test]
+    fn test_fbm_3d_in_range_and_deterministic() {
+        let v = fbm_3d(1 << 16, 2 << 16, 3 << 16, 7, 4);
+        assert!(v <= 65535, "fbm_3d out of range: {v}");
+        assert_eq!(v, fbm_3d(1 << 16, 2 << 16, 3 << 16, 7, 4));
+    }
+
+    #[test]
+    fn test_noise_3d_in_range_within_bounds() {
+        for z in -3i32..=3 {
+            let v = noise_3d_in_range(0, 0, z, 0, 10, 20);
+            assert!((10..20).contains(&v), "out of [10,20) at z={z}: {v}");
         }
     }
 }

@@ -277,6 +277,78 @@ impl<T: Clone> TileMap<T> {
     pub fn any_where<P: FnMut(&T) -> bool>(&self, pred: P) -> bool {
         self.cells.iter().any(pred)
     }
+
+    /// Mirror the map horizontally (left↔right): each row is reversed in place.
+    /// Dimensions are unchanged. Useful for room-template mirroring without
+    /// creating a new allocation.
+    pub fn flip_h(&mut self) {
+        let w = self.width as usize;
+        for row in 0..self.height as usize {
+            let start = row * w;
+            self.cells[start..start + w].reverse();
+        }
+    }
+
+    /// Mirror the map vertically (top↔bottom): row order is reversed in place.
+    /// Dimensions are unchanged.
+    pub fn flip_v(&mut self) {
+        let w = self.width as usize;
+        let h = self.height as usize;
+        for row in 0..h / 2 {
+            let a = row * w;
+            let b = (h - 1 - row) * w;
+            for col in 0..w {
+                self.cells.swap(a + col, b + col);
+            }
+        }
+    }
+
+    /// Return a new map rotated 90° clockwise. The new map's dimensions are
+    /// `height × width` (original height becomes new width). Useful for
+    /// reusable room templates that need to be placed in any orientation.
+    pub fn rotated_cw(&self) -> TileMap<T> {
+        let new_width = self.height;
+        let new_height = self.width;
+        let mut new_cells = Vec::with_capacity(self.cells.len());
+        for ry in 0..new_height as i32 {
+            for rx in 0..new_width as i32 {
+                // CW rotation: result(rx, ry) = original(ry, H-1-rx)
+                let orig_x = ry;
+                let orig_y = new_width as i32 - 1 - rx;
+                new_cells.push(
+                    self.cells[orig_y as usize * self.width as usize + orig_x as usize].clone(),
+                );
+            }
+        }
+        TileMap {
+            width: new_width,
+            height: new_height,
+            cells: new_cells,
+        }
+    }
+
+    /// Return a new map rotated 90° counter-clockwise. Dimensions are swapped
+    /// identically to [`rotated_cw`](Self::rotated_cw).
+    pub fn rotated_ccw(&self) -> TileMap<T> {
+        let new_width = self.height;
+        let new_height = self.width;
+        let mut new_cells = Vec::with_capacity(self.cells.len());
+        for ry in 0..new_height as i32 {
+            for rx in 0..new_width as i32 {
+                // CCW rotation: result(rx, ry) = original(W-1-ry, rx)
+                let orig_x = self.width as i32 - 1 - ry;
+                let orig_y = rx;
+                new_cells.push(
+                    self.cells[orig_y as usize * self.width as usize + orig_x as usize].clone(),
+                );
+            }
+        }
+        TileMap {
+            width: new_width,
+            height: new_height,
+            cells: new_cells,
+        }
+    }
 }
 
 impl<T: Clone + DetHash> DetHash for TileMap<T> {
@@ -803,5 +875,81 @@ mod tests {
                 assert_eq!(*m.get(x, y).unwrap(), 9);
             }
         }
+    }
+
+    fn make_3x2() -> TileMap<u8> {
+        // 3-wide, 2-tall:
+        // 1 2 3
+        // 4 5 6
+        let mut m = TileMap::new(3, 2, 0u8);
+        let vals = [1u8, 2, 3, 4, 5, 6];
+        for (i, &v) in vals.iter().enumerate() {
+            let x = (i % 3) as i32;
+            let y = (i / 3) as i32;
+            m.set(x, y, v);
+        }
+        m
+    }
+
+    #[test]
+    fn test_flip_h_reverses_rows() {
+        let mut m = make_3x2();
+        m.flip_h();
+        // After flip_h:
+        // 3 2 1
+        // 6 5 4
+        assert_eq!(m.get(0, 0).copied(), Some(3));
+        assert_eq!(m.get(2, 0).copied(), Some(1));
+        assert_eq!(m.get(0, 1).copied(), Some(6));
+        assert_eq!(m.get(2, 1).copied(), Some(4));
+    }
+
+    #[test]
+    fn test_flip_v_reverses_row_order() {
+        let mut m = make_3x2();
+        m.flip_v();
+        // After flip_v:
+        // 4 5 6
+        // 1 2 3
+        assert_eq!(m.get(0, 0).copied(), Some(4));
+        assert_eq!(m.get(2, 1).copied(), Some(3));
+    }
+
+    #[test]
+    fn test_rotated_cw_dimensions_swap_and_values_correct() {
+        let m = make_3x2();
+        // Original (W=3, H=2):
+        // 1 2 3
+        // 4 5 6
+        let r = m.rotated_cw();
+        // After 90° CW (W=2, H=3):
+        // 4 1
+        // 5 2
+        // 6 3
+        assert_eq!(r.width(), 2);
+        assert_eq!(r.height(), 3);
+        assert_eq!(r.get(0, 0).copied(), Some(4));
+        assert_eq!(r.get(1, 0).copied(), Some(1));
+        assert_eq!(r.get(0, 2).copied(), Some(6));
+        assert_eq!(r.get(1, 2).copied(), Some(3));
+    }
+
+    #[test]
+    fn test_rotated_ccw_dimensions_swap_and_values_correct() {
+        let m = make_3x2();
+        // Original (W=3, H=2):
+        // 1 2 3
+        // 4 5 6
+        let r = m.rotated_ccw();
+        // After 90° CCW (W=2, H=3):
+        // 3 6
+        // 2 5
+        // 1 4
+        assert_eq!(r.width(), 2);
+        assert_eq!(r.height(), 3);
+        assert_eq!(r.get(0, 0).copied(), Some(3));
+        assert_eq!(r.get(1, 0).copied(), Some(6));
+        assert_eq!(r.get(0, 2).copied(), Some(1));
+        assert_eq!(r.get(1, 2).copied(), Some(4));
     }
 }

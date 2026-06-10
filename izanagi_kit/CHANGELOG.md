@@ -7,6 +7,49 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- `world_hash::DetHash for [T]` / `Vec<T>` / `Option<T>`: the three most
+  commonly needed collection/wrapper impls were missing. `[T]` folds length
+  then elements in order (length-prefix prevents the empty-slice / default-item
+  collision); `Vec<T>` delegates to `[T]` so both produce identical hashes;
+  `Option<T>` folds a `0` tag for `None` and `1 + value` for `Some`, preventing
+  `None` from hashing identically to `Some(default)`. These are critical for any
+  aggregate type that stores a `Vec` of components or an optional field as part
+  of its `DetHash` impl. Re-exported via the existing blanket trait.
+- `sparse_set::SparseSet::swap(a, b) -> bool`: exchange components of two
+  entities in place. Returns `true` when both are present; `false` (no change)
+  if either is absent; O(1) via the sparse index. Useful for inventory item
+  trades and permutation-based sort passes without a temporary staging variable.
+- `entity::EntityAllocator::batch_alloc(n) -> Vec<Entity>`: allocate `n`
+  entities in one call. Convenience wrapper over `(0..n).map(allocate)` — named
+  for clarity at bulk-spawn sites ("spawn 20 enemies at once"). The returned
+  entities are all live and have distinct indices.
+- `noise::value_noise_3d(x, y, z, seed) -> u32`: trilinear-interpolated 3-D
+  value noise in `[0, 65535]`. Extends the 1-D/2-D value noise family to three
+  dimensions using 8 corner hashes from `hash_3d` and the same cubic Hermite
+  smoothstep. Useful for voxel terrain density, layered cave systems, and
+  time-varying procedural generation.
+- `noise::fbm_3d(x, y, z, seed, octaves) -> u32`: fractional Brownian motion
+  in 3-D over `value_noise_3d`. Mirrors `fbm_2d`; `octaves == 0` returns `0`.
+  Re-exported at the crate root alongside the other 3-D noise functions.
+- `noise::noise_3d_in_range(x, y, z, seed, lo, hi) -> i32`: convenience
+  combinator matching `noise_2d_in_range`. Re-exported at the crate root.
+- `rng::SplitMix64::gaussian_approx(center, spread) -> i32`: Bates-distribution
+  (Irwin-Hall with 4 samples) bell-curve approximation. Draws 4 values from
+  `[0, spread]`, averages them, and centres at `center`. Output range
+  `[center − spread, center + spread]`. Consumes exactly 4 draws for `spread >
+  0`, 0 for `spread == 0`. Deterministic and replay-safe; useful for damage
+  variance, difficulty curves, and procedural stat generation.
+- `tilemap::TileMap::flip_h()`: mirror horizontally (each row reversed) in
+  place. Dimensions unchanged. Standard room-template reflection primitive.
+- `tilemap::TileMap::flip_v()`: mirror vertically (row order reversed) in
+  place. Dimensions unchanged.
+- `tilemap::TileMap::rotated_cw() -> TileMap<T>`: return a new map rotated 90°
+  clockwise; the new dimensions are `height × width`. Useful for placing a
+  room template in any of four orientations without pre-generating four variants.
+- `tilemap::TileMap::rotated_ccw() -> TileMap<T>`: symmetric 90°
+  counter-clockwise rotation; same dimension swap as `rotated_cw`.
+- `lib.rs`: re-export `fbm_3d`, `hash_3d`, `noise_3d_in_range`, `value_noise_3d`
+  at the crate root, completing the 3-D noise API surface.
 - `rng::SplitMix64::sample_n<T: Clone>(slice, n) -> Vec<T>`: partial Fisher-Yates
   without-replacement sampling — returns exactly `min(n, slice.len())` distinct
   elements in a uniformly random order. Draws one value per selected element, so

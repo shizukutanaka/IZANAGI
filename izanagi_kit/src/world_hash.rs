@@ -186,6 +186,39 @@ impl DetHash for String {
     }
 }
 
+/// Fold a slice in order, length-prefixed. Length-prefix prevents `[]` from
+/// colliding with `[item]` when the item's hash equals the FNV offset basis.
+impl<T: DetHash> DetHash for [T] {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.len() as u32);
+        for item in self {
+            item.det_hash(hasher);
+        }
+    }
+}
+
+/// Delegates to `[T]` so `Vec<T>` and `&[T]` produce identical hashes.
+impl<T: DetHash> DetHash for Vec<T> {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.as_slice().det_hash(hasher);
+    }
+}
+
+/// `None` folds as the tag byte `0`; `Some(v)` folds tag `1` then `v`.
+/// The tag byte prevents `None` from hashing identically to `Some(default)`.
+impl<T: DetHash> DetHash for Option<T> {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        match self {
+            None => hasher.write_u32(0),
+            Some(v) => {
+                hasher.write_u32(1);
+                v.det_hash(hasher);
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -337,5 +370,51 @@ mod tests {
         let h3 = hash_state(&(u16::MAX));
         assert_ne!(h1, h2);
         assert_ne!(h2, h3);
+    }
+
+    #[test]
+    fn test_vec_det_hash_matches_slice() {
+        let v: Vec<u32> = vec![1, 2, 3];
+        assert_eq!(hash_state(&v), hash_state(v.as_slice()));
+    }
+
+    #[test]
+    fn test_slice_det_hash_order_sensitive_and_length_sensitive() {
+        let a: &[u32] = &[1, 2, 3];
+        let b: &[u32] = &[3, 2, 1];
+        let c: &[u32] = &[1, 2];
+        assert_ne!(hash_state(a), hash_state(b), "order must matter");
+        assert_ne!(hash_state(a), hash_state(c), "length must matter");
+        assert_ne!(
+            hash_state::<[u32]>(&[]),
+            hash_state::<[u32]>(&[0]),
+            "empty vs nonempty"
+        );
+    }
+
+    #[test]
+    fn test_option_none_differs_from_some_zero() {
+        let none: Option<u32> = None;
+        let some_zero: Option<u32> = Some(0);
+        assert_ne!(hash_state(&none), hash_state(&some_zero));
+    }
+
+    #[test]
+    fn test_option_some_matches_tag_plus_value() {
+        let val = Some(42u32);
+        let h_option = hash_state(&val);
+        let mut hasher = Fnv1a::new();
+        hasher.write_u32(1);
+        42u32.det_hash(&mut hasher);
+        assert_eq!(h_option, hasher.finish());
+    }
+
+    #[test]
+    fn test_option_none_matches_tag_zero() {
+        let none: Option<u32> = None;
+        let h_option = hash_state(&none);
+        let mut hasher = Fnv1a::new();
+        hasher.write_u32(0);
+        assert_eq!(h_option, hasher.finish());
     }
 }
