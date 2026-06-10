@@ -61,11 +61,7 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
     /// Fire `event`. Returns `true` if the state changed, `false` if no
     /// matching transition was found (self-loop / unchanged).
     pub fn fire(&mut self, event: &E) -> bool {
-        if let Some((_, _, to)) = self
-            .table
-            .iter()
-            .find(|(f, e, _)| *f == self.state && *e == *event)
-        {
+        if let Some((_, _, to)) = self.find_transition(event) {
             let to = to.clone();
             if to != self.state {
                 self.state = to;
@@ -84,9 +80,7 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
 
     /// Whether a transition exists for `(current_state, event)`.
     pub fn has_transition(&self, event: &E) -> bool {
-        self.table
-            .iter()
-            .any(|(f, e, _)| *f == self.state && *e == *event)
+        self.find_transition(event).is_some()
     }
 
     /// Remove the transition for `(from, event)` if it exists. No-op if absent.
@@ -107,10 +101,7 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
     /// self-loop. Useful for AI lookahead ("would attacking now trigger Dead?")
     /// and UI "show next state" indicators without committing to the transition.
     pub fn peek_next(&self, event: &E) -> Option<&S> {
-        self.table
-            .iter()
-            .find(|(f, e, _)| *f == self.state && *e == *event)
-            .map(|(_, _, t)| t)
+        self.find_transition(event).map(|(_, _, t)| t)
     }
 
     /// Iterate all events that have a defined outgoing transition from `state`.
@@ -129,7 +120,7 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
     /// `transitions_from(state).count()` but avoids constructing an iterator
     /// when only the count matters (e.g. "does this state have any exits?").
     pub fn transition_count(&self, from: &S) -> usize {
-        self.table.iter().filter(|(f, _, _)| f == from).count()
+        self.transitions_from(from).count()
     }
 
     /// Whether the machine is currently in `state`.
@@ -139,6 +130,13 @@ impl<S: Eq + Clone, E: Eq> Fsm<S, E> {
     #[inline]
     pub fn is_in(&self, state: &S) -> bool {
         &self.state == state
+    }
+
+    /// Find the transition row for `(self.state, event)`, or `None`.
+    fn find_transition(&self, event: &E) -> Option<&(S, E, S)> {
+        self.table
+            .iter()
+            .find(|(f, e, _)| *f == self.state && *e == *event)
     }
 }
 

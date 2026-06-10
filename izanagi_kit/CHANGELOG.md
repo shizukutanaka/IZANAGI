@@ -1430,6 +1430,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `handles` → `iter().map(|(h, _)| h)`, `remove_where` → `find_all_by(pred)`
   + remove loop, `retain` → `iter().filter(!pred).collect()` + remove loop.
   Behaviour identical; no API or hash change; pinned hashes verified.
+- `fsm`: extracted a private `Fsm::find_transition(event) -> Option<&(S,E,S)>` helper
+  that searches `table` for `(self.state, event, _)`. Routed `fire`, `has_transition`,
+  and `peek_next` through it, collapsing three copies of the
+  `table.iter().find(|(f,e,_)| *f==self.state && *e==*event)` predicate into one.
+  Also routed `transition_count` through the existing public `transitions_from`,
+  removing a parallel `filter().count()` scan. No behaviour change; pinned hashes
+  verified.
 
 ### Changed
 - `README.md`: documented the seven runnable examples (`cargo run --example …`) and refreshed the module overview from 11 to a representative cross-section of the ~50 shipped modules, linking to `GAME_DEV_TAXONOMY.md` and `SPEC.md` for the full capability map and contracts.
