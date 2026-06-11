@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **New module `affix`** (G7 in `STRENGTHS_WEAKNESSES.md`) — procedural item
+  affixes: "Rusty Sword of Dragonslaying" generation over weighted pools.
+  14 tests + doc test.
+  - `affix::Affix<M>`: name fragment + `AffixSlot` (prefix/suffix) + modifier
+    payload `M`; `Affix::prefix` / `Affix::suffix` constructors.
+  - `affix::AffixedItem<T, M>`: base item + up to one prefix and one suffix.
+    `display_name(base)` composes the full name; `is_magical` / `affix_count` /
+    `modifiers()`; for `M = combat::StatsModifier`, `combined_modifier()` sums
+    affix modifiers (saturating) for direct use with `Stats::modified`.
+  - `affix::AffixGenerator<M>`: weighted prefix/suffix `RandomTable` pools +
+    per-slot grant chances. Fixed draw order (prefix coin → prefix roll →
+    suffix coin → suffix roll); degenerate chances and empty pools resolve
+    without drawing — replay-safe.
+  - `DetHash` on `AffixSlot` / `Affix` / `AffixedItem` so enchanted items fold
+    into replay checksums.
 - **Multi-floor pathfinding & stair linking** (G5 + G6 in
   `STRENGTHS_WEAKNESSES.md`) — route planning across the dungeon stack.
   10 tests.

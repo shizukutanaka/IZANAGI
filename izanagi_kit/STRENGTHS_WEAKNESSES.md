@@ -48,7 +48,7 @@
 | G4 | **encounter pack 生成**（深度/難度で「goblin×3 + shaman×1」） | 個体 pick のみ | Small | ✅ **実装済み**（`src/encounter.rs`: `EncounterPack` / `EncounterSlot`） |
 | G5 | **multi-floor 遷移パス探索**（floor A→B を stairs 経由で） | `multimap` は connector lookup のみ | Medium | ✅ **実装済み**（`MultiMap::find_floor_path` / `floor_distance` / `is_floor_reachable`） |
 | G6 | **stairs 連結の自動検出/チェイン** | 手動 Connector 追加 | Small | ✅ **実装済み**（`MultiMap::link_floors` 双方向ペア追加） |
-| G7 | **item affix / enchantment 生成** | `random_table` は値のみ | Medium | 未 |
+| G7 | **item affix / enchantment 生成** | `random_table` は値のみ | Medium | ✅ **実装済み**（`src/affix.rs`: `Affix` / `AffixedItem` / `AffixGenerator`） |
 | G8 | **behavior tree / GOAP / utility AI** | `fsm` は flat | Large | 未 |
 | G9 | **unified ability/skill system**（mana/cooldown/range/effect 結線） | `timer`+`fsm`+`combat` を手結線 | Large | 未 |
 
@@ -89,7 +89,15 @@
 5. ~~**G6 stairs 連結チェイン**~~ ✅ 実装済み（`MultiMap::link_floors`:
    下り階段＋帰り階段の双方向 Connector ペアを 1 呼び出しで追加）
 
-残りの未実装は G7（item affix, Medium）と G8/G9（behavior tree / ability
-system, Large — 別途スコープ確認の上で着手）。
+6. ~~**G7 item affix**~~ ✅ 実装済み（新規 `src/affix.rs`: `Affix<M>`
+   （prefix/suffix + modifier payload）、`AffixedItem<T, M>`（`display_name`
+   → "Rusty Sword of Dragonslaying"、`combined_modifier` で `StatsModifier`
+   飽和合算 → `Stats::modified` に直結）、`AffixGenerator<M>`（weighted pool
+   + 付与確率%、固定 draw 順序: prefix coin → prefix roll → suffix coin →
+   suffix roll、degenerate は draw なし）。`DetHash` 完備。14 tests + doc test）
+
+残りの未実装は G8/G9（behavior tree / ability system, **Large** —
+アーキテクチャ設計を伴うため別途スコープ確認の上で着手）。
+Small/Medium の全ギャップ（G1–G7）は本ブランチで解消済み。
 
 G8/G9（behavior tree, ability system）は Large・別スコープ確認の上で着手。

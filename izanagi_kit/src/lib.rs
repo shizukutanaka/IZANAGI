@@ -23,6 +23,7 @@
 //! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
 //! - [`damage`] — typed damage (`DamageType`) and per-type resistance/vulnerability profiles (`ResistanceProfile`).
 //! - [`encounter`] — procedural group-encounter rolling (`EncounterPack`: count ranges + appearance chances per slot).
+//! - [`affix`] — procedural item affixes (`AffixGenerator`: weighted prefix/suffix pools → "Rusty Sword of Dragonslaying").
 //! - [`fsm`] — table-driven finite state machine for game AI (`Fsm<S,E>`).
 //! - [`inventory`] — slot-based inventory (`Inventory<T>`) for roguelike items.
 //! - [`keymap`] — key-to-action mapping (`KeyMap<K,A>`) for deterministic input.
@@ -58,6 +59,7 @@
 #![forbid(unsafe_code)]
 
 pub mod aabb;
+pub mod affix;
 pub mod arch;
 pub mod assets;
 pub mod autotile;
@@ -112,6 +114,7 @@ pub mod wfc;
 pub mod world_hash;
 
 pub use aabb::Aabb;
+pub use affix::{Affix, AffixGenerator, AffixSlot, AffixedItem};
 pub use arch::ArchTable;
 pub use assets::{AssetHandle, AssetStore};
 pub use autotile::{compute_all, compute_mask, SimpleTileTable};
