@@ -22,6 +22,7 @@
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
 //! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
 //! - [`damage`] — typed damage (`DamageType`) and per-type resistance/vulnerability profiles (`ResistanceProfile`).
+//! - [`encounter`] — procedural group-encounter rolling (`EncounterPack`: count ranges + appearance chances per slot).
 //! - [`fsm`] — table-driven finite state machine for game AI (`Fsm<S,E>`).
 //! - [`inventory`] — slot-based inventory (`Inventory<T>`) for roguelike items.
 //! - [`keymap`] — key-to-action mapping (`KeyMap<K,A>`) for deterministic input.
@@ -69,6 +70,7 @@ pub mod damage;
 pub mod diag_json;
 pub mod dice;
 pub mod easing;
+pub mod encounter;
 pub mod entity;
 pub mod fixed;
 pub mod fov;
@@ -132,6 +134,7 @@ pub use easing::{
     ease_out_expo, ease_out_quad, ease_out_quart, ease_out_quint, ease_out_sine, ease_reversed,
     linear,
 };
+pub use encounter::{EncounterPack, EncounterSlot};
 pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};

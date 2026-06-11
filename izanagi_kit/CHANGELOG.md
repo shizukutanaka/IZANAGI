@@ -7,6 +7,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **New module `encounter`** (G4 in `STRENGTHS_WEAKNESSES.md`) — procedural
+  group-encounter rolling: "2–4 goblins, plus a shaman 30% of the time".
+  11 tests + doc test.
+  - `encounter::EncounterSlot<T>`: value + `min..=max` count range +
+    `chance_percent` appearance probability (`max` clamped up to `min` at
+    construction).
+  - `encounter::EncounterPack<T>`: ordered slots built via `with_slot` /
+    `with_optional_slot` / `push_slot`; rolled via `roll` (flat clones) or
+    `roll_counts` (`(value, count)` pairs, identical draw sequence).
+  - Deterministic draw contract: slots roll in insertion order; degenerate
+    chances (0 / ≥ 100) and fixed counts (`min == max`) resolve **without**
+    drawing, mirroring `SplitMix64::coin` / `range_u32` semantics.
+  - `min_spawns()` / `max_spawns()` bounds; `DetHash` folds the slot
+    configuration in insertion order (gated on `T: DetHash`).
 - **Status ↔ combat integration** (G2 in `STRENGTHS_WEAKNESSES.md`) — timed
   buffs/debuffs now fold directly into the combat formula. 9 tests + doc test.
   - `status::StatTarget` enum (`Attack`/`Defense`/`MaxHp`): which `combat::Stats`

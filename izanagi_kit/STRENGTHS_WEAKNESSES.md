@@ -45,7 +45,7 @@
 | G1 | **damage type / resistance**（火耐性・弱点で被ダメ増減） | `combat` は scalar + flat `apply_resistance` のみ | Small | ✅ **実装済み**（`src/damage.rs`, 本コミット） |
 | G2 | **status effect ↔ combat 統合**（時限 buff/debuff を戦闘式に反映） | `status.rs` 単独、combat 非連携 | Small | ✅ **実装済み**（`StatTarget` + `StatusSet::stats_modifier` / `dot_total`） |
 | G3 | **nested / tiered loot table**（「種別 → その種別の loot」入れ子） | `random_table` は flat | Small | ✅ **実装済み**（`RandomTable::roll_nested` / `roll_nested_owned`） |
-| G4 | **encounter pack 生成**（深度/難度で「goblin×3 + shaman×1」） | 個体 pick のみ | Small | 未 |
+| G4 | **encounter pack 生成**（深度/難度で「goblin×3 + shaman×1」） | 個体 pick のみ | Small | ✅ **実装済み**（`src/encounter.rs`: `EncounterPack` / `EncounterSlot`） |
 | G5 | **multi-floor 遷移パス探索**（floor A→B を stairs 経由で） | `multimap` は connector lookup のみ | Medium | 未 |
 | G6 | **stairs 連結の自動検出/チェイン** | 手動 Connector 追加 | Small | 未 |
 | G7 | **item affix / enchantment 生成** | `random_table` は値のみ | Medium | 未 |
@@ -78,7 +78,10 @@
 2. ~~**G3 nested loot table**~~ ✅ 実装済み（`RandomTable<RandomTable<T>>` に
    `roll_nested` / `roll_nested_owned`。draw 数決定論: 空 outer は draw なし、
    非空 outer は 1 draw + inner 1 draw。6 tests + doc test）
-3. **G4 encounter pack**（Small, 深度パラメタ付き spawn roller）
-4. **G5 multi-floor pathfinding**（Medium, connector graph 上の A*）
+3. ~~**G4 encounter pack**~~ ✅ 実装済み（新規 `src/encounter.rs`:
+   `EncounterPack<T>` — slot 毎の count range + 出現確率%、挿入順 roll、
+   draw 数決定論（degenerate chance / 固定 count は draw なし）、`DetHash`、
+   `min_spawns`/`max_spawns` 境界、`roll`/`roll_counts`。11 tests + doc test）
+4. **G5 multi-floor pathfinding**（Medium, connector graph 上の A*）— 次の候補
 
 G8/G9（behavior tree, ability system）は Large・別スコープ確認の上で着手。
