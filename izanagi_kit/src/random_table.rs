@@ -109,6 +109,54 @@ impl<T> RandomTable<T> {
         self.total_weight
     }
 
+    /// Roll through a **nested** table: pick an inner table by weight, then
+    /// roll that inner table for the final value. The canonical two-tier
+    /// loot/encounter pattern — "roll the monster *category*, then roll a
+    /// monster *within* that category" — without a dedicated type:
+    ///
+    /// ```
+    /// use izanagi_kit::random_table::RandomTable;
+    /// use izanagi_kit::rng::SplitMix64;
+    ///
+    /// let undead = RandomTable::new().with(3, "skeleton").with(1, "lich");
+    /// let beasts = RandomTable::new().with(2, "wolf").with(2, "bear");
+    /// let encounters = RandomTable::new().with(4, undead).with(1, beasts);
+    ///
+    /// let mut rng = SplitMix64::new(7);
+    /// let monster = encounters.roll_nested(&mut rng);
+    /// assert!(monster.is_some());
+    /// ```
+    ///
+    /// Draw counts are deterministic: an empty/all-zero outer table returns
+    /// `None` without drawing; a non-empty outer table draws once, and the
+    /// selected inner table draws once more unless it is empty/all-zero
+    /// (then `None` is returned after the single outer draw).
+    pub fn roll_nested<'a, U>(&'a self, rng: &mut SplitMix64) -> Option<&'a U>
+    where
+        T: AsRef<RandomTable<U>>,
+    {
+        self.roll(rng).and_then(|inner| inner.as_ref().roll(rng))
+    }
+
+    /// Like [`roll_nested`](Self::roll_nested) but returns an owned (cloned)
+    /// value, dropping the borrow on the outer table.
+    pub fn roll_nested_owned<U>(&self, rng: &mut SplitMix64) -> Option<U>
+    where
+        T: AsRef<RandomTable<U>>,
+        U: Clone,
+    {
+        self.roll_nested(rng).cloned()
+    }
+}
+
+impl<T> AsRef<RandomTable<T>> for RandomTable<T> {
+    #[inline]
+    fn as_ref(&self) -> &RandomTable<T> {
+        self
+    }
+}
+
+impl<T> RandomTable<T> {
     /// The highest single-entry weight in the table, or `0` if the table is
     /// empty or all weights are 0. Useful for "is this table uniform?" checks.
     pub fn max_weight(&self) -> u32 {
@@ -496,5 +544,74 @@ mod tests {
         let mut t = RandomTable::new().with(10u32, 'a').with(20u32, 'b');
         t.remove_at(0);
         assert_eq!(t.total_weight(), 20);
+    }
+
+    // --- roll_nested ---
+
+    fn nested_fixture() -> RandomTable<RandomTable<&'static str>> {
+        let undead = RandomTable::new().with(3, "skeleton").with(1, "lich");
+        let beasts = RandomTable::new().with(2, "wolf").with(2, "bear");
+        RandomTable::new().with(4, undead).with(1, beasts)
+    }
+
+    #[test]
+    fn test_roll_nested_yields_inner_value() {
+        let t = nested_fixture();
+        let mut rng = SplitMix64::new(42);
+        let all = ["skeleton", "lich", "wolf", "bear"];
+        for _ in 0..20 {
+            let v = t.roll_nested(&mut rng).expect("non-empty nested roll");
+            assert!(all.contains(v), "unexpected value {v}");
+        }
+    }
+
+    #[test]
+    fn test_roll_nested_deterministic_same_seed() {
+        let t = nested_fixture();
+        let mut a = SplitMix64::new(123);
+        let mut b = SplitMix64::new(123);
+        for _ in 0..10 {
+            assert_eq!(t.roll_nested(&mut a), t.roll_nested(&mut b));
+        }
+    }
+
+    #[test]
+    fn test_roll_nested_empty_outer_returns_none_no_draw() {
+        let t: RandomTable<RandomTable<u32>> = RandomTable::new();
+        let mut rng = SplitMix64::new(5);
+        let before = rng.state();
+        assert!(t.roll_nested(&mut rng).is_none());
+        assert_eq!(rng.state(), before, "empty outer must not draw");
+    }
+
+    #[test]
+    fn test_roll_nested_empty_inner_returns_none_after_one_draw() {
+        let empty_inner: RandomTable<u32> = RandomTable::new();
+        let t = RandomTable::new().with(1, empty_inner);
+        let mut rng = SplitMix64::new(5);
+        let before = rng.state();
+        assert!(t.roll_nested(&mut rng).is_none());
+        assert_ne!(rng.state(), before, "outer roll consumes one draw");
+    }
+
+    #[test]
+    fn test_roll_nested_owned_matches_roll_nested() {
+        let t = nested_fixture();
+        let mut a = SplitMix64::new(9);
+        let mut b = SplitMix64::new(9);
+        for _ in 0..10 {
+            assert_eq!(t.roll_nested(&mut a).copied(), t.roll_nested_owned(&mut b));
+        }
+    }
+
+    #[test]
+    fn test_roll_nested_weight_zero_branch_unreachable() {
+        let unreachable: RandomTable<&str> = RandomTable::new().with(1, "ghost");
+        let reachable = RandomTable::new().with(1, "rat");
+        let t = RandomTable::new().with(0, unreachable).with(1, reachable);
+        let mut rng = SplitMix64::new(77);
+        for _ in 0..30 {
+            assert_eq!(t.roll_nested(&mut rng), Some(&"rat"));
+        }
     }
 }

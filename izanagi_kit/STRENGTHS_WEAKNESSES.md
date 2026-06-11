@@ -43,8 +43,8 @@
 | # | 機能 | 現状 | 工数 | 状態 |
 |---|------|------|------|------|
 | G1 | **damage type / resistance**（火耐性・弱点で被ダメ増減） | `combat` は scalar + flat `apply_resistance` のみ | Small | ✅ **実装済み**（`src/damage.rs`, 本コミット） |
-| G2 | **status effect ↔ combat 統合**（時限 buff/debuff を戦闘式に反映） | `status.rs` 単独、combat 非連携 | Small | 未 |
-| G3 | **nested / tiered loot table**（「種別 → その種別の loot」入れ子） | `random_table` は flat | Small | 未 |
+| G2 | **status effect ↔ combat 統合**（時限 buff/debuff を戦闘式に反映） | `status.rs` 単独、combat 非連携 | Small | ✅ **実装済み**（`StatTarget` + `StatusSet::stats_modifier` / `dot_total`） |
+| G3 | **nested / tiered loot table**（「種別 → その種別の loot」入れ子） | `random_table` は flat | Small | ✅ **実装済み**（`RandomTable::roll_nested` / `roll_nested_owned`） |
 | G4 | **encounter pack 生成**（深度/難度で「goblin×3 + shaman×1」） | 個体 pick のみ | Small | 未 |
 | G5 | **multi-floor 遷移パス探索**（floor A→B を stairs 経由で） | `multimap` は connector lookup のみ | Medium | 未 |
 | G6 | **stairs 連結の自動検出/チェイン** | 手動 Connector 追加 | Small | 未 |
@@ -72,8 +72,12 @@
 
 ## 5. 次の推奨着手順（効果 × 低工数）
 
-1. **G2 status↔combat 統合**（Small, `status.rs` を combat helper に結線）
-2. **G3 nested loot table**（Small, `random_table` 上に `NestedTable`）
+1. ~~**G2 status↔combat 統合**~~ ✅ 実装済み（`StatTarget` enum +
+   `StatusSet::stats_modifier(target_of)` で `combat::StatsModifier` に畳み込み、
+   `dot_total(is_dot)` で poison/burn の per-tick ダメージ合算。9 tests + doc test）
+2. ~~**G3 nested loot table**~~ ✅ 実装済み（`RandomTable<RandomTable<T>>` に
+   `roll_nested` / `roll_nested_owned`。draw 数決定論: 空 outer は draw なし、
+   非空 outer は 1 draw + inner 1 draw。6 tests + doc test）
 3. **G4 encounter pack**（Small, 深度パラメタ付き spawn roller）
 4. **G5 multi-floor pathfinding**（Medium, connector graph 上の A*）
 

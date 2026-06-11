@@ -177,7 +177,7 @@ pub use savefile::{
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
-pub use status::{Effect, StatusSet};
+pub use status::{Effect, StatTarget, StatusSet};
 pub use terminal::{Cell, Screen};
 pub use textlayout::{
     center, count_lines, fit_to_box, justify, measure_lines, pad_left, pad_lines, pad_right,

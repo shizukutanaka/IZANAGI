@@ -220,6 +220,80 @@ impl<K: Eq + Clone> StatusSet<K> {
             e.remaining = e.remaining.saturating_add(extra_ticks);
         }
     }
+
+    /// Fold active effects into a [`combat::StatsModifier`](crate::combat::StatsModifier)
+    /// using `target_of` to map each effect key to the stat it modifies.
+    /// Keys mapped to `None` (e.g. pure damage-over-time effects) are skipped.
+    /// Magnitudes accumulate with saturating addition per target.
+    ///
+    /// This is the bridge between the status layer and the combat formula:
+    ///
+    /// ```
+    /// use izanagi_kit::status::{StatusSet, StatTarget};
+    /// use izanagi_kit::combat::Stats;
+    ///
+    /// #[derive(Clone, PartialEq, Eq)]
+    /// enum Buff { Might, Shield, Poison }
+    ///
+    /// let mut statuses = StatusSet::new();
+    /// statuses.apply(Buff::Might, 3, 2);   // +2 attack for 3 ticks
+    /// statuses.apply(Buff::Shield, 2, 1);  // +1 defense for 2 ticks
+    /// statuses.apply(Buff::Poison, 4, 1);  // DoT — not a stat modifier
+    ///
+    /// let modifier = statuses.stats_modifier(|k| match k {
+    ///     Buff::Might => Some(StatTarget::Attack),
+    ///     Buff::Shield => Some(StatTarget::Defense),
+    ///     Buff::Poison => None,
+    /// });
+    /// let effective = Stats::new(20, 5, 3).modified(&modifier);
+    /// assert_eq!(effective.attack, 7);
+    /// assert_eq!(effective.defense, 4);
+    /// ```
+    pub fn stats_modifier<F>(&self, target_of: F) -> crate::combat::StatsModifier
+    where
+        F: Fn(&K) -> Option<StatTarget>,
+    {
+        let mut m = crate::combat::StatsModifier::default();
+        for (k, e) in &self.entries {
+            match target_of(k) {
+                Some(StatTarget::Attack) => m.attack = m.attack.saturating_add(e.magnitude),
+                Some(StatTarget::Defense) => m.defense = m.defense.saturating_add(e.magnitude),
+                Some(StatTarget::MaxHp) => m.max_hp = m.max_hp.saturating_add(e.magnitude),
+                None => {}
+            }
+        }
+        m
+    }
+
+    /// Sum the magnitudes of all active effects for which `is_dot` returns
+    /// `true` — the per-tick damage total for damage-over-time effects
+    /// (poison, burn, bleed). Saturating addition; the result is clamped to
+    /// `>= 0` so a stray negative-magnitude entry can never heal through the
+    /// DoT path. Apply the result with
+    /// [`Stats::take_damage`](crate::combat::Stats::take_damage) once per turn.
+    pub fn dot_total<F>(&self, is_dot: F) -> i32
+    where
+        F: Fn(&K) -> bool,
+    {
+        self.entries
+            .iter()
+            .filter(|(k, _)| is_dot(k))
+            .fold(0i32, |acc, (_, e)| acc.saturating_add(e.magnitude))
+            .max(0)
+    }
+}
+
+/// Which [`combat::Stats`](crate::combat::Stats) field a status effect
+/// modifies. Used by [`StatusSet::stats_modifier`] to fold timed effects into
+/// a [`combat::StatsModifier`](crate::combat::StatsModifier).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum StatTarget {
+    /// The effect's magnitude adds to `attack`.
+    Attack,
+    /// The effect's magnitude adds to `defense`.
+    Defense,
+    /// The effect's magnitude adds to `max_hp`.
+    MaxHp,
 }
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for StatusSet<K> {
@@ -623,5 +697,112 @@ mod tests {
         s.apply(1, u32::MAX, 0);
         s.extend_all(1);
         assert_eq!(s.get(&1).unwrap().remaining, u32::MAX);
+    }
+
+    // --- stats_modifier (status ↔ combat bridge) ---
+
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    enum Buff {
+        Might,  // attack
+        Shield, // defense
+        Vital,  // max_hp
+        Poison, // DoT, no stat target
+    }
+
+    fn target_of(k: &Buff) -> Option<StatTarget> {
+        match k {
+            Buff::Might => Some(StatTarget::Attack),
+            Buff::Shield => Some(StatTarget::Defense),
+            Buff::Vital => Some(StatTarget::MaxHp),
+            Buff::Poison => None,
+        }
+    }
+
+    #[test]
+    fn test_stats_modifier_maps_each_target() {
+        let mut s = StatusSet::new();
+        s.apply(Buff::Might, 3, 2);
+        s.apply(Buff::Shield, 3, 1);
+        s.apply(Buff::Vital, 3, 5);
+        let m = s.stats_modifier(target_of);
+        assert_eq!(m.attack, 2);
+        assert_eq!(m.defense, 1);
+        assert_eq!(m.max_hp, 5);
+    }
+
+    #[test]
+    fn test_stats_modifier_skips_none_targets() {
+        let mut s = StatusSet::new();
+        s.apply(Buff::Poison, 4, 3); // DoT: must not touch stats
+        s.apply(Buff::Might, 2, 1);
+        let m = s.stats_modifier(target_of);
+        assert_eq!(m.attack, 1);
+        assert_eq!(m.defense, 0);
+        assert_eq!(m.max_hp, 0);
+    }
+
+    #[test]
+    fn test_stats_modifier_integrates_with_stats_modified() {
+        let mut s = StatusSet::new();
+        s.apply(Buff::Might, 3, 2);
+        s.apply(Buff::Shield, 3, -1); // debuff: -1 defense
+        let base = crate::combat::Stats::new(20, 5, 3);
+        let effective = base.modified(&s.stats_modifier(target_of));
+        assert_eq!(effective.attack, 7);
+        assert_eq!(effective.defense, 2);
+        assert_eq!(effective.hp, 20, "modifier does not change current hp");
+    }
+
+    #[test]
+    fn test_stats_modifier_empty_set_is_default() {
+        let s: StatusSet<Buff> = StatusSet::new();
+        assert_eq!(
+            s.stats_modifier(target_of),
+            crate::combat::StatsModifier::default()
+        );
+    }
+
+    #[test]
+    fn test_stats_modifier_expires_with_tick() {
+        let mut s = StatusSet::new();
+        s.apply(Buff::Might, 1, 4);
+        assert_eq!(s.stats_modifier(target_of).attack, 4);
+        s.tick(1); // Might expires
+        assert_eq!(s.stats_modifier(target_of).attack, 0);
+    }
+
+    // --- dot_total ---
+
+    #[test]
+    fn test_dot_total_sums_matching_effects() {
+        let mut s = StatusSet::new();
+        s.apply(Buff::Poison, 4, 2);
+        s.apply(Buff::Might, 3, 5); // not a DoT
+        assert_eq!(s.dot_total(|k| *k == Buff::Poison), 2);
+    }
+
+    #[test]
+    fn test_dot_total_applies_via_take_damage() {
+        let mut s = StatusSet::new();
+        s.apply(Buff::Poison, 4, 3);
+        let mut stats = crate::combat::Stats::new(10, 5, 1);
+        stats.take_damage(s.dot_total(|k| *k == Buff::Poison));
+        assert_eq!(stats.hp, 7);
+    }
+
+    #[test]
+    fn test_dot_total_clamps_negative_to_zero() {
+        let mut s = StatusSet::new();
+        s.apply(Buff::Poison, 4, -5); // malformed negative DoT must not heal
+        assert_eq!(s.dot_total(|k| *k == Buff::Poison), 0);
+    }
+
+    #[test]
+    fn test_dot_total_empty_or_no_match_is_zero() {
+        let s: StatusSet<Buff> = StatusSet::new();
+        assert_eq!(s.dot_total(|_| true), 0);
+        let mut s2 = StatusSet::new();
+        s2.apply(Buff::Might, 3, 5);
+        assert_eq!(s2.dot_total(|k| *k == Buff::Poison), 0);
     }
 }

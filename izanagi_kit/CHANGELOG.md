@@ -7,6 +7,25 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Status ↔ combat integration** (G2 in `STRENGTHS_WEAKNESSES.md`) — timed
+  buffs/debuffs now fold directly into the combat formula. 9 tests + doc test.
+  - `status::StatTarget` enum (`Attack`/`Defense`/`MaxHp`): which `combat::Stats`
+    field an effect modifies.
+  - `status::StatusSet::stats_modifier(target_of) -> combat::StatsModifier`:
+    sums active magnitudes per target (saturating); keys mapped to `None`
+    (e.g. DoTs) are skipped. Compose with `Stats::modified`.
+  - `status::StatusSet::dot_total(is_dot) -> i32`: per-tick damage total for
+    poison/burn/bleed effects, clamped ≥ 0 (a stray negative DoT can never
+    heal). Apply via `Stats::take_damage` once per turn.
+- **Nested loot/encounter tables** (G3 in `STRENGTHS_WEAKNESSES.md`) — two-tier
+  "roll the category, then roll within it" pattern. 6 tests + doc test.
+  - `random_table::RandomTable::roll_nested(rng) -> Option<&U>` (for
+    `RandomTable<RandomTable<U>>` via a new `AsRef` impl): outer roll picks an
+    inner table by weight, inner roll yields the value. Draw counts are
+    deterministic: empty outer = 0 draws; non-empty outer = 1 draw + 1 inner
+    draw (inner empty = `None` after the single outer draw).
+  - `random_table::RandomTable::roll_nested_owned(rng) -> Option<U>`: cloned
+    variant dropping the borrow.
 - **New module `damage`** — typed damage and per-type resistance profiles,
   closing the "no damage typing / no resistances" combat gap (G1 in
   `STRENGTHS_WEAKNESSES.md`). Integer-only, deterministic, `DetHash`-able
