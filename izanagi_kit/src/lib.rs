@@ -21,6 +21,7 @@
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
 //! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
+//! - [`damage`] — typed damage (`DamageType`) and per-type resistance/vulnerability profiles (`ResistanceProfile`).
 //! - [`fsm`] — table-driven finite state machine for game AI (`Fsm<S,E>`).
 //! - [`inventory`] — slot-based inventory (`Inventory<T>`) for roguelike items.
 //! - [`keymap`] — key-to-action mapping (`KeyMap<K,A>`) for deterministic input.
@@ -64,6 +65,7 @@ pub mod change;
 pub mod cmdqueue;
 pub mod combat;
 pub mod content;
+pub mod damage;
 pub mod diag_json;
 pub mod dice;
 pub mod easing;
@@ -119,6 +121,7 @@ pub use combat::{
     roll_to_hit, splash_attack, Stats, StatsModifier, StrikeResult,
 };
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
+pub use damage::{DamageType, ResistanceProfile};
 pub use diag_json::severity_filter;
 pub use dice::Dice;
 pub use easing::{

@@ -7,6 +7,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **New module `damage`** — typed damage and per-type resistance profiles,
+  closing the "no damage typing / no resistances" combat gap (G1 in
+  `STRENGTHS_WEAKNESSES.md`). Integer-only, deterministic, `DetHash`-able
+  (replay-safe; pinned hashes unchanged). 19 tests.
+  - `damage::DamageType` enum (`Physical/Fire/Cold/Lightning/Poison/Arcane/True`),
+    `#[repr(u8)]` with stable `ALL` ordering, `index`/`from_index`, `DetHash`.
+  - `damage::ResistanceProfile`: fixed-size `[i32; 7]` of per-type resistance %
+    (no `HashMap` → no ordering non-determinism). `new`/`uniform`/`with` builder,
+    `get`/`set`/`add` (saturating), `is_immune`/`is_vulnerable`.
+  - `ResistanceProfile::apply(damage, ty)`: `True` bypasses; otherwise
+    `max(0, dmg × (100 − resist) / 100)` with resist clamped at 100 and negatives
+    honoured as vulnerability (`i64` intermediate, no overflow). Verified to match
+    `combat::apply_resistance` for the 0..=100 range.
+- **New document `STRENGTHS_WEAKNESSES.md`** — product-level strategic analysis
+  (7 strengths, 7 weaknesses, 9 missing features with effort estimates), indexing
+  which gaps to implement next. Complements `RESEARCH.md` (external-source survey)
+  and `IMPROVEMENTS.md` (bug-fix log).
 - `aabb::Aabb::is_square() -> bool`: `true` when non-empty and `w == h`.
   Simple predicate for symmetric-region checks and room-template validation (3 tests).
 - `aabb::Aabb::nearest_corner(px, py) -> (i32, i32)`: the box corner closest to
