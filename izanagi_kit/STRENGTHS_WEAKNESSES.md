@@ -46,8 +46,8 @@
 | G2 | **status effect ↔ combat 統合**（時限 buff/debuff を戦闘式に反映） | `status.rs` 単独、combat 非連携 | Small | ✅ **実装済み**（`StatTarget` + `StatusSet::stats_modifier` / `dot_total`） |
 | G3 | **nested / tiered loot table**（「種別 → その種別の loot」入れ子） | `random_table` は flat | Small | ✅ **実装済み**（`RandomTable::roll_nested` / `roll_nested_owned`） |
 | G4 | **encounter pack 生成**（深度/難度で「goblin×3 + shaman×1」） | 個体 pick のみ | Small | ✅ **実装済み**（`src/encounter.rs`: `EncounterPack` / `EncounterSlot`） |
-| G5 | **multi-floor 遷移パス探索**（floor A→B を stairs 経由で） | `multimap` は connector lookup のみ | Medium | 未 |
-| G6 | **stairs 連結の自動検出/チェイン** | 手動 Connector 追加 | Small | 未 |
+| G5 | **multi-floor 遷移パス探索**（floor A→B を stairs 経由で） | `multimap` は connector lookup のみ | Medium | ✅ **実装済み**（`MultiMap::find_floor_path` / `floor_distance` / `is_floor_reachable`） |
+| G6 | **stairs 連結の自動検出/チェイン** | 手動 Connector 追加 | Small | ✅ **実装済み**（`MultiMap::link_floors` 双方向ペア追加） |
 | G7 | **item affix / enchantment 生成** | `random_table` は値のみ | Medium | 未 |
 | G8 | **behavior tree / GOAP / utility AI** | `fsm` は flat | Large | 未 |
 | G9 | **unified ability/skill system**（mana/cooldown/range/effect 結線） | `timer`+`fsm`+`combat` を手結線 | Large | 未 |
@@ -82,6 +82,14 @@
    `EncounterPack<T>` — slot 毎の count range + 出現確率%、挿入順 roll、
    draw 数決定論（degenerate chance / 固定 count は draw なし）、`DetHash`、
    `min_spawns`/`max_spawns` 境界、`roll`/`roll_counts`。11 tests + doc test）
-4. **G5 multi-floor pathfinding**（Medium, connector graph 上の A*）— 次の候補
+4. ~~**G5 multi-floor pathfinding**~~ ✅ 実装済み（`MultiMap::find_floor_path`:
+   connector graph 上の BFS、挿入順展開で同長経路のタイブレークも決定論。
+   `floor_distance` / `is_floor_reachable` 付随。out-of-range / dangling
+   connector は安全にスキップ。10 tests）
+5. ~~**G6 stairs 連結チェイン**~~ ✅ 実装済み（`MultiMap::link_floors`:
+   下り階段＋帰り階段の双方向 Connector ペアを 1 呼び出しで追加）
+
+残りの未実装は G7（item affix, Medium）と G8/G9（behavior tree / ability
+system, Large — 別途スコープ確認の上で着手）。
 
 G8/G9（behavior tree, ability system）は Large・別スコープ確認の上で着手。

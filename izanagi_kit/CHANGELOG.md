@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Multi-floor pathfinding & stair linking** (G5 + G6 in
+  `STRENGTHS_WEAKNESSES.md`) — route planning across the dungeon stack.
+  10 tests.
+  - `multimap::MultiMap::find_floor_path(from, to) -> Option<Vec<&Connector>>`:
+    shortest connector route via BFS over the directed floor graph. Expands
+    connectors in insertion order so equal-length routes tie-break
+    deterministically (first-added wins). `Some(vec![])` for same-floor;
+    `None` for out-of-range or unreachable; dangling connectors (to
+    out-of-range floors) are skipped safely.
+  - `multimap::MultiMap::floor_distance(from, to) -> Option<u32>` and
+    `is_floor_reachable(from, to) -> bool` conveniences.
+  - `multimap::MultiMap::link_floors(a, ax, ay, b, bx, by)`: add a
+    bidirectional staircase pair (down-stair + return stair) in one call.
 - **New module `encounter`** (G4 in `STRENGTHS_WEAKNESSES.md`) — procedural
   group-encounter rolling: "2–4 goblins, plus a shaman 30% of the time".
   11 tests + doc test.

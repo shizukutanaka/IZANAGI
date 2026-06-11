@@ -170,6 +170,96 @@ impl MultiMap {
             .filter(|c| c.from_floor == from_floor && c.to_floor == to_floor)
             .collect()
     }
+
+    /// Link two floors with a **bidirectional** pair of connectors: stairs at
+    /// `(ax, ay)` on `floor_a` lead to `(bx, by)` on `floor_b`, and back.
+    /// The down-stair (`floor_a → floor_b`) is added first, then the return
+    /// stair — two `add_connector` calls in one, covering the standard
+    /// staircase pattern without hand-writing both records.
+    pub fn link_floors(&mut self, floor_a: u32, ax: i32, ay: i32, floor_b: u32, bx: i32, by: i32) {
+        self.add_connector(Connector {
+            from_floor: floor_a,
+            from_x: ax,
+            from_y: ay,
+            to_floor: floor_b,
+            to_x: bx,
+            to_y: by,
+        });
+        self.add_connector(Connector {
+            from_floor: floor_b,
+            from_x: bx,
+            from_y: by,
+            to_floor: floor_a,
+            to_x: ax,
+            to_y: ay,
+        });
+    }
+
+    /// Shortest connector route from `from_floor` to `to_floor`, as the list
+    /// of connectors to traverse in order. Breadth-first search over the
+    /// directed floor graph, expanding connectors in **insertion order** so
+    /// equal-length routes resolve deterministically (first-added wins).
+    ///
+    /// Returns `Some(vec![])` when `from_floor == to_floor`, and `None` when
+    /// either floor index is out of range or no connector route exists.
+    /// Connectors that point at out-of-range floors are skipped.
+    ///
+    /// This answers "which stairs do I take to get from the surface to floor
+    /// 5?" — run grid pathfinding (e.g. [`pathfinding::astar`](crate::pathfinding::astar))
+    /// *within* each floor toward `(from_x, from_y)` of each returned connector.
+    pub fn find_floor_path(&self, from_floor: u32, to_floor: u32) -> Option<Vec<&Connector>> {
+        let n = self.floors.len();
+        if from_floor as usize >= n || to_floor as usize >= n {
+            return None;
+        }
+        if from_floor == to_floor {
+            return Some(Vec::new());
+        }
+        // BFS. `arrived_via[f]` = index of the connector that first reached f.
+        let mut arrived_via: Vec<Option<usize>> = vec![None; n];
+        let mut visited = vec![false; n];
+        visited[from_floor as usize] = true;
+        let mut queue = std::collections::VecDeque::new();
+        queue.push_back(from_floor);
+        while let Some(f) = queue.pop_front() {
+            for (i, c) in self.connectors.iter().enumerate() {
+                if c.from_floor != f || c.to_floor as usize >= n || visited[c.to_floor as usize] {
+                    continue;
+                }
+                visited[c.to_floor as usize] = true;
+                arrived_via[c.to_floor as usize] = Some(i);
+                if c.to_floor == to_floor {
+                    // Walk the arrival chain back to the start.
+                    let mut path = Vec::new();
+                    let mut cur = to_floor;
+                    while cur != from_floor {
+                        let ci = arrived_via[cur as usize]
+                            .expect("every visited floor has an arrival connector");
+                        path.push(&self.connectors[ci]);
+                        cur = self.connectors[ci].from_floor;
+                    }
+                    path.reverse();
+                    return Some(path);
+                }
+                queue.push_back(c.to_floor);
+            }
+        }
+        None
+    }
+
+    /// Number of connectors on the shortest route from `from_floor` to
+    /// `to_floor` (`Some(0)` when equal), or `None` when unreachable or out of
+    /// range. Shorthand for `find_floor_path(..).map(|p| p.len() as u32)`.
+    pub fn floor_distance(&self, from_floor: u32, to_floor: u32) -> Option<u32> {
+        self.find_floor_path(from_floor, to_floor)
+            .map(|p| p.len() as u32)
+    }
+
+    /// `true` when a connector route exists from `from_floor` to `to_floor`
+    /// (always `true` for `from_floor == to_floor` in range).
+    pub fn is_floor_reachable(&self, from_floor: u32, to_floor: u32) -> bool {
+        self.find_floor_path(from_floor, to_floor).is_some()
+    }
 }
 
 impl DetHash for MultiMap {
@@ -527,5 +617,165 @@ mod tests {
         });
         let between = m.connectors_between(0, 1);
         assert_eq!(between.len(), 2);
+    }
+
+    // --- link_floors ---
+
+    #[test]
+    fn test_link_floors_creates_both_directions() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.link_floors(0, 5, 5, 1, 3, 3);
+        let down = m.connector_at(0, 5, 5).expect("down stair");
+        assert_eq!((down.to_floor, down.to_x, down.to_y), (1, 3, 3));
+        let up = m.connector_at(1, 3, 3).expect("return stair");
+        assert_eq!((up.to_floor, up.to_x, up.to_y), (0, 5, 5));
+    }
+
+    #[test]
+    fn test_link_floors_round_trip_path() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.link_floors(0, 5, 5, 1, 3, 3);
+        assert_eq!(m.floor_distance(0, 1), Some(1));
+        assert_eq!(m.floor_distance(1, 0), Some(1), "return route exists");
+    }
+
+    #[test]
+    fn test_link_floors_adds_exactly_two_connectors() {
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.link_floors(0, 1, 1, 1, 2, 2);
+        assert_eq!(m.exits_from(0).len(), 1);
+        assert_eq!(m.exits_from(1).len(), 1);
+    }
+
+    // --- find_floor_path ---
+
+    /// Floors 0→1→2 chained with single connectors.
+    fn chained_map() -> MultiMap {
+        let floors = vec![make_floor(1), make_floor(2), make_floor(3)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 1,
+            to_x: 2,
+            to_y: 2,
+        });
+        m.add_connector(Connector {
+            from_floor: 1,
+            from_x: 5,
+            from_y: 5,
+            to_floor: 2,
+            to_x: 6,
+            to_y: 6,
+        });
+        m
+    }
+
+    #[test]
+    fn test_find_floor_path_chain_in_order() {
+        let m = chained_map();
+        let path = m.find_floor_path(0, 2).expect("0→1→2 route");
+        assert_eq!(path.len(), 2);
+        assert_eq!((path[0].from_floor, path[0].to_floor), (0, 1));
+        assert_eq!((path[1].from_floor, path[1].to_floor), (1, 2));
+    }
+
+    #[test]
+    fn test_find_floor_path_same_floor_is_empty() {
+        let m = chained_map();
+        assert_eq!(m.find_floor_path(1, 1), Some(Vec::new()));
+        assert_eq!(m.floor_distance(1, 1), Some(0));
+    }
+
+    #[test]
+    fn test_find_floor_path_unreachable_returns_none() {
+        // Connectors only go down; 2 → 0 has no route.
+        let m = chained_map();
+        assert!(m.find_floor_path(2, 0).is_none());
+        assert!(!m.is_floor_reachable(2, 0));
+    }
+
+    #[test]
+    fn test_find_floor_path_out_of_range_returns_none() {
+        let m = chained_map();
+        assert!(m.find_floor_path(0, 99).is_none());
+        assert!(m.find_floor_path(99, 0).is_none());
+    }
+
+    #[test]
+    fn test_find_floor_path_prefers_shortest() {
+        // Both 0→1→2 and a direct 0→2 exist; BFS must take the direct hop.
+        let mut m = chained_map();
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 9,
+            from_y: 9,
+            to_floor: 2,
+            to_x: 1,
+            to_y: 1,
+        });
+        let path = m.find_floor_path(0, 2).expect("direct route");
+        assert_eq!(path.len(), 1);
+        assert_eq!((path[0].from_x, path[0].from_y), (9, 9));
+        assert_eq!(m.floor_distance(0, 2), Some(1));
+    }
+
+    #[test]
+    fn test_find_floor_path_equal_routes_first_added_wins() {
+        // Two direct 0→1 connectors: insertion order breaks the tie.
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 1,
+            to_x: 2,
+            to_y: 2,
+        });
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 7,
+            from_y: 7,
+            to_floor: 1,
+            to_x: 8,
+            to_y: 8,
+        });
+        let path = m.find_floor_path(0, 1).unwrap();
+        assert_eq!(path.len(), 1);
+        assert_eq!((path[0].from_x, path[0].from_y), (1, 1), "first-added wins");
+    }
+
+    #[test]
+    fn test_find_floor_path_skips_dangling_connectors() {
+        // A connector to a floor index beyond the stack must not panic or
+        // be traversed.
+        let floors = vec![make_floor(1), make_floor(2)];
+        let mut m = MultiMap::new(floors, 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 1,
+            from_y: 1,
+            to_floor: 9, // dangling
+            to_x: 0,
+            to_y: 0,
+        });
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 2,
+            from_y: 2,
+            to_floor: 1,
+            to_x: 3,
+            to_y: 3,
+        });
+        let path = m
+            .find_floor_path(0, 1)
+            .expect("valid route via second connector");
+        assert_eq!(path.len(), 1);
+        assert_eq!(path[0].to_floor, 1);
     }
 }
