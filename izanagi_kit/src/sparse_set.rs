@@ -329,6 +329,82 @@ pub fn join_mut<'a, A, B>(
     out
 }
 
+/// Canonical inner join of **three** component stores: every entity present in
+/// all three, in ascending-index order, paired with references to each component
+/// (W1 in `STRENGTHS_WEAKNESSES.md`).
+///
+/// Iterates the smallest store and probes the other two — O(min · log(max))
+/// with the existing `get` O(1) lookup. Canonical ascending-index order is
+/// guaranteed regardless of insertion history.
+///
+/// # Example
+/// ```
+/// use izanagi_kit::{sparse_set::{join3, SparseSet}, entity::EntityAllocator};
+///
+/// let mut alloc = EntityAllocator::new();
+/// let e = alloc.allocate();
+///
+/// let mut pos: SparseSet<i32> = SparseSet::new();
+/// let mut vel: SparseSet<i32> = SparseSet::new();
+/// let mut hp:  SparseSet<i32> = SparseSet::new();
+/// pos.insert(e, 10);
+/// vel.insert(e, 1);
+/// hp.insert(e, 100);
+///
+/// let results = join3(&pos, &vel, &hp);
+/// assert_eq!(results.len(), 1);
+/// assert_eq!(*results[0].1, 10); // pos
+/// assert_eq!(*results[0].2,  1); // vel
+/// assert_eq!(*results[0].3, 100); // hp
+/// ```
+pub fn join3<'a, A, B, C>(
+    a: &'a SparseSet<A>,
+    b: &'a SparseSet<B>,
+    c: &'a SparseSet<C>,
+) -> Vec<(Entity, &'a A, &'a B, &'a C)> {
+    let mut out = Vec::new();
+    let min_len = a.len().min(b.len()).min(c.len());
+    if a.len() == min_len {
+        for (entity, av) in a.iter() {
+            if let (Some(bv), Some(cv)) = (b.get(entity), c.get(entity)) {
+                out.push((entity, av, bv, cv));
+            }
+        }
+    } else if b.len() == min_len {
+        for (entity, bv) in b.iter() {
+            if let (Some(av), Some(cv)) = (a.get(entity), c.get(entity)) {
+                out.push((entity, av, bv, cv));
+            }
+        }
+    } else {
+        for (entity, cv) in c.iter() {
+            if let (Some(av), Some(bv)) = (a.get(entity), b.get(entity)) {
+                out.push((entity, av, bv, cv));
+            }
+        }
+    }
+    out.sort_unstable_by_key(|(e, _, _, _)| e.index());
+    out
+}
+
+/// Like [`join3`], but yields a mutable reference to the first store's
+/// component. Useful for systems that update `A` based on `B` and `C` — e.g.
+/// `apply_velocity(pos_mut, vel, floor)`.
+pub fn join3_mut<'a, A, B, C>(
+    a: &'a mut SparseSet<A>,
+    b: &'a SparseSet<B>,
+    c: &'a SparseSet<C>,
+) -> Vec<(Entity, &'a mut A, &'a B, &'a C)> {
+    let mut out = Vec::new();
+    for (entity, av) in a.iter_mut() {
+        if let (Some(bv), Some(cv)) = (b.get(entity), c.get(entity)) {
+            out.push((entity, av, bv, cv));
+        }
+    }
+    out.sort_unstable_by_key(|(e, _, _, _)| e.index());
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -840,5 +916,109 @@ mod tests {
     fn test_any_empty_set_returns_false() {
         let s: SparseSet<u32> = SparseSet::new();
         assert!(!s.any(|_| true));
+    }
+
+    // --- join3 / join3_mut (W1) ---
+
+    fn four() -> (EntityAllocator, [Entity; 4]) {
+        let mut a = EntityAllocator::new();
+        let es = [a.allocate(), a.allocate(), a.allocate(), a.allocate()];
+        (a, es)
+    }
+
+    #[test]
+    fn test_join3_entity_in_all_three_returns_triple() {
+        let (_, es) = four();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        let mut vel: SparseSet<i32> = SparseSet::new();
+        let mut hp: SparseSet<i32> = SparseSet::new();
+        pos.insert(es[0], 10);
+        vel.insert(es[0], 1);
+        hp.insert(es[0], 100);
+        let result = join3(&pos, &vel, &hp);
+        assert_eq!(result.len(), 1);
+        assert_eq!((result[0].1, result[0].2, result[0].3), (&10, &1, &100));
+    }
+
+    #[test]
+    fn test_join3_entity_missing_in_one_excluded() {
+        let (_, es) = four();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        let mut vel: SparseSet<i32> = SparseSet::new();
+        let mut hp: SparseSet<i32> = SparseSet::new();
+        pos.insert(es[0], 1);
+        pos.insert(es[1], 2);
+        vel.insert(es[0], 3);
+        // es[1] has no hp — must be excluded
+        hp.insert(es[0], 4);
+        let result = join3(&pos, &vel, &hp);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].0, es[0]);
+    }
+
+    #[test]
+    fn test_join3_empty_store_yields_empty() {
+        let (_, es) = four();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        let vel: SparseSet<i32> = SparseSet::new(); // empty
+        let mut hp: SparseSet<i32> = SparseSet::new();
+        pos.insert(es[0], 1);
+        hp.insert(es[0], 2);
+        let result = join3(&pos, &vel, &hp);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_join3_ascending_index_order() {
+        let (_, es) = four();
+        let mut pos: SparseSet<u32> = SparseSet::new();
+        let mut vel: SparseSet<u32> = SparseSet::new();
+        let mut hp: SparseSet<u32> = SparseSet::new();
+        // Insert in non-ascending order.
+        for &e in &es[0..3] {
+            pos.insert(e, 0);
+            vel.insert(e, 0);
+            hp.insert(e, 0);
+        }
+        let result = join3(&pos, &vel, &hp);
+        assert_eq!(result.len(), 3);
+        let indices: Vec<u32> = result.iter().map(|(e, _, _, _)| e.index()).collect();
+        let mut sorted = indices.clone();
+        sorted.sort_unstable();
+        assert_eq!(indices, sorted, "join3 result must be in ascending entity index order");
+    }
+
+    #[test]
+    fn test_join3_mut_can_mutate_first_component() {
+        let (_, es) = four();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        let mut vel: SparseSet<i32> = SparseSet::new();
+        let mut hp: SparseSet<i32> = SparseSet::new();
+        pos.insert(es[0], 0);
+        vel.insert(es[0], 5);
+        hp.insert(es[0], 100);
+        for (_, p, v, _h) in join3_mut(&mut pos, &vel, &hp) {
+            *p += *v;
+        }
+        assert_eq!(pos.get(es[0]), Some(&5), "position advanced by velocity");
+    }
+
+    #[test]
+    fn test_join3_mut_order_matches_join3() {
+        let (_, es) = four();
+        let mut pos: SparseSet<u32> = SparseSet::new();
+        let mut vel: SparseSet<u32> = SparseSet::new();
+        let mut hp: SparseSet<u32> = SparseSet::new();
+        for &e in &es[0..3] {
+            pos.insert(e, 0);
+            vel.insert(e, 0);
+            hp.insert(e, 0);
+        }
+        let immut: Vec<Entity> = join3(&pos, &vel, &hp).into_iter().map(|(e, _, _, _)| e).collect();
+        let mut_: Vec<Entity> = join3_mut(&mut pos, &vel, &hp)
+            .into_iter()
+            .map(|(e, _, _, _)| e)
+            .collect();
+        assert_eq!(immut, mut_, "join3 and join3_mut must produce the same entity order");
     }
 }

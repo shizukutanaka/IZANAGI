@@ -184,7 +184,7 @@ pub use savefile::{
     SaveHeader,
 };
 pub use serializer::{content_eq, serialize};
-pub use sparse_set::{join, join_mut, SparseSet};
+pub use sparse_set::{join, join3, join3_mut, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatTarget, StatusSet};
 pub use terminal::{Cell, Screen};

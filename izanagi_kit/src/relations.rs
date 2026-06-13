@@ -18,6 +18,8 @@
 //! `DetHash` folds (entity, parent) pairs in canonical entity-index order so
 //! the hash is insertion-order-independent.
 
+use std::collections::VecDeque;
+
 use crate::{
     entity::Entity,
     world_hash::{DetHash, Fnv1a},
@@ -293,6 +295,75 @@ impl Relations {
     /// Iterate `(child, parent)` pairs in unspecified order.
     pub fn iter(&self) -> impl Iterator<Item = (Entity, Entity)> + '_ {
         self.parents.iter().copied()
+    }
+
+    /// All entities that are parents of at least one child but are themselves
+    /// root entities (no parent of their own), in ascending entity-index order.
+    ///
+    /// Useful as starting points for [`propagate`](Self::propagate) when the
+    /// caller also manages entities that have no relationships at all.
+    pub fn root_entities(&self) -> Vec<Entity> {
+        // Collect all entities that appear as a parent.
+        let mut roots: Vec<Entity> = self
+            .children
+            .iter()
+            .map(|(p, _)| *p)
+            .filter(|p| !self.parents.iter().any(|(c, _)| c == p))
+            .collect();
+        roots.sort_unstable_by_key(|e| e.index());
+        roots.dedup_by_key(|e| e.index());
+        roots
+    }
+
+    /// Visit every `(parent, child)` edge in topological BFS order — parents
+    /// always before their children — calling `f(parent, child)` for each edge
+    /// (W6 in `STRENGTHS_WEAKNESSES.md`).
+    ///
+    /// Within a given depth level children are visited in ascending entity-index
+    /// order, making the traversal fully deterministic regardless of insertion
+    /// history.
+    ///
+    /// Use this to propagate world transforms without coupling `Relations` to
+    /// any specific transform type:
+    ///
+    /// ```rust
+    /// # use izanagi_kit::{relations::Relations, entity::EntityAllocator,
+    /// #                    sparse_set::SparseSet};
+    /// # let mut alloc = EntityAllocator::new();
+    /// # let parent = alloc.allocate();
+    /// # let child  = alloc.allocate();
+    /// # let mut r = Relations::new();
+    /// # r.attach(child, parent);
+    /// // local positions (relative to parent)
+    /// let mut local: SparseSet<(i32, i32)> = SparseSet::new();
+    /// // world positions (absolute, updated each frame)
+    /// let mut world: SparseSet<(i32, i32)> = SparseSet::new();
+    /// // seed world positions for roots with their local position
+    /// for root in r.root_entities() {
+    ///     let lp = local.get(root).copied().unwrap_or((0, 0));
+    ///     world.insert(root, lp);
+    /// }
+    /// r.propagate(|par, chi| {
+    ///     let (px, py) = world.get(par).copied().unwrap_or((0, 0));
+    ///     let (lx, ly) = local.get(chi).copied().unwrap_or((0, 0));
+    ///     world.insert(chi, (px + lx, py + ly));
+    /// });
+    /// ```
+    pub fn propagate<F>(&self, mut f: F)
+    where
+        F: FnMut(Entity, Entity),
+    {
+        let roots = self.root_entities();
+        let mut queue: VecDeque<Entity> = roots.into_iter().collect();
+
+        while let Some(parent) = queue.pop_front() {
+            let mut children = self.children_of(parent);
+            children.sort_unstable_by_key(|e| e.index());
+            for child in children {
+                f(parent, child);
+                queue.push_back(child);
+            }
+        }
     }
 }
 
@@ -768,5 +839,119 @@ mod tests {
         r.attach(e[1], e[0]);
         r.detach(e[1]);
         assert!(!r.has_children(e[0]));
+    }
+
+    // --- root_entities / propagate (W6) ---
+
+    #[test]
+    fn test_root_entities_empty_relations() {
+        let r = Relations::new();
+        assert!(r.root_entities().is_empty());
+    }
+
+    #[test]
+    fn test_root_entities_single_tree() {
+        // e[0] → parent of e[1] and e[2]; e[0] has no parent.
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]);
+        r.attach(e[2], e[0]);
+        let roots = r.root_entities();
+        assert_eq!(roots, vec![e[0]], "only e[0] is a root");
+    }
+
+    #[test]
+    fn test_root_entities_two_independent_trees() {
+        let e = entities(4);
+        let mut r = Relations::new();
+        // Tree A: e[0] → e[1]
+        r.attach(e[1], e[0]);
+        // Tree B: e[2] → e[3]
+        r.attach(e[3], e[2]);
+        let roots = r.root_entities();
+        assert_eq!(roots.len(), 2);
+        assert!(roots.contains(&e[0]));
+        assert!(roots.contains(&e[2]));
+        // Must be sorted by entity index.
+        let idx: Vec<u32> = roots.iter().map(|e| e.index()).collect();
+        assert!(idx.windows(2).all(|w| w[0] <= w[1]));
+    }
+
+    #[test]
+    fn test_propagate_empty_no_calls() {
+        let r = Relations::new();
+        let mut calls = 0u32;
+        r.propagate(|_, _| calls += 1);
+        assert_eq!(calls, 0);
+    }
+
+    #[test]
+    fn test_propagate_single_edge_calls_once() {
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]); // e[1] is child of e[0]
+        let mut log: Vec<(Entity, Entity)> = Vec::new();
+        r.propagate(|parent, child| log.push((parent, child)));
+        assert_eq!(log, vec![(e[0], e[1])]);
+    }
+
+    #[test]
+    fn test_propagate_parent_visited_before_child() {
+        // Grandparent → parent → child (depth-3 chain)
+        let e = entities(3);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]); // e[1] parent = e[0]
+        r.attach(e[2], e[1]); // e[2] parent = e[1]
+        let mut log: Vec<(Entity, Entity)> = Vec::new();
+        r.propagate(|parent, child| log.push((parent, child)));
+        assert_eq!(log, vec![(e[0], e[1]), (e[1], e[2])],
+            "topological order: grandparent edge before parent edge");
+    }
+
+    #[test]
+    fn test_propagate_children_in_index_order() {
+        // e[0] has three children; they must appear in ascending entity-index order.
+        let e = entities(4);
+        let mut r = Relations::new();
+        // Insert in reverse index order to confirm sorting.
+        r.attach(e[3], e[0]);
+        r.attach(e[1], e[0]);
+        r.attach(e[2], e[0]);
+        let mut children_visited: Vec<Entity> = Vec::new();
+        r.propagate(|_, child| children_visited.push(child));
+        assert_eq!(children_visited, vec![e[1], e[2], e[3]],
+            "children must be visited in ascending entity-index order");
+    }
+
+    #[test]
+    fn test_propagate_world_transform_accumulation() {
+        // Two-level hierarchy: root at (10, 0), child at local (0, 5) → world (10, 5).
+        // Uses SparseSet-style maps to verify the pattern from the method doc.
+        let e = entities(2);
+        let mut r = Relations::new();
+        r.attach(e[1], e[0]); // e[1] child of e[0]
+
+        let mut local: std::collections::HashMap<u32, (i32, i32)> =
+            std::collections::HashMap::new();
+        let mut world: std::collections::HashMap<u32, (i32, i32)> =
+            std::collections::HashMap::new();
+
+        local.insert(e[0].index(), (10, 0));
+        local.insert(e[1].index(), (0, 5));
+
+        // Seed roots.
+        for root in r.root_entities() {
+            let lp = *local.get(&root.index()).unwrap_or(&(0, 0));
+            world.insert(root.index(), lp);
+        }
+        // Propagate: add parent world pos to child local pos.
+        r.propagate(|parent, child| {
+            let (px, py) = *world.get(&parent.index()).unwrap_or(&(0, 0));
+            let (lx, ly) = *local.get(&child.index()).unwrap_or(&(0, 0));
+            world.insert(child.index(), (px + lx, py + ly));
+        });
+
+        assert_eq!(world[&e[0].index()], (10, 0), "root world pos unchanged");
+        assert_eq!(world[&e[1].index()], (10, 5), "child world pos = parent + local");
     }
 }
