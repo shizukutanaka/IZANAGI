@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Save-file backward-compatibility golden guard** (`savefile::tests`) — pins
+  the *exact on-disk bytes* `save_bytes` emits for a fixed `(version, payload)`
+  and decodes a *hardcoded* buffer (standing in for a prior build's output).
+  Every other savefile test is a same-build round-trip, so a wire-format change
+  (field order, endianness, magic, 20-byte header size, checksum algorithm)
+  would keep them all green while silently making every existing player save
+  unreadable. Three tests now pin the encoder, backward-compatible decoding, and
+  the documented field offsets; an `#[ignore]`d `print_golden_save` regenerates
+  the fixture for a *deliberate* format bump. Verified end-to-end by flipping the
+  version field to big-endian and confirming the encoder test fails.
 - **Exhaustive RNG no-draw contract guard** (`rng::tests::test_degenerate_inputs_consume_no_draw_exhaustive`)
   — pins the determinism-critical S3 invariant that *degenerate inputs consume no
   draw* across **every** consuming `SplitMix64` method in one table-driven test

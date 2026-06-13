@@ -578,4 +578,85 @@ mod tests {
         let err = load_bytes_migrated(&data, &AppendMigrator).unwrap_err();
         assert_eq!(err, LoadError::ChecksumMismatch);
     }
+
+    // --- Backward-compatible binary framing (golden on-disk bytes) ---
+    //
+    // Every other test in this module is a same-build round-trip: it writes with
+    // the current `save_bytes` and reads with the current `load_bytes`, so a
+    // change to the wire format (field order, endianness, magic, header size,
+    // checksum algorithm) would leave them all green while silently making every
+    // existing player save unreadable. These tests pin the *exact on-disk bytes*
+    // and decode a *hardcoded* buffer (standing in for a prior build's output) so
+    // a format break must be deliberate.
+
+    /// A fixed (version, payload) whose exact encoding is pinned in `GOLDEN_SAVE`.
+    const GOLDEN_VERSION: u32 = 2;
+    const GOLDEN_PAYLOAD: &[u8] = b"save-data-v2";
+
+    /// The exact bytes a build wrote for `(GOLDEN_VERSION, GOLDEN_PAYLOAD)`:
+    /// magic `IZNG` | version 2 LE | FNV-1a checksum LE | len 12 LE | payload.
+    /// A diff here means the on-disk save format changed — regenerate **only**
+    /// alongside a deliberate format-version bump and a `CHANGELOG` note, never
+    /// to "make the test pass". Regenerate via `print_golden_save` (ignored).
+    const GOLDEN_SAVE: &[u8] = &[
+        0x49, 0x5a, 0x4e, 0x47, 0x02, 0x00, 0x00, 0x00, 0x1e, 0xc2, 0x8c, 0x05, //
+        0x46, 0x90, 0x6f, 0xb1, 0x0c, 0x00, 0x00, 0x00, 0x73, 0x61, 0x76, 0x65, //
+        0x2d, 0x64, 0x61, 0x74, 0x61, 0x2d, 0x76, 0x32,
+    ];
+
+    #[test]
+    fn test_save_bytes_matches_golden_encoding() {
+        // Pins the *encoder*: any framing change flips these bytes.
+        let data = save_bytes(&SaveHeader::new(GOLDEN_VERSION), GOLDEN_PAYLOAD);
+        assert_eq!(
+            data.as_slice(),
+            GOLDEN_SAVE,
+            "save framing changed — existing saves would break. Regenerate \
+             GOLDEN_SAVE only with a deliberate format-version bump."
+        );
+    }
+
+    #[test]
+    fn test_load_bytes_decodes_golden_from_prior_build() {
+        // Pins *backward compatibility*: a build must read the EXACT bytes a
+        // prior build wrote, not merely bytes it just produced itself.
+        let (h, p) = load_bytes(GOLDEN_SAVE).expect("golden save must still load");
+        assert_eq!(h.version, GOLDEN_VERSION);
+        assert_eq!(p, GOLDEN_PAYLOAD);
+    }
+
+    #[test]
+    fn test_golden_layout_offsets() {
+        // Locks the documented field layout: magic[4] ver[4LE] cksum[8LE] len[4LE].
+        assert_eq!(&GOLDEN_SAVE[0..4], b"IZNG", "magic offset/value");
+        assert_eq!(
+            u32::from_le_bytes(GOLDEN_SAVE[4..8].try_into().unwrap()),
+            GOLDEN_VERSION,
+            "version offset/endianness"
+        );
+        assert_eq!(
+            u32::from_le_bytes(GOLDEN_SAVE[16..20].try_into().unwrap()) as usize,
+            GOLDEN_PAYLOAD.len(),
+            "length offset/endianness"
+        );
+        assert_eq!(&GOLDEN_SAVE[20..], GOLDEN_PAYLOAD, "payload offset");
+        assert_eq!(GOLDEN_SAVE.len(), 20 + GOLDEN_PAYLOAD.len(), "header is 20 bytes");
+    }
+
+    /// Prints the current encoding of the golden fixture for pasting into
+    /// `GOLDEN_SAVE`. Ignored by default; run only when intentionally bumping
+    /// the on-disk format version.
+    #[test]
+    #[ignore]
+    fn print_golden_save() {
+        let data = save_bytes(&SaveHeader::new(GOLDEN_VERSION), GOLDEN_PAYLOAD);
+        print!("const GOLDEN_SAVE: &[u8] = &[");
+        for (i, b) in data.iter().enumerate() {
+            if i % 12 == 0 {
+                print!("\n    ");
+            }
+            print!("0x{b:02x}, ");
+        }
+        println!("\n];");
+    }
 }
