@@ -101,7 +101,7 @@ impl<E: Clone> Ability<E> {
 
 impl<E: DetHash> DetHash for Ability<E> {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(&self.name);
+        self.name.as_str().det_hash(hasher); // length-prefixed via DetHash for str
         hasher.write_u32(self.mana_cost);
         hasher.write_u32(self.cooldown_ticks);
         hasher.write_u32(self.range);

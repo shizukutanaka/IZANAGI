@@ -75,7 +75,7 @@ impl<M> Affix<M> {
 
 impl<M: DetHash> DetHash for Affix<M> {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(&self.name);
+        self.name.as_str().det_hash(hasher); // length-prefixed via DetHash for str
         self.slot.det_hash(hasher);
         self.modifier.det_hash(hasher);
     }

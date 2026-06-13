@@ -197,17 +197,22 @@ impl<A: DetHash, B: DetHash, C: DetHash> DetHash for (A, B, C) {
     }
 }
 
+/// Length-prefix prevents `("ab","c")` from hashing identically to `("a","bc")`:
+/// the same byte sequence with a different split between two adjacent string
+/// fields. Mirrors the `[T]` impl which length-prefixes slices for the same reason.
 impl DetHash for str {
     #[inline]
     fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.len() as u32);
         hasher.write_str(self);
     }
 }
 
+/// Delegates to `str` so `String` and `&str` produce identical hashes.
 impl DetHash for String {
     #[inline]
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(self.as_str());
+        self.as_str().det_hash(hasher);
     }
 }
 
@@ -536,5 +541,69 @@ mod tests {
             h_u16.finish(),
             "same bit pattern = same hash"
         );
+    }
+
+    // --- DetHash for str / String: prefix-split collision guard ---
+
+    /// Two adjacent string fields with different splits of the same byte run
+    /// MUST hash differently. Before the length-prefix fix, ("ab","c") and
+    /// ("a","bc") wrote the identical byte sequence [97,98,99] and produced
+    /// the same hash, making distinct game states indistinguishable.
+    #[test]
+    fn test_str_det_hash_prefix_split_does_not_collide() {
+        let h_ab_c = {
+            let mut h = Fnv1a::new();
+            "ab".det_hash(&mut h);
+            "c".det_hash(&mut h);
+            h.finish()
+        };
+        let h_a_bc = {
+            let mut h = Fnv1a::new();
+            "a".det_hash(&mut h);
+            "bc".det_hash(&mut h);
+            h.finish()
+        };
+        assert_ne!(
+            h_ab_c, h_a_bc,
+            "prefix-split collision: ('ab','c') and ('a','bc') must hash differently"
+        );
+    }
+
+    /// Each string hashes to a value that includes its length: empty and
+    /// single-char must differ, and two strings of equal content but different
+    /// positions in the sequence must still yield distinct cumulative hashes.
+    #[test]
+    fn test_str_det_hash_is_length_sensitive() {
+        assert_ne!(
+            hash_state(""),
+            hash_state("a"),
+            "empty and non-empty strings must hash differently"
+        );
+        assert_ne!(
+            hash_state("abc"),
+            hash_state("ab"),
+            "strings of different lengths must hash differently"
+        );
+    }
+
+    /// String and &str produce the same hash (String delegates to str impl).
+    #[test]
+    fn test_string_and_str_det_hash_agree() {
+        let owned = String::from("hello world");
+        let borrowed: &str = "hello world";
+        assert_eq!(hash_state(owned.as_str()), hash_state(borrowed));
+    }
+
+    /// The length prefix is exactly write_u32(len) followed by the raw bytes,
+    /// so call sites that must produce a stable cross-build encoding can
+    /// replicate it without going through the DetHash trait.
+    #[test]
+    fn test_str_det_hash_encoding_is_len_then_bytes() {
+        let s = "hi";
+        let h_trait = hash_state(s);
+        let mut h_manual = Fnv1a::new();
+        h_manual.write_u32(s.len() as u32);
+        h_manual.write_str(s);
+        assert_eq!(h_trait, h_manual.finish(), "DetHash for str must be write_u32(len) ++ raw bytes");
     }
 }

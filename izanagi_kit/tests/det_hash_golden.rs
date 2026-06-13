@@ -134,7 +134,7 @@ const EXPECTED: &[(&str, u64)] = &[
     ("Relations{e1->e0}", 0x5b5754e32028a8a5),
     ("MsgLog[hello,world]", 0x612662cfb2655e8d),
     ("HFsm<u32,u8>", 0x870c3270a024ab05),
-    ("AbilitySet<u32,u32>", 0x9a4f20ee7738fab8),
+    ("AbilitySet<u32,u32>", 0x6be775165615ef30),
     ("BehaviorTree<u32>", 0x733cfecebb0bc160),
 ];
 

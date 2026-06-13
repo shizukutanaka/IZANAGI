@@ -6,6 +6,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **`DetHash for str`/`String` prefix-split collision** (`world_hash.rs`) — Two
+  adjacent string fields with no length separator produced identical hashes for
+  different field-value splits: `("ab","c")` and `("a","bc")` both wrote the
+  raw bytes `[97,98,99]` to the hasher, making distinct game states
+  indistinguishable in replay/lockstep checks. Fixed by adding a `write_u32(len)`
+  length-prefix in `impl DetHash for str` (mirroring `impl DetHash for [T]`);
+  `DetHash for String` now delegates to the `str` impl. `Ability::det_hash` and
+  `Affix::det_hash` updated from raw `write_str` to `.det_hash()` to benefit from
+  the same invariant.
+
+  **Wire-format break**: `AbilitySet<u32,u32>` golden hash updated
+  (`0x9a4f20ee7738fab8` → `0x6be775165615ef30`). `PINNED_FINAL_HASH` and
+  `PINNED_ROGUELIKE_HASH` are unaffected (no string fields in those simulations).
+  Four new tests pin the encoding contract and prove the collision is eliminated.
+
 ### Added
 - **Save-file backward-compatibility golden guard** (`savefile::tests`) — pins
   the *exact on-disk bytes* `save_bytes` emits for a fixed `(version, payload)`
