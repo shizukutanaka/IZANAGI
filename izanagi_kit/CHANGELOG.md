@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`TimerQueue::det_hash` omits `period` field** (`timer.rs`) — The
+  `period: Option<u32>` field of each queue entry was silently absent from the
+  `DetHash` impl. A one-shot timer (`period = None`) and a recurring timer
+  (`period = Some(n)`) with identical `remaining` ticks and event hashed to the
+  same value, making two fundamentally different scheduler states
+  indistinguishable in replay checksums. Fixed by adding
+  `entry.period.det_hash(hasher)` between `remaining` and `event` in the fold.
+  Three new tests prove: (a) one-shot vs. recurring timers differ, (b) recurring
+  timers with different periods differ, (c) identical queues still agree.
+  `PINNED_FINAL_HASH` and `PINNED_ROGUELIKE_HASH` are unaffected (no
+  `TimerQueue` in those simulations). No golden hash update required.
 - **`range_closed(i32::MIN, i32::MAX)` span overflow** (`rng.rs`) — When
   `lo = i32::MIN` and `hi = i32::MAX`, the closed-range span is `2^32` which
   overflows `u32` to `0`. The old code fell into `below(0)` — which returns `0`

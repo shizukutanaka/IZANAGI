@@ -289,12 +289,15 @@ impl<E: Clone> TimerQueue<E> {
 }
 
 impl<E: DetHash + Clone> DetHash for TimerQueue<E> {
-    /// Folds every pending entry (remaining + event) in insertion order and the
-    /// total count. Two queues with the same schedule hash identically.
+    /// Folds every pending entry (remaining + period + event) in insertion order
+    /// and the total count. `period` must be included: a one-shot timer
+    /// (`None`) and a repeating timer (`Some(n)`) with the same remaining ticks
+    /// are distinct states that must not collide in replay checksums.
     fn det_hash(&self, hasher: &mut Fnv1a) {
         hasher.write_u32(self.entries.len() as u32);
         for entry in &self.entries {
             hasher.write_u32(entry.remaining);
+            entry.period.det_hash(hasher); // None vs Some(n) must differ
             entry.event.det_hash(hasher);
         }
     }
@@ -697,5 +700,56 @@ mod tests {
         assert_eq!(q.len(), 1);
         let fired = q.advance(2);
         assert_eq!(fired, vec![42]);
+    }
+
+    // --- det_hash period field ---
+
+    #[test]
+    fn test_det_hash_oneshot_vs_repeating_differ() {
+        // One-shot (None) and repeating (Some) with identical remaining+event must not collide.
+        let mut oneshot: TimerQueue<u32> = TimerQueue::new();
+        oneshot.schedule(5, 99); // schedule = one-shot
+
+        let mut repeating: TimerQueue<u32> = TimerQueue::new();
+        repeating.schedule_repeat(5, 5, 99); // period=5, remaining=5, event=99
+
+        assert_ne!(
+            hash_state(&oneshot),
+            hash_state(&repeating),
+            "one-shot and repeating timers with same remaining+event must hash differently"
+        );
+    }
+
+    #[test]
+    fn test_det_hash_different_periods_differ() {
+        // Two recurring timers that differ only in period must not collide.
+        let mut q3: TimerQueue<u32> = TimerQueue::new();
+        q3.schedule_repeat(10, 3, 7);
+
+        let mut q7: TimerQueue<u32> = TimerQueue::new();
+        q7.schedule_repeat(10, 7, 7);
+
+        assert_ne!(
+            hash_state(&q3),
+            hash_state(&q7),
+            "recurring timers with different periods must hash differently"
+        );
+    }
+
+    #[test]
+    fn test_det_hash_identical_queues_agree() {
+        let mut q1: TimerQueue<u32> = TimerQueue::new();
+        q1.schedule(3, 1);
+        q1.schedule_repeat(5, 5, 2);
+
+        let mut q2: TimerQueue<u32> = TimerQueue::new();
+        q2.schedule(3, 1);
+        q2.schedule_repeat(5, 5, 2);
+
+        assert_eq!(
+            hash_state(&q1),
+            hash_state(&q2),
+            "identical queues must produce the same hash"
+        );
     }
 }
