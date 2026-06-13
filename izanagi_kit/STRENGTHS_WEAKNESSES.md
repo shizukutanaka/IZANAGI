@@ -31,10 +31,10 @@
 | # | 短所 | 位置 | 工数 |
 |---|------|------|------|
 | W1 | **多 component クエリ API が無い**（呼び出し側が手で N 重ループ） | `src/sparse_set.rs` | Medium（`Query<(A,B,C)>` ビルダー or マクロ） |
-| W2 | **generation overflow 検出が弱い**（`wrapping_add(1)`、2³² 再利用で stale handle 復活の理論リスク） | `src/entity.rs` | Small（warn-on-wrap 診断） |
+| W2 | ~~**generation overflow 検出が弱い**~~（`wrapping_add(1)`、2³² 再利用で stale handle 復活の理論リスク） ✅ **実装済み**（`EntityAllocator::generation_wrap_count()` で wrap 回数を追跡、saturating カウンタ） | `src/entity.rs` | Small |
 | W3 | **terminal の入力抽象が無い**（`inputbuf`/`keymap` はあるが端末 I/O 非接続） | `src/terminal.rs` | Medium（`TerminalInput` trait） |
 | W4 | **save file の schema migration 基盤が無い** | `src/savefile.rs` | Medium（`Migrator<T>` / 版ディスパッチ） |
-| W5 | **WFC の contradiction からの部分解抽出/backtrack が最小限** | `src/wfc.rs` | Small（`PartialSolution` / backtrack 上限） |
+| W5 | ~~**WFC の contradiction からの部分解抽出/backtrack が最小限**~~ ✅ **実装済み**（`wfc_solve_backtrack` / `wfc_solve_partial`） | `src/wfc.rs` | Small |
 | W6 | **relations が transform 伝播しない**（親移動で子が追従しない） | `src/relations.rs` | Medium（`propagate_transforms`） |
 | W7 | **FSM が flat**（階層状態・遷移ペイロード無し） | `src/fsm.rs` | Large（`Fsm<S,E,Payload>` 再設計） |
 
@@ -49,7 +49,7 @@
 | G5 | **multi-floor 遷移パス探索**（floor A→B を stairs 経由で） | `multimap` は connector lookup のみ | Medium | ✅ **実装済み**（`MultiMap::find_floor_path` / `floor_distance` / `is_floor_reachable`） |
 | G6 | **stairs 連結の自動検出/チェイン** | 手動 Connector 追加 | Small | ✅ **実装済み**（`MultiMap::link_floors` 双方向ペア追加） |
 | G7 | **item affix / enchantment 生成** | `random_table` は値のみ | Medium | ✅ **実装済み**（`src/affix.rs`: `Affix` / `AffixedItem` / `AffixGenerator`） |
-| G8 | **behavior tree / GOAP / utility AI** | `fsm` は flat | Large | 未 |
+| G8 | **behavior tree / GOAP / utility AI** | `fsm` は flat | Large | ✅ **実装済み**（`src/behavior.rs`: `BehaviorTree<A>` / `BehaviorNode<A>` / `BehaviorStatus`、sequence/selector/invert/repeat/succeed/fail + action/condition leaves、DetHash、30 tests） |
 | G9 | **unified ability/skill system**（mana/cooldown/range/effect 結線） | `timer`+`fsm`+`combat` を手結線 | Large | 未 |
 
 ## 4. 本イテレーションの実装 (Implemented this pass)
@@ -96,8 +96,9 @@
    + 付与確率%、固定 draw 順序: prefix coin → prefix roll → suffix coin →
    suffix roll、degenerate は draw なし）。`DetHash` 完備。14 tests + doc test）
 
-残りの未実装は G8/G9（behavior tree / ability system, **Large** —
-アーキテクチャ設計を伴うため別途スコープ確認の上で着手）。
-Small/Medium の全ギャップ（G1–G7）は本ブランチで解消済み。
+残りの未実装は G9（ability system, **Large** — アーキテクチャ設計を伴うため別途スコープ確認の上で着手）。
+G8 は本ブランチで `src/behavior.rs` として実装済み。
+Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 
-G8/G9（behavior tree, ability system）は Large・別スコープ確認の上で着手。
+G9（ability system）は Large・別スコープ確認の上で着手。
+W1/W3/W4/W6/W7（Medium/Large weakness items）は順次着手予定。

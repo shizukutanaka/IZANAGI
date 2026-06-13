@@ -7,6 +7,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **New module `behavior`** (G8 in `STRENGTHS_WEAKNESSES.md`) — hierarchical
+  behavior trees for game AI: sequence/selector/invert/repeat/succeed/fail
+  decorators and action/condition leaf nodes. 30 tests + doc tests.
+  - `behavior::BehaviorNode<A>`: parameterized over a caller-chosen action ID
+    type `A`; leaf logic supplied via closures at evaluation time — keeps the
+    tree data-only (serializable, `Clone`-able, `DetHash`-able) with no closures
+    stored in the structure.
+  - `behavior::BehaviorTree<A>`: wraps a root node; exposes `evaluate(ctx,
+    action, condition)`. Evaluation is stack-recursive, zero heap allocation.
+  - `behavior::BehaviorStatus`: `Success / Failure / Running` with `DetHash`.
+  - `node_count()` and `depth()` for tree metrics and debugging.
+  - Full `DetHash` impl: node type (u8 tag), child count, repeat `times`, and
+    action identifier all participate — two structurally different trees produce
+    different hashes.
+- **WFC backtracking + partial result** (W5 in `STRENGTHS_WEAKNESSES.md`) —
+  recovers from contradictions instead of failing immediately. 9 new tests.
+  - `wfc::wfc_solve_backtrack(width, height, rules, rng, max_backtracks)`:
+    chronological backtracking — on contradiction, restores the pre-collapse
+    snapshot, forbids the tried tile, and retries. `max_backtracks = 0` is
+    identical to `wfc_solve`. Same seed + same limit → same output (deterministic).
+  - `wfc::wfc_solve_partial(width, height, rules, rng)`: runs WFC to completion
+    or contradiction and always returns a `WfcGrid`. Contradicted cells have
+    bitmask `0`, uncollapsed `> 1`, solved `= 1`. Useful for debugging rule
+    sets and visualising partial maps.
+- **Entity generation overflow detection** (W2 in `STRENGTHS_WEAKNESSES.md`) —
+  tracks slot recycling so diagnostics can catch the theoretical stale-handle
+  resurrection hazard. 5 new tests.
+  - `entity::EntityAllocator::generation_wrap_count() -> u32`: returns the count
+    of times a slot's generation counter wrapped from `u32::MAX` back to `0`.
+    Non-zero is a red flag in long-running applications; zero is expected for
+    any normal game session. The counter saturates at `u32::MAX` (no overflow).
+
 - **New module `affix`** (G7 in `STRENGTHS_WEAKNESSES.md`) — procedural item
   affixes: "Rusty Sword of Dragonslaying" generation over weighted pools.
   14 tests + doc test.

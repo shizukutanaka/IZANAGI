@@ -34,6 +34,7 @@
 //!   the content pipeline: author game elements as text, serialize them back,
 //!   validate them, load into the ECS.
 //!
+//! - [`behavior`] — hierarchical behavior trees for game AI (`BehaviorTree<A>`, `BehaviorNode<A>`, `BehaviorStatus`).
 //! - [`aabb`] — axis-aligned bounding box (`Aabb`) collision detection.
 //! - [`arch`] — archetype-based component storage (`ArchTable<Row>`) for cache-friendly multi-component iteration.
 //! - [`menu`] — keyboard-navigable list menu (`Menu<T>`) for roguelike UI.
@@ -60,6 +61,7 @@
 
 pub mod aabb;
 pub mod affix;
+pub mod behavior;
 pub mod arch;
 pub mod assets;
 pub mod autotile;
@@ -115,6 +117,7 @@ pub mod world_hash;
 
 pub use aabb::Aabb;
 pub use affix::{Affix, AffixGenerator, AffixSlot, AffixedItem};
+pub use behavior::{BehaviorNode, BehaviorStatus, BehaviorTree};
 pub use arch::ArchTable;
 pub use assets::{AssetHandle, AssetStore};
 pub use autotile::{compute_all, compute_mask, SimpleTileTable};
@@ -195,5 +198,5 @@ pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
 pub use validator::{is_loadable, validate};
 pub use vec::{Vec2, Vec3};
-pub use wfc::{wfc_solve, WfcGrid, WfcResult, WfcRules};
+pub use wfc::{wfc_solve, wfc_solve_backtrack, wfc_solve_partial, WfcGrid, WfcResult, WfcRules};
 pub use world_hash::{hash_state, DetHash, Fnv1a};

@@ -352,6 +352,9 @@ fn propagate(
 ///
 /// `width <= 0`, `height <= 0`, or `rules.tile_count() == 0` all produce
 /// `Contradiction` immediately.
+///
+/// See also [`wfc_solve_backtrack`] for a variant that retries on contradiction
+/// up to a caller-specified limit, and [`wfc_solve_partial`] for partial results.
 pub fn wfc_solve(width: i32, height: i32, rules: &WfcRules, rng: &mut SplitMix64) -> WfcResult {
     if width <= 0 || height <= 0 || rules.tile_count == 0 {
         return WfcResult::Contradiction;
@@ -397,6 +400,168 @@ pub fn wfc_solve(width: i32, height: i32, rules: &WfcRules, rng: &mut SplitMix64
         let y = (idx as i32) / width;
         if !propagate(&mut cells, width, height, x, y, rules) {
             return WfcResult::Contradiction;
+        }
+    }
+}
+
+/// Run WFC with chronological backtracking up to `max_backtracks` retries.
+///
+/// Each time constraint propagation yields a contradiction, the algorithm
+/// restores the grid state from just before the last collapse, forbids the tile
+/// that was tried there, and continues. If all possibilities at a cell are
+/// exhausted, it backtracks a further step. Once `max_backtracks` is exceeded
+/// (or no saved states remain), [`WfcResult::Contradiction`] is returned.
+///
+/// Draw order: each collapse still calls `pick_random_bit` deterministically,
+/// so given the same seed the first collapse sequence is identical to `wfc_solve`.
+/// Backtracks extend the RNG draw sequence — the same `(seed, max_backtracks)` pair
+/// always produces the same result.
+///
+/// `max_backtracks = 0` is equivalent to `wfc_solve` (no retries).
+pub fn wfc_solve_backtrack(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+    max_backtracks: u32,
+) -> WfcResult {
+    if width <= 0 || height <= 0 || rules.tile_count == 0 {
+        return WfcResult::Contradiction;
+    }
+
+    let size = (width * height) as usize;
+    let all = rules.all_tiles();
+    let mut cells = vec![all; size];
+
+    // Stack entries: (cell index, chosen tile bitmask, cells snapshot before collapse).
+    let mut stack: Vec<(usize, u64, Vec<u64>)> = Vec::new();
+    let mut backtracks_used = 0u32;
+
+    loop {
+        // Find cell with minimum entropy > 1, checking for contradictions.
+        let mut min_entropy = u32::MAX;
+        let mut min_idx: Option<usize> = None;
+        let mut contradiction = false;
+
+        for (i, &v) in cells.iter().enumerate() {
+            let bits = v.count_ones();
+            if bits == 0 {
+                contradiction = true;
+                break;
+            }
+            if bits > 1 && bits < min_entropy {
+                min_entropy = bits;
+                min_idx = Some(i);
+            }
+        }
+
+        if contradiction {
+            if backtracks_used >= max_backtracks || stack.is_empty() {
+                return WfcResult::Contradiction;
+            }
+            backtracks_used += 1;
+            let (idx, tried_mask, saved) = stack.pop().unwrap();
+            cells = saved;
+            cells[idx] &= !tried_mask;
+            // If all options at idx are now exhausted, the outer loop will
+            // detect a contradiction on the next iteration and backtrack again.
+            continue;
+        }
+
+        match min_idx {
+            None => {
+                return WfcResult::Ok(WfcGrid {
+                    width,
+                    height,
+                    cells,
+                });
+            }
+            Some(idx) => {
+                let saved = cells.clone();
+                let chosen = pick_random_bit(cells[idx], rng);
+                let chosen_mask = 1u64 << chosen;
+                stack.push((idx, chosen_mask, saved));
+                cells[idx] = chosen_mask;
+                let x = (idx as i32) % width;
+                let y = (idx as i32) / width;
+                propagate(&mut cells, width, height, x, y, rules);
+                // Propagation result checked at top of next iteration.
+            }
+        }
+    }
+}
+
+/// Run WFC and return the grid in whatever state it reached — even on
+/// contradiction.
+///
+/// Useful for visualising partial WFC progress, debugging rule sets, or
+/// seeding a map with the already-collapsed tiles when full success is not
+/// required. Cells that hit a contradiction have a bitmask of `0`; uncollapsed
+/// cells have bitmask `> 1`; solved cells have bitmask `1`.
+///
+/// Returns an empty grid (`width = 0, height = 0`) for degenerate inputs
+/// (`width <= 0`, `height <= 0`, or zero tile types).
+pub fn wfc_solve_partial(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+) -> WfcGrid {
+    if width <= 0 || height <= 0 || rules.tile_count == 0 {
+        return WfcGrid {
+            width: 0,
+            height: 0,
+            cells: Vec::new(),
+        };
+    }
+
+    let size = (width * height) as usize;
+    let all = rules.all_tiles();
+    let mut cells = vec![all; size];
+
+    loop {
+        let mut min_entropy = u32::MAX;
+        let mut min_idx: Option<usize> = None;
+
+        for (i, &v) in cells.iter().enumerate() {
+            let bits = v.count_ones();
+            if bits == 0 {
+                // Contradiction: return the partial state as-is.
+                return WfcGrid {
+                    width,
+                    height,
+                    cells,
+                };
+            }
+            if bits > 1 && bits < min_entropy {
+                min_entropy = bits;
+                min_idx = Some(i);
+            }
+        }
+
+        let idx = match min_idx {
+            None => {
+                return WfcGrid {
+                    width,
+                    height,
+                    cells,
+                };
+            }
+            Some(i) => i,
+        };
+
+        let chosen = pick_random_bit(cells[idx], rng);
+        cells[idx] = 1 << chosen;
+        let x = (idx as i32) % width;
+        let y = (idx as i32) / width;
+        if !propagate(&mut cells, width, height, x, y, rules) {
+            // Mark the contradicted state by letting cells have 0-bits cells;
+            // propagate already set them. Return the partial grid now.
+            return WfcGrid {
+                width,
+                height,
+                cells,
+            };
         }
     }
 }
@@ -841,5 +1006,98 @@ mod tests {
         if let WfcResult::Ok(grid) = wfc_solve(0, 0, &rules, &mut rng) {
             assert_eq!(grid.solved_count(), 0);
         }
+    }
+
+    // --- wfc_solve_backtrack (W5) ---
+
+    #[test]
+    fn test_backtrack_open_rules_succeeds() {
+        let mut rng = SplitMix64::new(42);
+        let result = wfc_solve_backtrack(8, 8, &open_rules(), &mut rng, 10);
+        assert!(
+            matches!(result, WfcResult::Ok(_)),
+            "open rules should not need backtracking"
+        );
+    }
+
+    #[test]
+    fn test_backtrack_uniform_rules_fully_collapsed() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve_backtrack(5, 5, &uniform_rules(), &mut rng, 0) {
+            assert!(grid.is_fully_collapsed());
+        }
+    }
+
+    #[test]
+    fn test_backtrack_zero_limit_matches_wfc_solve() {
+        // With max_backtracks = 0, backtrack behaves exactly like wfc_solve
+        // (first contradiction → Contradiction, no retries).
+        let rules = open_rules();
+        let mut rng_a = SplitMix64::new(99);
+        let mut rng_b = SplitMix64::new(99);
+        let r_a = wfc_solve(8, 8, &rules, &mut rng_a);
+        let r_b = wfc_solve_backtrack(8, 8, &rules, &mut rng_b, 0);
+        match (r_a, r_b) {
+            (WfcResult::Ok(g1), WfcResult::Ok(g2)) => {
+                assert_eq!(hash_state(&g1), hash_state(&g2), "same seed → same grid");
+            }
+            (WfcResult::Contradiction, WfcResult::Contradiction) => {}
+            _ => panic!("results must agree"),
+        }
+    }
+
+    #[test]
+    fn test_backtrack_deterministic_same_seed() {
+        let rules = open_rules();
+        let r1 = wfc_solve_backtrack(6, 6, &rules, &mut SplitMix64::new(55), 5);
+        let r2 = wfc_solve_backtrack(6, 6, &rules, &mut SplitMix64::new(55), 5);
+        match (r1, r2) {
+            (WfcResult::Ok(g1), WfcResult::Ok(g2)) => {
+                assert_eq!(hash_state(&g1), hash_state(&g2));
+            }
+            (WfcResult::Contradiction, WfcResult::Contradiction) => {}
+            _ => panic!("both runs must agree"),
+        }
+    }
+
+    #[test]
+    fn test_backtrack_degenerate_zero_dimensions_is_contradiction() {
+        let mut rng = SplitMix64::new(1);
+        assert!(matches!(
+            wfc_solve_backtrack(0, 5, &open_rules(), &mut rng, 10),
+            WfcResult::Contradiction
+        ));
+    }
+
+    // --- wfc_solve_partial (W5) ---
+
+    #[test]
+    fn test_partial_open_rules_fully_collapsed() {
+        let mut rng = SplitMix64::new(42);
+        let grid = wfc_solve_partial(8, 8, &open_rules(), &mut rng);
+        // Open rules never contradict → all cells should be collapsed.
+        assert!(grid.is_fully_collapsed(), "open rules → fully solved partial");
+    }
+
+    #[test]
+    fn test_partial_returns_grid_for_degenerate_input() {
+        let mut rng = SplitMix64::new(1);
+        let grid = wfc_solve_partial(0, 5, &open_rules(), &mut rng);
+        assert!(grid.is_empty(), "degenerate input → empty grid");
+    }
+
+    #[test]
+    fn test_partial_deterministic_same_seed() {
+        let rules = open_rules();
+        let g1 = wfc_solve_partial(6, 6, &rules, &mut SplitMix64::new(7));
+        let g2 = wfc_solve_partial(6, 6, &rules, &mut SplitMix64::new(7));
+        assert_eq!(hash_state(&g1), hash_state(&g2));
+    }
+
+    #[test]
+    fn test_partial_solved_count_at_least_zero() {
+        let mut rng = SplitMix64::new(3);
+        let grid = wfc_solve_partial(5, 5, &open_rules(), &mut rng);
+        assert!(grid.solved_count() + grid.count_uncollapsed() <= grid.len());
     }
 }
