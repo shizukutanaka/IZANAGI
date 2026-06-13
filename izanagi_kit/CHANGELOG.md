@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **New module `ability`** (G9 in `STRENGTHS_WEAKNESSES.md`) — unified
+  ability/skill system connecting mana cost, cooldown, range, and effect into
+  a single `try_use` query. 26 tests + doc test.
+  - `ability::Ability<E>`: static definition — name, mana cost, cooldown ticks,
+    range (0 = self/melee, no range check), and a generic effect payload `E`.
+    `DetHash` impl folds all fields including the effect.
+  - `ability::AbilitySet<K, E>`: per-entity collection keyed by `K`, tracks
+    individual cooldowns. `with(key, ability)` registers (replaces if duplicate).
+    `tick(n)` advances all cooldowns (saturating). `is_ready` / `cooldown_remaining`
+    / `get` / `len` / `iter` for querying without firing.
+  - `ability::AbilityResult<E>`: `Used { effect: E, mana_cost }` (effect is cloned
+    out of the set — no borrow conflict, no `unsafe`) or one of three failure
+    variants: `OnCooldown { ticks_remaining }`, `InsufficientMana { have, need }`,
+    `OutOfRange { distance, max_range }`, `NotFound`.
+  - Checks run in order: cooldown → mana → range. Failures leave all state
+    unchanged. Zero `unsafe`, no float, replay-safe.
 - **Terminal input source abstraction** (W3 in `STRENGTHS_WEAKNESSES.md`) — clean
   integration point between terminal backends and `InputBuffer`. 6 new tests +
   doc test.

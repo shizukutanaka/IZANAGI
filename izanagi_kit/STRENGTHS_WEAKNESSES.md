@@ -50,7 +50,7 @@
 | G6 | **stairs 連結の自動検出/チェイン** | 手動 Connector 追加 | Small | ✅ **実装済み**（`MultiMap::link_floors` 双方向ペア追加） |
 | G7 | **item affix / enchantment 生成** | `random_table` は値のみ | Medium | ✅ **実装済み**（`src/affix.rs`: `Affix` / `AffixedItem` / `AffixGenerator`） |
 | G8 | **behavior tree / GOAP / utility AI** | `fsm` は flat | Large | ✅ **実装済み**（`src/behavior.rs`: `BehaviorTree<A>` / `BehaviorNode<A>` / `BehaviorStatus`、sequence/selector/invert/repeat/succeed/fail + action/condition leaves、DetHash、30 tests） |
-| G9 | **unified ability/skill system**（mana/cooldown/range/effect 結線） | `timer`+`fsm`+`combat` を手結線 | Large | 未 |
+| G9 | **unified ability/skill system**（mana/cooldown/range/effect 結線） | `timer`+`fsm`+`combat` を手結線 | Large | ✅ **実装済み**（`src/ability.rs`: `AbilitySet<K,E>` + `Ability<E>` + `AbilityResult<E>`、cooldown/mana/range 統合、DetHash、26 tests） |
 
 ## 4. 本イテレーションの実装 (Implemented this pass)
 

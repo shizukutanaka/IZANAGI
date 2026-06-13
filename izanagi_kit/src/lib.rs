@@ -34,6 +34,7 @@
 //!   the content pipeline: author game elements as text, serialize them back,
 //!   validate them, load into the ECS.
 //!
+//! - [`ability`] — unified ability/skill system (`AbilitySet<K,E>`, `Ability<E>`, `AbilityResult`) with mana, cooldown, and range checks.
 //! - [`behavior`] — hierarchical behavior trees for game AI (`BehaviorTree<A>`, `BehaviorNode<A>`, `BehaviorStatus`).
 //! - [`aabb`] — axis-aligned bounding box (`Aabb`) collision detection.
 //! - [`arch`] — archetype-based component storage (`ArchTable<Row>`) for cache-friendly multi-component iteration.
@@ -60,6 +61,7 @@
 #![forbid(unsafe_code)]
 
 pub mod aabb;
+pub mod ability;
 pub mod affix;
 pub mod behavior;
 pub mod arch;
@@ -116,6 +118,7 @@ pub mod wfc;
 pub mod world_hash;
 
 pub use aabb::Aabb;
+pub use ability::{Ability, AbilityResult, AbilitySet};
 pub use affix::{Affix, AffixGenerator, AffixSlot, AffixedItem};
 pub use behavior::{BehaviorNode, BehaviorStatus, BehaviorTree};
 pub use arch::ArchTable;
