@@ -154,10 +154,17 @@ impl StatLine {
 
 impl DetHash for StatLine {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        for b in self.label.as_bytes() {
-            hasher.write_u32(*b as u32);
-        }
+        self.label.det_hash(hasher);
         hasher.write_i32(self.value);
+        // unit must be included: None and Some("pts") on the same label+value
+        // are distinct game states that must not collide in replay checksums.
+        match self.unit {
+            None => hasher.write_u32(0),
+            Some(s) => {
+                hasher.write_u32(1);
+                s.det_hash(hasher);
+            }
+        }
     }
 }
 
@@ -442,6 +449,41 @@ mod tests {
         let a = StatLine::new("ATK", 15);
         let b = StatLine::new("ATK", 15);
         assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    /// The `unit` field is part of the game state and MUST affect the hash.
+    /// Before the fix, `StatLine::det_hash` omitted `unit` entirely, so
+    /// `new("HP", 42)` and `with_unit("HP", 42, "points")` produced identical
+    /// checksums — making them indistinguishable in replay/lockstep.
+    #[test]
+    fn test_stat_line_unit_affects_hash() {
+        let no_unit = StatLine::new("HP", 42);
+        let with_unit = StatLine::with_unit("HP", 42, "points");
+        assert_ne!(
+            hash_state(&no_unit),
+            hash_state(&with_unit),
+            "StatLine with and without unit must hash differently"
+        );
+    }
+
+    #[test]
+    fn test_stat_line_different_units_differ() {
+        let a = StatLine::with_unit("Speed", 7, "m/s");
+        let b = StatLine::with_unit("Speed", 7, "km/h");
+        assert_ne!(hash_state(&a), hash_state(&b), "different unit strings must differ");
+    }
+
+    #[test]
+    fn test_stat_line_label_differs_from_same_bytes_value() {
+        // label="AB" value=0 vs label="A" value=66 — structurally different
+        // even though naive byte concatenation would look similar.
+        let a = StatLine::new("AB", 0);
+        let b = StatLine::new("A", 66);
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different labels with different values must hash differently"
+        );
     }
 
     // --- HudPanel ---

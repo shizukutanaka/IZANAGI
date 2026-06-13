@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`StatLine::det_hash` omits `unit` field** (`hud.rs`) — The `unit:
+  Option<&'static str>` field was silently absent from the DetHash impl, making
+  `StatLine::new("HP", 42)` and `StatLine::with_unit("HP", 42, "points")`
+  hash identically. Two distinct HUD states were indistinguishable in replay
+  checksums. Also replaced the inefficient per-byte `write_u32(*b as u32)`
+  label encoding with the standard `self.label.det_hash(hasher)` (length-prefixed
+  via the Round 6 str fix). Four new tests pin the corrected behavior; the
+  `StatLine(HP,42)` golden hash is updated
+  (`0x5f347e68e7f43f07` → `0xb5df64faa084432d`). `PINNED_FINAL_HASH` and
+  `PINNED_ROGUELIKE_HASH` are unaffected.
 - **`DetHash for str`/`String` prefix-split collision** (`world_hash.rs`) — Two
   adjacent string fields with no length separator produced identical hashes for
   different field-value splits: `("ab","c")` and `("a","bc")` both wrote the

@@ -129,7 +129,7 @@ const EXPECTED: &[(&str, u64)] = &[
     ("ResistanceProfile{Fire:50}", 0x25b9589630c86467),
     ("Screen(2x2)", 0x92c965a7dd27d405),
     ("BarWidget(7,10,20)", 0xae1340d60a74329c),
-    ("StatLine(HP,42)", 0x5f347e68e7f43f07),
+    ("StatLine(HP,42)", 0xb5df64faa084432d),
     ("HudPanel(0,0,10,5)", 0x9e0689ea1f4b9ada),
     ("Relations{e1->e0}", 0x5b5754e32028a8a5),
     ("MsgLog[hello,world]", 0x612662cfb2655e8d),
