@@ -36,7 +36,7 @@
 | W4 | ~~**save file の schema migration 基盤が無い**~~ ✅ **実装済み**（`Migrator` trait + `load_bytes_migrated` + `LoadError::MigrationFailed`、5 tests + doc test） | `src/savefile.rs` | Medium |
 | W5 | ~~**WFC の contradiction からの部分解抽出/backtrack が最小限**~~ ✅ **実装済み**（`wfc_solve_backtrack` / `wfc_solve_partial`） | `src/wfc.rs` | Small |
 | W6 | ~~**relations が transform 伝播しない**~~（親移動で子が追従しない） ✅ **実装済み**（`Relations::propagate` BFS 位相順 + `root_entities`、7 tests） | `src/relations.rs` | Medium |
-| W7 | **FSM が flat**（階層状態・遷移ペイロード無し） | `src/fsm.rs` | Large（`Fsm<S,E,Payload>` 再設計） |
+| W7 | ~~**FSM が flat**~~（階層状態・遷移ペイロード無し） ✅ **実装済み**（`HFsm<S,E>`: `with_parent` / `on` / `on_any` builder、`fire` が ancestor chain + wildcard 順に検索、`is_in` で substate 判定、25 tests） | `src/hfsm.rs` | Large |
 
 ## 3. 不足機能 (Missing Features) — peer 比較での欠落と工数
 
@@ -101,4 +101,5 @@ G8 は本ブランチで `src/behavior.rs` として実装済み。
 Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 
 G9（ability system）は Large・別スコープ確認の上で着手。
-W1/W3/W4/W6/W7（Medium/Large weakness items）は順次着手予定。
+**W1–W7 の全 weakness items および G1–G9 の全 missing features は本ブランチで解消済み。**
+全ての追加コードは `#![forbid(unsafe_code)]`・zero runtime dependency・no float・`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH` 不変 の制約を満たす。

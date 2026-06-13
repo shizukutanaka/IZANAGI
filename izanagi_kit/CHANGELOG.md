@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **New module `hfsm`** (W7 in `STRENGTHS_WEAKNESSES.md`) — hierarchical finite
+  state machine superseding the flat `Fsm<S,E>`: states form a tree and event
+  resolution walks the ancestor chain before falling back to wildcards. 25 tests.
+  - `hfsm::HFsm<S,E>`: builder API (`new` / `with_parent` / `on` / `on_any`);
+    runtime API (`set_parent` / `add_transition` / `add_wildcard`); jump API
+    (`set_state` / `reset`); query API (`state` / `initial_state` / `is_in` /
+    `parent_of` / `ancestors_of` / `ancestors` / `has_transition` / `peek_next`).
+  - `fire(&event) -> bool`: searches exact state → parent → grandparent → … →
+    wildcard (`on_any`). Returns `true` on state change; `false` for self-loops or
+    no match. No `HashMap`; linear scan → identical sequences produce identical
+    traces.
+  - `is_in(state)`: `true` when the current state *is* `state` or any descendant —
+    enables "is the AI in the combat branch?" without enumerating substates.
+  - `DetHash` impl folds current state, the full parent table, and all transitions
+    (with `None`/`Some` tag on wildcard vs. specific) into the replay checksum.
+  - Zero `unsafe`, no float, no external dependencies. Replay-safe.
 - **New module `ability`** (G9 in `STRENGTHS_WEAKNESSES.md`) — unified
   ability/skill system connecting mana cost, cooldown, range, and effect into
   a single `try_use` query. 26 tests + doc test.

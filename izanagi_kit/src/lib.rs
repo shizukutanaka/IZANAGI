@@ -48,6 +48,7 @@
 //! - [`relations`] — entity parent/child relationships (`Relations`).
 //! - [`assets`] — typed asset handle store (`AssetStore<T>`, `AssetHandle<T>`).
 //! - [`profiler`] — tick profiler (`Profiler`) and structured event log (`EventLog<E>`).
+//! - [`hfsm`] — hierarchical FSM (`HFsm<S,E>`): parent states + wildcard transitions + `is_in` ancestry queries.
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
 //! - [`diag_json`] — machine-readable JSON serialization of pipeline diagnostics (`diag_json`).
@@ -82,6 +83,7 @@ pub mod fixed;
 pub mod fov;
 pub mod fsm;
 pub mod geometry;
+pub mod hfsm;
 pub mod hud;
 pub mod influence;
 pub mod inputbuf;
@@ -148,6 +150,7 @@ pub use entity::{Entity, EntityAllocator};
 pub use fixed::Fixed;
 pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};
 pub use fsm::Fsm;
+pub use hfsm::HFsm;
 pub use geometry::{
     chebyshev_distance, diamond, line, line_of_sight, manhattan_distance, rect_contains,
     rect_perimeter, reflect_point, rotate_90_ccw, rotate_90_cw, vec_toward, Distance,
