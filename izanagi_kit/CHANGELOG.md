@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`MultiMap::det_hash` omits `floors` field** (`multimap.rs`) — The
+  `floors: Vec<Dungeon>` field — the entire dungeon stack — was absent from
+  `DetHash`, which folded only `current_floor` and `connectors`. Two
+  multi-floor stacks with completely different dungeon layouts but matching
+  current-floor index and connector lists hashed identically. `floors` is
+  mutable simulation state (`current_mut` hands out `&mut Dungeon`, so floors
+  are carved/edited at runtime), making this a live desync hole for any
+  multi-floor game. Fixed by folding the floor count + each `Dungeon` (in stack
+  order) between `current_floor` and the connectors. Three new tests prove:
+  (a) different floor layouts now differ, (b) mutating a floor via
+  `current_mut` changes the hash, (c) identical-seed stacks still agree.
+  Verified end-to-end by reverting the fold and confirming the layout test
+  fails. `PINNED_FINAL_HASH` and `PINNED_ROGUELIKE_HASH` are unaffected.
 - **`Dungeon::det_hash` omits `rooms` field** (`mapgen.rs`) — The
   `rooms: Vec<Rect>` field was silently absent from `DetHash`, meaning two
   dungeons with identical tile bitmaps but different room registries (e.g.

@@ -7,10 +7,9 @@
 //! are connected by `Connector` records — a position on floor A leads to a
 //! position on floor B (stairs up/down, portals, ladders).
 //!
-//! `DetHash` folds the current floor index plus all connectors in canonical
-//! ascending-floor order so the multi-map state participates in replay hashes.
-//! The individual `Dungeon` floors also implement `DetHash`, so a full snapshot
-//! is possible via composition.
+//! `DetHash` folds the current floor index, every floor's full `Dungeon` state
+//! in stack order, and all connectors in canonical ascending-floor order, so the
+//! complete multi-map state participates in replay hashes.
 
 use crate::{
     mapgen::Dungeon,
@@ -265,6 +264,13 @@ impl MultiMap {
 impl DetHash for MultiMap {
     fn det_hash(&self, hasher: &mut Fnv1a) {
         hasher.write_u32(self.current_floor);
+        // Floors are mutable simulation state (`current_mut` hands out `&mut
+        // Dungeon`). Fold them in stack order or two stacks with different
+        // layouts but matching connectors+current_floor would collide.
+        hasher.write_u32(self.floors.len() as u32);
+        for floor in &self.floors {
+            floor.det_hash(hasher);
+        }
         hasher.write_u32(self.connectors.len() as u32);
         // Sort connectors by (from_floor, from_x, from_y) for canonical order.
         let mut sorted = self.connectors.clone();
@@ -406,6 +412,48 @@ mod tests {
         let b = MultiMap::new(floors, 0);
         a.set_floor(1);
         assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_det_hash_differs_on_floor_layout() {
+        // Two stacks with identical current_floor (0) and no connectors but
+        // DIFFERENT floor layouts must hash differently. Before the fix, the
+        // `floors` Vec was omitted from det_hash, so these collided.
+        let a = MultiMap::new(vec![make_floor(1)], 0);
+        let b = MultiMap::new(vec![make_floor(2)], 0);
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different floor layouts must produce different hashes"
+        );
+    }
+
+    #[test]
+    fn test_det_hash_differs_on_floor_mutation() {
+        // Mutating a floor through current_mut() must change the stack hash.
+        let mut m = MultiMap::new(vec![make_floor(5)], 0);
+        let before = hash_state(&m);
+        // Push a room onto the active floor's registry (observable state).
+        m.current_mut()
+            .unwrap()
+            .rooms
+            .push(crate::mapgen::Rect {
+                x: 0,
+                y: 0,
+                w: 1,
+                h: 1,
+            });
+        let after = hash_state(&m);
+        assert_ne!(before, after, "floor mutation must change the stack hash");
+    }
+
+    #[test]
+    fn test_det_hash_identical_layouts_agree() {
+        // Same seed → identical floors → identical hash (sanity that the new
+        // floor fold is deterministic, not just discriminating).
+        let a = MultiMap::new(vec![make_floor(7), make_floor(8)], 1);
+        let b = MultiMap::new(vec![make_floor(7), make_floor(8)], 1);
+        assert_eq!(hash_state(&a), hash_state(&b));
     }
 
     #[test]
