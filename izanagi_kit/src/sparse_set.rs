@@ -276,7 +276,7 @@ impl<T> SparseSet<T> {
     /// first match. Non-allocating — prefer this over `count_matching > 0` in
     /// "does anyone have a status effect?" or "is any inventory slot empty?" checks.
     pub fn any<F: Fn(&T) -> bool>(&self, pred: F) -> bool {
-        self.values().any(|v| pred(v))
+        self.values().any(pred)
     }
 }
 
