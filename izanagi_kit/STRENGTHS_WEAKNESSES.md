@@ -30,12 +30,12 @@
 
 | # | 短所 | 位置 | 工数 |
 |---|------|------|------|
-| W1 | **多 component クエリ API が無い**（呼び出し側が手で N 重ループ） | `src/sparse_set.rs` | Medium（`Query<(A,B,C)>` ビルダー or マクロ） |
+| W1 | ~~**多 component クエリ API が無い**~~（呼び出し側が手で N 重ループ） ✅ **実装済み**（`join3` / `join3_mut` で3コンポーネント同時クエリ、6 tests + doc test） | `src/sparse_set.rs` | Medium |
 | W2 | ~~**generation overflow 検出が弱い**~~（`wrapping_add(1)`、2³² 再利用で stale handle 復活の理論リスク） ✅ **実装済み**（`EntityAllocator::generation_wrap_count()` で wrap 回数を追跡、saturating カウンタ） | `src/entity.rs` | Small |
-| W3 | **terminal の入力抽象が無い**（`inputbuf`/`keymap` はあるが端末 I/O 非接続） | `src/terminal.rs` | Medium（`TerminalInput` trait） |
-| W4 | **save file の schema migration 基盤が無い** | `src/savefile.rs` | Medium（`Migrator<T>` / 版ディスパッチ） |
+| W3 | ~~**terminal の入力抽象が無い**~~ ✅ **実装済み**（`KeySource` trait + `ListKeySource` + `InputBuffer::pump_from`、6 tests + doc test） | `src/inputbuf.rs` | Medium |
+| W4 | ~~**save file の schema migration 基盤が無い**~~ ✅ **実装済み**（`Migrator` trait + `load_bytes_migrated` + `LoadError::MigrationFailed`、5 tests + doc test） | `src/savefile.rs` | Medium |
 | W5 | ~~**WFC の contradiction からの部分解抽出/backtrack が最小限**~~ ✅ **実装済み**（`wfc_solve_backtrack` / `wfc_solve_partial`） | `src/wfc.rs` | Small |
-| W6 | **relations が transform 伝播しない**（親移動で子が追従しない） | `src/relations.rs` | Medium（`propagate_transforms`） |
+| W6 | ~~**relations が transform 伝播しない**~~（親移動で子が追従しない） ✅ **実装済み**（`Relations::propagate` BFS 位相順 + `root_entities`、7 tests） | `src/relations.rs` | Medium |
 | W7 | **FSM が flat**（階層状態・遷移ペイロード無し） | `src/fsm.rs` | Large（`Fsm<S,E,Payload>` 再設計） |
 
 ## 3. 不足機能 (Missing Features) — peer 比較での欠落と工数

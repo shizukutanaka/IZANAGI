@@ -151,7 +151,7 @@ pub use geometry::{
 };
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;
-pub use inputbuf::InputBuffer;
+pub use inputbuf::{InputBuffer, KeySource, ListKeySource};
 pub use inventory::Inventory;
 pub use keymap::KeyMap;
 pub use loader::{load_level, LoadedLevel, Position, Render};
@@ -180,8 +180,8 @@ pub use replay::{
 };
 pub use rng::SplitMix64;
 pub use savefile::{
-    estimate_save_size, load_bytes, load_bytes_owned, save_bytes, validate_integrity, LoadError,
-    SaveHeader,
+    estimate_save_size, load_bytes, load_bytes_migrated, load_bytes_owned, save_bytes,
+    validate_integrity, LoadError, Migrator, SaveHeader,
 };
 pub use serializer::{content_eq, serialize};
 pub use sparse_set::{join, join3, join3_mut, join_mut, SparseSet};

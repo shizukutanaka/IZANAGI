@@ -7,6 +7,38 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Terminal input source abstraction** (W3 in `STRENGTHS_WEAKNESSES.md`) — clean
+  integration point between terminal backends and `InputBuffer`. 6 new tests +
+  doc test.
+  - `inputbuf::KeySource` trait: `next_key(&mut self) -> Option<Key>` — implement
+    for crossterm / termion / raw stdin or any other key event source. Non-blocking
+    by convention.
+  - `inputbuf::ListKeySource<K>`: replays a predetermined key sequence; useful for
+    unit tests and replay injection. Provides `remaining()`, `is_exhausted()`,
+    `reset()`.
+  - `InputBuffer::pump_from<S: KeySource<Key = K>>(&mut self, source)`: drains all
+    pending events from a source into the buffer. Call once per frame before
+    `tick()`.
+- **Save file schema migration** (W4 in `STRENGTHS_WEAKNESSES.md`) — version-aware
+  load that upgrades old saves to the current format. 5 new tests + doc test.
+  - `savefile::Migrator` trait: `current_version() -> u32` + `migrate(old, bytes)
+    -> Result<Vec<u8>, LoadError>` — implement for each schema-breaking change.
+  - `savefile::load_bytes_migrated(data, migrator)`: loads and checksum-validates,
+    then calls `migrate` if the stored version differs; on success returns a header
+    at `current_version` and the migrated payload.
+  - `LoadError::MigrationFailed` — new variant when migration cannot proceed.
+- **3-component ECS join** (W1 in `STRENGTHS_WEAKNESSES.md`) — `join3` / `join3_mut`
+  in `sparse_set`: inner join of three component stores in canonical ascending-index
+  order. Iterates the smallest store for O(min) performance. 6 new tests + doc test.
+- **Topological transform propagation** (W6 in `STRENGTHS_WEAKNESSES.md`) — visit
+  parent→child edges in BFS topological order for world-transform propagation.
+  7 new tests (including a 2-level world-position accumulation scenario).
+  - `relations::Relations::root_entities() -> Vec<Entity>`: entities that are
+    parents of at least one child but have no parent themselves, sorted by index.
+  - `relations::Relations::propagate<F>(&self, f: F)`: visits each `(parent, child)`
+    edge in BFS topological order (parent always before child; children of the same
+    parent are visited in ascending entity-index order for determinism). Caller
+    manages the transform lookup — no storage coupling.
 - **New module `behavior`** (G8 in `STRENGTHS_WEAKNESSES.md`) — hierarchical
   behavior trees for game AI: sequence/selector/invert/repeat/succeed/fail
   decorators and action/condition leaf nodes. 30 tests + doc tests.

@@ -203,6 +203,93 @@ impl<K: Eq + Clone + Ord + DetHash> DetHash for InputBuffer<K> {
     }
 }
 
+// ── KeySource abstraction (W3) ────────────────────────────────────────────────
+
+/// An input source that provides raw key events to be fed into an
+/// [`InputBuffer`] (W3 in `STRENGTHS_WEAKNESSES.md`).
+///
+/// Implement this for your terminal backend (crossterm, termion, raw-mode
+/// stdin, etc.) and pump events each frame with
+/// [`InputBuffer::pump_from`]. The library itself is zero-dependency and does
+/// not read from stdin — the trait is the integration point.
+pub trait KeySource {
+    /// The key type delivered by this source, matching the `InputBuffer<K>`.
+    type Key;
+    /// Return the next pending key event, or `None` if none is available right
+    /// now. Should be **non-blocking** — if the source has no event ready,
+    /// return `None` immediately rather than blocking the game loop.
+    fn next_key(&mut self) -> Option<Self::Key>;
+}
+
+/// A key source that replays a predetermined sequence — useful for unit tests
+/// and replay injection.
+///
+/// ```
+/// use izanagi_kit::inputbuf::{InputBuffer, KeySource, ListKeySource};
+///
+/// let mut src = ListKeySource::new(vec!['a', 'b', 'c']);
+/// let mut buf = InputBuffer::new(0, 1);
+/// buf.pump_from(&mut src);
+/// let fires = buf.tick(1);
+/// assert_eq!(fires.len(), 3);
+/// assert!(src.is_exhausted());
+/// ```
+#[derive(Clone, Debug)]
+pub struct ListKeySource<K> {
+    keys: Vec<K>,
+    pos: usize,
+}
+
+impl<K> ListKeySource<K> {
+    /// Create a source that will deliver `keys` in order.
+    pub fn new(keys: Vec<K>) -> Self {
+        Self { keys, pos: 0 }
+    }
+
+    /// Number of keys not yet consumed.
+    #[inline]
+    pub fn remaining(&self) -> usize {
+        self.keys.len().saturating_sub(self.pos)
+    }
+
+    /// `true` when all keys have been consumed.
+    #[inline]
+    pub fn is_exhausted(&self) -> bool {
+        self.pos >= self.keys.len()
+    }
+
+    /// Reset the replay position back to the start.
+    #[inline]
+    pub fn reset(&mut self) {
+        self.pos = 0;
+    }
+}
+
+impl<K: Clone> KeySource for ListKeySource<K> {
+    type Key = K;
+    fn next_key(&mut self) -> Option<K> {
+        if self.pos < self.keys.len() {
+            let k = self.keys[self.pos].clone();
+            self.pos += 1;
+            Some(k)
+        } else {
+            None
+        }
+    }
+}
+
+impl<K: Eq + Clone> InputBuffer<K> {
+    /// Drain all pending events from `source` by calling
+    /// [`press`](Self::press) for each key returned. Call this once per frame
+    /// before [`tick`](Self::tick) to integrate a terminal backend with the
+    /// hold-repeat pipeline.
+    pub fn pump_from<S: KeySource<Key = K>>(&mut self, source: &mut S) {
+        while let Some(k) = source.next_key() {
+            self.press(k);
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -492,5 +579,66 @@ mod tests {
         // Advance past initial_delay (2) for both keys
         b.tick(5);
         assert_eq!(b.count_repeating(), 2);
+    }
+
+    // --- KeySource / ListKeySource / pump_from (W3) ---
+
+    #[test]
+    fn test_list_key_source_delivers_in_order() {
+        let mut src = ListKeySource::new(vec![1u32, 2, 3]);
+        assert_eq!(src.next_key(), Some(1));
+        assert_eq!(src.next_key(), Some(2));
+        assert_eq!(src.next_key(), Some(3));
+        assert_eq!(src.next_key(), None);
+    }
+
+    #[test]
+    fn test_list_key_source_is_exhausted_when_empty() {
+        let mut src = ListKeySource::new(vec![1u32]);
+        assert!(!src.is_exhausted());
+        src.next_key();
+        assert!(src.is_exhausted());
+        assert_eq!(src.remaining(), 0);
+    }
+
+    #[test]
+    fn test_list_key_source_reset_replays_from_start() {
+        let mut src = ListKeySource::new(vec![7u32, 8]);
+        src.next_key();
+        src.reset();
+        assert_eq!(src.remaining(), 2);
+        assert_eq!(src.next_key(), Some(7));
+    }
+
+    #[test]
+    fn test_pump_from_presses_all_keys() {
+        let mut src = ListKeySource::new(vec![10u32, 20, 30]);
+        let mut buf = InputBuffer::new(0, 1);
+        buf.pump_from(&mut src);
+        // With initial_delay = 0, all pressed keys fire on tick(1).
+        let fires = buf.tick(1);
+        let mut fires_sorted = fires.clone();
+        fires_sorted.sort_unstable();
+        assert_eq!(fires_sorted, vec![10, 20, 30]);
+        assert!(src.is_exhausted());
+    }
+
+    #[test]
+    fn test_pump_from_empty_source_no_change() {
+        let mut src = ListKeySource::<u32>::new(vec![]);
+        let mut buf = InputBuffer::new(1, 1);
+        buf.pump_from(&mut src);
+        let fires = buf.tick(1);
+        assert!(fires.is_empty());
+    }
+
+    #[test]
+    fn test_pump_from_integrates_with_tick_repeat() {
+        // Two keys pumped, then advanced past initial_delay; both should repeat.
+        let mut src = ListKeySource::new(vec![1u32, 2]);
+        let mut buf = InputBuffer::new(2, 1);
+        buf.pump_from(&mut src);
+        buf.tick(3); // pass initial_delay
+        assert_eq!(buf.count_repeating(), 2);
     }
 }

@@ -122,6 +122,8 @@ pub enum LoadError {
     BadMagic,
     /// The payload's FNV-1a hash does not match the stored checksum.
     ChecksumMismatch,
+    /// A [`Migrator`] could not convert the save file from its stored version.
+    MigrationFailed,
 }
 
 impl LoadError {
@@ -144,6 +146,7 @@ impl LoadError {
             LoadError::TooShort => "save file too short",
             LoadError::BadMagic => "not a save file (bad magic)",
             LoadError::ChecksumMismatch => "save file corrupted (checksum mismatch)",
+            LoadError::MigrationFailed => "save file version migration failed",
         }
     }
 }
@@ -161,6 +164,9 @@ impl core::fmt::Display for LoadError {
             LoadError::ChecksumMismatch => {
                 write!(f, "save file checksum mismatch: payload may be corrupted")
             }
+            LoadError::MigrationFailed => {
+                write!(f, "save file migration failed: incompatible version")
+            }
         }
     }
 }
@@ -175,6 +181,82 @@ impl std::error::Error for LoadError {}
 #[inline]
 pub fn estimate_save_size(payload_len: usize) -> usize {
     20 + payload_len
+}
+
+// ── Schema migration (W4) ────────────────────────────────────────────────────
+
+/// Version migration strategy for save files (W4 in
+/// `STRENGTHS_WEAKNESSES.md`).
+///
+/// Implement this for your game's save format. When [`load_bytes_migrated`]
+/// finds a save file whose version differs from [`current_version`], it calls
+/// [`migrate`] with the old version and raw payload; return `Ok(new_bytes)` to
+/// transform the data, or `Err(LoadError::MigrationFailed)` to signal an
+/// unresolvable incompatibility.
+///
+/// [`current_version`]: Migrator::current_version
+/// [`migrate`]: Migrator::migrate
+///
+/// # Example — single-step v0 → v1 migration
+/// ```
+/// use izanagi_kit::savefile::{save_bytes, load_bytes_migrated, Migrator, LoadError, SaveHeader};
+///
+/// struct V1Migrator;
+///
+/// impl Migrator for V1Migrator {
+///     fn current_version(&self) -> u32 { 1 }
+///     fn migrate(&self, old: u32, payload: &[u8]) -> Result<Vec<u8>, LoadError> {
+///         match old {
+///             0 => {
+///                 // v0 payload had no length prefix; v1 prepends a u32 LE count.
+///                 let mut out = (payload.len() as u32).to_le_bytes().to_vec();
+///                 out.extend_from_slice(payload);
+///                 Ok(out)
+///             }
+///             _ => Err(LoadError::MigrationFailed),
+///         }
+///     }
+/// }
+///
+/// let v0_data = save_bytes(&SaveHeader::new(0), b"hello");
+/// let (header, payload) = load_bytes_migrated(&v0_data, &V1Migrator).unwrap();
+/// assert_eq!(header.version, 1);
+/// // First 4 bytes of payload are now the length of "hello" (5u32 LE).
+/// assert_eq!(&payload[4..], b"hello");
+/// ```
+pub trait Migrator {
+    /// The application's current (target) schema version.
+    fn current_version(&self) -> u32;
+
+    /// Attempt to transform `payload` from `old_version` to the current format.
+    ///
+    /// Should be a pure function (no side effects); the caller may call it
+    /// multiple times for a chain of version hops. Return
+    /// [`LoadError::MigrationFailed`] for versions that cannot be migrated.
+    fn migrate(&self, old_version: u32, payload: &[u8]) -> Result<Vec<u8>, LoadError>;
+}
+
+/// Load a save file and apply version migration if the stored version differs
+/// from `migrator.current_version()`.
+///
+/// 1. Parses and checksum-validates the raw bytes with [`load_bytes`].
+/// 2. If the stored version matches `current_version`, the payload is returned
+///    unchanged.
+/// 3. Otherwise, [`Migrator::migrate`] is called. On success, the returned
+///    header carries `current_version` and the migrated payload is returned.
+///
+/// All [`LoadError`] variants from `load_bytes` propagate unchanged.
+pub fn load_bytes_migrated<M: Migrator>(
+    data: &[u8],
+    migrator: &M,
+) -> Result<(SaveHeader, Vec<u8>), LoadError> {
+    let (header, payload) = load_bytes(data)?;
+    let current = migrator.current_version();
+    if header.version == current {
+        return Ok((header, payload.to_vec()));
+    }
+    let migrated = migrator.migrate(header.version, payload)?;
+    Ok((SaveHeader::new(current), migrated))
 }
 
 /// FNV-1a 64-bit hash over raw bytes. Not exposed; callers use the checksums
@@ -439,5 +521,61 @@ mod tests {
         let h = SaveHeader::new(0);
         assert!(h.is_compatible(0));
         assert!(!h.is_compatible(1));
+    }
+
+    // --- Migrator / load_bytes_migrated (W4) ---
+
+    /// Trivial migrator: appends "_v1" to the payload for v0 → v1.
+    struct AppendMigrator;
+    impl Migrator for AppendMigrator {
+        fn current_version(&self) -> u32 {
+            1
+        }
+        fn migrate(&self, old: u32, payload: &[u8]) -> Result<Vec<u8>, LoadError> {
+            if old == 0 {
+                let mut out = payload.to_vec();
+                out.extend_from_slice(b"_v1");
+                Ok(out)
+            } else {
+                Err(LoadError::MigrationFailed)
+            }
+        }
+    }
+
+    #[test]
+    fn test_migrated_same_version_returns_payload_unchanged() {
+        let data = save_bytes(&SaveHeader::new(1), b"hello");
+        let (hdr, payload) = load_bytes_migrated(&data, &AppendMigrator).unwrap();
+        assert_eq!(hdr.version, 1);
+        assert_eq!(payload, b"hello");
+    }
+
+    #[test]
+    fn test_migrated_old_version_applies_migration() {
+        let data = save_bytes(&SaveHeader::new(0), b"hello");
+        let (hdr, payload) = load_bytes_migrated(&data, &AppendMigrator).unwrap();
+        assert_eq!(hdr.version, 1, "header version bumped to current");
+        assert_eq!(payload, b"hello_v1", "payload transformed by migrator");
+    }
+
+    #[test]
+    fn test_migrated_unknown_version_returns_migration_failed() {
+        let data = save_bytes(&SaveHeader::new(99), b"data");
+        let err = load_bytes_migrated(&data, &AppendMigrator).unwrap_err();
+        assert_eq!(err, LoadError::MigrationFailed);
+    }
+
+    #[test]
+    fn test_migrated_bad_magic_propagates_error() {
+        let err = load_bytes_migrated(&[0u8; 20], &AppendMigrator).unwrap_err();
+        assert_eq!(err, LoadError::BadMagic);
+    }
+
+    #[test]
+    fn test_migrated_checksum_mismatch_propagates_error() {
+        let mut data = save_bytes(&SaveHeader::new(0), b"hello");
+        *data.last_mut().unwrap() ^= 0xFF; // corrupt last byte
+        let err = load_bytes_migrated(&data, &AppendMigrator).unwrap_err();
+        assert_eq!(err, LoadError::ChecksumMismatch);
     }
 }
