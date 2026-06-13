@@ -272,6 +272,15 @@ impl Dungeon {
     }
 }
 
+impl crate::world_hash::DetHash for Rect {
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_u32(self.x);
+        hasher.write_u32(self.y);
+        hasher.write_u32(self.w);
+        hasher.write_u32(self.h);
+    }
+}
+
 impl crate::world_hash::DetHash for Dungeon {
     fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
         hasher.write_u32(self.width);
@@ -283,6 +292,12 @@ impl crate::world_hash::DetHash for Dungeon {
                 byte |= (wall as u8) << i;
             }
             hasher.write_bytes(&[byte]);
+        }
+        // Rooms are simulation state: placement order and exact boundaries affect
+        // spawn logic. Must be hashed or a desync in room registry goes undetected.
+        hasher.write_u32(self.rooms.len() as u32);
+        for r in &self.rooms {
+            r.det_hash(hasher);
         }
     }
 }
@@ -612,6 +627,7 @@ fn carve_leaf_room(d: &mut Dungeon, rng: &mut SplitMix64, area: Rect, room_min: 
 mod tests {
     use super::*;
     use crate::pathfinding::dijkstra_map;
+    use crate::world_hash::hash_state;
 
     #[test]
     fn test_same_seed_is_byte_identical() {
@@ -1097,5 +1113,44 @@ mod tests {
         let mut rng = SplitMix64::new(3);
         let d = generate_dungeon(40, 30, &mut rng, GenParams::default());
         assert!(d.room_containing(-1, 5).is_none());
+    }
+
+    // --- DetHash rooms field ---
+
+    #[test]
+    fn test_det_hash_rooms_included_in_hash() {
+        // Adding a room to `rooms` (without touching tiles) must change the hash.
+        // Before the fix, Dungeon::det_hash only folded the tile bitmap, so the
+        // rooms registry was invisible to replay checksums.
+        let mut rng = SplitMix64::new(42);
+        let mut d = generate_dungeon(30, 20, &mut rng, GenParams::default());
+        let hash_before = hash_state(&d);
+        d.rooms.push(Rect { x: 0, y: 0, w: 1, h: 1 });
+        let hash_after = hash_state(&d);
+        assert_ne!(
+            hash_before,
+            hash_after,
+            "adding a room to the registry must change the DetHash"
+        );
+    }
+
+    #[test]
+    fn test_det_hash_identical_dungeons_agree() {
+        // Two dungeons generated from the same seed must hash identically.
+        let mut r1 = SplitMix64::new(7);
+        let mut r2 = SplitMix64::new(7);
+        let d1 = generate_dungeon(25, 20, &mut r1, GenParams::default());
+        let d2 = generate_dungeon(25, 20, &mut r2, GenParams::default());
+        assert_eq!(hash_state(&d1), hash_state(&d2));
+    }
+
+    #[test]
+    fn test_det_hash_different_seeds_differ() {
+        // Different seeds produce different dungeons with different hashes.
+        let mut r1 = SplitMix64::new(1);
+        let mut r2 = SplitMix64::new(2);
+        let d1 = generate_dungeon(25, 20, &mut r1, GenParams::default());
+        let d2 = generate_dungeon(25, 20, &mut r2, GenParams::default());
+        assert_ne!(hash_state(&d1), hash_state(&d2));
     }
 }

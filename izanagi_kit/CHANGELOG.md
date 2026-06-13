@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`Dungeon::det_hash` omits `rooms` field** (`mapgen.rs`) — The
+  `rooms: Vec<Rect>` field was silently absent from `DetHash`, meaning two
+  dungeons with identical tile bitmaps but different room registries (e.g.
+  different placement order or room boundaries) hashed identically. `rooms`
+  is simulation-observable state: game logic that queries room positions for
+  spawn placement or center-point navigation would diverge across a replay
+  checkpoint without detection. Added `impl DetHash for Rect` (hashing `x, y,
+  w, h` in order) and folded `rooms` length + each `Rect` into
+  `Dungeon::det_hash`. `Dungeon` already derives `PartialEq` over `rooms`, so
+  the hash now agrees with equality. Three new tests prove: (a) appending a
+  room changes the hash, (b) identical-seed dungeons still agree, (c)
+  different seeds produce different hashes. `PINNED_FINAL_HASH` and
+  `PINNED_ROGUELIKE_HASH` are unaffected.
 - **`TimerQueue::det_hash` omits `period` field** (`timer.rs`) — The
   `period: Option<u32>` field of each queue entry was silently absent from the
   `DetHash` impl. A one-shot timer (`period = None`) and a recurring timer
