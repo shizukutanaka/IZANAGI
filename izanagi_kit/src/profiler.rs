@@ -213,9 +213,7 @@ impl DetHash for Profiler {
         hasher.write_u32(self.tick);
         hasher.write_u32(self.sections.len() as u32);
         for s in &self.sections {
-            for b in s.name.as_bytes() {
-                hasher.write_u32(*b as u32);
-            }
+            s.name.det_hash(hasher); // length-prefixed via DetHash for str
             hasher.write_u64(s.total);
             hasher.write_u32(s.calls);
             hasher.write_u64(s.peak);

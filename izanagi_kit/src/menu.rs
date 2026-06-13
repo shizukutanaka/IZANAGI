@@ -287,11 +287,9 @@ impl<T: Clone + DetHash> DetHash for Menu<T> {
     fn det_hash(&self, hasher: &mut Fnv1a) {
         hasher.write_u32(self.items.len() as u32);
         for item in &self.items {
-            for b in item.label.as_bytes() {
-                hasher.write_u32(*b as u32);
-            }
+            item.label.as_str().det_hash(hasher); // length-prefixed via DetHash for str
             item.value.det_hash(hasher);
-            hasher.write_u32(item.disabled as u32);
+            hasher.write_bool(item.disabled);
         }
         hasher.write_u32(self.cursor as u32);
     }
@@ -505,6 +503,34 @@ mod tests {
         let mut m2 = sample();
         m2.move_down();
         assert_ne!(hash_state(&m1), hash_state(&m2));
+    }
+
+    #[test]
+    fn test_det_hash_label_affects_hash() {
+        let mut a: Menu<u32> = Menu::new();
+        a.add_item("Attack", 1);
+        let mut b: Menu<u32> = Menu::new();
+        b.add_item("Defend", 1);
+        assert_ne!(hash_state(&a), hash_state(&b), "different labels must hash differently");
+    }
+
+    #[test]
+    fn test_det_hash_disabled_affects_hash() {
+        let mut a: Menu<u32> = Menu::new();
+        a.add_item("X", 1);
+        let mut b: Menu<u32> = Menu::new();
+        b.add_disabled("X", 1);
+        assert_ne!(hash_state(&a), hash_state(&b), "enabled vs disabled item must hash differently");
+    }
+
+    #[test]
+    fn test_det_hash_item_count_affects_hash() {
+        let mut a: Menu<u32> = Menu::new();
+        a.add_item("A", 1);
+        let mut b: Menu<u32> = Menu::new();
+        b.add_item("A", 1);
+        b.add_item("B", 2);
+        assert_ne!(hash_state(&a), hash_state(&b), "different item counts must hash differently");
     }
 
     #[test]

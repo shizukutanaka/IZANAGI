@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **Residual per-byte-u32 string encoding in `DetHash` impls** (`profiler.rs`,
+  `menu.rs`, `loader.rs`) — Three `DetHash` impls still used the pre-fix
+  per-byte `write_u32(*b as u32)` pattern for string fields instead of the
+  standard length-prefixed `field.det_hash(hasher)` protocol. Unified to
+  use `DetHash for str` everywhere: `Profiler` section names, `Menu` item
+  labels (also changed `disabled` from `write_u32` to `write_bool` for
+  correctness), and `loader::Stats` stat keys. Also added three new `Menu`
+  discrimination tests (label, disabled flag, item count). No golden hash
+  updates required (none of these types are in `det_hash_golden.rs`).
 - **`StatLine::det_hash` omits `unit` field** (`hud.rs`) — The `unit:
   Option<&'static str>` field was silently absent from the DetHash impl, making
   `StatLine::new("HP", 42)` and `StatLine::with_unit("HP", 42, "points")`

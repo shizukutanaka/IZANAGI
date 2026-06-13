@@ -61,9 +61,7 @@ impl DetHash for Stats {
     fn det_hash(&self, hasher: &mut Fnv1a) {
         hasher.write_u32(self.entries.len() as u32);
         for (k, v) in &self.entries {
-            for b in k.as_bytes() {
-                hasher.write_u32(*b as u32);
-            }
+            k.as_str().det_hash(hasher); // length-prefixed via DetHash for str
             hasher.write_i32(*v);
         }
     }
