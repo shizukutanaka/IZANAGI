@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **`DetHash` wire-format golden regression guard** (`tests/det_hash_golden.rs`) —
+  pins the exact `hash_state` value of a fixed instance of 20 public `DetHash`
+  types (`Fixed`, `Entity`, `Vec2/3`, `Aabb`, `Camera`, `Cooldown`, `Dice`,
+  `Stats`, `DamageType`, `ResistanceProfile`, `Screen`, `BarWidget`, `StatLine`,
+  `HudPanel`, `Relations`, `MsgLog`, `HFsm`, `AbilitySet`, `BehaviorTree`).
+  Closes a coverage gap: `tests/determinism.rs` only exercises ~4 types, and the
+  per-module `hash(x)==hash(x)` / `hash(x)!=hash(y)` tests survive any wire-format
+  change (both sides move together). A reordered field or `write_u32`→`write_u64`
+  swap in any pinned type's `det_hash` now flips exactly one golden line, turning
+  a silent cross-version replay/save break into a deliberate, reviewable decision.
+  Regenerate via `cargo test --test det_hash_golden print_golden -- --ignored
+  --nocapture`. 3 tests (pin + name-uniqueness + collision check).
 - **New module `hfsm`** (W7 in `STRENGTHS_WEAKNESSES.md`) — hierarchical finite
   state machine superseding the flat `Fsm<S,E>`: states form a tree and event
   resolution walks the ancestor chain before falling back to wildcards. 25 tests.
