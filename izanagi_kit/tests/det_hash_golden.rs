@@ -32,8 +32,9 @@
 use izanagi_kit::{
     ability::{Ability, AbilitySet},
     behavior::{BehaviorNode, BehaviorTree},
-    hash_state, Aabb, BarWidget, Camera, Cooldown, DamageType, Dice, EntityAllocator, Fixed, HFsm,
-    HudPanel, MsgLog, Relations, ResistanceProfile, Screen, StatLine, Stats, Vec2, Vec3,
+    generate_dungeon, hash_state, Aabb, BarWidget, Camera, Connector, Cooldown, DamageType, Dice,
+    Dungeon, EntityAllocator, Fixed, GenParams, HFsm, HudPanel, MsgLog, MultiMap, Relations,
+    ResistanceProfile, Screen, SplitMix64, StatLine, Stats, TimerQueue, Vec2, Vec3,
 };
 
 /// Build the canonical (name, golden-hash) table. Each entry constructs a
@@ -72,6 +73,38 @@ fn cases() -> Vec<(&'static str, u64)> {
             BehaviorNode::action(2),
         ]));
 
+    // Timer queue: one one-shot and one recurring entry. Pins the `period`
+    // field whose omission was the Round 10 bug — a re-omission flips this.
+    let mut timers: TimerQueue<u32> = TimerQueue::new();
+    timers.schedule(5, 99);
+    timers.schedule_repeat(5, 3, 99);
+
+    // A small fixed-seed dungeon. Pins the `rooms` field (Round 11) plus the
+    // tile bitmap; a re-omission of rooms — or a generation/wire change — flips it.
+    let dungeon: Dungeon = {
+        let mut rng = SplitMix64::new(0xD17_A9E);
+        generate_dungeon(24, 16, &mut rng, GenParams::default())
+    };
+
+    // A two-floor multi-map with one connector. Pins the `floors` field
+    // (Round 12) alongside current_floor and connectors.
+    let multimap: MultiMap = {
+        let mut a = SplitMix64::new(1);
+        let mut b = SplitMix64::new(2);
+        let f0 = generate_dungeon(20, 12, &mut a, GenParams::default());
+        let f1 = generate_dungeon(20, 12, &mut b, GenParams::default());
+        let mut m = MultiMap::new(vec![f0, f1], 0);
+        m.add_connector(Connector {
+            from_floor: 0,
+            from_x: 3,
+            from_y: 3,
+            to_floor: 1,
+            to_x: 5,
+            to_y: 5,
+        });
+        m
+    };
+
     vec![
         ("Fixed::from_int(3)", hash_state(&Fixed::from_int(3))),
         ("Entity(0,0)", hash_state(&e0)),
@@ -109,6 +142,9 @@ fn cases() -> Vec<(&'static str, u64)> {
         ("HFsm<u32,u8>", hash_state(&hfsm)),
         ("AbilitySet<u32,u32>", hash_state(&abilities)),
         ("BehaviorTree<u32>", hash_state(&bt)),
+        ("TimerQueue<u32>[5;5r3]", hash_state(&timers)),
+        ("Dungeon(24x16,seed)", hash_state(&dungeon)),
+        ("MultiMap(2floors,1conn)", hash_state(&multimap)),
     ]
 }
 
@@ -136,6 +172,9 @@ const EXPECTED: &[(&str, u64)] = &[
     ("HFsm<u32,u8>", 0x870c3270a024ab05),
     ("AbilitySet<u32,u32>", 0x6be775165615ef30),
     ("BehaviorTree<u32>", 0x733cfecebb0bc160),
+    ("TimerQueue<u32>[5;5r3]", 0x9e3d87f791d59425),
+    ("Dungeon(24x16,seed)", 0xe31ab41e7035e685),
+    ("MultiMap(2floors,1conn)", 0xa84ad2b8abb52eb8),
 ];
 
 #[test]

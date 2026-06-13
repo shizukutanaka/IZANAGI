@@ -89,6 +89,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Golden coverage for `TimerQueue`, `Dungeon`, `MultiMap`** (`tests/det_hash_golden.rs`)
+  — Extends the wire-format tripwire from 20 to 23 pinned `DetHash` types,
+  closing the enforcement gap behind the recent field-omission fixes. The
+  per-module unit tests only assert self-consistency and discrimination — both
+  survive a *re-omission* of a field, so a future refactor that drops
+  `TimerQueue::period`, `Dungeon::rooms`, or `MultiMap::floors` again would go
+  unnoticed there. Pinning the exact `hash_state` of a fixed instance of each
+  converts that into a mechanical failure: the golden value flips and forces a
+  deliberate, changelog-documented decision. Verified end-to-end by dropping
+  `period` from `TimerQueue::det_hash` and confirming the golden test fails
+  with the expected diff. `PINNED_FINAL_HASH` and `PINNED_ROGUELIKE_HASH` are
+  unaffected.
 - **Save-file backward-compatibility golden guard** (`savefile::tests`) — pins
   the *exact on-disk bytes* `save_bytes` emits for a fixed `(version, payload)`
   and decodes a *hardcoded* buffer (standing in for a prior build's output).
