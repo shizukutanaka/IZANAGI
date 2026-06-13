@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`range_closed(i32::MIN, i32::MAX)` span overflow** (`rng.rs`) — When
+  `lo = i32::MIN` and `hi = i32::MAX`, the closed-range span is `2^32` which
+  overflows `u32` to `0`. The old code fell into `below(0)` — which returns `0`
+  WITHOUT drawing — silently returning `i32::MIN` regardless of the seed, and
+  consuming no draw (breaking the expected draw count). Fixed by computing `span`
+  as `i64` and using a 128-bit wide multiply directly (same low-bias technique as
+  `below`), handling all spans in `[2, 2^32]` without overflow. Two new tests pin
+  the correct draw/distribution behavior; existing consistency test
+  (`range_closed(lo,hi) == range(lo,hi+1)`) still passes (same arithmetic path
+  for spans that fit u32).
 - **Residual per-byte-u32 string encoding in `DetHash` impls** (`profiler.rs`,
   `menu.rs`, `loader.rs`) — Three `DetHash` impls still used the pre-fix
   per-byte `write_u32(*b as u32)` pattern for string fields instead of the

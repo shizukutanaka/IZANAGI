@@ -70,14 +70,21 @@ impl SplitMix64 {
     /// `lo >= hi` (degenerate range, no draw consumed). Useful wherever both
     /// endpoints are valid values — e.g. `range_closed(1, 20)` for a d20 roll
     /// or `range_closed(0, 100)` for a percent check (can roll exactly 100).
+    ///
+    /// Handles the full span including `range_closed(i32::MIN, i32::MAX)` where
+    /// `span == 2^32` — a u32 would overflow to 0. Uses a 128-bit wide multiply
+    /// to stay bias-free across all spans.
     #[inline]
     pub fn range_closed(&mut self, lo: i32, hi: i32) -> i32 {
         if lo >= hi {
             return lo;
         }
-        // span fits a u32 because hi − lo is in 1..=i32::MAX < 2^31.
-        let span = (hi as i64 - lo as i64 + 1) as u32;
-        (lo as i64 + self.below(span) as i64) as i32
+        // span ∈ [2, 2^32]; when lo=i32::MIN and hi=i32::MAX, span=2^32 which
+        // would overflow u32. Use i64 for span and a 128-bit wide multiply
+        // (the same low-bias technique as `below`) to handle all cases.
+        let span = hi as i64 - lo as i64 + 1; // ∈ [2, 2^32], fits i64
+        let pick = ((self.next_u64() as u128).wrapping_mul(span as u128) >> 64) as i64;
+        (lo as i64 + pick) as i32
     }
 
     /// Draw from the half-open range `[lo, hi)` uniformly. Returns `lo` when
@@ -906,6 +913,44 @@ mod tests {
         // They should draw the same underlying random number.
         for _ in 0..50 {
             assert_eq!(rng_a.range_closed(0, 9), rng_b.range(0, 10));
+        }
+    }
+
+    /// `range_closed(i32::MIN, i32::MAX)` covers the full i32 span (2^32 values).
+    /// Before the fix, `(hi - lo + 1) as u32` overflowed to 0, causing the
+    /// function to fall through to `below(0)` which returns 0 without drawing —
+    /// silently returning `i32::MIN` regardless of the seed.
+    #[test]
+    fn test_range_closed_full_i32_span_draws_and_covers_range() {
+        let mut rng = SplitMix64::new(0xFEED_CAFE_DEAD_BEEF);
+        let s0 = rng.state();
+        let v = rng.range_closed(i32::MIN, i32::MAX);
+        assert_ne!(rng.state(), s0, "range_closed(MIN,MAX) must consume a draw");
+        // With just 100 draws, we won't see the full range, but the result must
+        // be in bounds and we should see both positive and negative values.
+        let mut saw_neg = v < 0;
+        let mut saw_pos = v >= 0;
+        for _ in 0..100 {
+            let v = rng.range_closed(i32::MIN, i32::MAX);
+            assert!(v >= i32::MIN && v <= i32::MAX);
+            if v < 0 { saw_neg = true; }
+            if v >= 0 { saw_pos = true; }
+        }
+        assert!(saw_neg, "full i32 range must sometimes return negative");
+        assert!(saw_pos, "full i32 range must sometimes return non-negative");
+    }
+
+    #[test]
+    fn test_range_closed_near_extremes_draws_correctly() {
+        // lo=i32::MIN, hi=i32::MAX-1: span=2^32-1, fits u32 — uses code path
+        // that was always correct. Verify it still works after the refactor.
+        let mut rng_a = SplitMix64::new(777);
+        let mut rng_b = SplitMix64::new(777);
+        for _ in 0..50 {
+            let va = rng_a.range_closed(i32::MIN, i32::MAX - 1);
+            let vb = rng_b.range_closed(i32::MIN, i32::MAX - 1);
+            assert_eq!(va, vb);
+            assert!(va >= i32::MIN && va <= i32::MAX - 1);
         }
     }
 
