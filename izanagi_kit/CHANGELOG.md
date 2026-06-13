@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`Fixed::mid` doc contradicted its rounding behavior** (`fixed.rs`) — The
+  doc claimed the midpoint "rounds toward zero", but the implementation
+  `(a + b) >> 1` is an arithmetic shift that floors toward negative infinity
+  (e.g. midpoint of raw `-1` and `0` is `-1`, not `0`). Floor is the correct,
+  intended convention — it matches `Fixed::floor`/`Fixed::fract` and keeps
+  `mid` symmetric — so the fix corrects the doc rather than the code (no
+  behavior change, no hash impact). The existing `mid` tests all used even
+  sums, leaving the rounding direction unverified; two new tests now pin the
+  floor behavior on odd sums and the no-overflow guarantee at the extremes.
 - **`MultiMap::det_hash` omits `floors` field** (`multimap.rs`) — The
   `floors: Vec<Dungeon>` field — the entire dungeon stack — was absent from
   `DetHash`, which folded only `current_floor` and `connectors`. Two

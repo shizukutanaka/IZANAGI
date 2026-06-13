@@ -228,8 +228,11 @@ impl Fixed {
         self.0 >= lo.0 && self.0 <= hi.0
     }
 
-    /// Midpoint of `self` and `other`: `(self + other) / 2` (rounds toward
-    /// zero). Avoids the manual `(a + b) / 2` overflow hazard — intermediate
+    /// Midpoint of `self` and `other`: `(self + other) / 2`, **rounding toward
+    /// negative infinity** (floor) on an odd raw sum — consistent with
+    /// [`floor`](Self::floor) and [`fract`](Self::fract), not C-style
+    /// truncation. For example, the midpoint of raw `-1` and `0` is raw `-1`,
+    /// not `0`. Avoids the manual `(a + b) / 2` overflow hazard — intermediate
     /// addition uses `i64`. Useful for bisection and centering.
     #[inline]
     pub fn mid(self, other: Fixed) -> Fixed {
@@ -1141,5 +1144,25 @@ mod tests {
     fn test_mid_self_is_identity() {
         let v = Fixed::from_int(7);
         assert_eq!(v.mid(v), v);
+    }
+
+    #[test]
+    fn test_mid_odd_sum_floors_toward_neg_infinity() {
+        // An odd raw sum must floor toward -inf (matching `floor`/`fract`),
+        // NOT truncate toward zero. mid(raw -1, raw 0) == raw -1, not 0.
+        assert_eq!(Fixed(-1).mid(Fixed(0)).raw(), -1, "negative odd sum floors");
+        assert_eq!(Fixed(-3).mid(Fixed(0)).raw(), -2, "(-3+0)>>1 == -2");
+        // Positive odd sum: floor and truncate agree.
+        assert_eq!(Fixed(1).mid(Fixed(0)).raw(), 0, "(1+0)>>1 == 0");
+        assert_eq!(Fixed(3).mid(Fixed(0)).raw(), 1, "(3+0)>>1 == 1");
+    }
+
+    #[test]
+    fn test_mid_extremes_no_overflow() {
+        // The i64 intermediate must prevent overflow at the extremes.
+        assert_eq!(Fixed::MAX.mid(Fixed::MAX), Fixed::MAX);
+        assert_eq!(Fixed::MIN.mid(Fixed::MIN), Fixed::MIN);
+        // Midpoint of the full span floors to raw -1 ((MAX+MIN)>>1 = -1>>1 = -1).
+        assert_eq!(Fixed::MAX.mid(Fixed::MIN).raw(), -1);
     }
 }
