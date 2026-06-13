@@ -130,6 +130,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **`geometry::ray_cast` / `ray_blocked_at` — bolt/beam tracing** (`geometry.rs`)
+  — The kit had the line-of-cells primitive (`line`) and a boolean visibility
+  check (`line_of_sight`), and `ability.rs` documents "projectile type", but
+  there was no primitive answering *"trace a bolt from A toward B and return the
+  cells it travels through and where it stops."* Callers had to re-hand-roll a
+  truncated Bresenham walk. `ray_cast(origin, target, is_blocked)` walks the
+  Bresenham line and returns the ordered path up to **and including** the first
+  blocked cell (the impact point); the origin is always included and never
+  tested (a bolt is not absorbed by the shooter's own tile), and an unobstructed
+  shot returns the full line through `target`, so `.last()` is always where the
+  bolt landed. `ray_blocked_at` is the companion targeting query, returning
+  `Some(impact)` for a shot stopped short of `target` and `None` for a clear shot
+  (aiming at a wall is a clear shot *to* that wall). Both are deterministic and
+  integer-only, re-exported at the crate root, and covered by 11 tests including
+  determinism, origin/target edge cases, and agreement with `line_of_sight`.
 - **Golden coverage for `TimerQueue`, `Dungeon`, `MultiMap`** (`tests/det_hash_golden.rs`)
   — Extends the wire-format tripwire from 20 to 23 pinned `DetHash` types,
   closing the enforcement gap behind the recent field-omission fixes. The

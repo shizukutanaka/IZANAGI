@@ -76,6 +76,58 @@ where
     true
 }
 
+/// Trace a bolt/beam from `origin` toward `target` along the Bresenham [`line`],
+/// returning the ordered cells it travels through up to **and including** the
+/// first blocked cell (the impact point). If nothing blocks the path, the full
+/// line through `target` is returned, so the last element is always *where the
+/// bolt landed* — either `target` or the obstruction that stopped it.
+///
+/// The `origin` cell is the shooter's own square: it is always included and
+/// **never tested** for blocking (a bolt is not absorbed by the tile you stand
+/// on). Every cell after it is a candidate impact — the first one for which
+/// `is_blocked` returns `true` ends the trace. `origin == target` yields just
+/// `[origin]`.
+///
+/// This is the projectile/bolt primitive (arrows, lightning bolts, thrown
+/// items): interior cells are the pass-through path (apply beam damage there),
+/// and `.last()` is the cell that takes the hit. Deterministic and integer-only
+/// like the rest of the module.
+pub fn ray_cast<F>(origin: (i32, i32), target: (i32, i32), mut is_blocked: F) -> Vec<(i32, i32)>
+where
+    F: FnMut(i32, i32) -> bool,
+{
+    let cells = line(origin, target);
+    let mut out = Vec::with_capacity(cells.len());
+    for (i, &(x, y)) in cells.iter().enumerate() {
+        out.push((x, y));
+        // Index 0 is the origin — the shooter's own cell never stops the bolt.
+        if i > 0 && is_blocked(x, y) {
+            break;
+        }
+    }
+    out
+}
+
+/// Where a bolt from `origin` toward `target` is stopped, if it does not reach
+/// `target`. Returns `Some(impact)` when an obstruction halts the bolt **before**
+/// `target` (a blocked shot), and `None` when the bolt reaches `target`
+/// unobstructed — whether or not `target` itself is blocked (aiming at a wall is
+/// still a clear shot *to* that wall).
+///
+/// Companion to [`ray_cast`] sharing its exact blocking convention (the origin
+/// never blocks); use this for the common "is my shot clear, and if not, what's
+/// in the way?" targeting query without inspecting the whole path.
+pub fn ray_blocked_at<F>(origin: (i32, i32), target: (i32, i32), is_blocked: F) -> Option<(i32, i32)>
+where
+    F: FnMut(i32, i32) -> bool,
+{
+    let path = ray_cast(origin, target, is_blocked);
+    match path.last() {
+        Some(&last) if last != target => Some(last),
+        _ => None,
+    }
+}
+
 /// The grid cells on the perimeter of a circle centred at `(cx, cy)` with
 /// the given `radius`, using the Bresenham midpoint circle algorithm. The
 /// returned cells are in ascending `(y, x)` order, without duplicates. An
@@ -941,5 +993,85 @@ mod tests {
             y = ny;
         }
         assert_eq!((x, y), (3, -7));
+    }
+
+    // --- ray_cast / ray_blocked_at -----------------------------------------
+
+    #[test]
+    fn test_ray_cast_clear_path_returns_full_line() {
+        // No obstruction: the bolt reaches the target and the path matches `line`.
+        let path = ray_cast((0, 0), (4, 0), |_, _| false);
+        assert_eq!(path, line((0, 0), (4, 0)));
+        assert_eq!(path.last(), Some(&(4, 0)), "landed on the target");
+    }
+
+    #[test]
+    fn test_ray_cast_stops_at_first_blocker_inclusive() {
+        // Wall at (3,0): the bolt stops there, and the wall is the last cell.
+        let path = ray_cast((0, 0), (6, 0), |x, y| (x, y) == (3, 0));
+        assert_eq!(path, vec![(0, 0), (1, 0), (2, 0), (3, 0)]);
+        assert_eq!(path.last(), Some(&(3, 0)), "impact cell is included");
+    }
+
+    #[test]
+    fn test_ray_cast_origin_never_blocks() {
+        // Even if the origin cell tests as blocked, the bolt launches from it.
+        let path = ray_cast((2, 2), (5, 2), |x, y| (x, y) == (2, 2));
+        assert_eq!(path.first(), Some(&(2, 2)));
+        assert_eq!(path.last(), Some(&(5, 2)), "reaches target despite blocked origin");
+        assert_eq!(path.len(), 4);
+    }
+
+    #[test]
+    fn test_ray_cast_origin_equals_target_is_single_cell() {
+        let path = ray_cast((7, 7), (7, 7), |_, _| true);
+        assert_eq!(path, vec![(7, 7)]);
+    }
+
+    #[test]
+    fn test_ray_cast_blocked_at_target_returns_full_path() {
+        // The target itself is a wall: the bolt reaches and stops on it.
+        let path = ray_cast((0, 0), (3, 3), |x, y| (x, y) == (3, 3));
+        assert_eq!(path.last(), Some(&(3, 3)));
+        assert_eq!(path.len(), line_len((0, 0), (3, 3)));
+    }
+
+    #[test]
+    fn test_ray_cast_is_deterministic() {
+        let a = ray_cast((1, 1), (9, 4), |x, y| (x, y) == (5, 3));
+        let b = ray_cast((1, 1), (9, 4), |x, y| (x, y) == (5, 3));
+        assert_eq!(a, b, "pure integer trace must be reproducible");
+    }
+
+    #[test]
+    fn test_ray_blocked_at_clear_shot_is_none() {
+        assert_eq!(ray_blocked_at((0, 0), (5, 0), |_, _| false), None);
+    }
+
+    #[test]
+    fn test_ray_blocked_at_reports_obstruction() {
+        let hit = ray_blocked_at((0, 0), (6, 0), |x, y| (x, y) == (3, 0));
+        assert_eq!(hit, Some((3, 0)), "first blocker short of target");
+    }
+
+    #[test]
+    fn test_ray_blocked_at_wall_on_target_is_clear() {
+        // Aiming at a wall is a clear shot *to* that wall, not a blocked shot.
+        assert_eq!(ray_blocked_at((0, 0), (4, 4), |x, y| (x, y) == (4, 4)), None);
+    }
+
+    #[test]
+    fn test_ray_blocked_at_origin_equals_target_is_none() {
+        assert_eq!(ray_blocked_at((2, 2), (2, 2), |_, _| true), None);
+    }
+
+    #[test]
+    fn test_ray_cast_interior_matches_line_of_sight() {
+        // A clear ray_cast (reaching target) iff line_of_sight is true, for the
+        // same opacity predicate — the two line-family checks must agree.
+        let opaque = |x: i32, y: i32| (x, y) == (2, 1);
+        let reaches = ray_cast((0, 0), (5, 2), opaque).last() == Some(&(5, 2));
+        let los = line_of_sight((0, 0), (5, 2), opaque);
+        assert_eq!(reaches, los, "ray_cast reach and line_of_sight must agree");
     }
 }
