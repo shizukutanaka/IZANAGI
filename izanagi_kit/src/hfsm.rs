@@ -16,6 +16,15 @@
 //! a **descendant** of `state` — enabling broad "are we in the combat branch?"
 //! queries without enumerating every substate.
 //!
+//! ## Invariants
+//!
+//! The parent table is always **acyclic** (a forest). [`set_parent`](HFsm::set_parent)
+//! / [`with_parent`](HFsm::with_parent) reject any edge that would close a cycle
+//! (and self-parenting), so every ancestor-chain walk — `fire`, `is_in`,
+//! `ancestors_of`, `peek_next`, `has_transition` — is guaranteed to terminate.
+//! Use [`try_set_parent`](HFsm::try_set_parent) when you need to know whether the
+//! edge was accepted.
+//!
 //! ## Determinism
 //!
 //! Transition lookup is a linear scan (no `HashMap`). Parent chains are walked
@@ -91,6 +100,10 @@ impl<S: Eq + Clone, E: Eq + Clone> HFsm<S, E> {
 
     /// Declare `child` as a sub-state of `parent`. If `child` already has a
     /// parent, the existing declaration is replaced.
+    ///
+    /// Edges that would create a cycle (or self-parenting) are silently ignored
+    /// to keep the hierarchy a forest — see [`try_set_parent`](HFsm::try_set_parent)
+    /// for a form that reports rejection.
     pub fn with_parent(mut self, child: S, parent: S) -> Self {
         self.set_parent(child, parent);
         self
@@ -115,11 +128,50 @@ impl<S: Eq + Clone, E: Eq + Clone> HFsm<S, E> {
     // ── Mutation methods ───────────────────────────────────────────────────
 
     /// Declare `child` as a sub-state of `parent` (non-builder form).
+    ///
+    /// Cycle-forming edges (and self-parenting) are silently ignored so the
+    /// parent table stays acyclic. Use [`try_set_parent`](HFsm::try_set_parent)
+    /// if you need to know whether the edge was applied.
     pub fn set_parent(&mut self, child: S, parent: S) {
+        self.try_set_parent(child, parent);
+    }
+
+    /// Declare `child` as a sub-state of `parent`, returning `false` (and making
+    /// no change) when the edge would create a cycle or is a self-parent, and
+    /// `true` when applied. If `child` already has a parent, it is replaced.
+    ///
+    /// Mirrors [`Relations::attach`](crate::relations::Relations::attach): the
+    /// parent table is kept acyclic so every ancestor-chain walk terminates.
+    pub fn try_set_parent(&mut self, child: S, parent: S) -> bool {
+        if self.would_cycle(&child, &parent) {
+            return false;
+        }
         if let Some((_, p)) = self.parents.iter_mut().find(|(c, _)| *c == child) {
             *p = parent;
         } else {
             self.parents.push((child, parent));
+        }
+        true
+    }
+
+    /// Whether adding the edge `child → parent` would create a cycle (including
+    /// the degenerate self-parent `child == parent`).
+    ///
+    /// Relies on the existing parent table being acyclic (the maintained
+    /// invariant) so the upward walk from `parent` is guaranteed to terminate.
+    pub fn would_cycle(&self, child: &S, parent: &S) -> bool {
+        if child == parent {
+            return true;
+        }
+        // Walk up from `parent`; if the chain reaches `child`, closing the edge
+        // `child → parent` would form a cycle.
+        let mut cur = parent.clone();
+        loop {
+            match self.parent_of(&cur) {
+                None => return false,
+                Some(p) if p == child => return true,
+                Some(p) => cur = p.clone(),
+            }
         }
     }
 
@@ -567,6 +619,85 @@ mod tests {
         let mut ai = make_ai();
         ai.set_state(S::Dead);
         assert_eq!(*ai.state(), S::Dead);
+    }
+
+    // ── Cycle safety (parent table stays acyclic) ─────────────────────────
+
+    #[test]
+    fn test_self_parent_rejected() {
+        let f: HFsm<S, Ev> = HFsm::new(S::Alive).with_parent(S::Combat, S::Combat);
+        assert_eq!(
+            f.parent_of(&S::Combat),
+            None,
+            "self-parent edge must be ignored"
+        );
+    }
+
+    #[test]
+    fn test_try_set_parent_reports_acceptance() {
+        let mut f: HFsm<S, Ev> = HFsm::new(S::Alive);
+        assert!(f.try_set_parent(S::Combat, S::Alive), "valid edge accepted");
+        // Combat ⊂ Alive; making Alive ⊂ Combat would close a 2-cycle.
+        assert!(
+            !f.try_set_parent(S::Alive, S::Combat),
+            "cycle-forming edge rejected"
+        );
+        assert_eq!(f.parent_of(&S::Alive), None, "rejected edge made no change");
+        assert_eq!(f.parent_of(&S::Combat), Some(&S::Alive));
+    }
+
+    #[test]
+    fn test_would_cycle_detects_self_and_two_cycle() {
+        let f: HFsm<S, Ev> = HFsm::new(S::Alive).with_parent(S::Combat, S::Alive);
+        assert!(f.would_cycle(&S::Alive, &S::Alive), "self-parent is a cycle");
+        assert!(
+            f.would_cycle(&S::Alive, &S::Combat),
+            "Alive→Combat closes Combat→Alive"
+        );
+        assert!(
+            !f.would_cycle(&S::Chase, &S::Combat),
+            "Chase→Combat is acyclic"
+        );
+    }
+
+    #[test]
+    fn test_three_node_cycle_rejected() {
+        // Chase ⊂ Combat ⊂ Alive. Closing Alive → Chase would form a 3-cycle.
+        let mut f: HFsm<S, Ev> = HFsm::new(S::Alive)
+            .with_parent(S::Combat, S::Alive)
+            .with_parent(S::Chase, S::Combat);
+        assert!(
+            !f.try_set_parent(S::Alive, S::Chase),
+            "Alive→Chase (Chase→Combat→Alive→Chase) must be rejected"
+        );
+        assert_eq!(f.parent_of(&S::Alive), None);
+    }
+
+    #[test]
+    fn test_replacing_parent_stays_cycle_safe() {
+        // Combat ⊂ Alive, Chase ⊂ Combat. Re-parenting Combat under Chase would
+        // make Combat→Chase→Combat — must be rejected; a valid re-parent works.
+        let mut f: HFsm<S, Ev> = HFsm::new(S::Alive)
+            .with_parent(S::Combat, S::Alive)
+            .with_parent(S::Chase, S::Combat);
+        assert!(!f.try_set_parent(S::Combat, S::Chase), "cycle via replace");
+        assert_eq!(f.parent_of(&S::Combat), Some(&S::Alive), "unchanged");
+        // Valid re-parent: Combat under Patrol (Patrol is a root here).
+        assert!(f.try_set_parent(S::Combat, S::Patrol));
+        assert_eq!(f.parent_of(&S::Combat), Some(&S::Patrol));
+    }
+
+    #[test]
+    fn test_traversals_terminate_after_cycle_attempt() {
+        // The payoff: after a rejected cycle the table is still a forest, so the
+        // ancestor-walking queries return finite, correct results (no hang).
+        let mut ai = make_ai();
+        assert!(!ai.try_set_parent(S::Alive, S::Chase), "would cycle, rejected");
+        ai.fire(&Ev::SeePlayer); // → Chase, terminates
+        assert_eq!(*ai.state(), S::Chase);
+        assert_eq!(ai.ancestors(), vec![&S::Combat, &S::Alive]); // bounded
+        assert!(ai.is_in(&S::Alive)); // bounded walk
+        assert!(ai.has_transition(&Ev::Die)); // bounded walk + wildcard
     }
 
     // ── DetHash ───────────────────────────────────────────────────────────
