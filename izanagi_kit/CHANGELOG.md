@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **No-float invariant guard** (`tests/no_float_in_sim.rs`) — makes the
+  "no `f32`/`f64` in the deterministic layer" guarantee mechanical instead of
+  discipline-only (the `#![forbid(unsafe_code)]` half is already compiler-
+  enforced; this is the float half). Scans every production (non-`#[cfg(test)]`)
+  line under `src/`, strips line comments, and rejects `f32`/`f64` type tokens
+  and decimal float literals — catching e.g. `let speed = dist as f32 * 0.5;`
+  that would otherwise compile, pass all tests, and silently break cross-platform
+  bit-identity (x87/SSE rounding, FMA contraction). Floats stay allowed in
+  `#[cfg(test)]` modules. Verified end-to-end (flags an injected float, passes
+  on clean source) plus a `test_scanner_self_check` so the detectors can't go
+  vacuous. 2 tests; zero new dependencies.
 - **`DetHash` wire-format golden regression guard** (`tests/det_hash_golden.rs`) —
   pins the exact `hash_state` value of a fixed instance of 20 public `DetHash`
   types (`Fixed`, `Entity`, `Vec2/3`, `Aabb`, `Camera`, `Cooldown`, `Dice`,
