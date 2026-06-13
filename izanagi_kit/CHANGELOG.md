@@ -7,6 +7,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`SparseSet` ignored entity generation — stale handles aliased recycled slots**
+  (`sparse_set.rs`) — `slot()`, the lookup chokepoint behind `get`/`get_mut`/
+  `contains`/`remove`/`swap`, keyed only on `entity.index()` and ignored
+  `entity.generation()`, even though the full `Entity` was stored in
+  `dense_entities`. The generational-handle design exists precisely to reject a
+  stale handle to a despawned-then-respawned slot, but the component store
+  silently defeated it: after freeing `e0` (idx 0, gen 0) and allocating
+  `e1` (idx 0, gen 1) at the recycled index, `set.get(e0)` returned `e1`'s
+  component (a use-after-free analog), and `set.get(e1)` could inherit `e0`'s
+  leftover component. Fixed by having `slot()` verify
+  `dense_entities[pos] == entity` (full equality including generation),
+  rejecting any generation mismatch. Live-handle access is unchanged (the
+  stored entity equals the query handle), so both PINNED determinism hashes are
+  unaffected — verified by the full suite including `test_final_hash_is_pinned`
+  and `test_roguelike_final_hash_is_pinned`. Three new tests pin the contract
+  (stale read, fresh-handle-at-recycled-index, stale get_mut/remove); verified
+  end-to-end — all three fail against the old index-only lookup.
 - **`first_diff`/`diff` under-reported vs `content_eq`** (`serializer.rs`) — The
   round-trip oracle `content_eq` compares every field (prefab name/glyph/color/
   stats/flags, tile name/glyph/color, level name/width/height/rows/spawns), but

@@ -44,7 +44,17 @@ impl<T> SparseSet<T> {
 
     #[inline]
     fn slot(&self, entity: Entity) -> Option<u32> {
-        self.sparse.get(entity.index() as usize).copied().flatten()
+        let pos = self.sparse.get(entity.index() as usize).copied().flatten()?;
+        // Generational safety: the dense slot is keyed by index, but a freed
+        // index can be recycled at a bumped generation. Reject a handle whose
+        // generation no longer matches the entity actually occupying the slot,
+        // so a stale handle can never alias (read/mutate/remove) a recycled
+        // slot's component. `pos` always indexes a valid dense entry.
+        if self.dense_entities[pos as usize] == entity {
+            Some(pos)
+        } else {
+            None
+        }
     }
 
     /// Inserts or overwrites the component for `entity`. O(1) amortised.
@@ -1020,5 +1030,59 @@ mod tests {
             .map(|(e, _, _, _)| e)
             .collect();
         assert_eq!(immut, mut_, "join3 and join3_mut must produce the same entity order");
+    }
+
+    // --- generational safety: a stale handle must never alias a recycled slot ---
+
+    #[test]
+    fn test_stale_handle_does_not_alias_recycled_slot() {
+        let mut alloc = EntityAllocator::new();
+        let mut set: SparseSet<u32> = SparseSet::new();
+        let e0 = alloc.allocate(); // idx 0, gen 0
+        set.insert(e0, 100);
+        alloc.free(e0);
+        let e1 = alloc.allocate(); // idx 0, gen 1 — recycled slot
+        assert_eq!(e1.index(), e0.index());
+        assert_ne!(e1.generation(), e0.generation());
+        set.insert(e1, 200); // e1's component overwrites the slot
+        assert_eq!(
+            set.get(e0),
+            None,
+            "stale handle (gen 0) must not read the recycled slot's component"
+        );
+        assert_eq!(set.get(e1), Some(&200), "live handle reads its own component");
+    }
+
+    #[test]
+    fn test_fresh_handle_at_recycled_index_has_no_component() {
+        let mut alloc = EntityAllocator::new();
+        let mut set: SparseSet<u32> = SparseSet::new();
+        let e0 = alloc.allocate();
+        set.insert(e0, 100);
+        alloc.free(e0);
+        let e1 = alloc.allocate(); // recycles idx 0 at gen 1; no component inserted
+        assert_eq!(
+            set.get(e1),
+            None,
+            "a fresh entity reusing an index must not inherit the prior occupant's component"
+        );
+        assert!(!set.contains(e1));
+    }
+
+    #[test]
+    fn test_stale_handle_get_mut_and_remove_rejected() {
+        let mut alloc = EntityAllocator::new();
+        let mut set: SparseSet<u32> = SparseSet::new();
+        let e0 = alloc.allocate();
+        set.insert(e0, 1);
+        alloc.free(e0);
+        let e1 = alloc.allocate();
+        set.insert(e1, 2);
+        // Mutation and removal via the stale handle must both be rejected,
+        // leaving e1's component intact.
+        assert_eq!(set.get_mut(e0), None);
+        assert_eq!(set.remove(e0), None);
+        assert_eq!(set.get(e1), Some(&2), "e1's component survives stale ops");
+        assert!(!set.contains(e0));
     }
 }
