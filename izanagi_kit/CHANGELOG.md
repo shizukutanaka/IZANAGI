@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`first_diff`/`diff` under-reported vs `content_eq`** (`serializer.rs`) — The
+  round-trip oracle `content_eq` compares every field (prefab name/glyph/color/
+  stats/flags, tile name/glyph/color, level name/width/height/rows/spawns), but
+  the two diagnostic helpers that are documented to explain a `content_eq`
+  failure were incomplete: `first_diff` checked no tiles at all and, for levels,
+  only `name` + `rows` (skipping `width`, `height`, `spawns`); `diff` likewise
+  skipped level `width`/`height`/`spawns`. Two `Content` values unequal under
+  `content_eq` — differing only in level dimensions, spawns, or (for
+  `first_diff`) tile contents — would return `None`/empty, falsely reporting "no
+  difference" and breaking the documented contract ("`None` when they are equal
+  under `content_eq`"). A round-trip fuzz failure in those fields would print an
+  empty diagnostic. Both helpers now mirror the oracle exactly. Added six tests
+  (including an exhaustive per-field mutation check that asserts both diagnostics
+  agree with `content_eq`); verified end-to-end — the new tests fail against the
+  old helpers. No wire-format or hash impact; PINNED hashes unaffected.
 - **`Fixed::mid` doc contradicted its rounding behavior** (`fixed.rs`) — The
   doc claimed the midpoint "rounds toward zero", but the implementation
   `(a + b) >> 1` is an arithmetic shift that floors toward negative infinity

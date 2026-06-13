@@ -110,12 +110,44 @@ pub fn first_diff(a: &Content, b: &Content) -> Option<String> {
             return Some(format!("prefab[{i}].flags differ"));
         }
     }
+    for (i, (ta, tb)) in a.tiles.iter().zip(&b.tiles).enumerate() {
+        if ta.name != tb.name {
+            return Some(format!("tile[{i}].name {:?} vs {:?}", ta.name, tb.name));
+        }
+        if ta.glyph != tb.glyph {
+            return Some(format!("tile[{i}].glyph {:?} vs {:?}", ta.glyph, tb.glyph));
+        }
+        if ta.color != tb.color {
+            return Some(format!("tile[{i}].color {:?} vs {:?}", ta.color, tb.color));
+        }
+    }
     for (i, (la, lb)) in a.levels.iter().zip(&b.levels).enumerate() {
         if la.name != lb.name {
             return Some(format!("level[{i}].name {:?} vs {:?}", la.name, lb.name));
         }
+        if la.width != lb.width {
+            return Some(format!("level[{i}].width {} vs {}", la.width, lb.width));
+        }
+        if la.height != lb.height {
+            return Some(format!("level[{i}].height {} vs {}", la.height, lb.height));
+        }
         if la.rows != lb.rows {
             return Some(format!("level[{i}].rows differ"));
+        }
+        if la.spawns.len() != lb.spawns.len() {
+            return Some(format!(
+                "level[{i}].spawn count {} vs {}",
+                la.spawns.len(),
+                lb.spawns.len()
+            ));
+        }
+        for (j, (sa, sb)) in la.spawns.iter().zip(&lb.spawns).enumerate() {
+            if sa.prefab != sb.prefab || sa.x != sb.x || sa.y != sb.y {
+                return Some(format!(
+                    "level[{i}].spawn[{j}] ({},{},{}) vs ({},{},{})",
+                    sa.prefab, sa.x, sa.y, sb.prefab, sb.x, sb.y
+                ));
+            }
         }
     }
     None
@@ -183,8 +215,29 @@ pub fn diff(a: &Content, b: &Content) -> Vec<String> {
         if la.name != lb.name {
             out.push(format!("level[{i}].name {:?} vs {:?}", la.name, lb.name));
         }
+        if la.width != lb.width {
+            out.push(format!("level[{i}].width {} vs {}", la.width, lb.width));
+        }
+        if la.height != lb.height {
+            out.push(format!("level[{i}].height {} vs {}", la.height, lb.height));
+        }
         if la.rows != lb.rows {
             out.push(format!("level[{i}].rows differ"));
+        }
+        if la.spawns.len() != lb.spawns.len() {
+            out.push(format!(
+                "level[{i}].spawn count {} vs {}",
+                la.spawns.len(),
+                lb.spawns.len()
+            ));
+        }
+        for (j, (sa, sb)) in la.spawns.iter().zip(&lb.spawns).enumerate() {
+            if sa.prefab != sb.prefab || sa.x != sb.x || sa.y != sb.y {
+                out.push(format!(
+                    "level[{i}].spawn[{j}] ({},{},{}) vs ({},{},{})",
+                    sa.prefab, sa.x, sa.y, sb.prefab, sb.x, sb.y
+                ));
+            }
         }
     }
     out
@@ -341,5 +394,100 @@ level cave 5x3
         let (b, _) = parse(&modified);
         let ds = diff(&a, &b);
         assert!(ds.iter().any(|s| s.contains("rows")), "got: {ds:?}");
+    }
+
+    // --- diagnostics must agree with content_eq (no false "equal") ---
+
+    #[test]
+    fn test_first_diff_detects_spawn_change() {
+        // Same name/rows/dims, different spawn position. content_eq is false,
+        // so first_diff must report it (not None).
+        let (a, _) = parse(SAMPLE);
+        let modified = SAMPLE.replace("  spawn goblin 2 1", "  spawn goblin 3 1");
+        let (b, _) = parse(&modified);
+        assert!(!content_eq(&a, &b), "spawn change must break content_eq");
+        let d = first_diff(&a, &b);
+        assert!(
+            d.is_some(),
+            "first_diff must not report None when content_eq is false (spawn)"
+        );
+    }
+
+    #[test]
+    fn test_first_diff_detects_level_dimension_change() {
+        let (a, _) = parse(SAMPLE);
+        let modified = SAMPLE.replace("level cave 5x3", "level cave 9x3");
+        let (b, _) = parse(&modified);
+        assert!(!content_eq(&a, &b), "width change must break content_eq");
+        assert!(
+            first_diff(&a, &b).is_some(),
+            "first_diff must not report None when content_eq is false (width)"
+        );
+    }
+
+    #[test]
+    fn test_first_diff_detects_tile_change() {
+        let (a, _) = parse(SAMPLE);
+        let modified = SAMPLE.replace("tile floor . #3A3A3A", "tile floor , #3A3A3A");
+        let (b, _) = parse(&modified);
+        assert!(!content_eq(&a, &b), "tile glyph change must break content_eq");
+        assert!(
+            first_diff(&a, &b).is_some(),
+            "first_diff must not report None when content_eq is false (tile)"
+        );
+    }
+
+    #[test]
+    fn test_diff_detects_spawn_change() {
+        let (a, _) = parse(SAMPLE);
+        let modified = SAMPLE.replace("  spawn goblin 2 1", "  spawn goblin 3 1");
+        let (b, _) = parse(&modified);
+        assert!(!content_eq(&a, &b));
+        assert!(
+            !diff(&a, &b).is_empty(),
+            "diff must not be empty when content_eq is false (spawn)"
+        );
+    }
+
+    #[test]
+    fn test_diff_detects_level_dimension_change() {
+        let (a, _) = parse(SAMPLE);
+        let modified = SAMPLE.replace("level cave 5x3", "level cave 5x9");
+        let (b, _) = parse(&modified);
+        assert!(!content_eq(&a, &b));
+        assert!(
+            !diff(&a, &b).is_empty(),
+            "diff must not be empty when content_eq is false (height)"
+        );
+    }
+
+    #[test]
+    fn test_diagnostics_agree_with_content_eq_on_each_field() {
+        // Exhaustive: for every single-field mutation that breaks content_eq,
+        // both diagnostics must be non-None / non-empty.
+        let mutations = [
+            ("  glyph g", "  glyph h"),        // prefab glyph
+            ("  color #F85149", "  color #FFFFFF"), // prefab color
+            ("  stat hp 10", "  stat hp 99"),  // prefab stat value
+            ("  flag hostile", "  flag passive"), // prefab flag
+            ("tile floor . #3A3A3A", "tile floor . #FFFFFF"), // tile color
+            ("level cave 5x3", "level den 5x3"), // level name
+            ("  spawn goblin 2 1", "  spawn goblin 2 2"), // spawn y
+        ];
+        for (from, to) in mutations {
+            let (a, _) = parse(SAMPLE);
+            let (b, _) = parse(&SAMPLE.replace(from, to));
+            if content_eq(&a, &b) {
+                continue; // mutation didn't change meaning; skip
+            }
+            assert!(
+                first_diff(&a, &b).is_some(),
+                "first_diff None for mutation {from:?} -> {to:?}"
+            );
+            assert!(
+                !diff(&a, &b).is_empty(),
+                "diff empty for mutation {from:?} -> {to:?}"
+            );
+        }
     }
 }
