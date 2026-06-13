@@ -908,4 +908,58 @@ mod tests {
             assert_eq!(rng_a.range_closed(0, 9), rng_b.range(0, 10));
         }
     }
+
+    /// Exhaustive guard for the determinism-critical "degenerate input consumes
+    /// no draw" contract (S3). Every consuming method with a documented no-draw
+    /// path is exercised here; the harness asserts `state()` never moves from the
+    /// initial value, so a refactor that sneaks a `next_u64()` *before* the guard
+    /// (silently shifting the draw count and desyncing replays, while leaving the
+    /// return value unchanged) is caught uniformly.
+    ///
+    /// **When you add a new RNG-consuming method with a degenerate path, add a
+    /// line here.** This is the single systematic anchor for the contract.
+    #[test]
+    fn test_degenerate_inputs_consume_no_draw_exhaustive() {
+        let mut r = SplitMix64::new(0x1234_5678_9ABC_DEF0);
+        let s0 = r.state();
+
+        macro_rules! no_draw {
+            ($label:literal, $call:expr) => {{
+                let _ = $call;
+                assert_eq!(
+                    r.state(),
+                    s0,
+                    concat!($label, " consumed a draw on a degenerate input")
+                );
+            }};
+        }
+
+        no_draw!("below(0)", r.below(0));
+        no_draw!("range(lo==hi)", r.range(5, 5));
+        no_draw!("range(lo>hi)", r.range(10, 5));
+        no_draw!("range_closed(lo==hi)", r.range_closed(5, 5));
+        no_draw!("range_closed(lo>hi)", r.range_closed(7, 3));
+        no_draw!("range_u32(lo==hi)", r.range_u32(7, 7));
+        no_draw!("range_u32(lo>hi)", r.range_u32(10, 5));
+        no_draw!("coin(num==0)", r.coin(0, 10));
+        no_draw!("coin(den==0)", r.coin(5, 0));
+        no_draw!("coin(num==den)", r.coin(10, 10));
+        no_draw!("coin(num>den)", r.coin(11, 10));
+        no_draw!("weighted_index(empty)", r.weighted_index(&[]));
+        no_draw!("weighted_index(all-zero)", r.weighted_index(&[0, 0, 0]));
+        no_draw!("dice(count==0)", r.dice(0, 6));
+        no_draw!("dice(sides==0)", r.dice(3, 0));
+        no_draw!("shuffle(empty)", r.shuffle(&mut Vec::<u32>::new()));
+        no_draw!("shuffle(single)", r.shuffle(&mut [42u32]));
+        no_draw!("pick(empty)", r.pick(&[] as &[u32]));
+        no_draw!("pick_mut(empty)", r.pick_mut(&mut [] as &mut [u32]));
+        no_draw!("pick_index(0)", r.pick_index(0));
+        no_draw!("within_rect(w<=0)", r.within_rect(0, 0, 0, 5));
+        no_draw!("within_rect(h<=0)", r.within_rect(0, 0, 5, 0));
+        no_draw!("within_rect(both<=0)", r.within_rect(0, 0, -1, -1));
+        no_draw!("sample_n(empty)", r.sample_n(&[] as &[u32], 3));
+        no_draw!("sample_n(n==0)", r.sample_n(&[1u32, 2, 3], 0));
+        no_draw!("gaussian_approx(spread==0)", r.gaussian_approx(10, 0));
+        no_draw!("skip(0)", r.skip(0));
+    }
 }

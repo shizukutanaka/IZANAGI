@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Exhaustive RNG no-draw contract guard** (`rng::tests::test_degenerate_inputs_consume_no_draw_exhaustive`)
+  — pins the determinism-critical S3 invariant that *degenerate inputs consume no
+  draw* across **every** consuming `SplitMix64` method in one table-driven test
+  asserting `state()` is unchanged. Closes 4 methods whose no-draw promise was
+  documented but never verified (only the return value was checked):
+  `range_closed(lo>=hi)`, `range_u32(lo>=hi)`, `shuffle(len<2)`, `pick_mut(empty)`.
+  A refactor that sneaks a `next_u64()` before a guard now fails uniformly (it
+  shifts the draw count and desyncs replays while leaving the return value
+  intact). Verified end-to-end by injecting a pre-guard draw into `range_u32` and
+  confirming the test fails. Serves as the single anchor new consuming methods
+  must extend.
 - **No-float invariant guard** (`tests/no_float_in_sim.rs`) — makes the
   "no `f32`/`f64` in the deterministic layer" guarantee mechanical instead of
   discipline-only (the `#![forbid(unsafe_code)]` half is already compiler-
