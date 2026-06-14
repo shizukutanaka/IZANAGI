@@ -886,7 +886,7 @@ mod tests {
         let mut saw_hi = false;
         for _ in 0..200 {
             let v = rng.range_closed(1, 3);
-            assert!(v >= 1 && v <= 3, "out of [1,3]: {v}");
+            assert!((1..=3).contains(&v), "out of [1,3]: {v}");
             if v == 1 {
                 saw_lo = true;
             }
@@ -932,7 +932,8 @@ mod tests {
         let mut saw_pos = v >= 0;
         for _ in 0..100 {
             let v = rng.range_closed(i32::MIN, i32::MAX);
-            assert!(v >= i32::MIN && v <= i32::MAX);
+            // Range is the whole i32 domain, so any value is trivially in
+            // bounds; the real assertions are the saw_neg/saw_pos coverage below.
             if v < 0 { saw_neg = true; }
             if v >= 0 { saw_pos = true; }
         }
@@ -950,7 +951,9 @@ mod tests {
             let va = rng_a.range_closed(i32::MIN, i32::MAX - 1);
             let vb = rng_b.range_closed(i32::MIN, i32::MAX - 1);
             assert_eq!(va, vb);
-            assert!(va >= i32::MIN && va <= i32::MAX - 1);
+            // Closed range [MIN, MAX-1] must never yield i32::MAX (the lower
+            // bound is the type minimum, so only the upper bound is meaningful).
+            assert!(va < i32::MAX, "exceeded hi bound: {va}");
         }
     }
 

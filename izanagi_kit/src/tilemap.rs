@@ -1082,8 +1082,8 @@ mod tests {
     fn test_iter_rect_coords_within_bounds() {
         let m: TileMap<u8> = TileMap::new(8, 8, 0);
         for (x, y, _) in m.iter_rect(2, 3, 4, 3) {
-            assert!(x >= 2 && x < 6, "x={x} out of range");
-            assert!(y >= 3 && y < 6, "y={y} out of range");
+            assert!((2..6).contains(&x), "x={x} out of range");
+            assert!((3..6).contains(&y), "y={y} out of range");
         }
     }
 
@@ -1122,7 +1122,7 @@ mod tests {
     fn test_enumerate_row_x_matches_column_index() {
         let m: TileMap<u8> = TileMap::new(5, 2, 0);
         for (x, _) in m.enumerate_row(0) {
-            assert!(x >= 0 && x < 5, "x={x} out of column range");
+            assert!((0..5).contains(&x), "x={x} out of column range");
         }
         assert_eq!(m.enumerate_row(0).count(), 5);
     }

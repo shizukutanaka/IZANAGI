@@ -706,7 +706,7 @@ mod tests {
         let tree = BehaviorTree::new(BehaviorNode::action(Act::Ok));
         let mut log = vec![];
         assert_eq!(
-            tree.evaluate(&mut log, |l, id| act(l, id), |l, id| cond(l, id)),
+            tree.evaluate(&mut log, act, cond),
             BehaviorStatus::Success
         );
     }
