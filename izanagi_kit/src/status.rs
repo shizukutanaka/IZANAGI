@@ -65,6 +65,27 @@ impl<K: Eq + Clone> StatusSet<K> {
         self.entries.retain(|(k, _)| k != key);
     }
 
+    /// Remove every effect for which `pred(key, &effect)` returns `true`,
+    /// returning the removed keys in application order. The removal counterpart
+    /// of [`count_with`](Self::count_with): use it for cleanse / dispel
+    /// mechanics — "remove all debuffs" (`|_, e| e.magnitude < 0`), "cure all
+    /// poison", "strip every buff" — without collecting keys and calling
+    /// [`remove`](Self::remove) one by one. Returns an empty `Vec` when nothing
+    /// matches. Deterministic: matched keys come back in application order,
+    /// mirroring [`tick`](Self::tick)'s expired-key convention.
+    pub fn remove_where<F: Fn(&K, &Effect) -> bool>(&mut self, pred: F) -> Vec<K> {
+        let mut removed = Vec::new();
+        self.entries.retain(|(k, e)| {
+            if pred(k, e) {
+                removed.push(k.clone());
+                false
+            } else {
+                true
+            }
+        });
+        removed
+    }
+
     /// Whether an effect with this key is currently active.
     pub fn is_active(&self, key: &K) -> bool {
         self.entries.iter().any(|(k, _)| k == key)
@@ -550,6 +571,71 @@ mod tests {
         let mut s: StatusSet<u32> = StatusSet::new();
         s.apply(1, 5, 3);
         assert_eq!(s.count_with(|_, e| e.magnitude < 0), 0);
+    }
+
+    // --- remove_where (cleanse / dispel) ---
+
+    #[test]
+    fn test_remove_where_removes_matching_and_returns_keys() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 10); // buff
+        s.apply(2, 3, -5); // debuff
+        s.apply(3, 7, 8); // buff
+        s.apply(4, 2, -2); // debuff
+        let removed = s.remove_where(|_, e| e.magnitude < 0);
+        assert_eq!(removed, vec![2, 4], "debuff keys in application order");
+        assert!(s.is_active(&1) && s.is_active(&3), "buffs remain");
+        assert!(!s.is_active(&2) && !s.is_active(&4), "debuffs gone");
+        assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_where_no_match_is_noop() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 10);
+        s.apply(2, 3, 7);
+        let removed = s.remove_where(|_, e| e.magnitude < 0);
+        assert!(removed.is_empty());
+        assert_eq!(s.len(), 2, "nothing removed when no effect matches");
+    }
+
+    #[test]
+    fn test_remove_where_match_all_empties_set() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 5, 10);
+        s.apply(2, 3, -5);
+        let removed = s.remove_where(|_, _| true);
+        assert_eq!(removed, vec![1, 2]);
+        assert!(s.is_empty());
+    }
+
+    #[test]
+    fn test_remove_where_can_match_on_key() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(10, 5, 1);
+        s.apply(20, 5, 1);
+        s.apply(30, 5, 1);
+        let removed = s.remove_where(|k, _| *k >= 20);
+        assert_eq!(removed, vec![20, 30]);
+        assert!(s.is_active(&10));
+    }
+
+    #[test]
+    fn test_remove_where_matches_remove_calls_and_hash() {
+        // remove_where(pred) must leave the set identical to removing the same
+        // keys one by one — same surviving effects, same canonical hash.
+        let build = || {
+            let mut s: StatusSet<u32> = StatusSet::new();
+            s.apply(1, 5, 10);
+            s.apply(2, 3, -5);
+            s.apply(3, 7, 8);
+            s
+        };
+        let mut a = build();
+        a.remove_where(|_, e| e.magnitude < 0);
+        let mut b = build();
+        b.remove(&2);
+        assert_eq!(hash_state(&a), hash_state(&b));
     }
 
     #[test]

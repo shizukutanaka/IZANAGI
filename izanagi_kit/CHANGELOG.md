@@ -130,6 +130,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **`StatusSet::remove_where` — predicate-based cleanse / dispel** (`status.rs`)
+  — The removal API was only `remove(&key)` (one) and `clear()` (all), despite
+  `count_with` already offering predicate *counting*. Common mechanics — "remove
+  all debuffs", "cure all poison", "strip every buff" — forced callers to
+  collect matching keys and remove them one by one. `remove_where(pred)` removes
+  every effect for which `pred(key, &effect)` is true and returns the removed
+  keys in application order, mirroring `tick`'s expired-key convention and
+  `sparse_set::remove_where`. Five tests cover match-some (with key order),
+  no-match no-op, match-all, key-predicate matching, and equivalence-to-`remove`
+  (same surviving effects and canonical hash). Test count 2345 → 2350.
 - **`geometry::cone_visible` — wall-aware breath/cone footprint** (`geometry.rs`)
   — The pure `cone` shape ignores walls, so every caller re-derived the
   line-of-sight filtering (and its easy-to-misjudge endpoint semantics) by hand,
