@@ -130,6 +130,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **`geometry::cone` — directional breath-weapon / cone-spell shape** (`geometry.rs`)
+  — The shape library had `circle`, `diamond`, `ring_annulus`, and
+  `chebyshev_ring` but no directional cone, despite cone attacks (dragon breath,
+  cone of cold) being a roguelike staple. `cone(origin, facing, range)` returns
+  the cells of a 90° cone (±45° around `facing`) out to Euclidean `range`, for
+  any non-zero integer `facing` (the eight compass steps and beyond). Membership
+  is decided with exact integer arithmetic — in front (`o·facing > 0`), within
+  ±45° (`2·(o·facing)² ≥ |o|²·|facing|²`), and in range (`|o|² ≤ range²`) — so
+  the shape is bit-identical across targets with no trig or float. The origin is
+  excluded; cells return in ascending `(y, x)` order. Like the other pure shapes
+  it composes with `line_of_sight`/`ray_cast` for wall-aware breath. Nine tests
+  cover axis/edge inclusion, range and angle exclusion, mirror symmetry,
+  rotation congruence (a 90°-rotated facing yields the rotated cell-set),
+  diagonal facings, and determinism. Test count 2323 → 2332.
 - **`geometry::ray_cast` / `ray_blocked_at` — bolt/beam tracing** (`geometry.rs`)
   — The kit had the line-of-cells primitive (`line`) and a boolean visibility
   check (`line_of_sight`), and `ability.rs` documents "projectile type", but

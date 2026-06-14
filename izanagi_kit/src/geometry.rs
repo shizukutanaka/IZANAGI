@@ -314,6 +314,57 @@ pub fn diamond(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
     pts.into_iter().collect()
 }
 
+/// The cells of a 90° **cone** (a breath-weapon / cone-spell shape) emanating
+/// from `origin` along `facing`, out to Euclidean `range`. `facing` is any
+/// non-zero direction vector — typically one of the eight compass steps such as
+/// `(1, 0)` (east) or `(1, 1)` (south-east), but any integer axis works.
+///
+/// A cell offset `o` from the origin is included when all hold:
+/// - it is **in front** of the origin (`o · facing > 0`);
+/// - it lies within **±45°** of the axis, tested exactly with integers as
+///   `2·(o · facing)² ≥ |o|²·|facing|²` (no trigonometry, no float — so the
+///   shape is bit-identical on every target, like the rest of the kit);
+/// - it is within range (`|o|² ≤ range²`).
+///
+/// The `origin` itself is **excluded** (the breather's own tile is not part of
+/// the blast). Returns an empty `Vec` for `range < 0` or a zero `facing`. Cells
+/// come back in ascending `(y, x)` order, without duplicates.
+///
+/// This is a pure geometric shape, matching [`circle`]/[`diamond`]; for a cone
+/// that respects walls, filter the result with
+/// [`line_of_sight`]`(origin, cell, is_opaque)` (or [`ray_cast`]) at the call
+/// site, the same way the other area shapes compose with obstruction checks.
+pub fn cone(origin: (i32, i32), facing: (i32, i32), range: i32) -> Vec<(i32, i32)> {
+    let (fx, fy) = facing;
+    if range < 0 || (fx == 0 && fy == 0) {
+        return Vec::new();
+    }
+    let (ox, oy) = origin;
+    let f_mag_sq = (fx as i64 * fx as i64) + (fy as i64 * fy as i64);
+    let range_sq = range as i64 * range as i64;
+    let mut cells = Vec::new();
+    for dy in -range..=range {
+        for dx in -range..=range {
+            if dx == 0 && dy == 0 {
+                continue; // origin is excluded
+            }
+            let dist_sq = (dx as i64 * dx as i64) + (dy as i64 * dy as i64);
+            if dist_sq > range_sq {
+                continue; // outside the Euclidean range
+            }
+            let dot = (dx as i64 * fx as i64) + (dy as i64 * fy as i64);
+            if dot <= 0 {
+                continue; // behind or perpendicular to the facing
+            }
+            // angle(o, facing) ≤ 45°  ⟺  cosθ ≥ √2/2  ⟺  2·dot² ≥ |o|²·|f|²
+            if 2 * dot * dot >= dist_sq * f_mag_sq {
+                cells.push((ox + dx, oy + dy));
+            }
+        }
+    }
+    cells
+}
+
 /// Centre cell of the rectangle `[x, x+w) × [y, y+h)` using floor division.
 ///
 /// Returns `(x + w/2, y + h/2)` — identical truncation bias to
@@ -1073,5 +1124,100 @@ mod tests {
         let reaches = ray_cast((0, 0), (5, 2), opaque).last() == Some(&(5, 2));
         let los = line_of_sight((0, 0), (5, 2), opaque);
         assert_eq!(reaches, los, "ray_cast reach and line_of_sight must agree");
+    }
+
+    // --- cone --------------------------------------------------------------
+
+    fn cone_set(origin: (i32, i32), facing: (i32, i32), range: i32) -> HashSet<(i32, i32)> {
+        cone(origin, facing, range).into_iter().collect()
+    }
+
+    #[test]
+    fn test_cone_excludes_origin() {
+        assert!(!cone((0, 0), (1, 0), 3).contains(&(0, 0)));
+    }
+
+    #[test]
+    fn test_cone_negative_range_or_zero_facing_is_empty() {
+        assert!(cone((0, 0), (1, 0), -1).is_empty());
+        assert!(cone((0, 0), (0, 0), 5).is_empty());
+    }
+
+    #[test]
+    fn test_cone_east_includes_axis_and_45deg_edges() {
+        // range 3 so the (2,±2) diagonal edges (dist √8 ≈ 2.83) are in range.
+        let c = cone_set((0, 0), (1, 0), 3);
+        // On-axis cells are in the cone.
+        assert!(c.contains(&(1, 0)));
+        assert!(c.contains(&(3, 0)));
+        // The ±45° boundary cells are included (2·dot² == |o|²·|f|²).
+        assert!(c.contains(&(1, 1)));
+        assert!(c.contains(&(1, -1)));
+        assert!(c.contains(&(2, 2)));
+        assert!(c.contains(&(2, -2)));
+    }
+
+    #[test]
+    fn test_cone_east_excludes_behind_and_steep_and_out_of_range() {
+        let c = cone_set((0, 0), (1, 0), 2);
+        assert!(!c.contains(&(-1, 0)), "behind the facing");
+        assert!(!c.contains(&(0, 1)), "perpendicular (dot == 0)");
+        assert!(!c.contains(&(1, 2)), "steeper than 45 degrees");
+        assert!(!c.contains(&(3, 0)), "beyond range");
+    }
+
+    #[test]
+    fn test_cone_is_symmetric_about_its_axis() {
+        // East cone must be mirror-symmetric across the x-axis (y -> -y).
+        let c = cone_set((0, 0), (1, 0), 4);
+        for &(x, y) in &c {
+            assert!(
+                c.contains(&(x, -y)),
+                "({x},{y}) in cone but its mirror ({x},{}) is not",
+                -y
+            );
+        }
+    }
+
+    #[test]
+    fn test_cone_diagonal_facing_spans_adjacent_cardinals() {
+        // A south-east (1,1) cone is the ±45° wedge around the diagonal, so it
+        // reaches toward both east (1,0) and south (0,1) but not the opposite.
+        let c = cone_set((0, 0), (1, 1), 3);
+        assert!(c.contains(&(1, 1)), "on the diagonal axis");
+        assert!(c.contains(&(1, 0)), "east edge of the SE cone");
+        assert!(c.contains(&(0, 1)), "south edge of the SE cone");
+        assert!(!c.contains(&(-1, 0)), "west is outside a SE cone");
+        assert!(!c.contains(&(0, -1)), "north is outside a SE cone");
+    }
+
+    #[test]
+    fn test_cone_rotations_are_congruent() {
+        // Rotating the facing 90° must rotate the cone cell-set the same way:
+        // east cone rotated 90° CW equals the south cone (facing (0,1)).
+        let east = cone((0, 0), (1, 0), 3);
+        let rotated: HashSet<(i32, i32)> =
+            east.iter().map(|&(x, y)| rotate_90_cw(x, y)).collect();
+        let south = cone_set((0, 0), rotate_90_cw(1, 0), 3);
+        assert_eq!(rotated, south, "cone must be rotation-congruent");
+    }
+
+    #[test]
+    fn test_cone_is_deterministic_and_ordered() {
+        let a = cone((2, 3), (1, 0), 4);
+        let b = cone((2, 3), (1, 0), 4);
+        assert_eq!(a, b, "pure integer shape must be reproducible");
+        let mut sorted = a.clone();
+        sorted.sort_by_key(|&(x, y)| (y, x));
+        assert_eq!(a, sorted, "cells are returned in ascending (y, x) order");
+    }
+
+    #[test]
+    fn test_cone_within_range() {
+        // Every returned cell must satisfy the documented Euclidean range bound.
+        let r = 5;
+        for &(x, y) in &cone((0, 0), (2, 1), r) {
+            assert!(x * x + y * y <= r * r, "({x},{y}) exceeds range {r}");
+        }
     }
 }
