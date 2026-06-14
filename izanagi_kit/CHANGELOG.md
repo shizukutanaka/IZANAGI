@@ -154,6 +154,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Differential-oracle test perspective** (`tests/differential.rs`) — The
+  golden, property, and model-based lenses all check the kit against *itself*
+  (past bytes, self-relations, a hand-written reference model). This lens checks
+  the deterministic integer-only math against an **independent ground truth**:
+  `f64`. The no-float rule binds the simulation layer (scanned by
+  `tests/no_float_in_sim.rs`), not tests, so `Fixed`'s CORDIC `sin`/`cos`,
+  integer `sqrt`, and Q16.16 `mul`/`div` are validated against the true
+  real-valued functions within measured tolerances (`sin`/`cos` < 1e-3, `sqrt` <
+  1e-4, arithmetic < 1e-4; observed worst-case errors are ~6× tighter). Six
+  tests over 50k deterministic inputs each, plus perfect-square exactness and a
+  zero anchor. Catches what property laws cannot: a CORDIC sign/quadrant error
+  keeps `sin²+cos²≈1` true yet diverges from real `sin`/`cos`, and a wrong shift
+  in `mul` keeps commutativity true yet changes the value. Proven to have teeth
+  — injecting a `sin`/`cos` swap fails the differential while the property suite
+  stays green.
 - **Model-based (stateful) test perspective** (`tests/stateful.rs`) — A lens
   distinct from both the example tests and the *stateless* laws in
   `tests/properties.rs`: a structure is driven through a long random sequence of
