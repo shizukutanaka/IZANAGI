@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`load_bytes` could panic on a hostile payload length (32-bit)** (`savefile.rs`)
+  — The bounds check `data.len() < 20 + payload_len` added a 20-byte header to an
+  attacker-controllable `u32` payload length. On a 32-bit target a declared
+  length near `u32::MAX` overflows `usize`, wraps to a small value, slips past
+  the guard, and then `&data[20..20 + payload_len]` panics on an inverted slice
+  range — a panic on malformed input, violating the module's "fail cleanly with
+  a `LoadError`" contract. Rewrote the guard as `payload_len > data.len() - 20`
+  (the `>= 20` minimum is already enforced above, so the subtraction cannot
+  underflow), overflow-safe on every target and equivalent on 64-bit. Three
+  boundary tests added (declared len `u32::MAX` → `TooShort` not panic,
+  exact-fit decodes, one-past-buffer rejected). No wire-format change; the
+  golden-save bytes are unaffected.
 - **`SparseSet` ignored entity generation — stale handles aliased recycled slots**
   (`sparse_set.rs`) — `slot()`, the lookup chokepoint behind `get`/`get_mut`/
   `contains`/`remove`/`swap`, keyed only on `entity.index()` and ignored

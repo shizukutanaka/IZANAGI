@@ -84,7 +84,12 @@ pub fn load_bytes(data: &[u8]) -> Result<(SaveHeader, &[u8]), LoadError> {
         data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
     ]);
     let payload_len = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
-    if data.len() < 20 + payload_len {
+    // `data.len() >= 20` is guaranteed above, so the subtraction cannot
+    // underflow. Comparing this way — rather than `data.len() < 20 + payload_len`
+    // — avoids overflowing the addition when a hostile/corrupt header declares a
+    // `payload_len` near `usize::MAX` on 32-bit targets, which would wrap, slip
+    // past the bounds check, and then panic on the inverted slice range below.
+    if payload_len > data.len() - 20 {
         return Err(LoadError::TooShort);
     }
     let payload = &data[20..20 + payload_len];
@@ -339,6 +344,35 @@ mod tests {
         // Set the declared length to something larger than actual.
         let large_len: u32 = 999;
         data[16..20].copy_from_slice(&large_len.to_le_bytes());
+        assert_eq!(load_bytes(&data), Err(LoadError::TooShort));
+    }
+
+    #[test]
+    fn test_declared_len_u32_max_is_too_short_not_panic() {
+        // A hostile/corrupt header declaring the maximum payload length must
+        // fail cleanly with TooShort, never panic. On 32-bit targets the old
+        // `20 + payload_len` check overflowed usize, wrapped past the guard, and
+        // panicked on the inverted slice range; the subtraction-based check is
+        // overflow-safe on every target.
+        let mut data = save_bytes(&SaveHeader { version: 1 }, b"payload");
+        data[16..20].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert_eq!(load_bytes(&data), Err(LoadError::TooShort));
+    }
+
+    #[test]
+    fn test_declared_len_exactly_fits_buffer_is_ok() {
+        // Boundary: declared len == available bytes must decode (not TooShort).
+        let payload = b"exact";
+        let data = save_bytes(&SaveHeader { version: 1 }, payload);
+        assert_eq!(load_bytes(&data).unwrap().1, payload);
+    }
+
+    #[test]
+    fn test_declared_len_one_past_buffer_is_too_short() {
+        // Boundary: one byte more than present must be rejected.
+        let mut data = save_bytes(&SaveHeader { version: 1 }, b"hello");
+        let over = (b"hello".len() as u32) + 1;
+        data[16..20].copy_from_slice(&over.to_le_bytes());
         assert_eq!(load_bytes(&data), Err(LoadError::TooShort));
     }
 
