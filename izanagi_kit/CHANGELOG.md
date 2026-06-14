@@ -142,6 +142,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Raw-Unicode parser panic-freedom fuzz** (`tests/content_pipeline.rs`) — The
+  existing `test_parser_never_panics_on_garbage` fuzzes only the grammar token
+  vocabulary joined by spaces, leaving the tokenizer's char-boundary slicing
+  (`&raw[sb..byte_idx]`) and per-character column arithmetic under-exercised on
+  truly arbitrary input. `test_parser_never_panics_on_random_unicode` adds 4000
+  deterministic iterations of strings built from arbitrary Unicode scalar values
+  (many multi-byte), control characters, whitespace variants, and structural
+  chars interleaved without separators — asserting `parse` + `validate` always
+  terminate without panicking. Mechanizes the "panic-free on any input" contract
+  that was previously only vocabulary-deep.
 - **`StatusSet::remove_where` — predicate-based cleanse / dispel** (`status.rs`)
   — The removal API was only `remove(&key)` (one) and `clear()` (all), despite
   `count_with` already offering predicate *counting*. Common mechanics — "remove
