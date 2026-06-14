@@ -436,6 +436,40 @@ pub fn vec_toward(from: (i32, i32), to: (i32, i32)) -> (i32, i32) {
     ((to.0 - from.0).signum(), (to.1 - from.1).signum())
 }
 
+/// Slide an entity at `from` in direction `dir` by up to `distance` cells,
+/// stopping **before** the first blocked cell. Returns the cell it ends on.
+///
+/// This is the forced-displacement primitive — knockback from an explosion,
+/// a shield bash, telekinesis, a conveyor. `dir` is direction-only: it is
+/// normalized to an 8-way step via `signum`, so its magnitude is ignored
+/// (`(3, 0)` pushes east exactly like `(1, 0)`); pair it with
+/// [`vec_toward`]`(source, target)` to knock a target directly away from a
+/// blast source. The `from` cell is never tested (the entity already stands
+/// there); each prospective cell is checked, and the entity halts on the last
+/// open cell rather than entering a wall.
+///
+/// Returns `from` unchanged when `dir` is zero or `distance <= 0`. Integer-only
+/// and deterministic. To recover the path travelled use [`line`]`(from, landing)`,
+/// and the cells actually moved is `Distance::Chebyshev.between(from, landing)`.
+pub fn knockback<F>(from: (i32, i32), dir: (i32, i32), distance: i32, mut is_blocked: F) -> (i32, i32)
+where
+    F: FnMut(i32, i32) -> bool,
+{
+    let step = (dir.0.signum(), dir.1.signum());
+    if step == (0, 0) || distance <= 0 {
+        return from;
+    }
+    let mut pos = from;
+    for _ in 0..distance {
+        let next = (pos.0 + step.0, pos.1 + step.1);
+        if is_blocked(next.0, next.1) {
+            break;
+        }
+        pos = next;
+    }
+    pos
+}
+
 /// Reflect `point` through `center`: `(2·cx − px, 2·cy − py)`. Useful for
 /// symmetric dungeon layouts, mirror-image room templates, and paired-entity
 /// positioning (e.g. place a second torch on the opposite side of a door).
@@ -1219,5 +1253,62 @@ mod tests {
         for &(x, y) in &cone((0, 0), (2, 1), r) {
             assert!(x * x + y * y <= r * r, "({x},{y}) exceeds range {r}");
         }
+    }
+
+    // --- knockback ---------------------------------------------------------
+
+    #[test]
+    fn test_knockback_unobstructed_moves_full_distance() {
+        assert_eq!(knockback((0, 0), (1, 0), 3, |_, _| false), (3, 0));
+    }
+
+    #[test]
+    fn test_knockback_stops_before_wall() {
+        // Wall at (2,0): the entity halts on the last open cell (1,0).
+        assert_eq!(knockback((0, 0), (1, 0), 5, |x, y| (x, y) == (2, 0)), (1, 0));
+    }
+
+    #[test]
+    fn test_knockback_adjacent_wall_does_not_move() {
+        assert_eq!(knockback((0, 0), (1, 0), 3, |x, y| (x, y) == (1, 0)), (0, 0));
+    }
+
+    #[test]
+    fn test_knockback_zero_dir_and_nonpositive_distance_are_noops() {
+        assert_eq!(knockback((4, 4), (0, 0), 5, |_, _| false), (4, 4));
+        assert_eq!(knockback((4, 4), (1, 1), 0, |_, _| false), (4, 4));
+        assert_eq!(knockback((4, 4), (1, 1), -2, |_, _| false), (4, 4));
+    }
+
+    #[test]
+    fn test_knockback_direction_magnitude_is_ignored() {
+        // (3, 0) is normalized to the east step, identical to (1, 0).
+        let big = knockback((0, 0), (3, 0), 4, |_, _| false);
+        let unit = knockback((0, 0), (1, 0), 4, |_, _| false);
+        assert_eq!(big, unit);
+        assert_eq!(big, (4, 0));
+    }
+
+    #[test]
+    fn test_knockback_diagonal_push() {
+        assert_eq!(knockback((1, 1), (1, 1), 2, |_, _| false), (3, 3));
+    }
+
+    #[test]
+    fn test_knockback_away_from_source_via_vec_toward() {
+        // Source at (5,5), target at (5,2): push the target north, away from source.
+        let target = (5, 2);
+        let dir = vec_toward((5, 5), target);
+        assert_eq!(dir, (0, -1));
+        assert_eq!(knockback(target, dir, 2, |_, _| false), (5, 0));
+    }
+
+    #[test]
+    fn test_knockback_is_deterministic() {
+        let wall = |x: i32, y: i32| (x, y) == (4, 0);
+        assert_eq!(
+            knockback((0, 0), (1, 0), 10, wall),
+            knockback((0, 0), (1, 0), 10, wall)
+        );
     }
 }

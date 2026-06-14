@@ -130,6 +130,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **`geometry::knockback` — forced linear displacement** (`geometry.rs`) — The
+  kit had movement (`pathfinding`) and AoE shapes but no forced-displacement
+  primitive for knockback, shield bash, telekinesis, or conveyors.
+  `knockback(from, dir, distance, is_blocked)` slides an entity up to `distance`
+  cells along `dir`, halting on the last open cell **before** the first blocked
+  one, and returns the resting cell. `dir` is direction-only (normalized to an
+  8-way step via `signum`, magnitude ignored), so it pairs directly with
+  `vec_toward(source, target)` to knock a target away from a blast source. The
+  origin is never tested; zero `dir` or non-positive `distance` is a no-op.
+  Integer-only and deterministic. Eight tests cover full travel, halting before
+  a wall, adjacent-wall no-move, no-op guards, magnitude normalization, diagonal
+  pushes, `vec_toward` integration, and determinism. Test count 2332 → 2340.
 - **`geometry::cone` — directional breath-weapon / cone-spell shape** (`geometry.rs`)
   — The shape library had `circle`, `diamond`, `ring_annulus`, and
   `chebyshev_ring` but no directional cone, despite cone attacks (dragon breath,

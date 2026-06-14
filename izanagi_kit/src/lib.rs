@@ -152,9 +152,9 @@ pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to
 pub use fsm::Fsm;
 pub use hfsm::HFsm;
 pub use geometry::{
-    chebyshev_distance, cone, diamond, line, line_of_sight, manhattan_distance, ray_blocked_at,
-    ray_cast, rect_contains, rect_perimeter, reflect_point, rotate_90_ccw, rotate_90_cw,
-    vec_toward, Distance,
+    chebyshev_distance, cone, diamond, knockback, line, line_of_sight, manhattan_distance,
+    ray_blocked_at, ray_cast, rect_contains, rect_perimeter, reflect_point, rotate_90_ccw,
+    rotate_90_cw, vec_toward, Distance,
 };
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use influence::InfluenceMap;
