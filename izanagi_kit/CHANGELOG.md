@@ -154,6 +154,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Metamorphic-relation test perspective** (`tests/metamorphic.rs`) — A lens for
+  the kit's richest algorithms (pathfinding, FOV, map transforms) that have *no
+  tractable oracle*: you cannot cheaply state "the FOV of this map is exactly
+  these cells". Instead of checking an output, it transforms an input by a
+  symmetry that should induce a known change in the output and asserts that
+  *relation* — surfacing coordinate-dependent or symmetry-breaking bugs with no
+  ground truth. Three relations testing the claim "these spatial algorithms
+  depend only on relative geometry": pathfinding is translation-invariant
+  (reachability and optimal `path_cost` unchanged when the bounded world is
+  shifted), FOV is translation-invariant (the visible set relative to the origin
+  is unchanged when origin and opacity map move together), and `TileMap` rotation
+  permutes cells (value multiset preserved, dimensions swap, 4× rotation is the
+  identity). Deterministic via `SplitMix64`. Proven to have teeth — injecting a
+  coordinate-dependent cell skip into FOV (which a single-map absolute test would
+  shrug off as "fewer cells") fails the translation-invariance relation.
 - **Differential-oracle test perspective** (`tests/differential.rs`) — The
   golden, property, and model-based lenses all check the kit against *itself*
   (past bytes, self-relations, a hand-written reference model). This lens checks
