@@ -130,6 +130,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **`geometry::cone_visible` — wall-aware breath/cone footprint** (`geometry.rs`)
+  — The pure `cone` shape ignores walls, so every caller re-derived the
+  line-of-sight filtering (and its easy-to-misjudge endpoint semantics) by hand,
+  as the targeting integration test had to. `cone_visible(origin, facing, range,
+  is_opaque)` returns the cone cells with clear line of sight from `origin`: the
+  blast reaches and **includes** the wall cells it strikes (endpoints never
+  block) but culls cells shadowed behind a wall. The result is always a subset
+  of `cone(...)` in the same order. Uses the kit's single-ray `line_of_sight`
+  model; documented to defer to the shadowcasting `fov::fov_circle` for strict
+  circular blasts (so it does not duplicate that). Five tests cover the
+  no-walls identity, subset invariant, struck-wall-included/behind-culled
+  semantics, bad-arg emptiness, and determinism. Test count 2340 → 2345.
 - **`geometry::knockback` — forced linear displacement** (`geometry.rs`) — The
   kit had movement (`pathfinding`) and AoE shapes but no forced-displacement
   primitive for knockback, shield bash, telekinesis, or conveyors.

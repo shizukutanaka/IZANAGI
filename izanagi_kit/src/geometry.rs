@@ -365,6 +365,33 @@ pub fn cone(origin: (i32, i32), facing: (i32, i32), range: i32) -> Vec<(i32, i32
     cells
 }
 
+/// A wall-aware [`cone`]: the cone cells from `origin` that have a clear
+/// line of sight from `origin`, given an `is_opaque` predicate. This is the
+/// breath-weapon / cone-spell footprint as it actually lands on a map — the
+/// blast reaches and **includes** the wall cells it strikes (endpoints never
+/// block, per [`line_of_sight`]), but cells shadowed *behind* a wall are
+/// culled.
+///
+/// The result is always a subset of `cone(origin, facing, range)`, in the same
+/// ascending `(y, x)` order. Returns empty for `range < 0` or a zero `facing`.
+/// Uses the kit's single-ray [`line_of_sight`] model (cheap, the shooter's
+/// viewpoint is authoritative); for a strict circular blast prefer the
+/// shadowcasting [`crate::fov::fov_circle`], which models occlusion symmetrically.
+pub fn cone_visible<F>(
+    origin: (i32, i32),
+    facing: (i32, i32),
+    range: i32,
+    mut is_opaque: F,
+) -> Vec<(i32, i32)>
+where
+    F: FnMut(i32, i32) -> bool,
+{
+    cone(origin, facing, range)
+        .into_iter()
+        .filter(|&cell| line_of_sight(origin, cell, &mut is_opaque))
+        .collect()
+}
+
 /// Centre cell of the rectangle `[x, x+w) × [y, y+h)` using floor division.
 ///
 /// Returns `(x + w/2, y + h/2)` — identical truncation bias to
@@ -1253,6 +1280,51 @@ mod tests {
         for &(x, y) in &cone((0, 0), (2, 1), r) {
             assert!(x * x + y * y <= r * r, "({x},{y}) exceeds range {r}");
         }
+    }
+
+    // --- cone_visible ------------------------------------------------------
+
+    #[test]
+    fn test_cone_visible_no_walls_equals_cone() {
+        let plain = cone((0, 0), (1, 0), 4);
+        let visible = cone_visible((0, 0), (1, 0), 4, |_, _| false);
+        assert_eq!(visible, plain, "with no opacity the footprint is the full cone");
+    }
+
+    #[test]
+    fn test_cone_visible_is_always_a_subset_of_cone() {
+        let plain: HashSet<(i32, i32)> = cone((0, 0), (1, 1), 5).into_iter().collect();
+        let visible = cone_visible((0, 0), (1, 1), 5, |x, y| (x, y) == (2, 2));
+        assert!(visible.iter().all(|c| plain.contains(c)), "visible ⊆ cone");
+        assert!(visible.len() <= plain.len());
+    }
+
+    #[test]
+    fn test_cone_visible_includes_struck_wall_but_culls_behind_it() {
+        // East cone from origin; a wall at (3,0) on the central axis. The breath
+        // strikes the wall (included) but cannot reach (4,0)/(5,0) behind it.
+        let origin = (0, 0);
+        let wall = |x: i32, y: i32| (x, y) == (3, 0);
+        let visible: HashSet<(i32, i32)> =
+            cone_visible(origin, (1, 0), 5, wall).into_iter().collect();
+        assert!(visible.contains(&(3, 0)), "the struck wall cell is included");
+        assert!(!visible.contains(&(4, 0)), "cell directly behind the wall is culled");
+        assert!(!visible.contains(&(5, 0)), "cell further behind the wall is culled");
+        assert!(visible.contains(&(2, 0)), "cell in front of the wall is reached");
+    }
+
+    #[test]
+    fn test_cone_visible_empty_for_bad_args() {
+        assert!(cone_visible((0, 0), (1, 0), -1, |_, _| false).is_empty());
+        assert!(cone_visible((0, 0), (0, 0), 5, |_, _| false).is_empty());
+    }
+
+    #[test]
+    fn test_cone_visible_is_deterministic() {
+        let wall = |x: i32, y: i32| (x, y) == (2, 1);
+        let a = cone_visible((0, 0), (1, 0), 4, wall);
+        let b = cone_visible((0, 0), (1, 0), 4, wall);
+        assert_eq!(a, b);
     }
 
     // --- knockback ---------------------------------------------------------
