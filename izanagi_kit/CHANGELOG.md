@@ -154,6 +154,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Model-based (stateful) test perspective** (`tests/stateful.rs`) — A lens
+  distinct from both the example tests and the *stateless* laws in
+  `tests/properties.rs`: a structure is driven through a long random sequence of
+  operations alongside an independent reference model, and after *every* step is
+  asserted to agree with the model and uphold its public invariants. This is
+  where history-dependent bugs live — the kind that only surface after a
+  particular sequence (free → recycle an index → insert), which neither a fixed
+  example nor a single-input law can reach. Two tests: `SparseSet` against an
+  *index-slot* model (`index → (owning entity, value)`, encoding the
+  generational-match semantics) over insert/remove/get/contains/clear/iter, and
+  `EntityAllocator` against a live-set model over allocate/free/batch-free.
+  Deterministic via `SplitMix64`. Proven to have teeth: reverting the `SparseSet`
+  generational fix makes the model test fail immediately on a recycled-index
+  read — i.e. this lens would have caught that bug on its own.
 - **Property / metamorphic test perspective** (`tests/properties.rs`) — A new
   verification lens alongside the kit's example-based unit tests and golden-value
   pins. Rather than asserting a specific output for a specific input, each test
