@@ -101,6 +101,7 @@ pub fn validate(content: &Content) -> Vec<Diagnostic> {
             }
         }
         // Spawn references and bounds.
+        let mut occupied: HashSet<(u32, u32)> = HashSet::new();
         for spawn in &level.spawns {
             if !known_prefabs.contains(spawn.prefab.as_str()) {
                 diags.push(Diagnostic::error(
@@ -117,6 +118,19 @@ pub fn validate(content: &Content) -> Vec<Diagnostic> {
                     format!(
                         "level '{}': spawn '{}' at ({},{}) is outside {}x{}",
                         level.name, spawn.prefab, spawn.x, spawn.y, level.width, level.height
+                    ),
+                ));
+            }
+            // Overlapping spawns: two entities authored onto the same cell. The
+            // loader allows stacking (e.g. an item on a monster), so this is a
+            // warning, not an error — but it is a frequent machine-generation
+            // slip worth surfacing.
+            if !occupied.insert((spawn.x, spawn.y)) {
+                diags.push(Diagnostic::warning(
+                    0,
+                    format!(
+                        "level '{}': multiple spawns at ({},{}) (e.g. '{}')",
+                        level.name, spawn.x, spawn.y, spawn.prefab
                     ),
                 ));
             }
@@ -281,5 +295,90 @@ level a 1x1
         let (c, _) = parse(src);
         let vd = validate(&c);
         assert_eq!(error_count(&vd), 1, "one undefined-prefab error expected");
+    }
+
+    // --- duplicate spawn position (authoring warning) ---
+
+    #[test]
+    fn test_overlapping_spawns_warn_not_error() {
+        let src = "\
+prefab g
+  glyph g
+level a 2x2
+  row ..
+  row ..
+  spawn g 0 0
+  spawn g 0 0
+";
+        let (c, pd) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| !d.is_error() && d.message.contains("multiple spawns at (0,0)")),
+            "expected an overlapping-spawn warning; got: {vd:?}"
+        );
+        // It is a warning, so the bundle is still loadable.
+        assert!(is_loadable(&pd, &vd), "overlap must not block loading");
+    }
+
+    #[test]
+    fn test_distinct_spawn_positions_have_no_overlap_warning() {
+        let src = "\
+prefab g
+  glyph g
+level a 2x2
+  row ..
+  row ..
+  spawn g 0 0
+  spawn g 1 1
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            !vd.iter().any(|d| d.message.contains("multiple spawns")),
+            "distinct positions must not warn; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_three_spawns_same_cell_warn_twice() {
+        let src = "\
+prefab g
+  glyph g
+level a 2x2
+  row ..
+  row ..
+  spawn g 1 0
+  spawn g 1 0
+  spawn g 1 0
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        let warns = vd
+            .iter()
+            .filter(|d| d.message.contains("multiple spawns at (1,0)"))
+            .count();
+        assert_eq!(warns, 2, "second and third spawn each warn; got: {vd:?}");
+    }
+
+    #[test]
+    fn test_same_position_different_levels_do_not_warn() {
+        // Occupancy is tracked per level, so (0,0) in two levels is fine.
+        let src = "\
+prefab g
+  glyph g
+level a 1x1
+  row #
+  spawn g 0 0
+level b 1x1
+  row #
+  spawn g 0 0
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            !vd.iter().any(|d| d.message.contains("multiple spawns")),
+            "per-level occupancy must not collide across levels; got: {vd:?}"
+        );
     }
 }

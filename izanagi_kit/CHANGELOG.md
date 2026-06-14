@@ -142,6 +142,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **`validate` warns on overlapping spawns** (`validator.rs`) — The validator
+  caught every condition that makes `load_level` fail (undefined prefab refs,
+  duplicate names, out-of-bounds/grid-mismatch spawns) but said nothing when two
+  spawns were authored onto the **same cell** — a frequent machine-generation
+  slip the module exists to catch. `validate` now tracks per-level spawn
+  occupancy and emits a warning (not an error: the loader intentionally allows
+  stacking, e.g. an item on a monster) naming the level, cell, and a prefab.
+  Four tests cover the warning, distinct positions staying quiet, three-on-a-cell
+  warning twice, and per-level occupancy not colliding across levels.
 - **Raw-Unicode parser panic-freedom fuzz** (`tests/content_pipeline.rs`) — The
   existing `test_parser_never_panics_on_garbage` fuzzes only the grammar token
   vocabulary joined by spaces, leaving the tokenizer's char-boundary slicing
