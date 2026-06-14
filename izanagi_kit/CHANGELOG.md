@@ -154,6 +154,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Property / metamorphic test perspective** (`tests/properties.rs`) — A new
+  verification lens alongside the kit's example-based unit tests and golden-value
+  pins. Rather than asserting a specific output for a specific input, each test
+  asserts an algebraic **law** that must hold for *all* inputs — and checks it
+  over 3000 inputs per law, generated deterministically by the kit's own
+  `SplitMix64` (no `proptest` dependency; reproducible in CI). 16 laws across
+  `Fixed` (add/mul commutativity, additive/multiplicative identity and
+  zero-annihilation, `abs ≥ 0`, double-negation-except-MIN, clamp
+  range/idempotence, min/max partition, lerp endpoints, sqrt monotonicity) and
+  `geometry` (rotate-4×-identity, cw/ccw inverse, `reflect_point` involution,
+  distance symmetry with chebyshev ≤ manhattan, `line` endpoints/length/king-step
+  adjacency, knockback never overshoots its budget nor rests in a wall, cone
+  cells in-front-and-in-range). Verified the harness has teeth by injecting a
+  false law and confirming failure. Catches a whole class of input-space bugs
+  that fixed examples never visit.
 - **`validate` warns on overlapping spawns** (`validator.rs`) — The validator
   caught every condition that makes `load_level` fail (undefined prefab refs,
   duplicate names, out-of-bounds/grid-mismatch spawns) but said nothing when two
