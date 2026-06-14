@@ -51,8 +51,10 @@ impl<T> Changed<T> {
         self.changed_at = tick;
     }
 
-    /// Returns `true` if this component was modified at or after `since_tick`.
-    /// Pass the last tick your system processed to get only new changes.
+    /// Returns `true` if this component was modified at or after `since_tick`
+    /// (`changed_at >= since_tick`). To select only changes strictly newer than
+    /// the last tick your system processed, pass `last_processed + 1` (a change
+    /// made *on* `last_processed` is "at or after" it and would otherwise match).
     #[inline]
     pub fn is_changed_since(&self, since_tick: u32) -> bool {
         self.changed_at >= since_tick
@@ -67,9 +69,14 @@ impl<T> Changed<T> {
     }
 
     /// Acknowledge this component as "seen at `tick`" without modifying its
-    /// value. Sets `changed_at` to `tick` so a subsequent `is_changed_since(tick)`
-    /// returns `false` — the canonical way for a system to record that it has
-    /// processed this change and should not re-process on the next query.
+    /// value. Sets `changed_at` to `tick` — the canonical way for a system to
+    /// record that it has processed this change.
+    ///
+    /// Because [`is_changed_since`](Self::is_changed_since) uses "at or after"
+    /// (`changed_at >= since_tick`), the system should query
+    /// `is_changed_since(tick + 1)` on its next run, which returns `false`
+    /// until the value is marked again. Note `is_changed_since(tick)` still
+    /// returns `true` here — the change *at* `tick` is "at or after" `tick`.
     #[inline]
     pub fn reset(&mut self, tick: u32) {
         self.changed_at = tick;
@@ -315,6 +322,20 @@ mod tests {
         let mut c = Changed::new(99u32);
         c.reset(10);
         assert_eq!(c.value, 99u32);
+    }
+
+    #[test]
+    fn test_reset_then_query_next_tick_workflow() {
+        // Mirrors the documented dirty-flag workflow: a system processes a
+        // change at tick T, acknowledges it with reset(T), and on its next run
+        // queries is_changed_since(T + 1) — which must be false until the value
+        // is marked again. A later mark re-arms it.
+        let mut c = Changed::at(7u32, 3);
+        c.reset(3); // processed at tick 3
+        assert!(!c.is_changed_since(4), "acknowledged change must not re-fire");
+        assert!(c.is_changed_since(3), "change AT tick 3 is still 'at or after' 3");
+        c.mark(4); // value re-written on tick 4
+        assert!(c.is_changed_since(4), "a fresh mark re-arms the dirty flag");
     }
 
     #[test]

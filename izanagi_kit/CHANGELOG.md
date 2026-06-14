@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`Changed::reset` doc stated a false postcondition** (`change.rs`) — The
+  `reset` doc claimed "Sets `changed_at` to `tick` so a subsequent
+  `is_changed_since(tick)` returns `false`", but `is_changed_since` uses "at or
+  after" (`changed_at >= since_tick`), so after `reset(T)` the query
+  `is_changed_since(T)` returns `true` — only `is_changed_since(T + 1)` returns
+  `false` (as the existing test and the usage-pattern test, which queries with
+  `last_processed + 1`, already assert). A user following the doc literally would
+  query with `tick`, always see "changed", and re-process every component —
+  silently defeating the dirty-flag optimization. Corrected the `reset` and
+  `is_changed_since` docs to state the `+ 1` convention; added a workflow test
+  pinning the corrected contract (process at `T` → `reset(T)` → query `T+1` is
+  false → a later `mark` re-arms). Doc-only behavior change; no API/hash impact.
 - **`load_bytes` could panic on a hostile payload length (32-bit)** (`savefile.rs`)
   — The bounds check `data.len() < 20 + payload_len` added a 20-byte header to an
   attacker-controllable `u32` payload length. On a 32-bit target a declared
