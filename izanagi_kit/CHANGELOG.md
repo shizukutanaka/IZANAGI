@@ -154,6 +154,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Conservation / accounting test perspective** (`tests/conservation.rs`) — The
+  other lenses are about structure and determinism (hashes, laws, models,
+  oracles, symmetry, ordering, API surface); none checks a *quantitative
+  conservation* invariant — that an operation neither creates nor destroys the
+  quantity it manipulates and the books balance. That axis is where
+  gameplay-correctness bugs hide: HP healed past its maximum, a leaked or
+  double-counted allocator slot, a duplicated/lost inventory item. Three
+  invariants over random operation sequences: `EntityAllocator` books balance
+  (`total_slots == count + free_count`, `count == live_entities().len()`),
+  `Stats` HP is conserved within `[0, max_hp]` (`take_damage` removes exactly
+  `min(amount, hp)` and never goes negative, `heal` adds exactly
+  `min(amount, max_hp − hp)` and never overheals), and `Inventory` items are
+  conserved (held multiset == added − removed, occupancy ≤ capacity, `add`
+  succeeds iff not full). Proven to have teeth — dropping the `max_hp` clamp in
+  `heal` fails the lens.
 - **API-equivalence test perspective** (`tests/api_equivalence.rs`) — The kit
   documents several batch/convenience methods as *exactly equivalent* to a
   primitive sequence (`apply_all` ≡ a loop of `apply`, `batch_free` ≡ a loop of
