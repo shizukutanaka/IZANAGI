@@ -109,8 +109,8 @@ impl<K: Eq + Clone> SpatialHash<K> {
         let x1 = self.cell_coord(x);
         let y1 = self.cell_coord(y);
         // Inclusive upper cell: (x+w-1) / cell_size etc.
-        let x2 = self.cell_coord(x.saturating_add(w) - 1);
-        let y2 = self.cell_coord(y.saturating_add(h) - 1);
+        let x2 = self.cell_coord(x.saturating_add(w).saturating_sub(1));
+        let y2 = self.cell_coord(y.saturating_add(h).saturating_sub(1));
 
         let mut out = Vec::new();
         for cy in y1..=y2 {
@@ -135,8 +135,8 @@ impl<K: Eq + Clone> SpatialHash<K> {
         self.query_rect(
             cx.saturating_sub(radius),
             cy.saturating_sub(radius),
-            2 * radius + 1,
-            2 * radius + 1,
+            radius.saturating_mul(2).saturating_add(1),
+            radius.saturating_mul(2).saturating_add(1),
         )
     }
 
@@ -268,8 +268,8 @@ impl<K: Eq + Clone> SpatialHash<K> {
         }
         let x1 = self.cell_coord(x);
         let y1 = self.cell_coord(y);
-        let x2 = self.cell_coord(x.saturating_add(w) - 1);
-        let y2 = self.cell_coord(y.saturating_add(h) - 1);
+        let x2 = self.cell_coord(x.saturating_add(w).saturating_sub(1));
+        let y2 = self.cell_coord(y.saturating_add(h).saturating_sub(1));
         let mut count = 0;
         for cy in y1..=y2 {
             for cx in x1..=x2 {

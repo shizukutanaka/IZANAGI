@@ -19,8 +19,8 @@
 //! Deterministic via `SplitMix64`.
 
 use izanagi_kit::{
-    base_damage, cone, knockback, line, ray_cast, splash_attack, Distance, Fixed, SplitMix64,
-    Stats, StatsModifier,
+    base_damage, cone, knockback, line, ray_cast, splash_attack, Aabb, Distance, Fixed,
+    SpatialHash, SplitMix64, Stats, StatsModifier,
 };
 
 const EXTREMES: [i32; 7] = [i32::MIN, i32::MIN + 1, -1, 0, 1, i32::MAX - 1, i32::MAX];
@@ -139,4 +139,43 @@ fn geometry_is_total_on_degenerate_inputs() {
     let _ = knockback((0, 0), (0, 0), 5, |_, _| false); // zero direction
     let _ = knockback((0, 0), (1, 0), -3, |_, _| false); // negative distance
     let _ = knockback((0, 0), (1, 0), 5, |_, _| true); // wall everywhere
+}
+
+#[test]
+fn aabb_is_total_at_extreme_coords() {
+    // union/nearest_corner span the full coordinate range; the difference and
+    // multiply must saturate rather than overflow.
+    for &x in &EXTREMES {
+        for &w in &EXTREMES {
+            let a = Aabb::new(x, x, w, w);
+            let b = Aabb::new(w, x, x, w);
+            let _ = a.union(&b); // <- was raw r - x / b - y
+            let _ = a.intersection(&b);
+            let _ = a.contains_point(w, x);
+            let _ = a.nearest_corner(x, w); // <- was raw (px - self.x).abs()
+            let _ = (a.right(), a.bottom(), a.area());
+        }
+    }
+}
+
+#[test]
+fn spatial_hash_queries_are_total_at_extreme_positions() {
+    // Extreme *positions* with *small* sizes: exercises the saturating position
+    // arithmetic — `x.saturating_add(w).saturating_sub(1)` and
+    // `cx.saturating_sub(radius)` — at coordinate extremes without forcing
+    // query_rect to iterate an astronomically large cell span. (A huge query
+    // *span* is an O(area) cost — an algorithmic property of the grid, not an
+    // overflow; the `2*radius+1` multiply is saturated defensively regardless.)
+    let mut g: SpatialHash<u32> = SpatialHash::new(16);
+    for (i, &x) in EXTREMES.iter().enumerate() {
+        g.insert(i as u32, x, x);
+    }
+    let small = [0i32, 1, 5];
+    for &x in &EXTREMES {
+        for &s in &small {
+            let _ = g.query_rect(x, x, s, s);
+            let _ = g.query_rect_count(x, x, s, s);
+            let _ = g.query_radius(x, x, s);
+        }
+    }
 }

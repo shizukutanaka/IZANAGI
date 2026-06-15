@@ -140,8 +140,11 @@ impl Aabb {
     pub fn intersection(&self, other: &Aabb) -> Option<Aabb> {
         let ix = self.x.max(other.x);
         let iy = self.y.max(other.y);
-        let iw = self.right().min(other.right()) - ix;
-        let ih = self.bottom().min(other.bottom()) - iy;
+        // Saturate: the gap between min-right and max-left spans the full
+        // coordinate range for extreme boxes and would otherwise overflow i32
+        // before the positivity check below.
+        let iw = self.right().min(other.right()).saturating_sub(ix);
+        let ih = self.bottom().min(other.bottom()).saturating_sub(iy);
         if iw > 0 && ih > 0 {
             Some(Aabb::new(ix, iy, iw, ih))
         } else {
@@ -195,7 +198,10 @@ impl Aabb {
         let y = self.y.min(other.y);
         let r = self.right().max(other.right());
         let b = self.bottom().max(other.bottom());
-        Aabb::new(x, y, r - x, b - y)
+        // Span can exceed i32 when the union covers the full coordinate range
+        // (e.g. one box at i32::MIN, another reaching i32::MAX); saturate the
+        // width/height rather than overflow.
+        Aabb::new(x, y, r.saturating_sub(x), b.saturating_sub(y))
     }
 
     /// True when `other` lies entirely within `self` (boundary inclusive). An
@@ -377,12 +383,14 @@ impl Aabb {
     /// Useful for snap-to-corner placement, minimum-separation geometry, and
     /// anchor-point selection in room-joining algorithms.
     pub fn nearest_corner(&self, px: i32, py: i32) -> (i32, i32) {
-        let cx = if (px - self.x).abs() <= (px - self.right()).abs() {
+        // Compare squared/abs distances in i64 so extreme coordinate pairs
+        // (e.g. px=i32::MAX, self.x=i32::MIN) cannot overflow the subtraction.
+        let cx = if (px as i64 - self.x as i64).abs() <= (px as i64 - self.right() as i64).abs() {
             self.x
         } else {
             self.right()
         };
-        let cy = if (py - self.y).abs() <= (py - self.bottom()).abs() {
+        let cy = if (py as i64 - self.y as i64).abs() <= (py as i64 - self.bottom() as i64).abs() {
             self.y
         } else {
             self.bottom()

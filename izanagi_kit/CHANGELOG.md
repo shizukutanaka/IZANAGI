@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **Overflow-panic sites in `aabb` and `spatial_hash`** (`aabb.rs`,
+  `spatial_hash.rs`) — Extending the robustness lens to the remaining spatial
+  modules surfaced five more raw-arithmetic overflow panics on extreme inputs:
+  `Aabb::union` (`r - x`, `b - y`) and `Aabb::intersection` (`min_right - ix`
+  before the positivity check) overflow when a box spans the full coordinate
+  range → `saturating_sub`; `Aabb::nearest_corner` (`(px - self.x).abs()` ×4)
+  overflows for opposite-extreme point/box coords → i64 differences;
+  `SpatialHash::query_rect`/`query_rect_count` (`saturating_add(w) - 1`) could
+  underflow the trailing `- 1` → `.saturating_sub(1)`; and
+  `SpatialHash::query_radius` (`2 * radius + 1`) overflows for large radius →
+  `saturating_mul(2).saturating_add(1)`. `Aabb::area` (i64+clamp),
+  `right`/`bottom`/`translate` (saturating), and `cell_size.max(1)` were already
+  safe. Normal values are unaffected; PINNED hashes unchanged. (A separate
+  pre-existing limitation — `query_rect` iterating an O(area) cell span for a
+  huge query region — is noted but out of scope for this overflow pass.)
 - **Overflow-panic cluster in `combat`** (`combat.rs`) — `heal`, `modified`
   (×3), `base_damage`, `roll_damage`, and `splash_attack` (×3, including a raw
   multiply) used raw `i32` `+`/`-`/`*`, so extreme stat values or modifiers
