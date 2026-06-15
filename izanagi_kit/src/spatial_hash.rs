@@ -102,6 +102,58 @@ impl<K: Eq + Clone> SpatialHash<K> {
     /// The returned `Vec` may contain duplicates only if the same key was
     /// inserted into multiple cells — normal usage (one position per key) is
     /// duplicate-free.
+    /// Visit each populated cell whose coordinate lies in the inclusive cell
+    /// rectangle `[x1,x2] × [y1,y2]`, in canonical `(cy, cx)` ascending order,
+    /// calling `f(bucket)` for each.
+    ///
+    /// Picks the cheaper of two traversals so the work is bounded by the *data*,
+    /// never by the query *span*: walking the span directly (fast when the span
+    /// is small) or scanning the populated cells and filtering (fast when the
+    /// span dwarfs the grid — e.g. a whole-world query). Both paths emit cells in
+    /// the same `(cy, cx)` order, so callers see identical, deterministic output
+    /// regardless of which path runs.
+    fn for_each_cell_in_rect<F: FnMut(&Vec<K>)>(
+        &self,
+        x1: i32,
+        y1: i32,
+        x2: i32,
+        y2: i32,
+        mut f: F,
+    ) {
+        if x2 < x1 || y2 < y1 {
+            return;
+        }
+        // Cell-span area (u64, saturating) vs populated-cell count.
+        let span_w = (x2 as i64 - x1 as i64 + 1) as u64;
+        let span_h = (y2 as i64 - y1 as i64 + 1) as u64;
+        let span_area = span_w.saturating_mul(span_h);
+        if span_area <= self.cells.len() as u64 {
+            // Dense: walk the span in canonical (cy, cx) order.
+            for cy in y1..=y2 {
+                for cx in x1..=x2 {
+                    if let Some(bucket) = self.cells.get(&(cx, cy)) {
+                        f(bucket);
+                    }
+                }
+            }
+        } else {
+            // Sparse: filter the populated cells, then sort to the same
+            // (cy, cx) order so the output matches the dense path exactly.
+            let mut matched: Vec<(i32, i32)> = self
+                .cells
+                .keys()
+                .copied()
+                .filter(|&(cx, cy)| cx >= x1 && cx <= x2 && cy >= y1 && cy <= y2)
+                .collect();
+            matched.sort_unstable_by_key(|&(cx, cy)| (cy, cx));
+            for key in matched {
+                if let Some(bucket) = self.cells.get(&key) {
+                    f(bucket);
+                }
+            }
+        }
+    }
+
     pub fn query_rect(&self, x: i32, y: i32, w: i32, h: i32) -> Vec<K> {
         if w <= 0 || h <= 0 {
             return Vec::new();
@@ -113,13 +165,7 @@ impl<K: Eq + Clone> SpatialHash<K> {
         let y2 = self.cell_coord(y.saturating_add(h).saturating_sub(1));
 
         let mut out = Vec::new();
-        for cy in y1..=y2 {
-            for cx in x1..=x2 {
-                if let Some(bucket) = self.cells.get(&(cx, cy)) {
-                    out.extend_from_slice(bucket);
-                }
-            }
-        }
+        self.for_each_cell_in_rect(x1, y1, x2, y2, |bucket| out.extend_from_slice(bucket));
         out
     }
 
@@ -271,13 +317,7 @@ impl<K: Eq + Clone> SpatialHash<K> {
         let x2 = self.cell_coord(x.saturating_add(w).saturating_sub(1));
         let y2 = self.cell_coord(y.saturating_add(h).saturating_sub(1));
         let mut count = 0;
-        for cy in y1..=y2 {
-            for cx in x1..=x2 {
-                if let Some(bucket) = self.cells.get(&(cx, cy)) {
-                    count += bucket.len();
-                }
-            }
-        }
+        self.for_each_cell_in_rect(x1, y1, x2, y2, |bucket| count += bucket.len());
         count
     }
 

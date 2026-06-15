@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`SpatialHash` queries no longer iterate the `O(area)` cell span**
+  (`spatial_hash.rs`) — `query_rect`/`query_rect_count` (and `query_radius`,
+  which delegates) walked every cell coordinate in the query rectangle, so a
+  large region — e.g. a whole-world query, reachable via the public API — did
+  `O(span_w × span_h)` work and effectively hung, even though the result depends
+  only on the handful of populated cells. Added a `for_each_cell_in_rect` helper
+  that picks the cheaper traversal: walk the span when it is small, otherwise
+  scan the populated cells and filter, sorting the matches into the same
+  `(cy, cx)` order so the output Vec is byte-identical and deterministic
+  regardless of path. Work is now bounded by `min(span, populated cells)`. A new
+  complexity-lens test (`spatial_hash_whole_world_query_is_bounded_and_correct`)
+  pins this — a full-coordinate-range query now returns instantly with the
+  correct keys and exercises both traversal paths. PINNED hashes unchanged.
 - **Overflow-panic sites in `aabb` and `spatial_hash`** (`aabb.rs`,
   `spatial_hash.rs`) — Extending the robustness lens to the remaining spatial
   modules surfaced five more raw-arithmetic overflow panics on extreme inputs:

@@ -14,7 +14,7 @@
 //!
 //! Deterministic via `SplitMix64`.
 
-use izanagi_kit::{astar, compute_fov, flood_fill, is_reachable, ray_cast, SplitMix64};
+use izanagi_kit::{astar, compute_fov, flood_fill, is_reachable, ray_cast, SpatialHash, SplitMix64};
 use std::cell::Cell;
 
 /// Count `is_opaque` invocations for a `compute_fov` call at `origin`.
@@ -152,4 +152,37 @@ fn fov_smoke_uses_seeded_rng_for_opacity() {
         count.get()
     };
     assert_eq!(calls_at(0, 0), calls_at(300_000, 300_000), "randomized FOV work position-dependent");
+}
+
+#[test]
+fn spatial_hash_whole_world_query_is_bounded_and_correct() {
+    // A query whose span covers (nearly) the entire coordinate space must NOT
+    // iterate the O(area) span — it must fall back to scanning the populated
+    // cells. Before the sparse-path fix this hung; now it returns instantly with
+    // the correct result. The test *completing* is the work-bound proof; the
+    // assertions pin correctness and dense/sparse-path agreement.
+    let mut g: SpatialHash<u32> = SpatialHash::new(8);
+    let pts = [(0, 0), (100, 5), (-40, 30), (7, -9), (1000, 1000)];
+    for (i, &(x, y)) in pts.iter().enumerate() {
+        g.insert(i as u32, x, y);
+    }
+
+    // Whole-world query (huge span -> sparse path). Must return every key.
+    let huge = g.query_rect(i32::MIN / 2, i32::MIN / 2, i32::MAX, i32::MAX);
+    assert_eq!(huge.len(), pts.len(), "whole-world query lost or duplicated keys");
+    for k in 0..pts.len() as u32 {
+        assert!(huge.contains(&k), "key {k} missing from whole-world query");
+    }
+    assert_eq!(
+        g.query_rect_count(i32::MIN / 2, i32::MIN / 2, i32::MAX, i32::MAX),
+        pts.len(),
+        "count disagrees on whole-world query"
+    );
+
+    // Exercise the DENSE path: a tiny query (span ≤ populated-cell count) around
+    // (0,0) takes the span-walking branch and must return exactly key 0.
+    let dense = g.query_rect(-1, -1, 4, 4); // ~1 cell span → dense path
+    assert_eq!(dense, vec![0], "dense-path query returned the wrong cell");
+    // Consistency: every key the dense query found is also in the sparse result.
+    assert!(dense.iter().all(|k| huge.contains(k)), "dense ⊄ sparse result");
 }
