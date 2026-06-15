@@ -432,11 +432,15 @@ impl Distance {
     pub fn between(self, a: (i32, i32), b: (i32, i32)) -> i32 {
         let dx = (a.0 as i64 - b.0 as i64).abs();
         let dy = (a.1 as i64 - b.1 as i64).abs();
+        // `dx`/`dy` reach 2^32 for extreme coords, so `dx*dx` (~1.8e19) overflows
+        // i64. Saturating ops cap the sum of squares at i64::MAX; the final
+        // `.min(i32::MAX)` then yields the documented saturated result.
+        let sum_sq = dx.saturating_mul(dx).saturating_add(dy.saturating_mul(dy));
         let v = match self {
-            Distance::Manhattan => dx + dy,
+            Distance::Manhattan => dx.saturating_add(dy),
             Distance::Chebyshev => dx.max(dy),
-            Distance::EuclideanSquared => dx * dx + dy * dy,
-            Distance::Euclidean => isqrt(dx * dx + dy * dy),
+            Distance::EuclideanSquared => sum_sq,
+            Distance::Euclidean => isqrt(sum_sq),
         };
         v.min(i32::MAX as i64) as i32
     }
@@ -549,14 +553,27 @@ fn isqrt(n: i64) -> i64 {
     if n < 2 {
         return n.max(0);
     }
-    // Newton's method; converges from above to the floor of the real root.
-    let mut x = n;
-    let mut y = (x + 1) / 2;
-    while y < x {
-        x = y;
-        y = (x + n / x) / 2;
+    // Bit-by-bit integer square root using only add/shift/compare. Overflow-safe
+    // for any non-negative `i64`, including `i64::MAX` — Newton's `x + n/x` would
+    // overflow there (initial `x == n`). Returns the floor of the real root,
+    // identical to the previous implementation for all in-range inputs.
+    let n = n as u64;
+    let mut rem = n;
+    let mut root: u64 = 0;
+    let mut bit: u64 = 1 << 62;
+    while bit > rem {
+        bit >>= 2;
     }
-    x
+    while bit != 0 {
+        if rem >= root + bit {
+            rem -= root + bit;
+            root = (root >> 1) + bit;
+        } else {
+            root >>= 1;
+        }
+        bit >>= 2;
+    }
+    root as i64
 }
 
 #[cfg(test)]

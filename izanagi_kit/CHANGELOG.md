@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **Overflow-panic cluster in `combat`** (`combat.rs`) — `heal`, `modified`
+  (×3), `base_damage`, `roll_damage`, and `splash_attack` (×3, including a raw
+  multiply) used raw `i32` `+`/`-`/`*`, so extreme stat values or modifiers
+  triggered "attempt to add/subtract with overflow" panics in debug builds —
+  violating the kit's saturating, panic-free, deterministic policy (a panic on
+  one peer is the worst desync). Converted all to `saturating_*`. Normal
+  gameplay values are unaffected (`saturating_*` ≡ raw there), so both PINNED
+  hashes are unchanged. Surfaced by the new robustness lens.
+- **`Distance::between` overflow on extreme coordinates** (`geometry.rs`) — The
+  squared/Euclidean metrics computed `dx*dx + dy*dy` in `i64`, but `dx` reaches
+  `2^32` for full-span coordinates so `dx*dx ≈ 1.8e19` overflows `i64` — and the
+  Newton-method `isqrt` separately overflowed on `i64::MAX` (initial `x == n`, so
+  `x + n/x` wraps), despite the doc promising saturation. Switched the sum of
+  squares to `saturating_*` and replaced `isqrt` with the overflow-safe
+  bit-by-bit method (identical floor-sqrt results for in-range inputs). Surfaced
+  by the new robustness lens.
 - **`Changed::reset` doc stated a false postcondition** (`change.rs`) — The
   `reset` doc claimed "Sets `changed_at` to `tick` so a subsequent
   `is_changed_since(tick)` returns `false`", but `is_changed_since` uses "at or
@@ -154,6 +170,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Robustness / totality test perspective** (`tests/robustness.rs`) — Verifies
+  the most basic contract of a deterministic engine: every public operation is
+  *total* (returns — possibly an error, `None`, empty, or a saturated value)
+  rather than *panicking*, for all inputs including degenerate and extreme ones.
+  A panic is the worst desync (one peer aborts, others continue), so the kit's
+  saturating/panic-free policy needs enforcement, not just discipline. The lens
+  hammers `Fixed`, `combat`, `Distance`, `rng`, and `geometry` with
+  `i32::MIN`/`MAX`, `0`, empty slices, and out-of-range indices. It immediately
+  earned its place by surfacing **two** real overflow-panic bugs (the `combat`
+  arithmetic cluster and `Distance::between`/`isqrt`), both fixed above.
 - **Conservation / accounting test perspective** (`tests/conservation.rs`) — The
   other lenses are about structure and determinism (hashes, laws, models,
   oracles, symmetry, ordering, API surface); none checks a *quantitative

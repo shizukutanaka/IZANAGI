@@ -65,7 +65,7 @@ impl Stats {
     /// Heal by `amount` (clamped to `max_hp`; no overheal).
     #[inline]
     pub fn heal(&mut self, amount: i32) {
-        self.hp = (self.hp + amount.max(0)).min(self.max_hp);
+        self.hp = self.hp.saturating_add(amount.max(0)).min(self.max_hp);
     }
 
     /// Restore HP to full (`max_hp`).
@@ -185,12 +185,12 @@ impl Stats {
     /// and `defense` are unbounded signed integers; callers should validate
     /// that gameplay invariants hold after application.
     pub fn modified(&self, modifier: &StatsModifier) -> Stats {
-        let new_max_hp = (self.max_hp + modifier.max_hp).max(0);
+        let new_max_hp = self.max_hp.saturating_add(modifier.max_hp).max(0);
         Stats {
             hp: self.hp.min(new_max_hp),
             max_hp: new_max_hp,
-            attack: self.attack + modifier.attack,
-            defense: self.defense + modifier.defense,
+            attack: self.attack.saturating_add(modifier.attack),
+            defense: self.defense.saturating_add(modifier.defense),
         }
     }
 }
@@ -204,7 +204,7 @@ impl Stats {
 /// Always deals at least 1 damage (the standard roguelike minimum).
 #[inline]
 pub fn base_damage(attacker: &Stats, defender: &Stats) -> i32 {
-    (attacker.attack - defender.defense).max(1)
+    attacker.attack.saturating_sub(defender.defense).max(1)
 }
 
 /// Resolve one melee attack: compute damage and apply it to `defender`.
@@ -275,7 +275,7 @@ pub fn roll_damage(rng: &mut SplitMix64, base: i32, variance: u32) -> i32 {
     } else {
         0
     };
-    (base + bonus).max(0)
+    base.saturating_add(bonus).max(0)
 }
 
 /// Ranged attack with a hit roll. Returns `Some(damage)` on hit, `None` on miss.
@@ -309,8 +309,11 @@ pub fn splash_attack(attacker: &Stats, targets: &mut [Stats], falloff: i32) -> V
         .iter_mut()
         .enumerate()
         .map(|(i, target)| {
-            let raw = (attacker.attack - falloff * i as i32).max(1);
-            let dmg = (raw - target.defense).max(1);
+            let raw = attacker
+                .attack
+                .saturating_sub(falloff.saturating_mul(i as i32))
+                .max(1);
+            let dmg = raw.saturating_sub(target.defense).max(1);
             target.take_damage(dmg);
             dmg
         })
