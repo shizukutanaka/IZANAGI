@@ -108,7 +108,7 @@ fn distance_metrics_are_total_at_extreme_coords() {
 
 #[test]
 fn rng_is_total_on_degenerate_inputs() {
-    let mut rng = SplitMix64::new(0x_4A6_05);
+    let mut rng = SplitMix64::new(0x4A605);
     // Empty / degenerate ranges and collections must not panic.
     let _ = rng.below(0);
     let _ = rng.range(5, 5);
@@ -178,4 +178,115 @@ fn spatial_hash_queries_are_total_at_extreme_positions() {
             let _ = g.query_radius(x, x, s);
         }
     }
+}
+
+// --- easing / encounter / random_table / inputbuf totality ------------------
+// These modules take caller-controlled numeric inputs and were verified clean
+// by inspection; the following turn that into standing guards.
+
+#[test]
+fn easing_is_total_at_and_beyond_unit_interval() {
+    use izanagi_kit::{
+        ease_in_back, ease_in_bounce, ease_in_cubic, ease_in_expo, ease_in_out_back,
+        ease_in_out_bounce, ease_in_out_cubic, ease_in_out_expo, ease_in_out_sine, ease_in_quad,
+        ease_in_sine, ease_out_back, ease_out_bounce, ease_out_circ, ease_out_cubic, ease_out_expo,
+        ease_out_sine, linear,
+    };
+    // Easing is defined on [0,1] but documented to extrapolate; feed extremes
+    // and out-of-range t — every curve must return (saturating Fixed math).
+    let ts = [
+        Fixed::MIN,
+        Fixed::from_int(-5),
+        Fixed::ZERO,
+        Fixed::from_ratio(1, 3),
+        Fixed::ONE,
+        Fixed::from_int(5),
+        Fixed::MAX,
+    ];
+    for &t in &ts {
+        let _ = (
+            linear(t),
+            ease_in_quad(t),
+            ease_in_cubic(t),
+            ease_in_sine(t),
+            ease_out_sine(t),
+            ease_in_out_sine(t),
+            ease_in_expo(t),
+            ease_out_expo(t),
+            ease_in_out_expo(t),
+            ease_out_circ(t),
+            ease_in_back(t),
+            ease_out_back(t),
+            ease_in_out_back(t),
+            ease_in_bounce(t),
+            ease_out_bounce(t),
+            ease_in_out_bounce(t),
+            ease_out_cubic(t),
+            ease_in_out_cubic(t),
+        );
+    }
+}
+
+#[test]
+fn encounter_pack_is_total_at_extremes() {
+    use izanagi_kit::EncounterPack;
+    let mut rng = SplitMix64::new(0xE11C0);
+    // `roll_counts` computes each slot's count (exercising the full-span
+    // `max - min + 1` arithmetic that previously overflowed) but returns it as a
+    // single (value, count) tuple — so extreme spans are tested without
+    // materializing up to u32::MAX spawn copies. `roll`, which *does* allocate
+    // `count` copies, is only fed bounded `max` (a huge max legitimately spawns a
+    // huge group — output-proportional cost, not a defect).
+    for &min in &[0u32, 1, 1000, u32::MAX] {
+        for &max in &[0u32, 1, 1000, u32::MAX] {
+            for &chance in &[0u32, 50, 100, u32::MAX] {
+                let pack: EncounterPack<u32> =
+                    EncounterPack::new().with_optional_slot(7, min, max, chance);
+                let _ = pack.roll_counts(&mut rng); // full-span safe (no materialization)
+                let _ = (pack.min_spawns(), pack.max_spawns());
+            }
+        }
+    }
+    // `roll` only with bounded max so the spawn loop can't build a giant Vec.
+    for &(min, max) in &[(0u32, 0u32), (1, 1), (0, 4), (2, 5)] {
+        let pack: EncounterPack<u32> =
+            EncounterPack::new().with_optional_slot(7, min, max, 100);
+        let _ = pack.roll(&mut rng);
+    }
+}
+
+#[test]
+fn random_table_is_total_at_extreme_weights() {
+    use izanagi_kit::RandomTable;
+    let mut rng = SplitMix64::new(0x4A67AB);
+    // Empty table.
+    let empty: RandomTable<u32> = RandomTable::new();
+    assert!(empty.roll(&mut rng).is_none());
+    assert_eq!(empty.average_weight(), 0, "empty average must be 0, not div-by-zero");
+    // Zero-weight and max-weight entries.
+    let table: RandomTable<u32> = RandomTable::new()
+        .with(0, 1) // zero weight: never chosen
+        .with(u32::MAX, 2)
+        .with(u32::MAX, 3);
+    let _ = table.roll(&mut rng);
+    let _ = table.roll_n(5, &mut rng);
+    let _ = table.average_weight();
+}
+
+#[test]
+fn input_buffer_is_total_with_degenerate_timing() {
+    use izanagi_kit::InputBuffer;
+    // The key risk is division by the repeat period: `new()` and `set_timing`
+    // must both clamp it to >= 1 so `tick` never divides by zero. (A huge `tick`
+    // value is deliberately *not* tested — with a 1-tick repeat period it
+    // legitimately emits ~tick repeat events, an output-proportional cost, not a
+    // panic; realistic ticks are small.)
+    let mut buf: InputBuffer<u32> = InputBuffer::new(0, 0); // period clamped to 1
+    buf.press(1);
+    let _ = buf.tick(5);
+    buf.set_timing(0, 0); // period clamped to >= 1 internally — no div-by-zero
+    let _ = buf.tick(1000);
+    buf.set_timing(u32::MAX, 7);
+    let _ = buf.tick(1000); // initial_delay huge: no repeats fire, no panic
+    assert!(buf.is_held(&1));
 }

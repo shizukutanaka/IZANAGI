@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`EncounterPack::roll`/`roll_counts` overflow panic at the full count span**
+  (`encounter.rs`) — `slot.min + rng.below(slot.max - slot.min + 1)` overflowed
+  `u32` when the span equalled `u32::MAX` (a slot with `min = 0, max = u32::MAX`),
+  panicking instead of rolling. Replaced both call sites with a `roll_count`
+  helper that computes the inclusive span in `u64` and folds it with the same
+  wide-multiply `below` uses — so the result is **identical** to the old
+  `below(span + 1)` for every representable span (PINNED-safe, all encounter unit
+  tests unchanged) and consumes the same single draw, while the full-range case
+  no longer panics. Surfaced by extending the robustness lens to the
+  `encounter` module (the per-`min==max` audit had missed `min=0, max=MAX`).
 - **`SpatialHash` queries no longer iterate the `O(area)` cell span**
   (`spatial_hash.rs`) — Every rect/radius query walked each cell coordinate in
   the query region, so a large area — e.g. a whole-world or huge-radius query,
@@ -202,6 +212,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Robustness-lens coverage for `easing`, `encounter`, `random_table`,
+  `inputbuf`** (`tests/robustness.rs`) — Extended the totality lens to four more
+  modules with caller-controlled numeric inputs, hammering them with
+  `u32::MAX`/`0`/empty/degenerate values. This converted "clean by inspection"
+  into standing guards and immediately caught a real `EncounterPack` overflow
+  panic (fixed above) — the others (`easing` over/under the unit interval,
+  `random_table` zero/extreme weights and empty tables, `inputbuf` degenerate
+  timing) confirmed total.
 - **Complexity / work-bound test perspective** (`tests/complexity.rs`) — The
   other nine lenses all ask "is the answer correct?"; none asks "how much work
   does it take?" — yet an algorithm whose cost scales with an incidental

@@ -22,6 +22,23 @@
 use crate::rng::SplitMix64;
 use crate::world_hash::{DetHash, Fnv1a};
 
+/// Uniform count in the inclusive range `[min, max]`, consuming exactly one RNG
+/// draw (none when `min >= max`).
+///
+/// Avoids the `max - min + 1` overflow a naive `below(span + 1)` hits at the
+/// full `u32` span (`min = 0, max = u32::MAX`): the inclusive span is computed
+/// in `u64` and folded with the same wide-multiply `below` uses, so the result
+/// is **identical** to `below(span + 1)` for every representable span — only the
+/// otherwise-panicking full-range case is extended.
+fn roll_count(rng: &mut SplitMix64, min: u32, max: u32) -> u32 {
+    if min >= max {
+        return min;
+    }
+    let span_inclusive = (max - min) as u64 + 1; // ∈ [2, 2^32], fits u64
+    let pick = ((rng.next_u64() as u128).wrapping_mul(span_inclusive as u128) >> 64) as u32;
+    min + pick
+}
+
 /// One slot in an [`EncounterPack`]: a value spawned `min..=max` times,
 /// included with probability `chance_percent`.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -143,12 +160,7 @@ impl<T> EncounterPack<T> {
             if !rng.coin(slot.chance_percent, 100) {
                 continue;
             }
-            let count = if slot.min >= slot.max {
-                slot.min
-            } else {
-                // Span fits u32: max > min, both u32, inclusive upper bound.
-                slot.min + rng.below(slot.max - slot.min + 1)
-            };
+            let count = roll_count(rng, slot.min, slot.max);
             for _ in 0..count {
                 out.push(slot.value.clone());
             }
@@ -168,11 +180,7 @@ impl<T> EncounterPack<T> {
             if !rng.coin(slot.chance_percent, 100) {
                 continue;
             }
-            let count = if slot.min >= slot.max {
-                slot.min
-            } else {
-                slot.min + rng.below(slot.max - slot.min + 1)
-            };
+            let count = roll_count(rng, slot.min, slot.max);
             if count > 0 {
                 out.push((slot.value.clone(), count));
             }
