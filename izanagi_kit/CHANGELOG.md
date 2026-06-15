@@ -154,6 +154,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Order-independence (confluence) test perspective** (`tests/order_independence.rs`)
+  — Tests the kit's headline determinism promise directly: a *canonical* state
+  hash that is identical regardless of the order the operations that built the
+  state arrived in (so lockstep/replay stays robust when peers receive events in
+  different orders). Several modules sort their entries inside `det_hash` for
+  exactly this, but each ships only a single two-element example test. This lens
+  builds each structure from the *same set* of operations under 300 random
+  permutations and asserts every permutation yields the identical hash, across
+  `SparseSet`, `StatusSet`, `SpatialHash`, and `Relations` (operations use
+  distinct keys so the final state is genuinely permutation-independent). Proven
+  to have teeth — removing the canonicalizing sort from `StatusSet::det_hash`
+  makes the lens fail though that module's own example test still passes.
 - **Metamorphic-relation test perspective** (`tests/metamorphic.rs`) — A lens for
   the kit's richest algorithms (pathfinding, FOV, map transforms) that have *no
   tractable oracle*: you cannot cheaply state "the FOV of this map is exactly
