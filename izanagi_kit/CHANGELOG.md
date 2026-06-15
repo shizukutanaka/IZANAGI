@@ -154,6 +154,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **API-equivalence test perspective** (`tests/api_equivalence.rs`) — The kit
+  documents several batch/convenience methods as *exactly equivalent* to a
+  primitive sequence (`apply_all` ≡ a loop of `apply`, `batch_free` ≡ a loop of
+  `free`, `extend_all` ≡ `extend_duration` on every key, `batch_alloc` ≡ a loop
+  of `allocate`). Those are claims, and batch methods are precisely where an
+  optimization quietly diverges from the loop it replaces. This lens builds one
+  structure via the shorthand and another via the documented primitive sequence
+  over the *same* random data and asserts they are indistinguishable — identical
+  canonical hash for `DetHash` types, identical observable state (liveness,
+  counts, next-allocate) for the allocator. Four equivalences × 500 random trials
+  each; the allocator cases include stale/duplicate frees and near-`u32::MAX`
+  saturation. Proven to have teeth — making `batch_free` skip one element fails
+  the lens.
 - **Order-independence (confluence) test perspective** (`tests/order_independence.rs`)
   — Tests the kit's headline determinism promise directly: a *canonical* state
   hash that is identical regardless of the order the operations that built the
