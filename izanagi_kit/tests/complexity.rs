@@ -186,3 +186,37 @@ fn spatial_hash_whole_world_query_is_bounded_and_correct() {
     // Consistency: every key the dense query found is also in the sparse result.
     assert!(dense.iter().all(|k| huge.contains(k)), "dense ⊄ sparse result");
 }
+
+#[test]
+fn spatial_hash_radius_queries_are_bounded_at_huge_radius() {
+    // query_radius_euclidean / query_radius_count / count_in_radius_euclidean
+    // previously walked the O(radius²) cell span and hung at large radius. They
+    // now route through the populated-cell scan. The test completing is the
+    // work-bound proof; assertions pin correctness against a small-radius query
+    // that covers the same points.
+    let mut g: SpatialHash<u32> = SpatialHash::new(8);
+    let pts = [(0, 0), (30, 30), (-20, 10), (100, -50)];
+    for (i, &(x, y)) in pts.iter().enumerate() {
+        g.insert(i as u32, x, y);
+    }
+    // Huge radius (would be ~i32::MAX/8 cells across) — must not hang.
+    let huge = g.query_radius_euclidean(0, 0, i32::MAX);
+    assert_eq!(huge.len(), pts.len(), "huge-radius euclidean query lost keys");
+    assert_eq!(
+        g.query_radius_count(0, 0, i32::MAX),
+        pts.len(),
+        "huge-radius count disagrees"
+    );
+    assert_eq!(
+        g.count_in_radius_euclidean(0, 0, i32::MAX),
+        pts.len(),
+        "huge-radius euclidean count disagrees"
+    );
+    // A radius large enough to cover all points but small in span agrees.
+    let near = g.query_radius_euclidean(0, 0, 200);
+    let mut a = huge.clone();
+    let mut b = near.clone();
+    a.sort_unstable();
+    b.sort_unstable();
+    assert_eq!(a, b, "huge and moderate radius queries disagree");
+}
