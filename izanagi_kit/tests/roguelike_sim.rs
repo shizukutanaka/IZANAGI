@@ -211,8 +211,8 @@ fn run(seed: u64, turns: usize) -> Vec<u64> {
 
 #[test]
 fn test_roguelike_same_seed_identical_trace() {
-    let a = run(0x5EED_1234, 400);
-    let b = run(0x5EED_1234, 400);
+    let a = run(0x5EED1234, 400);
+    let b = run(0x5EED1234, 400);
     assert_eq!(a, b, "identical seed must replay the full sim bit-for-bit");
 }
 
@@ -227,7 +227,7 @@ fn test_roguelike_different_seed_diverges() {
 fn test_roguelike_sim_is_nontrivial() {
     // The simulation must actually evolve (movement, combat, FOV changes),
     // otherwise the determinism assertions pass vacuously.
-    let trace = run(0x5EED_1234, 400);
+    let trace = run(0x5EED1234, 400);
     let unique: std::collections::HashSet<u64> = trace.iter().copied().collect();
     assert!(
         unique.len() > 50,
@@ -241,9 +241,9 @@ fn test_roguelike_final_hash_is_pinned() {
     // Regression tripwire for the *composition* of mapgen + passability +
     // pathfinding + fov + turn + combat. Any accidental change to those
     // modules' behaviour or ordering breaks this.
-    let trace = run(0x5EED_1234, 400);
+    let trace = run(0x5EED1234, 400);
     assert_eq!(*trace.last().unwrap(), PINNED_ROGUELIKE_HASH);
 }
 
 // Pinned from a verified run; regression tripwire for the gameplay stack.
-const PINNED_ROGUELIKE_HASH: u64 = 0x5286_d142_0200_fe66;
+const PINNED_ROGUELIKE_HASH: u64 = 0x5286d1420200fe66;

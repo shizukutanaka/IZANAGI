@@ -23,7 +23,7 @@ const TRIALS: usize = 400;
 /// no slot is ever leaked, double-counted, or conjured.
 #[test]
 fn entity_allocator_slot_accounting_balances() {
-    let mut rng = SplitMix64::new(0x_ACC0_07_01);
+    let mut rng = SplitMix64::new(0xACC00701);
     let mut alloc = EntityAllocator::new();
     let mut pool: Vec<_> = Vec::new();
 
@@ -57,7 +57,7 @@ fn entity_allocator_slot_accounting_balances() {
 /// what is exercised.
 #[test]
 fn stats_hp_is_conserved_within_bounds() {
-    let mut rng = SplitMix64::new(0x_4_9_02);
+    let mut rng = SplitMix64::new(0x4902);
     for _ in 0..TRIALS {
         let max_hp = rng.range(1, 1000);
         let mut stats = Stats::new(rng.range(0, max_hp + 1), rng.range(0, 50), rng.range(0, 50));
@@ -90,7 +90,7 @@ fn stats_hp_is_conserved_within_bounds() {
 /// or lost in a slot.
 #[test]
 fn inventory_items_are_conserved() {
-    let mut rng = SplitMix64::new(0x_111_07_03);
+    let mut rng = SplitMix64::new(0x1110703);
     for _ in 0..TRIALS {
         let cap = rng.range(1, 12) as usize;
         let mut inv: Inventory<u32> = Inventory::new(cap);

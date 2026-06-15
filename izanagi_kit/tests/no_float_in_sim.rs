@@ -159,6 +159,6 @@ fn test_scanner_self_check() {
     assert!(contains_float_literal("3.14159"));
     assert!(!contains_float_literal("pair.0.1"), "tuple access is not a float");
     assert!(!contains_float_literal("0..10"), "range is not a float");
-    assert!(!contains_float_literal("0xC0FF_EE00"), "hex is not a float");
+    assert!(!contains_float_literal("0xC0FFEE00"), "hex is not a float");
     assert_eq!(strip_comment("let x = 1; // 0.5 note"), "let x = 1; ");
 }

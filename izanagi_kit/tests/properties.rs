@@ -50,7 +50,7 @@ fn rand_coord(rng: &mut SplitMix64) -> (i32, i32) {
 #[test]
 fn prop_fixed_add_is_commutative() {
     // Saturating addition is commutative even at the extremes.
-    let mut rng = SplitMix64::new(0x_ADD_C0);
+    let mut rng = SplitMix64::new(0xADDC0);
     for _ in 0..ITERS {
         let (a, b) = (rand_fixed_ext(&mut rng), rand_fixed_ext(&mut rng));
         assert_eq!(a + b, b + a, "add not commutative for {a:?},{b:?}");
@@ -59,7 +59,7 @@ fn prop_fixed_add_is_commutative() {
 
 #[test]
 fn prop_fixed_mul_is_commutative() {
-    let mut rng = SplitMix64::new(0x_3_4C);
+    let mut rng = SplitMix64::new(0x34C);
     for _ in 0..ITERS {
         let (a, b) = (rand_fixed_ext(&mut rng), rand_fixed_ext(&mut rng));
         assert_eq!(a.mul(b), b.mul(a), "mul not commutative for {a:?},{b:?}");
@@ -68,7 +68,7 @@ fn prop_fixed_mul_is_commutative() {
 
 #[test]
 fn prop_fixed_identities() {
-    let mut rng = SplitMix64::new(0x1_DE_77);
+    let mut rng = SplitMix64::new(0x1DE77);
     for _ in 0..ITERS {
         let a = rand_fixed_ext(&mut rng);
         assert_eq!(a + Fixed::ZERO, a, "additive identity");
@@ -79,7 +79,7 @@ fn prop_fixed_identities() {
 
 #[test]
 fn prop_fixed_abs_is_non_negative() {
-    let mut rng = SplitMix64::new(0x_AB5);
+    let mut rng = SplitMix64::new(0xAB5);
     for _ in 0..ITERS {
         let a = rand_fixed_ext(&mut rng);
         assert!(a.abs() >= Fixed::ZERO, "abs negative for {a:?}");
@@ -89,7 +89,7 @@ fn prop_fixed_abs_is_non_negative() {
 #[test]
 fn prop_fixed_double_negation_is_identity_except_min() {
     // -(-a) == a for every value except MIN (whose negation saturates to MAX).
-    let mut rng = SplitMix64::new(0x_4E_61);
+    let mut rng = SplitMix64::new(0x4E61);
     for _ in 0..ITERS {
         let a = rand_fixed(&mut rng); // moderate range never hits MIN
         assert_eq!(-(-a), a, "double negation not identity for {a:?}");
@@ -100,7 +100,7 @@ fn prop_fixed_double_negation_is_identity_except_min() {
 
 #[test]
 fn prop_fixed_clamp_is_in_range_and_idempotent() {
-    let mut rng = SplitMix64::new(0x_C1_A3);
+    let mut rng = SplitMix64::new(0xC1A3);
     for _ in 0..ITERS {
         let x = rand_fixed_ext(&mut rng);
         let (p, q) = (rand_fixed(&mut rng), rand_fixed(&mut rng));
@@ -113,7 +113,7 @@ fn prop_fixed_clamp_is_in_range_and_idempotent() {
 
 #[test]
 fn prop_fixed_min_max_consistency() {
-    let mut rng = SplitMix64::new(0x_31_AC);
+    let mut rng = SplitMix64::new(0x31AC);
     for _ in 0..ITERS {
         let (a, b) = (rand_fixed_ext(&mut rng), rand_fixed_ext(&mut rng));
         assert!(a.min(b) <= a.max(b), "min > max for {a:?},{b:?}");
@@ -131,7 +131,7 @@ fn prop_fixed_min_max_consistency() {
 fn prop_fixed_lerp_hits_endpoints() {
     // lerp(a, b, 0) == a and lerp(a, b, 1) == b when no intermediate saturates
     // (guaranteed by the moderate generator).
-    let mut rng = SplitMix64::new(0x_1E_47);
+    let mut rng = SplitMix64::new(0x1E47);
     for _ in 0..ITERS {
         let (a, b) = (rand_fixed(&mut rng), rand_fixed(&mut rng));
         assert_eq!(Fixed::lerp(a, b, Fixed::ZERO), a, "lerp t=0 != a");
@@ -141,7 +141,7 @@ fn prop_fixed_lerp_hits_endpoints() {
 
 #[test]
 fn prop_fixed_sqrt_is_monotonic_and_non_negative() {
-    let mut rng = SplitMix64::new(0x_5417);
+    let mut rng = SplitMix64::new(0x5417);
     for _ in 0..ITERS {
         let a = rand_fixed(&mut rng).abs();
         let b = rand_fixed(&mut rng).abs();
@@ -156,7 +156,7 @@ fn prop_fixed_sqrt_is_monotonic_and_non_negative() {
 
 #[test]
 fn prop_rotate_90_four_times_is_identity() {
-    let mut rng = SplitMix64::new(0x_4_0_7);
+    let mut rng = SplitMix64::new(0x407);
     for _ in 0..ITERS {
         let (x, y) = rand_coord(&mut rng);
         let (mut a, mut b) = (x, y);
@@ -171,7 +171,7 @@ fn prop_rotate_90_four_times_is_identity() {
 
 #[test]
 fn prop_rotate_cw_ccw_are_inverses() {
-    let mut rng = SplitMix64::new(0x_C_CC);
+    let mut rng = SplitMix64::new(0xCCC);
     for _ in 0..ITERS {
         let (x, y) = rand_coord(&mut rng);
         let (cx, cy) = rotate_90_cw(x, y);
@@ -181,7 +181,7 @@ fn prop_rotate_cw_ccw_are_inverses() {
 
 #[test]
 fn prop_reflect_point_is_an_involution() {
-    let mut rng = SplitMix64::new(0x_4EF_1);
+    let mut rng = SplitMix64::new(0x4EF1);
     for _ in 0..ITERS {
         let p = rand_coord(&mut rng);
         let c = rand_coord(&mut rng);
@@ -191,7 +191,7 @@ fn prop_reflect_point_is_an_involution() {
 
 #[test]
 fn prop_distances_are_symmetric_and_ordered() {
-    let mut rng = SplitMix64::new(0x_D157);
+    let mut rng = SplitMix64::new(0xD157);
     for _ in 0..ITERS {
         let a = rand_coord(&mut rng);
         let b = rand_coord(&mut rng);
@@ -207,7 +207,7 @@ fn prop_distances_are_symmetric_and_ordered() {
 
 #[test]
 fn prop_line_endpoints_length_and_adjacency() {
-    let mut rng = SplitMix64::new(0x_11_E5);
+    let mut rng = SplitMix64::new(0x11E5);
     for _ in 0..ITERS {
         let a = rand_coord(&mut rng);
         let b = rand_coord(&mut rng);
@@ -228,7 +228,7 @@ fn prop_knockback_never_exceeds_distance_and_lands_open() {
     // A wall on a deterministic sparse lattice; knockback must never overshoot
     // its distance budget and must never come to rest on a blocked cell.
     let is_wall = |x: i32, y: i32| (x.rem_euclid(7) == 0) && (y.rem_euclid(5) == 0);
-    let mut rng = SplitMix64::new(0x_C8_AC);
+    let mut rng = SplitMix64::new(0xC8AC);
     let dirs = [
         (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1),
     ];
@@ -251,7 +251,7 @@ fn prop_knockback_never_exceeds_distance_and_lands_open() {
 
 #[test]
 fn prop_cone_cells_are_in_front_and_in_range() {
-    let mut rng = SplitMix64::new(0x_C0_4E);
+    let mut rng = SplitMix64::new(0xC04E);
     let facings = [
         (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1),
     ];

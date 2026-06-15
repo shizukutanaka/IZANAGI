@@ -35,7 +35,7 @@ fn rand_walls(rng: &mut SplitMix64, n: u32, w: i32, h: i32) -> HashSet<(i32, i32
 #[test]
 fn pathfinding_is_translation_invariant() {
     const N: i32 = 12;
-    let mut rng = SplitMix64::new(0x_9A7_4F1);
+    let mut rng = SplitMix64::new(0x9A74F1);
     for _ in 0..CASES {
         let mut walls = rand_walls(&mut rng, 24, N, N);
         let start = (0, 0);
@@ -75,7 +75,7 @@ fn pathfinding_is_translation_invariant() {
 fn fov_is_translation_invariant() {
     const N: i32 = 16;
     let radius = 6;
-    let mut rng = SplitMix64::new(0x_F0F_4E2);
+    let mut rng = SplitMix64::new(0xF0F4E2);
     for _ in 0..CASES {
         let opaque = rand_walls(&mut rng, 30, N, N);
         let origin = (rng.range(0, N), rng.range(0, N));
@@ -105,7 +105,7 @@ fn fov_is_translation_invariant() {
 /// original map. No value can be created, lost, or duplicated by a rotation.
 #[test]
 fn tilemap_rotation_preserves_cell_multiset() {
-    let mut rng = SplitMix64::new(0x_70_7A7E);
+    let mut rng = SplitMix64::new(0x707A7E);
     for _ in 0..CASES {
         let w = rng.range(1, 7) as u32;
         let h = rng.range(1, 7) as u32;

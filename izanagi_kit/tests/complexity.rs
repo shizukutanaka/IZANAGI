@@ -136,7 +136,7 @@ fn flood_fill_and_reachable_work_is_position_independent() {
 #[test]
 fn fov_smoke_uses_seeded_rng_for_opacity() {
     // A randomized-opacity FOV still does bounded, position-independent work.
-    let mut rng = SplitMix64::new(0x_C0FFEE);
+    let mut rng = SplitMix64::new(0xC0FFEE);
     let walls: Vec<(i32, i32)> = (0..40).map(|_| (rng.range(0, 20), rng.range(0, 20))).collect();
     let calls_at = |ox: i32, oy: i32| -> usize {
         let count = Cell::new(0usize);

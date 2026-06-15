@@ -34,7 +34,7 @@ fn pick<T: Copy>(pool: &[T], rng: &mut SplitMix64) -> Option<T> {
 
 #[test]
 fn sparse_set_matches_index_slot_model_under_random_ops() {
-    let mut rng = SplitMix64::new(0xB0A5_E7_1234);
+    let mut rng = SplitMix64::new(0xB0A5E71234);
     let mut alloc = EntityAllocator::new();
     let mut set: SparseSet<u32> = SparseSet::new();
 
@@ -134,7 +134,7 @@ fn sparse_set_matches_index_slot_model_under_random_ops() {
 
 #[test]
 fn entity_allocator_matches_live_set_model_under_random_ops() {
-    let mut rng = SplitMix64::new(0x_A110C_5EED);
+    let mut rng = SplitMix64::new(0xA110C5EED);
     let mut alloc = EntityAllocator::new();
 
     // Reference model: the set of currently-live entities.

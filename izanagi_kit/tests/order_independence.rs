@@ -43,7 +43,7 @@ fn permutation(rng: &mut SplitMix64, n: usize) -> Vec<usize> {
 
 #[test]
 fn sparse_set_hash_is_insertion_order_independent() {
-    let mut rng = SplitMix64::new(0x_5A95_E7_01);
+    let mut rng = SplitMix64::new(0x5A95E701);
     let mut alloc = EntityAllocator::new();
     let items: Vec<(_, u32)> = (0..32).map(|i| (alloc.allocate(), i * 7 + 1)).collect();
 
@@ -69,7 +69,7 @@ fn sparse_set_hash_is_insertion_order_independent() {
 #[test]
 fn status_set_hash_is_apply_order_independent() {
     // Distinct keys, so each apply is independent (no last-writer-wins overlap).
-    let mut rng = SplitMix64::new(0x_57A7_05_02);
+    let mut rng = SplitMix64::new(0x57A70502);
     let items: Vec<(u32, u32, i32)> = (0..24)
         .map(|i| (i, (i % 9) + 1, (i as i32) - 12))
         .collect();
@@ -97,7 +97,7 @@ fn status_set_hash_is_apply_order_independent() {
 fn spatial_hash_hash_is_insertion_order_independent() {
     // Random positions deliberately collide in cells, exercising the per-bucket
     // canonicalization (buckets are sorted inside det_hash).
-    let mut rng = SplitMix64::new(0x_5A_71_A1_03);
+    let mut rng = SplitMix64::new(0x5A71A103);
     let items: Vec<(u32, i32, i32)> = (0..40)
         .map(|k| (k, rng.range(0, 20), rng.range(0, 20)))
         .collect();
@@ -124,7 +124,7 @@ fn spatial_hash_hash_is_insertion_order_independent() {
 #[test]
 fn relations_hash_is_attach_order_independent() {
     // A forest of distinct children attached to a small set of shared parents.
-    let mut rng = SplitMix64::new(0x_4E_1A_04);
+    let mut rng = SplitMix64::new(0x4E1A04);
     let mut alloc = EntityAllocator::new();
     let parents: Vec<_> = (0..4).map(|_| alloc.allocate()).collect();
     let edges: Vec<(_, _)> = (0..28)

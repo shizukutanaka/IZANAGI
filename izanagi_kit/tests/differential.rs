@@ -35,7 +35,7 @@ const ARITH_TOL: f64 = 1.0e-4;
 
 #[test]
 fn fixed_sin_cos_match_f64_over_range() {
-    let mut rng = SplitMix64::new(0x_5_1_4C_05);
+    let mut rng = SplitMix64::new(0x514C05);
     for _ in 0..ITERS {
         // Angle in roughly [-2π, 2π] radians, fractional.
         let ang = Fixed::from_ratio(rng.range(-650, 651), 100);
@@ -72,7 +72,7 @@ fn fixed_sin_cos_anchor_at_zero() {
 
 #[test]
 fn fixed_sqrt_matches_f64_and_never_overestimates() {
-    let mut rng = SplitMix64::new(0x_50_47_05);
+    let mut rng = SplitMix64::new(0x504705);
     for _ in 0..ITERS {
         // x in [0, ~30000], fractional.
         let x = Fixed::from_ratio(rng.range(0, 30_000), 7);
@@ -94,7 +94,7 @@ fn fixed_sqrt_of_perfect_squares_is_exact() {
 
 #[test]
 fn fixed_mul_matches_f64() {
-    let mut rng = SplitMix64::new(0x_3_4C_05);
+    let mut rng = SplitMix64::new(0x34C05);
     for _ in 0..ITERS {
         // Moderate operands so the product never saturates (|a*b| < 32767).
         let a = Fixed::from_ratio(rng.range(-150, 151), 10);
@@ -112,7 +112,7 @@ fn fixed_mul_matches_f64() {
 
 #[test]
 fn fixed_div_matches_f64() {
-    let mut rng = SplitMix64::new(0x_D1_05);
+    let mut rng = SplitMix64::new(0xD105);
     for _ in 0..ITERS {
         let a = Fixed::from_ratio(rng.range(-1000, 1001), 10);
         // Divisor bounded away from zero so the quotient stays in range.

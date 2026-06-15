@@ -100,7 +100,7 @@ fn gen_color(rng: &mut SplitMix64) -> Color {
 
 #[test]
 fn test_generated_content_roundtrips() {
-    let mut rng = SplitMix64::new(0x5EED_1234);
+    let mut rng = SplitMix64::new(0x5EED1234);
     for iter in 0..3000 {
         let original = gen_content(&mut rng);
         let text = serialize(&original);

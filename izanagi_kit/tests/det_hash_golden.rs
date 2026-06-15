@@ -82,7 +82,7 @@ fn cases() -> Vec<(&'static str, u64)> {
     // A small fixed-seed dungeon. Pins the `rooms` field (Round 11) plus the
     // tile bitmap; a re-omission of rooms — or a generation/wire change — flips it.
     let dungeon: Dungeon = {
-        let mut rng = SplitMix64::new(0xD17_A9E);
+        let mut rng = SplitMix64::new(0xD17A9E);
         generate_dungeon(24, 16, &mut rng, GenParams::default())
     };
 

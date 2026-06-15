@@ -98,7 +98,7 @@ fn test_parser_never_panics_on_garbage() {
         "\u{1F600}",
         "verylongtokenverylongtokenverylongtoken",
     ];
-    let mut rng = SplitMix64::new(0xFEE5_u64.wrapping_mul(3));
+    let mut rng = SplitMix64::new(0xFEE5u64.wrapping_mul(3));
     for _ in 0..5000 {
         let line_len = rng.below(6) as usize;
         let mut line = String::new();
@@ -132,7 +132,7 @@ fn test_parser_never_panics_on_random_unicode() {
     let structural = [
         '\n', ' ', '\t', '\r', '#', 'x', '/', '-', '0', '9', 'g', '@', ':',
     ];
-    let mut rng = SplitMix64::new(0x1A2A_3A4A_5A6A_7A8A);
+    let mut rng = SplitMix64::new(0x1A2A3A4A5A6A7A8A);
     for _ in 0..4000 {
         let len = rng.below(48) as usize;
         let mut src = String::new();
@@ -143,7 +143,7 @@ fn test_parser_never_panics_on_random_unicode() {
             } else {
                 // Any Unicode scalar value (from_u32 yields None for surrogates,
                 // which we simply skip) — exercises multi-byte boundary slicing.
-                let cp = rng.below(0x11_0000);
+                let cp = rng.below(0x110000);
                 if let Some(ch) = char::from_u32(cp) {
                     src.push(ch);
                 }

@@ -24,7 +24,7 @@ const TRIALS: usize = 500;
 /// in slice order (the documented definition).
 #[test]
 fn status_apply_all_equals_loop_of_apply() {
-    let mut rng = SplitMix64::new(0x_A99_A11_01);
+    let mut rng = SplitMix64::new(0xA99A1101);
     for _ in 0..TRIALS {
         let n = rng.range(0, 20) as usize;
         let effects: Vec<(u32, Effect)> = (0..n)
@@ -63,7 +63,7 @@ fn status_apply_all_equals_loop_of_apply() {
 /// every active key (saturating per item, exactly as the loop would).
 #[test]
 fn status_extend_all_equals_loop_of_extend_duration() {
-    let mut rng = SplitMix64::new(0x_E47_E11_02);
+    let mut rng = SplitMix64::new(0xE47E1102);
     for _ in 0..TRIALS {
         let n = rng.range(0, 16) as usize;
         // Seed both sets identically with distinct keys (some near u32::MAX to
@@ -103,7 +103,7 @@ fn status_extend_all_equals_loop_of_extend_duration() {
 /// `batch_alloc(n)` or `n` individual `allocate()` calls.
 #[test]
 fn entity_batch_alloc_equals_loop_of_allocate() {
-    let mut rng = SplitMix64::new(0x_A110C_03);
+    let mut rng = SplitMix64::new(0xA110C03);
     for _ in 0..TRIALS {
         let n = rng.range(0, 40) as usize;
 
@@ -124,7 +124,7 @@ fn entity_batch_alloc_equals_loop_of_allocate() {
 /// liveness, counts, and generation bumps afterward.
 #[test]
 fn entity_batch_free_equals_loop_of_free() {
-    let mut rng = SplitMix64::new(0x_F4EE_04);
+    let mut rng = SplitMix64::new(0xF4EE04);
     for _ in 0..TRIALS {
         let n = rng.range(1, 40) as usize;
 
