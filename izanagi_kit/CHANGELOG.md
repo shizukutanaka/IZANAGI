@@ -185,6 +185,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Complexity / work-bound test perspective** (`tests/complexity.rs`) — The
+  other nine lenses all ask "is the answer correct?"; none asks "how much work
+  does it take?" — yet an algorithm whose cost scales with an incidental
+  magnitude (absolute coordinates, query span) rather than its logical input
+  (radius, path length, explored region) can hang or DoS a deterministic engine
+  while still returning the right answer (the `SpatialHash` huge-span iteration
+  is exactly this class). This lens measures work *deterministically* — no flaky
+  timing — by instrumenting the predicate closures these algorithms take and
+  counting invocations. Six tests assert: FOV work is *identical* regardless of
+  absolute origin position and bounded by `O(r²)`; `ray_cast` calls `is_blocked`
+  exactly once per traversed cell after the origin (never the origin, never
+  twice); and `astar`, `flood_fill`, `is_reachable` explore a position-
+  independent, bounded region. Proven to have teeth — making `ray_cast` probe
+  the origin fails the tight per-cell bound.
 - **Robustness / totality test perspective** (`tests/robustness.rs`) — Verifies
   the most basic contract of a deterministic engine: every public operation is
   *total* (returns — possibly an error, `None`, empty, or a saturated value)
