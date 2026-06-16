@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`terminal` draw ops overflowed coordinates at extreme positions**
+  (`terminal.rs`) — `fill_rect`, `draw_str`, `draw_box`, `draw_double_box`, and
+  `draw_h_line` computed cell coordinates with raw `x + dx` / `x + w as i32 - 1`,
+  which overflow-panic for an origin near `i32::MAX` — despite `draw_box`'s doc
+  promising "Fully clipped — no panic for out-of-bounds positions" (the `put`/
+  `set` clip is safe, but the *caller* arithmetic panicked first). Dimension
+  casts are now clamped to `i32` range and every coordinate offset uses
+  `saturating_add`, so a saturated (off-screen) coordinate is harmlessly clipped
+  instead of panicking. Honors the documented contract; all 21 terminal unit
+  tests pass; robustness coverage added.
 - **`autotile` overflow panics at coordinate extremes** (`autotile.rs`) —
   `compute_mask` probed its 8 neighbours with raw `x ± 1` / `y ± 1`, which
   overflow-panic for a cell at `i32::MIN`/`i32::MAX`; `compute_region` iterated

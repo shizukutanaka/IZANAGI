@@ -365,3 +365,31 @@ fn noise_is_total_and_bounded_at_extremes() {
         }
     }
 }
+
+#[test]
+fn terminal_draw_ops_are_total_at_extreme_coords() {
+    use izanagi_kit::{content::Color, Cell, Screen};
+    let mut s = Screen::new(20, 10);
+    let c = Cell {
+        glyph: '#',
+        fg: Color { r: 255, g: 255, b: 255 },
+        bg: Color { r: 0, g: 0, b: 0 },
+    };
+    let col = Color { r: 1, g: 2, b: 3 };
+    // Draw ops at extreme origins / sizes must clip without overflow-panicking
+    // (the documented "clipped, no panic" contract). Coordinate arithmetic now
+    // saturates before the put/set clip.
+    for &x in &EXTREMES {
+        for &y in &EXTREMES {
+            s.fill_rect(x, y, 5, 5, c);
+            s.draw_str(x, y, "hello", col, col);
+            s.draw_box(x, y, 4, 4, col, col);
+            s.draw_double_box(x, y, 4, 4, col, col);
+            s.draw_h_line(x, y, 6, '-', col, col);
+        }
+    }
+    // Note: draw ops are O(requested size) by nature (each cell is clipped
+    // individually), so huge *sizes* are deliberately not exercised — that is
+    // output-proportional work, not a panic. The saturating fix being validated
+    // is about extreme *positions*, covered exhaustively above.
+}

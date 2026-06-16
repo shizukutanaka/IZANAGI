@@ -128,9 +128,13 @@ impl Screen {
 
     /// Fill a rectangle `[x, x+w) × [y, y+h)` with `cell` (clipped to bounds).
     pub fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, cell: Cell) {
-        for dy in 0..h as i32 {
-            for dx in 0..w as i32 {
-                self.put(x + dx, y + dy, cell);
+        let w = w.min(i32::MAX as u32) as i32;
+        let h = h.min(i32::MAX as u32) as i32;
+        for dy in 0..h {
+            for dx in 0..w {
+                // saturating: put() clips, but the coordinate add must not panic
+                // for an origin near i32::MAX.
+                self.put(x.saturating_add(dx), y.saturating_add(dy), cell);
             }
         }
     }
@@ -139,7 +143,7 @@ impl Screen {
     /// Clipped at the screen edge; does not wrap.
     pub fn draw_str(&mut self, x: i32, y: i32, text: &str, fg: Color, bg: Color) {
         for (i, glyph) in text.chars().enumerate() {
-            self.set(x + i as i32, y, glyph, fg, bg);
+            self.set(x.saturating_add(i as i32), y, glyph, fg, bg);
         }
     }
 
@@ -170,22 +174,24 @@ impl Screen {
         if w == 0 || h == 0 {
             return;
         }
-        let x1 = x + w as i32 - 1;
-        let y1 = y + h as i32 - 1;
+        let w = w.min(i32::MAX as u32) as i32;
+        let h = h.min(i32::MAX as u32) as i32;
+        let x1 = x.saturating_add(w - 1);
+        let y1 = y.saturating_add(h - 1);
         // Corners
         self.set(x, y, '┌', fg, bg);
         self.set(x1, y, '┐', fg, bg);
         self.set(x, y1, '└', fg, bg);
         self.set(x1, y1, '┘', fg, bg);
         // Top and bottom edges
-        for dx in 1..w as i32 - 1 {
-            self.set(x + dx, y, '─', fg, bg);
-            self.set(x + dx, y1, '─', fg, bg);
+        for dx in 1..w - 1 {
+            self.set(x.saturating_add(dx), y, '─', fg, bg);
+            self.set(x.saturating_add(dx), y1, '─', fg, bg);
         }
         // Left and right edges
-        for dy in 1..h as i32 - 1 {
-            self.set(x, y + dy, '│', fg, bg);
-            self.set(x1, y + dy, '│', fg, bg);
+        for dy in 1..h - 1 {
+            self.set(x, y.saturating_add(dy), '│', fg, bg);
+            self.set(x1, y.saturating_add(dy), '│', fg, bg);
         }
     }
 
@@ -198,19 +204,21 @@ impl Screen {
         if w == 0 || h == 0 {
             return;
         }
-        let x1 = x + w as i32 - 1;
-        let y1 = y + h as i32 - 1;
+        let w = w.min(i32::MAX as u32) as i32;
+        let h = h.min(i32::MAX as u32) as i32;
+        let x1 = x.saturating_add(w - 1);
+        let y1 = y.saturating_add(h - 1);
         self.set(x, y, '╔', fg, bg);
         self.set(x1, y, '╗', fg, bg);
         self.set(x, y1, '╚', fg, bg);
         self.set(x1, y1, '╝', fg, bg);
-        for dx in 1..w as i32 - 1 {
-            self.set(x + dx, y, '═', fg, bg);
-            self.set(x + dx, y1, '═', fg, bg);
+        for dx in 1..w - 1 {
+            self.set(x.saturating_add(dx), y, '═', fg, bg);
+            self.set(x.saturating_add(dx), y1, '═', fg, bg);
         }
-        for dy in 1..h as i32 - 1 {
-            self.set(x, y + dy, '║', fg, bg);
-            self.set(x1, y + dy, '║', fg, bg);
+        for dy in 1..h - 1 {
+            self.set(x, y.saturating_add(dy), '║', fg, bg);
+            self.set(x1, y.saturating_add(dy), '║', fg, bg);
         }
     }
 
@@ -235,8 +243,9 @@ impl Screen {
     /// via the existing `set` contract. Equivalent to `draw_line((x,y),(x+len-1,y),…)`
     /// but avoids the allocation and sign-flip path of the Bresenham fallback.
     pub fn draw_h_line(&mut self, x: i32, y: i32, len: u32, glyph: char, fg: Color, bg: Color) {
-        for i in 0..len as i32 {
-            self.set(x + i, y, glyph, fg, bg);
+        let len = len.min(i32::MAX as u32) as i32;
+        for i in 0..len {
+            self.set(x.saturating_add(i), y, glyph, fg, bg);
         }
     }
 
