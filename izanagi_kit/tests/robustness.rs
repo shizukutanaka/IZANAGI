@@ -332,3 +332,36 @@ fn autotile_is_total_at_extreme_coords() {
     let _ = compute_region(i32::MIN, i32::MIN, 2, 2, |_, _| true);
     let _ = compute_region(0, 0, -5, 10, |_, _| true); // non-positive -> empty
 }
+
+#[test]
+fn noise_is_total_and_bounded_at_extremes() {
+    use izanagi_kit::{
+        fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, value_noise_1d, value_noise_1d_wrap,
+        value_noise_2d, value_noise_2d_wrap, value_noise_3d,
+    };
+    // Noise is determinism-critical; all variants must be total (no overflow /
+    // no rem_euclid-by-zero) and stay within [0, 65535] for any coordinate,
+    // octave count, seed, and period — including extremes and degenerate values.
+    let coords = EXTREMES;
+    let octaves = [0u32, 1, 6, u32::MAX]; // amplitude>>=1 bounds the octave loop
+    let periods = [i32::MIN, -1, 0, 1, i32::MAX]; // period<=0 must be treated as 1
+    let seed = 0xABCD_1234_5678_9012u64;
+    for &x in &coords {
+        for &y in &coords {
+            assert!(value_noise_1d(x, seed) <= 65535);
+            assert!(value_noise_2d(x, y, seed) <= 65535);
+            assert!(value_noise_3d(x, y, x ^ y, seed) <= 65535);
+            for &o in &octaves {
+                assert!(fbm_1d(x, seed, o) <= 65535);
+                assert!(fbm_2d(x, y, seed, o) <= 65535);
+                assert!(fbm_3d(x, y, x ^ y, seed, o) <= 65535);
+            }
+            for &p in &periods {
+                assert!(value_noise_1d_wrap(x, seed, p) <= 65535);
+                assert!(value_noise_2d_wrap(x, y, seed, p, p) <= 65535);
+                assert!(fbm_1d_wrap(x, seed, 4, p) <= 65535);
+                assert!(fbm_2d_wrap(x, y, seed, 4, p) <= 65535);
+            }
+        }
+    }
+}

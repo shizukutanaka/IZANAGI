@@ -229,6 +229,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Robustness-lens coverage for `noise`, `passability`, `autotile`**
+  (`tests/robustness.rs`) — Extended the totality lens across the procedural and
+  grid modules. `noise` (all `value_noise`/`fbm`/`_wrap` variants) was audited
+  and confirmed total + bounded to `[0, 65535]` by construction (`u64`
+  accumulation, `period.max(1)` guards, `xi0 + 1 ≤ period` so no overflow) — the
+  test pins that for extreme coords/octaves/periods. `passability` and `autotile`
+  coverage accompanies their `usize`/saturating fixes (see Fixed).
 - **Robustness-lens coverage for `easing`, `encounter`, `random_table`,
   `inputbuf`** (`tests/robustness.rs`) — Extended the totality lens to four more
   modules with caller-controlled numeric inputs, hammering them with
