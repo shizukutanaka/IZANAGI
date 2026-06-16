@@ -355,6 +355,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   distinct keys so the final state is genuinely permutation-independent). Proven
   to have teeth — removing the canonicalizing sort from `StatusSet::det_hash`
   makes the lens fail though that module's own example test still passes.
+- **`TileMap` transform group laws** (`tests/metamorphic.rs`) — Added the
+  composition/inverse relations of the map transforms: `rotated_cw ∘ rotated_ccw`
+  (and the reverse) is the identity, `flip_h`/`flip_v` are involutions, and
+  `flip_h ∘ flip_v` equals a 180° rotation (`rotated_cw` twice). These verify the
+  transforms compose correctly — two distinct routes must reach the same map —
+  beyond the existing rotation multiset / 4×-identity coverage.
 - **Metamorphic-relation test perspective** (`tests/metamorphic.rs`) — A lens for
   the kit's richest algorithms (pathfinding, FOV, map transforms) that have *no
   tractable oracle*: you cannot cheaply state "the FOV of this map is exactly

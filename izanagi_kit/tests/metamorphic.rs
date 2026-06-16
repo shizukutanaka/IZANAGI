@@ -143,3 +143,58 @@ fn tilemap_rotation_preserves_cell_multiset() {
         }
     }
 }
+
+/// Equal iff same dimensions and same cell at every coordinate (TileMap has no
+/// derived PartialEq).
+fn maps_equal(a: &TileMap<u32>, b: &TileMap<u32>) -> bool {
+    if a.width() != b.width() || a.height() != b.height() {
+        return false;
+    }
+    for y in 0..a.height() as i32 {
+        for x in 0..a.width() as i32 {
+            if a.get(x, y) != b.get(x, y) {
+                return false;
+            }
+        }
+    }
+    true
+}
+
+/// TileMap transforms obey their group laws: cw and ccw rotations are inverses,
+/// the two flips are involutions, and flip_h∘flip_v equals a 180° rotation
+/// (== cw twice). These are metamorphic relations — two routes to the same map.
+#[test]
+fn tilemap_transforms_round_trip_and_compose() {
+    let mut rng = SplitMix64::new(0x717E_3A05);
+    for _ in 0..CASES {
+        let w = rng.range(1, 7) as u32;
+        let h = rng.range(1, 7) as u32;
+        let mut m: TileMap<u32> = TileMap::new(w, h, 0);
+        for y in 0..h as i32 {
+            for x in 0..w as i32 {
+                m.set(x, y, rng.range(0, 1000) as u32);
+            }
+        }
+
+        // Rotations are inverse pairs.
+        assert!(maps_equal(&m.rotated_cw().rotated_ccw(), &m), "cw∘ccw != identity");
+        assert!(maps_equal(&m.rotated_ccw().rotated_cw(), &m), "ccw∘cw != identity");
+
+        // Flips are involutions (applying twice restores the original).
+        let mut fh = m.clone();
+        fh.flip_h();
+        fh.flip_h();
+        assert!(maps_equal(&fh, &m), "flip_h twice != identity");
+        let mut fv = m.clone();
+        fv.flip_v();
+        fv.flip_v();
+        assert!(maps_equal(&fv, &m), "flip_v twice != identity");
+
+        // flip_h ∘ flip_v == 180° rotation == rotate_cw applied twice.
+        let mut fhv = m.clone();
+        fhv.flip_h();
+        fhv.flip_v();
+        let rot180 = m.rotated_cw().rotated_cw();
+        assert!(maps_equal(&fhv, &rot180), "flip_h∘flip_v != rotate 180");
+    }
+}
