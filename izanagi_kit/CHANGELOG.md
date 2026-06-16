@@ -391,6 +391,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in `mul` keeps commutativity true yet changes the value. Proven to have teeth
   — injecting a `sin`/`cos` swap fails the differential while the property suite
   stays green.
+- **Model-based coverage for `Relations`** (`tests/stateful.rs`) — `Relations`
+  keeps dual indices (`parents` + `children`) and rejects cycles, so it is prone
+  to a parents/children desync or a wrong cycle-rejection. Added a stateful test
+  driving 4000 random `attach`/`detach`/`remove_entity` ops against an
+  independent forest model, checking `parent_of`/`children_of` after every step
+  and predicting `attach`'s accept/reject from a model cycle check. Proven to
+  have teeth — making `detach` skip the `children`-index update desyncs the two
+  views and fails the test.
 - **Model-based coverage for `AssetStore`** (`tests/stateful.rs`) — `AssetStore`
   is generational like `SparseSet` (each slot tracks a generation that
   `get`/`replace`/`remove` verify), and was audited correct — but had no

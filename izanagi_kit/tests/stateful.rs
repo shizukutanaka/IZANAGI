@@ -16,7 +16,9 @@
 //! Deterministic via the kit's own `SplitMix64`, so every run is reproducible in
 //! CI without a `proptest`/`quickcheck` dependency.
 
-use izanagi_kit::{AssetHandle, AssetStore, Entity, EntityAllocator, SparseSet, SplitMix64};
+use izanagi_kit::{
+    AssetHandle, AssetStore, Entity, EntityAllocator, Relations, SparseSet, SplitMix64,
+};
 use std::collections::{HashMap, HashSet};
 
 // Each op is followed by a full-pool consistency scan, so the work is
@@ -250,6 +252,83 @@ fn asset_store_resolves_only_live_handles_under_random_ops() {
         for (h, exp) in handles.iter().zip(expected.iter()) {
             assert_eq!(store.get(*h).copied(), *exp, "get({h:?}) disagrees with model");
             assert_eq!(store.is_live(*h), exp.is_some(), "is_live({h:?}) disagrees");
+        }
+    }
+}
+
+#[test]
+fn relations_matches_forest_model_under_random_ops() {
+    // Relations keeps dual indices (parents + children) and rejects cycles. This
+    // drives it through random attach/detach/remove_entity and, after each step,
+    // checks parent_of and children_of against an independent forest model — so
+    // a parents/children desync, a wrong cycle-rejection, or a stale edge fails.
+    let mut rng = SplitMix64::new(0x4E1A_705);
+    let mut alloc = EntityAllocator::new();
+    let ents: Vec<Entity> = (0..12).map(|_| alloc.allocate()).collect();
+    let mut rel = Relations::new();
+    let mut model: HashMap<Entity, Entity> = HashMap::new(); // child -> parent
+
+    // Would attaching child->parent create a cycle (or self-loop) in the model?
+    // True iff child is an ancestor of parent (walking up from parent reaches it).
+    let creates_cycle = |model: &HashMap<Entity, Entity>, child: Entity, parent: Entity| -> bool {
+        if child == parent {
+            return true;
+        }
+        let mut cur = parent;
+        for _ in 0..=model.len() {
+            if cur == child {
+                return true;
+            }
+            match model.get(&cur) {
+                Some(&p) => cur = p,
+                None => return false,
+            }
+        }
+        false
+    };
+
+    let pick = |rng: &mut SplitMix64| ents[rng.below(ents.len() as u32) as usize];
+
+    for _ in 0..4000 {
+        match rng.below(4) {
+            0 | 1 => {
+                let c = pick(&mut rng);
+                let p = pick(&mut rng);
+                let expected = !creates_cycle(&model, c, p);
+                let got = rel.attach(c, p);
+                assert_eq!(got, expected, "attach({c:?},{p:?}) returned {got}, expected {expected}");
+                if expected {
+                    model.remove(&c); // attach detaches any existing parent first
+                    model.insert(c, p);
+                }
+            }
+            2 => {
+                let c = pick(&mut rng);
+                rel.detach(c);
+                model.remove(&c);
+            }
+            _ => {
+                let e = pick(&mut rng);
+                rel.remove_entity(e);
+                // e's children become roots; e loses its own parent.
+                let kids: Vec<Entity> =
+                    model.iter().filter(|(_, &p)| p == e).map(|(&c, _)| c).collect();
+                for k in kids {
+                    model.remove(&k);
+                }
+                model.remove(&e);
+            }
+        }
+
+        // Consistency after every op: parent_of and children_of mirror the model.
+        for &x in &ents {
+            assert_eq!(rel.parent_of(x), model.get(&x).copied(), "parent_of({x:?}) mismatch");
+            let mut got_kids = rel.children_of(x);
+            got_kids.sort_by_key(|e| (e.index(), e.generation()));
+            let mut exp_kids: Vec<Entity> =
+                model.iter().filter(|(_, &p)| p == x).map(|(&c, _)| c).collect();
+            exp_kids.sort_by_key(|e| (e.index(), e.generation()));
+            assert_eq!(got_kids, exp_kids, "children_of({x:?}) mismatch");
         }
     }
 }
