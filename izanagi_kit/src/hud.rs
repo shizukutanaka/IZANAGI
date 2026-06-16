@@ -192,13 +192,13 @@ impl HudPanel {
     /// Left content edge (x + 1).
     #[inline]
     pub fn inner_x(&self) -> i32 {
-        self.x + 1
+        self.x.saturating_add(1)
     }
 
     /// Top content edge (y + 1).
     #[inline]
     pub fn inner_y(&self) -> i32 {
-        self.y + 1
+        self.y.saturating_add(1)
     }
 
     /// Content width (outer w − 2, clamped to 0).
@@ -216,7 +216,10 @@ impl HudPanel {
     /// True if world point `(px, py)` lies within this panel.
     #[inline]
     pub fn contains(&self, px: i32, py: i32) -> bool {
-        px >= self.x && px < self.x + self.w as i32 && py >= self.y && py < self.y + self.h as i32
+        px >= self.x
+            && px < self.x.saturating_add(self.w as i32)
+            && py >= self.y
+            && py < self.y.saturating_add(self.h as i32)
     }
 
     /// The four corner cells in order: top-left, top-right, bottom-left,
@@ -225,8 +228,8 @@ impl HudPanel {
     /// without recomputing `x + w - 1` at every call site.
     #[inline]
     pub fn corners(&self) -> [(i32, i32); 4] {
-        let x1 = self.x + (self.w as i32).saturating_sub(1);
-        let y1 = self.y + (self.h as i32).saturating_sub(1);
+        let x1 = self.x.saturating_add((self.w as i32).saturating_sub(1));
+        let y1 = self.y.saturating_add((self.h as i32).saturating_sub(1));
         [(self.x, self.y), (x1, self.y), (self.x, y1), (x1, y1)]
     }
 

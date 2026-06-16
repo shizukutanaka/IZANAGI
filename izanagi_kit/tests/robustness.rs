@@ -393,3 +393,23 @@ fn terminal_draw_ops_are_total_at_extreme_coords() {
     // output-proportional work, not a panic. The saturating fix being validated
     // is about extreme *positions*, covered exhaustively above.
 }
+
+#[test]
+fn hud_panel_is_total_at_extreme_coords() {
+    use izanagi_kit::HudPanel;
+    // inner_x/inner_y (x+1), contains (x + w), and corners (x + w-1) previously
+    // overflowed for a panel positioned near i32::MAX. All now saturate.
+    for &x in &EXTREMES {
+        for &y in &EXTREMES {
+            let p = HudPanel::new(x, y, 10, 5);
+            let _ = (p.inner_x(), p.inner_y(), p.inner_w(), p.inner_h());
+            let _ = p.corners();
+            for &px in &EXTREMES {
+                let _ = p.contains(px, y);
+            }
+            // Extreme dimensions too (panel arithmetic, not a fill loop).
+            let big = HudPanel::new(x, y, u32::MAX, u32::MAX);
+            let _ = (big.inner_x(), big.corners(), big.contains(x, y));
+        }
+    }
+}

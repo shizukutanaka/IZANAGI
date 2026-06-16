@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`HudPanel` coordinate helpers overflowed at extreme positions** (`hud.rs`)
+  — `inner_x`/`inner_y` (`self.x + 1`), `contains` (`self.x + self.w as i32`),
+  and `corners` (the *outer* `self.x + …` add — the inner `saturating_sub` did
+  not protect it) overflow-panic for a panel positioned near `i32::MAX`.
+  (`inner_w`/`inner_h` already saturated.) All now use `saturating_add`.
+  Total/panic-free; all 52 hud unit tests pass; robustness coverage added. This
+  closes the raw-`i32`-arithmetic overflow class across the kit's last
+  coordinate-bearing module.
 - **`terminal` draw ops overflowed coordinates at extreme positions**
   (`terminal.rs`) — `fill_rect`, `draw_str`, `draw_box`, `draw_double_box`, and
   `draw_h_line` computed cell coordinates with raw `x + dx` / `x + w as i32 - 1`,
