@@ -92,7 +92,9 @@ impl Color {
             return a;
         }
         let ch = |ca: u8, cb: u8| -> u8 {
-            let v = ca as i32 + (cb as i32 - ca as i32) * num / den;
+            // i64 so a large `num` cannot overflow `(cb - ca) * num` (channels
+            // are bounded but `num` is caller-controlled).
+            let v = ca as i64 + (cb as i64 - ca as i64) * num as i64 / den as i64;
             v.clamp(0, 255) as u8
         };
         Color {
@@ -137,7 +139,8 @@ impl Color {
         if den == 0 {
             return self;
         }
-        let ch = |c: u8| -> u8 { (c as i32 * num / den).clamp(0, 255) as u8 };
+        // i64 so a large `num` cannot overflow `c * num` (the brighten path).
+        let ch = |c: u8| -> u8 { (c as i64 * num as i64 / den as i64).clamp(0, 255) as u8 };
         Color {
             r: ch(self.r),
             g: ch(self.g),

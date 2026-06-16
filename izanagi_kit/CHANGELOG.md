@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`Color::lerp`/`scale` overflow on large ratios** (`content.rs`) — Both take
+  a caller-controlled `i32` `num`/`den`. The per-channel math computed
+  `(cb - ca) * num` (lerp) and `c * num` (scale) in `i32`, so a large `num`
+  (e.g. brightening by a big factor) overflowed — `255 * i32::MAX` panics in
+  debug. Both `den == 0` guards were already present; the overflow was in the
+  multiply. Switched the channel arithmetic to `i64` before the `clamp(0, 255)`,
+  which is overflow-safe and identical for normal ratios (so PINNED hashes and
+  all 39 content unit tests are unchanged). Surfaced by the robustness lens;
+  `tests/robustness.rs` gains `color_ops_are_total_at_extreme_ratios`. This is
+  the 10th module in the raw-`i32` overflow class, now all saturated/widened.
 - **`HudPanel` coordinate helpers overflowed at extreme positions** (`hud.rs`)
   — `inner_x`/`inner_y` (`self.x + 1`), `contains` (`self.x + self.w as i32`),
   and `corners` (the *outer* `self.x + …` add — the inner `saturating_sub` did

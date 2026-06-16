@@ -413,3 +413,30 @@ fn hud_panel_is_total_at_extreme_coords() {
         }
     }
 }
+
+#[test]
+fn color_ops_are_total_at_extreme_ratios() {
+    use izanagi_kit::content::Color;
+    // lerp(num,den) and scale(num,den) take caller-controlled i32 ratios; a
+    // large num overflowed the channel math (255 * i32::MAX). Now i64-safe.
+    let colors = [
+        Color { r: 0, g: 0, b: 0 },
+        Color { r: 255, g: 255, b: 255 },
+        Color { r: 17, g: 200, b: 99 },
+    ];
+    for &a in &colors {
+        for &b in &colors {
+            for &num in &EXTREMES {
+                for &den in &[i32::MIN, -1, 0, 1, i32::MAX] {
+                    let _ = Color::lerp(a, b, num, den);
+                    let _ = a.scale(num, den);
+                }
+            }
+            for alpha in [0u8, 1, 128, 255] {
+                let _ = Color::alpha_blend(a, b, alpha);
+            }
+        }
+        let _ = (a.grayscale(), a.invert(), a.luminance());
+        let _ = Color::from_hsv(99999, 200, 200); // hue wraps; sat/val bounded
+    }
+}
