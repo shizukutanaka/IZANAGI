@@ -355,6 +355,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   distinct keys so the final state is genuinely permutation-independent). Proven
   to have teeth — removing the canonicalizing sort from `StatusSet::det_hash`
   makes the lens fail though that module's own example test still passes.
+- **`TimerQueue` split-advance invariance** (`tests/metamorphic.rs`) — Added an
+  oracle-free metamorphic law for the timer-tick accounting: for one-shot
+  timers, the multiset of fired events is invariant under how the total advance
+  is divided (`advance(total)` ≡ advancing in chunks summing to `total`), and
+  each one-shot with delay ≤ total fires exactly once. (Recurring timers fire
+  once per `advance` call by design, so the law is one-shot-only.) Exercises the
+  delay accounting without reimplementing `advance` as an oracle.
 - **`TileMap` transform group laws** (`tests/metamorphic.rs`) — Added the
   composition/inverse relations of the map transforms: `rotated_cw ∘ rotated_ccw`
   (and the reverse) is the identity, `flip_h`/`flip_v` are involutions, and

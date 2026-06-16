@@ -16,7 +16,7 @@
 //!
 //! Deterministic via `SplitMix64`; reproducible in CI.
 
-use izanagi_kit::{astar, fov_to_vec, is_reachable, path_cost, SplitMix64, TileMap};
+use izanagi_kit::{astar, fov_to_vec, is_reachable, path_cost, SplitMix64, TileMap, TimerQueue};
 use std::collections::HashSet;
 
 const CASES: usize = 400;
@@ -196,5 +196,59 @@ fn tilemap_transforms_round_trip_and_compose() {
         fhv.flip_v();
         let rot180 = m.rotated_cw().rotated_cw();
         assert!(maps_equal(&fhv, &rot180), "flip_h∘flip_v != rotate 180");
+    }
+}
+
+/// For one-shot timers, the multiset of fired events does not depend on how the
+/// total advance is divided — `advance(total)` fires the same events as
+/// advancing in arbitrary chunks summing to `total`. (Recurring timers fire once
+/// per `advance` call, so this invariant is one-shot-only.) This exercises the
+/// delay accounting without reimplementing `advance` as an oracle.
+#[test]
+fn timer_queue_one_shot_fires_are_split_advance_invariant() {
+    let mut rng = SplitMix64::new(0x717E_9A05);
+    for _ in 0..CASES {
+        let n = rng.range(1, 12) as usize;
+        let timers: Vec<(u32, u32)> =
+            (0..n).map(|i| (rng.range(0, 50) as u32, i as u32)).collect();
+        let total = rng.range(0, 60) as u32;
+
+        // One big advance.
+        let single = {
+            let mut q: TimerQueue<u32> = TimerQueue::new();
+            for &(d, e) in &timers {
+                q.schedule(d, e);
+            }
+            q.advance(total)
+        };
+
+        // The same total, split into random chunks.
+        let chunked = {
+            let mut q: TimerQueue<u32> = TimerQueue::new();
+            for &(d, e) in &timers {
+                q.schedule(d, e);
+            }
+            let mut out = Vec::new();
+            let mut remaining = total;
+            while remaining > 0 {
+                let chunk = rng.range(1, (remaining + 1) as i32) as u32;
+                out.extend(q.advance(chunk));
+                remaining -= chunk;
+            }
+            if total == 0 {
+                out.extend(q.advance(0)); // delay-0 timers fire on advance(0)
+            }
+            out
+        };
+
+        let mut a = single.clone();
+        let mut b = chunked;
+        a.sort_unstable();
+        b.sort_unstable();
+        assert_eq!(a, b, "one-shot fired multiset differs: single vs chunked advance");
+
+        // Each one-shot with delay <= total fires exactly once.
+        let expected = timers.iter().filter(|(d, _)| *d <= total).count();
+        assert_eq!(single.len(), expected, "wrong one-shot fire count");
     }
 }
