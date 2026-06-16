@@ -304,3 +304,34 @@ fn prop_fixed_floor_ceil_round_fract_laws() {
         assert!(fl.is_integer() && ce.is_integer() && rd.is_integer(), "results must be integers");
     }
 }
+
+#[test]
+fn prop_fixed_step_toward_approaches_without_overshoot() {
+    // step_toward clamps (no interpolation rounding), so its bounds are exact.
+    // Laws: the result never leaves [x, target], never moves away from target,
+    // a zero step is a no-op, an already-at-target value stays put, and a step
+    // at least as large as the gap reaches the target exactly.
+    let mut rng = SplitMix64::new(0x57E_4_05);
+    for _ in 0..ITERS {
+        let x = rand_fixed(&mut rng);
+        let target = rand_fixed(&mut rng);
+        let step = rand_fixed(&mut rng).abs(); // step_toward takes |step| anyway
+        let r = x.step_toward(target, step);
+
+        let lo = x.min(target);
+        let hi = x.max(target);
+        // Never overshoots: the result stays between the start and the target.
+        assert!(r >= lo && r <= hi, "step_toward overshot: {r:?} not in [{lo:?},{hi:?}]");
+        // Always approaches (or reaches) the target — never moves away.
+        assert!(
+            r.abs_diff(target) <= x.abs_diff(target),
+            "step_toward moved away from target: {x:?} -> {r:?}, target {target:?}"
+        );
+        // A zero step does not move; being at the target stays at the target.
+        assert_eq!(x.step_toward(target, Fixed::ZERO), x, "zero step moved");
+        assert_eq!(target.step_toward(target, step), target, "moved off target");
+        // A step covering the whole gap reaches the target exactly.
+        let gap = x.abs_diff(target);
+        assert_eq!(x.step_toward(target, gap), target, "full-gap step did not reach target");
+    }
+}

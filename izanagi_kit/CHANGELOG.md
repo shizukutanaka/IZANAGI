@@ -247,6 +247,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Property coverage for `Fixed::step_toward`** (`tests/properties.rs`) — Added
+  the exact invariants of the gameplay-critical approach function (velocity
+  ramps, health drains): the result never leaves `[start, target]` (no
+  overshoot), never moves away from the target, a zero step is a no-op, an
+  at-target value stays put, and a step covering the whole gap reaches the
+  target exactly. `step_toward` clamps rather than interpolates, so these bounds
+  hold exactly. Property lens now 18 tests.
 - **Property coverage for the `Fixed` rounding family** (`tests/properties.rs`)
   — Added the defining algebraic laws of `floor`/`ceil`/`round`/`fract`, checked
   over thousands of inputs: the exact reconstruction `floor(x) + fract(x) == x`;
