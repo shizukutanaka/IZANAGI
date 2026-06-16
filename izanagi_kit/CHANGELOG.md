@@ -268,6 +268,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   equals `0` iff `x.is_integer()`; `round(x) ∈ {floor, ceil}`; and idempotence
   (`floor`/`ceil`/`round` results are integers and fixed under re-application).
   Brings the property lens to 17 tests.
+- **Property coverage for easing endpoints** (`tests/properties.rs`) — All 33
+  easing curves share a universal contract — `ease(0) ≈ 0` and `ease(1) ≈ 1` —
+  that a scaling/offset bug would break uniformly. Added a property test pinning
+  the endpoint contract across every easing function (quad/cubic/quart/quint,
+  sine, circ, expo, back, bounce, elastic, smoothstep). Property lens now 21 tests.
 - **Differential coverage for `Vec2` trig (`rotate`, `angle`, `from_angle`)**
   (`tests/differential.rs`) — These compose `sin_cos`/`atan2` into vector
   operations where a composition bug could hide; validated against `f64`:

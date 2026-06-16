@@ -392,3 +392,54 @@ fn prop_vec3_composite_laws() {
     assert!(Vec3::ZERO.normalize().is_none(), "normalize(0) must be None");
     assert!(Vec3::new(Fixed::from_int(1), Fixed::from_int(2), Fixed::from_int(2)).normalize().is_some());
 }
+
+#[test]
+fn prop_easing_functions_hit_their_endpoints() {
+    // Every easing curve maps the unit interval's endpoints to themselves:
+    // ease(0) ≈ 0 and ease(1) ≈ 1. (back/elastic overshoot in the interior but
+    // still pin the endpoints.) A scaling or offset bug breaks this universally.
+    use izanagi_kit::easing::*;
+    type E = fn(Fixed) -> Fixed;
+    let fns: &[(&str, E)] = &[
+        ("smoothstep", ease_smoothstep),
+        ("smootherstep", ease_smootherstep),
+        ("linear", linear),
+        ("in_quad", ease_in_quad),
+        ("out_quad", ease_out_quad),
+        ("in_out_quad", ease_in_out_quad),
+        ("in_cubic", ease_in_cubic),
+        ("out_cubic", ease_out_cubic),
+        ("in_out_cubic", ease_in_out_cubic),
+        ("in_quart", ease_in_quart),
+        ("out_quart", ease_out_quart),
+        ("in_out_quart", ease_in_out_quart),
+        ("in_quint", ease_in_quint),
+        ("out_quint", ease_out_quint),
+        ("in_out_quint", ease_in_out_quint),
+        ("in_sine", ease_in_sine),
+        ("out_sine", ease_out_sine),
+        ("in_out_sine", ease_in_out_sine),
+        ("in_circ", ease_in_circ),
+        ("out_circ", ease_out_circ),
+        ("in_out_circ", ease_in_out_circ),
+        ("in_back", ease_in_back),
+        ("out_back", ease_out_back),
+        ("in_out_back", ease_in_out_back),
+        ("in_bounce", ease_in_bounce),
+        ("out_bounce", ease_out_bounce),
+        ("in_out_bounce", ease_in_out_bounce),
+        ("in_expo", ease_in_expo),
+        ("out_expo", ease_out_expo),
+        ("in_out_expo", ease_in_out_expo),
+        ("in_elastic", ease_in_elastic),
+        ("out_elastic", ease_out_elastic),
+        ("in_out_elastic", ease_in_out_elastic),
+    ];
+    let to_f = |x: Fixed| x.raw() as f64 / 65536.0;
+    for (name, f) in fns {
+        let at0 = to_f(f(Fixed::ZERO));
+        let at1 = to_f(f(Fixed::ONE));
+        assert!(at0.abs() < 5.0e-3, "{name}(0) = {at0}, expected ≈ 0");
+        assert!((at1 - 1.0).abs() < 5.0e-3, "{name}(1) = {at1}, expected ≈ 1");
+    }
+}
