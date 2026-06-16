@@ -17,7 +17,7 @@
 //! the value. Only an independent oracle exposes those. Deterministic inputs via
 //! `SplitMix64`, so every run is reproducible without a float in the engine.
 
-use izanagi_kit::{Fixed, SplitMix64};
+use izanagi_kit::{Fixed, SplitMix64, Vec2};
 
 const ITERS: usize = 50_000;
 
@@ -189,5 +189,56 @@ fn fixed_pow_matches_f64_powi() {
             continue; // near saturation — skip
         }
         assert!((got - truth).abs() < 2.0e-3, "{}^{exp} = {got} vs {truth}", to_f(base));
+    }
+}
+
+#[test]
+fn vec2_from_angle_matches_cos_sin() {
+    // from_angle(θ) is the unit vector (cos θ, sin θ).
+    let mut rng = SplitMix64::new(0xFA09_05);
+    for _ in 0..ITERS {
+        let ang = Fixed::from_ratio(rng.range(-650, 651), 100);
+        let v = Vec2::from_angle(ang);
+        let t = to_f(ang);
+        assert!((to_f(v.x) - t.cos()).abs() < 1.0e-3, "from_angle({t}).x");
+        assert!((to_f(v.y) - t.sin()).abs() < 1.0e-3, "from_angle({t}).y");
+    }
+}
+
+#[test]
+fn vec2_angle_matches_f64_atan2() {
+    // v.angle() == atan2(v.y, v.x).
+    let mut rng = SplitMix64::new(0xA9_1E_05);
+    for _ in 0..ITERS {
+        let x = Fixed::from_ratio(rng.range(-500, 501), 50);
+        let y = Fixed::from_ratio(rng.range(-500, 501), 50);
+        if x.raw() == 0 && y.raw() == 0 {
+            continue;
+        }
+        let got = to_f(Vec2::new(x, y).angle());
+        let truth = to_f(y).atan2(to_f(x));
+        assert!((got - truth).abs() < 1.0e-3, "angle({},{}) = {got} vs {truth}", to_f(x), to_f(y));
+    }
+}
+
+#[test]
+fn vec2_rotate_matches_f64_rotation_matrix() {
+    // rotate(θ) applies the 2-D rotation matrix; error scales with |v| × the
+    // sin/cos error, so use small vectors (|v| ≲ 28) and an absolute tolerance.
+    let mut rng = SplitMix64::new(0x0E_A7_05);
+    for _ in 0..ITERS {
+        let x = Fixed::from_ratio(rng.range(-1000, 1001), 50); // ±20
+        let y = Fixed::from_ratio(rng.range(-1000, 1001), 50);
+        let ang = Fixed::from_ratio(rng.range(-650, 651), 100);
+        let r = Vec2::new(x, y).rotate(ang);
+        let (t, fx, fy) = (to_f(ang), to_f(x), to_f(y));
+        let ex = fx * t.cos() - fy * t.sin();
+        let ey = fx * t.sin() + fy * t.cos();
+        assert!((to_f(r.x) - ex).abs() < 0.03, "rotate.x = {} vs {ex}", to_f(r.x));
+        assert!((to_f(r.y) - ey).abs() < 0.03, "rotate.y = {} vs {ey}", to_f(r.y));
+        // Rotation preserves length (within fixed-point rounding).
+        let lr = to_f(r.x).hypot(to_f(r.y));
+        let lv = fx.hypot(fy);
+        assert!((lr - lv).abs() < 0.05, "rotation changed length: {lv} -> {lr}");
     }
 }

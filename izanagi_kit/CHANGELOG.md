@@ -268,6 +268,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   equals `0` iff `x.is_integer()`; `round(x) ∈ {floor, ceil}`; and idempotence
   (`floor`/`ceil`/`round` results are integers and fixed under re-application).
   Brings the property lens to 17 tests.
+- **Differential coverage for `Vec2` trig (`rotate`, `angle`, `from_angle`)**
+  (`tests/differential.rs`) — These compose `sin_cos`/`atan2` into vector
+  operations where a composition bug could hide; validated against `f64`:
+  `from_angle(θ) ≈ (cos θ, sin θ)`, `v.angle() ≈ atan2(y, x)`, and `rotate(θ)`
+  matches the `f64` rotation matrix (plus length preservation). Small vectors
+  for `rotate` keep the magnitude-scaled trig error within an absolute
+  tolerance. Differential lens now 12 tests.
 - **Differential coverage for `Fixed::atan2`, `hypot`, `pow`**
   (`tests/differential.rs`) — Extended the `f64`-oracle lens to the remaining
   transcendentals. `atan2` (CORDIC vectoring mode) is validated across all four
