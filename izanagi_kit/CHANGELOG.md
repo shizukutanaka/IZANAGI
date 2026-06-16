@@ -385,6 +385,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   in `mul` keeps commutativity true yet changes the value. Proven to have teeth
   — injecting a `sin`/`cos` swap fails the differential while the property suite
   stays green.
+- **Model-based coverage for `AssetStore`** (`tests/stateful.rs`) — `AssetStore`
+  is generational like `SparseSet` (each slot tracks a generation that
+  `get`/`replace`/`remove` verify), and was audited correct — but had no
+  *model-based* guard against a future regression dropping the check (the exact
+  `SparseSet` use-after-free). Added a stateful test driving 6000 random
+  insert/remove/replace/get ops against a reference of every handle ever issued,
+  asserting each resolves to `Some(value)` while live and `None` once removed or
+  its slot is recycled. Proven to have teeth — dropping the generation check in
+  `get` makes a stale handle resolve to a recycled slot and fails the test.
 - **Model-based (stateful) test perspective** (`tests/stateful.rs`) — A lens
   distinct from both the example tests and the *stateless* laws in
   `tests/properties.rs`: a structure is driven through a long random sequence of
