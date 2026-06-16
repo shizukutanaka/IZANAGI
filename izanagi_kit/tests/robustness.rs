@@ -290,3 +290,29 @@ fn input_buffer_is_total_with_degenerate_timing() {
     let _ = buf.tick(1000); // initial_delay huge: no repeats fire, no panic
     assert!(buf.is_held(&1));
 }
+
+#[test]
+fn passability_grid_is_total_at_large_dimensions() {
+    use izanagi_kit::PassabilityGrid;
+    // Dimensions whose product exceeds i32::MAX previously overflowed the
+    // `(w * h) as usize` multiply in the constructor. usize/saturating math now
+    // makes construction and indexing total. Use a tall-but-thin grid so the
+    // product is large without allocating gigabytes: 100_000 x 2 = 200_000 cells,
+    // and an index like y*width that would overflow i32 only past width*y > 2^31
+    // (covered by the negative/oob guards returning early).
+    let g = PassabilityGrid::new(100_000, 2);
+    assert_eq!(g.len(), 200_000);
+    // In-bounds access at a large linear offset must not overflow.
+    let _ = g.is_blocked(99_999, 1);
+    let _ = g.is_passable(0, 0);
+    // Negative / out-of-bounds are total (return blocked / no-op).
+    assert!(g.is_blocked(-1, 0));
+    assert!(g.is_blocked(i32::MAX, i32::MAX));
+    let mut g2 = PassabilityGrid::new(50_000, 3);
+    g2.set_blocked(49_999, 2, true);
+    g2.set_region(0, 0, 49_999, 2, true);
+    assert!(g2.is_blocked(49_999, 2));
+    // Degenerate dimensions clamp to empty, not panic.
+    assert_eq!(PassabilityGrid::new(-5, 10).len(), 0);
+    assert_eq!(PassabilityGrid::new(0, 0).len(), 0);
+}

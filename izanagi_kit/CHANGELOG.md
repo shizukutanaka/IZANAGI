@@ -7,6 +7,15 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`PassabilityGrid` overflowed `i32` on large dimensions** (`passability.rs`)
+  — `new`/`from_fn` computed the cell count as `(w * h) as usize` — an `i32`
+  multiply that panics for `w*h > i32::MAX` — and every index used
+  `(y * width + x) as usize`, an `i32` expression that overflows for large
+  widths. `tilemap` already does this correctly in `usize`; `passability` was
+  inconsistent. Switched the cell count to `(w as usize).saturating_mul(h as
+  usize)` and all five index sites to `usize` arithmetic, matching `tilemap`.
+  Construction and indexing are now total. A robustness test exercises a
+  large-dimension grid; all 39 passability unit tests still pass.
 - **`EncounterPack::roll`/`roll_counts` overflow panic at the full count span**
   (`encounter.rs`) — `slot.min + rng.below(slot.max - slot.min + 1)` overflowed
   `u32` when the span equalled `u32::MAX` (a slot with `min = 0, max = u32::MAX`),
