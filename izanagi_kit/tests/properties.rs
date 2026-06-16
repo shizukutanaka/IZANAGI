@@ -269,3 +269,38 @@ fn prop_cone_cells_are_in_front_and_in_range() {
         }
     }
 }
+
+#[test]
+fn prop_fixed_floor_ceil_round_fract_laws() {
+    // The defining relationships of the rounding family. Moderate inputs only
+    // (rand_fixed) so the laws hold exactly without hitting the saturating edge
+    // (ceil at Fixed::MAX saturates, breaking ceil-floor == ONE).
+    let mut rng = SplitMix64::new(0x_F100_4_05);
+    for _ in 0..ITERS {
+        let x = rand_fixed(&mut rng);
+        let fl = x.floor();
+        let ce = x.ceil();
+        let fr = x.fract();
+        let rd = x.round();
+
+        // Reconstruction: floor(x) + fract(x) == x, exactly.
+        assert_eq!(fl + fr, x, "floor + fract != x for {x:?}");
+        // fract is in [0, 1).
+        assert!(fr >= Fixed::ZERO && fr < Fixed::ONE, "fract {fr:?} out of [0,1) for {x:?}");
+        // floor(x) <= x <= ceil(x).
+        assert!(fl <= x && x <= ce, "floor <= x <= ceil violated for {x:?}");
+        // ceil - floor is 0 (x integer) or 1 (otherwise).
+        let span = ce - fl;
+        assert!(
+            span == Fixed::ZERO || span == Fixed::ONE,
+            "ceil - floor = {span:?} not in {{0,1}} for {x:?}"
+        );
+        assert_eq!(span == Fixed::ZERO, x.is_integer(), "ceil==floor iff integer, for {x:?}");
+        // round(x) is one of the two bracketing integers.
+        assert!(rd == fl || rd == ce, "round {rd:?} not in {{floor,ceil}} for {x:?}");
+        // floor/ceil/round are idempotent and fixed on integers.
+        assert_eq!(fl.floor(), fl, "floor not idempotent");
+        assert_eq!(ce.ceil(), ce, "ceil not idempotent");
+        assert!(fl.is_integer() && ce.is_integer() && rd.is_integer(), "results must be integers");
+    }
+}

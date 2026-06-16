@@ -247,6 +247,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Property coverage for the `Fixed` rounding family** (`tests/properties.rs`)
+  — Added the defining algebraic laws of `floor`/`ceil`/`round`/`fract`, checked
+  over thousands of inputs: the exact reconstruction `floor(x) + fract(x) == x`;
+  `fract(x) ∈ [0, 1)`; `floor(x) ≤ x ≤ ceil(x)`; `ceil − floor ∈ {0, 1}` and
+  equals `0` iff `x.is_integer()`; `round(x) ∈ {floor, ceil}`; and idempotence
+  (`floor`/`ceil`/`round` results are integers and fixed under re-application).
+  Brings the property lens to 17 tests.
 - **Differential coverage for `Fixed::atan2`, `hypot`, `pow`**
   (`tests/differential.rs`) — Extended the `f64`-oracle lens to the remaining
   transcendentals. `atan2` (CORDIC vectoring mode) is validated across all four
