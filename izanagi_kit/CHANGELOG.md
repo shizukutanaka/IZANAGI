@@ -7,6 +7,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`autotile` overflow panics at coordinate extremes** (`autotile.rs`) —
+  `compute_mask` probed its 8 neighbours with raw `x ± 1` / `y ± 1`, which
+  overflow-panic for a cell at `i32::MIN`/`i32::MAX`; `compute_region` iterated
+  `x..x + w` / `y..y + h`, whose upper bounds overflow for an origin near
+  `i32::MAX`. Both are public. Switched neighbour offsets to `saturating_add`/
+  `saturating_sub` (at the coordinate edge the out-of-range neighbour harmlessly
+  coincides with the cell) and the region range ends to `saturating_add`. Now
+  total; all 26 autotile unit tests pass; robustness coverage added.
 - **`PassabilityGrid` overflowed `i32` on large dimensions** (`passability.rs`)
   — `new`/`from_fn` computed the cell count as `(w * h) as usize` — an `i32`
   multiply that panics for `w*h > i32::MAX` — and every index used

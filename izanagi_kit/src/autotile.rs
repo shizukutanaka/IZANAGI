@@ -37,14 +37,22 @@ pub fn compute_mask<F>(x: i32, y: i32, is_same: F) -> u8
 where
     F: Fn(i32, i32) -> bool,
 {
-    let n = is_same(x, y - 1);
-    let ne = is_same(x + 1, y - 1);
-    let e = is_same(x + 1, y);
-    let se = is_same(x + 1, y + 1);
-    let s = is_same(x, y + 1);
-    let sw = is_same(x - 1, y + 1);
-    let w = is_same(x - 1, y);
-    let nw = is_same(x - 1, y - 1);
+    // Saturating neighbour coordinates so a cell at i32::MIN/MAX does not
+    // overflow the ±1 step (panic-free per the kit's policy). At the extreme
+    // edge the out-of-range neighbour coincides with the cell itself, which is a
+    // harmless degenerate result for coordinates no real map ever reaches.
+    let xm1 = x.saturating_sub(1);
+    let xp1 = x.saturating_add(1);
+    let ym1 = y.saturating_sub(1);
+    let yp1 = y.saturating_add(1);
+    let n = is_same(x, ym1);
+    let ne = is_same(xp1, ym1);
+    let e = is_same(xp1, y);
+    let se = is_same(xp1, yp1);
+    let s = is_same(x, yp1);
+    let sw = is_same(xm1, yp1);
+    let w = is_same(xm1, y);
+    let nw = is_same(xm1, ym1);
 
     let mut mask: u8 = 0;
     if n {
@@ -115,8 +123,11 @@ where
     }
     let size = (w as usize) * (h as usize);
     let mut out = Vec::with_capacity(size);
-    for ry in y..y + h {
-        for rx in x..x + w {
+    // Saturating range ends so an origin near i32::MAX does not overflow the
+    // `x + w` / `y + h` upper bound (the region size itself is already bounded
+    // by the early `w <= 0 || h <= 0` guard and the usize capacity above).
+    for ry in y..y.saturating_add(h) {
+        for rx in x..x.saturating_add(w) {
             out.push(compute_mask(rx, ry, &is_same));
         }
     }

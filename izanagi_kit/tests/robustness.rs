@@ -316,3 +316,19 @@ fn passability_grid_is_total_at_large_dimensions() {
     assert_eq!(PassabilityGrid::new(-5, 10).len(), 0);
     assert_eq!(PassabilityGrid::new(0, 0).len(), 0);
 }
+
+#[test]
+fn autotile_is_total_at_extreme_coords() {
+    use izanagi_kit::{autotile::compute_region, compute_mask};
+    // compute_mask probes 8 neighbours (x±1, y±1); compute_region iterates
+    // [x, x+w) × [y, y+h). Both previously overflowed at coordinate extremes.
+    for &x in &EXTREMES {
+        for &y in &EXTREMES {
+            let _ = compute_mask(x, y, |_, _| true); // x±1 / y±1 must not overflow
+        }
+    }
+    // Region with origin at the coordinate ceiling: x+w / y+h must saturate.
+    let _ = compute_region(i32::MAX - 1, i32::MAX - 1, 3, 3, |_, _| false);
+    let _ = compute_region(i32::MIN, i32::MIN, 2, 2, |_, _| true);
+    let _ = compute_region(0, 0, -5, 10, |_, _| true); // non-positive -> empty
+}
