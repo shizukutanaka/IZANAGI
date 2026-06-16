@@ -13,7 +13,7 @@
 use izanagi_kit::geometry::line_len;
 use izanagi_kit::{
     chebyshev_distance, cone, knockback, line, manhattan_distance, reflect_point, rotate_90_ccw,
-    rotate_90_cw, Fixed, SplitMix64,
+    rotate_90_cw, Fixed, SplitMix64, Vec2, Vec3,
 };
 
 const ITERS: usize = 3000;
@@ -334,4 +334,61 @@ fn prop_fixed_step_toward_approaches_without_overshoot() {
         let gap = x.abs_diff(target);
         assert_eq!(x.step_toward(target, gap), target, "full-gap step did not reach target");
     }
+}
+
+// ── vec: Vec2/Vec3 composite-operation laws ────────────────────────────────
+// Small components (±10) so products/sums never saturate — the laws below then
+// hold exactly. (Saturation would break antisymmetry: -clamp(v) != clamp(-v).)
+
+/// A `Fixed` in roughly [-10, 10].
+fn rand_small(rng: &mut SplitMix64) -> Fixed {
+    Fixed::from_ratio(rng.range(-1000, 1001), 100)
+}
+
+#[test]
+fn prop_vec2_composite_laws() {
+    let mut rng = SplitMix64::new(0x_2EC_2_05);
+    for _ in 0..ITERS {
+        let a = Vec2::new(rand_small(&mut rng), rand_small(&mut rng));
+        let b = Vec2::new(rand_small(&mut rng), rand_small(&mut rng));
+
+        // dot is commutative; len_sq is dot(self,self) and never negative.
+        assert_eq!(a.dot(b), b.dot(a), "Vec2 dot not commutative");
+        assert_eq!(a.len_sq(), a.dot(a), "len_sq != dot(self,self)");
+        assert!(a.len_sq() >= Fixed::ZERO, "len_sq negative");
+        // scale by 1 is identity; scale by 0 is the zero vector.
+        assert_eq!(a.scale(Fixed::ONE), a, "scale by ONE not identity");
+        assert_eq!(a.scale(Fixed::ZERO), Vec2::ZERO, "scale by ZERO not zero vector");
+        // 2-D cross is antisymmetric and zero with itself.
+        assert_eq!(a.cross_2d(a), Fixed::ZERO, "cross_2d(a,a) != 0");
+        assert_eq!(a.cross_2d(b), -(b.cross_2d(a)), "cross_2d not antisymmetric");
+    }
+    // normalize: zero -> None, non-zero -> Some.
+    assert!(Vec2::ZERO.normalize().is_none(), "normalize(0) must be None");
+    assert!(Vec2::new(Fixed::from_int(3), Fixed::from_int(4)).normalize().is_some());
+}
+
+#[test]
+fn prop_vec3_composite_laws() {
+    let mut rng = SplitMix64::new(0x_3EC_3_05);
+    for _ in 0..ITERS {
+        let a = Vec3::new(rand_small(&mut rng), rand_small(&mut rng), rand_small(&mut rng));
+        let b = Vec3::new(rand_small(&mut rng), rand_small(&mut rng), rand_small(&mut rng));
+
+        assert_eq!(a.dot(b), b.dot(a), "Vec3 dot not commutative");
+        assert_eq!(a.len_sq(), a.dot(a), "len_sq != dot(self,self)");
+        assert!(a.len_sq() >= Fixed::ZERO, "len_sq negative");
+        assert_eq!(a.scale(Fixed::ONE), a, "scale by ONE not identity");
+        assert_eq!(a.scale(Fixed::ZERO), Vec3::ZERO, "scale by ZERO not zero vector");
+        // cross of a vector with itself is the zero vector.
+        assert_eq!(a.cross(a), Vec3::ZERO, "cross(a,a) != 0");
+        // cross is antisymmetric: cross(a,b) == -cross(b,a), componentwise.
+        let ab = a.cross(b);
+        let ba = b.cross(a);
+        assert_eq!(ab.x, -ba.x, "cross.x not antisymmetric");
+        assert_eq!(ab.y, -ba.y, "cross.y not antisymmetric");
+        assert_eq!(ab.z, -ba.z, "cross.z not antisymmetric");
+    }
+    assert!(Vec3::ZERO.normalize().is_none(), "normalize(0) must be None");
+    assert!(Vec3::new(Fixed::from_int(1), Fixed::from_int(2), Fixed::from_int(2)).normalize().is_some());
 }

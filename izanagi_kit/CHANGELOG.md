@@ -247,6 +247,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Property coverage for `Vec2`/`Vec3` composite ops** (`tests/properties.rs`)
+  — Added algebraic laws for the vector operations whose consistency is *not*
+  implied by the underlying `Fixed` laws: `dot` commutativity, `len_sq ==
+  dot(self,self)` and `len_sq >= 0`, `scale` by `1`/`0`, `cross`(a,a) is the
+  zero vector, 2-D/3-D cross antisymmetry, and `normalize(0) == None`. Small
+  components keep products/sums clear of saturation so the laws hold exactly.
+  Property lens now 20 tests.
 - **Property coverage for `Fixed::step_toward`** (`tests/properties.rs`) — Added
   the exact invariants of the gameplay-critical approach function (velocity
   ramps, health drains): the result never leaves `[start, target]` (no
