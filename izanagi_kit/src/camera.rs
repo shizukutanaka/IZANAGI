@@ -55,8 +55,10 @@ impl Camera {
     /// Scroll the viewport by `(dx, dy)` world cells, clamped so it stays
     /// within the world. Useful for arrow-key map scrolling.
     pub fn pan(&mut self, dx: i32, dy: i32, world_w: u32, world_h: u32) {
-        let max_x = (world_w as i32 - self.screen_w as i32).max(0);
-        let max_y = (world_h as i32 - self.screen_h as i32).max(0);
+        // i64 so a huge world dimension (u32::MAX → -1 when cast to i32) does
+        // not underflow the world − view clamp bound; result clamped back to i32.
+        let max_x = (world_w as i64 - self.screen_w as i64).max(0).min(i32::MAX as i64) as i32;
+        let max_y = (world_h as i64 - self.screen_h as i64).max(0).min(i32::MAX as i64) as i32;
         self.top_left_x = self.top_left_x.saturating_add(dx).clamp(0, max_x);
         self.top_left_y = self.top_left_y.saturating_add(dy).clamp(0, max_y);
     }
@@ -66,9 +68,11 @@ impl Camera {
     /// Uses integer division so the result is exact for even viewport sizes.
     #[inline]
     pub fn center(&self) -> (i32, i32) {
+        // Saturating so a viewport positioned near i32::MAX with a large
+        // screen_w does not overflow the half-width add.
         (
-            self.top_left_x + self.screen_w as i32 / 2,
-            self.top_left_y + self.screen_h as i32 / 2,
+            self.top_left_x.saturating_add(self.screen_w as i32 / 2),
+            self.top_left_y.saturating_add(self.screen_h as i32 / 2),
         )
     }
 
@@ -76,18 +80,19 @@ impl Camera {
     /// `(sx, sy)`. Returns `None` if the point falls outside the viewport.
     #[inline]
     pub fn world_to_screen(&self, wx: i32, wy: i32) -> Option<(u32, u32)> {
-        let sx = wx - self.top_left_x;
-        let sy = wy - self.top_left_y;
-        if sx < 0 || sy < 0 {
+        // i64 so the difference cannot overflow at coordinate extremes
+        // (e.g. wx=i32::MAX, top_left=i32::MIN). Out-of-range deltas fall
+        // through the bounds check below as expected.
+        let sx_i64 = wx as i64 - self.top_left_x as i64;
+        let sy_i64 = wy as i64 - self.top_left_y as i64;
+        if sx_i64 < 0
+            || sy_i64 < 0
+            || sx_i64 >= self.screen_w as i64
+            || sy_i64 >= self.screen_h as i64
+        {
             return None;
         }
-        let sx = sx as u32;
-        let sy = sy as u32;
-        if sx < self.screen_w && sy < self.screen_h {
-            Some((sx, sy))
-        } else {
-            None
-        }
+        Some((sx_i64 as u32, sy_i64 as u32))
     }
 
     /// Convert a screen-space cell `(sx, sy)` to a world-space coordinate.
@@ -96,7 +101,10 @@ impl Camera {
     pub fn screen_to_world(&self, sx: u32, sy: u32) -> (i32, i32) {
         let sx = sx.min(self.screen_w.saturating_sub(1));
         let sy = sy.min(self.screen_h.saturating_sub(1));
-        (self.top_left_x + sx as i32, self.top_left_y + sy as i32)
+        (
+            self.top_left_x.saturating_add(sx as i32),
+            self.top_left_y.saturating_add(sy as i32),
+        )
     }
 
     /// Convert a world-space point `(wx, wy)` to a screen-space offset without
@@ -105,7 +113,10 @@ impl Camera {
     /// only need visible points.
     #[inline]
     pub fn world_to_screen_unclamped(&self, wx: i32, wy: i32) -> (i32, i32) {
-        (wx - self.top_left_x, wy - self.top_left_y)
+        (
+            wx.saturating_sub(self.top_left_x),
+            wy.saturating_sub(self.top_left_y),
+        )
     }
 
     /// Whether a world-space point is visible in the current viewport.
@@ -132,8 +143,8 @@ impl Camera {
         (
             self.top_left_x,
             self.top_left_y,
-            self.top_left_x + self.screen_w as i32,
-            self.top_left_y + self.screen_h as i32,
+            self.top_left_x.saturating_add(self.screen_w as i32),
+            self.top_left_y.saturating_add(self.screen_h as i32),
         )
     }
 
@@ -252,13 +263,14 @@ impl Camera {
         if world == 0 || view == 0 {
             return 0;
         }
-        let view = view as i32;
-        let world = world as i32;
-        // Ideal top-left: centre the focus.
-        let ideal = focus - view / 2;
-        // Clamp: [0, world - view] (or 0 if world < view).
+        // i64 throughout so an extreme focus and/or a huge view (u32::MAX would
+        // become -1 when cast to i32) cannot overflow the centring subtract or
+        // the world − view clamp bound. The result is clamped back to i32.
+        let view = view as i64;
+        let world = world as i64;
+        let ideal = focus as i64 - view / 2;
         let max = (world - view).max(0);
-        ideal.clamp(0, max)
+        ideal.clamp(0, max).min(i32::MAX as i64) as i32
     }
 }
 

@@ -7,6 +7,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`InfluenceMap::normalize` overflow on extreme spans** (`influence.rs`) —
+  `cur_max - cur_min` overflows `i32` when the source straddles `i32::MIN`/`MAX`;
+  the same for `target_max - target_min`; and `(v - cur_min) * target_span` is a
+  full-span product that can reach ~`1.8e19` (overflowing `i64` too). Switched
+  the spans to `i64` and the rescaling multiply to `i128`, with a final clamp
+  back to `i32`. Behavior-preserving for normal-sized influence maps (all 43
+  influence unit tests pass). Surfaced by the robustness lens.
+- **`Camera` coordinate math overflowed at extreme positions/dimensions**
+  (`camera.rs`) — `center`, `world_to_screen`, `world_to_screen_unclamped`,
+  `screen_to_world`, `world_rect`, `pan`, and the internal `clamp_origin` all
+  did raw `i32` add/sub on `top_left ± screen_{w,h}` and on world-vs-top_left
+  deltas, panicking for extreme positions or huge viewports (`u32::MAX` as
+  `i32` is `-1`, defeating subsequent `.max(0)` clamps). Switched to
+  `saturating_*` for the coordinate adds and to `i64` intermediates inside
+  `clamp_origin`/`pan` so the bounds math survives the full range. All 49
+  camera unit tests pass; PINNED hashes unchanged.
 - **`Color::lerp`/`scale` overflow on large ratios** (`content.rs`) — Both take
   a caller-controlled `i32` `num`/`den`. The per-channel math computed
   `(cb - ca) * num` (lerp) and `c * num` (scale) in `i32`, so a large `num`

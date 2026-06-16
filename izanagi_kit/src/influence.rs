@@ -261,13 +261,20 @@ impl InfluenceMap {
             Some(v) => v,
             None => return,
         };
-        let span = cur_max - cur_min;
-        let target_span = target_max - target_min;
+        // Spans can exceed i32 when the source straddles MIN/MAX (or target
+        // does); compute in i64 and clamp the rescaled value back to i32.
+        let span = cur_max as i64 - cur_min as i64;
+        let target_span = target_max as i64 - target_min as i64;
         for v in &mut self.cells {
             *v = if span == 0 {
                 target_min
             } else {
-                target_min + ((*v - cur_min) * target_span) / span
+                // Both spans can reach 2^32 (e.g. i32::MAX − i32::MIN), so
+                // their product needs i128 — i64 would overflow at ~1.8e19.
+                let num =
+                    (*v as i64 - cur_min as i64) as i128 * target_span as i128;
+                let scaled = target_min as i128 + num / span as i128;
+                scaled.clamp(i32::MIN as i128, i32::MAX as i128) as i32
             };
         }
     }

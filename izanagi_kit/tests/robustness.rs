@@ -440,3 +440,57 @@ fn color_ops_are_total_at_extreme_ratios() {
         let _ = Color::from_hsv(99999, 200, 200); // hue wraps; sat/val bounded
     }
 }
+
+#[test]
+fn camera_coord_math_is_total_at_extremes() {
+    use izanagi_kit::Camera;
+    // The viewport coordinate arithmetic — center, world_to_screen,
+    // screen_to_world, world_to_screen_unclamped, world_rect — previously did
+    // raw i32 add/sub on top_left + screen_{w,h} and on world-vs-top_left
+    // deltas, panicking for extreme positions / large viewports.
+    for &x in &EXTREMES {
+        for &y in &EXTREMES {
+            for &sw in &[0u32, 1, 100, u32::MAX] {
+                for &sh in &[0u32, 1, 100, u32::MAX] {
+                    // Build a camera positioned anywhere in coord space at any
+                    // viewport size. (Use a world dimension large enough that
+                    // clamp_origin doesn't shrink the test space.)
+                    let cam = Camera::new(x, y, sw, sh, u32::MAX, u32::MAX);
+                    let _ = (cam.center(), cam.world_rect());
+                    for &wx in &EXTREMES {
+                        let _ = cam.world_to_screen(wx, y);
+                        let _ = cam.world_to_screen_unclamped(wx, y);
+                    }
+                    let _ = cam.screen_to_world(0, 0);
+                    let _ = cam.screen_to_world(u32::MAX, u32::MAX);
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn influence_normalize_is_total_at_extreme_values() {
+    use izanagi_kit::influence::InfluenceMap;
+    // normalize did `(v - cur_min) * target_span / span` in i32; spans across
+    // the full i32 range overflowed both the span subtraction and the multiply.
+    // i64 widening + final clamp makes it total.
+    let mut m = InfluenceMap::new(3, 1);
+    m.set(0, 0, i32::MIN);
+    m.set(1, 0, 0);
+    m.set(2, 0, i32::MAX);
+    // Source span = full i32; target spans of every shape must not panic.
+    for (&lo, &hi) in EXTREMES.iter().zip(EXTREMES.iter().rev()) {
+        m.normalize(lo, hi);
+        for x in 0..3 {
+            let v = m.get(x, 0);
+            assert!(v.is_some(), "cell ({x}, 0) missing after normalize");
+        }
+    }
+    // Single-value map (span == 0) collapses to target_min (no division).
+    let mut flat = InfluenceMap::new(2, 1);
+    flat.set(0, 0, 42);
+    flat.set(1, 0, 42);
+    flat.normalize(i32::MIN, i32::MAX);
+    assert_eq!(flat.get(0, 0), Some(i32::MIN));
+}
