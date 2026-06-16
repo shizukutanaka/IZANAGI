@@ -135,3 +135,59 @@ fn fixed_div_matches_f64() {
         );
     }
 }
+
+#[test]
+fn fixed_atan2_matches_f64_in_all_quadrants() {
+    // CORDIC vectoring-mode atan2 vs the true f64 atan2. Quadrant/sign logic is
+    // exactly what an internally-consistent bug could get wrong while passing
+    // property laws — only an independent oracle catches it. Covers all sign
+    // combinations of (x, y).
+    let mut rng = SplitMix64::new(0xA7A_2_05);
+    for _ in 0..ITERS {
+        let y = Fixed::from_ratio(rng.range(-500, 501), 50); // [-10, 10]
+        let x = Fixed::from_ratio(rng.range(-500, 501), 50);
+        if x.raw() == 0 && y.raw() == 0 {
+            continue; // atan2(0,0) is undefined; skip
+        }
+        let got = to_f(Fixed::atan2(y, x));
+        let truth = to_f(y).atan2(to_f(x));
+        assert!(
+            (got - truth).abs() < 2.0e-3,
+            "atan2({}, {}) = {got} vs {truth}",
+            to_f(y),
+            to_f(x)
+        );
+    }
+}
+
+#[test]
+fn fixed_hypot_matches_f64() {
+    // hypot(a,b) = sqrt(a²+b²). Operands bounded so the result stays in Fixed
+    // range (no saturation) and the squared sum does not overflow the i64
+    // intermediate.
+    let mut rng = SplitMix64::new(0x49B07_05);
+    for _ in 0..ITERS {
+        let a = Fixed::from_ratio(rng.range(-1000, 1001), 10); // [-100, 100]
+        let b = Fixed::from_ratio(rng.range(-1000, 1001), 10);
+        let got = to_f(Fixed::hypot(a, b));
+        let truth = (to_f(a) * to_f(a) + to_f(b) * to_f(b)).sqrt();
+        assert!((got - truth).abs() < 1.0e-3, "hypot({},{}) = {got} vs {truth}", to_f(a), to_f(b));
+    }
+}
+
+#[test]
+fn fixed_pow_matches_f64_powi() {
+    // Integer power via repeated saturating multiply vs f64 powi. Bases and
+    // exponents kept small so the result stays within Fixed range.
+    let mut rng = SplitMix64::new(0xB00B5_05);
+    for _ in 0..ITERS {
+        let base = Fixed::from_ratio(rng.range(-300, 301), 100); // [-3, 3]
+        let exp = rng.below(6); // 0..=5
+        let got = to_f(base.pow(exp));
+        let truth = to_f(base).powi(exp as i32);
+        if truth.abs() > 1000.0 {
+            continue; // near saturation — skip
+        }
+        assert!((got - truth).abs() < 2.0e-3, "{}^{exp} = {got} vs {truth}", to_f(base));
+    }
+}

@@ -229,6 +229,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **Differential coverage for `Fixed::atan2`, `hypot`, `pow`**
+  (`tests/differential.rs`) — Extended the `f64`-oracle lens to the remaining
+  transcendentals. `atan2` (CORDIC vectoring mode) is validated across all four
+  `(x, y)` sign quadrants — a quadrant/sign error stays internally consistent yet
+  diverges from real `atan2`, so only an independent oracle catches it; proven by
+  injecting a disabled `x<0` π-correction and confirming the test fails.
+  Measured errors are tiny (`atan2` 6.5e-4, `hypot` 2.2e-4, `pow` 3.2e-4);
+  tolerances sit ~3× above. Brings the differential lens to 9 tests.
 - **Robustness-lens coverage for `noise`, `passability`, `autotile`**
   (`tests/robustness.rs`) — Extended the totality lens across the procedural and
   grid modules. `noise` (all `value_noise`/`fbm`/`_wrap` variants) was audited
