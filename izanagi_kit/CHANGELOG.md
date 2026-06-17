@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`Dice::max`/`average_x100` overflowed at extreme counts/sides** (`dice.rs`)
+  — `max` computed `count as i64 * sides as i64`, which overflows i64 at
+  `u32::MAX × u32::MAX ≈ 1.8e19`; `average_x100` had the same risk with an
+  extra `×50` factor. Switched both to `i128` for the product with a final
+  clamp back to the result type. Identical for normal dice values; PINNED
+  hashes unchanged, all 26 dice unit tests pass. Surfaced by the systematic
+  robustness sweep.
+- **`TileMap::iter_rect` overflowed on extreme anchor** (`tilemap.rs`) —
+  `(rx + rw)` and `(ry + rh)` were raw `i32` adds that panic when `rx` is near
+  `i32::MAX`. Switched to `saturating_add` before the `.min(self.width as i32)`
+  clamp — behavior-preserving for in-bounds rects, total for extreme anchors.
+  All 67 tilemap unit tests pass.
 - **`wfc` overflowed on large grid dimensions** (`wfc.rs`) — `wfc_solve` and
   `WfcGrid` indexing computed `width * height` (and `y * width + x`) in `i32`,
   panicking for any grid where the product exceeds `i32::MAX` (e.g. 60000×60000).

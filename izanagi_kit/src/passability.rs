@@ -101,13 +101,13 @@ impl PassabilityGrid {
         if x < 0 || y < 0 || x >= self.width || y >= self.height {
             return true;
         }
-        self.cells[(y as usize * self.width as usize + x as usize)]
+        self.cells[y as usize * self.width as usize + x as usize]
     }
 
     /// Set the passability of cell `(x, y)`. Out-of-bounds is a no-op.
     pub fn set_blocked(&mut self, x: i32, y: i32, blocked: bool) {
         if x >= 0 && y >= 0 && x < self.width && y < self.height {
-            self.cells[(y as usize * self.width as usize + x as usize)] = blocked;
+            self.cells[y as usize * self.width as usize + x as usize] = blocked;
         }
     }
 
@@ -149,7 +149,7 @@ impl PassabilityGrid {
         let cells = &self.cells;
         (0..h).flat_map(move |y| {
             (0..w).filter_map(move |x| {
-                if !cells[(y as usize * w as usize + x as usize)] {
+                if !cells[y as usize * w as usize + x as usize] {
                     Some((x, y))
                 } else {
                     None
@@ -168,7 +168,7 @@ impl PassabilityGrid {
         let ye = y1.max(y2).min(self.height - 1);
         for y in ys..=ye {
             for x in xs..=xe {
-                self.cells[(y as usize * self.width as usize + x as usize)] = blocked;
+                self.cells[y as usize * self.width as usize + x as usize] = blocked;
             }
         }
     }
@@ -198,7 +198,7 @@ impl PassabilityGrid {
         let cells = &self.cells;
         (0..h).flat_map(move |y| {
             (0..w).filter_map(move |x| {
-                if cells[(y as usize * w as usize + x as usize)] {
+                if cells[y as usize * w as usize + x as usize] {
                     Some((x, y))
                 } else {
                     None

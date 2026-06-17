@@ -308,8 +308,9 @@ impl<T: Clone> TileMap<T> {
     ) -> impl Iterator<Item = (i32, i32, &T)> {
         let x0 = rx.max(0);
         let y0 = ry.max(0);
-        let x1 = (rx + rw).min(self.width as i32);
-        let y1 = (ry + rh).min(self.height as i32);
+        // saturating so extreme rx/ry + rw/rh do not overflow the upper bound.
+        let x1 = rx.saturating_add(rw).min(self.width as i32);
+        let y1 = ry.saturating_add(rh).min(self.height as i32);
         let cells = &self.cells;
         let w = self.width as usize;
         (y0..y1)

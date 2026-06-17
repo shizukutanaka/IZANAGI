@@ -97,8 +97,10 @@ impl Dice {
     /// Largest possible result: `count·sides + modifier`.
     #[inline]
     pub fn max(&self) -> i32 {
-        let dice_max = self.count as i64 * self.sides as i64;
-        (dice_max + self.modifier as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32
+        // u32::MAX * u32::MAX overflows i64 (~1.8e19); use i128 for the product
+        // and clamp back to i32. Identical to the old i64 path for normal dice.
+        let dice_max = self.count as i128 * self.sides as i128;
+        (dice_max + self.modifier as i128).clamp(i32::MIN as i128, i32::MAX as i128) as i32
     }
 
     /// Expected value times 100 (to stay integer): `count·(sides+1)·50 +
@@ -109,7 +111,11 @@ impl Dice {
         if self.sides == 0 {
             return self.modifier as i64 * 100;
         }
-        self.count as i64 * (self.sides as i64 + 1) * 50 + self.modifier as i64 * 100
+        // i128 so count*(sides+1)*50 cannot overflow at u32::MAX×u32::MAX;
+        // clamp the final result back to i64 (saturating to i64 boundaries).
+        let raw = self.count as i128 * (self.sides as i128 + 1) * 50
+            + self.modifier as i128 * 100;
+        raw.clamp(i64::MIN as i128, i64::MAX as i128) as i64
     }
 
     /// Roll twice and return the **higher** result ("roll with advantage" in 5e

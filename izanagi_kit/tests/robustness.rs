@@ -513,3 +513,39 @@ fn wfc_solve_is_total_at_large_dimensions() {
     // cells × 8 bytes = 30 GiB, exceeding test memory; the targeted unit
     // test above proves the multiply itself no longer panics.)
 }
+
+#[test]
+fn dice_metrics_are_total_at_extreme_parameters() {
+    use izanagi_kit::Dice;
+    // max() previously overflowed i64 on count*sides at u32::MAX × u32::MAX
+    // (~1.8e19); average_x100 had the same risk with an extra ×50 factor.
+    // i128 + clamp makes both total.
+    let cases = [
+        (0u32, 0u32, 0i32),
+        (1, 6, 0),
+        (u32::MAX, u32::MAX, 0),
+        (u32::MAX, u32::MAX, i32::MAX),
+        (u32::MAX, u32::MAX, i32::MIN),
+        (u32::MAX, 1, 0),
+        (1, u32::MAX, 0),
+    ];
+    let mut rng = SplitMix64::new(0xD1CE_05);
+    for &(count, sides, modifier) in &cases {
+        let d = Dice::new(count, sides, modifier);
+        let _ = (d.min(), d.max(), d.average_x100(), d.span(), d.is_flat());
+        let _ = d.roll(&mut rng);
+    }
+}
+
+#[test]
+fn tilemap_iter_rect_is_total_at_extreme_anchor() {
+    use izanagi_kit::TileMap;
+    // rx + rw / ry + rh previously overflowed for an anchor near i32::MAX.
+    let m: TileMap<u8> = TileMap::new(8, 8, 0);
+    for &rx in &EXTREMES {
+        for &rw in &[0i32, 1, 100, i32::MAX] {
+            let _: Vec<_> = m.iter_rect(rx, 0, rw, 1).collect();
+            let _: Vec<_> = m.iter_rect(0, rx, 1, rw).collect();
+        }
+    }
+}
