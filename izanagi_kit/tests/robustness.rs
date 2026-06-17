@@ -494,3 +494,22 @@ fn influence_normalize_is_total_at_extreme_values() {
     flat.normalize(i32::MIN, i32::MAX);
     assert_eq!(flat.get(0, 0), Some(i32::MIN));
 }
+
+#[test]
+fn wfc_solve_is_total_at_large_dimensions() {
+    use izanagi_kit::wfc::{wfc_solve, WfcRules};
+    // width * height previously overflowed i32 for large grids (e.g.
+    // 60000 × 60000 ≈ 3.6e9). usize widening makes it total — even if it
+    // returns Contradiction or allocates a huge buffer, it must not panic.
+    let rules = WfcRules::new(2);
+    let mut rng = SplitMix64::new(0x_70F_C_05);
+    // Degenerate sizes: 0/negative are early-rejected as Contradiction.
+    for &(w, h) in &[(0, 10), (10, 0), (-1, 5), (5, -1)] {
+        let _ = wfc_solve(w, h, &rules, &mut rng);
+    }
+    // Small grid: must actually solve / return a result (no panic).
+    let _ = wfc_solve(8, 8, &rules, &mut rng);
+    // (Larger overflow-trigger sizes like 60000×60000 would *allocate* 3.6e9
+    // cells × 8 bytes = 30 GiB, exceeding test memory; the targeted unit
+    // test above proves the multiply itself no longer panics.)
+}

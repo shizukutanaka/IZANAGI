@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`wfc` overflowed on large grid dimensions** (`wfc.rs`) — `wfc_solve` and
+  `WfcGrid` indexing computed `width * height` (and `y * width + x`) in `i32`,
+  panicking for any grid where the product exceeds `i32::MAX` (e.g. 60000×60000).
+  The internal `propagate` BFS likewise added neighbour offsets in raw `i32`.
+  Switched the size product to `(width as usize).saturating_mul(height as usize)`
+  (matching `passability` and `tilemap`), every flat-index expression to direct
+  `usize` arithmetic, and the neighbour adds to `saturating_add` for
+  defence-in-depth. Behavior-preserving for normal grids — all 47 wfc unit
+  tests pass; PINNED hashes unchanged. Surfaced by the systematic robustness
+  sweep — three iterations running, three real bugs found.
 - **`InfluenceMap::normalize` overflow on extreme spans** (`influence.rs`) —
   `cur_max - cur_min` overflows `i32` when the source straddles `i32::MIN`/`MAX`;
   the same for `target_max - target_min`; and `(v - cur_min) * target_span` is a

@@ -170,7 +170,7 @@ impl WfcGrid {
         if x < 0 || y < 0 || x >= self.width || y >= self.height {
             return None;
         }
-        let v = self.cells[(y * self.width + x) as usize];
+        let v = self.cells[y as usize * self.width as usize + x as usize];
         if v.count_ones() == 1 {
             Some(v.trailing_zeros() as u8)
         } else {
@@ -224,7 +224,7 @@ impl WfcGrid {
         if x < 0 || y < 0 || x >= self.width || y >= self.height {
             return 0;
         }
-        self.cells[(y * self.width + x) as usize].count_ones() as usize
+        self.cells[y as usize * self.width as usize + x as usize].count_ones() as usize
     }
 
     /// Export collapsed tiles as a flat row-major `Vec<Option<u8>>`. Each cell
@@ -302,22 +302,25 @@ fn propagate(
     let mut queue: VecDeque<(i32, i32)> = VecDeque::new();
     let mut in_queue = vec![false; cells.len()];
 
-    let start_idx = (sy * width + sx) as usize;
+    let start_idx = sy as usize * width as usize + sx as usize;
     queue.push_back((sx, sy));
     in_queue[start_idx] = true;
 
     while let Some((x, y)) = queue.pop_front() {
-        let idx = (y * width + x) as usize;
+        let idx = y as usize * width as usize + x as usize;
         in_queue[idx] = false;
         let cur_mask = cells[idx];
 
         for (dir, &(dx, dy)) in DIRS.iter().enumerate() {
-            let nx = x + dx;
-            let ny = y + dy;
+            // saturating: even though propagate is called with in-grid coords,
+            // be total in isolation so a future caller with extreme coords
+            // cannot panic the BFS (autotile had the same neighbour-add bug).
+            let nx = x.saturating_add(dx);
+            let ny = y.saturating_add(dy);
             if nx < 0 || ny < 0 || nx >= width || ny >= height {
                 continue;
             }
-            let nidx = (ny * width + nx) as usize;
+            let nidx = ny as usize * width as usize + nx as usize;
 
             // Compute union of allowed neighbors for all current possibilities.
             let mut allowed = 0u64;
@@ -360,7 +363,8 @@ pub fn wfc_solve(width: i32, height: i32, rules: &WfcRules, rng: &mut SplitMix64
         return WfcResult::Contradiction;
     }
 
-    let size = (width * height) as usize;
+    // usize widening so width*height does not overflow i32 for large grids.
+    let size = (width as usize).saturating_mul(height as usize);
     let all = rules.all_tiles();
     let mut cells = vec![all; size];
 
@@ -429,7 +433,8 @@ pub fn wfc_solve_backtrack(
         return WfcResult::Contradiction;
     }
 
-    let size = (width * height) as usize;
+    // usize widening so width*height does not overflow i32 for large grids.
+    let size = (width as usize).saturating_mul(height as usize);
     let all = rules.all_tiles();
     let mut cells = vec![all; size];
 
@@ -515,7 +520,8 @@ pub fn wfc_solve_partial(
         };
     }
 
-    let size = (width * height) as usize;
+    // usize widening so width*height does not overflow i32 for large grids.
+    let size = (width as usize).saturating_mul(height as usize);
     let all = rules.all_tiles();
     let mut cells = vec![all; size];
 
