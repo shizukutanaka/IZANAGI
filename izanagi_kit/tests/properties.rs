@@ -17,8 +17,9 @@ use izanagi_kit::pathfinding::{astar, weighted_astar};
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
-    chebyshev_distance, cone, knockback, line, manhattan_distance, reflect_point, rotate_90_ccw,
-    rotate_90_cw, splash_attack, Fixed, SplitMix64, Stats, Vec2, Vec3,
+    chebyshev_distance, cone, generate_bsp, generate_cave, generate_dungeon, knockback, line,
+    manhattan_distance, reflect_point, rotate_90_ccw, rotate_90_cw, splash_attack, BspParams,
+    CaveParams, Dungeon, Fixed, GenParams, SplitMix64, Stats, Vec2, Vec3,
 };
 
 const ITERS: usize = 3000;
@@ -1288,4 +1289,159 @@ fn prop_dice_average_x100_is_between_min_and_max() {
             "average_x100 {avg} outside [{lo},{hi}] for {count}d{sides}{modifier:+}"
         );
     }
+}
+
+// ── Mapgen (dungeon / cave / BSP) properties ──────────────────────────────────
+
+/// Shared BFS 4-connectivity check: returns `true` when all floor cells in `d`
+/// form a single connected region. Trivially `true` for 0- or 1-cell floors.
+fn dungeon_is_connected(d: &Dungeon) -> bool {
+    let floors = d.floor_cells();
+    if floors.len() <= 1 {
+        return true;
+    }
+    let w = d.width() as i32;
+    let h = d.height() as i32;
+    let idx = |x: i32, y: i32| (y * w + x) as usize;
+    let mut visited = vec![false; (w * h) as usize];
+    let start = floors[0];
+    visited[idx(start.0, start.1)] = true;
+    let mut queue = vec![start];
+    let mut qi = 0;
+    while qi < queue.len() {
+        let (cx, cy) = queue[qi];
+        qi += 1;
+        for (dx, dy) in [(0i32, -1), (0, 1), (-1, 0), (1, 0)] {
+            let (nx, ny) = (cx + dx, cy + dy);
+            if nx >= 0 && ny >= 0 && nx < w && ny < h {
+                let i = idx(nx, ny);
+                if !visited[i] && d.is_floor(nx, ny) {
+                    visited[i] = true;
+                    queue.push((nx, ny));
+                }
+            }
+        }
+    }
+    floors.iter().all(|&(x, y)| visited[idx(x, y)])
+}
+
+/// **Dungeon connectivity** — `generate_dungeon` wires every room to the
+/// previous one with an L-shaped corridor, so the whole map forms one
+/// 4-connected floor region. Verified over 200 (seed, size) pairs. A failure
+/// means a room was placed without a connecting corridor or a corridor was
+/// carved out of bounds.
+#[test]
+fn prop_generate_dungeon_is_fully_connected() {
+    let mut rng = SplitMix64::new(0x0A4F_D005);
+    let mut multi_room_count = 0usize;
+
+    for _ in 0..200 {
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        let w = 20 + rng.below(40) as u32;
+        let h = 20 + rng.below(40) as u32;
+        let dungeon = generate_dungeon(w, h, &mut SplitMix64::new(seed), GenParams::default());
+
+        assert!(
+            dungeon_is_connected(&dungeon),
+            "dungeon not connected (seed={seed:#x}, w={w}, h={h}, rooms={})",
+            dungeon.room_count()
+        );
+
+        if dungeon.room_count() >= 2 {
+            multi_room_count += 1;
+        }
+    }
+
+    assert!(
+        multi_room_count >= 50,
+        "expected ≥50 multi-room dungeons for non-vacuous coverage, got {multi_room_count}"
+    );
+}
+
+/// **Dungeon determinism** — `generate_dungeon` is a pure function of
+/// `(width, height, seed, params)`. Two calls with identical inputs must produce
+/// identical maps. Any non-determinism (HashMap iteration, wall-clock reads)
+/// would desync replays and violate this invariant.
+#[test]
+fn prop_generate_dungeon_is_deterministic() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x0B3E_C005);
+
+    for _ in 0..200 {
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        let w = 15 + rng.below(30) as u32;
+        let h = 15 + rng.below(30) as u32;
+        let params = GenParams::default();
+
+        let a = generate_dungeon(w, h, &mut SplitMix64::new(seed), params);
+        let b = generate_dungeon(w, h, &mut SplitMix64::new(seed), params);
+
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "generate_dungeon not deterministic (seed={seed:#x}, w={w}, h={h})"
+        );
+    }
+}
+
+/// **Cave connectivity** — `generate_cave` ends every run with
+/// `cull_to_largest_region`, which removes all floor cells outside the single
+/// largest 4-connected component. The result is therefore always one connected
+/// region (or all-wall). Verified over 200 (seed, size) triples.
+#[test]
+fn prop_generate_cave_is_fully_connected() {
+    let mut rng = SplitMix64::new(0x0C5A_E005);
+    let mut with_floor = 0usize;
+
+    for _ in 0..200 {
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        let w = 25 + rng.below(35) as u32;
+        let h = 25 + rng.below(35) as u32;
+        let dungeon = generate_cave(w, h, &mut SplitMix64::new(seed), CaveParams::default());
+
+        assert!(
+            dungeon_is_connected(&dungeon),
+            "cave not connected (seed={seed:#x}, w={w}, h={h})"
+        );
+
+        if !dungeon.floor_cells().is_empty() {
+            with_floor += 1;
+        }
+    }
+
+    assert!(
+        with_floor >= 100,
+        "expected ≥100 caves with floor cells for non-vacuous coverage, got {with_floor}"
+    );
+}
+
+/// **BSP dungeon connectivity** — `generate_bsp` joins each pair of child
+/// partitions on the way back up the recursion tree, so the whole dungeon is
+/// guaranteed connected. Verified over 200 (seed, size) pairs. A failure means
+/// the corridor-stitching step in `bsp_build` broke connectivity.
+#[test]
+fn prop_generate_bsp_is_fully_connected() {
+    let mut rng = SplitMix64::new(0x0D6B_F005);
+    let mut with_floor = 0usize;
+
+    for _ in 0..200 {
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        let w = 25 + rng.below(35) as u32;
+        let h = 25 + rng.below(35) as u32;
+        let dungeon = generate_bsp(w, h, &mut SplitMix64::new(seed), BspParams::default());
+
+        assert!(
+            dungeon_is_connected(&dungeon),
+            "BSP dungeon not connected (seed={seed:#x}, w={w}, h={h})"
+        );
+
+        if !dungeon.floor_cells().is_empty() {
+            with_floor += 1;
+        }
+    }
+
+    assert!(
+        with_floor >= 100,
+        "expected ≥100 BSP dungeons with floor cells for non-vacuous coverage, got {with_floor}"
+    );
 }
