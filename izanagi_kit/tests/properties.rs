@@ -10,6 +10,7 @@
 //! the seeded generator keeps every run reproducible in CI (no `proptest`
 //! dependency, in keeping with the zero-dependency policy).
 
+use izanagi_kit::fov::compute_fov;
 use izanagi_kit::geometry::line_len;
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
@@ -895,5 +896,152 @@ fn prop_scheduler_peek_when_some_matches_next_turn() {
                 );
             }
         }
+    }
+}
+
+// ── FOV (field of view) properties ───────────────────────────────────────────
+
+/// **FOV symmetry** — the module's headline guarantee: "A sees B iff B sees A."
+/// For every visible non-wall cell B in A's FOV, compute FOV from B and verify
+/// that A appears in it. Tests 400 random (wall map, origin, radius) triples on
+/// 20×20 grids. A failure here means the symmetric-shadowcasting invariant is
+/// broken — the classic source of "the goblin can see you but you can't see it"
+/// bugs.
+#[test]
+fn prop_fov_is_symmetric() {
+    const W: i32 = 20;
+    const H: i32 = 20;
+    let mut rng = SplitMix64::new(0x0F04_C005);
+
+    let visible_from = |walls: &[bool], ox: i32, oy: i32, radius: i32| -> Vec<bool> {
+        let mut vis = vec![false; (W * H) as usize];
+        compute_fov(
+            (ox, oy),
+            radius,
+            |x, y| {
+                if x < 0 || y < 0 || x >= W || y >= H {
+                    true // off-map is opaque
+                } else {
+                    walls[(y * W + x) as usize]
+                }
+            },
+            |x, y| {
+                if x >= 0 && y >= 0 && x < W && y < H {
+                    vis[(y * W + x) as usize] = true;
+                }
+            },
+        );
+        vis
+    };
+
+    for _ in 0..400 {
+        // Random wall map (~25 % wall density).
+        let walls: Vec<bool> = (0..W * H).map(|_| rng.below(4) == 0).collect();
+
+        // Random origin that is not a wall.
+        let ox = rng.below(W as u32) as i32;
+        let oy = rng.below(H as u32) as i32;
+        if walls[(oy * W + ox) as usize] {
+            continue; // skip — origin is a wall (uncommon but legal to skip)
+        }
+
+        let radius = 3 + rng.below(10) as i32;
+        let vis_a = visible_from(&walls, ox, oy, radius);
+
+        // For every floor cell visible from A, verify A is visible from it.
+        for y in 0..H {
+            for x in 0..W {
+                let idx = (y * W + x) as usize;
+                if !vis_a[idx] || walls[idx] {
+                    continue;
+                }
+                if x == ox && y == oy {
+                    continue; // origin sees itself trivially
+                }
+                let vis_b = visible_from(&walls, x, y, radius);
+                assert!(
+                    vis_b[(oy * W + ox) as usize],
+                    "FOV asymmetry: A=({ox},{oy}) can see B=({x},{y}) but not vice versa \
+                     (radius={radius})"
+                );
+            }
+        }
+    }
+}
+
+/// **FOV origin always visible** — `compute_fov` always invokes `mark_visible`
+/// for the origin cell regardless of radius, wall configuration, or coordinate.
+/// A radius-0 call must also mark the origin (and nothing else in a walled grid).
+#[test]
+fn prop_fov_origin_is_always_visible() {
+    const W: i32 = 15;
+    const H: i32 = 15;
+    let mut rng = SplitMix64::new(0x04E3_A005);
+    for _ in 0..ITERS {
+        let walls: Vec<bool> = (0..W * H).map(|_| rng.below(4) == 0).collect();
+        let ox = rng.below(W as u32) as i32;
+        let oy = rng.below(H as u32) as i32;
+        let radius = rng.below(12) as i32;
+
+        let mut origin_marked = false;
+        compute_fov(
+            (ox, oy),
+            radius,
+            |x, y| {
+                if x < 0 || y < 0 || x >= W || y >= H {
+                    true
+                } else {
+                    walls[(y * W + x) as usize]
+                }
+            },
+            |x, y| {
+                if x == ox && y == oy {
+                    origin_marked = true;
+                }
+            },
+        );
+        assert!(
+            origin_marked,
+            "origin ({ox},{oy}) not marked visible (radius={radius})"
+        );
+    }
+}
+
+/// **FOV radius constraint** — every cell reported by `compute_fov` must lie
+/// within Euclidean distance `radius` from the origin (`dx²+dy² ≤ radius²`).
+/// The symmetry and radius guard together ensure the revealed area is always
+/// a bounded, consistent disc around the observer.
+#[test]
+fn prop_fov_all_visible_cells_are_within_radius() {
+    const W: i32 = 20;
+    const H: i32 = 20;
+    let mut rng = SplitMix64::new(0x0C45_B005);
+    for _ in 0..ITERS {
+        let walls: Vec<bool> = (0..W * H).map(|_| rng.below(5) == 0).collect();
+        let ox = rng.below(W as u32) as i32;
+        let oy = rng.below(H as u32) as i32;
+        let radius = rng.below(10) as i32;
+        let r2 = (radius as i64) * (radius as i64);
+
+        compute_fov(
+            (ox, oy),
+            radius,
+            |x, y| {
+                if x < 0 || y < 0 || x >= W || y >= H {
+                    true
+                } else {
+                    walls[(y * W + x) as usize]
+                }
+            },
+            |x, y| {
+                let dx = (x - ox) as i64;
+                let dy = (y - oy) as i64;
+                let dsq = dx * dx + dy * dy;
+                assert!(
+                    dsq <= r2,
+                    "cell ({x},{y}) is outside radius {radius} of origin ({ox},{oy}): dsq={dsq}"
+                );
+            },
+        );
     }
 }
