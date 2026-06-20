@@ -21,6 +21,13 @@
 //! - `tick(n)` advances all cooldown counters with saturating subtraction.
 //! - `DetHash` folds every ability definition and current cooldown state so
 //!   the full ability set participates in per-frame replay checksums.
+//! - The hash is **registration-order-sensitive**: abilities are stored (and
+//!   folded) in the order they were added, because the key `K` is generic and
+//!   carries no `Ord` bound to canonicalize against (unlike the kit's
+//!   `Entity`-keyed collections, which sort in `det_hash`). Two sets holding the
+//!   same abilities added in different orders therefore hash differently — so
+//!   register abilities in a fixed order on every peer, which deterministic
+//!   construction code does for free.
 //!
 //! ## Example
 //!
