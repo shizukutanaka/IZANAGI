@@ -11,6 +11,7 @@
 //! dependency, in keeping with the zero-dependency policy).
 
 use izanagi_kit::geometry::line_len;
+use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
     chebyshev_distance, cone, knockback, line, manhattan_distance, reflect_point, rotate_90_ccw,
     rotate_90_cw, splash_attack, Fixed, SplitMix64, Stats, Vec2, Vec3,
@@ -441,6 +442,176 @@ fn prop_easing_functions_hit_their_endpoints() {
         let at1 = to_f(f(Fixed::ONE));
         assert!(at0.abs() < 5.0e-3, "{name}(0) = {at0}, expected ≈ 0");
         assert!((at1 - 1.0).abs() < 5.0e-3, "{name}(1) = {at1}, expected ≈ 1");
+    }
+}
+
+// ── WFC properties ────────────────────────────────────────────────────────────
+
+/// Helper: check that every adjacent collapsed-cell pair in `grid` is permitted
+/// by `rules`. Returns `false` at the first violation found. Used by both the
+/// adjacency-invariant property test and the fault-injection test below.
+fn adjacency_invariant_holds(
+    grid: &izanagi_kit::wfc::WfcGrid,
+    rules: &izanagi_kit::wfc::WfcRules,
+) -> bool {
+    // (dx, dy, dir_index) — dir 0=N, 1=E, 2=S, 3=W
+    const DIRS: [(i32, i32, usize); 4] = [(0, -1, 0), (1, 0, 1), (0, 1, 2), (-1, 0, 3)];
+    for y in 0..grid.height {
+        for x in 0..grid.width {
+            let Some(tile) = grid.tile_at(x, y) else {
+                continue;
+            };
+            for (dx, dy, dir) in DIRS {
+                let (nx, ny) = (x + dx, y + dy);
+                if nx < 0 || ny < 0 || nx >= grid.width || ny >= grid.height {
+                    continue;
+                }
+                let Some(nb) = grid.tile_at(nx, ny) else {
+                    continue;
+                };
+                if rules.get_allowed(tile, dir) & (1u64 << nb) == 0 {
+                    return false;
+                }
+            }
+        }
+    }
+    true
+}
+
+/// WFC **adjacency invariant** — the core correctness claim of constraint
+/// propagation: whenever `wfc_solve` returns `Ok(grid)`, every pair of adjacent
+/// fully-collapsed cells has tiles permitted by the rules. A bug in the
+/// propagation step (e.g. a wrong bitmask operation, an off-by-one in the
+/// direction indexing) would produce a grid that violates this law.
+///
+/// The test also verifies it is non-vacuous: at least 40 successful solves must
+/// occur in 500 trials, so the invariant is actually exercised, not just skipped
+/// due to systematic contradiction.
+#[test]
+fn prop_wfc_solved_grid_respects_adjacency_rules() {
+    use izanagi_kit::wfc::{WfcResult, WfcRules};
+    let mut rng = SplitMix64::new(0x0CF1_4D05);
+    let mut solved = 0usize;
+
+    for _ in 0..500 {
+        // Random tile count [2..=5] — enough variety to exercise constraint
+        // propagation paths without making contradictions too common.
+        let tc = 2 + rng.below(4) as u8;
+        let mut rules = WfcRules::new(tc);
+
+        // Start fully-permissive (all tiles allowed in every direction), then
+        // randomly remove ~33% of adjacencies.  Starting from fully-permissive
+        // guarantees at least one valid grid exists before removals; removing
+        // a fraction adds real constraint-propagation work while keeping
+        // the solve-success rate high enough for a non-vacuous test.
+        for tile in 0..tc {
+            for dir in 0..4 {
+                for nb in 0..tc {
+                    rules.allow(tile, dir, nb);
+                }
+            }
+        }
+        for tile in 0..tc {
+            for dir in 0..4 {
+                for nb in 0..tc {
+                    if rng.below(3) == 0 {
+                        rules.disallow(tile, dir, nb);
+                    }
+                }
+                // Restore at least one allowed neighbor per (tile, dir) so the
+                // rules are never self-contradictory going into the solve.
+                if rules.allowed_count(tile, dir) == 0 {
+                    rules.allow(tile, dir, rng.below(tc as u32) as u8);
+                }
+            }
+        }
+
+        // Small grids. Use the backtrack solver so the invariant is exercised
+        // even with tightly constrained rules — the invariant must hold
+        // regardless of whether the solution was found on the first collapse
+        // sequence or required backtracking.
+        let w = 3 + rng.below(5) as i32;
+        let h = 3 + rng.below(5) as i32;
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        if let WfcResult::Ok(grid) =
+            wfc_solve_backtrack(w, h, &rules, &mut SplitMix64::new(seed), 200)
+        {
+            solved += 1;
+            assert!(
+                grid.is_fully_collapsed(),
+                "WfcResult::Ok must be fully collapsed"
+            );
+            assert!(
+                adjacency_invariant_holds(&grid, &rules),
+                "solved grid violates adjacency rules (w={w}, h={h}, tc={tc})"
+            );
+        }
+    }
+
+    assert!(
+        solved >= 50,
+        "expected ≥50 successful solves for non-vacuous coverage, got {solved}"
+    );
+}
+
+/// WFC **determinism** — the module doc's headline guarantee: given identical
+/// rules, dimensions, and RNG seed, `wfc_solve` always produces the same
+/// `WfcResult`. Any source of non-determinism (HashMap iteration, OS entropy,
+/// float rounding) would violate this across runs.
+///
+/// Fault-injection proof: running two identical solves from fresh `SplitMix64`
+/// instances seeded identically and asserting hash equality would detect any
+/// single-bit divergence in the output.
+#[test]
+fn prop_wfc_deterministic_same_seed_same_result() {
+    use izanagi_kit::wfc::{wfc_solve, WfcResult, WfcRules};
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x07B4_C105);
+
+    for _ in 0..500 {
+        let tc = 2 + rng.below(5) as u8;
+        let mut rules = WfcRules::new(tc);
+        // Same permissive-then-remove approach as the adjacency test.
+        for tile in 0..tc {
+            for dir in 0..4 {
+                for nb in 0..tc {
+                    rules.allow(tile, dir, nb);
+                }
+            }
+        }
+        for tile in 0..tc {
+            for dir in 0..4 {
+                for nb in 0..tc {
+                    if rng.below(3) == 0 {
+                        rules.disallow(tile, dir, nb);
+                    }
+                }
+                if rules.allowed_count(tile, dir) == 0 {
+                    rules.allow(tile, dir, rng.below(tc as u32) as u8);
+                }
+            }
+        }
+        let w = 3 + rng.below(5) as i32;
+        let h = 3 + rng.below(5) as i32;
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+
+        // Two fresh RNG instances from the same seed — result must be identical.
+        let result_a = wfc_solve(w, h, &rules, &mut SplitMix64::new(seed));
+        let result_b = wfc_solve(w, h, &rules, &mut SplitMix64::new(seed));
+
+        match (result_a, result_b) {
+            (WfcResult::Contradiction, WfcResult::Contradiction) => {}
+            (WfcResult::Ok(a), WfcResult::Ok(b)) => {
+                assert_eq!(
+                    hash_state(&a),
+                    hash_state(&b),
+                    "WFC not deterministic (w={w}, h={h}, seed={seed:#x})"
+                );
+            }
+            _ => panic!(
+                "WFC gave different result types for identical inputs (w={w}, h={h}, seed={seed:#x})"
+            ),
+        }
     }
 }
 

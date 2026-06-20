@@ -334,6 +334,7 @@ fn propagate(
             let prev = cells[nidx];
             let new_val = prev & allowed;
             if new_val == 0 {
+                cells[nidx] = 0;
                 return false;
             }
             if new_val != prev {
@@ -468,8 +469,18 @@ pub fn wfc_solve_backtrack(
             let (idx, tried_mask, saved) = stack.pop().unwrap();
             cells = saved;
             cells[idx] &= !tried_mask;
-            // If all options at idx are now exhausted, the outer loop will
-            // detect a contradiction on the next iteration and backtrack again.
+            // Re-propagate from idx so neighbours reflect the reduced option
+            // set. Without this, a neighbour that was compatible only with the
+            // tried tile remains unconstrained and can be collapsed to an
+            // adjacency-violating value on a later step. If cells[idx] is 0
+            // (all options exhausted) skip propagation — the entropy scan at
+            // the top of the next iteration will detect the contradiction and
+            // backtrack again.
+            if cells[idx] != 0 {
+                let bx = (idx as i32) % width;
+                let by = (idx as i32) / width;
+                propagate(&mut cells, width, height, bx, by, rules);
+            }
             continue;
         }
 
