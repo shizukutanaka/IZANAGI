@@ -12,6 +12,7 @@
 
 use izanagi_kit::fov::compute_fov;
 use izanagi_kit::geometry::line_len;
+use izanagi_kit::pathfinding::{astar, weighted_astar};
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
@@ -1044,4 +1045,166 @@ fn prop_fov_all_visible_cells_are_within_radius() {
             },
         );
     }
+}
+
+// ── Pathfinding properties ────────────────────────────────────────────────────
+
+const PATH_W: i32 = 16;
+const PATH_H: i32 = 16;
+
+/// Grid wall-query closure for property tests: off-map cells are opaque (bounds
+/// the search), on-map cells use the provided `walls` slice.
+fn path_is_blocked<'a>(walls: &'a [bool]) -> impl FnMut(i32, i32) -> bool + 'a {
+    move |x: i32, y: i32| {
+        if x < 0 || y < 0 || x >= PATH_W || y >= PATH_H {
+            true
+        } else {
+            walls[(y * PATH_W + x) as usize]
+        }
+    }
+}
+
+/// Cost of an 8-directional path: 10 per orthogonal step, 14 per diagonal.
+fn path_cost_manual(path: &[(i32, i32)]) -> i32 {
+    path.windows(2)
+        .map(|w| {
+            let (dx, dy) = ((w[1].0 - w[0].0).abs(), (w[1].1 - w[0].1).abs());
+            if dx == 1 && dy == 1 {
+                14
+            } else {
+                10
+            }
+        })
+        .sum()
+}
+
+/// **A* path validity** — for every path returned by `astar`:
+/// 1. `path[0] == start` and `path[last] == goal`
+/// 2. Each consecutive step is a single king move (no teleportation)
+/// 3. No step lands on a wall cell
+/// 4. No diagonal step cuts a wall corner
+///
+/// Tested over 500 random (wall map, start, goal) triples on 16×16 grids.
+/// A single failure means the reconstructed path is geometrically impossible.
+#[test]
+fn prop_astar_path_is_valid() {
+    let mut rng = SplitMix64::new(0x0A57_C005);
+    let mut found = 0usize;
+
+    for _ in 0..500 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H)
+            .map(|_| rng.below(5) == 0)
+            .collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let gx = rng.below(PATH_W as u32) as i32;
+        let gy = rng.below(PATH_H as u32) as i32;
+        if walls[(sy * PATH_W + sx) as usize] || walls[(gy * PATH_W + gx) as usize] {
+            continue;
+        }
+        let Some(path) = astar((sx, sy), (gx, gy), path_is_blocked(&walls)) else {
+            continue;
+        };
+        found += 1;
+
+        assert_eq!(path[0], (sx, sy), "path must start at start");
+        assert_eq!(*path.last().unwrap(), (gx, gy), "path must end at goal");
+
+        for w in path.windows(2) {
+            let (dx, dy) = ((w[1].0 - w[0].0).abs(), (w[1].1 - w[0].1).abs());
+            // Each step is a king move: |dx|,|dy| ∈ {0,1}, not both 0.
+            assert!(
+                dx <= 1 && dy <= 1 && (dx + dy) > 0,
+                "non-king step {:?} → {:?}",
+                w[0],
+                w[1]
+            );
+            // No step lands in a wall.
+            assert!(
+                !walls[(w[1].1 * PATH_W + w[1].0) as usize],
+                "path steps into wall at {:?}",
+                w[1]
+            );
+            // Diagonal steps must not cut a corner.
+            if dx == 1 && dy == 1 {
+                let h_blocked = walls[(w[0].1 * PATH_W + w[1].0) as usize];
+                let v_blocked = walls[(w[1].1 * PATH_W + w[0].0) as usize];
+                assert!(
+                    !h_blocked && !v_blocked,
+                    "diagonal step {:?}→{:?} cuts a wall corner",
+                    w[0],
+                    w[1]
+                );
+            }
+        }
+    }
+
+    // Non-vacuous: at least 100 paths must have been found and validated.
+    assert!(found >= 100, "expected ≥100 paths found, got {found}");
+}
+
+/// **Determinism** — same start, goal, and wall map always produces identical
+/// paths. Any HashMap-iteration non-determinism would make paths differ between
+/// calls and would desync AI paths in replays.
+#[test]
+fn prop_astar_is_deterministic() {
+    let mut rng = SplitMix64::new(0x0B68_D005);
+    for _ in 0..500 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H)
+            .map(|_| rng.below(5) == 0)
+            .collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let gx = rng.below(PATH_W as u32) as i32;
+        let gy = rng.below(PATH_H as u32) as i32;
+
+        let path_a = astar((sx, sy), (gx, gy), path_is_blocked(&walls));
+        let path_b = astar((sx, sy), (gx, gy), path_is_blocked(&walls));
+        assert_eq!(path_a, path_b, "astar not deterministic for ({sx},{sy})→({gx},{gy})");
+    }
+}
+
+/// **Weighted A* bound** — with integer weight `w ≥ 1`, the path returned by
+/// `weighted_astar` has cost ≤ `w × astar_cost`. Also verifies that at
+/// `weight == 1`, `weighted_astar` agrees exactly with `astar`.
+#[test]
+fn prop_weighted_astar_cost_bound_and_unity() {
+    let mut rng = SplitMix64::new(0x0C79_E005);
+    let mut checked = 0usize;
+
+    for _ in 0..500 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H)
+            .map(|_| rng.below(5) == 0)
+            .collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let gx = rng.below(PATH_W as u32) as i32;
+        let gy = rng.below(PATH_H as u32) as i32;
+        if walls[(sy * PATH_W + sx) as usize] || walls[(gy * PATH_W + gx) as usize] {
+            continue;
+        }
+
+        let opt = astar((sx, sy), (gx, gy), path_is_blocked(&walls));
+        let w1 = weighted_astar((sx, sy), (gx, gy), path_is_blocked(&walls), 1);
+
+        // weight=1 must produce the same path and cost as plain astar.
+        assert_eq!(opt, w1, "weighted_astar(1) != astar for ({sx},{sy})→({gx},{gy})");
+
+        let Some(opt_path) = opt else {
+            continue;
+        };
+        let opt_cost = path_cost_manual(&opt_path);
+        let w = 1 + rng.below(3); // 1..=3
+
+        if let Some(wp) = weighted_astar((sx, sy), (gx, gy), path_is_blocked(&walls), w) {
+            let wp_cost = path_cost_manual(&wp);
+            assert!(
+                wp_cost <= w as i32 * opt_cost,
+                "weighted_astar(w={w}) cost {wp_cost} > {w}×{opt_cost} for ({sx},{sy})→({gx},{gy})"
+            );
+            checked += 1;
+        }
+    }
+
+    assert!(checked >= 50, "expected ≥50 weighted paths checked, got {checked}");
 }
