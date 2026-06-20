@@ -21,7 +21,8 @@ use izanagi_kit::{
     generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
     normalize_noise, reflect_point, ridge_noise_2d, rotate_90_ccw, rotate_90_cw, splash_attack,
     value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap, value_noise_3d, Aabb,
-    BspParams, CaveParams, Dungeon, Fixed, GenParams, SplitMix64, Stats, Vec2, Vec3,
+    BspParams, CaveParams, Dungeon, Fixed, GenParams, InfluenceMap, PassabilityGrid, SpatialHash,
+    SplitMix64, Stats, Vec2, Vec3,
 };
 
 const ITERS: usize = 3000;
@@ -1846,5 +1847,442 @@ fn prop_normalize_noise_is_within_closed_bounds() {
 
         assert_eq!(normalize_noise(v, 5, 5), 5, "degenerate equal range");
         assert_eq!(normalize_noise(v, 8, 2), 8, "degenerate inverted range");
+    }
+}
+
+// ── SpatialHash properties ─────────────────────────────────────────────────────
+
+/// **Insert → contains** — the fundamental membership invariant: after inserting
+/// key K at (x, y), both `contains(&K, x, y)` and `query_cell(x, y).contains(&K)`
+/// must return true for every cell size, coordinate (including negatives), and key.
+#[test]
+fn prop_spatial_hash_insert_then_contains() {
+    let mut rng = SplitMix64::new(0x0A1B_2C3D);
+    for _ in 0..ITERS {
+        let cell_size = 1 + rng.below(32) as i32;
+        let mut sh: SpatialHash<u32> = SpatialHash::new(cell_size);
+        let x = rng.range(-500, 501);
+        let y = rng.range(-500, 501);
+        let key: u32 = rng.below(u32::MAX);
+        sh.insert(key, x, y);
+        assert!(sh.contains(&key, x, y), "key missing after insert at ({x},{y})");
+        assert!(
+            sh.query_cell(x, y).contains(&key),
+            "query_cell missed key at ({x},{y})"
+        );
+    }
+}
+
+/// **Remove undoes insert** — after one insert + matching remove, `contains`
+/// returns false and the cell is empty again. Dual of the insert invariant.
+#[test]
+fn prop_spatial_hash_remove_undoes_insert() {
+    let mut rng = SplitMix64::new(0x1B2C_3D4E);
+    for _ in 0..ITERS {
+        let cell_size = 1 + rng.below(32) as i32;
+        let mut sh: SpatialHash<u32> = SpatialHash::new(cell_size);
+        let x = rng.range(-500, 501);
+        let y = rng.range(-500, 501);
+        let key: u32 = rng.below(0x8000_0000);
+        sh.insert(key, x, y);
+        sh.remove(&key, x, y);
+        assert!(!sh.contains(&key, x, y), "key still present after remove at ({x},{y})");
+        assert!(sh.query_cell(x, y).is_empty(), "cell non-empty after remove");
+    }
+}
+
+/// **query_rect ⊇ query_cell** — every key found by `query_cell(px, py)` must
+/// also appear in `query_rect` over any rectangle that contains `(px, py)`.
+/// Verifies that the rect query never under-reports relative to the cell query.
+/// One entity is always inserted exactly at the query point so every trial
+/// exercises the subset check (non-vacuous by construction).
+#[test]
+fn prop_spatial_hash_query_rect_superset_of_query_cell() {
+    use std::collections::HashSet;
+    let mut rng = SplitMix64::new(0x2C3D_4E5F);
+    for _ in 0..ITERS {
+        let cell_size = 1 + rng.below(16) as i32;
+        let mut sh: SpatialHash<u32> = SpatialHash::new(cell_size);
+        let px = rng.range(-80, 81);
+        let py = rng.range(-80, 81);
+        // Always insert key 0 at the query point so query_cell is never empty.
+        sh.insert(0u32, px, py);
+        // Insert a few more at random positions.
+        let n = rng.below(9) as u32;
+        for k in 1..=n {
+            sh.insert(k, rng.range(-100, 101), rng.range(-100, 101));
+        }
+        // Build a rect guaranteed to contain (px, py): offset in [0, rw-1].
+        let rw = rng.range(1, 20);
+        let rh = rng.range(1, 20);
+        let rx = px - rng.range(0, rw);
+        let ry = py - rng.range(0, rh);
+
+        let cell_keys: HashSet<u32> = sh.query_cell(px, py).iter().copied().collect();
+        let rect_keys: HashSet<u32> = sh.query_rect(rx, ry, rw, rh).into_iter().collect();
+        assert!(
+            cell_keys.is_subset(&rect_keys),
+            "query_cell ⊄ query_rect: px={px},py={py}, rect=({rx},{ry},{rw},{rh})"
+        );
+    }
+}
+
+/// **Euclidean ⊆ Chebyshev** — every key within Euclidean distance r of the
+/// query centre is also within Chebyshev distance r (the inscribed-circle law).
+/// A cell whose closest point is within Euclidean r also overlaps the Chebyshev
+/// square, so false negatives in `query_radius` can never hide a Euclidean hit.
+#[test]
+fn prop_spatial_hash_euclidean_subset_of_chebyshev() {
+    use std::collections::HashSet;
+    let mut rng = SplitMix64::new(0x3D4E_5F6A);
+    for _ in 0..ITERS {
+        let cell_size = 1 + rng.below(8) as i32;
+        let mut sh: SpatialHash<u32> = SpatialHash::new(cell_size);
+        let n = rng.below(15) as usize;
+        for k in 0..n as u32 {
+            sh.insert(k, rng.range(-50, 51), rng.range(-50, 51));
+        }
+        let cx = rng.range(-40, 41);
+        let cy = rng.range(-40, 41);
+        let radius = rng.range(0, 20);
+
+        let eucl: HashSet<u32> = sh
+            .query_radius_euclidean(cx, cy, radius)
+            .into_iter()
+            .collect();
+        let cheb: HashSet<u32> = sh.query_radius(cx, cy, radius).into_iter().collect();
+        assert!(
+            eucl.is_subset(&cheb),
+            "euclidean ⊄ chebyshev: center=({cx},{cy}), radius={radius}"
+        );
+    }
+}
+
+/// **query_rect_count == query_rect.len()** — the allocation-free count variant
+/// must always agree with the allocating variant. A divergence would mean AI
+/// budget checks silently disagree with actual collision results.
+#[test]
+fn prop_spatial_hash_count_matches_query_len() {
+    let mut rng = SplitMix64::new(0x4E5F_6A7B);
+    for _ in 0..ITERS {
+        let cell_size = 1 + rng.below(16) as i32;
+        let mut sh: SpatialHash<u32> = SpatialHash::new(cell_size);
+        let n = rng.below(20) as usize;
+        for k in 0..n as u32 {
+            sh.insert(k, rng.range(-100, 101), rng.range(-100, 101));
+        }
+        let x = rng.range(-100, 101);
+        let y = rng.range(-100, 101);
+        let w = rng.range(1, 50);
+        let h = rng.range(1, 50);
+        assert_eq!(
+            sh.query_rect_count(x, y, w, h),
+            sh.query_rect(x, y, w, h).len(),
+            "query_rect_count ≠ query_rect.len at ({x},{y},{w},{h})"
+        );
+    }
+}
+
+/// **move_entity transfers membership** — after moving key K from (ox,oy) to a
+/// different cell (nx,ny), the key is found in the new cell and absent from the
+/// old one. Uses an offset of ≥ cell_size to guarantee distinct cells.
+#[test]
+fn prop_spatial_hash_move_transfers_membership() {
+    let mut rng = SplitMix64::new(0x5F6A_7B8C);
+    for _ in 0..ITERS {
+        let cell_size = 1 + rng.below(16) as i32;
+        let mut sh: SpatialHash<u32> = SpatialHash::new(cell_size);
+        let ox = rng.range(-100, 101);
+        let oy = rng.range(-100, 101);
+        // Offset by at least cell_size so the target cell is definitely different.
+        let nx = ox.saturating_add(cell_size + rng.range(0, cell_size));
+        let ny = oy.saturating_add(cell_size + rng.range(0, cell_size));
+        let key: u32 = 42;
+        sh.insert(key, ox, oy);
+        sh.move_entity(key, ox, oy, nx, ny);
+        assert!(sh.contains(&key, nx, ny), "key not in new cell after move ({ox},{oy})→({nx},{ny})");
+        assert!(!sh.contains(&key, ox, oy), "key still in old cell after move ({ox},{oy})→({nx},{ny})");
+    }
+}
+
+// ── PassabilityGrid properties ────────────────────────────────────────────────
+
+/// **blocked + passable == len** — `blocked_count() + passable_count()` must
+/// equal `len()` for every grid, including after mutations. A partition invariant:
+/// no cell is double-counted or missed. Verified after construction and after a
+/// random single-cell toggle.
+#[test]
+fn prop_passability_counts_sum_to_len() {
+    let mut rng = SplitMix64::new(0x6A7B_8C9D);
+    for _ in 0..ITERS {
+        let w = rng.below(20) as i32;
+        let h = rng.below(20) as i32;
+        // Build a grid using a per-call rng draw so blocked density varies.
+        let mut grid = PassabilityGrid::from_fn(w, h, |_, _| rng.below(4) == 0);
+        assert_eq!(
+            grid.blocked_count() + grid.passable_count(),
+            grid.len(),
+            "counts don't sum to len (w={w}, h={h})"
+        );
+        // Invariant must also hold after a random mutation.
+        if w > 0 && h > 0 {
+            let x = rng.below(w as u32) as i32;
+            let y = rng.below(h as u32) as i32;
+            grid.set_blocked(x, y, !grid.is_blocked(x, y));
+            assert_eq!(
+                grid.blocked_count() + grid.passable_count(),
+                grid.len(),
+                "counts don't sum to len after toggle at ({x},{y})"
+            );
+        }
+    }
+}
+
+/// **from_fn predicate round-trip** — `from_fn(w, h, pred)` must store
+/// `pred(x, y)` in every cell so that `is_blocked(x, y) == pred(x, y)` for all
+/// in-bounds `(x, y)`. Any index-mapping bug in the row-major formula breaks this.
+#[test]
+fn prop_passability_from_fn_matches_predicate() {
+    let mut rng = SplitMix64::new(0x7B8C_9D0E);
+    for _ in 0..ITERS {
+        let w = rng.below(12) as i32;
+        let h = rng.below(12) as i32;
+        // Deterministic arithmetic predicate so we can re-evaluate it without rng.
+        let salt = rng.below(5);
+        let pred = |x: i32, y: i32| {
+            x.wrapping_mul(3)
+                .wrapping_add(y.wrapping_mul(7))
+                .rem_euclid(5) as u32
+                == salt
+        };
+        let grid = PassabilityGrid::from_fn(w, h, |x, y| pred(x, y));
+        for y in 0..h {
+            for x in 0..w {
+                assert_eq!(
+                    grid.is_blocked(x, y),
+                    pred(x, y),
+                    "from_fn mismatch at ({x},{y}) for w={w}, h={h}"
+                );
+            }
+        }
+    }
+}
+
+/// **invert is an involution** — `invert()` applied twice is the identity: every
+/// cell returns to its original state and `blocked_count` is unchanged. Any
+/// off-by-one in the cell indexing during inversion would scramble the grid.
+#[test]
+fn prop_passability_invert_is_involution() {
+    let mut rng = SplitMix64::new(0x8C9D_0E1F);
+    for _ in 0..ITERS {
+        let w = rng.below(15) as i32;
+        let h = rng.below(15) as i32;
+        let mut grid = PassabilityGrid::from_fn(w, h, |_, _| rng.below(3) == 0);
+        let before = grid.blocked_count();
+        grid.invert();
+        grid.invert();
+        assert_eq!(
+            grid.blocked_count(),
+            before,
+            "double-invert changed blocked_count (w={w}, h={h})"
+        );
+        // Spot-check a random cell's state.
+        if w > 0 && h > 0 {
+            let x = rng.below(w as u32) as i32;
+            let y = rng.below(h as u32) as i32;
+            let original = grid.is_blocked(x, y);
+            grid.invert();
+            grid.invert();
+            assert_eq!(
+                grid.is_blocked(x, y),
+                original,
+                "double-invert changed cell ({x},{y})"
+            );
+        }
+    }
+}
+
+/// **set_region covers the rectangle** — every cell in the axis-aligned
+/// inclusive rectangle `[x1,x2] × [y1,y2]` (with x1/x2 and y1/y2 swapped as
+/// needed) must have the target value after `set_region`. The invariant that BSP
+/// and room-carving code relies on: bulk-writing a region leaves no gaps.
+#[test]
+fn prop_passability_set_region_covers_rectangle() {
+    let mut rng = SplitMix64::new(0x9D0E_1F2A);
+    for _ in 0..ITERS {
+        let w = 2 + rng.below(18) as i32; // 2..=19
+        let h = 2 + rng.below(18) as i32;
+        let mut grid = PassabilityGrid::new(w, h); // all passable
+        // Random inclusive rectangle (set_region handles x1>x2 internally).
+        let x1 = rng.range(0, w); // [0, w-1]
+        let y1 = rng.range(0, h);
+        let x2 = rng.range(0, w);
+        let y2 = rng.range(0, h);
+        grid.set_region(x1, y1, x2, y2, true);
+        let (xs, xe) = (x1.min(x2), x1.max(x2));
+        let (ys, ye) = (y1.min(y2), y1.max(y2));
+        for y in ys..=ye {
+            for x in xs..=xe {
+                assert!(
+                    grid.is_blocked(x, y),
+                    "set_region missed ({x},{y}) in [{xs},{xe}]×[{ys},{ye}]"
+                );
+            }
+        }
+    }
+}
+
+// ── InfluenceMap properties ───────────────────────────────────────────────────
+
+/// **Source cell gets full strength** — the cell at (sx, sy) is at Chebyshev
+/// distance 0 from itself, so `add_source(sx, sy, strength, radius)` always
+/// stores exactly `strength` there, regardless of radius. A scaling or off-by-one
+/// bug in the falloff formula breaks this for all non-zero radii.
+#[test]
+fn prop_influence_add_source_origin_gets_full_strength() {
+    let mut rng = SplitMix64::new(0x0E1F_2A3B);
+    for _ in 0..ITERS {
+        let w = 2 + rng.below(20) as i32;
+        let h = 2 + rng.below(20) as i32;
+        let sx = rng.below(w as u32) as i32;
+        let sy = rng.below(h as u32) as i32;
+        let strength = rng.range(1, 10001);
+        let radius = rng.range(0, 10);
+        let mut map = InfluenceMap::new(w, h);
+        map.add_source(sx, sy, strength, radius);
+        assert_eq!(
+            map.get(sx, sy),
+            Some(strength),
+            "source cell ({sx},{sy}) has wrong value (strength={strength}, radius={radius})"
+        );
+    }
+}
+
+/// **No cell exceeds strength** — the linear falloff formula for `add_source`
+/// (strength × (r−dist)/r for dist ≤ r) never produces a value larger than
+/// `strength`. Verified over all cells of randomly-sized maps.
+#[test]
+fn prop_influence_add_source_never_exceeds_strength() {
+    let mut rng = SplitMix64::new(0x1F2A_3B4C);
+    for _ in 0..ITERS {
+        let w = 2 + rng.below(25) as i32;
+        let h = 2 + rng.below(25) as i32;
+        let sx = rng.below(w as u32) as i32;
+        let sy = rng.below(h as u32) as i32;
+        let strength = rng.range(0, 10001);
+        let radius = rng.range(0, 8);
+        let mut map = InfluenceMap::new(w, h);
+        map.add_source(sx, sy, strength, radius);
+        for (_, _, v) in map.iter() {
+            assert!(
+                v >= 0 && v <= strength,
+                "add_source cell out of [0,{strength}]: {v}"
+            );
+        }
+    }
+}
+
+/// **decay reduces magnitudes** — after `decay(num, den)` with `0 ≤ num < den`,
+/// every cell's absolute value can only decrease (integer truncation toward zero).
+/// Verified by cloning the map before the decay and comparing cell-by-cell.
+#[test]
+fn prop_influence_decay_reduces_magnitudes() {
+    let mut rng = SplitMix64::new(0x2A3B_4C5D);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(8) as i32;
+        let h = 1 + rng.below(8) as i32;
+        let mut map = InfluenceMap::new(w, h);
+        for y in 0..h {
+            for x in 0..w {
+                map.set(x, y, rng.range(-1000, 1001));
+            }
+        }
+        let before = map.clone();
+        let den = 2 + rng.below(10) as i32; // 2..=11
+        let num = rng.below(den as u32) as i32; // 0..=den-1 (<den)
+        map.decay(num, den);
+        for y in 0..h {
+            for x in 0..w {
+                let bv = before.get(x, y).unwrap();
+                let av = map.get(x, y).unwrap();
+                assert!(
+                    av.abs() <= bv.abs(),
+                    "decay({num}/{den}) increased magnitude {bv} → {av} at ({x},{y})"
+                );
+            }
+        }
+    }
+}
+
+/// **normalize pins the range endpoints** — after `normalize(lo, hi)` on a map
+/// with at least two distinct values, `min_value() == lo` and `max_value() == hi`.
+/// The i128 wide-multiply path must place the maximum input value exactly at hi
+/// and the minimum exactly at lo, with no rounding drift.
+#[test]
+fn prop_influence_normalize_pins_range() {
+    let mut rng = SplitMix64::new(0x3B4C_5D6E);
+    let mut pinned = 0usize;
+    for _ in 0..ITERS {
+        let w = 2 + rng.below(8) as i32;
+        let h = 2 + rng.below(8) as i32;
+        let mut map = InfluenceMap::new(w, h);
+        // At least two distinct values: fill with base, then spike one cell.
+        let base = rng.range(-500, 501);
+        let peak = base + rng.range(1, 201); // peak > base
+        map.fill(base);
+        let px = rng.below(w as u32) as i32;
+        let py = rng.below(h as u32) as i32;
+        map.set(px, py, peak);
+
+        let a = rng.range(-200, 201);
+        let b = rng.range(-200, 201);
+        let (lo, hi) = (a.min(b), a.max(b));
+        if lo >= hi {
+            continue; // degenerate — skip, don't count
+        }
+        map.normalize(lo, hi);
+        assert_eq!(
+            map.min_value(),
+            Some(lo),
+            "normalize({lo},{hi}) did not pin min"
+        );
+        assert_eq!(
+            map.max_value(),
+            Some(hi),
+            "normalize({lo},{hi}) did not pin max"
+        );
+        pinned += 1;
+    }
+    assert!(pinned >= 2000, "expected ≥2000 normalize trials, got {pinned}");
+}
+
+/// **find_peaks agrees with direct scan** — `find_peaks(threshold)` must return
+/// exactly the cells where `get(x, y) >= threshold`, in the same row-major order
+/// produced by iterating `y` then `x`. An indexing bug in the coordinate-recovery
+/// formula `(x = i % w, y = i / w)` would shift coordinates and break this.
+#[test]
+fn prop_influence_find_peaks_agrees_with_direct_scan() {
+    let mut rng = SplitMix64::new(0x4C5D_6E7F);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(10) as i32;
+        let h = 1 + rng.below(10) as i32;
+        let mut map = InfluenceMap::new(w, h);
+        for y in 0..h {
+            for x in 0..w {
+                map.set(x, y, rng.range(-100, 101));
+            }
+        }
+        let threshold = rng.range(-50, 51);
+        let peaks = map.find_peaks(threshold);
+
+        let expected: Vec<(i32, i32)> = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .filter(|&(x, y)| map.get(x, y).unwrap() >= threshold)
+            .collect();
+
+        assert_eq!(
+            peaks, expected,
+            "find_peaks({threshold}) disagrees with direct scan (w={w}, h={h})"
+        );
     }
 }
