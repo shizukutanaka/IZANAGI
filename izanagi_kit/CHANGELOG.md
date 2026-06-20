@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`hud::HudPanel::merge` overflowed for panels at extreme positions**
+  (`hud.rs`) — the bounding-box span `x1 - x0` was a raw `i32` subtract that
+  panicked when merged panels sat at opposite i32 extremes (`HudPanel` fields
+  are public). Computed in `i64` with the span clamped to `u32::MAX`;
+  behaviour-identical for any real layout.
 - **`SplitMix64::gaussian_approx` overflowed at extreme spread** (`rng.rs`) —
   `spread + 1` panicked at `u32::MAX` and the 4-sample `i32` sum overflowed as
   `spread` approached `i32::MAX` (with `center + result` a further hazard).

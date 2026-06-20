@@ -654,3 +654,23 @@ fn combat_damage_is_total_when_hp_and_amount_straddle_extremes() {
         }
     }
 }
+
+#[test]
+fn hud_merge_is_total_for_panels_at_extreme_positions() {
+    use izanagi_kit::hud::HudPanel;
+    // merge() computes the bounding span `x1 - x0`; panels placed at opposite
+    // i32 extremes made that subtraction overflow. HudPanel fields are public,
+    // so any position pair must be total.
+    for &x in &EXTREMES {
+        for &y in &EXTREMES {
+            let a = HudPanel { x, y, w: 1, h: 1 };
+            let b = HudPanel {
+                x: -x.max(i32::MIN + 1),
+                y: -y.max(i32::MIN + 1),
+                w: u32::MAX,
+                h: u32::MAX,
+            };
+            let _ = HudPanel::merge(&[a, b]);
+        }
+    }
+}

@@ -322,8 +322,10 @@ impl HudPanel {
             x1 = x1.max(p.x.saturating_add(p.w as i32));
             y1 = y1.max(p.y.saturating_add(p.h as i32));
         }
-        let w = (x1 - x0).max(0) as u32;
-        let h = (y1 - y0).max(0) as u32;
+        // i64: panels at opposite i32 extremes make `x1 - x0` (up to
+        // i32::MAX - i32::MIN) overflow. Clamp the span to u32::MAX.
+        let w = (x1 as i64 - x0 as i64).clamp(0, u32::MAX as i64) as u32;
+        let h = (y1 as i64 - y0 as i64).clamp(0, u32::MAX as i64) as u32;
         Some(HudPanel { x: x0, y: y0, w, h })
     }
 
