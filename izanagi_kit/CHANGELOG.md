@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`mapgen::Rect::area` overflowed for degenerate extents** (`mapgen.rs`) —
+  `w * h` was a raw `u32` multiply that panicked in debug for rectangles with
+  near-`u32::MAX` extents (the fields are public, so any pair is reachable).
+  Switched to `saturating_mul`; `largest_room` now routes through `area()`.
+  Internal cellular-automata/region buffers use `usize::saturating_mul` for
+  their size to stay panic-free (and wrap-free in release) on 32-bit targets.
 - **`pathfinding::octile` / `octile_distance` overflowed at extreme
   coordinates** (`pathfinding.rs`) — the coordinate subtraction
   (`i32::MAX - i32::MIN`) and the `×10` cost scaling both panicked in debug.

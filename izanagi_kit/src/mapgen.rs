@@ -29,10 +29,11 @@ impl Rect {
         ((self.x + self.w / 2) as i32, (self.y + self.h / 2) as i32)
     }
 
-    /// Area in cells (`w × h`).
+    /// Area in cells (`w × h`). Saturating: a degenerate rectangle with
+    /// near-`u32::MAX` extents reports `u32::MAX` rather than panicking.
     #[inline]
     pub fn area(&self) -> u32 {
-        self.w * self.h
+        self.w.saturating_mul(self.h)
     }
 
     /// Inset the rectangle by `n` cells on every side, returning `None` when
@@ -148,7 +149,7 @@ impl Dungeon {
         Dungeon {
             width,
             height,
-            tiles: vec![true; (width as usize) * (height as usize)],
+            tiles: vec![true; (width as usize).saturating_mul(height as usize)],
             rooms: Vec::new(),
         }
     }
@@ -195,7 +196,7 @@ impl Dungeon {
     /// all-wall dungeon (e.g. a cave or a too-small map). Useful for placing
     /// bosses, exit stairs, or treasure in the most prominent room.
     pub fn largest_room(&self) -> Option<Rect> {
-        self.rooms.iter().max_by_key(|r| r.w * r.h).copied()
+        self.rooms.iter().max_by_key(|r| r.area()).copied()
     }
 
     /// Room at `index` in placement order, or `None` if `index ≥ room_count()`.
@@ -392,7 +393,7 @@ pub fn generate_cave(width: u32, height: u32, rng: &mut SplitMix64, params: Cave
     // 2. Cellular-automata smoothing passes (4-5 rule, OOB = wall).
     for _ in 0..params.steps {
         // Start the next grid all-wall so the border is preserved untouched.
-        let mut next = vec![true; (width * height) as usize];
+        let mut next = vec![true; (width as usize).saturating_mul(height as usize)];
         for y in 1..h - 1 {
             for x in 1..w - 1 {
                 let walls = wall_neighbours(&d, x, y);
@@ -428,7 +429,7 @@ fn wall_neighbours(d: &Dungeon, x: i32, y: i32) -> u32 {
 /// No-op when there is no floor.
 fn cull_to_largest_region(d: &mut Dungeon) {
     let (w, h) = (d.width as i32, d.height as i32);
-    let size = (d.width * d.height) as usize;
+    let size = (d.width as usize).saturating_mul(d.height as usize);
     let mut region = vec![u32::MAX; size]; // region id per cell; MAX = unassigned/wall
     let mut sizes: Vec<u32> = Vec::new();
     let idx = |x: i32, y: i32| (y as u32 * d.width + x as u32) as usize;

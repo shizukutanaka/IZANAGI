@@ -593,3 +593,17 @@ fn turn_scheduler_is_total_at_extreme_energy_and_speed() {
         }
     }
 }
+
+#[test]
+fn mapgen_rect_area_is_total_at_extreme_extents() {
+    use izanagi_kit::mapgen::Rect;
+    // `area()` previously computed `w * h` as a raw u32 multiply, panicking for
+    // degenerate rectangles with near-u32::MAX extents. Rect fields are public,
+    // so any extent pair must be total.
+    for &w in &[0u32, 1, 2, 65_536, u32::MAX - 1, u32::MAX] {
+        for &h in &[0u32, 1, 2, 65_536, u32::MAX - 1, u32::MAX] {
+            let r = Rect { x: 0, y: 0, w, h };
+            let _ = r.area();
+        }
+    }
+}
