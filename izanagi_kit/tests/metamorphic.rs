@@ -16,6 +16,7 @@
 //!
 //! Deterministic via `SplitMix64`; reproducible in CI.
 
+use izanagi_kit::fov::can_see;
 use izanagi_kit::{astar, fov_to_vec, is_reachable, path_cost, SplitMix64, TileMap, TimerQueue};
 use std::collections::HashSet;
 
@@ -251,4 +252,35 @@ fn timer_queue_one_shot_fires_are_split_advance_invariant() {
         let expected = timers.iter().filter(|(d, _)| *d <= total).count();
         assert_eq!(single.len(), expected, "wrong one-shot fire count");
     }
+}
+
+/// The *defining* relation of symmetric shadowcasting: for two transparent
+/// cells A and B within radius, `A can see B` ⇔ `B can see A` — the very claim
+/// `can_see`'s docs make ("A sees B ⟺ B sees A"). The existing unit test pins
+/// it on a single hand-built map; this exercises the public `can_see` API over
+/// hundreds of random wall layouts and endpoint pairs, where an asymmetry in
+/// the slope-window logic (the `is_symmetric` centre test) would surface as a
+/// pair that sees one-way only. Walls are opaque endpoints are skipped — the
+/// guarantee is stated for transparent cells.
+#[test]
+fn fov_visibility_is_symmetric_across_random_maps() {
+    const N: i32 = 12;
+    const RADIUS: i32 = 8;
+    let mut rng = SplitMix64::new(0x5EE_C0DE);
+    let mut checked = 0u64;
+    for _ in 0..CASES {
+        let walls = rand_walls(&mut rng, 30, N, N);
+        let is_opaque = |x: i32, y: i32| x < 0 || y < 0 || x >= N || y >= N || walls.contains(&(x, y));
+
+        let a = (rng.range(0, N), rng.range(0, N));
+        let b = (rng.range(0, N), rng.range(0, N));
+        if is_opaque(a.0, a.1) || is_opaque(b.0, b.1) {
+            continue; // symmetry is guaranteed for transparent endpoints
+        }
+        let ab = can_see(a, b, RADIUS, is_opaque);
+        let ba = can_see(b, a, RADIUS, is_opaque);
+        assert_eq!(ab, ba, "FOV asymmetry: {a:?}<->{b:?} ab={ab} ba={ba}");
+        checked += 1;
+    }
+    assert!(checked > 0, "no transparent endpoint pairs were exercised");
 }
