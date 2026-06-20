@@ -21,7 +21,8 @@
 //! Deterministic via `SplitMix64`.
 
 use izanagi_kit::{
-    hash_state, EntityAllocator, Fnv1a, Relations, SparseSet, SpatialHash, SplitMix64, StatusSet,
+    hash_state, EntityAllocator, Fnv1a, InfluenceMap, Relations, SparseSet, SpatialHash,
+    SplitMix64, StatusSet,
 };
 
 const TRIALS: usize = 300;
@@ -147,5 +148,52 @@ fn relations_hash_is_attach_order_independent() {
             r.attach(child, parent);
         }
         assert_eq!(hash_state(&r), reference, "Relations hash depends on attach order");
+    }
+}
+
+/// An `InfluenceMap` accumulates each source additively (`saturating_add` per
+/// cell), so a fixed multiset of `add_source` calls must produce the identical
+/// field regardless of the order they are applied — the confluence guarantee
+/// behind the module's "multiple maps can be combined (added…)" contract.
+///
+/// Strengths and source counts are bounded so no cell approaches `i32`
+/// saturation: `saturating_add` is commutative but only *associative* below the
+/// clamp, so this property is stated (and tested) in the non-saturating regime.
+/// A regression to a last-writer-wins or otherwise order-sensitive update
+/// surfaces immediately.
+#[test]
+fn influence_map_field_is_source_order_independent() {
+    let mut rng = SplitMix64::new(0x1F1A_EC0D);
+    for _ in 0..TRIALS {
+        let n = rng.range(2, 9) as usize;
+        let sources: Vec<(i32, i32, i32, i32)> = (0..n)
+            .map(|_| {
+                (
+                    rng.range(0, 16),
+                    rng.range(0, 16),
+                    rng.range(-50, 51),
+                    rng.range(0, 5),
+                )
+            })
+            .collect();
+
+        let build = |order: &[usize]| {
+            let mut m = InfluenceMap::new(16, 16);
+            for &i in order {
+                let (x, y, s, r) = sources[i];
+                m.add_source(x, y, s, r);
+            }
+            hash_state(&m)
+        };
+
+        let reference = build(&(0..n).collect::<Vec<_>>());
+        for _ in 0..4 {
+            let order = permutation(&mut rng, n);
+            assert_eq!(
+                build(&order),
+                reference,
+                "InfluenceMap field depends on source application order"
+            );
+        }
     }
 }
