@@ -10,6 +10,7 @@
 //! the seeded generator keeps every run reproducible in CI (no `proptest`
 //! dependency, in keeping with the zero-dependency policy).
 
+use izanagi_kit::dice::Dice;
 use izanagi_kit::fov::compute_fov;
 use izanagi_kit::geometry::line_len;
 use izanagi_kit::pathfinding::{astar, weighted_astar};
@@ -1207,4 +1208,84 @@ fn prop_weighted_astar_cost_bound_and_unity() {
     }
 
     assert!(checked >= 50, "expected ≥50 weighted paths checked, got {checked}");
+}
+
+// ── Dice properties ───────────────────────────────────────────────────────────
+
+/// **Roll range invariant** — `roll()` must always produce a value in
+/// `[min(), max()]`. A bug in the `rng.dice` accumulation or the modifier
+/// arithmetic would violate this for some seed.
+#[test]
+fn prop_dice_roll_is_in_min_max_range() {
+    let mut rng = SplitMix64::new(0x0D1C_E005);
+    for _ in 0..ITERS {
+        let count = rng.below(8) as u32; // 0..=7
+        let sides = 1 + rng.below(20) as u32; // 1..=20
+        let modifier = rng.range(-10, 11);
+        let d = Dice::new(count, sides, modifier);
+
+        let lo = d.min();
+        let hi = d.max();
+        assert!(lo <= hi, "min > max for {count}d{sides}{modifier:+}");
+
+        let result = d.roll(&mut rng);
+        assert!(
+            result >= lo && result <= hi,
+            "roll {result} outside [{lo},{hi}] for {count}d{sides}{modifier:+}"
+        );
+    }
+}
+
+/// **Advantage ≥ disadvantage** — `roll_advantage()` returns `max(a, b)` and
+/// `roll_disadvantage()` returns `min(a, b)` from the SAME two draws. Since
+/// the two dice objects are identical and draw from the same seeded stream,
+/// `max(a, b) ≥ min(a, b)` is always true (no randomness affects this law).
+#[test]
+fn prop_dice_advantage_ge_disadvantage() {
+    let mut rng = SplitMix64::new(0x0E2D_F005);
+    for _ in 0..ITERS {
+        let count = rng.below(5) as u32;
+        let sides = 1 + rng.below(20) as u32;
+        let modifier = rng.range(-5, 6);
+        let d = Dice::new(count, sides, modifier);
+
+        let mut rng_adv = rng.clone();
+        let mut rng_dis = rng.clone();
+        let adv = d.roll_advantage(&mut rng_adv);
+        let dis = d.roll_disadvantage(&mut rng_dis);
+
+        // Both consume two rolls from the same starting state.
+        // max(a,b) ≥ min(a,b) unconditionally.
+        assert!(
+            adv >= dis,
+            "advantage {adv} < disadvantage {dis} for {count}d{sides}{modifier:+}"
+        );
+        // Advance main rng past two rolls so each trial is independent.
+        d.roll(&mut rng);
+        d.roll(&mut rng);
+    }
+}
+
+/// **min ≤ average ≤ max** — `average_x100()` must lie between `min()×100`
+/// and `max()×100`. This is the defining property of an expected value for a
+/// bounded distribution. A scaling or overflow bug in `average_x100` would
+/// violate it for large count/sides.
+#[test]
+fn prop_dice_average_x100_is_between_min_and_max() {
+    let mut rng = SplitMix64::new(0x0F3E_4005);
+    for _ in 0..ITERS {
+        let count = rng.below(16) as u32; // 0..=15
+        let sides = 1 + rng.below(100) as u32; // 1..=100
+        let modifier = rng.range(-100, 101);
+        let d = Dice::new(count, sides, modifier);
+
+        let avg = d.average_x100();
+        let lo = d.min() as i64 * 100;
+        let hi = d.max() as i64 * 100;
+
+        assert!(
+            avg >= lo && avg <= hi,
+            "average_x100 {avg} outside [{lo},{hi}] for {count}d{sides}{modifier:+}"
+        );
+    }
 }
