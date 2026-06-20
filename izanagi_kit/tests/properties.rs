@@ -1825,9 +1825,10 @@ fn prop_hash_range_is_within_half_open_bounds() {
         assert_eq!(hash_range(h, 7, 7), 7, "degenerate equal range");
         assert_eq!(hash_range(h, 9, 3), 9, "degenerate inverted range");
 
-        // Extreme range must not overflow or escape bounds.
+        // Extreme range must not overflow or escape the half-open upper bound
+        // (`ev >= i32::MIN` is trivially true, so only the `< hi` edge matters).
         let ev = hash_range(h, i32::MIN, i32::MAX);
-        assert!(ev >= i32::MIN && ev < i32::MAX, "extreme-range escape: {ev}");
+        assert!(ev < i32::MAX, "extreme-range escape: {ev}");
     }
 }
 

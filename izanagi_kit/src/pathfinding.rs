@@ -11,6 +11,12 @@
 //! is identical to [`astar`]; at `weight = 2` roughly half the nodes are expanded
 //! in open maps while the path is still within 2× optimal.
 //!
+//! [`jps`] is Jump Point Search — an *exact* speed-up of [`astar`] for uniform
+//! cost grids that "jumps" over open, symmetric regions instead of expanding
+//! every cell. It returns the same kind of full path at the same optimal cost,
+//! obeying the same no-corner-cutting rule, and is validated against [`astar`]
+//! over thousands of random grids (cost-equality is the correctness oracle).
+//!
 //! Determinism: the open set is ordered by the *total* key `(f, wh, x, y)` — the
 //! `(x, y)` tail makes every key unique, so there are no ties for the heap to
 //! break arbitrarily and the popped order is identical on every run and target.
@@ -204,6 +210,200 @@ where
                 came_from.insert(neighbour, cur);
                 let h = octile(neighbour, goal);
                 open.push(Reverse((tentative + w * h, w * h, nx, ny)));
+            }
+        }
+    }
+    None
+}
+
+// ---------------------------------------------------------------------------
+// Jump Point Search (JPS)
+// ---------------------------------------------------------------------------
+
+/// Jump in direction `(dx, dy)` from `(x0, y0)` until reaching a *jump point*
+/// (the goal, or a cell with a forced neighbour), a wall, or out of bounds.
+///
+/// `walk(x, y)` is the passability predicate (the negation of `is_blocked`).
+/// Movement obeys the same no-corner-cutting rule as [`astar`]: a diagonal step
+/// is only taken when both shared orthogonal cells are clear. Returns the jump
+/// point cell, or `None` if the ray dead-ends without one.
+///
+/// Recursion depth is at most 2 (a diagonal frame probes two straight rays, and
+/// straight rays never recurse), so this cannot blow the stack on large maps.
+fn jps_jump<W: Fn(i32, i32) -> bool>(
+    mut x: i32,
+    mut y: i32,
+    dx: i32,
+    dy: i32,
+    goal: (i32, i32),
+    walk: &W,
+) -> Option<(i32, i32)> {
+    loop {
+        if !walk(x, y) {
+            return None;
+        }
+        if (x, y) == goal {
+            return Some((x, y));
+        }
+        if dx != 0 && dy != 0 {
+            // Diagonal: this cell is a jump point if a straight probe in either
+            // component direction finds one (a forced neighbour lies that way).
+            if jps_jump(x + dx, y, dx, 0, goal, walk).is_some()
+                || jps_jump(x, y + dy, 0, dy, goal, walk).is_some()
+            {
+                return Some((x, y));
+            }
+            // Continue diagonally only without cutting a corner.
+            if walk(x + dx, y) && walk(x, y + dy) {
+                x += dx;
+                y += dy;
+                continue;
+            }
+            return None;
+        } else if dx != 0 {
+            // Horizontal: no-corner-cutting forced neighbour — a perpendicular
+            // cell is open but the cell diagonally *behind* it is blocked, so the
+            // only way to reach it is to turn here.
+            if (walk(x, y + 1) && !walk(x - dx, y + 1))
+                || (walk(x, y - 1) && !walk(x - dx, y - 1))
+            {
+                return Some((x, y));
+            }
+            if walk(x + dx, y) {
+                x += dx;
+                continue;
+            }
+            return None;
+        } else {
+            // Vertical (dy != 0) — symmetric no-corner-cutting forced neighbour.
+            if (walk(x + 1, y) && !walk(x + 1, y - dy))
+                || (walk(x - 1, y) && !walk(x - 1, y - dy))
+            {
+                return Some((x, y));
+            }
+            if walk(x, y + dy) {
+                y += dy;
+                continue;
+            }
+            return None;
+        }
+    }
+}
+
+/// Every legal jump direction from `(cx, cy)` in fixed compass order: an
+/// orthogonal step needs only its target clear; a diagonal step is corner-safe
+/// (target plus both shared orthogonal cells clear).
+///
+/// JPS only requires the expanded direction set to be a *superset* of the
+/// natural and forced neighbours, so emitting all legal directions is correct —
+/// the jumping speedup comes from [`jps_jump`], which collapses each direction
+/// down to its next jump point. Keeping the set direction-agnostic also makes
+/// the no-corner-cutting forced-neighbour bookkeeping unnecessary: a forced
+/// neighbour is, by construction, one of these legal directions.
+fn jps_successors<W: Fn(i32, i32) -> bool>(cx: i32, cy: i32, walk: &W) -> Vec<(i32, i32)> {
+    let mut v = Vec::new();
+    for (dx, dy) in DIRS {
+        let legal = if dx != 0 && dy != 0 {
+            walk(cx + dx, cy) && walk(cx, cy + dy) && walk(cx + dx, cy + dy)
+        } else {
+            walk(cx + dx, cy + dy)
+        };
+        if legal {
+            v.push((dx, dy));
+        }
+    }
+    v
+}
+
+/// Expand a chain of jump points (start → goal) into the full cell-by-cell path
+/// by walking the straight/diagonal segment between each consecutive pair.
+fn jps_reconstruct(
+    came_from: &HashMap<(i32, i32), (i32, i32)>,
+    start: (i32, i32),
+    goal: (i32, i32),
+) -> Vec<(i32, i32)> {
+    let mut points = vec![goal];
+    let mut cur = goal;
+    while let Some(&prev) = came_from.get(&cur) {
+        points.push(prev);
+        cur = prev;
+    }
+    debug_assert_eq!(cur, start, "jump-point chain must terminate at start");
+    points.reverse();
+
+    let mut full = vec![points[0]];
+    for w in points.windows(2) {
+        let (ax, ay) = w[0];
+        let (bx, by) = w[1];
+        let sx = (bx - ax).signum();
+        let sy = (by - ay).signum();
+        let (mut x, mut y) = (ax, ay);
+        while (x, y) != (bx, by) {
+            x += sx;
+            y += sy;
+            full.push((x, y));
+        }
+    }
+    full
+}
+
+/// Find a shortest 8-directional path from `start` to `goal` using **Jump Point
+/// Search** — an optimisation of [`astar`] for uniform-cost grids that "jumps"
+/// over symmetric, obstacle-free regions instead of expanding every cell.
+///
+/// Returns the same kind of full, cell-by-cell path as [`astar`] (so the two
+/// are drop-in interchangeable) and a path of **identical cost** — JPS is exact,
+/// not approximate. On open maps it expands far fewer nodes; on cramped maps it
+/// degrades gracefully toward A*. Movement obeys the same no-corner-cutting rule.
+///
+/// `is_blocked(x, y)` must return `true` for walls **and** out-of-bounds cells
+/// (this bounds the search). Determinism matches [`astar`]: the open set is keyed
+/// by the total order `(f, h, x, y)` and directions are pruned in a fixed compass
+/// order, so the result is identical on every run and platform.
+///
+/// The predicate is `Fn` (not `FnMut`) because the jump recursion queries cells
+/// reentrantly; pass a closure that reads an immutable grid.
+pub fn jps<B>(start: (i32, i32), goal: (i32, i32), is_blocked: B) -> Option<Vec<(i32, i32)>>
+where
+    B: Fn(i32, i32) -> bool,
+{
+    let walk = |x: i32, y: i32| !is_blocked(x, y);
+    if !walk(start.0, start.1) || !walk(goal.0, goal.1) {
+        return None;
+    }
+    if start == goal {
+        return Some(vec![start]);
+    }
+
+    let mut open: BinaryHeap<Reverse<(i32, i32, i32, i32)>> = BinaryHeap::new();
+    let mut g_score: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
+
+    let h0 = octile(start, goal);
+    g_score.insert(start, 0);
+    open.push(Reverse((h0, h0, start.0, start.1)));
+
+    while let Some(Reverse((f, _h, cx, cy))) = open.pop() {
+        let cur = (cx, cy);
+        let cur_g = g_score[&cur];
+        // Lazy deletion: skip stale heap entries left over from a cheaper relax.
+        if f != cur_g + octile(cur, goal) {
+            continue;
+        }
+        if cur == goal {
+            return Some(jps_reconstruct(&came_from, start, goal));
+        }
+        for (dx, dy) in jps_successors(cx, cy, &walk) {
+            if let Some(jp) = jps_jump(cx + dx, cy + dy, dx, dy, goal, &walk) {
+                // A jump ray is purely straight or purely diagonal, so the octile
+                // distance equals the exact segment cost.
+                let tentative = cur_g + octile(cur, jp);
+                if tentative < *g_score.get(&jp).unwrap_or(&i32::MAX) {
+                    g_score.insert(jp, tentative);
+                    came_from.insert(jp, cur);
+                    let h = octile(jp, goal);
+                    open.push(Reverse((tentative + h, h, jp.0, jp.1)));
+                }
             }
         }
     }
@@ -1038,5 +1238,150 @@ mod tests {
     fn test_path_to_direction_vec_length_is_path_len_minus_one() {
         let path = vec![(0, 0), (1, 1), (2, 0), (3, 1)];
         assert_eq!(path_to_direction_vec(&path).len(), path.len() - 1);
+    }
+
+    // --- jps (Jump Point Search) -------------------------------------------
+
+    /// Validate that a JPS path is a legal, contiguous, corner-safe route from
+    /// `start` to `goal` under `walls` on a `w×h` grid.
+    fn assert_valid_path(
+        path: &[(i32, i32)],
+        start: (i32, i32),
+        goal: (i32, i32),
+        w: i32,
+        h: i32,
+        walls: &HashSet<(i32, i32)>,
+    ) {
+        assert_eq!(path.first(), Some(&start), "path must start at start");
+        assert_eq!(path.last(), Some(&goal), "path must end at goal");
+        let blk = |x: i32, y: i32| x < 0 || y < 0 || x >= w || y >= h || walls.contains(&(x, y));
+        for &(x, y) in path {
+            assert!(!blk(x, y), "path steps onto a blocked cell ({x},{y})");
+        }
+        for win in path.windows(2) {
+            let (ax, ay) = win[0];
+            let (bx, by) = win[1];
+            let (dx, dy) = ((bx - ax).abs(), (by - ay).abs());
+            assert!(dx <= 1 && dy <= 1 && (dx + dy) > 0, "non-adjacent step");
+            if dx == 1 && dy == 1 {
+                // No corner cutting: both shared orthogonal cells must be clear.
+                assert!(
+                    !blk(bx, ay) && !blk(ax, by),
+                    "diagonal step cut a wall corner ({ax},{ay})->({bx},{by})"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_jps_open_grid_matches_astar_cost() {
+        let b = blocker(15, 15, HashSet::new());
+        let a = astar((0, 0), (10, 7), b).unwrap();
+        let j = jps((0, 0), (10, 7), blocker(15, 15, HashSet::new())).unwrap();
+        assert_eq!(path_cost(&a), path_cost(&j));
+        assert_eq!(j.first(), Some(&(0, 0)));
+        assert_eq!(j.last(), Some(&(10, 7)));
+    }
+
+    #[test]
+    fn test_jps_start_equals_goal() {
+        let j = jps((3, 3), (3, 3), blocker(10, 10, HashSet::new())).unwrap();
+        assert_eq!(j, vec![(3, 3)]);
+    }
+
+    #[test]
+    fn test_jps_blocked_endpoints_return_none() {
+        let walls = HashSet::from([(2, 2)]);
+        assert!(jps((2, 2), (5, 5), blocker(10, 10, walls.clone())).is_none());
+        assert!(jps((5, 5), (2, 2), blocker(10, 10, walls)).is_none());
+    }
+
+    #[test]
+    fn test_jps_unreachable_goal_returns_none() {
+        let mut walls = HashSet::new();
+        for x in 7..=9 {
+            for y in 7..=9 {
+                if (x, y) != (9, 9) {
+                    walls.insert((x, y));
+                }
+            }
+        }
+        assert!(jps((0, 0), (9, 9), blocker(10, 10, walls)).is_none());
+    }
+
+    #[test]
+    fn test_jps_respects_no_corner_cutting() {
+        // Block E and S of the start; the SE diagonal would cut the corner.
+        let walls = HashSet::from([(4, 3), (3, 4)]);
+        let path = jps((3, 3), (4, 4), blocker(8, 8, walls.clone())).unwrap();
+        assert_valid_path(&path, (3, 3), (4, 4), 8, 8, &walls);
+        let took_corner = path.windows(2).any(|w| w[0] == (3, 3) && w[1] == (4, 4));
+        assert!(!took_corner, "JPS must not cut the wall corner");
+    }
+
+    #[test]
+    fn test_jps_is_deterministic() {
+        let walls = HashSet::from([(4, 2), (4, 3), (4, 4), (2, 6)]);
+        let a = jps((1, 1), (8, 8), blocker(12, 12, walls.clone()));
+        let b = jps((1, 1), (8, 8), blocker(12, 12, walls));
+        assert_eq!(a, b);
+        assert!(a.is_some());
+    }
+
+    /// **Metamorphic correctness oracle**: over thousands of random grids, JPS
+    /// must agree with A* on reachability, return the same optimal cost, and
+    /// produce a legal corner-safe path. A* is the trusted reference; any
+    /// forced-neighbour or pruning bug surfaces here as a cost/None mismatch.
+    #[test]
+    fn test_jps_matches_astar_over_random_grids() {
+        // Tiny deterministic PRNG (no external deps; independent of the kit RNG
+        // so this test stands alone).
+        let mut state: u64 = 0x9E37_79B9_7F4A_7C15;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let mut compared = 0u32;
+        for _ in 0..6000 {
+            let w = 4 + (next() % 9) as i32; // 4..=12
+            let h = 4 + (next() % 9) as i32;
+            // Wall density 0..=45%.
+            let density = next() % 46;
+            let mut walls = HashSet::new();
+            for y in 0..h {
+                for x in 0..w {
+                    if next() % 100 < density {
+                        walls.insert((x, y));
+                    }
+                }
+            }
+            let start = ((next() % w as u64) as i32, (next() % h as u64) as i32);
+            let goal = ((next() % w as u64) as i32, (next() % h as u64) as i32);
+            walls.remove(&start);
+            walls.remove(&goal);
+
+            let a = astar(start, goal, blocker(w, h, walls.clone()));
+            let j = jps(start, goal, blocker(w, h, walls.clone()));
+
+            assert_eq!(
+                a.is_some(),
+                j.is_some(),
+                "reachability mismatch: start={start:?} goal={goal:?} w={w} h={h}"
+            );
+            if let (Some(ap), Some(jp)) = (&a, &j) {
+                assert_eq!(
+                    path_cost(ap),
+                    path_cost(jp),
+                    "cost mismatch start={start:?} goal={goal:?}: astar={} jps={}",
+                    path_cost(ap),
+                    path_cost(jp)
+                );
+                assert_valid_path(jp, start, goal, w, h, &walls);
+            }
+            compared += 1;
+        }
+        assert!(compared >= 6000, "expected 6000 comparisons, got {compared}");
     }
 }

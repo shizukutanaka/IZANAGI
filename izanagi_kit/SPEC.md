@@ -65,10 +65,16 @@
 ## 10. `fov` — 対称シャドウキャスティング（実装済）
 - `compute_fov(origin,radius,is_opaque,mark_visible)`。整数有理数スロープ、4象限固定順、対称性保証、Euclidean radius。
 
-## 11. `pathfinding` — グリッド経路探索（一部実装）
+## 11. `pathfinding` — グリッド経路探索（実装済）
 - `astar(start,goal,is_blocked)->Option<Vec<(i32,i32)>>`（8方向、整数 octile 10/14、`(f,h,x,y)` 全順序 tie-break、corner-cut 無し）。
-- **新規（本仕様）**: `dijkstra_map(sources,max_cost,is_blocked)->HashMap<cell,cost>`（多源距離場 / flow field）と
-  `descend(&map,from,is_blocked)->Option<cell>`（最小コスト隣接へ決定的に降下、chase AI 用）（→ §13 P1）。
+- `weighted_astar(start,goal,is_blocked,weight)`（ε-admissible、`f=g+weight×h`、cost ≤ weight×optimal、weight=1 で astar と一致）。
+- **`jps(start,goal,is_blocked)->Option<Vec<(i32,i32)>>`（Jump Point Search）**: astar と同じ no-corner-cut モデルで
+  対称領域を「ジャンプ」して探索を高速化。返すのは astar と同型の full path で **cost は astar と厳密一致**（近似ではない）。
+  `is_blocked` は OOB=true を要求。決定論は astar と同一（`(f,h,x,y)` 全順序、固定コンパス順）。述語は `Fn`
+  （jump 再帰が cell を reentrant に参照するため）。契約検証: 6000 ランダム盤面で astar と reachability/cost 一致 +
+  corner-safe path を metamorphic に確認（astar が正解 oracle）。
+- `dijkstra_map(sources,max_cost,is_blocked)->HashMap<cell,cost>`（多源距離場 / flow field）と
+  `descend(&map,from,is_blocked)->Option<cell>`（最小コスト隣接へ決定的に降下、chase AI 用）。
 
 ## 11.5 `mapgen` — 手続き的ダンジョン生成（実装済）
 - `generate_dungeon(width,height,&mut SplitMix64,GenParams) -> Dungeon`、`Rect`、`GenParams{max_rooms,min_room,max_room}`。
@@ -106,7 +112,9 @@
 | C1 multi-component query (`join`/`join_mut`) | ✅ | 本イテレーションで実装。archetype storage は ⬜ |
 | C6 replay harness + snapshot/rollback + desync 検出 = `replay` | ✅ | 本イテレーションで実装（record/check/first_divergence/resimulate）|
 | geometry: Bresenham line / LOS = `geometry` | ✅ | 本イテレーションで実装（`line`/`line_of_sight`）|
-| JPS / weighted A* / 機械可読診断(JSON) | ⬜ | RESEARCH C9/C10 |
+| weighted A*（ε-admissible） | ✅ | `pathfinding::weighted_astar`（`f=g+weight×h`、cost ≤ weight×optimal）|
+| **JPS（Jump Point Search）** | ⬜→✅ | **本イテレーションで実装**（`pathfinding::jps`、no-corner-cut、A* と cost 一致、6000 ランダム盤面で metamorphic 検証）|
+| 機械可読診断(JSON) | ✅ | `diag_json`（手書き JSON、CI/LSP 消費可能）|
 
 ### 本イテレーションで実装する不足部分
 1. **D1**: `DetHash` を基本型と `Fixed/Entity/Position/Render/Color` に実装し、`SparseSet::det_hash` で

@@ -25,6 +25,7 @@
 | S5 | **テキスト DSL → 検証 → ECS のコンテンツパイプライン** | `src/parser.rs`, `content.rs`, `validator.rs`, `loader.rs` | panic-free・全エラー一括報告・BTreeMap/Vec の確定順序。rot.js/ratatui に asset pipeline は無い。 |
 | S6 | **zero-dependency + forbid(unsafe)** | `src/lib.rs:56`, `Cargo.toml` | ~50 module が std のみ・unsafe ゼロ。determinism-critical 層に外部コードの版差が混入しない。 |
 | S7 | **sparse-set / archetype の 2 系統 ECS** | `src/sparse_set.rs`, `src/arch.rs` | 用途で storage を選べる（疎な component は sparse-set、多 component 反復は cache-friendly な `ArchTable<Row>`）。 |
+| S8 | **A* / weighted A* / JPS の 3 段経路探索** | `src/pathfinding.rs` | 同一 no-corner-cut モデルで最適（A*）・近似高速（weighted）・厳密高速（JPS）を選択可能。JPS は A* と cost 厳密一致を 6000 ランダム盤面で metamorphic 検証済み（rot.js/bracket-lib は JPS 非標準）。 |
 
 ## 2. 短所 (Weaknesses) — 設計上の制約・欠落
 
