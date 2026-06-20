@@ -194,7 +194,7 @@ fn asset_store_resolves_only_live_handles_under_random_ops() {
     // live, None once removed or once its slot is recycled at a new generation.
     // A regression that dropped the generation check (the SparseSet bug) would
     // make a stale handle resolve to a recycled slot's value and fail here.
-    let mut rng = SplitMix64::new(0xA55E7_5_70);
+    let mut rng = SplitMix64::new(0xA55E_7570);
     let mut store: AssetStore<u32> = AssetStore::new();
 
     // Parallel reference: every handle ever issued, and its expected current
@@ -262,7 +262,7 @@ fn relations_matches_forest_model_under_random_ops() {
     // drives it through random attach/detach/remove_entity and, after each step,
     // checks parent_of and children_of against an independent forest model — so
     // a parents/children desync, a wrong cycle-rejection, or a stale edge fails.
-    let mut rng = SplitMix64::new(0x4E1A_705);
+    let mut rng = SplitMix64::new(0x04E1_A705);
     let mut alloc = EntityAllocator::new();
     let ents: Vec<Entity> = (0..12).map(|_| alloc.allocate()).collect();
     let mut rel = Relations::new();

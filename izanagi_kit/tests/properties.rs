@@ -275,7 +275,7 @@ fn prop_fixed_floor_ceil_round_fract_laws() {
     // The defining relationships of the rounding family. Moderate inputs only
     // (rand_fixed) so the laws hold exactly without hitting the saturating edge
     // (ceil at Fixed::MAX saturates, breaking ceil-floor == ONE).
-    let mut rng = SplitMix64::new(0x_F100_4_05);
+    let mut rng = SplitMix64::new(0x0F10_0405);
     for _ in 0..ITERS {
         let x = rand_fixed(&mut rng);
         let fl = x.floor();
@@ -311,7 +311,7 @@ fn prop_fixed_step_toward_approaches_without_overshoot() {
     // Laws: the result never leaves [x, target], never moves away from target,
     // a zero step is a no-op, an already-at-target value stays put, and a step
     // at least as large as the gap reaches the target exactly.
-    let mut rng = SplitMix64::new(0x57E_4_05);
+    let mut rng = SplitMix64::new(0x0057_E405);
     for _ in 0..ITERS {
         let x = rand_fixed(&mut rng);
         let target = rand_fixed(&mut rng);
@@ -347,7 +347,7 @@ fn rand_small(rng: &mut SplitMix64) -> Fixed {
 
 #[test]
 fn prop_vec2_composite_laws() {
-    let mut rng = SplitMix64::new(0x_2EC_2_05);
+    let mut rng = SplitMix64::new(0x002E_C205);
     for _ in 0..ITERS {
         let a = Vec2::new(rand_small(&mut rng), rand_small(&mut rng));
         let b = Vec2::new(rand_small(&mut rng), rand_small(&mut rng));
@@ -370,7 +370,7 @@ fn prop_vec2_composite_laws() {
 
 #[test]
 fn prop_vec3_composite_laws() {
-    let mut rng = SplitMix64::new(0x_3EC_3_05);
+    let mut rng = SplitMix64::new(0x003E_C305);
     for _ in 0..ITERS {
         let a = Vec3::new(rand_small(&mut rng), rand_small(&mut rng), rand_small(&mut rng));
         let b = Vec3::new(rand_small(&mut rng), rand_small(&mut rng), rand_small(&mut rng));

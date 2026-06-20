@@ -142,7 +142,7 @@ fn fixed_atan2_matches_f64_in_all_quadrants() {
     // exactly what an internally-consistent bug could get wrong while passing
     // property laws — only an independent oracle catches it. Covers all sign
     // combinations of (x, y).
-    let mut rng = SplitMix64::new(0xA7A_2_05);
+    let mut rng = SplitMix64::new(0x00A7_A205);
     for _ in 0..ITERS {
         let y = Fixed::from_ratio(rng.range(-500, 501), 50); // [-10, 10]
         let x = Fixed::from_ratio(rng.range(-500, 501), 50);
@@ -165,7 +165,7 @@ fn fixed_hypot_matches_f64() {
     // hypot(a,b) = sqrt(a²+b²). Operands bounded so the result stays in Fixed
     // range (no saturation) and the squared sum does not overflow the i64
     // intermediate.
-    let mut rng = SplitMix64::new(0x49B07_05);
+    let mut rng = SplitMix64::new(0x049B_0705);
     for _ in 0..ITERS {
         let a = Fixed::from_ratio(rng.range(-1000, 1001), 10); // [-100, 100]
         let b = Fixed::from_ratio(rng.range(-1000, 1001), 10);
@@ -179,7 +179,7 @@ fn fixed_hypot_matches_f64() {
 fn fixed_pow_matches_f64_powi() {
     // Integer power via repeated saturating multiply vs f64 powi. Bases and
     // exponents kept small so the result stays within Fixed range.
-    let mut rng = SplitMix64::new(0xB00B5_05);
+    let mut rng = SplitMix64::new(0x0B00_B505);
     for _ in 0..ITERS {
         let base = Fixed::from_ratio(rng.range(-300, 301), 100); // [-3, 3]
         let exp = rng.below(6); // 0..=5
@@ -195,7 +195,7 @@ fn fixed_pow_matches_f64_powi() {
 #[test]
 fn vec2_from_angle_matches_cos_sin() {
     // from_angle(θ) is the unit vector (cos θ, sin θ).
-    let mut rng = SplitMix64::new(0xFA09_05);
+    let mut rng = SplitMix64::new(0x00FA_0905);
     for _ in 0..ITERS {
         let ang = Fixed::from_ratio(rng.range(-650, 651), 100);
         let v = Vec2::from_angle(ang);

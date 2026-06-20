@@ -509,7 +509,7 @@ fn wfc_solve_is_total_at_large_dimensions() {
     // 60000 × 60000 ≈ 3.6e9). usize widening makes it total — even if it
     // returns Contradiction or allocates a huge buffer, it must not panic.
     let rules = WfcRules::new(2);
-    let mut rng = SplitMix64::new(0x_70F_C_05);
+    let mut rng = SplitMix64::new(0x0070_FC05);
     // Degenerate sizes: 0/negative are early-rejected as Contradiction.
     for &(w, h) in &[(0, 10), (10, 0), (-1, 5), (5, -1)] {
         let _ = wfc_solve(w, h, &rules, &mut rng);
@@ -536,7 +536,7 @@ fn dice_metrics_are_total_at_extreme_parameters() {
         (u32::MAX, 1, 0),
         (1, u32::MAX, 0),
     ];
-    let mut rng = SplitMix64::new(0xD1CE_05);
+    let mut rng = SplitMix64::new(0x00D1_CE05);
     for &(count, sides, modifier) in &cases {
         let d = Dice::new(count, sides, modifier);
         let _ = (d.min(), d.max(), d.average_x100(), d.span(), d.is_flat());
