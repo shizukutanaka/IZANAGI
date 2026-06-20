@@ -17,9 +17,11 @@ use izanagi_kit::pathfinding::{astar, weighted_astar};
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
-    chebyshev_distance, cone, generate_bsp, generate_cave, generate_dungeon, knockback, line,
-    manhattan_distance, reflect_point, rotate_90_ccw, rotate_90_cw, splash_attack, Aabb, BspParams,
-    CaveParams, Dungeon, Fixed, GenParams, SplitMix64, Stats, Vec2, Vec3,
+    chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
+    generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
+    normalize_noise, reflect_point, ridge_noise_2d, rotate_90_ccw, rotate_90_cw, splash_attack,
+    value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap, value_noise_3d, Aabb,
+    BspParams, CaveParams, Dungeon, Fixed, GenParams, SplitMix64, Stats, Vec2, Vec3,
 };
 
 const ITERS: usize = 3000;
@@ -1601,5 +1603,248 @@ fn prop_aabb_split_v_is_exact_partition() {
             !left.overlaps(&right),
             "split_v halves overlap: a={a:?}, x={split_x}"
         );
+    }
+}
+
+// ── Noise (deterministic value noise / fBm / hashing) properties ──────────────
+
+/// A random Q16.16 fixed-point coordinate: a wide integer part (`x >> 16`) with
+/// a random 16-bit fraction. Spans negatives so `rem_euclid` wrap paths and
+/// `wrapping_shl` octave shifts are all exercised.
+fn rand_q16(rng: &mut SplitMix64) -> i32 {
+    (rng.range(-2000, 2000) << 16) | (rng.below(0x1_0000) as i32)
+}
+
+/// A non-zero, well-spread 64-bit seed from two 31-bit draws.
+fn rand_seed(rng: &mut SplitMix64) -> u64 {
+    (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1
+}
+
+/// **Output-range invariant** — every smooth/fBm noise function must return a
+/// value in `[0, 65535]` for *all* inputs. The module doc fixes this range
+/// (so two values multiply in `u32` without overflow); a regression in any
+/// interpolation or normalization step would push a value past `65535`.
+/// Exercised over 3000 random (coord, seed, octaves) tuples spanning negative
+/// coordinates and octave counts up to 8.
+#[test]
+fn prop_noise_output_always_in_range() {
+    use izanagi_kit::noise::{turbulence_1d, turbulence_2d};
+    let mut rng = SplitMix64::new(0x0E70_A005);
+    for _ in 0..ITERS {
+        let x = rand_q16(&mut rng);
+        let y = rand_q16(&mut rng);
+        let z = rand_q16(&mut rng);
+        let seed = rand_seed(&mut rng);
+        let oct = rng.below(9); // 0..=8
+
+        let samples = [
+            value_noise_1d(x, seed),
+            value_noise_2d(x, y, seed),
+            value_noise_3d(x, y, z, seed),
+            fbm_1d(x, seed, oct),
+            fbm_2d(x, y, seed, oct),
+            fbm_3d(x, y, z, seed, oct),
+            ridge_noise_2d(x, y, seed, oct),
+            turbulence_1d(x, seed, oct),
+            turbulence_2d(x, y, seed, oct),
+        ];
+        for (k, &v) in samples.iter().enumerate() {
+            assert!(
+                v <= 65535,
+                "noise sample #{k} out of range: {v} (x={x:#x}, y={y:#x}, seed={seed:#x}, oct={oct})"
+            );
+        }
+    }
+}
+
+/// **Wrap-variant range** — the tileable functions must also honour the
+/// `[0, 65535]` range for any period (including the degenerate `period == 0`,
+/// which the doc treats as `1`). Periods are kept small so `period << shift`
+/// stays well within `i32`.
+#[test]
+fn prop_noise_wrap_output_always_in_range() {
+    let mut rng = SplitMix64::new(0x0F81_B005);
+    for _ in 0..ITERS {
+        let x = rand_q16(&mut rng);
+        let y = rand_q16(&mut rng);
+        let seed = rand_seed(&mut rng);
+        let oct = rng.below(7);
+        let period = rng.range(0, 33); // includes 0 (→ treated as 1)
+
+        assert!(value_noise_1d_wrap(x, seed, period) <= 65535, "1d_wrap range");
+        assert!(
+            value_noise_2d_wrap(x, y, seed, period, period) <= 65535,
+            "2d_wrap range"
+        );
+        assert!(fbm_1d_wrap(x, seed, oct, period.max(1)) <= 65535, "fbm_1d_wrap range");
+        assert!(
+            fbm_2d_wrap(x, y, seed, oct, period.max(1)) <= 65535,
+            "fbm_2d_wrap range"
+        );
+    }
+}
+
+/// **Determinism** — the module's core promise ("pure, float-free, bit-identical
+/// across targets"): the same inputs always produce the same output. Any hidden
+/// state, float rounding, or address-dependent mixing would break replay.
+#[test]
+fn prop_noise_is_deterministic() {
+    use izanagi_kit::noise::{turbulence_1d, turbulence_2d};
+    let mut rng = SplitMix64::new(0x0A92_C005);
+    for _ in 0..ITERS {
+        let x = rand_q16(&mut rng);
+        let y = rand_q16(&mut rng);
+        let z = rand_q16(&mut rng);
+        let seed = rand_seed(&mut rng);
+        let oct = rng.below(7);
+
+        assert_eq!(value_noise_2d(x, y, seed), value_noise_2d(x, y, seed), "vn2d");
+        assert_eq!(
+            value_noise_3d(x, y, z, seed),
+            value_noise_3d(x, y, z, seed),
+            "vn3d"
+        );
+        assert_eq!(fbm_2d(x, y, seed, oct), fbm_2d(x, y, seed, oct), "fbm2d");
+        assert_eq!(fbm_3d(x, y, z, seed, oct), fbm_3d(x, y, z, seed, oct), "fbm3d");
+        assert_eq!(
+            ridge_noise_2d(x, y, seed, oct),
+            ridge_noise_2d(x, y, seed, oct),
+            "ridge"
+        );
+        assert_eq!(turbulence_1d(x, seed, oct), turbulence_1d(x, seed, oct), "turb1d");
+        assert_eq!(
+            turbulence_2d(x, y, seed, oct),
+            turbulence_2d(x, y, seed, oct),
+            "turb2d"
+        );
+    }
+}
+
+/// **Exact tileability** — the wrap variants must produce identical values at a
+/// period boundary: `noise(0, y) == noise(period, y)` and `noise(x, 0) ==
+/// noise(x, period)`, evaluated at integer coordinates. This is the seamless-
+/// tiling guarantee for world-map wrapping; an off-by-one in the `rem_euclid`
+/// corner selection would break it.
+#[test]
+fn prop_value_noise_wrap_tiles_at_period() {
+    let mut rng = SplitMix64::new(0x0B03_D005);
+    for _ in 0..ITERS {
+        let seed = rand_seed(&mut rng);
+        let period = rng.range(2, 33);
+        let coord = rng.range(0, period); // integer cell within one tile
+
+        // 1-D: noise(0) == noise(period).
+        assert_eq!(
+            value_noise_1d_wrap(0, seed, period),
+            value_noise_1d_wrap(period << 16, seed, period),
+            "1d wrap failed (seed={seed:#x}, period={period})"
+        );
+
+        // 2-D x-axis: noise(0, c) == noise(period, c).
+        assert_eq!(
+            value_noise_2d_wrap(0, coord << 16, seed, period, period),
+            value_noise_2d_wrap(period << 16, coord << 16, seed, period, period),
+            "2d x-wrap failed (seed={seed:#x}, period={period}, c={coord})"
+        );
+
+        // 2-D y-axis: noise(c, 0) == noise(c, period).
+        assert_eq!(
+            value_noise_2d_wrap(coord << 16, 0, seed, period, period),
+            value_noise_2d_wrap(coord << 16, period << 16, seed, period, period),
+            "2d y-wrap failed (seed={seed:#x}, period={period}, c={coord})"
+        );
+    }
+}
+
+/// **Integer-coordinate identity** — at a whole-number coordinate (zero
+/// fraction), value noise returns exactly the corner hash `>> 16` (no
+/// interpolation). Documents the boundary case the interpolation formula must
+/// reduce to. Checked for 1-D, 2-D, and 3-D over random integer coords.
+#[test]
+fn prop_value_noise_at_integer_coords_equals_corner_hash() {
+    let mut rng = SplitMix64::new(0x0C14_E005);
+    for _ in 0..ITERS {
+        let xi = rng.range(-5000, 5000);
+        let yi = rng.range(-5000, 5000);
+        let zi = rng.range(-5000, 5000);
+        let seed = rand_seed(&mut rng);
+
+        assert_eq!(
+            value_noise_1d(xi << 16, seed),
+            hash_1d(xi, seed) >> 16,
+            "vn1d integer-coord mismatch (xi={xi}, seed={seed:#x})"
+        );
+        assert_eq!(
+            value_noise_2d(xi << 16, yi << 16, seed),
+            hash_2d(xi, yi, seed) >> 16,
+            "vn2d integer-coord mismatch (xi={xi}, yi={yi}, seed={seed:#x})"
+        );
+        assert_eq!(
+            value_noise_3d(xi << 16, yi << 16, zi << 16, seed),
+            hash_3d(xi, yi, zi, seed) >> 16,
+            "vn3d integer-coord mismatch (xi={xi}, yi={yi}, zi={zi}, seed={seed:#x})"
+        );
+    }
+}
+
+/// **`hash_range` bounds** — for `lo < hi`, `hash_range` always lands in the
+/// half-open `[lo, hi)`; for a degenerate range (`lo >= hi`) it returns `lo`.
+/// The wide-multiply mapping must never produce `hi` or exceed the range, which
+/// would corrupt scatter-table indexing. Covers the full `u32` hash domain and
+/// extreme `lo`/`hi` including `i32::MIN`/`i32::MAX`.
+#[test]
+fn prop_hash_range_is_within_half_open_bounds() {
+    use izanagi_kit::noise::hash_range;
+    let mut rng = SplitMix64::new(0x0D25_F005);
+    for _ in 0..ITERS {
+        let h = (rng.below(0x7FFF_FFFF) << 1) | rng.below(2); // full u32 spread
+        let a = rng.range(-100_000, 100_000);
+        let b = rng.range(-100_000, 100_000);
+
+        // Ordered range → half-open containment.
+        let (lo, hi) = (a.min(b), a.max(b));
+        if lo < hi {
+            let v = hash_range(h, lo, hi);
+            assert!(
+                v >= lo && v < hi,
+                "hash_range({h:#x}, {lo}, {hi}) = {v} not in [{lo}, {hi})"
+            );
+        }
+
+        // Degenerate range → lo.
+        assert_eq!(hash_range(h, 7, 7), 7, "degenerate equal range");
+        assert_eq!(hash_range(h, 9, 3), 9, "degenerate inverted range");
+
+        // Extreme range must not overflow or escape bounds.
+        let ev = hash_range(h, i32::MIN, i32::MAX);
+        assert!(ev >= i32::MIN && ev < i32::MAX, "extreme-range escape: {ev}");
+    }
+}
+
+/// **`normalize_noise` bounds** — for any noise value `v ∈ [0, 65535]` and
+/// `lo < hi`, the mapped result lies in the closed `[lo, hi]`, with the
+/// endpoints `v=0 → lo` and `v=65535 → hi`. Degenerate ranges return `lo`.
+#[test]
+fn prop_normalize_noise_is_within_closed_bounds() {
+    let mut rng = SplitMix64::new(0x0E36_A005);
+    for _ in 0..ITERS {
+        let v = rng.below(0x1_0000); // 0..=65535
+        let a = rng.range(-100_000, 100_000);
+        let b = rng.range(-100_000, 100_000);
+        let (lo, hi) = (a.min(b), a.max(b));
+
+        if lo < hi {
+            let r = normalize_noise(v, lo, hi);
+            assert!(
+                r >= lo && r <= hi,
+                "normalize_noise({v}, {lo}, {hi}) = {r} not in [{lo}, {hi}]"
+            );
+            // Endpoints are exact.
+            assert_eq!(normalize_noise(0, lo, hi), lo, "v=0 must map to lo");
+            assert_eq!(normalize_noise(65535, lo, hi), hi, "v=65535 must map to hi");
+        }
+
+        assert_eq!(normalize_noise(v, 5, 5), 5, "degenerate equal range");
+        assert_eq!(normalize_noise(v, 8, 2), 8, "degenerate inverted range");
     }
 }
