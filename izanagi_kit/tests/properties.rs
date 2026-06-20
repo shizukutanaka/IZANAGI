@@ -13,7 +13,7 @@
 use izanagi_kit::geometry::line_len;
 use izanagi_kit::{
     chebyshev_distance, cone, knockback, line, manhattan_distance, reflect_point, rotate_90_ccw,
-    rotate_90_cw, Fixed, SplitMix64, Vec2, Vec3,
+    rotate_90_cw, splash_attack, Fixed, SplitMix64, Stats, Vec2, Vec3,
 };
 
 const ITERS: usize = 3000;
@@ -441,5 +441,53 @@ fn prop_easing_functions_hit_their_endpoints() {
         let at1 = to_f(f(Fixed::ONE));
         assert!(at0.abs() < 5.0e-3, "{name}(0) = {at0}, expected ≈ 0");
         assert!((at1 - 1.0).abs() < 5.0e-3, "{name}(1) = {at1}, expected ≈ 1");
+    }
+}
+
+/// `splash_attack` contract, generalized beyond the two example-based unit
+/// tests. Target `i` receives `max(1, attack − falloff·i)` raw damage, then
+/// `max(1, raw − defense)`, so two documented properties must hold for every
+/// input:
+///
+/// 1. **Floor of 1** — every target takes at least 1 damage, regardless of how
+///    high its defense is or how far the falloff has decayed the raw amount.
+/// 2. **Monotone non-increasing** — with `falloff ≥ 0` and equal-defense
+///    targets, "each outer ring takes less" means the returned sequence never
+///    increases. (Unequal defenses can legitimately break monotonicity, so that
+///    half uses a shared defense.)
+///
+/// Also checks HP-removal accounting: each target's HP drops by exactly
+/// `min(dmg, hp_before)`.
+#[test]
+fn prop_splash_attack_floor_and_monotone_falloff() {
+    let mut rng = SplitMix64::new(0x5_71A5_4001);
+    for _ in 0..ITERS {
+        let attack = rng.range(1, 500);
+        let falloff = rng.range(0, 60); // non-negative
+        let n = rng.range(1, 8) as usize;
+        let attacker = Stats::new(100, attack, 0);
+
+        // (1) Floor holds for arbitrary (mixed) defenses.
+        let mut mixed: Vec<Stats> = (0..n)
+            .map(|_| Stats::new(rng.range(1, 1000), attack, rng.range(0, 600)))
+            .collect();
+        let mixed_dmg = splash_attack(&attacker, &mut mixed, falloff);
+        assert!(mixed_dmg.iter().all(|&d| d >= 1), "splash floor of 1 violated: {mixed_dmg:?}");
+
+        // (2) Monotone non-increasing + HP accounting with equal defenses.
+        let def = rng.range(0, 600);
+        let hp_before: Vec<i32> = (0..n).map(|_| rng.range(1, 1000)).collect();
+        let mut eq: Vec<Stats> = hp_before.iter().map(|&hp| Stats::new(hp, attack, def)).collect();
+        let dmg = splash_attack(&attacker, &mut eq, falloff);
+        for w in dmg.windows(2) {
+            assert!(w[0] >= w[1], "splash damage increased across rings: {dmg:?}");
+        }
+        for (k, t) in eq.iter().enumerate() {
+            assert_eq!(
+                t.hp,
+                hp_before[k] - dmg[k].min(hp_before[k]),
+                "splash HP-removal accounting wrong at target {k}"
+            );
+        }
     }
 }
