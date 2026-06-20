@@ -21,8 +21,8 @@ use izanagi_kit::{
     generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
     normalize_noise, reflect_point, ridge_noise_2d, rotate_90_ccw, rotate_90_cw, splash_attack,
     value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap, value_noise_3d, Aabb,
-    BspParams, CaveParams, Dungeon, Fixed, GenParams, InfluenceMap, PassabilityGrid, SpatialHash,
-    SplitMix64, Stats, Vec2, Vec3,
+    BspParams, CaveParams, Cooldown, Dungeon, Fixed, GenParams, InfluenceMap, MultiMap,
+    PassabilityGrid, RandomTable, SpatialHash, SplitMix64, Stats, TimerQueue, Vec2, Vec3,
 };
 
 const ITERS: usize = 3000;
@@ -1621,6 +1621,15 @@ fn rand_seed(rng: &mut SplitMix64) -> u64 {
     (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1
 }
 
+fn mini_floor(seed: u64) -> Dungeon {
+    generate_dungeon(
+        20,
+        14,
+        &mut SplitMix64::new(seed),
+        GenParams { max_rooms: 4, min_room: 3, max_room: 5 },
+    )
+}
+
 /// **Output-range invariant** — every smooth/fBm noise function must return a
 /// value in `[0, 65535]` for *all* inputs. The module doc fixes this range
 /// (so two values multiply in `u32` without overflow); a regression in any
@@ -2283,6 +2292,369 @@ fn prop_influence_find_peaks_agrees_with_direct_scan() {
         assert_eq!(
             peaks, expected,
             "find_peaks({threshold}) disagrees with direct scan (w={w}, h={h})"
+        );
+    }
+}
+
+// ── RandomTable properties ─────────────────────────────────────────────────────
+
+/// **total_weight is sum of entries** — the cached `total_weight()` field must
+/// equal `iter().map(|(w,_)| w as u64).sum()` after any combination of `push`
+/// calls. A book-keeping bug (forgetting to accumulate on push or clear on `clear`)
+/// would produce biased selection or spurious `None` rolls without any panic.
+#[test]
+fn prop_random_table_total_weight_is_sum() {
+    let mut rng = SplitMix64::new(0xA0B1_C2D3);
+    for _ in 0..ITERS {
+        let n = rng.below(10) as usize;
+        let mut table: RandomTable<u32> = RandomTable::new();
+        let mut expected: u64 = 0;
+        for _ in 0..n {
+            let w = rng.below(100) as u32;
+            let v = rng.below(1000) as u32;
+            table.push(w, v);
+            expected += w as u64;
+        }
+        assert_eq!(table.total_weight(), expected, "total_weight ≠ push sum (n={n})");
+        let iter_sum: u64 = table.iter().map(|(w, _)| w as u64).sum();
+        assert_eq!(table.total_weight(), iter_sum, "total_weight ≠ iter sum");
+    }
+}
+
+/// **Zero-weight entries are never selected** — the wide-multiply formula maps
+/// weight-0 entries to a length-0 bucket. `roll` must never return the sentinel
+/// value `u32::MAX` inserted with weight 0, even though it is stored in the
+/// table. Every trial has at least one non-zero entry so `roll` always returns
+/// `Some(_)` (non-vacuous by construction).
+#[test]
+fn prop_random_table_zero_weight_never_selected() {
+    let mut rng = SplitMix64::new(0xB1C2_D3E4);
+    for _ in 0..ITERS {
+        let n_nonzero = 1 + rng.below(5) as u32;
+        let mut table: RandomTable<u32> = RandomTable::new();
+        table.push(0, u32::MAX); // zero-weight sentinel; can never appear in rolls
+        for i in 0..n_nonzero {
+            table.push(1 + rng.below(10) as u32, i); // values 0..n_nonzero — never u32::MAX
+        }
+        for _ in 0..10 {
+            match table.roll(&mut rng) {
+                Some(&u32::MAX) => panic!("zero-weight sentinel was selected"),
+                Some(_) => {}
+                None => panic!("non-empty table returned None"),
+            }
+        }
+    }
+}
+
+/// **roll_n returns exactly n items** — for a non-empty table (all non-zero
+/// weights), `roll_n(n, rng)` must return a `Vec` of length exactly `n`. The
+/// underlying `filter_map(roll_owned)` iterator only skips empty/zero-total
+/// tables; a premature break or off-by-one would shrink the output.
+#[test]
+fn prop_random_table_roll_n_returns_correct_count() {
+    let mut rng = SplitMix64::new(0xC2D3_E4F5);
+    for _ in 0..ITERS {
+        let n_entries = 1 + rng.below(8) as u32;
+        let mut table: RandomTable<u32> = RandomTable::new();
+        for i in 0..n_entries {
+            table.push(1 + rng.below(5) as u32, i); // all weights ≥ 1
+        }
+        let n = rng.below(20) as u32;
+        let results = table.roll_n(n, &mut rng);
+        assert_eq!(
+            results.len(),
+            n as usize,
+            "roll_n({n}) returned {} items (table len={n_entries})",
+            results.len()
+        );
+    }
+}
+
+/// **weighted_idx agrees with roll on same RNG state** — forking the RNG at
+/// the same state, `weighted_idx` and `roll` must land on the same entry.
+/// The two functions share identical wide-multiply logic; this catches any
+/// divergence in the rounding fallback or loop termination condition.
+#[test]
+fn prop_random_table_weighted_idx_consistent_with_roll() {
+    let mut rng = SplitMix64::new(0xD3E4_F506);
+    for _ in 0..ITERS {
+        let n = 2 + rng.below(7) as usize;
+        let mut table: RandomTable<u32> = RandomTable::new();
+        for i in 0..n as u32 {
+            table.push(1 + rng.below(10) as u32, i * 10);
+        }
+        // Fork: both forks see the same RNG state at the point of selection.
+        let seed = rand_seed(&mut rng);
+        let mut rng_a = SplitMix64::new(seed);
+        let mut rng_b = SplitMix64::new(seed);
+        let idx = table.weighted_idx(&mut rng_a).expect("non-empty table");
+        let val = table.roll(&mut rng_b).expect("non-empty table");
+        let (_, &entry_val) = table.iter().nth(idx).expect("idx in range");
+        assert_eq!(
+            entry_val, *val,
+            "weighted_idx({idx}) = {entry_val}, roll = {} (disagree)",
+            *val
+        );
+    }
+}
+
+// ── Cooldown properties ───────────────────────────────────────────────────────
+
+/// **tick is monotone non-increasing** — `remaining` can only decrease (or
+/// stay at zero). The `saturating_sub` implementation must never produce a
+/// value higher than the pre-tick remaining, even for large tick counts that
+/// would overflow non-saturating subtraction.
+#[test]
+fn prop_cooldown_tick_is_monotone() {
+    let mut rng = SplitMix64::new(0xE4F5_0617);
+    for _ in 0..ITERS {
+        let initial = rng.below(0x1_0000) as u32;
+        let mut cd = Cooldown::new(initial);
+        let steps = rng.below(12) as usize;
+        let mut prev = cd.remaining;
+        for _ in 0..steps {
+            let t = rng.below(200) as u32;
+            cd.tick(t);
+            assert!(
+                cd.remaining <= prev,
+                "tick({t}) increased remaining {prev} → {}",
+                cd.remaining
+            );
+            prev = cd.remaining;
+        }
+    }
+}
+
+/// **percent_remaining is in [0, 100]** — for any combination of `remaining`
+/// and `original_ticks` (including degenerate cases where remaining > original
+/// or original == 0), `percent_remaining` must stay within the closed interval
+/// [0, 100] so UI progress bars can never overflow or underflow.
+#[test]
+fn prop_cooldown_percent_remaining_in_range() {
+    let mut rng = SplitMix64::new(0xF506_1728);
+    for _ in 0..ITERS {
+        let remaining = rng.below(0x1_0000) as u32;
+        let original = rng.below(0x1_0000) as u32; // intentionally may be < remaining
+        let cd = Cooldown::new(remaining);
+        let pct = cd.percent_remaining(original);
+        assert!(
+            pct <= 100,
+            "percent_remaining({remaining}, orig={original}) = {pct} > 100"
+        );
+    }
+}
+
+/// **elapsed accounting identity** — `elapsed(n)` must equal
+/// `n.saturating_sub(remaining)` for all `(remaining, n)` pairs, including
+/// cases where `n < remaining`. A divergence would show incorrect consumed-tick
+/// values in UI progress bars and AI countdown queries.
+#[test]
+fn prop_cooldown_elapsed_accounting() {
+    let mut rng = SplitMix64::new(0x0617_2839);
+    for _ in 0..ITERS {
+        let remaining = rng.below(0x1_0000) as u32;
+        let original = rng.below(0x2_0000) as u32; // may be less, equal, or more
+        let cd = Cooldown::new(remaining);
+        let expected = original.saturating_sub(remaining);
+        assert_eq!(
+            cd.elapsed(original),
+            expected,
+            "elapsed({original}) ≠ {original}.saturating_sub({remaining})"
+        );
+    }
+}
+
+/// **fractional_progress endpoints are exact** — a fully-elapsed cooldown
+/// (`remaining = 0`) must report exactly `Fixed::ONE`, and a fresh cooldown
+/// (`remaining = original`) must report exactly `Fixed::ZERO`. These endpoints
+/// are used as animation lerp parameters; any rounding drift would corrupt
+/// start/end frames.
+#[test]
+fn prop_cooldown_fractional_progress_endpoints() {
+    let mut rng = SplitMix64::new(0x1728_394A);
+    // Case A: remaining == 0 → fully elapsed → progress == ONE
+    for _ in 0..(ITERS / 2) {
+        let original = 1 + rng.below(0xFFFF) as u32;
+        let cd = Cooldown::ready();
+        assert_eq!(
+            cd.fractional_progress(original),
+            Fixed::ONE,
+            "ready cooldown must have progress=1.0 (original={original})"
+        );
+    }
+    // Case B: remaining == original → not started → elapsed = 0 → progress == ZERO
+    for _ in 0..(ITERS / 2) {
+        let original = 1 + rng.below(0xFFFF) as u32;
+        let cd = Cooldown::new(original);
+        assert_eq!(
+            cd.fractional_progress(original),
+            Fixed::from_int(0),
+            "fresh cooldown must have progress=0.0 (original={original})"
+        );
+    }
+}
+
+// ── TimerQueue properties ─────────────────────────────────────────────────────
+
+/// **peek_next equals iterator minimum** — `peek_next()` must return the same
+/// value as `iter().map(|(r, _)| r).min()`. Both scan the same `entries` Vec;
+/// this catches any future divergence if peek_next is ever cached or computed
+/// via a different traversal order.
+#[test]
+fn prop_timer_queue_peek_next_is_minimum() {
+    let mut rng = SplitMix64::new(0x2839_4A5B);
+    for _ in 0..ITERS {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        let n = rng.below(12) as usize;
+        for k in 0..n as u32 {
+            q.schedule(rng.below(100) as u32, k);
+        }
+        let expected = q.iter().map(|(r, _)| r).min();
+        assert_eq!(q.peek_next(), expected, "peek_next ≠ iter min (n={n})");
+    }
+}
+
+/// **advance fires all due events** — every one-shot event scheduled with
+/// `delay ≤ max_delay` must appear in the `Vec` returned by `advance(max_delay)`.
+/// The `remaining ≤ ticks` condition is inclusive, so no event at exactly
+/// `max_delay` ticks should be skipped. Non-vacuous: at least 1 event per trial.
+#[test]
+fn prop_timer_queue_advance_fires_all_due_events() {
+    let mut rng = SplitMix64::new(0x394A_5B6C);
+    for _ in 0..ITERS {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        let n = 1 + rng.below(10) as u32;
+        let max_delay = rng.below(50) as u32;
+        for k in 0..n {
+            // delay ∈ [0, max_delay] — guaranteed to fire in advance(max_delay)
+            let delay = rng.below(max_delay.saturating_add(1)) as u32;
+            q.schedule(delay, k);
+        }
+        let fired = q.advance(max_delay);
+        assert_eq!(
+            fired.len(),
+            n as usize,
+            "advance({max_delay}) fired {}, want {n}",
+            fired.len()
+        );
+    }
+}
+
+/// **non-repeating entries removed after firing** — after `advance` fires all
+/// due one-shot events, they must be absent from the queue. Repeating entries
+/// (scheduled with `schedule_repeat`) survive by re-enqueuing themselves.
+/// Every trial has ≥ 1 one-shot event (non-vacuous coverage of the removal path).
+#[test]
+fn prop_timer_queue_non_repeating_removed_after_fire() {
+    let mut rng = SplitMix64::new(0x4A5B_6C7D);
+    for _ in 0..ITERS {
+        let mut q: TimerQueue<u32> = TimerQueue::new();
+        let max_delay = rng.below(30) as u32;
+        let n_oneshot = 1 + rng.below(5) as usize; // always ≥ 1
+        let n_repeat = rng.below(4) as usize;
+        for k in 0..n_oneshot as u32 {
+            let delay = rng.below(max_delay.saturating_add(1)) as u32;
+            q.schedule(delay, k);
+        }
+        for k in 0..n_repeat as u32 {
+            let delay = rng.below(max_delay.saturating_add(1)) as u32;
+            let period = 1 + rng.below(20) as u32;
+            q.schedule_repeat(delay, period, k + 100);
+        }
+        let fired = q.advance(max_delay);
+        assert_eq!(
+            fired.len(),
+            n_oneshot + n_repeat,
+            "advance({max_delay}) fired {}, want {}",
+            fired.len(),
+            n_oneshot + n_repeat
+        );
+        // One-shot entries must be gone; only repeating entries survive.
+        assert_eq!(
+            q.len(),
+            n_repeat,
+            "after advance: expected {n_repeat} repeating, got {}",
+            q.len()
+        );
+    }
+}
+
+// ── MultiMap properties ───────────────────────────────────────────────────────
+
+/// **link_floors creates a bidirectional connector pair** — `link_floors(a, …,
+/// b, …)` must add exactly one exit on floor `a` leading to `b` and exactly
+/// one exit on floor `b` leading back to `a`. A unidirectional-only
+/// implementation would break the standard staircase round-trip contract.
+#[test]
+fn prop_multimap_link_floors_is_bidirectional() {
+    let mut rng = SplitMix64::new(0x5B6C_7D8E);
+    for _ in 0..ITERS {
+        let fa = mini_floor(rand_seed(&mut rng));
+        let fb = mini_floor(rand_seed(&mut rng));
+        let mut mm = MultiMap::new(vec![fa, fb], 0);
+        assert!(mm.exits_from(0).is_empty(), "fresh floor 0 must have no exits");
+        assert!(mm.exits_from(1).is_empty(), "fresh floor 1 must have no exits");
+        mm.link_floors(0, 3, 3, 1, 5, 5);
+        let exits0 = mm.exits_from(0);
+        let exits1 = mm.exits_from(1);
+        assert_eq!(exits0.len(), 1, "floor 0 must have exactly 1 exit after link_floors");
+        assert_eq!(exits1.len(), 1, "floor 1 must have exactly 1 exit after link_floors");
+        assert_eq!(exits0[0].to_floor, 1, "floor 0 exit must point to floor 1");
+        assert_eq!(exits1[0].to_floor, 0, "floor 1 exit must point back to floor 0");
+    }
+}
+
+/// **move_down then move_up is identity** — if `move_down()` succeeds from
+/// floor `f`, then `move_up()` must return `true` and restore `current_floor`
+/// to `f`. This is the canonical "staircase round-trip" used by all multi-floor
+/// navigation code.
+#[test]
+fn prop_multimap_move_down_then_up_is_identity() {
+    let mut rng = SplitMix64::new(0x6C7D_8E9F);
+    for _ in 0..ITERS {
+        let n = 2 + rng.below(4) as usize; // 2..5 floors
+        let floors: Vec<Dungeon> = (0..n)
+            .map(|i| mini_floor(rand_seed(&mut rng) ^ i as u64))
+            .collect();
+        let start = rng.below(n as u32) as u32;
+        let mut mm = MultiMap::new(floors, start);
+        let initial = mm.current_floor();
+        if mm.move_down() {
+            // Successfully moved to a deeper floor — move_up must restore us.
+            assert!(mm.move_up(), "move_up must succeed after successful move_down");
+            assert_eq!(
+                mm.current_floor(),
+                initial,
+                "move_down+move_up did not restore floor {initial}"
+            );
+        } else {
+            // Already at the last floor — current_floor must be unchanged.
+            assert_eq!(
+                mm.current_floor(),
+                initial,
+                "failed move_down changed current_floor"
+            );
+        }
+    }
+}
+
+/// **find_floor_path to same floor returns empty path** — `find_floor_path(f, f)`
+/// must return `Some(vec![])` for any valid floor index `f`. The range-check
+/// in the BFS comes before the same-floor short-circuit, so out-of-range
+/// indices still return `None` — but all in-range same-floor queries are free.
+#[test]
+fn prop_multimap_same_floor_path_is_empty() {
+    let mut rng = SplitMix64::new(0x7D8E_9FA0);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5) as usize; // 1..5 floors
+        let floors: Vec<Dungeon> = (0..n).map(|_| mini_floor(rand_seed(&mut rng))).collect();
+        let target = rng.below(n as u32) as u32;
+        let mm = MultiMap::new(floors, 0);
+        let path = mm.find_floor_path(target, target);
+        assert_eq!(
+            path,
+            Some(Vec::new()),
+            "find_floor_path({target},{target}) returned {path:?}, want Some([])"
         );
     }
 }
