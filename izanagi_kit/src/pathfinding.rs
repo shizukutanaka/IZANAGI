@@ -47,9 +47,14 @@ const DIRS: [(i32, i32); 8] = [
 /// [`COST_DIAG`]: `10·max + 4·min`. Admissible and consistent for 8-way grids.
 #[inline]
 fn octile(a: (i32, i32), b: (i32, i32)) -> i32 {
-    let dx = (a.0 - b.0).abs();
-    let dy = (a.1 - b.1).abs();
-    COST_ORTHO * (dx + dy) - (2 * COST_ORTHO - COST_DIAG) * dx.min(dy)
+    // Widen to i64: coordinate spans up to i32::MAX - i32::MIN (~2^32) and the
+    // ×10 scaling both overflow i32 for extreme inputs. The heuristic stays
+    // admissible after a saturating clamp (it only ever under-estimates true
+    // cost once the true cost itself would exceed i32::MAX).
+    let dx = (a.0 as i64 - b.0 as i64).abs();
+    let dy = (a.1 as i64 - b.1 as i64).abs();
+    let d = COST_ORTHO as i64 * (dx + dy) - (2 * COST_ORTHO - COST_DIAG) as i64 * dx.min(dy);
+    d.clamp(0, i32::MAX as i64) as i32
 }
 
 /// Octile heuristic cost between `a` and `b` on this module's integer scale

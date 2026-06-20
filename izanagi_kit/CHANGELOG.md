@@ -7,6 +7,19 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`pathfinding::octile` / `octile_distance` overflowed at extreme
+  coordinates** (`pathfinding.rs`) — the coordinate subtraction
+  (`i32::MAX - i32::MIN`) and the `×10` cost scaling both panicked in debug.
+  The public pure `octile_distance` is now total: widened to `i64` with a
+  saturating clamp to `i32::MAX`, which keeps the heuristic admissible.
+  Identical for normal map sizes; PINNED hashes unchanged. Surfaced by the
+  systematic robustness sweep.
+- **`turn::Scheduler::next_turn` overflowed at extreme energy/speed**
+  (`turn.rs`) — `ACTION_COST - energy` panicked when a caller set energy to
+  `i32::MIN` via `set_energy`, and `speed * units` panicked for near-`i32::MAX`
+  speed. The catch-up computation now runs in `i64` with a saturating clamp
+  back to `i32` per actor; the energy deduction uses `saturating_sub`.
+  Behaviour-preserving for ordinary speeds/energies; all turn unit tests pass.
 - **`Dice::max`/`average_x100` overflowed at extreme counts/sides** (`dice.rs`)
   — `max` computed `count as i64 * sides as i64`, which overflows i64 at
   `u32::MAX × u32::MAX ≈ 1.8e19`; `average_x100` had the same risk with an

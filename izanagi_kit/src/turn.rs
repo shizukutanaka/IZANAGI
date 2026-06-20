@@ -220,25 +220,32 @@ impl<A: Copy + Ord> Scheduler<A> {
         if self.ready().is_none() {
             // Jump straight to the first unit on which someone is ready: the
             // minimum ceil((cost - energy)/speed) over all actors.
-            let units = self
+            // i64 throughout: callers may set extreme energy (down to i32::MIN
+            // via set_energy) or extreme speed, so `cost - energy`, the ceil
+            // division, and `speed * units` all overflow i32 otherwise.
+            let units: i64 = self
                 .actors
                 .iter()
                 .map(|a| {
-                    let deficit = ACTION_COST - a.energy;
+                    let deficit = ACTION_COST as i64 - a.energy as i64;
                     if deficit <= 0 {
                         0
                     } else {
-                        (deficit + a.speed - 1) / a.speed
+                        // ceil(deficit / speed); speed >= 1 by construction.
+                        (deficit + a.speed as i64 - 1) / a.speed as i64
                     }
                 })
                 .min()
                 .unwrap_or(0);
             for a in &mut self.actors {
-                a.energy += a.speed * units;
+                let delta = (a.speed as i64).saturating_mul(units);
+                a.energy = (a.energy as i64)
+                    .saturating_add(delta)
+                    .clamp(i32::MIN as i64, i32::MAX as i64) as i32;
             }
         }
         let i = self.ready().expect("an actor is ready after advancing");
-        self.actors[i].energy -= ACTION_COST;
+        self.actors[i].energy = self.actors[i].energy.saturating_sub(ACTION_COST);
         Some(self.actors[i].id)
     }
 }

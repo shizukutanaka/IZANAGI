@@ -555,3 +555,41 @@ fn tilemap_iter_rect_is_total_at_extreme_anchor() {
         }
     }
 }
+
+#[test]
+fn pathfinding_octile_distance_is_total_at_extreme_coords() {
+    use izanagi_kit::pathfinding::octile_distance;
+    // The heuristic previously overflowed i32 on the coordinate subtraction
+    // (e.g. i32::MAX - i32::MIN) and on the ×10 scaling. As a public pure
+    // function it must be total over every coordinate pair.
+    for &ax in &EXTREMES {
+        for &ay in &EXTREMES {
+            for &bx in &EXTREMES {
+                for &by in &EXTREMES {
+                    let d = octile_distance((ax, ay), (bx, by));
+                    assert!(d >= 0, "octile distance must be non-negative");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn turn_scheduler_is_total_at_extreme_energy_and_speed() {
+    use izanagi_kit::turn::Scheduler;
+    // next_turn() advances `cost - energy` and `speed * units`; callers can set
+    // energy to i32::MIN and speed near i32::MAX, both of which overflowed i32.
+    for &energy in &EXTREMES {
+        for &speed in &[1i32, 2, 100, i32::MAX - 1, i32::MAX] {
+            let mut s: Scheduler<u32> = Scheduler::new();
+            s.add(1, speed);
+            s.set_energy(1, energy);
+            // A second, fast actor guarantees the catch-up branch runs with a
+            // mix of extreme energies present.
+            s.add(2, i32::MAX);
+            s.set_energy(2, energy);
+            let _ = s.next_turn();
+            let _ = s.next_turn();
+        }
+    }
+}
