@@ -106,10 +106,13 @@ impl Aabb {
     }
 
     /// True when `self` and `other` share at least one interior point.
-    /// Touching edges (zero-width overlap) do **not** count.
+    /// Touching edges (zero-width overlap) do **not** count. Empty boxes (`w ==
+    /// 0` or `h == 0`) have no interior and never overlap anything.
     #[inline]
     pub fn overlaps(&self, other: &Aabb) -> bool {
-        self.x < other.right()
+        !self.is_empty()
+            && !other.is_empty()
+            && self.x < other.right()
             && other.x < self.right()
             && self.y < other.bottom()
             && other.y < self.bottom()
@@ -188,6 +191,9 @@ impl Aabb {
     /// excluded from the result: if one side is empty the other is returned; if
     /// both are empty, an empty box at the origin is returned.
     pub fn union(&self, other: &Aabb) -> Aabb {
+        if self.is_empty() && other.is_empty() {
+            return Aabb::new(0, 0, 0, 0);
+        }
         if self.is_empty() {
             return *other;
         }

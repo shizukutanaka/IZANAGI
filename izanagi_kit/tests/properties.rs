@@ -18,7 +18,7 @@ use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
     chebyshev_distance, cone, generate_bsp, generate_cave, generate_dungeon, knockback, line,
-    manhattan_distance, reflect_point, rotate_90_ccw, rotate_90_cw, splash_attack, BspParams,
+    manhattan_distance, reflect_point, rotate_90_ccw, rotate_90_cw, splash_attack, Aabb, BspParams,
     CaveParams, Dungeon, Fixed, GenParams, SplitMix64, Stats, Vec2, Vec3,
 };
 
@@ -1444,4 +1444,162 @@ fn prop_generate_bsp_is_fully_connected() {
         with_floor >= 100,
         "expected ≥100 BSP dungeons with floor cells for non-vacuous coverage, got {with_floor}"
     );
+}
+
+// ── Aabb (axis-aligned bounding box) properties ───────────────────────────────
+
+/// Random `Aabb` with moderate coordinates (no saturation risk for small grows).
+fn rand_aabb(rng: &mut SplitMix64) -> Aabb {
+    let x = rng.range(-200, 201);
+    let y = rng.range(-200, 201);
+    let w = rng.range(0, 51);
+    let h = rng.range(0, 51);
+    Aabb::new(x, y, w, h)
+}
+
+/// **overlaps ↔ intersection.is_some()** — two independently-implemented
+/// methods for "do these boxes share interior?" must always agree. An off-by-one
+/// in either causes one to report overlap while the other doesn't.
+/// Verified over 3000 random (a, b) pairs, including empty and touching boxes.
+#[test]
+fn prop_aabb_overlaps_iff_intersection_is_some() {
+    let mut rng = SplitMix64::new(0x0E1A_B005);
+    for _ in 0..ITERS {
+        let a = rand_aabb(&mut rng);
+        let b = rand_aabb(&mut rng);
+        let ov = a.overlaps(&b);
+        let ix = a.intersection(&b);
+        assert_eq!(
+            ov,
+            ix.is_some(),
+            "overlaps={ov} disagrees with intersection={ix:?} for a={a:?}, b={b:?}"
+        );
+    }
+}
+
+/// **overlaps and intersection are symmetric** — a.overlaps(b) == b.overlaps(a)
+/// and a.intersection(b) == b.intersection(a). Any asymmetry produces collision
+/// bugs where one object detects a hit but the other does not.
+#[test]
+fn prop_aabb_overlaps_and_intersection_are_symmetric() {
+    let mut rng = SplitMix64::new(0x0F2B_C005);
+    for _ in 0..ITERS {
+        let a = rand_aabb(&mut rng);
+        let b = rand_aabb(&mut rng);
+        assert_eq!(
+            a.overlaps(&b),
+            b.overlaps(&a),
+            "overlaps not symmetric for a={a:?}, b={b:?}"
+        );
+        assert_eq!(
+            a.intersection(&b),
+            b.intersection(&a),
+            "intersection not symmetric for a={a:?}, b={b:?}"
+        );
+    }
+}
+
+/// **union is commutative; idempotent for non-empty boxes** —
+/// a.union(b) == b.union(a) always, and a.union(a) == a when a is non-empty.
+/// (When both inputs are empty the spec returns an empty box at the origin, so
+/// idempotence is only claimed for non-empty boxes.) A commutativity failure
+/// means bounding hierarchies depend on argument order.
+#[test]
+fn prop_aabb_union_is_commutative_and_idempotent() {
+    let mut rng = SplitMix64::new(0x0A3C_D005);
+    for _ in 0..ITERS {
+        let a = rand_aabb(&mut rng);
+        let b = rand_aabb(&mut rng);
+        assert_eq!(
+            a.union(&b),
+            b.union(&a),
+            "union not commutative: a={a:?}, b={b:?}"
+        );
+        if !a.is_empty() {
+            assert_eq!(a.union(&a), a, "union not idempotent for non-empty a={a:?}");
+        }
+    }
+}
+
+/// **contains → overlaps** — if `a` contains `b`, `a` must also overlap `b`.
+/// The converse need not hold (partial overlap ≠ containment), but the forward
+/// implication is definitionally required.
+///
+/// Half the trials explicitly construct `b` inside `a` to guarantee non-vacuous
+/// coverage (≥500 containment cases); the other half are fully random to test
+/// boundary conditions.
+#[test]
+fn prop_aabb_contains_implies_overlaps() {
+    let mut rng = SplitMix64::new(0x0B4D_E005);
+    let mut found = 0usize;
+    for trial in 0..ITERS {
+        let a = Aabb::new(
+            rng.range(-100, 101),
+            rng.range(-100, 101),
+            rng.range(10, 51),  // non-empty: w ∈ [10, 50]
+            rng.range(10, 51),
+        );
+        let b = if trial % 2 == 0 {
+            // Biased: b is strictly inside a (guaranteed containment).
+            let inset = rng.range(1, 4);
+            Aabb::new(
+                a.x + inset,
+                a.y + inset,
+                (a.w - 2 * inset).max(1),
+                (a.h - 2 * inset).max(1),
+            )
+        } else {
+            // Unbiased: random box anywhere (exercises edge cases).
+            rand_aabb(&mut rng)
+        };
+        if a.contains(&b) {
+            found += 1;
+            assert!(
+                a.overlaps(&b),
+                "contains but not overlaps: a={a:?}, b={b:?}"
+            );
+        }
+    }
+    assert!(found >= 500, "expected ≥500 containment cases for non-vacuous coverage, got {found}");
+}
+
+/// **iter_points count equals area** — every cell counted by `area()` must be
+/// yielded by `iter_points()` — no skips, no extras, no off-by-one on empty.
+#[test]
+fn prop_aabb_iter_points_count_equals_area() {
+    let mut rng = SplitMix64::new(0x0C5E_F005);
+    for _ in 0..ITERS {
+        let a = rand_aabb(&mut rng);
+        let count = a.iter_points().count() as i32;
+        assert_eq!(
+            count,
+            a.area(),
+            "iter_points count {count} ≠ area {} for a={a:?}",
+            a.area()
+        );
+    }
+}
+
+/// **split_v exact partition** — `left.w + right.w == a.w` for any split x,
+/// the heights are preserved, and the two halves never overlap. This is the
+/// invariant BSP dungeon partitioning relies on for non-overlapping rooms.
+#[test]
+fn prop_aabb_split_v_is_exact_partition() {
+    let mut rng = SplitMix64::new(0x0D6F_A005);
+    for _ in 0..ITERS {
+        let a = rand_aabb(&mut rng);
+        let split_x = rng.range(a.x - 5, a.x + a.w + 5);
+        let (left, right) = a.split_v(split_x);
+        assert_eq!(
+            left.w + right.w,
+            a.w,
+            "split_v widths don't sum to original: a={a:?}, x={split_x}"
+        );
+        assert_eq!(left.h, a.h, "split_v changed height: a={a:?}");
+        assert_eq!(right.h, a.h, "split_v changed height: a={a:?}");
+        assert!(
+            !left.overlaps(&right),
+            "split_v halves overlap: a={a:?}, x={split_x}"
+        );
+    }
 }
