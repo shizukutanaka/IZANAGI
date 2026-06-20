@@ -24,9 +24,15 @@ pub struct Rect {
 
 impl Rect {
     /// Centre cell (integer, biased toward the top-left on even extents).
+    ///
+    /// Computed in `u64` and clamped to `i32::MAX` so a rectangle placed near
+    /// the `u32` coordinate ceiling reports a saturated centre rather than
+    /// panicking. Identical to the naive `x + w/2` for any real map.
     #[inline]
     pub fn center(&self) -> (i32, i32) {
-        ((self.x + self.w / 2) as i32, (self.y + self.h / 2) as i32)
+        let cx = (self.x as u64 + self.w as u64 / 2).min(i32::MAX as u64) as i32;
+        let cy = (self.y as u64 + self.h as u64 / 2).min(i32::MAX as u64) as i32;
+        (cx, cy)
     }
 
     /// Area in cells (`w × h`). Saturating: a degenerate rectangle with
@@ -57,14 +63,17 @@ impl Rect {
     /// every side? The padding guarantees at least a one-cell wall between
     /// placed rooms.
     fn intersects_padded(&self, other: &Rect) -> bool {
-        let ax0 = self.x as i32 - 1;
-        let ax1 = (self.x + self.w) as i32 + 1;
-        let ay0 = self.y as i32 - 1;
-        let ay1 = (self.y + self.h) as i32 + 1;
-        let bx0 = other.x as i32;
-        let bx1 = (other.x + other.w) as i32;
-        let by0 = other.y as i32;
-        let by1 = (other.y + other.h) as i32;
+        // i64 throughout: room extents are bounded by the map for generated
+        // rooms, but `x + w` can still exceed u32 for adversarial rectangles,
+        // and the ±1 padding can step past i32::MIN/MAX at the edges.
+        let ax0 = self.x as i64 - 1;
+        let ax1 = (self.x as i64 + self.w as i64) + 1;
+        let ay0 = self.y as i64 - 1;
+        let ay1 = (self.y as i64 + self.h as i64) + 1;
+        let bx0 = other.x as i64;
+        let bx1 = other.x as i64 + other.w as i64;
+        let by0 = other.y as i64;
+        let by1 = other.y as i64 + other.h as i64;
         ax0 < bx1 && bx0 < ax1 && ay0 < by1 && by0 < ay1
     }
 }

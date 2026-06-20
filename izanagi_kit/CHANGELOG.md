@@ -14,6 +14,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `range`. Widened `f_mag_sq` and the comparison to `i128`. Behaviour-identical
   for ordinary direction vectors; PINNED hashes unchanged. Extended the
   geometry totality test to sweep extreme facing components.
+- **`mapgen::Rect::center` overflowed near the coordinate ceiling**
+  (`mapgen.rs`) — `x + w/2` was a raw `u32` add that panicked for a rectangle
+  placed near `u32::MAX` (public fields make it reachable). Computed in `u64`
+  with a clamp to `i32::MAX`; identical to the naive form for any real map.
+  Also widened the private `intersects_padded` to `i64` (same `x + w` class).
 - **`mapgen::Rect::area` overflowed for degenerate extents** (`mapgen.rs`) —
   `w * h` was a raw `u32` multiply that panicked in debug for rectangles with
   near-`u32::MAX` extents (the fields are public, so any pair is reachable).

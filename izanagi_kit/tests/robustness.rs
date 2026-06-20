@@ -611,6 +611,9 @@ fn mapgen_rect_area_is_total_at_extreme_extents() {
         for &h in &[0u32, 1, 2, 65_536, u32::MAX - 1, u32::MAX] {
             let r = Rect { x: 0, y: 0, w, h };
             let _ = r.area();
+            // center() previously overflowed u32 on `x + w/2` near the ceiling.
+            let r2 = Rect { x: w, y: h, w, h };
+            let _ = r2.center();
         }
     }
 }
