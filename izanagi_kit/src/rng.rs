@@ -299,10 +299,15 @@ impl SplitMix64 {
         if spread == 0 {
             return center;
         }
-        let sum: i32 = (0..4).map(|_| self.below(spread + 1) as i32).sum();
+        // Saturating bound and i64 accumulation: `spread` is an arbitrary u32,
+        // so `spread + 1` overflows at u32::MAX and a 4-term i32 sum overflows
+        // once `spread` nears i32::MAX. Identical draws/result for any sane
+        // spread (the bound is unchanged until u32::MAX, so replays match).
+        let bound = spread.saturating_add(1);
+        let sum: i64 = (0..4).map(|_| self.below(bound) as i64).sum();
         // sum ∈ [0, 4*spread], mean = 2*spread
         // sum/2 − spread ∈ [−spread, spread], mean = 0
-        center + sum / 2 - spread as i32
+        (center as i64 + sum / 2 - spread as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32
     }
 }
 

@@ -617,3 +617,16 @@ fn mapgen_rect_area_is_total_at_extreme_extents() {
         }
     }
 }
+
+#[test]
+fn rng_gaussian_approx_is_total_at_extreme_spread() {
+    use izanagi_kit::SplitMix64;
+    // `spread + 1` overflowed u32 at u32::MAX, and the 4-term i32 sum overflowed
+    // as spread approached i32::MAX; center + result could also overflow i32.
+    let mut rng = SplitMix64::new(0xABCD);
+    for &center in &EXTREMES {
+        for &spread in &[0u32, 1, 1000, i32::MAX as u32, u32::MAX - 1, u32::MAX] {
+            let _ = rng.gaussian_approx(center, spread);
+        }
+    }
+}

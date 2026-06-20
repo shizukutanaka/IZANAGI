@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`SplitMix64::gaussian_approx` overflowed at extreme spread** (`rng.rs`) —
+  `spread + 1` panicked at `u32::MAX` and the 4-sample `i32` sum overflowed as
+  `spread` approached `i32::MAX` (with `center + result` a further hazard).
+  The bound is now `saturating_add(1)` and the accumulation runs in `i64` with
+  a final clamp to `i32`. Draws and result are bit-identical for any sane
+  spread (the bound only changes at `u32::MAX`), so replays match; PINNED
+  hashes unchanged.
 - **`geometry::cone` overflowed for extreme facing vectors** (`geometry.rs`) —
   the 45° angle test `2·dot² ≥ |o|²·|f|²` ran in `i64`, but a near-`i32::MAX`
   facing makes `|f|²` approach `i64::MAX` (and `i32::MIN²` summed twice *exceeds*
