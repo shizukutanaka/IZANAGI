@@ -136,6 +136,13 @@ fn geometry_is_total_on_degenerate_inputs() {
     let _ = cone((0, 0), (0, 0), 5); // zero facing
     let _ = cone((0, 0), (1, 0), -1); // negative range
     let _ = cone((0, 0), (1, 0), 0); // zero range
+    // Extreme facing vector: |f|² approaches i64::MAX, so the angle test's
+    // `2·dot²` / `dist_sq·|f|²` previously overflowed i64 even at tiny range.
+    for &fx in &EXTREMES {
+        for &fy in &EXTREMES {
+            let _ = cone((0, 0), (fx, fy), 2);
+        }
+    }
     let _ = knockback((0, 0), (0, 0), 5, |_, _| false); // zero direction
     let _ = knockback((0, 0), (1, 0), -3, |_, _| false); // negative distance
     let _ = knockback((0, 0), (1, 0), 5, |_, _| true); // wall everywhere

@@ -340,7 +340,8 @@ pub fn cone(origin: (i32, i32), facing: (i32, i32), range: i32) -> Vec<(i32, i32
         return Vec::new();
     }
     let (ox, oy) = origin;
-    let f_mag_sq = (fx as i64 * fx as i64) + (fy as i64 * fy as i64);
+    // i128: `i32::MIN²` is 2^62, so two such terms sum to 2^63 and overflow i64.
+    let f_mag_sq = (fx as i128 * fx as i128) + (fy as i128 * fy as i128);
     let range_sq = range as i64 * range as i64;
     let mut cells = Vec::new();
     for dy in -range..=range {
@@ -357,7 +358,9 @@ pub fn cone(origin: (i32, i32), facing: (i32, i32), range: i32) -> Vec<(i32, i32
                 continue; // behind or perpendicular to the facing
             }
             // angle(o, facing) ≤ 45°  ⟺  cosθ ≥ √2/2  ⟺  2·dot² ≥ |o|²·|f|²
-            if 2 * dot * dot >= dist_sq * f_mag_sq {
+            // i128: an extreme `facing` pushes |f|² toward i64::MAX, so both
+            // dot² and dist_sq·|f|² overflow i64 even for a tiny `range`.
+            if 2 * (dot as i128) * (dot as i128) >= (dist_sq as i128) * f_mag_sq {
                 cells.push((ox + dx, oy + dy));
             }
         }

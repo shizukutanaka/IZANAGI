@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Fixed
+- **`geometry::cone` overflowed for extreme facing vectors** (`geometry.rs`) —
+  the 45° angle test `2·dot² ≥ |o|²·|f|²` ran in `i64`, but a near-`i32::MAX`
+  facing makes `|f|²` approach `i64::MAX` (and `i32::MIN²` summed twice *exceeds*
+  it), so both the magnitude and the comparison overflowed even at a tiny
+  `range`. Widened `f_mag_sq` and the comparison to `i128`. Behaviour-identical
+  for ordinary direction vectors; PINNED hashes unchanged. Extended the
+  geometry totality test to sweep extreme facing components.
 - **`mapgen::Rect::area` overflowed for degenerate extents** (`mapgen.rs`) —
   `w * h` was a raw `u32` multiply that panicked in debug for rectangles with
   near-`u32::MAX` extents (the fields are public, so any pair is reachable).
