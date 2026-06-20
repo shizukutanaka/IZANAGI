@@ -630,3 +630,27 @@ fn rng_gaussian_approx_is_total_at_extreme_spread() {
         }
     }
 }
+
+#[test]
+fn combat_damage_is_total_when_hp_and_amount_straddle_extremes() {
+    // Stats stays panic-free only because every constructor/setter pins the
+    // invariant 0 <= hp <= max_hp (so `amount - hp` and `hp - amount` cannot
+    // overflow i32). `combat_is_total_at_extremes` always pairs the *same*
+    // extreme for hp and damage, so it computes `amount - hp == 0` and would
+    // miss a regression that drops the `hp.max(0)` clamp. This guard cross-pairs
+    // an extreme construction HP against an independently extreme damage amount,
+    // exercising the full subtraction range and pinning the invariant.
+    for &hp in &EXTREMES {
+        for &amount in &EXTREMES {
+            let mut s = Stats::new(hp, 0, 0);
+            s.set_max_hp(hp);
+            let _ = s.take_overkill_damage(amount); // amount - hp, hp - amount
+            let _ = s.missing_hp(); // max_hp - hp
+
+            let mut s2 = Stats::new(hp, 0, 0);
+            s2.take_damage(amount); // hp - amount.max(0)
+            let _ = s2.hp_percent();
+            let _ = s2.hp_fraction();
+        }
+    }
+}
