@@ -13,6 +13,7 @@
 //!
 //! Deterministic via `SplitMix64`.
 
+use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::{EntityAllocator, Inventory, SplitMix64, Stats};
 use std::collections::BTreeMap;
 
@@ -133,6 +134,53 @@ fn inventory_items_are_conserved() {
                 *held.entry(item).or_insert(0) += 1;
             }
             assert_eq!(held, present, "inventory contents diverged from the accounting model");
+        }
+    }
+}
+
+/// Energy is conserved in the turn scheduler: every `next_turn` that advances
+/// time grants each actor exactly `speed_i × units`, so after any run the energy
+/// granted to actor `i` equals what it banked plus what it spent —
+/// `energy_i + count_i × ACTION_COST == speed_i × T` for one shared total time
+/// `T`. Equivalently, for every pair of actors:
+///
+/// `(energy_i + count_i·A) · speed_j == (energy_j + count_j·A) · speed_i`
+///
+/// This is the exact accounting behind the module's "fair over time" promise —
+/// strictly stronger than the single 2:1 ratio the unit tests pin, and it holds
+/// for *arbitrary* speed mixes. A grant that is not exactly proportional to
+/// speed (a flat bonus, an off-by-one, a rounding leak) unbalances the books.
+#[test]
+fn turn_scheduler_conserves_energy_proportional_to_speed() {
+    let mut rng = SplitMix64::new(0x7012_E0E0);
+    let a = ACTION_COST as i64;
+    for _ in 0..TRIALS {
+        let n = rng.range(2, 6) as usize;
+        let speeds: Vec<i32> = (0..n).map(|_| rng.range(1, 200)).collect();
+        let mut sched: Scheduler<u32> = Scheduler::new();
+        for (i, &sp) in speeds.iter().enumerate() {
+            sched.add(i as u32, sp);
+        }
+
+        let mut count = vec![0i64; n];
+        let turns = rng.range(50, 400);
+        for _ in 0..turns {
+            if let Some(id) = sched.next_turn() {
+                count[id as usize] += 1;
+            }
+        }
+
+        // granted_i = energy_i + spent_i must be in fixed ratio speed_i : speed_j.
+        for i in 0..n {
+            for j in 0..n {
+                let gi = sched.energy(i as u32).unwrap() as i64 + count[i] * a;
+                let gj = sched.energy(j as u32).unwrap() as i64 + count[j] * a;
+                assert_eq!(
+                    gi * speeds[j] as i64,
+                    gj * speeds[i] as i64,
+                    "energy not conserved in proportion to speed (i={i}, j={j})"
+                );
+            }
         }
     }
 }
