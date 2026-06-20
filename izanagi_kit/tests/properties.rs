@@ -11,6 +11,7 @@
 //! dependency, in keeping with the zero-dependency policy).
 
 use izanagi_kit::geometry::line_len;
+use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
     chebyshev_distance, cone, knockback, line, manhattan_distance, reflect_point, rotate_90_ccw,
@@ -779,6 +780,120 @@ fn prop_splash_attack_floor_and_monotone_falloff() {
                 hp_before[k] - dmg[k].min(hp_before[k]),
                 "splash HP-removal accounting wrong at target {k}"
             );
+        }
+    }
+}
+
+// ── Scheduler (turn order) properties ────────────────────────────────────────
+
+/// **Insertion-order independence** — two `Scheduler` instances with the same
+/// actors at the same speeds but added in a different (random) order must
+/// produce the same turn sequence. The `det_hash` sorts by id to make the hash
+/// insertion-independent; this test proves the turn ORDER itself is also
+/// insertion-order-independent (only energy and id tie-break matter, not the
+/// slot position in the internal vec). A failure here would silently desync
+/// replays whenever actors are registered in a different order.
+#[test]
+fn prop_scheduler_turn_order_is_insertion_order_independent() {
+    let mut rng = SplitMix64::new(0x0D3B_4C05);
+    for _ in 0..ITERS {
+        let n = 2 + rng.below(5) as usize; // 2..=6 actors
+        let ids: Vec<u32> = (0..n as u32).collect();
+        let speeds: Vec<i32> = (0..n)
+            .map(|_| ACTION_COST + rng.below(ACTION_COST as u32) as i32)
+            .collect();
+
+        // Build a permuted insertion order for scheduler B.
+        let mut order: Vec<usize> = (0..n).collect();
+        for i in (1..n).rev() {
+            let j = rng.below(i as u32 + 1) as usize;
+            order.swap(i, j);
+        }
+
+        let mut sched_a: Scheduler<u32> = Scheduler::new();
+        let mut sched_b: Scheduler<u32> = Scheduler::new();
+        for k in 0..n {
+            sched_a.add(ids[k], speeds[k]);
+        }
+        for &k in &order {
+            sched_b.add(ids[k], speeds[k]);
+        }
+
+        // Both must produce identical turn sequences for the next 50 turns.
+        for step in 0..50usize {
+            let ta = sched_a.next_turn();
+            let tb = sched_b.next_turn();
+            assert_eq!(
+                ta, tb,
+                "turn order diverged at step {step}: {ta:?} vs {tb:?} (n={n})"
+            );
+        }
+    }
+}
+
+/// **Proportional fairness** — over a long run, an actor with speed `2 ×
+/// ACTION_COST` acts at least 1.8× as often as an actor with speed
+/// `ACTION_COST`. The exact ratio is 2:1 for whole-multiple speeds; the
+/// tolerance ±10 % accommodates finite-run effects without hiding real bugs.
+#[test]
+fn prop_scheduler_faster_actor_acts_proportionally_more() {
+    let mut rng = SplitMix64::new(0x04F8_C305);
+    for _ in 0..200 {
+        // Use random integer multiples [2..=4] of ACTION_COST for the fast
+        // actor so the expected ratio is exact.
+        let mult = 2 + rng.below(3); // 2, 3, or 4
+        let mut sched: Scheduler<u32> = Scheduler::new();
+        sched.add(0, ACTION_COST);
+        sched.add(1, ACTION_COST * mult as i32);
+
+        let n_turns = 500usize;
+        let (mut slow_count, mut fast_count) = (0u32, 0u32);
+        for _ in 0..n_turns {
+            match sched.next_turn().unwrap() {
+                0 => slow_count += 1,
+                1 => fast_count += 1,
+                _ => unreachable!(),
+            }
+        }
+
+        // Fast : slow must be at least (mult - 0.2) : 1.
+        let ratio_lo = (mult as f64 - 0.2) * slow_count as f64;
+        assert!(
+            fast_count as f64 >= ratio_lo,
+            "fast actor underperformed: {fast_count} turns vs {slow_count} slow (mult={mult})"
+        );
+    }
+}
+
+/// **`peek_next_turn` preview fidelity** — when `peek_next_turn` returns
+/// `Some(a)` (an actor is already ready with energy ≥ ACTION_COST), the
+/// immediately following `next_turn` must return the same `Some(a)`. If peek
+/// returns `None`, no actor is currently ready and time must be advanced by
+/// `next_turn` — so a `None` peek preceding a `Some` advance is correct and
+/// not an invariant violation. Any divergence in the `Some`/`Some` case means
+/// the tie-breaking or energy-read logic disagrees between the two code paths.
+#[test]
+fn prop_scheduler_peek_when_some_matches_next_turn() {
+    let mut rng = SplitMix64::new(0x07E4_B005);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6) as usize;
+        let mut sched: Scheduler<u32> = Scheduler::new();
+        for k in 0..n {
+            sched.add(k as u32, ACTION_COST + rng.below(ACTION_COST as u32) as i32);
+        }
+        for _ in 0..20 {
+            let peeked = sched.peek_next_turn();
+            let advanced = sched.next_turn();
+            // The invariant: if someone is already ready, peek and advance agree.
+            // When peek is None (nobody ready yet), next_turn advances time —
+            // returning Some after time-skip is correct, not a bug.
+            if let Some(p) = peeked {
+                assert_eq!(
+                    Some(p),
+                    advanced,
+                    "peek returned Some({p}) but next_turn returned {advanced:?}"
+                );
+            }
         }
     }
 }
