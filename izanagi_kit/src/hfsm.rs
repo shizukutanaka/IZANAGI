@@ -363,6 +363,15 @@ impl<S: Eq + Clone, E: Eq + Clone> HFsm<S, E> {
 }
 
 impl<S: DetHash, E: DetHash> DetHash for HFsm<S, E> {
+    /// Folds the current state, parent table, and transition table into `hasher`
+    /// — all in insertion (registration) order.
+    ///
+    /// **Registration-order-sensitive**: two machines with identical hierarchies
+    /// and transitions added in a different order produce different hashes even
+    /// though their behaviour is identical. Peers in a lockstep or replay session
+    /// must register parents and transitions in the same order to stay in sync.
+    /// Restoring an `HFsm` from a save file must reconstruct entries in their
+    /// original insertion order for the hash to match.
     fn det_hash(&self, hasher: &mut Fnv1a) {
         self.state.det_hash(hasher);
         hasher.write_u32(self.parents.len() as u32);
