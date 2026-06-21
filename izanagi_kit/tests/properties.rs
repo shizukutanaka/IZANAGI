@@ -23,6 +23,7 @@ use izanagi_kit::combat::{
     StatsModifier,
 };
 use izanagi_kit::damage::{DamageType, ResistanceProfile};
+use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
     generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
@@ -3665,5 +3666,203 @@ fn prop_scheduler_sequence_is_deterministic() {
         let seq_a: Vec<Option<u32>> = (0..80).map(|_| a.next_turn()).collect();
         let seq_b: Vec<Option<u32>> = (0..80).map(|_| b.next_turn()).collect();
         assert_eq!(seq_a, seq_b, "identical schedulers diverged");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// status::StatusSet — timed buff/debuff bookkeeping laws
+//
+// Effects carry an unsigned remaining duration and a signed magnitude. Because
+// tick subtracts whole units and the accumulators are saturating, the set obeys
+// exact laws:
+//   - tick conserves the actor set (survivors + expired == before) and lowers
+//     each survivor's remaining by exactly the tick amount;
+//   - ticks compose: tick(a) then tick(b) leaves the same surviving durations
+//     as tick(a+b);
+//   - re-apply stacks to the max duration and replaces the magnitude;
+//   - stats_modifier is the per-target saturating sum of magnitudes;
+//   - dot_total is the non-negative saturating sum over DoT keys;
+//   - the canonical hash and aggregate queries are application-order-independent.
+// ---------------------------------------------------------------------------
+
+/// Map a `u32` key to a stat target by `key % 4` (the 4th class is a pure DoT
+/// with no stat target), used by the `stats_modifier` law below.
+fn status_target_of(k: &u32) -> Option<StatTarget> {
+    match k % 4 {
+        0 => Some(StatTarget::Attack),
+        1 => Some(StatTarget::Defense),
+        2 => Some(StatTarget::MaxHp),
+        _ => None,
+    }
+}
+
+/// Build a status set with `n` distinct keys (0..n), random durations >= 1 and
+/// signed magnitudes.
+fn rand_status(rng: &mut SplitMix64, n: u32) -> StatusSet<u32> {
+    let mut s = StatusSet::new();
+    for k in 0..n {
+        s.apply(k, 1 + rng.below(60), rng.range(-100, 100));
+    }
+    s
+}
+
+/// **tick conserves the set and decrements survivors exactly** — after
+/// `tick(n)`: the returned expired keys are exactly those whose remaining was
+/// `<= n` (in application order), every survivor's remaining drops by exactly
+/// `n` and stays `> 0`, and `survivors + expired == original count`.
+#[test]
+fn prop_status_tick_duration_accounting() {
+    let mut rng = SplitMix64::new(0x57A7_05A0);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8);
+        let mut s = rand_status(&mut rng, n);
+        let before: Vec<(u32, u32)> = s.iter().map(|(k, e)| (*k, e.remaining)).collect();
+        let ticks = rng.below(70);
+        let expired = s.tick(ticks);
+
+        let expected_expired: Vec<u32> = before
+            .iter()
+            .filter(|(_, r)| *r <= ticks)
+            .map(|(k, _)| *k)
+            .collect();
+        assert_eq!(expired, expected_expired, "expired set/order wrong");
+
+        for (k, r) in &before {
+            if *r > ticks {
+                assert_eq!(s.remaining_of(k), r - ticks, "survivor not decremented by n");
+                assert!(s.remaining_of(k) > 0, "survivor remaining hit 0");
+            } else {
+                assert!(!s.is_active(k), "expired effect still active");
+            }
+        }
+        assert_eq!(s.len() + expired.len(), before.len(), "count not conserved");
+    }
+}
+
+/// **ticks compose** — splitting a tick into two (`tick(a)` then `tick(b)`)
+/// leaves the same surviving key→remaining map as a single `tick(a+b)`, since an
+/// effect survives both iff its remaining exceeds `a+b`. A metamorphic law that
+/// pins the duration arithmetic independent of how time is chunked.
+#[test]
+fn prop_status_tick_composition() {
+    let mut rng = SplitMix64::new(0x57A7_C0F0);
+    let sorted_map = |s: &StatusSet<u32>| -> Vec<(u32, u32)> {
+        let mut v: Vec<(u32, u32)> = s.iter().map(|(k, e)| (*k, e.remaining)).collect();
+        v.sort_unstable();
+        v
+    };
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8);
+        let base = rand_status(&mut rng, n);
+        let a = rng.below(40);
+        let b = rng.below(40);
+
+        let mut split = base.clone();
+        split.tick(a);
+        split.tick(b);
+
+        let mut whole = base.clone();
+        whole.tick(a + b);
+
+        assert_eq!(
+            sorted_map(&split),
+            sorted_map(&whole),
+            "tick(a) then tick(b) != tick(a+b)"
+        );
+    }
+}
+
+/// **re-apply stacks to the max duration and replaces the magnitude** — applying
+/// an existing key never shortens its remaining (takes the max of old and new)
+/// and adopts the newest magnitude, leaving the active-effect count unchanged.
+#[test]
+fn prop_status_apply_refresh_takes_max_duration() {
+    let mut rng = SplitMix64::new(0x57A7_3EF5);
+    for _ in 0..ITERS {
+        let mut s = StatusSet::new();
+        let d1 = 1 + rng.below(50);
+        let m1 = rng.range(-50, 50);
+        let d2 = 1 + rng.below(50);
+        let m2 = rng.range(-50, 50);
+        s.apply(7u32, d1, m1);
+        s.apply(7u32, d2, m2);
+        assert_eq!(s.len(), 1, "re-apply must not duplicate the key");
+        assert_eq!(s.remaining_of(&7), d1.max(d2), "duration must be the max");
+        assert_eq!(s.magnitude_of(&7), m2, "magnitude must be the newest");
+    }
+}
+
+/// **stats_modifier is the per-target saturating sum** — each field of the
+/// folded `StatsModifier` equals the saturating sum of the magnitudes of all
+/// active effects mapped to that target; `None`-mapped keys (DoTs) contribute
+/// nothing.
+#[test]
+fn prop_status_stats_modifier_is_grouped_sum() {
+    let mut rng = SplitMix64::new(0x57A7_5717);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8);
+        let s = rand_status(&mut rng, n);
+        let m = s.stats_modifier(status_target_of);
+
+        let want = |t: StatTarget| -> i32 {
+            s.iter()
+                .filter(|(k, _)| status_target_of(k) == Some(t))
+                .fold(0i32, |acc, (_, e)| acc.saturating_add(e.magnitude))
+        };
+        assert_eq!(m.attack, want(StatTarget::Attack), "attack sum wrong");
+        assert_eq!(m.defense, want(StatTarget::Defense), "defense sum wrong");
+        assert_eq!(m.max_hp, want(StatTarget::MaxHp), "max_hp sum wrong");
+    }
+}
+
+/// **dot_total is the non-negative saturating sum over DoT keys** — it equals
+/// `max(0, Σ magnitude)` over the keys for which `is_dot` is true, and is never
+/// negative (a stray negative-magnitude DoT can never heal through this path).
+#[test]
+fn prop_status_dot_total_non_negative_sum() {
+    let mut rng = SplitMix64::new(0x57A7_D077);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8);
+        let s = rand_status(&mut rng, n);
+        let is_dot = |k: &u32| *k % 2 == 0;
+        let total = s.dot_total(is_dot);
+
+        let raw = s
+            .iter()
+            .filter(|(k, _)| is_dot(k))
+            .fold(0i32, |acc, (_, e)| acc.saturating_add(e.magnitude));
+        assert_eq!(total, raw.max(0), "dot_total != max(0, sum)");
+        assert!(total >= 0, "dot_total negative: {total}");
+    }
+}
+
+/// **canonical hash and aggregates are application-order-independent** — applying
+/// the same distinct-key effects in forward vs reversed order yields an equal
+/// `DetHash` and equal `total_magnitude` / `magnitude_range` / `min`/`max`
+/// remaining (the order-canonicalisation guarantee for replay checksums).
+#[test]
+fn prop_status_hash_and_aggregates_order_independent() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x57A7_0DE7);
+    for _ in 0..(ITERS / 2) {
+        let n = 1 + rng.below(8);
+        let effects: Vec<(u32, u32, i32)> = (0..n)
+            .map(|k| (k, 1 + rng.below(60), rng.range(-100, 100)))
+            .collect();
+
+        let mut fwd = StatusSet::new();
+        for &(k, d, m) in &effects {
+            fwd.apply(k, d, m);
+        }
+        let mut rev = StatusSet::new();
+        for &(k, d, m) in effects.iter().rev() {
+            rev.apply(k, d, m);
+        }
+
+        assert_eq!(hash_state(&fwd), hash_state(&rev), "hash depends on apply order");
+        assert_eq!(fwd.total_magnitude(), rev.total_magnitude(), "total differs");
+        assert_eq!(fwd.magnitude_range(), rev.magnitude_range(), "range differs");
+        assert_eq!(fwd.max_remaining(), rev.max_remaining(), "max_remaining differs");
+        assert_eq!(fwd.min_remaining(), rev.min_remaining(), "min_remaining differs");
     }
 }
