@@ -3461,3 +3461,209 @@ fn prop_critical_strike_at_least_base_and_draw_contract() {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// turn::Scheduler — energy/speed turn-order laws
+//
+// The scheduler banks `speed` energy per time unit and lets an actor act once
+// it reaches ACTION_COST, carrying the remainder over. Because time advances by
+// closed-form integer ceil-division (no float), the queue obeys exact laws:
+//   - a non-empty scheduler always yields an actor (no zero-speed stall);
+//   - peek_next_turn is a non-destructive preview that matches next_turn and
+//     picks the smallest ready id;
+//   - time_until_ready equals the ceil-division formula and pins readiness;
+//   - pending_count and actors_ready partition the actor set;
+//   - energy is conserved: energy_i + cost·count_i == speed_i · U for a single
+//     shared unit count U — the exact fairness identity;
+//   - the turn sequence is fully deterministic for identical inputs.
+// ---------------------------------------------------------------------------
+
+/// Build a scheduler with `n` distinct `u32` ids (0..n) at random speeds.
+fn rand_scheduler(rng: &mut SplitMix64, n: u32, max_speed: i32) -> Scheduler<u32> {
+    let mut s = Scheduler::new();
+    for id in 0..n {
+        s.add(id, rng.range(1, max_speed + 1));
+    }
+    s
+}
+
+/// **a non-empty scheduler always yields a registered actor** — regardless of
+/// speeds or (possibly negative) banked energy, `next_turn` advances time until
+/// someone is ready and never returns `None` while actors remain; the id it
+/// returns is always one that is registered. A zero/negative speed can never
+/// stall the queue (speed is clamped to >= 1 on `add`).
+#[test]
+fn prop_scheduler_non_empty_always_acts() {
+    let mut rng = SplitMix64::new(0x0701_AC75);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5); // 1..=5 actors
+        let mut s = rand_scheduler(&mut rng, n, 400);
+        // Perturb starting energy, including negatives and over-ready values.
+        for id in 0..n {
+            if rng.below(2) == 0 {
+                s.set_energy(id, rng.range(-300, 300));
+            }
+        }
+        for _ in 0..40 {
+            let acted = s.next_turn();
+            assert!(acted.is_some(), "non-empty scheduler returned None");
+            let id = acted.unwrap();
+            assert!(id < n, "scheduler returned unregistered id {id}");
+        }
+    }
+}
+
+/// **peek_next_turn is a non-destructive, smallest-id-first preview** — peeking
+/// never changes any actor's banked energy, returns `Some` iff some actor is
+/// ready, picks the minimum ready id, and (when ready) equals the id the
+/// following `next_turn` pops.
+#[test]
+fn prop_scheduler_peek_matches_next_and_is_nondestructive() {
+    let mut rng = SplitMix64::new(0x0701_9EE5);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5);
+        let mut s = rand_scheduler(&mut rng, n, 300);
+        for id in 0..n {
+            s.set_energy(id, rng.range(-50, 250));
+        }
+        let before: Vec<Option<i32>> = (0..n).map(|id| s.energy(id)).collect();
+        let peeked = s.peek_next_turn();
+        let after: Vec<Option<i32>> = (0..n).map(|id| s.energy(id)).collect();
+        assert_eq!(before, after, "peek_next_turn mutated banked energy");
+
+        // peek is Some iff at least one actor is ready, and is the min ready id.
+        let min_ready = (0..n)
+            .filter(|&id| s.energy(id).unwrap() >= ACTION_COST)
+            .min();
+        assert_eq!(peeked, min_ready, "peek did not pick the smallest ready id");
+
+        if let Some(p) = peeked {
+            assert_eq!(s.next_turn(), Some(p), "next_turn disagreed with peek");
+        }
+    }
+}
+
+/// **time_until_ready matches the ceil-division formula and pins readiness** —
+/// for a registered actor it equals `ceil(max(0, cost − energy) / speed)`, is
+/// `0` exactly when the actor is already ready, and is `None` for an unknown id.
+#[test]
+fn prop_scheduler_time_until_ready_formula() {
+    let mut rng = SplitMix64::new(0x0701_71ED);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5);
+        let mut s = rand_scheduler(&mut rng, n, 250);
+        for id in 0..n {
+            s.set_energy(id, rng.range(-200, 250));
+        }
+        for id in 0..n {
+            let energy = s.energy(id).unwrap();
+            let speed = s.speed(id).unwrap();
+            let deficit = ACTION_COST - energy;
+            let expected = if deficit <= 0 {
+                0
+            } else {
+                (deficit + speed - 1) / speed
+            };
+            assert_eq!(s.time_until_ready(id), Some(expected), "formula mismatch");
+            assert_eq!(
+                s.time_until_ready(id) == Some(0),
+                energy >= ACTION_COST,
+                "time_until_ready==0 must match readiness for id {id}"
+            );
+        }
+        assert_eq!(s.time_until_ready(n + 100), None, "unknown id must be None");
+    }
+}
+
+/// **pending and ready partition the actor set** — at every point each actor is
+/// either pending (energy < cost) or ready (energy >= cost), never both and
+/// never neither, so `pending_count() + actors_ready().len() == len()` holds
+/// across an arbitrary mix of mutations and turns.
+#[test]
+fn prop_scheduler_pending_ready_partition() {
+    let mut rng = SplitMix64::new(0x0701_9A57);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5);
+        let mut s = rand_scheduler(&mut rng, n, 300);
+        for _ in 0..10 {
+            match rng.below(4) {
+                0 => {
+                    s.set_energy(rng.below(n), rng.range(-100, 250));
+                }
+                1 => {
+                    s.next_turn();
+                }
+                2 => {
+                    s.set_speed(rng.below(n), rng.range(1, 300));
+                }
+                _ => {
+                    s.reset_actor(rng.below(n));
+                }
+            }
+            assert_eq!(
+                s.pending_count() + s.actors_ready().len(),
+                s.len(),
+                "pending + ready != total"
+            );
+        }
+    }
+}
+
+/// **energy is conserved — the exact fairness identity** — starting every actor
+/// at energy 0 and running `T` turns advances all actors by the *same* unit
+/// count `U`, so `energy_i + cost·count_i == speed_i·U` for each actor. Hence
+/// for any pair `(i, j)`:
+/// `speed_j·(energy_i + cost·count_i) == speed_i·(energy_j + cost·count_j)`.
+/// This is the precise statement of "faster actors act proportionally more".
+/// Speeds are kept moderate so no saturation perturbs the identity.
+#[test]
+fn prop_scheduler_energy_is_conserved() {
+    let mut rng = SplitMix64::new(0x0701_C047);
+    for _ in 0..ITERS {
+        let n = 2 + rng.below(4); // 2..=5 actors, all fresh at energy 0
+        let mut s = rand_scheduler(&mut rng, n, 100);
+        let mut counts = vec![0i64; n as usize];
+        for _ in 0..300 {
+            let id = s.next_turn().unwrap();
+            counts[id as usize] += 1;
+        }
+        // bank_i = energy_i + cost*count_i = speed_i * U (same U for all actors).
+        let bank: Vec<i64> = (0..n)
+            .map(|id| s.energy(id).unwrap() as i64 + ACTION_COST as i64 * counts[id as usize])
+            .collect();
+        let speeds: Vec<i64> = (0..n).map(|id| s.speed(id).unwrap() as i64).collect();
+        for i in 0..n as usize {
+            for j in 0..n as usize {
+                assert_eq!(
+                    bank[i] * speeds[j],
+                    bank[j] * speeds[i],
+                    "energy conservation broken between {i} and {j}"
+                );
+            }
+        }
+    }
+}
+
+/// **the turn sequence is fully deterministic** — two schedulers built from the
+/// same ids/speeds and driven the same number of times produce identical
+/// output sequences (the lockstep-replay guarantee for turn order).
+#[test]
+fn prop_scheduler_sequence_is_deterministic() {
+    let mut rng = SplitMix64::new(0x0701_DE73);
+    for _ in 0..(ITERS / 4) {
+        let n = 1 + rng.below(5);
+        let speeds: Vec<i32> = (0..n).map(|_| rng.range(1, 400)).collect();
+        let build = || {
+            let mut s = Scheduler::new();
+            for (id, &sp) in speeds.iter().enumerate() {
+                s.add(id as u32, sp);
+            }
+            s
+        };
+        let mut a = build();
+        let mut b = build();
+        let seq_a: Vec<Option<u32>> = (0..80).map(|_| a.next_turn()).collect();
+        let seq_b: Vec<Option<u32>> = (0..80).map(|_| b.next_turn()).collect();
+        assert_eq!(seq_a, seq_b, "identical schedulers diverged");
+    }
+}
