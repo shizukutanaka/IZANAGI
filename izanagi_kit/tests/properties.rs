@@ -13,7 +13,9 @@
 use izanagi_kit::dice::Dice;
 use izanagi_kit::fov::compute_fov;
 use izanagi_kit::geometry::line_len;
-use izanagi_kit::pathfinding::{astar, weighted_astar};
+use izanagi_kit::pathfinding::{
+    astar, descend, dijkstra_map, jps, octile_distance, smooth_path, weighted_astar,
+};
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
@@ -1212,6 +1214,204 @@ fn prop_weighted_astar_cost_bound_and_unity() {
     }
 
     assert!(checked >= 50, "expected ≥50 weighted paths checked, got {checked}");
+}
+
+/// `Fn` (not `FnMut`) wall-query closure for `jps`, whose jump recursion queries
+/// cells reentrantly. Same semantics as [`path_is_blocked`].
+fn path_is_blocked_fn(walls: &[bool]) -> impl Fn(i32, i32) -> bool + '_ {
+    move |x: i32, y: i32| {
+        if x < 0 || y < 0 || x >= PATH_W || y >= PATH_H {
+            true
+        } else {
+            walls[(y * PATH_W + x) as usize]
+        }
+    }
+}
+
+/// **JPS ≡ A\*** — Jump Point Search is an *exact* optimisation, so over random
+/// grids it must agree with `astar` on reachability and, when a path exists,
+/// return one of identical cost. Every JPS path must also be a legal king-move
+/// route with no wall steps and no diagonal corner-cuts. `astar` is the trusted
+/// oracle; any forced-neighbour or pruning bug shows up as a cost/None mismatch.
+#[test]
+fn prop_jps_matches_astar_cost_and_is_valid() {
+    let mut rng = SplitMix64::new(0x0DABC_005);
+    let mut reachable = 0usize;
+    for _ in 0..500 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let gx = rng.below(PATH_W as u32) as i32;
+        let gy = rng.below(PATH_H as u32) as i32;
+        if walls[(sy * PATH_W + sx) as usize] || walls[(gy * PATH_W + gx) as usize] {
+            continue;
+        }
+
+        let a = astar((sx, sy), (gx, gy), path_is_blocked(&walls));
+        let j = jps((sx, sy), (gx, gy), path_is_blocked_fn(&walls));
+
+        assert_eq!(
+            a.is_some(),
+            j.is_some(),
+            "JPS/A* reachability mismatch ({sx},{sy})→({gx},{gy})"
+        );
+        let (Some(ap), Some(jp)) = (a, j) else {
+            continue;
+        };
+        reachable += 1;
+        assert_eq!(
+            path_cost_manual(&ap),
+            path_cost_manual(&jp),
+            "JPS cost {} != A* cost {} for ({sx},{sy})→({gx},{gy})",
+            path_cost_manual(&jp),
+            path_cost_manual(&ap)
+        );
+        // JPS path must be a legal, corner-safe king-move route.
+        assert_eq!(jp[0], (sx, sy), "JPS path must start at start");
+        assert_eq!(*jp.last().unwrap(), (gx, gy), "JPS path must end at goal");
+        for w in jp.windows(2) {
+            let (dx, dy) = ((w[1].0 - w[0].0).abs(), (w[1].1 - w[0].1).abs());
+            assert!(dx <= 1 && dy <= 1 && (dx + dy) > 0, "non-king JPS step");
+            assert!(
+                !walls[(w[1].1 * PATH_W + w[1].0) as usize],
+                "JPS steps into wall at {:?}",
+                w[1]
+            );
+            if dx == 1 && dy == 1 {
+                let h_blocked = walls[(w[0].1 * PATH_W + w[1].0) as usize];
+                let v_blocked = walls[(w[1].1 * PATH_W + w[0].0) as usize];
+                assert!(!h_blocked && !v_blocked, "JPS cut a wall corner");
+            }
+        }
+    }
+    assert!(reachable >= 100, "expected ≥100 reachable pairs, got {reachable}");
+}
+
+/// **JPS determinism** — identical start, goal, and wall map always yield the
+/// identical path. Any HashMap-iteration leak would desync AI routes in replays.
+#[test]
+fn prop_jps_is_deterministic() {
+    let mut rng = SplitMix64::new(0x0DDE7_005);
+    for _ in 0..500 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let gx = rng.below(PATH_W as u32) as i32;
+        let gy = rng.below(PATH_H as u32) as i32;
+        let a = jps((sx, sy), (gx, gy), path_is_blocked_fn(&walls));
+        let b = jps((sx, sy), (gx, gy), path_is_blocked_fn(&walls));
+        assert_eq!(a, b, "jps not deterministic for ({sx},{sy})→({gx},{gy})");
+    }
+}
+
+/// **Dijkstra-map / descend monotonicity** — every cell in a Dijkstra map has a
+/// cost in `[0, max_cost]`, the source is `0`, and steepest `descend` from any
+/// mapped cell strictly decreases cost on each step and terminates at a source
+/// (cost `0`). This is the contract chase/flee AI relies on (no cycles, always
+/// reaches the goal).
+#[test]
+fn prop_dijkstra_descend_is_monotone_to_source() {
+    let mut rng = SplitMix64::new(0x0D1357_05);
+    let mut descents = 0usize;
+    for _ in 0..400 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(6) == 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        if walls[(sy * PATH_W + sx) as usize] {
+            continue;
+        }
+        let max_cost = 10_000;
+        let map = dijkstra_map(&[(sx, sy)], max_cost, path_is_blocked(&walls));
+        assert_eq!(map.get(&(sx, sy)), Some(&0), "source must have cost 0");
+        for (&(_, _), &c) in map.iter() {
+            assert!(c >= 0 && c <= max_cost, "cost {c} out of [0,{max_cost}]");
+        }
+        // Descend from a few random mapped cells.
+        let cells: Vec<(i32, i32)> = map.keys().copied().collect();
+        if cells.is_empty() {
+            continue;
+        }
+        for _ in 0..3 {
+            let mut cur = cells[rng.below(cells.len() as u32) as usize];
+            let mut last = map[&cur];
+            let mut steps = 0;
+            while let Some(next) = descend(&map, cur, path_is_blocked(&walls)) {
+                assert!(map[&next] < last, "descend did not strictly decrease cost");
+                last = map[&next];
+                cur = next;
+                steps += 1;
+                assert!(steps < PATH_W * PATH_H, "descend must terminate");
+            }
+            assert_eq!(map[&cur], 0, "descend must end at a source");
+            descents += 1;
+        }
+    }
+    assert!(descents >= 100, "expected ≥100 descents, got {descents}");
+}
+
+/// **Octile distance is a metric** — `octile_distance` satisfies identity
+/// (`d(a,a)=0`), symmetry (`d(a,b)=d(b,a)`), non-negativity, and the triangle
+/// inequality `d(a,c) ≤ d(a,b)+d(b,c)`. These are what make it an admissible,
+/// consistent A* heuristic; a violation would break optimality guarantees.
+#[test]
+fn prop_octile_distance_is_a_metric() {
+    let mut rng = SplitMix64::new(0x0C71_1E05);
+    for _ in 0..ITERS {
+        let a = (rng.range(-200, 201), rng.range(-200, 201));
+        let b = (rng.range(-200, 201), rng.range(-200, 201));
+        let c = (rng.range(-200, 201), rng.range(-200, 201));
+        assert_eq!(octile_distance(a, a), 0, "identity d(a,a)=0");
+        assert!(octile_distance(a, b) >= 0, "non-negativity");
+        assert_eq!(
+            octile_distance(a, b),
+            octile_distance(b, a),
+            "symmetry d(a,b)=d(b,a)"
+        );
+        assert!(
+            octile_distance(a, c) <= octile_distance(a, b) + octile_distance(b, c),
+            "triangle inequality violated for {a:?},{b:?},{c:?}"
+        );
+    }
+}
+
+/// **smooth_path invariants** — string-pulling a valid A* path must (1) keep the
+/// original start and goal and (2) leave every consecutive waypoint pair joined
+/// by a straight Bresenham line with no blocked interior cell, and (3) never add
+/// waypoints. So the smoothed route is still walkable and no longer than before.
+#[test]
+fn prop_smooth_path_preserves_endpoints_and_los() {
+    let mut rng = SplitMix64::new(0x0577007_5);
+    let mut smoothed = 0usize;
+    for _ in 0..500 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(6) == 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let gx = rng.below(PATH_W as u32) as i32;
+        let gy = rng.below(PATH_H as u32) as i32;
+        if walls[(sy * PATH_W + sx) as usize] || walls[(gy * PATH_W + gx) as usize] {
+            continue;
+        }
+        let Some(path) = astar((sx, sy), (gx, gy), path_is_blocked(&walls)) else {
+            continue;
+        };
+        let sm = smooth_path(&path, path_is_blocked(&walls));
+        assert_eq!(sm.first(), path.first(), "smooth must keep start");
+        assert_eq!(sm.last(), path.last(), "smooth must keep goal");
+        assert!(sm.len() <= path.len(), "smooth must not add waypoints");
+        // Each smoothed segment's interior must be clear (Bresenham LOS).
+        for w in sm.windows(2) {
+            for &(x, y) in line(w[0], w[1]).iter() {
+                assert!(
+                    !(walls[(y * PATH_W + x) as usize]),
+                    "smoothed segment {:?}→{:?} crosses wall at ({x},{y})",
+                    w[0],
+                    w[1]
+                );
+            }
+        }
+        smoothed += 1;
+    }
+    assert!(smoothed >= 100, "expected ≥100 smoothed paths, got {smoothed}");
 }
 
 // ── Dice properties ───────────────────────────────────────────────────────────
