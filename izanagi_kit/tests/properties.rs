@@ -455,6 +455,130 @@ fn prop_easing_functions_hit_their_endpoints() {
     }
 }
 
+/// **Monotone easings are bounded and non-decreasing** — the standard
+/// (non-overshooting) easing families map `[0,1] → [0,1]` and never decrease:
+/// for `t1 ≤ t2`, `f(t1) ≤ f(t2)`. (back/elastic overshoot and bounce oscillates,
+/// so they are excluded here — their endpoints are covered by the test above.)
+/// A scaling/clamp regression that pushed a curve out of range or made it dip
+/// would corrupt animation playback. Tolerance absorbs fixed-point rounding.
+#[test]
+fn prop_easing_monotone_families_bounded_and_increasing() {
+    use izanagi_kit::easing::*;
+    type E = fn(Fixed) -> Fixed;
+    let fns: &[(&str, E)] = &[
+        ("linear", linear),
+        ("smoothstep", ease_smoothstep),
+        ("smootherstep", ease_smootherstep),
+        ("in_quad", ease_in_quad),
+        ("out_quad", ease_out_quad),
+        ("in_out_quad", ease_in_out_quad),
+        ("in_cubic", ease_in_cubic),
+        ("out_cubic", ease_out_cubic),
+        ("in_out_cubic", ease_in_out_cubic),
+        ("in_quart", ease_in_quart),
+        ("out_quart", ease_out_quart),
+        ("in_out_quart", ease_in_out_quart),
+        ("in_quint", ease_in_quint),
+        ("out_quint", ease_out_quint),
+        ("in_out_quint", ease_in_out_quint),
+        ("in_sine", ease_in_sine),
+        ("out_sine", ease_out_sine),
+        ("in_out_sine", ease_in_out_sine),
+        ("in_circ", ease_in_circ),
+        ("out_circ", ease_out_circ),
+        ("in_out_circ", ease_in_out_circ),
+        ("in_expo", ease_in_expo),
+        ("out_expo", ease_out_expo),
+        ("in_out_expo", ease_in_out_expo),
+    ];
+    let to_f = |x: Fixed| x.raw() as f64 / 65536.0;
+    let mut rng = SplitMix64::new(0x0EA5_1A60);
+    const EPS: f64 = 1.0e-2;
+    for _ in 0..ITERS {
+        // Two ordered samples in [0, 1] via Q16.16 ratios.
+        let p = Fixed::from_ratio(rng.below(0x1_0001) as i32, 0x1_0000);
+        let q = Fixed::from_ratio(rng.below(0x1_0001) as i32, 0x1_0000);
+        let (t1, t2) = if p <= q { (p, q) } else { (q, p) };
+        for (name, f) in fns {
+            let (v1, v2) = (to_f(f(t1)), to_f(f(t2)));
+            assert!(
+                v1 >= -EPS && v1 <= 1.0 + EPS,
+                "{name}({}) = {v1} out of [0,1]",
+                to_f(t1)
+            );
+            assert!(
+                v2 >= v1 - EPS,
+                "{name} not non-decreasing: f({})={v1} > f({})={v2}",
+                to_f(t1),
+                to_f(t2)
+            );
+        }
+    }
+}
+
+/// **out-ease is the reflection of in-ease** — by definition every ease-out
+/// curve is `ease_out_X(t) = 1 − ease_in_X(1 − t)`, which is exactly what
+/// [`ease_reversed`] computes. This metamorphic identity ties each in/out pair
+/// together; a transcription error in either half breaks it. Verified for the
+/// polynomial, sine, circ and expo families (within their approximation error).
+#[test]
+fn prop_easing_out_equals_reversed_in() {
+    use izanagi_kit::easing::*;
+    type E = fn(Fixed) -> Fixed;
+    let pairs: &[(&str, E, E)] = &[
+        ("quad", ease_in_quad, ease_out_quad),
+        ("cubic", ease_in_cubic, ease_out_cubic),
+        ("quart", ease_in_quart, ease_out_quart),
+        ("quint", ease_in_quint, ease_out_quint),
+        ("sine", ease_in_sine, ease_out_sine),
+        ("circ", ease_in_circ, ease_out_circ),
+        ("expo", ease_in_expo, ease_out_expo),
+    ];
+    let to_f = |x: Fixed| x.raw() as f64 / 65536.0;
+    let mut rng = SplitMix64::new(0x0EA5_BAC6);
+    const EPS: f64 = 1.5e-2;
+    for _ in 0..ITERS {
+        let t = Fixed::from_ratio(rng.below(0x1_0001) as i32, 0x1_0000);
+        for (name, ein, eout) in pairs {
+            let direct = to_f(eout(t));
+            let reflected = to_f(ease_reversed(t, *ein));
+            assert!(
+                (direct - reflected).abs() < EPS,
+                "{name}: out({})={direct} != 1-in(1-t)={reflected}",
+                to_f(t)
+            );
+        }
+    }
+}
+
+/// **lerp endpoints, bounds and reflection** — `lerp(a, b, t) = a + (b−a)·t`
+/// must pin `t=0→a` and `t=1→b` exactly, stay within `[min(a,b), max(a,b)]` for
+/// `t ∈ [0,1]`, and satisfy the reflection identity `lerp(a,b,t) = lerp(b,a,1−t)`.
+/// These are the contracts every tween/animation built on `lerp` depends on.
+#[test]
+fn prop_easing_lerp_endpoints_bounds_and_reflection() {
+    use izanagi_kit::easing::lerp;
+    let mut rng = SplitMix64::new(0x0EA5_1E66);
+    for _ in 0..ITERS {
+        let a = rand_fixed(&mut rng);
+        let b = rand_fixed(&mut rng);
+        assert_eq!(lerp(a, b, Fixed::ZERO), a, "lerp(_,_,0) must equal a");
+        assert_eq!(lerp(a, b, Fixed::ONE), b, "lerp(_,_,1) must equal b");
+
+        let t = Fixed::from_ratio(rng.below(0x1_0001) as i32, 0x1_0000); // [0,1]
+        let v = lerp(a, b, t);
+        let (lo, hi) = (a.min(b), a.max(b));
+        assert!(v >= lo && v <= hi, "lerp out of [{lo:?},{hi:?}]: {v:?}");
+
+        // Reflection: lerp(a,b,t) == lerp(b,a,1-t), exact under Q16.16 arithmetic.
+        assert_eq!(
+            lerp(a, b, t),
+            lerp(b, a, Fixed::ONE - t),
+            "lerp reflection identity failed for a={a:?} b={b:?} t={t:?}"
+        );
+    }
+}
+
 // ── WFC properties ────────────────────────────────────────────────────────────
 
 /// Helper: check that every adjacent collapsed-cell pair in `grid` is permitted
