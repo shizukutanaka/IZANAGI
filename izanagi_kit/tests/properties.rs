@@ -18,7 +18,10 @@ use izanagi_kit::pathfinding::{
 };
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
-use izanagi_kit::combat::apply_resistance;
+use izanagi_kit::combat::{
+    apply_resistance, base_damage, critical_strike, melee_attack, roll_damage, roll_to_hit,
+    StatsModifier,
+};
 use izanagi_kit::damage::{DamageType, ResistanceProfile};
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
@@ -3216,5 +3219,245 @@ fn prop_damage_add_is_saturating() {
             "add({base}, {delta}) on {ty:?} = {} != saturating {expected}",
             profile.get(ty)
         );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// combat::Stats / StatsModifier — HP-bookkeeping and stat-modifier laws
+//
+// The combat primitives are all integer and saturating, so they obey clean
+// invariants regardless of how extreme the inputs are:
+//   - HP stays within [0, max_hp] across any sequence of mutators;
+//   - overkill conserves damage (applied + overkill == requested);
+//   - `modified` saturates and never heals;
+//   - `base_damage` floors at 1 and is monotone in attack/defense;
+//   - `melee_attack` deals exactly `base_damage`, clamped at 0 HP;
+//   - `hp_percent` stays in [0,100] and tracks HP monotonically;
+//   - `roll_damage` lands in [base, base+variance] and respects the draw contract;
+//   - `splash_attack` deals >= 1 to each target, decreasing with falloff;
+//   - `critical_strike` never deals less than `base_damage`.
+// ---------------------------------------------------------------------------
+
+/// A combatant with a moderate, possibly-damaged stat block. `attack`/`defense`
+/// span negatives too, so the saturating/`max(1,_)` paths are exercised.
+fn rand_stats(rng: &mut SplitMix64) -> Stats {
+    let max_hp = rng.range(0, 500);
+    let mut s = Stats::new(max_hp, rng.range(-50, 200), rng.range(-50, 200));
+    s.take_damage(rng.range(0, max_hp + 1)); // leave HP somewhere in [0, max_hp]
+    s
+}
+
+/// **HP stays in `[0, max_hp]` across any mutator sequence** — applying a random
+/// mix of `take_damage` / `heal` / `set_max_hp` / `restore` / `clamp_hp` can
+/// never leave `hp` negative or above the (current) `max_hp`. This is the core
+/// safety invariant every other combat helper relies on.
+#[test]
+fn prop_stats_hp_stays_in_bounds() {
+    let mut rng = SplitMix64::new(0x0C0A_B017);
+    for _ in 0..ITERS {
+        let mut s = rand_stats(&mut rng);
+        for _ in 0..8 {
+            match rng.below(5) {
+                0 => s.take_damage(rng.range(-100, 1000)),
+                1 => s.heal(rng.range(-100, 1000)),
+                2 => s.set_max_hp(rng.range(-100, 600)),
+                3 => s.restore(),
+                _ => s.clamp_hp(),
+            }
+            assert!(
+                s.hp >= 0 && s.hp <= s.max_hp,
+                "hp {} out of [0, {}]",
+                s.hp,
+                s.max_hp
+            );
+            assert!(s.max_hp >= 0, "max_hp went negative: {}", s.max_hp);
+        }
+    }
+}
+
+/// **overkill conserves damage** — `take_overkill_damage(a)` floors HP at 0 and
+/// returns the excess, so for the requested (clamped) amount `a' = max(0,a)`:
+/// `applied + overkill == a'`, where `applied = hp_before − hp_after`. Negative
+/// requests are a no-op (`applied = overkill = 0`).
+#[test]
+fn prop_stats_overkill_conserves_damage() {
+    let mut rng = SplitMix64::new(0x0C0_0E711);
+    for _ in 0..ITERS {
+        let mut s = rand_stats(&mut rng);
+        let before = s.hp;
+        let amount = rng.range(-100, 1000);
+        let overkill = s.take_overkill_damage(amount);
+        let applied = before - s.hp;
+        assert!(s.hp >= 0, "hp went negative: {}", s.hp);
+        assert!(overkill >= 0, "overkill negative: {overkill}");
+        assert_eq!(
+            applied + overkill,
+            amount.max(0),
+            "applied {applied} + overkill {overkill} != requested {}",
+            amount.max(0)
+        );
+    }
+}
+
+/// **`modified` saturates and never heals** — the resulting block has
+/// `attack`/`defense` equal to the saturating add of base + modifier, `max_hp`
+/// clamped to `>= 0`, and current `hp` clamped to the new ceiling and never
+/// above the original `hp` (a modifier raises the ceiling but does not fill it).
+#[test]
+fn prop_stats_modified_saturates_and_never_heals() {
+    let mut rng = SplitMix64::new(0x0C0_3D1F1);
+    for _ in 0..ITERS {
+        let base = rand_stats(&mut rng);
+        let m = StatsModifier {
+            attack: rng.range(i32::MIN / 2, i32::MAX / 2),
+            defense: rng.range(i32::MIN / 2, i32::MAX / 2),
+            max_hp: rng.range(-2000, 2000),
+        };
+        let out = base.modified(&m);
+        assert_eq!(out.attack, base.attack.saturating_add(m.attack));
+        assert_eq!(out.defense, base.defense.saturating_add(m.defense));
+        let want_max = base.max_hp.saturating_add(m.max_hp).max(0);
+        assert_eq!(out.max_hp, want_max, "max_hp not saturating-clamped");
+        assert!(out.max_hp >= 0, "max_hp negative");
+        assert!(out.hp <= out.max_hp, "hp {} above new max {}", out.hp, out.max_hp);
+        assert!(out.hp <= base.hp, "modifier healed: {} > {}", out.hp, base.hp);
+    }
+}
+
+/// **`base_damage` floors at 1 and is monotone** — at least 1 damage always,
+/// and higher attack never lowers it while higher defense never raises it.
+/// Uses i64 to predict the saturating subtraction without overflow.
+#[test]
+fn prop_base_damage_min_one_and_monotone() {
+    let mut rng = SplitMix64::new(0x0C0_BA5ED);
+    for _ in 0..ITERS {
+        let att = rand_stats(&mut rng);
+        let def = rand_stats(&mut rng);
+        let d = base_damage(&att, &def);
+        assert!(d >= 1, "base_damage {d} below floor 1");
+        let predicted = (att.attack as i64 - def.defense as i64)
+            .clamp(i32::MIN as i64, i32::MAX as i64)
+            .max(1) as i32;
+        assert_eq!(d, predicted, "base_damage diverged from saturating model");
+
+        // Monotone: +attack never decreases, +defense never increases.
+        let mut stronger = att.clone();
+        stronger.attack = att.attack.saturating_add(rng.range(0, 100));
+        assert!(base_damage(&stronger, &def) >= d, "more attack lowered damage");
+        let mut tougher = def.clone();
+        tougher.defense = def.defense.saturating_add(rng.range(0, 100));
+        assert!(base_damage(&att, &tougher) <= d, "more defense raised damage");
+    }
+}
+
+/// **`melee_attack` deals exactly `base_damage`, clamped at 0 HP** — the return
+/// value equals the pre-attack `base_damage`, and the defender's HP drops by
+/// `min(hp_before, dmg)` (never below 0).
+#[test]
+fn prop_melee_attack_deals_base_damage() {
+    let mut rng = SplitMix64::new(0x0C0_3E1EE);
+    for _ in 0..ITERS {
+        let att = rand_stats(&mut rng);
+        let mut def = rand_stats(&mut rng);
+        let before = def.hp;
+        let expected = base_damage(&att, &def);
+        let dealt = melee_attack(&att, &mut def);
+        assert_eq!(dealt, expected, "melee dealt != base_damage");
+        assert_eq!(def.hp, (before - expected).max(0), "HP not clamped at 0");
+    }
+}
+
+/// **`hp_percent` is bounded and HP-monotone** — always in `[0,100]`, and for a
+/// fixed positive `max_hp`, a higher HP never yields a lower percentage.
+#[test]
+fn prop_hp_percent_bounded_and_monotone() {
+    let mut rng = SplitMix64::new(0x0C0_9E2CE);
+    for _ in 0..ITERS {
+        let max_hp = rng.range(1, 100_000);
+        let mut a = Stats::new(max_hp, 1, 1);
+        let mut b = Stats::new(max_hp, 1, 1);
+        let h0 = rng.range(0, max_hp + 1);
+        let h1 = rng.range(0, max_hp + 1);
+        let (lo, hi) = if h0 <= h1 { (h0, h1) } else { (h1, h0) };
+        a.hp = lo;
+        b.hp = hi;
+        let pa = a.hp_percent();
+        let pb = b.hp_percent();
+        assert!(pa <= 100 && pb <= 100, "hp_percent exceeded 100: {pa}/{pb}");
+        assert!(pb >= pa, "hp_percent not monotone: hp {hi}->{pb} < hp {lo}->{pa}");
+    }
+}
+
+/// **`roll_damage` lands in `[base, base+variance]` and honours the draw
+/// contract** — with `base >= 0` the result sits between `base` and
+/// `base+variance` inclusive, and `variance == 0` consumes no RNG draw.
+#[test]
+fn prop_roll_damage_in_range_and_draw_contract() {
+    let mut rng = SplitMix64::new(0x0C0_D1CE0);
+    for _ in 0..ITERS {
+        let base = rng.range(0, 1000);
+        let variance = rng.range(0, 500) as u32;
+        let dmg = roll_damage(&mut rng, base, variance);
+        assert!(
+            dmg >= base && dmg <= base + variance as i32,
+            "roll_damage {dmg} outside [{base}, {}]",
+            base + variance as i32
+        );
+        // Zero variance must not draw.
+        let probe = rng.state();
+        let d0 = roll_damage(&mut rng, base, 0);
+        assert_eq!(d0, base, "zero-variance roll != base");
+        assert_eq!(rng.state(), probe, "zero-variance roll consumed a draw");
+    }
+}
+
+/// **`splash_attack` deals >= 1 and decays with falloff** — every target takes
+/// at least 1 damage, the result length matches the target count, and with a
+/// uniform defense the per-target damage is non-increasing (the falloff makes
+/// later targets take no more than earlier ones).
+#[test]
+fn prop_splash_attack_min_one_and_non_increasing() {
+    let mut rng = SplitMix64::new(0x0C05_71A5);
+    for _ in 0..ITERS {
+        let att = Stats::new(rng.range(0, 100), rng.range(0, 200), 0);
+        let falloff = rng.range(0, 30);
+        let n = rng.below(6) as usize;
+        let def = rng.range(0, 50);
+        let mut targets: Vec<Stats> = (0..n).map(|_| Stats::new(1000, 1, def)).collect();
+        let dmgs = splash_attack(&att, &mut targets, falloff);
+        assert_eq!(dmgs.len(), n, "result length != target count");
+        for w in dmgs.windows(2) {
+            assert!(w[1] <= w[0], "splash damage rose with falloff: {:?}", dmgs);
+        }
+        assert!(dmgs.iter().all(|&d| d >= 1), "a target took < 1 damage: {dmgs:?}");
+    }
+}
+
+/// **`critical_strike` never deals less than `base_damage`** — a non-crit deals
+/// exactly base, a crit multiplies by `max(1, mult)` (clamped to `i32::MAX`),
+/// and `crit_chance >= 100` is always a crit while `<= 0` never is (and draws
+/// no RNG in either degenerate case).
+#[test]
+fn prop_critical_strike_at_least_base_and_draw_contract() {
+    let mut rng = SplitMix64::new(0x0C0_C211C);
+    for _ in 0..ITERS {
+        let att = rand_stats(&mut rng);
+        let mut def = rand_stats(&mut rng);
+        let base = base_damage(&att, &def);
+        let mult = rng.range(-2, 5);
+
+        // Degenerate chances: deterministic and drawless.
+        let chance = if rng.below(2) == 0 { 200 } else { -5 };
+        let probe = rng.state();
+        let r = critical_strike(&mut rng, &att, &mut def, chance, mult);
+        assert_eq!(rng.state(), probe, "degenerate crit chance consumed a draw");
+        assert_eq!(r.critical, chance >= 100, "crit flag wrong for chance {chance}");
+        assert!(r.damage >= base, "crit_strike {} below base {base}", r.damage);
+        if r.critical {
+            let want = (base as i64 * mult.max(1) as i64).min(i32::MAX as i64) as i32;
+            assert_eq!(r.damage, want, "crit damage != base*max(1,mult) clamped");
+        } else {
+            assert_eq!(r.damage, base, "non-crit damage != base");
+        }
     }
 }
