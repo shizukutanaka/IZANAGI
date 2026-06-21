@@ -23,6 +23,7 @@ use izanagi_kit::combat::{
     StatsModifier,
 };
 use izanagi_kit::damage::{DamageType, ResistanceProfile};
+use izanagi_kit::inventory::Inventory;
 use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
@@ -3864,5 +3865,212 @@ fn prop_status_hash_and_aggregates_order_independent() {
         assert_eq!(fwd.magnitude_range(), rev.magnitude_range(), "range differs");
         assert_eq!(fwd.max_remaining(), rev.max_remaining(), "max_remaining differs");
         assert_eq!(fwd.min_remaining(), rev.min_remaining(), "min_remaining differs");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// inventory::Inventory — slot-based item bookkeeping laws
+//
+// Items live in fixed-capacity optional slots; add fills the first free slot,
+// remove leaves a gap, and the slot layout is stable. The container obeys exact
+// laws regardless of fill/remove history:
+//   - the occupancy counters all agree and stay within [0, capacity];
+//   - add fills first_empty_slot and increments len (or returns None when full);
+//   - add-then-remove of the returned slot is an exact round-trip (hash-stable);
+//   - swap is an involution and preserves the item multiset;
+//   - move_to_slot succeeds exactly on (in-bounds, from occupied, to free) and
+//     never mutates state on failure;
+//   - remove_where_indexed agrees with find + remove.
+// ---------------------------------------------------------------------------
+
+/// An inventory of `cap` `u32` slots churned with a random add/remove history,
+/// so it carries gaps and is rarely full or empty.
+fn rand_inventory(rng: &mut SplitMix64, cap: usize) -> Inventory<u32> {
+    let mut inv = Inventory::new(cap);
+    for _ in 0..(cap * 2 + 2) {
+        if rng.below(3) == 0 {
+            inv.remove(rng.below(cap as u32) as usize);
+        } else {
+            inv.add(rng.below(1000));
+        }
+    }
+    inv
+}
+
+/// **occupancy counters agree and stay in `[0, capacity]`** — across an
+/// arbitrary add/remove history, `len == count_occupied == filled_slots().len()
+/// == iter().count()`, the count never leaves `[0, capacity]`, the boolean
+/// predicates match the count, and `filled_slots` is exactly the ascending list
+/// of occupied indices.
+#[test]
+fn prop_inventory_occupancy_invariants() {
+    let mut rng = SplitMix64::new(0x141E_0000);
+    for _ in 0..ITERS {
+        let cap = 1 + rng.below(8) as usize;
+        let inv = rand_inventory(&mut rng, cap);
+        let len = inv.len();
+        assert_eq!(len, inv.count_occupied(), "len != count_occupied");
+        assert_eq!(len, inv.iter().count(), "len != iter count");
+        let filled = inv.filled_slots();
+        assert_eq!(len, filled.len(), "len != filled_slots len");
+        assert!(len <= cap, "len {len} exceeds capacity {cap}");
+        assert_eq!(inv.is_empty(), len == 0, "is_empty mismatch");
+        assert_eq!(inv.is_full(), len == cap, "is_full mismatch");
+        assert_eq!(inv.has_space(), len < cap, "has_space mismatch");
+        // filled_slots ascending and every listed slot is occupied.
+        for w in filled.windows(2) {
+            assert!(w[0] < w[1], "filled_slots not ascending: {filled:?}");
+        }
+        for &i in &filled {
+            assert!(inv.get(i).is_some(), "filled slot {i} is empty");
+        }
+    }
+}
+
+/// **add fills `first_empty_slot` and increments len; full inventories reject** —
+/// when there is space, `add` returns exactly the index `first_empty_slot`
+/// reported, stores the item there, and raises `len` by one; when full, `add`
+/// returns `None` and leaves `len` untouched.
+#[test]
+fn prop_inventory_add_fills_first_empty() {
+    let mut rng = SplitMix64::new(0x141E_ADD1);
+    for _ in 0..ITERS {
+        let cap = 1 + rng.below(8) as usize;
+        let mut inv = rand_inventory(&mut rng, cap);
+        let len_before = inv.len();
+        let pre_empty = inv.first_empty_slot();
+        let item = rng.below(1000);
+        let result = inv.add(item);
+        if let Some(slot) = result {
+            assert_eq!(Some(slot), pre_empty, "add did not use first_empty_slot");
+            assert_eq!(inv.get(slot), Some(&item), "item not stored at returned slot");
+            assert_eq!(inv.len(), len_before + 1, "len did not increment");
+        } else {
+            assert!(inv.is_full(), "add returned None on a non-full inventory");
+            assert_eq!(inv.len(), len_before, "rejected add changed len");
+            assert_eq!(pre_empty, None, "first_empty_slot disagreed with full add");
+        }
+    }
+}
+
+/// **add-then-remove is an exact, hash-stable round-trip** — adding an item then
+/// removing the slot `add` returned restores the original item and leaves the
+/// inventory bit-identical (same `DetHash`) to before the add, because `add`
+/// fills the first empty slot and `remove` clears exactly that slot.
+#[test]
+fn prop_inventory_add_remove_round_trip() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x141E_3217);
+    for _ in 0..ITERS {
+        let cap = 1 + rng.below(8) as usize;
+        let mut inv = rand_inventory(&mut rng, cap);
+        if inv.is_full() {
+            continue; // no free slot to round-trip through
+        }
+        let before = hash_state(&inv);
+        let item = rng.below(1000);
+        let slot = inv.add(item).expect("non-full inventory must accept add");
+        assert_eq!(inv.remove(slot), Some(item), "remove did not return the item");
+        assert_eq!(hash_state(&inv), before, "add+remove was not identity");
+    }
+}
+
+/// **swap is an involution and preserves the item multiset** — `swap(a,b)` keeps
+/// the occupied count and the sorted multiset of items unchanged (it only moves
+/// items between slots), and applying it twice restores the exact state.
+/// Out-of-bounds indices are clamped, so the law holds for any indices.
+#[test]
+fn prop_inventory_swap_involution_and_multiset() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x141E_57A9);
+    for _ in 0..ITERS {
+        let cap = 1 + rng.below(8) as usize;
+        let mut inv = rand_inventory(&mut rng, cap);
+        let before = hash_state(&inv);
+        let mut items_before: Vec<u32> = inv.iter().map(|(_, &v)| v).collect();
+        items_before.sort_unstable();
+        let len_before = inv.len();
+
+        let a = rng.below((cap + 2) as u32) as usize;
+        let b = rng.below((cap + 2) as u32) as usize;
+        inv.swap(a, b);
+        assert_eq!(inv.len(), len_before, "swap changed occupancy");
+        let mut items_after: Vec<u32> = inv.iter().map(|(_, &v)| v).collect();
+        items_after.sort_unstable();
+        assert_eq!(items_before, items_after, "swap altered the item multiset");
+
+        inv.swap(a, b); // involution
+        assert_eq!(hash_state(&inv), before, "swap was not its own inverse");
+    }
+}
+
+/// **move_to_slot succeeds exactly on a legal move and is a no-op otherwise** —
+/// it returns `true` iff both indices are in bounds, `from` is occupied, and
+/// `to` is either equal to `from` or empty. On success the item relocates,
+/// `from` becomes empty (unless `from == to`), and `len` is unchanged. On
+/// failure the inventory is left bit-identical.
+#[test]
+fn prop_inventory_move_to_slot_semantics() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x141E_30E5);
+    for _ in 0..ITERS {
+        let cap = 1 + rng.below(8) as usize;
+        let mut inv = rand_inventory(&mut rng, cap);
+        let from = rng.below((cap + 2) as u32) as usize;
+        let to = rng.below((cap + 2) as u32) as usize;
+
+        let in_bounds = from < cap && to < cap;
+        let from_item = inv.get(from).copied();
+        let to_empty = to < cap && inv.get(to).is_none();
+        let expected = in_bounds && from_item.is_some() && (from == to || to_empty);
+
+        let before = hash_state(&inv);
+        let len_before = inv.len();
+        let ok = inv.move_to_slot(from, to);
+        assert_eq!(ok, expected, "move_to_slot({from},{to}) result wrong");
+
+        if ok {
+            assert_eq!(inv.len(), len_before, "successful move changed len");
+            assert_eq!(inv.get(to).copied(), from_item, "item not at destination");
+            if from != to {
+                assert!(inv.get(from).is_none(), "source slot not vacated");
+            }
+        } else {
+            assert_eq!(hash_state(&inv), before, "failed move mutated state");
+        }
+    }
+}
+
+/// **remove_where_indexed agrees with find + remove** — it returns `(slot, item)`
+/// where `slot` is exactly `find(pred)`, leaves that slot empty, drops `len` by
+/// one, and the returned item is the one `get(slot)` held; a non-match returns
+/// `None` and leaves the inventory bit-identical.
+#[test]
+fn prop_inventory_remove_where_indexed_matches_find() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x141E_F147);
+    for _ in 0..ITERS {
+        let cap = 1 + rng.below(8) as usize;
+        let mut inv = rand_inventory(&mut rng, cap);
+        let threshold = rng.below(1000);
+        let pred = |v: &u32| *v >= threshold;
+
+        let expected_slot = inv.find(pred);
+        let expected_item = expected_slot.and_then(|s| inv.get(s).copied());
+        let len_before = inv.len();
+        let before = hash_state(&inv);
+
+        match inv.remove_where_indexed(pred) {
+            Some((slot, item)) => {
+                assert_eq!(Some(slot), expected_slot, "removed slot != find()");
+                assert_eq!(Some(item), expected_item, "removed item != get(slot)");
+                assert!(inv.get(slot).is_none(), "slot not emptied after removal");
+                assert_eq!(inv.len(), len_before - 1, "len did not drop by one");
+            }
+            None => {
+                assert_eq!(expected_slot, None, "None despite a matching item");
+                assert_eq!(hash_state(&inv), before, "no-match removal mutated state");
+            }
+        }
     }
 }
