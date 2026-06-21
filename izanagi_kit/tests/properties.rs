@@ -18,6 +18,8 @@ use izanagi_kit::pathfinding::{
 };
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
+use izanagi_kit::combat::apply_resistance;
+use izanagi_kit::damage::{DamageType, ResistanceProfile};
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
     generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
@@ -2980,6 +2982,239 @@ fn prop_multimap_same_floor_path_is_empty() {
             path,
             Some(Vec::new()),
             "find_floor_path({target},{target}) returned {path:?}, want Some([])"
+        );
+    }
+}
+
+// ---------------------------------------------------------------------------
+// damage::ResistanceProfile — typed-damage algebraic laws
+//
+// The resistance model is integer-only and order-deterministic (no float, no
+// HashMap), so its post-resistance damage obeys clean algebraic laws:
+//   - non-negativity: the result is never negative for any resist (incl. < 0);
+//   - True bypass: `DamageType::True` is the identity on `max(0, dmg)`;
+//   - boundary pins: resist == 0 → unchanged, resist >= 100 → 0;
+//   - monotonicity: result rises with damage, falls as resistance rises;
+//   - vulnerability: resist < 0 amplifies (result >= dmg);
+//   - oracle agreement: for resist in [0,100] it equals combat::apply_resistance.
+// ---------------------------------------------------------------------------
+
+/// The six resistible damage types in canonical order (everything but `True`).
+const RESISTIBLE: [DamageType; 6] = [
+    DamageType::Physical,
+    DamageType::Fire,
+    DamageType::Cold,
+    DamageType::Lightning,
+    DamageType::Poison,
+    DamageType::Arcane,
+];
+
+fn rand_damage_type(rng: &mut SplitMix64) -> DamageType {
+    DamageType::ALL[rng.below(DamageType::COUNT as u32) as usize]
+}
+
+fn rand_resistible_type(rng: &mut SplitMix64) -> DamageType {
+    RESISTIBLE[rng.below(RESISTIBLE.len() as u32) as usize]
+}
+
+/// A resistance percentage spanning the whole meaningful range: deep
+/// vulnerability, the [0,100] soak band, over-immunity, and the saturating
+/// extremes — so laws that must hold "for any i32 resist" are actually probed
+/// there, not just in the pretty range.
+fn rand_resist(rng: &mut SplitMix64) -> i32 {
+    match rng.below(8) {
+        0 => i32::MIN,
+        1 => i32::MAX,
+        2 => -(rng.range(1, 500)),
+        3 => 100,
+        4 => 0,
+        5 => rng.range(101, 100_000),
+        _ => rng.range(0, 101),
+    }
+}
+
+/// **apply is non-negative and True is the identity** — for *any* profile,
+/// damage, and type, the post-resistance amount is `>= 0` (over-immunity never
+/// becomes healing, and a huge vulnerability clamps at `i32::MAX` rather than
+/// wrapping). For `DamageType::True` specifically, `apply` must return
+/// `damage.max(0)` unchanged regardless of the profile.
+#[test]
+fn prop_damage_apply_non_negative_and_true_is_identity() {
+    let mut rng = SplitMix64::new(0x0DA1_1A6E);
+    for _ in 0..ITERS {
+        let mut profile = ResistanceProfile::new();
+        for ty in DamageType::ALL {
+            profile.set(ty, rand_resist(&mut rng));
+        }
+        let damage = match rng.below(4) {
+            0 => i32::MAX,
+            1 => -(rng.range(0, 1000)),
+            _ => rng.range(-50, 100_000),
+        };
+        let ty = rand_damage_type(&mut rng);
+        let out = profile.apply(damage, ty);
+        assert!(
+            out >= 0,
+            "apply({damage}, {ty:?}) = {out} is negative (resist={})",
+            profile.get(ty)
+        );
+        // True is unconditionally the identity on the clamped input.
+        assert_eq!(
+            profile.apply(damage, DamageType::True),
+            damage.max(0),
+            "True damage must bypass the profile entirely"
+        );
+    }
+}
+
+/// **boundary pins: resist 0 is the identity, resist >= 100 is full immunity** —
+/// a resistible type with resistance exactly 0 takes full (clamped) damage, and
+/// any resistance `>= 100` (including over-immune 150 and saturating MAX) takes
+/// exactly 0. `is_immune` must agree with the `>= 100` boundary.
+#[test]
+fn prop_damage_apply_boundary_pins() {
+    let mut rng = SplitMix64::new(0x0DAB_011D);
+    for _ in 0..ITERS {
+        let ty = rand_resistible_type(&mut rng);
+        let damage = rng.range(0, 100_000);
+
+        let zero = ResistanceProfile::new().with(ty, 0);
+        assert_eq!(
+            zero.apply(damage, ty),
+            damage,
+            "resist=0 must pass {ty:?} damage through unchanged"
+        );
+
+        let immune_pct = match rng.below(3) {
+            0 => 100,
+            1 => rng.range(101, 100_000),
+            _ => i32::MAX,
+        };
+        let immune = ResistanceProfile::new().with(ty, immune_pct);
+        assert_eq!(
+            immune.apply(damage, ty),
+            0,
+            "resist={immune_pct} (>=100) must fully soak {ty:?} damage"
+        );
+        assert!(
+            immune.is_immune(ty),
+            "is_immune must report true for resist={immune_pct}"
+        );
+    }
+}
+
+/// **monotonicity in damage and in resistance** — for a fixed resistible type:
+///   (a) raising the incoming damage never lowers the post-resistance amount;
+///   (b) raising the resistance percentage never raises the amount taken.
+/// Integer truncation toward zero preserves both `<=` relations.
+#[test]
+fn prop_damage_apply_is_monotone() {
+    let mut rng = SplitMix64::new(0x0DA3_070E);
+    for _ in 0..ITERS {
+        let ty = rand_resistible_type(&mut rng);
+
+        // (a) monotone non-decreasing in damage at a fixed resistance.
+        let resist = rand_resist(&mut rng);
+        let profile = ResistanceProfile::new().with(ty, resist);
+        let d0 = rng.range(0, 50_000);
+        let d1 = d0 + rng.range(0, 50_000); // d1 >= d0
+        let r0 = profile.apply(d0, ty);
+        let r1 = profile.apply(d1, ty);
+        assert!(
+            r1 >= r0,
+            "more damage gave less: apply({d1})={r1} < apply({d0})={r0} (resist={resist}, {ty:?})"
+        );
+
+        // (b) monotone non-increasing in resistance at a fixed damage.
+        let damage = rng.range(0, 100_000);
+        let lo = rng.range(-200, 100);
+        let hi = lo + rng.range(0, 300); // hi >= lo
+        let taken_lo = ResistanceProfile::new().with(ty, lo).apply(damage, ty);
+        let taken_hi = ResistanceProfile::new().with(ty, hi).apply(damage, ty);
+        assert!(
+            taken_hi <= taken_lo,
+            "more resistance let more through: resist {hi}->{taken_hi} > resist {lo}->{taken_lo} \
+             (damage={damage}, {ty:?})"
+        );
+    }
+}
+
+/// **vulnerability amplifies; over-soak attenuates** — a negative resistance
+/// (`is_vulnerable`) makes the target take at least as much as the raw damage,
+/// while a positive resistance in (0,100] takes at most the raw damage. Both
+/// stay within the `[0, i32::MAX]` clamp.
+#[test]
+fn prop_damage_vulnerability_amplifies_resistance_attenuates() {
+    let mut rng = SplitMix64::new(0x0DAF_EE11);
+    for _ in 0..ITERS {
+        let ty = rand_resistible_type(&mut rng);
+        let damage = rng.range(0, 40_000);
+
+        let vuln_pct = -(rng.range(1, 400));
+        let vuln = ResistanceProfile::new().with(ty, vuln_pct);
+        assert!(vuln.is_vulnerable(ty), "resist={vuln_pct} should be vulnerable");
+        assert!(
+            vuln.apply(damage, ty) >= damage,
+            "vulnerability must amplify: apply({damage})={} < {damage} (resist={vuln_pct}, {ty:?})",
+            vuln.apply(damage, ty)
+        );
+
+        let soak_pct = rng.range(1, 101); // 1..=100
+        let soak = ResistanceProfile::new().with(ty, soak_pct);
+        assert!(
+            soak.apply(damage, ty) <= damage,
+            "soak must attenuate: apply({damage})={} > {damage} (resist={soak_pct}, {ty:?})",
+            soak.apply(damage, ty)
+        );
+    }
+}
+
+/// **oracle agreement with combat::apply_resistance over [0,100]** — for the
+/// percentage band the two subsystems share, typed damage must equal the flat
+/// primitive exactly, so a creature can carry a `ResistanceProfile` while old
+/// code calls `apply_resistance` and they never diverge. Also checks the
+/// `index`/`from_index` round-trip that this agreement relies on for indexing.
+#[test]
+fn prop_damage_apply_matches_combat_oracle_and_index_roundtrips() {
+    let mut rng = SplitMix64::new(0x0DA0_AC1E);
+    for _ in 0..ITERS {
+        let ty = rand_resistible_type(&mut rng);
+        let resist = rng.range(0, 101) as u32; // 0..=100, the shared band
+        let damage = rng.range(0, 100_000);
+        let typed = ResistanceProfile::new()
+            .with(ty, resist as i32)
+            .apply(damage, ty);
+        let flat = apply_resistance(damage, resist);
+        assert_eq!(
+            typed, flat,
+            "typed/flat divergence: apply({damage},{ty:?},resist={resist})={typed} vs {flat}"
+        );
+        // index round-trips for every type, underpinning per-type array access.
+        assert_eq!(DamageType::from_index(ty.index()), Some(ty));
+    }
+    assert_eq!(DamageType::from_index(DamageType::COUNT), None);
+}
+
+/// **`add` is saturating and never flips sign** — layering buffs/debuffs onto a
+/// base profile with `add` must clamp at `i32::MIN`/`i32::MAX` rather than
+/// wrapping (a wrap would silently turn a stack of resistances into a
+/// vulnerability). The post-`add` value must lie on the same side of the true
+/// (i64) sum, i.e. equal `saturating_add`.
+#[test]
+fn prop_damage_add_is_saturating() {
+    let mut rng = SplitMix64::new(0x0DAA_DD5A);
+    for _ in 0..ITERS {
+        let ty = rand_resistible_type(&mut rng);
+        let base = rand_resist(&mut rng);
+        let delta = rand_resist(&mut rng);
+        let mut profile = ResistanceProfile::new().with(ty, base);
+        profile.add(ty, delta);
+        let expected = (base as i64 + delta as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32;
+        assert_eq!(
+            profile.get(ty),
+            expected,
+            "add({base}, {delta}) on {ty:?} = {} != saturating {expected}",
+            profile.get(ty)
         );
     }
 }
