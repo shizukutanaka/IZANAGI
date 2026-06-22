@@ -25,6 +25,7 @@ use izanagi_kit::combat::{
 use izanagi_kit::damage::{DamageType, ResistanceProfile};
 use izanagi_kit::inventory::Inventory;
 use izanagi_kit::status::{StatTarget, StatusSet};
+use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
     generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
@@ -4071,6 +4072,232 @@ fn prop_inventory_remove_where_indexed_matches_find() {
                 assert_eq!(expected_slot, None, "None despite a matching item");
                 assert_eq!(hash_state(&inv), before, "no-match removal mutated state");
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// tilemap::TileMap / LayeredMap — grid structural laws
+//
+// A TileMap is a row-major grid with panic-free OOB handling and a set of
+// geometric transforms. These obey exact laws:
+//   - flip_h / flip_v are involutions that preserve the cell multiset;
+//   - rotating CW four times (or CW then CCW) is the identity; each rotation
+//     swaps the dimensions and preserves the cell multiset;
+//   - copy_region then paste_region round-trips a sub-rectangle exactly;
+//   - iter is row-major and consistent with get/contains/count/find/any/all;
+//   - in-bounds set is observable, OOB set is a hash-stable no-op, and swap is
+//     an involution that preserves the multiset;
+//   - LayeredMap layers are independent and share one set of dimensions.
+// ---------------------------------------------------------------------------
+
+/// A small random tile grid (1..6 per side) with cell values in 0..5.
+fn rand_tilemap(rng: &mut SplitMix64) -> TileMap<u8> {
+    let w = 1 + rng.below(6);
+    let h = 1 + rng.below(6);
+    let mut m = TileMap::new(w, h, 0u8);
+    for (_, _, c) in m.iter_mut() {
+        *c = rng.below(5) as u8;
+    }
+    m
+}
+
+/// The sorted multiset of a map's cells — invariant under any pure rearrangement
+/// (flip, rotate, swap).
+fn tile_multiset(m: &TileMap<u8>) -> Vec<u8> {
+    let mut v: Vec<u8> = m.iter().map(|(_, _, &c)| c).collect();
+    v.sort_unstable();
+    v
+}
+
+/// **flip_h and flip_v are multiset-preserving involutions** — flipping twice on
+/// either axis restores the exact grid (same `DetHash`), dimensions never
+/// change, and a single flip only rearranges cells (the sorted multiset is
+/// unchanged).
+#[test]
+fn prop_tilemap_flip_involutions() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x7113_F11D);
+    for _ in 0..ITERS {
+        let mut m = rand_tilemap(&mut rng);
+        let (w, h) = (m.width(), m.height());
+        let before = hash_state(&m);
+        let ms = tile_multiset(&m);
+
+        m.flip_h();
+        assert_eq!((m.width(), m.height()), (w, h), "flip_h changed dimensions");
+        assert_eq!(tile_multiset(&m), ms, "flip_h altered the cell multiset");
+        m.flip_h();
+        assert_eq!(hash_state(&m), before, "flip_h is not an involution");
+
+        m.flip_v();
+        assert_eq!(tile_multiset(&m), ms, "flip_v altered the cell multiset");
+        m.flip_v();
+        assert_eq!(hash_state(&m), before, "flip_v is not an involution");
+    }
+}
+
+/// **rotation is a dimension-swapping, multiset-preserving symmetry** — rotating
+/// 90° CW four times returns the original grid, CW followed by CCW is the
+/// identity, every single rotation swaps `(w, h)` and keeps the cell multiset.
+#[test]
+fn prop_tilemap_rotation_round_trips() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x7113_0747);
+    for _ in 0..ITERS {
+        let m = rand_tilemap(&mut rng);
+        let before = hash_state(&m);
+        let (w, h) = (m.width(), m.height());
+        let ms = tile_multiset(&m);
+
+        let once = m.rotated_cw();
+        assert_eq!((once.width(), once.height()), (h, w), "CW did not swap dims");
+        assert_eq!(tile_multiset(&once), ms, "CW altered the multiset");
+
+        let four = once.rotated_cw().rotated_cw().rotated_cw();
+        assert_eq!(hash_state(&four), before, "four CW rotations != identity");
+
+        let there_and_back = m.rotated_cw().rotated_ccw();
+        assert_eq!(hash_state(&there_and_back), before, "CW then CCW != identity");
+    }
+}
+
+/// **copy_region then paste_region round-trips a sub-rectangle** — copying an
+/// in-bounds `rw×rh` region, pasting it into a fresh `rw×rh` map at the origin,
+/// and copying it back reproduces the original data exactly, and each datum
+/// matches the source cell it came from.
+#[test]
+fn prop_tilemap_copy_paste_round_trip() {
+    let mut rng = SplitMix64::new(0x7113_C0FA);
+    for _ in 0..ITERS {
+        let m = rand_tilemap(&mut rng);
+        let rw = 1 + rng.below(m.width());
+        let rh = 1 + rng.below(m.height());
+        let x = rng.below(m.width() - rw + 1) as i32;
+        let y = rng.below(m.height() - rh + 1) as i32;
+
+        let data = m.copy_region(x, y, rw as i32, rh as i32, 0);
+        assert_eq!(data.len(), (rw * rh) as usize, "copied region wrong length");
+        // each datum matches the source cell.
+        for row in 0..rh as i32 {
+            for col in 0..rw as i32 {
+                assert_eq!(
+                    data[(row * rw as i32 + col) as usize],
+                    *m.get(x + col, y + row).unwrap(),
+                    "copied cell mismatch at ({col},{row})"
+                );
+            }
+        }
+
+        let mut dst = TileMap::new(rw, rh, 0u8);
+        dst.paste_region(0, 0, rw as i32, rh as i32, &data);
+        let back = dst.copy_region(0, 0, rw as i32, rh as i32, 0);
+        assert_eq!(data, back, "copy→paste→copy was not identity");
+    }
+}
+
+/// **iter is row-major and consistent with the query API** — `iter` yields
+/// exactly `w·h` cells whose coordinates are in bounds and round-trip through
+/// `get`; `find_all` equals the row-major filtered coordinates, `count_where`
+/// equals that length, `any_where`/`all_where` agree with it, and `find_first`
+/// is the first matching coordinate.
+#[test]
+fn prop_tilemap_iter_consistency() {
+    let mut rng = SplitMix64::new(0x7113_17E5);
+    for _ in 0..ITERS {
+        let m = rand_tilemap(&mut rng);
+        let n = (m.width() * m.height()) as usize;
+        assert_eq!(m.iter().count(), n, "iter count != w*h");
+        assert_eq!(m.len(), n, "len != w*h");
+        for (x, y, t) in m.iter() {
+            assert_eq!(m.get(x, y), Some(t), "iter/get disagree at ({x},{y})");
+            assert!(m.contains(x, y), "iter yielded OOB coord ({x},{y})");
+        }
+
+        let threshold = rng.below(5) as u8;
+        let pred = |t: &u8| *t >= threshold;
+        let expected: Vec<(i32, i32)> = m
+            .iter()
+            .filter(|(_, _, t)| pred(t))
+            .map(|(x, y, _)| (x, y))
+            .collect();
+        assert_eq!(m.find_all(pred), expected, "find_all != row-major filter");
+        assert_eq!(m.count_where(pred), expected.len(), "count_where != match count");
+        assert_eq!(m.any_where(pred), !expected.is_empty(), "any_where mismatch");
+        assert_eq!(m.all_where(pred), expected.len() == n, "all_where mismatch");
+        assert_eq!(m.find_first(pred), expected.first().copied(), "find_first mismatch");
+    }
+}
+
+/// **set is observable in bounds, a hash-stable no-op out of bounds, and swap is
+/// a multiset-preserving involution** — an in-bounds `set` is read back by
+/// `get`; OOB sets leave the grid bit-identical and `get` returns `None`;
+/// swapping a pair of cells twice restores the grid and never changes the
+/// multiset.
+#[test]
+fn prop_tilemap_set_get_swap_laws() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x7113_5E75);
+    for _ in 0..ITERS {
+        let mut m = rand_tilemap(&mut rng);
+        let w = m.width() as i32;
+        let h = m.height() as i32;
+
+        let x = rng.below(m.width()) as i32;
+        let y = rng.below(m.height()) as i32;
+        let v = rng.below(200) as u8;
+        m.set(x, y, v);
+        assert_eq!(m.get(x, y), Some(&v), "in-bounds set not observable");
+
+        let before_oob = hash_state(&m);
+        m.set(-1, y, 250);
+        m.set(x, h, 250);
+        m.set(w + 5, h + 5, 250);
+        assert_eq!(hash_state(&m), before_oob, "OOB set mutated the grid");
+        assert!(m.get(-1, 0).is_none() && m.get(w, 0).is_none(), "OOB get not None");
+
+        let ms = tile_multiset(&m);
+        let before_swap = hash_state(&m);
+        let x2 = rng.below(m.width()) as i32;
+        let y2 = rng.below(m.height()) as i32;
+        m.swap(x, y, x2, y2);
+        assert_eq!(tile_multiset(&m), ms, "swap altered the multiset");
+        m.swap(x, y, x2, y2);
+        assert_eq!(hash_state(&m), before_swap, "swap is not an involution");
+    }
+}
+
+/// **LayeredMap layers are independent and uniformly sized** — writing to one
+/// layer never changes another layer's cell at the same position; `get` routes
+/// to the right layer; an out-of-range layer index is `None`; every layer shares
+/// the map's `(width, height)`; and `fill_all` writes through to every layer.
+#[test]
+fn prop_layered_map_layers_independent() {
+    let mut rng = SplitMix64::new(0x7113_1A7E);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(5);
+        let h = 1 + rng.below(5);
+        let lc = 1 + rng.below(4) as usize;
+        let mut m = LayeredMap::new(w, h, lc, 0u8);
+
+        let li = rng.below(lc as u32) as usize;
+        let x = rng.below(w) as i32;
+        let y = rng.below(h) as i32;
+        m.set(li, x, y, 9);
+        assert_eq!(m.get(li, x, y), Some(&9), "set/get on target layer disagree");
+        for other in 0..lc {
+            if other != li {
+                assert_eq!(m.get(other, x, y), Some(&0), "layer {other} leaked a write");
+            }
+            let layer = m.layer(other).expect("layer in range");
+            assert_eq!((layer.width(), layer.height()), (w, h), "layer dims differ");
+        }
+        assert!(m.layer(lc).is_none(), "out-of-range layer not None");
+        assert!(m.get(lc, 0, 0).is_none(), "out-of-range get not None");
+
+        m.fill_all(3);
+        for i in 0..lc {
+            assert_eq!(m.get(i, x, y), Some(&3), "fill_all skipped layer {i}");
         }
     }
 }
