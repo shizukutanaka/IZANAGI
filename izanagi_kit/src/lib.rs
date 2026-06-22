@@ -17,6 +17,7 @@
 //! - [`timer`] — tick-based `Cooldown` and `TimerQueue<E>` for delayed events.
 //! - [`turn`] — energy/speed-based turn scheduler.
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
+//! - [`shufflebag`] — draw-without-replacement bag randomizer with auto-refill (`ShuffleBag<T>`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
@@ -106,6 +107,7 @@ pub mod replay;
 pub mod rng;
 pub mod savefile;
 pub mod serializer;
+pub mod shufflebag;
 pub mod sparse_set;
 pub mod spatial_hash;
 pub mod status;
@@ -188,6 +190,7 @@ pub use replay::{
     check_trace, count_divergences, first_divergence, record_trace, resimulate, Divergence,
 };
 pub use rng::SplitMix64;
+pub use shufflebag::ShuffleBag;
 pub use savefile::{
     estimate_save_size, load_bytes, load_bytes_migrated, load_bytes_owned, save_bytes,
     validate_integrity, LoadError, Migrator, SaveHeader,

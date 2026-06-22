@@ -28,6 +28,7 @@ use izanagi_kit::inventory::Inventory;
 use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::visibility::{Visibility, VisibilityMap};
+use izanagi_kit::shufflebag::ShuffleBag;
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
     generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
@@ -4752,5 +4753,106 @@ fn prop_visibility_begin_frame_demotes_exactly() {
         }
         assert_eq!(v.visible_count(), 0, "visible remained after begin_frame");
         assert_eq!(v.explored_count(), explored_before, "explored set changed");
+    }
+}
+
+// ── ShuffleBag ────────────────────────────────────────────────────────────────
+
+/// **One full cycle is a permutation of the template.**
+/// Draw exactly `cycle_len()` items; sorted they must equal the sorted template.
+#[test]
+fn prop_shufflebag_cycle_is_permutation() {
+    let mut rng = SplitMix64::new(0xBA65_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8) as usize;
+        let contents: Vec<u32> = (0..n).map(|_| rng.below(16)).collect();
+        let mut bag = ShuffleBag::new(contents.clone());
+        let drawn: Vec<u32> = (0..n).map(|_| bag.draw(&mut rng).unwrap()).collect();
+        let mut expected = contents.clone();
+        let mut got = drawn.clone();
+        expected.sort_unstable();
+        got.sort_unstable();
+        assert_eq!(got, expected, "one cycle must be a permutation of the template");
+        assert!(bag.cycle_exhausted(), "bag must be empty after exactly one cycle");
+    }
+}
+
+/// **Two consecutive cycles are both permutations, and counts are balanced.**
+/// Over two full cycles each item appears exactly twice its multiplicity.
+#[test]
+fn prop_shufflebag_two_cycles_balanced() {
+    let mut rng = SplitMix64::new(0xBA65_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6) as usize;
+        let contents: Vec<u32> = (0..n).map(|_| rng.below(8)).collect();
+        let mut bag = ShuffleBag::new(contents.clone());
+        let drawn: Vec<u32> = (0..2 * n).map(|_| bag.draw(&mut rng).unwrap()).collect();
+        // Every value in `contents` must appear exactly twice its count.
+        let mut expected = contents.clone();
+        expected.extend_from_slice(&contents);
+        expected.sort_unstable();
+        let mut got = drawn.clone();
+        got.sort_unstable();
+        assert_eq!(got, expected, "two cycles must double each template count");
+    }
+}
+
+/// **Determinism**: identical seed ⇒ identical draw sequence.
+#[test]
+fn prop_shufflebag_draw_sequence_deterministic() {
+    let mut seed_rng = SplitMix64::new(0xBA65_0003);
+    for _ in 0..ITERS {
+        let n = 1 + seed_rng.below(6) as usize;
+        let contents: Vec<u32> = (0..n).map(|_| seed_rng.below(16)).collect();
+        let seed = seed_rng.next_u64();
+        let draws = 2 * n + seed_rng.below(4) as usize;
+        let seq = |s: u64| {
+            let mut bag = ShuffleBag::new(contents.clone());
+            let mut r = SplitMix64::new(s);
+            (0..draws).map(|_| bag.draw(&mut r).unwrap()).collect::<Vec<_>>()
+        };
+        assert_eq!(seq(seed), seq(seed), "same seed must produce same sequence");
+    }
+}
+
+/// **Empty bag always returns None and never panics.**
+#[test]
+fn prop_shufflebag_empty_returns_none() {
+    let mut rng = SplitMix64::new(0xBA65_0004);
+    for _ in 0..ITERS {
+        let mut bag: ShuffleBag<u32> = ShuffleBag::new(vec![]);
+        assert!(bag.is_empty());
+        assert_eq!(bag.draw(&mut rng), None);
+        assert_eq!(bag.remaining(), 0);
+    }
+}
+
+/// **Size-1 bag never consumes an RNG draw** (degenerate-bound contract).
+#[test]
+fn prop_shufflebag_size1_no_rng_draw() {
+    let mut rng = SplitMix64::new(0xBA65_0005);
+    for _ in 0..ITERS {
+        let item: u32 = rng.below(256);
+        let mut bag = ShuffleBag::new(vec![item]);
+        let state_before = rng.state();
+        for _ in 0..8 {
+            assert_eq!(bag.draw(&mut rng), Some(item));
+        }
+        assert_eq!(rng.state(), state_before, "size-1 bag must consume no RNG state");
+    }
+}
+
+/// **`add` grows both template and live bag by one.**
+#[test]
+fn prop_shufflebag_add_grows_both() {
+    let mut rng = SplitMix64::new(0xBA65_0006);
+    for _ in 0..ITERS {
+        let n = rng.below(5) as usize;
+        let contents: Vec<u32> = (0..n).map(|_| rng.below(16)).collect();
+        let mut bag = ShuffleBag::new(contents.clone());
+        let extra: u32 = rng.below(32);
+        bag.add(extra);
+        assert_eq!(bag.cycle_len(), n + 1, "cycle_len must grow by 1 after add");
+        assert_eq!(bag.remaining(), n + 1, "remaining must grow by 1 after add");
     }
 }
