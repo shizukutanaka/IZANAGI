@@ -18,6 +18,7 @@ use izanagi_kit::pathfinding::{
 };
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
+use izanagi_kit::camera::Camera;
 use izanagi_kit::combat::{
     apply_resistance, base_damage, critical_strike, melee_attack, roll_damage, roll_to_hit,
     StatsModifier,
@@ -4459,5 +4460,186 @@ fn prop_dice_flat_die_is_constant() {
 
         let real = Dice::new(1 + rng.below(5), 2 + rng.below(20), 0);
         assert!(!real.is_flat(), "sides>=2 must not be flat: {real}");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// camera::Camera — integer world↔screen coordinate-mapping laws
+//
+// The camera maps a world-space rectangle to a screen viewport with pure
+// integer arithmetic, so it obeys exact laws:
+//   - screen_to_world then world_to_screen is the identity on visible cells;
+//   - the viewport stays clamped within the world after any movement;
+//   - visibility is one predicate: world_to_screen.is_some() == is_visible ==
+//     inside world_rect == distance_to_edge >= 0;
+//   - clamp_world_to_screen always lands on screen and matches world_to_screen
+//     for visible points;
+//   - world_rect / center / viewport_area / contains_rect are mutually
+//     consistent;
+//   - screen_distance is a Chebyshev metric and chebyshev_to_center matches it.
+// ---------------------------------------------------------------------------
+
+/// A random camera: small world and viewport, focus possibly off-world so the
+/// clamping paths are exercised.
+fn rand_camera(rng: &mut SplitMix64) -> Camera {
+    Camera::new(
+        rng.range(-20, 80),
+        rng.range(-20, 80),
+        1 + rng.below(30),
+        1 + rng.below(30),
+        1 + rng.below(60),
+        1 + rng.below(60),
+    )
+}
+
+/// **screen_to_world then world_to_screen is the identity on the viewport** —
+/// every screen cell maps to a world point that maps straight back to the same
+/// cell, and out-of-viewport screen coordinates clamp to the edge cell.
+#[test]
+fn prop_camera_screen_world_round_trip() {
+    let mut rng = SplitMix64::new(0x0CA3_7717);
+    for _ in 0..ITERS {
+        let c = rand_camera(&mut rng);
+        let sx = rng.below(c.screen_w);
+        let sy = rng.below(c.screen_h);
+        let (wx, wy) = c.screen_to_world(sx, sy);
+        assert_eq!(
+            c.world_to_screen(wx, wy),
+            Some((sx, sy)),
+            "screen→world→screen not identity"
+        );
+        // OOB screen coords clamp to the last valid cell.
+        let (cwx, cwy) = c.screen_to_world(c.screen_w + 5, c.screen_h + 5);
+        let (ewx, ewy) = c.screen_to_world(c.screen_w - 1, c.screen_h - 1);
+        assert_eq!((cwx, cwy), (ewx, ewy), "OOB screen coords did not clamp to edge");
+    }
+}
+
+/// **the viewport stays clamped within the world** — after construction and any
+/// sequence of recenter / pan / set_screen_size against a fixed world, the
+/// top-left origin stays in `[0, max(0, world − screen)]` on both axes, so the
+/// viewport never scrolls off the world.
+#[test]
+fn prop_camera_viewport_stays_within_world() {
+    let mut rng = SplitMix64::new(0x0CA3_C1A3);
+    for _ in 0..ITERS {
+        let world_w = 1 + rng.below(60);
+        let world_h = 1 + rng.below(60);
+        let mut c = Camera::new(
+            rng.range(-20, 80),
+            rng.range(-20, 80),
+            1 + rng.below(30),
+            1 + rng.below(30),
+            world_w,
+            world_h,
+        );
+        for _ in 0..6 {
+            match rng.below(3) {
+                0 => c.recenter(rng.range(-40, 100), rng.range(-40, 100), world_w, world_h),
+                1 => c.pan(rng.range(-50, 50), rng.range(-50, 50), world_w, world_h),
+                _ => c.set_screen_size(1 + rng.below(30), 1 + rng.below(30), world_w, world_h),
+            }
+            let max_x = (world_w as i64 - c.screen_w as i64).max(0);
+            let max_y = (world_h as i64 - c.screen_h as i64).max(0);
+            assert!(
+                (c.top_left_x as i64) >= 0 && (c.top_left_x as i64) <= max_x,
+                "top_left_x {} outside [0, {max_x}]",
+                c.top_left_x
+            );
+            assert!(
+                (c.top_left_y as i64) >= 0 && (c.top_left_y as i64) <= max_y,
+                "top_left_y {} outside [0, {max_y}]",
+                c.top_left_y
+            );
+        }
+    }
+}
+
+/// **visibility is a single coherent predicate** — for any world point,
+/// `world_to_screen(..).is_some()`, `is_visible`, membership in the half-open
+/// `world_rect`, and `distance_to_edge >= 0` all agree.
+#[test]
+fn prop_camera_visibility_equivalences() {
+    let mut rng = SplitMix64::new(0x0CA3_715B);
+    for _ in 0..ITERS {
+        let c = rand_camera(&mut rng);
+        let (l, t, r, b) = c.world_rect();
+        let wx = rng.range(-30, 90);
+        let wy = rng.range(-30, 90);
+        let inside = wx >= l && wx < r && wy >= t && wy < b;
+        assert_eq!(c.world_to_screen(wx, wy).is_some(), inside, "world_to_screen vs rect");
+        assert_eq!(c.is_visible(wx, wy), inside, "is_visible vs rect");
+        assert_eq!(c.distance_to_edge(wx, wy) >= 0, inside, "distance_to_edge sign vs rect");
+    }
+}
+
+/// **clamp_world_to_screen always lands on screen and agrees when visible** —
+/// the result is always within `[0, screen_w) × [0, screen_h)`, and for a
+/// visible point it equals the `world_to_screen` mapping.
+#[test]
+fn prop_camera_clamp_world_to_screen_in_bounds() {
+    let mut rng = SplitMix64::new(0x0CA3_C1A9);
+    for _ in 0..ITERS {
+        let c = rand_camera(&mut rng);
+        let wx = rng.range(-30, 90);
+        let wy = rng.range(-30, 90);
+        let (sx, sy) = c.clamp_world_to_screen(wx, wy);
+        assert!(sx < c.screen_w && sy < c.screen_h, "clamp result off-screen");
+        if let Some(visible) = c.world_to_screen(wx, wy) {
+            assert_eq!((sx, sy), visible, "clamp disagreed with world_to_screen for visible point");
+        }
+    }
+}
+
+/// **world_rect, center, area and contains_rect are mutually consistent** — the
+/// rect's right/bottom equal origin plus size, `viewport_area == w·h`, the
+/// centre is the integer midpoint, and `contains_rect` equals the standard AABB
+/// overlap of a rectangle with the viewport (empty rects never overlap).
+#[test]
+fn prop_camera_world_rect_and_overlap_consistency() {
+    let mut rng = SplitMix64::new(0x0CA3_3EC7);
+    for _ in 0..ITERS {
+        let c = rand_camera(&mut rng);
+        let (l, t, r, b) = c.world_rect();
+        assert_eq!(r, c.top_left_x + c.screen_w as i32, "world_rect right wrong");
+        assert_eq!(b, c.top_left_y + c.screen_h as i32, "world_rect bottom wrong");
+        assert_eq!(c.viewport_area(), c.screen_w * c.screen_h, "area != w*h");
+        assert_eq!(c.center(), (l + c.screen_w as i32 / 2, t + c.screen_h as i32 / 2), "center wrong");
+
+        let rl = rng.range(-10, 70);
+        let rt = rng.range(-10, 70);
+        let rr = rl + 1 + rng.below(20) as i32;
+        let rb = rt + 1 + rng.below(20) as i32;
+        let overlap = rl < r && rr > l && rt < b && rb > t;
+        assert_eq!(c.contains_rect(rl, rt, rr, rb), overlap, "contains_rect != AABB overlap");
+        assert!(!c.contains_rect(5, 5, 5, 9), "empty rect overlapped");
+    }
+}
+
+/// **screen_distance is a Chebyshev metric and chebyshev_to_center matches it**
+/// — `screen_distance` is symmetric, zero iff the cells coincide, and satisfies
+/// the triangle inequality; `chebyshev_to_center` equals `max(|Δx|, |Δy|)` from
+/// the viewport centre.
+#[test]
+fn prop_camera_chebyshev_metric_axioms() {
+    let mut rng = SplitMix64::new(0x0CA3_DDE7);
+    for _ in 0..ITERS {
+        let a = (rng.below(50), rng.below(50));
+        let b = (rng.below(50), rng.below(50));
+        let p = (rng.below(50), rng.below(50));
+        let dab = Camera::screen_distance(a.0, a.1, b.0, b.1);
+        let dba = Camera::screen_distance(b.0, b.1, a.0, a.1);
+        let dbp = Camera::screen_distance(b.0, b.1, p.0, p.1);
+        let dap = Camera::screen_distance(a.0, a.1, p.0, p.1);
+        assert_eq!(dab, dba, "screen_distance not symmetric");
+        assert_eq!(dab == 0, a == b, "screen_distance zero must mean equal cells");
+        assert!(dap <= dab + dbp, "triangle inequality violated");
+
+        let c = rand_camera(&mut rng);
+        let (ccx, ccy) = c.center();
+        let wx = rng.range(-30, 90);
+        let wy = rng.range(-30, 90);
+        let expected = (ccx - wx).unsigned_abs().max((ccy - wy).unsigned_abs());
+        assert_eq!(c.chebyshev_to_center(wx, wy), expected, "chebyshev_to_center wrong");
     }
 }
