@@ -18,6 +18,7 @@
 //! - [`turn`] — energy/speed-based turn scheduler.
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`shufflebag`] — draw-without-replacement bag randomizer with auto-refill (`ShuffleBag<T>`).
+//! - [`equipment`] — worn-item loadout per body slot with aggregate `StatsModifier` (`Equipment<T>`, `EquipSlot`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
@@ -81,6 +82,7 @@ pub mod dice;
 pub mod easing;
 pub mod encounter;
 pub mod entity;
+pub mod equipment;
 pub mod fixed;
 pub mod fov;
 pub mod fsm;
@@ -151,6 +153,7 @@ pub use easing::{
 };
 pub use encounter::{EncounterPack, EncounterSlot};
 pub use entity::{Entity, EntityAllocator};
+pub use equipment::{EquipSlot, Equipment};
 pub use fixed::Fixed;
 pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};
 pub use fsm::Fsm;

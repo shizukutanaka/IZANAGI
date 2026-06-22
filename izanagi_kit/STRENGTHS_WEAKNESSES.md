@@ -104,3 +104,29 @@ Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 G9（ability system）は Large・別スコープ確認の上で着手。
 **W1–W7 の全 weakness items および G1–G9 の全 missing features は本ブランチで解消済み。**
 全ての追加コードは `#![forbid(unsafe_code)]`・zero runtime dependency・no float・`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH` 不変 の制約を満たす。
+
+---
+
+## 6. 第2次棚卸し (2026-06-22) — randomness と item 層の隙間
+
+G1–G9・W1–W7 を埋めた後、ソクラテス式問答で残る **層間の隙間** を再走査した。
+「既存 API では表現できないこと」を起点に2つの欠落を特定・実装。
+
+| # | 問い（既存 API で表現できないこと） | 隙間 | 状態 |
+|---|------------------------------------|------|------|
+| G10 | 「補充されるバッグ」抽選——`random_table` は復元抽出（drought 発生）、`sample_n` は一回限り。Tetris の 7-bag やドラフ無し loot を表す型が無い。 | 非復元・自動補充の bag randomizer | ✅ **実装済み**（`src/shufflebag.rs`: `ShuffleBag<T>`） |
+| G11 | 「装備中の防具一式の合計ステータス補正」——`Inventory<T>` は *保管* のみ、`StatsModifier`/`affix` は *単品の補正* を記述するが、「スロット別に着用→合計 modifier を `combat::Stats` に畳む」層が無い。 | body slot 別 loadout + 合計補正 | ✅ **実装済み**（`src/equipment.rs`: `Equipment<T>` / `EquipSlot`） |
+
+**G10 — ShuffleBag** → `src/shufflebag.rs`（新規 module, 11 unit + 6 property tests）
+- 1 cycle = template の置換（重複は多重度で保持）、空になると自動補充。
+- size-1 bag は RNG draw を消費しない（`SplitMix64::below` の退化契約に整合）→ replay state が draw 回数の決定論的関数のまま。
+- `DetHash` を template と live bag の双方に実装。
+
+**G11 — Equipment loadout** → `src/equipment.rs`（新規 module, 13 unit + 5 property tests）
+- `EquipSlot` 固定 enum 9 スロット（MainHand/OffHand/Head/Body/Hands/Feet/Ring1/Ring2/Amulet）、`[Option<T>; 9]` 固定長配列（HashMap 不使用＝順序非決定性なし）。
+- `equip`（occupied なら旧装備を返す swap）/ `unequip` / `aggregate(modifier_of)`（全スロットを canonical 順に `StatsModifier::combine` で飽和合算→`Stats::modified` に直結）。
+- 付随改善: `combat::StatsModifier` に `combine`（飽和 field-wise 和、単位元 = `default`）と `DetHash` を追加（装備・affix・buff のスタックを replay checksum に畳む）。
+- `DetHash` は占有フラグ + 各装備で実装、スロット配置の違いも hash に反映。
+
+決定論影響: 🟢 両 module とも replay-safe（整数のみ・固定順・float なし）。既存 sim は未使用のため
+`PINNED_FINAL_HASH = 0xd1a9_236e_96a2_c802` / `PINNED_ROGUELIKE_HASH = 0x5286_d142_0200_fe66` 不変（`tests/determinism.rs` で確認済み）。

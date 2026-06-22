@@ -28,6 +28,7 @@ use izanagi_kit::inventory::Inventory;
 use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::visibility::{Visibility, VisibilityMap};
+use izanagi_kit::equipment::{EquipSlot, Equipment};
 use izanagi_kit::shufflebag::ShuffleBag;
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
@@ -4854,5 +4855,129 @@ fn prop_shufflebag_add_grows_both() {
         bag.add(extra);
         assert_eq!(bag.cycle_len(), n + 1, "cycle_len must grow by 1 after add");
         assert_eq!(bag.remaining(), n + 1, "remaining must grow by 1 after add");
+    }
+}
+
+// ── Equipment ─────────────────────────────────────────────────────────────────
+
+/// Build a random loadout of `(slot, modifier)` pairs and return the equipment
+/// plus the multiset of equipped modifiers (in canonical slot order).
+fn rand_equipment(rng: &mut SplitMix64) -> Equipment<StatsModifier> {
+    let mut gear = Equipment::new();
+    for &slot in EquipSlot::ALL.iter() {
+        if rng.below(2) == 1 {
+            let attack = rng.range(-5, 6);
+            let defense = rng.range(-5, 6);
+            let max_hp = rng.range(-10, 11);
+            gear.equip(slot, StatsModifier { attack, defense, max_hp });
+        }
+    }
+    gear
+}
+
+/// **occupied + empty == slot_count**, always; and `is_empty` ⇔ occupied == 0.
+#[test]
+fn prop_equipment_occupancy_partition() {
+    let mut rng = SplitMix64::new(0xE901_0001);
+    for _ in 0..ITERS {
+        let gear = rand_equipment(&mut rng);
+        assert_eq!(gear.occupied_count() + gear.empty_count(), gear.slot_count());
+        assert_eq!(gear.is_empty(), gear.occupied_count() == 0);
+        // iter yields exactly occupied_count items, all in canonical order.
+        let slots: Vec<EquipSlot> = gear.iter().map(|(s, _)| s).collect();
+        assert_eq!(slots.len(), gear.occupied_count());
+        let mut sorted = slots.clone();
+        sorted.sort();
+        assert_eq!(slots, sorted, "iter must visit slots in canonical order");
+    }
+}
+
+/// **aggregate equals the manual field-wise saturating fold over worn items**,
+/// visited in canonical order.
+#[test]
+fn prop_equipment_aggregate_matches_manual_fold() {
+    let mut rng = SplitMix64::new(0xE901_0002);
+    for _ in 0..ITERS {
+        let gear = rand_equipment(&mut rng);
+        let mut expect = StatsModifier::default();
+        for &slot in EquipSlot::ALL.iter() {
+            if let Some(m) = gear.get(slot) {
+                expect.attack = expect.attack.saturating_add(m.attack);
+                expect.defense = expect.defense.saturating_add(m.defense);
+                expect.max_hp = expect.max_hp.saturating_add(m.max_hp);
+            }
+        }
+        assert_eq!(gear.aggregate(|&item| item), expect);
+    }
+}
+
+/// **equip/unequip round-trip**: equipping an item then unequipping that slot
+/// returns the same item and restores the prior occupancy exactly.
+#[test]
+fn prop_equipment_equip_unequip_round_trip() {
+    let mut rng = SplitMix64::new(0xE901_0003);
+    for _ in 0..ITERS {
+        let mut gear = rand_equipment(&mut rng);
+        let slot = EquipSlot::ALL[rng.below(9) as usize];
+        let before = gear.get(slot).copied();
+        let item = StatsModifier { attack: rng.range(-3, 4), defense: 0, max_hp: 0 };
+        let displaced = gear.equip(slot, item);
+        assert_eq!(displaced, before, "equip must return the prior occupant");
+        assert_eq!(gear.get(slot), Some(&item), "slot now holds the new item");
+        // Unequip and restore whatever was there before.
+        let taken = gear.unequip(slot);
+        assert_eq!(taken, Some(item), "unequip returns what we equipped");
+        assert!(!gear.is_equipped(slot), "slot empty after unequip");
+        if let Some(b) = before {
+            gear.equip(slot, b);
+            assert_eq!(gear.get(slot), Some(&b), "restored to original state");
+        }
+    }
+}
+
+/// **equip conserves total count to within one** (swap = net 0, fill = +1) and
+/// never affects any other slot.
+#[test]
+fn prop_equipment_equip_locality_and_count() {
+    let mut rng = SplitMix64::new(0xE901_0004);
+    for _ in 0..ITERS {
+        let mut gear = rand_equipment(&mut rng);
+        let slot = EquipSlot::ALL[rng.below(9) as usize];
+        let was_occupied = gear.is_equipped(slot);
+        let count_before = gear.occupied_count();
+        let others: Vec<(EquipSlot, Option<StatsModifier>)> = EquipSlot::ALL
+            .iter()
+            .filter(|&&s| s != slot)
+            .map(|&s| (s, gear.get(s).copied()))
+            .collect();
+        gear.equip(slot, StatsModifier::default());
+        let count_after = gear.occupied_count();
+        if was_occupied {
+            assert_eq!(count_after, count_before, "swap keeps count");
+        } else {
+            assert_eq!(count_after, count_before + 1, "fill grows count by one");
+        }
+        for (s, prev) in others {
+            assert_eq!(gear.get(s).copied(), prev, "equip must not touch other slots");
+        }
+    }
+}
+
+/// **Determinism / hash sensitivity**: same construction ⇒ same hash; clearing
+/// yields the empty-loadout hash; aggregate is reproducible.
+#[test]
+fn prop_equipment_deterministic_and_hashable() {
+    use izanagi_kit::world_hash::hash_state;
+    let empty_hash = hash_state(&Equipment::<StatsModifier>::new());
+    for seed in 0u64..ITERS as u64 {
+        let mut a = SplitMix64::new(0xE901_0005 ^ seed);
+        let mut b = SplitMix64::new(0xE901_0005 ^ seed);
+        let ga = rand_equipment(&mut a);
+        let mut gb = rand_equipment(&mut b);
+        assert_eq!(hash_state(&ga), hash_state(&gb), "same seed ⇒ same hash");
+        assert_eq!(ga.aggregate(|&m| m), gb.aggregate(|&m| m), "aggregate reproducible");
+        gb.clear();
+        assert_eq!(hash_state(&gb), empty_hash, "cleared loadout hashes as empty");
+        assert_eq!(gb.aggregate(|&m| m), StatsModifier::default());
     }
 }

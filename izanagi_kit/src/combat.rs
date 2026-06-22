@@ -177,6 +177,28 @@ pub struct StatsModifier {
     pub max_hp: i32,
 }
 
+impl DetHash for StatsModifier {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i32(self.attack);
+        hasher.write_i32(self.defense);
+        hasher.write_i32(self.max_hp);
+    }
+}
+
+impl StatsModifier {
+    /// Field-wise saturating sum of two modifiers. Combining is commutative and
+    /// associative up to saturation, with [`StatsModifier::default`] as the
+    /// identity — the algebra used to stack equipment, affixes, and buffs.
+    #[inline]
+    pub fn combine(&self, other: &StatsModifier) -> StatsModifier {
+        StatsModifier {
+            attack: self.attack.saturating_add(other.attack),
+            defense: self.defense.saturating_add(other.defense),
+            max_hp: self.max_hp.saturating_add(other.max_hp),
+        }
+    }
+}
+
 impl Stats {
     /// Return a new `Stats` with `modifier` applied additively.
     ///
