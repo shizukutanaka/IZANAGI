@@ -27,6 +27,7 @@ use izanagi_kit::damage::{DamageType, ResistanceProfile};
 use izanagi_kit::inventory::Inventory;
 use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
+use izanagi_kit::visibility::{Visibility, VisibilityMap};
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
     generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
@@ -4641,5 +4642,115 @@ fn prop_camera_chebyshev_metric_axioms() {
         let wy = rng.range(-30, 90);
         let expected = (ccx - wx).unsigned_abs().max((ccy - wy).unsigned_abs());
         assert_eq!(c.chebyshev_to_center(wx, wy), expected, "chebyshev_to_center wrong");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// visibility::VisibilityMap — fog-of-war / exploration-memory laws
+//
+// The tri-state map (Unseen < Remembered < Visible) is the memory layer above
+// FOV. Under the normal turn loop (begin_frame then mark_visible) it obeys:
+//   - exploration is monotone: an explored cell never reverts to Unseen;
+//   - the three states partition the grid and explored == visible + remembered;
+//   - begin_frame demotes exactly the visible cells to remembered and leaves
+//     the explored set unchanged.
+// ---------------------------------------------------------------------------
+
+/// **exploration is monotone under the turn loop** — running random
+/// `begin_frame` / `mark_visible` turns can only ever grow the explored set; a
+/// cell that has been observed never falls back to `Unseen`, and visibility is
+/// always `>=` `Remembered` once explored.
+#[test]
+fn prop_visibility_exploration_is_monotone() {
+    let mut rng = SplitMix64::new(0x715B_303E);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(8);
+        let h = 1 + rng.below(8);
+        let mut v = VisibilityMap::new(w, h);
+        let mut explored = vec![false; (w * h) as usize];
+
+        for _ in 0..6 {
+            v.begin_frame();
+            // mark a random handful of cells visible this "turn".
+            let marks = rng.below(w * h + 1);
+            for _ in 0..marks {
+                let x = rng.below(w) as i32;
+                let y = rng.below(h) as i32;
+                v.mark_visible(x, y);
+                explored[(y as u32 * w + x as u32) as usize] = true;
+            }
+            // every cell ever marked must still be explored (never Unseen).
+            for (i, &was) in explored.iter().enumerate() {
+                let x = (i as u32 % w) as i32;
+                let y = (i as u32 / w) as i32;
+                if was {
+                    assert!(v.is_explored(x, y), "explored cell ({x},{y}) reverted");
+                    assert!(v.get(x, y) >= Visibility::Remembered, "rank dropped below Remembered");
+                }
+            }
+        }
+    }
+}
+
+/// **the three states partition the grid** — `unseen + remembered + visible ==
+/// len`, `explored == visible + remembered`, `visible <= explored <= len`, and
+/// `explored_percent == explored*100/len`.
+#[test]
+fn prop_visibility_counts_partition() {
+    let mut rng = SplitMix64::new(0x715B_C04E);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(8);
+        let h = 1 + rng.below(8);
+        let mut v = VisibilityMap::new(w, h);
+        // Drive it into a mixed state.
+        for _ in 0..rng.below(20) {
+            match rng.below(3) {
+                0 => v.begin_frame(),
+                _ => v.mark_visible(rng.below(w) as i32, rng.below(h) as i32),
+            }
+        }
+        let len = v.len();
+        let unseen = v.count(Visibility::Unseen);
+        let remembered = v.count(Visibility::Remembered);
+        let visible = v.visible_count();
+        assert_eq!(unseen + remembered + visible, len, "states do not partition");
+        assert_eq!(v.explored_count(), visible + remembered, "explored != vis+rem");
+        assert!(visible <= v.explored_count() && v.explored_count() <= len, "ordering broken");
+        assert_eq!(
+            v.explored_percent(),
+            (v.explored_count() as u64 * 100 / len as u64) as u32,
+            "explored_percent formula wrong"
+        );
+    }
+}
+
+/// **begin_frame demotes exactly the visible cells** — after `begin_frame`,
+/// every cell that was `Visible` is now `Remembered`, every other cell is
+/// unchanged, the visible count is zero, and the explored set is preserved.
+#[test]
+fn prop_visibility_begin_frame_demotes_exactly() {
+    let mut rng = SplitMix64::new(0x715B_DE10);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(8);
+        let h = 1 + rng.below(8);
+        let mut v = VisibilityMap::new(w, h);
+        for _ in 0..rng.below(15) {
+            match rng.below(3) {
+                0 => v.begin_frame(),
+                _ => v.mark_visible(rng.below(w) as i32, rng.below(h) as i32),
+            }
+        }
+        let before: Vec<(i32, i32, Visibility)> = v.iter().collect();
+        let explored_before = v.explored_count();
+        v.begin_frame();
+        for (x, y, was) in before {
+            let now = v.get(x, y);
+            match was {
+                Visibility::Visible => assert_eq!(now, Visibility::Remembered, "visible not demoted"),
+                other => assert_eq!(now, other, "non-visible cell changed"),
+            }
+        }
+        assert_eq!(v.visible_count(), 0, "visible remained after begin_frame");
+        assert_eq!(v.explored_count(), explored_before, "explored set changed");
     }
 }

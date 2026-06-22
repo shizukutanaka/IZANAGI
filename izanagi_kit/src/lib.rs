@@ -17,6 +17,7 @@
 //! - [`timer`] — tick-based `Cooldown` and `TimerQueue<E>` for delayed events.
 //! - [`turn`] — energy/speed-based turn scheduler.
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
+//! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
@@ -116,6 +117,7 @@ pub mod timestep;
 pub mod turn;
 pub mod validator;
 pub mod vec;
+pub mod visibility;
 pub mod wfc;
 pub mod world_hash;
 
@@ -205,5 +207,6 @@ pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
 pub use validator::{is_loadable, validate};
 pub use vec::{Vec2, Vec3};
+pub use visibility::{Visibility, VisibilityMap};
 pub use wfc::{wfc_solve, wfc_solve_backtrack, wfc_solve_partial, WfcGrid, WfcResult, WfcRules};
 pub use world_hash::{hash_state, DetHash, Fnv1a};
