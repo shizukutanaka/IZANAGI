@@ -4074,3 +4074,163 @@ fn prop_inventory_remove_where_indexed_matches_find() {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// dice::Dice — tabletop dice-notation laws
+//
+// A Dice expression rolls `count` dice of `sides` faces plus a flat modifier.
+// Because rolls draw from a seeded SplitMix64 and the bound/average maths is
+// integer (i128 internally), the type obeys exact laws:
+//   - every roll lands in [min(), max()] and is seed-deterministic;
+//   - average_x100 matches its closed form and sits between 100·min and 100·max;
+//   - span == max − min == count·(sides−1), independent of the modifier;
+//   - advantage dominates disadvantage over the same draws, both in bounds;
+//   - keep-highest sums lie in [keep·min, keep·max] and the degenerate case
+//     returns the modifier without drawing;
+//   - to_string round-trips through parse;
+//   - a flat die (sides <= 1) is constant at min == max.
+// ---------------------------------------------------------------------------
+
+/// A dice expression with a small count, a real (>= 1) face count, and a signed
+/// modifier — chosen to exercise negative results without saturation.
+fn rand_dice(rng: &mut SplitMix64) -> Dice {
+    Dice::new(rng.below(20), 1 + rng.below(50), rng.range(-100, 100))
+}
+
+/// **every roll lands in `[min, max]` and is seed-deterministic** — across many
+/// rolls of random expressions the result never escapes the static bounds, and
+/// two RNGs seeded identically produce the same roll sequence (replay safety).
+#[test]
+fn prop_dice_roll_within_bounds_and_deterministic() {
+    let mut rng = SplitMix64::new(0x0D1C_E001);
+    for _ in 0..ITERS {
+        let d = rand_dice(&mut rng);
+        let seed = rand_seed(&mut rng);
+        let mut r1 = SplitMix64::new(seed);
+        let mut r2 = SplitMix64::new(seed);
+        for _ in 0..10 {
+            let a = d.roll(&mut r1);
+            assert!(
+                a >= d.min() && a <= d.max(),
+                "roll {a} out of [{}, {}] for {d}",
+                d.min(),
+                d.max()
+            );
+            assert_eq!(a, d.roll(&mut r2), "roll not deterministic for seed");
+        }
+    }
+}
+
+/// **average and span match their closed forms** — `average_x100` equals
+/// `count·(sides+1)·50 + modifier·100` and lies between `100·min` and `100·max`;
+/// `span` equals `max − min == count·(sides−1)` and is independent of the
+/// modifier (which cancels).
+#[test]
+fn prop_dice_average_and_span_formulas() {
+    let mut rng = SplitMix64::new(0x0D1C_EA06);
+    for _ in 0..ITERS {
+        let d = rand_dice(&mut rng);
+        let count = d.count as i64;
+        let sides = d.sides as i64;
+        let modi = d.modifier as i64;
+
+        let expected_avg = count * (sides + 1) * 50 + modi * 100;
+        assert_eq!(d.average_x100(), expected_avg, "average_x100 formula wrong");
+        assert!(
+            d.average_x100() >= 100 * d.min() as i64 && d.average_x100() <= 100 * d.max() as i64,
+            "average outside [min, max] for {d}"
+        );
+
+        // span == max - min == count*(sides-1); modifier cancels.
+        assert_eq!(d.span() as i64, d.max() as i64 - d.min() as i64, "span != max-min");
+        assert_eq!(d.span() as i64, count * (sides - 1), "span != count*(sides-1)");
+        let shifted = Dice::new(d.count, d.sides, d.modifier.wrapping_add(7));
+        assert_eq!(d.span(), shifted.span(), "span depends on modifier");
+    }
+}
+
+/// **advantage dominates disadvantage over identical draws** — seeding two RNGs
+/// the same makes `roll_advantage` and `roll_disadvantage` see the same pair of
+/// rolls, so advantage (the max) is always `>=` disadvantage (the min), and
+/// both stay within `[min, max]`.
+#[test]
+fn prop_dice_advantage_dominates_disadvantage() {
+    let mut rng = SplitMix64::new(0x0D1C_EADD);
+    for _ in 0..ITERS {
+        let d = rand_dice(&mut rng);
+        let seed = rand_seed(&mut rng);
+        let mut ra = SplitMix64::new(seed);
+        let mut rb = SplitMix64::new(seed);
+        let adv = d.roll_advantage(&mut ra);
+        let dis = d.roll_disadvantage(&mut rb);
+        assert!(adv >= dis, "advantage {adv} < disadvantage {dis} for {d}");
+        assert!(adv >= d.min() && adv <= d.max(), "advantage out of bounds");
+        assert!(dis >= d.min() && dis <= d.max(), "disadvantage out of bounds");
+    }
+}
+
+/// **keep-highest sums stay in `[keep·min, keep·max]` and the degenerate case is
+/// drawless** — `roll_n_keep_highest` clamps `keep` to `n`, sums that many rolls
+/// each in `[min, max]`, and when `n == 0` or `keep == 0` returns the modifier
+/// alone without consuming any RNG draw.
+#[test]
+fn prop_dice_keep_highest_bounds_and_draw_contract() {
+    let mut rng = SplitMix64::new(0x0D1C_EE47);
+    for _ in 0..ITERS {
+        let d = rand_dice(&mut rng);
+        let n = rng.below(8);
+        let keep = rng.below(10);
+        let seed = rand_seed(&mut rng);
+        let mut rr = SplitMix64::new(seed);
+        let v = d.roll_n_keep_highest(n, keep, &mut rr);
+
+        if n == 0 || keep == 0 {
+            assert_eq!(v, d.modifier, "degenerate keep-highest != modifier");
+            assert_eq!(rr.state(), SplitMix64::new(seed).state(), "degenerate case drew");
+        } else {
+            let k = keep.min(n) as i64;
+            let lo = k * d.min() as i64;
+            let hi = k * d.max() as i64;
+            assert!(
+                (v as i64) >= lo && (v as i64) <= hi,
+                "keep-highest {v} outside [{lo}, {hi}] for {d} (n={n}, keep={keep})"
+            );
+        }
+    }
+}
+
+/// **to_string round-trips through parse** — formatting a Dice and parsing the
+/// result recovers the original expression exactly, for any `count`, real
+/// `sides >= 1`, and signed modifier (the authoring-format invariant).
+#[test]
+fn prop_dice_display_parse_round_trip() {
+    let mut rng = SplitMix64::new(0x0D1C_ED15);
+    for _ in 0..ITERS {
+        let d = Dice::new(rng.below(1000), 1 + rng.below(1000), rng.range(-10_000, 10_000));
+        assert_eq!(Dice::parse(&d.to_string()), Some(d), "round-trip failed for {d}");
+    }
+}
+
+/// **a flat die is constant at min == max** — when `sides <= 1` the expression
+/// is deterministic regardless of the RNG: `min == max`, `span == 0`, `is_flat`
+/// is true, and every roll equals `min`. A real (`sides >= 2`) die is not flat.
+#[test]
+fn prop_dice_flat_die_is_constant() {
+    let mut rng = SplitMix64::new(0x0D1C_EF1A);
+    for _ in 0..ITERS {
+        let count = rng.below(10);
+        let sides = rng.below(2); // 0 or 1 → flat
+        let modi = rng.range(-50, 50);
+        let d = Dice::new(count, sides, modi);
+        assert!(d.is_flat(), "sides<=1 must be flat: {d}");
+        assert_eq!(d.min(), d.max(), "flat die has a spread: {d}");
+        assert_eq!(d.span(), 0, "flat die span != 0");
+        let mut rr = SplitMix64::new(rand_seed(&mut rng));
+        for _ in 0..5 {
+            assert_eq!(d.roll(&mut rr), d.min(), "flat die roll varied");
+        }
+
+        let real = Dice::new(1 + rng.below(5), 2 + rng.below(20), 0);
+        assert!(!real.is_flat(), "sides>=2 must not be flat: {real}");
+    }
+}
