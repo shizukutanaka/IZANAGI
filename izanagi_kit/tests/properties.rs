@@ -37,6 +37,7 @@ use izanagi_kit::threat::ThreatTable;
 use izanagi_kit::pool::Pool;
 use izanagi_kit::tween::Tween;
 use izanagi_kit::wallet::Wallet;
+use izanagi_kit::dialogue::{Dialogue, DialogueNode};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
@@ -6213,5 +6214,156 @@ fn prop_wallet_det_hash_order_independent() {
         let (bump_c, _) = entries[rng.below(n) as usize];
         c.deposit(bump_c, 1);
         assert_ne!(hash_state(&a), hash_state(&c), "changed balance → changed hash");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// dialogue — branching NPC conversation tree
+// ---------------------------------------------------------------------------
+
+// Build a random tree of `n` nodes where every choice targets a valid node.
+fn build_dialogue(rng: &mut SplitMix64, n: usize) -> Dialogue {
+    let mut nodes = Vec::with_capacity(n);
+    for i in 0..n {
+        let mut node = DialogueNode::new(format!("node{i}"));
+        let nchoices = rng.below(4); // 0..=3 choices
+        for c in 0..nchoices {
+            let target = rng.below(n as u32) as usize;
+            node = node.with_choice(format!("c{c}"), target);
+        }
+        nodes.push(node);
+    }
+    Dialogue::new(nodes, rng.below(n as u32) as usize)
+}
+
+/// **The cursor is always a valid node index or None**, and `is_active` /
+/// `is_ended` are exact complements, after any sequence of navigations.
+#[test]
+fn prop_dialogue_cursor_always_valid() {
+    let mut rng = SplitMix64::new(0xD1A4_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8) as usize;
+        let mut d = build_dialogue(&mut rng, n);
+        for _ in 0..rng.below(20) {
+            match rng.below(4) {
+                0 => { d.choose(rng.below(5) as usize); }
+                1 => { d.goto(rng.below(n as u32 + 2) as usize); }
+                2 => d.end(),
+                _ => d.reset(),
+            }
+            if let Some(i) = d.current_index() {
+                assert!(i < d.node_count(), "cursor index in range");
+                assert!(d.is_active());
+                assert!(!d.is_ended());
+            } else {
+                assert!(d.is_ended());
+                assert!(!d.is_active());
+            }
+            assert_eq!(d.is_active(), !d.is_ended(), "active/ended are complements");
+        }
+    }
+}
+
+/// **choose succeeds iff the choice index and its target are both valid**, and
+/// a successful choose lands exactly on that choice's target node.
+#[test]
+fn prop_dialogue_choose_follows_valid_target() {
+    let mut rng = SplitMix64::new(0xD1A4_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8) as usize;
+        let mut d = build_dialogue(&mut rng, n);
+        if d.is_ended() {
+            continue;
+        }
+        let before = d.current_index();
+        let nchoices = d.choice_count();
+        let i = rng.below(nchoices as u32 + 2) as usize; // sometimes out of range
+        let expected_target = d.choices().get(i).map(|c| c.target());
+        let ok = d.choose(i);
+        match expected_target {
+            Some(t) if t < d.node_count() => {
+                assert!(ok, "valid choice with valid target succeeds");
+                assert_eq!(d.current_index(), Some(t), "lands on the target");
+            }
+            _ => {
+                assert!(!ok, "invalid choice/target rejected");
+                assert_eq!(d.current_index(), before, "state unchanged on failure");
+            }
+        }
+    }
+}
+
+/// **reset always returns to the start node** (or stays ended for an invalid
+/// start), regardless of prior navigation.
+#[test]
+fn prop_dialogue_reset_returns_to_start() {
+    let mut rng = SplitMix64::new(0xD1A4_0003);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8) as usize;
+        let start = rng.below(n as u32) as usize; // always valid
+        let mut nodes = Vec::with_capacity(n);
+        for i in 0..n {
+            let mut node = DialogueNode::new(format!("n{i}"));
+            for c in 0..rng.below(3) {
+                node = node.with_choice(format!("c{c}"), rng.below(n as u32) as usize);
+            }
+            nodes.push(node);
+        }
+        let mut d = Dialogue::new(nodes, start);
+        // Wander, then reset.
+        for _ in 0..rng.below(10) {
+            d.choose(rng.below(4) as usize);
+        }
+        d.reset();
+        assert_eq!(d.current_index(), Some(start), "reset goes to start");
+    }
+}
+
+/// **A terminal node offers no choices** and cannot be advanced via `choose`.
+#[test]
+fn prop_dialogue_terminal_has_no_choices() {
+    let mut rng = SplitMix64::new(0xD1A4_0004);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8) as usize;
+        let mut d = build_dialogue(&mut rng, n);
+        for _ in 0..rng.below(15) {
+            if !d.choose(rng.below(4) as usize) {
+                break;
+            }
+        }
+        if d.is_at_terminal() {
+            assert_eq!(d.choice_count(), 0, "terminal node has no choices");
+            assert!(!d.choose(0), "cannot choose at a terminal node");
+        }
+    }
+}
+
+/// **DetHash is cursor-sensitive**: two dialogues with the same tree but
+/// different cursors hash differently; identical state hashes identically.
+#[test]
+fn prop_dialogue_det_hash_cursor_sensitive() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0xD1A4_0005);
+    for _ in 0..ITERS {
+        let n = 2 + rng.below(7) as usize;
+        let base = build_dialogue(&mut rng, n);
+        let copy = base.clone();
+        assert_eq!(hash_state(&base), hash_state(&copy), "identical state, identical hash");
+
+        // Move the cursor on a clone to a definitely-different valid node.
+        let mut moved = base.clone();
+        let cur = moved.current_index();
+        let target = match cur {
+            Some(0) => 1,
+            _ => 0,
+        };
+        assert!(moved.goto(target));
+        if Some(target) != cur {
+            assert_ne!(
+                hash_state(&base),
+                hash_state(&moved),
+                "different cursor → different hash"
+            );
+        }
     }
 }

@@ -26,6 +26,7 @@
 //! - [`pool`] — bounded regenerating resource pool: mana/stamina/hunger (`Pool`).
 //! - [`tween`] — time-driven eased value interpolation over a tick span (`Tween`).
 //! - [`wallet`] — fungible currency balances for shops/economy (`Wallet<C>`).
+//! - [`dialogue`] — branching NPC conversation tree (`Dialogue`, `DialogueNode`, `Choice`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
@@ -90,6 +91,7 @@ pub mod combat;
 pub mod content;
 pub mod damage;
 pub mod diag_json;
+pub mod dialogue;
 pub mod dice;
 pub mod easing;
 pub mod encounter;
@@ -165,6 +167,7 @@ pub use combat::{
 pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
 pub use damage::{DamageType, ResistanceProfile};
 pub use diag_json::severity_filter;
+pub use dialogue::{Choice, Dialogue, DialogueNode};
 pub use dice::Dice;
 pub use easing::{
     ease_in_back, ease_in_bounce, ease_in_circ, ease_in_cubic, ease_in_expo, ease_in_out_back,
