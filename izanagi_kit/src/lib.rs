@@ -24,6 +24,7 @@
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
 //! - [`threat`] — per-combatant aggro / target-selection table (`ThreatTable<K>`).
 //! - [`pool`] — bounded regenerating resource pool: mana/stamina/hunger (`Pool`).
+//! - [`tween`] — time-driven eased value interpolation over a tick span (`Tween`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
@@ -137,6 +138,7 @@ pub mod tilemap;
 pub mod timer;
 pub mod timestep;
 pub mod turn;
+pub mod tween;
 pub mod validator;
 pub mod vec;
 pub mod visibility;
@@ -238,6 +240,7 @@ pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
+pub use tween::Tween;
 pub use validator::{is_loadable, validate};
 pub use vec::{Vec2, Vec3};
 pub use visibility::{Visibility, VisibilityMap};

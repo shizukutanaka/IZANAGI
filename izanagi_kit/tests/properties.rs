@@ -35,6 +35,7 @@ use izanagi_kit::recipe::{Ingredient, Recipe};
 use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 use izanagi_kit::threat::ThreatTable;
 use izanagi_kit::pool::Pool;
+use izanagi_kit::tween::Tween;
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
@@ -5962,5 +5963,130 @@ fn prop_pool_percent_monotone_and_bounded() {
         assert!(pl.per_mille() <= ph.per_mille(), "per_mille monotone in current");
         // deficit + current == max.
         assert_eq!(pl.deficit() + pl.current(), max, "deficit completes to max");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// tween — time-driven eased value interpolation
+// ---------------------------------------------------------------------------
+
+/// **Endpoints are exact**: at elapsed 0 the value is `start`; once done it is
+/// `end`, for both linear and eased sampling.
+#[test]
+fn prop_tween_endpoints_exact() {
+    use izanagi_kit::easing::ease_in_out_cubic;
+    let mut rng = SplitMix64::new(0xC0FE_0001);
+    for _ in 0..ITERS {
+        let a = Fixed::from_int(rng.range(-500, 500));
+        let b = Fixed::from_int(rng.range(-500, 500));
+        let dur = 1 + rng.below(200);
+        let mut t = Tween::new(a, b, dur);
+        // At start.
+        assert_eq!(t.value_linear(), a, "linear value at t=0 is start");
+        assert_eq!(t.value(ease_in_out_cubic), a, "eased value at t=0 is start");
+        // After completion.
+        t.advance(dur);
+        assert!(t.is_done());
+        assert_eq!(t.value_linear(), b, "linear value at done is end");
+        assert_eq!(t.value(ease_in_out_cubic), b, "eased value at done is end");
+    }
+}
+
+/// **Linear tween is monotone** between its endpoints: as elapsed increases the
+/// value moves monotonically from start toward end and never leaves the range.
+#[test]
+fn prop_tween_linear_monotone_and_bounded() {
+    let mut rng = SplitMix64::new(0xC0FE_0002);
+    for _ in 0..ITERS {
+        let a = rng.range(-300, 300);
+        let b = rng.range(-300, 300);
+        let dur = 1 + rng.below(64);
+        let mut t = Tween::new(Fixed::from_int(a), Fixed::from_int(b), dur);
+        let lo = a.min(b);
+        let hi = a.max(b);
+        let mut prev = t.value_linear();
+        for _ in 0..dur {
+            t.advance(1);
+            let cur = t.value_linear();
+            let cr = cur.to_int_round();
+            assert!(cr >= lo && cr <= hi, "value stays within [start,end]");
+            // Monotone in the direction of travel (raw fixed comparison).
+            if b >= a {
+                assert!(cur.raw() >= prev.raw(), "ascending tween non-decreasing");
+            } else {
+                assert!(cur.raw() <= prev.raw(), "descending tween non-increasing");
+            }
+            prev = cur;
+        }
+    }
+}
+
+/// **advance is additive and caps at duration**: advancing by `x` then `y`
+/// equals advancing by `x+y` (both clamped), and elapsed never exceeds duration.
+#[test]
+fn prop_tween_advance_additive_and_capped() {
+    let mut rng = SplitMix64::new(0xC0FE_0003);
+    for _ in 0..ITERS {
+        let dur = 1 + rng.below(200);
+        let a = Fixed::from_int(0);
+        let b = Fixed::from_int(100);
+        let x = rng.below(150);
+        let y = rng.below(150);
+
+        let mut split = Tween::new(a, b, dur);
+        split.advance(x);
+        split.advance(y);
+
+        let mut whole = Tween::new(a, b, dur);
+        whole.advance(x.saturating_add(y));
+
+        assert_eq!(split.elapsed(), whole.elapsed(), "advance is additive");
+        assert!(split.elapsed() <= dur, "elapsed capped at duration");
+        assert_eq!(split.value_linear(), whole.value_linear(), "same value");
+    }
+}
+
+/// **reverse swaps endpoints and replays toward the original start.**
+#[test]
+fn prop_tween_reverse_symmetry() {
+    let mut rng = SplitMix64::new(0xC0FE_0004);
+    for _ in 0..ITERS {
+        let a = Fixed::from_int(rng.range(-200, 200));
+        let b = Fixed::from_int(rng.range(-200, 200));
+        let dur = 1 + rng.below(50);
+        let mut t = Tween::new(a, b, dur);
+        t.advance(dur); // now at end == b
+        assert_eq!(t.value_linear(), b);
+        t.reverse();
+        assert_eq!(t.elapsed(), 0, "reverse restarts");
+        assert_eq!(t.value_linear(), b, "reversed tween starts at old end");
+        t.advance(dur);
+        assert_eq!(t.value_linear(), a, "reversed tween ends at old start");
+    }
+}
+
+/// **DetHash is deterministic and sensitive** to every field of the time state.
+#[test]
+fn prop_tween_det_hash_sensitive() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0xC0FE_0005);
+    for _ in 0..ITERS {
+        let a = Fixed::from_int(rng.range(-100, 100));
+        let b = Fixed::from_int(rng.range(-100, 100));
+        let dur = 1 + rng.below(100);
+        let el = rng.below(dur + 1);
+        let base = Tween::with_elapsed(a, b, dur, el);
+        let same = Tween::with_elapsed(a, b, dur, el);
+        assert_eq!(hash_state(&base), hash_state(&same), "same state, same hash");
+
+        // Bumping elapsed (when not already at the cap) must change the hash.
+        if el < dur {
+            let bumped = Tween::with_elapsed(a, b, dur, el + 1);
+            assert_ne!(
+                hash_state(&base),
+                hash_state(&bumped),
+                "different elapsed → different hash"
+            );
+        }
     }
 }
