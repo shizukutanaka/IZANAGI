@@ -29,6 +29,7 @@ use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::visibility::{Visibility, VisibilityMap};
 use izanagi_kit::equipment::{EquipSlot, Equipment};
+use izanagi_kit::progression::{LevelCurve, Progression};
 use izanagi_kit::shufflebag::ShuffleBag;
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
@@ -4979,5 +4980,111 @@ fn prop_equipment_deterministic_and_hashable() {
         gb.clear();
         assert_eq!(hash_state(&gb), empty_hash, "cleared loadout hashes as empty");
         assert_eq!(gb.aggregate(|&m| m), StatsModifier::default());
+    }
+}
+
+// ── Progression ───────────────────────────────────────────────────────────────
+
+/// A random non-degenerate level curve.
+fn rand_curve(rng: &mut SplitMix64) -> LevelCurve {
+    let base = 1 + rng.below(500) as u64;
+    let step = rng.below(200) as u64;
+    let max_level = 1 + rng.below(60);
+    LevelCurve::new(base, step, max_level)
+}
+
+/// **xp_to_reach is strictly monotone over reachable levels, and level_at is its
+/// inverse** — `level_at(xp_to_reach(L)) == L` for every `1 ≤ L ≤ max_level`.
+#[test]
+fn prop_progression_threshold_round_trip() {
+    let mut rng = SplitMix64::new(0x9209_0001);
+    for _ in 0..ITERS {
+        let c = rand_curve(&mut rng);
+        let mut prev = 0u64;
+        for l in 1..=c.max_level() {
+            let t = c.xp_to_reach(l);
+            if l > 1 {
+                assert!(t >= prev, "thresholds must be non-decreasing");
+            }
+            assert_eq!(c.level_at(t), l, "level_at must invert xp_to_reach at {l}");
+            prev = t;
+        }
+    }
+}
+
+/// **Threshold boundary**: one XP below a level's threshold is the previous
+/// level, exactly at the threshold is that level (when costs are positive).
+#[test]
+fn prop_progression_threshold_boundary() {
+    let mut rng = SplitMix64::new(0x9209_0002);
+    for _ in 0..ITERS {
+        // Force positive per-level cost so thresholds are strictly increasing.
+        let base = 1 + rng.below(500) as u64;
+        let step = rng.below(200) as u64;
+        let c = LevelCurve::new(base, step, 1 + rng.below(60));
+        for l in 2..=c.max_level() {
+            let t = c.xp_to_reach(l);
+            assert_eq!(c.level_at(t), l, "at threshold");
+            assert_eq!(c.level_at(t - 1), l - 1, "just below threshold {l}");
+        }
+    }
+}
+
+/// **level is monotone in total XP**: more experience never lowers the level.
+#[test]
+fn prop_progression_level_monotone_in_xp() {
+    let mut rng = SplitMix64::new(0x9209_0003);
+    for _ in 0..ITERS {
+        let c = rand_curve(&mut rng);
+        let x1 = rng.next_u64() % 1_000_000;
+        let x2 = rng.next_u64() % 1_000_000;
+        let (lo, hi) = (x1.min(x2), x1.max(x2));
+        assert!(c.level_at(lo) <= c.level_at(hi), "level must be monotone in xp");
+    }
+}
+
+/// **add_xp conserves experience and derives level purely from the total**:
+/// total after == saturating(before + amount), level == level_at(total), and
+/// the returned levels-gained == new level − old level.
+#[test]
+fn prop_progression_add_xp_conserves_and_derives() {
+    let mut rng = SplitMix64::new(0x9209_0004);
+    for _ in 0..ITERS {
+        let c = rand_curve(&mut rng);
+        let start = rng.next_u64() % 500_000;
+        let mut p = Progression::with_xp(c, start);
+        let before_level = p.level();
+        let before_xp = p.total_xp();
+        let amount = rng.next_u64() % 500_000;
+        let gained = p.add_xp(amount);
+        assert_eq!(p.total_xp(), before_xp.saturating_add(amount), "xp conserved");
+        assert_eq!(p.level(), c.level_at(p.total_xp()), "level is pure fn of total");
+        assert_eq!(gained, p.level() - before_level, "gained == delta level");
+        assert!(p.level() <= c.max_level(), "level never exceeds cap");
+    }
+}
+
+/// **xp_into_level + xp_to_next == cost_of_current_level**, except at the cap
+/// where both `xp_to_next` is zero and `is_max_level` holds.
+#[test]
+fn prop_progression_within_level_accounting() {
+    let mut rng = SplitMix64::new(0x9209_0005);
+    for _ in 0..ITERS {
+        let c = rand_curve(&mut rng);
+        let total = rng.next_u64() % 1_000_000;
+        let p = Progression::with_xp(c, total);
+        // xp_into_level is always total minus the current threshold.
+        assert_eq!(p.xp_into_level(), total - c.xp_to_reach(p.level()));
+        if p.is_max_level() {
+            assert_eq!(p.xp_to_next(), 0, "no next level at cap");
+        } else {
+            let cost = c.cost_of_level_up(p.level());
+            assert_eq!(
+                p.xp_into_level() + p.xp_to_next(),
+                cost,
+                "into + to_next must equal the level's cost"
+            );
+            assert!(p.xp_into_level() < cost, "progress stays within the level");
+        }
     }
 }

@@ -130,3 +130,29 @@ G1–G9・W1–W7 を埋めた後、ソクラテス式問答で残る **層間�
 
 決定論影響: 🟢 両 module とも replay-safe（整数のみ・固定順・float なし）。既存 sim は未使用のため
 `PINNED_FINAL_HASH = 0xd1a9_236e_96a2_c802` / `PINNED_ROGUELIKE_HASH = 0x5286_d142_0200_fe66` 不変（`tests/determinism.rs` で確認済み）。
+
+---
+
+## 7. 第3次棚卸し (2026-06-23) — 「恒久成長」という新しい軸
+
+ソクラテス式問答で **既存モジュールが扱っていない概念軸** を探索した。
+既存は *空間*（map/fov/path）・*時間の刻み*（timestep/turn/timer）・*瞬間の状態*（combat/status/equipment）
+を扱うが、「**時間をかけたキャラクターの恒久成長**（experience / leveling）」という軸が完全に欠落していた。
+
+| # | 問い（既存 API で表現できないこと） | 隙間 | 状態 |
+|---|------------------------------------|------|------|
+| G12 | 「モンスターを倒して経験値を蓄積し、閾値でレベルアップ」——`combat::Stats` は瞬間値、`StatsModifier` は一時補正のみ。XP→level の写像が無い。 | 経験値曲線とレベル算出 | ✅ **実装済み**（`src/progression.rs`: `Progression` / `LevelCurve`） |
+
+**G12 — Progression / leveling** → `src/progression.rs`（新規 module, 14 unit + 5 property tests）
+- `LevelCurve { base, step, max_level }`: 等差の per-level コスト（`L→L+1` = `base + step·(L-1)`）。
+  累積 XP は閉形式 `xp_to_reach(L) = (L-1)·base + step·(L-1)·(L-2)/2`（`u128` で計算し `u64` に飽和、テーブル不要）。
+  `level_at(total_xp)` は単調性を使った2分探索で閾値の逆写像。
+- `Progression`: XP 蓄積・レベル算出。`add_xp`（飽和加算、複数レベル同時上昇に対応、獲得レベル数を返す）、
+  `xp_into_level` / `xp_to_next` / `is_max_level` / `with_xp`。
+- 検証した代数法則（property tests）: 閾値ラウンドトリップ `level_at(xp_to_reach(L))==L`、
+  境界 `level_at(t-1)==L-1`、XP 単調 ⟹ level 単調、`add_xp` の XP 保存と level の純関数性、
+  level 内会計 `xp_into_level + xp_to_next == cost_of_level_up`。
+- `DetHash` 実装＝キャラクター成長を replay checksum に畳む。
+
+決定論影響: 🟢 replay-safe（整数のみ・`u128` 中間計算で overflow なし・float なし）。
+既存 sim 未使用のため PINNED hashes 不変（`tests/determinism.rs` 確認済み）。

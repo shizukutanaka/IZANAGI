@@ -19,6 +19,7 @@
 //! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`shufflebag`] — draw-without-replacement bag randomizer with auto-refill (`ShuffleBag<T>`).
 //! - [`equipment`] — worn-item loadout per body slot with aggregate `StatsModifier` (`Equipment<T>`, `EquipSlot`).
+//! - [`progression`] — experience accumulation and integer level curves (`Progression`, `LevelCurve`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
@@ -103,6 +104,7 @@ pub mod parser;
 pub mod passability;
 pub mod pathfinding;
 pub mod profiler;
+pub mod progression;
 pub mod random_table;
 pub mod relations;
 pub mod replay;
@@ -187,6 +189,7 @@ pub use pathfinding::{
     octile_distance, path_cost, path_to_direction_vec, smooth_path, step_toward, weighted_astar,
 };
 pub use profiler::{EventLog, LogEntry, Profiler};
+pub use progression::{LevelCurve, Progression};
 pub use random_table::RandomTable;
 pub use relations::Relations;
 pub use replay::{
