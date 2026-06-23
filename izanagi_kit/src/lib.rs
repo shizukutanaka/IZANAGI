@@ -22,6 +22,8 @@
 //! - [`progression`] — experience accumulation and integer level curves (`Progression`, `LevelCurve`).
 //! - [`lightmap`] — additive integer illumination map for torchlit dungeons (`LightMap`).
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
+//! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
+//! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
@@ -86,6 +88,7 @@ pub mod easing;
 pub mod encounter;
 pub mod entity;
 pub mod equipment;
+pub mod eventqueue;
 pub mod faction;
 pub mod fixed;
 pub mod fov;
@@ -109,6 +112,7 @@ pub mod passability;
 pub mod pathfinding;
 pub mod profiler;
 pub mod progression;
+pub mod quest;
 pub mod random_table;
 pub mod relations;
 pub mod replay;
@@ -160,6 +164,7 @@ pub use easing::{
 pub use encounter::{EncounterPack, EncounterSlot};
 pub use entity::{Entity, EntityAllocator};
 pub use equipment::{EquipSlot, Equipment};
+pub use eventqueue::EventQueue;
 pub use faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 pub use fixed::Fixed;
 pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};
@@ -196,6 +201,7 @@ pub use pathfinding::{
 };
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use progression::{LevelCurve, Progression};
+pub use quest::{Objective, Quest, QuestState};
 pub use random_table::RandomTable;
 pub use relations::Relations;
 pub use replay::{

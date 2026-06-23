@@ -29,8 +29,10 @@ use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::visibility::{Visibility, VisibilityMap};
 use izanagi_kit::equipment::{EquipSlot, Equipment};
+use izanagi_kit::eventqueue::EventQueue;
 use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
+use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
 use izanagi_kit::shufflebag::ShuffleBag;
 use izanagi_kit::{
@@ -5322,5 +5324,208 @@ fn prop_faction_remove_and_default() {
         assert_eq!(removed, v.clamp(MIN_REP, MAX_REP), "remove returns the stored value");
         assert_eq!(fm.get(a, b), 0, "pair reads 0 after removal");
         assert_eq!(fm.entry_count(), before - 1, "count decreases by one");
+    }
+}
+
+// ── EventQueue ────────────────────────────────────────────────────────────────
+
+/// **FIFO order**: events are popped in the exact order they were pushed.
+#[test]
+fn prop_eventqueue_fifo_order() {
+    let mut rng = SplitMix64::new(0xEA72_0001);
+    for _ in 0..ITERS {
+        let n = rng.below(16) as usize;
+        let events: Vec<u32> = (0..n).map(|_| rng.next_u64() as u32).collect();
+        let mut q = EventQueue::new();
+        for &e in &events {
+            q.push(e);
+        }
+        let popped: Vec<u32> = (0..n).filter_map(|_| q.pop()).collect();
+        assert_eq!(popped, events, "FIFO: pop must yield events in push order");
+        assert!(q.is_empty(), "queue must be empty after draining all");
+    }
+}
+
+/// **len invariant**: after k pushes and m pops, len == k - m (m ≤ k).
+#[test]
+fn prop_eventqueue_len_invariant() {
+    let mut rng = SplitMix64::new(0xEA72_0002);
+    for _ in 0..ITERS {
+        let mut q: EventQueue<u32> = EventQueue::new();
+        let pushes = rng.below(20) as usize;
+        for _ in 0..pushes {
+            q.push(rng.next_u64() as u32);
+        }
+        let pops = rng.below(pushes as u32 + 1) as usize;
+        for _ in 0..pops {
+            q.pop();
+        }
+        assert_eq!(q.len(), pushes - pops, "len must equal pushes - pops");
+        assert_eq!(q.is_empty(), q.len() == 0);
+    }
+}
+
+/// **drain is exhaustive and FIFO**: drain yields all remaining events in order
+/// and leaves the queue empty.
+#[test]
+fn prop_eventqueue_drain_exhaustive() {
+    let mut rng = SplitMix64::new(0xEA72_0003);
+    for _ in 0..ITERS {
+        let mut q: EventQueue<u32> = EventQueue::new();
+        let n = rng.below(16) as usize;
+        let events: Vec<u32> = (0..n).map(|_| rng.next_u64() as u32).collect();
+        q.extend(events.iter().copied());
+        let drained: Vec<u32> = q.drain().collect();
+        assert_eq!(drained, events, "drain must yield FIFO order");
+        assert!(q.is_empty(), "queue empty after drain");
+        assert_eq!(q.len(), 0);
+    }
+}
+
+/// **push then pop round-trip**: a single push followed by peek then pop returns
+/// the original value; peek is non-destructive.
+#[test]
+fn prop_eventqueue_push_peek_pop_round_trip() {
+    let mut rng = SplitMix64::new(0xEA72_0004);
+    for _ in 0..ITERS {
+        let mut q: EventQueue<u32> = EventQueue::new();
+        let val = rng.next_u64() as u32;
+        q.push(val);
+        assert_eq!(q.peek(), Some(&val), "peek must return pushed value");
+        assert_eq!(q.len(), 1, "peek must not remove");
+        assert_eq!(q.pop(), Some(val), "pop must return pushed value");
+        assert!(q.is_empty());
+        assert_eq!(q.pop(), None, "pop from empty returns None");
+    }
+}
+
+/// **clear resets len to zero** and subsequent pops return None; iter on empty
+/// yields nothing.
+#[test]
+fn prop_eventqueue_clear_and_empty_invariants() {
+    let mut rng = SplitMix64::new(0xEA72_0005);
+    for _ in 0..ITERS {
+        let mut q: EventQueue<u32> = EventQueue::new();
+        for _ in 0..rng.below(10) {
+            q.push(rng.next_u64() as u32);
+        }
+        q.clear();
+        assert!(q.is_empty());
+        assert_eq!(q.len(), 0);
+        assert_eq!(q.pop(), None);
+        assert_eq!(q.peek(), None);
+        assert_eq!(q.iter().count(), 0);
+    }
+}
+
+// ── Quest / Objective ─────────────────────────────────────────────────────────
+
+/// **Progress is monotone**: current count never decreases; progress on a
+/// completed or failed objective is a no-op.
+#[test]
+fn prop_quest_progress_monotone() {
+    let mut rng = SplitMix64::new(0x4172_0001);
+    for _ in 0..ITERS {
+        let target = 1 + rng.below(20);
+        let mut obj = Objective::new("task", target);
+        let mut prev = 0u32;
+        for _ in 0..rng.below(10) {
+            let amount = rng.below(8);
+            obj.progress(amount);
+            assert!(obj.current() >= prev, "progress must be monotone");
+            prev = obj.current();
+        }
+        assert!(obj.current() <= obj.target(), "current must not exceed target");
+    }
+}
+
+/// **Partition invariant**: active + completed + failed == objective_count at all times.
+#[test]
+fn prop_quest_partition_invariant() {
+    let mut rng = SplitMix64::new(0x4172_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6) as usize;
+        let mut q = Quest::new("q");
+        for i in 0..n {
+            q = q.with_objective(Objective::new(format!("obj{i}"), 1 + rng.below(10)));
+        }
+        // Random operations.
+        for _ in 0..rng.below(15) {
+            let idx = rng.below(n as u32) as usize;
+            match rng.below(3) {
+                0 => q.progress(idx, rng.below(5)),
+                1 => q.fail_objective(idx),
+                _ => q.progress(idx, 1),
+            }
+        }
+        let active = q.active_count();
+        let completed = q.completed_count();
+        let failed = q.failed_count();
+        let total = q.objective_count();
+        assert_eq!(active + completed + failed, total, "partition must cover all objectives");
+    }
+}
+
+/// **complete ⟺ all objectives done**: state is Complete iff completed_count == total.
+#[test]
+fn prop_quest_complete_iff_all_done() {
+    let mut rng = SplitMix64::new(0x4172_0003);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5) as usize;
+        let targets: Vec<u32> = (0..n).map(|_| 1 + rng.below(5)).collect();
+        let mut q = Quest::new("q");
+        for &t in &targets {
+            q = q.with_objective(Objective::new("obj", t));
+        }
+        // Complete every objective by brute-forcing progress.
+        for i in 0..n {
+            q.progress(i, targets[i]);
+        }
+        assert_eq!(q.state(), QuestState::Complete, "all done → Complete");
+        assert_eq!(q.completed_count(), n);
+        assert_eq!(q.active_count(), 0);
+    }
+}
+
+/// **fail propagates**: any failed objective drives quest state to Failed,
+/// regardless of other objectives' completion.
+#[test]
+fn prop_quest_fail_propagates() {
+    let mut rng = SplitMix64::new(0x4172_0004);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6) as usize;
+        let mut q = Quest::new("q");
+        for _ in 0..n {
+            q = q.with_objective(Objective::new("obj", 1 + rng.below(10)));
+        }
+        // Complete some objectives, then fail one of the remaining active ones.
+        let complete_up_to = rng.below(n as u32) as usize; // 0..n-1, leaving at least one active
+        for i in 0..complete_up_to {
+            q.progress(i, 999);
+        }
+        // fail_idx is in [complete_up_to, n), which are guaranteed not yet completed.
+        let remaining = n - complete_up_to;
+        let fail_idx = complete_up_to + rng.below(remaining as u32) as usize;
+        q.fail_objective(fail_idx);
+        assert_eq!(q.state(), QuestState::Failed, "any failed objective ⇒ Failed");
+    }
+}
+
+/// **Objective is_complete ⟺ current >= target** and percent ∈ [0, 100].
+#[test]
+fn prop_objective_complete_threshold_and_percent() {
+    let mut rng = SplitMix64::new(0x4172_0005);
+    for _ in 0..ITERS {
+        let target = rng.below(100);
+        let mut obj = Objective::new("task", target);
+        let add = rng.below(150);
+        obj.progress(add);
+        let expected_complete = obj.current() >= obj.target();
+        assert_eq!(obj.is_complete(), expected_complete);
+        let p = obj.percent();
+        assert!(p <= 100, "percent must not exceed 100");
+        if obj.is_complete() {
+            assert_eq!(p, 100, "completed objective must be 100%");
+        }
     }
 }
