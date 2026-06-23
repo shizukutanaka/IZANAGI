@@ -28,8 +28,10 @@ use izanagi_kit::inventory::Inventory;
 use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::visibility::{Visibility, VisibilityMap};
+use izanagi_kit::calendar::Calendar;
 use izanagi_kit::equipment::{EquipSlot, Equipment};
 use izanagi_kit::eventqueue::EventQueue;
+use izanagi_kit::recipe::{Ingredient, Recipe};
 use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
@@ -5526,6 +5528,178 @@ fn prop_objective_complete_threshold_and_percent() {
         assert!(p <= 100, "percent must not exceed 100");
         if obj.is_complete() {
             assert_eq!(p, 100, "completed objective must be 100%");
+        }
+    }
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+
+/// **Modular decomposition invariant**: `day_number * ticks_per_day + time_of_day == tick`.
+#[test]
+fn prop_calendar_decomposition_invariant() {
+    let mut rng = SplitMix64::new(0xCA1E_0001);
+    for _ in 0..ITERS {
+        let tpd = 1 + rng.below(200);
+        let tick = rng.next_u64() % 1_000_000;
+        let c = Calendar::with_tick(tpd, tick);
+        assert_eq!(
+            c.day_number() * c.ticks_per_day() as u64 + c.time_of_day() as u64,
+            c.tick(),
+            "day*period + time_of_day must equal tick"
+        );
+        assert!(c.time_of_day() < c.ticks_per_day(), "time_of_day must be in [0, tpd)");
+    }
+}
+
+/// **ticks_until_wrap + time_of_day == ticks_per_day** at all times.
+#[test]
+fn prop_calendar_until_wrap_complement() {
+    let mut rng = SplitMix64::new(0xCA1E_0002);
+    for _ in 0..ITERS {
+        let tpd = 1 + rng.below(500);
+        let tick = rng.next_u64() % 100_000;
+        let c = Calendar::with_tick(tpd, tick);
+        assert_eq!(
+            c.ticks_until_wrap() as u64 + c.time_of_day() as u64,
+            c.ticks_per_day() as u64,
+            "until_wrap + time_of_day == ticks_per_day"
+        );
+    }
+}
+
+/// **advance returns correct days-completed count** and tick is exactly incremented.
+#[test]
+fn prop_calendar_advance_days_and_tick() {
+    let mut rng = SplitMix64::new(0xCA1E_0003);
+    for _ in 0..ITERS {
+        let tpd = 1 + rng.below(100);
+        let start = rng.next_u64() % 10_000;
+        let mut c = Calendar::with_tick(tpd, start);
+        let n = rng.next_u64() % 1000;
+        let before_day = c.day_number();
+        let days_completed = c.advance(n);
+        assert_eq!(c.tick(), start.saturating_add(n), "tick must equal start + n");
+        assert_eq!(days_completed, c.day_number() - before_day, "days_completed must match delta");
+    }
+}
+
+/// **fraction_per_mille** is in `[0, 1000)` and is consistent with time_of_day.
+#[test]
+fn prop_calendar_fraction_range_and_consistency() {
+    let mut rng = SplitMix64::new(0xCA1E_0004);
+    for _ in 0..ITERS {
+        let tpd = 1 + rng.below(500);
+        let tick = rng.next_u64() % 100_000;
+        let c = Calendar::with_tick(tpd, tick);
+        let f = c.fraction_per_mille();
+        assert!(f < 1000, "fraction_per_mille must be < 1000");
+        assert_eq!(
+            f,
+            (c.time_of_day() as u64 * 1000 / c.ticks_per_day() as u64) as u32,
+            "fraction formula"
+        );
+    }
+}
+
+/// **is_in_phase covers exactly the expected ticks** for non-wrapping ranges.
+#[test]
+fn prop_calendar_phase_membership() {
+    let mut rng = SplitMix64::new(0xCA1E_0005);
+    for _ in 0..ITERS {
+        let tpd = 2 + rng.below(50);
+        let tick = rng.next_u64() % 1000;
+        let c = Calendar::with_tick(tpd, tick);
+        let t = c.time_of_day();
+        let s = rng.below(tpd);
+        let e = rng.below(tpd);
+        let in_phase = c.is_in_phase(s, e);
+        // Verify manually.
+        let expected = if s == e {
+            true
+        } else if s < e {
+            t >= s && t < e
+        } else {
+            t >= s || t < e
+        };
+        assert_eq!(in_phase, expected, "is_in_phase({s},{e}) at t={t} for tpd={tpd}");
+    }
+}
+
+// ── Recipe ────────────────────────────────────────────────────────────────────
+
+/// **can_craft iff all ingredients satisfied**: can_craft is the AND of all
+/// per-ingredient checks against available().
+#[test]
+fn prop_recipe_can_craft_iff_all_satisfied() {
+    let mut rng = SplitMix64::new(0x8EC1_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5) as usize;
+        let ingredients: Vec<Ingredient<u32>> = (0..n)
+            .map(|i| Ingredient { key: i as u32, count: 1 + rng.below(5) })
+            .collect();
+        let r: Recipe<u32, u32> = Recipe::new("r", ingredients.clone(), 0);
+        // Random available amounts.
+        let avail: Vec<u32> = (0..n).map(|_| rng.below(8)).collect();
+        let expected = ingredients.iter().all(|ing| avail[ing.key as usize] >= ing.count);
+        assert_eq!(
+            r.can_craft(|k| avail[*k as usize]),
+            expected,
+            "can_craft must equal AND of per-ingredient checks"
+        );
+    }
+}
+
+/// **try_craft None never calls consume** and **Some always calls consume for
+/// each ingredient exactly once**.
+#[test]
+fn prop_recipe_try_craft_consume_contract() {
+    let mut rng = SplitMix64::new(0x8EC1_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(4) as usize;
+        let ingredients: Vec<Ingredient<u32>> = (0..n)
+            .map(|i| Ingredient { key: i as u32, count: 1 + rng.below(4) })
+            .collect();
+        let r: Recipe<u32, u32> = Recipe::new("r", ingredients.clone(), 42);
+        let avail: Vec<u32> = (0..n).map(|_| rng.below(8)).collect();
+        let can = r.can_craft(|k| avail[*k as usize]);
+        let mut consume_calls = 0usize;
+        let out = r.try_craft(
+            |k| avail[*k as usize],
+            |_, _| consume_calls += 1,
+        );
+        if can {
+            assert_eq!(out, Some(42), "should produce output when can_craft");
+            assert_eq!(consume_calls, r.ingredient_count(), "consume called once per ingredient");
+        } else {
+            assert_eq!(out, None, "should return None when can't craft");
+            assert_eq!(consume_calls, 0, "consume must not be called on failure");
+        }
+    }
+}
+
+/// **Duplicate keys are merged**: the canonical ingredient list has unique keys
+/// with summed counts.
+#[test]
+fn prop_recipe_duplicate_keys_merged() {
+    let mut rng = SplitMix64::new(0x8EC1_0003);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8) as usize;
+        let ingredients: Vec<Ingredient<u32>> = (0..n)
+            .map(|_| Ingredient { key: rng.below(3), count: 1 + rng.below(4) })
+            .collect();
+        let r: Recipe<u32, u32> = Recipe::new("r", ingredients.clone(), 0);
+        // Verify: canonical list has unique, sorted keys.
+        let canon = r.ingredients();
+        for w in canon.windows(2) {
+            assert!(w[0].key < w[1].key, "keys must be strictly increasing");
+        }
+        // Verify: summed counts match the raw input.
+        for key in 0u32..3 {
+            let raw_total: u32 = ingredients.iter().filter(|i| i.key == key).map(|i| i.count).fold(0u32, |a, b| a.saturating_add(b));
+            let canon_count = canon.iter().find(|i| i.key == key).map(|i| i.count).unwrap_or(0);
+            if raw_total > 0 {
+                assert_eq!(canon_count, raw_total, "merged count for key {key}");
+            }
         }
     }
 }

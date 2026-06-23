@@ -24,6 +24,8 @@
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
+//! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
+//! - [`recipe`] — item crafting / recipe system (`Recipe<K,O>`, `Ingredient<K>`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
@@ -76,6 +78,7 @@ pub mod behavior;
 pub mod arch;
 pub mod assets;
 pub mod autotile;
+pub mod calendar;
 pub mod camera;
 pub mod change;
 pub mod cmdqueue;
@@ -114,6 +117,7 @@ pub mod profiler;
 pub mod progression;
 pub mod quest;
 pub mod random_table;
+pub mod recipe;
 pub mod relations;
 pub mod replay;
 pub mod rng;
@@ -142,6 +146,7 @@ pub use behavior::{BehaviorNode, BehaviorStatus, BehaviorTree};
 pub use arch::ArchTable;
 pub use assets::{AssetHandle, AssetStore};
 pub use autotile::{compute_all, compute_mask, SimpleTileTable};
+pub use calendar::Calendar;
 pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
 pub use cmdqueue::CmdQueue;
@@ -203,6 +208,7 @@ pub use profiler::{EventLog, LogEntry, Profiler};
 pub use progression::{LevelCurve, Progression};
 pub use quest::{Objective, Quest, QuestState};
 pub use random_table::RandomTable;
+pub use recipe::{Ingredient, Recipe};
 pub use relations::Relations;
 pub use replay::{
     check_trace, count_divergences, first_divergence, record_trace, resimulate, Divergence,
