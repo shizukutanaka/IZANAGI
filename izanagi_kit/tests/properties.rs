@@ -20,7 +20,7 @@ use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::camera::Camera;
 use izanagi_kit::combat::{
-    apply_resistance, base_damage, critical_strike, melee_attack, roll_damage, roll_to_hit,
+    apply_resistance, base_damage, critical_strike, melee_attack, roll_damage,
     StatsModifier,
 };
 use izanagi_kit::damage::{DamageType, ResistanceProfile};
@@ -521,7 +521,7 @@ fn prop_easing_monotone_families_bounded_and_increasing() {
         for (name, f) in fns {
             let (v1, v2) = (to_f(f(t1)), to_f(f(t2)));
             assert!(
-                v1 >= -EPS && v1 <= 1.0 + EPS,
+                (-EPS..=1.0 + EPS).contains(&v1),
                 "{name}({}) = {v1} out of [0,1]",
                 to_f(t1)
             );
@@ -1378,7 +1378,7 @@ fn path_is_blocked_fn(walls: &[bool]) -> impl Fn(i32, i32) -> bool + '_ {
 /// oracle; any forced-neighbour or pruning bug shows up as a cost/None mismatch.
 #[test]
 fn prop_jps_matches_astar_cost_and_is_valid() {
-    let mut rng = SplitMix64::new(0x0DABC_005);
+    let mut rng = SplitMix64::new(0x0DAB_C005);
     let mut reachable = 0usize;
     for _ in 0..500 {
         let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
@@ -1434,7 +1434,7 @@ fn prop_jps_matches_astar_cost_and_is_valid() {
 /// identical path. Any HashMap-iteration leak would desync AI routes in replays.
 #[test]
 fn prop_jps_is_deterministic() {
-    let mut rng = SplitMix64::new(0x0DDE7_005);
+    let mut rng = SplitMix64::new(0x0DDE_7005);
     for _ in 0..500 {
         let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
         let sx = rng.below(PATH_W as u32) as i32;
@@ -1454,7 +1454,7 @@ fn prop_jps_is_deterministic() {
 /// reaches the goal).
 #[test]
 fn prop_dijkstra_descend_is_monotone_to_source() {
-    let mut rng = SplitMix64::new(0x0D1357_05);
+    let mut rng = SplitMix64::new(0x0D13_5705);
     let mut descents = 0usize;
     for _ in 0..400 {
         let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(6) == 0).collect();
@@ -1523,7 +1523,7 @@ fn prop_octile_distance_is_a_metric() {
 /// waypoints. So the smoothed route is still walkable and no longer than before.
 #[test]
 fn prop_smooth_path_preserves_endpoints_and_los() {
-    let mut rng = SplitMix64::new(0x0577007_5);
+    let mut rng = SplitMix64::new(0x0577_0075);
     let mut smoothed = 0usize;
     for _ in 0..500 {
         let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(6) == 0).collect();
@@ -1566,8 +1566,8 @@ fn prop_smooth_path_preserves_endpoints_and_los() {
 fn prop_dice_roll_is_in_min_max_range() {
     let mut rng = SplitMix64::new(0x0D1C_E005);
     for _ in 0..ITERS {
-        let count = rng.below(8) as u32; // 0..=7
-        let sides = 1 + rng.below(20) as u32; // 1..=20
+        let count = rng.below(8); // 0..=7
+        let sides = 1 + rng.below(20); // 1..=20
         let modifier = rng.range(-10, 11);
         let d = Dice::new(count, sides, modifier);
 
@@ -1591,8 +1591,8 @@ fn prop_dice_roll_is_in_min_max_range() {
 fn prop_dice_advantage_ge_disadvantage() {
     let mut rng = SplitMix64::new(0x0E2D_F005);
     for _ in 0..ITERS {
-        let count = rng.below(5) as u32;
-        let sides = 1 + rng.below(20) as u32;
+        let count = rng.below(5);
+        let sides = 1 + rng.below(20);
         let modifier = rng.range(-5, 6);
         let d = Dice::new(count, sides, modifier);
 
@@ -1621,8 +1621,8 @@ fn prop_dice_advantage_ge_disadvantage() {
 fn prop_dice_average_x100_is_between_min_and_max() {
     let mut rng = SplitMix64::new(0x0F3E_4005);
     for _ in 0..ITERS {
-        let count = rng.below(16) as u32; // 0..=15
-        let sides = 1 + rng.below(100) as u32; // 1..=100
+        let count = rng.below(16); // 0..=15
+        let sides = 1 + rng.below(100); // 1..=100
         let modifier = rng.range(-100, 101);
         let d = Dice::new(count, sides, modifier);
 
@@ -1683,8 +1683,8 @@ fn prop_generate_dungeon_is_fully_connected() {
 
     for _ in 0..200 {
         let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
-        let w = 20 + rng.below(40) as u32;
-        let h = 20 + rng.below(40) as u32;
+        let w = 20 + rng.below(40);
+        let h = 20 + rng.below(40);
         let dungeon = generate_dungeon(w, h, &mut SplitMix64::new(seed), GenParams::default());
 
         assert!(
@@ -1715,8 +1715,8 @@ fn prop_generate_dungeon_is_deterministic() {
 
     for _ in 0..200 {
         let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
-        let w = 15 + rng.below(30) as u32;
-        let h = 15 + rng.below(30) as u32;
+        let w = 15 + rng.below(30);
+        let h = 15 + rng.below(30);
         let params = GenParams::default();
 
         let a = generate_dungeon(w, h, &mut SplitMix64::new(seed), params);
@@ -1741,8 +1741,8 @@ fn prop_generate_cave_is_fully_connected() {
 
     for _ in 0..200 {
         let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
-        let w = 25 + rng.below(35) as u32;
-        let h = 25 + rng.below(35) as u32;
+        let w = 25 + rng.below(35);
+        let h = 25 + rng.below(35);
         let dungeon = generate_cave(w, h, &mut SplitMix64::new(seed), CaveParams::default());
 
         assert!(
@@ -1772,8 +1772,8 @@ fn prop_generate_bsp_is_fully_connected() {
 
     for _ in 0..200 {
         let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
-        let w = 25 + rng.below(35) as u32;
-        let h = 25 + rng.below(35) as u32;
+        let w = 25 + rng.below(35);
+        let h = 25 + rng.below(35);
         let dungeon = generate_bsp(w, h, &mut SplitMix64::new(seed), BspParams::default());
 
         assert!(
@@ -2261,7 +2261,7 @@ fn prop_spatial_hash_query_rect_superset_of_query_cell() {
         // Always insert key 0 at the query point so query_cell is never empty.
         sh.insert(0u32, px, py);
         // Insert a few more at random positions.
-        let n = rng.below(9) as u32;
+        let n = rng.below(9);
         for k in 1..=n {
             sh.insert(k, rng.range(-100, 101), rng.range(-100, 101));
         }
@@ -2408,7 +2408,7 @@ fn prop_passability_from_fn_matches_predicate() {
                 .rem_euclid(5) as u32
                 == salt
         };
-        let grid = PassabilityGrid::from_fn(w, h, |x, y| pred(x, y));
+        let grid = PassabilityGrid::from_fn(w, h, &pred);
         for y in 0..h {
             for x in 0..w {
                 assert_eq!(
@@ -2654,8 +2654,8 @@ fn prop_random_table_total_weight_is_sum() {
         let mut table: RandomTable<u32> = RandomTable::new();
         let mut expected: u64 = 0;
         for _ in 0..n {
-            let w = rng.below(100) as u32;
-            let v = rng.below(1000) as u32;
+            let w = rng.below(100);
+            let v = rng.below(1000);
             table.push(w, v);
             expected += w as u64;
         }
@@ -2674,11 +2674,11 @@ fn prop_random_table_total_weight_is_sum() {
 fn prop_random_table_zero_weight_never_selected() {
     let mut rng = SplitMix64::new(0xB1C2_D3E4);
     for _ in 0..ITERS {
-        let n_nonzero = 1 + rng.below(5) as u32;
+        let n_nonzero = 1 + rng.below(5);
         let mut table: RandomTable<u32> = RandomTable::new();
         table.push(0, u32::MAX); // zero-weight sentinel; can never appear in rolls
         for i in 0..n_nonzero {
-            table.push(1 + rng.below(10) as u32, i); // values 0..n_nonzero — never u32::MAX
+            table.push(1 + rng.below(10), i); // values 0..n_nonzero — never u32::MAX
         }
         for _ in 0..10 {
             match table.roll(&mut rng) {
@@ -2698,12 +2698,12 @@ fn prop_random_table_zero_weight_never_selected() {
 fn prop_random_table_roll_n_returns_correct_count() {
     let mut rng = SplitMix64::new(0xC2D3_E4F5);
     for _ in 0..ITERS {
-        let n_entries = 1 + rng.below(8) as u32;
+        let n_entries = 1 + rng.below(8);
         let mut table: RandomTable<u32> = RandomTable::new();
         for i in 0..n_entries {
-            table.push(1 + rng.below(5) as u32, i); // all weights ≥ 1
+            table.push(1 + rng.below(5), i); // all weights ≥ 1
         }
-        let n = rng.below(20) as u32;
+        let n = rng.below(20);
         let results = table.roll_n(n, &mut rng);
         assert_eq!(
             results.len(),
@@ -2725,7 +2725,7 @@ fn prop_random_table_weighted_idx_consistent_with_roll() {
         let n = 2 + rng.below(7) as usize;
         let mut table: RandomTable<u32> = RandomTable::new();
         for i in 0..n as u32 {
-            table.push(1 + rng.below(10) as u32, i * 10);
+            table.push(1 + rng.below(10), i * 10);
         }
         // Fork: both forks see the same RNG state at the point of selection.
         let seed = rand_seed(&mut rng);
@@ -2752,12 +2752,12 @@ fn prop_random_table_weighted_idx_consistent_with_roll() {
 fn prop_cooldown_tick_is_monotone() {
     let mut rng = SplitMix64::new(0xE4F5_0617);
     for _ in 0..ITERS {
-        let initial = rng.below(0x1_0000) as u32;
+        let initial = rng.below(0x1_0000);
         let mut cd = Cooldown::new(initial);
         let steps = rng.below(12) as usize;
         let mut prev = cd.remaining;
         for _ in 0..steps {
-            let t = rng.below(200) as u32;
+            let t = rng.below(200);
             cd.tick(t);
             assert!(
                 cd.remaining <= prev,
@@ -2777,8 +2777,8 @@ fn prop_cooldown_tick_is_monotone() {
 fn prop_cooldown_percent_remaining_in_range() {
     let mut rng = SplitMix64::new(0xF506_1728);
     for _ in 0..ITERS {
-        let remaining = rng.below(0x1_0000) as u32;
-        let original = rng.below(0x1_0000) as u32; // intentionally may be < remaining
+        let remaining = rng.below(0x1_0000);
+        let original = rng.below(0x1_0000); // intentionally may be < remaining
         let cd = Cooldown::new(remaining);
         let pct = cd.percent_remaining(original);
         assert!(
@@ -2796,8 +2796,8 @@ fn prop_cooldown_percent_remaining_in_range() {
 fn prop_cooldown_elapsed_accounting() {
     let mut rng = SplitMix64::new(0x0617_2839);
     for _ in 0..ITERS {
-        let remaining = rng.below(0x1_0000) as u32;
-        let original = rng.below(0x2_0000) as u32; // may be less, equal, or more
+        let remaining = rng.below(0x1_0000);
+        let original = rng.below(0x2_0000); // may be less, equal, or more
         let cd = Cooldown::new(remaining);
         let expected = original.saturating_sub(remaining);
         assert_eq!(
@@ -2818,7 +2818,7 @@ fn prop_cooldown_fractional_progress_endpoints() {
     let mut rng = SplitMix64::new(0x1728_394A);
     // Case A: remaining == 0 → fully elapsed → progress == ONE
     for _ in 0..(ITERS / 2) {
-        let original = 1 + rng.below(0xFFFF) as u32;
+        let original = 1 + rng.below(0xFFFF);
         let cd = Cooldown::ready();
         assert_eq!(
             cd.fractional_progress(original),
@@ -2828,7 +2828,7 @@ fn prop_cooldown_fractional_progress_endpoints() {
     }
     // Case B: remaining == original → not started → elapsed = 0 → progress == ZERO
     for _ in 0..(ITERS / 2) {
-        let original = 1 + rng.below(0xFFFF) as u32;
+        let original = 1 + rng.below(0xFFFF);
         let cd = Cooldown::new(original);
         assert_eq!(
             cd.fractional_progress(original),
@@ -2851,7 +2851,7 @@ fn prop_timer_queue_peek_next_is_minimum() {
         let mut q: TimerQueue<u32> = TimerQueue::new();
         let n = rng.below(12) as usize;
         for k in 0..n as u32 {
-            q.schedule(rng.below(100) as u32, k);
+            q.schedule(rng.below(100), k);
         }
         let expected = q.iter().map(|(r, _)| r).min();
         assert_eq!(q.peek_next(), expected, "peek_next ≠ iter min (n={n})");
@@ -2867,11 +2867,11 @@ fn prop_timer_queue_advance_fires_all_due_events() {
     let mut rng = SplitMix64::new(0x394A_5B6C);
     for _ in 0..ITERS {
         let mut q: TimerQueue<u32> = TimerQueue::new();
-        let n = 1 + rng.below(10) as u32;
-        let max_delay = rng.below(50) as u32;
+        let n = 1 + rng.below(10);
+        let max_delay = rng.below(50);
         for k in 0..n {
             // delay ∈ [0, max_delay] — guaranteed to fire in advance(max_delay)
-            let delay = rng.below(max_delay.saturating_add(1)) as u32;
+            let delay = rng.below(max_delay.saturating_add(1));
             q.schedule(delay, k);
         }
         let fired = q.advance(max_delay);
@@ -2893,16 +2893,16 @@ fn prop_timer_queue_non_repeating_removed_after_fire() {
     let mut rng = SplitMix64::new(0x4A5B_6C7D);
     for _ in 0..ITERS {
         let mut q: TimerQueue<u32> = TimerQueue::new();
-        let max_delay = rng.below(30) as u32;
+        let max_delay = rng.below(30);
         let n_oneshot = 1 + rng.below(5) as usize; // always ≥ 1
         let n_repeat = rng.below(4) as usize;
         for k in 0..n_oneshot as u32 {
-            let delay = rng.below(max_delay.saturating_add(1)) as u32;
+            let delay = rng.below(max_delay.saturating_add(1));
             q.schedule(delay, k);
         }
         for k in 0..n_repeat as u32 {
-            let delay = rng.below(max_delay.saturating_add(1)) as u32;
-            let period = 1 + rng.below(20) as u32;
+            let delay = rng.below(max_delay.saturating_add(1));
+            let period = 1 + rng.below(20);
             q.schedule_repeat(delay, period, k + 100);
         }
         let fired = q.advance(max_delay);
@@ -2960,7 +2960,7 @@ fn prop_multimap_move_down_then_up_is_identity() {
         let floors: Vec<Dungeon> = (0..n)
             .map(|i| mini_floor(rand_seed(&mut rng) ^ i as u64))
             .collect();
-        let start = rng.below(n as u32) as u32;
+        let start = rng.below(n as u32);
         let mut mm = MultiMap::new(floors, start);
         let initial = mm.current_floor();
         if mm.move_down() {
@@ -2992,7 +2992,7 @@ fn prop_multimap_same_floor_path_is_empty() {
     for _ in 0..ITERS {
         let n = 1 + rng.below(5) as usize; // 1..5 floors
         let floors: Vec<Dungeon> = (0..n).map(|_| mini_floor(rand_seed(&mut rng))).collect();
-        let target = rng.below(n as u32) as u32;
+        let target = rng.below(n as u32);
         let mm = MultiMap::new(floors, 0);
         let path = mm.find_floor_path(target, target);
         assert_eq!(
@@ -5245,7 +5245,7 @@ fn prop_faction_values_in_range() {
             }
         }
         for (_, _, rep) in fm.iter() {
-            assert!(rep >= MIN_REP && rep <= MAX_REP, "rep {rep} out of [-100,100]");
+            assert!((MIN_REP..=MAX_REP).contains(&rep), "rep {rep} out of [-100,100]");
         }
     }
 }
@@ -5305,7 +5305,7 @@ fn prop_faction_modify_saturating() {
             fm.modify(0, 1, delta);
         }
         let rep = fm.get(0, 1);
-        assert!(rep >= MIN_REP && rep <= MAX_REP, "rep {rep} out of range after saturation");
+        assert!((MIN_REP..=MAX_REP).contains(&rep), "rep {rep} out of range after saturation");
     }
 }
 
@@ -5363,7 +5363,7 @@ fn prop_eventqueue_len_invariant() {
             q.pop();
         }
         assert_eq!(q.len(), pushes - pops, "len must equal pushes - pops");
-        assert_eq!(q.is_empty(), q.len() == 0);
+        assert_eq!(q.is_empty(), q.is_empty());
     }
 }
 
@@ -5480,8 +5480,8 @@ fn prop_quest_complete_iff_all_done() {
             q = q.with_objective(Objective::new("obj", t));
         }
         // Complete every objective by brute-forcing progress.
-        for i in 0..n {
-            q.progress(i, targets[i]);
+        for (i, &t) in targets.iter().enumerate() {
+            q.progress(i, t);
         }
         assert_eq!(q.state(), QuestState::Complete, "all done → Complete");
         assert_eq!(q.completed_count(), n);
