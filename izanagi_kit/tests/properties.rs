@@ -29,6 +29,7 @@ use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::visibility::{Visibility, VisibilityMap};
 use izanagi_kit::equipment::{EquipSlot, Equipment};
+use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::progression::{LevelCurve, Progression};
 use izanagi_kit::shufflebag::ShuffleBag;
@@ -5217,5 +5218,109 @@ fn prop_lightmap_oob_safe() {
         for (_, _, v) in lm.iter() {
             assert!(v <= MAX_LIGHT);
         }
+    }
+}
+
+// ── FactionMap ────────────────────────────────────────────────────────────────
+
+/// **All stored values are in [MIN_REP, MAX_REP]** after any sequence of set/modify.
+#[test]
+fn prop_faction_values_in_range() {
+    let mut rng = SplitMix64::new(0xFA67_0001);
+    for _ in 0..ITERS {
+        let mut fm: FactionMap<u32> = FactionMap::new();
+        let factions = 1 + rng.below(5);
+        for _ in 0..rng.below(20) {
+            let a = rng.below(factions);
+            let b = rng.below(factions);
+            let v = rng.range(-200, 201);
+            if rng.below(2) == 0 {
+                fm.set(a, b, v);
+            } else {
+                fm.modify(a, b, v);
+            }
+        }
+        for (_, _, rep) in fm.iter() {
+            assert!(rep >= MIN_REP && rep <= MAX_REP, "rep {rep} out of [-100,100]");
+        }
+    }
+}
+
+/// **Threshold partition**: for any reputation value exactly one of is_hostile,
+/// is_neutral, is_friendly is true.
+#[test]
+fn prop_faction_threshold_partition() {
+    let mut rng = SplitMix64::new(0xFA67_0002);
+    for _ in 0..ITERS {
+        let mut fm: FactionMap<u32> = FactionMap::new();
+        let v = rng.range(MIN_REP, MAX_REP + 1);
+        fm.set(1, 2, v);
+        let h = fm.is_hostile(1, 2);
+        let n = fm.is_neutral(1, 2);
+        let f = fm.is_friendly(1, 2);
+        assert_eq!(h as u8 + n as u8 + f as u8, 1, "exactly one alignment for rep {v}");
+        // Cross-check threshold values.
+        assert_eq!(h, v < HOSTILE_THRESHOLD);
+        assert_eq!(f, v > FRIENDLY_THRESHOLD);
+        assert_eq!(n, !h && !f);
+    }
+}
+
+/// **set_symmetric is bidirectional** and **modify_symmetric is additive**.
+#[test]
+fn prop_faction_symmetry_operations() {
+    let mut rng = SplitMix64::new(0xFA67_0003);
+    for _ in 0..ITERS {
+        let mut fm: FactionMap<u32> = FactionMap::new();
+        let a = rng.below(4);
+        let b = (a + 1 + rng.below(3)) % 4; // always distinct from a
+        let v = rng.range(MIN_REP, MAX_REP + 1);
+        fm.set_symmetric(a, b, v);
+        assert_eq!(fm.get(a, b), fm.get(b, a), "set_symmetric must be bidirectional");
+        let delta = rng.range(-50, 51);
+        let before_ab = fm.get(a, b);
+        let before_ba = fm.get(b, a);
+        fm.modify_symmetric(a, b, delta);
+        let exp = (before_ab + delta).clamp(MIN_REP, MAX_REP);
+        assert_eq!(fm.get(a, b), exp, "modify_symmetric forward");
+        assert_eq!(fm.get(b, a), (before_ba + delta).clamp(MIN_REP, MAX_REP), "modify_symmetric backward");
+    }
+}
+
+/// **modify is saturating-clamped**: applying large positive/negative deltas
+/// always lands within [MIN_REP, MAX_REP] and never wraps.
+#[test]
+fn prop_faction_modify_saturating() {
+    let mut rng = SplitMix64::new(0xFA67_0004);
+    for _ in 0..ITERS {
+        let mut fm: FactionMap<u32> = FactionMap::new();
+        let start = rng.range(MIN_REP, MAX_REP + 1);
+        fm.set(0, 1, start);
+        for _ in 0..rng.below(10) {
+            let delta = rng.range(i32::MIN / 2, i32::MAX / 2);
+            fm.modify(0, 1, delta);
+        }
+        let rep = fm.get(0, 1);
+        assert!(rep >= MIN_REP && rep <= MAX_REP, "rep {rep} out of range after saturation");
+    }
+}
+
+/// **remove reverts to 0** and reduces entry_count; missing pair get is always 0.
+#[test]
+fn prop_faction_remove_and_default() {
+    let mut rng = SplitMix64::new(0xFA67_0005);
+    for _ in 0..ITERS {
+        let mut fm: FactionMap<u32> = FactionMap::new();
+        let a = rng.below(3);
+        let b = rng.below(3) + 3; // different range ensures a != b always
+        // Missing pair returns 0.
+        assert_eq!(fm.get(a, b), 0);
+        let v = rng.range(-100, 101);
+        fm.set(a, b, v);
+        let before = fm.entry_count();
+        let removed = fm.remove(a, b);
+        assert_eq!(removed, v.clamp(MIN_REP, MAX_REP), "remove returns the stored value");
+        assert_eq!(fm.get(a, b), 0, "pair reads 0 after removal");
+        assert_eq!(fm.entry_count(), before - 1, "count decreases by one");
     }
 }
