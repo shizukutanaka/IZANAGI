@@ -36,6 +36,7 @@ use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MA
 use izanagi_kit::threat::ThreatTable;
 use izanagi_kit::pool::Pool;
 use izanagi_kit::tween::Tween;
+use izanagi_kit::wallet::Wallet;
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
@@ -6088,5 +6089,129 @@ fn prop_tween_det_hash_sensitive() {
                 "different elapsed → different hash"
             );
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// wallet — fungible currency balances
+// ---------------------------------------------------------------------------
+
+/// **withdraw is all-or-nothing**: it succeeds iff affordable, deducts exactly
+/// the amount on success, and leaves the wallet unchanged on failure.
+#[test]
+fn prop_wallet_withdraw_all_or_nothing() {
+    let mut rng = SplitMix64::new(0xAB1E_0001);
+    for _ in 0..ITERS {
+        let mut w: Wallet<u32> = Wallet::new();
+        let cur = rng.below(4);
+        let start = rng.below(1000) as u64;
+        w.deposit(cur, start);
+        let before = w.balance(cur);
+        let amount = rng.below(1500) as u64;
+        let affordable = w.can_afford(cur, amount);
+        let ok = w.withdraw(cur, amount);
+        assert_eq!(ok, affordable, "withdraw succeeds iff affordable");
+        if ok {
+            assert_eq!(w.balance(cur), before - amount, "exact deduction");
+        } else {
+            assert_eq!(w.balance(cur), before, "failed withdraw is unchanged");
+        }
+    }
+}
+
+/// **transfer conserves total currency** across the two wallets and is atomic.
+#[test]
+fn prop_wallet_transfer_conserves_total() {
+    let mut rng = SplitMix64::new(0xAB1E_0002);
+    for _ in 0..ITERS {
+        let mut a: Wallet<u32> = Wallet::new();
+        let mut b: Wallet<u32> = Wallet::new();
+        let cur = rng.below(3);
+        let ba = rng.below(1000) as u64;
+        let bb = rng.below(1000) as u64;
+        a.deposit(cur, ba);
+        b.deposit(cur, bb);
+        let total_before = a.balance(cur) + b.balance(cur);
+        let amount = rng.below(1500) as u64;
+        let a_before = a.balance(cur);
+        let ok = a.transfer(&mut b, cur, amount);
+        assert_eq!(
+            a.balance(cur) + b.balance(cur),
+            total_before,
+            "transfer conserves total currency"
+        );
+        if !ok {
+            assert_eq!(a.balance(cur), a_before, "failed transfer leaves sender unchanged");
+        }
+    }
+}
+
+/// **No zero balances are ever stored**: len/is_empty agree with iter, and
+/// every yielded balance is positive.
+#[test]
+fn prop_wallet_no_zero_balances() {
+    let mut rng = SplitMix64::new(0xAB1E_0003);
+    for _ in 0..ITERS {
+        let mut w: Wallet<u32> = Wallet::new();
+        for _ in 0..rng.below(12) {
+            let cur = rng.below(4);
+            match rng.below(4) {
+                0 => w.deposit(cur, rng.below(100) as u64),
+                1 => { w.withdraw(cur, rng.below(100) as u64); }
+                2 => w.set(cur, rng.below(100) as u64),
+                _ => { w.remove(cur); }
+            }
+        }
+        let counted = w.iter().count();
+        assert_eq!(counted, w.len(), "iter count matches len");
+        assert_eq!(w.is_empty(), counted == 0);
+        for (_, b) in w.iter() {
+            assert!(b > 0, "no zero balance may be stored");
+        }
+    }
+}
+
+/// **deposit then withdraw of the same amount is identity** (round-trip).
+#[test]
+fn prop_wallet_deposit_withdraw_round_trip() {
+    let mut rng = SplitMix64::new(0xAB1E_0004);
+    for _ in 0..ITERS {
+        let mut w: Wallet<u32> = Wallet::new();
+        let cur = rng.below(4);
+        let seed = rng.below(500) as u64;
+        w.deposit(cur, seed);
+        let snapshot = w.balance(cur);
+        let amount = 1 + rng.below(400) as u64;
+        w.deposit(cur, amount);
+        assert!(w.withdraw(cur, amount), "just-deposited amount is withdrawable");
+        assert_eq!(w.balance(cur), snapshot, "deposit+withdraw round-trips");
+    }
+}
+
+/// **DetHash is order-independent and balance-sensitive.**
+#[test]
+fn prop_wallet_det_hash_order_independent() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0xAB1E_0005);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6);
+        let mut entries: Vec<(u32, u64)> = Vec::new();
+        for i in 0..n {
+            entries.push((i, 1 + rng.below(1000) as u64));
+        }
+        let mut a: Wallet<u32> = Wallet::new();
+        for &(c, b) in &entries {
+            a.set(c, b);
+        }
+        let mut b: Wallet<u32> = Wallet::new();
+        for &(c, bal) in entries.iter().rev() {
+            b.set(c, bal);
+        }
+        assert_eq!(hash_state(&a), hash_state(&b), "hash is order-independent");
+
+        let mut c = a.clone();
+        let (bump_c, _) = entries[rng.below(n) as usize];
+        c.deposit(bump_c, 1);
+        assert_ne!(hash_state(&a), hash_state(&c), "changed balance → changed hash");
     }
 }

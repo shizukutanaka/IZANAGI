@@ -25,6 +25,7 @@
 //! - [`threat`] — per-combatant aggro / target-selection table (`ThreatTable<K>`).
 //! - [`pool`] — bounded regenerating resource pool: mana/stamina/hunger (`Pool`).
 //! - [`tween`] — time-driven eased value interpolation over a tick span (`Tween`).
+//! - [`wallet`] — fungible currency balances for shops/economy (`Wallet<C>`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
@@ -142,6 +143,7 @@ pub mod tween;
 pub mod validator;
 pub mod vec;
 pub mod visibility;
+pub mod wallet;
 pub mod wfc;
 pub mod world_hash;
 
@@ -244,5 +246,6 @@ pub use tween::Tween;
 pub use validator::{is_loadable, validate};
 pub use vec::{Vec2, Vec3};
 pub use visibility::{Visibility, VisibilityMap};
+pub use wallet::Wallet;
 pub use wfc::{wfc_solve, wfc_solve_backtrack, wfc_solve_partial, WfcGrid, WfcResult, WfcRules};
 pub use world_hash::{hash_state, DetHash, Fnv1a};
