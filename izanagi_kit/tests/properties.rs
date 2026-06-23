@@ -34,6 +34,7 @@ use izanagi_kit::eventqueue::EventQueue;
 use izanagi_kit::recipe::{Ingredient, Recipe};
 use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 use izanagi_kit::threat::ThreatTable;
+use izanagi_kit::pool::Pool;
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
@@ -5843,5 +5844,123 @@ fn prop_threat_det_hash_order_independent() {
         let (bump_k, _) = entries[rng.below(n) as usize];
         c.add(bump_k, 1);
         assert_ne!(hash_state(&a), hash_state(&c), "changed threat → changed hash");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// pool — bounded regenerating resource (mana / stamina / hunger)
+// ---------------------------------------------------------------------------
+
+/// **current is always within [0, max]** after any sequence of operations.
+#[test]
+fn prop_pool_current_always_in_bounds() {
+    let mut rng = SplitMix64::new(0x9001_0001);
+    for _ in 0..ITERS {
+        let max = rng.below(500) as i32;
+        let regen = rng.below(40) as i32 - 20; // -20..=19
+        let mut p = Pool::with_current(max, rng.below(600) as i32, regen);
+        for _ in 0..rng.below(12) {
+            match rng.below(6) {
+                0 => { p.spend(rng.below(100) as i32); }
+                1 => { p.drain(rng.below(100) as i32); }
+                2 => { p.restore(rng.below(100) as i32); }
+                3 => { p.set(rng.below(600) as i32 - 100); }
+                4 => { p.tick(rng.below(10)); }
+                _ => { p.set_max(rng.below(500) as i32); }
+            }
+            assert!(p.current() >= 0, "current floored at 0");
+            assert!(p.current() <= p.max(), "current never exceeds max");
+            assert!(p.max() >= 0, "max never negative");
+        }
+    }
+}
+
+/// **spend is all-or-nothing**: it succeeds iff affordable, and on failure the
+/// pool is byte-for-byte unchanged.
+#[test]
+fn prop_pool_spend_all_or_nothing() {
+    let mut rng = SplitMix64::new(0x9001_0002);
+    for _ in 0..ITERS {
+        let max = 1 + rng.below(300) as i32;
+        let mut p = Pool::with_current(max, rng.below(max as u32 + 1) as i32, 0);
+        let before = p;
+        let cost = rng.below(400) as i32;
+        let affordable = p.can_afford(cost);
+        let ok = p.spend(cost);
+        assert_eq!(ok, affordable, "spend succeeds iff affordable");
+        if ok && cost > 0 {
+            assert_eq!(p.current(), before.current() - cost, "exact deduction");
+        } else if !ok {
+            assert_eq!(p, before, "failed spend leaves pool unchanged");
+        }
+    }
+}
+
+/// **drain/restore report the true delta**: the returned amount equals the
+/// actual change in `current`, and never exceeds the requested amount.
+#[test]
+fn prop_pool_drain_restore_report_true_delta() {
+    let mut rng = SplitMix64::new(0x9001_0003);
+    for _ in 0..ITERS {
+        let max = rng.below(300) as i32;
+        let mut p = Pool::with_current(max, rng.below(400) as i32, 0);
+
+        let before = p.current();
+        let req = rng.below(200) as i32;
+        let removed = p.drain(req);
+        assert_eq!(removed, before - p.current(), "drain delta matches");
+        assert!(removed <= req.max(0) && removed >= 0, "drain within request");
+
+        let before2 = p.current();
+        let req2 = rng.below(200) as i32;
+        let added = p.restore(req2);
+        assert_eq!(added, p.current() - before2, "restore delta matches");
+        assert!(added <= req2.max(0) && added >= 0, "restore within request");
+    }
+}
+
+/// **tick is equivalent to repeated single ticks** (linearity of regeneration)
+/// and the reported net change equals the actual change.
+#[test]
+fn prop_pool_tick_equivalent_to_single_steps() {
+    let mut rng = SplitMix64::new(0x9001_0004);
+    for _ in 0..ITERS {
+        let max = rng.below(300) as i32;
+        let regen = rng.below(30) as i32 - 15;
+        let start = rng.below(max as u32 + 1) as i32;
+        let n = rng.below(8);
+
+        let mut batch = Pool::with_current(max, start, regen);
+        let net = batch.tick(n);
+        assert_eq!(net, batch.current() - start, "tick reports true net change");
+
+        let mut stepwise = Pool::with_current(max, start, regen);
+        for _ in 0..n {
+            stepwise.tick(1);
+        }
+        assert_eq!(
+            batch.current(),
+            stepwise.current(),
+            "tick(n) equals n single ticks"
+        );
+    }
+}
+
+/// **percent/per_mille are monotone in current** and bounded.
+#[test]
+fn prop_pool_percent_monotone_and_bounded() {
+    let mut rng = SplitMix64::new(0x9001_0005);
+    for _ in 0..ITERS {
+        let max = 1 + rng.below(500) as i32;
+        let lo = rng.below(max as u32 + 1) as i32;
+        let hi = lo + rng.below((max - lo) as u32 + 1) as i32;
+        let pl = Pool::with_current(max, lo, 0);
+        let ph = Pool::with_current(max, hi, 0);
+        assert!(pl.percent() <= 100 && ph.percent() <= 100);
+        assert!(pl.per_mille() <= 1000 && ph.per_mille() <= 1000);
+        assert!(pl.percent() <= ph.percent(), "percent monotone in current");
+        assert!(pl.per_mille() <= ph.per_mille(), "per_mille monotone in current");
+        // deficit + current == max.
+        assert_eq!(pl.deficit() + pl.current(), max, "deficit completes to max");
     }
 }

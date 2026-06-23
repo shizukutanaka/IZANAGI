@@ -23,6 +23,7 @@
 //! - [`lightmap`] — additive integer illumination map for torchlit dungeons (`LightMap`).
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
 //! - [`threat`] — per-combatant aggro / target-selection table (`ThreatTable<K>`).
+//! - [`pool`] — bounded regenerating resource pool: mana/stamina/hunger (`Pool`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
@@ -114,6 +115,7 @@ pub mod noise;
 pub mod parser;
 pub mod passability;
 pub mod pathfinding;
+pub mod pool;
 pub mod profiler;
 pub mod progression;
 pub mod quest;
@@ -206,6 +208,7 @@ pub use pathfinding::{
     astar, descend, dijkstra_map, flood_fill, is_path_clear, is_reachable, jps, nearest_reachable,
     octile_distance, path_cost, path_to_direction_vec, smooth_path, step_toward, weighted_astar,
 };
+pub use pool::Pool;
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use progression::{LevelCurve, Progression};
 pub use quest::{Objective, Quest, QuestState};
