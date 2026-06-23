@@ -29,6 +29,7 @@ use izanagi_kit::status::{StatTarget, StatusSet};
 use izanagi_kit::tilemap::{LayeredMap, TileMap};
 use izanagi_kit::visibility::{Visibility, VisibilityMap};
 use izanagi_kit::equipment::{EquipSlot, Equipment};
+use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::progression::{LevelCurve, Progression};
 use izanagi_kit::shufflebag::ShuffleBag;
 use izanagi_kit::{
@@ -5085,6 +5086,136 @@ fn prop_progression_within_level_accounting() {
                 "into + to_next must equal the level's cost"
             );
             assert!(p.xp_into_level() < cost, "progress stays within the level");
+        }
+    }
+}
+
+// ── LightMap ──────────────────────────────────────────────────────────────────
+
+/// **All levels stay within [0, MAX_LIGHT]** after any sequence of add_light calls.
+#[test]
+fn prop_lightmap_levels_in_range() {
+    let mut rng = SplitMix64::new(0xB1E5_0001);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(12);
+        let h = 1 + rng.below(12);
+        let mut lm = LightMap::new(w, h);
+        for _ in 0..rng.below(8) {
+            let cx = rng.range(0, w as i32 + 2) - 1;
+            let cy = rng.range(0, h as i32 + 2) - 1;
+            let radius = rng.below(8) as i32;
+            let intensity = rng.below(MAX_LIGHT as u32 + 1) as u16;
+            lm.add_light(cx, cy, radius, intensity);
+        }
+        for (_, _, v) in lm.iter() {
+            assert!(v <= MAX_LIGHT, "cell level {v} exceeds MAX_LIGHT");
+        }
+    }
+}
+
+/// **add_light is monotone**: adding a source never decreases any cell's level.
+#[test]
+fn prop_lightmap_add_never_decreases() {
+    let mut rng = SplitMix64::new(0xB1E5_0002);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(10);
+        let h = 1 + rng.below(10);
+        let mut lm = LightMap::new(w, h);
+        for _ in 0..rng.below(5) {
+            lm.add_light(
+                rng.range(0, w as i32),
+                rng.range(0, h as i32),
+                rng.below(6) as i32,
+                rng.below(128) as u16,
+            );
+        }
+        let before: Vec<u16> = (0..h).flat_map(|y| (0..w).map(move |x| (x, y))).map(|(x, y)| lm.get(x as i32, y as i32)).collect();
+        // Add one more light.
+        lm.add_light(
+            rng.range(0, w as i32),
+            rng.range(0, h as i32),
+            rng.below(6) as i32,
+            rng.below(128) as u16,
+        );
+        for (i, (x, y, after)) in lm.iter().enumerate() {
+            assert!(after >= before[i], "add_light decreased cell ({x},{y})");
+        }
+    }
+}
+
+/// **clear resets all cells to 0**; subsequent adds start from zero again.
+#[test]
+fn prop_lightmap_clear_then_dark() {
+    let mut rng = SplitMix64::new(0xB1E5_0003);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(10);
+        let h = 1 + rng.below(10);
+        let mut lm = LightMap::new(w, h);
+        for _ in 0..rng.below(6) {
+            lm.add_light(
+                rng.range(0, w as i32),
+                rng.range(0, h as i32),
+                rng.below(5) as i32,
+                1 + rng.below(100) as u16,
+            );
+        }
+        lm.clear();
+        for (_, _, v) in lm.iter() {
+            assert_eq!(v, 0, "cell must be dark after clear");
+        }
+        assert_eq!(lm.lit_count(), 0);
+        assert_eq!(lm.max_level(), 0);
+    }
+}
+
+/// **Commutativity**: adding two sources in either order produces the same map.
+#[test]
+fn prop_lightmap_addition_commutative() {
+    let mut rng = SplitMix64::new(0xB1E5_0004);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(12);
+        let h = 1 + rng.below(12);
+        let src = |r: &mut SplitMix64| {
+            let cx = r.range(0, w as i32);
+            let cy = r.range(0, h as i32);
+            let radius = r.below(6) as i32;
+            let intensity = r.below(200) as u16;
+            (cx, cy, radius, intensity)
+        };
+        let s1 = src(&mut rng);
+        let s2 = src(&mut rng);
+        let mut ab = LightMap::new(w, h);
+        ab.add_light(s1.0, s1.1, s1.2, s1.3);
+        ab.add_light(s2.0, s2.1, s2.2, s2.3);
+        let mut ba = LightMap::new(w, h);
+        ba.add_light(s2.0, s2.1, s2.2, s2.3);
+        ba.add_light(s1.0, s1.1, s1.2, s1.3);
+        for (x, y, v) in ab.iter() {
+            assert_eq!(v, ba.get(x, y), "add_light must be commutative at ({x},{y})");
+        }
+    }
+}
+
+/// **OOB coordinates return 0** and do not panic; centred-outside-map lights
+/// that partially overlap the map illuminate those border cells correctly.
+#[test]
+fn prop_lightmap_oob_safe() {
+    let mut rng = SplitMix64::new(0xB1E5_0005);
+    for _ in 0..ITERS {
+        let w = 1 + rng.below(8);
+        let h = 1 + rng.below(8);
+        let mut lm = LightMap::new(w, h);
+        // Source with centre outside the map.
+        let cx = rng.range(-(8i32), -1);
+        let cy = rng.range(-(8i32), -1);
+        lm.add_light(cx, cy, 20, 200); // large radius to possibly reach the map
+        // OOB get must return 0.
+        assert_eq!(lm.get(-1, 0), 0, "OOB returns 0");
+        assert_eq!(lm.get(0, -1), 0);
+        assert_eq!(lm.get(w as i32, 0), 0);
+        // All in-map levels still in range.
+        for (_, _, v) in lm.iter() {
+            assert!(v <= MAX_LIGHT);
         }
     }
 }

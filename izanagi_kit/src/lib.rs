@@ -20,6 +20,7 @@
 //! - [`shufflebag`] — draw-without-replacement bag randomizer with auto-refill (`ShuffleBag<T>`).
 //! - [`equipment`] — worn-item loadout per body slot with aggregate `StatsModifier` (`Equipment<T>`, `EquipSlot`).
 //! - [`progression`] — experience accumulation and integer level curves (`Progression`, `LevelCurve`).
+//! - [`lightmap`] — additive integer illumination map for torchlit dungeons (`LightMap`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
@@ -94,6 +95,7 @@ pub mod influence;
 pub mod inputbuf;
 pub mod inventory;
 pub mod keymap;
+pub mod lightmap;
 pub mod loader;
 pub mod mapgen;
 pub mod menu;
@@ -170,6 +172,7 @@ pub use influence::InfluenceMap;
 pub use inputbuf::{InputBuffer, KeySource, ListKeySource};
 pub use inventory::Inventory;
 pub use keymap::KeyMap;
+pub use lightmap::{LightMap, MAX_LIGHT};
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{
     generate_bsp, generate_cave, generate_dungeon, BspParams, CaveParams, Dungeon, GenParams, Rect,
