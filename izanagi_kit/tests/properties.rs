@@ -33,6 +33,7 @@ use izanagi_kit::equipment::{EquipSlot, Equipment};
 use izanagi_kit::eventqueue::EventQueue;
 use izanagi_kit::recipe::{Ingredient, Recipe};
 use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
+use izanagi_kit::threat::ThreatTable;
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
@@ -5701,5 +5702,146 @@ fn prop_recipe_duplicate_keys_merged() {
                 assert_eq!(canon_count, raw_total, "merged count for key {key}");
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// threat — per-combatant aggro / target-selection table
+// ---------------------------------------------------------------------------
+
+/// **top_target always returns the genuine maximum**, with ties broken toward
+/// the smallest key (so selection is order-independent).
+#[test]
+fn prop_threat_top_target_is_max_with_smallest_key_tiebreak() {
+    let mut rng = SplitMix64::new(0x7B3A_7001);
+    for _ in 0..ITERS {
+        let mut t: ThreatTable<u32> = ThreatTable::new();
+        let n = 1 + rng.below(8);
+        for _ in 0..n {
+            let key = rng.below(6); // collisions on purpose, to force ties
+            let amount = 1 + rng.below(50) as i32;
+            t.add(key, amount);
+        }
+        if let Some((tk, tv)) = t.top_entry() {
+            // No source may exceed the reported top threat.
+            let real_max = t.iter().map(|(_, v)| v).max().unwrap();
+            assert_eq!(tv, real_max, "top_entry must report the true maximum");
+            // Among all sources at the maximum, the smallest key must be chosen.
+            let smallest_at_max = t
+                .iter()
+                .filter(|(_, v)| *v == real_max)
+                .map(|(k, _)| *k)
+                .min()
+                .unwrap();
+            assert_eq!(*tk, smallest_at_max, "tie-break is the smallest key");
+        } else {
+            assert!(t.is_empty());
+        }
+    }
+}
+
+/// **Zero threat is always pruned**: no entry on the table ever has threat 0,
+/// and `is_empty`/`len` agree with `iter`.
+#[test]
+fn prop_threat_no_zero_entries_and_len_consistency() {
+    let mut rng = SplitMix64::new(0x7B3A_7002);
+    for _ in 0..ITERS {
+        let mut t: ThreatTable<u32> = ThreatTable::new();
+        let ops = rng.below(12);
+        for _ in 0..ops {
+            let key = rng.below(5);
+            match rng.below(4) {
+                0 => t.add(key, rng.below(40) as i32),
+                1 => t.reduce(key, rng.below(40) as i32),
+                2 => t.set(key, rng.below(40) as i32),
+                _ => t.decay_all(rng.below(20) as i32),
+            }
+        }
+        let counted = t.iter().count();
+        assert_eq!(counted, t.len(), "iter count matches len");
+        assert_eq!(t.is_empty(), counted == 0);
+        for (_, v) in t.iter() {
+            assert!(v > 0, "no zero-threat entry may remain on the table");
+        }
+    }
+}
+
+/// **taunt with margin >= 1 always wins**: after `taunt(src, m>=1)`, the top
+/// target is `src` and its threat is the prior max plus the margin.
+#[test]
+fn prop_threat_taunt_forces_top() {
+    let mut rng = SplitMix64::new(0x7B3A_7003);
+    for _ in 0..ITERS {
+        let mut t: ThreatTable<u32> = ThreatTable::new();
+        let n = rng.below(8);
+        for _ in 0..n {
+            t.add(10 + rng.below(20), 1 + rng.below(100) as i32);
+        }
+        let prior_max = t.top_entry().map(|(_, v)| v).unwrap_or(0);
+        let margin = 1 + rng.below(10) as i32;
+        let tank = 0u32; // distinct from the 10.. range above
+        t.taunt(tank, margin);
+        assert_eq!(t.top_target(), Some(&tank), "taunter must be top target");
+        assert_eq!(
+            t.threat_of(tank),
+            prior_max.saturating_add(margin).max(margin),
+            "taunt sets threat to prior max + margin"
+        );
+    }
+}
+
+/// **decay_all is monotone non-increasing** per source and never goes negative;
+/// total threat after decay is <= total before.
+#[test]
+fn prop_threat_decay_is_monotone() {
+    let mut rng = SplitMix64::new(0x7B3A_7004);
+    for _ in 0..ITERS {
+        let mut t: ThreatTable<u32> = ThreatTable::new();
+        let n = 1 + rng.below(8);
+        for _ in 0..n {
+            t.add(rng.below(10), 1 + rng.below(80) as i32);
+        }
+        let before: Vec<(u32, i32)> = t.iter().map(|(k, v)| (*k, v)).collect();
+        let total_before = t.total();
+        let amount = rng.below(50) as i32;
+        t.decay_all(amount);
+        assert!(t.total() <= total_before, "total threat cannot grow on decay");
+        for (k, old) in before {
+            let now = t.threat_of(k);
+            assert!(now <= old, "per-source threat is non-increasing");
+            assert!(now >= 0, "threat never negative");
+        }
+    }
+}
+
+/// **DetHash is order-independent and value-sensitive.**
+#[test]
+fn prop_threat_det_hash_order_independent() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x7B3A_7005);
+    for _ in 0..ITERS {
+        // Distinct keys with distinct positive threats (no last-write ambiguity).
+        let n = 1 + rng.below(8);
+        let mut entries: Vec<(u32, i32)> = Vec::new();
+        for i in 0..n {
+            entries.push((i, 1 + rng.below(100) as i32));
+        }
+        // Build `a` in forward order.
+        let mut a: ThreatTable<u32> = ThreatTable::new();
+        for &(k, v) in &entries {
+            a.set(k, v);
+        }
+        // Build `b` from the same entries in reverse insertion order.
+        let mut b: ThreatTable<u32> = ThreatTable::new();
+        for &(k, v) in entries.iter().rev() {
+            b.set(k, v);
+        }
+        assert_eq!(hash_state(&a), hash_state(&b), "hash is order-independent");
+
+        // Value sensitivity: bump one entry and the hash must change.
+        let mut c = a.clone();
+        let (bump_k, _) = entries[rng.below(n) as usize];
+        c.add(bump_k, 1);
+        assert_ne!(hash_state(&a), hash_state(&c), "changed threat → changed hash");
     }
 }

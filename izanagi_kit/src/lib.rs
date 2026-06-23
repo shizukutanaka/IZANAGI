@@ -22,6 +22,7 @@
 //! - [`progression`] — experience accumulation and integer level curves (`Progression`, `LevelCurve`).
 //! - [`lightmap`] — additive integer illumination map for torchlit dungeons (`LightMap`).
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
+//! - [`threat`] — per-combatant aggro / target-selection table (`ThreatTable<K>`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
@@ -129,6 +130,7 @@ pub mod spatial_hash;
 pub mod status;
 pub mod terminal;
 pub mod textlayout;
+pub mod threat;
 pub mod tilemap;
 pub mod timer;
 pub mod timestep;
@@ -228,6 +230,7 @@ pub use textlayout::{
     center, count_lines, fit_to_box, justify, measure_lines, pad_left, pad_lines, pad_right,
     truncate, truncate_lines, wrap_words, wrap_words_max_lines,
 };
+pub use threat::ThreatTable;
 pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
