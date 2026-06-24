@@ -10,7 +10,7 @@
 > no float in sim / `PINNED_FINAL_HASH` と `PINNED_ROGUELIKE_HASH` を壊さない /
 > 新規コードは各機能 3 テスト以上。
 >
-> 最終更新: 2026-06-11 / ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
+> 最終更新: 2026-06-24 / ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
 
 ---
 
@@ -52,6 +52,11 @@
 | G7 | **item affix / enchantment 生成** | `random_table` は値のみ | Medium | ✅ **実装済み**（`src/affix.rs`: `Affix` / `AffixedItem` / `AffixGenerator`） |
 | G8 | **behavior tree / GOAP / utility AI** | `fsm` は flat | Large | ✅ **実装済み**（`src/behavior.rs`: `BehaviorTree<A>` / `BehaviorNode<A>` / `BehaviorStatus`、sequence/selector/invert/repeat/succeed/fail + action/condition leaves、DetHash、30 tests） |
 | G9 | **unified ability/skill system**（mana/cooldown/range/effect 結線） | `timer`+`fsm`+`combat` を手結線 | Large | ✅ **実装済み**（`src/ability.rs`: `AbilitySet<K,E>` + `Ability<E>` + `AbilityResult<E>`、cooldown/mana/range 統合、DetHash、26 tests） |
+| G10 | **per-combatant threat / aggro table**（敵対中に「今誰を狙うか」） | encounter 個別には持たない | Medium | ✅ **実装済み**（`src/threat.rs`: `ThreatTable<K>` — BTreeMap backed、add/reduce/decay/taunt、最小キー tie-break、DetHash、20u + 5p tests） |
+| G11 | **bounded regenerating resource pool**（mana/stamina/hunger） | `Pool` 抽象化なし | Small | ✅ **実装済み**（`src/pool.rs`: 有界 i32、add/drain/restore、符号付き regen（正=再生、負=減衰）、DetHash、19u + 5p tests） |
+| G12 | **eased time-driven value interpolation**（D ティック区間での補間） | easing 曲線のみ・状態なし | Medium | ✅ **実装済み**（`src/tween.rs`: `Tween` — Q16.16 Fixed、advance/reset/reverse、curve 非保持（fn pointer 決定論不可）、DetHash、15u + 6p tests） |
+| G13 | **fungible currency / shop wallet**（gold/gem の残高） | inventory は discrete items のみ | Small | ✅ **実装済み**（`src/wallet.rs`: `Wallet<C>` — u64 balances in BTreeMap、withdraw all-or-nothing、transfer atomic、DetHash、16u + 5p tests） |
+| G14 | **branching dialogue tree**（NPC 会話の分岐） | fsm/quest は general state/task | Medium | ✅ **実装済み**（`src/dialogue.rs`: `Dialogue` + `DialogueNode` + `Choice` — 無 RNG・純 cursor navigation、terminal node 判定、out-of-range safe、DetHash、12u + 5p tests） |
 
 ## 4. 本イテレーションの実装 (Implemented this pass)
 
@@ -70,6 +75,56 @@
 
 決定論影響: 🟢 replay-safe（整数のみ・固定順・float なし）。既存 sim は本 module を未使用のため
 `PINNED_FINAL_HASH = 0xd1a9_236e_96a2_c802` / `PINNED_ROGUELIKE_HASH = 0x5286_d142_0200_fe66` 不変。
+
+## 6. 本セッションの実装（G10-G14）
+
+**G10 — per-combatant threat / aggro table** → `src/threat.rs`（新規 module, 20u + 5p tests）
+
+- `ThreatTable<K>`: BTreeMap<K, i32> backed、zero-threat entries pruned。
+- `add / reduce / set / remove`、flat decay + per-mille decay（cool-off）。
+- `top_target()`: 最大威脅値の source を返す。**タイ解決は最小キーで決定論的**（挿入順非依存）。
+- `taunt(src, margin)`: src を top へ強制（tank pull）。
+- **ソクラテス的ギャップ**: `faction` は「集団同士が敵対か」、`influence` は「危険はどこか」を答えるが、
+  「敵対中に**今誰を狙うか**」の軸が欠落 → 同値タイを最小キー優先で解決して replay-safe に。
+
+**G11 — bounded regenerating resource pool** → `src/pool.rs`（新規 module, 19u + 5p tests）
+
+- `Pool`: u32 max, i32 current & regen_per_tick。current は常に [0, max]。
+- `spend()` all-or-nothing、`drain()/restore()` は報告 delta。
+- 符号付き regen: 正=再生、負=減衰（毒・飢え）。
+- **ソクラテス的ギャップ**: `combat::Stats` は HP のみ、`ability` はマナ管理を呼び出し側に委譲
+  → 有界・毎ティック再生（減衰含む）の汎用リソース。
+
+**G12 — eased time-driven value interpolation** → `src/tween.rs`（新規 module, 15u + 6p tests）
+
+- `Tween`: Fixed start/end、u32 duration/elapsed。`value(curve_fn)` で easing 曲線を sample。
+- curve は **非保持**（fn pointer は deterministic hash 不可）→ `recipe` 同様に呼び出し側で supply。
+- `value()` は overshooting curve を [0,1] に clamp、`value_overshoot()` は preservation。
+- `advance() / reset() / reverse()`（ping-pong）。
+- **ソクラテス的ギャップ**: `easing` は曲線、`Fixed::lerp` は端点補間を提供するが、
+  「D ティック中の**今**の緩急値」を保持する状態が無い。
+
+**G13 — fungible currency / shop wallet** → `src/wallet.rs`（新規 module, 16u + 5p tests）
+
+- `Wallet<C>`: BTreeMap<C, u64> backed、zero-balance entries pruned。
+- `deposit() / withdraw()` all-or-nothing、`transfer()` atomic（両側同時更新 or 両側無変更）。
+- **ソクラテス的ギャップ**: item層は完備（inventory store、equipment wear、recipe transform、affix enchant）
+  だが、**代替可能な通貨**（gold/gem/token）の軸が無い → 原子的 transfer・通貨保存則。
+
+**G14 — branching dialogue tree** → `src/dialogue.rs`（新規 module, 12u + 5p tests）
+
+- `Dialogue + DialogueNode + Choice`: ノードは text + choices の vec。choice は label + target index。
+- 実行時状態は単一 cursor `Option<usize>`（None 時は ended）。**RNG 不使用・完全に replay-safe**。
+- `choose(i)` / `goto(node)` / `end()`、terminal node（choice 0 個）は自動判定。
+- **範囲外は安全に拒否**: choice index out-of-range、target out-of-range → state 不変で false を返す（panic しない）。
+- **ソクラテス的ギャップ**: `fsm`/`hfsm` は汎用 AI state machine、`quest` はタスク完了を追う
+  だが、「ノードがテキスト+選択肢を持ち各選択肢が次ノードへ遷移する」という**会話特有の形**を専用には扱えない。
+
+---
+
+決定論影響: 🟢 全て replay-safe（整数 / fixed-point のみ、float 無し、RNG 無し or 決定論的、canonical order）。
+プロパティテスト: **218件**（G1-G9: 193件 → +25件で新 G10-G14）。
+`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変。
 
 ## 5. 次の推奨着手順（効果 × 低工数）
 
@@ -97,7 +152,44 @@
    + 付与確率%、固定 draw 順序: prefix coin → prefix roll → suffix coin →
    suffix roll、degenerate は draw なし）。`DetHash` 完備。14 tests + doc test）
 
-残りの未実装は G9（ability system, **Large** — アーキテクチャ設計を伴うため別途スコープ確認の上で着手）。
+## 7. 現段階の弱点と次の改善候補
+
+### 7.1 短所（現段階）
+
+| # | 短所 | 影響 | 工数 |
+|---|------|------|------|
+| W8 | **Integration test 欠落**（複数 module 横断の E2E テストが無い） | wallet + dialogue + shop pricing の連携が未検証 | Medium |
+| W9 | **複数 tween の同時再生管理がない**（animation sequencer） | UI/visual FX は複数並行アニメを必要とするが、個別管理が煩雑 | Medium |
+| W10 | **shop pricing model**（buy/sell markup、NPC ごとの価格設定） | wallet の基盤は整備されたが、実際のショップ仕組みが無い | Small |
+| W11 | **trigger / event script**（条件→アクション チェーン）| dialogue の結果（choice）を quest や world state 変化に紐づける基盤が無い | Large |
+| W12 | **README.md が実装に追いついていない** | G1-G14 の機能一覧が記載されていない | Small |
+
+### 7.2 次の推奨着手順（効果 × 工数、内部依存度）
+
+1. **W12 — README.md 更新** ← **即実装推奨**（手付かず、Small 工数）
+   - G1-G14 の機能一覧を追加
+   - 各モジュールの Socratic gap（なぜこれが必要だったか）を簡潔に記述
+   - property test 数を記載（218 件）
+
+2. **W10 — shop pricing model** ← **次推奨**（Small、wallet 直結）
+   - `Shop<K>` struct: `Wallet` + 各 item に buy/sell markup
+   - `can_buy / buy / can_sell / sell` トランザクション
+   - wallet 実装済みなので low-hanging fruit
+
+3. **W8 — wallet + dialogue integration test** ← **その次**（Medium、E2E validation）
+   - NPC が商品提示（dialogue）→ player が購入（wallet withdraw）
+   - property test 1-2 件で wallet/dialogue の組み合わせが safe であることを示す
+
+4. **W9 — animation sequencer** ← **中期**（Medium、tween の拡張）
+   - `TweenSequence<T>` or `TweenChain`: `Vec<Tween>` を順序付で管理
+   - 並行実行は `Vec<Tween>` → `iter_mut / advance_all`
+   - UI bar fill（1 tween）+ sound fade（別 tween）同時再生
+
+5. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
+   - condition predicate （「quest active? 」「player in zone? 」）
+   - action lambda （「show dialogue」「grant item」「start encounter」）
+   - chain: `if condition then actions` の linked list か DAG
+   - **現段階では未実装でよし**（NG ギャップリスト化が目的）
 G8 は本ブランチで `src/behavior.rs` として実装済み。
 Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 

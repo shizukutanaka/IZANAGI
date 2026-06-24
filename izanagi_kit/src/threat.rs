@@ -13,7 +13,7 @@
 //! ```
 //! use izanagi_kit::threat::ThreatTable;
 //!
-//! #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+//! #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 //! enum Hero { Warrior, Mage, Cleric }
 //!
 //! let mut t: ThreatTable<Hero> = ThreatTable::new();
