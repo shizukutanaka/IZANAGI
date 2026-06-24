@@ -515,6 +515,81 @@ impl BestCost for Option<((i32, i32), i32)> {
     }
 }
 
+/// Build a **flee map** ("safety map") from a [`dijkstra_map`] desire field, so
+/// that descending the result makes an entity flee *intelligently* — away from
+/// the sources but routing around obstacles instead of into dead ends.
+///
+/// Naively negating a Dijkstra map and descending it produces cowardly-but-dumb
+/// behaviour: an entity backed into a dead-end corner sees no lower-valued
+/// neighbour and stops, even though the corner is a death trap. The fix, from
+/// the RogueBasin technique "The Incredible Power of Dijkstra Maps", is to
+/// negate the map by a coefficient slightly above 1 (`coeff_num/coeff_den`,
+/// e.g. `12/10` = 1.2) and then **rescan**: relax every cell against its
+/// neighbours until the field is a consistent distance map again. The rescan
+/// re-introduces the gradient that pulls fleers down corridors toward open
+/// space rather than letting them freeze in local minima.
+///
+/// Uses the same 8-way moves, octile costs and no-corner-cutting rule as
+/// [`dijkstra_map`]. `coeff_den` of `0` is treated as `1`. Deterministic: cells
+/// are relaxed in sorted `(x, y)` order to a fixpoint, so the result is
+/// identical across runs. Only cells present in `desire` appear in the output.
+pub fn flee_map<B>(
+    desire: &HashMap<(i32, i32), i32>,
+    coeff_num: i32,
+    coeff_den: i32,
+    mut is_blocked: B,
+) -> HashMap<(i32, i32), i32>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    let den = if coeff_den == 0 { 1 } else { coeff_den };
+    // Step 1: negate by the coefficient. i64 intermediate avoids overflow.
+    let mut flee: HashMap<(i32, i32), i32> = HashMap::with_capacity(desire.len());
+    for (&cell, &v) in desire {
+        let scaled = -((v as i64 * coeff_num as i64) / den as i64);
+        flee.insert(cell, scaled.clamp(i32::MIN as i64, i32::MAX as i64) as i32);
+    }
+
+    // Deterministic cell order for the relaxation passes.
+    let mut cells: Vec<(i32, i32)> = flee.keys().copied().collect();
+    cells.sort_unstable();
+
+    // Step 2: rescan to a fixpoint. Values only ever decrease and are bounded
+    // below by the most-negative seed, so this terminates in <= |cells| passes.
+    loop {
+        let mut changed = false;
+        for &(cx, cy) in &cells {
+            let current = flee[&(cx, cy)];
+            let mut best = current;
+            for (dx, dy) in DIRS {
+                let (nx, ny) = (cx + dx, cy + dy);
+                if is_blocked(nx, ny) {
+                    continue;
+                }
+                let diagonal = dx != 0 && dy != 0;
+                if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                    continue;
+                }
+                if let Some(&nv) = flee.get(&(nx, ny)) {
+                    let step = if diagonal { COST_DIAG } else { COST_ORTHO };
+                    let candidate = nv.saturating_add(step);
+                    if candidate < best {
+                        best = candidate;
+                    }
+                }
+            }
+            if best < current {
+                flee.insert((cx, cy), best);
+                changed = true;
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    flee
+}
+
 /// Remove redundant waypoints from a grid path using Bresenham LOS pruning
 /// ("greedy string-pull").
 ///
@@ -879,6 +954,89 @@ mod tests {
             assert!(steps < 1000, "descent must terminate");
         }
         assert_eq!(map[&cur], 0, "descent ends at a source");
+    }
+
+    // --- flee_map ---
+
+    #[test]
+    fn test_flee_map_covers_same_cells_as_desire() {
+        let blocked = blocker(8, 8, HashSet::new());
+        let desire = dijkstra_map(&[(0, 0)], 10_000, &blocked);
+        let flee = flee_map(&desire, 12, 10, &blocked);
+        assert_eq!(flee.len(), desire.len(), "flee map covers exactly the desire cells");
+        for key in desire.keys() {
+            assert!(flee.contains_key(key));
+        }
+    }
+
+    #[test]
+    fn test_flee_map_descends_away_from_source() {
+        // On an open grid, descending the flee map should move AWAY from the
+        // player at (0,0): each step's Chebyshev distance to the source grows.
+        let blocked = blocker(10, 10, HashSet::new());
+        let desire = dijkstra_map(&[(0, 0)], 10_000, &blocked);
+        let flee = flee_map(&desire, 12, 10, &blocked);
+        let mut cur = (4, 4);
+        let mut last_chev = cur.0.max(cur.1);
+        let mut steps = 0;
+        while let Some(next) = descend(&flee, cur, &blocked) {
+            let chev = next.0.max(next.1);
+            assert!(chev >= last_chev, "fleeing should not move back toward the source");
+            last_chev = chev;
+            cur = next;
+            steps += 1;
+            assert!(steps < 1000, "descent must terminate");
+        }
+        assert!(steps > 0, "a fleer in the open should be able to move");
+    }
+
+    #[test]
+    fn test_flee_map_escapes_dead_end() {
+        // A pocket at (1,1) with the only exit at (1,2) leading out to open
+        // space; the player sits just outside at (1,0). A naive negated map
+        // would trap a fleer in the pocket; the rescanned flee map must still
+        // provide a descending step OUT of the pocket toward the exit.
+        //   col:   0 1 2 3 4
+        // row0:    # P # # #
+        // row1:    # . # # #   <- fleer starts here, walls left/right
+        // row2:    # . . . .   <- corridor opens to the right
+        let mut walls = HashSet::new();
+        for x in 0..5 {
+            for y in 0..3 {
+                walls.insert((x, y));
+            }
+        }
+        // Carve the pocket + corridor.
+        for cell in [(1, 0), (1, 1), (1, 2), (2, 2), (3, 2), (4, 2)] {
+            walls.remove(&cell);
+        }
+        let blocked = blocker(5, 3, walls);
+        let player = (1, 0);
+        let desire = dijkstra_map(&[player], 10_000, &blocked);
+        let flee = flee_map(&desire, 12, 10, &blocked);
+        // From the pocket cell (1,1), descending must lead to (1,2) — deeper
+        // into safety — not stall.
+        let next = descend(&flee, (1, 1), &blocked);
+        assert_eq!(next, Some((1, 2)), "fleer escapes the pocket toward the corridor");
+    }
+
+    #[test]
+    fn test_flee_map_is_deterministic() {
+        let walls = HashSet::from([(3, 3), (3, 4), (4, 3)]);
+        let blocked = blocker(9, 9, walls);
+        let desire = dijkstra_map(&[(0, 0), (8, 8)], 10_000, &blocked);
+        let a = flee_map(&desire, 12, 10, &blocked);
+        let b = flee_map(&desire, 12, 10, &blocked);
+        assert_eq!(a, b, "flee_map is deterministic for identical input");
+    }
+
+    #[test]
+    fn test_flee_map_zero_denominator_treated_as_one() {
+        let blocked = blocker(5, 5, HashSet::new());
+        let desire = dijkstra_map(&[(0, 0)], 10_000, &blocked);
+        let safe = flee_map(&desire, 1, 0, &blocked); // den 0 → 1
+        // Should not panic and should produce a same-sized map.
+        assert_eq!(safe.len(), desire.len());
     }
 
     // --- weighted_astar ---

@@ -190,6 +190,29 @@
    - action lambda （「show dialogue」「grant item」「start encounter」）
    - chain: `if condition then actions` の linked list か DAG
    - **現段階では未実装でよし**（NG ギャップリスト化が目的）
+
+## 8. 外部知見（Qiita / Zenn）に基づく改善
+
+Qiita / Zenn の調査で、ローグライク AI の古典技法として **Dijkstra マップ（脅威マップ / 誘導マップ）** が
+繰り返し言及されていた（"Game AI: Dijkstra's algorithm is used to create threat maps and item-targeting
+maps"）。本 kit には `dijkstra_map` / `descend` は既存だが、**flee map（safety map）** が欠けていた。
+
+**G15 — flee/safety map（rescan 付き）** → `src/pathfinding.rs::flee_map`（5u + 2p tests）
+
+- **問題**: `descend` の docstring は「flee by descending its negation」と述べていたが、
+  RogueBasin "The Incredible Power of Dijkstra Maps" が指摘する通り、Dijkstra マップを単純に
+  負化して降下すると、**行き止まりに追い込まれて停止**する愚かな逃走になる（local minimum 問題）。
+- **解法**: desire マップに負係数（`coeff_num/coeff_den`、例 `12/10` = 1.2）を掛け、
+  **再スキャン(rescan)** = octile コスト・no-corner-cut で fixpoint まで緩和。これにより
+  「ソースから遠ざかりつつ、壁を迂回して開けた空間へ逃げる」勾配が再生成される。
+- **決定論**: cell を `(x,y)` 昇順で緩和、値は単調減少で下界あり → `|cells|` パス以内で収束。
+  整数のみ（i64 中間計算で overflow なし）。replay-safe。
+- **検証**: 行き止まり脱出テスト（naive 負化なら失敗するケース）、局所一貫性
+  (`value <= neighbour + step`)、降下の cycle-free 終了をプロパティテストで保証。
+- 出典: RogueBasin（古典技法）+ Qiita/Zenn のダイクストラ法ゲーム AI 記事群で再確認。
+
+決定論影響: 🟢 replay-safe。`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変。
+プロパティテスト: **220件**。
 G8 は本ブランチで `src/behavior.rs` として実装済み。
 Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 

@@ -8,7 +8,7 @@
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
 //! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (deterministic).
-//! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible) and Jump Point Search.
+//! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search, Dijkstra maps + rescanned flee/safety maps.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
 //! - [`msglog`] — bounded ring-buffer message log with `DetHash`.
@@ -212,8 +212,9 @@ pub use noise::{
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{
-    astar, descend, dijkstra_map, flood_fill, is_path_clear, is_reachable, jps, nearest_reachable,
-    octile_distance, path_cost, path_to_direction_vec, smooth_path, step_toward, weighted_astar,
+    astar, descend, dijkstra_map, flee_map, flood_fill, is_path_clear, is_reachable, jps,
+    nearest_reachable, octile_distance, path_cost, path_to_direction_vec, smooth_path, step_toward,
+    weighted_astar,
 };
 pub use pool::Pool;
 pub use profiler::{EventLog, LogEntry, Profiler};

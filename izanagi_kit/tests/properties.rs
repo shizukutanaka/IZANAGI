@@ -14,7 +14,7 @@ use izanagi_kit::dice::Dice;
 use izanagi_kit::fov::compute_fov;
 use izanagi_kit::geometry::line_len;
 use izanagi_kit::pathfinding::{
-    astar, descend, dijkstra_map, jps, octile_distance, smooth_path, weighted_astar,
+    astar, descend, dijkstra_map, flee_map, jps, octile_distance, smooth_path, weighted_astar,
 };
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
@@ -1495,6 +1495,91 @@ fn prop_dijkstra_descend_is_monotone_to_source() {
         }
     }
     assert!(descents >= 100, "expected ≥100 descents, got {descents}");
+}
+
+/// **flee_map is a consistent distance field**: after the rescan, every mapped
+/// cell satisfies the local-consistency invariant `value <= neighbour + step`
+/// (no cell is more than one move cheaper than its cheapest neighbour). This is
+/// exactly the property that lets `descend` flee without getting stuck in a
+/// local minimum, and it is what the naive negate-only approach violates.
+#[test]
+fn prop_flee_map_is_locally_consistent() {
+    let mut rng = SplitMix64::new(0xF1EE_0001);
+    let dirs = [
+        (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1),
+    ];
+    for _ in 0..300 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(6) == 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        if walls[(sy * PATH_W + sx) as usize] {
+            continue;
+        }
+        let desire = dijkstra_map(&[(sx, sy)], 10_000, path_is_blocked(&walls));
+        let flee = flee_map(&desire, 12, 10, path_is_blocked(&walls));
+        // Same key set as the desire map.
+        assert_eq!(flee.len(), desire.len(), "flee map covers the desire cells");
+
+        let mut is_blocked = path_is_blocked(&walls);
+        for (&(cx, cy), &v) in flee.iter() {
+            for (dx, dy) in dirs {
+                let (nx, ny) = (cx + dx, cy + dy);
+                if is_blocked(nx, ny) {
+                    continue;
+                }
+                let diagonal = dx != 0 && dy != 0;
+                if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                    continue;
+                }
+                if let Some(&nv) = flee.get(&(nx, ny)) {
+                    let step = if diagonal { 14 } else { 10 };
+                    // Local consistency: this cell is never cheaper than a
+                    // neighbour's value minus one move — the rescan guarantee.
+                    assert!(
+                        v <= nv.saturating_add(step),
+                        "flee cell ({cx},{cy})={v} violates consistency vs ({nx},{ny})={nv}"
+                    );
+                }
+            }
+        }
+    }
+}
+
+/// **flee_map descent terminates without cycles**: starting from any mapped
+/// cell, steepest descent of the flee map strictly decreases the flee value at
+/// each step, so it can never revisit a cell and is guaranteed to halt. (Note
+/// a flee map maximises *path* distance from the source, routing around walls,
+/// so straight-line distance is deliberately *not* monotone — that is the whole
+/// point of the rescan over a naive negation.)
+#[test]
+fn prop_flee_map_descent_terminates_without_cycles() {
+    let mut rng = SplitMix64::new(0xF1EE_0002);
+    for _ in 0..300 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(7) == 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        if walls[(sy * PATH_W + sx) as usize] {
+            continue;
+        }
+        let desire = dijkstra_map(&[(sx, sy)], 10_000, path_is_blocked(&walls));
+        let flee = flee_map(&desire, 12, 10, path_is_blocked(&walls));
+        let cells: Vec<(i32, i32)> = flee.keys().copied().collect();
+        if cells.is_empty() {
+            continue;
+        }
+        for _ in 0..3 {
+            let mut cur = cells[rng.below(cells.len() as u32) as usize];
+            let mut last_val = flee[&cur];
+            let mut steps = 0;
+            while let Some(next) = descend(&flee, cur, path_is_blocked(&walls)) {
+                assert!(flee[&next] < last_val, "descend strictly decreases flee value");
+                last_val = flee[&next];
+                cur = next;
+                steps += 1;
+                assert!(steps < PATH_W * PATH_H, "flee descent must terminate");
+            }
+        }
+    }
 }
 
 /// **Octile distance is a metric** — `octile_distance` satisfies identity
