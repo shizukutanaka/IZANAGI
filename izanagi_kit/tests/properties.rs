@@ -44,10 +44,11 @@ use izanagi_kit::progression::{LevelCurve, Progression};
 use izanagi_kit::shufflebag::ShuffleBag;
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
-    generate_cave, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line, manhattan_distance,
+    generate_cave, generate_drunkard, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line,
+    manhattan_distance,
     normalize_noise, reflect_point, ridge_noise_2d, rotate_90_ccw, rotate_90_cw, splash_attack,
     value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap, value_noise_3d, Aabb,
-    BspParams, CaveParams, Cooldown, Dungeon, Fixed, GenParams, InfluenceMap, MultiMap,
+    BspParams, CaveParams, Cooldown, DrunkardParams, Dungeon, Fixed, GenParams, InfluenceMap, MultiMap,
     PassabilityGrid, RandomTable, SpatialHash, SplitMix64, Stats, TimerQueue, Vec2, Vec3,
 };
 
@@ -1849,6 +1850,87 @@ fn prop_generate_cave_is_fully_connected() {
         with_floor >= 100,
         "expected ≥100 caves with floor cells for non-vacuous coverage, got {with_floor}"
     );
+}
+
+/// **Drunkard's-walk connectivity** — a continuous digger that carves every
+/// cell it visits can only ever produce a single 4-connected floor region. This
+/// is the generator's headline guarantee (no culling step needed, unlike
+/// `generate_cave`). Verified over 200 (seed, size) triples.
+#[test]
+fn prop_generate_drunkard_is_fully_connected() {
+    let mut rng = SplitMix64::new(0x0D4B_0001);
+    let mut with_floor = 0usize;
+    for _ in 0..200 {
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        let w = 25 + rng.below(35);
+        let h = 25 + rng.below(35);
+        let d = generate_drunkard(w, h, &mut SplitMix64::new(seed), DrunkardParams::default());
+        assert!(
+            dungeon_is_connected(&d),
+            "drunkard map not connected (seed={seed:#x}, w={w}, h={h})"
+        );
+        if !d.floor_cells().is_empty() {
+            with_floor += 1;
+        }
+    }
+    assert!(
+        with_floor >= 190,
+        "drunkard maps should almost always have floor, got {with_floor}"
+    );
+}
+
+/// **Drunkard's-walk determinism** — pure function of (w, h, seed, params).
+#[test]
+fn prop_generate_drunkard_is_deterministic() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x0D4B_0002);
+    for _ in 0..200 {
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        let w = 20 + rng.below(30);
+        let h = 20 + rng.below(30);
+        let p = DrunkardParams::default();
+        let a = generate_drunkard(w, h, &mut SplitMix64::new(seed), p);
+        let b = generate_drunkard(w, h, &mut SplitMix64::new(seed), p);
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "generate_drunkard not deterministic (seed={seed:#x}, w={w}, h={h})"
+        );
+    }
+}
+
+/// **Drunkard's-walk fill bound** — the carved floor count never exceeds the
+/// requested target (the walk stops the moment the target is reached), and the
+/// border stays solid wall regardless of fill/seed.
+#[test]
+fn prop_generate_drunkard_respects_fill_and_border() {
+    let mut rng = SplitMix64::new(0x0D4B_0003);
+    for _ in 0..200 {
+        let seed = (rng.below(0x7FFF_FFFF) as u64) << 32 | rng.below(0x7FFF_FFFF) as u64 | 1;
+        let w = 20 + rng.below(30);
+        let h = 20 + rng.below(30);
+        let fill = 1 + rng.below(80);
+        let d = generate_drunkard(
+            w,
+            h,
+            &mut SplitMix64::new(seed),
+            DrunkardParams { fill_percent: fill, max_steps: 0 },
+        );
+        let interior = (w - 2) * (h - 2);
+        let target = (interior * fill / 100).clamp(1, interior);
+        let floor = d.floor_cells().len() as u32;
+        // The walk stops as soon as `carved >= target`, and each step adds at
+        // most one new floor cell, so floor never exceeds the target.
+        assert!(floor <= target, "floor {floor} exceeded target {target}");
+        // Border is always wall.
+        let (wi, hi) = (w as i32, h as i32);
+        for x in 0..wi {
+            assert!(d.is_wall(x, 0) && d.is_wall(x, hi - 1));
+        }
+        for y in 0..hi {
+            assert!(d.is_wall(0, y) && d.is_wall(wi - 1, y));
+        }
+    }
 }
 
 /// **BSP dungeon connectivity** — `generate_bsp` joins each pair of child

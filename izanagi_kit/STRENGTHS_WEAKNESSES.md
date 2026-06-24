@@ -213,6 +213,20 @@ maps"）。本 kit には `dijkstra_map` / `descend` は既存だが、**flee ma
 
 決定論影響: 🟢 replay-safe。`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変。
 プロパティテスト: **220件**。
+
+**G16 — drunkard's walk（穴掘り法）ダンジョン生成** → `src/mapgen.rs::generate_drunkard`（7u + 3p tests）
+
+- **調査根拠**: Qiita/Zenn のローグライク生成記事群で「穴掘り法」が古典手法として繰り返し言及
+  （gis 氏の C++ シリーズ、Python/Unity 実装等）。本 kit は room-placement / cellular cave / BSP の
+  3 種を持つが、**単一エージェントが乱歩で掘る** drunkard's walk が欠けていた。
+- **特徴**: digger が中心から開始し毎ステップ 1 cardinal 方向を引いて移動・床化。連続移動なので
+  **常に単一 4-connected 領域**を保証（`generate_cave` のような cull 後処理が不要）。
+- **決定論**: 固定中心開始、1 step = 1 draw、interior `[1,w-2]×[1,h-2]` に clamp（壁沿いに滑る）。
+  `max_steps` で必ず終了。replay-safe。
+- **検証**: 全 20 seed で full-connectivity、fill 上限不超過、border 維持、tiny-map 安全をテスト。
+- 出典: RogueBasin "drunkard's walk" / bracket-lib + Qiita/Zenn 穴掘り法記事群。
+
+決定論影響: 🟢 replay-safe。`PINNED_*_HASH` 不変。プロパティテスト: **223件**。
 G8 は本ブランチで `src/behavior.rs` として実装済み。
 Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 

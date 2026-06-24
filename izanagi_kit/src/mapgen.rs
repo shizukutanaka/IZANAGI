@@ -142,6 +142,29 @@ impl Default for BspParams {
     }
 }
 
+/// Tuning for [`generate_drunkard`] (the "drunkard's walk" / 穴掘り法 digging
+/// generator). `Default` carves roughly 40% of the interior into one organic,
+/// guaranteed-connected cavern.
+#[derive(Clone, Copy, Debug)]
+pub struct DrunkardParams {
+    /// Target fraction of *interior* cells to carve as floor, as a percent
+    /// (`1..=100`). The walk stops once this many distinct cells are floor.
+    pub fill_percent: u32,
+    /// Hard cap on the number of digger steps, so generation always terminates
+    /// even if the walk keeps re-treading carved cells. `0` is treated as a
+    /// generous default derived from the map area.
+    pub max_steps: u32,
+}
+
+impl Default for DrunkardParams {
+    fn default() -> Self {
+        Self {
+            fill_percent: 40,
+            max_steps: 0,
+        }
+    }
+}
+
 /// A generated dungeon: a `width × height` grid of wall/floor plus the rooms
 /// that were placed (in placement order). Out-of-bounds cells are walls.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -631,6 +654,72 @@ fn carve_leaf_room(d: &mut Dungeon, rng: &mut SplitMix64, area: Rect, room_min: 
     d.carve_room(&room);
     d.rooms.push(room);
     room.center()
+}
+
+/// Generate an organic cavern by **drunkard's walk** (the classic roguelike
+/// "穴掘り法" digging method): a single digger starts at the centre and takes
+/// random cardinal steps, carving every interior cell it visits, until the
+/// target fill fraction is reached.
+///
+/// Because the digger moves one cell at a time and carves continuously, the
+/// result is **guaranteed to be a single 4-connected floor region** — unlike
+/// [`generate_cave`], which seeds with noise and must cull disconnected blobs.
+/// This makes it ideal when you need a winding, fully-traversable cavern with
+/// no post-processing.
+///
+/// Deterministic: the digger starts at a fixed centre and draws exactly one
+/// `rng` value (a cardinal direction) per step. The walk is clamped to the
+/// interior `[1, width-2] × [1, height-2]`, so it slides along the border
+/// rather than escaping. Returns an all-wall dungeon for maps smaller than
+/// `3 × 3`.
+pub fn generate_drunkard(
+    width: u32,
+    height: u32,
+    rng: &mut SplitMix64,
+    params: DrunkardParams,
+) -> Dungeon {
+    let mut d = Dungeon::filled(width, height);
+    if width < 3 || height < 3 {
+        return d;
+    }
+    let (w, h) = (width as i32, height as i32);
+    let interior = ((w - 2) as u32) * ((h - 2) as u32);
+    let fill = params.fill_percent.clamp(1, 100);
+    // Target distinct floor cells; at least 1, never more than the interior.
+    let target = (interior * fill / 100).clamp(1, interior);
+    // Generous default step cap: enough slack to reach the target on an open
+    // walk while still bounding the worst case.
+    let max_steps = if params.max_steps == 0 {
+        interior.saturating_mul(8).max(64)
+    } else {
+        params.max_steps
+    };
+
+    // Start the digger at the centre of the interior.
+    let mut x = w / 2;
+    let mut y = h / 2;
+    d.carve(x, y);
+    let mut carved = 1u32;
+
+    let mut steps = 0u32;
+    while carved < target && steps < max_steps {
+        steps += 1;
+        // One draw per step: a cardinal direction (replay-safe).
+        let (dx, dy) = match rng.below(4) {
+            0 => (0, -1),
+            1 => (1, 0),
+            2 => (0, 1),
+            _ => (-1, 0),
+        };
+        // Clamp into the interior so the digger slides along walls.
+        x = (x + dx).clamp(1, w - 2);
+        y = (y + dy).clamp(1, h - 2);
+        if d.is_wall(x, y) {
+            d.carve(x, y);
+            carved += 1;
+        }
+    }
+    d
 }
 
 #[cfg(test)]
@@ -1162,5 +1251,87 @@ mod tests {
         let d1 = generate_dungeon(25, 20, &mut r1, GenParams::default());
         let d2 = generate_dungeon(25, 20, &mut r2, GenParams::default());
         assert_ne!(hash_state(&d1), hash_state(&d2));
+    }
+
+    // --- generate_drunkard (drunkard's walk / 穴掘り法) ---
+
+    fn drunkard_is_connected(d: &Dungeon) -> bool {
+        let start = d.floor_cells().into_iter().next();
+        let Some(start) = start else {
+            return true; // no floor → trivially "connected"
+        };
+        let reach = dijkstra_map(&[start], i32::MAX, |x, y| d.is_wall(x, y));
+        d.floor_cells().iter().all(|c| reach.contains_key(c))
+    }
+
+    #[test]
+    fn test_drunkard_same_seed_is_byte_identical() {
+        let mut r1 = SplitMix64::new(0xD161_0001);
+        let mut r2 = SplitMix64::new(0xD161_0001);
+        let a = generate_drunkard(60, 40, &mut r1, DrunkardParams::default());
+        let b = generate_drunkard(60, 40, &mut r2, DrunkardParams::default());
+        assert_eq!(hash_state(&a), hash_state(&b), "same seed → identical map");
+    }
+
+    #[test]
+    fn test_drunkard_is_always_fully_connected() {
+        // The headline guarantee: a continuous digger yields a single region.
+        for seed in 0..20u64 {
+            let mut rng = SplitMix64::new(0xD161_1000 + seed);
+            let d = generate_drunkard(50, 30, &mut rng, DrunkardParams::default());
+            assert!(
+                drunkard_is_connected(&d),
+                "drunkard's walk must be fully connected (seed {seed})"
+            );
+        }
+    }
+
+    #[test]
+    fn test_drunkard_border_is_solid_wall() {
+        let mut rng = SplitMix64::new(0xD161_0003);
+        let d = generate_drunkard(40, 25, &mut rng, DrunkardParams::default());
+        let (w, h) = (d.width() as i32, d.height() as i32);
+        for x in 0..w {
+            assert!(d.is_wall(x, 0) && d.is_wall(x, h - 1), "top/bottom border wall");
+        }
+        for y in 0..h {
+            assert!(d.is_wall(0, y) && d.is_wall(w - 1, y), "left/right border wall");
+        }
+    }
+
+    #[test]
+    fn test_drunkard_reaches_target_fill_on_open_map() {
+        // On a roomy map the walk should reach (about) the requested fill.
+        let mut rng = SplitMix64::new(0xD161_0004);
+        let d = generate_drunkard(60, 40, &mut rng, DrunkardParams { fill_percent: 30, max_steps: 0 });
+        let interior = (60 - 2) * (40 - 2);
+        let floor = d.floor_cells().len() as u32;
+        let target = interior * 30 / 100;
+        assert!(floor >= target, "carved {floor} should reach target {target}");
+    }
+
+    #[test]
+    fn test_drunkard_respects_max_steps_cap() {
+        // A tiny step cap stops early; the map stays mostly wall but never panics
+        // and is still connected.
+        let mut rng = SplitMix64::new(0xD161_0005);
+        let d = generate_drunkard(60, 40, &mut rng, DrunkardParams { fill_percent: 90, max_steps: 10 });
+        let floor = d.floor_cells().len() as u32;
+        assert!(floor <= 11, "at most start + 10 steps of new floor (got {floor})");
+        assert!(drunkard_is_connected(&d), "even a capped walk is connected");
+    }
+
+    #[test]
+    fn test_drunkard_tiny_map_returns_all_wall_without_panicking() {
+        let mut rng = SplitMix64::new(7);
+        let d = generate_drunkard(2, 2, &mut rng, DrunkardParams::default());
+        assert!(d.floor_cells().is_empty(), "maps < 3×3 are all wall");
+    }
+
+    #[test]
+    fn test_drunkard_carries_no_rectangular_rooms() {
+        let mut rng = SplitMix64::new(0xD161_0006);
+        let d = generate_drunkard(50, 30, &mut rng, DrunkardParams::default());
+        assert!(d.rooms.is_empty(), "a cavern carries no Rect rooms");
     }
 }

@@ -7,7 +7,7 @@
 //! - [`fixed`] — Q16.16 fixed-point for cross-platform-deterministic math.
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
 //! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
-//! - [`mapgen`] — seed-driven procedural dungeon generation (deterministic).
+//! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search, Dijkstra maps + rescanned flee/safety maps.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
@@ -199,7 +199,8 @@ pub use keymap::KeyMap;
 pub use lightmap::{LightMap, MAX_LIGHT};
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{
-    generate_bsp, generate_cave, generate_dungeon, BspParams, CaveParams, Dungeon, GenParams, Rect,
+    generate_bsp, generate_cave, generate_drunkard, generate_dungeon, BspParams, CaveParams,
+    DrunkardParams, Dungeon, GenParams, Rect,
 };
 pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
