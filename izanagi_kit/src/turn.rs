@@ -189,6 +189,82 @@ impl<A: Copy + Ord> Scheduler<A> {
         self.ready().map(|i| self.actors[i].id)
     }
 
+    /// Non-destructively simulate the next `n` turns and return the ids of the
+    /// actors who would act, **in order**. This is the "turn-order timeline" /
+    /// initiative bar that turn-based games show the player (e.g. Final Fantasy
+    /// Tactics, Into the Breach): a look-ahead of who acts next, next-next, etc.
+    ///
+    /// The simulation mirrors [`next_turn`](Self::next_turn) exactly — same
+    /// time-advance rule and same smallest-id tie-break — but runs on a private
+    /// copy, so the scheduler is left untouched. An actor can appear multiple
+    /// times in the result if it is fast enough to act more than once within the
+    /// window. Returns an empty `Vec` if the scheduler is empty; otherwise the
+    /// result has exactly `n` entries (idle actors still regenerate energy).
+    pub fn forecast(&self, n: usize) -> Vec<A> {
+        let mut order = Vec::with_capacity(n);
+        if self.actors.is_empty() || n == 0 {
+            return order;
+        }
+        // Local mutable copy of (id, speed, energy) so we don't disturb state.
+        let mut sim: Vec<Actor<A>> = self.actors.clone();
+        for _ in 0..n {
+            // Find the ready actor (energy >= cost) with the smallest id.
+            let mut ready: Option<usize> = None;
+            for (i, a) in sim.iter().enumerate() {
+                if a.energy < ACTION_COST {
+                    continue;
+                }
+                match ready {
+                    None => ready = Some(i),
+                    Some(b) if a.id.cmp(&sim[b].id) == Ordering::Less => ready = Some(i),
+                    _ => {}
+                }
+            }
+            // If nobody is ready, advance time by the minimum whole units needed
+            // for someone to reach the threshold (same i64 math as next_turn).
+            let idx = match ready {
+                Some(i) => i,
+                None => {
+                    let units: i64 = sim
+                        .iter()
+                        .map(|a| {
+                            let deficit = ACTION_COST as i64 - a.energy as i64;
+                            if deficit <= 0 {
+                                0
+                            } else {
+                                (deficit + a.speed as i64 - 1) / a.speed as i64
+                            }
+                        })
+                        .min()
+                        .unwrap_or(0);
+                    for a in &mut sim {
+                        let delta = (a.speed as i64).saturating_mul(units);
+                        a.energy = (a.energy as i64)
+                            .saturating_add(delta)
+                            .clamp(i32::MIN as i64, i32::MAX as i64)
+                            as i32;
+                    }
+                    // Recompute the smallest-id ready actor after advancing.
+                    let mut best: Option<usize> = None;
+                    for (i, a) in sim.iter().enumerate() {
+                        if a.energy < ACTION_COST {
+                            continue;
+                        }
+                        match best {
+                            None => best = Some(i),
+                            Some(b) if a.id.cmp(&sim[b].id) == Ordering::Less => best = Some(i),
+                            _ => {}
+                        }
+                    }
+                    best.expect("an actor is ready after advancing")
+                }
+            };
+            order.push(sim[idx].id);
+            sim[idx].energy = sim[idx].energy.saturating_sub(ACTION_COST);
+        }
+        order
+    }
+
     /// Remove all actors and return their ids in insertion order.
     ///
     /// Useful for "end of floor" cleanup where every actor's ECS entity needs
@@ -538,6 +614,64 @@ mod tests {
     fn test_peek_next_turn_empty_scheduler_returns_none() {
         let s: Scheduler<u32> = Scheduler::new();
         assert_eq!(s.peek_next_turn(), None);
+    }
+
+    // --- forecast (turn-order timeline) ---
+
+    #[test]
+    fn test_forecast_empty_or_zero_is_empty() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        assert!(s.forecast(5).is_empty(), "empty scheduler → empty forecast");
+        s.add(1, 100);
+        assert!(s.forecast(0).is_empty(), "n=0 → empty forecast");
+    }
+
+    #[test]
+    fn test_forecast_matches_repeated_next_turn() {
+        // The forecast must be exactly what repeated next_turn() would yield.
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.add(2, 60);
+        s.add(3, 150);
+        let predicted = s.forecast(12);
+
+        let mut actual = Vec::new();
+        for _ in 0..12 {
+            actual.push(s.next_turn().unwrap());
+        }
+        assert_eq!(predicted, actual, "forecast must match real turn sequence");
+    }
+
+    #[test]
+    fn test_forecast_is_non_destructive() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        s.add(2, 100);
+        let e1_before = s.energy(1);
+        let e2_before = s.energy(2);
+        let _ = s.forecast(20);
+        assert_eq!(s.energy(1), e1_before, "forecast must not mutate energy");
+        assert_eq!(s.energy(2), e2_before);
+        assert_eq!(s.len(), 2, "forecast must not add/remove actors");
+    }
+
+    #[test]
+    fn test_forecast_faster_actor_appears_more_often() {
+        // A double-speed actor should act about twice as often in the window.
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 200); // fast
+        s.add(2, 100); // slow
+        let order = s.forecast(30);
+        let fast = order.iter().filter(|&&a| a == 1).count();
+        let slow = order.iter().filter(|&&a| a == 2).count();
+        assert!(fast > slow, "faster actor must act more often ({fast} vs {slow})");
+    }
+
+    #[test]
+    fn test_forecast_length_is_n_when_non_empty() {
+        let mut s: Scheduler<u32> = Scheduler::new();
+        s.add(1, 100);
+        assert_eq!(s.forecast(7).len(), 7, "non-empty scheduler yields exactly n");
     }
 
     #[test]

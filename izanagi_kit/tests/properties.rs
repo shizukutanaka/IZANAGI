@@ -1056,6 +1056,38 @@ fn prop_scheduler_peek_when_some_matches_next_turn() {
     }
 }
 
+/// **forecast equals the real turn sequence** — the non-destructive turn-order
+/// timeline must be byte-for-byte what repeatedly calling `next_turn` produces,
+/// and it must leave the scheduler untouched. This is the contract the
+/// initiative-bar UI relies on: what it previews is exactly what happens.
+#[test]
+fn prop_scheduler_forecast_matches_real_sequence() {
+    let mut rng = SplitMix64::new(0x70E5_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6) as usize;
+        let mut sched: Scheduler<u32> = Scheduler::new();
+        for k in 0..n {
+            // Mixed speeds, mixed starting energy.
+            let speed = 1 + rng.below(250) as i32;
+            sched.add(k as u32, speed);
+            sched.set_energy(k as u32, rng.below(ACTION_COST as u32) as i32);
+        }
+        let horizon = 1 + rng.below(15) as usize;
+        let predicted = sched.forecast(horizon);
+
+        // Non-destructive: a second forecast yields the identical result.
+        assert_eq!(predicted, sched.forecast(horizon), "forecast must be repeatable");
+        assert_eq!(predicted.len(), horizon, "non-empty scheduler yields exactly n");
+
+        // It must equal the destructive sequence.
+        let mut actual = Vec::with_capacity(horizon);
+        for _ in 0..horizon {
+            actual.push(sched.next_turn().unwrap());
+        }
+        assert_eq!(predicted, actual, "forecast diverged from real turn order");
+    }
+}
+
 // ── FOV (field of view) properties ───────────────────────────────────────────
 
 /// **FOV symmetry** — the module's headline guarantee: "A sees B iff B sees A."

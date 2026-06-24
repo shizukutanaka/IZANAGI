@@ -227,6 +227,19 @@ maps"）。本 kit には `dijkstra_map` / `descend` は既存だが、**flee ma
 - 出典: RogueBasin "drunkard's walk" / bracket-lib + Qiita/Zenn 穴掘り法記事群。
 
 決定論影響: 🟢 replay-safe。`PINNED_*_HASH` 不変。プロパティテスト: **223件**。
+
+**G17 — turn-order timeline（行動順プレビュー）** → `src/turn.rs::Scheduler::forecast`（5u + 1p tests）
+
+- **調査根拠**: Qiita/Zenn のターン制バトル設計記事群で「行動順タイムライン / ATB / 速度順」が頻出
+  （RPGツクールMZ の agility order、ポケモン型ターン処理、ビヘイビアグラフ AI 等）。
+  既存 `Scheduler` は `peek_next_turn`（直近1体）のみで、**次のN体の順序プレビュー**が無かった。
+- **機能**: `forecast(n)` が次の n ターンを非破壊シミュレートし、行動する actor id を順序付きで返す。
+  Final Fantasy Tactics / Into the Breach 型の initiative-bar UI に直結。速い actor は window 内で複数回登場。
+- **決定論**: `next_turn` と同一の time-advance ルール・smallest-id tie-break を private コピー上で再現。
+  scheduler 状態は不変。`forecast(n)` == `next_turn` を n 回呼んだ結果と byte 一致（プロパティで保証）。
+- 出典: RPGツクール/ATB 設計 + Qiita/Zenn ターン制バトル記事群。
+
+決定論影響: 🟢 replay-safe。`PINNED_*_HASH` 不変。プロパティテスト: **224件**。
 G8 は本ブランチで `src/behavior.rs` として実装済み。
 Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 
