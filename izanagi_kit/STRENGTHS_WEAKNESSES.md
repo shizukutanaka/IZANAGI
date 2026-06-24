@@ -240,6 +240,21 @@ maps"）。本 kit には `dijkstra_map` / `descend` は既存だが、**flee ma
 - 出典: RPGツクール/ATB 設計 + Qiita/Zenn ターン制バトル記事群。
 
 決定論影響: 🟢 replay-safe。`PINNED_*_HASH` 不変。プロパティテスト: **224件**。
+
+**G18 — auto-explore（自動探索）** → `src/pathfinding.rs::auto_explore`（5u + 1p tests）
+
+- **調査根拠**: Qiita/Zenn のローグライク開発記事群でグリッド管理・探索済みマップ・敵の経路探索が頻出。
+  ローグライク定番の「自動探索（NetHack travel / DCSS explore）」コマンドは既存 `nearest_reachable` +
+  `VisibilityMap.is_explored` で部分的に組めるが、**フロンティア検出を含む専用ヘルパー**が無かった。
+- **機能**: `auto_explore(start, is_blocked, is_explored)` が、**探索済み・通行可能セルのみを通って**
+  最も近い「未踏破フロンティア」（探索済み通行可能セルで、**未探索かつ通行可能**な隣接セルを持つもの）
+  までの最短経路を返す。`None` は完全探索済み（探索完了）。recipe 同様にクロージャで `VisibilityMap` から脱結合。
+- **設計の肝**: フロンティア判定が「未探索 *かつ通行可能*」隣接を要求するため、壁・盤外を誤検出しない
+  （これを誤ると盤端セルが全て偽フロンティアになる — 実装中に発見・修正）。
+- **決定論**: frontier を `(cost,x,y)` 順、parent は厳密改善時のみ設定 → 経路が安定。octile コスト・no-corner-cut。
+- 出典: NetHack/DCSS auto-explore + Qiita/Zenn ローグライク開発記事群。
+
+決定論影響: 🟢 replay-safe。`PINNED_*_HASH` 不変。プロパティテスト: **225件**。
 G8 は本ブランチで `src/behavior.rs` として実装済み。
 Small/Medium の全ギャップ（G1–G8）は本ブランチで解消済み。
 

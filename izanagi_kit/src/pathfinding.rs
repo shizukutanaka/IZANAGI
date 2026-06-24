@@ -783,6 +783,99 @@ where
     None
 }
 
+/// **Auto-explore**: find the shortest route from `start` to the nearest cell
+/// bordering unexplored territory, travelling only through cells the player has
+/// already seen. This is the classic roguelike "explore" / travel command
+/// (NetHack, Dungeon Crawl): repeatedly call it and walk the returned path to
+/// sweep an entire level without manual input.
+///
+/// The search expands only over cells that are both **explored** (`is_explored`)
+/// and **passable** (`!is_blocked`) — you cannot route through tiles you have
+/// never seen. A *frontier* is a reached cell that has at least one 8-neighbour
+/// which is still unexplored; the nearest such cell is the goal.
+///
+/// Returns:
+/// - `None` if the whole reachable, explored area has been fully explored (no
+///   frontier remains) — auto-explore is "done" — or if `start` is impassable.
+/// - `Some(path)` from `start` to the nearest frontier, inclusive of both ends.
+///   If `start` itself borders the unknown, the path is `vec![start]`.
+///
+/// Same 8-way moves, octile costs and no-corner-cutting rule as [`astar`].
+/// Deterministic: the frontier is ordered by `(cost, x, y)` and parents are set
+/// only on a strict cost improvement, so the chosen target and path are stable.
+pub fn auto_explore<B, E>(
+    start: (i32, i32),
+    mut is_blocked: B,
+    mut is_explored: E,
+) -> Option<Vec<(i32, i32)>>
+where
+    B: FnMut(i32, i32) -> bool,
+    E: FnMut(i32, i32) -> bool,
+{
+    if is_blocked(start.0, start.1) {
+        return None;
+    }
+    // Has `c` any 8-neighbour that is unexplored *and passable* — i.e. genuinely
+    // explorable unknown floor, not a wall or out-of-bounds edge (which would
+    // make every border cell a false frontier)?
+    let borders_unknown = |x: i32, y: i32, is_blocked: &mut B, is_explored: &mut E| {
+        for (dx, dy) in DIRS {
+            let (nx, ny) = (x + dx, y + dy);
+            if !is_explored(nx, ny) && !is_blocked(nx, ny) {
+                return true;
+            }
+        }
+        false
+    };
+
+    let mut dist: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut parent: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
+    let mut frontier: BinaryHeap<Reverse<(i32, i32, i32)>> = BinaryHeap::new();
+    dist.insert(start, 0);
+    frontier.push(Reverse((0, start.0, start.1)));
+
+    while let Some(Reverse((cost, cx, cy))) = frontier.pop() {
+        if cost > dist[&(cx, cy)] {
+            continue; // stale heap entry
+        }
+        // The first cell popped (lowest cost, (x,y) tie-break) that borders the
+        // unknown is the nearest frontier — reconstruct and return its path.
+        if borders_unknown(cx, cy, &mut is_blocked, &mut is_explored) {
+            let mut path = vec![(cx, cy)];
+            let mut cur = (cx, cy);
+            while let Some(&p) = parent.get(&cur) {
+                path.push(p);
+                cur = p;
+            }
+            path.reverse();
+            return Some(path);
+        }
+        for (dx, dy) in DIRS {
+            let (nx, ny) = (cx + dx, cy + dy);
+            // Only travel through explored, passable cells.
+            if is_blocked(nx, ny) || !is_explored(nx, ny) {
+                continue;
+            }
+            let diagonal = dx != 0 && dy != 0;
+            if diagonal
+                && (is_blocked(cx + dx, cy)
+                    || is_blocked(cx, cy + dy)
+                    || !is_explored(cx + dx, cy)
+                    || !is_explored(cx, cy + dy))
+            {
+                continue;
+            }
+            let next = cost + if diagonal { COST_DIAG } else { COST_ORTHO };
+            if next < *dist.get(&(nx, ny)).unwrap_or(&i32::MAX) {
+                dist.insert((nx, ny), next);
+                parent.insert((nx, ny), (cx, cy));
+                frontier.push(Reverse((next, nx, ny)));
+            }
+        }
+    }
+    None
+}
+
 /// Returns `true` when the Bresenham segment from `a` to `b` has no blocked
 /// interior cells (endpoints are not checked — same semantics as `line_of_sight`
 /// in `geometry`).
@@ -1375,6 +1468,64 @@ mod tests {
             |_x, _y| false,
         );
         assert_eq!(result, None);
+    }
+
+    // --- auto_explore ---
+
+    #[test]
+    fn test_auto_explore_paths_to_nearest_frontier() {
+        // A 1×5 explored corridor at y=0, x in 0..=3 explored; x=4 unexplored.
+        // From (0,0) the nearest frontier is (3,0) — it borders unexplored (4,0).
+        let bounds = |x: i32, y: i32| !(0..5).contains(&x) || y != 0;
+        let explored = |x: i32, _y: i32| (0..4).contains(&x); // 0,1,2,3 seen; 4 unknown
+        let path = auto_explore((0, 0), bounds, explored).expect("a frontier exists");
+        assert_eq!(path.first(), Some(&(0, 0)), "path starts at the player");
+        assert_eq!(path.last(), Some(&(3, 0)), "path ends at the frontier cell");
+    }
+
+    #[test]
+    fn test_auto_explore_done_when_fully_explored() {
+        // Everything in bounds is explored → no frontier → None.
+        let bounds = |x: i32, y: i32| !(0..3).contains(&x) || !(0..3).contains(&y);
+        let explored = |x: i32, y: i32| (0..3).contains(&x) && (0..3).contains(&y);
+        assert_eq!(auto_explore((1, 1), bounds, explored), None);
+    }
+
+    #[test]
+    fn test_auto_explore_start_on_frontier_is_singleton() {
+        // (0,0) itself borders the unexplored (1,0): path is just [start].
+        let bounds = |_x: i32, _y: i32| false; // nothing blocked
+        let explored = |x: i32, y: i32| x == 0 && y == 0; // only the start is seen
+        let path = auto_explore((0, 0), bounds, explored).expect("start is a frontier");
+        assert_eq!(path, vec![(0, 0)]);
+    }
+
+    #[test]
+    fn test_auto_explore_impassable_start_returns_none() {
+        let bounds = |_x: i32, _y: i32| true; // everything blocked
+        let explored = |_x: i32, _y: i32| true;
+        assert_eq!(auto_explore((0, 0), bounds, explored), None);
+    }
+
+    #[test]
+    fn test_auto_explore_path_stays_in_explored_passable_cells() {
+        // 5×5 grid, all explored except a frontier; a wall column at x=2 except
+        // y=4 forces the route around it. Verify every path cell is legal.
+        let walls = HashSet::from([(2, 0), (2, 1), (2, 2), (2, 3)]);
+        let bounds = blocker(5, 5, walls.clone());
+        // Explored: all in-bounds cells except (4,4) which is the unknown.
+        let explored = |x: i32, y: i32| (0..5).contains(&x) && (0..5).contains(&y) && (x, y) != (4, 4);
+        let path = auto_explore((0, 0), &bounds, explored).expect("frontier near (4,4)");
+        let check_blocked = blocker(5, 5, walls);
+        for &(x, y) in &path {
+            assert!(!check_blocked(x, y), "path cell ({x},{y}) must be passable");
+        }
+        // The frontier cell borders (4,4): it should be one of (3,3),(4,3),(3,4).
+        let last = *path.last().unwrap();
+        assert!(
+            [(3, 3), (4, 3), (3, 4)].contains(&last),
+            "frontier {last:?} should border the unexplored (4,4)"
+        );
     }
 
     // --- path_to_direction_vec ---

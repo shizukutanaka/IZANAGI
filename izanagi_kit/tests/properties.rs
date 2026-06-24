@@ -14,7 +14,8 @@ use izanagi_kit::dice::Dice;
 use izanagi_kit::fov::compute_fov;
 use izanagi_kit::geometry::line_len;
 use izanagi_kit::pathfinding::{
-    astar, descend, dijkstra_map, flee_map, jps, octile_distance, smooth_path, weighted_astar,
+    astar, auto_explore, descend, dijkstra_map, flee_map, jps, octile_distance, smooth_path,
+    weighted_astar,
 };
 use izanagi_kit::turn::{Scheduler, ACTION_COST};
 use izanagi_kit::wfc::wfc_solve_backtrack;
@@ -1610,6 +1611,67 @@ fn prop_flee_map_descent_terminates_without_cycles() {
                 cur = next;
                 steps += 1;
                 assert!(steps < PATH_W * PATH_H, "flee descent must terminate");
+            }
+        }
+    }
+}
+
+/// **auto_explore returns a legal, contiguous path that ends on a true
+/// frontier** — every cell is explored and passable, consecutive cells are
+/// 8-adjacent, the path starts at the player, and the final cell borders an
+/// unexplored *passable* tile (so walking it actually reveals new ground). When
+/// it returns `None`, no reachable explored cell borders unknown floor.
+#[test]
+fn prop_auto_explore_path_is_legal_and_reaches_frontier() {
+    let mut rng = SplitMix64::new(0xA070_0001);
+    let dirs = [
+        (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1),
+    ];
+    for _ in 0..400 {
+        // Ground-truth walls and a separate "explored" fog mask.
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
+        let explored: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(3) != 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let idx = |x: i32, y: i32| (y * PATH_W + x) as usize;
+        let in_b = |x: i32, y: i32| x >= 0 && y >= 0 && x < PATH_W && y < PATH_H;
+        if !in_b(sx, sy) || walls[idx(sx, sy)] {
+            continue;
+        }
+        let is_blocked = |x: i32, y: i32| !in_b(x, y) || walls[idx(x, y)];
+        let is_explored = |x: i32, y: i32| in_b(x, y) && explored[idx(x, y)];
+
+        match auto_explore((sx, sy), is_blocked, is_explored) {
+            Some(path) => {
+                assert!(!path.is_empty(), "a Some path is never empty");
+                assert_eq!(path[0], (sx, sy), "path starts at the player");
+                // Every cell explored + passable.
+                for &(x, y) in &path {
+                    assert!(is_explored(x, y) || (x, y) == (sx, sy), "path cell explored");
+                    assert!(!is_blocked(x, y), "path cell passable");
+                }
+                // Consecutive cells are 8-adjacent (and ≤1 step apart).
+                for w in path.windows(2) {
+                    let (a, b) = (w[0], w[1]);
+                    let (dx, dy) = ((b.0 - a.0).abs(), (b.1 - a.1).abs());
+                    assert!(dx <= 1 && dy <= 1 && (dx + dy) > 0, "steps are unit moves");
+                }
+                // Final cell genuinely borders unexplored passable floor.
+                let last = *path.last().unwrap();
+                let is_frontier = dirs.iter().any(|&(dx, dy)| {
+                    let (nx, ny) = (last.0 + dx, last.1 + dy);
+                    !is_explored(nx, ny) && !is_blocked(nx, ny)
+                });
+                assert!(is_frontier, "path must end on a real frontier cell {last:?}");
+            }
+            None => {
+                // No reachable explored cell borders unexplored passable floor:
+                // the start itself must not be a frontier either.
+                let start_is_frontier = dirs.iter().any(|&(dx, dy)| {
+                    let (nx, ny) = (sx + dx, sy + dy);
+                    !is_explored(nx, ny) && !is_blocked(nx, ny)
+                });
+                assert!(!start_is_frontier, "None implies start is not a frontier");
             }
         }
     }
