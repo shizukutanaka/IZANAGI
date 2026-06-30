@@ -492,6 +492,14 @@ impl Fixed {
         }
         Fixed::from_wide(z)
     }
+
+    /// Sign of `self`: returns `1` if positive, `-1` if negative, `0` if zero.
+    /// Deterministic integer-only signum (no branching on sign bits, all paths
+    /// identical cost).
+    #[inline]
+    pub fn signum(self) -> i32 {
+        if self.0 > 0 { 1 } else if self.0 < 0 { -1 } else { 0 }
+    }
 }
 
 // Add/Sub saturate (not wrap). Per the SMT fixed-point literature, saturation
@@ -1164,5 +1172,28 @@ mod tests {
         assert_eq!(Fixed::MIN.mid(Fixed::MIN), Fixed::MIN);
         // Midpoint of the full span floors to raw -1 ((MAX+MIN)>>1 = -1>>1 = -1).
         assert_eq!(Fixed::MAX.mid(Fixed::MIN).raw(), -1);
+    }
+
+    #[test]
+    fn test_signum_positive() {
+        assert_eq!(Fixed::from_int(5).signum(), 1);
+        assert_eq!(Fixed(0x0001).signum(), 1);
+    }
+
+    #[test]
+    fn test_signum_negative() {
+        assert_eq!(Fixed::from_int(-5).signum(), -1);
+        assert_eq!(Fixed(-0x0001).signum(), -1);
+    }
+
+    #[test]
+    fn test_signum_zero() {
+        assert_eq!(Fixed::ZERO.signum(), 0);
+    }
+
+    #[test]
+    fn test_signum_extremes() {
+        assert_eq!(Fixed::MAX.signum(), 1);
+        assert_eq!(Fixed::MIN.signum(), -1);
     }
 }
