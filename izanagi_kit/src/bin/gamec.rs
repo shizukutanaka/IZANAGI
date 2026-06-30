@@ -1,6 +1,6 @@
 //! `gamec` — the game-content checker/compiler.
 //!
-//! Usage: `gamec [--fmt | --json] <file.game>`
+//! Usage: `gamec [--fmt | --json | --check] <file.game>`
 //!
 //! Parses and validates an authored content file, prints every diagnostic with
 //! its line number, and on success prints a load summary (entity counts per
@@ -10,6 +10,8 @@
 //! `--json` emits all diagnostics as a JSON object to stdout (machine-readable;
 //! satisfies taxonomy P4). Human-readable diagnostics are suppressed on stderr.
 //! `--fmt` emits canonical serialized content to stdout (no change).
+//! `--check` verifies formatting without output — exits non-zero if the file's
+//! serialized form differs from its source (like `cargo fmt --check`).
 
 use izanagi_kit::content::Severity;
 use izanagi_kit::diag_json::diag_json;
@@ -21,6 +23,7 @@ enum OutputMode {
     Human,
     Fmt,
     Json,
+    Check,
 }
 
 fn main() -> ExitCode {
@@ -28,9 +31,10 @@ fn main() -> ExitCode {
     let (mode, path) = match args.as_slice() {
         [flag, p] if flag == "--fmt" => (OutputMode::Fmt, p.clone()),
         [flag, p] if flag == "--json" => (OutputMode::Json, p.clone()),
+        [flag, p] if flag == "--check" => (OutputMode::Check, p.clone()),
         [p] => (OutputMode::Human, p.clone()),
         _ => {
-            eprintln!("usage: gamec [--fmt | --json] <file.game>");
+            eprintln!("usage: gamec [--fmt | --json | --check] <file.game>");
             return ExitCode::from(2);
         }
     };
@@ -58,6 +62,28 @@ fn main() -> ExitCode {
         } else {
             ExitCode::FAILURE
         };
+    }
+
+    if mode == OutputMode::Check {
+        if !is_loadable(&parse_diags, &validate_diags) {
+            let mut errors = 0usize;
+            let mut warnings = 0usize;
+            for d in &all_diags {
+                match d.severity {
+                    Severity::Error => errors += 1,
+                    Severity::Warning => warnings += 1,
+                }
+                eprintln!("{}", d.render(&path, &source));
+            }
+            eprintln!("FAILED: {errors} error(s), {warnings} warning(s)");
+            return ExitCode::FAILURE;
+        }
+        let canonical = izanagi_kit::serialize(&content);
+        if source != canonical {
+            eprintln!("{}: file needs formatting (content differs when serialized)", path);
+            return ExitCode::FAILURE;
+        }
+        return ExitCode::SUCCESS;
     }
 
     let mut errors = 0usize;
