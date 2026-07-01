@@ -10,7 +10,7 @@
 > no float in sim / `PINNED_FINAL_HASH` と `PINNED_ROGUELIKE_HASH` を壊さない /
 > 新規コードは各機能 3 テスト以上。
 >
-> 最終更新: 2026-06-24 / ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
+> 最終更新: 2026-07-01 / ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
 
 ---
 
@@ -160,32 +160,42 @@
 |---|------|------|------|
 | W8 | **Integration test 欠落**（複数 module 横断の E2E テストが無い） | wallet + dialogue + shop pricing の連携が未検証 | Medium |
 | W9 | **複数 tween の同時再生管理がない**（animation sequencer） | UI/visual FX は複数並行アニメを必要とするが、個別管理が煩雑 | Medium |
-| W10 | **shop pricing model**（buy/sell markup、NPC ごとの価格設定） | wallet の基盤は整備されたが、実際のショップ仕組みが無い | Small |
+| W10 | ~~**shop pricing model**~~（buy/sell markup、NPC ごとの価格設定） ✅ **実装済み**（`src/shop.rs`: `Shop<K,C>` + `Listing` — wallet-backed till、`buy`/`sell` all-or-nothing、19u + 5p tests） | wallet の基盤は整備されたが、実際のショップ仕組みが無い | Small |
 | W11 | **trigger / event script**（条件→アクション チェーン）| dialogue の結果（choice）を quest や world state 変化に紐づける基盤が無い | Large |
 | W12 | **README.md が実装に追いついていない** | G1-G14 の機能一覧が記載されていない | Small |
+
+**W10 — shop pricing model** → `src/shop.rs`（新規 module, 19 unit + 5 property tests）
+
+- `Listing { buy_price, sell_price }` + `Shop<K,C>`: `BTreeMap<K, Listing>` の価格表 + `Wallet<C>` の till。
+- `buy(buyer, item)` / `sell(seller, item)`: いずれも `Wallet::transfer` を1回呼ぶだけの all-or-nothing トランザクション
+  （未リスト商品・買い手の残高不足・till の資金不足はいずれも両ウォレット無変更で `false`）。
+- `stock() / drain_till() / till_balance()`: 既存 `Wallet` の deposit/withdraw をそのまま再利用（重複実装なし）。
+- **ソクラテス的ギャップ**: `wallet` は atomic transfer を提供するが「商品と価格を結びつける」層が無かった
+  → 価格表を挟むだけで買い/売りの両方向が同一 primitive（`transfer`）に帰着することを確認。
+- 検証した性質: buy/sell は `can_buy`/`can_sell` と succeed/fail が一致、成功時は buyer+till（または
+  seller+till）の合計通貨が保存、買って売る往復でも合計保存、未リスト商品は残高に関わらず常に失敗、
+  `DetHash` はリスト挿入順に非依存・価格や till 残高の変化に敏感。
+
+決定論影響: 🟢 replay-safe（整数のみ・`Wallet::transfer` の atomic 性を再利用・float/RNG 無し）。
+`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
 
 ### 7.2 次の推奨着手順（効果 × 工数、内部依存度）
 
 1. **W12 — README.md 更新** ← **即実装推奨**（手付かず、Small 工数）
    - G1-G14 の機能一覧を追加
    - 各モジュールの Socratic gap（なぜこれが必要だったか）を簡潔に記述
-   - property test 数を記載（218 件）
+   - property test 数を記載（230 件）
 
-2. **W10 — shop pricing model** ← **次推奨**（Small、wallet 直結）
-   - `Shop<K>` struct: `Wallet` + 各 item に buy/sell markup
-   - `can_buy / buy / can_sell / sell` トランザクション
-   - wallet 実装済みなので low-hanging fruit
-
-3. **W8 — wallet + dialogue integration test** ← **その次**（Medium、E2E validation）
+2. **W8 — wallet + dialogue + shop integration test** ← **次推奨**（Medium、E2E validation）
    - NPC が商品提示（dialogue）→ player が購入（wallet withdraw）
    - property test 1-2 件で wallet/dialogue の組み合わせが safe であることを示す
 
-4. **W9 — animation sequencer** ← **中期**（Medium、tween の拡張）
+3. **W9 — animation sequencer** ← **中期**（Medium、tween の拡張）
    - `TweenSequence<T>` or `TweenChain`: `Vec<Tween>` を順序付で管理
    - 並行実行は `Vec<Tween>` → `iter_mut / advance_all`
    - UI bar fill（1 tween）+ sound fade（別 tween）同時再生
 
-5. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
+4. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
    - condition predicate （「quest active? 」「player in zone? 」）
    - action lambda （「show dialogue」「grant item」「start encounter」）
    - chain: `if condition then actions` の linked list か DAG

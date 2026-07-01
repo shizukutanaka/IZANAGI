@@ -37,6 +37,7 @@ use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MA
 use izanagi_kit::threat::ThreatTable;
 use izanagi_kit::pool::Pool;
 use izanagi_kit::tween::Tween;
+use izanagi_kit::shop::Shop;
 use izanagi_kit::wallet::Wallet;
 use izanagi_kit::dialogue::{Dialogue, DialogueNode};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
@@ -6475,6 +6476,157 @@ fn prop_wallet_det_hash_order_independent() {
         let (bump_c, _) = entries[rng.below(n) as usize];
         c.deposit(bump_c, 1);
         assert_ne!(hash_state(&a), hash_state(&c), "changed balance → changed hash");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// shop — buy/sell price listings against a wallet-backed till
+// ---------------------------------------------------------------------------
+
+/// **buy is all-or-nothing**: it succeeds iff the item is listed and the buyer
+/// can afford it; on success the buyer pays exactly `buy_price` into the till
+/// and total currency across buyer+till is conserved.
+#[test]
+fn prop_shop_buy_all_or_nothing_conserves_total() {
+    let mut rng = SplitMix64::new(0x5410_0001);
+    for _ in 0..ITERS {
+        let mut shop: Shop<u32, u32> = Shop::new(0);
+        let listed = rng.next_bool();
+        let buy_price = rng.below(500) as u64;
+        if listed {
+            shop.list(1, buy_price, rng.below(500) as u64);
+        }
+        let mut buyer: Wallet<u32> = Wallet::new();
+        buyer.deposit(0, rng.below(600) as u64);
+        let total_before = buyer.balance(0) + shop.till_balance();
+        let can = shop.can_buy(&buyer, 1);
+        let buyer_before = buyer.balance(0);
+        let ok = shop.buy(&mut buyer, 1);
+        assert_eq!(ok, can, "buy succeeds iff can_buy");
+        assert_eq!(
+            buyer.balance(0) + shop.till_balance(),
+            total_before,
+            "buy conserves total currency"
+        );
+        if ok {
+            assert_eq!(buyer.balance(0), buyer_before - buy_price, "exact payment");
+        } else {
+            assert_eq!(buyer.balance(0), buyer_before, "failed buy leaves buyer unchanged");
+        }
+    }
+}
+
+/// **sell is all-or-nothing**: it succeeds iff the item is listed and the till
+/// can afford the payout; on success total currency across seller+till is
+/// conserved.
+#[test]
+fn prop_shop_sell_all_or_nothing_conserves_total() {
+    let mut rng = SplitMix64::new(0x5410_0002);
+    for _ in 0..ITERS {
+        let mut shop: Shop<u32, u32> = Shop::new(0);
+        let listed = rng.next_bool();
+        let sell_price = rng.below(500) as u64;
+        if listed {
+            shop.list(1, rng.below(500) as u64, sell_price);
+        }
+        shop.stock(rng.below(600) as u64);
+        let mut seller: Wallet<u32> = Wallet::new();
+        let total_before = seller.balance(0) + shop.till_balance();
+        let can = shop.can_sell(1);
+        let till_before = shop.till_balance();
+        let ok = shop.sell(&mut seller, 1);
+        assert_eq!(ok, can, "sell succeeds iff can_sell");
+        assert_eq!(
+            seller.balance(0) + shop.till_balance(),
+            total_before,
+            "sell conserves total currency"
+        );
+        if ok {
+            assert_eq!(seller.balance(0), sell_price, "exact payout");
+            assert_eq!(shop.till_balance(), till_before - sell_price);
+        } else {
+            assert_eq!(shop.till_balance(), till_before, "failed sell leaves till unchanged");
+        }
+    }
+}
+
+/// **buy then sell round-trips total currency** across buyer+shop for any
+/// listing where both legs succeed.
+#[test]
+fn prop_shop_buy_sell_round_trip_conserves_total() {
+    let mut rng = SplitMix64::new(0x5410_0003);
+    for _ in 0..ITERS {
+        let mut shop: Shop<u32, u32> = Shop::new(0);
+        let buy_price = 1 + rng.below(500) as u64;
+        let sell_price = rng.below(buy_price as u32 + 1) as u64;
+        shop.list(1, buy_price, sell_price);
+        shop.stock(rng.below(2000) as u64);
+        let mut player: Wallet<u32> = Wallet::new();
+        player.deposit(0, buy_price + rng.below(500) as u64);
+        let total_before = player.balance(0) + shop.till_balance();
+
+        if shop.buy(&mut player, 1) {
+            assert_eq!(player.balance(0) + shop.till_balance(), total_before);
+            if shop.sell(&mut player, 1) {
+                assert_eq!(player.balance(0) + shop.till_balance(), total_before);
+            }
+        }
+    }
+}
+
+/// **unlisted items never transact**: buy/sell/can_buy/can_sell are all false
+/// regardless of wallet or till funding.
+#[test]
+fn prop_shop_unlisted_item_never_transacts() {
+    let mut rng = SplitMix64::new(0x5410_0004);
+    for _ in 0..ITERS {
+        let mut shop: Shop<u32, u32> = Shop::new(0);
+        shop.stock(rng.below(2000) as u64);
+        let mut wallet: Wallet<u32> = Wallet::new();
+        wallet.deposit(0, rng.below(2000) as u64);
+        let item = rng.below(10);
+        assert!(!shop.is_listed(item));
+        assert!(!shop.can_buy(&wallet, item));
+        assert!(!shop.can_sell(item));
+        let till_before = shop.till_balance();
+        let wallet_before = wallet.balance(0);
+        assert!(!shop.buy(&mut wallet, item));
+        assert!(!shop.sell(&mut wallet, item));
+        assert_eq!(shop.till_balance(), till_before);
+        assert_eq!(wallet.balance(0), wallet_before);
+    }
+}
+
+/// **DetHash is listing-insertion-order-independent and price/till-sensitive.**
+#[test]
+fn prop_shop_det_hash_order_independent() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x5410_0005);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6);
+        let mut entries: Vec<(u32, u64, u64)> = Vec::new();
+        for i in 0..n {
+            entries.push((i, rng.below(500) as u64, rng.below(500) as u64));
+        }
+        let till = rng.below(1000) as u64;
+
+        let mut a: Shop<u32, u32> = Shop::new(0);
+        for &(item, buy, sell) in &entries {
+            a.list(item, buy, sell);
+        }
+        a.stock(till);
+
+        let mut b: Shop<u32, u32> = Shop::new(0);
+        for &(item, buy, sell) in entries.iter().rev() {
+            b.list(item, buy, sell);
+        }
+        b.stock(till);
+
+        assert_eq!(hash_state(&a), hash_state(&b), "hash is order-independent");
+
+        let mut c = a.clone();
+        c.stock(1);
+        assert_ne!(hash_state(&a), hash_state(&c), "changed till → changed hash");
     }
 }
 

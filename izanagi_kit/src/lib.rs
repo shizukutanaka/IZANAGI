@@ -26,6 +26,7 @@
 //! - [`pool`] — bounded regenerating resource pool: mana/stamina/hunger (`Pool`).
 //! - [`tween`] — time-driven eased value interpolation over a tick span (`Tween`).
 //! - [`wallet`] — fungible currency balances for shops/economy (`Wallet<C>`).
+//! - [`shop`] — buy/sell price listings against a wallet-backed till (`Shop<K,C>`, `Listing`).
 //! - [`dialogue`] — branching NPC conversation tree (`Dialogue`, `DialogueNode`, `Choice`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
@@ -130,6 +131,7 @@ pub mod replay;
 pub mod rng;
 pub mod savefile;
 pub mod serializer;
+pub mod shop;
 pub mod shufflebag;
 pub mod sparse_set;
 pub mod spatial_hash;
@@ -228,6 +230,7 @@ pub use replay::{
     check_trace, count_divergences, first_divergence, record_trace, resimulate, Divergence,
 };
 pub use rng::SplitMix64;
+pub use shop::{Listing, Shop};
 pub use shufflebag::ShuffleBag;
 pub use savefile::{
     estimate_save_size, load_bytes, load_bytes_migrated, load_bytes_owned, save_bytes,
