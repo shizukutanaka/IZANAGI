@@ -504,3 +504,44 @@ transport 自体は範囲外のまま——受信バイトから `confirm()` を
 
 決定論影響: 🟢 replay-safe（整数のみ・`SplitMix64::shuffle` 経由で決定論的・float 無し）。
 既存 sim 未使用のため `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
+
+---
+
+## 12. 第7次棚卸し (2026-07-01) — ソクラテス式問答・第3ラウンド
+
+**過剰の検討**: 「`Recipe<K,O>`（素材→単一アイテムの合成）を逆向きに使えば『分解』（アイテム→素材）も
+表現できるのでは？新しい型は要らないのでは？」——`Ingredient` は複数種類を受け付けるが `O` は単一型
+なので、1品を分解して**複数種の**素材に戻す（剣→鉄1+石炭1）ような一般的な分解は素直には表現できない。
+しかし多くの実用ケースは「アイテム1個→単一種の素材」で足りるため、`Recipe<T,T>`（1 ingredient・
+1 output）として既存型で十分表現可能——**新規モジュールを追加しない**のが正しい判断と結論
+（過剰創出を回避）。同様に「NPC の生活スケジュール（calendar 駆動の行動)」も `calendar` + `fsm`/
+`hfsm` の組み合わせで content 層から表現でき、専用モジュールは過剰と判断し見送った。
+
+**不足の検討**: 「装備を外せない呪われたアイテム」——NetHack の代表的な仕掛けだが、既存 `equip`/
+`unequip` は無条件（`slots[i].replace/take`）で、呪い（≒取り外し拒否）を表現する状態が無い。
+
+| # | 問い（既存 API で表現できないこと） | 隙間 | 状態 |
+|---|------------------------------------|------|------|
+| G23 | 「このアイテムは呪われていて外せない」——`equipment::Equipment` は着脱を無条件に許可する `slots[i].replace/take` のみで、取り外しを拒否する状態を持たない。 | 呪われた/ロックされた装備スロット | ✅ **実装済み**（`src/equipment.rs` に `curse`/`uncurse`/`is_cursed`/`is_locked` を追加） |
+
+**G23 — Cursed equipment** → `src/equipment.rs`（既存 module 拡張, +13 unit + 5 property tests）
+
+- `cursed: [bool; 9]`（固定長配列、`slots` と並行——`HashMap` 不使用の既存方針を継続）。
+- **既存 API の契約を一切変更しない**という制約下での設計: `equip`/`unequip` は今まで通り無条件
+  （ドキュメント済みの契約を壊すと既存呼び出し元を壊す）。代わりに `is_locked(slot)`（occupied &&
+  cursed）という*問い合わせ専用*メソッドを追加し、`Wallet::can_afford`/`withdraw` や
+  `Shop::can_buy`/`buy` と同じ「can_X を先に呼んで判断するのは呼び出し側の責務」パターンに揃えた。
+- `curse(slot)`/`uncurse(slot)` は共に `meta::MetaProgress::unlock` / `identify::Identification::identify`
+  と同じ**冪等**な問い合わせ+変更ペア。
+- **不変条件の防御的維持**: 呪いは「今そのスロットに入っている**アイテム**」に属する概念なので、
+  `equip`（入れ替え）・`unequip`（取り外し）・`clear`（全消去）は呪いフラグを**必ず**クリアする——
+  呼び出し側が `is_locked` を無視して強制的に `equip`/`unequip` を呼んでも、呪いが新しいアイテムへ
+  「漏れる」ことは無い。この防御的設計により「cursed ⟹ occupied」という不変条件が常に保たれる。
+- 検証した性質: `is_locked` は常に `is_equipped && is_cursed` と一致、`curse` の繰り返しは1回と等価、
+  `curse`→`uncurse` は呪う前の状態に完全復元、`equip`/`unequip` はどんな順序で呼ばれても呪いフラグを
+  必ずクリアする（不変条件のファジングテスト）、`DetHash` は呪い状態の変化にのみ敏感
+  （空きスロットへの `curse` は no-op でハッシュ不変）。
+
+決定論影響: 🟢 replay-safe（整数/bool のみ・固定長配列・float/RNG 無し）。`Equipment` は既存の
+pinned simulation で未使用のため `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変
+（確認済み: `grep` で `tests/determinism.rs`/`tests/roguelike_sim.rs` に `Equipment` の使用なし）。

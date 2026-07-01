@@ -5260,6 +5260,137 @@ fn prop_equipment_deterministic_and_hashable() {
     }
 }
 
+// ── Equipment curses ─────────────────────────────────────────────────────────
+
+/// **`is_locked` is exactly `is_equipped && is_cursed`**, for every slot,
+/// across randomized equip/curse sequences.
+#[test]
+fn prop_equipment_is_locked_matches_occupied_and_cursed() {
+    let mut rng = SplitMix64::new(0xC012_0001);
+    for _ in 0..ITERS {
+        let mut gear = rand_equipment(&mut rng);
+        for &slot in EquipSlot::ALL.iter() {
+            if gear.is_equipped(slot) && rng.next_bool() {
+                gear.curse(slot);
+            }
+        }
+        for &slot in EquipSlot::ALL.iter() {
+            assert_eq!(
+                gear.is_locked(slot),
+                gear.is_equipped(slot) && gear.is_cursed(slot),
+                "is_locked must match occupied && cursed for {slot:?}"
+            );
+        }
+    }
+}
+
+/// **curse() is idempotent**: cursing an already-cursed slot changes nothing
+/// (state or hash), matching this session's established idempotent-flag
+/// convention (`meta::MetaProgress::unlock`, `identify::Identification::identify`).
+#[test]
+fn prop_equipment_curse_is_idempotent() {
+    use izanagi_kit::world_hash::hash_state;
+    let mut rng = SplitMix64::new(0xC012_0002);
+    for _ in 0..ITERS {
+        let mut gear = rand_equipment(&mut rng);
+        let occupied: Vec<EquipSlot> = EquipSlot::ALL
+            .iter()
+            .copied()
+            .filter(|&s| gear.is_equipped(s))
+            .collect();
+        if occupied.is_empty() {
+            continue;
+        }
+        let slot = occupied[rng.below(occupied.len() as u32) as usize];
+        gear.curse(slot);
+        let once = hash_state(&gear);
+        for _ in 0..1 + rng.below(5) {
+            gear.curse(slot);
+        }
+        assert_eq!(hash_state(&gear), once, "repeated curse() == cursing once");
+    }
+}
+
+/// **uncurse reverses curse**: cursing then uncursing a slot returns the
+/// loadout to the exact hash it had before cursing.
+#[test]
+fn prop_equipment_uncurse_reverses_curse() {
+    use izanagi_kit::world_hash::hash_state;
+    let mut rng = SplitMix64::new(0xC012_0003);
+    for _ in 0..ITERS {
+        let gear = rand_equipment(&mut rng);
+        let occupied: Vec<EquipSlot> = EquipSlot::ALL
+            .iter()
+            .copied()
+            .filter(|&s| gear.is_equipped(s))
+            .collect();
+        if occupied.is_empty() {
+            continue;
+        }
+        let slot = occupied[rng.below(occupied.len() as u32) as usize];
+        let before = hash_state(&gear);
+
+        let mut cursed = gear.clone();
+        cursed.curse(slot);
+        cursed.uncurse(slot);
+        assert_eq!(hash_state(&cursed), before, "curse then uncurse restores the original hash");
+    }
+}
+
+/// **equip and unequip always clear the curse flag** for the slot they act
+/// on — a cursed slot can never end up occupied by an item that was never
+/// itself cursed via `curse()`, and an empty slot is never cursed.
+#[test]
+fn prop_equipment_equip_unequip_always_clear_curse() {
+    let mut rng = SplitMix64::new(0xC012_0004);
+    for _ in 0..ITERS {
+        let mut gear: Equipment<StatsModifier> = Equipment::new();
+        for _ in 0..1 + rng.below(20) {
+            let slot = EquipSlot::ALL[rng.below(9) as usize];
+            match rng.below(3) {
+                0 => {
+                    gear.equip(slot, StatsModifier::default());
+                    assert!(!gear.is_cursed(slot), "freshly equipped item is never cursed");
+                }
+                1 => {
+                    gear.unequip(slot);
+                    assert!(!gear.is_cursed(slot), "empty slot is never cursed");
+                }
+                _ => {
+                    gear.curse(slot);
+                }
+            }
+            // Invariant: cursed implies occupied, always.
+            assert!(
+                !gear.is_cursed(slot) || gear.is_equipped(slot),
+                "a cursed slot must be occupied"
+            );
+        }
+    }
+}
+
+/// **DetHash reacts to curse state exactly when it changes**: cursing an
+/// unoccupied slot never changes the hash (documented no-op); cursing an
+/// occupied, not-yet-cursed slot always does.
+#[test]
+fn prop_equipment_det_hash_matches_curse_state_change() {
+    use izanagi_kit::world_hash::hash_state;
+    let mut rng = SplitMix64::new(0xC012_0005);
+    for _ in 0..ITERS {
+        let mut gear = rand_equipment(&mut rng);
+        let slot = EquipSlot::ALL[rng.below(9) as usize];
+        let before = hash_state(&gear);
+        let was_occupied_uncursed = gear.is_equipped(slot) && !gear.is_cursed(slot);
+        gear.curse(slot);
+        let after = hash_state(&gear);
+        if was_occupied_uncursed {
+            assert_ne!(before, after, "cursing an eligible slot must change the hash");
+        } else {
+            assert_eq!(before, after, "curse() no-op must not change the hash");
+        }
+    }
+}
+
 // ── Progression ───────────────────────────────────────────────────────────────
 
 /// A random non-degenerate level curve.

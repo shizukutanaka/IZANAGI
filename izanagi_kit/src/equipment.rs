@@ -34,6 +34,23 @@
 //! dependence. [`Equipment`] implements
 //! [`DetHash`](crate::world_hash::DetHash) over occupancy + each worn item, so a
 //! creature's gear folds into the replay checksum.
+//!
+//! ## Cursed items
+//!
+//! A cursed item is a NetHack-style mechanic nothing else in the kit
+//! modeled: an equipped item the wearer cannot freely remove or swap out.
+//! [`curse`](Equipment::curse) marks the item currently worn in a slot;
+//! [`is_locked`](Equipment::is_locked) tells a caller whether normal
+//! equip/unequip should be allowed there. [`equip`](Equipment::equip) and
+//! [`unequip`](Equipment::unequip) remain **unconditional** (any change
+//! their existing contract would break) — checking
+//! [`is_locked`](Equipment::is_locked) first is the caller's job, exactly
+//! the `can_X` / `X` pairing used by [`Wallet`](crate::wallet::Wallet)'s
+//! `can_afford`/`withdraw` and [`Shop`](crate::shop::Shop)'s `can_buy`/`buy`.
+//! A curse belongs to the *item currently in the slot*: both `equip` and
+//! `unequip` clear the flag as part of changing what occupies the slot, so a
+//! freshly-equipped item is never born cursed and an empty slot is never
+//! reported as locked.
 
 use crate::combat::StatsModifier;
 use crate::world_hash::{DetHash, Fnv1a};
@@ -99,12 +116,14 @@ const SLOT_COUNT: usize = EquipSlot::ALL.len();
 #[derive(Clone, Debug)]
 pub struct Equipment<T> {
     slots: [Option<T>; SLOT_COUNT],
+    cursed: [bool; SLOT_COUNT],
 }
 
 impl<T> Default for Equipment<T> {
     fn default() -> Self {
         Equipment {
             slots: Default::default(),
+            cursed: [false; SLOT_COUNT],
         }
     }
 }
@@ -141,14 +160,59 @@ impl<T> Equipment<T> {
 
     /// Put `item` in `slot`, returning whatever was previously worn there (the
     /// swapped-out item, or `None` if the slot was empty). Total worn-item count
-    /// is conserved: one in, at most one out.
+    /// is conserved: one in, at most one out. Unconditional — bypasses any
+    /// curse on the outgoing item (see the module docs); check
+    /// [`is_locked`](Self::is_locked) first if the caller wants to respect
+    /// curses. Clears the slot's curse flag: the incoming item is never
+    /// born cursed.
     pub fn equip(&mut self, slot: EquipSlot, item: T) -> Option<T> {
+        self.cursed[slot.index()] = false;
         self.slots[slot.index()].replace(item)
     }
 
     /// Remove and return the item worn in `slot`, leaving it empty.
+    /// Unconditional — bypasses any curse (see the module docs); check
+    /// [`is_locked`](Self::is_locked) first if the caller wants to respect
+    /// curses. Clears the slot's curse flag along with the item.
     pub fn unequip(&mut self, slot: EquipSlot) -> Option<T> {
+        self.cursed[slot.index()] = false;
         self.slots[slot.index()].take()
+    }
+
+    /// Curse the item currently worn in `slot`. Returns `true` if the slot
+    /// was occupied (the curse takes effect); `false` for an empty slot
+    /// (no-op — there is nothing to curse) or a slot already cursed
+    /// (idempotent).
+    pub fn curse(&mut self, slot: EquipSlot) -> bool {
+        if !self.is_equipped(slot) || self.cursed[slot.index()] {
+            return false;
+        }
+        self.cursed[slot.index()] = true;
+        true
+    }
+
+    /// Lift the curse on `slot`, if any. Returns `true` if it had been
+    /// cursed.
+    pub fn uncurse(&mut self, slot: EquipSlot) -> bool {
+        let was_cursed = self.cursed[slot.index()];
+        self.cursed[slot.index()] = false;
+        was_cursed
+    }
+
+    /// `true` if `slot` currently holds a cursed item. Always `false` for an
+    /// empty slot.
+    #[inline]
+    pub fn is_cursed(&self, slot: EquipSlot) -> bool {
+        self.cursed[slot.index()]
+    }
+
+    /// `true` if `slot` should refuse normal equip/unequip: occupied **and**
+    /// cursed. An empty slot, or an occupied-but-uncursed slot, is never
+    /// locked. This is a pure query — [`equip`](Self::equip) and
+    /// [`unequip`](Self::unequip) do not consult it themselves.
+    #[inline]
+    pub fn is_locked(&self, slot: EquipSlot) -> bool {
+        self.is_equipped(slot) && self.is_cursed(slot)
     }
 
     /// The number of occupied slots.
@@ -166,11 +230,14 @@ impl<T> Equipment<T> {
         self.occupied_count() == 0
     }
 
-    /// Remove every worn item, leaving all slots empty.
+    /// Remove every worn item, leaving all slots empty. Clears every curse
+    /// flag too, maintaining the invariant that an empty slot is never
+    /// reported as cursed.
     pub fn clear(&mut self) {
         for s in &mut self.slots {
             *s = None;
         }
+        self.cursed = [false; SLOT_COUNT];
     }
 
     /// Iterate over `(slot, &item)` for every occupied slot, in canonical
@@ -204,6 +271,7 @@ impl<T: DetHash> DetHash for Equipment<T> {
                 Some(item) => {
                     hasher.write_u8(1);
                     item.det_hash(hasher);
+                    hasher.write_bool(self.is_cursed(slot));
                 }
                 None => hasher.write_u8(0),
             }
@@ -351,5 +419,133 @@ mod tests {
         let mut d = Equipment::new();
         d.equip(EquipSlot::OffHand, 7u32);
         assert_ne!(hash_state(&a), hash_state(&d), "slot placement must matter");
+    }
+
+    // --- curses -----------------------------------------------------------
+
+    #[test]
+    fn test_curse_on_occupied_slot_returns_true() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        assert!(gear.curse(EquipSlot::MainHand));
+        assert!(gear.is_cursed(EquipSlot::MainHand));
+    }
+
+    #[test]
+    fn test_curse_on_empty_slot_is_noop() {
+        let mut gear: Equipment<&str> = Equipment::new();
+        assert!(!gear.curse(EquipSlot::MainHand), "nothing to curse");
+        assert!(!gear.is_cursed(EquipSlot::MainHand));
+    }
+
+    #[test]
+    fn test_curse_is_idempotent() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        assert!(gear.curse(EquipSlot::MainHand));
+        assert!(!gear.curse(EquipSlot::MainHand), "already cursed, no-op");
+    }
+
+    #[test]
+    fn test_is_locked_requires_both_occupied_and_cursed() {
+        let mut gear = Equipment::new();
+        assert!(!gear.is_locked(EquipSlot::MainHand), "empty is never locked");
+        gear.equip(EquipSlot::MainHand, "sword");
+        assert!(!gear.is_locked(EquipSlot::MainHand), "occupied but uncursed");
+        gear.curse(EquipSlot::MainHand);
+        assert!(gear.is_locked(EquipSlot::MainHand), "occupied and cursed");
+    }
+
+    #[test]
+    fn test_uncurse_lifts_the_curse() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        gear.curse(EquipSlot::MainHand);
+        assert!(gear.uncurse(EquipSlot::MainHand), "was cursed");
+        assert!(!gear.is_cursed(EquipSlot::MainHand));
+        assert!(!gear.is_locked(EquipSlot::MainHand));
+    }
+
+    #[test]
+    fn test_uncurse_on_not_cursed_returns_false() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        assert!(!gear.uncurse(EquipSlot::MainHand), "was never cursed");
+    }
+
+    #[test]
+    fn test_unequip_still_removes_a_cursed_item_unconditionally() {
+        // unequip's existing contract is unconditional; curses are a
+        // caller-enforced convention via is_locked, not an engine gate.
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        gear.curse(EquipSlot::MainHand);
+        assert_eq!(gear.unequip(EquipSlot::MainHand), Some("sword"));
+        assert!(!gear.is_equipped(EquipSlot::MainHand));
+    }
+
+    #[test]
+    fn test_unequip_clears_the_curse_flag() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        gear.curse(EquipSlot::MainHand);
+        gear.unequip(EquipSlot::MainHand);
+        assert!(!gear.is_cursed(EquipSlot::MainHand), "empty slot is never cursed");
+        // Equipping a fresh item afterward must start uncursed.
+        gear.equip(EquipSlot::MainHand, "dagger");
+        assert!(!gear.is_cursed(EquipSlot::MainHand));
+    }
+
+    #[test]
+    fn test_equip_swap_clears_the_outgoing_curse() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "cursed dagger");
+        gear.curse(EquipSlot::MainHand);
+        let old = gear.equip(EquipSlot::MainHand, "sword");
+        assert_eq!(old, Some("cursed dagger"), "outgoing item is still returned");
+        assert!(!gear.is_cursed(EquipSlot::MainHand), "incoming item is never born cursed");
+    }
+
+    #[test]
+    fn test_clear_resets_all_curse_flags() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        gear.curse(EquipSlot::MainHand);
+        gear.equip(EquipSlot::Head, "helm");
+        gear.curse(EquipSlot::Head);
+        gear.clear();
+        assert!(!gear.is_cursed(EquipSlot::MainHand));
+        assert!(!gear.is_cursed(EquipSlot::Head));
+    }
+
+    #[test]
+    fn test_curses_are_independent_per_slot() {
+        let mut gear = Equipment::new();
+        gear.equip(EquipSlot::MainHand, "sword");
+        gear.equip(EquipSlot::Head, "helm");
+        gear.curse(EquipSlot::MainHand);
+        assert!(gear.is_cursed(EquipSlot::MainHand));
+        assert!(!gear.is_cursed(EquipSlot::Head), "curse does not leak to other slots");
+    }
+
+    #[test]
+    fn test_det_hash_sensitive_to_curse_state() {
+        let mut a = Equipment::new();
+        a.equip(EquipSlot::MainHand, 7u32);
+        let mut b = a.clone();
+        assert_eq!(hash_state(&a), hash_state(&b), "identical clones hash equal");
+
+        b.curse(EquipSlot::MainHand);
+        assert_ne!(hash_state(&a), hash_state(&b), "cursed vs uncursed must hash differently");
+    }
+
+    #[test]
+    fn test_det_hash_unaffected_by_curse_on_empty_slot() {
+        // curse() on an empty slot is a documented no-op; the hash must
+        // reflect that (no phantom state leaks in for an unoccupied slot).
+        let a: Equipment<u32> = Equipment::new();
+        let mut b: Equipment<u32> = Equipment::new();
+        b.curse(EquipSlot::MainHand); // no-op, slot is empty
+        assert_eq!(hash_state(&a), hash_state(&b));
     }
 }
