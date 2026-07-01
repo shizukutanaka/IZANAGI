@@ -40,6 +40,7 @@ use izanagi_kit::tween::{Tween, TweenSequence};
 use izanagi_kit::shop::Shop;
 use izanagi_kit::wallet::Wallet;
 use izanagi_kit::dialogue::{Dialogue, DialogueNode};
+use izanagi_kit::meta::MetaProgress;
 use izanagi_kit::netinput::NetInputBuffer;
 use izanagi_kit::trigger::{Trigger, TriggerSet};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
@@ -7180,5 +7181,133 @@ fn prop_netinput_det_hash_ignores_predictions_only() {
         // But actually confirming a new value does change it.
         a.confirm(1000, 0, rng.range(-50, 50).wrapping_add(1000));
         assert_ne!(hash_state(&a), hash_state(&b), "a genuinely new confirmation changes the hash");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// MetaProgress — cross-run permanent unlocks and all-time best records
+// ---------------------------------------------------------------------------
+
+/// **unlock order does not affect the final unlocked set or its hash.**
+#[test]
+fn prop_meta_unlock_order_independent() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x4E7A_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        let features: Vec<u32> = (0..n).map(|_| rng.below(20)).collect();
+
+        let mut a: MetaProgress<u32, u32> = MetaProgress::new();
+        for &f in &features {
+            a.unlock(f);
+        }
+
+        let mut shuffled = features.clone();
+        rng.shuffle(&mut shuffled);
+        let mut b: MetaProgress<u32, u32> = MetaProgress::new();
+        for &f in &shuffled {
+            b.unlock(f);
+        }
+
+        assert_eq!(hash_state(&a), hash_state(&b), "unlock order must not affect the hash");
+        for &f in &features {
+            assert_eq!(a.is_unlocked(f), b.is_unlocked(f));
+        }
+    }
+}
+
+/// **record_best converges to the true maximum ever offered**, regardless of
+/// the order values were recorded in.
+#[test]
+fn prop_meta_record_best_is_order_independent_max() {
+    let mut rng = SplitMix64::new(0x4E7A_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(15) as usize;
+        let values: Vec<i64> = (0..n).map(|_| rng.range(-1000, 1000) as i64).collect();
+        let true_max = *values.iter().max().unwrap();
+
+        let mut a: MetaProgress<u32, u32> = MetaProgress::new();
+        for &v in &values {
+            a.record_best(1, v);
+        }
+        assert_eq!(a.best(1), Some(true_max), "converges to the true max");
+
+        let mut shuffled = values.clone();
+        rng.shuffle(&mut shuffled);
+        let mut b: MetaProgress<u32, u32> = MetaProgress::new();
+        for &v in &shuffled {
+            b.record_best(1, v);
+        }
+        assert_eq!(b.best(1), Some(true_max), "order does not change the converged max");
+    }
+}
+
+/// **record_best's return value is exactly "did this strictly beat the
+/// previous best (or is this the first value)?"**
+#[test]
+fn prop_meta_record_best_return_matches_strict_improvement() {
+    let mut rng = SplitMix64::new(0x4E7A_0003);
+    for _ in 0..ITERS {
+        let mut meta: MetaProgress<u32, u32> = MetaProgress::new();
+        let mut running_best: Option<i64> = None;
+        for _ in 0..1 + rng.below(20) {
+            let v = rng.range(-100, 100) as i64;
+            let expected_new_record = running_best.map(|b| v > b).unwrap_or(true);
+            let got = meta.record_best(1, v);
+            assert_eq!(got, expected_new_record, "value {v} vs running best {running_best:?}");
+            if expected_new_record {
+                running_best = Some(v);
+            }
+        }
+    }
+}
+
+/// **unlocking the same feature any number of times is equivalent to
+/// unlocking it once** — idempotence under repetition.
+#[test]
+fn prop_meta_unlock_idempotent_under_repetition() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x4E7A_0004);
+    for _ in 0..ITERS {
+        let feature = rng.below(10);
+        let mut once: MetaProgress<u32, u32> = MetaProgress::new();
+        once.unlock(feature);
+        let hash_once = hash_state(&once);
+
+        let mut many: MetaProgress<u32, u32> = MetaProgress::new();
+        let repeats = 1 + rng.below(10);
+        for _ in 0..repeats {
+            many.unlock(feature);
+        }
+        assert_eq!(hash_state(&many), hash_once, "repeated unlock == single unlock");
+    }
+}
+
+/// **DetHash is sensitive to unlock-set and record content but not to
+/// rejected (non-record-setting) `record_best` calls**, fuzzed together.
+#[test]
+fn prop_meta_det_hash_sensitive_to_content_only() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x4E7A_0005);
+    for _ in 0..ITERS {
+        let mut a: MetaProgress<u32, u32> = MetaProgress::new();
+        let n = 1 + rng.below(5) as usize;
+        for f in 0..n as u32 {
+            a.unlock(f);
+            a.record_best(f, rng.range(0, 100) as i64);
+        }
+        let b = a.clone();
+        assert_eq!(hash_state(&a), hash_state(&b), "clones hash equal");
+
+        // A record_best call that fails to improve must not change the hash.
+        let stat = rng.below(n as u32);
+        let current_best = a.best(stat).unwrap();
+        let worse = current_best - 1 - rng.below(50) as i64;
+        a.record_best(stat, worse);
+        assert_eq!(hash_state(&a), hash_state(&b), "rejected record leaves the hash unchanged");
+
+        // But an actual improvement does change it.
+        a.record_best(stat, current_best + 1);
+        assert_ne!(hash_state(&a), hash_state(&b), "a genuine new record changes the hash");
     }
 }

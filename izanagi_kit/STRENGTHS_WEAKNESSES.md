@@ -423,3 +423,43 @@ transport 自体は範囲外のまま——受信バイトから `confirm()` を
 これで `GAME_DEV_TAXONOMY.md` の実装可能な項目（zero-dep・ヘッドレス方針と両立するもの）は
 **すべて解消**。残る ⬜ は E5（任意）・H6（範囲外）・O2（範囲外、transport のみ）の3件で、
 いずれも明示的に「今は実装しない」理由が文書化されている。
+
+---
+
+## 10. 第5次棚卸し (2026-07-01) — ソクラテス式問答による過不足の再点検
+
+`GAME_DEV_TAXONOMY.md` の枠外（タクソノミー自体の死角）を探すため、改めてソクラテス式問答で
+「過剰（redundant）」と「不足（missing）」の両面を問い直した。
+
+**過剰の検討**: 「`fsm`/`hfsm`/`behavior` の3つの AI 抽象化は冗長か？」「`dialogue`/`quest`/`trigger`
+の3つの『フロー制御』は重複しているか？」——いずれも **否**。前者は状態遷移（FSM）・階層状態
+（HFSM）・木構造の逐次評価（behavior tree）という異なる設計原理を持つゲームAI文献の標準的な
+区別であり、後者も「会話ナビゲーション」「タスク完了追跡」「汎用条件→アクション」と役割が
+明確に異なる（`trigger` の docstring 自体が他2者との関係を明示）。→ 冗長性は見つからなかった。
+
+**不足の検討**: 「`progression`（XP→レベル）は**1回の生存内**の成長を扱うが、ローグライクの
+ジャンル的核心である **permadeath（死んでも続く要素）** の裏側を表現できるか？」
+
+| # | 問い（既存 API で表現できないこと） | 隙間 | 状態 |
+|---|------------------------------------|------|------|
+| G21 | 「死んでも失われない、恒久的なアンロックと歴代最高記録」——`progression` はキャラクター1体の生存内成長、`savefile` は汎用バイナリ永続化の*手段*だが、「idempotent なアンロックフラグ集合」「到着順に依存しない歴代最高値」という*データ構造*が無い。`wallet`/`quest` も単一 run スコープ。 | クロスラン meta-progression（恒久アンロック・歴代記録） | ✅ **実装済み**（`src/meta.rs`: `MetaProgress<K,R>`） |
+
+**G21 — MetaProgress（クロスラン meta-progression）** → `src/meta.rs`（新規 module, 19 unit + 5 property tests）
+
+- `unlocked: BTreeSet<K>`（恒久アンロックフラグ）+ `records: BTreeMap<R, i64>`（統計名ごとの歴代最高値）。
+  Rogue Legacy の継承強化・Hades の Mirror of Night・Dead Cells の細胞通貨・NetHack のハイスコア表と
+  同じ形——「死んでもリセットされない少数の idempotent な状態」を1つの型に集約。
+- `unlock(feature)`: 冪等（2回目以降は `false` を返すだけで状態不変）。
+- `record_best(stat, value)`: 「大きい方が良い」の max-fold（`netinput` の `last_known_tick` と同じ
+  到着順非依存パターン）。「小さい方が良い」記録（最速クリア等）は呼び出し側が値を negate して渡す
+  ことで単一メソッドのまま両対応——2つ目の easily-misused メソッドを増やさない設計判断。
+- **意図的にライフサイクル非関与**: 「run とは何か」「いつ始まり終わるか」は一切知らない。呼び出し側が
+  1つの `MetaProgress` インスタンスをセッション全体で保持し、死亡時は per-run 状態（キャラ・所持品・
+  ダンジョン）だけを破棄・再構築する——という運用を、型を汚さずに支える。
+- 検証した性質: unlock 順序は最終集合/ハッシュに非依存、`record_best` は「与えられた値集合の真の
+  最大値」に順序非依存で収束、`record_best` の戻り値は「厳密に前回のベストを上回ったか」と正確に
+  一致、unlock の繰り返しは1回と等価（冪等性）、`DetHash` は却下された（記録を更新しない）
+  `record_best` 呼び出しでは変化せず、実際の内容変化にのみ敏感。
+
+決定論影響: 🟢 replay-safe（整数のみ・`BTreeSet`/`BTreeMap` で canonical・float/RNG 無し）。
+既存 sim 未使用のため `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。

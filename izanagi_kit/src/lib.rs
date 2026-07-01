@@ -21,6 +21,7 @@
 //! - [`shufflebag`] — draw-without-replacement bag randomizer with auto-refill (`ShuffleBag<T>`).
 //! - [`equipment`] — worn-item loadout per body slot with aggregate `StatsModifier` (`Equipment<T>`, `EquipSlot`).
 //! - [`progression`] — experience accumulation and integer level curves (`Progression`, `LevelCurve`).
+//! - [`meta`] — cross-run meta-progression: permanent unlock flags and all-time best records (`MetaProgress<K,R>`).
 //! - [`lightmap`] — additive integer illumination map for torchlit dungeons (`LightMap`).
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
 //! - [`threat`] — per-combatant aggro / target-selection table (`ThreatTable<K>`).
@@ -116,6 +117,7 @@ pub mod lightmap;
 pub mod loader;
 pub mod mapgen;
 pub mod menu;
+pub mod meta;
 pub mod msglog;
 pub mod multimap;
 pub mod netinput;
@@ -209,6 +211,7 @@ pub use mapgen::{
     DrunkardParams, Dungeon, GenParams, Rect,
 };
 pub use menu::{Menu, MenuItem};
+pub use meta::MetaProgress;
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
 pub use netinput::NetInputBuffer;
