@@ -32,6 +32,7 @@ with per-feature implementation status — lives in
 | `timestep` | Fixed-timestep accumulator with a death-spiral guard. |
 | `world_hash` | FNV-1a per-frame state checksum for bit-exact replay assertions. |
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
+| `netinput` | Transport-agnostic multi-player input prediction and misprediction detection for rollback netcode (`NetInputBuffer`). |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
 | `mapgen` / `wfc` / `multimap` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions, drunkard's-walk caverns), Wave Function Collapse, multi-level worlds. |
 | `fov` / `pathfinding` / `influence` / `fsm` / `hfsm` | Symmetric FOV (binary + distance-attenuated), (weighted) A* + path smoothing + Dijkstra flow maps + rescanned flee/safety maps + frontier-seeking auto-explore, influence maps, flat and hierarchical (parent-state + wildcard) state machines. |

@@ -40,6 +40,7 @@ use izanagi_kit::tween::{Tween, TweenSequence};
 use izanagi_kit::shop::Shop;
 use izanagi_kit::wallet::Wallet;
 use izanagi_kit::dialogue::{Dialogue, DialogueNode};
+use izanagi_kit::netinput::NetInputBuffer;
 use izanagi_kit::trigger::{Trigger, TriggerSet};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
@@ -7029,5 +7030,155 @@ fn prop_trigger_det_hash_order_independent_and_sensitive() {
             a.check(|c| *c == cond);
             assert_ne!(hash_state(&a), hash_state(&b), "fired-state change (key {k}) → different hash");
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// NetInputBuffer — deterministic multi-player input prediction
+// ---------------------------------------------------------------------------
+
+/// **confirmation order does not affect the resulting state**: replaying the
+/// same set of `(tick, player, input)` confirmations in any order yields the
+/// same confirmed map, last-known map, and hash.
+#[test]
+fn prop_netinput_confirm_order_independent() {
+    use izanagi_kit::hash_state;
+    use std::collections::BTreeMap;
+    let mut rng = SplitMix64::new(0x9E71_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        // Dedup by (tick, player): a single tick has exactly one canonical
+        // real input per player, so generating conflicting duplicate keys
+        // would test an ill-defined scenario rather than order-independence.
+        let mut unique: BTreeMap<(u32, u32), i32> = BTreeMap::new();
+        for _ in 0..n {
+            unique.insert((rng.below(20), rng.below(4)), rng.range(-100, 100));
+        }
+        let entries: Vec<(u32, u32, i32)> = unique.into_iter().map(|((t, p), v)| (t, p, v)).collect();
+
+        let mut a: NetInputBuffer<u32, i32> = NetInputBuffer::new();
+        for &(tick, player, input) in &entries {
+            a.confirm(tick, player, input);
+        }
+
+        let mut shuffled = entries.clone();
+        rng.shuffle(&mut shuffled);
+        let mut b: NetInputBuffer<u32, i32> = NetInputBuffer::new();
+        for &(tick, player, input) in &shuffled {
+            b.confirm(tick, player, input);
+        }
+
+        assert_eq!(hash_state(&a), hash_state(&b), "confirm order must not affect the hash");
+        for &(tick, player, _) in &entries {
+            assert_eq!(
+                a.confirmed_input(tick, player),
+                b.confirmed_input(tick, player),
+                "same final confirmed value regardless of arrival order"
+            );
+        }
+        // last_known must converge to the value at each player's highest
+        // confirmed tick regardless of the order confirm() was called in.
+        for player in 0..4u32 {
+            assert_eq!(
+                a.input_for(9999, player),
+                b.input_for(9999, player),
+                "last_known (prediction source) must match regardless of confirm order"
+            );
+        }
+    }
+}
+
+/// **`input_for` always returns the confirmed value once one exists**, even
+/// if a (now-stale) prediction was made for that slot first.
+#[test]
+fn prop_netinput_input_for_prefers_confirmed() {
+    let mut rng = SplitMix64::new(0x9E71_0002);
+    for _ in 0..ITERS {
+        let mut buf: NetInputBuffer<u32, i32> = NetInputBuffer::new();
+        let player = rng.below(4);
+        let tick = rng.below(50);
+        buf.seed(player, rng.range(-50, 50));
+        let _ = buf.input_for(tick, player); // force a prediction to exist
+        let real = rng.range(-50, 50);
+        buf.confirm(tick, player, real);
+        assert_eq!(buf.input_for(tick, player), Some(real));
+    }
+}
+
+/// **misprediction is reported iff the confirmed value differs from what was
+/// actually predicted** — verified over randomized predict/confirm sequences.
+#[test]
+fn prop_netinput_misprediction_matches_predicted_mismatch() {
+    let mut rng = SplitMix64::new(0x9E71_0003);
+    for _ in 0..ITERS {
+        let mut buf: NetInputBuffer<u32, i32> = NetInputBuffer::new();
+        let player = 1u32;
+        let tick = rng.below(100);
+        buf.seed(player, rng.range(-100, 100));
+        let predicted = buf.input_for(tick, player).unwrap();
+        let real = rng.range(-100, 100);
+        let mispredicted = buf.confirm(tick, player, real);
+        assert_eq!(mispredicted, predicted != real, "misprediction flag matches predicted-vs-actual mismatch");
+    }
+}
+
+/// **`prune_before` removes only ticks strictly before the cutoff**, leaves
+/// `last_known` untouched, and never affects ticks at or after the cutoff.
+#[test]
+fn prop_netinput_prune_before_boundary_exact() {
+    let mut rng = SplitMix64::new(0x9E71_0004);
+    for _ in 0..ITERS {
+        let mut buf: NetInputBuffer<u32, i32> = NetInputBuffer::new();
+        let player = 1u32;
+        let ticks: Vec<u32> = (0..1 + rng.below(10)).map(|_| rng.below(200)).collect();
+        for &t in &ticks {
+            buf.confirm(t, player, rng.range(-10, 10));
+        }
+        let cutoff = rng.below(200);
+        buf.prune_before(cutoff);
+        for &t in &ticks {
+            let should_survive = t >= cutoff;
+            let survived = buf.confirmed_input(t, player).is_some();
+            // A tick appearing multiple times in `ticks` was overwritten by
+            // confirm(), not removed, so survival only depends on t vs cutoff.
+            assert_eq!(
+                survived, should_survive,
+                "tick {t} vs cutoff {cutoff}: survived={survived}, expected={should_survive}"
+            );
+        }
+        // last_known must still answer for future ticks regardless of pruning.
+        assert!(buf.input_for(300, player).is_some(), "last_known survives prune_before");
+    }
+}
+
+/// **DetHash is sensitive to confirmed content but blind to predicted-only
+/// state**, fuzzed across random predict/confirm sequences.
+#[test]
+fn prop_netinput_det_hash_ignores_predictions_only() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x9E71_0005);
+    for _ in 0..ITERS {
+        let mut a: NetInputBuffer<u32, i32> = NetInputBuffer::new();
+        let n = 1 + rng.below(5) as usize;
+        for p in 0..n as u32 {
+            a.confirm(rng.below(20), p, rng.range(-50, 50));
+        }
+        let b = a.clone();
+        assert_eq!(hash_state(&a), hash_state(&b), "identical clones hash equal");
+
+        // Predicting into fresh, unconfirmed ticks on `a` only must not
+        // change the hash relative to `b`.
+        for p in 0..n as u32 {
+            a.input_for(1000 + p, p);
+        }
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "predictions into new ticks must not affect the hash"
+        );
+
+        // But actually confirming a new value does change it.
+        a.confirm(1000, 0, rng.range(-50, 50).wrapping_add(1000));
+        assert_ne!(hash_state(&a), hash_state(&b), "a genuinely new confirmation changes the hash");
     }
 }

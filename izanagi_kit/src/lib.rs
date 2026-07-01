@@ -10,6 +10,7 @@
 //! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search, Dijkstra maps + rescanned flee/safety maps, auto-explore.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
+//! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`).
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
 //! - [`msglog`] — bounded ring-buffer message log with `DetHash`.
 //! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
@@ -117,6 +118,7 @@ pub mod mapgen;
 pub mod menu;
 pub mod msglog;
 pub mod multimap;
+pub mod netinput;
 pub mod noise;
 pub mod parser;
 pub mod passability;
@@ -209,6 +211,7 @@ pub use mapgen::{
 pub use menu::{Menu, MenuItem};
 pub use msglog::MsgLog;
 pub use multimap::{Connector, MultiMap};
+pub use netinput::NetInputBuffer;
 pub use noise::{
     fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_in_range, fbm_2d_wrap, fbm_3d, hash_1d, hash_2d, hash_3d,
     noise_3d_in_range, normalize_noise, ridge_noise_2d, value_noise_1d, value_noise_1d_wrap,

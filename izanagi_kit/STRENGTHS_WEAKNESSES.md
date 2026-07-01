@@ -372,3 +372,54 @@ G1–G9・W1–W7 を埋めた後、ソクラテス式問答で残る **層間�
 
 決定論影響: 🟢 replay-safe（整数のみ・`u128` 中間計算で overflow なし・float なし）。
 既存 sim 未使用のため PINNED hashes 不変（`tests/determinism.rs` 確認済み）。
+
+---
+
+## 9. 第4次棚卸し (2026-07-01) — マルチプレイヤー決定論という新しい軸
+
+W8–W12（節7）を埋めた後、`GAME_DEV_TAXONOMY.md` を再走査して残存ギャップを確認した。全カテゴリ中、
+実質的な未実装は3件のみ: **E5**（`DetHash` derive macro — zero-dep 方針では手実装維持も可、と
+明記済みの任意項目）、**H6**（ホットリロード — OS I/O でヘッドレス方針上**意図的に範囲外**）、
+**O2/O3**（ネットワーク入力同期）。O2（transport 自体）はソケット I/O で同じく範囲外だが、
+**O3（予測/補正のロジック）は transport 非依存に実装可能**で、既存の `replay::resimulate`
+（rollback 基盤）と組み合わせて初めて意味を持つ——「シングルプレイヤーの決定論は完備だが、
+マルチプレイヤーの決定論（複数プレイヤーの入力が非同期に届く状況での予測と誤り訂正）」という
+軸が完全に欠落していた。
+
+| # | 問い（既存 API で表現できないこと） | 隙間 | 状態 |
+|---|------------------------------------|------|------|
+| G20 | 「プレイヤー B の tick 5 の入力がまだ届いていない——それでも tick 5 を進めるには？届いた後、予測が外れていたら？」——`replay::resimulate` は snapshot から再生する *手段* を持つが、「いつ・どのプレイヤーの・どの tick で」再生すべきかを判定する層が無い。 | 決定論的マルチプレイヤー入力予測・誤予測検出 | ✅ **実装済み**（`src/netinput.rs`: `NetInputBuffer<P,I>`） |
+
+**G20 — 決定論的マルチプレイヤー入力予測** → `src/netinput.rs`（新規 module, 21 unit + 5 property tests）
+
+- `NetInputBuffer<P,I>`: `confirmed: BTreeMap<(tick,P), I>`（確定入力）+ `predicted`（`input_for` が
+  行った予測の memo）+ `last_known: BTreeMap<P,I>`（各プレイヤーの最新確定入力＝予測の元）。
+- `input_for(tick, player)`: 確定済みならそれを返し、未確定なら `last_known` から予測して memo 化
+  （以後同じ `(tick,player)` への呼び出しは同じ予測を返す）。
+- `confirm(tick, player, input)`: 本物の入力が届いた時に呼ぶ。既に予測されていた値と食い違えば
+  `true`（誤予測——呼び出し側は `replay::resimulate` で `tick` から再シミュレートする）を返す。
+- **決定論バグを発見・修正**: 実装直後の property test（confirm 順序が最終状態に影響しないこと）が
+  失敗。原因は `last_known` を「直近の `confirm` 呼び出し」で無条件上書きしていたため、**古い tick
+  の入力が遅れて届くと新しい tick の入力を巻き戻してしまう**（実ネットワークの reorder で普通に起こる）
+  という真正のバグだった。`last_known_tick: BTreeMap<P,u32>` で各プレイヤーの最高確定 tick を追跡し、
+  「`confirm` された tick が既知の最高値以上の時のみ `last_known` を更新」という **max-fold**（`threat`
+  の decay や他モジュールの可換演算と同じ「到着順に依存しない集約」パターン）に修正して解消。
+- **`DetHash` は `predicted` を意図的に除外**: 2ピアが同じ確定履歴を持っていても、ネットワーク
+  タイミング差で「今この瞬間に何を予測中か」は異なりうる——これをハッシュに含めると、実際には
+  同期が壊れていないのに偽の divergence を報告してしまう。`confirmed` + `last_known`（＝同じ確定
+  情報を得れば必ず収束する部分）のみを正準状態とした。
+- **ソクラテス的ギャップ**: `replay` は「巻き戻して再生する」手段を提供するが、「いつ再生すべきか」
+  （どの tick でどのプレイヤーの予測が外れたか）を判定する層が無かった。`cmdqueue` は単一ローカル
+  プレイヤーの決定論的入力供給を扱うが、複数プレイヤー・非同期到着は範囲外だった。
+- 検証した性質: `confirm` の呼び出し順序が最終状態（`confirmed`・`last_known`・`DetHash`）に影響
+  しない、`input_for` は確定値があれば必ずそれを返す（予測が先にあっても）、誤予測フラグは
+  「予測値 ≠ 確定値」と厳密に一致、`prune_before` は境界を跨がず・`last_known` を保護、`DetHash` は
+  `predicted` のみの差では変化せず `confirmed`/`last_known` の差には敏感。
+
+決定論影響: 🟢 replay-safe（整数/データのみ・`predicted` を意図的にハッシュ対象外・float 無し）。
+transport 自体は範囲外のまま——受信バイトから `confirm()` を呼ぶのは呼び出し側の責務。
+`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
+
+これで `GAME_DEV_TAXONOMY.md` の実装可能な項目（zero-dep・ヘッドレス方針と両立するもの）は
+**すべて解消**。残る ⬜ は E5（任意）・H6（範囲外）・O2（範囲外、transport のみ）の3件で、
+いずれも明示的に「今は実装しない」理由が文書化されている。
