@@ -161,8 +161,8 @@
 | W8 | ~~**Integration test 欠落**~~（複数 module 横断の E2E テストが無い） ✅ **実装済み**（`tests/economy_integration.rs`: wallet+dialogue+shop の合成セッションで record_trace/check_trace/resimulate を通貨・会話状態の複合ハッシュに適用、4 tests × 150 trials） | wallet + dialogue + shop pricing の連携が未検証 | Medium |
 | W9 | ~~**複数 tween の同時再生管理がない**~~（animation sequencer） ✅ **実装済み**（`src/tween.rs`: `TweenSequence` — 単一クロックで複数 `Tween` を順序再生、tick 繰越、15u + 4p tests） | UI/visual FX は複数並行アニメを必要とするが、個別管理が煩雑 | Medium |
 | W10 | ~~**shop pricing model**~~（buy/sell markup、NPC ごとの価格設定） ✅ **実装済み**（`src/shop.rs`: `Shop<K,C>` + `Listing` — wallet-backed till、`buy`/`sell` all-or-nothing、19u + 5p tests） | wallet の基盤は整備されたが、実際のショップ仕組みが無い | Small |
-| W11 | **trigger / event script**（条件→アクション チェーン）| dialogue の結果（choice）を quest や world state 変化に紐づける基盤が無い | Large |
-| W12 | **README.md が実装に追いついていない** | G1-G14 の機能一覧が記載されていない | Small |
+| W11 | ~~**trigger / event script**~~（条件→アクション チェーン）✅ **実装済み**（`src/trigger.rs`: `TriggerSet<K,C,A>` + `Trigger<C,A>` — 条件はデータとして保持し評価関数を呼び出し側から供給、once/repeatable、18u + 5p tests） | dialogue の結果（choice）を quest や world state 変化に紐づける基盤が無い | Large |
+| W12 | ~~**README.md が実装に追いついていない**~~ ✅ **実装済み**（module 表に `ability`/`behavior`/`hfsm`/`aabb`/`spatial_hash`/`passability` を追加、`gamec --check`/`--json` を CLI 節に追記、戦略文書4本への「Project documents」導線を新設） | G1-G14 の機能一覧が記載されていない | Small |
 
 **W10 — shop pricing model** → `src/shop.rs`（新規 module, 19 unit + 5 property tests）
 
@@ -220,18 +220,35 @@
 決定論影響: 🟢 replay-safe（整数のみ・既存 `Tween`/`Fixed` の再利用・float/RNG 無し）。
 `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
 
-### 7.2 次の推奨着手順（効果 × 工数、内部依存度）
+**W12 — README.md 更新** → `README.md`
 
-1. **W12 — README.md 更新** ← **即実装推奨**（手付かず、Small 工数）
-   - G1-G14 の機能一覧を追加
-   - 各モジュールの Socratic gap（なぜこれが必要だったか）を簡潔に記述
-   - property test 数を記載（234 件）
+- module 表に `ability`/`behavior`/`hfsm`（skill system・behavior tree・hierarchical FSM の3大systemが
+  完全に未記載だったギャップ）と `aabb`/`spatial_hash`/`passability`（衝突判定層）を追加。
+- `gamec` CLI 節に既存実装済みだが未記載だった `--check`/`--json` フラグを追記。
+- 「Project documents」節を新設し、`STRENGTHS_WEAKNESSES.md`/`RESEARCH.md`/`IMPROVEMENTS.md`/
+  `CHANGELOG.md` への導線を追加（従来 README から一切リンクされていなかった）。
+- 21 examples の一覧・モジュール表の整合性を `lib.rs` の `pub mod` 一覧と突き合わせて検証済み。
 
-2. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
-   - condition predicate （「quest active? 」「player in zone? 」）
-   - action lambda （「show dialogue」「grant item」「start encounter」）
-   - chain: `if condition then actions` の linked list か DAG
-   - **現段階では未実装でよし**（NG ギャップリスト化が目的）
+**W11 — trigger / event script** → `src/trigger.rs`（新規 module, 18 unit + 5 property tests）
+
+- `Trigger<C, A> { condition: C, actions: Vec<A>, once: bool }` + `TriggerSet<K, C, A>`:
+  `BTreeMap<K, Trigger<C,A>>` の canonical ルール集合 + 発火済み one-shot key の `BTreeSet`。
+- `tween`/`recipe` と同じ脱結合方針: 条件・アクションは**データ**として保持し、
+  評価関数は `check<F: Fn(&C) -> bool>` に**呼び出し時に**供給する（関数ポインタは非保存＝
+  `DetHash` 安全）。`TriggerSet` はどのルールが発火したかだけを返し、アクションの実行（dispatch）は
+  呼び出し側の責務のまま——「発火判定」と「発火の意味」の境界を明示的に保つ。
+- `check()` は armed なルールを昇順 key で評価し、発火した `(key, actions)` を返す。once ルールは
+  発火後に disarm され、`reset`/`reset_all` で再武装可能。
+- **ソクラテス的ギャップ**: `dialogue` は選択、`quest` はタスク完了、`status`/`eventqueue` は時限/即時
+  効果を扱うが、「任意の条件が成立したらアクション列を実行する」という汎用ルール層が無かった。
+- 検証した性質: repeatable trigger は条件が真の間毎回発火・偽なら決して発火しない、once trigger は
+  何度 check しても厳密に1回だけ発火、`reset_all` は全 once ルールを同時再武装、発火順は挿入順に
+  非依存で常に key 昇順、`DetHash` は挿入順に非依存・発火状態とルール内容（アクション列）の変化に敏感。
+
+決定論影響: 🟢 replay-safe（整数のみ・条件/アクションはデータ・関数ポインタ非保存・float/RNG 無し）。
+`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
+
+**W8–W12 の全 weakness items は本ブランチで解消済み。**
 
 ## 8. 外部知見（Qiita / Zenn）に基づく改善
 

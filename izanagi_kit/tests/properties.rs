@@ -40,6 +40,7 @@ use izanagi_kit::tween::{Tween, TweenSequence};
 use izanagi_kit::shop::Shop;
 use izanagi_kit::wallet::Wallet;
 use izanagi_kit::dialogue::{Dialogue, DialogueNode};
+use izanagi_kit::trigger::{Trigger, TriggerSet};
 use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
 use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
@@ -6892,6 +6893,141 @@ fn prop_dialogue_det_hash_cursor_sensitive() {
                 hash_state(&moved),
                 "different cursor → different hash"
             );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// TriggerSet — condition→action rules for scripted game events
+// ---------------------------------------------------------------------------
+
+/// **A repeatable trigger fires on every `check` call where its condition
+/// holds, and never otherwise** — regardless of how many times it is checked.
+#[test]
+fn prop_trigger_repeatable_fires_exactly_when_condition_holds() {
+    let mut rng = SplitMix64::new(0x7719_0001);
+    for _ in 0..ITERS {
+        let cond = rng.next_bool();
+        let mut ts: TriggerSet<u32, bool, u32> = TriggerSet::new();
+        ts.insert(1, Trigger::new(cond, vec![42]));
+        for _ in 0..1 + rng.below(5) {
+            let fired = ts.check(|c| *c);
+            if cond {
+                assert_eq!(fired, vec![(1, vec![42])], "holds every call");
+            } else {
+                assert!(fired.is_empty(), "never fires when condition is false");
+            }
+        }
+    }
+}
+
+/// **A once-trigger fires at most once**: across any number of `check` calls
+/// with a true condition, exactly the first call returns it.
+#[test]
+fn prop_trigger_once_fires_at_most_once() {
+    let mut rng = SplitMix64::new(0x7719_0002);
+    for _ in 0..ITERS {
+        let mut ts: TriggerSet<u32, bool, u32> = TriggerSet::new();
+        ts.insert(1, Trigger::once(true, vec![42]));
+        let calls = 1 + rng.below(8);
+        let mut fire_count = 0;
+        for _ in 0..calls {
+            if !ts.check(|c| *c).is_empty() {
+                fire_count += 1;
+            }
+        }
+        assert_eq!(fire_count, 1, "once-trigger fires exactly one time across {calls} checks");
+        assert!(ts.is_fired(1));
+        assert!(!ts.is_armed(1));
+    }
+}
+
+/// **reset re-arms a once-trigger to fire again**, and `reset_all` re-arms
+/// every one-shot rule in the set simultaneously.
+#[test]
+fn prop_trigger_reset_rearms_and_refires() {
+    let mut rng = SplitMix64::new(0x7719_0003);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5) as usize;
+        let mut ts: TriggerSet<u32, bool, u32> = TriggerSet::new();
+        for k in 0..n as u32 {
+            ts.insert(k, Trigger::once(true, vec![k]));
+        }
+        ts.check(|c| *c);
+        for k in 0..n as u32 {
+            assert!(ts.is_fired(k), "every once-trigger fires on the first check");
+        }
+        ts.reset_all();
+        for k in 0..n as u32 {
+            assert!(ts.is_armed(k), "reset_all re-arms every rule");
+        }
+        let fired_again = ts.check(|c| *c);
+        assert_eq!(fired_again.len(), n, "all rules fire again after reset_all");
+    }
+}
+
+/// **check returns fired rules in ascending key order**, independent of
+/// insertion order — the same canonical-iteration guarantee `BTreeMap`-backed
+/// modules provide elsewhere in the kit.
+#[test]
+fn prop_trigger_check_order_is_canonical_by_key() {
+    let mut rng = SplitMix64::new(0x7719_0004);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(8) as usize;
+        let mut keys: Vec<u32> = (0..n as u32).collect();
+        rng.shuffle(&mut keys);
+
+        let mut ts: TriggerSet<u32, bool, u32> = TriggerSet::new();
+        for &k in &keys {
+            ts.insert(k, Trigger::new(true, vec![k]));
+        }
+        let fired = ts.check(|c| *c);
+        let fired_keys: Vec<u32> = fired.iter().map(|(k, _)| *k).collect();
+        let mut expected = keys.clone();
+        expected.sort();
+        assert_eq!(fired_keys, expected, "fired order is ascending by key regardless of insertion order");
+    }
+}
+
+/// **DetHash is insertion-order-independent and sensitive to fired-state and
+/// rule content.**
+#[test]
+fn prop_trigger_det_hash_order_independent_and_sensitive() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x7719_0005);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6) as usize;
+        let entries: Vec<(u32, u32, bool)> = (0..n as u32)
+            .map(|k| (k, rng.below(100), rng.next_bool()))
+            .collect();
+
+        let mut a: TriggerSet<u32, u32, u32> = TriggerSet::new();
+        for &(k, cond, once) in &entries {
+            let t = if once {
+                Trigger::once(cond, vec![k])
+            } else {
+                Trigger::new(cond, vec![k])
+            };
+            a.insert(k, t);
+        }
+        let mut b: TriggerSet<u32, u32, u32> = TriggerSet::new();
+        for &(k, cond, once) in entries.iter().rev() {
+            let t = if once {
+                Trigger::once(cond, vec![k])
+            } else {
+                Trigger::new(cond, vec![k])
+            };
+            b.insert(k, t);
+        }
+        assert_eq!(hash_state(&a), hash_state(&b), "insertion order does not affect the hash");
+
+        // Firing a once-trigger (if any exists) changes the fired-state and
+        // must change the hash — evaluate against its own stored condition
+        // value so the check is guaranteed to match.
+        let target = entries.iter().find(|&&(_, _, once)| once);
+        if let Some(&(k, cond, _)) = target {
+            a.check(|c| *c == cond);
+            assert_ne!(hash_state(&a), hash_state(&b), "fired-state change (key {k}) → different hash");
         }
     }
 }

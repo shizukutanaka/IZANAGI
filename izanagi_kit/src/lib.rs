@@ -28,6 +28,7 @@
 //! - [`wallet`] — fungible currency balances for shops/economy (`Wallet<C>`).
 //! - [`shop`] — buy/sell price listings against a wallet-backed till (`Shop<K,C>`, `Listing`).
 //! - [`dialogue`] — branching NPC conversation tree (`Dialogue`, `DialogueNode`, `Choice`).
+//! - [`trigger`] — condition→action rule set for scripted game events (`TriggerSet<K,C,A>`, `Trigger<C,A>`).
 //! - [`eventqueue`] — intra-tick FIFO game event queue (`EventQueue<E>`).
 //! - [`quest`] — quest and objective tracking (`Quest`, `Objective`, `QuestState`).
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
@@ -142,6 +143,7 @@ pub mod threat;
 pub mod tilemap;
 pub mod timer;
 pub mod timestep;
+pub mod trigger;
 pub mod turn;
 pub mod tween;
 pub mod validator;
@@ -249,6 +251,7 @@ pub use threat::ThreatTable;
 pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
+pub use trigger::{Trigger, TriggerSet};
 pub use turn::Scheduler;
 pub use tween::{Tween, TweenSequence};
 pub use validator::{is_loadable, validate};

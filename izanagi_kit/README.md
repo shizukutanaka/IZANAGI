@@ -34,13 +34,15 @@ with per-feature implementation status — lives in
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
 | `mapgen` / `wfc` / `multimap` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions, drunkard's-walk caverns), Wave Function Collapse, multi-level worlds. |
-| `fov` / `pathfinding` / `influence` / `fsm` | Symmetric FOV (binary + distance-attenuated), (weighted) A* + path smoothing + Dijkstra flow maps + rescanned flee/safety maps, influence maps, state machines. |
+| `fov` / `pathfinding` / `influence` / `fsm` / `hfsm` | Symmetric FOV (binary + distance-attenuated), (weighted) A* + path smoothing + Dijkstra flow maps + rescanned flee/safety maps + frontier-seeking auto-explore, influence maps, flat and hierarchical (parent-state + wildcard) state machines. |
+| `ability` / `behavior` | Unified skill system (mana/cooldown/range/effect resolution in one call) and hierarchical behavior trees (sequence/selector/invert/repeat leaves) for game AI. |
+| `aabb` / `spatial_hash` / `passability` | Axis-aligned bounding-box overlap, spatial-hash broad-phase queries, and a grid passability/collision layer. |
 | `geometry` | Bresenham lines / line-of-sight and integer distance metrics (Manhattan, Chebyshev, Euclidean). |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
 | `damage` / `encounter` / `affix` / `equipment` | Typed damage + resistance profiles, procedural group encounters, item enchantment, worn loadouts with stat aggregation. |
 | `equipment` / `progression` / `lightmap` / `faction` | Worn-item loadout per body slot, XP/level curves, ambient illumination grid, inter-faction reputation. |
-| `threat` / `pool` / `tween` / `wallet` / `shop` / `dialogue` | Per-combatant aggro tables, bounded regenerating resources (mana/stamina), eased time-driven value interpolation (`Tween`) plus single-clock chained playback (`TweenSequence`), fungible currency wallets, wallet-backed buy/sell price listings, branching NPC conversation trees. |
+| `threat` / `pool` / `tween` / `wallet` / `shop` / `dialogue` / `trigger` | Per-combatant aggro tables, bounded regenerating resources (mana/stamina), eased time-driven value interpolation (`Tween`) plus single-clock chained playback (`TweenSequence`), fungible currency wallets, wallet-backed buy/sell price listings, branching NPC conversation trees, condition→action rule sets for scripted events. |
 | `savefile` | Versioned, checksummed binary save framing. |
 | `noise` | Deterministic integer value-noise and hashing for procedural generation. |
 
@@ -105,8 +107,10 @@ level <name> <W>x<H>
 ## The `gamec` tool
 
 ```
-gamec <file.game>        # validate; non-zero exit on error (CI content gate)
-gamec --fmt <file.game>  # validate and emit canonical text to stdout
+gamec <file.game>          # validate; non-zero exit on error (CI content gate)
+gamec --fmt <file.game>    # validate and emit canonical text to stdout
+gamec --check <file.game>  # validate formatting only, no output (like `cargo fmt --check`)
+gamec --json <file.game>   # emit all diagnostics as machine-readable JSON to stdout
 ```
 
 Diagnostics are rustc/clang-style, with the offending source line and a caret:
@@ -152,6 +156,19 @@ All builds treat warnings as errors (`RUSTFLAGS=-D warnings`).
 - `timestep` uses integer nanoseconds, introducing no nondeterminism.
 - Fold `world_hash` over canonical (sorted) state each frame and assert the
   sequence in CI to catch divergence.
+
+## Project documents
+
+- [`SPEC.md`](./SPEC.md) — module contracts and invariants.
+- [`GAME_DEV_TAXONOMY.md`](./GAME_DEV_TAXONOMY.md) — capability map with
+  per-feature implementation status, organized by game-dev discipline.
+- [`STRENGTHS_WEAKNESSES.md`](./STRENGTHS_WEAKNESSES.md) — strategic
+  strengths/weaknesses/gap inventory that drives what gets built next, with
+  a Socratic-gap rationale for each addition.
+- [`RESEARCH.md`](./RESEARCH.md) — category-by-category survey of external
+  prior art (arXiv papers, comparable OSS) informing the improvement backlog.
+- [`IMPROVEMENTS.md`](./IMPROVEMENTS.md) — confirmed bug-fix log.
+- [`CHANGELOG.md`](./CHANGELOG.md) — release history.
 
 ## License
 
