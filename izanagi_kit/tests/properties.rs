@@ -40,6 +40,7 @@ use izanagi_kit::tween::{Tween, TweenSequence};
 use izanagi_kit::shop::Shop;
 use izanagi_kit::wallet::Wallet;
 use izanagi_kit::dialogue::{Dialogue, DialogueNode};
+use izanagi_kit::identify::Identification;
 use izanagi_kit::meta::MetaProgress;
 use izanagi_kit::netinput::NetInputBuffer;
 use izanagi_kit::trigger::{Trigger, TriggerSet};
@@ -7309,5 +7310,134 @@ fn prop_meta_det_hash_sensitive_to_content_only() {
         // But an actual improvement does change it.
         a.record_best(stat, current_best + 1);
         assert_ne!(hash_state(&a), hash_state(&b), "a genuine new record changes the hash");
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Identification — scrambled per-seed item appearances
+// ---------------------------------------------------------------------------
+
+/// **the scrambled assignment is always a valid bijection**: every kind gets
+/// a label, and distinct kinds never share a label (given a label pool with
+/// no duplicate entries).
+#[test]
+fn prop_identify_assignment_is_a_bijection() {
+    let mut rng = SplitMix64::new(0x1DE7_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(15) as usize;
+        let kinds: Vec<u32> = (0..n as u32).collect();
+        let labels: Vec<u32> = (1000..1000 + n as u32).collect(); // distinct pool
+        let mut build_rng = SplitMix64::new(rng.next_u64());
+        let id = Identification::new(&kinds, &labels, &mut build_rng);
+
+        let mut assigned: Vec<u32> = kinds.iter().map(|&k| *id.appearance(k).unwrap()).collect();
+        let before_len = assigned.len();
+        assigned.sort();
+        assigned.dedup();
+        assert_eq!(assigned.len(), before_len, "no two kinds share a label");
+    }
+}
+
+/// **input `kinds` order never affects the resulting mapping** — only the
+/// seed and the (sorted) kind set do.
+#[test]
+fn prop_identify_input_order_independent() {
+    let mut rng = SplitMix64::new(0x1DE7_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        let kinds: Vec<u32> = (0..n as u32).collect();
+        let labels: Vec<u32> = (1000..1000 + n as u32).collect();
+        let seed = rng.next_u64();
+
+        let mut rng_a = SplitMix64::new(seed);
+        let a = Identification::new(&kinds, &labels, &mut rng_a);
+
+        let mut shuffled = kinds.clone();
+        rng.shuffle(&mut shuffled);
+        let mut rng_b = SplitMix64::new(seed);
+        let b = Identification::new(&shuffled, &labels, &mut rng_b);
+
+        for &k in &kinds {
+            assert_eq!(a.appearance(k), b.appearance(k), "kind order must not affect the mapping");
+        }
+    }
+}
+
+/// **identify() order does not affect the final identified set or hash.**
+#[test]
+fn prop_identify_order_independent() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x1DE7_0003);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        let kinds: Vec<u32> = (0..n as u32).collect();
+        let labels: Vec<u32> = (1000..1000 + n as u32).collect();
+        let seed = rng.next_u64();
+        let to_identify: Vec<u32> = kinds.iter().filter(|_| rng.next_bool()).copied().collect();
+
+        let mut rng_a = SplitMix64::new(seed);
+        let mut a = Identification::new(&kinds, &labels, &mut rng_a);
+        for &k in &to_identify {
+            a.identify(k);
+        }
+
+        let mut shuffled = to_identify.clone();
+        rng.shuffle(&mut shuffled);
+        let mut rng_b = SplitMix64::new(seed);
+        let mut b = Identification::new(&kinds, &labels, &mut rng_b);
+        for &k in &shuffled {
+            b.identify(k);
+        }
+
+        assert_eq!(hash_state(&a), hash_state(&b), "identify order must not affect the hash");
+    }
+}
+
+/// **appearance never changes**, regardless of how many identify() calls
+/// happen (identification only reveals — it never re-labels).
+#[test]
+fn prop_identify_appearance_stable_under_identify_fuzzing() {
+    let mut rng = SplitMix64::new(0x1DE7_0004);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        let kinds: Vec<u32> = (0..n as u32).collect();
+        let labels: Vec<u32> = (1000..1000 + n as u32).collect();
+        let mut build_rng = SplitMix64::new(rng.next_u64());
+        let mut id = Identification::new(&kinds, &labels, &mut build_rng);
+        let originals: Vec<Option<u32>> = kinds.iter().map(|&k| id.appearance(k).copied()).collect();
+
+        for _ in 0..1 + rng.below(20) {
+            let k = kinds[rng.below(n as u32) as usize];
+            id.identify(k);
+        }
+
+        for (k, &orig) in kinds.iter().zip(originals.iter()) {
+            assert_eq!(id.appearance(*k).copied(), orig, "appearance must never change");
+        }
+    }
+}
+
+/// **DetHash reacts to identify() exactly when it changes state**: a genuine
+/// new identification always changes the hash, a repeat never does.
+#[test]
+fn prop_identify_det_hash_matches_state_change() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x1DE7_0005);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        let kinds: Vec<u32> = (0..n as u32).collect();
+        let labels: Vec<u32> = (1000..1000 + n as u32).collect();
+        let mut build_rng = SplitMix64::new(rng.next_u64());
+        let mut id = Identification::new(&kinds, &labels, &mut build_rng);
+
+        let k = kinds[rng.below(n as u32) as usize];
+        let before = hash_state(&id);
+        let was_new = id.identify(k);
+        let after = hash_state(&id);
+        if was_new {
+            assert_ne!(before, after, "a genuine new identification must change the hash");
+        } else {
+            assert_eq!(before, after, "an already-identified kind must not change the hash");
+        }
     }
 }

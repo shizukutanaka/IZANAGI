@@ -22,6 +22,7 @@
 //! - [`equipment`] — worn-item loadout per body slot with aggregate `StatsModifier` (`Equipment<T>`, `EquipSlot`).
 //! - [`progression`] — experience accumulation and integer level curves (`Progression`, `LevelCurve`).
 //! - [`meta`] — cross-run meta-progression: permanent unlock flags and all-time best records (`MetaProgress<K,R>`).
+//! - [`identify`] — scrambled per-seed item appearances revealed on demand (`Identification<T,L>`).
 //! - [`lightmap`] — additive integer illumination map for torchlit dungeons (`LightMap`).
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
 //! - [`threat`] — per-combatant aggro / target-selection table (`ThreatTable<K>`).
@@ -109,6 +110,7 @@ pub mod fsm;
 pub mod geometry;
 pub mod hfsm;
 pub mod hud;
+pub mod identify;
 pub mod influence;
 pub mod inputbuf;
 pub mod inventory;
@@ -200,6 +202,7 @@ pub use geometry::{
     rotate_90_ccw, rotate_90_cw, vec_toward, Distance,
 };
 pub use hud::{BarWidget, HudPanel, StatLine};
+pub use identify::Identification;
 pub use influence::InfluenceMap;
 pub use inputbuf::{InputBuffer, KeySource, ListKeySource};
 pub use inventory::Inventory;

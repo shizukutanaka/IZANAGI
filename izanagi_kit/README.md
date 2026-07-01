@@ -44,6 +44,7 @@ with per-feature implementation status — lives in
 | `damage` / `encounter` / `affix` / `equipment` | Typed damage + resistance profiles, procedural group encounters, item enchantment, worn loadouts with stat aggregation. |
 | `equipment` / `progression` / `lightmap` / `faction` | Worn-item loadout per body slot, XP/level curves, ambient illumination grid, inter-faction reputation. |
 | `meta` | Cross-run meta-progression: permanent unlock flags and all-time best records that survive permadeath (`MetaProgress`). |
+| `identify` | Scrambled per-seed item appearances (unidentified potions/scrolls) revealed on demand (`Identification`). |
 | `threat` / `pool` / `tween` / `wallet` / `shop` / `dialogue` / `trigger` | Per-combatant aggro tables, bounded regenerating resources (mana/stamina), eased time-driven value interpolation (`Tween`) plus single-clock chained playback (`TweenSequence`), fungible currency wallets, wallet-backed buy/sell price listings, branching NPC conversation trees, condition→action rule sets for scripted events. |
 | `savefile` | Versioned, checksummed binary save framing. |
 | `noise` | Deterministic integer value-noise and hashing for procedural generation. |

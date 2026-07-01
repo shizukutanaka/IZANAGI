@@ -463,3 +463,44 @@ transport 自体は範囲外のまま——受信バイトから `confirm()` を
 
 決定論影響: 🟢 replay-safe（整数のみ・`BTreeSet`/`BTreeMap` で canonical・float/RNG 無し）。
 既存 sim 未使用のため `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
+
+---
+
+## 11. 第6次棚卸し (2026-07-01) — ソクラテス式問答・第2ラウンド
+
+前回に続き「過剰」と「不足」の両面を再度問い直した。
+
+**過剰の再検討**: 「G21 の `MetaProgress::unlock`（冪等フラグ集合）と類似のフラグ管理が別モジュールに
+必要になったとき、新しい型を作るべきか、`MetaProgress` を使い回すべきか？」——今回の不足調査で
+「アイテム識別（下記 G22）」が同じ「冪等フラグ集合」の形を必要とすることが判明したが、
+`MetaProgress` は「死んでも消えない」ことをモジュール doc で明言しており、
+「毎回のランでリセットされる」識別状態と混ぜるとライフサイクルの意味が汚染される。
+→ **意図的に型を分けたままにする**のが正しい判断と結論（過剰ではなく、責務分離の保持）。
+
+**不足の検討**: 「Rogue/NetHack/Angband に共通する『未識別ポーション/巻物』——真の種類と
+見た目ラベルの対応がシード毎にシャッフルされ、識別するまで隠される仕組み——を、既存 API で
+表現できるか？」`random_table` は重み付き**抽選**の道具であって、2つの固定集合間の
+**scrambled bijection**（一度きりの置換対応）を構築する道具ではない。
+
+| # | 問い（既存 API で表現できないこと） | 隙間 | 状態 |
+|---|------------------------------------|------|------|
+| G22 | 「このポーションの本当の効果は分からないが、『渦巻き模様』というラベルは今回のプレイで一貫している」——`random_table` は毎回抽選する道具、`shufflebag` は非復元抽出の道具だが、「2つの固定集合を一度だけシャッフルして対応付け、種類ごとに開示フラグを持つ」構造が無い。 | シード毎のアイテム識別（scrambled 対応 + 開示フラグ） | ✅ **実装済み**（`src/identify.rs`: `Identification<T,L>`） |
+
+**G22 — Identification（アイテム識別）** → `src/identify.rs`（新規 module, 18 unit + 5 property tests）
+
+- `appearance: BTreeMap<T,L>`（`kinds` をソート後 dedup → `SplitMix64::shuffle` した `labels` と zip、
+  入力順不変・シード決定論的）+ `identified: BTreeSet<T>`（`MetaProgress::unlock` と同じ冪等パターン、
+  ただし意図的に別型——ライフサイクルが異なるため）。
+- `appearance(kind)`: 識別済みかどうかに関わらず常にスクランブルラベルを返す——未識別時の表示に使う。
+  ラベル自体は構築時に固定され、`identify()` では一切変化しない。
+- `identify(kind)`: 冪等（既知でない `kind` や既に識別済みの `kind` への呼び出しは状態不変で `false`）。
+- **ソクラテス的ギャップ**: `random_table` は「毎回抽選」、`shufflebag` は「非復元抽出のバッグ」だが、
+  「2つの固定集合間の一度きりの scrambled 対応付け + 種類ごとの開示状態」という形は既存のどれとも
+  一致しなかった。
+- 検証した性質: 割り当ては真の全単射（重複ラベル無し）、`kinds` の入力順序はマッピングに非影響
+  （内部でソートしてからシャッフル列と zip）、`identify` の呼び出し順序は最終状態/ハッシュに非依存、
+  `appearance` は `identify` 呼び出し回数に関わらず不変、`DetHash` は真に新しい識別でのみ変化し
+  重複呼び出しでは不変。
+
+決定論影響: 🟢 replay-safe（整数のみ・`SplitMix64::shuffle` 経由で決定論的・float 無し）。
+既存 sim 未使用のため `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
