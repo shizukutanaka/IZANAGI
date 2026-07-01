@@ -175,6 +175,167 @@ impl DetHash for Tween {
     }
 }
 
+/// A chain of [`Tween`]s played back-to-back under a single clock.
+///
+/// Playing several tweens **concurrently** needs no new type — a
+/// `Vec<Tween>` advanced with `iter_mut().for_each(|t| t.advance(dt))` (e.g. a
+/// UI bar fill and an unrelated sound fade ticking side by side) already
+/// works. What was missing is **sequential** playback: a walk cycle of N
+/// frame-tweens, a cutscene of several eased legs, a UI element that slides in
+/// then holds then fades — where one clock should drive whichever step is
+/// current and roll any leftover ticks into the next step the instant one
+/// completes, so a single large `advance` (a slow frame, a fast-forward)
+/// correctly fast-forwards through several short steps instead of stalling on
+/// the first.
+///
+/// ```
+/// use izanagi_kit::tween::{Tween, TweenSequence};
+/// use izanagi_kit::fixed::Fixed;
+/// use izanagi_kit::easing::linear;
+///
+/// fn fi(n: i32) -> Fixed { Fixed::from_int(n) }
+///
+/// let mut seq = TweenSequence::new(vec![
+///     Tween::new(fi(0), fi(10), 5),  // slide in
+///     Tween::new(fi(10), fi(10), 3), // hold
+///     Tween::new(fi(10), fi(0), 5),  // slide out
+/// ]);
+///
+/// seq.advance(7); // 5 ticks finish step 0; the other 2 carry into step 1
+/// assert_eq!(seq.current_index(), Some(1));
+/// assert_eq!(seq.value(linear).to_int_round(), 10);
+///
+/// seq.advance(100); // fast-forwards through the hold and the slide-out
+/// assert!(seq.is_done());
+/// assert_eq!(seq.value(linear).to_int_round(), 0, "settles on the last step's end value");
+/// ```
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TweenSequence {
+    steps: Vec<Tween>,
+    current: usize,
+}
+
+impl TweenSequence {
+    /// Create a sequence from `steps`, played in order starting at the first.
+    /// An empty sequence is immediately done.
+    pub fn new(steps: Vec<Tween>) -> Self {
+        TweenSequence { steps, current: 0 }
+    }
+
+    /// The number of steps in the chain.
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.steps.len()
+    }
+
+    /// `true` if the chain has no steps.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.steps.is_empty()
+    }
+
+    /// The index of the current step, or `None` for an empty sequence. Once
+    /// the sequence completes this stays at the last valid index rather than
+    /// running off the end, so [`current_step`](Self::current_step) and
+    /// [`value`](Self::value) keep reporting the final step's end value.
+    #[inline]
+    pub fn current_index(&self) -> Option<usize> {
+        if self.steps.is_empty() {
+            None
+        } else {
+            Some(self.current)
+        }
+    }
+
+    /// The current step, or `None` for an empty sequence.
+    #[inline]
+    pub fn current_step(&self) -> Option<&Tween> {
+        self.steps.get(self.current)
+    }
+
+    /// `true` once the last step has completed (or the sequence is empty).
+    pub fn is_done(&self) -> bool {
+        match self.current_step() {
+            Some(step) => self.current + 1 == self.steps.len() && step.is_done(),
+            None => true,
+        }
+    }
+
+    /// Advance the chain by `ticks`, feeding them into the current step and
+    /// rolling any leftover into the next step the moment one completes (so a
+    /// single large advance can fast-forward through several short steps in
+    /// one call). Ticks beyond the final step's completion are discarded, the
+    /// same saturating behaviour as [`Tween::advance`]. Returns `true` if the
+    /// chain is complete after advancing.
+    pub fn advance(&mut self, mut ticks: u32) -> bool {
+        while ticks > 0 && !self.is_done() {
+            let idx = self.current;
+            let step = &mut self.steps[idx];
+            let take = ticks.min(step.remaining());
+            step.advance(take);
+            ticks -= take;
+            if step.is_done() && idx + 1 < self.steps.len() {
+                self.current += 1;
+            }
+        }
+        self.is_done()
+    }
+
+    /// The current step's eased value, or [`Fixed::ZERO`] for an empty
+    /// sequence (there is no meaningful value to report).
+    pub fn value(&self, easing: fn(Fixed) -> Fixed) -> Fixed {
+        self.current_step()
+            .map(|s| s.value(easing))
+            .unwrap_or(Fixed::ZERO)
+    }
+
+    /// Total duration of every step, summed (saturating).
+    pub fn total_duration(&self) -> u32 {
+        self.steps
+            .iter()
+            .fold(0u32, |acc, s| acc.saturating_add(s.duration()))
+    }
+
+    /// Ticks elapsed across the whole chain: every completed step's full
+    /// duration plus the current step's own elapsed.
+    pub fn elapsed_total(&self) -> u32 {
+        let completed: u32 = self.steps[..self.current]
+            .iter()
+            .fold(0u32, |acc, s| acc.saturating_add(s.duration()));
+        completed.saturating_add(self.current_step().map(|s| s.elapsed()).unwrap_or(0))
+    }
+
+    /// Overall progress across the whole chain in `[0, 1]`, analogous to
+    /// [`Tween::progress`]. An empty (or zero-total-duration) sequence reports
+    /// [`Fixed::ONE`] (complete).
+    pub fn progress(&self) -> Fixed {
+        let total = self.total_duration();
+        if total == 0 {
+            return Fixed::ONE;
+        }
+        Fixed::from_ratio(self.elapsed_total() as i32, total as i32)
+    }
+
+    /// Restart every step from elapsed 0 and rewind the cursor to the first
+    /// step (replay the whole chain from the beginning).
+    pub fn reset(&mut self) {
+        self.current = 0;
+        for step in &mut self.steps {
+            step.reset();
+        }
+    }
+}
+
+impl DetHash for TweenSequence {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.steps.len() as u32);
+        for step in &self.steps {
+            step.det_hash(hasher);
+        }
+        hasher.write_u32(self.current as u32);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -292,5 +453,153 @@ mod tests {
         assert_ne!(hash_state(&a), hash_state(&c), "different elapsed → different hash");
         let d = Tween::with_elapsed(fi(0), fi(101), 10, 3);
         assert_ne!(hash_state(&a), hash_state(&d), "different end → different hash");
+    }
+
+    // --- TweenSequence --------------------------------------------------
+
+    fn seq3() -> TweenSequence {
+        TweenSequence::new(vec![
+            Tween::new(fi(0), fi(10), 5),
+            Tween::new(fi(10), fi(10), 3),
+            Tween::new(fi(10), fi(0), 5),
+        ])
+    }
+
+    #[test]
+    fn test_sequence_new_starts_at_first_step() {
+        let seq = seq3();
+        assert_eq!(seq.current_index(), Some(0));
+        assert_eq!(seq.len(), 3);
+        assert!(!seq.is_empty());
+        assert!(!seq.is_done());
+        assert_eq!(seq.value(linear).to_int_round(), 0);
+    }
+
+    #[test]
+    fn test_sequence_empty_is_immediately_done() {
+        let seq = TweenSequence::new(vec![]);
+        assert!(seq.is_empty());
+        assert!(seq.is_done());
+        assert_eq!(seq.current_index(), None);
+        assert_eq!(seq.current_step(), None);
+        assert_eq!(seq.value(linear), Fixed::ZERO);
+        assert_eq!(seq.progress(), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_sequence_advance_within_one_step_does_not_roll_over() {
+        let mut seq = seq3();
+        seq.advance(3);
+        assert_eq!(seq.current_index(), Some(0), "3 < step 0's duration of 5");
+        assert_eq!(seq.value(linear).to_int_round(), 6);
+        assert!(!seq.is_done());
+    }
+
+    #[test]
+    fn test_sequence_advance_rolls_leftover_into_next_step() {
+        let mut seq = seq3();
+        // 5 ticks finish step 0 exactly; 2 more roll into step 1.
+        seq.advance(7);
+        assert_eq!(seq.current_index(), Some(1));
+        assert_eq!(seq.current_step().unwrap().elapsed(), 2);
+        assert_eq!(seq.value(linear).to_int_round(), 10, "step 1 holds at 10");
+    }
+
+    #[test]
+    fn test_sequence_large_advance_fast_forwards_through_all_steps() {
+        let mut seq = seq3();
+        assert!(seq.advance(1000));
+        assert!(seq.is_done());
+        assert_eq!(
+            seq.current_index(),
+            Some(2),
+            "cursor settles on the last step, never runs off the end"
+        );
+        assert_eq!(seq.value(linear).to_int_round(), 0, "settles on last step's end value");
+    }
+
+    #[test]
+    fn test_sequence_advance_exactly_to_boundary() {
+        let mut seq = seq3();
+        // Exactly the total duration (5+3+5=13) must land exactly on done.
+        assert!(seq.advance(13));
+        assert!(seq.is_done());
+        assert_eq!(seq.elapsed_total(), 13);
+    }
+
+    #[test]
+    fn test_sequence_zero_duration_step_is_skipped_without_stalling() {
+        let mut seq = TweenSequence::new(vec![
+            Tween::new(fi(0), fi(5), 5),
+            Tween::new(fi(5), fi(5), 0), // zero-duration middle step
+            Tween::new(fi(5), fi(0), 5),
+        ]);
+        seq.advance(10); // exactly finishes step 0 and step 2, skipping step 1
+        assert!(seq.is_done());
+        assert_eq!(seq.value(linear).to_int_round(), 0);
+    }
+
+    #[test]
+    fn test_sequence_single_step_matches_bare_tween() {
+        let mut seq = TweenSequence::new(vec![Tween::new(fi(0), fi(100), 10)]);
+        let mut bare = Tween::new(fi(0), fi(100), 10);
+        seq.advance(4);
+        bare.advance(4);
+        assert_eq!(seq.value(linear), bare.value(linear));
+        assert_eq!(seq.is_done(), bare.is_done());
+    }
+
+    #[test]
+    fn test_sequence_total_duration_sums_steps() {
+        let seq = seq3();
+        assert_eq!(seq.total_duration(), 13);
+    }
+
+    #[test]
+    fn test_sequence_progress_tracks_elapsed_over_total() {
+        let mut seq = seq3();
+        assert_eq!(seq.progress(), Fixed::ZERO);
+        seq.advance(13);
+        assert_eq!(seq.progress(), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_sequence_reset_rewinds_every_step_and_cursor() {
+        let mut seq = seq3();
+        seq.advance(13);
+        assert!(seq.is_done());
+        seq.reset();
+        assert_eq!(seq.current_index(), Some(0));
+        assert!(!seq.is_done());
+        assert_eq!(seq.elapsed_total(), 0);
+        assert_eq!(seq.value(linear).to_int_round(), 0);
+    }
+
+    #[test]
+    fn test_sequence_advance_zero_ticks_is_noop() {
+        let mut seq = seq3();
+        seq.advance(3);
+        let before = seq.clone();
+        seq.advance(0);
+        assert_eq!(seq, before);
+    }
+
+    #[test]
+    fn test_sequence_det_hash_sensitive_to_position() {
+        let mut a = seq3();
+        let b = seq3();
+        assert_eq!(hash_state(&a), hash_state(&b), "identical fresh sequences hash equal");
+        a.advance(1);
+        assert_ne!(hash_state(&a), hash_state(&b), "advancing changes the hash");
+    }
+
+    #[test]
+    fn test_sequence_det_hash_sensitive_to_step_count() {
+        let a = TweenSequence::new(vec![Tween::new(fi(0), fi(1), 5)]);
+        let b = TweenSequence::new(vec![
+            Tween::new(fi(0), fi(1), 5),
+            Tween::new(fi(1), fi(2), 5),
+        ]);
+        assert_ne!(hash_state(&a), hash_state(&b), "different step count → different hash");
     }
 }

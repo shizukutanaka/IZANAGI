@@ -36,7 +36,7 @@ use izanagi_kit::recipe::{Ingredient, Recipe};
 use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 use izanagi_kit::threat::ThreatTable;
 use izanagi_kit::pool::Pool;
-use izanagi_kit::tween::Tween;
+use izanagi_kit::tween::{Tween, TweenSequence};
 use izanagi_kit::shop::Shop;
 use izanagi_kit::wallet::Wallet;
 use izanagi_kit::dialogue::{Dialogue, DialogueNode};
@@ -6351,6 +6351,121 @@ fn prop_tween_det_hash_sensitive() {
                 hash_state(&bumped),
                 "different elapsed → different hash"
             );
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// TweenSequence — single-clock chained playback of multiple Tweens
+// ---------------------------------------------------------------------------
+
+/// **advancing a sequence by `x` then `y` matches advancing by `x+y` in one
+/// call** — the same additivity guarantee `Tween::advance` provides, now
+/// across step boundaries (leftover ticks rolling into the next step must not
+/// depend on how the caller chooses to chunk the advance calls).
+#[test]
+fn prop_tween_sequence_advance_additive_across_steps() {
+    use izanagi_kit::easing::linear;
+    let mut rng = SplitMix64::new(0x5EC1_0001);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5) as usize;
+        let durations: Vec<u32> = (0..n).map(|_| rng.below(20)).collect();
+        let build_steps = |durations: &[u32]| -> Vec<Tween> {
+            durations
+                .iter()
+                .enumerate()
+                .map(|(i, &d)| Tween::new(Fixed::from_int(i as i32), Fixed::from_int(i as i32 + 1), d))
+                .collect()
+        };
+        let total: u32 = durations.iter().sum::<u32>().max(1);
+        let x = rng.below(total + 5);
+        let y = rng.below(total + 5);
+
+        let mut split = TweenSequence::new(build_steps(&durations));
+        split.advance(x);
+        split.advance(y);
+
+        let mut whole = TweenSequence::new(build_steps(&durations));
+        whole.advance(x.saturating_add(y));
+
+        assert_eq!(
+            split.elapsed_total(),
+            whole.elapsed_total(),
+            "chained advance is additive across step boundaries"
+        );
+        assert_eq!(split.value(linear), whole.value(linear), "same resulting value");
+        assert_eq!(split.is_done(), whole.is_done());
+    }
+}
+
+/// **a sequence never advances past its last step**: after any amount of
+/// ticks, `current_index` stays within bounds and `is_done` matches whether
+/// `elapsed_total` has reached `total_duration`.
+#[test]
+fn prop_tween_sequence_never_overruns_and_caps_at_total() {
+    let mut rng = SplitMix64::new(0x5EC1_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(6) as usize;
+        let steps: Vec<Tween> = (0..n)
+            .map(|_| Tween::new(Fixed::ZERO, Fixed::ONE, rng.below(15)))
+            .collect();
+        let total = steps.iter().map(|s| s.duration()).sum::<u32>();
+        let mut seq = TweenSequence::new(steps);
+        let ticks = rng.below(total.saturating_add(30));
+        seq.advance(ticks);
+
+        assert!(
+            seq.current_index().map(|i| i < n).unwrap_or(true),
+            "current_index must stay within [0, n)"
+        );
+        assert_eq!(seq.elapsed_total().min(total), seq.elapsed_total(), "elapsed never exceeds total");
+        assert_eq!(seq.is_done(), seq.elapsed_total() >= total, "is_done matches elapsed vs total");
+    }
+}
+
+/// **reset rewinds every step and the cursor** back to the exact state of a
+/// freshly constructed sequence with the same steps.
+#[test]
+fn prop_tween_sequence_reset_matches_fresh_construction() {
+    let mut rng = SplitMix64::new(0x5EC1_0003);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(5) as usize;
+        let build = |rng: &mut SplitMix64| -> Vec<Tween> {
+            (0..n)
+                .map(|_| Tween::new(Fixed::from_int(rng.range(-50, 50)), Fixed::from_int(rng.range(-50, 50)), rng.below(30)))
+                .collect()
+        };
+        let steps = build(&mut rng);
+        let fresh = TweenSequence::new(steps.clone());
+        let mut mutated = TweenSequence::new(steps);
+        mutated.advance(1 + rng.below(50));
+        mutated.reset();
+
+        assert_eq!(mutated, fresh, "reset restores the exact fresh-construction state");
+    }
+}
+
+/// **DetHash is deterministic and sensitive to cursor position** — two
+/// sequences built from the same steps hash equal until one advances.
+#[test]
+fn prop_tween_sequence_det_hash_sensitive_to_advance() {
+    use izanagi_kit::hash_state;
+    let mut rng = SplitMix64::new(0x5EC1_0004);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(4) as usize;
+        let steps: Vec<Tween> = (0..n)
+            .map(|_| Tween::new(Fixed::ZERO, Fixed::from_int(10), 1 + rng.below(20)))
+            .collect();
+        let total = steps.iter().map(|s| s.duration()).sum::<u32>();
+
+        let a = TweenSequence::new(steps.clone());
+        let b = TweenSequence::new(steps);
+        assert_eq!(hash_state(&a), hash_state(&b), "identical fresh sequences hash equal");
+
+        if total > 0 {
+            let mut c = a.clone();
+            c.advance(1);
+            assert_ne!(hash_state(&a), hash_state(&c), "advancing changes the hash");
         }
     }
 }

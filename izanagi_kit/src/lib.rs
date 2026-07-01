@@ -24,7 +24,7 @@
 //! - [`faction`] — inter-faction reputation and alignment queries (`FactionMap<K>`).
 //! - [`threat`] — per-combatant aggro / target-selection table (`ThreatTable<K>`).
 //! - [`pool`] — bounded regenerating resource pool: mana/stamina/hunger (`Pool`).
-//! - [`tween`] — time-driven eased value interpolation over a tick span (`Tween`).
+//! - [`tween`] — time-driven eased value interpolation over a tick span (`Tween`, `TweenSequence`).
 //! - [`wallet`] — fungible currency balances for shops/economy (`Wallet<C>`).
 //! - [`shop`] — buy/sell price listings against a wallet-backed till (`Shop<K,C>`, `Listing`).
 //! - [`dialogue`] — branching NPC conversation tree (`Dialogue`, `DialogueNode`, `Choice`).
@@ -250,7 +250,7 @@ pub use tilemap::{LayeredMap, TileMap};
 pub use timer::{Cooldown, TimerQueue};
 pub use timestep::FixedTimestep;
 pub use turn::Scheduler;
-pub use tween::Tween;
+pub use tween::{Tween, TweenSequence};
 pub use validator::{is_loadable, validate};
 pub use vec::{Vec2, Vec3};
 pub use visibility::{Visibility, VisibilityMap};

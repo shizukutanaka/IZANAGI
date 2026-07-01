@@ -159,7 +159,7 @@
 | # | 短所 | 影響 | 工数 |
 |---|------|------|------|
 | W8 | ~~**Integration test 欠落**~~（複数 module 横断の E2E テストが無い） ✅ **実装済み**（`tests/economy_integration.rs`: wallet+dialogue+shop の合成セッションで record_trace/check_trace/resimulate を通貨・会話状態の複合ハッシュに適用、4 tests × 150 trials） | wallet + dialogue + shop pricing の連携が未検証 | Medium |
-| W9 | **複数 tween の同時再生管理がない**（animation sequencer） | UI/visual FX は複数並行アニメを必要とするが、個別管理が煩雑 | Medium |
+| W9 | ~~**複数 tween の同時再生管理がない**~~（animation sequencer） ✅ **実装済み**（`src/tween.rs`: `TweenSequence` — 単一クロックで複数 `Tween` を順序再生、tick 繰越、15u + 4p tests） | UI/visual FX は複数並行アニメを必要とするが、個別管理が煩雑 | Medium |
 | W10 | ~~**shop pricing model**~~（buy/sell markup、NPC ごとの価格設定） ✅ **実装済み**（`src/shop.rs`: `Shop<K,C>` + `Listing` — wallet-backed till、`buy`/`sell` all-or-nothing、19u + 5p tests） | wallet の基盤は整備されたが、実際のショップ仕組みが無い | Small |
 | W11 | **trigger / event script**（条件→アクション チェーン）| dialogue の結果（choice）を quest や world state 変化に紐づける基盤が無い | Large |
 | W12 | **README.md が実装に追いついていない** | G1-G14 の機能一覧が記載されていない | Small |
@@ -198,19 +198,36 @@
 決定論影響: 🟢 replay-safe（新規テストのみ・実装コード変更なし）。
 `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
 
+**W9 — animation sequencer** → `src/tween.rs::TweenSequence`（新規 type, 15 unit + 4 property tests）
+
+- `TweenSequence { steps: Vec<Tween>, current: usize }`: 単一クロックで複数 `Tween` を順序再生。
+  `advance(ticks)` は現在ステップに ticks を投入し、完了したら**余った tick を同じ呼び出し内で
+  次ステップへ繰り越す**（1回の大きな advance が短いステップを複数またいで正しく早送りされる）。
+- **並行再生（同時に複数アニメ）は新型不要**——`Vec<Tween>` + `iter_mut().for_each(|t| t.advance(dt))`
+  で既に表現可能（W9 の元記述が明記）。今回のギャップは**単一クロックの逐次連結**のみだった
+  （歩行アニメの複数フレーム、カットシーンの複数区間、スライドイン→ホールド→フェードアウト）。
+- `value(easing)` は現在ステップの eased 値、完了後は最終ステップの終端値で安定
+  （カーソルは配列末尾を超えて進まない）。`total_duration()` / `elapsed_total()` / `progress()` で
+  チェーン全体の進捗をバー表示等に提供。`reset()` は全ステップ+カーソルを初期状態へ。
+- ゼロ duration の中間ステップは無限ループにならず1回のループでスキップされることをテストで確認。
+- **ソクラテス的ギャップ**: `Tween` 単体は「1区間の今の値」を持つが、「複数区間を順に、tick を
+  跨いで繰り越しながら」再生する状態機械が無かった。
+- 検証した性質: 分割 advance（x then y）== 一括 advance（x+y）の結果一致（`Tween::advance` の
+  加法性をチェーン境界を跨いでも保証）、カーソルは常に `[0,n)` に収まり `is_done` は
+  `elapsed_total >= total_duration` と一致、`reset()` は新規構築と完全一致、`DetHash` は
+  カーソル位置の変化に敏感。
+
+決定論影響: 🟢 replay-safe（整数のみ・既存 `Tween`/`Fixed` の再利用・float/RNG 無し）。
+`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
+
 ### 7.2 次の推奨着手順（効果 × 工数、内部依存度）
 
 1. **W12 — README.md 更新** ← **即実装推奨**（手付かず、Small 工数）
    - G1-G14 の機能一覧を追加
    - 各モジュールの Socratic gap（なぜこれが必要だったか）を簡潔に記述
-   - property test 数を記載（230 件）
+   - property test 数を記載（234 件）
 
-2. **W9 — animation sequencer** ← **次推奨**（Medium、tween の拡張）
-   - `TweenSequence<T>` or `TweenChain`: `Vec<Tween>` を順序付で管理
-   - 並行実行は `Vec<Tween>` → `iter_mut / advance_all`
-   - UI bar fill（1 tween）+ sound fade（別 tween）同時再生
-
-3. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
+2. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
    - condition predicate （「quest active? 」「player in zone? 」）
    - action lambda （「show dialogue」「grant item」「start encounter」）
    - chain: `if condition then actions` の linked list か DAG

@@ -40,7 +40,7 @@ with per-feature implementation status — lives in
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
 | `damage` / `encounter` / `affix` / `equipment` | Typed damage + resistance profiles, procedural group encounters, item enchantment, worn loadouts with stat aggregation. |
 | `equipment` / `progression` / `lightmap` / `faction` | Worn-item loadout per body slot, XP/level curves, ambient illumination grid, inter-faction reputation. |
-| `threat` / `pool` / `tween` / `wallet` / `shop` / `dialogue` | Per-combatant aggro tables, bounded regenerating resources (mana/stamina), eased time-driven value interpolation, fungible currency wallets, wallet-backed buy/sell price listings, branching NPC conversation trees. |
+| `threat` / `pool` / `tween` / `wallet` / `shop` / `dialogue` | Per-combatant aggro tables, bounded regenerating resources (mana/stamina), eased time-driven value interpolation (`Tween`) plus single-clock chained playback (`TweenSequence`), fungible currency wallets, wallet-backed buy/sell price listings, branching NPC conversation trees. |
 | `savefile` | Versioned, checksummed binary save framing. |
 | `noise` | Deterministic integer value-noise and hashing for procedural generation. |
 
