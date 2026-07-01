@@ -158,7 +158,7 @@
 
 | # | 短所 | 影響 | 工数 |
 |---|------|------|------|
-| W8 | **Integration test 欠落**（複数 module 横断の E2E テストが無い） | wallet + dialogue + shop pricing の連携が未検証 | Medium |
+| W8 | ~~**Integration test 欠落**~~（複数 module 横断の E2E テストが無い） ✅ **実装済み**（`tests/economy_integration.rs`: wallet+dialogue+shop の合成セッションで record_trace/check_trace/resimulate を通貨・会話状態の複合ハッシュに適用、4 tests × 150 trials） | wallet + dialogue + shop pricing の連携が未検証 | Medium |
 | W9 | **複数 tween の同時再生管理がない**（animation sequencer） | UI/visual FX は複数並行アニメを必要とするが、個別管理が煩雑 | Medium |
 | W10 | ~~**shop pricing model**~~（buy/sell markup、NPC ごとの価格設定） ✅ **実装済み**（`src/shop.rs`: `Shop<K,C>` + `Listing` — wallet-backed till、`buy`/`sell` all-or-nothing、19u + 5p tests） | wallet の基盤は整備されたが、実際のショップ仕組みが無い | Small |
 | W11 | **trigger / event script**（条件→アクション チェーン）| dialogue の結果（choice）を quest や world state 変化に紐づける基盤が無い | Large |
@@ -179,6 +179,25 @@
 決定論影響: 🟢 replay-safe（整数のみ・`Wallet::transfer` の atomic 性を再利用・float/RNG 無し）。
 `PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
 
+**W8 — wallet + dialogue + shop integration test** → `tests/economy_integration.rs`（4 tests × 150 trials）
+
+- `ShopSession { wallet, shop, talk }`: 3 module を game-loop 側で結線（module 間の直接依存は無し）。
+  `dialogue` の選択（買う/売る/立ち去る）を受けて `apply()` が `shop.buy`/`shop.sell` を呼び、
+  結果（成功/失敗）に応じて `Dialogue::goto` で応答ノードへ遷移する——`replay_integration.rs` と
+  同型の「複数 module の相互作用が真の replay リスクを生む」ケースを実モジュールで再現。
+- `record_trace` / `check_trace` / `resimulate`（`src/replay.rs`）をそのまま複合状態（`Wallet`+`Shop`+
+  `Dialogue` を連結 `DetHash`）に適用: (1) 同一 seed+選択列 → bit-identical trace、(2) tick K の選択を
+  変えると divergence が tick K 以前で検出、(3) 中間 snapshot からの `resimulate` が非中断実行と同一
+  最終 hash に到達し、snapshot 自体は不変。
+- 4本目のテストは3 module の**不変条件の複合**を検証: どの分岐を通っても wallet+till の合計通貨は
+  保存され、dialogue カーソルは常に greeting（次ラウンド待ち）か ended のいずれかに落ち着く
+  （3 module が互いを不整合な状態に置き去りにしない）。
+- **ソクラテス的ギャップ**: 各 module 単体のユニットテストは「自分の契約」しか検証できず、
+  「A の成功/失敗が B の分岐を決め、その複合状態が replay-safe か」という**結線点**は無検証だった。
+
+決定論影響: 🟢 replay-safe（新規テストのみ・実装コード変更なし）。
+`PINNED_FINAL_HASH` / `PINNED_ROGUELIKE_HASH` 不変（`tests/determinism.rs` 確認済み）。
+
 ### 7.2 次の推奨着手順（効果 × 工数、内部依存度）
 
 1. **W12 — README.md 更新** ← **即実装推奨**（手付かず、Small 工数）
@@ -186,16 +205,12 @@
    - 各モジュールの Socratic gap（なぜこれが必要だったか）を簡潔に記述
    - property test 数を記載（230 件）
 
-2. **W8 — wallet + dialogue + shop integration test** ← **次推奨**（Medium、E2E validation）
-   - NPC が商品提示（dialogue）→ player が購入（wallet withdraw）
-   - property test 1-2 件で wallet/dialogue の組み合わせが safe であることを示す
-
-3. **W9 — animation sequencer** ← **中期**（Medium、tween の拡張）
+2. **W9 — animation sequencer** ← **次推奨**（Medium、tween の拡張）
    - `TweenSequence<T>` or `TweenChain`: `Vec<Tween>` を順序付で管理
    - 並行実行は `Vec<Tween>` → `iter_mut / advance_all`
    - UI bar fill（1 tween）+ sound fade（別 tween）同時再生
 
-4. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
+3. **W11 — trigger / event script** ← **大型フェーズ**（Large、新型の検討が必要）
    - condition predicate （「quest active? 」「player in zone? 」）
    - action lambda （「show dialogue」「grant item」「start encounter」）
    - chain: `if condition then actions` の linked list か DAG
