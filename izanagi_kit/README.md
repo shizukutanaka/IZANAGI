@@ -162,6 +162,10 @@ All builds treat warnings as errors (`RUSTFLAGS=-D warnings`).
 
 ## Project documents
 
+- [`FEATURE_AUDIT.md`](./FEATURE_AUDIT.md) — self-contained audit sorting every
+  capability into sufficient / rejected-excess / fixed-deficiency /
+  deliberate-non-goal / remaining-open-item, written to be readable with zero
+  prior context.
 - [`SPEC.md`](./SPEC.md) — module contracts and invariants.
 - [`GAME_DEV_TAXONOMY.md`](./GAME_DEV_TAXONOMY.md) — capability map with
   per-feature implementation status, organized by game-dev discipline.
