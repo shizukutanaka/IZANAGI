@@ -2,16 +2,18 @@ version: 2
 updates:
   # Cargo dependencies. The crate ships zero runtime dependencies today; this
   # keeps any future dev-dependencies and the lockfile current, and surfaces
-  # advisories early.
+  # advisories early. Cargo.toml lives in izanagi_kit/, not the repo root —
+  # `directory` is relative to the repository root, so it must point there.
   - package-ecosystem: cargo
-    directory: "/"
+    directory: "/izanagi_kit"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
     commit-message:
       prefix: "build"
 
-  # Keep the CI action versions current.
+  # Keep the CI action versions current. Workflows live at the repo root
+  # (.github/workflows/), so this directory is correct as "/".
   - package-ecosystem: github-actions
     directory: "/"
     schedule:

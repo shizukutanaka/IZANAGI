@@ -140,13 +140,19 @@ Enable the local git hooks (format + clippy on commit, tests on push):
 git config core.hooksPath .githooks
 ```
 
-CI runs on every push and pull request:
+CI (defined at the repository root, `../.github/workflows/ci.yml`, since
+GitHub only discovers workflows there) runs on every push and pull request:
 
 - **test** — build and run all unit and integration tests
 - **lint** — `cargo fmt --check` and `cargo clippy -D warnings`
 - **audit** — `cargo audit` for known advisories
 - **content-gate** — `gamec` validates every shipped `.game` file and confirms
   the broken fixture is rejected
+- **determinism-matrix** — runs `tests/determinism.rs` and
+  `tests/roguelike_sim.rs` on Linux, macOS, and Windows, verifying that
+  `PINNED_FINAL_HASH` and `PINNED_ROGUELIKE_HASH` match bit-for-bit on all
+  three — the actual proof behind the "deterministic across platforms" claim,
+  rather than a single-OS assertion
 
 All builds treat warnings as errors (`RUSTFLAGS=-D warnings`).
 

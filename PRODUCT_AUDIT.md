@@ -110,7 +110,7 @@ kit 内部は FEATURE_AUDIT.md の通り充足しているが、**製品とし�
 |---|---|---|
 | P1 | **エンジン↔kit の橋渡し層が存在しない** | kit の決定論 sim の結果をエンジンの `render`/`Backend` で描く統合例・アダプタが1つも無い。2成果物は同一リポジトリに同居しているだけで、コード上の接点がゼロ。「kit で sim を回し、エンジンで見せる」という製品の自然な完成形が示されていない |
 | P2 | **エンジンが zip のまま（ビルド/テスト不能）** | `izanagi_v4.0.2.zip` は Cargo.toml・tests を含む完全な crate だが未展開。README の「159 tests」「cargo run --example pong」はこのリポジトリでは実行できない。展開して cargo workspace（P4）に含めるのが自然な解消 |
-| P3 | **CI 定義が無い** | ルート README は「CI: Linux + macOS + Windows」を明記するが、`.github/workflows/` が存在しない。kit 側 README も CI 節（test/lint/audit/content-gate）を記述しているが同様に定義ファイル不在。kit の pinned hash（クロス OS の bit-exact 検証が本来の狙い）にとって CI マトリクス不在は特に痛い |
+| P3 | ~~**CI 定義が無い**~~ ✅ **本監査での誤りを訂正・修正済み** — CI ワークフロー自体は `izanagi_kit/.github/workflows/ci.yml` に存在していたが、**GitHub Actions はリポジトリルートの `.github/workflows/` しか検出しない**ため、サブディレクトリに置かれたこのファイルは一度も実行されていなかった（`dependabot.yml` も同様に非機能、かつ `directory: "/"` が誤り）。`.github/workflows/ci.yml` と `.github/dependabot.yml` をリポジトリルートへ移設し `defaults.run.working-directory: izanagi_kit` を付与、`dependabot.yml` の cargo エントリを `directory: "/izanagi_kit"` に修正。さらに既存 `test` ジョブが Linux のみだった点（kit の中心的主張である `PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH` のクロス OS 一致が一度も CI 検証されていなかった）を突き止め、`determinism-matrix` ジョブ（Linux/macOS/Windows の3 OS で pinned hash テストを実行）を新設 | ルート README は「CI: Linux + macOS + Windows」を明記するが、ファイルが誤った場所にあり実行されていなかった。kit の pinned hash（クロス OS の bit-exact 検証が本来の狙い）にとって致命的な見落としだった |
 | P4 | **cargo workspace になっていない** | ルートに workspace Cargo.toml が無く、`izanagi_kit` は独立 crate。エンジンを展開しても2 crate をまとめてビルド/テストする構成が無い |
 | P5 | **バージョン系譜の欠落** | zip は v4.0.2、kit の `src/lib.rs` は「design review of the IZANAGI engine **(v4.4.0)**」を引用。v4.0.2→v4.4.0 の間の版がリポジトリに無く、レビュー対象と保存物が一致しない |
 | P6 | **ルート README が kit に言及しない** | ルート README はエンジンのみを説明。リポジトリの大半（77 modules・3113 tests）を占める kit の存在・目的・エンジンとの関係が root からは見えない（本監査と同時に案内を追記して解消） |
@@ -127,7 +127,7 @@ kit 内部は FEATURE_AUDIT.md の通り充足しているが、**製品とし�
 |---|---|
 | 「Zero dependencies. Only the standard library」 | ✅ 検証可（zip 内 Cargo.toml に依存なし。kit も同様） |
 | 「159 tests — 121 unit + 19 integration + 10 benchmark + 9 doctest」 | ⚠️ **このリポジトリでは検証不能** — zip 未展開のため実行できない（不足 P2） |
-| 「CI: Linux + macOS + Windows」 | ❌ **実態と乖離** — CI workflow 定義がリポジトリに存在しない（不足 P3） |
+| 「CI: Linux + macOS + Windows」 | ✅ **修正済み** — ワークフローは存在したがリポジトリルート外にあり非機能だった（不足 P3）。ルートへ移設し、Linux/macOS/Windows 全てで pinned hash を検証する `determinism-matrix` ジョブを追加して主張を実態化 |
 | 「Deterministic. Seed the RNG, replay the run」 | ⚠️ **限定付きで成立** — 単機・同一バイナリなら概ね成立。クロスプラットフォームでは f32/HashMap/from_entropy が破る（不足 P7）。厳密決定論は kit が担う |
 | 「Headless first. Tests run in CI environments unchanged」 | ✅ 設計は検証可（NullBackend 既定、`src/backend.rs`）— ただし CI 自体は無い |
 | 「~6,500 LOC total」 | ✅ 概ね妥当（zip 内ファイルサイズ合計から整合） |
@@ -141,11 +141,13 @@ kit 内部は FEATURE_AUDIT.md の通り充足しているが、**製品とし�
 | エンジン固有の充足 | 8 機能 | facade/run loop・audio・gamepad・mouse・Backend trait・sprite・scene・log（第2節。うち kit へ移植検討は Backend trait のみ、他は範囲外/対応済み） |
 | kit 固有の充足 | 実質 60+ modules | 決定論スタック・roguelike アルゴリズム・コンテンツパイプライン・ゲームプレイ系（第3節、詳細は FEATURE_AUDIT.md） |
 | 概念の重複 | 13 組 | 11 組は「並存が正当」（f32 リアルタイム層 vs 整数決定論層）、2 組（save・assets）のみ統合検討（第4節） |
-| 製品レベルの不足 | 7 件（P1〜P7） | 最重要は P1 橋渡し層の不在・P3 CI 不在・P7 決定論主張の乖離（第5節） |
-| README 主張の乖離 | 6 主張中 ❌1・⚠️2 | CI 主張が実態と乖離、テスト数は検証不能、決定論は限定付き（第6節） |
+| 製品レベルの不足 | 7 件中1件解消（P3）、6件残（P1,P2,P4〜P7） | 最重要な残課題は P1 橋渡し層の不在・P7 決定論主張の乖離（第5節） |
+| README 主張の乖離 | 6 主張中 ✅4・⚠️2 | CI 主張は修正済み、テスト数は zip 未展開で検証不能、決定論は限定付き（第6節） |
 
-**読み取り方（次の一手の選び方)**: 製品を前進させる最短経路は P2→P4→P3 の順
-（zip 展開 → workspace 化 → CI 追加。これで「159 tests」の検証と kit の pinned hash の
-クロス OS 検証が同じ CI に乗る）。その後 P1（エンジンの `Backend` に kit の `terminal`
-セルバッファを流す統合 example が最小構成）。kit 内部の残課題は
+**読み取り方（次の一手の選び方)**: P3（CI）は本セッションで解消済み
+（ワークフローをリポジトリルートへ移設し、`determinism-matrix` ジョブで pinned hash の
+クロス OS 一致を実際に検証するようにした）。次の最短経路は P2→P4 の順
+（zip 展開 → workspace 化。これで「159 tests」の検証も同じ CI に乗せられる）。
+その後 P1（エンジンの `Backend` に kit の `terminal` セルバッファを流す統合 example が
+最小構成）。kit 内部の残課題は
 [`izanagi_kit/FEATURE_AUDIT.md`](./izanagi_kit/FEATURE_AUDIT.md) 第6節を参照。
