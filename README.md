@@ -124,6 +124,17 @@ See `CONTRIBUTING.md`. Two rules:
 - New code adds tests.
 - New code adds no dependencies.
 
+## This repository
+
+The engine described above ships as `izanagi_v4.0.2.zip`. Alongside it,
+[`izanagi_kit/`](./izanagi_kit/) holds 77 zero-dependency reference modules
+extracted from a design review of this engine — a strictly deterministic
+(integer/fixed-point, bit-exact-replay) simulation layer covering the
+roguelike stack the engine's `roguelike.rs` example writes by hand. See
+[`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md) for a product-level audit of what
+each side provides, where they overlap, and what is still missing between
+them.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
