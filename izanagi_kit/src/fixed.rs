@@ -8,6 +8,33 @@
 //!
 //! Range: ±32767.99998, resolution 1/65536. Arithmetic uses i64 intermediates
 //! to avoid overflow on multiply/divide.
+//!
+//! # Rounding
+//!
+//! There is no configurable rounding mode; each operation has one fixed,
+//! deterministic behaviour, documented here so callers can reason about the
+//! last bit. The behaviours differ between multiply and divide because each
+//! uses the cheapest correct integer primitive, and the two primitives round
+//! negatives differently:
+//!
+//! - [`mul`](Fixed::mul) shifts the 64-bit product right by 16
+//!   (`product >> 16`). An **arithmetic** right shift **floors toward −∞**, so
+//!   a fractional negative product rounds *down* (e.g. raw `1 × -1` yields raw
+//!   `-1`, not `0`).
+//! - [`div`](Fixed::div) and [`from_ratio`](Fixed::from_ratio) use integer
+//!   division (`(a << 16) / b`), which in Rust **truncates toward zero**, so a
+//!   fractional negative quotient rounds *up* toward zero (e.g. `-1 / 3`
+//!   yields raw `-21845`, i.e. `-0.33332`, not the floored `-21846`).
+//! - [`to_int_trunc`](Fixed::to_int_trunc) truncates toward −∞ (it is a bare
+//!   `>> 16`); [`round`](Fixed::round) rounds to nearest with ties going toward
+//!   +∞ (`0.5 → 1`, `-0.5 → 0`); [`floor`](Fixed::floor) and
+//!   [`mid`](Fixed::mid) also floor toward −∞.
+//!
+//! For non-negative operands every operation above coincides (floor,
+//! truncate-toward-zero, and round-down are all the same), so the distinction
+//! only matters for negative values. The exact behaviours are pinned by the
+//! `test_mul_rounds_toward_negative_infinity`, `test_div_truncates_toward_zero`,
+//! and `test_from_ratio_truncates_toward_zero_like_div` regression tests below.
 
 const FRAC_BITS: u32 = 16;
 const ONE: i32 = 1 << FRAC_BITS;
@@ -94,6 +121,16 @@ impl Fixed {
         self.0
     }
 
+    /// Convert to the integer part via a bare arithmetic `>> 16`.
+    ///
+    /// **Name caveat**: this floors toward −∞, it does *not* truncate toward
+    /// zero. For non-negative values the two are identical (the common case,
+    /// hence the historical name), but for negatives it rounds *down*:
+    /// `to_int_trunc(-1.5) == -2`, not `-1`. If you need round-half-to-nearest
+    /// use [`round`](Self::round) / [`to_int_round`](Self::to_int_round); the
+    /// behaviour here is deliberately kept (renaming or changing it would be a
+    /// breaking API/semantics change touching the pinned-hash simulation) and
+    /// is pinned by `test_to_int_trunc_floors_negatives`.
     #[inline]
     pub fn to_int_trunc(self) -> i32 {
         self.0 >> FRAC_BITS
@@ -857,6 +894,56 @@ mod tests {
     fn test_round_half_rounds_up() {
         assert_eq!(Fixed::from_ratio(1, 2).round(), Fixed::from_int(1)); // 0.5 → 1
         assert_eq!(Fixed::from_ratio(3, 2).round(), Fixed::from_int(2)); // 1.5 → 2
+    }
+
+    // --- rounding-mode pins (see the "Rounding" section of the module docs) ---
+
+    #[test]
+    fn test_mul_rounds_toward_negative_infinity() {
+        // mul uses an arithmetic `>>`, which floors (rounds toward -inf) for
+        // negatives. raw 1 (= 2^-16) times raw -1: the true product's raw is
+        // -1, and -1 >> 16 == -1. Truncation toward zero would give 0.
+        assert_eq!(Fixed(1).mul(Fixed(-1)).raw(), -1, "mul floors negatives toward -inf");
+        // Positive operands: floor and truncation agree, so no surprise there.
+        assert_eq!(Fixed(1).mul(Fixed(1)).raw(), 0, "tiny positive product floors to 0");
+    }
+
+    #[test]
+    fn test_div_truncates_toward_zero() {
+        // div uses integer `/`, which truncates toward zero. -1 / 3 in Q16.16
+        // is -0.3333…; its exact raw is -21845.33…, and integer division
+        // truncates the magnitude to 21845 → raw -21845. Flooring toward -inf
+        // would instead give -21846.
+        assert_eq!(
+            Fixed::from_int(-1).div(Fixed::from_int(3)).raw(),
+            -21845,
+            "div truncates negatives toward zero (not floor)"
+        );
+        // The positive counterpart truncates to the same magnitude.
+        assert_eq!(
+            Fixed::from_int(1).div(Fixed::from_int(3)).raw(),
+            21845,
+            "div truncates positives toward zero"
+        );
+    }
+
+    #[test]
+    fn test_from_ratio_truncates_toward_zero_like_div() {
+        // from_ratio shares div's integer-division path, so it truncates too.
+        assert_eq!(Fixed::from_ratio(-1, 3).raw(), -21845);
+        assert_eq!(Fixed::from_ratio(1, 3).raw(), 21845);
+    }
+
+    #[test]
+    fn test_to_int_trunc_floors_negatives() {
+        // Despite its name, to_int_trunc is a bare arithmetic `>> 16`, so it
+        // floors toward -inf rather than truncating toward zero. This pins
+        // that documented behaviour (and its divergence from the name) so a
+        // well-meaning "fix" toward true truncation can't silently shift the
+        // pinned-hash simulation.
+        assert_eq!((-Fixed::from_ratio(3, 2)).to_int_trunc(), -2, "-1.5 floors to -2");
+        assert_eq!(Fixed::from_ratio(3, 2).to_int_trunc(), 1, "1.5 truncates to 1");
+        assert_eq!(Fixed::from_int(-2).to_int_trunc(), -2, "exact negatives are unchanged");
     }
 
     #[test]
