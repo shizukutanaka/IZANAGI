@@ -213,6 +213,56 @@ impl SplitMix64 {
         self.state
     }
 
+    /// Fork an independent named child stream from this generator's *current*
+    /// state, without drawing from or mutating `self`.
+    ///
+    /// A single shared stream means every subsystem's draw count affects every
+    /// other subsystem's future values — add one extra roll to combat and
+    /// every later loot/mapgen draw shifts too, even though those systems are
+    /// otherwise unrelated. `split` lets each subsystem own a stream keyed by
+    /// a caller-chosen `stream_id` (e.g. one `const` per subsystem), so
+    /// drawing more or fewer times in one stream never perturbs another's
+    /// sequence.
+    ///
+    /// Pure and deterministic: the same `(state, stream_id)` pair always
+    /// produces the same child, regardless of how many times `split` is
+    /// called or in what order — unlike drawing a seed via `next_u64` (which
+    /// both consumes from the parent and depends on prior draws), this is
+    /// safe to call repeatedly, from multiple sites, at any point in the
+    /// parent's lifetime, and still get the *same* named child back for the
+    /// *same* `stream_id` at that state. Typical use is once at startup,
+    /// right after seeding the master stream and before drawing from it, so
+    /// every subsystem's child is derived from the same fixed base state:
+    ///
+    /// ```
+    /// use izanagi_kit::rng::SplitMix64;
+    /// const LOOT_STREAM: u64 = 1;
+    /// const AI_STREAM: u64 = 2;
+    ///
+    /// let master = SplitMix64::new(42);
+    /// let mut loot_rng = master.split(LOOT_STREAM);
+    /// let mut ai_rng = master.split(AI_STREAM);
+    ///
+    /// // Drawing from one never shifts the other's sequence.
+    /// let ai_first = ai_rng.next_u64();
+    /// loot_rng.next_u64();
+    /// loot_rng.next_u64();
+    /// let mut ai_rng_2 = master.split(AI_STREAM); // same id, same base state
+    /// assert_eq!(ai_rng_2.next_u64(), ai_first, "unaffected by loot_rng's draws");
+    /// ```
+    ///
+    /// Distinct `stream_id`s reliably yield distinct children: `stream_id` is
+    /// combined with `state` via the same avalanche mix [`next_u64`](Self::next_u64)
+    /// uses internally, so two different ids produce well-distributed,
+    /// effectively-independent seeds even from identical parent state.
+    pub fn split(&self, stream_id: u64) -> SplitMix64 {
+        let mut z = self.state ^ stream_id.wrapping_mul(0x9E37_79B9_7F4A_7C15);
+        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        z ^= z >> 31;
+        SplitMix64::new(z)
+    }
+
     /// Reset the RNG stream to `seed`. Subsequent draws will be identical to
     /// `SplitMix64::new(seed)`. Useful for deterministic branching in replay
     /// scenarios and for re-rolling a sub-generation with a different seed
@@ -594,6 +644,82 @@ mod tests {
         };
         assert_eq!(run(5), run(5));
         assert_ne!(run(5), run(6));
+    }
+
+    // --- split ---
+
+    #[test]
+    fn test_split_is_pure_does_not_mutate_parent() {
+        let parent = SplitMix64::new(42);
+        let state_before = parent.state();
+        let _ = parent.split(1);
+        assert_eq!(parent.state(), state_before, "split must not mutate the parent");
+    }
+
+    #[test]
+    fn test_split_is_repeatable_for_same_id_and_state() {
+        let parent = SplitMix64::new(42);
+        let mut a = parent.split(7);
+        let mut b = parent.split(7);
+        for _ in 0..10 {
+            assert_eq!(a.next_u64(), b.next_u64());
+        }
+    }
+
+    #[test]
+    fn test_split_different_ids_yield_different_streams() {
+        let parent = SplitMix64::new(42);
+        let mut a = parent.split(1);
+        let mut b = parent.split(2);
+        assert_ne!(a.next_u64(), b.next_u64());
+    }
+
+    #[test]
+    fn test_split_different_parent_states_yield_different_streams() {
+        let a = SplitMix64::new(1).split(5);
+        let b = SplitMix64::new(2).split(5);
+        assert_ne!(a.state(), b.state(), "same id, different parent state, must diverge");
+    }
+
+    #[test]
+    fn test_split_children_are_independent_of_each_other() {
+        let parent = SplitMix64::new(42);
+        let ai_first = parent.split(1).next_u64();
+
+        // Drawing many times from an unrelated sibling stream must not
+        // change what a freshly re-derived child for the same id yields.
+        let mut loot = parent.split(2);
+        for _ in 0..100 {
+            loot.next_u64();
+        }
+        let ai_again = parent.split(1).next_u64();
+        assert_eq!(ai_first, ai_again, "sibling draws must not perturb this child");
+    }
+
+    #[test]
+    fn test_split_is_order_independent_across_call_sites() {
+        // Deriving children in one order vs. the reverse order must not
+        // change either child's resulting sequence — each is a pure function
+        // of (parent state, stream_id) alone.
+        let parent = SplitMix64::new(1234);
+        let (mut a1, mut b1) = (parent.split(10), parent.split(20));
+        let (mut b2, mut a2) = (parent.split(20), parent.split(10));
+        assert_eq!(a1.next_u64(), a2.next_u64());
+        assert_eq!(b1.next_u64(), b2.next_u64());
+    }
+
+    #[test]
+    fn test_split_child_state_advances_independently_of_parent() {
+        let mut parent = SplitMix64::new(9);
+        let mut child = parent.split(3);
+        let child_seed = child.state();
+        parent.next_u64();
+        parent.next_u64();
+        // The child was already constructed; later parent draws (which do
+        // not call split again) cannot retroactively change it.
+        assert_eq!(child.state(), child_seed);
+        let _ = child.next_u64(); // child advances independently under its own draws
+        assert_ne!(child.state(), child_seed);
     }
 
     #[test]

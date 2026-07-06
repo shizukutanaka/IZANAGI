@@ -11,7 +11,7 @@
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search, Dijkstra maps + rescanned flee/safety maps, auto-explore.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`).
-//! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness).
+//! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
 //! - [`msglog`] — bounded ring-buffer message log with `DetHash`.
 //! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.

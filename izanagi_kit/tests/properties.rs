@@ -7572,3 +7572,95 @@ fn prop_identify_det_hash_matches_state_change() {
         }
     }
 }
+
+// ---------------------------------------------------------------------------
+// SplitMix64::split — named independent RNG streams
+// ---------------------------------------------------------------------------
+
+/// **split never mutates the parent**, regardless of the parent's state or
+/// which stream_id is requested.
+#[test]
+fn prop_rng_split_never_mutates_parent() {
+    let mut rng = SplitMix64::new(0x59B1_0001);
+    for _ in 0..ITERS {
+        let seed = rng.next_u64();
+        let parent = SplitMix64::new(seed);
+        let state_before = parent.state();
+        let _ = parent.split(rng.next_u64());
+        assert_eq!(parent.state(), state_before);
+    }
+}
+
+/// **split is a pure function of (parent state, stream_id)**: calling it
+/// repeatedly for the same pair — from any number of call sites, in any
+/// order — always reproduces the identical child stream.
+#[test]
+fn prop_rng_split_is_pure_and_repeatable() {
+    let mut rng = SplitMix64::new(0x59B1_0002);
+    for _ in 0..ITERS {
+        let seed = rng.next_u64();
+        let stream_id = rng.next_u64();
+        let parent = SplitMix64::new(seed);
+        let mut a = parent.split(stream_id);
+        let mut b = parent.split(stream_id);
+        for _ in 0..5 {
+            assert_eq!(a.next_u64(), b.next_u64());
+        }
+    }
+}
+
+/// **distinct stream_ids from the same parent state produce distinct
+/// children** (checked via their first draw — a collision here would mean
+/// the avalanche mix failed to separate the two ids).
+#[test]
+fn prop_rng_split_distinct_ids_distinct_streams() {
+    let mut rng = SplitMix64::new(0x59B1_0003);
+    for _ in 0..ITERS {
+        let seed = rng.next_u64();
+        let id_a = rng.next_u64();
+        let id_b = if id_a == u64::MAX { 0 } else { id_a + 1 };
+        let parent = SplitMix64::new(seed);
+        assert_ne!(parent.split(id_a).next_u64(), parent.split(id_b).next_u64());
+    }
+}
+
+/// **sibling children never interfere with each other**: drawing any number
+/// of times from one child stream must not change what a fresh split() for a
+/// different stream_id (from the same parent state) yields.
+#[test]
+fn prop_rng_split_siblings_are_independent() {
+    let mut rng = SplitMix64::new(0x59B1_0004);
+    for _ in 0..ITERS {
+        let seed = rng.next_u64();
+        let (id_a, id_b) = (rng.next_u64(), rng.next_u64());
+        let parent = SplitMix64::new(seed);
+
+        let a_first = parent.split(id_a).next_u64();
+        let mut sibling = parent.split(id_b);
+        for _ in 0..1 + rng.below(20) {
+            sibling.next_u64();
+        }
+        let a_again = parent.split(id_a).next_u64();
+        assert_eq!(a_first, a_again, "sibling draws must not perturb this child");
+    }
+}
+
+/// **split's result depends on the parent's exact state, not just its
+/// original seed** — forking after some draws differs from forking before
+/// them (the base state genuinely changed).
+#[test]
+fn prop_rng_split_reflects_current_not_initial_state() {
+    let mut rng = SplitMix64::new(0x59B1_0005);
+    for _ in 0..ITERS {
+        let seed = rng.next_u64();
+        let stream_id = rng.next_u64();
+        let mut parent = SplitMix64::new(seed);
+        let before_advance = parent.split(stream_id).next_u64();
+        parent.next_u64(); // advance the parent's state
+        let after_advance = parent.split(stream_id).next_u64();
+        assert_ne!(
+            before_advance, after_advance,
+            "split must reflect the parent's current state, not a cached initial one"
+        );
+    }
+}
