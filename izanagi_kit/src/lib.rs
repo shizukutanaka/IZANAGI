@@ -71,7 +71,7 @@
 //! - [`hfsm`] — hierarchical FSM (`HFsm<S,E>`): parent states + wildcard transitions + `is_in` ancestry queries.
 //! - [`hud`] — HUD primitives: fill bar (`BarWidget`), stat line, panel layout (`HudPanel`).
 //! - [`autotile`] — bitmask auto-tiling (`compute_mask`, `SimpleTileTable`).
-//! - [`diag_json`] — machine-readable JSON serialization of pipeline diagnostics (`diag_json`).
+//! - [`diag_json`] — machine-readable diagnostic serialization: a bespoke JSON schema (`diag_json`) and industry-standard SARIF 2.1.0 (`diag_sarif`) for CI code-scanning integration.
 //! - [`passability`] — grid-based passability / collision layer (`PassabilityGrid`).
 //! - [`savefile`] — versioned binary save-file framing (`save_bytes`, `load_bytes`, `SaveHeader`).
 //! - [`wfc`] — Wave Function Collapse procedural tile-map generation (`WfcRules`, `wfc_solve`, `WfcGrid`).

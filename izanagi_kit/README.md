@@ -114,6 +114,7 @@ gamec <file.game>          # validate; non-zero exit on error (CI content gate)
 gamec --fmt <file.game>    # validate and emit canonical text to stdout
 gamec --check <file.game>  # validate formatting only, no output (like `cargo fmt --check`)
 gamec --json <file.game>   # emit all diagnostics as machine-readable JSON to stdout
+gamec --sarif <file.game>  # emit diagnostics as SARIF 2.1.0, for GitHub Code Scanning
 ```
 
 Diagnostics are rustc/clang-style, with the offending source line and a caret:

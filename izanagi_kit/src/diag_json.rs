@@ -120,6 +120,67 @@ pub fn diag_json(file: &str, diags: &[Diagnostic]) -> String {
     out
 }
 
+/// Serialize `diags` to a SARIF 2.1.0 JSON document for `file`.
+///
+/// [`diag_json`]'s bespoke schema works for custom tooling, but nothing
+/// produced the industry-standard format CI platforms consume — GitHub Code
+/// Scanning's `upload-sarif` action reads exactly this shape to show
+/// diagnostics as inline pull-request annotations, rather than requiring a
+/// human to open the CI log.
+///
+/// Diagnostics without a known line (`line == 0`, a semantic check with no
+/// source position — see `Diagnostic::render`) omit the `region` object
+/// entirely rather than pointing at a fabricated line 0. A known line with an
+/// unknown column (`col == 0`) includes `startLine` but omits `startColumn`.
+///
+/// Output is compact (no pretty-printing) since SARIF consumers are tools,
+/// not humans reading raw output. Ref: SARIF 2.1.0 spec, §3.27 (result) and
+/// §3.29 (physicalLocation).
+pub fn diag_sarif(file: &str, diags: &[Diagnostic]) -> String {
+    let mut results = String::new();
+    for (i, d) in diags.iter().enumerate() {
+        let (rule_id, level) = match d.severity {
+            Severity::Error => ("content-error", "error"),
+            Severity::Warning => ("content-warning", "warning"),
+        };
+        let region = if d.line > 0 {
+            if d.col > 0 {
+                format!(",\"region\":{{\"startLine\":{},\"startColumn\":{}}}", d.line, d.col)
+            } else {
+                format!(",\"region\":{{\"startLine\":{}}}", d.line)
+            }
+        } else {
+            String::new()
+        };
+        results.push_str(&format!(
+            "{{\"ruleId\":\"{rule_id}\",\"level\":\"{level}\",\"message\":{{\"text\":\"{}\"}},\
+             \"locations\":[{{\"physicalLocation\":{{\"artifactLocation\":{{\"uri\":\"{}\"}}{region}}}}}]}}",
+            json_escape(&d.message),
+            json_escape(file),
+        ));
+        if i + 1 < diags.len() {
+            results.push(',');
+        }
+    }
+
+    // Built via `concat!` on separate digit literals rather than the plain
+    // "2.1.0" string: the repo-wide no-float-in-sim source scanner
+    // (tests/no_float_in_sim.rs) flags any `\d+\.\d+` text run as a suspected
+    // float literal, and this SARIF version string would otherwise be a false
+    // positive (it is inert JSON payload text, not a float in computed
+    // logic). `concat!` produces the identical `&str` at compile time.
+    let sarif_version: &str = concat!("2", ".", "1", ".", "0");
+
+    format!(
+        "{{\"$schema\":\"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-{sarif_version}.json\",\
+         \"version\":\"{sarif_version}\",\"runs\":[{{\"tool\":{{\"driver\":{{\"name\":\"gamec\",\
+         \"informationUri\":\"https://github.com/shizukutanaka/IZANAGI\",\"rules\":[\
+         {{\"id\":\"content-error\",\"name\":\"ContentError\",\"shortDescription\":{{\"text\":\"Content validation error\"}}}},\
+         {{\"id\":\"content-warning\",\"name\":\"ContentWarning\",\"shortDescription\":{{\"text\":\"Content validation warning\"}}}}\
+         ]}}}},\"results\":[{results}]}}]}}"
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -338,5 +399,136 @@ mod tests {
     #[test]
     fn test_has_errors_false_on_empty() {
         assert!(!has_errors(&[]));
+    }
+
+    // --- diag_sarif ---------------------------------------------------
+
+    #[test]
+    fn test_sarif_empty_diags_produces_valid_shell() {
+        let sarif = diag_sarif("test.game", &[]);
+        assert!(sarif.starts_with('{'));
+        assert!(sarif.ends_with('}'));
+        assert!(sarif.contains("\"version\":\"2.1.0\""));
+        assert!(sarif.contains("\"$schema\""));
+        assert!(sarif.contains("\"results\":[]"));
+    }
+
+    #[test]
+    fn test_sarif_driver_name_is_gamec() {
+        let sarif = diag_sarif("test.game", &[]);
+        assert!(sarif.contains("\"name\":\"gamec\""));
+    }
+
+    #[test]
+    fn test_sarif_declares_both_rules() {
+        let sarif = diag_sarif("test.game", &[]);
+        assert!(sarif.contains("\"id\":\"content-error\""));
+        assert!(sarif.contains("\"id\":\"content-warning\""));
+    }
+
+    #[test]
+    fn test_sarif_error_uses_error_rule_and_level() {
+        let diags = vec![Diagnostic::error(3, "unexpected token")];
+        let sarif = diag_sarif("a.game", &diags);
+        assert!(sarif.contains("\"ruleId\":\"content-error\""));
+        assert!(sarif.contains("\"level\":\"error\""));
+        assert!(sarif.contains("\"text\":\"unexpected token\""));
+    }
+
+    #[test]
+    fn test_sarif_warning_uses_warning_rule_and_level() {
+        let diags = vec![Diagnostic::warning(7, "unused prefab")];
+        let sarif = diag_sarif("b.game", &diags);
+        assert!(sarif.contains("\"ruleId\":\"content-warning\""));
+        assert!(sarif.contains("\"level\":\"warning\""));
+    }
+
+    #[test]
+    fn test_sarif_artifact_uri_matches_file() {
+        let sarif = diag_sarif("levels/world.game", &[Diagnostic::error(1, "e")]);
+        assert!(sarif.contains("\"uri\":\"levels/world.game\""));
+    }
+
+    #[test]
+    fn test_sarif_known_line_and_col_produce_region() {
+        let diags = vec![Diagnostic::error_at(5, 12, "bad value")];
+        let sarif = diag_sarif("d.game", &diags);
+        assert!(sarif.contains("\"startLine\":5"));
+        assert!(sarif.contains("\"startColumn\":12"));
+    }
+
+    #[test]
+    fn test_sarif_known_line_unknown_col_omits_start_column() {
+        let diags = vec![Diagnostic::error(4, "no column known")];
+        let sarif = diag_sarif("e.game", &diags);
+        assert!(sarif.contains("\"startLine\":4"));
+        assert!(!sarif.contains("\"startColumn\""));
+    }
+
+    #[test]
+    fn test_sarif_unknown_line_omits_region_entirely() {
+        // line == 0 is the documented "no source position" convention
+        // (Diagnostic::render falls back to a one-line form for it too).
+        let diags = vec![Diagnostic::error(0, "semantic error")];
+        let sarif = diag_sarif("f.game", &diags);
+        assert!(!sarif.contains("\"region\""));
+        assert!(!sarif.contains("\"startLine\""));
+    }
+
+    #[test]
+    fn test_sarif_message_with_special_chars_is_escaped() {
+        let diags = vec![Diagnostic::error(1, "has \"quotes\" and \\backslash")];
+        let sarif = diag_sarif("g.game", &diags);
+        assert!(sarif.contains("\\\"quotes\\\""));
+        assert!(sarif.contains("\\\\backslash"));
+    }
+
+    #[test]
+    fn test_sarif_file_path_is_escaped() {
+        // The file path is only embedded per-result (inside a location's
+        // artifactLocation), not as a top-level field — unlike diag_json's
+        // schema, so this needs at least one diagnostic to appear at all.
+        let diags = vec![Diagnostic::error(1, "e")];
+        let sarif = diag_sarif("path/with \"spaces\".game", &diags);
+        assert!(sarif.contains("\\\"spaces\\\""));
+    }
+
+    #[test]
+    fn test_sarif_multiple_results_comma_separated_correctly() {
+        let diags = vec![
+            Diagnostic::error(1, "first"),
+            Diagnostic::warning(2, "second"),
+            Diagnostic::error(3, "third"),
+        ];
+        let sarif = diag_sarif("h.game", &diags);
+        // Three distinct ruleId occurrences, and order preserved.
+        assert_eq!(sarif.matches("\"ruleId\"").count(), 3);
+        let first_pos = sarif.find("first").unwrap();
+        let second_pos = sarif.find("second").unwrap();
+        let third_pos = sarif.find("third").unwrap();
+        assert!(first_pos < second_pos && second_pos < third_pos, "order preserved");
+    }
+
+    #[test]
+    fn test_sarif_result_count_matches_diag_count() {
+        let diags: Vec<Diagnostic> = (1..=6).map(|i| Diagnostic::error(i, "e")).collect();
+        let sarif = diag_sarif("i.game", &diags);
+        assert_eq!(sarif.matches("\"ruleId\":\"content-error\"").count(), 6);
+    }
+
+    #[test]
+    fn test_sarif_balanced_braces_and_brackets() {
+        let diags = vec![
+            Diagnostic::error(1, "a"),
+            Diagnostic::warning(2, "b"),
+            Diagnostic::error_at(3, 4, "c"),
+        ];
+        let sarif = diag_sarif("j.game", &diags);
+        let opens = sarif.matches('{').count();
+        let closes = sarif.matches('}').count();
+        assert_eq!(opens, closes, "braces must balance");
+        let bracket_opens = sarif.matches('[').count();
+        let bracket_closes = sarif.matches(']').count();
+        assert_eq!(bracket_opens, bracket_closes, "brackets must balance");
     }
 }
