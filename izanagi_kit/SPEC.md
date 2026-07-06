@@ -62,6 +62,54 @@
 - `serialize` は canonical・idempotent、`content_eq` で round-trip 等価。診断は rustc 風 caret（column 付き）。
 - 契約: パーサは panic-free・bounded（1024B 行 / 256×256 grid, G7）。
 
+### 9.1 `.game` 形式の形式文法 (Formal grammar, EBNF)
+
+行指向 (line-oriented)。各行は先頭の空白を除去 (trim) してからキーワードで分岐する。
+インデントは意味を持たない — 子要素行 (`glyph`/`color`/`stat`/`flag`, `row`/`spawn`) は
+直近に開いた block (`prefab`/`level`) に属する。下記は `src/parser.rs` の実装と 1:1 対応する。
+
+```ebnf
+file        = { line } ;
+line        = ws , ( comment | blank | stmt ) , newline ;
+comment     = "//" , { any-char } ;          (* 行全体を無視 *)
+blank       = ws ;                            (* 空行を無視 *)
+
+stmt        = prefab-decl | prefab-child
+            | tile-decl
+            | level-decl  | level-child ;
+
+prefab-decl = "prefab" , sp , name ;
+prefab-child= glyph-stmt | color-stmt | stat-stmt | flag-stmt ;
+glyph-stmt  = "glyph" , sp , glyph ;
+color-stmt  = "color" , sp , color ;
+stat-stmt   = "stat"  , sp , name , sp , int ;
+flag-stmt   = "flag"  , sp , name ;
+
+tile-decl   = "tile"  , sp , name , sp , glyph , sp , color ;
+
+level-decl  = "level" , sp , name , sp , dim ;
+level-child = row-stmt | spawn-stmt ;
+row-stmt    = "row"   , sp , { any-char } ;   (* 幅 W の cell 列。行数はちょうど H *)
+spawn-stmt  = "spawn" , sp , name , sp , uint , sp , uint ;
+
+dim         = uint , "x" , uint ;             (* "WxH" *)
+color       = "#" , hex , hex , hex , hex , hex , hex ;  (* 正確に #RRGGBB、7 バイト *)
+glyph       = <正確に 1 個の Unicode scalar (char)> ;
+name        = <1..=32 文字の非空白トークン> ;
+int         = [ "-" ] , digit , { digit } ;   (* i32 に parse。範囲外は診断 *)
+uint        = digit , { digit } ;             (* u32 に parse *)
+hex         = digit | "a".."f" | "A".."F" ;
+sp          = ws-char , { ws-char } ;         (* 1 個以上の空白 *)
+ws          = { ws-char } ;                   (* 0 個以上 *)
+```
+
+**語彙・境界規則 (実装が強制)**:
+- 行長 ≤ 1024 バイト、grid 寸法 `dim` は `1..=256`（W, H とも）。超過は診断。
+- `color` は ちょうど 7 バイト・先頭 `#`・残り 6 桁 ASCII hex（UTF-8 継続バイトは hex として不正）。
+- `glyph` は「ちょうど 1 char」（0 個や 2 個以上は診断）。
+- `int` は `i32`、`uint` (spawn 座標・寸法) は `u32` として parse。
+- 未知キーワード・引数過不足・parse 失敗はいずれも **診断を出して当該行をスキップ**（panic せず、後続行の診断も収集する）。
+
 ## 10. `fov` — 対称シャドウキャスティング（実装済）
 - `compute_fov(origin,radius,is_opaque,mark_visible)`。整数有理数スロープ、4象限固定順、対称性保証、Euclidean radius。
 

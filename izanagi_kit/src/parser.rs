@@ -17,6 +17,10 @@
 //! Block keywords (`prefab`, `level`) open a context; the indented child lines
 //! attach to the most recent open block. Malformed lines become diagnostics
 //! rather than aborting, so a single typo never hides the rest of the errors.
+//!
+//! A formal EBNF grammar with the exact lexical/boundary rules (line length,
+//! dimension bounds, color/glyph/int/uint token shapes) lives in `SPEC.md`
+//! §9.1 and is kept in 1:1 correspondence with this module.
 
 use crate::content::{parse_color, Content, Diagnostic, Level, Prefab, Spawn, Tile};
 
