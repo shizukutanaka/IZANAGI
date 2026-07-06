@@ -1,0 +1,16 @@
+# IZANAGI workspace: the real-time engine (izanagi) and the deterministic
+# simulation kit (izanagi_kit). `cargo test --workspace` runs both suites;
+# the kit_bridge example in izanagi/examples proves they compose.
+[workspace]
+members = ["izanagi", "izanagi_kit"]
+resolver = "2"
+
+# Profiles must live at the workspace root — Cargo ignores profile sections
+# declared in member crates. These were moved verbatim from izanagi/Cargo.toml.
+[profile.release]
+opt-level = 3
+lto = true
+strip = true
+
+[profile.dev]
+opt-level = 1

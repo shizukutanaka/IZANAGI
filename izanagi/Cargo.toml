@@ -1,0 +1,39 @@
+[package]
+name = "izanagi"
+version = "4.1.0"
+edition = "2021"
+description = "A Rust game engine that just works."
+license = "MIT"
+repository = "https://github.com/shizukutanaka/IZANAGI"
+readme = "README.md"
+keywords = ["gamedev", "engine", "ecs"]
+categories = ["game-engines"]
+
+[dependencies]
+
+# NOTE: [profile.*] sections live in the workspace root Cargo.toml — Cargo
+# ignores profiles declared in workspace members.
+
+[[example]]
+name = "pong"
+path = "examples/pong.rs"
+
+[[example]]
+name = "hello"
+path = "examples/hello.rs"
+
+[[example]]
+name = "particles"
+path = "examples/particles.rs"
+
+[[example]]
+name = "platformer"
+path = "examples/platformer.rs"
+
+[[example]]
+name = "roguelike"
+path = "examples/roguelike.rs"
+
+[[example]]
+name = "world"
+path = "examples/world.rs"

@@ -1,0 +1,9 @@
+# Workspace build artifacts (a single target/ at the root serves both crates).
+/target
+**/*.rs.bk
+# Both crates are zero-dependency libraries; the lockfile carries no pinning
+# value and is regenerated on demand (CI runs `cargo generate-lockfile` where
+# needed, e.g. for cargo-audit).
+Cargo.lock
+.env
+.temp/
