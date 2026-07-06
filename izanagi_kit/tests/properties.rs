@@ -7664,3 +7664,77 @@ fn prop_rng_split_reflects_current_not_initial_state() {
         );
     }
 }
+
+// ---------------------------------------------------------------------------
+// hash_unordered — order-independent (commutative) multiset hash
+// ---------------------------------------------------------------------------
+
+/// **hash_unordered is invariant under any permutation** of its input — the
+/// defining property. Shuffle a random vector and the hash must not move.
+#[test]
+fn prop_hash_unordered_permutation_invariant() {
+    use izanagi_kit::hash_unordered;
+    let mut rng = SplitMix64::new(0x40D5_0001);
+    for _ in 0..ITERS {
+        let n = rng.below(12) as usize;
+        let items: Vec<u32> = (0..n).map(|_| rng.next_u32()).collect();
+        let base = hash_unordered(&items);
+
+        let mut shuffled = items.clone();
+        rng.shuffle(&mut shuffled);
+        assert_eq!(base, hash_unordered(&shuffled), "permutation must not change the hash");
+    }
+}
+
+/// **Appending a duplicate changes the hash** (multiset, not set): the hash of
+/// `items` differs from `items + [items[0]]` whenever `items` is non-empty.
+#[test]
+fn prop_hash_unordered_is_multiset() {
+    use izanagi_kit::hash_unordered;
+    let mut rng = SplitMix64::new(0x40D5_0002);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        let items: Vec<u32> = (0..n).map(|_| rng.next_u32()).collect();
+        let mut with_dup = items.clone();
+        with_dup.push(items[0]);
+        assert_ne!(
+            hash_unordered(&items),
+            hash_unordered(&with_dup),
+            "adding a duplicate element must change the multiset hash"
+        );
+    }
+}
+
+/// **Changing any single element changes the hash** (with overwhelming
+/// probability; a 64-bit collision is astronomically unlikely for these
+/// constructed-distinct inputs).
+#[test]
+fn prop_hash_unordered_content_sensitive() {
+    use izanagi_kit::hash_unordered;
+    let mut rng = SplitMix64::new(0x40D5_0003);
+    for _ in 0..ITERS {
+        let n = 1 + rng.below(10) as usize;
+        let items: Vec<u64> = (0..n).map(|_| rng.next_u64()).collect();
+        let base = hash_unordered(&items);
+
+        let mut mutated = items.clone();
+        let idx = rng.below(n as u32) as usize;
+        // XOR with a value whose low bit is forced set: always nonzero, so the
+        // element is guaranteed to change (unlike a random add, which could be 0).
+        mutated[idx] ^= 1u64 | rng.next_u64();
+        assert_ne!(base, hash_unordered(&mutated), "a changed element must change the hash");
+    }
+}
+
+/// **Pure determinism**: recomputing over the identical input yields the
+/// identical result (no hidden state, no RNG, no allocation-order leak).
+#[test]
+fn prop_hash_unordered_deterministic() {
+    use izanagi_kit::hash_unordered;
+    let mut rng = SplitMix64::new(0x40D5_0004);
+    for _ in 0..ITERS {
+        let n = rng.below(16) as usize;
+        let items: Vec<u32> = (0..n).map(|_| rng.next_u32()).collect();
+        assert_eq!(hash_unordered(&items), hash_unordered(&items));
+    }
+}

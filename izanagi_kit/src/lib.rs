@@ -37,7 +37,7 @@
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
 //! - [`recipe`] — item crafting / recipe system (`Recipe<K,O>`, `Ingredient<K>`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
-//! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay.
+//! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay, plus `hash_unordered` for permutation-invariant multiset hashing.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
 //! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
@@ -268,4 +268,4 @@ pub use vec::{Vec2, Vec3};
 pub use visibility::{Visibility, VisibilityMap};
 pub use wallet::Wallet;
 pub use wfc::{wfc_solve, wfc_solve_backtrack, wfc_solve_partial, WfcGrid, WfcResult, WfcRules};
-pub use world_hash::{hash_state, DetHash, Fnv1a};
+pub use world_hash::{hash_state, hash_unordered, DetHash, Fnv1a};

@@ -122,6 +122,63 @@ pub fn hash_state<T: DetHash + ?Sized>(value: &T) -> u64 {
     hasher.finish()
 }
 
+/// Final avalanche mix (SplitMix64 finalizer) — spreads every input bit across
+/// the whole 64-bit word so a commutative combine cannot leak structure.
+#[inline]
+fn mix64(mut z: u64) -> u64 {
+    z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    z ^ (z >> 31)
+}
+
+/// Order-independent checksum of a collection: the result is identical for any
+/// permutation of `items`, so a container whose iteration order is *not*
+/// canonical (a `HashMap`, entities gathered in arrival order, a parallel
+/// reduction) can still be hashed into a stable value **without sorting first**.
+///
+/// [`hash_state`] on a slice/`Vec` is order-*dependent* by design (it
+/// length-prefixes and folds in sequence); when order is genuinely irrelevant,
+/// sorting into a canonical order just to feed `hash_state` is wasted work.
+/// `hash_unordered` removes that step: each element is hashed independently via
+/// [`hash_state`], passed through an avalanche mix, then combined with
+/// `wrapping_add` — commutative and associative, hence permutation-invariant.
+///
+/// **Multiset, not set**: duplicates count. `[a, a]` and `[a]` hash
+/// differently (the sum accumulates and the folded cardinality differs), which
+/// is usually what game state wants — two identical components are not the same
+/// as one. The element count is folded in, so multisets that happen to share
+/// an element-sum still differ, and the empty collection maps to a fixed,
+/// distinct value.
+///
+/// This is an ordinary 64-bit hash: collisions are possible and it is not a
+/// reversible encoding. It is purely additive to the module — it changes no
+/// existing [`hash_state`]/[`DetHash`] output and touches no pinned hash. To
+/// fold an unordered collection into a larger `DetHash`, write its result:
+/// `hasher.write_u64(hash_unordered(items))`.
+///
+/// ```
+/// use izanagi_kit::world_hash::hash_unordered;
+/// let a = [10u32, 20, 30];
+/// let b = [30u32, 10, 20];
+/// assert_eq!(hash_unordered(&a), hash_unordered(&b), "permutation-invariant");
+/// assert_ne!(hash_unordered(&[10u32, 10]), hash_unordered(&[10u32]), "multiset");
+/// ```
+pub fn hash_unordered<'a, T, I>(items: I) -> u64
+where
+    T: DetHash + 'a,
+    I: IntoIterator<Item = &'a T>,
+{
+    let mut acc: u64 = 0;
+    let mut count: u64 = 0;
+    for item in items {
+        acc = acc.wrapping_add(mix64(hash_state(item)));
+        count = count.wrapping_add(1);
+    }
+    // Fold the cardinality so different-size multisets that sum equal still
+    // differ, and an empty collection gets a distinct (mix of 0 and 0) value.
+    mix64(acc ^ count.wrapping_mul(FNV_PRIME))
+}
+
 // Primitive impls. Fixed-width little-endian so the folded bytes are identical
 // on every target (no native-endian or pointer-width leakage).
 impl DetHash for u8 {
@@ -605,5 +662,79 @@ mod tests {
         h_manual.write_u32(s.len() as u32);
         h_manual.write_str(s);
         assert_eq!(h_trait, h_manual.finish(), "DetHash for str must be write_u32(len) ++ raw bytes");
+    }
+
+    // --- hash_unordered ---
+
+    #[test]
+    fn test_hash_unordered_is_permutation_invariant() {
+        let a = [1u32, 2, 3, 4, 5];
+        let b = [5u32, 3, 1, 4, 2];
+        let c = [3u32, 1, 2, 5, 4];
+        assert_eq!(hash_unordered(&a), hash_unordered(&b));
+        assert_eq!(hash_unordered(&a), hash_unordered(&c));
+    }
+
+    #[test]
+    fn test_hash_unordered_is_multiset_not_set() {
+        // Duplicates count: [a, a] must differ from [a].
+        assert_ne!(hash_unordered(&[7u32, 7]), hash_unordered(&[7u32]));
+        // And two copies differ from three copies.
+        assert_ne!(hash_unordered(&[7u32, 7]), hash_unordered(&[7u32, 7, 7]));
+    }
+
+    #[test]
+    fn test_hash_unordered_is_content_sensitive() {
+        assert_ne!(hash_unordered(&[1u32, 2, 3]), hash_unordered(&[1u32, 2, 4]));
+    }
+
+    #[test]
+    fn test_hash_unordered_empty_is_distinct_and_stable() {
+        let empty: [u32; 0] = [];
+        let h = hash_unordered(&empty);
+        // Stable across calls.
+        assert_eq!(h, hash_unordered(&empty));
+        // Distinct from any single-element multiset tried here.
+        assert_ne!(h, hash_unordered(&[0u32]));
+        assert_ne!(h, hash_unordered(&[1u32]));
+    }
+
+    #[test]
+    fn test_hash_unordered_distinguishes_cardinality_on_equal_sum() {
+        // wrapping_add alone could collide two different-size multisets whose
+        // element hashes sum equal; folding the count in must separate them.
+        assert_ne!(hash_unordered(&[0u32]), hash_unordered(&[0u32, 0]));
+    }
+
+    #[test]
+    fn test_hash_unordered_matches_across_container_types() {
+        // A slice and a Vec of the same elements hash identically (both yield
+        // &T items), and a HashMap's values (arbitrary iteration order) match
+        // the sorted slice of the same values.
+        use std::collections::HashMap;
+        let v = vec![100u32, 200, 300];
+        assert_eq!(hash_unordered(&v), hash_unordered(v.as_slice()));
+
+        let mut m = HashMap::new();
+        m.insert("a", 100u32);
+        m.insert("b", 200);
+        m.insert("c", 300);
+        assert_eq!(
+            hash_unordered(m.values()),
+            hash_unordered(&[100u32, 200, 300]),
+            "HashMap value order must not affect the result"
+        );
+    }
+
+    #[test]
+    fn test_hash_unordered_does_not_perturb_hash_state() {
+        // Sanity: the new function is a free function; ordinary hash_state on a
+        // slice is unchanged and still order-DEPENDENT (the contrast that
+        // motivates hash_unordered).
+        assert_ne!(
+            hash_state(&[1u32, 2, 3][..]),
+            hash_state(&[3u32, 2, 1][..]),
+            "hash_state stays order-dependent"
+        );
     }
 }
