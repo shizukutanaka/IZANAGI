@@ -148,14 +148,14 @@ Rust ゲームエンジンキット**。ターミナル/ヘッドレスのロー
 
 | 残課題 | 現状 | 決定論影響 |
 |---|---|---|
-| named RNG streams / jump-ahead（サブシステム毎に独立乱数列） | `src/rng.rs` に `split`/`jump` 相当なし | 🟡 追加 API なら安全 |
-| xoshiro256++ 等の代替 PRNG | SplitMix64 のみ | 🔴 既定変更は breaking／feature 隔離なら 🟡 |
-| order-independent set hashing（可換 combine で sort 不要化）/ xxHash 高速化オプション | `src/world_hash.rs` は FNV-1a + canonical sort のみ | 🔴 hash 値が変わる → 別 API/feature |
-| クロス OS/arch CI マトリクスで `PINNED_FINAL_HASH` 一致検証 | リポジトリに CI workflow 定義自体が無い | 🟢 テスト基盤のみ |
-| coverage-guided fuzzing（cargo-fuzz、parser/savefile 対象） | `fuzz/` ディレクトリ無し | 🟢 dev-only 依存 |
-| SARIF 診断出力（GitHub アノテーション連携） | JSON は `src/diag_json.rs` で実装済み、SARIF 形式は無し | 🟢 ツール層 |
-| `Fixed` の丸めモード明文化（truncate vs round-half-even の文書化） | 実装は truncate だが API doc に明記が薄い | 🟢 文書のみ（挙動変更は 🔴） |
-| `.game` 形式の BNF 形式仕様・incremental/partial parse | 文法は doc コメント内の非形式記述のみ | 🟢 ツール層 |
+| ~~named RNG streams / jump-ahead~~（サブシステム毎に独立乱数列） | ✅ **実装済み** — `SplitMix64::split(stream_id)`（parent state と stream_id を avalanche mix で合成する純粋関数、parent を消費・変更しない。7 unit + 5 property tests） | 🟢 追加 API のみ、既存 draw 挙動は不変 |
+| ~~xoshiro256++ 等の代替 PRNG~~ | ✅ **実装済み（隔離）** — `rng_xoshiro::Xoshiro256pp`（2²⁵⁶ 周期・高統計品質、SplitMix64 で seeding、`jump()` で並列ストリーム）。既定の `SplitMix64` は不変・どの draw path にも未結線なので pinned hash 不変。手計算リファレンスベクタ（state `[1,0,0,0]`→出力 `8388609`・遷移 `[1,1,1,0]`）で正確性を pin。13 unit + 4 property tests | 🟢 opt-in 新型のみ（既定・pinned hash 不変） |
+| ~~order-independent set hashing（可換 combine で sort 不要化）~~ / xxHash 高速化オプション | ✅ **order-independent 側は実装済み** — `world_hash::hash_unordered`（各要素を `hash_state`→avalanche mix→`wrapping_add` で合成する permutation-invariant な multiset hash。ソート不要で HashMap 等の非正準順コンテナを安定 hash 化。7 unit + 4 property tests）。既存 `hash_state`/`DetHash` は不変の純粋追加。xxHash 高速化は別件で未着手 | 🟢 新 API のみ（既存 hash 値・pinned hash 不変） |
+| クロス OS/arch CI マトリクスで `PINNED_FINAL_HASH` 一致検証 | CI workflow はリポジトリルート `.github/workflows/` に必要（GitHub の検出仕様）。determinism-matrix ジョブ（Linux/macOS/Windows で pinned hash テスト実行）を含む ci.yml を用意済みだが、実行環境の GitHub App トークンに `workflows` 権限が無く push 不可 — API 経由の配置を試行中、駄目なら手動配置が必要 | 🟢 テスト基盤のみ |
+| coverage-guided fuzzing（cargo-fuzz、parser/savefile 対象） | ⚠️ **試行済み・環境制約で未達** — `cargo-fuzz` は nightly toolchain を要求するが、サンドボックスの `rustup toolchain install nightly` がネットワーク制限で失敗。nightly が使える環境での再挑戦が必要 | 🟢 dev-only 依存（未実装の理由は方針でなく環境） |
+| ~~SARIF 診断出力~~（GitHub アノテーション連携） | ✅ **実装済み** — `src/diag_json.rs::diag_sarif`、`gamec --sarif`（14 unit tests、実 JSON parser で構造検証済み） | 🟢 ツール層 |
+| ~~`Fixed` の丸めモード明文化~~ | ✅ **実装済み** — module doc に "Rounding" 節を追加し実挙動を明文化（`mul` は arithmetic `>>` で −∞ 方向 floor、`div`/`from_ratio` は整数除算で toward-zero truncate、負値でのみ相違）。`to_int_trunc` が名前に反して −∞ floor である misnomer を発見・docstring で明示。4 regression tests で pin（挙動不変） | 🟢 文書 + テストのみ（挙動不変・pinned hash 不変） |
+| ~~`.game` 形式の BNF 形式仕様~~・incremental/partial parse | ✅ **BNF 実装済み** — `SPEC.md` §9.1 に実装と 1:1 対応する形式 EBNF 文法＋語彙/境界規則を追加、`parser.rs` module doc から相互参照。incremental/partial parse は引き続き未実装（全体再パースで用途は充足） | 🟢 文書のみ（挙動不変） |
 
 ---
 
