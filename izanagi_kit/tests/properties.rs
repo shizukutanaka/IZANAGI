@@ -10,52 +10,51 @@
 //! the seeded generator keeps every run reproducible in CI (no `proptest`
 //! dependency, in keeping with the zero-dependency policy).
 
+use izanagi_kit::calendar::Calendar;
+use izanagi_kit::camera::Camera;
+use izanagi_kit::combat::{
+    apply_resistance, base_damage, critical_strike, melee_attack, roll_damage, StatsModifier,
+};
+use izanagi_kit::damage::{DamageType, ResistanceProfile};
+use izanagi_kit::dialogue::{Dialogue, DialogueNode};
 use izanagi_kit::dice::Dice;
+use izanagi_kit::equipment::{EquipSlot, Equipment};
+use izanagi_kit::eventqueue::EventQueue;
+use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 use izanagi_kit::fov::compute_fov;
 use izanagi_kit::geometry::line_len;
+use izanagi_kit::identify::Identification;
+use izanagi_kit::inventory::Inventory;
+use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
+use izanagi_kit::meta::MetaProgress;
+use izanagi_kit::netinput::NetInputBuffer;
 use izanagi_kit::pathfinding::{
     astar, auto_explore, descend, dijkstra_map, flee_map, jps, octile_distance, smooth_path,
     weighted_astar,
 };
-use izanagi_kit::turn::{Scheduler, ACTION_COST};
-use izanagi_kit::wfc::wfc_solve_backtrack;
-use izanagi_kit::camera::Camera;
-use izanagi_kit::combat::{
-    apply_resistance, base_damage, critical_strike, melee_attack, roll_damage,
-    StatsModifier,
-};
-use izanagi_kit::damage::{DamageType, ResistanceProfile};
-use izanagi_kit::inventory::Inventory;
-use izanagi_kit::status::{StatTarget, StatusSet};
-use izanagi_kit::tilemap::{LayeredMap, TileMap};
-use izanagi_kit::visibility::{Visibility, VisibilityMap};
-use izanagi_kit::calendar::Calendar;
-use izanagi_kit::equipment::{EquipSlot, Equipment};
-use izanagi_kit::eventqueue::EventQueue;
-use izanagi_kit::recipe::{Ingredient, Recipe};
-use izanagi_kit::faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
-use izanagi_kit::threat::ThreatTable;
 use izanagi_kit::pool::Pool;
-use izanagi_kit::tween::{Tween, TweenSequence};
-use izanagi_kit::shop::Shop;
-use izanagi_kit::wallet::Wallet;
-use izanagi_kit::dialogue::{Dialogue, DialogueNode};
-use izanagi_kit::identify::Identification;
-use izanagi_kit::meta::MetaProgress;
-use izanagi_kit::netinput::NetInputBuffer;
-use izanagi_kit::trigger::{Trigger, TriggerSet};
-use izanagi_kit::lightmap::{LightMap, MAX_LIGHT};
-use izanagi_kit::quest::{Objective, Quest, QuestState};
 use izanagi_kit::progression::{LevelCurve, Progression};
+use izanagi_kit::quest::{Objective, Quest, QuestState};
+use izanagi_kit::recipe::{Ingredient, Recipe};
+use izanagi_kit::shop::Shop;
 use izanagi_kit::shufflebag::ShuffleBag;
+use izanagi_kit::status::{StatTarget, StatusSet};
+use izanagi_kit::threat::ThreatTable;
+use izanagi_kit::tilemap::{LayeredMap, TileMap};
+use izanagi_kit::trigger::{Trigger, TriggerSet};
+use izanagi_kit::turn::{Scheduler, ACTION_COST};
+use izanagi_kit::tween::{Tween, TweenSequence};
+use izanagi_kit::visibility::{Visibility, VisibilityMap};
+use izanagi_kit::wallet::Wallet;
+use izanagi_kit::wfc::wfc_solve_backtrack;
 use izanagi_kit::{
     chebyshev_distance, cone, fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_wrap, fbm_3d, generate_bsp,
     generate_cave, generate_drunkard, generate_dungeon, hash_1d, hash_2d, hash_3d, knockback, line,
-    manhattan_distance,
-    normalize_noise, reflect_point, ridge_noise_2d, rotate_90_ccw, rotate_90_cw, splash_attack,
-    value_noise_1d, value_noise_1d_wrap, value_noise_2d, value_noise_2d_wrap, value_noise_3d, Aabb,
-    BspParams, CaveParams, Cooldown, DrunkardParams, Dungeon, Fixed, GenParams, InfluenceMap, MultiMap,
-    PassabilityGrid, RandomTable, SpatialHash, SplitMix64, Stats, TimerQueue, Vec2, Vec3,
+    manhattan_distance, normalize_noise, reflect_point, ridge_noise_2d, rotate_90_ccw,
+    rotate_90_cw, splash_attack, value_noise_1d, value_noise_1d_wrap, value_noise_2d,
+    value_noise_2d_wrap, value_noise_3d, Aabb, BspParams, CaveParams, Cooldown, DrunkardParams,
+    Dungeon, Fixed, GenParams, InfluenceMap, MultiMap, PassabilityGrid, RandomTable, SpatialHash,
+    SplitMix64, Stats, TimerQueue, Vec2, Vec3,
 };
 
 const ITERS: usize = 3000;
@@ -148,7 +147,10 @@ fn prop_fixed_clamp_is_in_range_and_idempotent() {
         let (p, q) = (rand_fixed(&mut rng), rand_fixed(&mut rng));
         let (lo, hi) = (p.min(q), p.max(q)); // ensure lo <= hi
         let c = x.clamp(lo, hi);
-        assert!(c >= lo && c <= hi, "clamp out of range: {c:?} not in [{lo:?},{hi:?}]");
+        assert!(
+            c >= lo && c <= hi,
+            "clamp out of range: {c:?} not in [{lo:?},{hi:?}]"
+        );
         assert_eq!(c.clamp(lo, hi), c, "clamp not idempotent");
     }
 }
@@ -227,7 +229,11 @@ fn prop_reflect_point_is_an_involution() {
     for _ in 0..ITERS {
         let p = rand_coord(&mut rng);
         let c = rand_coord(&mut rng);
-        assert_eq!(reflect_point(reflect_point(p, c), c), p, "reflect not involutive");
+        assert_eq!(
+            reflect_point(reflect_point(p, c), c),
+            p,
+            "reflect not involutive"
+        );
     }
 }
 
@@ -237,8 +243,16 @@ fn prop_distances_are_symmetric_and_ordered() {
     for _ in 0..ITERS {
         let a = rand_coord(&mut rng);
         let b = rand_coord(&mut rng);
-        assert_eq!(manhattan_distance(a, b), manhattan_distance(b, a), "manhattan asym");
-        assert_eq!(chebyshev_distance(a, b), chebyshev_distance(b, a), "chebyshev asym");
+        assert_eq!(
+            manhattan_distance(a, b),
+            manhattan_distance(b, a),
+            "manhattan asym"
+        );
+        assert_eq!(
+            chebyshev_distance(a, b),
+            chebyshev_distance(b, a),
+            "chebyshev asym"
+        );
         // Chebyshev (king) distance never exceeds Manhattan (taxicab).
         assert!(
             chebyshev_distance(a, b) <= manhattan_distance(a, b),
@@ -260,7 +274,12 @@ fn prop_line_endpoints_length_and_adjacency() {
         // Each Bresenham step is a single king move.
         for w in cells.windows(2) {
             let (dx, dy) = ((w[1].0 - w[0].0).abs(), (w[1].1 - w[0].1).abs());
-            assert!(dx <= 1 && dy <= 1 && (dx + dy) > 0, "non-king step {:?}->{:?}", w[0], w[1]);
+            assert!(
+                dx <= 1 && dy <= 1 && (dx + dy) > 0,
+                "non-king step {:?}->{:?}",
+                w[0],
+                w[1]
+            );
         }
     }
 }
@@ -272,7 +291,14 @@ fn prop_knockback_never_exceeds_distance_and_lands_open() {
     let is_wall = |x: i32, y: i32| (x.rem_euclid(7) == 0) && (y.rem_euclid(5) == 0);
     let mut rng = SplitMix64::new(0xC8AC);
     let dirs = [
-        (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1),
+        (1, 0),
+        (-1, 0),
+        (0, 1),
+        (0, -1),
+        (1, 1),
+        (-1, -1),
+        (1, -1),
+        (-1, 1),
     ];
     for _ in 0..ITERS {
         let from = rand_coord(&mut rng);
@@ -287,7 +313,10 @@ fn prop_knockback_never_exceeds_distance_and_lands_open() {
             chebyshev_distance(from, landing) <= dist,
             "knockback overshot: {from:?} -> {landing:?} budget {dist}"
         );
-        assert!(!is_wall(landing.0, landing.1), "knockback rested in a wall {landing:?}");
+        assert!(
+            !is_wall(landing.0, landing.1),
+            "knockback rested in a wall {landing:?}"
+        );
     }
 }
 
@@ -295,7 +324,14 @@ fn prop_knockback_never_exceeds_distance_and_lands_open() {
 fn prop_cone_cells_are_in_front_and_in_range() {
     let mut rng = SplitMix64::new(0xC04E);
     let facings = [
-        (1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (-1, -1), (1, -1), (-1, 1),
+        (1, 0),
+        (-1, 0),
+        (0, 1),
+        (0, -1),
+        (1, 1),
+        (-1, -1),
+        (1, -1),
+        (-1, 1),
     ];
     for _ in 0..ITERS {
         let origin = rand_coord(&mut rng);
@@ -307,7 +343,10 @@ fn prop_cone_cells_are_in_front_and_in_range() {
             // In Euclidean range.
             assert!(dx * dx + dy * dy <= r2, "cone cell out of range");
             // Strictly in front of the facing (positive dot product).
-            assert!(dx * facing.0 as i64 + dy * facing.1 as i64 > 0, "cone cell behind facing");
+            assert!(
+                dx * facing.0 as i64 + dy * facing.1 as i64 > 0,
+                "cone cell behind facing"
+            );
         }
     }
 }
@@ -328,7 +367,10 @@ fn prop_fixed_floor_ceil_round_fract_laws() {
         // Reconstruction: floor(x) + fract(x) == x, exactly.
         assert_eq!(fl + fr, x, "floor + fract != x for {x:?}");
         // fract is in [0, 1).
-        assert!(fr >= Fixed::ZERO && fr < Fixed::ONE, "fract {fr:?} out of [0,1) for {x:?}");
+        assert!(
+            fr >= Fixed::ZERO && fr < Fixed::ONE,
+            "fract {fr:?} out of [0,1) for {x:?}"
+        );
         // floor(x) <= x <= ceil(x).
         assert!(fl <= x && x <= ce, "floor <= x <= ceil violated for {x:?}");
         // ceil - floor is 0 (x integer) or 1 (otherwise).
@@ -337,13 +379,23 @@ fn prop_fixed_floor_ceil_round_fract_laws() {
             span == Fixed::ZERO || span == Fixed::ONE,
             "ceil - floor = {span:?} not in {{0,1}} for {x:?}"
         );
-        assert_eq!(span == Fixed::ZERO, x.is_integer(), "ceil==floor iff integer, for {x:?}");
+        assert_eq!(
+            span == Fixed::ZERO,
+            x.is_integer(),
+            "ceil==floor iff integer, for {x:?}"
+        );
         // round(x) is one of the two bracketing integers.
-        assert!(rd == fl || rd == ce, "round {rd:?} not in {{floor,ceil}} for {x:?}");
+        assert!(
+            rd == fl || rd == ce,
+            "round {rd:?} not in {{floor,ceil}} for {x:?}"
+        );
         // floor/ceil/round are idempotent and fixed on integers.
         assert_eq!(fl.floor(), fl, "floor not idempotent");
         assert_eq!(ce.ceil(), ce, "ceil not idempotent");
-        assert!(fl.is_integer() && ce.is_integer() && rd.is_integer(), "results must be integers");
+        assert!(
+            fl.is_integer() && ce.is_integer() && rd.is_integer(),
+            "results must be integers"
+        );
     }
 }
 
@@ -363,7 +415,10 @@ fn prop_fixed_step_toward_approaches_without_overshoot() {
         let lo = x.min(target);
         let hi = x.max(target);
         // Never overshoots: the result stays between the start and the target.
-        assert!(r >= lo && r <= hi, "step_toward overshot: {r:?} not in [{lo:?},{hi:?}]");
+        assert!(
+            r >= lo && r <= hi,
+            "step_toward overshot: {r:?} not in [{lo:?},{hi:?}]"
+        );
         // Always approaches (or reaches) the target — never moves away.
         assert!(
             r.abs_diff(target) <= x.abs_diff(target),
@@ -374,7 +429,11 @@ fn prop_fixed_step_toward_approaches_without_overshoot() {
         assert_eq!(target.step_toward(target, step), target, "moved off target");
         // A step covering the whole gap reaches the target exactly.
         let gap = x.abs_diff(target);
-        assert_eq!(x.step_toward(target, gap), target, "full-gap step did not reach target");
+        assert_eq!(
+            x.step_toward(target, gap),
+            target,
+            "full-gap step did not reach target"
+        );
     }
 }
 
@@ -400,28 +459,53 @@ fn prop_vec2_composite_laws() {
         assert!(a.len_sq() >= Fixed::ZERO, "len_sq negative");
         // scale by 1 is identity; scale by 0 is the zero vector.
         assert_eq!(a.scale(Fixed::ONE), a, "scale by ONE not identity");
-        assert_eq!(a.scale(Fixed::ZERO), Vec2::ZERO, "scale by ZERO not zero vector");
+        assert_eq!(
+            a.scale(Fixed::ZERO),
+            Vec2::ZERO,
+            "scale by ZERO not zero vector"
+        );
         // 2-D cross is antisymmetric and zero with itself.
         assert_eq!(a.cross_2d(a), Fixed::ZERO, "cross_2d(a,a) != 0");
-        assert_eq!(a.cross_2d(b), -(b.cross_2d(a)), "cross_2d not antisymmetric");
+        assert_eq!(
+            a.cross_2d(b),
+            -(b.cross_2d(a)),
+            "cross_2d not antisymmetric"
+        );
     }
     // normalize: zero -> None, non-zero -> Some.
-    assert!(Vec2::ZERO.normalize().is_none(), "normalize(0) must be None");
-    assert!(Vec2::new(Fixed::from_int(3), Fixed::from_int(4)).normalize().is_some());
+    assert!(
+        Vec2::ZERO.normalize().is_none(),
+        "normalize(0) must be None"
+    );
+    assert!(Vec2::new(Fixed::from_int(3), Fixed::from_int(4))
+        .normalize()
+        .is_some());
 }
 
 #[test]
 fn prop_vec3_composite_laws() {
     let mut rng = SplitMix64::new(0x003E_C305);
     for _ in 0..ITERS {
-        let a = Vec3::new(rand_small(&mut rng), rand_small(&mut rng), rand_small(&mut rng));
-        let b = Vec3::new(rand_small(&mut rng), rand_small(&mut rng), rand_small(&mut rng));
+        let a = Vec3::new(
+            rand_small(&mut rng),
+            rand_small(&mut rng),
+            rand_small(&mut rng),
+        );
+        let b = Vec3::new(
+            rand_small(&mut rng),
+            rand_small(&mut rng),
+            rand_small(&mut rng),
+        );
 
         assert_eq!(a.dot(b), b.dot(a), "Vec3 dot not commutative");
         assert_eq!(a.len_sq(), a.dot(a), "len_sq != dot(self,self)");
         assert!(a.len_sq() >= Fixed::ZERO, "len_sq negative");
         assert_eq!(a.scale(Fixed::ONE), a, "scale by ONE not identity");
-        assert_eq!(a.scale(Fixed::ZERO), Vec3::ZERO, "scale by ZERO not zero vector");
+        assert_eq!(
+            a.scale(Fixed::ZERO),
+            Vec3::ZERO,
+            "scale by ZERO not zero vector"
+        );
         // cross of a vector with itself is the zero vector.
         assert_eq!(a.cross(a), Vec3::ZERO, "cross(a,a) != 0");
         // cross is antisymmetric: cross(a,b) == -cross(b,a), componentwise.
@@ -431,8 +515,15 @@ fn prop_vec3_composite_laws() {
         assert_eq!(ab.y, -ba.y, "cross.y not antisymmetric");
         assert_eq!(ab.z, -ba.z, "cross.z not antisymmetric");
     }
-    assert!(Vec3::ZERO.normalize().is_none(), "normalize(0) must be None");
-    assert!(Vec3::new(Fixed::from_int(1), Fixed::from_int(2), Fixed::from_int(2)).normalize().is_some());
+    assert!(
+        Vec3::ZERO.normalize().is_none(),
+        "normalize(0) must be None"
+    );
+    assert!(
+        Vec3::new(Fixed::from_int(1), Fixed::from_int(2), Fixed::from_int(2))
+            .normalize()
+            .is_some()
+    );
 }
 
 #[test]
@@ -482,7 +573,10 @@ fn prop_easing_functions_hit_their_endpoints() {
         let at0 = to_f(f(Fixed::ZERO));
         let at1 = to_f(f(Fixed::ONE));
         assert!(at0.abs() < 5.0e-3, "{name}(0) = {at0}, expected ≈ 0");
-        assert!((at1 - 1.0).abs() < 5.0e-3, "{name}(1) = {at1}, expected ≈ 1");
+        assert!(
+            (at1 - 1.0).abs() < 5.0e-3,
+            "{name}(1) = {at1}, expected ≈ 1"
+        );
     }
 }
 
@@ -729,8 +823,8 @@ fn prop_wfc_solved_grid_respects_adjacency_rules() {
 /// single-bit divergence in the output.
 #[test]
 fn prop_wfc_deterministic_same_seed_same_result() {
-    use izanagi_kit::wfc::{wfc_solve, WfcResult, WfcRules};
     use izanagi_kit::hash_state;
+    use izanagi_kit::wfc::{wfc_solve, WfcResult, WfcRules};
     let mut rng = SplitMix64::new(0x07B4_C105);
 
     for _ in 0..500 {
@@ -840,7 +934,7 @@ fn prop_savefile_truncation_always_rejected() {
         // Truncate to any length shorter than the full buffer.
         let cut = rng.below(saved.len() as u32) as usize;
         match load_bytes(&saved[..cut]) {
-            Err(LoadError::TooShort) => {} // expected
+            Err(LoadError::TooShort) => {}         // expected
             Err(LoadError::ChecksumMismatch) => {} // also acceptable (partial payload)
             Err(other) => panic!("unexpected error for cut={cut}: {other:?}"),
             Ok(_) => panic!("truncated save accepted at cut={cut}"),
@@ -928,15 +1022,24 @@ fn prop_splash_attack_floor_and_monotone_falloff() {
             .map(|_| Stats::new(rng.range(1, 1000), attack, rng.range(0, 600)))
             .collect();
         let mixed_dmg = splash_attack(&attacker, &mut mixed, falloff);
-        assert!(mixed_dmg.iter().all(|&d| d >= 1), "splash floor of 1 violated: {mixed_dmg:?}");
+        assert!(
+            mixed_dmg.iter().all(|&d| d >= 1),
+            "splash floor of 1 violated: {mixed_dmg:?}"
+        );
 
         // (2) Monotone non-increasing + HP accounting with equal defenses.
         let def = rng.range(0, 600);
         let hp_before: Vec<i32> = (0..n).map(|_| rng.range(1, 1000)).collect();
-        let mut eq: Vec<Stats> = hp_before.iter().map(|&hp| Stats::new(hp, attack, def)).collect();
+        let mut eq: Vec<Stats> = hp_before
+            .iter()
+            .map(|&hp| Stats::new(hp, attack, def))
+            .collect();
         let dmg = splash_attack(&attacker, &mut eq, falloff);
         for w in dmg.windows(2) {
-            assert!(w[0] >= w[1], "splash damage increased across rings: {dmg:?}");
+            assert!(
+                w[0] >= w[1],
+                "splash damage increased across rings: {dmg:?}"
+            );
         }
         for (k, t) in eq.iter().enumerate() {
             assert_eq!(
@@ -1082,8 +1185,16 @@ fn prop_scheduler_forecast_matches_real_sequence() {
         let predicted = sched.forecast(horizon);
 
         // Non-destructive: a second forecast yields the identical result.
-        assert_eq!(predicted, sched.forecast(horizon), "forecast must be repeatable");
-        assert_eq!(predicted.len(), horizon, "non-empty scheduler yields exactly n");
+        assert_eq!(
+            predicted,
+            sched.forecast(horizon),
+            "forecast must be repeatable"
+        );
+        assert_eq!(
+            predicted.len(),
+            horizon,
+            "non-empty scheduler yields exactly n"
+        );
 
         // It must equal the destructive sequence.
         let mut actual = Vec::with_capacity(horizon);
@@ -1286,9 +1397,7 @@ fn prop_astar_path_is_valid() {
     let mut found = 0usize;
 
     for _ in 0..500 {
-        let walls: Vec<bool> = (0..PATH_W * PATH_H)
-            .map(|_| rng.below(5) == 0)
-            .collect();
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
         let sx = rng.below(PATH_W as u32) as i32;
         let sy = rng.below(PATH_H as u32) as i32;
         let gx = rng.below(PATH_W as u32) as i32;
@@ -1344,9 +1453,7 @@ fn prop_astar_path_is_valid() {
 fn prop_astar_is_deterministic() {
     let mut rng = SplitMix64::new(0x0B68_D005);
     for _ in 0..500 {
-        let walls: Vec<bool> = (0..PATH_W * PATH_H)
-            .map(|_| rng.below(5) == 0)
-            .collect();
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
         let sx = rng.below(PATH_W as u32) as i32;
         let sy = rng.below(PATH_H as u32) as i32;
         let gx = rng.below(PATH_W as u32) as i32;
@@ -1354,7 +1461,10 @@ fn prop_astar_is_deterministic() {
 
         let path_a = astar((sx, sy), (gx, gy), path_is_blocked(&walls));
         let path_b = astar((sx, sy), (gx, gy), path_is_blocked(&walls));
-        assert_eq!(path_a, path_b, "astar not deterministic for ({sx},{sy})→({gx},{gy})");
+        assert_eq!(
+            path_a, path_b,
+            "astar not deterministic for ({sx},{sy})→({gx},{gy})"
+        );
     }
 }
 
@@ -1367,9 +1477,7 @@ fn prop_weighted_astar_cost_bound_and_unity() {
     let mut checked = 0usize;
 
     for _ in 0..500 {
-        let walls: Vec<bool> = (0..PATH_W * PATH_H)
-            .map(|_| rng.below(5) == 0)
-            .collect();
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
         let sx = rng.below(PATH_W as u32) as i32;
         let sy = rng.below(PATH_H as u32) as i32;
         let gx = rng.below(PATH_W as u32) as i32;
@@ -1382,7 +1490,10 @@ fn prop_weighted_astar_cost_bound_and_unity() {
         let w1 = weighted_astar((sx, sy), (gx, gy), path_is_blocked(&walls), 1);
 
         // weight=1 must produce the same path and cost as plain astar.
-        assert_eq!(opt, w1, "weighted_astar(1) != astar for ({sx},{sy})→({gx},{gy})");
+        assert_eq!(
+            opt, w1,
+            "weighted_astar(1) != astar for ({sx},{sy})→({gx},{gy})"
+        );
 
         let Some(opt_path) = opt else {
             continue;
@@ -1400,7 +1511,10 @@ fn prop_weighted_astar_cost_bound_and_unity() {
         }
     }
 
-    assert!(checked >= 50, "expected ≥50 weighted paths checked, got {checked}");
+    assert!(
+        checked >= 50,
+        "expected ≥50 weighted paths checked, got {checked}"
+    );
 }
 
 /// `Fn` (not `FnMut`) wall-query closure for `jps`, whose jump recursion queries
@@ -1471,7 +1585,10 @@ fn prop_jps_matches_astar_cost_and_is_valid() {
             }
         }
     }
-    assert!(reachable >= 100, "expected ≥100 reachable pairs, got {reachable}");
+    assert!(
+        reachable >= 100,
+        "expected ≥100 reachable pairs, got {reachable}"
+    );
 }
 
 /// **JPS determinism** — identical start, goal, and wall map always yield the
@@ -1545,7 +1662,14 @@ fn prop_dijkstra_descend_is_monotone_to_source() {
 fn prop_flee_map_is_locally_consistent() {
     let mut rng = SplitMix64::new(0xF1EE_0001);
     let dirs = [
-        (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1),
+        (0, -1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
+        (0, 1),
+        (-1, 1),
+        (-1, 0),
+        (-1, -1),
     ];
     for _ in 0..300 {
         let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(6) == 0).collect();
@@ -1611,7 +1735,10 @@ fn prop_flee_map_descent_terminates_without_cycles() {
             let mut last_val = flee[&cur];
             let mut steps = 0;
             while let Some(next) = descend(&flee, cur, path_is_blocked(&walls)) {
-                assert!(flee[&next] < last_val, "descend strictly decreases flee value");
+                assert!(
+                    flee[&next] < last_val,
+                    "descend strictly decreases flee value"
+                );
                 last_val = flee[&next];
                 cur = next;
                 steps += 1;
@@ -1630,7 +1757,14 @@ fn prop_flee_map_descent_terminates_without_cycles() {
 fn prop_auto_explore_path_is_legal_and_reaches_frontier() {
     let mut rng = SplitMix64::new(0xA070_0001);
     let dirs = [
-        (0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1),
+        (0, -1),
+        (1, -1),
+        (1, 0),
+        (1, 1),
+        (0, 1),
+        (-1, 1),
+        (-1, 0),
+        (-1, -1),
     ];
     for _ in 0..400 {
         // Ground-truth walls and a separate "explored" fog mask.
@@ -1652,7 +1786,10 @@ fn prop_auto_explore_path_is_legal_and_reaches_frontier() {
                 assert_eq!(path[0], (sx, sy), "path starts at the player");
                 // Every cell explored + passable.
                 for &(x, y) in &path {
-                    assert!(is_explored(x, y) || (x, y) == (sx, sy), "path cell explored");
+                    assert!(
+                        is_explored(x, y) || (x, y) == (sx, sy),
+                        "path cell explored"
+                    );
                     assert!(!is_blocked(x, y), "path cell passable");
                 }
                 // Consecutive cells are 8-adjacent (and ≤1 step apart).
@@ -1667,7 +1804,10 @@ fn prop_auto_explore_path_is_legal_and_reaches_frontier() {
                     let (nx, ny) = (last.0 + dx, last.1 + dy);
                     !is_explored(nx, ny) && !is_blocked(nx, ny)
                 });
-                assert!(is_frontier, "path must end on a real frontier cell {last:?}");
+                assert!(
+                    is_frontier,
+                    "path must end on a real frontier cell {last:?}"
+                );
             }
             None => {
                 // No reachable explored cell borders unexplored passable floor:
@@ -1744,7 +1884,10 @@ fn prop_smooth_path_preserves_endpoints_and_los() {
         }
         smoothed += 1;
     }
-    assert!(smoothed >= 100, "expected ≥100 smoothed paths, got {smoothed}");
+    assert!(
+        smoothed >= 100,
+        "expected ≥100 smoothed paths, got {smoothed}"
+    );
 }
 
 // ── Dice properties ───────────────────────────────────────────────────────────
@@ -2013,7 +2156,10 @@ fn prop_generate_drunkard_respects_fill_and_border() {
             w,
             h,
             &mut SplitMix64::new(seed),
-            DrunkardParams { fill_percent: fill, max_steps: 0 },
+            DrunkardParams {
+                fill_percent: fill,
+                max_steps: 0,
+            },
         );
         let interior = (w - 2) * (h - 2);
         let target = (interior * fill / 100).clamp(1, interior);
@@ -2153,7 +2299,7 @@ fn prop_aabb_contains_implies_overlaps() {
         let a = Aabb::new(
             rng.range(-100, 101),
             rng.range(-100, 101),
-            rng.range(10, 51),  // non-empty: w ∈ [10, 50]
+            rng.range(10, 51), // non-empty: w ∈ [10, 50]
             rng.range(10, 51),
         );
         let b = if trial % 2 == 0 {
@@ -2177,7 +2323,10 @@ fn prop_aabb_contains_implies_overlaps() {
             );
         }
     }
-    assert!(found >= 500, "expected ≥500 containment cases for non-vacuous coverage, got {found}");
+    assert!(
+        found >= 500,
+        "expected ≥500 containment cases for non-vacuous coverage, got {found}"
+    );
 }
 
 /// **iter_points count equals area** — every cell counted by `area()` must be
@@ -2240,7 +2389,11 @@ fn mini_floor(seed: u64) -> Dungeon {
         20,
         14,
         &mut SplitMix64::new(seed),
-        GenParams { max_rooms: 4, min_room: 3, max_room: 5 },
+        GenParams {
+            max_rooms: 4,
+            min_room: 3,
+            max_room: 5,
+        },
     )
 }
 
@@ -2295,12 +2448,18 @@ fn prop_noise_wrap_output_always_in_range() {
         let oct = rng.below(7);
         let period = rng.range(0, 33); // includes 0 (→ treated as 1)
 
-        assert!(value_noise_1d_wrap(x, seed, period) <= 65535, "1d_wrap range");
+        assert!(
+            value_noise_1d_wrap(x, seed, period) <= 65535,
+            "1d_wrap range"
+        );
         assert!(
             value_noise_2d_wrap(x, y, seed, period, period) <= 65535,
             "2d_wrap range"
         );
-        assert!(fbm_1d_wrap(x, seed, oct, period.max(1)) <= 65535, "fbm_1d_wrap range");
+        assert!(
+            fbm_1d_wrap(x, seed, oct, period.max(1)) <= 65535,
+            "fbm_1d_wrap range"
+        );
         assert!(
             fbm_2d_wrap(x, y, seed, oct, period.max(1)) <= 65535,
             "fbm_2d_wrap range"
@@ -2322,20 +2481,32 @@ fn prop_noise_is_deterministic() {
         let seed = rand_seed(&mut rng);
         let oct = rng.below(7);
 
-        assert_eq!(value_noise_2d(x, y, seed), value_noise_2d(x, y, seed), "vn2d");
+        assert_eq!(
+            value_noise_2d(x, y, seed),
+            value_noise_2d(x, y, seed),
+            "vn2d"
+        );
         assert_eq!(
             value_noise_3d(x, y, z, seed),
             value_noise_3d(x, y, z, seed),
             "vn3d"
         );
         assert_eq!(fbm_2d(x, y, seed, oct), fbm_2d(x, y, seed, oct), "fbm2d");
-        assert_eq!(fbm_3d(x, y, z, seed, oct), fbm_3d(x, y, z, seed, oct), "fbm3d");
+        assert_eq!(
+            fbm_3d(x, y, z, seed, oct),
+            fbm_3d(x, y, z, seed, oct),
+            "fbm3d"
+        );
         assert_eq!(
             ridge_noise_2d(x, y, seed, oct),
             ridge_noise_2d(x, y, seed, oct),
             "ridge"
         );
-        assert_eq!(turbulence_1d(x, seed, oct), turbulence_1d(x, seed, oct), "turb1d");
+        assert_eq!(
+            turbulence_1d(x, seed, oct),
+            turbulence_1d(x, seed, oct),
+            "turb1d"
+        );
         assert_eq!(
             turbulence_2d(x, y, seed, oct),
             turbulence_2d(x, y, seed, oct),
@@ -2489,7 +2660,10 @@ fn prop_spatial_hash_insert_then_contains() {
         let y = rng.range(-500, 501);
         let key: u32 = rng.below(u32::MAX);
         sh.insert(key, x, y);
-        assert!(sh.contains(&key, x, y), "key missing after insert at ({x},{y})");
+        assert!(
+            sh.contains(&key, x, y),
+            "key missing after insert at ({x},{y})"
+        );
         assert!(
             sh.query_cell(x, y).contains(&key),
             "query_cell missed key at ({x},{y})"
@@ -2510,8 +2684,14 @@ fn prop_spatial_hash_remove_undoes_insert() {
         let key: u32 = rng.below(0x8000_0000);
         sh.insert(key, x, y);
         sh.remove(&key, x, y);
-        assert!(!sh.contains(&key, x, y), "key still present after remove at ({x},{y})");
-        assert!(sh.query_cell(x, y).is_empty(), "cell non-empty after remove");
+        assert!(
+            !sh.contains(&key, x, y),
+            "key still present after remove at ({x},{y})"
+        );
+        assert!(
+            sh.query_cell(x, y).is_empty(),
+            "cell non-empty after remove"
+        );
     }
 }
 
@@ -2624,8 +2804,14 @@ fn prop_spatial_hash_move_transfers_membership() {
         let key: u32 = 42;
         sh.insert(key, ox, oy);
         sh.move_entity(key, ox, oy, nx, ny);
-        assert!(sh.contains(&key, nx, ny), "key not in new cell after move ({ox},{oy})→({nx},{ny})");
-        assert!(!sh.contains(&key, ox, oy), "key still in old cell after move ({ox},{oy})→({nx},{ny})");
+        assert!(
+            sh.contains(&key, nx, ny),
+            "key not in new cell after move ({ox},{oy})→({nx},{ny})"
+        );
+        assert!(
+            !sh.contains(&key, ox, oy),
+            "key still in old cell after move ({ox},{oy})→({nx},{ny})"
+        );
     }
 }
 
@@ -2737,7 +2923,7 @@ fn prop_passability_set_region_covers_rectangle() {
         let w = 2 + rng.below(18) as i32; // 2..=19
         let h = 2 + rng.below(18) as i32;
         let mut grid = PassabilityGrid::new(w, h); // all passable
-        // Random inclusive rectangle (set_region handles x1>x2 internally).
+                                                   // Random inclusive rectangle (set_region handles x1>x2 internally).
         let x1 = rng.range(0, w); // [0, w-1]
         let y1 = rng.range(0, h);
         let x2 = rng.range(0, w);
@@ -2877,7 +3063,10 @@ fn prop_influence_normalize_pins_range() {
         );
         pinned += 1;
     }
-    assert!(pinned >= 2000, "expected ≥2000 normalize trials, got {pinned}");
+    assert!(
+        pinned >= 2000,
+        "expected ≥2000 normalize trials, got {pinned}"
+    );
 }
 
 /// **find_peaks agrees with direct scan** — `find_peaks(threshold)` must return
@@ -2930,7 +3119,11 @@ fn prop_random_table_total_weight_is_sum() {
             table.push(w, v);
             expected += w as u64;
         }
-        assert_eq!(table.total_weight(), expected, "total_weight ≠ push sum (n={n})");
+        assert_eq!(
+            table.total_weight(),
+            expected,
+            "total_weight ≠ push sum (n={n})"
+        );
         let iter_sum: u64 = table.iter().map(|(w, _)| w as u64).sum();
         assert_eq!(table.total_weight(), iter_sum, "total_weight ≠ iter sum");
     }
@@ -3207,15 +3400,32 @@ fn prop_multimap_link_floors_is_bidirectional() {
         let fa = mini_floor(rand_seed(&mut rng));
         let fb = mini_floor(rand_seed(&mut rng));
         let mut mm = MultiMap::new(vec![fa, fb], 0);
-        assert!(mm.exits_from(0).is_empty(), "fresh floor 0 must have no exits");
-        assert!(mm.exits_from(1).is_empty(), "fresh floor 1 must have no exits");
+        assert!(
+            mm.exits_from(0).is_empty(),
+            "fresh floor 0 must have no exits"
+        );
+        assert!(
+            mm.exits_from(1).is_empty(),
+            "fresh floor 1 must have no exits"
+        );
         mm.link_floors(0, 3, 3, 1, 5, 5);
         let exits0 = mm.exits_from(0);
         let exits1 = mm.exits_from(1);
-        assert_eq!(exits0.len(), 1, "floor 0 must have exactly 1 exit after link_floors");
-        assert_eq!(exits1.len(), 1, "floor 1 must have exactly 1 exit after link_floors");
+        assert_eq!(
+            exits0.len(),
+            1,
+            "floor 0 must have exactly 1 exit after link_floors"
+        );
+        assert_eq!(
+            exits1.len(),
+            1,
+            "floor 1 must have exactly 1 exit after link_floors"
+        );
         assert_eq!(exits0[0].to_floor, 1, "floor 0 exit must point to floor 1");
-        assert_eq!(exits1[0].to_floor, 0, "floor 1 exit must point back to floor 0");
+        assert_eq!(
+            exits1[0].to_floor, 0,
+            "floor 1 exit must point back to floor 0"
+        );
     }
 }
 
@@ -3236,7 +3446,10 @@ fn prop_multimap_move_down_then_up_is_identity() {
         let initial = mm.current_floor();
         if mm.move_down() {
             // Successfully moved to a deeper floor — move_up must restore us.
-            assert!(mm.move_up(), "move_up must succeed after successful move_down");
+            assert!(
+                mm.move_up(),
+                "move_up must succeed after successful move_down"
+            );
             assert_eq!(
                 mm.current_floor(),
                 initial,
@@ -3440,7 +3653,10 @@ fn prop_damage_vulnerability_amplifies_resistance_attenuates() {
 
         let vuln_pct = -(rng.range(1, 400));
         let vuln = ResistanceProfile::new().with(ty, vuln_pct);
-        assert!(vuln.is_vulnerable(ty), "resist={vuln_pct} should be vulnerable");
+        assert!(
+            vuln.is_vulnerable(ty),
+            "resist={vuln_pct} should be vulnerable"
+        );
         assert!(
             vuln.apply(damage, ty) >= damage,
             "vulnerability must amplify: apply({damage})={} < {damage} (resist={vuln_pct}, {ty:?})",
@@ -3604,8 +3820,18 @@ fn prop_stats_modified_saturates_and_never_heals() {
         let want_max = base.max_hp.saturating_add(m.max_hp).max(0);
         assert_eq!(out.max_hp, want_max, "max_hp not saturating-clamped");
         assert!(out.max_hp >= 0, "max_hp negative");
-        assert!(out.hp <= out.max_hp, "hp {} above new max {}", out.hp, out.max_hp);
-        assert!(out.hp <= base.hp, "modifier healed: {} > {}", out.hp, base.hp);
+        assert!(
+            out.hp <= out.max_hp,
+            "hp {} above new max {}",
+            out.hp,
+            out.max_hp
+        );
+        assert!(
+            out.hp <= base.hp,
+            "modifier healed: {} > {}",
+            out.hp,
+            base.hp
+        );
     }
 }
 
@@ -3628,10 +3854,16 @@ fn prop_base_damage_min_one_and_monotone() {
         // Monotone: +attack never decreases, +defense never increases.
         let mut stronger = att.clone();
         stronger.attack = att.attack.saturating_add(rng.range(0, 100));
-        assert!(base_damage(&stronger, &def) >= d, "more attack lowered damage");
+        assert!(
+            base_damage(&stronger, &def) >= d,
+            "more attack lowered damage"
+        );
         let mut tougher = def.clone();
         tougher.defense = def.defense.saturating_add(rng.range(0, 100));
-        assert!(base_damage(&att, &tougher) <= d, "more defense raised damage");
+        assert!(
+            base_damage(&att, &tougher) <= d,
+            "more defense raised damage"
+        );
     }
 }
 
@@ -3669,7 +3901,10 @@ fn prop_hp_percent_bounded_and_monotone() {
         let pa = a.hp_percent();
         let pb = b.hp_percent();
         assert!(pa <= 100 && pb <= 100, "hp_percent exceeded 100: {pa}/{pb}");
-        assert!(pb >= pa, "hp_percent not monotone: hp {hi}->{pb} < hp {lo}->{pa}");
+        assert!(
+            pb >= pa,
+            "hp_percent not monotone: hp {hi}->{pb} < hp {lo}->{pa}"
+        );
     }
 }
 
@@ -3714,7 +3949,10 @@ fn prop_splash_attack_min_one_and_non_increasing() {
         for w in dmgs.windows(2) {
             assert!(w[1] <= w[0], "splash damage rose with falloff: {:?}", dmgs);
         }
-        assert!(dmgs.iter().all(|&d| d >= 1), "a target took < 1 damage: {dmgs:?}");
+        assert!(
+            dmgs.iter().all(|&d| d >= 1),
+            "a target took < 1 damage: {dmgs:?}"
+        );
     }
 }
 
@@ -3736,8 +3974,16 @@ fn prop_critical_strike_at_least_base_and_draw_contract() {
         let probe = rng.state();
         let r = critical_strike(&mut rng, &att, &mut def, chance, mult);
         assert_eq!(rng.state(), probe, "degenerate crit chance consumed a draw");
-        assert_eq!(r.critical, chance >= 100, "crit flag wrong for chance {chance}");
-        assert!(r.damage >= base, "crit_strike {} below base {base}", r.damage);
+        assert_eq!(
+            r.critical,
+            chance >= 100,
+            "crit flag wrong for chance {chance}"
+        );
+        assert!(
+            r.damage >= base,
+            "crit_strike {} below base {base}",
+            r.damage
+        );
         if r.critical {
             let want = (base as i64 * mult.max(1) as i64).min(i32::MAX as i64) as i32;
             assert_eq!(r.damage, want, "crit damage != base*max(1,mult) clamped");
@@ -4013,7 +4259,11 @@ fn prop_status_tick_duration_accounting() {
 
         for (k, r) in &before {
             if *r > ticks {
-                assert_eq!(s.remaining_of(k), r - ticks, "survivor not decremented by n");
+                assert_eq!(
+                    s.remaining_of(k),
+                    r - ticks,
+                    "survivor not decremented by n"
+                );
                 assert!(s.remaining_of(k) > 0, "survivor remaining hit 0");
             } else {
                 assert!(!s.is_active(k), "expired effect still active");
@@ -4143,11 +4393,31 @@ fn prop_status_hash_and_aggregates_order_independent() {
             rev.apply(k, d, m);
         }
 
-        assert_eq!(hash_state(&fwd), hash_state(&rev), "hash depends on apply order");
-        assert_eq!(fwd.total_magnitude(), rev.total_magnitude(), "total differs");
-        assert_eq!(fwd.magnitude_range(), rev.magnitude_range(), "range differs");
-        assert_eq!(fwd.max_remaining(), rev.max_remaining(), "max_remaining differs");
-        assert_eq!(fwd.min_remaining(), rev.min_remaining(), "min_remaining differs");
+        assert_eq!(
+            hash_state(&fwd),
+            hash_state(&rev),
+            "hash depends on apply order"
+        );
+        assert_eq!(
+            fwd.total_magnitude(),
+            rev.total_magnitude(),
+            "total differs"
+        );
+        assert_eq!(
+            fwd.magnitude_range(),
+            rev.magnitude_range(),
+            "range differs"
+        );
+        assert_eq!(
+            fwd.max_remaining(),
+            rev.max_remaining(),
+            "max_remaining differs"
+        );
+        assert_eq!(
+            fwd.min_remaining(),
+            rev.min_remaining(),
+            "min_remaining differs"
+        );
     }
 }
 
@@ -4226,7 +4496,11 @@ fn prop_inventory_add_fills_first_empty() {
         let result = inv.add(item);
         if let Some(slot) = result {
             assert_eq!(Some(slot), pre_empty, "add did not use first_empty_slot");
-            assert_eq!(inv.get(slot), Some(&item), "item not stored at returned slot");
+            assert_eq!(
+                inv.get(slot),
+                Some(&item),
+                "item not stored at returned slot"
+            );
             assert_eq!(inv.len(), len_before + 1, "len did not increment");
         } else {
             assert!(inv.is_full(), "add returned None on a non-full inventory");
@@ -4253,7 +4527,11 @@ fn prop_inventory_add_remove_round_trip() {
         let before = hash_state(&inv);
         let item = rng.below(1000);
         let slot = inv.add(item).expect("non-full inventory must accept add");
-        assert_eq!(inv.remove(slot), Some(item), "remove did not return the item");
+        assert_eq!(
+            inv.remove(slot),
+            Some(item),
+            "remove did not return the item"
+        );
         assert_eq!(hash_state(&inv), before, "add+remove was not identity");
     }
 }
@@ -4433,14 +4711,22 @@ fn prop_tilemap_rotation_round_trips() {
         let ms = tile_multiset(&m);
 
         let once = m.rotated_cw();
-        assert_eq!((once.width(), once.height()), (h, w), "CW did not swap dims");
+        assert_eq!(
+            (once.width(), once.height()),
+            (h, w),
+            "CW did not swap dims"
+        );
         assert_eq!(tile_multiset(&once), ms, "CW altered the multiset");
 
         let four = once.rotated_cw().rotated_cw().rotated_cw();
         assert_eq!(hash_state(&four), before, "four CW rotations != identity");
 
         let there_and_back = m.rotated_cw().rotated_ccw();
-        assert_eq!(hash_state(&there_and_back), before, "CW then CCW != identity");
+        assert_eq!(
+            hash_state(&there_and_back),
+            before,
+            "CW then CCW != identity"
+        );
     }
 }
 
@@ -4504,10 +4790,22 @@ fn prop_tilemap_iter_consistency() {
             .map(|(x, y, _)| (x, y))
             .collect();
         assert_eq!(m.find_all(pred), expected, "find_all != row-major filter");
-        assert_eq!(m.count_where(pred), expected.len(), "count_where != match count");
-        assert_eq!(m.any_where(pred), !expected.is_empty(), "any_where mismatch");
+        assert_eq!(
+            m.count_where(pred),
+            expected.len(),
+            "count_where != match count"
+        );
+        assert_eq!(
+            m.any_where(pred),
+            !expected.is_empty(),
+            "any_where mismatch"
+        );
         assert_eq!(m.all_where(pred), expected.len() == n, "all_where mismatch");
-        assert_eq!(m.find_first(pred), expected.first().copied(), "find_first mismatch");
+        assert_eq!(
+            m.find_first(pred),
+            expected.first().copied(),
+            "find_first mismatch"
+        );
     }
 }
 
@@ -4536,7 +4834,10 @@ fn prop_tilemap_set_get_swap_laws() {
         m.set(x, h, 250);
         m.set(w + 5, h + 5, 250);
         assert_eq!(hash_state(&m), before_oob, "OOB set mutated the grid");
-        assert!(m.get(-1, 0).is_none() && m.get(w, 0).is_none(), "OOB get not None");
+        assert!(
+            m.get(-1, 0).is_none() && m.get(w, 0).is_none(),
+            "OOB get not None"
+        );
 
         let ms = tile_multiset(&m);
         let before_swap = hash_state(&m);
@@ -4566,7 +4867,11 @@ fn prop_layered_map_layers_independent() {
         let x = rng.below(w) as i32;
         let y = rng.below(h) as i32;
         m.set(li, x, y, 9);
-        assert_eq!(m.get(li, x, y), Some(&9), "set/get on target layer disagree");
+        assert_eq!(
+            m.get(li, x, y),
+            Some(&9),
+            "set/get on target layer disagree"
+        );
         for other in 0..lc {
             if other != li {
                 assert_eq!(m.get(other, x, y), Some(&0), "layer {other} leaked a write");
@@ -4651,8 +4956,16 @@ fn prop_dice_average_and_span_formulas() {
         );
 
         // span == max - min == count*(sides-1); modifier cancels.
-        assert_eq!(d.span() as i64, d.max() as i64 - d.min() as i64, "span != max-min");
-        assert_eq!(d.span() as i64, count * (sides - 1), "span != count*(sides-1)");
+        assert_eq!(
+            d.span() as i64,
+            d.max() as i64 - d.min() as i64,
+            "span != max-min"
+        );
+        assert_eq!(
+            d.span() as i64,
+            count * (sides - 1),
+            "span != count*(sides-1)"
+        );
         let shifted = Dice::new(d.count, d.sides, d.modifier.wrapping_add(7));
         assert_eq!(d.span(), shifted.span(), "span depends on modifier");
     }
@@ -4674,7 +4987,10 @@ fn prop_dice_advantage_dominates_disadvantage() {
         let dis = d.roll_disadvantage(&mut rb);
         assert!(adv >= dis, "advantage {adv} < disadvantage {dis} for {d}");
         assert!(adv >= d.min() && adv <= d.max(), "advantage out of bounds");
-        assert!(dis >= d.min() && dis <= d.max(), "disadvantage out of bounds");
+        assert!(
+            dis >= d.min() && dis <= d.max(),
+            "disadvantage out of bounds"
+        );
     }
 }
 
@@ -4695,7 +5011,11 @@ fn prop_dice_keep_highest_bounds_and_draw_contract() {
 
         if n == 0 || keep == 0 {
             assert_eq!(v, d.modifier, "degenerate keep-highest != modifier");
-            assert_eq!(rr.state(), SplitMix64::new(seed).state(), "degenerate case drew");
+            assert_eq!(
+                rr.state(),
+                SplitMix64::new(seed).state(),
+                "degenerate case drew"
+            );
         } else {
             let k = keep.min(n) as i64;
             let lo = k * d.min() as i64;
@@ -4715,8 +5035,16 @@ fn prop_dice_keep_highest_bounds_and_draw_contract() {
 fn prop_dice_display_parse_round_trip() {
     let mut rng = SplitMix64::new(0x0D1C_ED15);
     for _ in 0..ITERS {
-        let d = Dice::new(rng.below(1000), 1 + rng.below(1000), rng.range(-10_000, 10_000));
-        assert_eq!(Dice::parse(&d.to_string()), Some(d), "round-trip failed for {d}");
+        let d = Dice::new(
+            rng.below(1000),
+            1 + rng.below(1000),
+            rng.range(-10_000, 10_000),
+        );
+        assert_eq!(
+            Dice::parse(&d.to_string()),
+            Some(d),
+            "round-trip failed for {d}"
+        );
     }
 }
 
@@ -4792,7 +5120,11 @@ fn prop_camera_screen_world_round_trip() {
         // OOB screen coords clamp to the last valid cell.
         let (cwx, cwy) = c.screen_to_world(c.screen_w + 5, c.screen_h + 5);
         let (ewx, ewy) = c.screen_to_world(c.screen_w - 1, c.screen_h - 1);
-        assert_eq!((cwx, cwy), (ewx, ewy), "OOB screen coords did not clamp to edge");
+        assert_eq!(
+            (cwx, cwy),
+            (ewx, ewy),
+            "OOB screen coords did not clamp to edge"
+        );
     }
 }
 
@@ -4848,9 +5180,17 @@ fn prop_camera_visibility_equivalences() {
         let wx = rng.range(-30, 90);
         let wy = rng.range(-30, 90);
         let inside = wx >= l && wx < r && wy >= t && wy < b;
-        assert_eq!(c.world_to_screen(wx, wy).is_some(), inside, "world_to_screen vs rect");
+        assert_eq!(
+            c.world_to_screen(wx, wy).is_some(),
+            inside,
+            "world_to_screen vs rect"
+        );
         assert_eq!(c.is_visible(wx, wy), inside, "is_visible vs rect");
-        assert_eq!(c.distance_to_edge(wx, wy) >= 0, inside, "distance_to_edge sign vs rect");
+        assert_eq!(
+            c.distance_to_edge(wx, wy) >= 0,
+            inside,
+            "distance_to_edge sign vs rect"
+        );
     }
 }
 
@@ -4865,9 +5205,16 @@ fn prop_camera_clamp_world_to_screen_in_bounds() {
         let wx = rng.range(-30, 90);
         let wy = rng.range(-30, 90);
         let (sx, sy) = c.clamp_world_to_screen(wx, wy);
-        assert!(sx < c.screen_w && sy < c.screen_h, "clamp result off-screen");
+        assert!(
+            sx < c.screen_w && sy < c.screen_h,
+            "clamp result off-screen"
+        );
         if let Some(visible) = c.world_to_screen(wx, wy) {
-            assert_eq!((sx, sy), visible, "clamp disagreed with world_to_screen for visible point");
+            assert_eq!(
+                (sx, sy),
+                visible,
+                "clamp disagreed with world_to_screen for visible point"
+            );
         }
     }
 }
@@ -4882,17 +5229,33 @@ fn prop_camera_world_rect_and_overlap_consistency() {
     for _ in 0..ITERS {
         let c = rand_camera(&mut rng);
         let (l, t, r, b) = c.world_rect();
-        assert_eq!(r, c.top_left_x + c.screen_w as i32, "world_rect right wrong");
-        assert_eq!(b, c.top_left_y + c.screen_h as i32, "world_rect bottom wrong");
+        assert_eq!(
+            r,
+            c.top_left_x + c.screen_w as i32,
+            "world_rect right wrong"
+        );
+        assert_eq!(
+            b,
+            c.top_left_y + c.screen_h as i32,
+            "world_rect bottom wrong"
+        );
         assert_eq!(c.viewport_area(), c.screen_w * c.screen_h, "area != w*h");
-        assert_eq!(c.center(), (l + c.screen_w as i32 / 2, t + c.screen_h as i32 / 2), "center wrong");
+        assert_eq!(
+            c.center(),
+            (l + c.screen_w as i32 / 2, t + c.screen_h as i32 / 2),
+            "center wrong"
+        );
 
         let rl = rng.range(-10, 70);
         let rt = rng.range(-10, 70);
         let rr = rl + 1 + rng.below(20) as i32;
         let rb = rt + 1 + rng.below(20) as i32;
         let overlap = rl < r && rr > l && rt < b && rb > t;
-        assert_eq!(c.contains_rect(rl, rt, rr, rb), overlap, "contains_rect != AABB overlap");
+        assert_eq!(
+            c.contains_rect(rl, rt, rr, rb),
+            overlap,
+            "contains_rect != AABB overlap"
+        );
         assert!(!c.contains_rect(5, 5, 5, 9), "empty rect overlapped");
     }
 }
@@ -4913,7 +5276,11 @@ fn prop_camera_chebyshev_metric_axioms() {
         let dbp = Camera::screen_distance(b.0, b.1, p.0, p.1);
         let dap = Camera::screen_distance(a.0, a.1, p.0, p.1);
         assert_eq!(dab, dba, "screen_distance not symmetric");
-        assert_eq!(dab == 0, a == b, "screen_distance zero must mean equal cells");
+        assert_eq!(
+            dab == 0,
+            a == b,
+            "screen_distance zero must mean equal cells"
+        );
         assert!(dap <= dab + dbp, "triangle inequality violated");
 
         let c = rand_camera(&mut rng);
@@ -4921,7 +5288,11 @@ fn prop_camera_chebyshev_metric_axioms() {
         let wx = rng.range(-30, 90);
         let wy = rng.range(-30, 90);
         let expected = (ccx - wx).unsigned_abs().max((ccy - wy).unsigned_abs());
-        assert_eq!(c.chebyshev_to_center(wx, wy), expected, "chebyshev_to_center wrong");
+        assert_eq!(
+            c.chebyshev_to_center(wx, wy),
+            expected,
+            "chebyshev_to_center wrong"
+        );
     }
 }
 
@@ -4965,7 +5336,10 @@ fn prop_visibility_exploration_is_monotone() {
                 let y = (i as u32 / w) as i32;
                 if was {
                     assert!(v.is_explored(x, y), "explored cell ({x},{y}) reverted");
-                    assert!(v.get(x, y) >= Visibility::Remembered, "rank dropped below Remembered");
+                    assert!(
+                        v.get(x, y) >= Visibility::Remembered,
+                        "rank dropped below Remembered"
+                    );
                 }
             }
         }
@@ -4993,9 +5367,20 @@ fn prop_visibility_counts_partition() {
         let unseen = v.count(Visibility::Unseen);
         let remembered = v.count(Visibility::Remembered);
         let visible = v.visible_count();
-        assert_eq!(unseen + remembered + visible, len, "states do not partition");
-        assert_eq!(v.explored_count(), visible + remembered, "explored != vis+rem");
-        assert!(visible <= v.explored_count() && v.explored_count() <= len, "ordering broken");
+        assert_eq!(
+            unseen + remembered + visible,
+            len,
+            "states do not partition"
+        );
+        assert_eq!(
+            v.explored_count(),
+            visible + remembered,
+            "explored != vis+rem"
+        );
+        assert!(
+            visible <= v.explored_count() && v.explored_count() <= len,
+            "ordering broken"
+        );
         assert_eq!(
             v.explored_percent(),
             (v.explored_count() as u64 * 100 / len as u64) as u32,
@@ -5026,7 +5411,9 @@ fn prop_visibility_begin_frame_demotes_exactly() {
         for (x, y, was) in before {
             let now = v.get(x, y);
             match was {
-                Visibility::Visible => assert_eq!(now, Visibility::Remembered, "visible not demoted"),
+                Visibility::Visible => {
+                    assert_eq!(now, Visibility::Remembered, "visible not demoted")
+                }
                 other => assert_eq!(now, other, "non-visible cell changed"),
             }
         }
@@ -5051,8 +5438,14 @@ fn prop_shufflebag_cycle_is_permutation() {
         let mut got = drawn.clone();
         expected.sort_unstable();
         got.sort_unstable();
-        assert_eq!(got, expected, "one cycle must be a permutation of the template");
-        assert!(bag.cycle_exhausted(), "bag must be empty after exactly one cycle");
+        assert_eq!(
+            got, expected,
+            "one cycle must be a permutation of the template"
+        );
+        assert!(
+            bag.cycle_exhausted(),
+            "bag must be empty after exactly one cycle"
+        );
     }
 }
 
@@ -5088,7 +5481,9 @@ fn prop_shufflebag_draw_sequence_deterministic() {
         let seq = |s: u64| {
             let mut bag = ShuffleBag::new(contents.clone());
             let mut r = SplitMix64::new(s);
-            (0..draws).map(|_| bag.draw(&mut r).unwrap()).collect::<Vec<_>>()
+            (0..draws)
+                .map(|_| bag.draw(&mut r).unwrap())
+                .collect::<Vec<_>>()
         };
         assert_eq!(seq(seed), seq(seed), "same seed must produce same sequence");
     }
@@ -5117,7 +5512,11 @@ fn prop_shufflebag_size1_no_rng_draw() {
         for _ in 0..8 {
             assert_eq!(bag.draw(&mut rng), Some(item));
         }
-        assert_eq!(rng.state(), state_before, "size-1 bag must consume no RNG state");
+        assert_eq!(
+            rng.state(),
+            state_before,
+            "size-1 bag must consume no RNG state"
+        );
     }
 }
 
@@ -5147,7 +5546,14 @@ fn rand_equipment(rng: &mut SplitMix64) -> Equipment<StatsModifier> {
             let attack = rng.range(-5, 6);
             let defense = rng.range(-5, 6);
             let max_hp = rng.range(-10, 11);
-            gear.equip(slot, StatsModifier { attack, defense, max_hp });
+            gear.equip(
+                slot,
+                StatsModifier {
+                    attack,
+                    defense,
+                    max_hp,
+                },
+            );
         }
     }
     gear
@@ -5159,7 +5565,10 @@ fn prop_equipment_occupancy_partition() {
     let mut rng = SplitMix64::new(0xE901_0001);
     for _ in 0..ITERS {
         let gear = rand_equipment(&mut rng);
-        assert_eq!(gear.occupied_count() + gear.empty_count(), gear.slot_count());
+        assert_eq!(
+            gear.occupied_count() + gear.empty_count(),
+            gear.slot_count()
+        );
         assert_eq!(gear.is_empty(), gear.occupied_count() == 0);
         // iter yields exactly occupied_count items, all in canonical order.
         let slots: Vec<EquipSlot> = gear.iter().map(|(s, _)| s).collect();
@@ -5198,7 +5607,11 @@ fn prop_equipment_equip_unequip_round_trip() {
         let mut gear = rand_equipment(&mut rng);
         let slot = EquipSlot::ALL[rng.below(9) as usize];
         let before = gear.get(slot).copied();
-        let item = StatsModifier { attack: rng.range(-3, 4), defense: 0, max_hp: 0 };
+        let item = StatsModifier {
+            attack: rng.range(-3, 4),
+            defense: 0,
+            max_hp: 0,
+        };
         let displaced = gear.equip(slot, item);
         assert_eq!(displaced, before, "equip must return the prior occupant");
         assert_eq!(gear.get(slot), Some(&item), "slot now holds the new item");
@@ -5236,7 +5649,11 @@ fn prop_equipment_equip_locality_and_count() {
             assert_eq!(count_after, count_before + 1, "fill grows count by one");
         }
         for (s, prev) in others {
-            assert_eq!(gear.get(s).copied(), prev, "equip must not touch other slots");
+            assert_eq!(
+                gear.get(s).copied(),
+                prev,
+                "equip must not touch other slots"
+            );
         }
     }
 }
@@ -5253,9 +5670,17 @@ fn prop_equipment_deterministic_and_hashable() {
         let ga = rand_equipment(&mut a);
         let mut gb = rand_equipment(&mut b);
         assert_eq!(hash_state(&ga), hash_state(&gb), "same seed ⇒ same hash");
-        assert_eq!(ga.aggregate(|&m| m), gb.aggregate(|&m| m), "aggregate reproducible");
+        assert_eq!(
+            ga.aggregate(|&m| m),
+            gb.aggregate(|&m| m),
+            "aggregate reproducible"
+        );
         gb.clear();
-        assert_eq!(hash_state(&gb), empty_hash, "cleared loadout hashes as empty");
+        assert_eq!(
+            hash_state(&gb),
+            empty_hash,
+            "cleared loadout hashes as empty"
+        );
         assert_eq!(gb.aggregate(|&m| m), StatsModifier::default());
     }
 }
@@ -5333,7 +5758,11 @@ fn prop_equipment_uncurse_reverses_curse() {
         let mut cursed = gear.clone();
         cursed.curse(slot);
         cursed.uncurse(slot);
-        assert_eq!(hash_state(&cursed), before, "curse then uncurse restores the original hash");
+        assert_eq!(
+            hash_state(&cursed),
+            before,
+            "curse then uncurse restores the original hash"
+        );
     }
 }
 
@@ -5350,7 +5779,10 @@ fn prop_equipment_equip_unequip_always_clear_curse() {
             match rng.below(3) {
                 0 => {
                     gear.equip(slot, StatsModifier::default());
-                    assert!(!gear.is_cursed(slot), "freshly equipped item is never cursed");
+                    assert!(
+                        !gear.is_cursed(slot),
+                        "freshly equipped item is never cursed"
+                    );
                 }
                 1 => {
                     gear.unequip(slot);
@@ -5384,7 +5816,10 @@ fn prop_equipment_det_hash_matches_curse_state_change() {
         gear.curse(slot);
         let after = hash_state(&gear);
         if was_occupied_uncursed {
-            assert_ne!(before, after, "cursing an eligible slot must change the hash");
+            assert_ne!(
+                before, after,
+                "cursing an eligible slot must change the hash"
+            );
         } else {
             assert_eq!(before, after, "curse() no-op must not change the hash");
         }
@@ -5447,7 +5882,10 @@ fn prop_progression_level_monotone_in_xp() {
         let x1 = rng.next_u64() % 1_000_000;
         let x2 = rng.next_u64() % 1_000_000;
         let (lo, hi) = (x1.min(x2), x1.max(x2));
-        assert!(c.level_at(lo) <= c.level_at(hi), "level must be monotone in xp");
+        assert!(
+            c.level_at(lo) <= c.level_at(hi),
+            "level must be monotone in xp"
+        );
     }
 }
 
@@ -5465,8 +5903,16 @@ fn prop_progression_add_xp_conserves_and_derives() {
         let before_xp = p.total_xp();
         let amount = rng.next_u64() % 500_000;
         let gained = p.add_xp(amount);
-        assert_eq!(p.total_xp(), before_xp.saturating_add(amount), "xp conserved");
-        assert_eq!(p.level(), c.level_at(p.total_xp()), "level is pure fn of total");
+        assert_eq!(
+            p.total_xp(),
+            before_xp.saturating_add(amount),
+            "xp conserved"
+        );
+        assert_eq!(
+            p.level(),
+            c.level_at(p.total_xp()),
+            "level is pure fn of total"
+        );
         assert_eq!(gained, p.level() - before_level, "gained == delta level");
         assert!(p.level() <= c.max_level(), "level never exceeds cap");
     }
@@ -5536,7 +5982,10 @@ fn prop_lightmap_add_never_decreases() {
                 rng.below(128) as u16,
             );
         }
-        let before: Vec<u16> = (0..h).flat_map(|y| (0..w).map(move |x| (x, y))).map(|(x, y)| lm.get(x as i32, y as i32)).collect();
+        let before: Vec<u16> = (0..h)
+            .flat_map(|y| (0..w).map(move |x| (x, y)))
+            .map(|(x, y)| lm.get(x as i32, y as i32))
+            .collect();
         // Add one more light.
         lm.add_light(
             rng.range(0, w as i32),
@@ -5598,7 +6047,11 @@ fn prop_lightmap_addition_commutative() {
         ba.add_light(s2.0, s2.1, s2.2, s2.3);
         ba.add_light(s1.0, s1.1, s1.2, s1.3);
         for (x, y, v) in ab.iter() {
-            assert_eq!(v, ba.get(x, y), "add_light must be commutative at ({x},{y})");
+            assert_eq!(
+                v,
+                ba.get(x, y),
+                "add_light must be commutative at ({x},{y})"
+            );
         }
     }
 }
@@ -5616,7 +6069,7 @@ fn prop_lightmap_oob_safe() {
         let cx = rng.range(-(8i32), -1);
         let cy = rng.range(-(8i32), -1);
         lm.add_light(cx, cy, 20, 200); // large radius to possibly reach the map
-        // OOB get must return 0.
+                                       // OOB get must return 0.
         assert_eq!(lm.get(-1, 0), 0, "OOB returns 0");
         assert_eq!(lm.get(0, -1), 0);
         assert_eq!(lm.get(w as i32, 0), 0);
@@ -5647,7 +6100,10 @@ fn prop_faction_values_in_range() {
             }
         }
         for (_, _, rep) in fm.iter() {
-            assert!((MIN_REP..=MAX_REP).contains(&rep), "rep {rep} out of [-100,100]");
+            assert!(
+                (MIN_REP..=MAX_REP).contains(&rep),
+                "rep {rep} out of [-100,100]"
+            );
         }
     }
 }
@@ -5664,7 +6120,11 @@ fn prop_faction_threshold_partition() {
         let h = fm.is_hostile(1, 2);
         let n = fm.is_neutral(1, 2);
         let f = fm.is_friendly(1, 2);
-        assert_eq!(h as u8 + n as u8 + f as u8, 1, "exactly one alignment for rep {v}");
+        assert_eq!(
+            h as u8 + n as u8 + f as u8,
+            1,
+            "exactly one alignment for rep {v}"
+        );
         // Cross-check threshold values.
         assert_eq!(h, v < HOSTILE_THRESHOLD);
         assert_eq!(f, v > FRIENDLY_THRESHOLD);
@@ -5682,14 +6142,22 @@ fn prop_faction_symmetry_operations() {
         let b = (a + 1 + rng.below(3)) % 4; // always distinct from a
         let v = rng.range(MIN_REP, MAX_REP + 1);
         fm.set_symmetric(a, b, v);
-        assert_eq!(fm.get(a, b), fm.get(b, a), "set_symmetric must be bidirectional");
+        assert_eq!(
+            fm.get(a, b),
+            fm.get(b, a),
+            "set_symmetric must be bidirectional"
+        );
         let delta = rng.range(-50, 51);
         let before_ab = fm.get(a, b);
         let before_ba = fm.get(b, a);
         fm.modify_symmetric(a, b, delta);
         let exp = (before_ab + delta).clamp(MIN_REP, MAX_REP);
         assert_eq!(fm.get(a, b), exp, "modify_symmetric forward");
-        assert_eq!(fm.get(b, a), (before_ba + delta).clamp(MIN_REP, MAX_REP), "modify_symmetric backward");
+        assert_eq!(
+            fm.get(b, a),
+            (before_ba + delta).clamp(MIN_REP, MAX_REP),
+            "modify_symmetric backward"
+        );
     }
 }
 
@@ -5707,7 +6175,10 @@ fn prop_faction_modify_saturating() {
             fm.modify(0, 1, delta);
         }
         let rep = fm.get(0, 1);
-        assert!((MIN_REP..=MAX_REP).contains(&rep), "rep {rep} out of range after saturation");
+        assert!(
+            (MIN_REP..=MAX_REP).contains(&rep),
+            "rep {rep} out of range after saturation"
+        );
     }
 }
 
@@ -5719,13 +6190,17 @@ fn prop_faction_remove_and_default() {
         let mut fm: FactionMap<u32> = FactionMap::new();
         let a = rng.below(3);
         let b = rng.below(3) + 3; // different range ensures a != b always
-        // Missing pair returns 0.
+                                  // Missing pair returns 0.
         assert_eq!(fm.get(a, b), 0);
         let v = rng.range(-100, 101);
         fm.set(a, b, v);
         let before = fm.entry_count();
         let removed = fm.remove(a, b);
-        assert_eq!(removed, v.clamp(MIN_REP, MAX_REP), "remove returns the stored value");
+        assert_eq!(
+            removed,
+            v.clamp(MIN_REP, MAX_REP),
+            "remove returns the stored value"
+        );
         assert_eq!(fm.get(a, b), 0, "pair reads 0 after removal");
         assert_eq!(fm.entry_count(), before - 1, "count decreases by one");
     }
@@ -5839,7 +6314,10 @@ fn prop_quest_progress_monotone() {
             assert!(obj.current() >= prev, "progress must be monotone");
             prev = obj.current();
         }
-        assert!(obj.current() <= obj.target(), "current must not exceed target");
+        assert!(
+            obj.current() <= obj.target(),
+            "current must not exceed target"
+        );
     }
 }
 
@@ -5866,7 +6344,11 @@ fn prop_quest_partition_invariant() {
         let completed = q.completed_count();
         let failed = q.failed_count();
         let total = q.objective_count();
-        assert_eq!(active + completed + failed, total, "partition must cover all objectives");
+        assert_eq!(
+            active + completed + failed,
+            total,
+            "partition must cover all objectives"
+        );
     }
 }
 
@@ -5911,7 +6393,11 @@ fn prop_quest_fail_propagates() {
         let remaining = n - complete_up_to;
         let fail_idx = complete_up_to + rng.below(remaining as u32) as usize;
         q.fail_objective(fail_idx);
-        assert_eq!(q.state(), QuestState::Failed, "any failed objective ⇒ Failed");
+        assert_eq!(
+            q.state(),
+            QuestState::Failed,
+            "any failed objective ⇒ Failed"
+        );
     }
 }
 
@@ -5949,7 +6435,10 @@ fn prop_calendar_decomposition_invariant() {
             c.tick(),
             "day*period + time_of_day must equal tick"
         );
-        assert!(c.time_of_day() < c.ticks_per_day(), "time_of_day must be in [0, tpd)");
+        assert!(
+            c.time_of_day() < c.ticks_per_day(),
+            "time_of_day must be in [0, tpd)"
+        );
     }
 }
 
@@ -5980,8 +6469,16 @@ fn prop_calendar_advance_days_and_tick() {
         let n = rng.next_u64() % 1000;
         let before_day = c.day_number();
         let days_completed = c.advance(n);
-        assert_eq!(c.tick(), start.saturating_add(n), "tick must equal start + n");
-        assert_eq!(days_completed, c.day_number() - before_day, "days_completed must match delta");
+        assert_eq!(
+            c.tick(),
+            start.saturating_add(n),
+            "tick must equal start + n"
+        );
+        assert_eq!(
+            days_completed,
+            c.day_number() - before_day,
+            "days_completed must match delta"
+        );
     }
 }
 
@@ -6023,7 +6520,10 @@ fn prop_calendar_phase_membership() {
         } else {
             t >= s || t < e
         };
-        assert_eq!(in_phase, expected, "is_in_phase({s},{e}) at t={t} for tpd={tpd}");
+        assert_eq!(
+            in_phase, expected,
+            "is_in_phase({s},{e}) at t={t} for tpd={tpd}"
+        );
     }
 }
 
@@ -6037,12 +6537,17 @@ fn prop_recipe_can_craft_iff_all_satisfied() {
     for _ in 0..ITERS {
         let n = 1 + rng.below(5) as usize;
         let ingredients: Vec<Ingredient<u32>> = (0..n)
-            .map(|i| Ingredient { key: i as u32, count: 1 + rng.below(5) })
+            .map(|i| Ingredient {
+                key: i as u32,
+                count: 1 + rng.below(5),
+            })
             .collect();
         let r: Recipe<u32, u32> = Recipe::new("r", ingredients.clone(), 0);
         // Random available amounts.
         let avail: Vec<u32> = (0..n).map(|_| rng.below(8)).collect();
-        let expected = ingredients.iter().all(|ing| avail[ing.key as usize] >= ing.count);
+        let expected = ingredients
+            .iter()
+            .all(|ing| avail[ing.key as usize] >= ing.count);
         assert_eq!(
             r.can_craft(|k| avail[*k as usize]),
             expected,
@@ -6059,19 +6564,23 @@ fn prop_recipe_try_craft_consume_contract() {
     for _ in 0..ITERS {
         let n = 1 + rng.below(4) as usize;
         let ingredients: Vec<Ingredient<u32>> = (0..n)
-            .map(|i| Ingredient { key: i as u32, count: 1 + rng.below(4) })
+            .map(|i| Ingredient {
+                key: i as u32,
+                count: 1 + rng.below(4),
+            })
             .collect();
         let r: Recipe<u32, u32> = Recipe::new("r", ingredients.clone(), 42);
         let avail: Vec<u32> = (0..n).map(|_| rng.below(8)).collect();
         let can = r.can_craft(|k| avail[*k as usize]);
         let mut consume_calls = 0usize;
-        let out = r.try_craft(
-            |k| avail[*k as usize],
-            |_, _| consume_calls += 1,
-        );
+        let out = r.try_craft(|k| avail[*k as usize], |_, _| consume_calls += 1);
         if can {
             assert_eq!(out, Some(42), "should produce output when can_craft");
-            assert_eq!(consume_calls, r.ingredient_count(), "consume called once per ingredient");
+            assert_eq!(
+                consume_calls,
+                r.ingredient_count(),
+                "consume called once per ingredient"
+            );
         } else {
             assert_eq!(out, None, "should return None when can't craft");
             assert_eq!(consume_calls, 0, "consume must not be called on failure");
@@ -6087,7 +6596,10 @@ fn prop_recipe_duplicate_keys_merged() {
     for _ in 0..ITERS {
         let n = 1 + rng.below(8) as usize;
         let ingredients: Vec<Ingredient<u32>> = (0..n)
-            .map(|_| Ingredient { key: rng.below(3), count: 1 + rng.below(4) })
+            .map(|_| Ingredient {
+                key: rng.below(3),
+                count: 1 + rng.below(4),
+            })
             .collect();
         let r: Recipe<u32, u32> = Recipe::new("r", ingredients.clone(), 0);
         // Verify: canonical list has unique, sorted keys.
@@ -6097,8 +6609,16 @@ fn prop_recipe_duplicate_keys_merged() {
         }
         // Verify: summed counts match the raw input.
         for key in 0u32..3 {
-            let raw_total: u32 = ingredients.iter().filter(|i| i.key == key).map(|i| i.count).fold(0u32, |a, b| a.saturating_add(b));
-            let canon_count = canon.iter().find(|i| i.key == key).map(|i| i.count).unwrap_or(0);
+            let raw_total: u32 = ingredients
+                .iter()
+                .filter(|i| i.key == key)
+                .map(|i| i.count)
+                .fold(0u32, |a, b| a.saturating_add(b));
+            let canon_count = canon
+                .iter()
+                .find(|i| i.key == key)
+                .map(|i| i.count)
+                .unwrap_or(0);
             if raw_total > 0 {
                 assert_eq!(canon_count, raw_total, "merged count for key {key}");
             }
@@ -6206,7 +6726,10 @@ fn prop_threat_decay_is_monotone() {
         let total_before = t.total();
         let amount = rng.below(50) as i32;
         t.decay_all(amount);
-        assert!(t.total() <= total_before, "total threat cannot grow on decay");
+        assert!(
+            t.total() <= total_before,
+            "total threat cannot grow on decay"
+        );
         for (k, old) in before {
             let now = t.threat_of(k);
             assert!(now <= old, "per-source threat is non-increasing");
@@ -6243,7 +6766,11 @@ fn prop_threat_det_hash_order_independent() {
         let mut c = a.clone();
         let (bump_k, _) = entries[rng.below(n) as usize];
         c.add(bump_k, 1);
-        assert_ne!(hash_state(&a), hash_state(&c), "changed threat → changed hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "changed threat → changed hash"
+        );
     }
 }
 
@@ -6261,12 +6788,24 @@ fn prop_pool_current_always_in_bounds() {
         let mut p = Pool::with_current(max, rng.below(600) as i32, regen);
         for _ in 0..rng.below(12) {
             match rng.below(6) {
-                0 => { p.spend(rng.below(100) as i32); }
-                1 => { p.drain(rng.below(100) as i32); }
-                2 => { p.restore(rng.below(100) as i32); }
-                3 => { p.set(rng.below(600) as i32 - 100); }
-                4 => { p.tick(rng.below(10)); }
-                _ => { p.set_max(rng.below(500) as i32); }
+                0 => {
+                    p.spend(rng.below(100) as i32);
+                }
+                1 => {
+                    p.drain(rng.below(100) as i32);
+                }
+                2 => {
+                    p.restore(rng.below(100) as i32);
+                }
+                3 => {
+                    p.set(rng.below(600) as i32 - 100);
+                }
+                4 => {
+                    p.tick(rng.below(10));
+                }
+                _ => {
+                    p.set_max(rng.below(500) as i32);
+                }
             }
             assert!(p.current() >= 0, "current floored at 0");
             assert!(p.current() <= p.max(), "current never exceeds max");
@@ -6309,7 +6848,10 @@ fn prop_pool_drain_restore_report_true_delta() {
         let req = rng.below(200) as i32;
         let removed = p.drain(req);
         assert_eq!(removed, before - p.current(), "drain delta matches");
-        assert!(removed <= req.max(0) && removed >= 0, "drain within request");
+        assert!(
+            removed <= req.max(0) && removed >= 0,
+            "drain within request"
+        );
 
         let before2 = p.current();
         let req2 = rng.below(200) as i32;
@@ -6359,7 +6901,10 @@ fn prop_pool_percent_monotone_and_bounded() {
         assert!(pl.percent() <= 100 && ph.percent() <= 100);
         assert!(pl.per_mille() <= 1000 && ph.per_mille() <= 1000);
         assert!(pl.percent() <= ph.percent(), "percent monotone in current");
-        assert!(pl.per_mille() <= ph.per_mille(), "per_mille monotone in current");
+        assert!(
+            pl.per_mille() <= ph.per_mille(),
+            "per_mille monotone in current"
+        );
         // deficit + current == max.
         assert_eq!(pl.deficit() + pl.current(), max, "deficit completes to max");
     }
@@ -6476,7 +7021,11 @@ fn prop_tween_det_hash_sensitive() {
         let el = rng.below(dur + 1);
         let base = Tween::with_elapsed(a, b, dur, el);
         let same = Tween::with_elapsed(a, b, dur, el);
-        assert_eq!(hash_state(&base), hash_state(&same), "same state, same hash");
+        assert_eq!(
+            hash_state(&base),
+            hash_state(&same),
+            "same state, same hash"
+        );
 
         // Bumping elapsed (when not already at the cap) must change the hash.
         if el < dur {
@@ -6509,7 +7058,9 @@ fn prop_tween_sequence_advance_additive_across_steps() {
             durations
                 .iter()
                 .enumerate()
-                .map(|(i, &d)| Tween::new(Fixed::from_int(i as i32), Fixed::from_int(i as i32 + 1), d))
+                .map(|(i, &d)| {
+                    Tween::new(Fixed::from_int(i as i32), Fixed::from_int(i as i32 + 1), d)
+                })
                 .collect()
         };
         let total: u32 = durations.iter().sum::<u32>().max(1);
@@ -6528,7 +7079,11 @@ fn prop_tween_sequence_advance_additive_across_steps() {
             whole.elapsed_total(),
             "chained advance is additive across step boundaries"
         );
-        assert_eq!(split.value(linear), whole.value(linear), "same resulting value");
+        assert_eq!(
+            split.value(linear),
+            whole.value(linear),
+            "same resulting value"
+        );
         assert_eq!(split.is_done(), whole.is_done());
     }
 }
@@ -6553,8 +7108,16 @@ fn prop_tween_sequence_never_overruns_and_caps_at_total() {
             seq.current_index().map(|i| i < n).unwrap_or(true),
             "current_index must stay within [0, n)"
         );
-        assert_eq!(seq.elapsed_total().min(total), seq.elapsed_total(), "elapsed never exceeds total");
-        assert_eq!(seq.is_done(), seq.elapsed_total() >= total, "is_done matches elapsed vs total");
+        assert_eq!(
+            seq.elapsed_total().min(total),
+            seq.elapsed_total(),
+            "elapsed never exceeds total"
+        );
+        assert_eq!(
+            seq.is_done(),
+            seq.elapsed_total() >= total,
+            "is_done matches elapsed vs total"
+        );
     }
 }
 
@@ -6567,7 +7130,13 @@ fn prop_tween_sequence_reset_matches_fresh_construction() {
         let n = 1 + rng.below(5) as usize;
         let build = |rng: &mut SplitMix64| -> Vec<Tween> {
             (0..n)
-                .map(|_| Tween::new(Fixed::from_int(rng.range(-50, 50)), Fixed::from_int(rng.range(-50, 50)), rng.below(30)))
+                .map(|_| {
+                    Tween::new(
+                        Fixed::from_int(rng.range(-50, 50)),
+                        Fixed::from_int(rng.range(-50, 50)),
+                        rng.below(30),
+                    )
+                })
                 .collect()
         };
         let steps = build(&mut rng);
@@ -6576,7 +7145,10 @@ fn prop_tween_sequence_reset_matches_fresh_construction() {
         mutated.advance(1 + rng.below(50));
         mutated.reset();
 
-        assert_eq!(mutated, fresh, "reset restores the exact fresh-construction state");
+        assert_eq!(
+            mutated, fresh,
+            "reset restores the exact fresh-construction state"
+        );
     }
 }
 
@@ -6595,7 +7167,11 @@ fn prop_tween_sequence_det_hash_sensitive_to_advance() {
 
         let a = TweenSequence::new(steps.clone());
         let b = TweenSequence::new(steps);
-        assert_eq!(hash_state(&a), hash_state(&b), "identical fresh sequences hash equal");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "identical fresh sequences hash equal"
+        );
 
         if total > 0 {
             let mut c = a.clone();
@@ -6654,7 +7230,11 @@ fn prop_wallet_transfer_conserves_total() {
             "transfer conserves total currency"
         );
         if !ok {
-            assert_eq!(a.balance(cur), a_before, "failed transfer leaves sender unchanged");
+            assert_eq!(
+                a.balance(cur),
+                a_before,
+                "failed transfer leaves sender unchanged"
+            );
         }
     }
 }
@@ -6670,9 +7250,13 @@ fn prop_wallet_no_zero_balances() {
             let cur = rng.below(4);
             match rng.below(4) {
                 0 => w.deposit(cur, rng.below(100) as u64),
-                1 => { w.withdraw(cur, rng.below(100) as u64); }
+                1 => {
+                    w.withdraw(cur, rng.below(100) as u64);
+                }
                 2 => w.set(cur, rng.below(100) as u64),
-                _ => { w.remove(cur); }
+                _ => {
+                    w.remove(cur);
+                }
             }
         }
         let counted = w.iter().count();
@@ -6696,7 +7280,10 @@ fn prop_wallet_deposit_withdraw_round_trip() {
         let snapshot = w.balance(cur);
         let amount = 1 + rng.below(400) as u64;
         w.deposit(cur, amount);
-        assert!(w.withdraw(cur, amount), "just-deposited amount is withdrawable");
+        assert!(
+            w.withdraw(cur, amount),
+            "just-deposited amount is withdrawable"
+        );
         assert_eq!(w.balance(cur), snapshot, "deposit+withdraw round-trips");
     }
 }
@@ -6725,7 +7312,11 @@ fn prop_wallet_det_hash_order_independent() {
         let mut c = a.clone();
         let (bump_c, _) = entries[rng.below(n) as usize];
         c.deposit(bump_c, 1);
-        assert_ne!(hash_state(&a), hash_state(&c), "changed balance → changed hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "changed balance → changed hash"
+        );
     }
 }
 
@@ -6761,7 +7352,11 @@ fn prop_shop_buy_all_or_nothing_conserves_total() {
         if ok {
             assert_eq!(buyer.balance(0), buyer_before - buy_price, "exact payment");
         } else {
-            assert_eq!(buyer.balance(0), buyer_before, "failed buy leaves buyer unchanged");
+            assert_eq!(
+                buyer.balance(0),
+                buyer_before,
+                "failed buy leaves buyer unchanged"
+            );
         }
     }
 }
@@ -6795,7 +7390,11 @@ fn prop_shop_sell_all_or_nothing_conserves_total() {
             assert_eq!(seller.balance(0), sell_price, "exact payout");
             assert_eq!(shop.till_balance(), till_before - sell_price);
         } else {
-            assert_eq!(shop.till_balance(), till_before, "failed sell leaves till unchanged");
+            assert_eq!(
+                shop.till_balance(),
+                till_before,
+                "failed sell leaves till unchanged"
+            );
         }
     }
 }
@@ -6876,7 +7475,11 @@ fn prop_shop_det_hash_order_independent() {
 
         let mut c = a.clone();
         c.stock(1);
-        assert_ne!(hash_state(&a), hash_state(&c), "changed till → changed hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "changed till → changed hash"
+        );
     }
 }
 
@@ -6909,8 +7512,12 @@ fn prop_dialogue_cursor_always_valid() {
         let mut d = build_dialogue(&mut rng, n);
         for _ in 0..rng.below(20) {
             match rng.below(4) {
-                0 => { d.choose(rng.below(5) as usize); }
-                1 => { d.goto(rng.below(n as u32 + 2) as usize); }
+                0 => {
+                    d.choose(rng.below(5) as usize);
+                }
+                1 => {
+                    d.goto(rng.below(n as u32 + 2) as usize);
+                }
                 2 => d.end(),
                 _ => d.reset(),
             }
@@ -7011,7 +7618,11 @@ fn prop_dialogue_det_hash_cursor_sensitive() {
         let n = 2 + rng.below(7) as usize;
         let base = build_dialogue(&mut rng, n);
         let copy = base.clone();
-        assert_eq!(hash_state(&base), hash_state(&copy), "identical state, identical hash");
+        assert_eq!(
+            hash_state(&base),
+            hash_state(&copy),
+            "identical state, identical hash"
+        );
 
         // Move the cursor on a clone to a definitely-different valid node.
         let mut moved = base.clone();
@@ -7070,7 +7681,10 @@ fn prop_trigger_once_fires_at_most_once() {
                 fire_count += 1;
             }
         }
-        assert_eq!(fire_count, 1, "once-trigger fires exactly one time across {calls} checks");
+        assert_eq!(
+            fire_count, 1,
+            "once-trigger fires exactly one time across {calls} checks"
+        );
         assert!(ts.is_fired(1));
         assert!(!ts.is_armed(1));
     }
@@ -7089,7 +7703,10 @@ fn prop_trigger_reset_rearms_and_refires() {
         }
         ts.check(|c| *c);
         for k in 0..n as u32 {
-            assert!(ts.is_fired(k), "every once-trigger fires on the first check");
+            assert!(
+                ts.is_fired(k),
+                "every once-trigger fires on the first check"
+            );
         }
         ts.reset_all();
         for k in 0..n as u32 {
@@ -7119,7 +7736,10 @@ fn prop_trigger_check_order_is_canonical_by_key() {
         let fired_keys: Vec<u32> = fired.iter().map(|(k, _)| *k).collect();
         let mut expected = keys.clone();
         expected.sort();
-        assert_eq!(fired_keys, expected, "fired order is ascending by key regardless of insertion order");
+        assert_eq!(
+            fired_keys, expected,
+            "fired order is ascending by key regardless of insertion order"
+        );
     }
 }
 
@@ -7153,7 +7773,11 @@ fn prop_trigger_det_hash_order_independent_and_sensitive() {
             };
             b.insert(k, t);
         }
-        assert_eq!(hash_state(&a), hash_state(&b), "insertion order does not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "insertion order does not affect the hash"
+        );
 
         // Firing a once-trigger (if any exists) changes the fired-state and
         // must change the hash — evaluate against its own stored condition
@@ -7161,7 +7785,11 @@ fn prop_trigger_det_hash_order_independent_and_sensitive() {
         let target = entries.iter().find(|&&(_, _, once)| once);
         if let Some(&(k, cond, _)) = target {
             a.check(|c| *c == cond);
-            assert_ne!(hash_state(&a), hash_state(&b), "fired-state change (key {k}) → different hash");
+            assert_ne!(
+                hash_state(&a),
+                hash_state(&b),
+                "fired-state change (key {k}) → different hash"
+            );
         }
     }
 }
@@ -7187,7 +7815,8 @@ fn prop_netinput_confirm_order_independent() {
         for _ in 0..n {
             unique.insert((rng.below(20), rng.below(4)), rng.range(-100, 100));
         }
-        let entries: Vec<(u32, u32, i32)> = unique.into_iter().map(|((t, p), v)| (t, p, v)).collect();
+        let entries: Vec<(u32, u32, i32)> =
+            unique.into_iter().map(|((t, p), v)| (t, p, v)).collect();
 
         let mut a: NetInputBuffer<u32, i32> = NetInputBuffer::new();
         for &(tick, player, input) in &entries {
@@ -7201,7 +7830,11 @@ fn prop_netinput_confirm_order_independent() {
             b.confirm(tick, player, input);
         }
 
-        assert_eq!(hash_state(&a), hash_state(&b), "confirm order must not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "confirm order must not affect the hash"
+        );
         for &(tick, player, _) in &entries {
             assert_eq!(
                 a.confirmed_input(tick, player),
@@ -7251,7 +7884,11 @@ fn prop_netinput_misprediction_matches_predicted_mismatch() {
         let predicted = buf.input_for(tick, player).unwrap();
         let real = rng.range(-100, 100);
         let mispredicted = buf.confirm(tick, player, real);
-        assert_eq!(mispredicted, predicted != real, "misprediction flag matches predicted-vs-actual mismatch");
+        assert_eq!(
+            mispredicted,
+            predicted != real,
+            "misprediction flag matches predicted-vs-actual mismatch"
+        );
     }
 }
 
@@ -7280,7 +7917,10 @@ fn prop_netinput_prune_before_boundary_exact() {
             );
         }
         // last_known must still answer for future ticks regardless of pruning.
-        assert!(buf.input_for(300, player).is_some(), "last_known survives prune_before");
+        assert!(
+            buf.input_for(300, player).is_some(),
+            "last_known survives prune_before"
+        );
     }
 }
 
@@ -7297,7 +7937,11 @@ fn prop_netinput_det_hash_ignores_predictions_only() {
             a.confirm(rng.below(20), p, rng.range(-50, 50));
         }
         let b = a.clone();
-        assert_eq!(hash_state(&a), hash_state(&b), "identical clones hash equal");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "identical clones hash equal"
+        );
 
         // Predicting into fresh, unconfirmed ticks on `a` only must not
         // change the hash relative to `b`.
@@ -7312,7 +7956,11 @@ fn prop_netinput_det_hash_ignores_predictions_only() {
 
         // But actually confirming a new value does change it.
         a.confirm(1000, 0, rng.range(-50, 50).wrapping_add(1000));
-        assert_ne!(hash_state(&a), hash_state(&b), "a genuinely new confirmation changes the hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "a genuinely new confirmation changes the hash"
+        );
     }
 }
 
@@ -7341,7 +7989,11 @@ fn prop_meta_unlock_order_independent() {
             b.unlock(f);
         }
 
-        assert_eq!(hash_state(&a), hash_state(&b), "unlock order must not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "unlock order must not affect the hash"
+        );
         for &f in &features {
             assert_eq!(a.is_unlocked(f), b.is_unlocked(f));
         }
@@ -7370,7 +8022,11 @@ fn prop_meta_record_best_is_order_independent_max() {
         for &v in &shuffled {
             b.record_best(1, v);
         }
-        assert_eq!(b.best(1), Some(true_max), "order does not change the converged max");
+        assert_eq!(
+            b.best(1),
+            Some(true_max),
+            "order does not change the converged max"
+        );
     }
 }
 
@@ -7386,7 +8042,10 @@ fn prop_meta_record_best_return_matches_strict_improvement() {
             let v = rng.range(-100, 100) as i64;
             let expected_new_record = running_best.map(|b| v > b).unwrap_or(true);
             let got = meta.record_best(1, v);
-            assert_eq!(got, expected_new_record, "value {v} vs running best {running_best:?}");
+            assert_eq!(
+                got, expected_new_record,
+                "value {v} vs running best {running_best:?}"
+            );
             if expected_new_record {
                 running_best = Some(v);
             }
@@ -7411,7 +8070,11 @@ fn prop_meta_unlock_idempotent_under_repetition() {
         for _ in 0..repeats {
             many.unlock(feature);
         }
-        assert_eq!(hash_state(&many), hash_once, "repeated unlock == single unlock");
+        assert_eq!(
+            hash_state(&many),
+            hash_once,
+            "repeated unlock == single unlock"
+        );
     }
 }
 
@@ -7436,11 +8099,19 @@ fn prop_meta_det_hash_sensitive_to_content_only() {
         let current_best = a.best(stat).unwrap();
         let worse = current_best - 1 - rng.below(50) as i64;
         a.record_best(stat, worse);
-        assert_eq!(hash_state(&a), hash_state(&b), "rejected record leaves the hash unchanged");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "rejected record leaves the hash unchanged"
+        );
 
         // But an actual improvement does change it.
         a.record_best(stat, current_best + 1);
-        assert_ne!(hash_state(&a), hash_state(&b), "a genuine new record changes the hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "a genuine new record changes the hash"
+        );
     }
 }
 
@@ -7489,7 +8160,11 @@ fn prop_identify_input_order_independent() {
         let b = Identification::new(&shuffled, &labels, &mut rng_b);
 
         for &k in &kinds {
-            assert_eq!(a.appearance(k), b.appearance(k), "kind order must not affect the mapping");
+            assert_eq!(
+                a.appearance(k),
+                b.appearance(k),
+                "kind order must not affect the mapping"
+            );
         }
     }
 }
@@ -7520,7 +8195,11 @@ fn prop_identify_order_independent() {
             b.identify(k);
         }
 
-        assert_eq!(hash_state(&a), hash_state(&b), "identify order must not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "identify order must not affect the hash"
+        );
     }
 }
 
@@ -7535,7 +8214,8 @@ fn prop_identify_appearance_stable_under_identify_fuzzing() {
         let labels: Vec<u32> = (1000..1000 + n as u32).collect();
         let mut build_rng = SplitMix64::new(rng.next_u64());
         let mut id = Identification::new(&kinds, &labels, &mut build_rng);
-        let originals: Vec<Option<u32>> = kinds.iter().map(|&k| id.appearance(k).copied()).collect();
+        let originals: Vec<Option<u32>> =
+            kinds.iter().map(|&k| id.appearance(k).copied()).collect();
 
         for _ in 0..1 + rng.below(20) {
             let k = kinds[rng.below(n as u32) as usize];
@@ -7543,7 +8223,11 @@ fn prop_identify_appearance_stable_under_identify_fuzzing() {
         }
 
         for (k, &orig) in kinds.iter().zip(originals.iter()) {
-            assert_eq!(id.appearance(*k).copied(), orig, "appearance must never change");
+            assert_eq!(
+                id.appearance(*k).copied(),
+                orig,
+                "appearance must never change"
+            );
         }
     }
 }
@@ -7566,9 +8250,15 @@ fn prop_identify_det_hash_matches_state_change() {
         let was_new = id.identify(k);
         let after = hash_state(&id);
         if was_new {
-            assert_ne!(before, after, "a genuine new identification must change the hash");
+            assert_ne!(
+                before, after,
+                "a genuine new identification must change the hash"
+            );
         } else {
-            assert_eq!(before, after, "an already-identified kind must not change the hash");
+            assert_eq!(
+                before, after,
+                "an already-identified kind must not change the hash"
+            );
         }
     }
 }
@@ -7641,7 +8331,10 @@ fn prop_rng_split_siblings_are_independent() {
             sibling.next_u64();
         }
         let a_again = parent.split(id_a).next_u64();
-        assert_eq!(a_first, a_again, "sibling draws must not perturb this child");
+        assert_eq!(
+            a_first, a_again,
+            "sibling draws must not perturb this child"
+        );
     }
 }
 
@@ -7682,7 +8375,11 @@ fn prop_hash_unordered_permutation_invariant() {
 
         let mut shuffled = items.clone();
         rng.shuffle(&mut shuffled);
-        assert_eq!(base, hash_unordered(&shuffled), "permutation must not change the hash");
+        assert_eq!(
+            base,
+            hash_unordered(&shuffled),
+            "permutation must not change the hash"
+        );
     }
 }
 
@@ -7722,7 +8419,11 @@ fn prop_hash_unordered_content_sensitive() {
         // XOR with a value whose low bit is forced set: always nonzero, so the
         // element is guaranteed to change (unlike a random add, which could be 0).
         mutated[idx] ^= 1u64 | rng.next_u64();
-        assert_ne!(base, hash_unordered(&mutated), "a changed element must change the hash");
+        assert_ne!(
+            base,
+            hash_unordered(&mutated),
+            "a changed element must change the hash"
+        );
     }
 }
 
@@ -7795,7 +8496,10 @@ fn prop_xoshiro_jump_is_deterministic_and_distinct() {
         let mut jumped = j1.clone();
         // The jumped stream should not simply reproduce the base continuation.
         let differs = (0..4).any(|_| cont.next_u64() != jumped.next_u64());
-        assert!(differs, "jumped stream must differ from the base continuation");
+        assert!(
+            differs,
+            "jumped stream must differ from the base continuation"
+        );
     }
 }
 
@@ -7811,6 +8515,10 @@ fn prop_xoshiro_det_hash_tracks_state() {
         let mut b = Xoshiro256pp::new(seed);
         assert_eq!(hash_state(&a), hash_state(&b));
         b.next_u64();
-        assert_ne!(hash_state(&a), hash_state(&b), "a draw must change the state hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "a draw must change the state hash"
+        );
     }
 }

@@ -145,7 +145,10 @@ pub fn diag_sarif(file: &str, diags: &[Diagnostic]) -> String {
         };
         let region = if d.line > 0 {
             if d.col > 0 {
-                format!(",\"region\":{{\"startLine\":{},\"startColumn\":{}}}", d.line, d.col)
+                format!(
+                    ",\"region\":{{\"startLine\":{},\"startColumn\":{}}}",
+                    d.line, d.col
+                )
             } else {
                 format!(",\"region\":{{\"startLine\":{}}}", d.line)
             }
@@ -506,7 +509,10 @@ mod tests {
         let first_pos = sarif.find("first").unwrap();
         let second_pos = sarif.find("second").unwrap();
         let third_pos = sarif.find("third").unwrap();
-        assert!(first_pos < second_pos && second_pos < third_pos, "order preserved");
+        assert!(
+            first_pos < second_pos && second_pos < third_pos,
+            "order preserved"
+        );
     }
 
     #[test]

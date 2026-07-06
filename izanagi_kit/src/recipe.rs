@@ -125,7 +125,9 @@ impl<K: Ord + Clone, O: Clone + PartialEq> Recipe<K, O> {
     where
         F: Fn(&K) -> u32,
     {
-        self.ingredients.iter().all(|i| available(&i.key) >= i.count)
+        self.ingredients
+            .iter()
+            .all(|i| available(&i.key) >= i.count)
     }
 
     /// Attempt to craft: if `can_craft` succeeds, call `consume(k, n)` for
@@ -204,10 +206,7 @@ mod tests {
         let mut s = stock(&[(1, 3), (2, 2)]);
         // Snapshot for read closure — avoids overlapping borrows of s.
         let snap = s.clone();
-        let out = r.try_craft(
-            |k| avail(&snap, k),
-            |k, n| *s.entry(*k).or_insert(0) -= n,
-        );
+        let out = r.try_craft(|k| avail(&snap, k), |k, n| *s.entry(*k).or_insert(0) -= n);
         assert_eq!(out, Some(99u32));
         assert_eq!(s[&1], 1, "2 consumed from 3");
         assert_eq!(s[&2], 1, "1 consumed from 2");
@@ -237,7 +236,10 @@ mod tests {
         let r = Recipe::new(
             "merged",
             vec![
-                Ingredient { key: 1u32, count: 2 },
+                Ingredient {
+                    key: 1u32,
+                    count: 2,
+                },
                 Ingredient { key: 1, count: 3 },
             ],
             0u32,
@@ -272,11 +274,7 @@ mod tests {
 
     #[test]
     fn test_zero_count_ingredient_ignored() {
-        let r: Recipe<u32, u32> = Recipe::new(
-            "zero",
-            vec![Ingredient { key: 99, count: 0 }],
-            0u32,
-        );
+        let r: Recipe<u32, u32> = Recipe::new("zero", vec![Ingredient { key: 99, count: 0 }], 0u32);
         assert_eq!(r.ingredient_count(), 0, "zero-count ingredient dropped");
         let empty: BTreeMap<u32, u32> = BTreeMap::new();
         assert!(r.can_craft(|k| *empty.get(k).unwrap_or(&0)));
@@ -296,6 +294,10 @@ mod tests {
             ],
             99u32,
         );
-        assert_ne!(hash_state(&a), hash_state(&c), "different count → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "different count → different hash"
+        );
     }
 }

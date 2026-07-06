@@ -458,8 +458,7 @@ mod tests {
 
     #[test]
     fn test_flat_fire_no_parents() {
-        let mut f: HFsm<S, Ev> = HFsm::new(S::Alive)
-            .on(S::Alive, Ev::SeePlayer, S::Chase);
+        let mut f: HFsm<S, Ev> = HFsm::new(S::Alive).on(S::Alive, Ev::SeePlayer, S::Chase);
         assert!(f.fire(&Ev::SeePlayer));
         assert_eq!(*f.state(), S::Chase);
     }
@@ -475,8 +474,7 @@ mod tests {
     #[test]
     fn test_fire_returns_false_on_self_loop() {
         // A transition that returns to the current state is a no-change self-loop.
-        let mut f: HFsm<S, Ev> =
-            HFsm::new(S::Alive).on(S::Alive, Ev::Tick, S::Alive);
+        let mut f: HFsm<S, Ev> = HFsm::new(S::Alive).on(S::Alive, Ev::Tick, S::Alive);
         assert!(!f.fire(&Ev::Tick), "self-loop must return false");
         assert_eq!(*f.state(), S::Alive);
     }
@@ -541,10 +539,10 @@ mod tests {
         // event, it beats the wildcard.
         let mut ai = make_ai();
         ai.fire(&Ev::SeePlayer); // → Chase
-        // SeePlayer has a specific transition on Alive; if we add a Die transition
-        // on Alive and also have a Die wildcard, the specific wins.
-        // Here we just verify that LowHp from Chase uses Combat's specific, not
-        // the wildcard (Die fires correctly as wildcard only when nothing else matches).
+                                 // SeePlayer has a specific transition on Alive; if we add a Die transition
+                                 // on Alive and also have a Die wildcard, the specific wins.
+                                 // Here we just verify that LowHp from Chase uses Combat's specific, not
+                                 // the wildcard (Die fires correctly as wildcard only when nothing else matches).
         ai.fire(&Ev::LowHp); // Combat's transition → Flee, not wildcard
         assert_eq!(*ai.state(), S::Flee);
     }
@@ -658,7 +656,10 @@ mod tests {
     #[test]
     fn test_would_cycle_detects_self_and_two_cycle() {
         let f: HFsm<S, Ev> = HFsm::new(S::Alive).with_parent(S::Combat, S::Alive);
-        assert!(f.would_cycle(&S::Alive, &S::Alive), "self-parent is a cycle");
+        assert!(
+            f.would_cycle(&S::Alive, &S::Alive),
+            "self-parent is a cycle"
+        );
         assert!(
             f.would_cycle(&S::Alive, &S::Combat),
             "Alive→Combat closes Combat→Alive"
@@ -701,7 +702,10 @@ mod tests {
         // The payoff: after a rejected cycle the table is still a forest, so the
         // ancestor-walking queries return finite, correct results (no hang).
         let mut ai = make_ai();
-        assert!(!ai.try_set_parent(S::Alive, S::Chase), "would cycle, rejected");
+        assert!(
+            !ai.try_set_parent(S::Alive, S::Chase),
+            "would cycle, rejected"
+        );
         ai.fire(&Ev::SeePlayer); // → Chase, terminates
         assert_eq!(*ai.state(), S::Chase);
         assert_eq!(ai.ancestors(), vec![&S::Combat, &S::Alive]); // bounded
@@ -726,8 +730,7 @@ mod tests {
 
     #[test]
     fn test_det_hash_wildcard_vs_specific_differ() {
-        let specific: HFsm<S, Ev> =
-            HFsm::new(S::Alive).on(S::Alive, Ev::Die, S::Dead);
+        let specific: HFsm<S, Ev> = HFsm::new(S::Alive).on(S::Alive, Ev::Die, S::Dead);
         let wildcard: HFsm<S, Ev> = HFsm::new(S::Alive).on_any(Ev::Die, S::Dead);
         assert_ne!(hash_state(&specific), hash_state(&wildcard));
     }

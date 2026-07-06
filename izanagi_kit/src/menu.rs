@@ -511,7 +511,11 @@ mod tests {
         a.add_item("Attack", 1);
         let mut b: Menu<u32> = Menu::new();
         b.add_item("Defend", 1);
-        assert_ne!(hash_state(&a), hash_state(&b), "different labels must hash differently");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different labels must hash differently"
+        );
     }
 
     #[test]
@@ -520,7 +524,11 @@ mod tests {
         a.add_item("X", 1);
         let mut b: Menu<u32> = Menu::new();
         b.add_disabled("X", 1);
-        assert_ne!(hash_state(&a), hash_state(&b), "enabled vs disabled item must hash differently");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "enabled vs disabled item must hash differently"
+        );
     }
 
     #[test]
@@ -530,7 +538,11 @@ mod tests {
         let mut b: Menu<u32> = Menu::new();
         b.add_item("A", 1);
         b.add_item("B", 2);
-        assert_ne!(hash_state(&a), hash_state(&b), "different item counts must hash differently");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different item counts must hash differently"
+        );
     }
 
     #[test]

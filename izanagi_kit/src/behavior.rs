@@ -465,7 +465,10 @@ mod tests {
             BehaviorNode::action(Act::Ok),
         ]);
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
         assert_eq!(log, [Act::Ok, Act::Ok]);
     }
 
@@ -502,7 +505,10 @@ mod tests {
     fn test_sequence_empty_succeeds() {
         let node: BehaviorNode<Act> = BehaviorNode::sequence(vec![]);
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
         assert!(log.is_empty());
     }
 
@@ -516,7 +522,10 @@ mod tests {
             BehaviorNode::action(Act::Ok),
         ]);
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
         assert_eq!(log.len(), 2, "third node must not run");
     }
 
@@ -575,7 +584,10 @@ mod tests {
     fn test_invert_failure_to_success() {
         let node = BehaviorNode::invert(BehaviorNode::action(Act::Fail));
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
     }
 
     #[test]
@@ -594,7 +606,10 @@ mod tests {
     fn test_repeat_zero_times_no_run() {
         let node = BehaviorNode::repeat(BehaviorNode::action(Act::Ok), 0);
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
         assert!(log.is_empty(), "zero repetitions must not run child");
     }
 
@@ -602,7 +617,10 @@ mod tests {
     fn test_repeat_runs_n_times_on_success() {
         let node = BehaviorNode::repeat(BehaviorNode::action(Act::Ok), 3);
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
         assert_eq!(log.len(), 3);
     }
 
@@ -634,7 +652,10 @@ mod tests {
     fn test_succeed_absorbs_failure() {
         let node = BehaviorNode::succeed(BehaviorNode::action(Act::Fail));
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
         assert_eq!(log.len(), 1, "child must still run");
     }
 
@@ -655,7 +676,10 @@ mod tests {
     fn test_condition_true_is_success() {
         let node = BehaviorNode::condition(Act::Cond(true));
         let mut log = vec![];
-        assert_eq!(node.evaluate(&mut log, &act, &cond), BehaviorStatus::Success);
+        assert_eq!(
+            node.evaluate(&mut log, &act, &cond),
+            BehaviorStatus::Success
+        );
     }
 
     #[test]
@@ -693,9 +717,10 @@ mod tests {
     #[test]
     fn test_depth_nested_sequence_selector() {
         // selector → sequence → action  (depth 3)
-        let node = BehaviorNode::selector(vec![BehaviorNode::sequence(vec![
-            BehaviorNode::action(Act::Ok),
-        ])]);
+        let node =
+            BehaviorNode::selector(vec![BehaviorNode::sequence(vec![BehaviorNode::action(
+                Act::Ok,
+            )])]);
         assert_eq!(node.depth(), 3);
     }
 
@@ -705,10 +730,7 @@ mod tests {
     fn test_tree_evaluate_delegates_to_root() {
         let tree = BehaviorTree::new(BehaviorNode::action(Act::Ok));
         let mut log = vec![];
-        assert_eq!(
-            tree.evaluate(&mut log, act, cond),
-            BehaviorStatus::Success
-        );
+        assert_eq!(tree.evaluate(&mut log, act, cond), BehaviorStatus::Success);
     }
 
     #[test]

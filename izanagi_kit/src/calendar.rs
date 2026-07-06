@@ -154,7 +154,7 @@ impl Calendar {
             return min_brightness;
         }
         let f = self.fraction_per_mille(); // 0..1000
-        // Triangle wave peaking at f=500 (midday).
+                                           // Triangle wave peaking at f=500 (midday).
         let peak_dist = if f <= 500 { f } else { 1000 - f };
         // peak_dist in 0..=500; scale to [min, max].
         let range = (max_brightness - min_brightness) as u32;
@@ -258,8 +258,8 @@ mod tests {
 
     #[test]
     fn test_ambient_brightness_peaks_at_midday() {
-        let c_night = Calendar::with_tick(24, 0);    // midnight
-        let c_day = Calendar::with_tick(24, 12);     // noon
+        let c_night = Calendar::with_tick(24, 0); // midnight
+        let c_day = Calendar::with_tick(24, 12); // noon
         let night_b = c_night.ambient_brightness(20, 200);
         let noon_b = c_day.ambient_brightness(20, 200);
         assert_eq!(night_b, 20, "midnight is at minimum brightness");
@@ -287,8 +287,16 @@ mod tests {
         let b = Calendar::with_tick(24, 50);
         assert_eq!(hash_state(&a), hash_state(&b), "same state, same hash");
         let c = Calendar::with_tick(24, 51);
-        assert_ne!(hash_state(&a), hash_state(&c), "different tick, different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "different tick, different hash"
+        );
         let d = Calendar::with_tick(48, 50);
-        assert_ne!(hash_state(&a), hash_state(&d), "different period, different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&d),
+            "different period, different hash"
+        );
     }
 }

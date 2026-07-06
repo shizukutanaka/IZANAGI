@@ -380,6 +380,10 @@ mod tests {
         let mut c = ThreatTable::new();
         c.add(1u32, 50);
         c.add(2, 81); // one different threat value
-        assert_ne!(hash_state(&a), hash_state(&c), "different threat → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "different threat → different hash"
+        );
     }
 }

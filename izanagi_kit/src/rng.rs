@@ -653,7 +653,11 @@ mod tests {
         let parent = SplitMix64::new(42);
         let state_before = parent.state();
         let _ = parent.split(1);
-        assert_eq!(parent.state(), state_before, "split must not mutate the parent");
+        assert_eq!(
+            parent.state(),
+            state_before,
+            "split must not mutate the parent"
+        );
     }
 
     #[test]
@@ -678,7 +682,11 @@ mod tests {
     fn test_split_different_parent_states_yield_different_streams() {
         let a = SplitMix64::new(1).split(5);
         let b = SplitMix64::new(2).split(5);
-        assert_ne!(a.state(), b.state(), "same id, different parent state, must diverge");
+        assert_ne!(
+            a.state(),
+            b.state(),
+            "same id, different parent state, must diverge"
+        );
     }
 
     #[test]
@@ -693,7 +701,10 @@ mod tests {
             loot.next_u64();
         }
         let ai_again = parent.split(1).next_u64();
-        assert_eq!(ai_first, ai_again, "sibling draws must not perturb this child");
+        assert_eq!(
+            ai_first, ai_again,
+            "sibling draws must not perturb this child"
+        );
     }
 
     #[test]
@@ -1065,8 +1076,12 @@ mod tests {
             let v = rng.range_closed(i32::MIN, i32::MAX);
             // Range is the whole i32 domain, so any value is trivially in
             // bounds; the real assertions are the saw_neg/saw_pos coverage below.
-            if v < 0 { saw_neg = true; }
-            if v >= 0 { saw_pos = true; }
+            if v < 0 {
+                saw_neg = true;
+            }
+            if v >= 0 {
+                saw_pos = true;
+            }
         }
         assert!(saw_neg, "full i32 range must sometimes return negative");
         assert!(saw_pos, "full i32 range must sometimes return non-negative");

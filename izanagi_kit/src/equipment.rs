@@ -326,7 +326,11 @@ mod tests {
         gear.equip(EquipSlot::Head, "helm");
         assert_eq!(gear.unequip(EquipSlot::Head), Some("helm"));
         assert!(!gear.is_equipped(EquipSlot::Head));
-        assert_eq!(gear.unequip(EquipSlot::Head), None, "second unequip is empty");
+        assert_eq!(
+            gear.unequip(EquipSlot::Head),
+            None,
+            "second unequip is empty"
+        );
     }
 
     #[test]
@@ -336,7 +340,10 @@ mod tests {
         gear.equip(EquipSlot::Ring1, 2);
         gear.equip(EquipSlot::Amulet, 3);
         assert_eq!(gear.occupied_count(), 3);
-        assert_eq!(gear.occupied_count() + gear.empty_count(), gear.slot_count());
+        assert_eq!(
+            gear.occupied_count() + gear.empty_count(),
+            gear.slot_count()
+        );
     }
 
     #[test]
@@ -373,7 +380,10 @@ mod tests {
         gear.equip(EquipSlot::MainHand, "sword");
         gear.equip(EquipSlot::Feet, "boots");
         let order: Vec<EquipSlot> = gear.iter().map(|(s, _)| s).collect();
-        assert_eq!(order, vec![EquipSlot::MainHand, EquipSlot::Feet, EquipSlot::Amulet]);
+        assert_eq!(
+            order,
+            vec![EquipSlot::MainHand, EquipSlot::Feet, EquipSlot::Amulet]
+        );
     }
 
     #[test]
@@ -413,7 +423,11 @@ mod tests {
 
         let mut c = a.clone();
         c.equip(EquipSlot::Head, 1u32);
-        assert_ne!(hash_state(&a), hash_state(&c), "extra item must change hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "extra item must change hash"
+        );
 
         // Slot matters: same item in a different slot hashes differently.
         let mut d = Equipment::new();
@@ -449,9 +463,15 @@ mod tests {
     #[test]
     fn test_is_locked_requires_both_occupied_and_cursed() {
         let mut gear = Equipment::new();
-        assert!(!gear.is_locked(EquipSlot::MainHand), "empty is never locked");
+        assert!(
+            !gear.is_locked(EquipSlot::MainHand),
+            "empty is never locked"
+        );
         gear.equip(EquipSlot::MainHand, "sword");
-        assert!(!gear.is_locked(EquipSlot::MainHand), "occupied but uncursed");
+        assert!(
+            !gear.is_locked(EquipSlot::MainHand),
+            "occupied but uncursed"
+        );
         gear.curse(EquipSlot::MainHand);
         assert!(gear.is_locked(EquipSlot::MainHand), "occupied and cursed");
     }
@@ -490,7 +510,10 @@ mod tests {
         gear.equip(EquipSlot::MainHand, "sword");
         gear.curse(EquipSlot::MainHand);
         gear.unequip(EquipSlot::MainHand);
-        assert!(!gear.is_cursed(EquipSlot::MainHand), "empty slot is never cursed");
+        assert!(
+            !gear.is_cursed(EquipSlot::MainHand),
+            "empty slot is never cursed"
+        );
         // Equipping a fresh item afterward must start uncursed.
         gear.equip(EquipSlot::MainHand, "dagger");
         assert!(!gear.is_cursed(EquipSlot::MainHand));
@@ -502,8 +525,15 @@ mod tests {
         gear.equip(EquipSlot::MainHand, "cursed dagger");
         gear.curse(EquipSlot::MainHand);
         let old = gear.equip(EquipSlot::MainHand, "sword");
-        assert_eq!(old, Some("cursed dagger"), "outgoing item is still returned");
-        assert!(!gear.is_cursed(EquipSlot::MainHand), "incoming item is never born cursed");
+        assert_eq!(
+            old,
+            Some("cursed dagger"),
+            "outgoing item is still returned"
+        );
+        assert!(
+            !gear.is_cursed(EquipSlot::MainHand),
+            "incoming item is never born cursed"
+        );
     }
 
     #[test]
@@ -525,7 +555,10 @@ mod tests {
         gear.equip(EquipSlot::Head, "helm");
         gear.curse(EquipSlot::MainHand);
         assert!(gear.is_cursed(EquipSlot::MainHand));
-        assert!(!gear.is_cursed(EquipSlot::Head), "curse does not leak to other slots");
+        assert!(
+            !gear.is_cursed(EquipSlot::Head),
+            "curse does not leak to other slots"
+        );
     }
 
     #[test]
@@ -533,10 +566,18 @@ mod tests {
         let mut a = Equipment::new();
         a.equip(EquipSlot::MainHand, 7u32);
         let mut b = a.clone();
-        assert_eq!(hash_state(&a), hash_state(&b), "identical clones hash equal");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "identical clones hash equal"
+        );
 
         b.curse(EquipSlot::MainHand);
-        assert_ne!(hash_state(&a), hash_state(&b), "cursed vs uncursed must hash differently");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "cursed vs uncursed must hash differently"
+        );
     }
 
     #[test]

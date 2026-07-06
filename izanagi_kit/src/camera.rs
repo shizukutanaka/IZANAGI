@@ -57,8 +57,12 @@ impl Camera {
     pub fn pan(&mut self, dx: i32, dy: i32, world_w: u32, world_h: u32) {
         // i64 so a huge world dimension (u32::MAX → -1 when cast to i32) does
         // not underflow the world − view clamp bound; result clamped back to i32.
-        let max_x = (world_w as i64 - self.screen_w as i64).max(0).min(i32::MAX as i64) as i32;
-        let max_y = (world_h as i64 - self.screen_h as i64).max(0).min(i32::MAX as i64) as i32;
+        let max_x = (world_w as i64 - self.screen_w as i64)
+            .max(0)
+            .min(i32::MAX as i64) as i32;
+        let max_y = (world_h as i64 - self.screen_h as i64)
+            .max(0)
+            .min(i32::MAX as i64) as i32;
         self.top_left_x = self.top_left_x.saturating_add(dx).clamp(0, max_x);
         self.top_left_y = self.top_left_y.saturating_add(dy).clamp(0, max_y);
     }

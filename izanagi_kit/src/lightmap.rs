@@ -140,8 +140,7 @@ impl LightMap {
                     (intensity as u32 * (r - d) as u32 / r as u32) as u16
                 };
                 let idx = y as usize * self.width as usize + x as usize;
-                self.levels[idx] =
-                    self.levels[idx].saturating_add(contribution).min(MAX_LIGHT);
+                self.levels[idx] = self.levels[idx].saturating_add(contribution).min(MAX_LIGHT);
             }
         }
     }
@@ -227,7 +226,10 @@ mod tests {
         let mut prev = lm.get(8, 4);
         for dx in 1..=6i32 {
             let cur = lm.get(8 + dx, 4);
-            assert!(cur <= prev, "light must not increase with distance (dx={dx})");
+            assert!(
+                cur <= prev,
+                "light must not increase with distance (dx={dx})"
+            );
             prev = cur;
         }
         assert_eq!(lm.get(8 + 7, 4), 0, "beyond radius is dark");
@@ -315,6 +317,10 @@ mod tests {
         assert_eq!(hash_state(&a), hash_state(&b), "same state, same hash");
         let mut c = a.clone();
         c.add_light(2, 2, 1, 50);
-        assert_ne!(hash_state(&a), hash_state(&c), "extra light must change hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "extra light must change hash"
+        );
     }
 }

@@ -535,7 +535,13 @@ impl Fixed {
     /// identical cost).
     #[inline]
     pub fn signum(self) -> i32 {
-        if self.0 > 0 { 1 } else if self.0 < 0 { -1 } else { 0 }
+        if self.0 > 0 {
+            1
+        } else if self.0 < 0 {
+            -1
+        } else {
+            0
+        }
     }
 }
 
@@ -903,9 +909,17 @@ mod tests {
         // mul uses an arithmetic `>>`, which floors (rounds toward -inf) for
         // negatives. raw 1 (= 2^-16) times raw -1: the true product's raw is
         // -1, and -1 >> 16 == -1. Truncation toward zero would give 0.
-        assert_eq!(Fixed(1).mul(Fixed(-1)).raw(), -1, "mul floors negatives toward -inf");
+        assert_eq!(
+            Fixed(1).mul(Fixed(-1)).raw(),
+            -1,
+            "mul floors negatives toward -inf"
+        );
         // Positive operands: floor and truncation agree, so no surprise there.
-        assert_eq!(Fixed(1).mul(Fixed(1)).raw(), 0, "tiny positive product floors to 0");
+        assert_eq!(
+            Fixed(1).mul(Fixed(1)).raw(),
+            0,
+            "tiny positive product floors to 0"
+        );
     }
 
     #[test]
@@ -941,9 +955,21 @@ mod tests {
         // that documented behaviour (and its divergence from the name) so a
         // well-meaning "fix" toward true truncation can't silently shift the
         // pinned-hash simulation.
-        assert_eq!((-Fixed::from_ratio(3, 2)).to_int_trunc(), -2, "-1.5 floors to -2");
-        assert_eq!(Fixed::from_ratio(3, 2).to_int_trunc(), 1, "1.5 truncates to 1");
-        assert_eq!(Fixed::from_int(-2).to_int_trunc(), -2, "exact negatives are unchanged");
+        assert_eq!(
+            (-Fixed::from_ratio(3, 2)).to_int_trunc(),
+            -2,
+            "-1.5 floors to -2"
+        );
+        assert_eq!(
+            Fixed::from_ratio(3, 2).to_int_trunc(),
+            1,
+            "1.5 truncates to 1"
+        );
+        assert_eq!(
+            Fixed::from_int(-2).to_int_trunc(),
+            -2,
+            "exact negatives are unchanged"
+        );
     }
 
     #[test]

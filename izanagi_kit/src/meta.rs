@@ -273,7 +273,10 @@ mod tests {
         meta.unlock(1);
         assert_eq!(meta.best(1), None, "unlocking does not create a record");
         meta.record_best(1, 5);
-        assert!(meta.is_unlocked(1), "recording does not affect unlock state");
+        assert!(
+            meta.is_unlocked(1),
+            "recording does not affect unlock state"
+        );
     }
 
     #[test]
@@ -284,7 +287,11 @@ mod tests {
         let mut b: MetaProgress<u32, u32> = MetaProgress::new();
         b.unlock(2);
         b.unlock(1);
-        assert_eq!(hash_state(&a), hash_state(&b), "unlock order does not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "unlock order does not affect the hash"
+        );
     }
 
     #[test]
@@ -295,7 +302,11 @@ mod tests {
         let mut b: MetaProgress<u32, u32> = MetaProgress::new();
         b.record_best(2, 20);
         b.record_best(1, 10);
-        assert_eq!(hash_state(&a), hash_state(&b), "record order does not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "record order does not affect the hash"
+        );
     }
 
     #[test]
@@ -305,7 +316,11 @@ mod tests {
         let mut b: MetaProgress<u32, u32> = MetaProgress::new();
         b.unlock(1);
         b.unlock(2);
-        assert_ne!(hash_state(&a), hash_state(&b), "different unlock set → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different unlock set → different hash"
+        );
     }
 
     #[test]
@@ -314,7 +329,11 @@ mod tests {
         a.record_best(1, 10);
         let mut b: MetaProgress<u32, u32> = MetaProgress::new();
         b.record_best(1, 11);
-        assert_ne!(hash_state(&a), hash_state(&b), "different record value → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different record value → different hash"
+        );
     }
 
     #[test]
@@ -323,6 +342,10 @@ mod tests {
         a.record_best(1, 10);
         let before = hash_state(&a);
         a.record_best(1, 5); // fails, does not beat 10
-        assert_eq!(hash_state(&a), before, "a rejected record leaves the hash unchanged");
+        assert_eq!(
+            hash_state(&a),
+            before,
+            "a rejected record leaves the hash unchanged"
+        );
     }
 }

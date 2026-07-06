@@ -332,8 +332,14 @@ mod tests {
         // is marked again. A later mark re-arms it.
         let mut c = Changed::at(7u32, 3);
         c.reset(3); // processed at tick 3
-        assert!(!c.is_changed_since(4), "acknowledged change must not re-fire");
-        assert!(c.is_changed_since(3), "change AT tick 3 is still 'at or after' 3");
+        assert!(
+            !c.is_changed_since(4),
+            "acknowledged change must not re-fire"
+        );
+        assert!(
+            c.is_changed_since(3),
+            "change AT tick 3 is still 'at or after' 3"
+        );
         c.mark(4); // value re-written on tick 4
         assert!(c.is_changed_since(4), "a fresh mark re-arms the dirty flag");
     }

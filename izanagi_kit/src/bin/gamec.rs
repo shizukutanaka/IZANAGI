@@ -93,7 +93,10 @@ fn main() -> ExitCode {
         }
         let canonical = izanagi_kit::serialize(&content);
         if source != canonical {
-            eprintln!("{}: file needs formatting (content differs when serialized)", path);
+            eprintln!(
+                "{}: file needs formatting (content differs when serialized)",
+                path
+            );
             return ExitCode::FAILURE;
         }
         return ExitCode::SUCCESS;

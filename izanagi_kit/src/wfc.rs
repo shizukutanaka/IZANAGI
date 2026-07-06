@@ -1093,7 +1093,10 @@ mod tests {
         let mut rng = SplitMix64::new(42);
         let grid = wfc_solve_partial(8, 8, &open_rules(), &mut rng);
         // Open rules never contradict → all cells should be collapsed.
-        assert!(grid.is_fully_collapsed(), "open rules → fully solved partial");
+        assert!(
+            grid.is_fully_collapsed(),
+            "open rules → fully solved partial"
+        );
     }
 
     #[test]

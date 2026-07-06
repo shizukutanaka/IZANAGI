@@ -149,13 +149,21 @@ fn entity_batch_free_equals_loop_of_free() {
         }
 
         assert_eq!(via_batch.count(), via_loop.count(), "count diverged");
-        assert_eq!(via_batch.free_count(), via_loop.free_count(), "free_count diverged");
+        assert_eq!(
+            via_batch.free_count(),
+            via_loop.free_count(),
+            "free_count diverged"
+        );
         assert_eq!(
             via_batch.live_entities(),
             via_loop.live_entities(),
             "live set diverged"
         );
         // Re-allocation must also proceed identically (same recycled slots/gens).
-        assert_eq!(via_batch.allocate(), via_loop.allocate(), "next allocate diverged");
+        assert_eq!(
+            via_batch.allocate(),
+            via_loop.allocate(),
+            "next allocate diverged"
+        );
     }
 }

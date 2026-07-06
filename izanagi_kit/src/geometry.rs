@@ -117,7 +117,11 @@ where
 /// Companion to [`ray_cast`] sharing its exact blocking convention (the origin
 /// never blocks); use this for the common "is my shot clear, and if not, what's
 /// in the way?" targeting query without inspecting the whole path.
-pub fn ray_blocked_at<F>(origin: (i32, i32), target: (i32, i32), is_blocked: F) -> Option<(i32, i32)>
+pub fn ray_blocked_at<F>(
+    origin: (i32, i32),
+    target: (i32, i32),
+    is_blocked: F,
+) -> Option<(i32, i32)>
 where
     F: FnMut(i32, i32) -> bool,
 {
@@ -485,7 +489,12 @@ pub fn vec_toward(from: (i32, i32), to: (i32, i32)) -> (i32, i32) {
 /// Returns `from` unchanged when `dir` is zero or `distance <= 0`. Integer-only
 /// and deterministic. To recover the path travelled use [`line`]`(from, landing)`,
 /// and the cells actually moved is `Distance::Chebyshev.between(from, landing)`.
-pub fn knockback<F>(from: (i32, i32), dir: (i32, i32), distance: i32, mut is_blocked: F) -> (i32, i32)
+pub fn knockback<F>(
+    from: (i32, i32),
+    dir: (i32, i32),
+    distance: i32,
+    mut is_blocked: F,
+) -> (i32, i32)
 where
     F: FnMut(i32, i32) -> bool,
 {
@@ -1150,7 +1159,11 @@ mod tests {
         // Even if the origin cell tests as blocked, the bolt launches from it.
         let path = ray_cast((2, 2), (5, 2), |x, y| (x, y) == (2, 2));
         assert_eq!(path.first(), Some(&(2, 2)));
-        assert_eq!(path.last(), Some(&(5, 2)), "reaches target despite blocked origin");
+        assert_eq!(
+            path.last(),
+            Some(&(5, 2)),
+            "reaches target despite blocked origin"
+        );
         assert_eq!(path.len(), 4);
     }
 
@@ -1189,7 +1202,10 @@ mod tests {
     #[test]
     fn test_ray_blocked_at_wall_on_target_is_clear() {
         // Aiming at a wall is a clear shot *to* that wall, not a blocked shot.
-        assert_eq!(ray_blocked_at((0, 0), (4, 4), |x, y| (x, y) == (4, 4)), None);
+        assert_eq!(
+            ray_blocked_at((0, 0), (4, 4), |x, y| (x, y) == (4, 4)),
+            None
+        );
     }
 
     #[test]
@@ -1277,8 +1293,7 @@ mod tests {
         // Rotating the facing 90° must rotate the cone cell-set the same way:
         // east cone rotated 90° CW equals the south cone (facing (0,1)).
         let east = cone((0, 0), (1, 0), 3);
-        let rotated: HashSet<(i32, i32)> =
-            east.iter().map(|&(x, y)| rotate_90_cw(x, y)).collect();
+        let rotated: HashSet<(i32, i32)> = east.iter().map(|&(x, y)| rotate_90_cw(x, y)).collect();
         let south = cone_set((0, 0), rotate_90_cw(1, 0), 3);
         assert_eq!(rotated, south, "cone must be rotation-congruent");
     }
@@ -1308,7 +1323,10 @@ mod tests {
     fn test_cone_visible_no_walls_equals_cone() {
         let plain = cone((0, 0), (1, 0), 4);
         let visible = cone_visible((0, 0), (1, 0), 4, |_, _| false);
-        assert_eq!(visible, plain, "with no opacity the footprint is the full cone");
+        assert_eq!(
+            visible, plain,
+            "with no opacity the footprint is the full cone"
+        );
     }
 
     #[test]
@@ -1327,10 +1345,22 @@ mod tests {
         let wall = |x: i32, y: i32| (x, y) == (3, 0);
         let visible: HashSet<(i32, i32)> =
             cone_visible(origin, (1, 0), 5, wall).into_iter().collect();
-        assert!(visible.contains(&(3, 0)), "the struck wall cell is included");
-        assert!(!visible.contains(&(4, 0)), "cell directly behind the wall is culled");
-        assert!(!visible.contains(&(5, 0)), "cell further behind the wall is culled");
-        assert!(visible.contains(&(2, 0)), "cell in front of the wall is reached");
+        assert!(
+            visible.contains(&(3, 0)),
+            "the struck wall cell is included"
+        );
+        assert!(
+            !visible.contains(&(4, 0)),
+            "cell directly behind the wall is culled"
+        );
+        assert!(
+            !visible.contains(&(5, 0)),
+            "cell further behind the wall is culled"
+        );
+        assert!(
+            visible.contains(&(2, 0)),
+            "cell in front of the wall is reached"
+        );
     }
 
     #[test]
@@ -1357,12 +1387,18 @@ mod tests {
     #[test]
     fn test_knockback_stops_before_wall() {
         // Wall at (2,0): the entity halts on the last open cell (1,0).
-        assert_eq!(knockback((0, 0), (1, 0), 5, |x, y| (x, y) == (2, 0)), (1, 0));
+        assert_eq!(
+            knockback((0, 0), (1, 0), 5, |x, y| (x, y) == (2, 0)),
+            (1, 0)
+        );
     }
 
     #[test]
     fn test_knockback_adjacent_wall_does_not_move() {
-        assert_eq!(knockback((0, 0), (1, 0), 3, |x, y| (x, y) == (1, 0)), (0, 0));
+        assert_eq!(
+            knockback((0, 0), (1, 0), 3, |x, y| (x, y) == (1, 0)),
+            (0, 0)
+        );
     }
 
     #[test]

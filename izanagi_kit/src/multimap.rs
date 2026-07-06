@@ -434,15 +434,12 @@ mod tests {
         let mut m = MultiMap::new(vec![make_floor(5)], 0);
         let before = hash_state(&m);
         // Push a room onto the active floor's registry (observable state).
-        m.current_mut()
-            .unwrap()
-            .rooms
-            .push(crate::mapgen::Rect {
-                x: 0,
-                y: 0,
-                w: 1,
-                h: 1,
-            });
+        m.current_mut().unwrap().rooms.push(crate::mapgen::Rect {
+            x: 0,
+            y: 0,
+            w: 1,
+            h: 1,
+        });
         let after = hash_state(&m);
         assert_ne!(before, after, "floor mutation must change the stack hash");
     }

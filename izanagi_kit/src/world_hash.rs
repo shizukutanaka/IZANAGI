@@ -661,7 +661,11 @@ mod tests {
         let mut h_manual = Fnv1a::new();
         h_manual.write_u32(s.len() as u32);
         h_manual.write_str(s);
-        assert_eq!(h_trait, h_manual.finish(), "DetHash for str must be write_u32(len) ++ raw bytes");
+        assert_eq!(
+            h_trait,
+            h_manual.finish(),
+            "DetHash for str must be write_u32(len) ++ raw bytes"
+        );
     }
 
     // --- hash_unordered ---

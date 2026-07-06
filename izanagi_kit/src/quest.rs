@@ -207,15 +207,17 @@ impl Quest {
     /// - `Abandoned` if `abandon()` was called.
     /// - `Active` otherwise.
     pub fn state(&self) -> QuestState {
-        if self.objectives.iter().any(|o| o.state == QuestState::Abandoned) {
+        if self
+            .objectives
+            .iter()
+            .any(|o| o.state == QuestState::Abandoned)
+        {
             return QuestState::Abandoned;
         }
         if self.objectives.iter().any(|o| o.is_failed()) {
             return QuestState::Failed;
         }
-        if self.objectives.is_empty()
-            || self.objectives.iter().all(|o| o.is_complete())
-        {
+        if self.objectives.is_empty() || self.objectives.iter().all(|o| o.is_complete()) {
             return QuestState::Complete;
         }
         QuestState::Active
@@ -332,7 +334,11 @@ mod tests {
         obj.progress(1);
         assert!(obj.is_complete());
         obj.fail();
-        assert_eq!(obj.state(), QuestState::Complete, "complete can't be failed");
+        assert_eq!(
+            obj.state(),
+            QuestState::Complete,
+            "complete can't be failed"
+        );
     }
 
     #[test]

@@ -487,9 +487,17 @@ mod tests {
 
         // Free it — this should record the wrap.
         a.free(e_max);
-        assert_eq!(a.generation_wrap_count(), 1, "one wrap event must be recorded");
+        assert_eq!(
+            a.generation_wrap_count(),
+            1,
+            "one wrap event must be recorded"
+        );
         // The generation stored should have wrapped to 0.
-        assert_eq!(a.generations[e.index() as usize], 0, "wrapping_add(1) from MAX → 0");
+        assert_eq!(
+            a.generations[e.index() as usize],
+            0,
+            "wrapping_add(1) from MAX → 0"
+        );
     }
 
     #[test]

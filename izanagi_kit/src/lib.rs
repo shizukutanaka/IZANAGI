@@ -85,10 +85,10 @@
 pub mod aabb;
 pub mod ability;
 pub mod affix;
-pub mod behavior;
 pub mod arch;
 pub mod assets;
 pub mod autotile;
+pub mod behavior;
 pub mod calendar;
 pub mod camera;
 pub mod change;
@@ -164,10 +164,10 @@ pub mod world_hash;
 pub use aabb::Aabb;
 pub use ability::{Ability, AbilityResult, AbilitySet};
 pub use affix::{Affix, AffixGenerator, AffixSlot, AffixedItem};
-pub use behavior::{BehaviorNode, BehaviorStatus, BehaviorTree};
 pub use arch::ArchTable;
 pub use assets::{AssetHandle, AssetStore};
 pub use autotile::{compute_all, compute_mask, SimpleTileTable};
+pub use behavior::{BehaviorNode, BehaviorStatus, BehaviorTree};
 pub use calendar::Calendar;
 pub use camera::Camera;
 pub use change::{ChangeTracker, Changed};
@@ -197,12 +197,12 @@ pub use faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MI
 pub use fixed::Fixed;
 pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};
 pub use fsm::Fsm;
-pub use hfsm::HFsm;
 pub use geometry::{
     chebyshev_distance, cone, cone_visible, diamond, knockback, line, line_of_sight,
     manhattan_distance, ray_blocked_at, ray_cast, rect_contains, rect_perimeter, reflect_point,
     rotate_90_ccw, rotate_90_cw, vec_toward, Distance,
 };
+pub use hfsm::HFsm;
 pub use hud::{BarWidget, HudPanel, StatLine};
 pub use identify::Identification;
 pub use influence::InfluenceMap;
@@ -244,13 +244,13 @@ pub use replay::{
 };
 pub use rng::SplitMix64;
 pub use rng_xoshiro::Xoshiro256pp;
-pub use shop::{Listing, Shop};
-pub use shufflebag::ShuffleBag;
 pub use savefile::{
     estimate_save_size, load_bytes, load_bytes_migrated, load_bytes_owned, save_bytes,
     validate_integrity, LoadError, Migrator, SaveHeader,
 };
 pub use serializer::{content_eq, serialize};
+pub use shop::{Listing, Shop};
+pub use shufflebag::ShuffleBag;
 pub use sparse_set::{join, join3, join3_mut, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatTarget, StatusSet};

@@ -187,7 +187,9 @@ impl Dialogue {
 
     /// `true` if the current node is a terminal node (active but no choices).
     pub fn is_at_terminal(&self) -> bool {
-        self.current_node().map(|n| n.is_terminal()).unwrap_or(false)
+        self.current_node()
+            .map(|n| n.is_terminal())
+            .unwrap_or(false)
     }
 
     /// Take choice `i` at the current node, navigating to its target node.
@@ -386,11 +388,19 @@ mod tests {
 
         let mut c = sample();
         c.choose(0); // cursor moved to node 1
-        assert_ne!(hash_state(&a), hash_state(&c), "cursor change → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "cursor change → different hash"
+        );
 
         let mut d = sample();
         d.end();
-        assert_ne!(hash_state(&a), hash_state(&d), "ended state hashes differently");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&d),
+            "ended state hashes differently"
+        );
     }
 
     #[test]
@@ -405,6 +415,10 @@ mod tests {
             DialogueNode::new("farewell"),
         ];
         let e = Dialogue::new(nodes, 0);
-        assert_ne!(hash_state(&a), hash_state(&e), "node text change → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&e),
+            "node text change → different hash"
+        );
     }
 }

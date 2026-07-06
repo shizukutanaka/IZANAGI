@@ -262,7 +262,11 @@ mod tests {
         ts.insert(1, Trigger::new(true, vec![10]));
         for _ in 0..5 {
             let fired = ts.check(|c| *c);
-            assert_eq!(fired, vec![(1, vec![10])], "repeatable rule fires every call");
+            assert_eq!(
+                fired,
+                vec![(1, vec![10])],
+                "repeatable rule fires every call"
+            );
         }
     }
 
@@ -393,10 +397,18 @@ mod tests {
         let mut b: TriggerSet<u32, u32, u32> = TriggerSet::new();
         b.insert(2, Trigger::once(200, vec![2]));
         b.insert(1, Trigger::new(100, vec![1]));
-        assert_eq!(hash_state(&a), hash_state(&b), "insertion order does not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "insertion order does not affect the hash"
+        );
 
         a.check(|c| *c == 200); // fires the once-trigger at key 2
-        assert_ne!(hash_state(&a), hash_state(&b), "fired-state changes the hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "fired-state changes the hash"
+        );
     }
 
     #[test]
@@ -405,6 +417,10 @@ mod tests {
         a.insert(1, Trigger::new(100, vec![1, 2]));
         let mut b: TriggerSet<u32, u32, u32> = TriggerSet::new();
         b.insert(1, Trigger::new(100, vec![1, 3]));
-        assert_ne!(hash_state(&a), hash_state(&b), "different actions → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different actions → different hash"
+        );
     }
 }

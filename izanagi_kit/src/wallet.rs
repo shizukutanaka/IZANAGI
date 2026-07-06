@@ -324,6 +324,10 @@ mod tests {
         let mut c = Wallet::new();
         c.deposit(1u32, 100);
         c.deposit(2, 51); // one different balance
-        assert_ne!(hash_state(&a), hash_state(&c), "different balance → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "different balance → different hash"
+        );
     }
 }

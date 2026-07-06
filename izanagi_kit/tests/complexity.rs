@@ -14,7 +14,9 @@
 //!
 //! Deterministic via `SplitMix64`.
 
-use izanagi_kit::{astar, compute_fov, flood_fill, is_reachable, ray_cast, SpatialHash, SplitMix64};
+use izanagi_kit::{
+    astar, compute_fov, flood_fill, is_reachable, ray_cast, SpatialHash, SplitMix64,
+};
 use std::cell::Cell;
 
 /// Count `is_opaque` invocations for a `compute_fov` call at `origin`.
@@ -56,7 +58,10 @@ fn fov_work_grows_with_radius_within_the_radius_square() {
         // is still O(r²): bounded by a constant multiple of the radius square,
         // never by absolute coordinates. (Observed ratio ≤ 1.33×.)
         let bound = 2 * ((2 * r + 1) * (2 * r + 1)) as usize;
-        assert!(calls > 0 && calls <= bound, "r={r}: {calls} calls exceed O(r²) bound {bound}");
+        assert!(
+            calls > 0 && calls <= bound,
+            "r={r}: {calls} calls exceed O(r²) bound {bound}"
+        );
     }
     assert!(
         fov_opaque_calls((0, 0), 16) > fov_opaque_calls((0, 0), 4),
@@ -119,7 +124,11 @@ fn flood_fill_and_reachable_work_is_position_independent() {
         let _ = flood_fill((ox, oy), 6, blocked);
         count.get()
     };
-    assert_eq!(probe_fill(0, 0), probe_fill(900_000, 900_000), "flood_fill position-dependent");
+    assert_eq!(
+        probe_fill(0, 0),
+        probe_fill(900_000, 900_000),
+        "flood_fill position-dependent"
+    );
 
     let probe_reach = |ox: i32, oy: i32| -> usize {
         let count = Cell::new(0usize);
@@ -130,14 +139,20 @@ fn flood_fill_and_reachable_work_is_position_independent() {
         let _ = is_reachable((ox, oy), (ox + 14, oy + 14), blocked);
         count.get()
     };
-    assert_eq!(probe_reach(0, 0), probe_reach(-800_000, 800_000), "is_reachable position-dependent");
+    assert_eq!(
+        probe_reach(0, 0),
+        probe_reach(-800_000, 800_000),
+        "is_reachable position-dependent"
+    );
 }
 
 #[test]
 fn fov_smoke_uses_seeded_rng_for_opacity() {
     // A randomized-opacity FOV still does bounded, position-independent work.
     let mut rng = SplitMix64::new(0xC0FFEE);
-    let walls: Vec<(i32, i32)> = (0..40).map(|_| (rng.range(0, 20), rng.range(0, 20))).collect();
+    let walls: Vec<(i32, i32)> = (0..40)
+        .map(|_| (rng.range(0, 20), rng.range(0, 20)))
+        .collect();
     let calls_at = |ox: i32, oy: i32| -> usize {
         let count = Cell::new(0usize);
         compute_fov(
@@ -151,7 +166,11 @@ fn fov_smoke_uses_seeded_rng_for_opacity() {
         );
         count.get()
     };
-    assert_eq!(calls_at(0, 0), calls_at(300_000, 300_000), "randomized FOV work position-dependent");
+    assert_eq!(
+        calls_at(0, 0),
+        calls_at(300_000, 300_000),
+        "randomized FOV work position-dependent"
+    );
 }
 
 #[test]
@@ -169,7 +188,11 @@ fn spatial_hash_whole_world_query_is_bounded_and_correct() {
 
     // Whole-world query (huge span -> sparse path). Must return every key.
     let huge = g.query_rect(i32::MIN / 2, i32::MIN / 2, i32::MAX, i32::MAX);
-    assert_eq!(huge.len(), pts.len(), "whole-world query lost or duplicated keys");
+    assert_eq!(
+        huge.len(),
+        pts.len(),
+        "whole-world query lost or duplicated keys"
+    );
     for k in 0..pts.len() as u32 {
         assert!(huge.contains(&k), "key {k} missing from whole-world query");
     }
@@ -184,7 +207,10 @@ fn spatial_hash_whole_world_query_is_bounded_and_correct() {
     let dense = g.query_rect(-1, -1, 4, 4); // ~1 cell span → dense path
     assert_eq!(dense, vec![0], "dense-path query returned the wrong cell");
     // Consistency: every key the dense query found is also in the sparse result.
-    assert!(dense.iter().all(|k| huge.contains(k)), "dense ⊄ sparse result");
+    assert!(
+        dense.iter().all(|k| huge.contains(k)),
+        "dense ⊄ sparse result"
+    );
 }
 
 #[test]
@@ -201,7 +227,11 @@ fn spatial_hash_radius_queries_are_bounded_at_huge_radius() {
     }
     // Huge radius (would be ~i32::MAX/8 cells across) — must not hang.
     let huge = g.query_radius_euclidean(0, 0, i32::MAX);
-    assert_eq!(huge.len(), pts.len(), "huge-radius euclidean query lost keys");
+    assert_eq!(
+        huge.len(),
+        pts.len(),
+        "huge-radius euclidean query lost keys"
+    );
     assert_eq!(
         g.query_radius_count(0, 0, i32::MAX),
         pts.len(),

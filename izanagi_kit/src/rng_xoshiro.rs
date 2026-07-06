@@ -205,7 +205,10 @@ mod tests {
         let mut r = Xoshiro256pp::from_state([0, 0, 0, 0]);
         let a = r.next_u64();
         let b = r.next_u64();
-        assert!(a != 0 || b != 0, "all-zero state must be remapped, not accepted");
+        assert!(
+            a != 0 || b != 0,
+            "all-zero state must be remapped, not accepted"
+        );
         assert_eq!(Xoshiro256pp::from_state([0, 0, 0, 0]), Xoshiro256pp::new(0));
     }
 
@@ -249,7 +252,11 @@ mod tests {
         let base = Xoshiro256pp::new(555);
         let state_before = base.state();
         let j = base.jumped();
-        assert_eq!(base.state(), state_before, "jumped() must not mutate the original");
+        assert_eq!(
+            base.state(),
+            state_before,
+            "jumped() must not mutate the original"
+        );
         // And it equals an explicit mutating jump.
         let mut expected = base.clone();
         expected.jump();
@@ -263,7 +270,11 @@ mod tests {
         assert_eq!(hash_state(&a), hash_state(&b));
         let mut c = Xoshiro256pp::new(1);
         c.next_u64();
-        assert_ne!(hash_state(&a), hash_state(&c), "advancing must change the hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "advancing must change the hash"
+        );
     }
 
     #[test]
@@ -281,6 +292,9 @@ mod tests {
         }
         // A single coincidental match is statistically fine; a short cycle
         // would produce many. Expect ~0.
-        assert!(repeats <= 1, "suspicious repetition of the opening value: {repeats}");
+        assert!(
+            repeats <= 1,
+            "suspicious repetition of the opening value: {repeats}"
+        );
     }
 }

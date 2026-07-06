@@ -1224,11 +1224,15 @@ mod tests {
         let mut rng = SplitMix64::new(42);
         let mut d = generate_dungeon(30, 20, &mut rng, GenParams::default());
         let hash_before = hash_state(&d);
-        d.rooms.push(Rect { x: 0, y: 0, w: 1, h: 1 });
+        d.rooms.push(Rect {
+            x: 0,
+            y: 0,
+            w: 1,
+            h: 1,
+        });
         let hash_after = hash_state(&d);
         assert_ne!(
-            hash_before,
-            hash_after,
+            hash_before, hash_after,
             "adding a room to the registry must change the DetHash"
         );
     }
@@ -1292,10 +1296,16 @@ mod tests {
         let d = generate_drunkard(40, 25, &mut rng, DrunkardParams::default());
         let (w, h) = (d.width() as i32, d.height() as i32);
         for x in 0..w {
-            assert!(d.is_wall(x, 0) && d.is_wall(x, h - 1), "top/bottom border wall");
+            assert!(
+                d.is_wall(x, 0) && d.is_wall(x, h - 1),
+                "top/bottom border wall"
+            );
         }
         for y in 0..h {
-            assert!(d.is_wall(0, y) && d.is_wall(w - 1, y), "left/right border wall");
+            assert!(
+                d.is_wall(0, y) && d.is_wall(w - 1, y),
+                "left/right border wall"
+            );
         }
     }
 
@@ -1303,11 +1313,22 @@ mod tests {
     fn test_drunkard_reaches_target_fill_on_open_map() {
         // On a roomy map the walk should reach (about) the requested fill.
         let mut rng = SplitMix64::new(0xD161_0004);
-        let d = generate_drunkard(60, 40, &mut rng, DrunkardParams { fill_percent: 30, max_steps: 0 });
+        let d = generate_drunkard(
+            60,
+            40,
+            &mut rng,
+            DrunkardParams {
+                fill_percent: 30,
+                max_steps: 0,
+            },
+        );
         let interior = (60 - 2) * (40 - 2);
         let floor = d.floor_cells().len() as u32;
         let target = interior * 30 / 100;
-        assert!(floor >= target, "carved {floor} should reach target {target}");
+        assert!(
+            floor >= target,
+            "carved {floor} should reach target {target}"
+        );
     }
 
     #[test]
@@ -1315,9 +1336,20 @@ mod tests {
         // A tiny step cap stops early; the map stays mostly wall but never panics
         // and is still connected.
         let mut rng = SplitMix64::new(0xD161_0005);
-        let d = generate_drunkard(60, 40, &mut rng, DrunkardParams { fill_percent: 90, max_steps: 10 });
+        let d = generate_drunkard(
+            60,
+            40,
+            &mut rng,
+            DrunkardParams {
+                fill_percent: 90,
+                max_steps: 10,
+            },
+        );
         let floor = d.floor_cells().len() as u32;
-        assert!(floor <= 11, "at most start + 10 steps of new floor (got {floor})");
+        assert!(
+            floor <= 11,
+            "at most start + 10 steps of new floor (got {floor})"
+        );
         assert!(drunkard_is_connected(&d), "even a capped walk is connected");
     }
 

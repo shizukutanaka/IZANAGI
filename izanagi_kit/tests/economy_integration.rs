@@ -30,8 +30,7 @@ use izanagi_kit::dialogue::{Dialogue, DialogueNode};
 use izanagi_kit::shop::Shop;
 use izanagi_kit::wallet::Wallet;
 use izanagi_kit::{
-    check_trace, first_divergence, hash_state, record_trace, resimulate, DetHash, Fnv1a,
-    SplitMix64,
+    check_trace, first_divergence, hash_state, record_trace, resimulate, DetHash, Fnv1a, SplitMix64,
 };
 
 const SEED: u64 = 0x5410_7000;

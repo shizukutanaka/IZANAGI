@@ -44,7 +44,11 @@ impl<T> SparseSet<T> {
 
     #[inline]
     fn slot(&self, entity: Entity) -> Option<u32> {
-        let pos = self.sparse.get(entity.index() as usize).copied().flatten()?;
+        let pos = self
+            .sparse
+            .get(entity.index() as usize)
+            .copied()
+            .flatten()?;
         // Generational safety: the dense slot is keyed by index, but a freed
         // index can be recycled at a bumped generation. Reject a handle whose
         // generation no longer matches the entity actually occupying the slot,
@@ -995,7 +999,10 @@ mod tests {
         let indices: Vec<u32> = result.iter().map(|(e, _, _, _)| e.index()).collect();
         let mut sorted = indices.clone();
         sorted.sort_unstable();
-        assert_eq!(indices, sorted, "join3 result must be in ascending entity index order");
+        assert_eq!(
+            indices, sorted,
+            "join3 result must be in ascending entity index order"
+        );
     }
 
     #[test]
@@ -1024,12 +1031,18 @@ mod tests {
             vel.insert(e, 0);
             hp.insert(e, 0);
         }
-        let immut: Vec<Entity> = join3(&pos, &vel, &hp).into_iter().map(|(e, _, _, _)| e).collect();
+        let immut: Vec<Entity> = join3(&pos, &vel, &hp)
+            .into_iter()
+            .map(|(e, _, _, _)| e)
+            .collect();
         let mut_: Vec<Entity> = join3_mut(&mut pos, &vel, &hp)
             .into_iter()
             .map(|(e, _, _, _)| e)
             .collect();
-        assert_eq!(immut, mut_, "join3 and join3_mut must produce the same entity order");
+        assert_eq!(
+            immut, mut_,
+            "join3 and join3_mut must produce the same entity order"
+        );
     }
 
     // --- generational safety: a stale handle must never alias a recycled slot ---
@@ -1050,7 +1063,11 @@ mod tests {
             None,
             "stale handle (gen 0) must not read the recycled slot's component"
         );
-        assert_eq!(set.get(e1), Some(&200), "live handle reads its own component");
+        assert_eq!(
+            set.get(e1),
+            Some(&200),
+            "live handle reads its own component"
+        );
     }
 
     #[test]

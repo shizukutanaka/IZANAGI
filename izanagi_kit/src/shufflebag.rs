@@ -119,7 +119,11 @@ impl<T: Clone> ShuffleBag<T> {
             self.refill();
         }
         let n = self.current.len();
-        let idx = if n > 1 { rng.below(n as u32) as usize } else { 0 };
+        let idx = if n > 1 {
+            rng.below(n as u32) as usize
+        } else {
+            0
+        };
         Some(self.current.swap_remove(idx))
     }
 }
@@ -166,7 +170,11 @@ mod tests {
         let mut rng = SplitMix64::new(7);
         let mut drawn: Vec<u32> = (0..5).map(|_| bag.draw(&mut rng).unwrap()).collect();
         drawn.sort_unstable();
-        assert_eq!(drawn, vec![1, 2, 3, 4, 5], "one cycle must be a permutation");
+        assert_eq!(
+            drawn,
+            vec![1, 2, 3, 4, 5],
+            "one cycle must be a permutation"
+        );
         assert_eq!(bag.remaining(), 0);
         assert!(bag.cycle_exhausted());
     }
@@ -221,7 +229,9 @@ mod tests {
         let seq = |seed: u64| {
             let mut bag = ShuffleBag::new(vec![1u32, 2, 3, 4]);
             let mut rng = SplitMix64::new(seed);
-            (0..12).map(|_| bag.draw(&mut rng).unwrap()).collect::<Vec<_>>()
+            (0..12)
+                .map(|_| bag.draw(&mut rng).unwrap())
+                .collect::<Vec<_>>()
         };
         assert_eq!(seq(77), seq(77));
         assert_ne!(seq(1), seq(2));
@@ -253,6 +263,10 @@ mod tests {
         let mut c = a.clone();
         let mut rng = SplitMix64::new(1);
         c.draw(&mut rng); // mutates `current`
-        assert_ne!(hash_state(&a), hash_state(&c), "drawing must change the hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "drawing must change the hash"
+        );
     }
 }

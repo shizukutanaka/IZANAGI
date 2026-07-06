@@ -136,8 +136,8 @@ fn geometry_is_total_on_degenerate_inputs() {
     let _ = cone((0, 0), (0, 0), 5); // zero facing
     let _ = cone((0, 0), (1, 0), -1); // negative range
     let _ = cone((0, 0), (1, 0), 0); // zero range
-    // Extreme facing vector: |f|² approaches i64::MAX, so the angle test's
-    // `2·dot²` / `dist_sq·|f|²` previously overflowed i64 even at tiny range.
+                                     // Extreme facing vector: |f|² approaches i64::MAX, so the angle test's
+                                     // `2·dot²` / `dist_sq·|f|²` previously overflowed i64 even at tiny range.
     for &fx in &EXTREMES {
         for &fy in &EXTREMES {
             let _ = cone((0, 0), (fx, fy), 2);
@@ -256,8 +256,7 @@ fn encounter_pack_is_total_at_extremes() {
     }
     // `roll` only with bounded max so the spawn loop can't build a giant Vec.
     for &(min, max) in &[(0u32, 0u32), (1, 1), (0, 4), (2, 5)] {
-        let pack: EncounterPack<u32> =
-            EncounterPack::new().with_optional_slot(7, min, max, 100);
+        let pack: EncounterPack<u32> = EncounterPack::new().with_optional_slot(7, min, max, 100);
         let _ = pack.roll(&mut rng);
     }
 }
@@ -269,7 +268,11 @@ fn random_table_is_total_at_extreme_weights() {
     // Empty table.
     let empty: RandomTable<u32> = RandomTable::new();
     assert!(empty.roll(&mut rng).is_none());
-    assert_eq!(empty.average_weight(), 0, "empty average must be 0, not div-by-zero");
+    assert_eq!(
+        empty.average_weight(),
+        0,
+        "empty average must be 0, not div-by-zero"
+    );
     // Zero-weight and max-weight entries.
     let table: RandomTable<u32> = RandomTable::new()
         .with(0, 1) // zero weight: never chosen
@@ -379,7 +382,11 @@ fn terminal_draw_ops_are_total_at_extreme_coords() {
     let mut s = Screen::new(20, 10);
     let c = Cell {
         glyph: '#',
-        fg: Color { r: 255, g: 255, b: 255 },
+        fg: Color {
+            r: 255,
+            g: 255,
+            b: 255,
+        },
         bg: Color { r: 0, g: 0, b: 0 },
     };
     let col = Color { r: 1, g: 2, b: 3 };
@@ -428,8 +435,16 @@ fn color_ops_are_total_at_extreme_ratios() {
     // large num overflowed the channel math (255 * i32::MAX). Now i64-safe.
     let colors = [
         Color { r: 0, g: 0, b: 0 },
-        Color { r: 255, g: 255, b: 255 },
-        Color { r: 17, g: 200, b: 99 },
+        Color {
+            r: 255,
+            g: 255,
+            b: 255,
+        },
+        Color {
+            r: 17,
+            g: 200,
+            b: 99,
+        },
     ];
     for &a in &colors {
         for &b in &colors {

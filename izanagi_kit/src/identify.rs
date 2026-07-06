@@ -79,10 +79,7 @@ impl<T: Ord + Clone, L: Clone> Identification<T, L> {
         );
         let mut shuffled_labels: Vec<L> = labels.to_vec();
         rng.shuffle(&mut shuffled_labels);
-        let appearance: BTreeMap<T, L> = sorted_kinds
-            .into_iter()
-            .zip(shuffled_labels)
-            .collect();
+        let appearance: BTreeMap<T, L> = sorted_kinds.into_iter().zip(shuffled_labels).collect();
         Identification {
             appearance,
             identified: BTreeSet::new(),
@@ -193,7 +190,11 @@ mod tests {
         let mut rng_b = SplitMix64::new(99);
         let b = Identification::new(&[3u32, 1, 2], &labels, &mut rng_b);
         for k in [1u32, 2, 3] {
-            assert_eq!(a.appearance(k), b.appearance(k), "input order must not matter");
+            assert_eq!(
+                a.appearance(k),
+                b.appearance(k),
+                "input order must not matter"
+            );
         }
     }
 
@@ -243,7 +244,11 @@ mod tests {
         let mut id = Identification::new(&[1u32, 2], &[10u32, 20], &mut rng);
         let before = *id.appearance(1).unwrap();
         id.identify(1);
-        assert_eq!(id.appearance(1), Some(&before), "label is fixed at construction");
+        assert_eq!(
+            id.appearance(1),
+            Some(&before),
+            "label is fixed at construction"
+        );
     }
 
     #[test]
@@ -260,7 +265,11 @@ mod tests {
     fn test_total_count_reflects_kind_set_size() {
         let mut rng = SplitMix64::new(1);
         let id = Identification::new(&[1u32, 2, 3, 4], &[10u32, 20, 30, 40, 50], &mut rng);
-        assert_eq!(id.total_count(), 4, "extra labels beyond kind count are simply unused");
+        assert_eq!(
+            id.total_count(),
+            4,
+            "extra labels beyond kind count are simply unused"
+        );
     }
 
     #[test]
@@ -318,6 +327,9 @@ mod tests {
         let mut rng_b = SplitMix64::new(2);
         let b = Identification::new(&kinds, &labels, &mut rng_b);
         let differs = kinds.iter().any(|&k| a.appearance(k) != b.appearance(k));
-        assert!(differs, "suspicious: two different seeds produced an identical mapping");
+        assert!(
+            differs,
+            "suspicious: two different seeds produced an identical mapping"
+        );
     }
 }

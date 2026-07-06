@@ -904,8 +904,11 @@ mod tests {
         r.attach(e[2], e[1]); // e[2] parent = e[1]
         let mut log: Vec<(Entity, Entity)> = Vec::new();
         r.propagate(|parent, child| log.push((parent, child)));
-        assert_eq!(log, vec![(e[0], e[1]), (e[1], e[2])],
-            "topological order: grandparent edge before parent edge");
+        assert_eq!(
+            log,
+            vec![(e[0], e[1]), (e[1], e[2])],
+            "topological order: grandparent edge before parent edge"
+        );
     }
 
     #[test]
@@ -919,8 +922,11 @@ mod tests {
         r.attach(e[2], e[0]);
         let mut children_visited: Vec<Entity> = Vec::new();
         r.propagate(|_, child| children_visited.push(child));
-        assert_eq!(children_visited, vec![e[1], e[2], e[3]],
-            "children must be visited in ascending entity-index order");
+        assert_eq!(
+            children_visited,
+            vec![e[1], e[2], e[3]],
+            "children must be visited in ascending entity-index order"
+        );
     }
 
     #[test]
@@ -952,6 +958,10 @@ mod tests {
         });
 
         assert_eq!(world[&e[0].index()], (10, 0), "root world pos unchanged");
-        assert_eq!(world[&e[1].index()], (10, 5), "child world pos = parent + local");
+        assert_eq!(
+            world[&e[1].index()],
+            (10, 5),
+            "child world pos = parent + local"
+        );
     }
 }

@@ -69,7 +69,10 @@ fn test_wall_aware_cone_excludes_shadowed_cells() {
         "the wall must occlude at least one cone cell"
     );
     // Cells beyond the wall on the central axis are not line-of-sight visible.
-    assert!(shape.contains(&(6, 3)), "(6,3) is within the pure cone shape");
+    assert!(
+        shape.contains(&(6, 3)),
+        "(6,3) is within the pure cone shape"
+    );
     assert!(
         !visible.contains(&(6, 3)),
         "(6,3) sits behind the wall and must be culled"

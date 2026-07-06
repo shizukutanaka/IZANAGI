@@ -88,7 +88,10 @@ fn sparse_set_matches_index_slot_model_under_random_ops() {
                         Some((owner, _)) if *owner == e => model.remove(&e.index()).map(|(_, v)| v),
                         _ => None,
                     };
-                    assert_eq!(got, expected, "remove({e:?}) returned {got:?}, model {expected:?}");
+                    assert_eq!(
+                        got, expected,
+                        "remove({e:?}) returned {got:?}, model {expected:?}"
+                    );
                 }
             }
             5 => {
@@ -114,7 +117,11 @@ fn sparse_set_matches_index_slot_model_under_random_ops() {
         assert_eq!(set.len(), model.len(), "len disagrees with model");
         assert_eq!(set.is_empty(), model.is_empty(), "is_empty disagrees");
         for &e in &pool {
-            assert_eq!(set.get(e).copied(), model_get(&model, e), "get({e:?}) post-op");
+            assert_eq!(
+                set.get(e).copied(),
+                model_get(&model, e),
+                "get({e:?}) post-op"
+            );
             assert_eq!(
                 set.contains(e),
                 model_get(&model, e).is_some(),
@@ -122,8 +129,10 @@ fn sparse_set_matches_index_slot_model_under_random_ops() {
             );
         }
         // iter() must yield exactly the model's current (entity, value) slots.
-        let mut from_iter: Vec<(u32, u32, u32)> =
-            set.iter().map(|(e, &v)| (e.index(), e.generation(), v)).collect();
+        let mut from_iter: Vec<(u32, u32, u32)> = set
+            .iter()
+            .map(|(e, &v)| (e.index(), e.generation(), v))
+            .collect();
         let mut from_model: Vec<(u32, u32, u32)> = model
             .values()
             .map(|(e, v)| (e.index(), e.generation(), *v))
@@ -147,7 +156,10 @@ fn entity_allocator_matches_live_set_model_under_random_ops() {
         match rng.below(3) {
             0 => {
                 let e = alloc.allocate();
-                assert!(live.insert(e), "allocate handed out a duplicate live entity {e:?}");
+                assert!(
+                    live.insert(e),
+                    "allocate handed out a duplicate live entity {e:?}"
+                );
                 pool.push(e);
             }
             1 => {
@@ -178,7 +190,11 @@ fn entity_allocator_matches_live_set_model_under_random_ops() {
         // Liveness and counts must mirror the model after every operation.
         assert_eq!(alloc.count(), live.len(), "live count disagrees with model");
         for &e in &pool {
-            assert_eq!(alloc.is_alive(e), live.contains(&e), "is_alive({e:?}) disagrees");
+            assert_eq!(
+                alloc.is_alive(e),
+                live.contains(&e),
+                "is_alive({e:?}) disagrees"
+            );
         }
         let reported: HashSet<Entity> = alloc.live_entities().into_iter().collect();
         assert_eq!(reported, live, "live_entities() disagrees with model");
@@ -250,7 +266,11 @@ fn asset_store_resolves_only_live_handles_under_random_ops() {
         let live_count = expected.iter().filter(|e| e.is_some()).count();
         assert_eq!(store.len(), live_count, "live count disagrees with model");
         for (h, exp) in handles.iter().zip(expected.iter()) {
-            assert_eq!(store.get(*h).copied(), *exp, "get({h:?}) disagrees with model");
+            assert_eq!(
+                store.get(*h).copied(),
+                *exp,
+                "get({h:?}) disagrees with model"
+            );
             assert_eq!(store.is_live(*h), exp.is_some(), "is_live({h:?}) disagrees");
         }
     }
@@ -296,7 +316,10 @@ fn relations_matches_forest_model_under_random_ops() {
                 let p = pick(&mut rng);
                 let expected = !creates_cycle(&model, c, p);
                 let got = rel.attach(c, p);
-                assert_eq!(got, expected, "attach({c:?},{p:?}) returned {got}, expected {expected}");
+                assert_eq!(
+                    got, expected,
+                    "attach({c:?},{p:?}) returned {got}, expected {expected}"
+                );
                 if expected {
                     model.remove(&c); // attach detaches any existing parent first
                     model.insert(c, p);
@@ -311,8 +334,11 @@ fn relations_matches_forest_model_under_random_ops() {
                 let e = pick(&mut rng);
                 rel.remove_entity(e);
                 // e's children become roots; e loses its own parent.
-                let kids: Vec<Entity> =
-                    model.iter().filter(|(_, &p)| p == e).map(|(&c, _)| c).collect();
+                let kids: Vec<Entity> = model
+                    .iter()
+                    .filter(|(_, &p)| p == e)
+                    .map(|(&c, _)| c)
+                    .collect();
                 for k in kids {
                     model.remove(&k);
                 }
@@ -322,11 +348,18 @@ fn relations_matches_forest_model_under_random_ops() {
 
         // Consistency after every op: parent_of and children_of mirror the model.
         for &x in &ents {
-            assert_eq!(rel.parent_of(x), model.get(&x).copied(), "parent_of({x:?}) mismatch");
+            assert_eq!(
+                rel.parent_of(x),
+                model.get(&x).copied(),
+                "parent_of({x:?}) mismatch"
+            );
             let mut got_kids = rel.children_of(x);
             got_kids.sort_by_key(|e| (e.index(), e.generation()));
-            let mut exp_kids: Vec<Entity> =
-                model.iter().filter(|(_, &p)| p == x).map(|(&c, _)| c).collect();
+            let mut exp_kids: Vec<Entity> = model
+                .iter()
+                .filter(|(_, &p)| p == x)
+                .map(|(&c, _)| c)
+                .collect();
             exp_kids.sort_by_key(|e| (e.index(), e.generation()));
             assert_eq!(got_kids, exp_kids, "children_of({x:?}) mismatch");
         }

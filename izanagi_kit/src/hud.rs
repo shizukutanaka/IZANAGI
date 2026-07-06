@@ -475,7 +475,11 @@ mod tests {
     fn test_stat_line_different_units_differ() {
         let a = StatLine::with_unit("Speed", 7, "m/s");
         let b = StatLine::with_unit("Speed", 7, "km/h");
-        assert_ne!(hash_state(&a), hash_state(&b), "different unit strings must differ");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different unit strings must differ"
+        );
     }
 
     #[test]

@@ -258,7 +258,11 @@ mod tests {
         assert!(shop.drain_till(60));
         assert_eq!(shop.till_balance(), 40);
         assert!(!shop.drain_till(1000), "cannot drain more than balance");
-        assert_eq!(shop.till_balance(), 40, "failed drain leaves till unchanged");
+        assert_eq!(
+            shop.till_balance(),
+            40,
+            "failed drain leaves till unchanged"
+        );
     }
 
     #[test]

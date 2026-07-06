@@ -23,9 +23,7 @@ use std::collections::HashSet;
 const CASES: usize = 400;
 
 fn rand_walls(rng: &mut SplitMix64, n: u32, w: i32, h: i32) -> HashSet<(i32, i32)> {
-    (0..n)
-        .map(|_| (rng.range(0, w), rng.range(0, h)))
-        .collect()
+    (0..n).map(|_| (rng.range(0, w), rng.range(0, h))).collect()
 }
 
 /// Pathfinding depends only on relative geometry: translating the bounded world
@@ -44,9 +42,8 @@ fn pathfinding_is_translation_invariant() {
         walls.remove(&start);
         walls.remove(&goal);
 
-        let in_box = |x: i32, y: i32, ox: i32, oy: i32| {
-            x >= ox && x < ox + N && y >= oy && y < oy + N
-        };
+        let in_box =
+            |x: i32, y: i32, ox: i32, oy: i32| x >= ox && x < ox + N && y >= oy && y < oy + N;
 
         // Original world: out-of-box and wall cells are blocked.
         let blocked = |x: i32, y: i32| !in_box(x, y, 0, 0) || walls.contains(&(x, y));
@@ -55,16 +52,20 @@ fn pathfinding_is_translation_invariant() {
 
         // Translate the entire world by d.
         let (dx, dy) = (rng.range(-50, 51), rng.range(-50, 51));
-        let blocked_t = |x: i32, y: i32| {
-            !in_box(x, y, dx, dy) || walls.contains(&(x - dx, y - dy))
-        };
+        let blocked_t = |x: i32, y: i32| !in_box(x, y, dx, dy) || walls.contains(&(x - dx, y - dy));
         let start_t = (start.0 + dx, start.1 + dy);
         let goal_t = (goal.0 + dx, goal.1 + dy);
         let reach2 = is_reachable(start_t, goal_t, blocked_t);
         let cost2 = astar(start_t, goal_t, blocked_t).map(|p| path_cost(&p));
 
-        assert_eq!(reach1, reach2, "reachability changed under translation by ({dx},{dy})");
-        assert_eq!(cost1, cost2, "optimal path cost changed under translation by ({dx},{dy})");
+        assert_eq!(
+            reach1, reach2,
+            "reachability changed under translation by ({dx},{dy})"
+        );
+        assert_eq!(
+            cost1, cost2,
+            "optimal path cost changed under translation by ({dx},{dy})"
+        );
     }
 }
 
@@ -86,10 +87,9 @@ fn fov_is_translation_invariant() {
 
         let (dx, dy) = (rng.range(-40, 41), rng.range(-40, 41));
         let is_op_t = |x: i32, y: i32| opaque.contains(&(x - dx, y - dy));
-        let vis2: HashSet<(i32, i32)> =
-            fov_to_vec((origin.0 + dx, origin.1 + dy), radius, is_op_t)
-                .into_iter()
-                .collect();
+        let vis2: HashSet<(i32, i32)> = fov_to_vec((origin.0 + dx, origin.1 + dy), radius, is_op_t)
+            .into_iter()
+            .collect();
 
         // vis1 shifted by d must equal vis2 exactly.
         let vis1_shifted: HashSet<(i32, i32)> =
@@ -132,14 +132,26 @@ fn tilemap_rotation_preserves_cell_multiset() {
         // Dimensions swap under a 90° rotation.
         assert_eq!((cw.width(), cw.height()), (h, w), "rotated dims must swap");
         // The multiset of values is preserved (rotation is a bijection on cells).
-        assert_eq!(multiset(&cw), multiset(&map), "rotation changed the value multiset");
+        assert_eq!(
+            multiset(&cw),
+            multiset(&map),
+            "rotation changed the value multiset"
+        );
 
         // Four 90° rotations return the original map exactly.
         let back = map.rotated_cw().rotated_cw().rotated_cw().rotated_cw();
-        assert_eq!((back.width(), back.height()), (w, h), "4x rotation must restore dims");
+        assert_eq!(
+            (back.width(), back.height()),
+            (w, h),
+            "4x rotation must restore dims"
+        );
         for y in 0..h as i32 {
             for x in 0..w as i32 {
-                assert_eq!(back.get(x, y), map.get(x, y), "4x rotation must restore cell ({x},{y})");
+                assert_eq!(
+                    back.get(x, y),
+                    map.get(x, y),
+                    "4x rotation must restore cell ({x},{y})"
+                );
             }
         }
     }
@@ -178,8 +190,14 @@ fn tilemap_transforms_round_trip_and_compose() {
         }
 
         // Rotations are inverse pairs.
-        assert!(maps_equal(&m.rotated_cw().rotated_ccw(), &m), "cw∘ccw != identity");
-        assert!(maps_equal(&m.rotated_ccw().rotated_cw(), &m), "ccw∘cw != identity");
+        assert!(
+            maps_equal(&m.rotated_cw().rotated_ccw(), &m),
+            "cw∘ccw != identity"
+        );
+        assert!(
+            maps_equal(&m.rotated_ccw().rotated_cw(), &m),
+            "ccw∘cw != identity"
+        );
 
         // Flips are involutions (applying twice restores the original).
         let mut fh = m.clone();
@@ -210,8 +228,9 @@ fn timer_queue_one_shot_fires_are_split_advance_invariant() {
     let mut rng = SplitMix64::new(0x717E_9A05);
     for _ in 0..CASES {
         let n = rng.range(1, 12) as usize;
-        let timers: Vec<(u32, u32)> =
-            (0..n).map(|i| (rng.range(0, 50) as u32, i as u32)).collect();
+        let timers: Vec<(u32, u32)> = (0..n)
+            .map(|i| (rng.range(0, 50) as u32, i as u32))
+            .collect();
         let total = rng.range(0, 60) as u32;
 
         // One big advance.
@@ -246,7 +265,10 @@ fn timer_queue_one_shot_fires_are_split_advance_invariant() {
         let mut b = chunked;
         a.sort_unstable();
         b.sort_unstable();
-        assert_eq!(a, b, "one-shot fired multiset differs: single vs chunked advance");
+        assert_eq!(
+            a, b,
+            "one-shot fired multiset differs: single vs chunked advance"
+        );
 
         // Each one-shot with delay <= total fires exactly once.
         let expected = timers.iter().filter(|(d, _)| *d <= total).count();
@@ -270,7 +292,8 @@ fn fov_visibility_is_symmetric_across_random_maps() {
     let mut checked = 0u64;
     for _ in 0..CASES {
         let walls = rand_walls(&mut rng, 30, N, N);
-        let is_opaque = |x: i32, y: i32| x < 0 || y < 0 || x >= N || y >= N || walls.contains(&(x, y));
+        let is_opaque =
+            |x: i32, y: i32| x < 0 || y < 0 || x >= N || y >= N || walls.contains(&(x, y));
 
         let a = (rng.range(0, N), rng.range(0, N));
         let b = (rng.range(0, N), rng.range(0, N));

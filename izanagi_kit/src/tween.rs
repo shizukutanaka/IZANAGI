@@ -360,7 +360,11 @@ mod tests {
         let mut t = Tween::new(fi(0), fi(100), 10);
         t.advance(5);
         assert_eq!(t.value_linear().to_int_round(), 50);
-        assert_eq!(t.value(linear).to_int_round(), 50, "linear easing == value_linear");
+        assert_eq!(
+            t.value(linear).to_int_round(),
+            50,
+            "linear easing == value_linear"
+        );
     }
 
     #[test]
@@ -422,7 +426,11 @@ mod tests {
         assert_eq!(t.elapsed(), 0);
         assert_eq!(t.start().to_int_round(), 100);
         assert_eq!(t.end().to_int_round(), 0);
-        assert_eq!(t.value_linear().to_int_round(), 100, "now starts at old end");
+        assert_eq!(
+            t.value_linear().to_int_round(),
+            100,
+            "now starts at old end"
+        );
     }
 
     #[test]
@@ -431,7 +439,10 @@ mod tests {
         let mut t = Tween::new(fi(0), fi(100), 10);
         t.advance(9);
         let clamped = t.value(ease_out_back).to_int_round();
-        assert!(clamped <= 100, "default value() clamps overshoot to end ({clamped})");
+        assert!(
+            clamped <= 100,
+            "default value() clamps overshoot to end ({clamped})"
+        );
     }
 
     #[test]
@@ -441,7 +452,10 @@ mod tests {
         let overshoot = t.value_overshoot(ease_out_back).to_int_round();
         let clamped = t.value(ease_out_back).to_int_round();
         // The overshoot variant can exceed the clamped one near the tail.
-        assert!(overshoot >= clamped, "overshoot >= clamped ({overshoot} vs {clamped})");
+        assert!(
+            overshoot >= clamped,
+            "overshoot >= clamped ({overshoot} vs {clamped})"
+        );
     }
 
     #[test]
@@ -450,9 +464,17 @@ mod tests {
         let b = Tween::with_elapsed(fi(0), fi(100), 10, 3);
         assert_eq!(hash_state(&a), hash_state(&b), "same state, same hash");
         let c = Tween::with_elapsed(fi(0), fi(100), 10, 4);
-        assert_ne!(hash_state(&a), hash_state(&c), "different elapsed → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "different elapsed → different hash"
+        );
         let d = Tween::with_elapsed(fi(0), fi(101), 10, 3);
-        assert_ne!(hash_state(&a), hash_state(&d), "different end → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&d),
+            "different end → different hash"
+        );
     }
 
     // --- TweenSequence --------------------------------------------------
@@ -515,7 +537,11 @@ mod tests {
             Some(2),
             "cursor settles on the last step, never runs off the end"
         );
-        assert_eq!(seq.value(linear).to_int_round(), 0, "settles on last step's end value");
+        assert_eq!(
+            seq.value(linear).to_int_round(),
+            0,
+            "settles on last step's end value"
+        );
     }
 
     #[test]
@@ -588,7 +614,11 @@ mod tests {
     fn test_sequence_det_hash_sensitive_to_position() {
         let mut a = seq3();
         let b = seq3();
-        assert_eq!(hash_state(&a), hash_state(&b), "identical fresh sequences hash equal");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "identical fresh sequences hash equal"
+        );
         a.advance(1);
         assert_ne!(hash_state(&a), hash_state(&b), "advancing changes the hash");
     }
@@ -600,6 +630,10 @@ mod tests {
             Tween::new(fi(0), fi(1), 5),
             Tween::new(fi(1), fi(2), 5),
         ]);
-        assert_ne!(hash_state(&a), hash_state(&b), "different step count → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different step count → different hash"
+        );
     }
 }

@@ -242,9 +242,10 @@ impl VisibilityMap {
     /// Iterate `(x, y, Visibility)` in row-major order.
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32, Visibility)> + '_ {
         let w = self.width;
-        self.cells.iter().enumerate().map(move |(i, &c)| {
-            ((i % w as usize) as i32, (i / w as usize) as i32, c)
-        })
+        self.cells
+            .iter()
+            .enumerate()
+            .map(move |(i, &c)| ((i % w as usize) as i32, (i / w as usize) as i32, c))
     }
 }
 
@@ -305,7 +306,11 @@ mod tests {
         v.mark_visible(-1, 0);
         v.mark_visible(3, 3);
         v.set(99, 99, Visibility::Visible);
-        assert_eq!(hash_state(&v), before, "OOB writes must not change anything");
+        assert_eq!(
+            hash_state(&v),
+            before,
+            "OOB writes must not change anything"
+        );
     }
 
     #[test]
@@ -327,7 +332,11 @@ mod tests {
         v.begin_frame(); // (0,0) -> Remembered
         let before = hash_state(&v);
         v.begin_frame(); // no Visible cells; must be a no-op
-        assert_eq!(hash_state(&v), before, "begin_frame on no-visible is a no-op");
+        assert_eq!(
+            hash_state(&v),
+            before,
+            "begin_frame on no-visible is a no-op"
+        );
         assert_eq!(v.get(0, 0), Visibility::Remembered);
         assert_eq!(v.get(2, 2), Visibility::Unseen);
     }
@@ -404,7 +413,11 @@ mod tests {
         assert_eq!(hash_state(&a), hash_state(&b), "same content same hash");
         let mut c = a.clone();
         c.mark_visible(2, 2);
-        assert_ne!(hash_state(&a), hash_state(&c), "a change must change the hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "a change must change the hash"
+        );
     }
 
     #[test]

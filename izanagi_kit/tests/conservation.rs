@@ -80,7 +80,10 @@ fn stats_hp_is_conserved_within_bounds() {
                 assert_eq!(stats.hp, before + expected_gain, "heal conservation");
                 assert!(stats.hp <= stats.max_hp, "overheal past max_hp");
             }
-            assert!((0..=stats.max_hp).contains(&stats.hp), "HP escaped [0, max_hp]");
+            assert!(
+                (0..=stats.max_hp).contains(&stats.hp),
+                "HP escaped [0, max_hp]"
+            );
         }
     }
 }
@@ -117,7 +120,9 @@ fn inventory_items_are_conserved() {
                 // remove a random slot index in range
                 let slot = rng.below(cap as u32) as usize;
                 if let Some(item) = inv.remove(slot) {
-                    let c = present.get_mut(&item).expect("removed an item never present");
+                    let c = present
+                        .get_mut(&item)
+                        .expect("removed an item never present");
                     *c -= 1;
                     if *c == 0 {
                         present.remove(&item);
@@ -127,13 +132,20 @@ fn inventory_items_are_conserved() {
 
             // Capacity is never exceeded.
             assert!(inv.count_occupied() <= cap, "occupancy exceeds capacity");
-            assert_eq!(inv.len(), inv.count_occupied(), "len disagrees with occupancy");
+            assert_eq!(
+                inv.len(),
+                inv.count_occupied(),
+                "len disagrees with occupancy"
+            );
             // The held multiset equals the reference exactly — no dup, no loss.
             let mut held: BTreeMap<u32, u32> = BTreeMap::new();
             for (_, &item) in inv.iter() {
                 *held.entry(item).or_insert(0) += 1;
             }
-            assert_eq!(held, present, "inventory contents diverged from the accounting model");
+            assert_eq!(
+                held, present,
+                "inventory contents diverged from the accounting model"
+            );
         }
     }
 }

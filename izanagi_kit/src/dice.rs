@@ -113,8 +113,7 @@ impl Dice {
         }
         // i128 so count*(sides+1)*50 cannot overflow at u32::MAX×u32::MAX;
         // clamp the final result back to i64 (saturating to i64 boundaries).
-        let raw = self.count as i128 * (self.sides as i128 + 1) * 50
-            + self.modifier as i128 * 100;
+        let raw = self.count as i128 * (self.sides as i128 + 1) * 50 + self.modifier as i128 * 100;
         raw.clamp(i64::MIN as i128, i64::MAX as i128) as i64
     }
 

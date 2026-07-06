@@ -63,7 +63,11 @@ fn sparse_set_hash_is_insertion_order_independent() {
             let (e, v) = items[i];
             s.insert(e, v);
         }
-        assert_eq!(sparse_set_hash(&s), reference, "SparseSet hash depends on insertion order");
+        assert_eq!(
+            sparse_set_hash(&s),
+            reference,
+            "SparseSet hash depends on insertion order"
+        );
     }
 }
 
@@ -71,9 +75,7 @@ fn sparse_set_hash_is_insertion_order_independent() {
 fn status_set_hash_is_apply_order_independent() {
     // Distinct keys, so each apply is independent (no last-writer-wins overlap).
     let mut rng = SplitMix64::new(0x57A70502);
-    let items: Vec<(u32, u32, i32)> = (0..24)
-        .map(|i| (i, (i % 9) + 1, (i as i32) - 12))
-        .collect();
+    let items: Vec<(u32, u32, i32)> = (0..24).map(|i| (i, (i % 9) + 1, (i as i32) - 12)).collect();
 
     let reference = {
         let mut s: StatusSet<u32> = StatusSet::new();
@@ -90,7 +92,11 @@ fn status_set_hash_is_apply_order_independent() {
             let (k, dur, mag) = items[i];
             s.apply(k, dur, mag);
         }
-        assert_eq!(hash_state(&s), reference, "StatusSet hash depends on apply order");
+        assert_eq!(
+            hash_state(&s),
+            reference,
+            "StatusSet hash depends on apply order"
+        );
     }
 }
 
@@ -118,7 +124,11 @@ fn spatial_hash_hash_is_insertion_order_independent() {
             let (k, x, y) = items[i];
             g.insert(k, x, y);
         }
-        assert_eq!(hash_state(&g), reference, "SpatialHash hash depends on insertion order");
+        assert_eq!(
+            hash_state(&g),
+            reference,
+            "SpatialHash hash depends on insertion order"
+        );
     }
 }
 
@@ -147,7 +157,11 @@ fn relations_hash_is_attach_order_independent() {
             let (child, parent) = edges[i];
             r.attach(child, parent);
         }
-        assert_eq!(hash_state(&r), reference, "Relations hash depends on attach order");
+        assert_eq!(
+            hash_state(&r),
+            reference,
+            "Relations hash depends on attach order"
+        );
     }
 }
 

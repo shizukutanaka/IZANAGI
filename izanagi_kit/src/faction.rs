@@ -145,9 +145,7 @@ impl<K: Ord + Clone> FactionMap<K> {
 
     /// Iterate over `(from, to, reputation)` in canonical `BTreeMap` order.
     pub fn iter(&self) -> impl Iterator<Item = (&K, &K, i32)> {
-        self.standings
-            .iter()
-            .map(|((f, t), &r)| (f, t, r))
+        self.standings.iter().map(|((f, t), &r)| (f, t, r))
     }
 }
 
@@ -181,7 +179,7 @@ mod tests {
     #[test]
     fn test_set_clamped_and_returned() {
         let mut fm = FM::new();
-        let prev = fm.set(1, 2, 200);   // clamps to 100
+        let prev = fm.set(1, 2, 200); // clamps to 100
         assert_eq!(prev, 0, "previous was neutral");
         assert_eq!(fm.get(1, 2), MAX_REP);
         let prev2 = fm.set(1, 2, -999); // clamps to -100
@@ -237,14 +235,14 @@ mod tests {
     #[test]
     fn test_threshold_queries() {
         let mut fm = FM::new();
-        fm.set(1, 2, HOSTILE_THRESHOLD - 1);   // just below hostile
+        fm.set(1, 2, HOSTILE_THRESHOLD - 1); // just below hostile
         assert!(fm.is_hostile(1, 2));
-        fm.set(1, 2, HOSTILE_THRESHOLD);       // at boundary: neutral
+        fm.set(1, 2, HOSTILE_THRESHOLD); // at boundary: neutral
         assert!(!fm.is_hostile(1, 2));
         assert!(fm.is_neutral(1, 2));
-        fm.set(1, 2, FRIENDLY_THRESHOLD + 1);  // just above friendly
+        fm.set(1, 2, FRIENDLY_THRESHOLD + 1); // just above friendly
         assert!(fm.is_friendly(1, 2));
-        fm.set(1, 2, FRIENDLY_THRESHOLD);      // at boundary: neutral
+        fm.set(1, 2, FRIENDLY_THRESHOLD); // at boundary: neutral
         assert!(!fm.is_friendly(1, 2));
         assert!(fm.is_neutral(1, 2));
     }
@@ -281,7 +279,11 @@ mod tests {
         b.set(1, 2, 50);
         assert_eq!(hash_state(&a), hash_state(&b), "same state, same hash");
         b.set(1, 2, 51);
-        assert_ne!(hash_state(&a), hash_state(&b), "different value, different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different value, different hash"
+        );
         let mut c = FM::new();
         c.set(2, 1, 50); // reversed direction
         assert_ne!(hash_state(&a), hash_state(&c), "direction matters in hash");

@@ -264,8 +264,7 @@ fn jps_jump<W: Fn(i32, i32) -> bool>(
             // Horizontal: no-corner-cutting forced neighbour — a perpendicular
             // cell is open but the cell diagonally *behind* it is blocked, so the
             // only way to reach it is to turn here.
-            if (walk(x, y + 1) && !walk(x - dx, y + 1))
-                || (walk(x, y - 1) && !walk(x - dx, y - 1))
+            if (walk(x, y + 1) && !walk(x - dx, y + 1)) || (walk(x, y - 1) && !walk(x - dx, y - 1))
             {
                 return Some((x, y));
             }
@@ -276,8 +275,7 @@ fn jps_jump<W: Fn(i32, i32) -> bool>(
             return None;
         } else {
             // Vertical (dy != 0) — symmetric no-corner-cutting forced neighbour.
-            if (walk(x + 1, y) && !walk(x + 1, y - dy))
-                || (walk(x - 1, y) && !walk(x - 1, y - dy))
+            if (walk(x + 1, y) && !walk(x + 1, y - dy)) || (walk(x - 1, y) && !walk(x - 1, y - dy))
             {
                 return Some((x, y));
             }
@@ -1056,7 +1054,11 @@ mod tests {
         let blocked = blocker(8, 8, HashSet::new());
         let desire = dijkstra_map(&[(0, 0)], 10_000, &blocked);
         let flee = flee_map(&desire, 12, 10, &blocked);
-        assert_eq!(flee.len(), desire.len(), "flee map covers exactly the desire cells");
+        assert_eq!(
+            flee.len(),
+            desire.len(),
+            "flee map covers exactly the desire cells"
+        );
         for key in desire.keys() {
             assert!(flee.contains_key(key));
         }
@@ -1074,7 +1076,10 @@ mod tests {
         let mut steps = 0;
         while let Some(next) = descend(&flee, cur, &blocked) {
             let chev = next.0.max(next.1);
-            assert!(chev >= last_chev, "fleeing should not move back toward the source");
+            assert!(
+                chev >= last_chev,
+                "fleeing should not move back toward the source"
+            );
             last_chev = chev;
             cur = next;
             steps += 1;
@@ -1110,7 +1115,11 @@ mod tests {
         // From the pocket cell (1,1), descending must lead to (1,2) — deeper
         // into safety — not stall.
         let next = descend(&flee, (1, 1), &blocked);
-        assert_eq!(next, Some((1, 2)), "fleer escapes the pocket toward the corridor");
+        assert_eq!(
+            next,
+            Some((1, 2)),
+            "fleer escapes the pocket toward the corridor"
+        );
     }
 
     #[test]
@@ -1128,7 +1137,7 @@ mod tests {
         let blocked = blocker(5, 5, HashSet::new());
         let desire = dijkstra_map(&[(0, 0)], 10_000, &blocked);
         let safe = flee_map(&desire, 1, 0, &blocked); // den 0 → 1
-        // Should not panic and should produce a same-sized map.
+                                                      // Should not panic and should produce a same-sized map.
         assert_eq!(safe.len(), desire.len());
     }
 
@@ -1514,7 +1523,8 @@ mod tests {
         let walls = HashSet::from([(2, 0), (2, 1), (2, 2), (2, 3)]);
         let bounds = blocker(5, 5, walls.clone());
         // Explored: all in-bounds cells except (4,4) which is the unknown.
-        let explored = |x: i32, y: i32| (0..5).contains(&x) && (0..5).contains(&y) && (x, y) != (4, 4);
+        let explored =
+            |x: i32, y: i32| (0..5).contains(&x) && (0..5).contains(&y) && (x, y) != (4, 4);
         let path = auto_explore((0, 0), &bounds, explored).expect("frontier near (4,4)");
         let check_blocked = blocker(5, 5, walls);
         for &(x, y) in &path {
@@ -1691,6 +1701,9 @@ mod tests {
             }
             compared += 1;
         }
-        assert!(compared >= 6000, "expected 6000 comparisons, got {compared}");
+        assert!(
+            compared >= 6000,
+            "expected 6000 comparisons, got {compared}"
+        );
     }
 }

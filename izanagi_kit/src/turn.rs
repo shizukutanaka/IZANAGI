@@ -664,14 +664,21 @@ mod tests {
         let order = s.forecast(30);
         let fast = order.iter().filter(|&&a| a == 1).count();
         let slow = order.iter().filter(|&&a| a == 2).count();
-        assert!(fast > slow, "faster actor must act more often ({fast} vs {slow})");
+        assert!(
+            fast > slow,
+            "faster actor must act more often ({fast} vs {slow})"
+        );
     }
 
     #[test]
     fn test_forecast_length_is_n_when_non_empty() {
         let mut s: Scheduler<u32> = Scheduler::new();
         s.add(1, 100);
-        assert_eq!(s.forecast(7).len(), 7, "non-empty scheduler yields exactly n");
+        assert_eq!(
+            s.forecast(7).len(),
+            7,
+            "non-empty scheduler yields exactly n"
+        );
     }
 
     #[test]

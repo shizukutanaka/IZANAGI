@@ -23,8 +23,8 @@
 
 use izanagi_kit::turn::ACTION_COST;
 use izanagi_kit::{
-    check_trace, first_divergence, hash_state, record_trace, resimulate, DetHash, Fnv1a,
-    Scheduler, SplitMix64,
+    check_trace, first_divergence, hash_state, record_trace, resimulate, DetHash, Fnv1a, Scheduler,
+    SplitMix64,
 };
 
 const SEED: u64 = 0xD4CE_0501;
@@ -166,7 +166,8 @@ fn check_trace_detects_divergence_at_the_mutated_tick() {
     };
     match check_trace(&mut TickSim::new(SEED), &inputs, &expected, step) {
         Err(d) => assert_eq!(
-            d.tick, 20,
+            d.tick,
+            20,
             "divergence must be at the mutated tick, not at {tick}",
             tick = d.tick
         ),
@@ -188,7 +189,8 @@ fn check_trace_divergence_is_tick_accurate_not_just_present() {
     };
     match check_trace(&mut TickSim::new(SEED), &inputs, &expected, step) {
         Err(d) => assert_eq!(
-            d.tick, 40,
+            d.tick,
+            40,
             "divergence must be at the injected tick 40, not {tick}",
             tick = d.tick
         ),

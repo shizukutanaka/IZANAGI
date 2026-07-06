@@ -674,7 +674,11 @@ mod tests {
             "length offset/endianness"
         );
         assert_eq!(&GOLDEN_SAVE[20..], GOLDEN_PAYLOAD, "payload offset");
-        assert_eq!(GOLDEN_SAVE.len(), 20 + GOLDEN_PAYLOAD.len(), "header is 20 bytes");
+        assert_eq!(
+            GOLDEN_SAVE.len(),
+            20 + GOLDEN_PAYLOAD.len(),
+            "header is 20 bytes"
+        );
     }
 
     /// Prints the current encoding of the golden fixture for pasting into

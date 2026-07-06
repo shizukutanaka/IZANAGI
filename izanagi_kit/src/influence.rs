@@ -271,8 +271,7 @@ impl InfluenceMap {
             } else {
                 // Both spans can reach 2^32 (e.g. i32::MAX − i32::MIN), so
                 // their product needs i128 — i64 would overflow at ~1.8e19.
-                let num =
-                    (*v as i64 - cur_min as i64) as i128 * target_span as i128;
+                let num = (*v as i64 - cur_min as i64) as i128 * target_span as i128;
                 let scaled = target_min as i128 + num / span as i128;
                 scaled.clamp(i32::MIN as i128, i32::MAX as i128) as i32
             };

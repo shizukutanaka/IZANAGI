@@ -67,7 +67,11 @@ fn fixed_sin_cos_anchor_at_zero() {
     // so anchor within tolerance rather than asserting (0, 1) exactly.
     let (s, c) = Fixed::ZERO.sin_cos();
     assert!(to_f(s).abs() < TRIG_TOL, "sin(0) = {} not ≈ 0", to_f(s));
-    assert!((to_f(c) - 1.0).abs() < TRIG_TOL, "cos(0) = {} not ≈ 1", to_f(c));
+    assert!(
+        (to_f(c) - 1.0).abs() < TRIG_TOL,
+        "cos(0) = {} not ≈ 1",
+        to_f(c)
+    );
 }
 
 #[test]
@@ -78,7 +82,11 @@ fn fixed_sqrt_matches_f64_and_never_overestimates() {
         let x = Fixed::from_ratio(rng.range(0, 30_000), 7);
         let truth = to_f(x).sqrt();
         let got = to_f(x.sqrt());
-        assert!((got - truth).abs() < SQRT_TOL, "sqrt({}) = {got} vs {truth}", to_f(x));
+        assert!(
+            (got - truth).abs() < SQRT_TOL,
+            "sqrt({}) = {got} vs {truth}",
+            to_f(x)
+        );
         // Integer sqrt floors, so it is never an over-estimate.
         assert!(got <= truth + 1e-9, "sqrt overestimated: {got} > {truth}");
     }
@@ -171,7 +179,12 @@ fn fixed_hypot_matches_f64() {
         let b = Fixed::from_ratio(rng.range(-1000, 1001), 10);
         let got = to_f(Fixed::hypot(a, b));
         let truth = (to_f(a) * to_f(a) + to_f(b) * to_f(b)).sqrt();
-        assert!((got - truth).abs() < 1.0e-3, "hypot({},{}) = {got} vs {truth}", to_f(a), to_f(b));
+        assert!(
+            (got - truth).abs() < 1.0e-3,
+            "hypot({},{}) = {got} vs {truth}",
+            to_f(a),
+            to_f(b)
+        );
     }
 }
 
@@ -188,7 +201,11 @@ fn fixed_pow_matches_f64_powi() {
         if truth.abs() > 1000.0 {
             continue; // near saturation — skip
         }
-        assert!((got - truth).abs() < 2.0e-3, "{}^{exp} = {got} vs {truth}", to_f(base));
+        assert!(
+            (got - truth).abs() < 2.0e-3,
+            "{}^{exp} = {got} vs {truth}",
+            to_f(base)
+        );
     }
 }
 
@@ -217,7 +234,12 @@ fn vec2_angle_matches_f64_atan2() {
         }
         let got = to_f(Vec2::new(x, y).angle());
         let truth = to_f(y).atan2(to_f(x));
-        assert!((got - truth).abs() < 1.0e-3, "angle({},{}) = {got} vs {truth}", to_f(x), to_f(y));
+        assert!(
+            (got - truth).abs() < 1.0e-3,
+            "angle({},{}) = {got} vs {truth}",
+            to_f(x),
+            to_f(y)
+        );
     }
 }
 
@@ -234,11 +256,22 @@ fn vec2_rotate_matches_f64_rotation_matrix() {
         let (t, fx, fy) = (to_f(ang), to_f(x), to_f(y));
         let ex = fx * t.cos() - fy * t.sin();
         let ey = fx * t.sin() + fy * t.cos();
-        assert!((to_f(r.x) - ex).abs() < 0.03, "rotate.x = {} vs {ex}", to_f(r.x));
-        assert!((to_f(r.y) - ey).abs() < 0.03, "rotate.y = {} vs {ey}", to_f(r.y));
+        assert!(
+            (to_f(r.x) - ex).abs() < 0.03,
+            "rotate.x = {} vs {ex}",
+            to_f(r.x)
+        );
+        assert!(
+            (to_f(r.y) - ey).abs() < 0.03,
+            "rotate.y = {} vs {ey}",
+            to_f(r.y)
+        );
         // Rotation preserves length (within fixed-point rounding).
         let lr = to_f(r.x).hypot(to_f(r.y));
         let lv = fx.hypot(fy);
-        assert!((lr - lv).abs() < 0.05, "rotation changed length: {lv} -> {lr}");
+        assert!(
+            (lr - lv).abs() < 0.05,
+            "rotation changed length: {lv} -> {lr}"
+        );
     }
 }

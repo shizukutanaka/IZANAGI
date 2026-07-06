@@ -67,11 +67,10 @@ fn cases() -> Vec<(&'static str, u64)> {
         AbilitySet::new().with(1, Ability::new("Firebolt", 5, 3, 6, 42u32));
 
     // Behavior tree: a sequence of two action leaves.
-    let bt: BehaviorTree<u32> =
-        BehaviorTree::new(BehaviorNode::sequence(vec![
-            BehaviorNode::action(1),
-            BehaviorNode::action(2),
-        ]));
+    let bt: BehaviorTree<u32> = BehaviorTree::new(BehaviorNode::sequence(vec![
+        BehaviorNode::action(1),
+        BehaviorNode::action(2),
+    ]));
 
     // Timer queue: one one-shot and one recurring entry. Pins the `period`
     // field whose omission was the Round 10 bug — a re-omission flips this.
@@ -136,7 +135,10 @@ fn cases() -> Vec<(&'static str, u64)> {
         ("Screen(2x2)", hash_state(&Screen::new(2, 2))),
         ("BarWidget(7,10,20)", hash_state(&BarWidget::new(7, 10, 20))),
         ("StatLine(HP,42)", hash_state(&StatLine::new("HP", 42))),
-        ("HudPanel(0,0,10,5)", hash_state(&HudPanel::new(0, 0, 10, 5))),
+        (
+            "HudPanel(0,0,10,5)",
+            hash_state(&HudPanel::new(0, 0, 10, 5)),
+        ),
         ("Relations{e1->e0}", hash_state(&rel)),
         ("MsgLog[hello,world]", hash_state(&log)),
         ("HFsm<u32,u8>", hash_state(&hfsm)),

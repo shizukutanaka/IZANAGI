@@ -158,7 +158,8 @@ impl<P: Ord + Clone, I: Clone + PartialEq> NetInputBuffer<P, I> {
     /// yet been confirmed (i.e. the value [`input_for`] would return there is
     /// still a guess, not ground truth).
     pub fn is_predicted(&self, tick: u32, player: P) -> bool {
-        self.predicted.contains_key(&(tick, player.clone())) && !self.confirmed.contains_key(&(tick, player))
+        self.predicted.contains_key(&(tick, player.clone()))
+            && !self.confirmed.contains_key(&(tick, player))
     }
 
     /// `true` if every player in `players` has a confirmed input at `tick`
@@ -213,7 +214,11 @@ mod tests {
         let mut buf: NetInputBuffer<u32, i32> = NetInputBuffer::new();
         assert_eq!(buf.len_confirmed(), 0);
         assert_eq!(buf.confirmed_input(0, 1), None);
-        assert_eq!(buf.input_for(0, 1), None, "no seed, no confirm → nothing to predict");
+        assert_eq!(
+            buf.input_for(0, 1),
+            None,
+            "no seed, no confirm → nothing to predict"
+        );
     }
 
     #[test]
@@ -262,7 +267,11 @@ mod tests {
         let mut buf: NetInputBuffer<u32, i32> = NetInputBuffer::new();
         buf.seed(1, 0);
         buf.confirm(5, 1, 99);
-        assert_eq!(buf.input_for(5, 1), Some(99), "confirmed value wins even though a prediction exists");
+        assert_eq!(
+            buf.input_for(5, 1),
+            Some(99),
+            "confirmed value wins even though a prediction exists"
+        );
     }
 
     #[test]
@@ -273,7 +282,11 @@ mod tests {
         // Even if last_known later changes (a different tick's confirm), the
         // already-made prediction for tick 10 must not silently change.
         buf.confirm(11, 1, 999);
-        assert_eq!(buf.input_for(10, 1), Some(5), "memoized prediction is stable");
+        assert_eq!(
+            buf.input_for(10, 1),
+            Some(5),
+            "memoized prediction is stable"
+        );
     }
 
     #[test]
@@ -307,7 +320,10 @@ mod tests {
         buf.input_for(5, 1);
         assert!(buf.is_predicted(5, 1));
         buf.confirm(5, 1, 0);
-        assert!(!buf.is_predicted(5, 1), "confirmed slot is ground truth, not a prediction");
+        assert!(
+            !buf.is_predicted(5, 1),
+            "confirmed slot is ground truth, not a prediction"
+        );
     }
 
     #[test]
@@ -316,7 +332,10 @@ mod tests {
         buf.confirm(1, 10, 0);
         buf.confirm(1, 20, 0);
         assert!(buf.is_confirmed_for(1, &[10, 20]));
-        assert!(!buf.is_confirmed_for(1, &[10, 20, 30]), "player 30 unconfirmed");
+        assert!(
+            !buf.is_confirmed_for(1, &[10, 20, 30]),
+            "player 30 unconfirmed"
+        );
     }
 
     #[test]
@@ -353,7 +372,11 @@ mod tests {
         let mut buf: NetInputBuffer<u32, i32> = NetInputBuffer::new();
         buf.confirm(0, 1, 10);
         buf.prune_before(100);
-        assert_eq!(buf.input_for(200, 1), Some(10), "last_known survives pruning of old ticks");
+        assert_eq!(
+            buf.input_for(200, 1),
+            Some(10),
+            "last_known survives pruning of old ticks"
+        );
     }
 
     #[test]
@@ -365,7 +388,11 @@ mod tests {
         assert_eq!(buf.input_for(0, 2), Some(200));
         buf.confirm(0, 1, 111);
         assert_eq!(buf.confirmed_input(0, 1), Some(&111));
-        assert_eq!(buf.confirmed_input(0, 2), None, "player 2 unaffected by player 1's confirm");
+        assert_eq!(
+            buf.confirmed_input(0, 2),
+            None,
+            "player 2 unaffected by player 1's confirm"
+        );
     }
 
     #[test]
@@ -376,7 +403,10 @@ mod tests {
         let first = buf.confirm(3, 1, 5); // mispredicted (0 != 5)
         let second = buf.confirm(3, 1, 5); // re-confirming the same value
         assert!(first);
-        assert!(second, "still compared against the original prediction of 0, not the new value");
+        assert!(
+            second,
+            "still compared against the original prediction of 0, not the new value"
+        );
     }
 
     #[test]
@@ -403,7 +433,11 @@ mod tests {
         a.confirm(0, 1, 10);
         let mut b: NetInputBuffer<u32, i32> = NetInputBuffer::new();
         b.confirm(0, 1, 11);
-        assert_ne!(hash_state(&a), hash_state(&b), "different confirmed input → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "different confirmed input → different hash"
+        );
     }
 
     #[test]
@@ -414,6 +448,10 @@ mod tests {
         let mut b: NetInputBuffer<u32, i32> = NetInputBuffer::new();
         b.confirm(1, 2, 20);
         b.confirm(0, 1, 10);
-        assert_eq!(hash_state(&a), hash_state(&b), "confirmation order does not affect the hash");
+        assert_eq!(
+            hash_state(&a),
+            hash_state(&b),
+            "confirmation order does not affect the hash"
+        );
     }
 }

@@ -430,7 +430,10 @@ level cave 5x3
         let (a, _) = parse(SAMPLE);
         let modified = SAMPLE.replace("tile floor . #3A3A3A", "tile floor , #3A3A3A");
         let (b, _) = parse(&modified);
-        assert!(!content_eq(&a, &b), "tile glyph change must break content_eq");
+        assert!(
+            !content_eq(&a, &b),
+            "tile glyph change must break content_eq"
+        );
         assert!(
             first_diff(&a, &b).is_some(),
             "first_diff must not report None when content_eq is false (tile)"
@@ -466,13 +469,13 @@ level cave 5x3
         // Exhaustive: for every single-field mutation that breaks content_eq,
         // both diagnostics must be non-None / non-empty.
         let mutations = [
-            ("  glyph g", "  glyph h"),        // prefab glyph
-            ("  color #F85149", "  color #FFFFFF"), // prefab color
-            ("  stat hp 10", "  stat hp 99"),  // prefab stat value
-            ("  flag hostile", "  flag passive"), // prefab flag
+            ("  glyph g", "  glyph h"),                       // prefab glyph
+            ("  color #F85149", "  color #FFFFFF"),           // prefab color
+            ("  stat hp 10", "  stat hp 99"),                 // prefab stat value
+            ("  flag hostile", "  flag passive"),             // prefab flag
             ("tile floor . #3A3A3A", "tile floor . #FFFFFF"), // tile color
-            ("level cave 5x3", "level den 5x3"), // level name
-            ("  spawn goblin 2 1", "  spawn goblin 2 2"), // spawn y
+            ("level cave 5x3", "level den 5x3"),              // level name
+            ("  spawn goblin 2 1", "  spawn goblin 2 2"),     // spawn y
         ];
         for (from, to) in mutations {
             let (a, _) = parse(SAMPLE);

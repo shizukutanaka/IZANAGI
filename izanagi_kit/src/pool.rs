@@ -393,8 +393,16 @@ mod tests {
         let b = Pool::with_current(100, 60, 5);
         assert_eq!(hash_state(&a), hash_state(&b), "same state, same hash");
         let c = Pool::with_current(100, 61, 5);
-        assert_ne!(hash_state(&a), hash_state(&c), "different current → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&c),
+            "different current → different hash"
+        );
         let d = Pool::with_current(100, 60, 6);
-        assert_ne!(hash_state(&a), hash_state(&d), "different regen → different hash");
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&d),
+            "different regen → different hash"
+        );
     }
 }

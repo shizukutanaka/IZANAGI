@@ -232,7 +232,9 @@ impl<K: PartialEq, E: Clone> AbilitySet<K, E> {
         // All reads happen before any mutation.
         let cd = self.entries[idx].cooldown_remaining;
         if cd > 0 {
-            return AbilityResult::OnCooldown { ticks_remaining: cd };
+            return AbilityResult::OnCooldown {
+                ticks_remaining: cd,
+            };
         }
         let mana_cost = self.entries[idx].ability.mana_cost;
         if current_mana < mana_cost {
@@ -374,8 +376,7 @@ mod tests {
 
     #[test]
     fn test_try_use_zero_cost_zero_cooldown_always_succeeds() {
-        let mut s = AbilitySet::new()
-            .with(Spell::Teleport, Ability::new("Blink", 0, 0, 0, 1i32));
+        let mut s = AbilitySet::new().with(Spell::Teleport, Ability::new("Blink", 0, 0, 0, 1i32));
         for _ in 0..5 {
             assert!(s.try_use(&Spell::Teleport, 0, 0).is_used());
         }
@@ -452,7 +453,10 @@ mod tests {
     fn test_try_use_out_of_range_returns_error() {
         let mut s = set();
         match s.try_use(&Spell::Fireball, 100, 4) {
-            AbilityResult::OutOfRange { distance, max_range } => {
+            AbilityResult::OutOfRange {
+                distance,
+                max_range,
+            } => {
                 assert_eq!(distance, 4);
                 assert_eq!(max_range, 3);
             }
@@ -561,8 +565,8 @@ mod tests {
         // Mage: 50 mana, casts Fireball → runs low → waits for cooldown →
         // not enough mana → regens → casts again.
         let mut mana = 50u32;
-        let mut s = AbilitySet::new()
-            .with(Spell::Fireball, Ability::new("Fireball", 30, 3, 5, 25i32));
+        let mut s =
+            AbilitySet::new().with(Spell::Fireball, Ability::new("Fireball", 30, 3, 5, 25i32));
 
         // First cast succeeds.
         match s.try_use(&Spell::Fireball, mana, 4) {
@@ -600,6 +604,6 @@ mod tests {
     #[test]
     fn test_has_range_limit_respects_zero() {
         assert!(fireball().has_range_limit()); // range 3
-        assert!(!heal().has_range_limit());    // range 0
+        assert!(!heal().has_range_limit()); // range 0
     }
 }
