@@ -51,7 +51,6 @@ trait Column: Any {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
     fn remove(&mut self, index: u32);
-    fn contains(&self, index: u32) -> bool;
 }
 
 struct TypedColumn<T: 'static> {
@@ -67,9 +66,6 @@ impl<T: 'static> Column for TypedColumn<T> {
     }
     fn remove(&mut self, index: u32) {
         self.data.remove(&index);
-    }
-    fn contains(&self, index: u32) -> bool {
-        self.data.contains_key(&index)
     }
 }
 

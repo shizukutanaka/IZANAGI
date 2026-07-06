@@ -110,7 +110,7 @@ mod tests {
         let mut r = Rng::new(1);
         for _ in 0..10_000 {
             let v = r.f32();
-            assert!(v >= 0.0 && v < 1.0);
+            assert!((0.0..1.0).contains(&v));
         }
     }
 
@@ -119,7 +119,7 @@ mod tests {
         let mut r = Rng::new(1);
         for _ in 0..1000 {
             let v = r.range(-10.0, 10.0);
-            assert!(v >= -10.0 && v < 10.0);
+            assert!((-10.0..10.0).contains(&v));
         }
     }
 
@@ -130,7 +130,7 @@ mod tests {
         let mut seen_hi_minus_1 = false;
         for _ in 0..2000 {
             let v = r.int_range(0, 5);
-            assert!(v >= 0 && v < 5);
+            assert!((0..5).contains(&v));
             if v == 0 {
                 seen_lo = true;
             }

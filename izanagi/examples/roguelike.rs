@@ -178,7 +178,7 @@ fn main() {
     };
 
     engine
-        .seed(0xDEAD_CA7)
+        .seed(0x0DEA_DCA7) // same value as the old 0xDEAD_CA7, in equal digit groups
         .run(|e| {
             if e.frame() == 0 {
                 e.render.resize(

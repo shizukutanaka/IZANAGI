@@ -194,13 +194,13 @@ mod tests {
     #[test]
     fn timer_every_fires_repeatedly() {
         let mut timer = Timer::every(0.1);
-        let mut fires = 0;
+        let mut fires = 0i32;
         for _ in 0..100 {
             if timer.tick(0.02) {
                 fires += 1;
             }
         }
-        assert!((fires as i32 - 20).abs() <= 1);
+        assert!((fires - 20).abs() <= 1);
     }
 
     #[test]

@@ -166,6 +166,10 @@ fn main() {
     let mut water_blink = false;
     let mut reached_goal = false;
     let mut steps = 0u32;
+    // Event-consumption state: the drain loop below folds every payload into
+    // these, and the session summary prints them.
+    let mut last_move = Vec2::new(0.0, 0.0);
+    let mut sounds: Vec<String> = Vec::new();
 
     // Preload a sine tone to prove audio_pcm works.
     let _coin_sound = sine_wave(880.0, 0.1, 44100);
@@ -335,7 +339,13 @@ fn main() {
             );
 
             // ── Process events ───────────────────────────────────────────────
-            let _fired = events.drain();
+            for ev in events.drain() {
+                match ev {
+                    GameEvent::PlayerMoved(pos) => last_move = pos,
+                    GameEvent::PlayerReachedGoal => {}
+                    GameEvent::SoundPlayed(name) => sounds.push(name),
+                }
+            }
 
             if e.input.pressed(Key::Escape) {
                 e.quit();
@@ -348,5 +358,8 @@ fn main() {
         })
         .unwrap();
 
-    println!("Session complete — steps={steps}  goal={reached_goal}");
+    println!(
+        "Session complete — steps={steps}  goal={reached_goal}  last_move=({:.0},{:.0})  sounds={:?}",
+        last_move.x, last_move.y, sounds
+    );
 }

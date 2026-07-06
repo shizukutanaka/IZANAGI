@@ -372,7 +372,7 @@ impl Backend for TerminalBackend {
     fn shutdown(&mut self) {
         let mut out = io::stdout().lock();
         // Show cursor, reset colors.
-        write!(out, "\x1b[0m\x1b[?25h\n").ok();
+        writeln!(out, "\x1b[0m\x1b[?25h").ok();
         out.flush().ok();
     }
 }

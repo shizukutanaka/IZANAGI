@@ -99,26 +99,22 @@ impl Gamepads {
 
     /// Is pad `id` connected?
     pub fn connected(&self, id: usize) -> bool {
-        self.pads.get(id).map_or(false, |p| p.connected)
+        self.pads.get(id).is_some_and(|p| p.connected)
     }
 
     /// Is button held on pad `id`?
     pub fn down(&self, id: usize, btn: Button) -> bool {
-        self.pads.get(id).map_or(false, |p| p.down.contains(&btn))
+        self.pads.get(id).is_some_and(|p| p.down.contains(&btn))
     }
 
     /// Was button pressed this frame on pad `id`?
     pub fn pressed(&self, id: usize, btn: Button) -> bool {
-        self.pads
-            .get(id)
-            .map_or(false, |p| p.pressed.contains(&btn))
+        self.pads.get(id).is_some_and(|p| p.pressed.contains(&btn))
     }
 
     /// Was button released this frame on pad `id`?
     pub fn released(&self, id: usize, btn: Button) -> bool {
-        self.pads
-            .get(id)
-            .map_or(false, |p| p.released.contains(&btn))
+        self.pads.get(id).is_some_and(|p| p.released.contains(&btn))
     }
 
     /// Left analog stick for pad `id`.
