@@ -12,6 +12,7 @@
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`).
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
+//! - [`rng_xoshiro`] — opt-in xoshiro256++ PRNG (`Xoshiro256pp`): 2²⁵⁶ period, higher statistical quality, seeded from SplitMix64, with `jump()` for parallel streams.
 //! - [`msglog`] — bounded ring-buffer message log with `DetHash`.
 //! - [`terminal`] — headless cell screen buffer with 24-bit ANSI output.
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
@@ -136,6 +137,7 @@ pub mod recipe;
 pub mod relations;
 pub mod replay;
 pub mod rng;
+pub mod rng_xoshiro;
 pub mod savefile;
 pub mod serializer;
 pub mod shop;
@@ -241,6 +243,7 @@ pub use replay::{
     check_trace, count_divergences, first_divergence, record_trace, resimulate, Divergence,
 };
 pub use rng::SplitMix64;
+pub use rng_xoshiro::Xoshiro256pp;
 pub use shop::{Listing, Shop};
 pub use shufflebag::ShuffleBag;
 pub use savefile::{

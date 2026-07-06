@@ -7738,3 +7738,79 @@ fn prop_hash_unordered_deterministic() {
         assert_eq!(hash_unordered(&items), hash_unordered(&items));
     }
 }
+
+// ---------------------------------------------------------------------------
+// Xoshiro256pp — opt-in longer-period PRNG
+// ---------------------------------------------------------------------------
+
+/// **Same seed ⇒ identical sequence** (the replay guarantee), over a long
+/// window and across many seeds.
+#[test]
+fn prop_xoshiro_same_seed_identical_sequence() {
+    use izanagi_kit::Xoshiro256pp;
+    let mut meta = SplitMix64::new(0x7031_0001);
+    for _ in 0..ITERS {
+        let seed = meta.next_u64();
+        let mut a = Xoshiro256pp::new(seed);
+        let mut b = Xoshiro256pp::new(seed);
+        for _ in 0..8 {
+            assert_eq!(a.next_u64(), b.next_u64());
+        }
+    }
+}
+
+/// **Distinct seeds diverge** within the first few draws (a collision on the
+/// opening draw across distinct seeds is astronomically unlikely for a
+/// well-distributed 2²⁵⁶-state generator).
+#[test]
+fn prop_xoshiro_distinct_seeds_diverge() {
+    use izanagi_kit::Xoshiro256pp;
+    let mut meta = SplitMix64::new(0x7031_0002);
+    for _ in 0..ITERS {
+        let s1 = meta.next_u64();
+        let s2 = s1 ^ (1u64 | meta.next_u64()); // guaranteed different seed
+        let mut a = Xoshiro256pp::new(s1);
+        let mut b = Xoshiro256pp::new(s2);
+        let diverged = (0..4).any(|_| a.next_u64() != b.next_u64());
+        assert!(diverged, "distinct seeds must diverge within a few draws");
+    }
+}
+
+/// **jump() yields a stream distinct from the un-jumped continuation**, and is
+/// itself deterministic (same pre-jump state ⇒ same post-jump state).
+#[test]
+fn prop_xoshiro_jump_is_deterministic_and_distinct() {
+    use izanagi_kit::Xoshiro256pp;
+    let mut meta = SplitMix64::new(0x7031_0003);
+    for _ in 0..(ITERS / 10).max(1) {
+        // jump() is ~256 next() calls; keep the iteration count modest.
+        let seed = meta.next_u64();
+        let base = Xoshiro256pp::new(seed);
+
+        let j1 = base.jumped();
+        let j2 = base.jumped();
+        assert_eq!(j1.state(), j2.state(), "jump must be deterministic");
+
+        let mut cont = base.clone();
+        let mut jumped = j1.clone();
+        // The jumped stream should not simply reproduce the base continuation.
+        let differs = (0..4).any(|_| cont.next_u64() != jumped.next_u64());
+        assert!(differs, "jumped stream must differ from the base continuation");
+    }
+}
+
+/// **DetHash tracks the full 256-bit state**: identical generators hash equal,
+/// and any single draw changes the hash.
+#[test]
+fn prop_xoshiro_det_hash_tracks_state() {
+    use izanagi_kit::{hash_state, Xoshiro256pp};
+    let mut meta = SplitMix64::new(0x7031_0004);
+    for _ in 0..ITERS {
+        let seed = meta.next_u64();
+        let a = Xoshiro256pp::new(seed);
+        let mut b = Xoshiro256pp::new(seed);
+        assert_eq!(hash_state(&a), hash_state(&b));
+        b.next_u64();
+        assert_ne!(hash_state(&a), hash_state(&b), "a draw must change the state hash");
+    }
+}
