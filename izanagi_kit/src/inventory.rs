@@ -38,6 +38,7 @@ impl<T: Clone> Inventory<T> {
         self.slots.iter().filter(|s| s.is_some()).count()
     }
 
+    /// `true` if no slots are occupied.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.slots.iter().all(|s| s.is_none())

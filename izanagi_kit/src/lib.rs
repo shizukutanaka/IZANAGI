@@ -81,6 +81,7 @@
 //! All modules are `std`-only and contain no `unsafe`.
 
 #![forbid(unsafe_code)]
+#![warn(missing_docs)]
 
 pub mod aabb;
 pub mod ability;

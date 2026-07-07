@@ -21,6 +21,7 @@ pub struct KeyMap<K, A> {
 }
 
 impl<K: Eq + Clone, A: Clone> KeyMap<K, A> {
+    /// Create an empty key map.
     pub fn new() -> Self {
         KeyMap {
             bindings: Vec::new(),
@@ -58,6 +59,7 @@ impl<K: Eq + Clone, A: Clone> KeyMap<K, A> {
         self.bindings.len()
     }
 
+    /// `true` if no bindings are set.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.bindings.is_empty()

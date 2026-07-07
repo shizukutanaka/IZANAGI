@@ -70,6 +70,7 @@ impl<T> Default for AssetStore<T> {
 }
 
 impl<T> AssetStore<T> {
+    /// Create an empty store.
     pub fn new() -> Self {
         Self::default()
     }
@@ -153,6 +154,7 @@ impl<T> AssetStore<T> {
         self.iter().count()
     }
 
+    /// `true` if no live assets remain.
     pub fn is_empty(&self) -> bool {
         self.iter().next().is_none()
     }

@@ -36,6 +36,7 @@ pub struct StatusSet<K> {
 }
 
 impl<K: Eq + Clone> StatusSet<K> {
+    /// Create an empty status set.
     pub fn new() -> Self {
         StatusSet {
             entries: Vec::new(),
@@ -120,6 +121,7 @@ impl<K: Eq + Clone> StatusSet<K> {
         self.entries.len()
     }
 
+    /// `true` if no status effects are active.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()

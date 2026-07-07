@@ -20,16 +20,20 @@ use crate::{
 /// A 2-D vector of [`Fixed`]-point components.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Vec2 {
+    /// The x component.
     pub x: Fixed,
+    /// The y component.
     pub y: Fixed,
 }
 
 impl Vec2 {
+    /// The zero vector.
     pub const ZERO: Vec2 = Vec2 {
         x: Fixed::ZERO,
         y: Fixed::ZERO,
     };
 
+    /// Construct from components.
     #[inline]
     pub const fn new(x: Fixed, y: Fixed) -> Self {
         Vec2 { x, y }
@@ -282,18 +286,23 @@ impl DetHash for Vec2 {
 /// A 3-D vector of [`Fixed`]-point components.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Vec3 {
+    /// The x component.
     pub x: Fixed,
+    /// The y component.
     pub y: Fixed,
+    /// The z component.
     pub z: Fixed,
 }
 
 impl Vec3 {
+    /// The zero vector.
     pub const ZERO: Vec3 = Vec3 {
         x: Fixed::ZERO,
         y: Fixed::ZERO,
         z: Fixed::ZERO,
     };
 
+    /// Construct from components.
     #[inline]
     pub const fn new(x: Fixed, y: Fixed, z: Fixed) -> Self {
         Vec3 { x, y, z }

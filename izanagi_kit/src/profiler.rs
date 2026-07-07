@@ -229,7 +229,9 @@ impl DetHash for Profiler {
 /// A tick-stamped event entry.
 #[derive(Clone, Debug)]
 pub struct LogEntry<E> {
+    /// Simulation tick the event occurred on.
     pub tick: u32,
+    /// The event payload.
     pub event: E,
 }
 
@@ -246,6 +248,7 @@ pub struct EventLog<E> {
 }
 
 impl<E: Clone> EventLog<E> {
+    /// Create an empty log holding at most `capacity` entries (minimum 1).
     pub fn new(capacity: usize) -> Self {
         EventLog {
             buf: vec![None; capacity.max(1)],
@@ -254,14 +257,17 @@ impl<E: Clone> EventLog<E> {
         }
     }
 
+    /// Maximum number of entries this log can hold.
     pub fn capacity(&self) -> usize {
         self.buf.len()
     }
 
+    /// Number of entries currently stored.
     pub fn len(&self) -> usize {
         self.len
     }
 
+    /// `true` if no entries are stored.
     pub fn is_empty(&self) -> bool {
         self.len == 0
     }
@@ -294,6 +300,7 @@ impl<E: Clone> EventLog<E> {
         self.iter().skip(skip)
     }
 
+    /// Remove all entries.
     pub fn clear(&mut self) {
         for slot in &mut self.buf {
             *slot = None;

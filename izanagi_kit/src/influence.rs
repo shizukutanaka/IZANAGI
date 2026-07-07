@@ -42,11 +42,13 @@ impl InfluenceMap {
         }
     }
 
+    /// Grid width in cells.
     #[inline]
     pub fn width(&self) -> i32 {
         self.width
     }
 
+    /// Grid height in cells.
     #[inline]
     pub fn height(&self) -> i32 {
         self.height

@@ -86,9 +86,13 @@ fn isqrt_u64(n: u64) -> u64 {
 pub struct Fixed(i32);
 
 impl Fixed {
+    /// The value `0`.
     pub const ZERO: Fixed = Fixed(0);
+    /// The value `1`.
     pub const ONE: Fixed = Fixed(ONE);
+    /// The largest representable value, `raw() == i32::MAX`.
     pub const MAX: Fixed = Fixed(i32::MAX);
+    /// The smallest (most negative) representable value, `raw() == i32::MIN`.
     pub const MIN: Fixed = Fixed(i32::MIN);
 
     /// Saturates rather than wrapping: `from_int(32768)` exceeds the Q16.16
@@ -116,6 +120,8 @@ impl Fixed {
         Fixed::from_wide(((num as i64) << FRAC_BITS) / den as i64)
     }
 
+    /// The raw Q16.16 integer representation (value × 65536, truncated toward
+    /// −∞ at construction time by the operation that produced it).
     #[inline]
     pub fn raw(self) -> i32 {
         self.0
@@ -136,6 +142,7 @@ impl Fixed {
         self.0 >> FRAC_BITS
     }
 
+    /// Add, saturating at [`Fixed::MAX`]/[`Fixed::MIN`] instead of wrapping on overflow.
     #[inline]
     pub fn saturating_add(self, rhs: Fixed) -> Fixed {
         Fixed(self.0.saturating_add(rhs.0))
@@ -158,6 +165,8 @@ impl Fixed {
     // saturating, divide-by-zero-safe Q16.16 semantics that differ from the
     // plain integer operators, so we keep them explicit rather than overloading
     // `*` / `/` with surprising behaviour.
+    /// Multiply. See the module-level "Rounding" section: floors toward −∞ on
+    /// a fractional negative product.
     #[allow(clippy::should_implement_trait)]
     #[inline]
     pub fn mul(self, rhs: Fixed) -> Fixed {

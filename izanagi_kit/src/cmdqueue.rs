@@ -29,6 +29,7 @@ pub struct CmdQueue<C> {
 }
 
 impl<C> CmdQueue<C> {
+    /// Create an empty queue.
     pub fn new() -> Self {
         CmdQueue { buf: Vec::new() }
     }
@@ -59,6 +60,7 @@ impl<C> CmdQueue<C> {
         self.buf.len()
     }
 
+    /// `true` if the queue has no pending commands.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.buf.is_empty()

@@ -26,6 +26,7 @@ use crate::world_hash::{DetHash, Fnv1a};
 /// `n` ticks. Saturates at zero (never underflows).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Cooldown {
+    /// Ticks remaining before the cooldown is ready.
     pub remaining: u32,
 }
 
@@ -153,6 +154,7 @@ pub struct TimerQueue<E> {
 }
 
 impl<E: Clone> TimerQueue<E> {
+    /// Create an empty timer queue.
     pub fn new() -> Self {
         TimerQueue {
             entries: Vec::new(),
@@ -200,6 +202,7 @@ impl<E: Clone> TimerQueue<E> {
         self.entries.len()
     }
 
+    /// `true` if no timers are queued.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()

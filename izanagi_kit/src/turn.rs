@@ -31,18 +31,22 @@ pub struct Scheduler<A> {
 }
 
 impl<A: Copy + Ord> Scheduler<A> {
+    /// Create an empty scheduler.
     pub fn new() -> Scheduler<A> {
         Scheduler { actors: Vec::new() }
     }
 
+    /// Number of scheduled actors.
     pub fn len(&self) -> usize {
         self.actors.len()
     }
 
+    /// `true` if no actors are scheduled.
     pub fn is_empty(&self) -> bool {
         self.actors.is_empty()
     }
 
+    /// `true` if `id` is currently scheduled.
     pub fn contains(&self, id: A) -> bool {
         self.actors.iter().any(|a| a.id == id)
     }

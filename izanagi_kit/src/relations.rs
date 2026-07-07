@@ -35,6 +35,7 @@ pub struct Relations {
 }
 
 impl Relations {
+    /// Create an empty relations table.
     pub fn new() -> Self {
         Relations::default()
     }

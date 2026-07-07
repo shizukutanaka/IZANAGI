@@ -62,6 +62,7 @@ impl LightMap {
     pub fn width(&self) -> u32 {
         self.width
     }
+    /// Map height in cells.
     #[inline]
     pub fn height(&self) -> u32 {
         self.height

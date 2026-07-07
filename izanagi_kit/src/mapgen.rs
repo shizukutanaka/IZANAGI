@@ -16,9 +16,13 @@ use crate::rng::SplitMix64;
 /// corner; the room covers `[x, x+w) × [y, y+h)`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Rect {
+    /// Top-left x coordinate.
     pub x: u32,
+    /// Top-left y coordinate.
     pub y: u32,
+    /// Width in cells.
     pub w: u32,
+    /// Height in cells.
     pub h: u32,
 }
 
@@ -173,6 +177,7 @@ pub struct Dungeon {
     height: u32,
     /// Row-major, `true` = wall. Length `width * height`.
     tiles: Vec<bool>,
+    /// Rooms placed during generation, in placement order.
     pub rooms: Vec<Rect>,
 }
 
@@ -186,11 +191,13 @@ impl Dungeon {
         }
     }
 
+    /// Grid width in cells.
     #[inline]
     pub fn width(&self) -> u32 {
         self.width
     }
 
+    /// Grid height in cells.
     #[inline]
     pub fn height(&self) -> u32 {
         self.height

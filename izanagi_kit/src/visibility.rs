@@ -89,11 +89,13 @@ impl VisibilityMap {
         }
     }
 
+    /// Grid width in cells.
     #[inline]
     pub fn width(&self) -> u32 {
         self.width
     }
 
+    /// Grid height in cells.
     #[inline]
     pub fn height(&self) -> u32 {
         self.height
@@ -105,6 +107,7 @@ impl VisibilityMap {
         self.cells.len()
     }
 
+    /// `true` if the grid has zero cells.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()

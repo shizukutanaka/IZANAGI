@@ -23,8 +23,11 @@ use std::collections::BTreeMap;
 /// 24-bit RGB color (matches the `#RRGGBB` authoring syntax).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Color {
+    /// Red channel.
     pub r: u8,
+    /// Green channel.
     pub g: u8,
+    /// Blue channel.
     pub b: u8,
 }
 
@@ -35,6 +38,7 @@ impl Color {
         Color { r, g, b }
     }
 
+    /// Format as `#RRGGBB`.
     pub fn to_hex(self) -> String {
         format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
     }
@@ -188,14 +192,20 @@ impl crate::world_hash::DetHash for Color {
 /// An entity template. Instantiated once per [`Spawn`] that names it.
 #[derive(Clone, Debug)]
 pub struct Prefab {
+    /// The prefab's name, as referenced by [`Spawn::prefab`].
     pub name: String,
+    /// Map-cell glyph for this prefab.
     pub glyph: char,
+    /// Display color.
     pub color: Color,
+    /// Named integer stats (e.g. `hp`, `atk`).
     pub stats: BTreeMap<String, i32>,
+    /// Boolean flags set on this prefab.
     pub flags: Vec<String>,
 }
 
 impl Prefab {
+    /// Construct a prefab with the given name and default appearance/stats.
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -214,42 +224,58 @@ impl Prefab {
 /// A named map-cell appearance.
 #[derive(Clone, Debug)]
 pub struct Tile {
+    /// The tile's name, as referenced by level authoring tools.
     pub name: String,
+    /// Map-cell glyph.
     pub glyph: char,
+    /// Display color.
     pub color: Color,
 }
 
 /// A prefab placed at a level coordinate.
 #[derive(Clone, Debug)]
 pub struct Spawn {
+    /// Name of the [`Prefab`] to instantiate.
     pub prefab: String,
+    /// Column (0-based) within the level grid.
     pub x: u32,
+    /// Row (0-based) within the level grid.
     pub y: u32,
 }
 
 /// A level: a `width`x`height` grid of glyph rows plus spawns.
 #[derive(Clone, Debug)]
 pub struct Level {
+    /// The level's name.
     pub name: String,
+    /// Grid width in cells.
     pub width: u32,
+    /// Grid height in cells.
     pub height: u32,
+    /// One string per row, each `width` glyphs wide.
     pub rows: Vec<String>,
+    /// Prefabs to instantiate when the level loads.
     pub spawns: Vec<Spawn>,
 }
 
 /// The complete authored bundle produced by the parser.
 #[derive(Clone, Debug, Default)]
 pub struct Content {
+    /// All authored prefabs.
     pub prefabs: Vec<Prefab>,
+    /// All authored tile definitions.
     pub tiles: Vec<Tile>,
+    /// All authored levels.
     pub levels: Vec<Level>,
 }
 
 impl Content {
+    /// Look up a prefab definition by name.
     pub fn prefab(&self, name: &str) -> Option<&Prefab> {
         self.prefabs.iter().find(|p| p.name == name)
     }
 
+    /// Look up a level definition by name.
     pub fn level(&self, name: &str) -> Option<&Level> {
         self.levels.iter().find(|l| l.name == name)
     }
@@ -264,7 +290,9 @@ impl Content {
 /// Severity of a pipeline diagnostic.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Severity {
+    /// A fatal problem; the content fails to load.
     Error,
+    /// A non-fatal problem; the content still loads.
     Warning,
 }
 
@@ -272,13 +300,18 @@ pub enum Severity {
 /// optional 1-based column (0 == column unknown, e.g. semantic checks).
 #[derive(Clone, Debug)]
 pub struct Diagnostic {
+    /// 1-based source line, or `0` if not applicable to a specific line.
     pub line: usize,
+    /// 1-based source column, or `0` if unknown.
     pub col: usize,
+    /// Error or warning.
     pub severity: Severity,
+    /// Human-readable description.
     pub message: String,
 }
 
 impl Diagnostic {
+    /// Construct an error diagnostic with no known column.
     pub fn error(line: usize, message: impl Into<String>) -> Self {
         Self {
             line,
@@ -288,6 +321,7 @@ impl Diagnostic {
         }
     }
 
+    /// Construct a warning diagnostic with no known column.
     pub fn warning(line: usize, message: impl Into<String>) -> Self {
         Self {
             line,
@@ -307,6 +341,7 @@ impl Diagnostic {
         }
     }
 
+    /// Warning with a known column, enabling a caret in the rendered output.
     pub fn warning_at(line: usize, col: usize, message: impl Into<String>) -> Self {
         Self {
             line,
@@ -316,6 +351,7 @@ impl Diagnostic {
         }
     }
 
+    /// `true` if this diagnostic is error-severity.
     pub fn is_error(&self) -> bool {
         self.severity == Severity::Error
     }

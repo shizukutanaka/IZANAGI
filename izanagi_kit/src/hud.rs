@@ -24,7 +24,9 @@ use crate::world_hash::{DetHash, Fnv1a};
 /// A fill-bar widget.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BarWidget {
+    /// Current fill value.
     pub current: i32,
+    /// Maximum value (`current` is clamped against this for display).
     pub max: i32,
     /// Inner width of the bar (not counting brackets). Minimum 1.
     pub width: u32,
@@ -35,6 +37,7 @@ pub struct BarWidget {
 }
 
 impl BarWidget {
+    /// Construct a bar with default `=`/` ` fill characters.
     pub fn new(current: i32, max: i32, width: u32) -> Self {
         BarWidget {
             current,
@@ -121,12 +124,16 @@ impl DetHash for BarWidget {
 /// A single "key: value [unit]" line for HUD readouts.
 #[derive(Clone, Debug)]
 pub struct StatLine {
+    /// The stat's name, e.g. `"HP"`.
     pub label: &'static str,
+    /// The stat's current integer value.
     pub value: i32,
+    /// Optional unit suffix, e.g. `"pts"`.
     pub unit: Option<&'static str>,
 }
 
 impl StatLine {
+    /// Construct a stat line with no unit suffix.
     pub fn new(label: &'static str, value: i32) -> Self {
         StatLine {
             label,
@@ -135,6 +142,7 @@ impl StatLine {
         }
     }
 
+    /// Construct a stat line with a unit suffix.
     pub fn with_unit(label: &'static str, value: i32, unit: &'static str) -> Self {
         StatLine {
             label,
@@ -178,13 +186,18 @@ impl DetHash for StatLine {
 /// Use `inner_*` to get content coordinates after a 1-cell border margin.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct HudPanel {
+    /// Top-left x coordinate.
     pub x: i32,
+    /// Top-left y coordinate.
     pub y: i32,
+    /// Outer width.
     pub w: u32,
+    /// Outer height.
     pub h: u32,
 }
 
 impl HudPanel {
+    /// Construct a panel from its outer bounding box.
     pub fn new(x: i32, y: i32, w: u32, h: u32) -> Self {
         HudPanel { x, y, w, h }
     }

@@ -166,6 +166,7 @@ impl Default for SimpleTileTable {
 }
 
 impl SimpleTileTable {
+    /// Create a table mapping every bitmask to tile index 0.
     pub fn new() -> Self {
         Self::default()
     }

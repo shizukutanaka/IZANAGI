@@ -36,11 +36,17 @@ use crate::world_hash::{DetHash, Fnv1a};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum DamageType {
+    /// Melee/kinetic damage.
     Physical = 0,
+    /// Fire elemental damage.
     Fire = 1,
+    /// Cold elemental damage.
     Cold = 2,
+    /// Lightning elemental damage.
     Lightning = 3,
+    /// Poison/toxin damage.
     Poison = 4,
+    /// Arcane/magic damage.
     Arcane = 5,
     /// Unresistable damage. [`ResistanceProfile::apply`] returns the input
     /// unchanged for this type regardless of the profile.

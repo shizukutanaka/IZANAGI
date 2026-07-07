@@ -20,8 +20,11 @@ use crate::world_hash::{DetHash, Fnv1a};
 /// `modifier`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Dice {
+    /// Number of dice to roll.
     pub count: u32,
+    /// Faces per die.
     pub sides: u32,
+    /// Flat modifier added to the total.
     pub modifier: i32,
 }
 

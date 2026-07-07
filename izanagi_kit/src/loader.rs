@@ -21,6 +21,7 @@ pub struct Stats {
 }
 
 impl Stats {
+    /// Create an empty stats component.
     pub fn new() -> Self {
         Stats {
             entries: Vec::new(),
@@ -37,10 +38,12 @@ impl Stats {
         self.entries.iter().map(|(k, v)| (k.as_str(), *v))
     }
 
+    /// Number of stat entries.
     pub fn len(&self) -> usize {
         self.entries.len()
     }
 
+    /// `true` if no stats are set.
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
@@ -70,14 +73,18 @@ impl DetHash for Stats {
 /// Grid position of an instantiated entity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
+    /// Column (0-based).
     pub x: u32,
+    /// Row (0-based).
     pub y: u32,
 }
 
 /// Terminal appearance of an instantiated entity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Render {
+    /// Map-cell glyph.
     pub glyph: char,
+    /// Display color.
     pub color: Color,
 }
 
@@ -99,16 +106,21 @@ impl crate::world_hash::DetHash for Render {
 
 /// A populated world for one level.
 pub struct LoadedLevel {
+    /// The entity allocator that produced every handle in [`Self::entities`].
     pub alloc: EntityAllocator,
+    /// Grid position per entity.
     pub positions: SparseSet<Position>,
+    /// Terminal appearance per entity.
     pub renders: SparseSet<Render>,
     /// Numeric stats from the prefab template. Only populated for entities
     /// whose prefab defines at least one stat; absent entities have no entry.
     pub stats: SparseSet<Stats>,
+    /// Every entity spawned for this level, in spawn order.
     pub entities: Vec<Entity>,
 }
 
 impl LoadedLevel {
+    /// Number of entities spawned for this level.
     pub fn entity_count(&self) -> usize {
         self.entities.len()
     }

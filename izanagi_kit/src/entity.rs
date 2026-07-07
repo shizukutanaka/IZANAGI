@@ -9,11 +9,14 @@ pub struct Entity {
 }
 
 impl Entity {
+    /// The storage index this handle locates.
     #[inline]
     pub fn index(self) -> u32 {
         self.index
     }
 
+    /// The generation counter this handle was allocated with, for liveness
+    /// validation against [`EntityAllocator::is_alive`].
     #[inline]
     pub fn generation(self) -> u32 {
         self.generation
@@ -33,6 +36,7 @@ pub struct EntityAllocator {
 }
 
 impl EntityAllocator {
+    /// Create an empty allocator.
     pub fn new() -> Self {
         Self::default()
     }
@@ -87,6 +91,8 @@ impl EntityAllocator {
         self.wrap_count
     }
 
+    /// `true` if `entity` was allocated and not yet freed (its generation
+    /// still matches the slot's current generation).
     #[inline]
     pub fn is_alive(&self, entity: Entity) -> bool {
         self.generations

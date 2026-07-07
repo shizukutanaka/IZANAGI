@@ -33,11 +33,13 @@ impl<T: Clone> TileMap<T> {
         }
     }
 
+    /// Grid width in cells.
     #[inline]
     pub fn width(&self) -> u32 {
         self.width
     }
 
+    /// Grid height in cells.
     #[inline]
     pub fn height(&self) -> u32 {
         self.height
@@ -49,6 +51,7 @@ impl<T: Clone> TileMap<T> {
         self.cells.len()
     }
 
+    /// `true` if the grid has zero cells (width or height is 0).
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()
@@ -468,16 +471,19 @@ impl<T: Clone> LayeredMap<T> {
         }
     }
 
+    /// Grid width in cells (shared by every layer).
     #[inline]
     pub fn width(&self) -> u32 {
         self.width
     }
 
+    /// Grid height in cells (shared by every layer).
     #[inline]
     pub fn height(&self) -> u32 {
         self.height
     }
 
+    /// Number of layers.
     #[inline]
     pub fn layer_count(&self) -> usize {
         self.layers.len()

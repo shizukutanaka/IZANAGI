@@ -154,6 +154,8 @@ impl<K: Eq + Clone> SpatialHash<K> {
         }
     }
 
+    /// All keys whose bucket overlaps the axis-aligned rect `(x, y, w, h)`.
+    /// Returns an empty vec for a non-positive width or height.
     pub fn query_rect(&self, x: i32, y: i32, w: i32, h: i32) -> Vec<K> {
         if w <= 0 || h <= 0 {
             return Vec::new();

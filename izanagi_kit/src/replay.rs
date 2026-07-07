@@ -23,8 +23,11 @@ use crate::world_hash::{hash_state, DetHash};
 /// `expected`/`actual` are the state hashes there (0 if that trace was shorter).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Divergence {
+    /// 0-based step index where the traces first disagreed.
     pub tick: usize,
+    /// The expected (reference) state hash at that tick.
     pub expected: u64,
+    /// The actual (observed) state hash at that tick.
     pub actual: u64,
 }
 

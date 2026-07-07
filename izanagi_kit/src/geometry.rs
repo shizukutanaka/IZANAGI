@@ -301,6 +301,9 @@ pub fn chebyshev_ring(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
     rect_perimeter(cx - r, cy - r, 2 * r + 1, 2 * r + 1)
 }
 
+/// The cells on the boundary of a diamond (Manhattan-distance-`r` ring)
+/// centered at `(cx, cy)`. `r < 0` returns empty; `r == 0` returns just the
+/// center. Integer-only, so the shape is bit-identical on every target.
 pub fn diamond(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
     if r < 0 {
         return Vec::new();

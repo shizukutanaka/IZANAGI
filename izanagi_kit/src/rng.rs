@@ -12,6 +12,7 @@ pub struct SplitMix64 {
 }
 
 impl SplitMix64 {
+    /// Seed a new generator.
     pub fn new(seed: u64) -> Self {
         Self { state: seed }
     }

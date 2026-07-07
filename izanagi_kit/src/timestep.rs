@@ -44,6 +44,7 @@ impl FixedTimestep {
         Self::new(60, 5)
     }
 
+    /// Fixed step duration in nanoseconds.
     #[inline]
     pub fn step_ns(&self) -> u64 {
         self.step_ns

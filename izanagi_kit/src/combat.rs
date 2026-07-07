@@ -23,6 +23,7 @@ use crate::{
 pub struct Stats {
     /// Current / max HP pair.
     pub hp: i32,
+    /// Maximum HP.
     pub max_hp: i32,
     /// Offensive power (raw damage before defense).
     pub attack: i32,
@@ -31,6 +32,7 @@ pub struct Stats {
 }
 
 impl Stats {
+    /// Construct a stat block with `hp` as both current and max HP.
     pub fn new(hp: i32, attack: i32, defense: i32) -> Self {
         let hp = hp.max(0);
         Stats {

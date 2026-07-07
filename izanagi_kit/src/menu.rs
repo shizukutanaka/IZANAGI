@@ -70,6 +70,7 @@ impl<T: Clone> Menu<T> {
         self.items.len()
     }
 
+    /// `true` if the menu has no items.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.items.is_empty()

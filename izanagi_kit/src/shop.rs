@@ -56,7 +56,9 @@ use std::collections::BTreeMap;
 /// that still requires the item be listed).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Listing {
+    /// Price a customer pays to buy the item.
     pub buy_price: u64,
+    /// Price the shop pays to buy the item back. `0` disables buyback.
     pub sell_price: u64,
 }
 

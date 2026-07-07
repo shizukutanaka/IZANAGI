@@ -25,10 +25,12 @@ impl Default for Fnv1a {
 }
 
 impl Fnv1a {
+    /// Start a new hasher at the FNV-1a offset basis.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Fold raw bytes into the hash, one FNV-1a xor-then-multiply step per byte.
     #[inline]
     pub fn write_bytes(&mut self, bytes: &[u8]) {
         for &b in bytes {
@@ -37,16 +39,19 @@ impl Fnv1a {
         }
     }
 
+    /// Hash a 32-bit unsigned integer in little-endian byte order.
     #[inline]
     pub fn write_u32(&mut self, value: u32) {
         self.write_bytes(&value.to_le_bytes());
     }
 
+    /// Hash a 64-bit unsigned integer in little-endian byte order.
     #[inline]
     pub fn write_u64(&mut self, value: u64) {
         self.write_bytes(&value.to_le_bytes());
     }
 
+    /// Hash a signed 32-bit integer in little-endian byte order.
     #[inline]
     pub fn write_i32(&mut self, value: i32) {
         self.write_bytes(&value.to_le_bytes());
@@ -102,6 +107,7 @@ impl Fnv1a {
         self.write_bytes(&[value as u8]);
     }
 
+    /// Return the accumulated hash without consuming the hasher.
     #[inline]
     pub fn finish(&self) -> u64 {
         self.hash
@@ -110,6 +116,7 @@ impl Fnv1a {
 
 /// Folds a value's canonical bytes into a hasher.
 pub trait DetHash {
+    /// Fold `self`'s canonical byte representation into `hasher`.
     fn det_hash(&self, hasher: &mut Fnv1a);
 }
 

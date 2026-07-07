@@ -26,8 +26,11 @@ const DEFAULT_BG: Color = Color { r: 0, g: 0, b: 0 };
 /// One screen cell: a character and its colours.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Cell {
+    /// The displayed character.
     pub glyph: char,
+    /// Foreground (text) color.
     pub fg: Color,
+    /// Background color.
     pub bg: Color,
 }
 
@@ -79,11 +82,13 @@ impl Screen {
         }
     }
 
+    /// Grid width in cells.
     #[inline]
     pub fn width(&self) -> u32 {
         self.width
     }
 
+    /// Grid height in cells.
     #[inline]
     pub fn height(&self) -> u32 {
         self.height

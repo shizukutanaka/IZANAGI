@@ -23,6 +23,7 @@ use crate::world_hash::{DetHash, Fnv1a};
 /// changed (because anything should be processed at least once).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Changed<T> {
+    /// The wrapped value.
     pub value: T,
     /// The tick on which this component was last written.
     pub changed_at: u32,
@@ -161,10 +162,12 @@ impl<T: DetHash> DetHash for Changed<T> {
 /// `is_changed_since` in downstream systems.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ChangeTracker {
+    /// The current tick.
     pub tick: u32,
 }
 
 impl ChangeTracker {
+    /// Create a tracker starting at tick 0.
     pub fn new() -> Self {
         ChangeTracker { tick: 0 }
     }

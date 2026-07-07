@@ -40,6 +40,7 @@ impl MsgLog {
         self.len
     }
 
+    /// `true` if no messages are stored.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.len == 0

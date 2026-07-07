@@ -115,6 +115,7 @@ impl<T> EncounterPack<T> {
         self.slots.len()
     }
 
+    /// `true` if no slots are defined.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.slots.is_empty()

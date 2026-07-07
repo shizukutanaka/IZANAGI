@@ -23,11 +23,13 @@ pub struct Connector {
     pub from_floor: u32,
     /// World position on `from_floor`.
     pub from_x: i32,
+    /// World position on `from_floor`.
     pub from_y: i32,
     /// Floor index the connector leads to.
     pub to_floor: u32,
     /// World position on `to_floor`.
     pub to_x: i32,
+    /// World position on `to_floor`.
     pub to_y: i32,
 }
 
