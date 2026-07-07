@@ -1,6 +1,26 @@
 # IZANAGI
 
-A Rust game engine that just works.
+A Cargo workspace with two crates that split one product in half:
+
+| Crate | Role | Design center |
+| --- | --- | --- |
+| [`izanagi`](./izanagi/) | Real-time engine | `f32`, immediate-mode rendering, one `Engine` type — get a game on screen fast |
+| [`izanagi_kit`](./izanagi_kit/) | Deterministic simulation kit | Integers/fixed-point only, bit-exact replay across platforms |
+
+They compose: [`izanagi/examples/kit_bridge.rs`](./izanagi/examples/kit_bridge.rs)
+runs a roguelike turn loop entirely in `izanagi_kit` (seeded RNG →
+procedural dungeon → A* → field-of-view), renders it through `izanagi`'s
+`Engine`, and asserts — not just claims — that crossing the bridge into the
+engine's frame loop cannot change a single bit of the simulation's world-hash
+trace.
+
+```
+cargo test --workspace   # 3362 tests: 188 engine + 3174 kit
+```
+
+---
+
+## `izanagi` — the engine
 
 ```rust
 use izanagi::Engine;
@@ -14,9 +34,7 @@ fn main() {
 
 That is the whole engine. One type, one method. No builder. No config. No plugins.
 
----
-
-## Why
+### Why
 
 Every Rust game engine asks you to learn its world before you can write a game.
 IZANAGI does not. Spawn an entity, draw a rectangle, play a sound. The engine
@@ -28,7 +46,7 @@ gets out of your way.
 - **Pluggable backend.** Swap `NullBackend` for terminal, winit, or wgpu.
 - **Deterministic.** Seed the RNG, replay the run.
 
-## A 30-second tour
+### A 30-second tour
 
 ```rust
 use izanagi::{Engine, Key, Color, Vec2};
@@ -56,22 +74,23 @@ fn main() {
 }
 ```
 
-## Run a real game
+### Run a real game
 
 ```bash
-cargo run --example hello              # 3-line hello world
-cargo run --example pong               # complete Pong, ~100 lines
-cargo run --example pong -- --terminal # play it in your terminal
-cargo run --example particles          # 500 particles/sec, gravity, fade
-cargo run --example platformer         # gravity + jumping + swept-AABB
-cargo run --example roguelike          # BSP map, combat, screen-shake
-cargo run --example world              # tilemap + camera + sprite-anim
+cargo run -p izanagi --example hello       # 3-line hello world
+cargo run -p izanagi --example pong        # complete Pong, ~100 lines
+cargo run -p izanagi --example pong -- --terminal   # play it in your terminal
+cargo run -p izanagi --example particles   # 500 particles/sec, gravity, fade
+cargo run -p izanagi --example platformer  # gravity + jumping + swept-AABB
+cargo run -p izanagi --example roguelike   # BSP map, combat, screen-shake
+cargo run -p izanagi --example world       # tilemap + camera + sprite-anim
+cargo run -p izanagi --example kit_bridge  # izanagi_kit sim rendered through Engine
 ```
 
 The terminal backend renders 24-bit colored half-blocks (`▀`) with ANSI escape
 sequences. No window system required.
 
-## Modules (24 total)
+### Modules (24 total)
 
 | Module | Purpose |
 | --- | --- |
@@ -99,15 +118,13 @@ sequences. No window system required.
 | `backend` | `Backend` trait, `NullBackend`, `TerminalBackend` |
 | `debug` | `Metrics` — FPS, worst_ms, rolling history |
 
-## Quality
+### Quality
 
-- **159 tests** — 121 unit + 19 integration (incl. 7 property-based / 200-round fuzz) + 10 benchmark + 9 doctest
-- **0 warnings**, **0 dependencies**, **`cargo fmt --check` passes**
+- **188 tests** (unit + integration + property-based + benchmark + doctest)
+- **0 clippy warnings**, **0 dependencies**, **`cargo fmt --check` passes**
 - **MSRV: Rust 1.75**
-- **CI:** Linux + macOS + Windows
-- **~6,500 LOC total** (3,800 source + 1,200 examples + 1,500 tests)
 
-## Design
+### Design
 
 Three rules:
 
@@ -115,26 +132,53 @@ Three rules:
 2. **Say no.** Every API surface is a tax.
 3. **Demo-driven.** If `pong.rs` gets harder to write, the change is wrong.
 
-Read `ARCHITECTURE.md` for the rationale behind each design decision.
+Read [`izanagi/ARCHITECTURE.md`](./izanagi/ARCHITECTURE.md) for the rationale
+behind each design decision.
+
+---
+
+## `izanagi_kit` — the deterministic simulation kit
+
+78 zero-dependency modules covering the roguelike/simulation stack a
+lockstep-replay game actually needs: sparse-set ECS, Q16.16 fixed-point math,
+seeded RNG with named independent sub-streams, symmetric-shadowcasting FOV,
+procedural dungeon generation (rooms/BSP/caves/drunkard's-walk/WFC), A*/JPS
+pathfinding, replay/desync detection, a text content pipeline with its own
+`.game` format and `gamec` CLI, and much more — see
+[`izanagi_kit/README.md`](./izanagi_kit/README.md) for the full module table
+and a Rust quickstart.
+
+The central guarantee: **identical inputs produce a bit-identical simulation
+on every OS and CPU**, pinned by regression tests
+(`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH`) rather than merely asserted.
+
+```
+cargo test -p izanagi_kit   # 3174 tests, 0 clippy warnings, fmt clean
+```
+
+---
+
+## This repository
+
+Both crates live in one Cargo workspace (root `Cargo.toml`). Two audit
+documents track what's implemented, what's missing, and why, at two
+different levels of detail:
+
+- [`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md) — product-level: what each crate
+  provides, where they overlap, what's missing between them
+- [`izanagi_kit/FEATURE_AUDIT.md`](./izanagi_kit/FEATURE_AUDIT.md) —
+  kit-internal: a module-by-module sufficiency/excess audit
 
 ## Contributing
 
-See `CONTRIBUTING.md`. Two rules:
+See [`izanagi/CONTRIBUTING.md`](./izanagi/CONTRIBUTING.md). Two rules:
 
 - New code adds tests.
 - New code adds no dependencies.
 
-## This repository
-
-The engine described above ships as `izanagi_v4.0.2.zip`. Alongside it,
-[`izanagi_kit/`](./izanagi_kit/) holds 77 zero-dependency reference modules
-extracted from a design review of this engine — a strictly deterministic
-(integer/fixed-point, bit-exact-replay) simulation layer covering the
-roguelike stack the engine's `roguelike.rs` example writes by hand. See
-[`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md) for a product-level audit of what
-each side provides, where they overlap, and what is still missing between
-them.
-
 ## License
 
-MIT — see [LICENSE](LICENSE).
+`izanagi`: MIT — see [`izanagi/LICENSE`](./izanagi/LICENSE).
+`izanagi_kit`: MIT OR Apache-2.0 — see
+[`izanagi_kit/LICENSE-MIT`](./izanagi_kit/LICENSE-MIT) /
+[`izanagi_kit/LICENSE-APACHE`](./izanagi_kit/LICENSE-APACHE).

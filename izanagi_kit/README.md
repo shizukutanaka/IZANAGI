@@ -16,6 +16,44 @@ into a terminal/headless target where the whole frame is text — which makes th
 simulation **fully inspectable and deterministically replayable**. Bit-exact
 replay is treated as a first-class feature, not an afterthought.
 
+## Quickstart
+
+```rust
+use izanagi_kit::entity::EntityAllocator;
+use izanagi_kit::sparse_set::SparseSet;
+use izanagi_kit::{load_level, parse, validate, Fixed, SplitMix64};
+
+fn main() {
+    // Entities + components: generational handles, O(1) sparse-set storage.
+    let mut alloc = EntityAllocator::new();
+    let mut positions: SparseSet<(Fixed, Fixed)> = SparseSet::new();
+    let player = alloc.allocate();
+    positions.insert(player, (Fixed::from_int(3), Fixed::from_int(4)));
+
+    // Deterministic RNG: split into named, independent sub-streams up front
+    // so drawing more from one never perturbs another.
+    let master = SplitMix64::new(42);
+    let mut loot_rng = master.split(1);
+    let _roll = loot_rng.below(100);
+
+    // Content pipeline: author levels as text, parse -> validate -> load.
+    let source = "\
+prefab hero
+  glyph @
+level start 3x3
+  row ...
+  row .@.
+  row ...
+  spawn hero 1 1
+";
+    let (content, parse_diags) = parse(source);
+    let validate_diags = validate(&content);
+    assert!(parse_diags.is_empty() && validate_diags.is_empty());
+    let world = load_level(&content, "start").unwrap();
+    println!("loaded {} entities", world.entity_count()); // loaded 1 entities
+}
+```
+
 ## Modules
 
 The kit spans the full stack a terminal roguelike needs. The capability map —
