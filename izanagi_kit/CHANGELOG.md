@@ -338,6 +338,62 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   Four new tests pin the encoding contract and prove the collision is eliminated.
 
 ### Added
+- **`SplitMix64::split(stream_id)`** (`rng.rs`) — named, independent RNG
+  sub-streams. Pure function of `(parent state, stream_id)`: doesn't draw
+  from or mutate the parent, so forking one child never perturbs a sibling
+  regardless of draw order or count. Purely additive; existing draw paths
+  and pinned hashes unchanged. 7 unit + 5 property tests.
+- **`Xoshiro256pp`** (`rng_xoshiro.rs`, new module) — opt-in xoshiro256++
+  generator (Blackman & Vigna 2018): 2²⁵⁶ period vs. `SplitMix64`'s 2⁶⁴, for
+  workloads drawing very large volumes of randomness. Isolated from every
+  existing draw path (SplitMix64 stays the default); seeded from
+  `SplitMix64` per the algorithm authors' recommendation. `jump()` advances
+  2¹²⁸ draws for non-overlapping parallel streams. Correctness pinned
+  against hand-computed reference vectors, not just self-consistency. 13
+  unit + 4 property tests.
+- **`world_hash::hash_unordered`** (`world_hash.rs`) — permutation-invariant
+  multiset hash: each element hashed via `hash_state`, avalanche-mixed, and
+  combined with `wrapping_add` (commutative + associative). Lets a
+  non-canonically-ordered container (`HashMap`, arrival-order entities) hash
+  to a stable value without sorting first. Multiset semantics (duplicates
+  count); purely additive, no existing hash output changes. 7 unit + 4
+  property tests.
+- **`diag_json::diag_sarif` + `gamec --sarif`** (`diag_json.rs`,
+  `bin/gamec.rs`) — SARIF 2.1.0 diagnostic output, the format GitHub Code
+  Scanning's `upload-sarif` action consumes for inline PR annotations.
+  Mirrors the existing `--json` flag's exit-code contract. 14 tests,
+  verified end-to-end by piping real `gamec --sarif` output through a JSON
+  parser.
+- **Formal EBNF grammar for the `.game` format** (`SPEC.md` §9.1) — derived
+  directly from `parser.rs` so every production maps to a real parse arm,
+  documenting the exact lexical/boundary rules (line length, dimension
+  bounds, color/glyph/int/uint token shapes). Docs only.
+- **`Fixed` rounding behavior documented** (`fixed.rs`) — a "Rounding"
+  section spells out that `mul` floors toward −∞ (arithmetic `>>`) while
+  `div`/`from_ratio` truncate toward zero (integer `/`), diverging only for
+  negative operands. Surfaced and documented a `to_int_trunc` misnomer: despite
+  its name it floors toward −∞, not truncates toward zero. Behavior
+  unchanged; pinned by 4 new regression tests.
+- **`#![warn(missing_docs)]` enforced crate-wide** (`lib.rs`) — resolved all
+  172 resulting warnings across 39 files (struct fields, enum variants,
+  constructor/accessor functions with no doc comment). Docs only.
+- **Rust quickstart added to `README.md`** — an entity/`SparseSet`
+  component storage + `SplitMix64::split` + full content-pipeline
+  (`parse`→`validate`→`load_level`) example; compiled and run as a real
+  example before being copied into the README.
+- **Cargo workspace formed at the repository root** — the sibling
+  `izanagi` engine crate (previously a zip archive at the repo root) was
+  extracted into `izanagi/`, and both crates joined a workspace so
+  `cargo test --workspace` runs both suites in one command (3362 tests: 188
+  engine + 3174 kit). `izanagi/examples/kit_bridge.rs` demonstrates the two
+  crates composing: a deterministic roguelike turn loop runs entirely in
+  kit types and is rendered through the engine's `Backend`, with the
+  per-turn world-hash trace asserted identical between a headless run and
+  an engine-hosted run.
+- **Packaging metadata corrected** (`Cargo.toml`) — `repository` pointed at
+  a nonexistent standalone repo; corrected to the actual monorepo. The
+  `"no-std-friendly"` keyword was inaccurate (the crate is `std`-only);
+  replaced with `"roguelike"`.
 - **Property coverage for `Vec2`/`Vec3` composite ops** (`tests/properties.rs`)
   — Added algebraic laws for the vector operations whose consistency is *not*
   implied by the underlying `Fixed` laws: `dot` commutativity, `len_sq ==
