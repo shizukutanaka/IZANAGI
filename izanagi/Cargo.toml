@@ -11,6 +11,12 @@ categories = ["game-engines"]
 
 [dependencies]
 
+# Dev-only: used solely by the kit_bridge example to demonstrate composing
+# the engine with izanagi_kit. Core stays zero-dependency (CLAUDE.md) --
+# this never ships as part of the published `izanagi` crate.
+[dev-dependencies]
+izanagi_kit = { path = "../izanagi_kit" }
+
 # NOTE: [profile.*] sections live in the workspace root Cargo.toml — Cargo
 # ignores profiles declared in workspace members.
 
@@ -37,3 +43,7 @@ path = "examples/roguelike.rs"
 [[example]]
 name = "world"
 path = "examples/world.rs"
+
+[[example]]
+name = "kit_bridge"
+path = "examples/kit_bridge.rs"
