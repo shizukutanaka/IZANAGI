@@ -29,6 +29,10 @@ examples/
   pong.rs      — full game, --terminal flag
   particles.rs — 500/s, HSV, fade, --terminal
   platformer.rs — gravity + swept-AABB + state machine
+  roguelike.rs — BSP dungeon, ECS, state machine, events, --terminal
+  world.rs     — scrolling tilemap + camera + sprite animation, --terminal
+  kit_bridge.rs — izanagi_kit sim (mapgen/A*/FOV) rendered via Engine;
+                  asserts headless and engine-hosted world-hash traces match
 
 tests/
   integration.rs — cross-module API contracts
@@ -36,7 +40,10 @@ tests/
 
 ## Rules
 - `#![forbid(unsafe_code)]` — no exceptions.
-- Zero dependencies in core. Backends in sub-crates only.
+- Zero dependencies in core (`[dependencies]` stays empty). The one
+  exception is `[dev-dependencies]` on the sibling `izanagi_kit` crate,
+  used solely by `examples/kit_bridge.rs` — it never ships in the
+  published crate. Backends in sub-crates only.
 - All public items need doc comments. `cargo doc --no-deps` must be clean.
 - `cargo fmt --check` must pass.
 - `cargo test` must be green before any PR.
