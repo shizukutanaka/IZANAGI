@@ -4,6 +4,45 @@ All notable changes to IZANAGI are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/) and this project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+Note: `Cargo.toml` had already moved to `4.1.0` with no corresponding
+entry here before this session began; that gap is not reconstructed
+below since its actual content is unknown. Everything below is what
+changed in this session.
+
+### Added
+- **Cargo workspace** — this crate joined a root workspace alongside the
+  sibling `izanagi_kit` deterministic simulation crate (previously
+  shipped as a separate zip archive at the repository root, never
+  extracted or built as part of this tree). `[profile.*]` sections moved
+  to the workspace root, since Cargo ignores profiles declared in
+  member crates.
+- **`examples/kit_bridge.rs`** — a dev-dependency-only example
+  demonstrating the engine and `izanagi_kit` composing: a deterministic
+  roguelike turn loop runs entirely in kit types and is rendered through
+  this crate's `Backend` trait, with the per-turn world-hash trace
+  asserted identical between a headless run and one hosted in
+  `Engine::run`.
+- **`rust-version = "1.65"`** declared in `Cargo.toml`, matching
+  `CLAUDE.md`'s existing documented MSRV policy (previously undeclared
+  in package metadata).
+
+### Fixed
+- **First clippy pass ever run against this crate** (its CI had never
+  executed while the source sat inside an unextracted zip) surfaced 19
+  warnings, all resolved: a dead private trait method
+  (`Column::contains`), several `map_or(false, ..)` simplifications,
+  a redundant `i32` cast, a hex-literal digit grouping style nit, and
+  the `world` example silently discarding every event payload it
+  drained (now folds them into session state and prints them).
+- **MSRV violation introduced by that same clippy pass**: two of the
+  `map_or` simplifications used clippy's suggested `is_some_and`
+  (stable since Rust 1.70) and `is_none_or` (stable since Rust 1.82) —
+  both newer than this crate's declared 1.65 MSRV. Reverted to
+  `map_or` with a per-call-site `#[allow(clippy::unnecessary_map_or)]`
+  so `-D warnings` CI doesn't silently re-introduce the violation.
+
 ## [4.0.0] - 2026-04-29
 
 A full restart. The previous v3.x line grew to 858K lines and never
