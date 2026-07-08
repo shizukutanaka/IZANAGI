@@ -1,4 +1,4 @@
-//! Fixed-point 2-D and 3-D vectors over [`Fixed`](crate::Fixed).
+//! Fixed-point 2-D and 3-D vectors over [`Fixed`].
 //!
 //! All arithmetic uses the same Q16.16 saturating rules as [`Fixed`] so
 //! vectors never silently wrap, and the results are bit-identical across

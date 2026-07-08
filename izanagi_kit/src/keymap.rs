@@ -104,7 +104,7 @@ impl<K: Eq + Clone, A: Eq + Clone> KeyMap<K, A> {
     }
 
     /// Remove every binding whose action equals `action`. Returns the number
-    /// of keys unbound (0 if none matched). The inverse of [`bind_multiple`]:
+    /// of keys unbound (0 if none matched). The inverse of [`Self::bind_multiple`]:
     /// clear all keys for one command in a single call before rebinding it.
     pub fn unbind_action(&mut self, action: &A) -> usize {
         let before = self.bindings.len();

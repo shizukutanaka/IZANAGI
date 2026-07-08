@@ -31,12 +31,12 @@
 //! The sign is asymmetric by default — "A dislikes B" does not force "B
 //! dislikes A" — because game designers frequently want one-sided hostility
 //! (e.g. a neutral faction that the player has wronged). Symmetric operations
-//! ([`set_symmetric`], [`modify_symmetric`]) are provided when bilateral
+//! ([`FactionMap::set_symmetric`], [`FactionMap::modify_symmetric`]) are provided when bilateral
 //! changes are wanted.
 //!
 //! Storage is a `BTreeMap<(K, K), i32>` (ordered, deterministic iteration).
 //! Missing entries implicitly read as `0` (neutral). [`FactionMap`] implements
-//! [`DetHash`](crate::world_hash::DetHash), folding faction standings into the
+//! [`DetHash`], folding faction standings into the
 //! replay checksum.
 //!
 //! ## Thresholds

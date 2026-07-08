@@ -33,7 +33,7 @@
 //! **abandoned** at the quest level to reset everything.
 //!
 //! [`Quest`] and [`Objective`] implement
-//! [`DetHash`](crate::world_hash::DetHash), folding the current progress state
+//! [`DetHash`], folding the current progress state
 //! into the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

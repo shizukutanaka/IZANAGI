@@ -32,7 +32,7 @@
 //! Determinism: slots have a fixed enumeration order ([`EquipSlot::ALL`]) and
 //! the loadout is a fixed-length array — no `HashMap`, no allocation-order
 //! dependence. [`Equipment`] implements
-//! [`DetHash`](crate::world_hash::DetHash) over occupancy + each worn item, so a
+//! [`DetHash`] over occupancy + each worn item, so a
 //! creature's gear folds into the replay checksum.
 //!
 //! ## Cursed items

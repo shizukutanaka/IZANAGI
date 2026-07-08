@@ -27,7 +27,7 @@
 //! ```
 //!
 //! Everything is integer/enum-only and order-independent: [`VisibilityMap`]
-//! implements [`DetHash`](crate::world_hash::DetHash) by folding `(width,
+//! implements [`DetHash`] by folding `(width,
 //! height)` then every cell in row-major order, so the fog state folds into the
 //! replay checksum and is bit-identical across platforms.
 

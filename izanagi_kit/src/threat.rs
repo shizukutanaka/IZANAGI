@@ -45,7 +45,7 @@
 //! threat, the one with the smallest key (`K: Ord`) wins. This makes target
 //! selection replay-safe regardless of insertion order.
 //!
-//! [`ThreatTable`] implements [`DetHash`](crate::world_hash::DetHash), folding
+//! [`ThreatTable`] implements [`DetHash`], folding
 //! the sorted `(key, threat)` pairs into the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

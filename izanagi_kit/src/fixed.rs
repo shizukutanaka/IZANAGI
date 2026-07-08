@@ -107,7 +107,7 @@ impl Fixed {
     /// Constructs from a ratio `num/den` without touching floats. A zero
     /// denominator saturates toward `num`'s sign (consistent with [`Fixed::div`])
     /// instead of panicking, and an out-of-range quotient clamps via
-    /// [`Fixed::from_wide`] instead of a wrapping `as i32` cast.
+    /// `from_wide` (a private helper) instead of a wrapping `as i32` cast.
     #[inline]
     pub fn from_ratio(num: i32, den: i32) -> Self {
         if den == 0 {
@@ -295,7 +295,7 @@ impl Fixed {
 
     /// Square root. Negative inputs saturate to zero (√ of a negative is
     /// undefined; clamping is the safe deterministic choice rather than panicking
-    /// or producing garbage). Computed with integer-only [`isqrt_u64`] so the
+    /// or producing garbage). Computed with an integer-only `isqrt_u64` helper so the
     /// result is bit-identical across targets and feeds the world hash safely.
     ///
     /// Identity: `√(raw/2¹⁶)·2¹⁶ = √(raw·2¹⁶)`, so we isqrt `raw << 16`.

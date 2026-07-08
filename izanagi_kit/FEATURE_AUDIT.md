@@ -156,7 +156,7 @@ Rust ゲームエンジンキット**。ターミナル/ヘッドレスのロー
 | ~~SARIF 診断出力~~（GitHub アノテーション連携） | ✅ **実装済み** — `src/diag_json.rs::diag_sarif`、`gamec --sarif`（14 unit tests、実 JSON parser で構造検証済み） | 🟢 ツール層 |
 | ~~`Fixed` の丸めモード明文化~~ | ✅ **実装済み** — module doc に "Rounding" 節を追加し実挙動を明文化（`mul` は arithmetic `>>` で −∞ 方向 floor、`div`/`from_ratio` は整数除算で toward-zero truncate、負値でのみ相違）。`to_int_trunc` が名前に反して −∞ floor である misnomer を発見・docstring で明示。4 regression tests で pin（挙動不変） | 🟢 文書 + テストのみ（挙動不変・pinned hash 不変） |
 | ~~`.game` 形式の BNF 形式仕様~~・incremental/partial parse | ✅ **BNF 実装済み** — `SPEC.md` §9.1 に実装と 1:1 対応する形式 EBNF 文法＋語彙/境界規則を追加、`parser.rs` module doc から相互参照。incremental/partial parse は引き続き未実装（全体再パースで用途は充足） | 🟢 文書のみ（挙動不変） |
-| `cargo doc` の rustdoc lint 警告（`missing_docs` とは別カテゴリ） | ⚠️ **新規発見・未着手** — `#![warn(missing_docs)]` 導入時の検証で `cargo doc --workspace --no-deps` を実行したところ、44件の rustdoc 警告を検出（`missing_docs` は 0 件で別物）: redundant explicit link target 23件、unresolved link to X 11件（`pathfinding::astar` 等、タイポまたは改名漏れの疑い）、public item が private item にリンク 5件（`Fixed::from_wide` 等）、`line`/`vec` が関数とマクロで曖昧 4件。CI の `-D warnings` は `cargo build`/`clippy` のみに掛かり `cargo doc` には掛かっていないため実害なしだが、docs.rs 公開時にリンク切れとして表面化する | 🟢 文書のみ（挙動不変・機械的修正可能だが要個別確認） |
+| ~~`cargo doc` の rustdoc lint 警告~~（`missing_docs` とは別カテゴリ） | ✅ **44件全て解消** — redundant explicit link target 23件（`[`X`](path)`→`[`X`]`）、unresolved link 11件（`crate::` 修飾漏れ・`Self::` 修飾漏れが原因と判明、実体は全て存在しタイポではなかった）、private item リンク 5件（doc-link をやめ通常コード書式に変更）、`line`/`vec` の関数/マクロ曖昧 4件（`line()`/`mod@vec` で明示）。`cargo doc --workspace --no-deps` 0警告を確認。全38 doctest green・workspace 3362 tests green・kit_bridge 決定論ハッシュ不変を再検証 | 🟢 文書のみ（挙動不変） |
 
 ---
 

@@ -51,7 +51,7 @@ impl SaveHeader {
 
 /// Encode `payload` with `header` into a portable byte buffer.
 ///
-/// The result begins with [`MAGIC`], followed by the version, a FNV-1a
+/// The result begins with a `MAGIC` marker, followed by the version, a FNV-1a
 /// checksum of `payload`, the payload length, and then the payload itself.
 pub fn save_bytes(header: &SaveHeader, payload: &[u8]) -> Vec<u8> {
     let checksum = fnv1a(payload);

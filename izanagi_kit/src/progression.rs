@@ -36,7 +36,7 @@
 //! Determinism: every quantity is a closed-form function of `u64` inputs
 //! computed in widened `u128` to avoid overflow, with no float and no
 //! allocation. [`Progression`] and [`LevelCurve`] implement
-//! [`DetHash`](crate::world_hash::DetHash), folding a character's growth into
+//! [`DetHash`], folding a character's growth into
 //! the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

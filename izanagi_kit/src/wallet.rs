@@ -39,7 +39,7 @@
 //! stored in a `BTreeMap<C, u64>` for deterministic iteration and hashing. A
 //! balance that reaches `0` is pruned, so [`is_empty`](Wallet::is_empty) means
 //! "no money of any kind" and iteration only ever yields positive balances.
-//! [`Wallet`] implements [`DetHash`](crate::world_hash::DetHash), folding the
+//! [`Wallet`] implements [`DetHash`], folding the
 //! sorted `(currency, balance)` pairs into the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

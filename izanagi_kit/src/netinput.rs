@@ -41,9 +41,9 @@
 //! - `confirmed: BTreeMap<(tick, player), input>` is the ground truth once
 //!   known; `last_known: BTreeMap<player, input>` is each player's most recent
 //!   confirmed input, the source for future predictions; `predicted:
-//!   BTreeMap<(tick, player), input>` memoizes what [`input_for`] guessed, so
+//!   BTreeMap<(tick, player), input>` memoizes what [`input_for`](NetInputBuffer::input_for) guessed, so
 //!   [`confirm`](NetInputBuffer::confirm) can compare against it later.
-//! - **`predicted` is deliberately excluded from [`DetHash`](crate::world_hash::DetHash).**
+//! - **`predicted` is deliberately excluded from [`DetHash`].**
 //!   Two peers with the same confirmed history but different network timing
 //!   will have predicted different (still-unconfirmed) values at the moment
 //!   you happen to hash — including that in the checksum would report a
@@ -155,7 +155,7 @@ impl<P: Ord + Clone, I: Clone + PartialEq> NetInputBuffer<P, I> {
     }
 
     /// `true` if `(tick, player)` currently holds a prediction that has not
-    /// yet been confirmed (i.e. the value [`input_for`] would return there is
+    /// yet been confirmed (i.e. the value [`Self::input_for`] would return there is
     /// still a guess, not ground truth).
     pub fn is_predicted(&self, tick: u32, player: P) -> bool {
         self.predicted.contains_key(&(tick, player.clone()))

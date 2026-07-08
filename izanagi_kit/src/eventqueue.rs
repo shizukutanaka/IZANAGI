@@ -35,7 +35,7 @@
 //!
 //! Determinism: the queue is purely an ordered collection — no timestamps, no
 //! internal randomness, no platform calls. The replay checksum folds in the
-//! queue contents via [`DetHash`](crate::world_hash::DetHash) (order-sensitive:
+//! queue contents via [`DetHash`] (order-sensitive:
 //! `[A, B]` hashes differently from `[B, A]`).
 
 use crate::world_hash::{DetHash, Fnv1a};

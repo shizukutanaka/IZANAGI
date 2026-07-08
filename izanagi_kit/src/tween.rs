@@ -12,7 +12,7 @@
 //! Following the same decoupling as [`recipe`](crate::recipe), the easing
 //! curve is **not stored** in the tween (function pointers are neither
 //! deterministically hashable nor part of the simulation state). Instead it is
-//! supplied at sample time, so a tween's [`DetHash`](crate::world_hash::DetHash)
+//! supplied at sample time, so a tween's [`DetHash`]
 //! covers only its time state (`start`, `end`, `duration`, `elapsed`) and the
 //! same tween can be sampled through any curve.
 //!
@@ -34,7 +34,7 @@
 //! ```
 //!
 //! Determinism: time is integer ticks and the value is computed with
-//! [`Fixed`](crate::fixed::Fixed) (Q16.16), so a tween is bit-identical across
+//! [`Fixed`] (Q16.16), so a tween is bit-identical across
 //! targets and folds safely into the replay checksum.
 
 use crate::fixed::Fixed;

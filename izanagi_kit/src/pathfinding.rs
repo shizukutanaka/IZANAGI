@@ -91,7 +91,7 @@ fn reconstruct(came_from: &HashMap<(i32, i32), (i32, i32)>, goal: (i32, i32)) ->
 /// out-of-bounds cells: that is what bounds the search to a finite area (and
 /// lets the function terminate with `None` when the goal is walled off).
 ///
-/// Path cost uses [`COST_ORTHO`]/[`COST_DIAG`]; the returned path is one of the
+/// Path cost uses internal `COST_ORTHO`/`COST_DIAG` constants; the returned path is one of the
 /// optimal paths, chosen deterministically by the `(f, h, x, y)` ordering.
 pub fn astar<B>(start: (i32, i32), goal: (i32, i32), mut is_blocked: B) -> Option<Vec<(i32, i32)>>
 where

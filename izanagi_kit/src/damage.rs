@@ -12,7 +12,7 @@
 //!   ordering, so iteration and hashing are stable across runs and platforms.
 //! - [`ResistanceProfile`] stores one `i32` percentage per type in a fixed-size
 //!   array (no `HashMap`, so no iteration-order non-determinism).
-//! - [`ResistanceProfile`] implements [`DetHash`](crate::world_hash::DetHash) so
+//! - [`ResistanceProfile`] implements [`DetHash`] so
 //!   a creature's resistances fold into the per-frame replay checksum.
 //!
 //! Resistance semantics (matching [`combat::apply_resistance`](crate::combat::apply_resistance)

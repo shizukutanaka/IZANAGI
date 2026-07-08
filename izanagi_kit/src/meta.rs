@@ -33,7 +33,7 @@
 //! ## Design
 //!
 //! - `unlocked: BTreeSet<K>` and `records: BTreeMap<R, i64>` — both canonical
-//!   containers, so [`DetHash`](crate::world_hash::DetHash) is
+//!   containers, so [`DetHash`] is
 //!   insertion-order-independent by construction.
 //! - [`record_best`](MetaProgress::record_best) treats "higher is better,"
 //!   the same idempotent max-fold used elsewhere in the kit for

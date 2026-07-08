@@ -6,10 +6,10 @@
 //! It is the standard bridge between map data and movement systems:
 //!
 //! - Build from any map by supplying a closure: `from_fn(w, h, |x, y| …)`.
-//! - Build from a [`tilemap::TileMap`] with a tile predicate.
+//! - Build from a [`crate::tilemap::TileMap`] with a tile predicate.
 //! - Mutate individual cells at runtime (`set_blocked`).
-//! - Produce a **closure** compatible with [`pathfinding::astar`] and
-//!   [`pathfinding::weighted_astar`] via `blocker()`.
+//! - Produce a **closure** compatible with [`crate::pathfinding::astar`] and
+//!   [`crate::pathfinding::weighted_astar`] via `blocker()`.
 //! - `DetHash` participation for replay state checksums.
 
 use crate::rng::SplitMix64;
@@ -58,7 +58,7 @@ impl PassabilityGrid {
         }
     }
 
-    /// Create from a [`tilemap::TileMap<T>`], treating cells where
+    /// Create from a [`crate::tilemap::TileMap`]`<T>`, treating cells where
     /// `is_blocked(tile)` returns `true` as walls.
     pub fn from_tilemap<T, F>(map: &crate::tilemap::TileMap<T>, is_blocked: F) -> Self
     where
@@ -70,7 +70,7 @@ impl PassabilityGrid {
         })
     }
 
-    /// Create from a [`mapgen::Dungeon`], treating wall tiles as blocked.
+    /// Create from a [`crate::mapgen::Dungeon`], treating wall tiles as blocked.
     pub fn from_dungeon(dungeon: &crate::mapgen::Dungeon) -> Self {
         Self::from_fn(dungeon.width() as i32, dungeon.height() as i32, |x, y| {
             dungeon.is_wall(x, y)
@@ -113,8 +113,8 @@ impl PassabilityGrid {
 
     /// Return a closure `|x, y| self.is_blocked(x, y)` that borrows `self`.
     ///
-    /// Pass the closure directly to [`pathfinding::astar`] or
-    /// [`pathfinding::weighted_astar`].
+    /// Pass the closure directly to [`crate::pathfinding::astar`] or
+    /// [`crate::pathfinding::weighted_astar`].
     pub fn blocker(&self) -> impl Fn(i32, i32) -> bool + '_ {
         move |x, y| self.is_blocked(x, y)
     }

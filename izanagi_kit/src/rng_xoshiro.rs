@@ -1,6 +1,6 @@
 //! Xoshiro256++ — a longer-period, higher-quality deterministic PRNG.
 //!
-//! [`SplitMix64`](crate::rng::SplitMix64) is the kit's default generator and
+//! [`SplitMix64`] is the kit's default generator and
 //! remains so: it is tiny, fast, and ideal for seeding and stream-splitting.
 //! But its state is a single 64-bit word, so its period is 2⁶⁴ and it fails
 //! some statistical tests on very long sequences (it is a pure additive

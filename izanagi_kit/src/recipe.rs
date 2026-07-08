@@ -51,7 +51,7 @@
 //! Ingredients are stored sorted by key (`K: Ord`) for deterministic
 //! iteration and hashing. Duplicate keys in the constructor are merged (their
 //! counts summed). A recipe with no ingredients always succeeds (a "free"
-//! recipe). [`Recipe`] implements [`DetHash`](crate::world_hash::DetHash),
+//! recipe). [`Recipe`] implements [`DetHash`],
 //! folding the ingredient list and output into the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

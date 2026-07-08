@@ -34,7 +34,7 @@
 //! `[0, max]`. The per-tick regeneration rate is **signed**: a positive rate
 //! regenerates (stamina recovering), a negative rate decays (hunger draining,
 //! poison ticking), and zero is inert. [`Pool`] implements
-//! [`DetHash`](crate::world_hash::DetHash), folding `current`, `max`, and the
+//! [`DetHash`], folding `current`, `max`, and the
 //! regen rate into the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

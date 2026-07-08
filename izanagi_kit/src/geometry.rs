@@ -42,7 +42,7 @@ pub fn line(a: (i32, i32), b: (i32, i32)) -> Vec<(i32, i32)> {
     cells
 }
 
-/// Number of cells [`line`] returns from `a` to `b`, computed without
+/// Number of cells [`line()`] returns from `a` to `b`, computed without
 /// allocating. Equals the Chebyshev distance plus one — each Bresenham step
 /// advances by exactly one king-move, so the cell count is `max(|dx|,|dy|)+1`.
 /// `a == b` yields `1`. Useful for sizing buffers or range checks before
@@ -76,7 +76,7 @@ where
     true
 }
 
-/// Trace a bolt/beam from `origin` toward `target` along the Bresenham [`line`],
+/// Trace a bolt/beam from `origin` toward `target` along the Bresenham [`line()`],
 /// returning the ordered cells it travels through up to **and including** the
 /// first blocked cell (the impact point). If nothing blocks the path, the full
 /// line through `target` is returned, so the last element is always *where the
@@ -490,7 +490,7 @@ pub fn vec_toward(from: (i32, i32), to: (i32, i32)) -> (i32, i32) {
 /// open cell rather than entering a wall.
 ///
 /// Returns `from` unchanged when `dir` is zero or `distance <= 0`. Integer-only
-/// and deterministic. To recover the path travelled use [`line`]`(from, landing)`,
+/// and deterministic. To recover the path travelled use [`line()`]`(from, landing)`,
 /// and the cells actually moved is `Distance::Chebyshev.between(from, landing)`.
 pub fn knockback<F>(
     from: (i32, i32),

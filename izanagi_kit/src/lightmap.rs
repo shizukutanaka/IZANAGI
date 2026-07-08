@@ -28,7 +28,7 @@
 //!
 //! Determinism: every value is a pure function of the source parameters and
 //! map dimensions, computed entirely with integer arithmetic and saturating
-//! addition. [`LightMap`] implements [`DetHash`](crate::world_hash::DetHash)
+//! addition. [`LightMap`] implements [`DetHash`]
 //! over its full cell array, folding the current illumination state into the
 //! replay checksum.
 

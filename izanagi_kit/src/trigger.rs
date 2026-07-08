@@ -14,7 +14,7 @@
 //! evaluates conditions against the live world with a plain function passed
 //! to [`check`](TriggerSet::check); [`TriggerSet`] only tracks *which* rules
 //! exist and *whether* a one-shot rule has already consumed its single firing.
-//! This keeps the trigger set itself trivially [`DetHash`](crate::world_hash::DetHash)
+//! This keeps the trigger set itself trivially [`DetHash`]
 //! — no function pointers, no captured state.
 //!
 //! ```

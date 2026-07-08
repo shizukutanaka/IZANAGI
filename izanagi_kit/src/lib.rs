@@ -18,7 +18,7 @@
 //! - [`timestep`] — fixed-timestep accumulator with death-spiral guard.
 //! - [`timer`] — tick-based `Cooldown` and `TimerQueue<E>` for delayed events.
 //! - [`turn`] — energy/speed-based turn scheduler with non-destructive turn-order forecast.
-//! - [`vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
+//! - [`mod@vec`] — fixed-point Vec2/Vec3 (dot/cross/len/normalize/scale/DetHash).
 //! - [`shufflebag`] — draw-without-replacement bag randomizer with auto-refill (`ShuffleBag<T>`).
 //! - [`equipment`] — worn-item loadout per body slot with aggregate `StatsModifier` (`Equipment<T>`, `EquipSlot`).
 //! - [`progression`] — experience accumulation and integer level curves (`Progression`, `LevelCurve`).

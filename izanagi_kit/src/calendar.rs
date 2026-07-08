@@ -35,7 +35,7 @@
 //!
 //! Determinism: every value is a closed-form function of `u64 tick` and
 //! `u32 ticks_per_day`, computed with wrapping/integer arithmetic and no float.
-//! [`Calendar`] implements [`DetHash`](crate::world_hash::DetHash), folding the
+//! [`Calendar`] implements [`DetHash`], folding the
 //! current tick into the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

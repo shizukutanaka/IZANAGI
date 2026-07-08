@@ -42,7 +42,7 @@
 //! conversation displays its text and then ends on the next [`end`](Dialogue::end).
 //! Out-of-range choice indices and targets are rejected without changing state,
 //! so a malformed tree can never panic. [`Dialogue`] implements
-//! [`DetHash`](crate::world_hash::DetHash), folding the cursor and the node
+//! [`DetHash`], folding the cursor and the node
 //! graph into the replay checksum.
 
 use crate::world_hash::{DetHash, Fnv1a};

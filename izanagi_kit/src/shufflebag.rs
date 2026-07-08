@@ -35,7 +35,7 @@
 //! Determinism: draws consume the supplied [`SplitMix64`] in a fixed order
 //! (one `below` draw per non-trivial pick; a size-1 bag draws nothing), so the
 //! sequence is replay-identical. [`ShuffleBag`] implements
-//! [`DetHash`](crate::world_hash::DetHash) over both the template and the live
+//! [`DetHash`] over both the template and the live
 //! bag, folding them into the replay checksum.
 
 use crate::rng::SplitMix64;

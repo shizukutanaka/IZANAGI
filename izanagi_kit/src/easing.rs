@@ -1,4 +1,4 @@
-//! Integer easing and tweening functions over [`Fixed`](crate::Fixed).
+//! Integer easing and tweening functions over [`Fixed`].
 //!
 //! All functions take `t` in `[0, 1]` (Q16.16) and return a value in the
 //! same range. Extrapolation beyond `[0, 1]` is defined but the caller is
