@@ -110,7 +110,9 @@ fn main() {
                         let mut earliest: Option<(f32, Vec2)> = None;
                         for p in &platforms {
                             if let Some(hit) = collide::swept_aabb(&aabb, motion * t_remaining, p) {
-                                if earliest.is_none_or(|(t, _)| hit.t < t) {
+                                // is_none_or needs Rust 1.82; this crate's MSRV is 1.65.
+                                #[allow(clippy::unnecessary_map_or)]
+                                if earliest.map_or(true, |(t, _)| hit.t < t) {
                                     earliest = Some((hit.t, hit.normal));
                                 }
                             }
