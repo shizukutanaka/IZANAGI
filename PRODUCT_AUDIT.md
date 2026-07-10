@@ -97,14 +97,14 @@ OS I/O 非依存（`izanagi_kit/GAME_DEV_TAXONOMY.md` 冒頭に明記）。
 
 | 概念 | エンジン側 | kit 側 | 判定 |
 |---|---|---|---|
-| RNG | `rng.rs`（xorshift64、wall-clock seed の `from_entropy()` あり） | `rng.rs`（SplitMix64、退化入力で draw を消費しない契約、bias 無し抽出） | **並存が正当** — ただしエンジン側の `from_entropy` はリプレイ破壊 API（第5節参照） |
+| RNG | `rng.rs`（xorshift64、wall-clock seed の `from_entropy()` あり） | `rng.rs`（SplitMix64、退化入力で draw を消費しない契約、bias 無し抽出） | **並存が正当** — エンジン側の `from_entropy` は今も replay を破壊するが、docstring でその事実を明示するよう修正済み（第5節 P7） |
 | 数学 | `math.rs`（Vec2/Vec3/Mat3/Rect、f32、「games, not science」と明記） | `fixed.rs` + `vec.rs`（Q16.16、CORDIC） | **並存が正当** — 層の目的が違う（描画補間 vs 再現可能 sim） |
 | tween | `tween.rs`（f32 + Timer） | `tween.rs`（Fixed + TweenSequence） | **並存が正当** — 同上 |
 | easing | `ease.rs`（f32） | `easing.rs`（Fixed、back/bounce/elastic 含む） | **並存が正当** |
 | camera | `camera.rs`（f32、follow/zoom/rotation） | `camera.rs`（整数 viewport） | **並存が正当** |
 | tilemap | `tilemap.rs`（culling 付き） | `tilemap.rs`（多層 + LayeredMap） | **並存が正当** |
 | 衝突 | `collide.rs`（AABB/swept/ray/circle、f32） | `aabb.rs` + `spatial_hash.rs` + `passability.rs`（整数） | **並存が正当** — swept AABB は kit 未実装だが整数 sim ではグリッド衝突が主 |
-| ECS | `ecs.rs`（`HashMap<Entity,T>` per component） | `entity.rs` + `sparse_set.rs` + `arch.rs`（Vec ベース） | **並存が正当だが要注意** — エンジン側 HashMap は iteration 順が非決定（第5節） |
+| ECS | `ecs.rs`（`BTreeMap<u32,T>` per component、旧 `HashMap`） | `entity.rs` + `sparse_set.rs` + `arch.rs`（Vec ベース） | **並存が正当** — エンジン側は `HashMap`→`BTreeMap` へ変更し反復順序を決定論化済み（第5節 P7）。kit 側は Vec ベースでさらに高速だが、両者とも決定論という点では同水準に到達 |
 | state 機械 | `state.rs`（pushdown automaton） | `fsm.rs` + `hfsm.rs`（遷移表 + 階層） | **並存が正当** — シーン遷移用 vs ゲーム AI 用 |
 | event | `event.rs`（typed bus） | `eventqueue.rs`（intra-tick FIFO） | **並存が正当** |
 | save | `save.rs`（magic+version+length） | `savefile.rs`（+checksum+migration） | **統合検討** — 形式がほぼ同型で、kit 版が上位互換。エンジンが kit 版を使えば二重実装が消える |
@@ -128,7 +128,7 @@ kit 内部は FEATURE_AUDIT.md の通り充足しているが、**製品とし�
 | P4 | **cargo workspace になっていない** | ✅ **解消済み** | ルートに `Cargo.toml`（`members = ["izanagi", "izanagi_kit"]`, `resolver = "2"`）を作成。`[profile.*]` はエンジンの旧 Cargo.toml から workspace ルートへ移動（workspace member 内の profile 定義は Cargo が無視するため）。`cargo test --workspace` で両 crate 一括検証可能（3362 tests） |
 | P5 | **バージョン系譜の欠落** | ⚠️ **未解消** | 展開前の zip ファイル名は `v4.0.2`、zip 内 `Cargo.toml` は `4.1.0`、kit の `src/lib.rs` は「design review of the IZANAGI engine **(v4.4.0)**」を引用——**3つの版番号が一致しない**。`izanagi/CHANGELOG.md` は `[4.0.0]` のみを記録し `4.1.0` への変更点が無い（本監査で `[Unreleased]` を追加したが、これは本セッションの変更のみで 4.0.0→4.1.0 の実際の差分は依然不明）。レビュー対象・保存物・CHANGELOG のいずれも一致しないため、系譜は依然再構成不能 |
 | P6 | **ルート README が kit に言及しない** | ✅ **解消済み** | ルート README を全面書き直し。2 crate構成・実測テスト数（188 engine + 3174 kit = 3362）・両方の quickstart・両ライセンス（engine MIT / kit MIT OR Apache-2.0）を明記し、kit の存在・目的・kit_bridge によるエンジンとの接点を root から発見可能にした |
-| P7 | **エンジンの決定論主張と実装の乖離** | ⚠️ **未解消** | README は「**Deterministic.** Seed the RNG, replay the run」と謳うが: (a) `math.rs` は f32（クロスプラットフォームで非再現 — kit の `RESEARCH.md` C2 が文献付きで指摘）、(b) `ecs.rs` は `HashMap<Entity,T>`/`HashMap<TypeId,_>` storage（iteration 順が非決定、`grep HashMap izanagi/src/ecs.rs` で確認可能）、(c) `rng.rs` に wall-clock seed の `from_entropy()` が現存（`grep from_entropy izanagi/src/rng.rs` で確認可能）。いずれも本セッションでは変更していない——f32→整数化や ECS の格納方式変更はエンジンの設計思想（「games, not science」）そのものに触れる大きな決定で、ユーザーの明示判断が必要と判断し見送った。同一 OS/バイナリの単機リプレイなら概ね成立するが、無条件の「Deterministic」表記は kit が保証する水準（bit-exact・クロスプラットフォーム）と混同を招く |
+| P7 | **エンジンの決定論主張と実装の乖離** | 🟡 **部分的に解消** | README は「**Deterministic.** Seed the RNG, replay the run」と謳っていたが、3つの根拠のうち2つに対処した: (b) `ecs.rs` の `TypedColumn<T>.data` を `HashMap<u32,T>` から `BTreeMap<u32,T>` へ変更——`query`/`for_each`系が直接反復するのはこのマップで、`HashMap` はプロセス毎にランダムな hasher seed を持つため同一プログラムの再実行間で反復順序が変わりうる（「共有予算が尽きるまで敵に順番にダメージ減衰を適用」のような順序依存ロジックがあれば replay が黒箱的に壊れる）。公開 API は無変更、188 tests 全green、新規 regression test で昇順反復を pin（HashMap に戻すと実際に失敗することも確認済み）。(c) `rng.rs::from_entropy()` は「呼ぶと replay 保証が壊れる」ことを明示するようdocstringを強化（API 自体は維持——1回性の演出用途には正当な選択肢のため削除ではなく警告の強化を選択）。(a) `math.rs` の f32 のみ**未解消のまま**——整数化はエンジンの設計思想（「games, not science」）そのものに触れる大きな決定であり、ユーザーの明示判断が必要と判断し見送った。したがって同一 OS/バイナリ・f32 精度が同一な限りの単機リプレイは以前より確実に成立するようになったが、無条件の「Deterministic」という表記は依然 kit が保証する水準（bit-exact・クロスプラットフォーム）と混同しうるため、README は「Deterministic single-run replay」という限定表記に修正済み |
 | P8 | **CI ワークフローが用意済みだが、この実行環境の権限で GitHub へ push できない** | ⛔ **環境起因のブロック（ユーザー判断待ち）** | P3 で修正した `.github/workflows/ci.yml` を `git push` した際、「refusing to allow a GitHub App to create or update workflow `.github/workflows/ci.yml` without `workflows` permission」で拒否された。GitHub REST API（`create_or_update_file`）経由の配置も試したが `403 Resource not accessible by integration` で同様に拒否——この実行環境に紐づく GitHub App のトークンに `workflows` scope が付与されていないという、コードの欠陥ではない権限上の制約。ファイル自体はユーザーへ直接送付済み。解消には (a) この環境の GitHub App に `workflows` 権限を付与、または (b) 該当コミットをブランチ履歴から外す再構成をユーザーが明示的に許可、のいずれかが必要——本監査ではどちらも実行せず判断待ちとしている |
 
 [^1]: `izanagi/tests/bench.rs` は安定版 Rust で動く通常の `#[test]`（自前の計測ヘルパーで計測）であり、
@@ -154,7 +154,7 @@ nightly 限定の `#[bench]` 属性は使っていない。
 | 「Zero dependencies. Only the standard library」 | ✅ 検証可（`izanagi/Cargo.toml`・`izanagi_kit/Cargo.toml` とも `[dependencies]` は空。kit の `izanagi_kit` dev-dependency は kit_bridge example 専用で published crate には含まれない） |
 | 旧「159 tests」 | ✅ **実測値に修正済み** — 展開・実測した結果は 188 tests（workspace 全体では kit の3174を合わせて3362）。旧主張は展開前の推定値で、現在の README は実測値のみを記載 |
 | 「CI: Linux + macOS + Windows」 | ⚠️ **ファイルは実態化したが未 push（P8）** — ワークフローは正しく書き直し、ローカルで全ジョブのコマンドを検証済みだが、GitHub へは権限上の制約で届いていない |
-| 「Deterministic. Seed the RNG, replay the run」 | ⚠️ **限定付きで成立**（未解消、P7） — 単機・同一バイナリなら概ね成立。クロスプラットフォームでは f32/HashMap/from_entropy が破る。厳密決定論は kit が担う |
+| 「Deterministic. Seed the RNG, replay the run」 | ✅ **表記を実態に合わせて修正済み**（P7 部分解消） — README を「Deterministic single-run replay」に変更し、`from_entropy()` を避ければ ECS 反復順序・RNG 抽出とも seed 安定であることを明記。ECS の `HashMap`→`BTreeMap` 化と `from_entropy` docstring 強化により単機 replay の実態は向上済み。クロスプラットフォームでの bit-exact（f32 が壁）は依然不成立で、README もその旨を明記し kit を案内 |
 | 「Headless first. Tests run in CI environments unchanged」 | ✅ 設計は検証可（NullBackend 既定、`src/backend.rs`）かつ実行時検証済み（`kit_bridge` を含む全 examples がヘッドレスで exit 0） |
 | 「~6,500 LOC total」 | 未再計測（展開後の正確な行数カウントは未実施） |
 
@@ -167,8 +167,8 @@ nightly 限定の `#[bench]` 属性は使っていない。
 | エンジン固有の充足 | 8 機能 | facade/run loop・audio・gamepad・mouse・Backend trait・sprite・scene・log（第2節。Backend trait は kit への移植ではなく橋渡し=P1解消に直接利用、他は範囲外/対応済み） |
 | kit 固有の充足 | 実質 60+ modules | 決定論スタック（named RNG streams・opt-in 代替 PRNG・順序非依存 hashing 含む）・roguelike アルゴリズム・コンテンツパイプライン・ゲームプレイ系（第3節、詳細は FEATURE_AUDIT.md） |
 | 概念の重複 | 13 組 | 11 組は「並存が正当」（f32 リアルタイム層 vs 整数決定論層）、2 組（save・assets）のみ統合検討（第4節） |
-| 製品レベルの不足 | **8件中5件解消**（P1,P2,P3,P4,P6）、**3件残**（P5・P7・P8） | P5=バージョン系譜、P7=エンジン決定論主張の乖離（いずれも本セッションでは着手見送り＝ユーザー判断が必要）、P8=CI push が権限で不能（第5節） |
-| README 主張の乖離 | 6 主張中 **✅4・⚠️2** | CI・テスト数の主張は実態に合わせて修正済み。CI 自体の push（P8）と決定論の限定表記（P7）が残る2件（第6節） |
+| 製品レベルの不足 | **8件中5.5件解消**（P1,P2,P3,P4,P6=完全解消、P7=部分解消）、**2.5件残**（P5・P7残り・P8） | P5=バージョン系譜（調査では解決不能）、P7=f32 数学のみ未解消（ECS・from_entropy は解消済み）、P8=CI push が権限で不能（第5節） |
+| README 主張の乖離 | 6 主張中 **✅5・⚠️1** | CI・テスト数・決定論の主張は実態に合わせて修正済み（決定論は「単機 replay」に限定表記化）。CI 自体の push（P8）のみ残る1件（第6節） |
 
 **読み取り方（次の一手の選び方）**: P1・P2・P4・P6（橋渡し・zip展開・workspace化・README言及）は
 本セッションで解消済み。P3（CI の配置バグ）も原因は修正済みで、あとは **P8（GitHub への push 許可）

@@ -18,7 +18,15 @@ impl Rng {
         }
     }
 
-    /// Seed from the current system time. Non-deterministic; use sparingly.
+    /// Seed from the current system time.
+    ///
+    /// **Breaks replay determinism.** Every other constructor and method on
+    /// `Rng` upholds the module-level guarantee ("same seed always produces
+    /// the same sequence") -- this one deliberately does not, since it reads
+    /// wall-clock time. Fine for a title screen's cosmetic effects or a menu
+    /// background; never call this for anything whose outcome must be
+    /// reproducible (gameplay logic, replays, or a networked game's shared
+    /// state). Use [`Rng::new`] with an explicit seed for those.
     pub fn from_entropy() -> Self {
         use std::time::{SystemTime, UNIX_EPOCH};
         let now = SystemTime::now()

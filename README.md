@@ -44,7 +44,11 @@ gets out of your way.
 - **One type.** `Engine` owns everything. Field-access for the rest.
 - **Headless first.** Tests run in CI environments unchanged.
 - **Pluggable backend.** Swap `NullBackend` for terminal, winit, or wgpu.
-- **Deterministic.** Seed the RNG, replay the run.
+- **Deterministic single-run replay.** Seed the `Rng` (avoid `from_entropy()`,
+  which deliberately breaks this), and the same inputs reproduce the same
+  run — RNG draws and ECS iteration order are both seed-stable. Not bit-exact
+  *across* different CPUs/compilers, since core math is `f32`; for that
+  stronger guarantee, use `izanagi_kit`.
 
 ### A 30-second tour
 

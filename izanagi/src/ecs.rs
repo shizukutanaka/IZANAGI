@@ -23,7 +23,7 @@
 //! ```
 
 use std::any::{Any, TypeId};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 /// A handle to an entity. Invalidated after [`World::despawn`].
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -53,8 +53,22 @@ trait Column: Any {
     fn remove(&mut self, index: u32);
 }
 
+// BTreeMap, not HashMap: this is the per-component storage that `query`/
+// `for_each`/etc. iterate directly, so its key order IS the entity visit
+// order any system sees. HashMap's iteration order depends on a per-process
+// random hasher seed, so the identical program run twice (or on two
+// machines) could visit entities in different orders -- silently breaking
+// replay for any system whose result depends on iteration order (e.g. "apply
+// damage falloff across enemies until a shared budget runs out"). BTreeMap
+// iterates in ascending key (entity index) order, deterministically, at the
+// cost of O(log n) instead of O(1) per access -- the right trade for an
+// engine whose README claims "Deterministic. Seed the RNG, replay the run."
+// `World.columns` below (keyed by TypeId) does NOT need the same fix: it is
+// only ever iterated in `despawn` to apply the same side-effecting `remove`
+// to every column, and that result does not depend on which column goes
+// first.
 struct TypedColumn<T: 'static> {
-    data: HashMap<u32, T>,
+    data: BTreeMap<u32, T>,
 }
 
 impl<T: 'static> Column for TypedColumn<T> {
@@ -166,7 +180,7 @@ impl World {
         }
         let col = self.columns.entry(TypeId::of::<T>()).or_insert_with(|| {
             Box::new(TypedColumn::<T> {
-                data: HashMap::new(),
+                data: BTreeMap::new(),
             })
         });
         typed_mut::<T>(col.as_mut())
@@ -489,6 +503,50 @@ mod tests {
             w.insert(e, Hp(i));
         }
         assert_eq!(w.query::<Hp>().len(), 10);
+    }
+
+    /// Regression test for the determinism fix: component storage is a
+    /// `BTreeMap<u32, T>` keyed by entity index, not a `HashMap`, so
+    /// `query`/`for_each`/etc. must visit entities in ascending index order
+    /// on every run -- not "some order that happens to be stable in one
+    /// process". This is exactly the property a `HashMap` (whose iteration
+    /// order depends on a per-process random hasher seed) cannot provide,
+    /// and the gap the "Deterministic. Seed the RNG, replay the run" README
+    /// claim was silently missing before this fix.
+    #[test]
+    fn query_and_for_each_visit_entities_in_ascending_index_order() {
+        let mut w = World::new();
+        // Insert out of index order to rule out "insertion order happened to
+        // match" as an accidental explanation.
+        let mut entities: Vec<Entity> = (0..20).map(|_| w.spawn()).collect();
+        entities.reverse();
+        for e in &entities {
+            w.insert(*e, Hp(e.index()));
+        }
+
+        let query_order: Vec<u32> = w.query::<Hp>().iter().map(|(e, _)| e.index()).collect();
+        let expected: Vec<u32> = (0..20).collect();
+        assert_eq!(query_order, expected, "query() must visit ascending by index");
+
+        let mut for_each_order = Vec::new();
+        w.for_each::<Hp>(|e, _| for_each_order.push(e.index()));
+        assert_eq!(for_each_order, expected, "for_each() must visit ascending by index");
+
+        // Permanently remove a middle entity (not spawning a replacement, so
+        // the remaining index set is genuinely smaller rather than netting
+        // back to the same set via LIFO recycling) and confirm the survivors
+        // are still visited in ascending order -- churn on the underlying
+        // BTreeMap (a remove) must not perturb the ordering of what remains.
+        let middle = entities.iter().find(|e| e.index() == 10).copied().unwrap();
+        w.despawn(middle);
+        let expected_after_removal: Vec<u32> = expected.into_iter().filter(|&i| i != 10).collect();
+
+        let query_order_after_removal: Vec<u32> =
+            w.query::<Hp>().iter().map(|(e, _)| e.index()).collect();
+        assert_eq!(
+            query_order_after_removal, expected_after_removal,
+            "order stays ascending after a middle entity is removed"
+        );
     }
 
     #[test]

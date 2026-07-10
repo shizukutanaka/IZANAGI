@@ -29,6 +29,33 @@ changed in this session.
   in package metadata).
 
 ### Fixed
+- **`World`'s per-component storage used `HashMap<u32, T>`, giving
+  non-deterministic iteration order** (`ecs.rs`) — `query`/`for_each`/etc.
+  iterate this map directly, so the entity visit order any game system saw
+  depended on `HashMap`'s per-process random hasher seed: the identical
+  program run twice (or on two machines) could visit entities in different
+  orders, silently breaking replay for any system whose result depends on
+  iteration order (e.g. "apply damage falloff across enemies until a shared
+  budget runs out"). Switched to `BTreeMap<u32, T>`, which iterates in
+  ascending entity-index order deterministically, at an O(log n) rather
+  than O(1) cost per access. `World.columns` (keyed by `TypeId`) did not
+  need the same fix — it's only iterated in `despawn` to apply the same
+  side-effecting removal to every column, and that result never depends on
+  column order. No public API changed. Added a regression test that
+  spawns entities out of index order, then asserts `query`/`for_each`
+  visit them ascending both before and after a mid-set despawn; confirmed
+  it actually catches the bug by temporarily reverting to `HashMap` and
+  observing the test fail with a scrambled order before restoring the fix.
+  All 188 tests and all 7 examples (including `kit_bridge`, whose
+  world-hash trace is unchanged) produce identical output before and after.
+- **`Rng::from_entropy` docstring didn't connect to the module's replay
+  guarantee** (`rng.rs`) — the module doc promises "same seed always
+  produces the same sequence, which matters for replays and networked
+  games," but `from_entropy`'s own doc only said "non-deterministic; use
+  sparingly," leaving the *consequence* (this call breaks the very
+  guarantee the module leads with) implicit. Expanded the docstring to
+  say so explicitly and point back to `Rng::new` for anything that must
+  be reproducible. Docs only, no behavior change.
 - **First clippy pass ever run against this crate** (its CI had never
   executed while the source sat inside an unextracted zip) surfaced 19
   warnings, all resolved: a dead private trait method
