@@ -13,8 +13,16 @@ readme = "README.md"
 keywords = ["gamedev", "ecs", "deterministic", "fixed-point", "roguelike"]
 categories = ["game-development", "data-structures"]
 rust-version = "1.75"
+documentation = "https://docs.rs/izanagi_kit"
 
 [dependencies]
 
 [lib]
 path = "src/lib.rs"
+
+# docs.rs build config. all-features is a no-op today (no features) but makes
+# the badge correct if feature groups are added later; the docsrs cfg lets
+# doc-only `#[cfg(docsrs)]` attributes (e.g. feature badges) compile there.
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]

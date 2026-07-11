@@ -9,6 +9,7 @@ repository = "https://github.com/shizukutanaka/IZANAGI"
 readme = "README.md"
 keywords = ["gamedev", "engine", "ecs"]
 categories = ["game-engines"]
+documentation = "https://docs.rs/izanagi"
 
 [dependencies]
 

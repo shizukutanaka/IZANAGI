@@ -23,7 +23,10 @@
 //! - Deterministic when you want it to be.
 
 #![forbid(unsafe_code)]
-#![warn(missing_docs)]
+// Publication-grade doc hygiene (see izanagi_kit for the same policy): every
+// public item documented, all intra-doc links resolve, enforced as `deny`.
+#![deny(missing_docs)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 mod assets;
 mod audio;

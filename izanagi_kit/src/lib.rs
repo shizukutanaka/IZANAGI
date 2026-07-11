@@ -81,7 +81,12 @@
 //! All modules are `std`-only and contain no `unsafe`.
 
 #![forbid(unsafe_code)]
-#![warn(missing_docs)]
+// Publication-grade doc hygiene: every public item must be documented, and
+// intra-doc links must resolve. Both are `deny` (not `warn`) — the crate is
+// already clean, so this keeps it that way as a hard gate rather than a
+// warning that can accumulate unnoticed.
+#![deny(missing_docs)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 pub mod aabb;
 pub mod ability;
