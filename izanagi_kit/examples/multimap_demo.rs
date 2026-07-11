@@ -106,6 +106,7 @@ fn main() {
         max_rooms: 6,
         min_room: 4,
         max_room: 7,
+        ..GenParams::default()
     };
     let floors: Vec<Dungeon> = (0..N_FLOORS)
         .map(|i| {

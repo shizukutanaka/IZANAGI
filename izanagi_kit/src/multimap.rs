@@ -307,6 +307,7 @@ mod tests {
                 max_rooms: 5,
                 min_room: 4,
                 max_room: 8,
+                ..GenParams::default()
             },
         )
     }

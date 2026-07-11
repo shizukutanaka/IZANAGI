@@ -2393,6 +2393,7 @@ fn mini_floor(seed: u64) -> Dungeon {
             max_rooms: 4,
             min_room: 3,
             max_room: 5,
+            ..GenParams::default()
         },
     )
 }

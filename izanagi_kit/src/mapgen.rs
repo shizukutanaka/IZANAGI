@@ -3,7 +3,8 @@
 //! A seed-driven "two-step constructive" generator (cf. arXiv:1906.04660): place
 //! non-overlapping rectangular rooms, then connect them with L-shaped corridors.
 //! Connecting each room to the previous one guarantees the whole dungeon is
-//! traversable.
+//! traversable. Set [`GenParams::extra_loops`] to add cyclic shortcuts on top
+//! of that spanning chain (cf. Dormans' cyclic dungeon generation).
 //!
 //! Determinism: every random choice comes from a caller-supplied [`SplitMix64`]
 //! drawn in a fixed order (no float, no wall-clock), so a given `(seed, params,
@@ -91,6 +92,21 @@ pub struct GenParams {
     pub min_room: u32,
     /// Maximum room side length (cells).
     pub max_room: u32,
+    /// Number of *extra* corridors to carve between random non-adjacent room
+    /// pairs after the main chain is built, turning the dungeon's connectivity
+    /// from a tree into a graph with cycles.
+    ///
+    /// The base generator connects each room only to the previous one — a pure
+    /// chain, so there is exactly one path between any two rooms. Real dungeon
+    /// design wants *loops*: shortcuts, danger/reward alternate routes,
+    /// lock-and-key topology (Joris Dormans' cyclic-generation work,
+    /// Everything Procedural / PROCJAM 2016). Each extra loop links two rooms
+    /// that aren't already chain-adjacent with an L-shaped corridor.
+    ///
+    /// `0` (the default) reproduces the original chain output **bit-for-bit** —
+    /// the loop phase draws zero times from the RNG when this is 0, so existing
+    /// seeds are unaffected.
+    pub extra_loops: u32,
 }
 
 impl Default for GenParams {
@@ -99,6 +115,7 @@ impl Default for GenParams {
             max_rooms: 30,
             min_room: 4,
             max_room: 10,
+            extra_loops: 0,
         }
     }
 }
@@ -392,6 +409,45 @@ pub fn generate_dungeon(
         prev_center = Some((cx, cy));
         dungeon.rooms.push(room);
     }
+
+    // Extra loop corridors (cyclic connectivity). Skipped entirely — and thus
+    // drawing nothing from `rng` — when extra_loops == 0, so the default output
+    // is byte-identical to the pure-chain generator.
+    let room_count = dungeon.rooms.len();
+    if params.extra_loops > 0 && room_count >= 3 {
+        for _ in 0..params.extra_loops {
+            // Pick two distinct rooms. Reject the pair only if they are already
+            // chain-adjacent (indices differ by 1) — those are already linked,
+            // so a loop there adds nothing. With >=3 rooms a non-adjacent pair
+            // always exists, so a bounded number of tries suffices.
+            let mut linked = false;
+            for _ in 0..8 {
+                let a = rng.below(room_count as u32) as usize;
+                let b = rng.below(room_count as u32) as usize;
+                if a == b || a.abs_diff(b) == 1 {
+                    continue;
+                }
+                let (ax, ay) = dungeon.rooms[a].center();
+                let (bx, by) = dungeon.rooms[b].center();
+                // L-shaped corridor, elbow direction chosen from rng for variety.
+                if rng.coin(1, 2) {
+                    dungeon.carve_h(ax, bx, ay);
+                    dungeon.carve_v(ay, by, bx);
+                } else {
+                    dungeon.carve_v(ay, by, ax);
+                    dungeon.carve_h(ax, bx, by);
+                }
+                linked = true;
+                break;
+            }
+            // If 8 tries all collided (pathological tiny room set), stop early
+            // rather than spin — the dungeon is already fully connected.
+            if !linked {
+                break;
+            }
+        }
+    }
+
     dungeon
 }
 
@@ -1372,5 +1428,103 @@ mod tests {
         let mut rng = SplitMix64::new(0xD161_0006);
         let d = generate_drunkard(50, 30, &mut rng, DrunkardParams::default());
         assert!(d.rooms.is_empty(), "a cavern carries no Rect rooms");
+    }
+
+    // --- extra_loops (cyclic connectivity) ---
+
+    #[test]
+    fn test_extra_loops_zero_is_byte_identical_to_default() {
+        // The determinism guarantee: extra_loops == 0 must draw zero times from
+        // the RNG in the loop phase, so the map is byte-identical to the
+        // original chain generator for the same seed.
+        let default_params = GenParams::default();
+        let explicit_zero = GenParams {
+            extra_loops: 0,
+            ..GenParams::default()
+        };
+        let a = generate_dungeon(60, 40, &mut SplitMix64::new(0x5EED), default_params);
+        let b = generate_dungeon(60, 40, &mut SplitMix64::new(0x5EED), explicit_zero);
+        assert_eq!(a, b, "extra_loops:0 must reproduce the default map exactly");
+    }
+
+    #[test]
+    fn test_extra_loops_adds_floor_cells() {
+        // Carving extra corridors can only add floor (carving is idempotent and
+        // never removes floor), so a looped dungeon has >= as many floor cells
+        // as the chain one, and strictly more when the loops hit fresh wall.
+        let seed = 0x1009_2003;
+        let chain = generate_dungeon(60, 40, &mut SplitMix64::new(seed), GenParams::default());
+        let looped = generate_dungeon(
+            60,
+            40,
+            &mut SplitMix64::new(seed),
+            GenParams {
+                extra_loops: 6,
+                ..GenParams::default()
+            },
+        );
+        assert!(
+            looped.floor_cells().len() >= chain.floor_cells().len(),
+            "extra loops never remove floor"
+        );
+        // The two maps must differ (loops changed something), given enough rooms.
+        if chain.rooms.len() >= 3 {
+            assert_ne!(chain, looped, "6 extra loops should change a >=3-room map");
+        }
+    }
+
+    #[test]
+    fn test_extra_loops_deterministic() {
+        let params = GenParams {
+            extra_loops: 5,
+            ..GenParams::default()
+        };
+        let a = generate_dungeon(60, 40, &mut SplitMix64::new(77), params);
+        let b = generate_dungeon(60, 40, &mut SplitMix64::new(77), params);
+        assert_eq!(a, b, "looped generation is deterministic for a fixed seed");
+    }
+
+    #[test]
+    fn test_extra_loops_preserves_room_set() {
+        // Loops carve corridors between existing rooms; they must not add,
+        // remove, or move any Rect room.
+        let seed = 0xB004;
+        let chain = generate_dungeon(50, 50, &mut SplitMix64::new(seed), GenParams::default());
+        let looped = generate_dungeon(
+            50,
+            50,
+            &mut SplitMix64::new(seed),
+            GenParams {
+                extra_loops: 4,
+                ..GenParams::default()
+            },
+        );
+        assert_eq!(
+            chain.rooms, looped.rooms,
+            "loops must not alter the room set"
+        );
+    }
+
+    #[test]
+    fn test_extra_loops_noop_below_three_rooms() {
+        // With < 3 rooms there is no non-adjacent pair to link, so the loop
+        // phase is a no-op and output matches extra_loops:0. Force few rooms
+        // with a tiny map that fits at most a couple.
+        let seed = 0x3;
+        let params_loops = GenParams {
+            max_rooms: 2,
+            min_room: 3,
+            max_room: 4,
+            extra_loops: 5,
+        };
+        let params_none = GenParams {
+            extra_loops: 0,
+            ..params_loops
+        };
+        let with_loops = generate_dungeon(14, 10, &mut SplitMix64::new(seed), params_loops);
+        let without = generate_dungeon(14, 10, &mut SplitMix64::new(seed), params_none);
+        if with_loops.rooms.len() < 3 {
+            assert_eq!(with_loops, without, "loop phase is a no-op below 3 rooms");
+        }
     }
 }
