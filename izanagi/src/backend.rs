@@ -113,7 +113,18 @@ pub struct TerminalBackend {
     start: Instant,
     frame: u64,
     quit_after: Option<f32>,
+    /// Previous frame's emitted colors, one `(top_rgb, bottom_rgb)` per
+    /// character cell (row-major, `rows * cols`). Empty means "no prior frame"
+    /// (first frame or a resize) → next present does a full redraw. Cell-level
+    /// diffing against this only re-emits changed cells, the technique behind
+    /// sub-millisecond TUI redraws (Ratatui's back-buffer diff model).
+    prev: Vec<(RgbCell, RgbCell)>,
 }
+
+/// A quantized 24-bit color as actually emitted to the terminal. Diffing on
+/// these (not on the f32 `Color`) matches the bytes on the wire exactly and
+/// sidesteps float-equality hazards.
+type RgbCell = (u8, u8, u8);
 
 impl TerminalBackend {
     /// Default 80x24 terminal, 800x600 virtual canvas, ~30 fps, 5 second demo.
@@ -129,6 +140,7 @@ impl TerminalBackend {
             start: Instant::now(),
             frame: 0,
             quit_after: Some(5.0),
+            prev: Vec::new(),
         }
     }
 
@@ -171,6 +183,59 @@ fn ansi_color(c: Color) -> (u8, u8, u8) {
         (c.g.clamp(0.0, 1.0) * 255.0) as u8,
         (c.b.clamp(0.0, 1.0) * 255.0) as u8,
     )
+}
+
+/// Append one character cell's escape sequence: set foreground (top pixel),
+/// background (bottom pixel), draw the upper-half-block `▀`.
+fn push_cell(out: &mut String, cell: &(RgbCell, RgbCell)) {
+    let ((tr, tg, tb), (br, bg, bb)) = *cell;
+    out.push_str(&format!("\x1b[38;2;{tr};{tg};{tb}m\x1b[48;2;{br};{bg};{bb}m▀"));
+}
+
+/// Build the escape-sequence string that transforms the terminal grid from
+/// `prev` to `cur` (`rows` character rows of `w` cells each, row-major).
+///
+/// Pure — no I/O — so it is unit-testable. Two modes:
+/// - **Full repaint** when `prev.len() != cur.len()` (first frame, or a resize
+///   changed the cell count): homes the cursor and emits every cell.
+/// - **Cell diff** otherwise: emits only cells that changed, batching
+///   consecutive changed cells in a row into a single run so each run costs one
+///   cursor-move, not one per cell. Unchanged cells produce no output at all —
+///   the whole point (Ratatui's back-buffer diff model). An unchanged frame
+///   yields the empty string.
+fn terminal_grid_update(
+    prev: &[(RgbCell, RgbCell)],
+    cur: &[(RgbCell, RgbCell)],
+    w: usize,
+    rows: usize,
+) -> String {
+    let mut out = String::with_capacity(w * rows * 4);
+    if prev.len() != cur.len() {
+        out.push_str("\x1b[H"); // cursor home, no full clear (less flicker)
+        for row in 0..rows {
+            for col in 0..w {
+                push_cell(&mut out, &cur[row * w + col]);
+            }
+            out.push_str("\x1b[0m\r\n");
+        }
+        return out;
+    }
+    for row in 0..rows {
+        let mut col = 0;
+        while col < w {
+            if cur[row * w + col] != prev[row * w + col] {
+                out.push_str(&format!("\x1b[{};{}H", row + 1, col + 1));
+                while col < w && cur[row * w + col] != prev[row * w + col] {
+                    push_cell(&mut out, &cur[row * w + col]);
+                    col += 1;
+                }
+                out.push_str("\x1b[0m");
+            } else {
+                col += 1;
+            }
+        }
+    }
+    out
 }
 
 impl Backend for TerminalBackend {
@@ -334,28 +399,37 @@ impl Backend for TerminalBackend {
             }
         }
 
-        // Emit: top-half + bottom-half -> one character row using ▀.
-        let mut out = String::with_capacity(w * h * 10);
-        out.push_str("\x1b[H"); // move cursor home, no full clear (less flicker)
-        for row in 0..self.rows as usize {
+        // Collapse the two half-block rows per character row into one
+        // `(top_rgb, bottom_rgb)` cell each, quantized to what actually goes on
+        // the wire — this is the buffer we diff against last frame.
+        let rows = self.rows as usize;
+        let mut cur: Vec<(RgbCell, RgbCell)> = Vec::with_capacity(rows * w);
+        for row in 0..rows {
             for col in 0..w {
-                let top = buf[(row * 2) * w + col];
-                let bot = buf[(row * 2 + 1) * w + col];
-                let (tr, tg, tb) = ansi_color(top);
-                let (br, bg, bb) = ansi_color(bot);
-                out.push_str(&format!("\x1b[38;2;{tr};{tg};{tb}m\x1b[48;2;{br};{bg};{bb}m▀"));
+                let top = ansi_color(buf[(row * 2) * w + col]);
+                let bot = ansi_color(buf[(row * 2 + 1) * w + col]);
+                cur.push((top, bot));
             }
-            out.push_str("\x1b[0m\n");
         }
-        // Overlay text on a status line below.
+
+        // Build the grid update (full repaint or cell diff) via a pure helper,
+        // then append the text overlay.
+        let mut out = terminal_grid_update(&self.prev, &cur, w, rows);
+
+        // Text overlay: reposition below the grid, clear from there to end of
+        // screen (so shrinking text leaves no stale lines), then write. Kept as
+        // a full rewrite each frame — cheap, and its content/position varies.
+        out.push_str(&format!("\x1b[{};1H\x1b[J", rows + 1));
         for txt in texts {
             out.push_str("\x1b[0m");
             out.push_str(txt);
-            out.push('\n');
+            out.push_str("\r\n");
         }
+
         let mut stdout = io::stdout().lock();
         let _ = stdout.write_all(out.as_bytes());
         let _ = stdout.flush();
+        self.prev = cur;
 
         // Pace.
         let elapsed = self.last.elapsed();
@@ -417,5 +491,58 @@ mod tests {
         assert_eq!(r, 255);
         assert_eq!(g, 0);
         assert_eq!(b, 127);
+    }
+
+    // --- terminal_grid_update (cell diffing) ---
+
+    const BLACK: (u8, u8, u8) = (0, 0, 0);
+    const WHITE: (u8, u8, u8) = (255, 255, 255);
+    const RED: (u8, u8, u8) = (255, 0, 0);
+
+    #[test]
+    fn grid_update_first_frame_is_full_repaint() {
+        // prev empty (len 0) != cur (len 4) → full repaint: homes and emits
+        // every one of the 4 cells (each ▀), plus a row reset per row.
+        let cur = vec![(BLACK, BLACK); 4]; // 2x2
+        let out = terminal_grid_update(&[], &cur, 2, 2);
+        assert!(out.starts_with("\x1b[H"), "full repaint homes the cursor");
+        assert_eq!(out.matches('▀').count(), 4, "all 4 cells drawn");
+    }
+
+    #[test]
+    fn grid_update_unchanged_frame_emits_nothing() {
+        // Same prev and cur, same length → diff mode, zero changed cells →
+        // empty output. This is the entire point of the optimization.
+        let frame = vec![(BLACK, WHITE), (RED, BLACK), (WHITE, RED), (BLACK, BLACK)];
+        let out = terminal_grid_update(&frame, &frame, 2, 2);
+        assert_eq!(out, "", "an unchanged frame produces no escape sequences");
+    }
+
+    #[test]
+    fn grid_update_emits_only_changed_cell() {
+        // Change exactly one cell (row 1, col 0 of a 2x2). Expect one
+        // cursor-move to (2,1) 1-based, one ▀, and no other cells touched.
+        let prev = vec![(BLACK, BLACK); 4];
+        let mut cur = prev.clone();
+        cur[2] = (RED, RED); // index 2 = row 1, col 0
+        let out = terminal_grid_update(&prev, &cur, 2, 2);
+        assert_eq!(out.matches('▀').count(), 1, "only the one changed cell is drawn");
+        assert!(out.contains("\x1b[2;1H"), "cursor moves to the changed cell (row 2, col 1)");
+        assert!(!out.starts_with("\x1b[H"), "not a full repaint");
+    }
+
+    #[test]
+    fn grid_update_batches_consecutive_changes_into_one_move() {
+        // Two adjacent cells in the same row change → a single cursor-move
+        // followed by both cells, not two separate moves.
+        let prev = vec![(BLACK, BLACK); 4];
+        let mut cur = prev.clone();
+        cur[0] = (RED, RED); // row 0, col 0
+        cur[1] = (WHITE, WHITE); // row 0, col 1 (adjacent)
+        let out = terminal_grid_update(&prev, &cur, 2, 2);
+        assert_eq!(out.matches('▀').count(), 2, "both changed cells drawn");
+        // Exactly one cursor-position sequence (the run start), not two.
+        assert_eq!(out.matches('H').count(), 1, "one cursor-move for the whole run");
+        assert!(out.contains("\x1b[1;1H"), "run starts at row 1, col 1");
     }
 }
