@@ -164,6 +164,122 @@ where
     state
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Subsystem-localized divergence
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Where two *labeled* replay traces first disagree — the tick **and the
+/// subsystem** within it. This is the localization a plain [`Divergence`]
+/// cannot give: a per-tick `u64` says "tick 4207 differs", a labeled trace
+/// says "tick 4207, subsystem `enemies` differs" — the difference between an
+/// afternoon of bisection and a one-line fix.
+///
+/// A labeled trace is one [`LabeledDigest`](crate::world_hash::LabeledDigest)'s
+/// `parts()` per tick: `&[&[(&'static str, u64)]]`. Build each tick's digest by
+/// hashing your subsystems under stable labels (see `LabeledDigest`).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LabeledDivergence {
+    /// 0-based tick where the traces first disagreed.
+    pub tick: usize,
+    /// The first subsystem (by position within the tick) that differed.
+    /// `"<missing>"` if one trace had fewer subsystems at this tick;
+    /// `"<label-mismatch>"` if the two traces labeled position *i* differently
+    /// (a structural mismatch — the traces don't describe the same world).
+    pub subsystem: &'static str,
+    /// The expected (reference) subsystem hash (`0` if absent).
+    pub expected: u64,
+    /// The actual (observed) subsystem hash (`0` if absent).
+    pub actual: u64,
+}
+
+impl core::fmt::Display for LabeledDivergence {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "replay divergence at tick {}, subsystem '{}': expected {:#018x}, got {:#018x}",
+            self.tick, self.subsystem, self.expected, self.actual
+        )
+    }
+}
+
+/// Compare two labeled traces tick by tick, and within each tick subsystem by
+/// subsystem (in order), returning the earliest disagreement.
+///
+/// Each element of a trace is the `parts()` of that tick's
+/// [`LabeledDigest`](crate::world_hash::LabeledDigest). At each tick the two
+/// part-lists are walked in parallel:
+/// - a differing hash at the same label ⇒ that subsystem diverged;
+/// - the same position labeled differently ⇒ `"<label-mismatch>"` (the traces
+///   aren't describing the same set of subsystems — itself a bug);
+/// - one list shorter than the other ⇒ `"<missing>"` at the extra position.
+///
+/// A tick present in only one trace (length mismatch between the two traces)
+/// reports `"<missing>"` at that tick. `Ok(())` iff every tick's part-list is
+/// identical in labels, order, and hashes.
+pub fn first_divergence_labeled(
+    expected: &[&[(&'static str, u64)]],
+    actual: &[&[(&'static str, u64)]],
+) -> Result<(), LabeledDivergence> {
+    let ticks = expected.len().max(actual.len());
+    for tick in 0..ticks {
+        match (expected.get(tick), actual.get(tick)) {
+            (Some(e), Some(a)) => {
+                let n = e.len().max(a.len());
+                for i in 0..n {
+                    match (e.get(i), a.get(i)) {
+                        (Some(&(el, eh)), Some(&(al, ah))) => {
+                            if el != al {
+                                return Err(LabeledDivergence {
+                                    tick,
+                                    subsystem: "<label-mismatch>",
+                                    expected: eh,
+                                    actual: ah,
+                                });
+                            }
+                            if eh != ah {
+                                return Err(LabeledDivergence {
+                                    tick,
+                                    subsystem: el,
+                                    expected: eh,
+                                    actual: ah,
+                                });
+                            }
+                        }
+                        (Some(&(el, eh)), None) => {
+                            return Err(LabeledDivergence {
+                                tick,
+                                subsystem: el,
+                                expected: eh,
+                                actual: 0,
+                            });
+                        }
+                        (None, Some(&(al, ah))) => {
+                            return Err(LabeledDivergence {
+                                tick,
+                                subsystem: al,
+                                expected: 0,
+                                actual: ah,
+                            });
+                        }
+                        (None, None) => unreachable!("i < max(len) so at least one side is Some"),
+                    }
+                }
+            }
+            // One trace ran longer than the other: the whole tick is missing.
+            (Some(_), None) | (None, Some(_)) => {
+                return Err(LabeledDivergence {
+                    tick,
+                    subsystem: "<missing>",
+                    expected: 0,
+                    actual: 0,
+                });
+            }
+            (None, None) => unreachable!("tick < max(len) so at least one side is Some"),
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -364,5 +480,95 @@ mod tests {
     #[test]
     fn test_divergence_percent_empty_returns_zero() {
         assert_eq!(divergence_percent(&[], &[]), 0);
+    }
+
+    // --- first_divergence_labeled ---
+
+    #[test]
+    fn test_labeled_identical_traces_are_ok() {
+        let t0: &[(&str, u64)] = &[("pos", 1), ("hp", 2)];
+        let t1: &[(&str, u64)] = &[("pos", 3), ("hp", 4)];
+        let trace = [t0, t1];
+        assert_eq!(first_divergence_labeled(&trace, &trace), Ok(()));
+    }
+
+    #[test]
+    fn test_labeled_localizes_diverging_subsystem() {
+        // Same tick, same labels/order, but the `hp` hash differs at tick 1.
+        let e0: &[(&str, u64)] = &[("pos", 1), ("hp", 2)];
+        let e1: &[(&str, u64)] = &[("pos", 3), ("hp", 4)];
+        let a0: &[(&str, u64)] = &[("pos", 1), ("hp", 2)];
+        let a1: &[(&str, u64)] = &[("pos", 3), ("hp", 99)];
+        let got = first_divergence_labeled(&[e0, e1], &[a0, a1]);
+        assert_eq!(
+            got,
+            Err(LabeledDivergence {
+                tick: 1,
+                subsystem: "hp",
+                expected: 4,
+                actual: 99,
+            })
+        );
+    }
+
+    #[test]
+    fn test_labeled_reports_first_subsystem_by_position() {
+        // Both `pos` and `hp` differ; the earlier position (`pos`) wins.
+        let e: &[(&str, u64)] = &[("pos", 1), ("hp", 2)];
+        let a: &[(&str, u64)] = &[("pos", 5), ("hp", 6)];
+        let got = first_divergence_labeled(&[e], &[a]);
+        assert_eq!(got.unwrap_err().subsystem, "pos");
+    }
+
+    #[test]
+    fn test_labeled_detects_label_mismatch() {
+        // Same position labeled differently: the traces don't describe the
+        // same subsystem set — a structural bug, flagged distinctly.
+        let e: &[(&str, u64)] = &[("pos", 1)];
+        let a: &[(&str, u64)] = &[("velocity", 1)];
+        let got = first_divergence_labeled(&[e], &[a]);
+        assert_eq!(got.unwrap_err().subsystem, "<label-mismatch>");
+    }
+
+    #[test]
+    fn test_labeled_detects_missing_subsystem_within_tick() {
+        let e: &[(&str, u64)] = &[("pos", 1), ("hp", 2)];
+        let a: &[(&str, u64)] = &[("pos", 1)]; // hp absent
+        let got = first_divergence_labeled(&[e], &[a]).unwrap_err();
+        assert_eq!(got.subsystem, "hp");
+        assert_eq!(got.expected, 2);
+        assert_eq!(got.actual, 0);
+    }
+
+    #[test]
+    fn test_labeled_detects_missing_tick() {
+        let e0: &[(&str, u64)] = &[("pos", 1)];
+        let e1: &[(&str, u64)] = &[("pos", 2)];
+        let a0: &[(&str, u64)] = &[("pos", 1)];
+        let got = first_divergence_labeled(&[e0, e1], &[a0]).unwrap_err();
+        assert_eq!(got.tick, 1);
+        assert_eq!(got.subsystem, "<missing>");
+    }
+
+    #[test]
+    fn test_labeled_integrates_with_labeled_digest() {
+        use crate::world_hash::LabeledDigest;
+        // Build two ticks from LabeledDigest, mutate one subsystem, confirm
+        // the localizer names exactly it. This is the intended end-to-end use.
+        let mut good = LabeledDigest::new();
+        good.add("terrain", &[1u32, 2, 3][..])
+            .add("actors", &[10u32, 20][..]);
+        let good_parts = good.parts().to_vec();
+
+        let mut bad = LabeledDigest::new();
+        bad.add("terrain", &[1u32, 2, 3][..])
+            .add("actors", &[10u32, 21][..]); // actors moved
+        let bad_parts = bad.parts().to_vec();
+
+        let expected = [good_parts.as_slice()];
+        let actual = [bad_parts.as_slice()];
+        let got = first_divergence_labeled(&expected, &actual).unwrap_err();
+        assert_eq!(got.subsystem, "actors");
+        assert_eq!(got.tick, 0);
     }
 }

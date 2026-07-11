@@ -186,6 +186,85 @@ where
     mix64(acc ^ count.wrapping_mul(FNV_PRIME))
 }
 
+/// A labeled, per-subsystem hash breakdown of a composite world state.
+///
+/// [`hash_state`] collapses an entire world to a single `u64`: it tells you
+/// *that* two states differ, never *where*. When a lockstep desync fires, the
+/// first question is always "which subsystem drifted?" — and answering it from
+/// a single number means bisecting by hand. A `LabeledDigest` keeps one named
+/// hash per subsystem instead, so [`replay::first_divergence_labeled`] can
+/// report the diverging subsystem, not just the diverging tick.
+///
+/// This mirrors how production determinism debugging actually works: Factorio's
+/// desync reports compare per-subsystem CRCs (FFF-188), `bevy_ggrs` checksums
+/// per entity, and the incremental-multiset-hash literature all converge on the
+/// same idea — hash in labeled pieces, not one opaque blob.
+///
+/// [`root`](LabeledDigest::root) folds every `(label, hash)` pair, in insertion
+/// order, into one `u64` — order-sensitive and stable, so a `LabeledDigest`
+/// doubles as a whole-state hash usable anywhere a plain `hash_state` value is.
+///
+/// [`replay::first_divergence_labeled`]: crate::replay::first_divergence_labeled
+///
+/// ```
+/// use izanagi_kit::world_hash::LabeledDigest;
+/// let mut d = LabeledDigest::new();
+/// d.add("positions", &[1u32, 2, 3][..]).add("hp", &[100u32, 80][..]);
+/// assert_eq!(d.parts().len(), 2);
+/// assert_eq!(d.parts()[0].0, "positions");
+/// // root() is stable and order-sensitive.
+/// assert_eq!(d.root(), LabeledDigest::from_parts(d.parts()).root());
+/// ```
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct LabeledDigest {
+    parts: Vec<(&'static str, u64)>,
+}
+
+impl LabeledDigest {
+    /// An empty digest.
+    pub fn new() -> Self {
+        LabeledDigest { parts: Vec::new() }
+    }
+
+    /// Reconstruct a digest from an existing `(label, hash)` slice (e.g. a
+    /// snapshot restored from a trace). Preserves order.
+    pub fn from_parts(parts: &[(&'static str, u64)]) -> Self {
+        LabeledDigest {
+            parts: parts.to_vec(),
+        }
+    }
+
+    /// Hash `value` under `label` and append it. Chainable.
+    pub fn add<T: DetHash + ?Sized>(&mut self, label: &'static str, value: &T) -> &mut Self {
+        self.parts.push((label, hash_state(value)));
+        self
+    }
+
+    /// Append a pre-computed subsystem hash under `label` (for callers that
+    /// already have a `u64`, e.g. from [`hash_unordered`] or a nested digest's
+    /// [`root`](Self::root)). Chainable.
+    pub fn add_raw(&mut self, label: &'static str, hash: u64) -> &mut Self {
+        self.parts.push((label, hash));
+        self
+    }
+
+    /// The `(label, hash)` pairs in insertion order.
+    pub fn parts(&self) -> &[(&'static str, u64)] {
+        &self.parts
+    }
+
+    /// Fold every part (label bytes, then hash, in insertion order) into a
+    /// single checksum — order-sensitive, so reordering subsystems changes it.
+    pub fn root(&self) -> u64 {
+        let mut h = Fnv1a::new();
+        for (label, hash) in &self.parts {
+            h.write_str(label);
+            h.write_u64(*hash);
+        }
+        h.finish()
+    }
+}
+
 // Primitive impls. Fixed-width little-endian so the folded bytes are identical
 // on every target (no native-endian or pointer-width leakage).
 impl DetHash for u8 {
@@ -747,5 +826,60 @@ mod tests {
             hash_state(&[3u32, 2, 1][..]),
             "hash_state stays order-dependent"
         );
+    }
+
+    // --- LabeledDigest ---
+
+    #[test]
+    fn test_labeled_digest_records_parts_in_order() {
+        let mut d = LabeledDigest::new();
+        d.add("a", &1u32).add("b", &2u32).add_raw("c", 0xABCD);
+        let parts = d.parts();
+        assert_eq!(parts.len(), 3);
+        assert_eq!(parts[0].0, "a");
+        assert_eq!(parts[1].0, "b");
+        assert_eq!(parts[2], ("c", 0xABCD));
+        // add() hashes via hash_state, so part 0 equals hash_state(&1u32).
+        assert_eq!(parts[0].1, hash_state(&1u32));
+    }
+
+    #[test]
+    fn test_labeled_digest_root_is_order_sensitive() {
+        let mut a = LabeledDigest::new();
+        a.add("x", &10u32).add("y", &20u32);
+        let mut b = LabeledDigest::new();
+        b.add("y", &20u32).add("x", &10u32); // same parts, swapped order
+        assert_ne!(a.root(), b.root(), "reordering subsystems must change root");
+    }
+
+    #[test]
+    fn test_labeled_digest_root_stable_and_reconstructible() {
+        let mut d = LabeledDigest::new();
+        d.add("pos", &[1u32, 2, 3][..]).add("hp", &99u32);
+        let root = d.root();
+        // Reconstructing from the same parts reproduces the same root.
+        assert_eq!(LabeledDigest::from_parts(d.parts()).root(), root);
+        // And recomputing on a fresh identical build matches.
+        let mut d2 = LabeledDigest::new();
+        d2.add("pos", &[1u32, 2, 3][..]).add("hp", &99u32);
+        assert_eq!(d2.root(), root);
+    }
+
+    #[test]
+    fn test_labeled_digest_root_reflects_a_changed_subsystem() {
+        let mut a = LabeledDigest::new();
+        a.add("pos", &[1u32, 2][..]).add("hp", &99u32);
+        let mut b = LabeledDigest::new();
+        b.add("pos", &[1u32, 2][..]).add("hp", &98u32); // hp differs
+        assert_ne!(a.root(), b.root());
+        // But the pos part is identical in both.
+        assert_eq!(a.parts()[0], b.parts()[0]);
+        assert_ne!(a.parts()[1], b.parts()[1]);
+    }
+
+    #[test]
+    fn test_labeled_digest_empty_root_is_offset_basis() {
+        // An empty digest folds nothing, so root() is the FNV offset basis.
+        assert_eq!(LabeledDigest::new().root(), FNV_OFFSET);
     }
 }

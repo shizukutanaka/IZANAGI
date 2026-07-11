@@ -38,7 +38,7 @@
 //! - [`calendar`] — cyclical integer time-of-day / day-night cycle (`Calendar`).
 //! - [`recipe`] — item crafting / recipe system (`Recipe<K,O>`, `Ingredient<K>`).
 //! - [`visibility`] — tri-state fog-of-war / exploration memory (`VisibilityMap`, `Visibility`) layered on top of FOV.
-//! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay, plus `hash_unordered` for permutation-invariant multiset hashing.
+//! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay, `hash_unordered` for permutation-invariant multiset hashing, and `LabeledDigest` for per-subsystem hash breakdowns that localize desyncs.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
 //! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
@@ -241,7 +241,8 @@ pub use random_table::RandomTable;
 pub use recipe::{Ingredient, Recipe};
 pub use relations::Relations;
 pub use replay::{
-    check_trace, count_divergences, first_divergence, record_trace, resimulate, Divergence,
+    check_trace, count_divergences, first_divergence, first_divergence_labeled, record_trace,
+    resimulate, Divergence, LabeledDivergence,
 };
 pub use rng::SplitMix64;
 pub use rng_xoshiro::Xoshiro256pp;
@@ -272,4 +273,4 @@ pub use vec::{Vec2, Vec3};
 pub use visibility::{Visibility, VisibilityMap};
 pub use wallet::Wallet;
 pub use wfc::{wfc_solve, wfc_solve_backtrack, wfc_solve_partial, WfcGrid, WfcResult, WfcRules};
-pub use world_hash::{hash_state, hash_unordered, DetHash, Fnv1a};
+pub use world_hash::{hash_state, hash_unordered, DetHash, Fnv1a, LabeledDigest};
