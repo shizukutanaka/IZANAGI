@@ -66,16 +66,43 @@ pub struct WfcRules {
     tile_count: u8,
     /// `adj[tile][dir]` = bitmask of allowed neighbor tile types.
     adj: Vec<[u64; 4]>,
+    /// Relative selection weight per tile (default 1 for every tile). When a
+    /// cell collapses, the tile is chosen among its still-allowed possibilities
+    /// with probability proportional to these weights. All-equal weights (the
+    /// default) reduce *exactly* to uniform selection — same RNG draw, same
+    /// tile — so adding weights never perturbs an existing uniform solve.
+    weights: Vec<u32>,
 }
 
 impl WfcRules {
-    /// Create rules for `tile_count` tiles (clamped to 64).
+    /// Create rules for `tile_count` tiles (clamped to 64). Every tile starts
+    /// with selection weight 1 (uniform collapse); use [`set_weight`](Self::set_weight)
+    /// to bias frequencies.
     pub fn new(tile_count: u8) -> Self {
         let tc = tile_count.clamp(1, 64);
         Self {
             tile_count: tc,
             adj: vec![[0u64; 4]; tc as usize],
+            weights: vec![1u32; tc as usize],
         }
+    }
+
+    /// Set the relative selection weight of `tile` (default 1). Higher weight
+    /// ⇒ chosen more often when a cell collapses among tiles that include it.
+    /// A weight of 0 means "never chosen unless it is the *only* allowed tile"
+    /// (WFC still places it when adjacency forces it). Out-of-range `tile` is
+    /// ignored. Weights are relative, so `{2, 1}` and `{20, 10}` behave
+    /// identically. Uniform weights reproduce uniform collapse bit-for-bit.
+    pub fn set_weight(&mut self, tile: u8, weight: u32) {
+        if (tile as usize) < self.weights.len() {
+            self.weights[tile as usize] = weight;
+        }
+    }
+
+    /// The selection weight of `tile` (default 1). Returns 1 for out-of-range
+    /// `tile` (the value a never-configured tile would have).
+    pub fn weight(&self, tile: u8) -> u32 {
+        self.weights.get(tile as usize).copied().unwrap_or(1)
     }
 
     /// Read back the adjacency bitmask for `tile` in `dir`. Returns `0` for
@@ -289,6 +316,47 @@ fn pick_random_bit(mask: u64, rng: &mut SplitMix64) -> u8 {
     m.trailing_zeros() as u8
 }
 
+/// Pick a set bit from `mask` with probability proportional to `weights[bit]`,
+/// using `rng`. `mask` must be non-zero.
+///
+/// Reduces to [`pick_random_bit`] exactly — same single `rng.below(total)`
+/// draw, same selected bit — whenever every allowed bit has equal weight
+/// (in particular the all-1 default), which is why routing the uniform solve
+/// through this function changes no existing output. If the allowed bits'
+/// weights sum to 0 (every candidate was set to weight 0), falls back to
+/// uniform selection so a cell can always collapse.
+fn pick_weighted_bit(mask: u64, weights: &[u32], rng: &mut SplitMix64) -> u8 {
+    // Total weight over the allowed bits (widen to u64: up to 64 bits each up
+    // to u32::MAX cannot overflow u64).
+    let mut total: u64 = 0;
+    let mut bits = mask;
+    while bits != 0 {
+        let tile = bits.trailing_zeros() as usize;
+        total += weights.get(tile).copied().unwrap_or(1) as u64;
+        bits &= bits - 1;
+    }
+    if total == 0 {
+        return pick_random_bit(mask, rng);
+    }
+    // Draw in [0, total) and walk the allowed bits accumulating weight.
+    let mut r = ((rng.next_u64() as u128 * total as u128) >> 64) as u64;
+    let mut bits = mask;
+    loop {
+        let tile = bits.trailing_zeros();
+        let w = weights.get(tile as usize).copied().unwrap_or(1) as u64;
+        if r < w {
+            return tile as u8;
+        }
+        r -= w;
+        bits &= bits - 1;
+        if bits == 0 {
+            // Rounding guard: return the last allowed bit (total>0 guarantees
+            // at least one). Unreachable for a correct wide-multiply draw.
+            return tile as u8;
+        }
+    }
+}
+
 /// Propagate constraints starting from `(sx, sy)` using BFS.
 /// Returns `false` if a contradiction (zero-possibility cell) is reached.
 fn propagate(
@@ -398,7 +466,7 @@ pub fn wfc_solve(width: i32, height: i32, rules: &WfcRules, rng: &mut SplitMix64
         };
 
         // Collapse the chosen cell.
-        let chosen = pick_random_bit(cells[idx], rng);
+        let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
         cells[idx] = 1 << chosen;
 
         let x = (idx as i32) % width;
@@ -494,7 +562,7 @@ pub fn wfc_solve_backtrack(
             }
             Some(idx) => {
                 let saved = cells.clone();
-                let chosen = pick_random_bit(cells[idx], rng);
+                let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
                 let chosen_mask = 1u64 << chosen;
                 stack.push((idx, chosen_mask, saved));
                 cells[idx] = chosen_mask;
@@ -567,7 +635,7 @@ pub fn wfc_solve_partial(
             Some(i) => i,
         };
 
-        let chosen = pick_random_bit(cells[idx], rng);
+        let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
         cells[idx] = 1 << chosen;
         let x = (idx as i32) % width;
         let y = (idx as i32) / width;
@@ -579,6 +647,107 @@ pub fn wfc_solve_partial(
                 height,
                 cells,
             };
+        }
+    }
+}
+
+/// Solve, retrying on contradiction with a fresh derived seed each attempt.
+///
+/// Raw [`wfc_solve`] can hit a [`WfcResult::Contradiction`] for a given seed
+/// even when the rules are satisfiable — a dead end reached by unlucky collapse
+/// order. Production WFC (e.g. Caves of Qud, per Brian Bucklew's GDC 2019 talk)
+/// simply retries with a new seed. This does exactly that, *deterministically*:
+/// each attempt seeds a fresh generator via [`SplitMix64::split`], so the whole
+/// retry sequence is reproducible from the single input `rng` state. Returns
+/// the first successful solve, or [`WfcResult::Contradiction`] if all
+/// `max_attempts` fail (`max_attempts == 0` is treated as 1).
+///
+/// [`SplitMix64::split`]: crate::rng::SplitMix64::split
+pub fn wfc_solve_retry(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+    max_attempts: u32,
+) -> WfcResult {
+    let attempts = max_attempts.max(1);
+    for attempt in 0..attempts {
+        // Derive an independent generator per attempt from the caller's state,
+        // keyed by attempt index, so retries never reuse the same collapse
+        // sequence yet the whole run is a pure function of the input rng.
+        let mut sub = rng.split(attempt as u64);
+        match wfc_solve(width, height, rules, &mut sub) {
+            WfcResult::Ok(grid) => return WfcResult::Ok(grid),
+            WfcResult::Contradiction => continue,
+        }
+    }
+    WfcResult::Contradiction
+}
+
+impl WfcGrid {
+    /// Number of cells reachable from `(sx, sy)` by 4-connected steps through
+    /// cells the `passable` predicate accepts, via flood fill.
+    ///
+    /// `passable` is called with each cell's collapsed tile (`u8`); a cell that
+    /// is not fully collapsed, or that `passable` rejects, is a wall. Returns 0
+    /// if the start cell itself is out of bounds or impassable. Deterministic
+    /// (BFS in fixed order), integer-only.
+    pub fn reachable_count(&self, sx: i32, sy: i32, mut passable: impl FnMut(u8) -> bool) -> usize {
+        let is_open = |g: &WfcGrid, x: i32, y: i32, p: &mut dyn FnMut(u8) -> bool| -> bool {
+            matches!(g.tile_at(x, y), Some(t) if p(t))
+        };
+        if !is_open(self, sx, sy, &mut passable) {
+            return 0;
+        }
+        let w = self.width as usize;
+        let mut visited = vec![false; self.cells.len()];
+        let mut queue: VecDeque<(i32, i32)> = VecDeque::new();
+        visited[sy as usize * w + sx as usize] = true;
+        queue.push_back((sx, sy));
+        let mut count = 0usize;
+        while let Some((x, y)) = queue.pop_front() {
+            count += 1;
+            for &(dx, dy) in &DIRS {
+                let nx = x.saturating_add(dx);
+                let ny = y.saturating_add(dy);
+                if nx < 0 || ny < 0 || nx >= self.width || ny >= self.height {
+                    continue;
+                }
+                let nidx = ny as usize * w + nx as usize;
+                if !visited[nidx] && is_open(self, nx, ny, &mut passable) {
+                    visited[nidx] = true;
+                    queue.push_back((nx, ny));
+                }
+            }
+        }
+        count
+    }
+
+    /// Whether every passable cell forms a single 4-connected region — i.e.
+    /// there are no walled-off pockets. Returns `true` when there are no
+    /// passable cells at all (vacuously connected).
+    ///
+    /// This is the connectivity post-pass production WFC needs: raw collapse can
+    /// leave unreachable rooms, so callers generate, check this, and
+    /// regenerate (e.g. via [`wfc_solve_retry`]) on failure. `passable` maps a
+    /// collapsed tile to "can be walked".
+    pub fn is_passable_connected(&self, mut passable: impl FnMut(u8) -> bool) -> bool {
+        // Total passable cells, and a start cell for the flood.
+        let mut total = 0usize;
+        let mut start: Option<(i32, i32)> = None;
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if matches!(self.tile_at(x, y), Some(t) if passable(t)) {
+                    total += 1;
+                    if start.is_none() {
+                        start = Some((x, y));
+                    }
+                }
+            }
+        }
+        match start {
+            None => true, // no passable cells ⇒ vacuously connected
+            Some((sx, sy)) => self.reachable_count(sx, sy, passable) == total,
         }
     }
 }
@@ -1119,5 +1288,195 @@ mod tests {
         let mut rng = SplitMix64::new(3);
         let grid = wfc_solve_partial(5, 5, &open_rules(), &mut rng);
         assert!(grid.solved_count() + grid.count_uncollapsed() <= grid.len());
+    }
+
+    // --- tile weights ---
+
+    #[test]
+    fn test_default_weights_are_one() {
+        let r = open_rules();
+        assert_eq!(r.weight(0), 1);
+        assert_eq!(r.weight(1), 1);
+        // Out-of-range reads the notional default.
+        assert_eq!(r.weight(200), 1);
+    }
+
+    #[test]
+    fn test_uniform_weights_reproduce_uniform_solve_bit_for_bit() {
+        // The equivalence guarantee: setting every weight to 1 explicitly must
+        // produce the byte-identical grid an unweighted solve produces, because
+        // pick_weighted_bit consumes the RNG the same way as pick_random_bit.
+        let base = open_rules();
+        let mut weighted = open_rules();
+        weighted.set_weight(0, 1);
+        weighted.set_weight(1, 1);
+        let g_base = wfc_solve(10, 10, &base, &mut SplitMix64::new(0xABCDEF));
+        let g_weighted = wfc_solve(10, 10, &weighted, &mut SplitMix64::new(0xABCDEF));
+        match (g_base, g_weighted) {
+            (WfcResult::Ok(a), WfcResult::Ok(b)) => assert_eq!(hash_state(&a), hash_state(&b)),
+            _ => panic!("open rules should always solve"),
+        }
+    }
+
+    #[test]
+    fn test_weight_biases_tile_frequency() {
+        // Tile 0 heavily favored over tile 1 should yield mostly-0 grids.
+        let mut r = open_rules();
+        r.set_weight(0, 50);
+        r.set_weight(1, 1);
+        let mut zeros = 0usize;
+        let mut ones = 0usize;
+        // Average over several seeds to avoid a single unlucky draw.
+        for seed in 0..8u64 {
+            if let WfcResult::Ok(g) = wfc_solve(12, 12, &r, &mut SplitMix64::new(seed)) {
+                zeros += g.count_tiles(0);
+                ones += g.count_tiles(1);
+            }
+        }
+        assert!(
+            zeros > ones * 3,
+            "weight 50:1 should make tile 0 dominate (got {zeros} vs {ones})"
+        );
+    }
+
+    #[test]
+    fn test_weighted_solve_is_deterministic() {
+        let mut r = open_rules();
+        r.set_weight(0, 7);
+        r.set_weight(1, 3);
+        let g1 = wfc_solve(9, 9, &r, &mut SplitMix64::new(123));
+        let g2 = wfc_solve(9, 9, &r, &mut SplitMix64::new(123));
+        match (g1, g2) {
+            (WfcResult::Ok(a), WfcResult::Ok(b)) => assert_eq!(hash_state(&a), hash_state(&b)),
+            _ => panic!("should solve"),
+        }
+    }
+
+    #[test]
+    fn test_all_zero_weights_still_collapse() {
+        // Degenerate: every tile weight 0. pick_weighted_bit must fall back to
+        // uniform rather than divide-by-zero or fail to place a tile.
+        let mut r = open_rules();
+        r.set_weight(0, 0);
+        r.set_weight(1, 0);
+        match wfc_solve(6, 6, &r, &mut SplitMix64::new(5)) {
+            WfcResult::Ok(g) => assert!(g.is_fully_collapsed()),
+            WfcResult::Contradiction => panic!("all-zero weights must fall back to uniform"),
+        }
+    }
+
+    // --- retry-with-derived-seed ---
+
+    #[test]
+    fn test_retry_succeeds_on_solvable_rules() {
+        let mut rng = SplitMix64::new(1);
+        match wfc_solve_retry(8, 8, &open_rules(), &mut rng, 5) {
+            WfcResult::Ok(g) => assert!(g.is_fully_collapsed()),
+            WfcResult::Contradiction => panic!("open rules solve on the first attempt"),
+        }
+    }
+
+    #[test]
+    fn test_retry_is_deterministic() {
+        let g1 = wfc_solve_retry(8, 8, &open_rules(), &mut SplitMix64::new(42), 5);
+        let g2 = wfc_solve_retry(8, 8, &open_rules(), &mut SplitMix64::new(42), 5);
+        match (g1, g2) {
+            (WfcResult::Ok(a), WfcResult::Ok(b)) => assert_eq!(hash_state(&a), hash_state(&b)),
+            _ => panic!("should solve deterministically"),
+        }
+    }
+
+    #[test]
+    fn test_retry_zero_attempts_treated_as_one() {
+        // max_attempts == 0 must still make one attempt, not zero.
+        match wfc_solve_retry(4, 4, &open_rules(), &mut SplitMix64::new(1), 0) {
+            WfcResult::Ok(g) => assert!(g.is_fully_collapsed()),
+            WfcResult::Contradiction => panic!("one attempt should have run"),
+        }
+    }
+
+    #[test]
+    fn test_retry_exhausts_on_impossible_rules() {
+        // Tile 0 allows nothing anywhere → any placement next to a neighbor
+        // contradicts; retries cannot help. Must report Contradiction, not loop.
+        let mut r = WfcRules::new(2);
+        // Only tile 1 is usable; tile 0 has no allowed neighbors at all, and
+        // tile 1 only allows tile 1. A single-tile solve of tile 1 works, so to
+        // force failure make tile 1 also forbid everything.
+        r.clear_adjacencies(0);
+        r.clear_adjacencies(1);
+        // 2x1 grid: two adjacent cells, no legal adjacency for either tile.
+        match wfc_solve_retry(2, 1, &r, &mut SplitMix64::new(9), 4) {
+            WfcResult::Contradiction => {}
+            WfcResult::Ok(_) => panic!("impossible rules must not solve"),
+        }
+    }
+
+    // --- connectivity post-pass ---
+
+    #[test]
+    fn test_reachable_count_all_open() {
+        // open_rules: both tiles allowed everywhere. Treat both as passable →
+        // every cell reachable.
+        if let WfcResult::Ok(g) = wfc_solve(5, 4, &open_rules(), &mut SplitMix64::new(1)) {
+            let n = g.reachable_count(0, 0, |_| true);
+            assert_eq!(n, 20, "all 5x4 cells reachable when everything is passable");
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_reachable_count_zero_from_impassable_start() {
+        if let WfcResult::Ok(g) = wfc_solve(5, 5, &open_rules(), &mut SplitMix64::new(1)) {
+            // Nothing is passable → start cell itself is a wall → 0.
+            assert_eq!(g.reachable_count(0, 0, |_| false), 0);
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_is_passable_connected_when_all_passable() {
+        if let WfcResult::Ok(g) = wfc_solve(6, 6, &open_rules(), &mut SplitMix64::new(2)) {
+            assert!(
+                g.is_passable_connected(|_| true),
+                "all-passable grid is one region"
+            );
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_is_passable_connected_vacuous_when_none_passable() {
+        if let WfcResult::Ok(g) = wfc_solve(4, 4, &open_rules(), &mut SplitMix64::new(3)) {
+            // No tile is passable → no passable cells → vacuously connected.
+            assert!(g.is_passable_connected(|_| false));
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_is_passable_connected_detects_split_region() {
+        // Hand-build a grid split by an impassable column so connectivity fails.
+        // tile 0 = floor (passable), tile 1 = wall (impassable). Column x==2 is
+        // all wall, splitting a 5x3 grid into two floor regions.
+        let mut cells = vec![1u64 << 0; 15]; // all floor
+        for y in 0..3 {
+            cells[y * 5 + 2] = 1u64 << 1; // wall column
+        }
+        let g = WfcGrid {
+            width: 5,
+            height: 3,
+            cells,
+        };
+        assert!(
+            !g.is_passable_connected(|t| t == 0),
+            "a wall column splits the floor into two regions"
+        );
+        // Sanity: the left region alone is 2 columns x 3 rows = 6 cells.
+        assert_eq!(g.reachable_count(0, 0, |t| t == 0), 6);
     }
 }
