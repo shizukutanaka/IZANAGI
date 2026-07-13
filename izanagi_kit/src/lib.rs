@@ -9,7 +9,8 @@
 //! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`), auto-explore.
-//! - [`replay`] — replay trace recording, desync detection and rollback.
+//! - [`replay`] — replay trace recording, desync detection and rollback, plus production desync repro bundles (`DesyncReport`).
+//! - [`dst`] — Deterministic Simulation Testing harness: seed sweeps with per-tick invariant checks, double-run nondeterminism detection, and one-line `(seed, tick)` failure reproduction.
 //! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`).
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
 //! - [`rng_xoshiro`] — opt-in xoshiro256++ PRNG (`Xoshiro256pp`): 2²⁵⁶ period, higher statistical quality, seeded from SplitMix64, with `jump()` for parallel streams.
@@ -105,6 +106,7 @@ pub mod damage;
 pub mod diag_json;
 pub mod dialogue;
 pub mod dice;
+pub mod dst;
 pub mod easing;
 pub mod encounter;
 pub mod entity;
@@ -187,6 +189,7 @@ pub use damage::{DamageType, ResistanceProfile};
 pub use diag_json::severity_filter;
 pub use dialogue::{Choice, Dialogue, DialogueNode};
 pub use dice::Dice;
+pub use dst::{dst_determinism_sweep, dst_replay, dst_sweep, DstFailure};
 pub use easing::{
     ease_in_back, ease_in_bounce, ease_in_circ, ease_in_cubic, ease_in_expo, ease_in_out_back,
     ease_in_out_bounce, ease_in_out_circ, ease_in_out_cubic, ease_in_out_expo, ease_in_out_quad,
