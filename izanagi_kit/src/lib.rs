@@ -246,8 +246,9 @@ pub use random_table::RandomTable;
 pub use recipe::{Ingredient, Recipe};
 pub use relations::Relations;
 pub use replay::{
-    check_trace, count_divergences, first_divergence, first_divergence_labeled, record_trace,
-    resimulate, Divergence, LabeledDivergence,
+    check_trace, count_divergences, desync_report, desync_report_labeled, first_divergence,
+    first_divergence_labeled, record_trace, resimulate, DesyncPolicy, DesyncReport, Divergence,
+    LabeledDivergence,
 };
 pub use rng::SplitMix64;
 pub use rng_xoshiro::Xoshiro256pp;

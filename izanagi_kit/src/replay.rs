@@ -280,6 +280,148 @@ pub fn first_divergence_labeled(
     Ok(())
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Production desync reporting
+// ─────────────────────────────────────────────────────────────────────────
+
+/// A self-contained desync **repro bundle** — For Honor's operational lesson
+/// (GDC 2019, "Networking For Honor"): a desync you cannot reproduce is a
+/// desync you cannot fix, so the moment one is detected, capture everything a
+/// developer needs to replay it *in the same artifact that reports it*.
+///
+/// The bundle carries the divergence itself, the subsystem localization when
+/// labeled traces were available, the run's seed, and the window of inputs
+/// leading up to (and including) the diverging tick. With the kit's
+/// determinism guarantee, `seed + recent_inputs` replayed from the preceding
+/// snapshot reproduces the desync exactly.
+///
+/// Build one with [`desync_report`] (plain traces) or
+/// [`desync_report_labeled`] (subsystem-labeled traces).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct DesyncReport<I> {
+    /// Where the traces first disagreed (tick + expected/actual hashes).
+    pub divergence: Divergence,
+    /// The first diverging subsystem, when the traces were labeled
+    /// ([`desync_report_labeled`]); `None` for plain `u64` traces.
+    pub subsystem: Option<&'static str>,
+    /// The run's identity — typically the world seed. Echoed verbatim from
+    /// the caller so the report is replayable standalone.
+    pub seed: u64,
+    /// The inputs for the ticks leading up to and **including** the diverging
+    /// tick (at most the `window` most recent; input *i* produced trace entry
+    /// *i*, matching [`record_trace`]).
+    pub recent_inputs: Vec<I>,
+    /// The tick index of `recent_inputs[0]` — where the captured window
+    /// starts. Replaying the window from a snapshot of tick
+    /// `first_input_tick - 1` reproduces the divergence.
+    pub first_input_tick: usize,
+}
+
+impl<I> core::fmt::Display for DesyncReport<I> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{}", self.divergence)?;
+        if let Some(subsystem) = self.subsystem {
+            write!(f, " (subsystem '{}')", subsystem)?;
+        }
+        write!(
+            f,
+            "; seed {:#018x}; {} input(s) captured from tick {}",
+            self.seed,
+            self.recent_inputs.len(),
+            self.first_input_tick
+        )
+    }
+}
+
+/// Clip the input window for a divergence at `tick`: at most `window` inputs
+/// ending at (and including) the diverging tick.
+fn clip_input_window<I: Clone>(inputs: &[I], tick: usize, window: usize) -> (Vec<I>, usize) {
+    // Inclusive end: input `tick` produced the diverging trace entry. The
+    // divergence may lie beyond the inputs we hold (length-mismatch case).
+    let end = (tick + 1).min(inputs.len());
+    let first = end.saturating_sub(window);
+    (inputs[first..end].to_vec(), first)
+}
+
+/// Compare two plain replay traces and, if they diverge, bundle the evidence
+/// into a [`DesyncReport`]: the divergence, the run's `seed`, and the at most
+/// `window` most recent inputs up to and including the diverging tick.
+/// Returns `None` iff the traces are identical.
+///
+/// `inputs` is the same slice the traces were recorded from ([`record_trace`]
+/// alignment: input *i* → trace entry *i*). A `window` of `0` captures no
+/// inputs (the report still localizes the tick).
+pub fn desync_report<I: Clone>(
+    expected: &[u64],
+    actual: &[u64],
+    seed: u64,
+    inputs: &[I],
+    window: usize,
+) -> Option<DesyncReport<I>> {
+    let divergence = first_divergence(expected, actual).err()?;
+    let (recent_inputs, first_input_tick) = clip_input_window(inputs, divergence.tick, window);
+    Some(DesyncReport {
+        divergence,
+        subsystem: None,
+        seed,
+        recent_inputs,
+        first_input_tick,
+    })
+}
+
+/// [`desync_report`] for **labeled** traces: additionally pins the first
+/// diverging subsystem (via [`first_divergence_labeled`]), so the report
+/// names both the tick and the subsystem to look at.
+pub fn desync_report_labeled<I: Clone>(
+    expected: &[&[(&'static str, u64)]],
+    actual: &[&[(&'static str, u64)]],
+    seed: u64,
+    inputs: &[I],
+    window: usize,
+) -> Option<DesyncReport<I>> {
+    let labeled = first_divergence_labeled(expected, actual).err()?;
+    let (recent_inputs, first_input_tick) = clip_input_window(inputs, labeled.tick, window);
+    Some(DesyncReport {
+        divergence: Divergence {
+            tick: labeled.tick,
+            expected: labeled.expected,
+            actual: labeled.actual,
+        },
+        subsystem: Some(labeled.subsystem),
+        seed,
+        recent_inputs,
+        first_input_tick,
+    })
+}
+
+/// What a session should do about a confirmed desync — the recovery
+/// vocabulary from For Honor's production postmortem (GDC 2019). The kit
+/// deliberately ships the *vocabulary*, not the decision: which policy
+/// applies is a game/netcode judgement (how authoritative is each peer, can
+/// state be re-sent, how disruptive is a kick), so the session layer picks a
+/// variant and acts on it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum DesyncPolicy {
+    /// Re-send authoritative state to the diverged peer and resume — least
+    /// disruptive; requires a trusted source of truth and transferable state.
+    Resync,
+    /// Remove the diverged peer and continue the session for everyone else.
+    Kick,
+    /// End the session for all peers — the honest option when no peer is
+    /// authoritative (pure lockstep) and the simulations cannot be reconciled.
+    Disband,
+}
+
+impl core::fmt::Display for DesyncPolicy {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str(match self {
+            DesyncPolicy::Resync => "resync",
+            DesyncPolicy::Kick => "kick",
+            DesyncPolicy::Disband => "disband",
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -570,5 +712,136 @@ mod tests {
         let got = first_divergence_labeled(&expected, &actual).unwrap_err();
         assert_eq!(got.subsystem, "actors");
         assert_eq!(got.tick, 0);
+    }
+
+    // --- DesyncReport ---
+
+    #[test]
+    fn test_desync_report_none_when_traces_agree() {
+        let trace = [1u64, 2, 3];
+        let inputs = [10u8, 20, 30];
+        assert!(desync_report(&trace, &trace, 0xABCD, &inputs, 8).is_none());
+    }
+
+    #[test]
+    fn test_desync_report_captures_window_ending_at_divergence() {
+        let expected = [1u64, 2, 3, 4, 5];
+        let actual = [1u64, 2, 3, 99, 5]; // diverges at tick 3
+        let inputs = [10u8, 11, 12, 13, 14];
+        let report = desync_report(&expected, &actual, 7, &inputs, 3).unwrap();
+        assert_eq!(report.divergence.tick, 3);
+        assert_eq!(report.divergence.expected, 4);
+        assert_eq!(report.divergence.actual, 99);
+        assert_eq!(report.subsystem, None);
+        assert_eq!(report.seed, 7);
+        // Window of 3 ending at (and including) the diverging tick's input.
+        assert_eq!(report.recent_inputs, vec![11, 12, 13]);
+        assert_eq!(report.first_input_tick, 1);
+    }
+
+    #[test]
+    fn test_desync_report_window_larger_than_history_starts_at_zero() {
+        let expected = [1u64, 2];
+        let actual = [1u64, 9];
+        let inputs = [10u8, 11];
+        let report = desync_report(&expected, &actual, 0, &inputs, 100).unwrap();
+        assert_eq!(report.recent_inputs, vec![10, 11]);
+        assert_eq!(report.first_input_tick, 0);
+    }
+
+    #[test]
+    fn test_desync_report_zero_window_captures_no_inputs() {
+        let expected = [1u64, 2];
+        let actual = [1u64, 9];
+        let inputs = [10u8, 11];
+        let report = desync_report(&expected, &actual, 0, &inputs, 0).unwrap();
+        assert!(report.recent_inputs.is_empty());
+        assert_eq!(report.first_input_tick, 2);
+    }
+
+    #[test]
+    fn test_desync_report_divergence_beyond_inputs_is_clamped() {
+        // Length-mismatch divergence at a tick we hold no input for.
+        let expected = [1u64, 2, 3];
+        let actual = [1u64, 2];
+        let inputs = [10u8, 11]; // only 2 inputs held
+        let report = desync_report(&expected, &actual, 0, &inputs, 8).unwrap();
+        assert_eq!(report.divergence.tick, 2);
+        assert_eq!(report.recent_inputs, vec![10, 11]);
+        assert_eq!(report.first_input_tick, 0);
+    }
+
+    #[test]
+    fn test_desync_report_labeled_names_subsystem() {
+        let e: &[(&str, u64)] = &[("terrain", 1), ("actors", 2)];
+        let a: &[(&str, u64)] = &[("terrain", 1), ("actors", 5)];
+        let ok: &[(&str, u64)] = &[("terrain", 1), ("actors", 2)];
+        let inputs = [10u8, 11];
+        let report = desync_report_labeled(&[ok, e], &[ok, a], 42, &inputs, 8).unwrap();
+        assert_eq!(report.divergence.tick, 1);
+        assert_eq!(report.subsystem, Some("actors"));
+        assert_eq!(report.divergence.expected, 2);
+        assert_eq!(report.divergence.actual, 5);
+        assert_eq!(report.recent_inputs, vec![10, 11]);
+    }
+
+    #[test]
+    fn test_desync_report_labeled_none_when_identical() {
+        let t: &[(&str, u64)] = &[("terrain", 1)];
+        let inputs: [u8; 1] = [10];
+        assert!(desync_report_labeled(&[t], &[t], 0, &inputs, 4).is_none());
+    }
+
+    #[test]
+    fn test_desync_report_display_mentions_tick_seed_and_subsystem() {
+        let e: &[(&str, u64)] = &[("actors", 2)];
+        let a: &[(&str, u64)] = &[("actors", 5)];
+        let inputs = [10u8];
+        let report = desync_report_labeled(&[e], &[a], 0xBEEF, &inputs, 4).unwrap();
+        let text = report.to_string();
+        assert!(text.contains("tick 0"), "{text}");
+        assert!(text.contains("actors"), "{text}");
+        assert!(text.contains("0x000000000000beef"), "{text}");
+        assert!(text.contains("1 input(s) captured from tick 0"), "{text}");
+    }
+
+    #[test]
+    fn test_desync_policy_display() {
+        assert_eq!(DesyncPolicy::Resync.to_string(), "resync");
+        assert_eq!(DesyncPolicy::Kick.to_string(), "kick");
+        assert_eq!(DesyncPolicy::Disband.to_string(), "disband");
+    }
+
+    #[test]
+    fn test_desync_report_replays_to_reproduce_the_divergence() {
+        // End-to-end: record a good trace, corrupt one input on the "peer",
+        // build the report, then use ONLY the report's window + a snapshot of
+        // the tick before it to re-derive the diverging hash — proving the
+        // bundle is a sufficient repro artifact.
+        let inputs: Vec<u8> = (1..=10).collect();
+        let mut reference = new_sim();
+        let step = |s: &mut Sim, i: &u8| {
+            let jitter = s.rng.below(3) as i32;
+            s.pos = s.pos + Fixed::from_int(*i as i32 + jitter);
+        };
+        let expected = record_trace(&mut reference, &inputs, step);
+
+        let mut peer_inputs = inputs.clone();
+        peer_inputs[6] = 99; // corruption at tick 6
+        let mut peer = new_sim();
+        let actual = record_trace(&mut peer, &peer_inputs, step);
+
+        let report = desync_report(&expected, &actual, 0x1234, &peer_inputs, 4).unwrap();
+        assert_eq!(report.divergence.tick, 6);
+
+        // Rebuild the pre-window snapshot by replaying the prefix, then replay
+        // just the report's window: the final hash must equal the "actual"
+        // (diverged) hash the report captured.
+        let mut snapshot = new_sim();
+        for input in &peer_inputs[..report.first_input_tick] {
+            step(&mut snapshot, input);
+        }
+        let replayed = resimulate(&snapshot, &report.recent_inputs, step);
+        assert_eq!(hash_state(&replayed), report.divergence.actual);
     }
 }
