@@ -8,7 +8,7 @@
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
 //! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk; deterministic).
-//! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search, Dijkstra maps + rescanned flee/safety maps, auto-explore.
+//! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`), auto-explore.
 //! - [`replay`] — replay trace recording, desync detection and rollback.
 //! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`).
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
@@ -234,9 +234,9 @@ pub use noise::{
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{
-    astar, auto_explore, descend, dijkstra_map, flee_map, flood_fill, is_path_clear, is_reachable,
-    jps, jps4, nearest_reachable, octile_distance, path_cost, path_to_direction_vec, smooth_path,
-    step_toward, weighted_astar,
+    astar, auto_explore, combine_maps, descend, dijkstra_map, flee_map, flood_fill, is_path_clear,
+    is_reachable, jps, jps4, nearest_reachable, octile_distance, path_cost, path_to_direction_vec,
+    smooth_path, step_toward, weighted_astar, DijkstraMap,
 };
 pub use pool::Pool;
 pub use profiler::{EventLog, LogEntry, Profiler};

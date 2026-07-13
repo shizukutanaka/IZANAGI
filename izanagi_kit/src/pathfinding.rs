@@ -16,6 +16,13 @@
 //! every cell. It returns the same kind of full path at the same optimal cost,
 //! obeying the same no-corner-cutting rule, and is validated against [`astar`]
 //! over thousands of random grids (cost-equality is the correctness oracle).
+//! [`jps4`] is its 4-connected sibling for rulesets that forbid diagonal
+//! movement, validated the same way against a plain-BFS oracle.
+//!
+//! [`dijkstra_map`] builds multi-source distance fields ("Dijkstra maps");
+//! [`flee_map`] derives intelligent flee behaviour from one, and
+//! [`combine_maps`] blends several by per-map coefficient (Brogue's technique)
+//! so one [`descend`] call expresses "approach X while avoiding Y".
 //!
 //! Determinism: the open set is ordered by the *total* key `(f, wh, x, y)` — the
 //! `(x, y)` tail makes every key unique, so there are no ties for the heap to
@@ -30,6 +37,11 @@ use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
 
 use crate::geometry::line as bresenham_line;
+
+/// A multi-source integer distance field as produced by [`dijkstra_map`]:
+/// each reachable cell mapped to its path cost from the nearest source.
+/// Consumed by [`descend`], [`flee_map`] and [`combine_maps`].
+pub type DijkstraMap = HashMap<(i32, i32), i32>;
 
 /// Orthogonal step cost (≈ 1.0, scaled by 10).
 const COST_ORTHO: i32 = 10;
@@ -748,6 +760,43 @@ where
     flee
 }
 
+/// Blend several [`dijkstra_map`] fields into one desire field by weighted
+/// sum — the coefficient-composition technique from Brogue (Brian Walker,
+/// Roguelike Celebration 2018): build one map per motivation (distance to
+/// player, to food, to the exit…), then combine them with a coefficient per
+/// map — positive attracts (lower is nearer, so it pulls the descent toward
+/// that map's sources), negative repels — and drive the entity by [`descend`]
+/// on the sum. Rich behaviour ("approach the player but keep away from fire")
+/// falls out of two or three coefficients instead of bespoke AI code.
+///
+/// Only cells present in **every** input map appear in the output: a cell
+/// missing from one field has no defined desirability there, so blending it
+/// would compare incomplete sums against complete ones. Passing an empty
+/// slice yields an empty map. Sums use `i64` intermediates and saturate to
+/// `i32`, so extreme values and coefficients cannot overflow.
+///
+/// Deterministic: the output is pure per-cell arithmetic on the inputs; as
+/// with [`dijkstra_map`], look cells up by key — the map's iteration order is
+/// not meaningful.
+pub fn combine_maps(maps: &[(&DijkstraMap, i32)]) -> DijkstraMap {
+    let (first, rest) = match maps.split_first() {
+        Some(split) => split,
+        None => return HashMap::new(),
+    };
+    let mut out = HashMap::new();
+    'cells: for (&cell, &v0) in first.0 {
+        let mut sum = v0 as i64 * first.1 as i64;
+        for &(map, coeff) in rest {
+            match map.get(&cell) {
+                Some(&v) => sum += v as i64 * coeff as i64,
+                None => continue 'cells,
+            }
+        }
+        out.insert(cell, sum.clamp(i32::MIN as i64, i32::MAX as i64) as i32);
+    }
+    out
+}
+
 /// Remove redundant waypoints from a grid path using Bresenham LOS pruning
 /// ("greedy string-pull").
 ///
@@ -1299,6 +1348,94 @@ mod tests {
         let safe = flee_map(&desire, 1, 0, &blocked); // den 0 → 1
                                                       // Should not panic and should produce a same-sized map.
         assert_eq!(safe.len(), desire.len());
+    }
+
+    // --- combine_maps ---
+
+    #[test]
+    fn test_combine_maps_empty_slice_yields_empty_map() {
+        assert!(combine_maps(&[]).is_empty());
+    }
+
+    #[test]
+    fn test_combine_maps_single_map_coeff_one_is_identity() {
+        let blocked = blocker(6, 6, HashSet::new());
+        let m = dijkstra_map(&[(0, 0)], 10_000, &blocked);
+        assert_eq!(combine_maps(&[(&m, 1)]), m);
+    }
+
+    #[test]
+    fn test_combine_maps_intersection_only() {
+        // Cells missing from either map must not appear in the output.
+        let mut a = HashMap::new();
+        a.insert((0, 0), 1);
+        a.insert((1, 0), 2);
+        let mut b = HashMap::new();
+        b.insert((1, 0), 5);
+        b.insert((2, 0), 7);
+        let c = combine_maps(&[(&a, 1), (&b, 1)]);
+        assert_eq!(c.len(), 1);
+        assert_eq!(c[&(1, 0)], 7);
+    }
+
+    #[test]
+    fn test_combine_maps_weighted_sum() {
+        let mut a = HashMap::new();
+        a.insert((0, 0), 10);
+        let mut b = HashMap::new();
+        b.insert((0, 0), 3);
+        let c = combine_maps(&[(&a, 2), (&b, -4)]);
+        assert_eq!(c[&(0, 0)], 2 * 10 - 4 * 3);
+    }
+
+    #[test]
+    fn test_combine_maps_saturates_instead_of_overflowing() {
+        let mut a = HashMap::new();
+        a.insert((0, 0), i32::MAX);
+        let c = combine_maps(&[(&a, i32::MAX)]);
+        assert_eq!(c[&(0, 0)], i32::MAX);
+        let d = combine_maps(&[(&a, i32::MIN)]);
+        assert_eq!(d[&(0, 0)], i32::MIN);
+    }
+
+    #[test]
+    fn test_combine_maps_approach_while_avoiding() {
+        // Brogue's motivating example: approach the player while avoiding a
+        // hazard. A corridor 0..=8 at y=0; player at (8,0), fire at (4,0).
+        // Pure attraction walks into the fire; the blend detours the descent
+        // *away* from the fire cell even while net motion is toward the player.
+        let blocked = blocker(9, 1, HashSet::new());
+        let to_player = dijkstra_map(&[(8, 0)], 10_000, &blocked);
+        let to_fire = dijkstra_map(&[(4, 0)], 10_000, &blocked);
+        // Strong fire repulsion: coefficient -3 vs. player attraction +1.
+        let blend = combine_maps(&[(&to_player, 1), (&to_fire, -3)]);
+        // blend[x] = (8-x)*ORTHO - 3*|x-4|*ORTHO, peaking on the fire cell.
+        // Standing right next to the fire at (3,0): pure attraction would step
+        // east onto (4,0); in the blend that step trades -1 step of player
+        // distance for +3 steps of repulsion, so the descent retreats west.
+        assert_eq!(
+            descend(&blend, (3, 0), &blocked),
+            Some((2, 0)),
+            "blend must retreat from the fire, not descend into it"
+        );
+        // West of the fire every step east strengthens repulsion (3x) faster
+        // than it improves attraction (1x), so the west end is a local minimum
+        // and the entity correctly refuses to run the gauntlet.
+        assert_eq!(descend(&blend, (0, 0), &blocked), None);
+        // East of the fire both motivations agree (player nearer, fire
+        // farther), so the descent resumes toward the player.
+        assert_eq!(descend(&blend, (5, 0), &blocked), Some((6, 0)));
+    }
+
+    #[test]
+    fn test_combine_maps_is_deterministic() {
+        let walls = HashSet::from([(3, 3)]);
+        let blocked = blocker(8, 8, walls);
+        let m1 = dijkstra_map(&[(0, 0)], 10_000, &blocked);
+        let m2 = dijkstra_map(&[(7, 7)], 10_000, &blocked);
+        let a = combine_maps(&[(&m1, 2), (&m2, -1)]);
+        let b = combine_maps(&[(&m1, 2), (&m2, -1)]);
+        assert_eq!(a, b);
     }
 
     // --- weighted_astar ---
