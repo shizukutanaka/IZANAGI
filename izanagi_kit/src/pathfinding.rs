@@ -408,6 +408,166 @@ where
     None
 }
 
+/// Manhattan distance — the exact path cost between two cells when movement is
+/// restricted to the four cardinal directions at unit cost. Computed in `i64`
+/// and clamped like [`octile`], so extreme coordinates saturate instead of
+/// overflowing.
+#[inline]
+fn manhattan(a: (i32, i32), b: (i32, i32)) -> i32 {
+    let dx = (a.0 as i64 - b.0 as i64).abs();
+    let dy = (a.1 as i64 - b.1 as i64).abs();
+    (dx + dy).min(i32::MAX as i64) as i32
+}
+
+/// Slide along a cardinal ray for [`jps4`], returning the first *jump point*
+/// (a cell the parent search must expand) or `None` if the ray dies in a wall.
+///
+/// The design mirrors [`jps_jump`]'s diagonal/straight split, with **vertical
+/// as the dominant axis** (the canonical shortest path moves vertically first;
+/// Baum 2025, arXiv:2501.14816):
+///
+/// - A **horizontal** ray is terminal: it stops at (1) the goal, (2) the
+///   goal's column — a canonical path may turn toward the goal there; without
+///   this stop the ray would overshoot — or (3) a *forced neighbour*: a
+///   walkable cell perpendicular to the ray whose predecessor (one step back
+///   along the ray) is blocked, meaning any shortest path reaching that
+///   perpendicular cell must pass through here.
+/// - A **vertical** ray additionally *probes* both horizontal directions at
+///   every step (just as [`jps_jump`]'s diagonal case probes its two straight
+///   components): if either probe finds a jump point, a canonical shortest
+///   path may turn horizontally here, so this cell is itself a jump point.
+///   Without the probes a vertical ray in open space would run to the map
+///   boundary and die, and the search could never turn — losing completeness.
+///
+/// Horizontal rays never recurse, so the probe recursion is exactly one level
+/// deep.
+fn jps4_jump<W: Fn(i32, i32) -> bool>(
+    mut x: i32,
+    mut y: i32,
+    dx: i32,
+    dy: i32,
+    goal: (i32, i32),
+    walk: &W,
+) -> Option<(i32, i32)> {
+    loop {
+        if !walk(x, y) {
+            return None;
+        }
+        if (x, y) == goal {
+            return Some((x, y));
+        }
+        if dx != 0 {
+            if x == goal.0 {
+                return Some((x, y));
+            }
+            if (walk(x, y + 1) && !walk(x - dx, y + 1)) || (walk(x, y - 1) && !walk(x - dx, y - 1))
+            {
+                return Some((x, y));
+            }
+            x += dx;
+        } else {
+            if y == goal.1 {
+                return Some((x, y));
+            }
+            if (walk(x + 1, y) && !walk(x + 1, y - dy)) || (walk(x - 1, y) && !walk(x - 1, y - dy))
+            {
+                return Some((x, y));
+            }
+            // Dominant-axis probes: scan east and west from this cell; a hit
+            // means a canonical path may turn here.
+            if jps4_jump(x + 1, y, 1, 0, goal, walk).is_some()
+                || jps4_jump(x - 1, y, -1, 0, goal, walk).is_some()
+            {
+                return Some((x, y));
+            }
+            y += dy;
+        }
+    }
+}
+
+/// Find a shortest **4-directional** (cardinal-only, unit-cost) path from
+/// `start` to `goal` using Jump Point Search specialised for 4-connected grids
+/// (Baum 2025, arXiv:2501.14816).
+///
+/// This is the pathfinder to use when game rules forbid diagonal movement —
+/// classic roguelike movement, sokoban-likes, pipe/wire routing. [`astar`] and
+/// [`jps`] are 8-connected and will happily cut diagonals; `jps4` never does.
+/// The returned path is a full cell-by-cell walk (consecutive cells differ by
+/// exactly one cardinal step), its length minus one is the exact minimal move
+/// count, and like [`jps`] it is exact, not approximate.
+///
+/// Why the jump conditions preserve optimality (exchange argument): on a
+/// 4-connected unit grid any shortest path can be rewritten, without changing
+/// its length, into a *canonical* form that moves vertically before
+/// horizontally wherever possible, so that every horizontal→vertical turn is
+/// *forced* by an obstacle (moving the turn earlier is blocked — exactly the
+/// forced-neighbour pattern tested in [`jps4_jump`]) or happens in the goal's
+/// column, and every vertical→horizontal turn starts a horizontal segment that
+/// itself ends at a jump point — which is exactly what the vertical ray's
+/// horizontal probes detect. Every straight run between such cells can
+/// therefore be skipped wholesale, which is what jumping does. The expansion
+/// generates all four cardinal directions at each jump point (a conservative
+/// superset of the canonical pruned set — same philosophy as
+/// [`jps_successors`]), so no successor needed by that canonical form is ever
+/// missing.
+///
+/// `is_blocked(x, y)` must return `true` for walls **and** out-of-bounds cells
+/// (this bounds the search). The predicate is `Fn` (not `FnMut`) because the
+/// jump scan re-queries cells; pass a closure reading an immutable grid.
+/// Deterministic: the open set is keyed by the total order `(f, h, x, y)` and
+/// directions are tried in fixed N/E/S/W order, so the result is identical on
+/// every run and platform.
+pub fn jps4<B>(start: (i32, i32), goal: (i32, i32), is_blocked: B) -> Option<Vec<(i32, i32)>>
+where
+    B: Fn(i32, i32) -> bool,
+{
+    let walk = |x: i32, y: i32| !is_blocked(x, y);
+    if !walk(start.0, start.1) || !walk(goal.0, goal.1) {
+        return None;
+    }
+    if start == goal {
+        return Some(vec![start]);
+    }
+
+    const CARDINALS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+    let mut open: BinaryHeap<Reverse<(i32, i32, i32, i32)>> = BinaryHeap::new();
+    let mut g_score: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
+
+    let h0 = manhattan(start, goal);
+    g_score.insert(start, 0);
+    open.push(Reverse((h0, h0, start.0, start.1)));
+
+    while let Some(Reverse((f, _h, cx, cy))) = open.pop() {
+        let cur = (cx, cy);
+        let cur_g = g_score[&cur];
+        // Lazy deletion: skip stale heap entries left over from a cheaper relax.
+        if f != cur_g + manhattan(cur, goal) {
+            continue;
+        }
+        if cur == goal {
+            return Some(jps_reconstruct(&came_from, start, goal));
+        }
+        for (dx, dy) in CARDINALS {
+            if !walk(cx + dx, cy + dy) {
+                continue;
+            }
+            if let Some(jp) = jps4_jump(cx + dx, cy + dy, dx, dy, goal, &walk) {
+                // A jump ray is a straight cardinal segment, so the Manhattan
+                // distance equals the exact segment cost.
+                let tentative = cur_g + manhattan(cur, jp);
+                if tentative < *g_score.get(&jp).unwrap_or(&i32::MAX) {
+                    g_score.insert(jp, tentative);
+                    came_from.insert(jp, cur);
+                    let h = manhattan(jp, goal);
+                    open.push(Reverse((tentative + h, h, jp.0, jp.1)));
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Multi-source Dijkstra distance field — a "flow field" / Dijkstra map (the
 /// `bracket-lib` term). Returns the minimum path cost from the *nearest* source
 /// to every reachable cell whose cost is `<= max_cost`. Sources map to 0.
@@ -1698,6 +1858,191 @@ mod tests {
                     path_cost(jp)
                 );
                 assert_valid_path(jp, start, goal, w, h, &walls);
+            }
+            compared += 1;
+        }
+        assert!(
+            compared >= 6000,
+            "expected 6000 comparisons, got {compared}"
+        );
+    }
+
+    // --- jps4 (4-connected Jump Point Search) --------------------------------
+
+    /// Validate that a jps4 path is a legal, contiguous, *cardinal-only* route
+    /// from `start` to `goal` under `walls` on a `w×h` grid.
+    fn assert_valid_path4(
+        path: &[(i32, i32)],
+        start: (i32, i32),
+        goal: (i32, i32),
+        w: i32,
+        h: i32,
+        walls: &HashSet<(i32, i32)>,
+    ) {
+        assert_eq!(path.first(), Some(&start), "path must start at start");
+        assert_eq!(path.last(), Some(&goal), "path must end at goal");
+        let blk = |x: i32, y: i32| x < 0 || y < 0 || x >= w || y >= h || walls.contains(&(x, y));
+        for &(x, y) in path {
+            assert!(!blk(x, y), "path steps onto a blocked cell ({x},{y})");
+        }
+        for win in path.windows(2) {
+            let (ax, ay) = win[0];
+            let (bx, by) = win[1];
+            let (dx, dy) = ((bx - ax).abs(), (by - ay).abs());
+            assert!(
+                dx + dy == 1,
+                "step must be exactly one cardinal move: ({ax},{ay})->({bx},{by})"
+            );
+        }
+    }
+
+    /// Reference oracle: plain BFS. On a 4-connected unit-cost grid BFS is
+    /// trivially optimal, so its step count is ground truth for [`jps4`].
+    fn bfs4_steps(
+        start: (i32, i32),
+        goal: (i32, i32),
+        w: i32,
+        h: i32,
+        walls: &HashSet<(i32, i32)>,
+    ) -> Option<usize> {
+        let blk = |x: i32, y: i32| x < 0 || y < 0 || x >= w || y >= h || walls.contains(&(x, y));
+        if blk(start.0, start.1) || blk(goal.0, goal.1) {
+            return None;
+        }
+        let mut dist: HashMap<(i32, i32), usize> = HashMap::new();
+        let mut queue = std::collections::VecDeque::new();
+        dist.insert(start, 0);
+        queue.push_back(start);
+        while let Some((x, y)) = queue.pop_front() {
+            let d = dist[&(x, y)];
+            if (x, y) == goal {
+                return Some(d);
+            }
+            for (dx, dy) in [(0, -1), (1, 0), (0, 1), (-1, 0)] {
+                let n = (x + dx, y + dy);
+                if !blk(n.0, n.1) && !dist.contains_key(&n) {
+                    dist.insert(n, d + 1);
+                    queue.push_back(n);
+                }
+            }
+        }
+        None
+    }
+
+    #[test]
+    fn test_jps4_open_grid_l_path() {
+        let path = jps4((0, 0), (7, 4), blocker(10, 10, HashSet::new())).unwrap();
+        // Manhattan distance 11 → 12 cells, all cardinal steps.
+        assert_eq!(path.len(), 12);
+        assert_valid_path4(&path, (0, 0), (7, 4), 10, 10, &HashSet::new());
+    }
+
+    #[test]
+    fn test_jps4_start_equals_goal() {
+        let path = jps4((3, 3), (3, 3), blocker(10, 10, HashSet::new())).unwrap();
+        assert_eq!(path, vec![(3, 3)]);
+    }
+
+    #[test]
+    fn test_jps4_blocked_endpoints_return_none() {
+        let walls = HashSet::from([(2, 2)]);
+        assert!(jps4((2, 2), (5, 5), blocker(10, 10, walls.clone())).is_none());
+        assert!(jps4((5, 5), (2, 2), blocker(10, 10, walls)).is_none());
+    }
+
+    #[test]
+    fn test_jps4_unreachable_goal_returns_none() {
+        // A diagonal-only gap: 8-connected search could squeeze through, a
+        // 4-connected one cannot — this is exactly what distinguishes jps4.
+        let walls: HashSet<(i32, i32)> = (0..10).map(|i| (i, 5)).collect(); // solid row
+        assert!(jps4((0, 0), (0, 9), blocker(10, 10, walls.clone())).is_none());
+        // The 8-connected jps agrees here (solid row blocks diagonals too),
+        // but with a checkerboard gap they differ:
+        let mut diag_walls = HashSet::new();
+        for i in 0..10 {
+            if i != 4 {
+                diag_walls.insert((i, 5));
+            }
+        }
+        diag_walls.insert((4, 4)); // block the straight approach above the gap
+                                   // 4-connected: must enter (4,5) from (4,4) or (4,6) or sideways — (4,4)
+                                   // blocked, (3,5)/(5,5) blocked → only from below; start is above, so
+                                   // the only way down is through (4,5) itself, reachable solely via
+                                   // (4,4) which is walled → unreachable.
+        assert!(jps4((0, 0), (0, 9), blocker(10, 10, diag_walls.clone())).is_none());
+        // Sanity-check against the BFS oracle.
+        assert_eq!(bfs4_steps((0, 0), (0, 9), 10, 10, &diag_walls), None);
+    }
+
+    #[test]
+    fn test_jps4_forced_neighbour_around_wall() {
+        // A wall stub forces the path to detour; the detour corner is a forced
+        // neighbour and must be discovered as a jump point.
+        let walls: HashSet<(i32, i32)> = (1..=4).map(|y| (3, y)).collect();
+        let path = jps4((0, 2), (6, 2), blocker(8, 8, walls.clone())).unwrap();
+        assert_valid_path4(&path, (0, 2), (6, 2), 8, 8, &walls);
+        let oracle = bfs4_steps((0, 2), (6, 2), 8, 8, &walls).unwrap();
+        assert_eq!(path.len() - 1, oracle);
+    }
+
+    #[test]
+    fn test_jps4_is_deterministic() {
+        let walls = HashSet::from([(4, 2), (4, 3), (4, 4), (2, 6)]);
+        let a = jps4((1, 1), (8, 8), blocker(12, 12, walls.clone()));
+        let b = jps4((1, 1), (8, 8), blocker(12, 12, walls));
+        assert_eq!(a, b);
+        assert!(a.is_some());
+    }
+
+    /// **BFS oracle**: over thousands of random grids, jps4 must agree with
+    /// plain BFS on reachability and return exactly the BFS-optimal step
+    /// count, with every step a legal cardinal move. On 4-connected unit-cost
+    /// grids BFS optimality is a theorem, so this is the strongest available
+    /// machine check of jps4's jump conditions.
+    #[test]
+    fn test_jps4_matches_bfs_over_random_grids() {
+        let mut state: u64 = 0x243F_6A88_85A3_08D3;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let mut compared = 0u32;
+        for _ in 0..6000 {
+            let w = 4 + (next() % 9) as i32; // 4..=12
+            let h = 4 + (next() % 9) as i32;
+            let density = next() % 46; // 0..=45% walls
+            let mut walls = HashSet::new();
+            for y in 0..h {
+                for x in 0..w {
+                    if next() % 100 < density {
+                        walls.insert((x, y));
+                    }
+                }
+            }
+            let start = ((next() % w as u64) as i32, (next() % h as u64) as i32);
+            let goal = ((next() % w as u64) as i32, (next() % h as u64) as i32);
+            walls.remove(&start);
+            walls.remove(&goal);
+
+            let oracle = bfs4_steps(start, goal, w, h, &walls);
+            let j = jps4(start, goal, blocker(w, h, walls.clone()));
+
+            assert_eq!(
+                oracle.is_some(),
+                j.is_some(),
+                "reachability mismatch: start={start:?} goal={goal:?} w={w} h={h} walls={walls:?}"
+            );
+            if let (Some(steps), Some(jp)) = (oracle, &j) {
+                assert_eq!(
+                    jp.len() - 1,
+                    steps,
+                    "cost mismatch start={start:?} goal={goal:?} w={w} h={h}: bfs={} jps4={} walls={walls:?}",
+                    steps,
+                    jp.len() - 1
+                );
+                assert_valid_path4(jp, start, goal, w, h, &walls);
             }
             compared += 1;
         }

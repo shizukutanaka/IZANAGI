@@ -235,7 +235,7 @@ pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{
     astar, auto_explore, descend, dijkstra_map, flee_map, flood_fill, is_path_clear, is_reachable,
-    jps, nearest_reachable, octile_distance, path_cost, path_to_direction_vec, smooth_path,
+    jps, jps4, nearest_reachable, octile_distance, path_cost, path_to_direction_vec, smooth_path,
     step_toward, weighted_astar,
 };
 pub use pool::Pool;
