@@ -375,3 +375,71 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
   一次裏取りは **WebSearch のインデックス＋査読会場ページ**（ECOOP/USENIX/IEEE/FDG 等）で実施した。
 - 上記「検証済み一次出典」**14件**は表題・著者・年・会場まで確定。GitHub repo（owner/repo）はインデックス上で実在確認済み。
 - 本書が引用する arXiv 出典は全件昇格済み。以後の `/loop` は出典照合ではなく、同種ソフトとの gap 分析・改善点の精緻化に充てる。
+
+---
+
+# 第2次調査 (2026-07-10) — 論文 + 動画/講演 + エコシステム
+
+> 第1次調査(2026-06-05、arXiv/GitHub 限定)の**差分**として実施した3情報源の横断調査。
+> WebSearch は正常動作。arXiv abs は従来どおり bot 403 のため、メタデータは search index で照合。
+> 動画/講演は第1次で**完全に未カバーだったモダリティ**。各知見は本リポジトリのコードと突合し、
+> 「実在するギャップか(既に実装済みでないか)」を確認した上で改善提案に落としている。
+> **本セクション執筆後、下記のうち B1〜B6 を実装済み**(コミット履歴参照); 残りは「次期候補」に集約。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `world_hash::LabeledDigest` + `replay::first_divergence_labeled` — subsystem 粒度の desync 特定 | **3源が独立に収斂**: Factorio FFF-188/340(per-subsystem CRC)・bevy_ggrs(per-entity checksum)・incremental multiset hash(arXiv:2507.21096)。既存バックログ C4-3 も充足 | 🟢 純粋追加、pinned hash 不変 |
+| `wfc` タイル重み + `wfc_solve_retry`(派生 seed リトライ)+ 接続性 post-pass(`reachable_count`/`is_passable_connected`) | Caves of Qud GDC/RC 2019(素の WFC は過均質・非連結・矛盾する)+ arXiv:2509.09919(quality vs validity 分離) | 🟢 uniform 既定は bit 不変 |
+| `mapgen::GenParams::extra_loops` — 環状連結 | Joris Dormans, Cyclic Dungeon Generation(PROCJAM/Everything Procedural 2016)+ RC mapgen 講演 | 🟢 既定 0 で bit 不変 |
+| エンジン `TerminalBackend` の cell-diff 描画 | Ratatui FOSDEM/EuroRust 2024(back-buffer + cell diff が sub-ms TUI の核)。kit 側 `terminal::Screen::diff` は実装済みだったがエンジン側が毎フレーム全再描画だった非対称を解消 | 🟢 API 不変 |
+| engine ECS `HashMap`→`BTreeMap`(反復順序決定化)+ `from_entropy` docstring 強化 | FP 非結合性(arXiv:2408.05148)+ 決定論主張と実装の乖離(PRODUCT_AUDIT P7)。※前セッションで実装、本調査が裏付け | 🟢 挙動不変・API 不変 |
+| 公開品質束: docs.rs メタデータ・`deny(missing_docs)`/`deny(broken_intra_doc_links)` 昇格・MSRV 固定 toolchain CI job・wasm32 check CI job | crates.io publishing norms 2025-26 / docs.rs hygiene / MSRV consensus(api-guidelines#231)/ wasm-pack 廃止(2025-07)後の素 wasm32 | 🟢/📄 |
+
+## 次期候補(優先度順 — 設計判断・環境・工数のいずれかで本セッション見送り)
+
+| # | 改善点 | 出典 | 決定論影響 | 見送り理由 |
+|---|---|---|---|---|
+| N1 | **JPS4**(4方向グリッド専用 Jump Point Search) | Baum, arXiv:2501.14816 (2025) | 🟢 整数のみ | 最短性の A* 一致検証を要する correctness-critical 実装。次イテレーションで慎重に |
+| N2 | **incremental multiset world-hash**(O(changes) の per-tick hash) | HexaMorphHash arXiv:2507.21096 / ECMH 1601.06502 | 🟡 hash 値が変わる → `replay`/`savefile` ヘッダで algo バージョニング必須 | LabeledDigest で desync 局所化は達成済み。増分化は別の大きな変更 |
+| N3 | **zero-panic 公開 API**(`clippy::unwrap_used/expect_used/panic` を warn→Result化) | fortress-rollback(全 API `Result`・~1600 tests・TLA+/Kani/Z3) | 🔴 一部シグネチャ変更 | kit src に unwrap 223 / expect 19 / panic系 34。0.2 の破壊的変更として計画。lint を今 crate 属性で足すと `-D warnings` CI が即赤化するため未追加 |
+| N4 | **SnapshotRing / SyncTest セッション**(stride 付き snapshot 保持 + 毎フレーム rollback 自己検査) | MK11 GDC 2019(snapshot 保存こそ rollback の支配的コスト)+ ggrs `SyncTestSession` | 🟢 | replay 基盤の上に構築。中規模の新 API |
+| N5 | **MapBuilder パイプライン**(cellular→drunkard→prefab→post-filter の合成 + `farthest_cell` で階段配置) | Wolverson RC 2020 | 🟡 新 module | 既存 4 ジェネレータの合成層。設計が要る |
+| N6 | **接続成分キャッシュ**(`is_reachable` の毎回 full BFS を増分 union-find に) | Dwarf Fortress 最適化(GDC 2016) | 🟡 キャッシュ無効化が決定論に繊細 | 正しさの担保が難所 |
+| N7 | **DST ハーネス**(N seeds 掃引 → 不変条件 assert → 失敗時 seed+frame を1コマンド再現形式で出力) | Deterministic Simulation Testing の主流化(Polar Signals 2025-07 / madsim) | 🟢 | replay 基盤の薄いラッパ。ゲーム外(インフラ testing)への訴求も |
+| N8 | **planning-based test kit**(goal 述語 → 到達入力列を BFS/A* で合成) | Using Planning for Automated Testing of Video Games, IJCAI 2025 | 🟢 | `resimulate` の上に構築可能 |
+| N9 | **メタモルフィックテスト群**(FOV 対称性・経路三角不等式・fixed 代数則) | MR-Coupler arXiv:2604.10126 | 🟢 | 既存 property test の拡張。proptest 生成器駆動 |
+| N10 | **generator-based fuzzing**(parser/replay 向け構造化生成器 + resimulation hash oracle) | arXiv:2604.01442 / LibAFL-DiFuzz 2601.22772。既存 C8-1 | 🟢 dev-only | `cargo-fuzz` は nightly 要求 → 本 sandbox のネットワーク制約で不可。nightly 環境で |
+| N11 | **適応 input delay + t+delay lockstep**(misprediction 率追跡 → 推奨 delay) | Overwatch GDC 2017 / 1500 Archers GDC 2001 | 🟢 | `netinput` の拡張 |
+| N12 | **DesyncReport 型**(divergence + 直列化状態 + 直近入力を同梱、回復方針 enum) | For Honor GDC 2019 | 🟢 | LabeledDigest と組み合わせると強力 |
+| N13 | **WFC selector フック**(collapse 順を外部最適化で操縦) | Markovian WFC, arXiv:2509.09919 | 🟢 | 重み実装で当面の質制御は達成。より高度な操縦は将来 |
+| N14 | **Dijkstra map 係数合成**(`combine_maps(&[(map,coeff)])`、influence↔pathfinding 橋) | Brogue / Brian Walker RC 2018 | 🟢 | flee map は実装済み。合成層が gap |
+| N15 | **孤児コンテンツ validator**(どの recipe/drop/encounter からも参照されない要素を SARIF 警告) | RC 2024-25 の content/story 生成トレンド | 🟢 | `validator.rs` + `diag_sarif` の自然な拡張 |
+| N16 | **DSL `extends` オーバーレイ**(content ファイルの field 単位 override) | Bevy 0.19 BSN(patchable scenes) | 🟢(大) | パイプライン全体に関わる大きめの設計 |
+| N17 | **total_cmp ソート監査**(engine の float ソートを `f32::total_cmp`+index tie-break に) | XiSort arXiv:2505.11927 | 🟢 | engine の実ソート箇所の棚卸しが前提 |
+| N18 | **archetype storage(feature-gated)** | The Essence of ECS, SAC 2026 arXiv:2606.14919 | 🟡 反復順序に影響 → 決定論 kit には stable-order mode 必須 | ベンチ methodology は再利用可 |
+| N19 | **Fixed op 命名行列**(`checked_*`/`wrapping_*`/`overflowing_*`)+ mul/div の i128 中間 | `fixed` クレートの API 規範 | 🟢 新メソッドのみ | |
+| N20 | **cargo feature collections**(78 module を `roguelike`/`replay`/`math` 等に粗くグループ化) | Bevy 0.18 feature collections | 🟡 feature gate が pinned hash test を割らないよう `default=full` 必須 | |
+| N21 | **crates.io Trusted Publishing + cargo-semver-checks リリース gate** | RFC 3691(2025-07 GA)/ cargo-semver-checks 2026 project goal | 📄 プロセスのみ | GH runner 上で動くので sandbox 制約は無関係。初回公開後に |
+| N22 | **観測フック(observers/hooks)**(component 挿入/削除コールバック → eventqueue) | Bevy ECS 討論 RustWeek 2025 | 🟡 ECS dispatch に触れる | |
+| N23 | **LLM コンテンツパイプライン位置付け**(parser+validator+diag_sarif を「生成→検証→修復ループ」の検証ゲートとして文書化) | arXiv:2508.18533 ほか 2025-26 LLM-PCG 群 | 📄 文書のみ | 既存ツールの戦略的意味付け |
+
+## 出典(第2次、search-index 照合)
+
+**論文**: arXiv 2509.09919 / 2501.14816 / 2606.14919 / 2508.15264 / 2507.21096 / 2505.11927 /
+2408.05148 / 2604.10126 / 2604.01442 / 2601.22772 / 2509.22170 / 2605.01783 / 2605.13570 /
+2508.18533 / 2509.22426、IJCAI 2025 proceedings 1250。
+
+**動画/講演**: MK11 rollback(GDC 2019, Stallone)/ Overwatch netcode(GDC 2017, Ford)/
+For Honor 決定論(GDC 2019, Henry)/ 1500 Archers(GDC 2001, Terrano&Bettner)/
+Caves of Qud WFC・End-to-End PCG(GDC 2019, Bucklew&Grinblat)/ Cyclic Dungeon Generation(Dormans, PROCJAM 2016)/
+Procedural Map Generation(Wolverson, RC 2020)/ Brogue level design(Walker, RC 2018)/
+Dwarf Fortress 最適化(GDC 2016, Adams)/ Ratatui(FOSDEM/EuroRust 2024, Parmaksız)/
+Vision Visualized(Albert Ford, RC 2020 — `fov.rs` が既に準拠、対応不要のポジティブ確認)/
+Factorio FFF-188/340 / Roguelike Celebration 2024-25。
+
+**エコシステム**: Bevy 0.18/0.19 release notes / ggrs / bevy_ggrs architecture & pitfalls /
+fortress-rollback / crates.io Trusted Publishing(RFC 3691)/ cargo-semver-checks project goal /
+api-guidelines#231(MSRV)/ docs.rs metadata / rustwasm sunset(team#291)/ gamedev.rs /
+`fixed` / `fixed-num` / Polar Signals DST(2025-07)/ madsim。
