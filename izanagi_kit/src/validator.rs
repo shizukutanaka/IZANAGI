@@ -75,6 +75,32 @@ pub fn validate(content: &Content) -> Vec<Diagnostic> {
         }
     }
 
+    // Unused-tile warning: a tile is defined but its glyph never appears in
+    // any level's grid, so nothing on the map ever renders with it. This is
+    // an authoring-consistency check only — as of writing, `loader.rs` builds
+    // the ECS world purely from `Spawn`s and never reads `Level::rows` or
+    // `Content::tiles`, so an unused tile has no effect on what actually
+    // loads. It is still worth flagging: an unreferenced tile is very likely
+    // a stale/renamed entry that a human or LLM author should either wire up
+    // or delete.
+    let used_tile_glyphs: HashSet<char> = content
+        .levels
+        .iter()
+        .flat_map(|l| l.rows.iter())
+        .flat_map(|row| row.chars())
+        .collect();
+    for tile in &content.tiles {
+        if !used_tile_glyphs.contains(&tile.glyph) {
+            diags.push(Diagnostic::warning(
+                0,
+                format!(
+                    "tile '{}' is defined but its glyph '{}' never appears in any level",
+                    tile.name, tile.glyph
+                ),
+            ));
+        }
+    }
+
     for level in &content.levels {
         // Grid consistency.
         if level.rows.len() as u32 != level.height {
@@ -254,6 +280,63 @@ level a 1x1
             !vd.iter().any(|d| d.message.contains("never spawned")),
             "spawned prefab must not trigger unused warning"
         );
+    }
+
+    #[test]
+    fn test_unused_tile_warns() {
+        let src = "\
+tile floor . #3A3A3A
+level a 3x2
+  row ###
+  row ###
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(vd
+            .iter()
+            .any(|d| d.message.contains("never appears in any level")));
+    }
+
+    #[test]
+    fn test_painted_tile_has_no_unused_warning() {
+        let src = "\
+tile floor . #3A3A3A
+level a 3x2
+  row ...
+  row ...
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(!vd
+            .iter()
+            .any(|d| d.message.contains("never appears in any level")));
+    }
+
+    #[test]
+    fn test_unused_tile_warns_with_no_levels_at_all() {
+        // Zero levels means every glyph is trivially absent, so the tile is
+        // still reported unused.
+        let src = "tile floor . #3A3A3A\n";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(vd
+            .iter()
+            .any(|d| d.message.contains("never appears in any level")));
+    }
+
+    #[test]
+    fn test_unused_tile_warning_is_warning_not_error() {
+        let src = "\
+tile floor . #3A3A3A
+level a 3x2
+  row ###
+  row ###
+";
+        let (c, pd) = parse(src);
+        let vd = validate(&c);
+        assert!(vd.iter().any(|d| d.message.contains("never appears")));
+        assert!(vd.iter().all(|d| !d.is_error()));
+        assert!(is_loadable(&pd, &vd), "diags: {pd:?} {vd:?}");
     }
 
     #[test]
