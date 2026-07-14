@@ -9,6 +9,7 @@
 //! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`), auto-explore.
+//! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
 //! - [`replay`] — replay trace recording, desync detection and rollback, plus production desync repro bundles (`DesyncReport`).
 //! - [`dst`] — Deterministic Simulation Testing harness: seed sweeps with per-tick invariant checks, double-run nondeterminism detection, and one-line `(seed, tick)` failure reproduction.
 //! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`).
@@ -136,6 +137,7 @@ pub mod noise;
 pub mod parser;
 pub mod passability;
 pub mod pathfinding;
+pub mod plan;
 pub mod pool;
 pub mod profiler;
 pub mod progression;
@@ -241,6 +243,7 @@ pub use pathfinding::{
     is_reachable, jps, jps4, nearest_reachable, octile_distance, path_cost, path_to_direction_vec,
     smooth_path, step_toward, weighted_astar, DijkstraMap,
 };
+pub use plan::plan_inputs;
 pub use pool::Pool;
 pub use profiler::{EventLog, LogEntry, Profiler};
 pub use progression::{LevelCurve, Progression};
