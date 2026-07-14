@@ -409,17 +409,17 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | N6 | **接続成分キャッシュ**(`is_reachable` の毎回 full BFS を増分 union-find に) | Dwarf Fortress 最適化(GDC 2016) | 🟡 キャッシュ無効化が決定論に繊細 | 正しさの担保が難所 |
 | N7 | ~~**DST ハーネス**~~ **実装済み (1e45bc4)**: `dst` module — `dst_sweep`(seed 掃引 + 毎 tick 不変条件)/`dst_replay`(1行再現)/`dst_determinism_sweep`(二重実行 hash 比較で非決定性自体を検出) | Deterministic Simulation Testing の主流化(Polar Signals 2025-07 / madsim) | 🟢 | — |
 | N8 | **planning-based test kit**(goal 述語 → 到達入力列を BFS/A* で合成) | Using Planning for Automated Testing of Video Games, IJCAI 2025 | 🟢 | `resimulate` の上に構築可能 |
-| N9 | **メタモルフィックテスト群**(FOV 対称性・経路三角不等式・fixed 代数則) | MR-Coupler arXiv:2604.10126 | 🟢 | 既存 property test の拡張。proptest 生成器駆動 |
+| N9 | ~~**メタモルフィックテスト群**~~ **一部実装済み (d7fca60)**: astar cost の三角不等式 + 壁追加の単調性を追加(FOV対称性・fixed代数則は既存 property test で既にカバー済みと判明したため対象外) | MR-Coupler arXiv:2604.10126 | 🟢 | — |
 | N10 | **generator-based fuzzing**(parser/replay 向け構造化生成器 + resimulation hash oracle) | arXiv:2604.01442 / LibAFL-DiFuzz 2601.22772。既存 C8-1 | 🟢 dev-only | `cargo-fuzz` は nightly 要求 → 本 sandbox のネットワーク制約で不可。nightly 環境で |
 | N11 | **適応 input delay + t+delay lockstep**(misprediction 率追跡 → 推奨 delay) | Overwatch GDC 2017 / 1500 Archers GDC 2001 | 🟢 | `netinput` の拡張 |
 | N12 | ~~**DesyncReport 型**~~ **実装済み (9f28adf)**: `DesyncReport<I>`(divergence + subsystem 局所化 + seed + 入力窓)+ `desync_report(_labeled)` + `DesyncPolicy{Resync,Kick,Disband}`。再現十分性を end-to-end test で証明 | For Honor GDC 2019 | 🟢 | — |
 | N13 | **WFC selector フック**(collapse 順を外部最適化で操縦) | Markovian WFC, arXiv:2509.09919 | 🟢 | 重み実装で当面の質制御は達成。より高度な操縦は将来 |
 | N14 | ~~**Dijkstra map 係数合成**~~ **実装済み (4916986)**: `combine_maps(&[(&DijkstraMap, coeff)])` — 正係数=誘引・負係数=忌避、交差セマンティクス、飽和演算。「火を避けつつ接近」を descend 1回で表現 | Brogue / Brian Walker RC 2018 | 🟢 | — |
-| N15 | **孤児コンテンツ validator**(どの recipe/drop/encounter からも参照されない要素を SARIF 警告) | RC 2024-25 の content/story 生成トレンド | 🟢 | `validator.rs` + `diag_sarif` の自然な拡張 |
+| N15 | ~~**孤児コンテンツ validator**~~ **一部実装済み (7b0c407)**: 未使用 tile 警告(既存 unused-prefab パターンを glyph 参照に適用)。recipe/drop/encounter 側は未着手 | RC 2024-25 の content/story 生成トレンド | 🟢 | — |
 | N16 | **DSL `extends` オーバーレイ**(content ファイルの field 単位 override) | Bevy 0.19 BSN(patchable scenes) | 🟢(大) | パイプライン全体に関わる大きめの設計 |
 | N17 | **total_cmp ソート監査**(engine の float ソートを `f32::total_cmp`+index tie-break に) | XiSort arXiv:2505.11927 | 🟢 | engine の実ソート箇所の棚卸しが前提 |
 | N18 | **archetype storage(feature-gated)** | The Essence of ECS, SAC 2026 arXiv:2606.14919 | 🟡 反復順序に影響 → 決定論 kit には stable-order mode 必須 | ベンチ methodology は再利用可 |
-| N19 | **Fixed op 命名行列**(`checked_*`/`wrapping_*`/`overflowing_*`)+ mul/div の i128 中間 | `fixed` クレートの API 規範 | 🟢 新メソッドのみ | |
+| N19 | ~~**Fixed op 命名行列**~~ **実装済み (dd03e57)**: `checked_add/sub/mul/div`・`wrapping_add/sub`・`overflowing_add/sub`・`saturating_sub` の9メソッド。mul/div の i128 中間化は未着手 | `fixed` クレートの API 規範 | 🟢 新メソッドのみ | — |
 | N20 | **cargo feature collections**(78 module を `roguelike`/`replay`/`math` 等に粗くグループ化) | Bevy 0.18 feature collections | 🟡 feature gate が pinned hash test を割らないよう `default=full` 必須 | |
 | N21 | **crates.io Trusted Publishing + cargo-semver-checks リリース gate** | RFC 3691(2025-07 GA)/ cargo-semver-checks 2026 project goal | 📄 プロセスのみ | GH runner 上で動くので sandbox 制約は無関係。初回公開後に |
 | N22 | **観測フック(observers/hooks)**(component 挿入/削除コールバック → eventqueue) | Bevy ECS 討論 RustWeek 2025 | 🟡 ECS dispatch に触れる | |
