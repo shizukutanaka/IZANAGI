@@ -148,6 +148,62 @@ impl Fixed {
         Fixed(self.0.saturating_add(rhs.0))
     }
 
+    /// Named-method mirror of the [`Sub`](core::ops::Sub) operator (which
+    /// already saturates), added for API-matrix completeness and for generic
+    /// code that can't spell `-` — exactly like [`Fixed::saturating_add`]
+    /// mirrors [`Add`](core::ops::Add).
+    #[inline]
+    pub fn saturating_sub(self, rhs: Fixed) -> Fixed {
+        Fixed(self.0.saturating_sub(rhs.0))
+    }
+
+    /// Checked addition on the raw `i32`. Returns `None` iff the addition
+    /// would overflow `i32`, instead of the saturating behaviour of `+`.
+    #[inline]
+    pub fn checked_add(self, rhs: Fixed) -> Option<Fixed> {
+        self.0.checked_add(rhs.0).map(Fixed)
+    }
+
+    /// Checked subtraction on the raw `i32`. Returns `None` iff the
+    /// subtraction would overflow `i32`, instead of the saturating behaviour
+    /// of `-`.
+    #[inline]
+    pub fn checked_sub(self, rhs: Fixed) -> Option<Fixed> {
+        self.0.checked_sub(rhs.0).map(Fixed)
+    }
+
+    /// Wrapping addition on the raw `i32`: overflow silently wraps around
+    /// instead of saturating or panicking. Prefer `+` or
+    /// [`Fixed::saturating_add`] unless wraparound is explicitly wanted.
+    #[inline]
+    pub fn wrapping_add(self, rhs: Fixed) -> Fixed {
+        Fixed(self.0.wrapping_add(rhs.0))
+    }
+
+    /// Wrapping subtraction on the raw `i32`: overflow silently wraps around
+    /// instead of saturating or panicking. Prefer `-` or
+    /// [`Fixed::saturating_sub`] unless wraparound is explicitly wanted.
+    #[inline]
+    pub fn wrapping_sub(self, rhs: Fixed) -> Fixed {
+        Fixed(self.0.wrapping_sub(rhs.0))
+    }
+
+    /// Overflowing addition on the raw `i32`. Returns the wrapped result
+    /// alongside a `bool` that is `true` iff overflow occurred.
+    #[inline]
+    pub fn overflowing_add(self, rhs: Fixed) -> (Fixed, bool) {
+        let (v, o) = self.0.overflowing_add(rhs.0);
+        (Fixed(v), o)
+    }
+
+    /// Overflowing subtraction on the raw `i32`. Returns the wrapped result
+    /// alongside a `bool` that is `true` iff overflow occurred.
+    #[inline]
+    pub fn overflowing_sub(self, rhs: Fixed) -> (Fixed, bool) {
+        let (v, o) = self.0.overflowing_sub(rhs.0);
+        (Fixed(v), o)
+    }
+
     /// Clamps an i64 intermediate into the i32 fixed range instead of a silent
     /// truncating `as i32` (which can flip sign on overflow).
     #[inline]
@@ -173,6 +229,20 @@ impl Fixed {
         Fixed::from_wide(((self.0 as i64) * rhs.0 as i64) >> FRAC_BITS)
     }
 
+    /// Checked multiplication. Same rounding as [`Fixed::mul`] (the i64
+    /// intermediate is shifted right, i.e. floors toward -infinity), but
+    /// returns `None` instead of saturating when the exact product falls
+    /// outside the representable `i32` range.
+    #[inline]
+    pub fn checked_mul(self, rhs: Fixed) -> Option<Fixed> {
+        let wide = ((self.0 as i64) * (rhs.0 as i64)) >> FRAC_BITS;
+        if wide > i32::MAX as i64 || wide < i32::MIN as i64 {
+            None
+        } else {
+            Some(Fixed(wide as i32))
+        }
+    }
+
     /// Division. A zero divisor saturates toward the dividend's sign rather than
     /// panicking, so a stray 0 in content never crashes the sim.
     #[allow(clippy::should_implement_trait)]
@@ -186,6 +256,24 @@ impl Fixed {
             };
         }
         Fixed::from_wide(((self.0 as i64) << FRAC_BITS) / rhs.0 as i64)
+    }
+
+    /// Checked division. Same rounding as [`Fixed::div`] (the i64
+    /// intermediate is truncated toward zero by integer division), but
+    /// returns `None` instead of saturating: on a zero divisor, and on a
+    /// quotient whose exact value falls outside the representable `i32`
+    /// range.
+    #[inline]
+    pub fn checked_div(self, rhs: Fixed) -> Option<Fixed> {
+        if rhs.0 == 0 {
+            return None;
+        }
+        let wide = ((self.0 as i64) << FRAC_BITS) / rhs.0 as i64;
+        if wide > i32::MAX as i64 || wide < i32::MIN as i64 {
+            None
+        } else {
+            Some(Fixed(wide as i32))
+        }
     }
 
     /// Absolute value. `Fixed::MIN.abs()` saturates to `Fixed::MAX` (no panic).
@@ -1317,5 +1405,108 @@ mod tests {
     fn test_signum_extremes() {
         assert_eq!(Fixed::MAX.signum(), 1);
         assert_eq!(Fixed::MIN.signum(), -1);
+    }
+
+    // --- checked/wrapping/overflowing arithmetic matrix ---
+
+    #[test]
+    fn test_checked_add_normal_and_overflow() {
+        assert_eq!(
+            Fixed::from_int(2).checked_add(Fixed::from_int(3)),
+            Some(Fixed::from_int(5))
+        );
+        // i32::MAX + 1 overflows the raw i32: must be None, not a saturated Some.
+        assert_eq!(Fixed(i32::MAX).checked_add(Fixed::from_int(1)), None);
+    }
+
+    #[test]
+    fn test_checked_sub_normal_and_overflow() {
+        assert_eq!(
+            Fixed::from_int(5).checked_sub(Fixed::from_int(3)),
+            Some(Fixed::from_int(2))
+        );
+        // i32::MIN - 1 overflows the raw i32: must be None, not a saturated Some.
+        assert_eq!(Fixed(i32::MIN).checked_sub(Fixed::from_int(1)), None);
+    }
+
+    #[test]
+    fn test_saturating_sub_matches_operator_and_normal_case() {
+        assert_eq!(
+            Fixed::from_int(5).saturating_sub(Fixed::from_int(3)),
+            Fixed::from_int(2)
+        );
+        // Named method must agree exactly with the `-` operator, including at
+        // the saturating boundary.
+        let small = Fixed(i32::MIN);
+        assert_eq!(
+            small.saturating_sub(Fixed::from_int(1)),
+            small - Fixed::from_int(1)
+        );
+        assert_eq!(small.saturating_sub(Fixed::from_int(1)).raw(), i32::MIN);
+    }
+
+    #[test]
+    fn test_wrapping_add_normal_and_wraps() {
+        assert_eq!(
+            Fixed::from_int(2).wrapping_add(Fixed::from_int(3)),
+            Fixed::from_int(5)
+        );
+        // i32::MAX + 1 wraps around to i32::MIN, unlike the saturating `+`.
+        assert_eq!(Fixed(i32::MAX).wrapping_add(Fixed(1)), Fixed(i32::MIN));
+    }
+
+    #[test]
+    fn test_wrapping_sub_normal_and_wraps() {
+        assert_eq!(
+            Fixed::from_int(5).wrapping_sub(Fixed::from_int(3)),
+            Fixed::from_int(2)
+        );
+        // i32::MIN - 1 wraps around to i32::MAX, unlike the saturating `-`.
+        assert_eq!(Fixed(i32::MIN).wrapping_sub(Fixed(1)), Fixed(i32::MAX));
+    }
+
+    #[test]
+    fn test_overflowing_add_normal_and_overflow() {
+        assert_eq!(
+            Fixed::from_int(2).overflowing_add(Fixed::from_int(3)),
+            (Fixed::from_int(5), false)
+        );
+        assert_eq!(
+            Fixed(i32::MAX).overflowing_add(Fixed(1)),
+            (Fixed(i32::MIN), true)
+        );
+    }
+
+    #[test]
+    fn test_overflowing_sub_normal_and_overflow() {
+        assert_eq!(
+            Fixed::from_int(5).overflowing_sub(Fixed::from_int(3)),
+            (Fixed::from_int(2), false)
+        );
+        assert_eq!(
+            Fixed(i32::MIN).overflowing_sub(Fixed(1)),
+            (Fixed(i32::MAX), true)
+        );
+    }
+
+    #[test]
+    fn test_checked_mul_normal_and_overflow() {
+        let half = Fixed::from_ratio(1, 2);
+        assert_eq!(half.checked_mul(half), Some(Fixed::from_ratio(1, 4)));
+        let big = Fixed::from_int(30000);
+        assert_eq!(big.checked_mul(big), None);
+    }
+
+    #[test]
+    fn test_checked_div_normal_zero_and_overflow() {
+        let a = Fixed::from_int(6);
+        let b = Fixed::from_int(3);
+        assert_eq!(a.checked_div(b), Some(Fixed::from_int(2)));
+        // Zero divisor: `div` saturates by sign, `checked_div` must be None.
+        assert_eq!(Fixed::from_int(5).checked_div(Fixed::ZERO), None);
+        // MAX / 0.5 doubles the raw value past i32::MAX: `div` would saturate,
+        // `checked_div` must return None instead.
+        let half = Fixed::from_ratio(1, 2);
+        assert_eq!(Fixed(i32::MAX).checked_div(half), None);
     }
 }
