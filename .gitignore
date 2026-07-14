@@ -7,3 +7,6 @@
 Cargo.lock
 .env
 .temp/
+# Claude Code session-local state (e.g. worktree checkouts created by the
+# Workflow tool for parallel agent runs) — never part of the product.
+.claude/
