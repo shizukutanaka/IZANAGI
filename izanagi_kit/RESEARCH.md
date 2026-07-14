@@ -408,7 +408,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | N5 | **MapBuilder パイプライン**(cellular→drunkard→prefab→post-filter の合成 + `farthest_cell` で階段配置) | Wolverson RC 2020 | 🟡 新 module | 既存 4 ジェネレータの合成層。設計が要る |
 | N6 | **接続成分キャッシュ**(`is_reachable` の毎回 full BFS を増分 union-find に) | Dwarf Fortress 最適化(GDC 2016) | 🟡 キャッシュ無効化が決定論に繊細 | 正しさの担保が難所 |
 | N7 | ~~**DST ハーネス**~~ **実装済み (1e45bc4)**: `dst` module — `dst_sweep`(seed 掃引 + 毎 tick 不変条件)/`dst_replay`(1行再現)/`dst_determinism_sweep`(二重実行 hash 比較で非決定性自体を検出) | Deterministic Simulation Testing の主流化(Polar Signals 2025-07 / madsim) | 🟢 | — |
-| N8 | **planning-based test kit**(goal 述語 → 到達入力列を BFS/A* で合成) | Using Planning for Automated Testing of Video Games, IJCAI 2025 | 🟢 | `resimulate` の上に構築可能 |
+| N8 | ~~**planning-based test kit**~~ **実装済み (5ab2aa5)**: `plan` module — `plan_inputs`(goal 述語 → BFS 最短入力列合成、DetHash による状態重複排除)。`resimulate`/`dst_sweep` と同じ `Fn(&S,&I)->S` 形状で相互運用 | Using Planning for Automated Testing of Video Games, IJCAI 2025 | 🟢 | — |
 | N9 | ~~**メタモルフィックテスト群**~~ **一部実装済み (d7fca60)**: astar cost の三角不等式 + 壁追加の単調性を追加(FOV対称性・fixed代数則は既存 property test で既にカバー済みと判明したため対象外) | MR-Coupler arXiv:2604.10126 | 🟢 | — |
 | N10 | **generator-based fuzzing**(parser/replay 向け構造化生成器 + resimulation hash oracle) | arXiv:2604.01442 / LibAFL-DiFuzz 2601.22772。既存 C8-1 | 🟢 dev-only | `cargo-fuzz` は nightly 要求 → 本 sandbox のネットワーク制約で不可。nightly 環境で |
 | N11 | **適応 input delay + t+delay lockstep**(misprediction 率追跡 → 推奨 delay) | Overwatch GDC 2017 / 1500 Archers GDC 2001 | 🟢 | `netinput` の拡張 |
