@@ -1608,6 +1608,134 @@ fn prop_jps_is_deterministic() {
     }
 }
 
+/// **A* triangle inequality** — concatenating an optimal A→B path with an
+/// optimal B→C path is itself a valid (if not necessarily optimal) A→C route,
+/// so the true shortest A→C distance can only be shorter or equal:
+/// `cost(A,C) ≤ cost(A,B) + cost(B,C)`. Tested over 500 random (wall map, A,
+/// B, C) quadruples on 16×16 grids, skipping triples where any point is
+/// walled or where A→B or B→C is unreachable. If A→B and B→C are both
+/// reachable but A→C is reported unreachable, that is a real bug and not a
+/// benign skip: the concatenated route is a witness that A→C must be
+/// reachable, so `astar` would be failing to find a path that provably
+/// exists. A violation of the cost bound means `astar` is not actually
+/// finding shortest paths.
+#[test]
+fn prop_astar_cost_satisfies_triangle_inequality() {
+    let mut rng = SplitMix64::new(0x0E13_A005);
+    let mut checked = 0usize;
+
+    for _ in 0..500 {
+        let walls: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(5) == 0).collect();
+        let ax = rng.below(PATH_W as u32) as i32;
+        let ay = rng.below(PATH_H as u32) as i32;
+        let bx = rng.below(PATH_W as u32) as i32;
+        let by = rng.below(PATH_H as u32) as i32;
+        let cx = rng.below(PATH_W as u32) as i32;
+        let cy = rng.below(PATH_H as u32) as i32;
+        if walls[(ay * PATH_W + ax) as usize]
+            || walls[(by * PATH_W + bx) as usize]
+            || walls[(cy * PATH_W + cx) as usize]
+        {
+            continue;
+        }
+
+        let Some(ab) = astar((ax, ay), (bx, by), path_is_blocked(&walls)) else {
+            continue;
+        };
+        let Some(bc) = astar((bx, by), (cx, cy), path_is_blocked(&walls)) else {
+            continue;
+        };
+        let Some(ac) = astar((ax, ay), (cx, cy), path_is_blocked(&walls)) else {
+            panic!(
+                "A→C reported unreachable despite reachable A→B and B→C: \
+                 A=({ax},{ay}) B=({bx},{by}) C=({cx},{cy})"
+            );
+        };
+
+        let direct_cost = path_cost_manual(&ac);
+        let via_b_cost = path_cost_manual(&ab) + path_cost_manual(&bc);
+        assert!(
+            direct_cost <= via_b_cost,
+            "triangle inequality violated: cost(A,C)={direct_cost} > cost(A,B)+cost(B,C)={via_b_cost} \
+             for A=({ax},{ay}) B=({bx},{by}) C=({cx},{cy})"
+        );
+        checked += 1;
+    }
+
+    assert!(
+        checked >= 50,
+        "expected ≥50 triangle triples checked, got {checked}"
+    );
+}
+
+/// **A* walls-monotonicity** — walling off more cells can only make a map
+/// harder to traverse, never easier. Starting from a random `base` wall map,
+/// a `superset` is formed by adding a handful of extra walls (never on the
+/// start or goal cell). This exercises `astar` under *input mutation* rather
+/// than comparing against a second implementation (unlike the JPS/A* oracle
+/// test above), so it catches a different class of bug — e.g. a cost or
+/// open-list defect that only manifests once obstacles fragment the grid in
+/// a particular way. Two laws must hold: (1) if the harder `superset` map is
+/// still solvable, the easier `base` map must be solvable too, since every
+/// wall in `superset` is also present in `base`'s search space plus possibly
+/// more free cells; (2) when both are solvable, `base`'s shortest-path cost
+/// can only be lower or equal to `superset`'s, since adding obstacles can
+/// only lengthen or preserve the shortest route, never shorten it.
+#[test]
+fn prop_astar_adding_walls_never_decreases_cost() {
+    let mut rng = SplitMix64::new(0x0E24_B005);
+    let mut checked = 0usize;
+
+    for _ in 0..500 {
+        let base: Vec<bool> = (0..PATH_W * PATH_H).map(|_| rng.below(6) == 0).collect();
+        let sx = rng.below(PATH_W as u32) as i32;
+        let sy = rng.below(PATH_H as u32) as i32;
+        let gx = rng.below(PATH_W as u32) as i32;
+        let gy = rng.below(PATH_H as u32) as i32;
+        if base[(sy * PATH_W + sx) as usize] || base[(gy * PATH_W + gx) as usize] {
+            continue;
+        }
+
+        let mut superset = base.clone();
+        let extra_walls = 3 + rng.below(10); // 3..=12
+        for _ in 0..extra_walls {
+            let wx = rng.below(PATH_W as u32) as i32;
+            let wy = rng.below(PATH_H as u32) as i32;
+            if (wx, wy) == (sx, sy) || (wx, wy) == (gx, gy) {
+                continue;
+            }
+            superset[(wy * PATH_W + wx) as usize] = true;
+        }
+
+        let base_path = astar((sx, sy), (gx, gy), path_is_blocked(&base));
+        let super_path = astar((sx, sy), (gx, gy), path_is_blocked(&superset));
+
+        if super_path.is_some() {
+            assert!(
+                base_path.is_some(),
+                "superset is solvable but base is not for ({sx},{sy})→({gx},{gy}): \
+                 a superset of walls can only make things harder, never easier"
+            );
+        }
+
+        if let (Some(bp), Some(sp)) = (&base_path, &super_path) {
+            let base_cost = path_cost_manual(bp);
+            let super_cost = path_cost_manual(sp);
+            assert!(
+                base_cost <= super_cost,
+                "adding walls decreased shortest-path cost: base={base_cost} superset={super_cost} \
+                 for ({sx},{sy})→({gx},{gy})"
+            );
+            checked += 1;
+        }
+    }
+
+    assert!(
+        checked >= 50,
+        "expected ≥50 base/superset pairs checked, got {checked}"
+    );
+}
+
 /// **Dijkstra-map / descend monotonicity** — every cell in a Dijkstra map has a
 /// cost in `[0, max_cost]`, the source is `0`, and steepest `descend` from any
 /// mapped cell strictly decreases cost on each step and terminates at a source
