@@ -11,6 +11,7 @@
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`), auto-explore.
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
 //! - [`replay`] — replay trace recording, desync detection and rollback, plus production desync repro bundles (`DesyncReport`).
+//! - [`rollback`] — rollback-netcode building blocks: a bounded snapshot ring (`SnapshotRing`) and a GGRS-style development sync test (`sync_test`) that catches step-function nondeterminism by rolling back and re-simulating every frame.
 //! - [`dst`] — Deterministic Simulation Testing harness: seed sweeps with per-tick invariant checks, double-run nondeterminism detection, and one-line `(seed, tick)` failure reproduction.
 //! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`).
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
@@ -148,6 +149,7 @@ pub mod relations;
 pub mod replay;
 pub mod rng;
 pub mod rng_xoshiro;
+pub mod rollback;
 pub mod savefile;
 pub mod serializer;
 pub mod shop;
@@ -258,6 +260,7 @@ pub use replay::{
 };
 pub use rng::SplitMix64;
 pub use rng_xoshiro::Xoshiro256pp;
+pub use rollback::{sync_test, SnapshotRing, SyncTestFailure};
 pub use savefile::{
     estimate_save_size, load_bytes, load_bytes_migrated, load_bytes_owned, save_bytes,
     validate_integrity, LoadError, Migrator, SaveHeader,
