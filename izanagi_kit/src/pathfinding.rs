@@ -918,6 +918,140 @@ where
     astar(start, goal, is_blocked).is_some()
 }
 
+/// A precomputed connected-components labeling of a rectangular grid: build it
+/// once, then answer "can A reach B?" in **O(1)** instead of a fresh
+/// [`is_reachable`] BFS per query.
+///
+/// Dwarf Fortress found that a maintained connectivity structure beats
+/// repeatedly improving the pathfinder when the frequent question is merely
+/// *whether* two cells connect (GDC talks, 2016 onward): a monster deciding
+/// if the player is even reachable shouldn't pay for a full search every turn.
+/// [`ConnectivityMap`] labels every passable cell with a component id via a
+/// single flood fill, so `connected` is a label comparison.
+///
+/// Connectivity matches [`is_reachable`] exactly — the same 8-directional,
+/// no-corner-cutting movement rule (a diagonal link needs both shared
+/// orthogonal cells passable) — so `map.connected(a, b) == is_reachable(a, b,
+/// same_blocker)` for every in-bounds pair. Labels are assigned in row-major
+/// scan order, so the whole structure is **deterministic**: the same grid
+/// always yields the same ids.
+///
+/// It is an **immutable snapshot**. When the map changes (a door opens, a wall
+/// is dug), rebuild it — this deliberately sidesteps the incremental-cache
+/// invalidation that is easy to get subtly wrong (and non-deterministic). A
+/// rebuild is one linear flood fill.
+pub struct ConnectivityMap {
+    width: i32,
+    height: i32,
+    /// Row-major component id per cell; `-1` for blocked/impassable cells.
+    labels: Vec<i32>,
+    /// `sizes[id]` = number of cells in component `id`.
+    sizes: Vec<u32>,
+}
+
+impl ConnectivityMap {
+    /// Label the connected components of a `width × height` grid under
+    /// `is_blocked` (which must also report out-of-bounds as blocked, matching
+    /// the rest of this module). Runs one flood fill; components use the same
+    /// 8-way no-corner-cutting rule as [`astar`]/[`is_reachable`].
+    pub fn new<B>(width: u32, height: u32, mut is_blocked: B) -> Self
+    where
+        B: FnMut(i32, i32) -> bool,
+    {
+        let w = width as i32;
+        let h = height as i32;
+        let stride = width as usize;
+        let mut labels = vec![-1i32; stride.saturating_mul(height as usize)];
+        let mut sizes: Vec<u32> = Vec::new();
+        let idx = |x: i32, y: i32| y as usize * stride + x as usize;
+
+        for sy in 0..h {
+            for sx in 0..w {
+                if is_blocked(sx, sy) || labels[idx(sx, sy)] >= 0 {
+                    continue;
+                }
+                // A fresh component: flood it, all cells taking this id. The
+                // scan order fixes ids deterministically.
+                let id = sizes.len() as i32;
+                let mut count = 0u32;
+                let mut queue = std::collections::VecDeque::new();
+                labels[idx(sx, sy)] = id;
+                queue.push_back((sx, sy));
+                while let Some((cx, cy)) = queue.pop_front() {
+                    count += 1;
+                    for (dx, dy) in DIRS {
+                        let (nx, ny) = (cx + dx, cy + dy);
+                        if nx < 0 || ny < 0 || nx >= w || ny >= h || is_blocked(nx, ny) {
+                            continue;
+                        }
+                        let diagonal = dx != 0 && dy != 0;
+                        if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                            continue;
+                        }
+                        if labels[idx(nx, ny)] < 0 {
+                            labels[idx(nx, ny)] = id;
+                            queue.push_back((nx, ny));
+                        }
+                    }
+                }
+                sizes.push(count);
+            }
+        }
+        ConnectivityMap {
+            width: w,
+            height: h,
+            labels,
+            sizes,
+        }
+    }
+
+    /// The component id of `(x, y)`, or `None` if it is out of bounds or an
+    /// impassable (blocked) cell.
+    pub fn component(&self, x: i32, y: i32) -> Option<u32> {
+        if x < 0 || y < 0 || x >= self.width || y >= self.height {
+            return None;
+        }
+        let l = self.labels[y as usize * self.width as usize + x as usize];
+        if l < 0 {
+            None
+        } else {
+            Some(l as u32)
+        }
+    }
+
+    /// Whether `a` and `b` are in the same component — i.e. mutually reachable.
+    /// `false` if either is blocked or out of bounds. O(1).
+    pub fn connected(&self, a: (i32, i32), b: (i32, i32)) -> bool {
+        match (self.component(a.0, a.1), self.component(b.0, b.1)) {
+            (Some(x), Some(y)) => x == y,
+            _ => false,
+        }
+    }
+
+    /// Number of distinct components (0 for an all-blocked grid).
+    pub fn component_count(&self) -> usize {
+        self.sizes.len()
+    }
+
+    /// The number of passable cells in component `id`, or `None` if `id` is
+    /// out of range.
+    pub fn component_size(&self, id: u32) -> Option<u32> {
+        self.sizes.get(id as usize).copied()
+    }
+
+    /// The id of the largest component (most cells), or `None` if the grid has
+    /// no passable cells. Ties break toward the smallest id, so the choice is
+    /// deterministic — handy for "which region is the main map" when culling
+    /// disconnected pockets.
+    pub fn largest_component(&self) -> Option<u32> {
+        self.sizes
+            .iter()
+            .enumerate()
+            .max_by_key(|&(i, &s)| (s, core::cmp::Reverse(i)))
+            .map(|(i, _)| i as u32)
+    }
+}
+
 /// Returns `true` if every cell in `path` is passable under `is_blocked`.
 ///
 /// Use this to validate a cached path against the current map state before
@@ -1351,6 +1485,129 @@ mod tests {
             cost > 0,
             "farthest cell must be strictly beyond the entrance"
         );
+    }
+
+    // --- ConnectivityMap ---
+
+    #[test]
+    fn test_connectivity_open_grid_is_one_component() {
+        let cm = ConnectivityMap::new(6, 4, blocker(6, 4, HashSet::new()));
+        assert_eq!(cm.component_count(), 1);
+        assert_eq!(cm.component_size(0), Some(24));
+        assert!(cm.connected((0, 0), (5, 3)));
+        assert_eq!(cm.largest_component(), Some(0));
+    }
+
+    #[test]
+    fn test_connectivity_all_walls_has_no_components() {
+        let walls: HashSet<(i32, i32)> = (0..3).flat_map(|y| (0..3).map(move |x| (x, y))).collect();
+        let cm = ConnectivityMap::new(3, 3, blocker(3, 3, walls));
+        assert_eq!(cm.component_count(), 0);
+        assert_eq!(cm.component(1, 1), None);
+        assert!(!cm.connected((0, 0), (2, 2)));
+        assert_eq!(cm.largest_component(), None);
+    }
+
+    #[test]
+    fn test_connectivity_wall_splits_into_two_components() {
+        // A solid vertical wall at x=2 splits a 5x3 grid into left and right.
+        let walls: HashSet<(i32, i32)> = (0..3).map(|y| (2, y)).collect();
+        let cm = ConnectivityMap::new(5, 3, blocker(5, 3, walls));
+        assert_eq!(cm.component_count(), 2);
+        assert!(
+            cm.connected((0, 0), (1, 2)),
+            "left region internally connected"
+        );
+        assert!(
+            cm.connected((3, 0), (4, 2)),
+            "right region internally connected"
+        );
+        assert!(
+            !cm.connected((0, 0), (4, 0)),
+            "wall separates the two sides"
+        );
+        // Row-major scan labels the left region (first passable cell) as 0.
+        assert_eq!(cm.component(0, 0), Some(0));
+    }
+
+    #[test]
+    fn test_connectivity_respects_no_corner_cutting() {
+        // (0,0) and (1,1) touch only diagonally, with both shared orthogonals
+        // walled — no corner cutting, so they are NOT connected, matching
+        // is_reachable.
+        let walls = HashSet::from([(1, 0), (0, 1)]);
+        let blocked = blocker(2, 2, walls.clone());
+        let cm = ConnectivityMap::new(2, 2, blocker(2, 2, walls));
+        assert!(!cm.connected((0, 0), (1, 1)));
+        assert!(!is_reachable((0, 0), (1, 1), &blocked));
+        assert_eq!(cm.component_count(), 2);
+    }
+
+    #[test]
+    fn test_connectivity_matches_is_reachable_over_random_grids() {
+        // Oracle: connected() must agree with a fresh is_reachable BFS for
+        // every pair, over thousands of random grids.
+        let mut state: u64 = 0xC0FF_EE00_1234_5678;
+        let mut next = move || {
+            state ^= state << 13;
+            state ^= state >> 7;
+            state ^= state << 17;
+            state
+        };
+        let mut checked = 0u32;
+        for _ in 0..400 {
+            let w = 4 + (next() % 8) as i32;
+            let h = 4 + (next() % 8) as i32;
+            let density = next() % 55;
+            let mut walls = HashSet::new();
+            for y in 0..h {
+                for x in 0..w {
+                    if next() % 100 < density {
+                        walls.insert((x, y));
+                    }
+                }
+            }
+            let cm = ConnectivityMap::new(w as u32, h as u32, blocker(w, h, walls.clone()));
+            // Compare several random pairs against the is_reachable oracle.
+            for _ in 0..6 {
+                let a = ((next() % w as u64) as i32, (next() % h as u64) as i32);
+                let b = ((next() % w as u64) as i32, (next() % h as u64) as i32);
+                let expect = is_reachable(a, b, blocker(w, h, walls.clone()));
+                assert_eq!(
+                    cm.connected(a, b),
+                    expect,
+                    "connected({a:?},{b:?}) disagreed with is_reachable on w={w} h={h}"
+                );
+                checked += 1;
+            }
+        }
+        assert!(
+            checked >= 2400,
+            "expected >= 2400 pair checks, got {checked}"
+        );
+    }
+
+    #[test]
+    fn test_connectivity_is_deterministic() {
+        let walls = HashSet::from([(2, 0), (2, 1), (2, 2), (5, 3)]);
+        let a = ConnectivityMap::new(8, 6, blocker(8, 6, walls.clone()));
+        let b = ConnectivityMap::new(8, 6, blocker(8, 6, walls));
+        assert_eq!(a.component_count(), b.component_count());
+        for y in 0..6 {
+            for x in 0..8 {
+                assert_eq!(a.component(x, y), b.component(x, y), "label at ({x},{y})");
+            }
+        }
+    }
+
+    #[test]
+    fn test_connectivity_largest_component_ties_to_smallest_id() {
+        // Two equal-size regions split by a wall column: largest_component
+        // must deterministically return the lower id (0), not an arbitrary one.
+        let walls: HashSet<(i32, i32)> = (0..3).map(|y| (2, y)).collect();
+        let cm = ConnectivityMap::new(5, 3, blocker(5, 3, walls));
+        assert_eq!(cm.component_size(0), cm.component_size(1));
+        assert_eq!(cm.largest_component(), Some(0));
     }
 
     #[test]
