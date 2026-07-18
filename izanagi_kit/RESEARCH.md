@@ -411,7 +411,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | N8 | ~~**planning-based test kit**~~ **実装済み (5ab2aa5)**: `plan` module — `plan_inputs`(goal 述語 → BFS 最短入力列合成、DetHash による状態重複排除)。`resimulate`/`dst_sweep` と同じ `Fn(&S,&I)->S` 形状で相互運用 | Using Planning for Automated Testing of Video Games, IJCAI 2025 | 🟢 | — |
 | N9 | ~~**メタモルフィックテスト群**~~ **一部実装済み (d7fca60)**: astar cost の三角不等式 + 壁追加の単調性を追加(FOV対称性・fixed代数則は既存 property test で既にカバー済みと判明したため対象外) | MR-Coupler arXiv:2604.10126 | 🟢 | — |
 | N10 | **generator-based fuzzing**(parser/replay 向け構造化生成器 + resimulation hash oracle) | arXiv:2604.01442 / LibAFL-DiFuzz 2601.22772。既存 C8-1 | 🟢 dev-only | `cargo-fuzz` は nightly 要求 → 本 sandbox のネットワーク制約で不可。nightly 環境で |
-| N11 | **適応 input delay + t+delay lockstep**(misprediction 率追跡 → 推奨 delay) | Overwatch GDC 2017 / 1500 Archers GDC 2001 | 🟢 | `netinput` の拡張 |
+| N11 | ~~**適応 input delay**~~ **一部実装済み**: `netinput::AdaptiveDelay` — misprediction 率(整数‰)を窓で追跡しヒステリシス帯で推奨 delay を増減。`confirm` の misprediction bool を供給。t+delay lockstep ヘルパは未着手 | Overwatch GDC 2017 / 1500 Archers GDC 2001 | 🟢 | — |
 | N12 | ~~**DesyncReport 型**~~ **実装済み (9f28adf)**: `DesyncReport<I>`(divergence + subsystem 局所化 + seed + 入力窓)+ `desync_report(_labeled)` + `DesyncPolicy{Resync,Kick,Disband}`。再現十分性を end-to-end test で証明 | For Honor GDC 2019 | 🟢 | — |
 | N13 | **WFC selector フック**(collapse 順を外部最適化で操縦) | Markovian WFC, arXiv:2509.09919 | 🟢 | 重み実装で当面の質制御は達成。より高度な操縦は将来 |
 | N14 | ~~**Dijkstra map 係数合成**~~ **実装済み (4916986)**: `combine_maps(&[(&DijkstraMap, coeff)])` — 正係数=誘引・負係数=忌避、交差セマンティクス、飽和演算。「火を避けつつ接近」を descend 1回で表現 | Brogue / Brian Walker RC 2018 | 🟢 | — |
