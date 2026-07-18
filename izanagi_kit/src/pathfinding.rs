@@ -635,6 +635,46 @@ where
     dist
 }
 
+/// The reachable cell **farthest** (greatest path cost) from `sources`, with
+/// that cost — the canonical "place the down-stairs as far from the entrance
+/// as possible" primitive (Brian Walker's Dijkstra-map technique, Roguelike
+/// Celebration 2018; the stair-placement step of a Wolverson-style map builder).
+///
+/// Runs one [`dijkstra_map`] from `sources` bounded by `max_cost`, then takes
+/// the argmax. Ties (several cells equidistant at the maximum) break by
+/// row-major order — smallest `(y, x)` — so the choice is **deterministic**
+/// regardless of the underlying map's iteration order. Returns `None` only
+/// when no cell is reachable (every source blocked, or `sources` empty);
+/// otherwise at least the nearest source itself is present at cost 0.
+///
+/// `is_blocked` must report walls and out-of-bounds. Drops straight onto a
+/// [`crate::mapgen::Dungeon`] via `|x, y| dungeon.is_wall(x, y)`: pass the
+/// entrance/up-stairs as the sole source and the result is where the
+/// down-stairs (or the boss, or the best loot) should go.
+pub fn farthest_cell<B>(
+    sources: &[(i32, i32)],
+    max_cost: i32,
+    is_blocked: B,
+) -> Option<((i32, i32), i32)>
+where
+    B: FnMut(i32, i32) -> bool,
+{
+    let dist = dijkstra_map(sources, max_cost, is_blocked);
+    let mut best: Option<((i32, i32), i32)> = None;
+    for (&(x, y), &cost) in &dist {
+        let better = match best {
+            None => true,
+            // Strictly farther wins; on a tie the row-major-earliest cell wins,
+            // a total order independent of HashMap iteration order.
+            Some((bcell, bcost)) => cost > bcost || (cost == bcost && (y, x) < (bcell.1, bcell.0)),
+        };
+        if better {
+            best = Some(((x, y), cost));
+        }
+    }
+    best
+}
+
 /// One step of steepest descent down a [`dijkstra_map`] — the passable
 /// neighbour with the lowest cost strictly below `from`'s. Returns `None` at a
 /// source, a local minimum, or a cell absent from the map. Useful for chase /
@@ -1235,6 +1275,82 @@ mod tests {
         assert_eq!(map[&(10, 0)], 0);
         assert_eq!(map[&(2, 0)], 2 * COST_ORTHO); // nearer to (0,0)
         assert_eq!(map[&(8, 0)], 2 * COST_ORTHO); // nearer to (10,0)
+    }
+
+    #[test]
+    fn test_farthest_cell_on_open_grid_is_a_corner() {
+        // From the top-left corner of an open grid, the farthest reachable
+        // cell is the opposite corner; with the row-major tie-break the
+        // reported cell is deterministic.
+        let (w, h) = (6, 4);
+        let (cell, cost) =
+            farthest_cell(&[(0, 0)], 100_000, blocker(w, h, HashSet::new())).unwrap();
+        assert_eq!(cell, (5, 3), "opposite corner is farthest");
+        // 3 diagonal steps then 2 orthogonal to reach (5,3).
+        assert_eq!(cost, 3 * COST_DIAG + 2 * COST_ORTHO);
+    }
+
+    #[test]
+    fn test_farthest_cell_none_when_unreachable() {
+        // Source is walled in on all sides: only the source itself is
+        // reachable, at cost 0.
+        let walls = HashSet::from([(1, 0), (0, 1), (1, 1)]);
+        let (cell, cost) = farthest_cell(&[(0, 0)], 100_000, blocker(4, 4, walls)).unwrap();
+        assert_eq!(cell, (0, 0));
+        assert_eq!(cost, 0);
+        // A blocked source yields nothing reachable at all.
+        let walled = HashSet::from([(0, 0)]);
+        assert!(farthest_cell(&[(0, 0)], 100_000, blocker(4, 4, walled)).is_none());
+    }
+
+    #[test]
+    fn test_farthest_cell_empty_sources_is_none() {
+        assert!(farthest_cell(&[], 100_000, blocker(4, 4, HashSet::new())).is_none());
+    }
+
+    #[test]
+    fn test_farthest_cell_matches_dijkstra_argmax_and_is_deterministic() {
+        // Cross-check against a manual argmax over the full dijkstra_map, with
+        // the same row-major tie-break, over a walled grid.
+        let walls = HashSet::from([(3, 1), (3, 2), (3, 3), (3, 4)]);
+        let (w, h) = (10, 8);
+        let blocked = blocker(w, h, walls);
+        let map = dijkstra_map(&[(1, 1)], 100_000, &blocked);
+        let mut expect: Option<((i32, i32), i32)> = None;
+        for (&(x, y), &c) in &map {
+            let better = match expect {
+                None => true,
+                Some((bc, bcost)) => c > bcost || (c == bcost && (y, x) < (bc.1, bc.0)),
+            };
+            if better {
+                expect = Some(((x, y), c));
+            }
+        }
+        let got = farthest_cell(&[(1, 1)], 100_000, &blocked);
+        assert_eq!(got, expect);
+        // Deterministic across repeated calls.
+        assert_eq!(got, farthest_cell(&[(1, 1)], 100_000, &blocked));
+    }
+
+    #[test]
+    fn test_farthest_cell_places_stairs_far_from_entrance_in_a_dungeon() {
+        // The intended use: farthest reachable floor cell from the entrance is
+        // where the down-stairs go. Build a deterministic dungeon and confirm
+        // the result is a floor cell strictly farther than the entrance.
+        use crate::mapgen::{generate_dungeon, GenParams};
+        use crate::rng::SplitMix64;
+        let mut rng = SplitMix64::new(0xDEAD_BEEF);
+        let d = generate_dungeon(48, 32, &mut rng, GenParams::default());
+        let entrance = d.floor_cells()[0];
+        let (stairs, cost) = farthest_cell(&[entrance], 1_000_000, |x, y| d.is_wall(x, y)).unwrap();
+        assert!(
+            d.is_floor(stairs.0, stairs.1),
+            "stairs must be on a floor cell"
+        );
+        assert!(
+            cost > 0,
+            "farthest cell must be strictly beyond the entrance"
+        );
     }
 
     #[test]
