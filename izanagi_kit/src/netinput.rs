@@ -55,7 +55,7 @@
 //!   tracks the predict/confirm bookkeeping and flags mispredictions.
 
 use crate::world_hash::{DetHash, Fnv1a};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 /// Tracks per-tick, per-player inputs for a deterministic multiplayer
 /// simulation: confirmed ground truth, in-flight predictions, and each
@@ -201,6 +201,163 @@ impl<P: Ord + Clone + DetHash, I: Clone + PartialEq + DetHash> DetHash for NetIn
             player.det_hash(hasher);
             input.det_hash(hasher);
         }
+    }
+}
+
+/// Adaptive input-delay controller: turns [`NetInputBuffer`]'s misprediction
+/// signal into a recommended **input delay** (how many frames to buffer local
+/// input before simulating it).
+///
+/// Overwatch's netcode (Tim Ford & Philip Orwig, GDC 2017) tunes this delay to
+/// the connection instead of fixing it: a higher delay buffers more input so
+/// fewer predictions are ever needed (fewer rollbacks, smoother remote motion)
+/// at the cost of local input latency; a lower delay is snappier but rolls
+/// back more when the network is jittery. The right value tracks how often
+/// predictions are actually wrong.
+///
+/// Feed each [`confirm`](NetInputBuffer::confirm) result in:
+///
+/// ```
+/// use izanagi_kit::netinput::{NetInputBuffer, AdaptiveDelay};
+///
+/// let mut buf: NetInputBuffer<u8, i32> = NetInputBuffer::new();
+/// let mut delay = AdaptiveDelay::new(2, 8, 4); // delay in [2, 8] frames, 4-sample window
+/// buf.seed(1, 0);
+/// # let mut tick = 0;
+/// # for _ in 0..4 {
+/// let guessed = buf.input_for(tick, 1);
+/// // ... later, the real input arrives ...
+/// let mispredicted = buf.confirm(tick, 1, 0);
+/// delay.record(mispredicted);
+/// # tick += 1;
+/// # }
+/// let frames_to_buffer = delay.recommended_delay();
+/// ```
+///
+/// **Determinism & hysteresis.** The controller is integer-only (misprediction
+/// rate in parts-per-thousand, no float), so its output is reproducible across
+/// targets. It re-evaluates only once its sample window is full, and uses a
+/// hysteresis band — the delay rises by one frame when the rate is at/above
+/// `raise_permille`, falls by one when at/below `lower_permille`, and holds
+/// steady in between — so a rate hovering near one threshold cannot make the
+/// delay oscillate every frame. The recommendation is advisory metadata, not
+/// simulation state: like [`NetInputBuffer`]'s `predicted` map it should not
+/// feed the world hash (two peers with different connections will legitimately
+/// choose different delays).
+#[derive(Clone, Debug)]
+pub struct AdaptiveDelay {
+    window: VecDeque<bool>,
+    window_cap: usize,
+    misses: usize,
+    delay: u32,
+    min_delay: u32,
+    max_delay: u32,
+    lower_permille: u32,
+    raise_permille: u32,
+}
+
+impl AdaptiveDelay {
+    /// Default rate (‰) at/below which the delay is lowered by one frame.
+    pub const DEFAULT_LOWER_PERMILLE: u32 = 50;
+    /// Default rate (‰) at/above which the delay is raised by one frame.
+    pub const DEFAULT_RAISE_PERMILLE: u32 = 250;
+
+    /// Controller recommending a delay in `[min_delay, max_delay]`, measuring
+    /// the misprediction rate over the most recent `window_cap` samples, with
+    /// the default hysteresis thresholds ([`Self::DEFAULT_LOWER_PERMILLE`] /
+    /// [`Self::DEFAULT_RAISE_PERMILLE`]). Starts at `min_delay`. Panics if
+    /// `min_delay > max_delay` or `window_cap == 0`.
+    pub fn new(min_delay: u32, max_delay: u32, window_cap: usize) -> Self {
+        Self::with_thresholds(
+            min_delay,
+            max_delay,
+            window_cap,
+            Self::DEFAULT_LOWER_PERMILLE,
+            Self::DEFAULT_RAISE_PERMILLE,
+        )
+    }
+
+    /// [`Self::new`] with explicit hysteresis thresholds (parts-per-thousand).
+    /// Panics if `min_delay > max_delay`, `window_cap == 0`, or
+    /// `lower_permille > raise_permille` (an inverted band).
+    pub fn with_thresholds(
+        min_delay: u32,
+        max_delay: u32,
+        window_cap: usize,
+        lower_permille: u32,
+        raise_permille: u32,
+    ) -> Self {
+        assert!(min_delay <= max_delay, "min_delay must be <= max_delay");
+        assert!(window_cap > 0, "window_cap must be > 0");
+        assert!(
+            lower_permille <= raise_permille,
+            "lower_permille must be <= raise_permille"
+        );
+        AdaptiveDelay {
+            window: VecDeque::with_capacity(window_cap),
+            window_cap,
+            misses: 0,
+            delay: min_delay,
+            min_delay,
+            max_delay,
+            lower_permille,
+            raise_permille,
+        }
+    }
+
+    /// Record one prediction outcome (`true` = the confirmed input contradicted
+    /// the prediction — pass the `bool` returned by
+    /// [`NetInputBuffer::confirm`]). Once the sample window is full this
+    /// re-evaluates the recommended delay: +1 frame if the windowed
+    /// misprediction rate is at/above `raise_permille` (and below `max_delay`),
+    /// −1 if at/below `lower_permille` (and above `min_delay`), unchanged
+    /// otherwise. At most one frame of change per call, so the recommendation
+    /// moves smoothly.
+    pub fn record(&mut self, mispredicted: bool) {
+        // `pop_front` runs only when the window is full (short-circuit), so
+        // this eviction is equivalent to the nested form.
+        if self.window.len() == self.window_cap && self.window.pop_front() == Some(true) {
+            self.misses -= 1;
+        }
+        self.window.push_back(mispredicted);
+        if mispredicted {
+            self.misses += 1;
+        }
+
+        if self.window.len() == self.window_cap {
+            let rate = self.misprediction_permille();
+            if rate >= self.raise_permille && self.delay < self.max_delay {
+                self.delay += 1;
+            } else if rate <= self.lower_permille && self.delay > self.min_delay {
+                self.delay -= 1;
+            }
+        }
+    }
+
+    /// The current recommended input delay in frames, always within
+    /// `[min_delay, max_delay]`.
+    pub fn recommended_delay(&self) -> u32 {
+        self.delay
+    }
+
+    /// The misprediction rate over the current window, in parts-per-thousand
+    /// (`0..=1000`). `0` when no samples have been recorded yet.
+    pub fn misprediction_permille(&self) -> u32 {
+        if self.window.is_empty() {
+            0
+        } else {
+            (self.misses * 1000 / self.window.len()) as u32
+        }
+    }
+
+    /// Number of samples currently in the window (`<= window_cap`).
+    pub fn sample_count(&self) -> usize {
+        self.window.len()
+    }
+
+    /// The configured delay bounds, `(min, max)`.
+    pub fn bounds(&self) -> (u32, u32) {
+        (self.min_delay, self.max_delay)
     }
 }
 
@@ -453,5 +610,142 @@ mod tests {
             hash_state(&b),
             "confirmation order does not affect the hash"
         );
+    }
+
+    // --- AdaptiveDelay ---
+
+    #[test]
+    fn test_adaptive_delay_starts_at_min() {
+        let d = AdaptiveDelay::new(2, 8, 4);
+        assert_eq!(d.recommended_delay(), 2);
+        assert_eq!(d.sample_count(), 0);
+        assert_eq!(d.misprediction_permille(), 0);
+        assert_eq!(d.bounds(), (2, 8));
+    }
+
+    #[test]
+    fn test_adaptive_delay_no_change_until_window_full() {
+        let mut d = AdaptiveDelay::new(2, 8, 4);
+        // Three all-miss samples, but the 4-slot window isn't full yet.
+        for _ in 0..3 {
+            d.record(true);
+        }
+        assert_eq!(
+            d.recommended_delay(),
+            2,
+            "no adjustment before window fills"
+        );
+        // Fourth sample fills the window → 100% miss rate → raise by one.
+        d.record(true);
+        assert_eq!(d.recommended_delay(), 3);
+    }
+
+    #[test]
+    fn test_adaptive_delay_raises_under_high_misprediction() {
+        let mut d = AdaptiveDelay::new(0, 5, 4);
+        // Sustained 100% misprediction climbs to max, one frame per full window.
+        for _ in 0..40 {
+            d.record(true);
+        }
+        assert_eq!(d.recommended_delay(), 5, "clamps at max_delay");
+        assert_eq!(d.misprediction_permille(), 1000);
+    }
+
+    #[test]
+    fn test_adaptive_delay_lowers_under_clean_prediction() {
+        let mut d = AdaptiveDelay::new(1, 6, 4);
+        // Drive it up first.
+        for _ in 0..40 {
+            d.record(true);
+        }
+        assert_eq!(d.recommended_delay(), 6);
+        // Then a clean streak walks it back down to the floor.
+        for _ in 0..40 {
+            d.record(false);
+        }
+        assert_eq!(d.recommended_delay(), 1, "clamps at min_delay");
+        assert_eq!(d.misprediction_permille(), 0);
+    }
+
+    #[test]
+    fn test_adaptive_delay_holds_in_hysteresis_band() {
+        // Band is (lower 50‰, raise 250‰). A steady 25% (250‰) rate sits
+        // exactly on the raise threshold, so keep the rate strictly between:
+        // 1 miss in 10 = 100‰, inside the band → delay must hold.
+        let mut d = AdaptiveDelay::with_thresholds(3, 7, 10, 50, 250);
+        for i in 0..100 {
+            d.record(i % 10 == 0); // exactly 1 miss per 10 samples → 100‰
+        }
+        assert_eq!(d.misprediction_permille(), 100);
+        assert_eq!(
+            d.recommended_delay(),
+            3,
+            "100‰ is inside (50, 250) → no change"
+        );
+    }
+
+    #[test]
+    fn test_adaptive_delay_permille_tracks_window_contents() {
+        let mut d = AdaptiveDelay::new(0, 10, 4);
+        d.record(true);
+        d.record(false);
+        d.record(true);
+        d.record(false); // window: T,F,T,F → 2/4 = 500‰
+        assert_eq!(d.misprediction_permille(), 500);
+        // Slide in four clean samples, fully evicting both misses.
+        for _ in 0..4 {
+            d.record(false); // window eventually F,F,F,F → 0‰
+        }
+        assert_eq!(d.misprediction_permille(), 0);
+    }
+
+    #[test]
+    fn test_adaptive_delay_is_deterministic() {
+        let run = || {
+            let mut d = AdaptiveDelay::new(1, 9, 6);
+            for i in 0..200u32 {
+                d.record(i % 3 == 0);
+            }
+            (d.recommended_delay(), d.misprediction_permille())
+        };
+        assert_eq!(run(), run());
+    }
+
+    #[test]
+    fn test_adaptive_delay_integrates_with_netinput_confirm() {
+        // The intended wiring: feed confirm()'s misprediction bool into the
+        // controller. A jittery player whose inputs keep contradicting the
+        // prediction should push the recommended delay up.
+        let mut buf: NetInputBuffer<u8, i32> = NetInputBuffer::new();
+        let mut d = AdaptiveDelay::new(1, 6, 4);
+        buf.seed(1, 0);
+        for tick in 0..40 {
+            buf.input_for(tick, 1); // predicts last_known
+            let value = if tick % 2 == 0 { 1 } else { 0 }; // always flips → always mispredicts
+            let missed = buf.confirm(tick, 1, value);
+            d.record(missed);
+        }
+        assert!(
+            d.recommended_delay() > 1,
+            "sustained misprediction must raise the delay above the floor"
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "min_delay must be <= max_delay")]
+    fn test_adaptive_delay_rejects_inverted_bounds() {
+        let _ = AdaptiveDelay::new(5, 2, 4);
+    }
+
+    #[test]
+    #[should_panic(expected = "window_cap must be > 0")]
+    fn test_adaptive_delay_rejects_zero_window() {
+        let _ = AdaptiveDelay::new(0, 4, 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "lower_permille must be <= raise_permille")]
+    fn test_adaptive_delay_rejects_inverted_band() {
+        let _ = AdaptiveDelay::with_thresholds(0, 4, 4, 300, 100);
     }
 }
