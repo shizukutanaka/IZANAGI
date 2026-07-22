@@ -413,7 +413,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | N10 | **generator-based fuzzing**(parser/replay 向け構造化生成器 + resimulation hash oracle) | arXiv:2604.01442 / LibAFL-DiFuzz 2601.22772。既存 C8-1 | 🟢 dev-only | `cargo-fuzz` は nightly 要求 → 本 sandbox のネットワーク制約で不可。nightly 環境で |
 | N11 | ~~**適応 input delay**~~ **一部実装済み**: `netinput::AdaptiveDelay` — misprediction 率(整数‰)を窓で追跡しヒステリシス帯で推奨 delay を増減。`confirm` の misprediction bool を供給。t+delay lockstep ヘルパは未着手 | Overwatch GDC 2017 / 1500 Archers GDC 2001 | 🟢 | — |
 | N12 | ~~**DesyncReport 型**~~ **実装済み (9f28adf)**: `DesyncReport<I>`(divergence + subsystem 局所化 + seed + 入力窓)+ `desync_report(_labeled)` + `DesyncPolicy{Resync,Kick,Disband}`。再現十分性を end-to-end test で証明 | For Honor GDC 2019 | 🟢 | — |
-| N13 | **WFC selector フック**(collapse 順を外部最適化で操縦) | Markovian WFC, arXiv:2509.09919 | 🟢 | 重み実装で当面の質制御は達成。より高度な操縦は将来 |
+| N13 | ~~**WFC selector フック**~~ **実装済み**: `wfc::CellSelector` トレイト + `wfc_solve_with_selector` + 既定 `LowestEntropySelector`(現行 collapse 選択と bit 一致、200 seed の等価テスト + RNG ストリーム整合テストで証明)。collapse 順を外部から操縦可能に | Markovian WFC, arXiv:2509.09919 | 🟢 | — |
 | N14 | ~~**Dijkstra map 係数合成**~~ **実装済み (4916986)**: `combine_maps(&[(&DijkstraMap, coeff)])` — 正係数=誘引・負係数=忌避、交差セマンティクス、飽和演算。「火を避けつつ接近」を descend 1回で表現 | Brogue / Brian Walker RC 2018 | 🟢 | — |
 | N15 | ~~**孤児コンテンツ validator**~~ **一部実装済み (7b0c407)**: 未使用 tile 警告(既存 unused-prefab パターンを glyph 参照に適用)。recipe/drop/encounter 側は未着手 | RC 2024-25 の content/story 生成トレンド | 🟢 | — |
 | N16 | **DSL `extends` オーバーレイ**(content ファイルの field 単位 override) | Bevy 0.19 BSN(patchable scenes) | 🟢(大) | パイプライン全体に関わる大きめの設計 |
