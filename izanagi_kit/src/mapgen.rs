@@ -301,6 +301,60 @@ impl Dungeon {
         rng.pick(&cells).copied()
     }
 
+    /// Wall off every floor cell that is not part of the **largest connected
+    /// region**, leaving a single fully-connected floor area. Returns the
+    /// number of cells converted to wall.
+    ///
+    /// The post-filter step of a Wolverson-style map-builder pipeline
+    /// (Roguelike Celebration 2020): generators like [`generate_cave`] readily
+    /// produce isolated pockets a player can never reach, and stamping in
+    /// prefabs or extra rooms can strand areas. Running this guarantees that
+    /// [`crate::pathfinding::is_reachable`] holds between *any* two remaining
+    /// floor cells.
+    ///
+    /// Connectivity uses the same 8-directional, no-corner-cutting rule as the
+    /// pathfinding module (via [`crate::pathfinding::ConnectivityMap`]), so the
+    /// kept region matches exactly what the pathfinder considers traversable.
+    /// Ties for "largest" break toward the lowest component id (row-major
+    /// earliest), so the result is deterministic. Rooms whose centre is no
+    /// longer floor afterwards are dropped from [`rooms`](Self::rooms) to keep
+    /// the room list consistent with the grid. An all-wall or single-region
+    /// dungeon is left unchanged (returns 0).
+    pub fn keep_largest_region(&mut self) -> usize {
+        let cm = crate::pathfinding::ConnectivityMap::new(self.width, self.height, |x, y| {
+            self.is_wall(x, y)
+        });
+        let keep = match cm.largest_component() {
+            Some(id) => id,
+            None => return 0, // no floor at all
+        };
+        let mut filled = 0usize;
+        for y in 0..self.height as i32 {
+            for x in 0..self.width as i32 {
+                // Fill any floor cell that belongs to a different component.
+                if matches!(cm.component(x, y), Some(c) if c != keep) {
+                    self.tiles[(y as u32 * self.width + x as u32) as usize] = true;
+                    filled += 1;
+                }
+            }
+        }
+        if filled > 0 {
+            // Drop rooms whose centre is no longer floor (their region was
+            // culled), keeping the room list consistent with the grid.
+            let (w, h) = (self.width, self.height);
+            let tiles = &self.tiles;
+            self.rooms.retain(|r| {
+                let (cx, cy) = r.center();
+                cx >= 0
+                    && cy >= 0
+                    && (cx as u32) < w
+                    && (cy as u32) < h
+                    && !tiles[(cy as u32 * w + cx as u32) as usize]
+            });
+        }
+        filled
+    }
+
     #[inline]
     fn carve(&mut self, x: i32, y: i32) {
         if self.in_bounds(x, y) {
@@ -1526,5 +1580,123 @@ mod tests {
         if with_loops.rooms.len() < 3 {
             assert_eq!(with_loops, without, "loop phase is a no-op below 3 rooms");
         }
+    }
+
+    // --- keep_largest_region ---
+
+    /// Every floor cell reachable from every other floor cell (8-way, no corner
+    /// cutting), via the pathfinding oracle — the guarantee keep_largest_region
+    /// must establish.
+    fn all_floor_mutually_reachable(d: &Dungeon) -> bool {
+        let floors = d.floor_cells();
+        let Some(&first) = floors.first() else {
+            return true; // vacuously true: no floor
+        };
+        floors
+            .iter()
+            .all(|&c| crate::pathfinding::is_reachable(first, c, |x, y| d.is_wall(x, y)))
+    }
+
+    #[test]
+    fn test_keep_largest_region_makes_map_fully_connected() {
+        // Caves routinely have isolated pockets; after the filter every
+        // remaining floor cell must be mutually reachable.
+        for seed in 0..30u64 {
+            let mut rng = SplitMix64::new(0xCA7E_0000 + seed);
+            let mut d = generate_cave(48, 32, &mut rng, CaveParams::default());
+            d.keep_largest_region();
+            assert!(
+                all_floor_mutually_reachable(&d),
+                "seed {seed}: floor not fully connected after keep_largest_region"
+            );
+        }
+    }
+
+    #[test]
+    fn test_keep_largest_region_hand_built_two_pockets() {
+        // A 5x1 strip split by a wall into a 2-cell region and a 2-cell region;
+        // the larger-or-equal one (lowest id = leftmost) is kept.
+        // Layout: floor floor WALL floor floor  → two 2-cell regions, tie → keep id 0 (left).
+        let mut d = Dungeon::filled(5, 1);
+        d.carve(0, 0);
+        d.carve(1, 0);
+        d.carve(3, 0);
+        d.carve(4, 0);
+        // both regions size 2 → tie broken toward lowest id (left region).
+        let filled = d.keep_largest_region();
+        assert_eq!(filled, 2, "the non-kept 2-cell region is walled off");
+        assert!(d.is_floor(0, 0) && d.is_floor(1, 0), "left region kept");
+        assert!(d.is_wall(3, 0) && d.is_wall(4, 0), "right region culled");
+    }
+
+    #[test]
+    fn test_keep_largest_region_keeps_strictly_larger_region() {
+        // Left region 1 cell, right region 3 cells → the 3-cell region wins.
+        let mut d = Dungeon::filled(6, 1);
+        d.carve(0, 0); // lone cell
+        d.carve(2, 0);
+        d.carve(3, 0);
+        d.carve(4, 0); // 3-cell region
+        let filled = d.keep_largest_region();
+        assert_eq!(filled, 1, "the lone cell is culled");
+        assert!(d.is_wall(0, 0));
+        assert!(d.is_floor(2, 0) && d.is_floor(3, 0) && d.is_floor(4, 0));
+    }
+
+    #[test]
+    fn test_keep_largest_region_already_connected_is_noop() {
+        let mut rng = SplitMix64::new(7);
+        let mut d = generate_drunkard(40, 25, &mut rng, DrunkardParams::default());
+        assert!(drunkard_is_connected(&d), "drunkard is already connected");
+        let before = d.clone();
+        let filled = d.keep_largest_region();
+        assert_eq!(filled, 0, "a single-region map is unchanged");
+        assert_eq!(d, before, "byte-identical when nothing to cull");
+    }
+
+    #[test]
+    fn test_keep_largest_region_all_wall_is_noop() {
+        let mut d = Dungeon::filled(8, 8);
+        assert_eq!(d.keep_largest_region(), 0, "no floor → nothing to do");
+    }
+
+    #[test]
+    fn test_keep_largest_region_is_deterministic() {
+        let build = || {
+            let mut rng = SplitMix64::new(0xBEEF);
+            let mut d = generate_cave(40, 30, &mut rng, CaveParams::default());
+            d.keep_largest_region();
+            d
+        };
+        assert_eq!(build(), build());
+    }
+
+    #[test]
+    fn test_keep_largest_region_drops_culled_rooms() {
+        // Two rooms far apart with NO connecting corridor, hand-built so one
+        // region is strictly larger. The room in the culled region must be
+        // removed from the room list.
+        let mut d = Dungeon::filled(20, 5);
+        let big = Rect {
+            x: 1,
+            y: 1,
+            w: 6,
+            h: 3,
+        };
+        let small = Rect {
+            x: 15,
+            y: 1,
+            w: 2,
+            h: 2,
+        };
+        d.carve_room(&big);
+        d.carve_room(&small);
+        d.rooms.push(big);
+        d.rooms.push(small);
+        assert_eq!(d.rooms.len(), 2);
+        let filled = d.keep_largest_region();
+        assert!(filled > 0, "the small isolated room is culled");
+        assert_eq!(d.rooms.len(), 1, "the culled room is dropped from the list");
+        assert_eq!(d.rooms[0], big, "the surviving room is the large one");
     }
 }
