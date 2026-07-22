@@ -477,6 +477,130 @@ pub fn wfc_solve(width: i32, height: i32, rules: &WfcRules, rng: &mut SplitMix64
     }
 }
 
+/// Chooses which cell WFC collapses next — the "observe" step's cell-selection
+/// heuristic, made pluggable (Markovian WFC, arXiv:2509.09919: steering the
+/// collapse order is what lets an external policy shape the output beyond what
+/// adjacency rules and tile weights alone can express).
+///
+/// Given the per-cell entropy (possibility count) in row-major order, return
+/// the index of the next cell to collapse, or `None` to stop (which the solver
+/// treats as "done" — every remaining cell must already be collapsed). The
+/// selected index **must** name a cell with entropy `> 1`; returning an index
+/// whose entropy is `0` or `1`, or out of range, makes
+/// [`wfc_solve_with_selector`] return [`WfcResult::Contradiction`] rather than
+/// risk a non-terminating loop.
+///
+/// Implementations should be deterministic in their inputs so the whole solve
+/// stays replay-safe; [`LowestEntropySelector`] (the built-in default) is.
+pub trait CellSelector {
+    /// Pick the next cell index to collapse from `entropies` (possibility
+    /// count per cell, row-major; `grid_width`/`grid_height` give the layout),
+    /// or `None` when no uncollapsed cell should be chosen.
+    fn select(&mut self, entropies: &[u32], grid_width: i32, grid_height: i32) -> Option<usize>;
+}
+
+/// The default cell-selection heuristic: the classic WFC "minimum remaining
+/// possibilities" rule. Picks the uncollapsed cell (entropy `> 1`) with the
+/// fewest possibilities, breaking ties toward the earliest row-major index —
+/// **bit-for-bit identical** to the selection [`wfc_solve`] performs inline, so
+/// `wfc_solve_with_selector(.., &mut LowestEntropySelector)` reproduces
+/// `wfc_solve`'s output exactly for the same seed.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LowestEntropySelector;
+
+impl CellSelector for LowestEntropySelector {
+    fn select(&mut self, entropies: &[u32], _grid_width: i32, _grid_height: i32) -> Option<usize> {
+        let mut min_entropy = u32::MAX;
+        let mut min_idx: Option<usize> = None;
+        for (i, &bits) in entropies.iter().enumerate() {
+            // Strict `<` keeps the earliest index on a tie — the exact
+            // tie-break `wfc_solve` uses.
+            if bits > 1 && bits < min_entropy {
+                min_entropy = bits;
+                min_idx = Some(i);
+            }
+        }
+        min_idx
+    }
+}
+
+/// Solve a `width × height` WFC grid like [`wfc_solve`], but with a
+/// caller-supplied [`CellSelector`] deciding the collapse order instead of the
+/// fixed lowest-entropy heuristic.
+///
+/// The tile *chosen* at each collapsed cell is still drawn from `rng` with
+/// `rules`' weights exactly as in [`wfc_solve`]; only *which cell* is collapsed
+/// next is delegated. Passing `&mut LowestEntropySelector` is identical to
+/// [`wfc_solve`] (same cells, same RNG draws, same result) — verified by the
+/// `wfc_solve_with_selector` equivalence test.
+///
+/// Determinism is the selector's responsibility: with a deterministic selector
+/// the whole solve is replay-safe. A selector that returns an already-collapsed
+/// or out-of-range index yields [`WfcResult::Contradiction`] (see
+/// [`CellSelector`]).
+pub fn wfc_solve_with_selector<S: CellSelector>(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+    selector: &mut S,
+) -> WfcResult {
+    if width <= 0 || height <= 0 || rules.tile_count == 0 {
+        return WfcResult::Contradiction;
+    }
+
+    let size = (width as usize).saturating_mul(height as usize);
+    let all = rules.all_tiles();
+    let mut cells = vec![all; size];
+    let mut entropies = vec![0u32; size];
+
+    loop {
+        // One scan: contradiction check + entropy vector for the selector.
+        let mut all_collapsed = true;
+        for (i, &v) in cells.iter().enumerate() {
+            let bits = v.count_ones();
+            if bits == 0 {
+                return WfcResult::Contradiction;
+            }
+            entropies[i] = bits;
+            if bits > 1 {
+                all_collapsed = false;
+            }
+        }
+
+        let idx = match selector.select(&entropies, width, height) {
+            None => {
+                // The selector declines to pick. That is only valid when the
+                // grid really is fully collapsed; otherwise it is a misuse and
+                // we must not spin.
+                if all_collapsed {
+                    return WfcResult::Ok(WfcGrid {
+                        width,
+                        height,
+                        cells,
+                    });
+                }
+                return WfcResult::Contradiction;
+            }
+            Some(i) => i,
+        };
+
+        // Guard the selector's contract: only entropy-> 1 cells are collapsible.
+        if idx >= size || entropies[idx] <= 1 {
+            return WfcResult::Contradiction;
+        }
+
+        let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
+        cells[idx] = 1 << chosen;
+
+        let x = (idx as i32) % width;
+        let y = (idx as i32) / width;
+        if !propagate(&mut cells, width, height, x, y, rules) {
+            return WfcResult::Contradiction;
+        }
+    }
+}
+
 /// Run WFC with chronological backtracking up to `max_backtracks` retries.
 ///
 /// Each time constraint propagation yields a contradiction, the algorithm
@@ -1478,5 +1602,164 @@ mod tests {
         );
         // Sanity: the left region alone is 2 columns x 3 rows = 6 cells.
         assert_eq!(g.reachable_count(0, 0, |t| t == 0), 6);
+    }
+
+    // --- CellSelector / wfc_solve_with_selector ---
+
+    /// Compare two solve results by their collapsed tiles (grid contents).
+    fn same_grid(a: &WfcResult, b: &WfcResult) -> bool {
+        match (a, b) {
+            (WfcResult::Ok(ga), WfcResult::Ok(gb)) => ga.to_vec() == gb.to_vec(),
+            (WfcResult::Contradiction, WfcResult::Contradiction) => true,
+            _ => false,
+        }
+    }
+
+    #[test]
+    fn test_default_selector_matches_wfc_solve_bit_for_bit() {
+        // The whole point: LowestEntropySelector must reproduce wfc_solve
+        // exactly — same cells, same RNG draws — across many seeds.
+        for seed in 0..200u64 {
+            let mut rng_a = SplitMix64::new(seed);
+            let mut rng_b = SplitMix64::new(seed);
+            let plain = wfc_solve(10, 8, &open_rules(), &mut rng_a);
+            let via = wfc_solve_with_selector(
+                10,
+                8,
+                &open_rules(),
+                &mut rng_b,
+                &mut LowestEntropySelector,
+            );
+            assert!(
+                same_grid(&plain, &via),
+                "seed {seed}: selector path diverged from wfc_solve"
+            );
+        }
+    }
+
+    #[test]
+    fn test_selector_default_consumes_rng_identically() {
+        // Not just the grid — the RNG must be left in the same state, proving
+        // the draw sequence is identical (no extra/missing draws).
+        let mut rng_a = SplitMix64::new(12345);
+        let mut rng_b = SplitMix64::new(12345);
+        let _ = wfc_solve(12, 12, &open_rules(), &mut rng_a);
+        let _ = wfc_solve_with_selector(
+            12,
+            12,
+            &open_rules(),
+            &mut rng_b,
+            &mut LowestEntropySelector,
+        );
+        assert_eq!(rng_a.next_u64(), rng_b.next_u64(), "RNG streams must align");
+    }
+
+    #[test]
+    fn test_custom_selector_produces_valid_full_collapse() {
+        // A selector that collapses in reverse row-major order among the
+        // lowest-entropy cells still yields a fully collapsed, in-range grid.
+        struct ReverseLowest;
+        impl CellSelector for ReverseLowest {
+            fn select(&mut self, entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                let mut min_entropy = u32::MAX;
+                let mut idx = None;
+                for (i, &bits) in entropies.iter().enumerate() {
+                    // `<=` keeps the LAST index on a tie (reverse of default).
+                    if bits > 1 && bits <= min_entropy {
+                        min_entropy = bits;
+                        idx = Some(i);
+                    }
+                }
+                idx
+            }
+        }
+        let mut rng = SplitMix64::new(99);
+        match wfc_solve_with_selector(10, 10, &open_rules(), &mut rng, &mut ReverseLowest) {
+            WfcResult::Ok(grid) => {
+                assert!(grid.is_fully_collapsed());
+                for y in 0..10 {
+                    for x in 0..10 {
+                        assert!(grid.tile_at(x, y).unwrap() < 2);
+                    }
+                }
+            }
+            WfcResult::Contradiction => panic!("open rules must not contradict"),
+        }
+    }
+
+    #[test]
+    fn test_custom_selector_can_change_output() {
+        // With multiple tiles and weights, a different collapse order generally
+        // yields a different grid for the same seed — the whole reason to steer
+        // it. (open_rules has 2 freely-adjacent tiles, so order matters.)
+        struct ReverseLowest;
+        impl CellSelector for ReverseLowest {
+            fn select(&mut self, entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                let mut min_entropy = u32::MAX;
+                let mut idx = None;
+                for (i, &bits) in entropies.iter().enumerate() {
+                    if bits > 1 && bits <= min_entropy {
+                        min_entropy = bits;
+                        idx = Some(i);
+                    }
+                }
+                idx
+            }
+        }
+        let mut rng_a = SplitMix64::new(7);
+        let mut rng_b = SplitMix64::new(7);
+        let def =
+            wfc_solve_with_selector(8, 8, &open_rules(), &mut rng_a, &mut LowestEntropySelector);
+        let rev = wfc_solve_with_selector(8, 8, &open_rules(), &mut rng_b, &mut ReverseLowest);
+        // Both valid; contents differ (steering the order changed the result).
+        assert!(matches!(def, WfcResult::Ok(_)) && matches!(rev, WfcResult::Ok(_)));
+        assert!(
+            !same_grid(&def, &rev),
+            "reverse order should change the grid"
+        );
+    }
+
+    #[test]
+    fn test_selector_is_deterministic() {
+        let solve = || {
+            let mut rng = SplitMix64::new(2024);
+            wfc_solve_with_selector(9, 7, &open_rules(), &mut rng, &mut LowestEntropySelector)
+        };
+        assert!(same_grid(&solve(), &solve()));
+    }
+
+    #[test]
+    fn test_selector_returning_collapsed_index_is_contradiction() {
+        // A misbehaving selector that always picks cell 0 (which becomes
+        // collapsed after the first step) must not loop forever — it yields a
+        // Contradiction instead.
+        struct AlwaysZero;
+        impl CellSelector for AlwaysZero {
+            fn select(&mut self, entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                // Return 0 as long as anything is uncollapsed, even once cell 0
+                // itself is collapsed — the misuse the guard must catch.
+                if entropies.iter().any(|&b| b > 1) {
+                    Some(0)
+                } else {
+                    None
+                }
+            }
+        }
+        let mut rng = SplitMix64::new(1);
+        let r = wfc_solve_with_selector(6, 6, &open_rules(), &mut rng, &mut AlwaysZero);
+        assert!(matches!(r, WfcResult::Contradiction));
+    }
+
+    #[test]
+    fn test_selector_out_of_range_index_is_contradiction() {
+        struct OutOfRange;
+        impl CellSelector for OutOfRange {
+            fn select(&mut self, _entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                Some(usize::MAX)
+            }
+        }
+        let mut rng = SplitMix64::new(1);
+        let r = wfc_solve_with_selector(4, 4, &open_rules(), &mut rng, &mut OutOfRange);
+        assert!(matches!(r, WfcResult::Contradiction));
     }
 }

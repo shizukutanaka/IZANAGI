@@ -288,7 +288,7 @@ pub use vec::{Vec2, Vec3};
 pub use visibility::{Visibility, VisibilityMap};
 pub use wallet::Wallet;
 pub use wfc::{
-    wfc_solve, wfc_solve_backtrack, wfc_solve_partial, wfc_solve_retry, WfcGrid, WfcResult,
-    WfcRules,
+    wfc_solve, wfc_solve_backtrack, wfc_solve_partial, wfc_solve_retry, wfc_solve_with_selector,
+    CellSelector, LowestEntropySelector, WfcGrid, WfcResult, WfcRules,
 };
 pub use world_hash::{hash_state, hash_unordered, DetHash, Fnv1a, LabeledDigest};
