@@ -226,7 +226,7 @@ pub use lightmap::{LightMap, MAX_LIGHT};
 pub use loader::{load_level, LoadedLevel, Position, Render};
 pub use mapgen::{
     generate_bsp, generate_cave, generate_drunkard, generate_dungeon, BspParams, CaveParams,
-    DrunkardParams, Dungeon, GenParams, Rect,
+    DrunkardParams, Dungeon, GenParams, MapBuilder, Rect,
 };
 pub use menu::{Menu, MenuItem};
 pub use meta::MetaProgress;

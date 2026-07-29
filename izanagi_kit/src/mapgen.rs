@@ -839,6 +839,84 @@ pub fn generate_drunkard(
     d
 }
 
+/// A composable dungeon post-processing pipeline (Wolverson's MapBuilder
+/// pattern, Roguelike Celebration 2020): start from any generated [`Dungeon`],
+/// then chain **stages** that reshape it — carve extra features, stamp
+/// prefabs, cull disconnected pockets — instead of hard-coding one monolithic
+/// generator.
+///
+/// A stage is `FnMut(&mut Dungeon, &mut SplitMix64)`. The key determinism
+/// property is **per-stage RNG isolation**: each stage receives its own
+/// independent stream, derived from the build's base seed and the stage's
+/// position via [`SplitMix64::split`], *not* a single generator threaded
+/// through every stage. So the number of random draws one stage makes can
+/// never shift another stage's stream — inserting, removing, or reworking a
+/// stage's internals leaves every *other* stage's output byte-identical. The
+/// whole pipeline is a pure function of `(starting dungeon, base_seed)`.
+///
+/// ```
+/// use izanagi_kit::mapgen::{generate_cave, CaveParams, MapBuilder};
+/// use izanagi_kit::rng::SplitMix64;
+///
+/// let mut rng = SplitMix64::new(42);
+/// let cave = generate_cave(48, 32, &mut rng, CaveParams::default());
+/// // Guarantee a single connected cavern.
+/// let dungeon = MapBuilder::new(cave).keep_largest_region().build(42);
+/// ```
+pub struct MapBuilder {
+    dungeon: Dungeon,
+    #[allow(clippy::type_complexity)]
+    stages: Vec<Box<dyn FnMut(&mut Dungeon, &mut SplitMix64)>>,
+}
+
+impl MapBuilder {
+    /// Start a pipeline from an already-generated `dungeon` (from any of the
+    /// `generate_*` functions, or hand-built).
+    pub fn new(dungeon: Dungeon) -> Self {
+        MapBuilder {
+            dungeon,
+            stages: Vec::new(),
+        }
+    }
+
+    /// Append a custom stage. It is handed the working dungeon and its own
+    /// independent RNG stream (see the type-level docs on isolation). Stages
+    /// run in the order added.
+    pub fn stage<F>(mut self, f: F) -> Self
+    where
+        F: FnMut(&mut Dungeon, &mut SplitMix64) + 'static,
+    {
+        self.stages.push(Box::new(f));
+        self
+    }
+
+    /// Append the built-in [`Dungeon::keep_largest_region`] stage — walls off
+    /// every disconnected pocket so the finished map is a single connected
+    /// region. Uses no randomness (its RNG stream is ignored).
+    pub fn keep_largest_region(self) -> Self {
+        self.stage(|d, _rng| {
+            d.keep_largest_region();
+        })
+    }
+
+    /// The number of stages queued so far.
+    pub fn stage_count(&self) -> usize {
+        self.stages.len()
+    }
+
+    /// Run every stage in order and return the finished dungeon. Each stage `i`
+    /// is driven by `SplitMix64::new(base_seed).split(i)`, so the result is
+    /// fully determined by the starting dungeon and `base_seed`.
+    pub fn build(mut self, base_seed: u64) -> Dungeon {
+        let base = SplitMix64::new(base_seed);
+        for (i, stage) in self.stages.iter_mut().enumerate() {
+            let mut stream = base.split(i as u64);
+            stage(&mut self.dungeon, &mut stream);
+        }
+        self.dungeon
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1698,5 +1776,107 @@ mod tests {
         assert!(filled > 0, "the small isolated room is culled");
         assert_eq!(d.rooms.len(), 1, "the culled room is dropped from the list");
         assert_eq!(d.rooms[0], big, "the surviving room is the large one");
+    }
+
+    // --- MapBuilder ---
+
+    #[test]
+    fn test_mapbuilder_empty_pipeline_is_identity() {
+        let mut rng = SplitMix64::new(1);
+        let base = generate_cave(30, 20, &mut rng, CaveParams::default());
+        let built = MapBuilder::new(base.clone()).build(1);
+        assert_eq!(built, base, "no stages → dungeon unchanged");
+    }
+
+    #[test]
+    fn test_mapbuilder_keep_largest_region_stage_connects_map() {
+        for seed in 0..20u64 {
+            let mut rng = SplitMix64::new(0x3EED + seed);
+            let cave = generate_cave(48, 32, &mut rng, CaveParams::default());
+            let built = MapBuilder::new(cave).keep_largest_region().build(seed);
+            assert!(
+                all_floor_mutually_reachable(&built),
+                "seed {seed}: builder pipeline must leave a single connected region"
+            );
+        }
+    }
+
+    #[test]
+    fn test_mapbuilder_is_deterministic() {
+        let build = || {
+            let mut rng = SplitMix64::new(7);
+            let cave = generate_cave(40, 30, &mut rng, CaveParams::default());
+            MapBuilder::new(cave)
+                .stage(|d, rng| {
+                    // carve a few random cells from this stage's own stream
+                    for _ in 0..10 {
+                        let x = rng.below(d.width()) as i32;
+                        let y = rng.below(d.height()) as i32;
+                        d.carve(x, y);
+                    }
+                })
+                .keep_largest_region()
+                .build(0xC0DE)
+        };
+        assert_eq!(
+            build(),
+            build(),
+            "same start + base_seed → identical output"
+        );
+    }
+
+    #[test]
+    fn test_mapbuilder_stage_count() {
+        let b = MapBuilder::new(Dungeon::filled(4, 4))
+            .stage(|_, _| {})
+            .keep_largest_region();
+        assert_eq!(b.stage_count(), 2);
+    }
+
+    #[test]
+    fn test_mapbuilder_stages_have_isolated_rng_streams() {
+        // The headline property: how many times an EARLIER stage draws must not
+        // change a LATER stage's stream. Two pipelines whose stage-0 draws a
+        // different number of times, but whose stage-1 carves from its own
+        // stream, must produce the identical carve.
+        let make = |stage0_draws: u32| {
+            MapBuilder::new(Dungeon::filled(30, 1))
+                .stage(move |_d, rng| {
+                    for _ in 0..stage0_draws {
+                        rng.below(1000);
+                    }
+                })
+                .stage(|d, rng| {
+                    let x = rng.below(d.width()) as i32;
+                    d.carve(x, 0);
+                })
+                .build(0xABCD)
+        };
+        let a = make(1);
+        let b = make(500);
+        assert_eq!(
+            a, b,
+            "stage 1's stream is independent of stage 0's draw count"
+        );
+        // And the carve actually happened (stage 1 ran).
+        assert!(a.floor_cells().len() == 1, "exactly one cell carved");
+    }
+
+    #[test]
+    fn test_mapbuilder_base_seed_changes_output() {
+        // build() must actually thread base_seed into the stages: across a
+        // range of seeds the single-carve output cannot be constant. (Any one
+        // pair could collide by chance, so assert over many seeds instead.)
+        let build = |seed: u64| {
+            MapBuilder::new(Dungeon::filled(30, 1))
+                .stage(|d, rng| {
+                    let x = rng.below(d.width()) as i32;
+                    d.carve(x, 0);
+                })
+                .build(seed)
+        };
+        let first = build(0);
+        let differs = (1..30u64).any(|s| build(s) != first);
+        assert!(differs, "output must depend on base_seed");
     }
 }
