@@ -1,6 +1,24 @@
 //! `izanagi_kit` — zero-dependency reference modules extracted from a design
 //! review of the IZANAGI engine (v4.4.0). Each module is a drop-in candidate
-//! addressing a P1 improvement:
+//! addressing a P1 improvement.
+//!
+//! # How to read this crate
+//!
+//! Everything here serves one promise: **a simulation that replays
+//! bit-identically**. Not every module carries the same weight in keeping that
+//! promise, so they fall into four tiers. Start at the top.
+//!
+//! | Tier | What it is | Modules |
+//! |---|---|---|
+//! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`plan`], [`netinput`], [`cmdqueue`], [`savefile`], [`timestep`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`arch`], [`relations`], [`multimap`] |
+//! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
+//! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
+//!
+//! If you only adopt one thing, adopt tier 1: implement
+//! [`sim::Simulation`] for your state and call [`sim::audit`] on it.
+//!
+//! Full module list:
 //!
 //! - [`entity`] / [`sparse_set`] — sparse-set ECS storage with generational
 //!   handles (cheap composition changes, O(1) lookup).

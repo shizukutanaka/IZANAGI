@@ -56,8 +56,22 @@ level start 3x3
 
 ## Modules
 
-The kit spans the full stack a terminal roguelike needs. The capability map —
-with per-feature implementation status — lives in
+Everything here serves one promise: **a simulation that replays
+bit-identically**. Not every module carries the same weight in keeping that
+promise, so they fall into four tiers — read top-down:
+
+| Tier | What it is | Modules |
+|---|---|---|
+| **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `plan`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
+| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `arch`, `relations`, `multimap` |
+| **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
+| **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
+
+If you adopt one thing, adopt tier 1: implement `sim::Simulation` for your
+state and call `sim::audit` on it — one call runs a double-run check and a
+rollback-resimulation check and reports the final hash to pin.
+
+The capability map — with per-feature implementation status — lives in
 [`GAME_DEV_TAXONOMY.md`](./GAME_DEV_TAXONOMY.md); contracts are in
 [`SPEC.md`](./SPEC.md). The core foundations:
 
@@ -70,7 +84,11 @@ with per-feature implementation status — lives in
 | `timestep` | Fixed-timestep accumulator with a death-spiral guard. |
 | `world_hash` | FNV-1a per-frame state checksum for bit-exact replay assertions. |
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
-| `netinput` | Transport-agnostic multi-player input prediction and misprediction detection for rollback netcode (`NetInputBuffer`). |
+| `sim` | The one `Simulation` trait every verification tool consumes, plus `audit()` — a single call that double-runs the sim, rollback-resimulates it, and reports the final hash. |
+| `rollback` | Bounded snapshot ring (`SnapshotRing`) and a GGRS-style `sync_test` that rolls back every frame to catch step-function nondeterminism. |
+| `dst` | Deterministic Simulation Testing: seed sweeps with per-tick invariants and one-line `(seed, tick)` failure reproduction. |
+| `plan` | Planning-based test synthesis — BFS over the state space for a shortest input sequence satisfying a goal ("can the player reach X" becomes an executable replay). |
+| `netinput` | Transport-agnostic multi-player input prediction and misprediction detection for rollback netcode (`NetInputBuffer`), plus `AdaptiveDelay` tuning input delay to the measured misprediction rate. |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
 | `mapgen` / `wfc` / `multimap` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions, drunkard's-walk caverns), Wave Function Collapse, multi-level worlds. |
 | `fov` / `pathfinding` / `influence` / `fsm` / `hfsm` | Symmetric FOV (binary + distance-attenuated), (weighted) A* + path smoothing + Dijkstra flow maps + rescanned flee/safety maps + frontier-seeking auto-explore, influence maps, flat and hierarchical (parent-state + wildcard) state machines. |

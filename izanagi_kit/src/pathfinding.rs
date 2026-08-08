@@ -513,14 +513,14 @@ fn jps4_jump<W: Fn(i32, i32) -> bool>(
 /// its length, into a *canonical* form that moves vertically before
 /// horizontally wherever possible, so that every horizontal→vertical turn is
 /// *forced* by an obstacle (moving the turn earlier is blocked — exactly the
-/// forced-neighbour pattern tested in [`jps4_jump`]) or happens in the goal's
+/// forced-neighbour pattern tested in `jps4_jump`) or happens in the goal's
 /// column, and every vertical→horizontal turn starts a horizontal segment that
 /// itself ends at a jump point — which is exactly what the vertical ray's
 /// horizontal probes detect. Every straight run between such cells can
 /// therefore be skipped wholesale, which is what jumping does. The expansion
 /// generates all four cardinal directions at each jump point (a conservative
 /// superset of the canonical pruned set — same philosophy as
-/// [`jps_successors`]), so no successor needed by that canonical form is ever
+/// `jps_successors`), so no successor needed by that canonical form is ever
 /// missing.
 ///
 /// `is_blocked(x, y)` must return `true` for walls **and** out-of-bounds cells

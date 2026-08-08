@@ -8,6 +8,35 @@
 //!
 //! Types fold their canonical bytes via `DetHash`. Collections MUST fold in a
 //! canonical order (e.g. ascending entity index) — never raw dense order.
+//!
+//! # Hash stability policy
+//!
+//! A state hash is only useful if it means the same thing tomorrow. Two
+//! different promises are at stake, and they have different guarantees:
+//!
+//! - **Across machines, same code — guaranteed.** Every hash here is a
+//!   function of integer bytes folded in a fixed order, with no float, no
+//!   wall-clock, no pointer values and no unordered iteration. The same state
+//!   hashes identically on any target the crate compiles for. This is the
+//!   promise lockstep and replay depend on, and it is non-negotiable.
+//! - **Across crate versions — not promised by default.** Adding a field to a
+//!   type, or changing the order its bytes are folded, changes its hash. Such
+//!   a change is *not* a silent bug fix: it invalidates recorded traces and
+//!   saved games produced by an earlier version.
+//!
+//! So when a `DetHash` impl in this crate changes shape, the change is treated
+//! as breaking for any persisted artefact: bump the [`savefile`] header version
+//! so old saves are rejected (or migrated) loudly rather than loading into a
+//! world whose hash no longer matches, and re-pin any hard-coded regression
+//! hashes in the same commit. Callers who persist hashes long-term should
+//! record the crate version alongside them.
+//!
+//! When a hash *does* mismatch, [`LabeledDigest`] narrows it to a subsystem
+//! instead of a single opaque number, and [`hash_covers`] catches the opposite
+//! failure — a hash that wrongly stayed the *same* because a field was never
+//! folded in.
+//!
+//! [`savefile`]: crate::savefile
 
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;

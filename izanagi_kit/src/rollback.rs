@@ -24,7 +24,7 @@
 //! order-of-operations nondeterminism tends to hide.
 //!
 //! The simulation is supplied as a `step(&mut state, &input)` closure, the
-//! same shape used by [`resimulate`](crate::replay::resimulate) and
+//! same shape used by [`resimulate`] and
 //! [`record_trace`](crate::replay::record_trace), so a state that already
 //! implements [`DetHash`] is sync-testable for free.
 
