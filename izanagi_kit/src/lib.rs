@@ -291,4 +291,7 @@ pub use wfc::{
     wfc_solve, wfc_solve_backtrack, wfc_solve_partial, wfc_solve_retry, wfc_solve_with_selector,
     CellSelector, LowestEntropySelector, WfcGrid, WfcResult, WfcRules,
 };
-pub use world_hash::{hash_state, hash_unordered, DetHash, Fnv1a, LabeledDigest};
+pub use world_hash::{
+    field_coverage, hash_covers, hash_state, hash_unordered, uncovered_fields, DetHash,
+    FieldMutator, Fnv1a, LabeledDigest,
+};

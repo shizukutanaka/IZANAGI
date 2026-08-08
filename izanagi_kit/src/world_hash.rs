@@ -129,6 +129,118 @@ pub fn hash_state<T: DetHash + ?Sized>(value: &T) -> u64 {
     hasher.finish()
 }
 
+/// Does mutating `base` with `mutate` change its [`hash_state`]? — a
+/// **mutation test** for a hand-written [`DetHash`] impl.
+///
+/// `DetHash` is written by hand: add a field to a struct, forget to fold it in
+/// `det_hash`, and nothing breaks at the time. The state hash silently stops
+/// being a faithful summary of the state, and the bug only surfaces much later
+/// as an unexplained replay divergence — the hardest failure this kit can
+/// produce, because the tick it is *reported* at is not the tick it was
+/// *introduced* at. This is the classic mutation-testing argument (DeMillo,
+/// Lipton & Sayward, "Hints on Test Data Selection", IEEE Computer 1978;
+/// surveyed by Jia & Harman, IEEE TSE 2011) turned on the hash itself: inject a
+/// small change and check the oracle notices it. A **surviving mutant** — a
+/// field you can change without moving the hash — is exactly a field
+/// `det_hash` forgot.
+///
+/// Returns `true` when the hash changed (that field is covered) and `false`
+/// when it did not. `base` is left untouched: the mutation runs on a clone.
+///
+/// ```
+/// use izanagi_kit::world_hash::{hash_covers, DetHash, Fnv1a};
+///
+/// #[derive(Clone)]
+/// struct Player { hp: u32, gold: u32 }
+/// impl DetHash for Player {
+///     fn det_hash(&self, h: &mut Fnv1a) {
+///         h.write_u32(self.hp);
+///         // BUG: `gold` is never folded in.
+///     }
+/// }
+/// let p = Player { hp: 100, gold: 5 };
+/// assert!(hash_covers(&p, |p| p.hp += 1));
+/// assert!(!hash_covers(&p, |p| p.gold += 1), "caught: gold is not hashed");
+/// ```
+pub fn hash_covers<T: DetHash + Clone>(base: &T, mutate: impl FnOnce(&mut T)) -> bool {
+    let before = hash_state(base);
+    let mut probe = base.clone();
+    mutate(&mut probe);
+    hash_state(&probe) != before
+}
+
+/// One named field probe for [`field_coverage`] / [`uncovered_fields`]: the
+/// field's label, and a function that changes **only that field**. Written as a
+/// non-capturing closure at the call site — `("hp", |s: &mut S| s.hp += 1)` —
+/// which coerces to this `fn` pointer, keeping the probe list a plain slice
+/// with no `dyn` or lifetime plumbing.
+pub type FieldMutator<T> = (&'static str, fn(&mut T));
+
+/// Run [`hash_covers`] over a set of named field mutators, returning
+/// `(label, covered)` per entry in the order given — a coverage report for a
+/// hand-written [`DetHash`] impl.
+///
+/// Write one mutator per field; any `false` names a field `det_hash` forgot to
+/// fold in. Non-capturing closures coerce to the `fn` pointer this takes, so
+/// the call site stays a plain list. See [`uncovered_fields`] for the
+/// assertion-shaped form.
+///
+/// ```
+/// use izanagi_kit::world_hash::{field_coverage, DetHash, Fnv1a};
+///
+/// #[derive(Clone)]
+/// struct S { a: u32, b: u32 }
+/// impl DetHash for S {
+///     fn det_hash(&self, h: &mut Fnv1a) { h.write_u32(self.a); h.write_u32(self.b); }
+/// }
+/// let report = field_coverage(&S { a: 1, b: 2 }, &[
+///     ("a", |s: &mut S| s.a += 1),
+///     ("b", |s: &mut S| s.b += 1),
+/// ]);
+/// assert!(report.iter().all(|&(_, covered)| covered));
+/// ```
+pub fn field_coverage<T: DetHash + Clone>(
+    base: &T,
+    mutators: &[FieldMutator<T>],
+) -> Vec<(&'static str, bool)> {
+    mutators
+        .iter()
+        .map(|&(label, m)| (label, hash_covers(base, m)))
+        .collect()
+}
+
+/// The labels from `mutators` whose mutation left [`hash_state`] unchanged —
+/// i.e. the fields the [`DetHash`] impl fails to cover. Empty means every
+/// probed field is hashed, which makes this the one-line regression guard:
+///
+/// ```
+/// use izanagi_kit::world_hash::{uncovered_fields, DetHash, Fnv1a};
+///
+/// #[derive(Clone)]
+/// struct S { a: u32, b: u32 }
+/// impl DetHash for S {
+///     fn det_hash(&self, h: &mut Fnv1a) { h.write_u32(self.a); h.write_u32(self.b); }
+/// }
+/// assert!(uncovered_fields(&S { a: 1, b: 2 }, &[
+///     ("a", |s: &mut S| s.a += 1),
+///     ("b", |s: &mut S| s.b += 1),
+/// ]).is_empty(), "every field must be folded into det_hash");
+/// ```
+///
+/// Adding a field to the struct and a line here, but forgetting the
+/// `det_hash` update, turns the omission into a **test failure at the commit
+/// that introduces it** rather than a replay divergence weeks later.
+pub fn uncovered_fields<T: DetHash + Clone>(
+    base: &T,
+    mutators: &[FieldMutator<T>],
+) -> Vec<&'static str> {
+    mutators
+        .iter()
+        .filter(|&&(_, m)| !hash_covers(base, m))
+        .map(|&(label, _)| label)
+        .collect()
+}
+
 /// Final avalanche mix (SplitMix64 finalizer) — spreads every input bit across
 /// the whole 64-bit word so a commutative combine cannot leak structure.
 #[inline]
@@ -881,5 +993,148 @@ mod tests {
     fn test_labeled_digest_empty_root_is_offset_basis() {
         // An empty digest folds nothing, so root() is the FNV offset basis.
         assert_eq!(LabeledDigest::new().root(), FNV_OFFSET);
+    }
+
+    // --- hash_covers / field_coverage / uncovered_fields ---
+
+    /// A correct DetHash impl: every field is folded in.
+    #[derive(Clone)]
+    struct Complete {
+        hp: u32,
+        gold: u32,
+        name: u8,
+    }
+
+    impl DetHash for Complete {
+        fn det_hash(&self, h: &mut Fnv1a) {
+            h.write_u32(self.hp);
+            h.write_u32(self.gold);
+            h.write_bytes(&[self.name]);
+        }
+    }
+
+    /// The bug this feature exists to catch: `gold` is never hashed, so a
+    /// state change to it is invisible to the checksum.
+    #[derive(Clone)]
+    struct Incomplete {
+        hp: u32,
+        gold: u32,
+    }
+
+    impl DetHash for Incomplete {
+        fn det_hash(&self, h: &mut Fnv1a) {
+            h.write_u32(self.hp);
+            // `gold` deliberately omitted.
+        }
+    }
+
+    fn complete() -> Complete {
+        Complete {
+            hp: 100,
+            gold: 5,
+            name: b'x',
+        }
+    }
+
+    #[test]
+    fn test_hash_covers_true_for_hashed_field() {
+        assert!(hash_covers(&complete(), |s| s.hp += 1));
+        assert!(hash_covers(&complete(), |s| s.gold += 1));
+        assert!(hash_covers(&complete(), |s| s.name = b'y'));
+    }
+
+    #[test]
+    fn test_hash_covers_catches_forgotten_field() {
+        // The headline case: a surviving mutant means det_hash is incomplete.
+        let s = Incomplete { hp: 100, gold: 5 };
+        assert!(hash_covers(&s, |s| s.hp += 1), "hp is hashed");
+        assert!(
+            !hash_covers(&s, |s| s.gold += 1),
+            "gold is NOT hashed — this is the silent-desync bug"
+        );
+    }
+
+    #[test]
+    fn test_hash_covers_leaves_base_untouched() {
+        let base = complete();
+        let before = hash_state(&base);
+        let _ = hash_covers(&base, |s| s.hp = 999);
+        assert_eq!(base.hp, 100, "mutation must run on a clone");
+        assert_eq!(hash_state(&base), before);
+    }
+
+    #[test]
+    fn test_hash_covers_no_op_mutator_is_false() {
+        // A mutator that changes nothing cannot prove coverage — no false
+        // positives from a hash that simply never moves.
+        assert!(!hash_covers(&complete(), |_s| {}));
+    }
+
+    #[test]
+    fn test_field_coverage_reports_each_label_in_order() {
+        let report = field_coverage(
+            &complete(),
+            &[
+                ("hp", |s: &mut Complete| s.hp += 1),
+                ("gold", |s: &mut Complete| s.gold += 1),
+                ("name", |s: &mut Complete| s.name = b'z'),
+            ],
+        );
+        assert_eq!(
+            report,
+            vec![("hp", true), ("gold", true), ("name", true)],
+            "labels preserved in order, all covered"
+        );
+    }
+
+    #[test]
+    fn test_field_coverage_flags_only_the_missing_field() {
+        let report = field_coverage(
+            &Incomplete { hp: 1, gold: 2 },
+            &[
+                ("hp", |s: &mut Incomplete| s.hp += 1),
+                ("gold", |s: &mut Incomplete| s.gold += 1),
+            ],
+        );
+        assert_eq!(report, vec![("hp", true), ("gold", false)]);
+    }
+
+    #[test]
+    fn test_uncovered_fields_empty_for_complete_impl() {
+        let missing = uncovered_fields(
+            &complete(),
+            &[
+                ("hp", |s: &mut Complete| s.hp += 1),
+                ("gold", |s: &mut Complete| s.gold += 1),
+                ("name", |s: &mut Complete| s.name = b'z'),
+            ],
+        );
+        assert!(missing.is_empty(), "complete impl has no gaps: {missing:?}");
+    }
+
+    #[test]
+    fn test_uncovered_fields_names_the_gap() {
+        let missing = uncovered_fields(
+            &Incomplete { hp: 1, gold: 2 },
+            &[
+                ("hp", |s: &mut Incomplete| s.hp += 1),
+                ("gold", |s: &mut Incomplete| s.gold += 1),
+            ],
+        );
+        assert_eq!(missing, vec!["gold"]);
+    }
+
+    #[test]
+    fn test_field_coverage_empty_mutator_list() {
+        assert!(field_coverage(&complete(), &[]).is_empty());
+        assert!(uncovered_fields(&complete(), &[]).is_empty());
+    }
+
+    #[test]
+    fn test_hash_covers_is_deterministic() {
+        let s = complete();
+        let run = || hash_covers(&s, |s| s.gold += 7);
+        assert_eq!(run(), run());
+        assert!(run());
     }
 }
