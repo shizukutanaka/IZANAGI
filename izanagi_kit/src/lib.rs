@@ -319,6 +319,6 @@ pub use wfc::{
     CellSelector, LowestEntropySelector, WfcGrid, WfcResult, WfcRules,
 };
 pub use world_hash::{
-    field_coverage, hash_covers, hash_state, hash_unordered, uncovered_fields, DetHash,
-    FieldMutator, Fnv1a, LabeledDigest,
+    field_coverage, hash_covers, hash_state, hash_state_mixed, hash_unordered, uncovered_fields,
+    DetHash, FieldMutator, Fnv1a, LabeledDigest,
 };

@@ -158,6 +158,53 @@ pub fn hash_state<T: DetHash + ?Sized>(value: &T) -> u64 {
     hasher.finish()
 }
 
+/// [`hash_state`] with an avalanche finalizer applied — a better-distributed
+/// checksum of the same state, at the cost of **not** matching `hash_state`.
+///
+/// # Why this exists
+///
+/// FNV-1a folds each byte as `hash ^= b; hash *= PRIME`, so the *last* byte
+/// written gets exactly one multiply to spread its influence. Measured over
+/// random inputs, a single-bit change flips this many of the 64 output bits
+/// (ideal is 32):
+///
+/// | input | `hash_state` | `hash_state_mixed` |
+/// |---|---|---|
+/// | 4 B | avg 20.3, worst 6 | avg 32.0, worst 17 |
+/// | 8 B | avg 25.6, worst 6 | avg 32.0, worst 17 |
+/// | 64 B | avg 30.1, worst 6 | avg 32.0, worst 14 |
+///
+/// A single-bit flip in the final byte moves only ~9 bits on average.
+///
+/// **This is a distribution-quality gap, not a correctness bug.** Any state
+/// difference still changes the hash — the worst observed case flips 6 bits,
+/// never 0 — so desync *detection* works exactly as documented. What the weak
+/// tail costs is collision probability across large numbers of structured
+/// states, which stays negligible at 64 bits for non-adversarial use but is
+/// further from the ideal birthday bound than it needs to be.
+///
+/// So this is offered as an opt-in rather than folded into [`hash_state`]:
+/// changing that would alter every hash the crate has ever produced,
+/// invalidating recorded traces and saved games (see the hash stability policy
+/// in the module docs). Prefer `hash_state_mixed` for **new** long-lived
+/// checksums; a future major version may make it the default, paired with a
+/// [`savefile`](crate::savefile) header bump.
+///
+/// The finalizer is the SplitMix64 mix — the same one
+/// [`hash_unordered`] already applies for the same reason.
+///
+/// ```
+/// use izanagi_kit::world_hash::{hash_state, hash_state_mixed};
+/// // Same input, deliberately different value: pick one and stay with it.
+/// assert_ne!(hash_state(&1u32), hash_state_mixed(&1u32));
+/// // Still a pure function of the state.
+/// assert_eq!(hash_state_mixed(&7u64), hash_state_mixed(&7u64));
+/// ```
+#[inline]
+pub fn hash_state_mixed<T: DetHash + ?Sized>(value: &T) -> u64 {
+    mix64(hash_state(value))
+}
+
 /// Does mutating `base` with `mutate` change its [`hash_state`]? — a
 /// **mutation test** for a hand-written [`DetHash`] impl.
 ///
@@ -1022,6 +1069,110 @@ mod tests {
     fn test_labeled_digest_empty_root_is_offset_basis() {
         // An empty digest folds nothing, so root() is the FNV offset basis.
         assert_eq!(LabeledDigest::new().root(), FNV_OFFSET);
+    }
+
+    // --- avalanche characteristics (see hash_state_mixed docs) ---
+
+    struct Blob(Vec<u8>);
+
+    impl DetHash for Blob {
+        fn det_hash(&self, h: &mut Fnv1a) {
+            h.write_bytes(&self.0);
+        }
+    }
+
+    /// Average and worst-case output bits flipped by a single-bit input flip,
+    /// over `samples` random inputs of `len` bytes. Ideal is 32 of 64.
+    fn avalanche(len: usize, samples: usize, mixed: bool) -> (f64, u32) {
+        let mut rng = crate::rng::SplitMix64::new(0xA5A1_0CE5);
+        let hash = |b: &Blob| {
+            if mixed {
+                hash_state_mixed(b)
+            } else {
+                hash_state(b)
+            }
+        };
+        let (mut total, mut count, mut worst) = (0u64, 0u64, 64u32);
+        for _ in 0..samples {
+            let base: Vec<u8> = (0..len).map(|_| rng.below(256) as u8).collect();
+            let h0 = hash(&Blob(base.clone()));
+            for byte in 0..len {
+                for bit in 0..8u8 {
+                    let mut m = base.clone();
+                    m[byte] ^= 1 << bit;
+                    let d = (h0 ^ hash(&Blob(m))).count_ones();
+                    total += d as u64;
+                    count += 1;
+                    worst = worst.min(d);
+                }
+            }
+        }
+        (total as f64 / count as f64, worst)
+    }
+
+    #[test]
+    fn test_single_bit_input_change_always_changes_the_hash() {
+        // The property desync detection actually relies on: any difference in
+        // the state must move the hash. Weak avalanche is a distribution
+        // concern; a *zero* difference would be a correctness bug.
+        for len in [1usize, 4, 8, 33] {
+            let (_, worst) = avalanche(len, 40, false);
+            assert!(
+                worst > 0,
+                "a single-bit input flip left the hash unchanged at len {len}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_fnv1a_avalanche_is_weak_in_the_tail() {
+        // Pins the measured weakness documented on hash_state_mixed, so a
+        // future change to the hash surfaces here rather than silently.
+        // Ideal is 32.0; raw FNV-1a lands well short, especially for short
+        // inputs, because the final byte gets only one multiply.
+        let (avg4, worst4) = avalanche(4, 60, false);
+        let (avg64, worst64) = avalanche(64, 20, false);
+        assert!(
+            (15.0..26.0).contains(&avg4),
+            "4-byte avalanche moved: {avg4:.2}"
+        );
+        assert!(
+            (26.0..32.0).contains(&avg64),
+            "64-byte avalanche moved: {avg64:.2}"
+        );
+        assert!(worst4 < 16, "worst-case 4-byte flip: {worst4}");
+        assert!(worst64 < 16, "worst-case 64-byte flip: {worst64}");
+    }
+
+    #[test]
+    fn test_mixed_hash_reaches_ideal_avalanche() {
+        // The finalizer's payoff: average lands on the ideal 32, and the worst
+        // case improves substantially over raw FNV-1a.
+        for len in [4usize, 8, 64] {
+            let (avg, worst) = avalanche(len, 40, true);
+            assert!(
+                (30.5..33.5).contains(&avg),
+                "len {len}: mixed avalanche {avg:.2} is not near the ideal 32"
+            );
+            assert!(worst >= 10, "len {len}: mixed worst case only {worst} bits");
+        }
+    }
+
+    #[test]
+    fn test_mixed_hash_is_deterministic_and_distinct_from_raw() {
+        assert_eq!(hash_state_mixed(&123u64), hash_state_mixed(&123u64));
+        assert_ne!(hash_state_mixed(&123u64), hash_state(&123u64));
+        // Still injective enough to separate neighbouring values.
+        assert_ne!(hash_state_mixed(&1u32), hash_state_mixed(&2u32));
+    }
+
+    #[test]
+    fn test_mixed_hash_does_not_change_hash_state() {
+        // Guard the stability promise: adding the mixed variant must not have
+        // perturbed the existing checksum for any value.
+        let mut h = Fnv1a::new();
+        42u32.det_hash(&mut h);
+        assert_eq!(hash_state(&42u32), h.finish());
     }
 
     // --- hash_covers / field_coverage / uncovered_fields ---
