@@ -361,6 +361,143 @@ impl AdaptiveDelay {
     }
 }
 
+/// Schedules locally-captured input to **execute `delay` ticks later** — the
+/// turn-pipelining half of deterministic lockstep.
+///
+/// Terrano & Bettner's *1500 Archers on a 28.8: Network Programming in Age of
+/// Empires and Beyond* (GDC 2001) is the canonical statement of the technique:
+/// commands issued during turn *N* are not executed until turn *N+2*, which
+/// buys the network two full turns to deliver every peer's commands before the
+/// turn that depends on them. The simulation therefore never waits on a packet
+/// mid-turn — it simply runs a fixed distance behind the player's hands, and
+/// the cost is input latency rather than a stall.
+///
+/// Pair this with the rest of the module: [`AdaptiveDelay`] decides *how far*
+/// behind to run from the measured misprediction rate, this schedules against
+/// that decision, and [`NetInputBuffer`] covers whatever still fails to arrive.
+///
+/// ```
+/// use izanagi_kit::netinput::DelayScheduler;
+///
+/// let mut sched: DelayScheduler<char> = DelayScheduler::new(2);
+/// assert_eq!(sched.capture(10, 'a'), 12); // pressed at tick 10, acts at 12
+/// assert_eq!(sched.take(11), None);       // nothing scheduled for 11
+/// assert_eq!(sched.take(12), Some('a'));
+/// assert_eq!(sched.take(12), None, "an input executes exactly once");
+/// ```
+///
+/// # Changing the delay mid-session
+///
+/// Re-tuning the delay is where a naive scheduler corrupts the input stream,
+/// so the rules here are explicit:
+///
+/// - **Lowering** the delay would let a newly captured input land on a tick
+///   that is already spoken for (or already past). [`capture`](Self::capture)
+///   therefore assigns `max(tick + delay, last_scheduled + 1)`: execute ticks
+///   are **strictly increasing**, so an input can never collide with, or jump
+///   ahead of, one already scheduled. The new shorter delay takes effect once
+///   the schedule catches up, rather than by double-booking a tick.
+/// - **Raising** the delay leaves a genuine **gap**: no input was ever captured
+///   for the ticks now skipped over. That is not corruption — it is the
+///   simulation legitimately having nothing new from this player — and
+///   [`take`](Self::take) reports it honestly as `None`, which is exactly the
+///   case [`NetInputBuffer::input_for`] predicts through by repeating the last
+///   known input.
+///
+/// Already-scheduled inputs are never rescheduled by a delay change; moving
+/// them is what would produce duplicates or holes.
+///
+/// # Hashing
+///
+/// Like [`NetInputBuffer`]'s prediction map, a `DelayScheduler` is **local
+/// scheduling metadata, not simulation state**: each peer buffers only its own
+/// input, and two peers on different connections legitimately hold different
+/// pending queues. Fold the inputs that actually *executed* into the world
+/// hash — never the queue itself.
+#[derive(Clone, Debug)]
+pub struct DelayScheduler<I> {
+    delay: u32,
+    pending: BTreeMap<u64, I>,
+    last_scheduled: Option<u64>,
+}
+
+impl<I> DelayScheduler<I> {
+    /// A scheduler that runs `delay` ticks behind captured input. `0` executes
+    /// input on the tick it was captured (single-player / no pipelining).
+    pub fn new(delay: u32) -> Self {
+        DelayScheduler {
+            delay,
+            pending: BTreeMap::new(),
+            last_scheduled: None,
+        }
+    }
+
+    /// Schedule `input` captured at `tick`, returning the tick it will execute
+    /// on — normally `tick + delay`, or one past the last scheduled tick when
+    /// that would be earlier (see the type docs on lowering the delay).
+    pub fn capture(&mut self, tick: u64, input: I) -> u64 {
+        let target = tick.saturating_add(self.delay as u64);
+        let exec = match self.last_scheduled {
+            Some(last) if target <= last => last.saturating_add(1),
+            _ => target,
+        };
+        self.pending.insert(exec, input);
+        self.last_scheduled = Some(exec);
+        exec
+    }
+
+    /// Remove and return the input scheduled to execute on `tick`, or `None`
+    /// when nothing was scheduled for it (a gap left by a delay increase, or a
+    /// tick before any capture). Each scheduled input is returned exactly once.
+    pub fn take(&mut self, tick: u64) -> Option<I> {
+        self.pending.remove(&tick)
+    }
+
+    /// The input scheduled for `tick` without consuming it.
+    pub fn peek(&self, tick: u64) -> Option<&I> {
+        self.pending.get(&tick)
+    }
+
+    /// Whether an input is scheduled to execute on `tick`.
+    pub fn is_scheduled(&self, tick: u64) -> bool {
+        self.pending.contains_key(&tick)
+    }
+
+    /// Re-tune the delay. Inputs already scheduled keep their execute tick;
+    /// only later captures use the new value. See the type docs for what
+    /// raising and lowering each imply.
+    pub fn set_delay(&mut self, delay: u32) {
+        self.delay = delay;
+    }
+
+    /// The current delay in ticks.
+    pub fn delay(&self) -> u32 {
+        self.delay
+    }
+
+    /// How many captured inputs are still waiting to execute.
+    pub fn pending_count(&self) -> usize {
+        self.pending.len()
+    }
+
+    /// The furthest tick any pending input is scheduled for, or `None` when
+    /// the queue is empty. Note this reflects *pending* work: unlike the
+    /// internal high-water mark used to keep execute ticks increasing, it drops
+    /// back as inputs are taken.
+    pub fn horizon(&self) -> Option<u64> {
+        self.pending.keys().next_back().copied()
+    }
+
+    /// Drop every pending input scheduled strictly before `tick` — for
+    /// recovering after a stall, where inputs whose moment has passed should be
+    /// discarded rather than executed late. Returns how many were dropped.
+    pub fn discard_before(&mut self, tick: u64) -> usize {
+        let before = self.pending.len();
+        self.pending.retain(|&t, _| t >= tick);
+        before - self.pending.len()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -747,5 +884,199 @@ mod tests {
     #[should_panic(expected = "lower_permille must be <= raise_permille")]
     fn test_adaptive_delay_rejects_inverted_band() {
         let _ = AdaptiveDelay::with_thresholds(0, 4, 4, 300, 100);
+    }
+
+    // --- DelayScheduler ---
+
+    #[test]
+    fn test_delay_scheduler_executes_delay_ticks_later() {
+        let mut s: DelayScheduler<char> = DelayScheduler::new(2);
+        assert_eq!(s.capture(10, 'a'), 12);
+        assert_eq!(s.capture(11, 'b'), 13);
+        assert_eq!(s.take(10), None, "not yet — it acts at 12");
+        assert_eq!(s.take(11), None);
+        assert_eq!(s.take(12), Some('a'));
+        assert_eq!(s.take(13), Some('b'));
+    }
+
+    #[test]
+    fn test_delay_scheduler_zero_delay_executes_immediately() {
+        let mut s: DelayScheduler<u8> = DelayScheduler::new(0);
+        assert_eq!(s.capture(7, 42), 7);
+        assert_eq!(s.take(7), Some(42));
+    }
+
+    #[test]
+    fn test_delay_scheduler_input_executes_exactly_once() {
+        let mut s: DelayScheduler<u8> = DelayScheduler::new(1);
+        s.capture(0, 9);
+        assert_eq!(s.take(1), Some(9));
+        assert_eq!(s.take(1), None, "consumed");
+        assert_eq!(s.pending_count(), 0);
+    }
+
+    #[test]
+    fn test_delay_scheduler_peek_does_not_consume() {
+        let mut s: DelayScheduler<u8> = DelayScheduler::new(1);
+        s.capture(0, 5);
+        assert_eq!(s.peek(1), Some(&5));
+        assert!(s.is_scheduled(1));
+        assert_eq!(s.peek(1), Some(&5), "peek is non-destructive");
+        assert_eq!(s.take(1), Some(5));
+        assert!(!s.is_scheduled(1));
+    }
+
+    #[test]
+    fn test_delay_scheduler_raising_delay_leaves_an_honest_gap() {
+        // delay 1: tick 10 -> 11. Raise to 3: tick 11 -> 14. Ticks 12 and 13
+        // were never captured for, so they are genuine gaps, not corruption.
+        let mut s: DelayScheduler<char> = DelayScheduler::new(1);
+        assert_eq!(s.capture(10, 'a'), 11);
+        s.set_delay(3);
+        assert_eq!(s.capture(11, 'b'), 14);
+        assert_eq!(s.take(11), Some('a'));
+        assert_eq!(s.take(12), None, "gap the predictor must cover");
+        assert_eq!(s.take(13), None, "gap the predictor must cover");
+        assert_eq!(s.take(14), Some('b'));
+    }
+
+    #[test]
+    fn test_delay_scheduler_lowering_delay_never_collides() {
+        // delay 5: tick 10 -> 15. Drop to 1: tick 11 would want 12, which is
+        // *earlier* than the already-scheduled 15. The monotonic rule pushes it
+        // to 16 instead of double-booking or reordering.
+        let mut s: DelayScheduler<char> = DelayScheduler::new(5);
+        assert_eq!(s.capture(10, 'a'), 15);
+        s.set_delay(1);
+        assert_eq!(s.capture(11, 'b'), 16, "clamped to last_scheduled + 1");
+        assert_eq!(s.capture(12, 'c'), 17);
+        // Both inputs survive, in capture order, one per tick.
+        assert_eq!(s.take(15), Some('a'));
+        assert_eq!(s.take(16), Some('b'));
+        assert_eq!(s.take(17), Some('c'));
+    }
+
+    #[test]
+    fn test_delay_scheduler_no_input_is_ever_lost_or_duplicated() {
+        // Property: across an arbitrary delay schedule, every captured input is
+        // returned exactly once, in capture order.
+        let mut s: DelayScheduler<u32> = DelayScheduler::new(2);
+        let mut exec_ticks = Vec::new();
+        for tick in 0..60u64 {
+            // Wobble the delay across the whole legal range as we go.
+            s.set_delay((tick % 7) as u32);
+            exec_ticks.push(s.capture(tick, tick as u32));
+        }
+        // Execute ticks are strictly increasing → one input per tick, no
+        // collisions, no reordering.
+        assert!(
+            exec_ticks.windows(2).all(|w| w[0] < w[1]),
+            "execute ticks must be strictly increasing: {exec_ticks:?}"
+        );
+        let mut got = Vec::new();
+        for tick in 0..=*exec_ticks.last().unwrap() {
+            if let Some(v) = s.take(tick) {
+                got.push(v);
+            }
+        }
+        let expect: Vec<u32> = (0..60).collect();
+        assert_eq!(got, expect, "every input exactly once, in order");
+        assert_eq!(s.pending_count(), 0);
+    }
+
+    #[test]
+    fn test_delay_scheduler_pending_count_and_horizon() {
+        let mut s: DelayScheduler<u8> = DelayScheduler::new(3);
+        assert_eq!(s.pending_count(), 0);
+        assert_eq!(s.horizon(), None);
+        s.capture(0, 1);
+        s.capture(1, 2);
+        assert_eq!(s.pending_count(), 2);
+        assert_eq!(s.horizon(), Some(4));
+        s.take(3);
+        assert_eq!(s.pending_count(), 1);
+        assert_eq!(s.horizon(), Some(4));
+    }
+
+    #[test]
+    fn test_delay_scheduler_discard_before() {
+        let mut s: DelayScheduler<u8> = DelayScheduler::new(0);
+        for t in 0..5u64 {
+            s.capture(t, t as u8);
+        }
+        assert_eq!(s.discard_before(3), 3, "ticks 0,1,2 dropped");
+        assert_eq!(s.take(2), None);
+        assert_eq!(s.take(3), Some(3));
+        assert_eq!(s.take(4), Some(4));
+    }
+
+    #[test]
+    fn test_delay_scheduler_is_deterministic() {
+        let run = || {
+            let mut s: DelayScheduler<u32> = DelayScheduler::new(2);
+            let mut out = Vec::new();
+            for t in 0..30u64 {
+                s.set_delay((t % 5) as u32);
+                out.push(s.capture(t, t as u32));
+            }
+            out
+        };
+        assert_eq!(run(), run());
+    }
+
+    #[test]
+    fn test_delay_scheduler_drives_netinput_buffer() {
+        // The intended wiring: scheduled input is the ground truth confirmed
+        // for its execute tick; a gap is left to the buffer's prediction.
+        let mut sched: DelayScheduler<i32> = DelayScheduler::new(2);
+        let mut buf: NetInputBuffer<u8, i32> = NetInputBuffer::new();
+        buf.seed(1, 0);
+
+        sched.capture(0, 10);
+        sched.capture(1, 20);
+        sched.set_delay(4); // opens a gap at execute-tick 4
+        sched.capture(2, 30);
+
+        let mut executed = Vec::new();
+        for tick in 0..7u32 {
+            match sched.take(tick as u64) {
+                Some(input) => {
+                    buf.confirm(tick, 1, input);
+                }
+                None => {
+                    // Nothing scheduled — predict, exactly as a real session
+                    // does for an input that has not arrived.
+                }
+            }
+            executed.push(buf.input_for(tick, 1).unwrap());
+        }
+        // Ticks 2 and 3 carry the captured inputs; tick 4 is the gap and
+        // repeats the last known value (20) rather than stalling.
+        assert_eq!(executed[2], 10);
+        assert_eq!(executed[3], 20);
+        assert_eq!(executed[4], 20, "gap covered by prediction");
+        assert_eq!(executed[6], 30);
+    }
+
+    #[test]
+    fn test_delay_scheduler_consumes_adaptive_delay_recommendation() {
+        // AdaptiveDelay decides how far behind to run; DelayScheduler schedules
+        // against that decision.
+        let mut ad = AdaptiveDelay::new(1, 6, 4);
+        let mut sched: DelayScheduler<u32> = DelayScheduler::new(ad.recommended_delay());
+        let mut ticks = Vec::new();
+        for t in 0..40u64 {
+            ad.record(t % 2 == 0); // jittery link → delay should climb
+            sched.set_delay(ad.recommended_delay());
+            ticks.push(sched.capture(t, t as u32));
+        }
+        assert!(
+            ad.recommended_delay() > 1,
+            "sustained misprediction must raise the delay"
+        );
+        assert!(
+            ticks.windows(2).all(|w| w[0] < w[1]),
+            "schedule stays collision-free while the delay moves"
+        );
     }
 }
