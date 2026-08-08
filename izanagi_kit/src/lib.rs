@@ -12,6 +12,7 @@
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
 //! - [`replay`] — replay trace recording, desync detection and rollback, plus production desync repro bundles (`DesyncReport`).
 //! - [`rollback`] — rollback-netcode building blocks: a bounded snapshot ring (`SnapshotRing`) and a GGRS-style development sync test (`sync_test`) that catches step-function nondeterminism by rolling back and re-simulating every frame.
+//! - [`sim`] — the one canonical `Simulation` trait (deterministic state machine + ordered inputs, cf. Schneider 1990) that every verification tool consumes, plus `audit()`: a single call running double-run and rollback-resimulation checks over your simulation.
 //! - [`dst`] — Deterministic Simulation Testing harness: seed sweeps with per-tick invariant checks, double-run nondeterminism detection, and one-line `(seed, tick)` failure reproduction.
 //! - [`netinput`] — deterministic multi-player input prediction and misprediction detection (`NetInputBuffer<P,I>`), plus an adaptive input-delay controller (`AdaptiveDelay`) that tunes buffering to the measured misprediction rate.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
@@ -154,6 +155,7 @@ pub mod savefile;
 pub mod serializer;
 pub mod shop;
 pub mod shufflebag;
+pub mod sim;
 pub mod sparse_set;
 pub mod spatial_hash;
 pub mod status;
@@ -268,6 +270,7 @@ pub use savefile::{
 pub use serializer::{content_eq, serialize};
 pub use shop::{Listing, Shop};
 pub use shufflebag::ShuffleBag;
+pub use sim::{audit, AuditReport, Simulation};
 pub use sparse_set::{join, join3, join3_mut, join_mut, SparseSet};
 pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatTarget, StatusSet};
