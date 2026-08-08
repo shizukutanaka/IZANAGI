@@ -14,16 +14,16 @@
 
 | 指標 | 値 |
 |---|---|
-| workspace テスト | **3492 passed / 0 failed** |
+| workspace テスト | **3539 passed / 0 failed** |
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-| kit モジュール数 | 82(`izanagi_kit/src/*.rs`) |
+| kit モジュール数 | 83(`izanagi_kit/src/*.rs`) |
 | engine モジュール数 | 25(`izanagi/src/*.rs`) |
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | バージョン | engine 4.1.0 / kit 0.1.0 |
 | MSRV | engine 1.65 / kit 1.75 |
-| main との差 | feature ブランチが 342 コミット先行(PR 未作成) |
+| main との差 | feature ブランチが 352 コミット先行(PR 未作成) |
 | kit src 内 panic 系(テスト込み) | unwrap 242 / expect 20(N3 の追跡指標) |
 
 ---
@@ -60,10 +60,10 @@
    (ユーザー明示指示待ち)。main を見た訪問者には改善が一切見えない。
 3. **[中] 公開 API に panic 経路が残る** — kit src に unwrap 242 / expect 20(テスト込み計測)。
    fortress-rollback 等の競合は全 API `Result`。0.2 の破壊的変更として計画済み(N3)だが未着手。
-4. **[中] README が新機能に追随していない** — kit README のモジュール表に
-   `dst` / `plan` / `rollback` / `combine_maps` / `farthest_cell` / `ConnectivityMap` /
-   `AdaptiveDelay` / `jps4` が未掲載。「維持されている zero-dep 決定論キット」という
-   差別化ポイント(bracket-lib 停滞に対する)を訴求できていない。
+4. ~~**[中] README が新機能に追随していない**~~ — **解消済み (04d472b)**: kit README と
+   crate doc に 4 層のモジュール地図を追加し、`sim` / `rollback` / `dst` / `plan` /
+   `AdaptiveDelay` を掲載。残る細部として `combine_maps` / `farthest_cell` /
+   `ConnectivityMap` / `jps4` は tier 表の `pathfinding` 行に含まれるが個別記載はまだない。
 5. **[中] バージョン体系の不整合** — engine 4.1.0 / kit 0.1.0。crates.io 未公開なのに
    engine が 4.x を名乗る根拠がリポジトリ内に記録されていない(P5 — ユーザーへの確認事項)。
 6. **[小] エンジン側の f32 シミュレーション** — kit は固定小数点で決定論、engine の

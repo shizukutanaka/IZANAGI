@@ -443,3 +443,37 @@ Factorio FFF-188/340 / Roguelike Celebration 2024-25。
 fortress-rollback / crates.io Trusted Publishing(RFC 3691)/ cargo-semver-checks project goal /
 api-guidelines#231(MSRV)/ docs.rs metadata / rustwasm sunset(team#291)/ gamedev.rs /
 `fixed` / `fixed-num` / Polar Signals DST(2025-07)/ madsim。
+
+---
+
+# 第3次: First Principles 分析 (2026-07-24)
+
+外部出典の網羅(第1・2次)ではなく、**公理からの演繹**で過不足を洗い出した回。
+
+**公理**: ゲームが bit-identical に再生されるために必要十分なものは 3 つだけ —
+①決定論的な状態(正準バイト表現・float/壁時計/未順序反復/アドレス依存を含まない遷移)
+②決定論的な入力(順序付き・再現可能)③①②の証明(hash・replay・分岐検出)。
+それ以外は*内容の利便*であり、公理を支えるのは「それ自身が決定論的で hash 可能」な限りにおいて。
+
+## 過剰(surplus)— 「削除」ではなく「階層が不可視」が defect
+
+82 モジュール中、公理の荷重負担は ~14、決定論アルゴリズムが ~16、コンテンツ検証 6、
+残る **~45 は通常のゲームプレイ機能**。これらは削除対象ではない(ユーザーが自作すると
+`HashMap` を使って replay を壊す)が、**フラットな名前空間ではどれが荷重負担か判別不能**
+だった。→ 4 層の地図を crate doc と README に追加(04d472b)。
+
+## 不足(missing)— 公理から演繹された欠落と対処
+
+| # | 欠落 | 根拠 | 対処 |
+|---|---|---|---|
+| G1 | **step の綴りが 3 種類に分裂**: `FnMut(&mut S,&I)`(replay/rollback)/ `Fn(&S,&I)->S`(plan)/ `FnMut(&mut S,usize)`(dst)。公理③は単一の状態機械を前提とするのに、検証ツール 5 種が非互換な 3 形状を要求していた | Schneider, *State Machine Approach*, ACM Comput. Surv. 22(4), 1990 — 決定論的状態機械 + 順序付き入力ログが実行を完全に決定する | **実装済み (a3ba284)**: `sim::Simulation` トレイト + 各ツールへのアダプタ + `sim::audit()`(二重実行 + rollback 再実行を 1 呼び出しで検査、final hash を返す)。既存 API は不変 |
+| G2 | **`DetHash` の網羅性を検証する手段がない**。フィールドを足して `det_hash` の更新を忘れると、その場では何も壊れず**後で静かに replay が分岐**する(報告される tick と混入 tick が無関係) | mutation testing: DeMillo/Lipton/Sayward, IEEE Computer 1978; Jia & Harman, IEEE TSE 2011 — 小さな変異を注入しオラクルが気づくか見る。生存ミュータント = hash し忘れたフィールド | **実装済み (3934c53)**: `hash_covers` / `field_coverage` / `uncovered_fields`。意図的に不完全な `DetHash` 実装が正しく検出されることをテストで証明 |
+| G3 | 階層の不可視(上記 surplus と同一) | — | **実装済み (04d472b)** |
+| G4 | **hash 安定性ポリシーが未文書化**: 「マシン間・同一コード」と「crate バージョン間」で保証が異なることが明文化されていなかった | — | **実装済み (04d472b)**: `world_hash` module doc に節を追加。バージョン間は非保証 → `DetHash` の形状変更は永続化物に対して破壊的、同一コミットで `savefile` header version を上げる |
+
+## 副次的な確認(修正不要と判明)
+
+- **N17(float ソートの `total_cmp` 化)**: engine にソート皆無(immediate-mode で z-sort なし)、
+  kit は固定小数点で全ソートが整数キー。**このハザードは元から存在しない**。
+- **N15 残り(recipe/drop/encounter の孤児参照検出)**: `content.rs` の `Content` は
+  Prefab/Tile/Spawn/Level のみモデル化。当該参照はコンテンツパイプラインの対象外 → 追加対象なし。
