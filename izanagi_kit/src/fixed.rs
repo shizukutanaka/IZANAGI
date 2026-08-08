@@ -9,6 +9,28 @@
 //! Range: ±32767.99998, resolution 1/65536. Arithmetic uses i64 intermediates
 //! to avoid overflow on multiply/divide.
 //!
+//! # Why `i64` intermediates are exactly enough
+//!
+//! A wider intermediate (`i128`) is sometimes proposed for fixed-point
+//! multiply. Here it would be pure overhead, because the value is a Q16.16
+//! stored in an `i32` and the bound is provable by counting bits:
+//!
+//! - **Multiply** widens both raw operands to `i64` before multiplying. With
+//!   `|raw| ≤ 2³¹`, the exact product satisfies `|a·b| ≤ 2⁶²`, which is inside
+//!   `i64::MAX = 2⁶³ − 1`. The extreme case `i32::MIN · i32::MIN = 2⁶²` is the
+//!   worst input that exists, and it still fits with a bit to spare.
+//! - **Divide** shifts the widened numerator left by 16 first: `|raw << 16| ≤
+//!   2⁴⁷`, sixteen orders of magnitude below the `i64` ceiling. The one way an
+//!   `i64` division can overflow — `i64::MIN / -1` — is unreachable, since the
+//!   numerator never approaches `i64::MIN`.
+//!
+//! So the `i64` intermediate cannot overflow for **any** pair of `Fixed`
+//! values, and saturation is decided solely by the internal `from_wide` clamp
+//! applied to the *result*. Widening to `i128` would change no output and
+//! only cost speed. `test_mul_i64_intermediate_cannot_overflow` and
+//! `test_div_i64_intermediate_cannot_overflow` machine-check the bound with
+//! `checked_mul`/`checked_shl` at the sign extremes.
+//!
 //! # Rounding
 //!
 //! There is no configurable rounding mode; each operation has one fixed,
@@ -1508,5 +1530,126 @@ mod tests {
         // `checked_div` must return None instead.
         let half = Fixed::from_ratio(1, 2);
         assert_eq!(Fixed(i32::MAX).checked_div(half), None);
+    }
+
+    // --- i64 intermediate width is provably sufficient (see module docs) ---
+
+    /// Every raw value that can sit at a sign/magnitude extreme, plus a few
+    /// ordinary ones. If the `i64` product bound holds here it holds
+    /// everywhere, since `|a·b|` is maximised at the extremes.
+    const EXTREME_RAWS: [i32; 9] = [
+        i32::MIN,
+        i32::MIN + 1,
+        -ONE,
+        -1,
+        0,
+        1,
+        ONE,
+        i32::MAX - 1,
+        i32::MAX,
+    ];
+
+    #[test]
+    fn test_mul_i64_intermediate_cannot_overflow() {
+        // The claim: widening both raws to i64 and multiplying never overflows.
+        // checked_mul returning Some for every extreme pair is the machine
+        // proof of |a·b| <= 2^62 < i64::MAX.
+        for &a in &EXTREME_RAWS {
+            for &b in &EXTREME_RAWS {
+                assert!(
+                    (a as i64).checked_mul(b as i64).is_some(),
+                    "i64 product overflowed for raws {a} * {b}"
+                );
+            }
+        }
+        // The worst case is exactly i32::MIN squared = 2^62.
+        let worst = (i32::MIN as i64) * (i32::MIN as i64);
+        assert_eq!(worst, 1i64 << 62);
+        assert!(worst < i64::MAX, "2^62 fits in i64 with a bit to spare");
+    }
+
+    #[test]
+    fn test_div_i64_intermediate_cannot_overflow() {
+        // The numerator is the raw widened then shifted left by FRAC_BITS.
+        for &a in &EXTREME_RAWS {
+            let shifted = (a as i64)
+                .checked_shl(FRAC_BITS)
+                .expect("raw << 16 must fit in i64");
+            assert!(
+                shifted.abs() <= 1i64 << 47,
+                "|raw << 16| must stay within 2^47, got {shifted}"
+            );
+            // i64::MIN / -1 is the only overflowing division; the numerator
+            // never reaches i64::MIN, so it is unreachable.
+            assert_ne!(shifted, i64::MIN);
+            for &b in &EXTREME_RAWS {
+                if b != 0 {
+                    assert!(
+                        shifted.checked_div(b as i64).is_some(),
+                        "i64 division overflowed for raws {a} / {b}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_mul_at_extremes_matches_widened_reference() {
+        // Behavioural counterpart: at every extreme the public op agrees with
+        // the exact i64 computation it claims to perform. Running to completion
+        // is itself the evidence that no intermediate overflowed.
+        for &a in &EXTREME_RAWS {
+            for &b in &EXTREME_RAWS {
+                let reference = Fixed::from_wide(((a as i64) * (b as i64)) >> FRAC_BITS);
+                assert_eq!(
+                    Fixed(a).mul(Fixed(b)),
+                    reference,
+                    "mul disagreed with the widened reference at raws {a} * {b}"
+                );
+            }
+        }
+        // A product far outside the representable range clamps to MAX/MIN.
+        assert_eq!(Fixed::MAX.mul(Fixed::MAX), Fixed::MAX);
+        assert_eq!(Fixed::MAX.mul(Fixed::MIN), Fixed::MIN);
+    }
+
+    #[test]
+    fn test_div_at_extremes_matches_widened_reference() {
+        for &a in &EXTREME_RAWS {
+            for &b in &EXTREME_RAWS {
+                let out = Fixed(a).div(Fixed(b));
+                if b == 0 {
+                    // Documented divide-by-zero-safe: saturates by the
+                    // numerator's sign rather than panicking, with a
+                    // non-negative numerator (including zero) giving MAX.
+                    let expect = if a >= 0 { Fixed::MAX } else { Fixed::MIN };
+                    assert_eq!(out, expect, "div by zero at raw {a}");
+                } else {
+                    let reference = Fixed::from_wide(((a as i64) << FRAC_BITS) / (b as i64));
+                    assert_eq!(
+                        out, reference,
+                        "div disagreed with the widened reference at raws {a} / {b}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_mul_i64_bound_holds_over_a_wide_sweep() {
+        // Beyond the extremes: sweep a large spread of raw magnitudes and
+        // confirm the bound never comes close to the i64 ceiling.
+        let mut rng = crate::rng::SplitMix64::new(0xF1_7ED);
+        for _ in 0..20_000 {
+            let a = rng.next_u64() as i32;
+            let b = rng.next_u64() as i32;
+            let product = (a as i64)
+                .checked_mul(b as i64)
+                .expect("i64 product must never overflow");
+            assert!(product.abs() <= 1i64 << 62);
+            // And the public op agrees with the widened reference computation.
+            let expect = Fixed::from_wide(product >> FRAC_BITS);
+            assert_eq!(Fixed(a).mul(Fixed(b)), expect);
+        }
     }
 }

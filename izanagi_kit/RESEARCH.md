@@ -419,7 +419,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 | N16 | **DSL `extends` オーバーレイ**(content ファイルの field 単位 override) | Bevy 0.19 BSN(patchable scenes) | 🟢(大) | パイプライン全体に関わる大きめの設計 |
 | N17 | **total_cmp ソート監査**(engine の float ソートを `f32::total_cmp`+index tie-break に) | XiSort arXiv:2505.11927 | 🟢 | engine の実ソート箇所の棚卸しが前提 |
 | N18 | **archetype storage(feature-gated)** | The Essence of ECS, SAC 2026 arXiv:2606.14919 | 🟡 反復順序に影響 → 決定論 kit には stable-order mode 必須 | ベンチ methodology は再利用可 |
-| N19 | ~~**Fixed op 命名行列**~~ **実装済み (dd03e57)**: `checked_add/sub/mul/div`・`wrapping_add/sub`・`overflowing_add/sub`・`saturating_sub` の9メソッド。mul/div の i128 中間化は未着手 | `fixed` クレートの API 規範 | 🟢 新メソッドのみ | — |
+| N19 | ~~**Fixed op 命名行列**~~ **実装済み (dd03e57)**: `checked_add/sub/mul/div`・`wrapping_add/sub`・`overflowing_add/sub`・`saturating_sub` の9メソッド。**mul/div の i128 中間化は「不要」と結論**: Q16.16 を i32 に格納するため mul は \|a·b\| ≤ 2⁶² < 2⁶³、div は \|raw<<16\| ≤ 2⁴⁷ で i64 中間は原理的に溢れ得ない(`i64::MIN / -1` も到達不能)。i128 化は出力を1 bit も変えず速度だけ損なう。証明を `checked_mul`/`checked_shl` による極値テスト + 20,000 サンプルの sweep で機械検証済み | `fixed` クレートの API 規範 | 🟢 | — |
 | N20 | **cargo feature collections**(78 module を `roguelike`/`replay`/`math` 等に粗くグループ化) | Bevy 0.18 feature collections | 🟡 feature gate が pinned hash test を割らないよう `default=full` 必須 | |
 | N21 | **crates.io Trusted Publishing + cargo-semver-checks リリース gate** | RFC 3691(2025-07 GA)/ cargo-semver-checks 2026 project goal | 📄 プロセスのみ | GH runner 上で動くので sandbox 制約は無関係。初回公開後に |
 | N22 | **観測フック(observers/hooks)**(component 挿入/削除コールバック → eventqueue) | Bevy ECS 討論 RustWeek 2025 | 🟡 ECS dispatch に触れる | |
