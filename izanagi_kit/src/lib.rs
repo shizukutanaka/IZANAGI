@@ -10,7 +10,7 @@
 //!
 //! | Tier | What it is | Modules |
 //! |---|---|---|
-//! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`netinput`], [`cmdqueue`], [`savefile`], [`timestep`] |
+//! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`netinput`], [`cmdqueue`], [`savefile`], [`timestep`] |
 //! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
@@ -34,6 +34,7 @@
 //! - [`dst`] — Deterministic Simulation Testing harness: seed sweeps with per-tick invariant checks, double-run nondeterminism detection, swarm testing (per-seed random action subsets, Groce et al. ISSTA 2012), and one-line `(seed, tick)` failure reproduction.
 //! - [`shrink`] — delta debugging (`ddmin`, Zeller & Hildebrandt, IEEE TSE 2002): reduce a failing input sequence to a 1-minimal one, so a 800-step failure becomes the three steps that actually caused it.
 //! - [`prop`] — property-based testing (QuickCheck, Claessen & Hughes ICFP 2000): generate random input sequences from seeded sub-streams, check a property, and hand back any counterexample already shrunk to 1-minimal (`forall_inputs`, `forall_states`).
+//! - [`mod@explore`] — archive-based state-space exploration (Go-Explore, Ecoffet et al., Nature 2021): remember every distinct state reached, return to one deterministically, and explore onward — reaching deep states that memoryless random play cannot, and handing back the replayable path to each (`explore`, `explore_until`).
 //! - [`netinput`] — the deterministic-lockstep input path: prediction and misprediction detection (`NetInputBuffer<P,I>`), an adaptive input-delay controller (`AdaptiveDelay`) that tunes buffering to the measured misprediction rate, and `DelayScheduler` executing captured input `delay` ticks later (1500 Archers, GDC 2001) without gaps or double-booked ticks as the delay moves.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
 //! - [`rng_xoshiro`] — opt-in xoshiro256++ PRNG (`Xoshiro256pp`): 2²⁵⁶ period, higher statistical quality, seeded from SplitMix64, with `jump()` for parallel streams.
@@ -135,6 +136,7 @@ pub mod encounter;
 pub mod entity;
 pub mod equipment;
 pub mod eventqueue;
+pub mod explore;
 pub mod faction;
 pub mod fixed;
 pub mod fov;
@@ -233,6 +235,7 @@ pub use encounter::{EncounterPack, EncounterSlot};
 pub use entity::{Entity, EntityAllocator};
 pub use equipment::{EquipSlot, Equipment};
 pub use eventqueue::EventQueue;
+pub use explore::{explore, explore_sim, explore_sim_until, explore_until, Archive, ExploreConfig};
 pub use faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
 pub use fixed::Fixed;
 pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};

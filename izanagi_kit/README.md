@@ -62,7 +62,7 @@ promise, so they fall into four tiers — read top-down:
 
 | Tier | What it is | Modules |
 |---|---|---|
-| **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `plan`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
+| **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -88,6 +88,9 @@ The capability map — with per-feature implementation status — lives in
 | `rollback` | Bounded snapshot ring (`SnapshotRing`) and a GGRS-style `sync_test` that rolls back every frame to catch step-function nondeterminism. |
 | `dst` | Deterministic Simulation Testing: seed sweeps with per-tick invariants and one-line `(seed, tick)` failure reproduction. |
 | `plan` | Planning-based test synthesis — BFS over the state space for a shortest input sequence satisfying a goal ("can the player reach X" becomes an executable replay). |
+| `explore` | Archive-based exploration (Go-Explore) — remember every state reached, return to it deterministically, explore onward. Scales past where BFS stalls; hands back a replayable path per state. |
+| `shrink` | Delta debugging (`ddmin`) — reduce a failing input sequence to a 1-minimal one. |
+| `prop` | Property-based testing (QuickCheck) — random sequences, checked property, counterexample returned already shrunk. |
 | `netinput` | Transport-agnostic multi-player input prediction and misprediction detection for rollback netcode (`NetInputBuffer`), plus `AdaptiveDelay` tuning input delay to the measured misprediction rate. |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
 | `mapgen` / `wfc` / `multimap` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions, drunkard's-walk caverns), Wave Function Collapse, multi-level worlds. |
