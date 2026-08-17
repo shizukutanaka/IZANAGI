@@ -149,12 +149,59 @@ pub struct Monitor<S> {
     verdict: Verdict,
     ticks: usize,
     violation: Option<usize>,
+    /// The finite part of the monitor's state, split out so it can be hashed
+    /// and enumerated (see [`MonitorState`]).
+    state: MonitorState,
+}
+
+/// The complete state of a running [`Monitor`], as a small `Copy` value.
+///
+/// This is deliberately **finite**: `RespondsWithin` stores the number of ticks
+/// still allowed before the response is due, not the tick the trigger arrived
+/// on, so the set of reachable monitor states is bounded by `within + 2` rather
+/// than growing with the run. That is what makes a monitor usable as one half
+/// of a product construction — see
+/// [`check_temporal`](crate::verify::check_temporal).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct MonitorState {
+    verdict: Verdict,
     /// `Precedes`: has the `first` predicate held yet?
     seen_first: bool,
-    /// `RespondsWithin`: tick of the oldest trigger still awaiting a response.
-    /// Tracking only the oldest is sound and complete — a response clears every
-    /// outstanding trigger at once, and the oldest has the earliest deadline.
-    pending: Option<usize>,
+    /// `RespondsWithin`: ticks of slack left before a response is overdue, or
+    /// `None` when nothing is outstanding. A response clears every outstanding
+    /// trigger at once and the oldest has the tightest deadline, so tracking a
+    /// single countdown is sound and complete.
+    deadline: Option<usize>,
+}
+
+impl MonitorState {
+    /// The LTL₃ verdict this state carries.
+    pub fn verdict(&self) -> Verdict {
+        self.verdict
+    }
+
+    /// Whether a response is currently outstanding (`RespondsWithin` only).
+    pub fn awaiting_response(&self) -> bool {
+        self.deadline.is_some()
+    }
+}
+
+impl crate::world_hash::DetHash for MonitorState {
+    fn det_hash(&self, h: &mut crate::world_hash::Fnv1a) {
+        h.write_u8(match self.verdict {
+            Verdict::True => 0,
+            Verdict::False => 1,
+            Verdict::Inconclusive => 2,
+        });
+        h.write_bool(self.seen_first);
+        match self.deadline {
+            Some(left) => {
+                h.write_u8(1);
+                h.write_u64(left as u64);
+            }
+            None => h.write_u8(0),
+        }
+    }
 }
 
 impl<S> Monitor<S> {
@@ -164,8 +211,11 @@ impl<S> Monitor<S> {
             verdict: Verdict::Inconclusive,
             ticks: 0,
             violation: None,
-            seen_first: false,
-            pending: None,
+            state: MonitorState {
+                verdict: Verdict::Inconclusive,
+                seen_first: false,
+                deadline: None,
+            },
         }
     }
 
@@ -273,38 +323,51 @@ impl<S> Monitor<S> {
     pub fn update(&mut self, state: &S) {
         let i = self.ticks;
         self.ticks += 1;
-        if self.verdict != Verdict::Inconclusive {
-            return;
+        let before = self.state.verdict;
+        self.state = self.advance(self.state, state);
+        self.verdict = self.state.verdict;
+        if before == Verdict::Inconclusive && self.verdict == Verdict::False {
+            self.violation = Some(i);
         }
-        // Field-level borrows: `self.kind` is read while other fields are
-        // written, which is why the mutations are inline rather than a method.
+    }
+
+    /// The monitor's transition function, as a pure map on [`MonitorState`].
+    ///
+    /// [`update`](Monitor::update) is a thin wrapper over this. Exposed
+    /// separately so an exhaustive checker can drive the monitor over a state
+    /// space it enumerates itself, rather than along one run — see
+    /// [`check_temporal`](crate::verify::check_temporal).
+    ///
+    /// Verdicts are impartial, so a settled state is returned unchanged.
+    pub fn advance(&self, current: MonitorState, state: &S) -> MonitorState {
+        if current.verdict != Verdict::Inconclusive {
+            return current;
+        }
+        let mut next = current;
         match &self.kind {
             Kind::Always(pred) => {
                 if !pred(state) {
-                    self.verdict = Verdict::False;
-                    self.violation = Some(i);
+                    next.verdict = Verdict::False;
                 }
             }
             Kind::Eventually(pred) => {
                 if pred(state) {
-                    self.verdict = Verdict::True;
+                    next.verdict = Verdict::True;
                 }
             }
             Kind::Until { hold, release } | Kind::WeakUntil { hold, release } => {
                 if release(state) {
-                    self.verdict = Verdict::True;
+                    next.verdict = Verdict::True;
                 } else if !hold(state) {
-                    self.verdict = Verdict::False;
-                    self.violation = Some(i);
+                    next.verdict = Verdict::False;
                 }
             }
             Kind::Precedes { first, second } => {
                 if first(state) {
-                    self.seen_first = true;
+                    next.seen_first = true;
                 }
-                if second(state) && !self.seen_first {
-                    self.verdict = Verdict::False;
-                    self.violation = Some(i);
+                if second(state) && !next.seen_first {
+                    next.verdict = Verdict::False;
                 }
             }
             Kind::RespondsWithin {
@@ -313,20 +376,66 @@ impl<S> Monitor<S> {
                 within,
             } => {
                 if response(state) {
-                    self.pending = None;
+                    next.deadline = None;
                 } else {
-                    if trigger(state) && self.pending.is_none() {
-                        self.pending = Some(i);
+                    if trigger(state) && next.deadline.is_none() {
+                        next.deadline = Some(*within);
                     }
-                    if let Some(armed) = self.pending {
-                        if i - armed >= *within {
-                            self.verdict = Verdict::False;
-                            self.violation = Some(i);
-                        }
+                    match next.deadline {
+                        // Out of slack and still no response: overdue now.
+                        Some(0) => next.verdict = Verdict::False,
+                        Some(left) => next.deadline = Some(left - 1),
+                        None => {}
                     }
                 }
             }
         }
+        next
+    }
+
+    /// The state a fresh monitor starts in.
+    pub fn initial_state(&self) -> MonitorState {
+        MonitorState {
+            verdict: Verdict::Inconclusive,
+            seen_first: false,
+            deadline: None,
+        }
+    }
+
+    /// The definite finite-trace verdict for an arbitrary [`MonitorState`] —
+    /// [`finish`](Monitor::finish) generalised off this monitor's own run.
+    pub fn finish_state(&self, current: MonitorState) -> bool {
+        match current.verdict {
+            Verdict::True => true,
+            Verdict::False => false,
+            Verdict::Inconclusive => match &self.kind {
+                Kind::Always(_) | Kind::Precedes { .. } | Kind::WeakUntil { .. } => true,
+                Kind::Eventually(_) | Kind::Until { .. } => false,
+                Kind::RespondsWithin { .. } => current.deadline.is_none(),
+            },
+        }
+    }
+
+    /// Whether this is a **safety** property: one that a finite prefix can
+    /// refute.
+    ///
+    /// `always`, `never`, `precedes` and `responds_within` are safety
+    /// properties — a violation always shows up on some finite prefix, so
+    /// enumerating finite runs can prove their absence. `eventually` and
+    /// `until` carry a liveness obligation ("it has not happened *yet*" is
+    /// never a refutation), which finite-prefix search cannot settle;
+    /// [`check_temporal`](crate::verify::check_temporal) refuses them rather
+    /// than returning a proof it has not made.
+    pub fn is_safety(&self) -> bool {
+        match &self.kind {
+            Kind::Always(_) | Kind::Precedes { .. } | Kind::RespondsWithin { .. } => true,
+            Kind::Eventually(_) | Kind::Until { .. } | Kind::WeakUntil { .. } => false,
+        }
+    }
+
+    /// This monitor's current state.
+    pub fn state(&self) -> MonitorState {
+        self.state
     }
 
     /// The LTL₃ verdict on the run *so far*, treating it as a prefix that may
@@ -342,18 +451,7 @@ impl<S> Monitor<S> {
     /// This is where an inconclusive property is forced to commit — `always`
     /// that never broke is `true`, `eventually` that never happened is `false`.
     pub fn finish(&self) -> bool {
-        match self.verdict {
-            Verdict::True => true,
-            Verdict::False => false,
-            Verdict::Inconclusive => match &self.kind {
-                // Never violated, and a run that ends cannot violate them later.
-                Kind::Always(_) | Kind::Precedes { .. } | Kind::WeakUntil { .. } => true,
-                // The awaited event never arrived.
-                Kind::Eventually(_) | Kind::Until { .. } => false,
-                // Satisfied unless a trigger is still outstanding.
-                Kind::RespondsWithin { .. } => self.pending.is_none(),
-            },
-        }
+        self.finish_state(self.state)
     }
 
     /// The tick at which the property was refuted, if it was.

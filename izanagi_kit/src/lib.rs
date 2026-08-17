@@ -37,7 +37,7 @@
 //! - [`mod@explore`] — archive-based state-space exploration (Go-Explore, Ecoffet et al., Nature 2021): remember every distinct state reached, return to one deterministically, and explore onward — reaching deep states that memoryless random play cannot, and handing back the replayable path to each (`explore`, `explore_until`).
 //! - [`temporal`] — temporal property monitors (runtime verification; LTL₃ three-valued semantics, Bauer/Leucker/Schallhart ACM TOSEM 2011): assert properties that span *time* rather than one state — `always`/`eventually`/`until`/`precedes`/`responds_within` — with an anytime verdict during a run and a definite one at the end (`Monitor`, `MonitorSet`, `check_run`).
 //! - [`recovery`] — crash-recovery testing: inject a save/restore cycle after *every* input and check the run continues identically (`restart_test`, `restart_test_bytes`). Distinguishes an unloadable save, one that drops a hashed field, and — the case a hash comparison alone cannot see — one that drops state the hash does not cover.
-//! - [`verify`] — bounded model checking (Clarke/Emerson/Sistla ACM TOPLAS 1986; SPIN, Holzmann IEEE TSE 1997): enumerate every reachable state breadth-first and either **prove** an invariant holds throughout or return the shortest input sequence that breaks it (`check_invariant`, `reachable_states`). Three-way result, so a proof is never confused with a search that ran out of budget.
+//! - [`verify`] — bounded model checking (Clarke/Emerson/Sistla ACM TOPLAS 1986; SPIN, Holzmann IEEE TSE 1997): enumerate every reachable state breadth-first and either **prove** an invariant holds throughout or return the shortest input sequence that breaks it (`check_invariant`, `reachable_states`). Three-way result, so a proof is never confused with a search that ran out of budget. `check_temporal` extends this to temporal properties by the product construction (Vardi & Wolper, LICS 1986), crossing the state space with a [`temporal`] monitor — and refuses liveness properties rather than reporting a proof it has not made.
 //! - [`netinput`] — the deterministic-lockstep input path: prediction and misprediction detection (`NetInputBuffer<P,I>`), an adaptive input-delay controller (`AdaptiveDelay`) that tunes buffering to the measured misprediction rate, and `DelayScheduler` executing captured input `delay` ticks later (1500 Archers, GDC 2001) without gaps or double-booked ticks as the delay moves.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
 //! - [`rng_xoshiro`] — opt-in xoshiro256++ PRNG (`Xoshiro256pp`): 2²⁵⁶ period, higher statistical quality, seeded from SplitMix64, with `jump()` for parallel streams.
@@ -326,7 +326,9 @@ pub use turn::Scheduler;
 pub use tween::{Tween, TweenSequence};
 pub use validator::{is_loadable, validate};
 pub use vec::{Vec2, Vec3};
-pub use verify::{check_invariant, reachable_states, Counterexample, Verification};
+pub use verify::{
+    check_invariant, check_temporal, reachable_states, Counterexample, NotSafety, Verification,
+};
 pub use visibility::{Visibility, VisibilityMap};
 pub use wallet::Wallet;
 pub use wfc::{

@@ -112,7 +112,8 @@
 use std::collections::{HashSet, VecDeque};
 
 use crate::sim::Simulation;
-use crate::world_hash::{hash_state, DetHash};
+use crate::temporal::{Monitor, MonitorState, Verdict};
+use crate::world_hash::{hash_state, DetHash, Fnv1a};
 
 /// A shortest input sequence driving the simulation into a state that breaks
 /// the invariant.
@@ -304,6 +305,148 @@ fn reconstruct<I: Clone>(
     }
     path.reverse();
     path
+}
+
+/// Returned by [`check_temporal`] when asked to verify a property that a
+/// finite prefix can never refute.
+///
+/// `eventually` and `until` carry a liveness obligation: "it has not happened
+/// yet" is not a violation, so enumerating finite runs would find no
+/// counterexample no matter what — and reporting
+/// [`Holds`](Verification::Holds) on that basis would be a proof of nothing.
+/// Refuting liveness needs cycle detection over the product graph (SPIN's
+/// nested depth-first search), which this checker does not do. Use
+/// [`Monitor::is_safety`] to test a monitor before passing it in.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NotSafety;
+
+impl core::fmt::Display for NotSafety {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "not a safety property: no finite run can refute it, so exhaustive \
+             finite-prefix search cannot prove or disprove it"
+        )
+    }
+}
+
+/// Exhaustively verify a **temporal** property: enumerate every reachable
+/// `(simulation state, monitor state)` pair and either prove no reachable run
+/// violates the property, or return the shortest input sequence that does.
+///
+/// This is the product construction at the heart of automata-theoretic model
+/// checking (Vardi & Wolper, *An Automata-Theoretic Approach to Automatic
+/// Program Verification*, LICS 1986) and the thing SPIN actually does: cross
+/// the system with the property automaton and search the product. Here the
+/// property automaton is a [`Monitor`], whose state is finite by construction
+/// ([`MonitorState`]), so the product of a finite simulation and a monitor is
+/// finite and [`Holds`](Verification::Holds) is reachable.
+///
+/// It answers questions [`check_invariant`] structurally cannot. "Coins are
+/// never negative" is a property of one state; "a purchase never happens
+/// before the funds exist" is a property of an *ordering*, and no predicate on
+/// a single state expresses it. The monitor carries exactly the history needed.
+///
+/// The monitor is applied to the initial state first (position 0), matching
+/// [`check_run`](crate::temporal::check_run). Returns `Err(NotSafety)` for a
+/// liveness property rather than a proof it has not made.
+pub fn check_temporal<S, I, F>(
+    initial: S,
+    inputs: &[I],
+    step: F,
+    monitor: &Monitor<S>,
+    max_states: usize,
+) -> Result<Verification<I>, NotSafety>
+where
+    S: DetHash + Clone,
+    I: Clone,
+    F: Fn(&S, &I) -> S,
+{
+    if !monitor.is_safety() {
+        return Err(NotSafety);
+    }
+
+    let start_monitor = monitor.advance(monitor.initial_state(), &initial);
+    if start_monitor.verdict() == Verdict::False {
+        return Ok(Verification::Violated(Counterexample {
+            path: Vec::new(),
+            states: 1,
+        }));
+    }
+
+    let mut visited: HashSet<u64> = HashSet::new();
+    visited.insert(product_key(&initial, start_monitor));
+
+    let mut parents: Vec<Option<(usize, usize)>> = vec![None];
+    let mut queue: VecDeque<(S, MonitorState, usize, usize)> = VecDeque::new();
+    queue.push_back((initial, start_monitor, 0, 0));
+    let mut diameter = 0usize;
+
+    while let Some((state, mstate, depth, node)) = queue.pop_front() {
+        diameter = diameter.max(depth);
+
+        for (slot, input) in inputs.iter().enumerate() {
+            let next = step(&state, input);
+            let next_monitor = monitor.advance(mstate, &next);
+            if !visited.insert(product_key(&next, next_monitor)) {
+                continue; // this (state, monitor) pair was already reached
+            }
+            let next_node = parents.len();
+            parents.push(Some((node, slot)));
+
+            if next_monitor.verdict() == Verdict::False {
+                return Ok(Verification::Violated(Counterexample {
+                    path: reconstruct(&parents, next_node, inputs),
+                    states: visited.len(),
+                }));
+            }
+            if visited.len() >= max_states {
+                return Ok(Verification::Exhausted {
+                    states: visited.len(),
+                    depth,
+                });
+            }
+            queue.push_back((next, next_monitor, depth + 1, next_node));
+        }
+    }
+
+    Ok(Verification::Holds {
+        states: visited.len(),
+        diameter,
+    })
+}
+
+/// One digest over the `(simulation state, monitor state)` pair. Both halves
+/// go through [`DetHash`], so the key is stable across machines and runs.
+fn product_key<S: DetHash>(state: &S, monitor: MonitorState) -> u64 {
+    let mut h = Fnv1a::new();
+    state.det_hash(&mut h);
+    monitor.det_hash(&mut h);
+    h.finish()
+}
+
+/// [`check_temporal`] for a [`Simulation`].
+pub fn check_temporal_sim<S>(
+    initial: S,
+    inputs: &[S::Input],
+    monitor: &Monitor<S>,
+    max_states: usize,
+) -> Result<Verification<S::Input>, NotSafety>
+where
+    S: Simulation + DetHash + Clone,
+    S::Input: Clone,
+{
+    check_temporal(
+        initial,
+        inputs,
+        |s: &S, i: &S::Input| {
+            let mut next = s.clone();
+            next.step(i);
+            next
+        },
+        monitor,
+        max_states,
+    )
 }
 
 /// [`check_invariant`] for a [`Simulation`], deriving the pure transition from
@@ -618,6 +761,358 @@ mod tests {
             check_invariant_sim(start(9), &[1, -1], inv, 10_000)
         );
         assert!(check_invariant_sim(start(9), &[1, -1], inv, 10_000).is_violated());
+    }
+
+    // --- check_temporal: the product construction. ---
+
+    /// A shop where the two facts that matter are separate: whether the player
+    /// currently holds funds, and whether they just bought something. Every
+    /// individual state is legal — the bug is an *ordering*, which no
+    /// single-state predicate can express.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Shop {
+        funds: i32,
+        bought: bool,
+    }
+
+    impl DetHash for Shop {
+        fn det_hash(&self, h: &mut Fnv1a) {
+            h.write_i32(self.funds);
+            h.write_bool(self.bought);
+        }
+    }
+
+    /// Inputs: earn a coin, or attempt a purchase.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum Act {
+        Earn,
+        Buy,
+    }
+
+    /// `guarded` refuses a purchase without funds; the unguarded version does
+    /// not, which is the bug.
+    fn shop_step(guarded: bool) -> impl Fn(&Shop, &Act) -> Shop {
+        move |s: &Shop, a: &Act| match a {
+            Act::Earn => Shop {
+                funds: (s.funds + 1).min(2),
+                bought: false,
+            },
+            Act::Buy => {
+                if guarded && s.funds == 0 {
+                    Shop {
+                        funds: 0,
+                        bought: false,
+                    }
+                } else {
+                    Shop {
+                        funds: (s.funds - 1).max(0),
+                        bought: true,
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_temporal_proves_an_ordering_property_no_state_predicate_can_state() {
+        // "A purchase is never made before funds have been held." Guarded: the
+        // product is exhausted and the ordering is proved.
+        let ok = check_temporal(
+            Shop {
+                funds: 0,
+                bought: false,
+            },
+            &[Act::Earn, Act::Buy],
+            shop_step(true),
+            &Monitor::precedes(|s: &Shop| s.funds > 0, |s: &Shop| s.bought),
+            10_000,
+        )
+        .expect("precedes is a safety property");
+        assert!(ok.holds(), "{ok}");
+
+        // Unguarded: a single Buy from the start violates the ordering, and
+        // that is the shortest way to do it.
+        let bad = check_temporal(
+            Shop {
+                funds: 0,
+                bought: false,
+            },
+            &[Act::Earn, Act::Buy],
+            shop_step(false),
+            &Monitor::precedes(|s: &Shop| s.funds > 0, |s: &Shop| s.bought),
+            10_000,
+        )
+        .expect("precedes is a safety property");
+        let cx = bad.counterexample().expect("must be violated");
+        assert_eq!(cx.path, vec![Act::Buy]);
+    }
+
+    #[test]
+    fn test_the_same_bug_is_invisible_to_check_invariant() {
+        // Pins the claim above. Every reachable state of the buggy shop is
+        // individually fine — funds never go negative — so a state invariant
+        // proves "correct" while the ordering property is violated.
+        let states_are_fine = check_invariant(
+            Shop {
+                funds: 0,
+                bought: false,
+            },
+            &[Act::Earn, Act::Buy],
+            shop_step(false),
+            |s: &Shop| s.funds >= 0,
+            10_000,
+        );
+        assert!(
+            states_are_fine.holds(),
+            "the state invariant genuinely holds: {states_are_fine}"
+        );
+    }
+
+    #[test]
+    fn test_counterexample_really_violates_the_property_when_replayed() {
+        // Cross-check against the independent single-run monitor in `temporal`:
+        // replaying the reported path must make that monitor reject too.
+        let cx = check_temporal(
+            Shop {
+                funds: 0,
+                bought: false,
+            },
+            &[Act::Earn, Act::Buy],
+            shop_step(false),
+            &Monitor::precedes(|s: &Shop| s.funds > 0, |s: &Shop| s.bought),
+            10_000,
+        )
+        .unwrap()
+        .counterexample()
+        .cloned()
+        .expect("violated");
+
+        let mut m = Monitor::precedes(|s: &Shop| s.funds > 0, |s: &Shop| s.bought);
+        let start = Shop {
+            funds: 0,
+            bought: false,
+        };
+        let mut state = start.clone();
+        m.update(&state);
+        for act in &cx.path {
+            state = shop_step(false)(&state, act);
+            m.update(&state);
+        }
+        assert_eq!(m.verdict(), Verdict::False, "replay must reject");
+        assert!(!m.finish());
+    }
+
+    #[test]
+    fn test_bounded_response_is_provable_over_the_whole_product() {
+        // This is the test the MonitorState refactor exists for. A
+        // `responds_within` monitor that stored the *arming tick* would make
+        // the product state space grow without bound, so the search could only
+        // ever return Exhausted. With a bounded countdown it terminates in a
+        // proof.
+        //
+        // Model: pressing Buy sets `bought`, and any Earn clears it. The
+        // property "every purchase is followed within 1 tick by a state with
+        // funds available again" holds because funds cap at 2 and Earn always
+        // restores them.
+        let clears = |_s: &Shop, a: &Act| match a {
+            Act::Earn => Shop {
+                funds: 2,
+                bought: false,
+            },
+            Act::Buy => Shop {
+                funds: 2,
+                bought: true,
+            },
+        };
+        let result = check_temporal(
+            Shop {
+                funds: 2,
+                bought: false,
+            },
+            &[Act::Earn, Act::Buy],
+            clears,
+            &Monitor::responds_within(|s: &Shop| s.bought, |s: &Shop| s.funds >= 2, 1),
+            10_000,
+        )
+        .expect("responds_within is a safety property");
+        assert!(
+            result.holds(),
+            "the product must terminate in a proof, got {result}"
+        );
+    }
+
+    #[test]
+    fn test_bounded_response_violation_is_found_with_a_shortest_run() {
+        // Two Buys in a row leave the purse empty for longer than the deadline
+        // allows, and the shortest such run is exactly two Buys.
+        let drains = |s: &Shop, a: &Act| match a {
+            Act::Earn => Shop {
+                funds: 2,
+                bought: false,
+            },
+            Act::Buy => Shop {
+                funds: (s.funds - 2).max(0),
+                bought: true,
+            },
+        };
+        let result = check_temporal(
+            Shop {
+                funds: 2,
+                bought: false,
+            },
+            &[Act::Earn, Act::Buy],
+            drains,
+            &Monitor::responds_within(|s: &Shop| s.bought, |s: &Shop| s.funds >= 2, 0),
+            10_000,
+        )
+        .unwrap();
+        let cx = result.counterexample().expect("must be violated");
+        assert_eq!(cx.path, vec![Act::Buy]);
+    }
+
+    /// A two-state simulation, used to show that the product is genuinely a
+    /// *product*: the same simulation state must be revisited when the monitor
+    /// half differs.
+    #[derive(Clone, Debug, PartialEq, Eq)]
+    struct Phase {
+        on: bool,
+    }
+
+    impl DetHash for Phase {
+        fn det_hash(&self, h: &mut Fnv1a) {
+            h.write_bool(self.on);
+        }
+    }
+
+    #[test]
+    fn test_search_revisits_a_state_when_the_monitor_half_differs() {
+        // The simulation has exactly two states, and `on` is reached after one
+        // input. The property is "whenever `on`, it must be off again within 1
+        // tick", so staying `on` twice running violates it — but the second
+        // visit to `on` is the *same simulation state* as the first. A search
+        // that deduplicated on the simulation alone would prune it and report
+        // a proof; only keying on the (state, monitor) pair finds the bug.
+        let set = |_s: &Phase, i: &bool| Phase { on: *i };
+        let property = Monitor::responds_within(|p: &Phase| p.on, |p: &Phase| !p.on, 1);
+
+        let result = check_temporal(Phase { on: false }, &[true, false], set, &property, 10_000)
+            .expect("responds_within is a safety property");
+        let cx = result
+            .counterexample()
+            .expect("staying on for two ticks violates the deadline");
+        assert_eq!(cx.path, vec![true, true]);
+
+        // And the product really is bigger than the simulation it wraps: the
+        // simulation has 2 reachable states, the product strictly more.
+        let (sim_states, _) =
+            reachable_states(Phase { on: false }, &[true, false], set, 10_000).expect("tiny space");
+        assert_eq!(sim_states, 2);
+        assert!(
+            cx.states > sim_states,
+            "product visited {} pairs for {} simulation states",
+            cx.states,
+            sim_states
+        );
+    }
+
+    #[test]
+    fn test_liveness_is_refused_rather_than_falsely_proved() {
+        // The important negative result: a finite-prefix search can never
+        // refute `eventually`, so claiming Holds would be a proof of nothing.
+        // The checker must decline instead.
+        let live = Monitor::eventually(|s: &Shop| s.bought);
+        assert!(!live.is_safety());
+        let refused = check_temporal(
+            Shop {
+                funds: 0,
+                bought: false,
+            },
+            &[Act::Earn],
+            shop_step(true),
+            &live,
+            10_000,
+        );
+        assert_eq!(refused, Err(NotSafety));
+        assert!(refused.is_err(), "must never report Holds for liveness");
+        assert!(NotSafety.to_string().contains("safety"));
+
+        // `until` carries the same obligation and is refused too.
+        assert!(check_temporal(
+            Shop {
+                funds: 0,
+                bought: false
+            },
+            &[Act::Earn],
+            shop_step(true),
+            &Monitor::until(|s: &Shop| s.funds >= 0, |s: &Shop| s.bought),
+            10_000,
+        )
+        .is_err());
+    }
+
+    #[test]
+    fn test_temporal_agrees_with_check_invariant_on_an_always_property() {
+        // `always(p)` is exactly the invariant `p`, so the two entry points
+        // must agree — a differential check between the plain search and the
+        // product search.
+        let inv = |c: &Clamped| c.at <= 9;
+        let plain = check_invariant(start(9), &[1, -1], step, inv, 10_000);
+        let product =
+            check_temporal(start(9), &[1, -1], step, &Monitor::always(inv), 10_000).unwrap();
+        assert!(plain.holds() && product.holds());
+        assert_eq!(plain.states(), product.states());
+
+        let broken = |c: &Clamped| c.at != 4;
+        let plain_bad = check_invariant(start(9), &[1, -1], step, broken, 10_000);
+        let product_bad =
+            check_temporal(start(9), &[1, -1], step, &Monitor::always(broken), 10_000).unwrap();
+        assert_eq!(
+            plain_bad.counterexample().unwrap().path.len(),
+            product_bad.counterexample().unwrap().path.len()
+        );
+    }
+
+    #[test]
+    fn test_temporal_violation_at_the_initial_state_gives_an_empty_path() {
+        let result = check_temporal(
+            Shop {
+                funds: 0,
+                bought: true,
+            },
+            &[Act::Earn],
+            shop_step(true),
+            &Monitor::precedes(|s: &Shop| s.funds > 0, |s: &Shop| s.bought),
+            10_000,
+        )
+        .unwrap();
+        match result {
+            Verification::Violated(cx) => assert!(cx.path.is_empty()),
+            other => panic!("expected an immediate violation, got {other}"),
+        }
+    }
+
+    #[test]
+    fn test_temporal_bound_yields_exhausted_never_a_false_proof() {
+        let result = check_temporal(
+            0i64,
+            &[1, -1],
+            |s: &i64, i: &i64| s + i,
+            &Monitor::always(|s: &i64| *s < 1_000_000),
+            64,
+        )
+        .unwrap();
+        assert!(result.is_exhausted(), "{result}");
+        assert!(!result.holds());
+    }
+
+    #[test]
+    fn test_temporal_is_deterministic_and_the_sim_adapter_agrees() {
+        let build = || Monitor::always(|c: &Clamped| c.at != 6);
+        let a = check_temporal(start(9), &[1, -1], step, &build(), 10_000).unwrap();
+        let b = check_temporal(start(9), &[1, -1], step, &build(), 10_000).unwrap();
+        assert_eq!(a, b);
+        let via_sim = check_temporal_sim(start(9), &[1, -1], &build(), 10_000).unwrap();
+        assert_eq!(a, via_sim);
     }
 
     #[test]
