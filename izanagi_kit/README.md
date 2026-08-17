@@ -62,7 +62,7 @@ promise, so they fall into four tiers — read top-down:
 
 | Tier | What it is | Modules |
 |---|---|---|
-| **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
+| **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -90,6 +90,7 @@ The capability map — with per-feature implementation status — lives in
 | `plan` | Planning-based test synthesis — BFS over the state space for a shortest input sequence satisfying a goal ("can the player reach X" becomes an executable replay). |
 | `explore` | Archive-based exploration (Go-Explore) — remember every state reached, return to it deterministically, explore onward. Scales past where BFS stalls; hands back a replayable path per state. |
 | `temporal` | Temporal property monitors (runtime verification) — `always` / `eventually` / `until` / `precedes` / `responds_within` over a tick stream, with LTL₃ anytime verdicts and a definite finite-trace verdict. Drops straight into a `dst_sweep` invariant. |
+| `recovery` | Crash-recovery testing — inject a save/restore cycle after every input and prove the run continues identically. Catches save formats that silently drop a field, including fields the state hash does not cover. |
 | `shrink` | Delta debugging (`ddmin`) — reduce a failing input sequence to a 1-minimal one. |
 | `prop` | Property-based testing (QuickCheck) — random sequences, checked property, counterexample returned already shrunk. Plus model-based / differential testing (`forall_model`) — run the real sim in lockstep with a trusted reference model and shrink any diverging command sequence. |
 | `netinput` | Transport-agnostic multi-player input prediction and misprediction detection for rollback netcode (`NetInputBuffer`), plus `AdaptiveDelay` tuning input delay to the measured misprediction rate. |

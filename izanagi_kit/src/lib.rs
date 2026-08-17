@@ -10,7 +10,7 @@
 //!
 //! | Tier | What it is | Modules |
 //! |---|---|---|
-//! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`netinput`], [`cmdqueue`], [`savefile`], [`timestep`] |
+//! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`netinput`], [`cmdqueue`], [`savefile`], [`timestep`] |
 //! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
@@ -36,6 +36,7 @@
 //! - [`prop`] — property-based testing (QuickCheck, Claessen & Hughes ICFP 2000): generate random input sequences from seeded sub-streams, check a property, and hand back any counterexample already shrunk to 1-minimal (`forall_inputs`, `forall_states`); plus model-based / differential testing (Hughes 2016) that runs the real simulation in lockstep with a trusted reference model and reports the first diverging command (`forall_model`).
 //! - [`mod@explore`] — archive-based state-space exploration (Go-Explore, Ecoffet et al., Nature 2021): remember every distinct state reached, return to one deterministically, and explore onward — reaching deep states that memoryless random play cannot, and handing back the replayable path to each (`explore`, `explore_until`).
 //! - [`temporal`] — temporal property monitors (runtime verification; LTL₃ three-valued semantics, Bauer/Leucker/Schallhart ACM TOSEM 2011): assert properties that span *time* rather than one state — `always`/`eventually`/`until`/`precedes`/`responds_within` — with an anytime verdict during a run and a definite one at the end (`Monitor`, `MonitorSet`, `check_run`).
+//! - [`recovery`] — crash-recovery testing: inject a save/restore cycle after *every* input and check the run continues identically (`restart_test`, `restart_test_bytes`). Distinguishes an unloadable save, one that drops a hashed field, and — the case a hash comparison alone cannot see — one that drops state the hash does not cover.
 //! - [`netinput`] — the deterministic-lockstep input path: prediction and misprediction detection (`NetInputBuffer<P,I>`), an adaptive input-delay controller (`AdaptiveDelay`) that tunes buffering to the measured misprediction rate, and `DelayScheduler` executing captured input `delay` ticks later (1500 Archers, GDC 2001) without gaps or double-booked ticks as the delay moves.
 //! - [`rng`] — SplitMix64 seeded PRNG (replay-safe randomness) with named independent sub-streams (`SplitMix64::split`).
 //! - [`rng_xoshiro`] — opt-in xoshiro256++ PRNG (`Xoshiro256pp`): 2²⁵⁶ period, higher statistical quality, seeded from SplitMix64, with `jump()` for parallel streams.
@@ -170,6 +171,7 @@ pub mod prop;
 pub mod quest;
 pub mod random_table;
 pub mod recipe;
+pub mod recovery;
 pub mod relations;
 pub mod replay;
 pub mod rng;
@@ -285,6 +287,7 @@ pub use prop::{forall_inputs, forall_model, forall_states, ModelFailure, PropFai
 pub use quest::{Objective, Quest, QuestState};
 pub use random_table::RandomTable;
 pub use recipe::{Ingredient, Recipe};
+pub use recovery::{restart_test, restart_test_bytes, restart_test_sim, RestartFailure};
 pub use relations::Relations;
 pub use replay::{
     check_trace, count_divergences, desync_report, desync_report_labeled, first_divergence,
