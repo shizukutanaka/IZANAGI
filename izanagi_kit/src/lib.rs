@@ -115,6 +115,22 @@
 // warning that can accumulate unnoticed.
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
+// No panicking paths in shipped code. A measurement of the implementation
+// (excluding `#[cfg(test)]`) found 6 `unwrap`, 4 `expect` and zero `panic!` —
+// all of them provably guarded — so this is a gate that documents an existing
+// property rather than a migration. `not(test)` because test code uses
+// `unwrap` freely and should: a panicking assertion *is* a failing test.
+//
+// Deliberately NOT denied: `clippy::indexing_slicing`. The crate indexes grids
+// and dense arrays about 700 times behind bounds it has already established,
+// and rewriting those as `get().ok_or(...)` would make the code worse, not
+// safer. Constructor `assert!`s on impossible configuration (a zero-capacity
+// ring, a zero-length timestep) also stay: they report a programming error at
+// the moment it is made.
+#![cfg_attr(
+    not(test),
+    deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 
 pub mod aabb;
 pub mod ability;

@@ -183,10 +183,12 @@ impl World {
                 data: BTreeMap::new(),
             })
         });
-        typed_mut::<T>(col.as_mut())
-            .unwrap()
-            .data
-            .insert(e.index, value);
+        // `col` was just created as a `TypedColumn<T>` (or already was one),
+        // so the downcast always succeeds. Expressed as a conditional rather
+        // than an unwrap so the code cannot abort if that ever changes.
+        if let Some(typed) = typed_mut::<T>(col.as_mut()) {
+            typed.data.insert(e.index, value);
+        }
     }
 
     /// Remove component `T` from `e`, returning the value.

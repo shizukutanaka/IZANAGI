@@ -24,7 +24,7 @@
 | バージョン | engine 4.1.0 / kit 0.1.0 |
 | MSRV | engine 1.65 / kit 1.75 |
 | main との差 | feature ブランチが 352 コミット先行(PR 未作成) |
-| kit src 内 panic 系(テスト込み) | unwrap 242 / expect 20(N3 の追跡指標) |
+| kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
 
 ---
 
@@ -58,8 +58,14 @@
    **ユーザーが GitHub Web UI で追加するまで、3492 テストも決定論 matrix も GitHub 上では一切走らない**。
 2. **[重大] main が 342 コミット遅れ** — 成果は feature ブランチにのみ存在。PR 未作成
    (ユーザー明示指示待ち)。main を見た訪問者には改善が一切見えない。
-3. **[中] 公開 API に panic 経路が残る** — kit src に unwrap 242 / expect 20(テスト込み計測)。
-   fortress-rollback 等の競合は全 API `Result`。0.2 の破壊的変更として計画済み(N3)だが未着手。
+3. ~~**[中] 公開 API に panic 経路が残る**~~ — **解消済み**: 旧記載の「unwrap 242 / expect 20」は
+   **テストコードを含む計測**だった。実装コードのみを数え直すと kit は unwrap 6 / expect 4 /
+   `panic!` 0、engine は unwrap 1 / expect 1 で、**合計 12 箇所**(すべて到達不能かガード済み)。
+   0.2 の破壊的変更は不要で、12 箇所を書き換えて両クレートに
+   `#![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used, clippy::panic))]`
+   を追加し、コンパイラが強制する不変条件にした。添字アクセス(約700箇所)とコンストラクタの
+   `assert!` は意図的に対象外 — 前者を `get().ok_or()` に置換するとコードが悪化し、
+   後者は「不正な設定を作った瞬間に報告する」ための正しい振る舞い。
 4. ~~**[中] README が新機能に追随していない**~~ — **解消済み (04d472b)**: kit README と
    crate doc に 4 層のモジュール地図を追加し、`sim` / `rollback` / `dst` / `plan` /
    `AdaptiveDelay` を掲載。残る細部として `combine_maps` / `farthest_cell` /

@@ -215,9 +215,11 @@ impl<K: Eq + Clone> StatusSet<K> {
         if self.entries.is_empty() {
             return (0, 0);
         }
-        let min = self.entries.iter().map(|(_, e)| e.magnitude).min().unwrap();
-        let max = self.entries.iter().map(|(_, e)| e.magnitude).max().unwrap();
-        (min, max)
+        self.entries
+            .iter()
+            .fold((i32::MAX, i32::MIN), |(lo, hi), (_, e)| {
+                (lo.min(e.magnitude), hi.max(e.magnitude))
+            })
     }
 
     /// All keys that currently have an active effect, in application order.

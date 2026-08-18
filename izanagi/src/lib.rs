@@ -27,6 +27,15 @@
 // public item documented, all intra-doc links resolve, enforced as `deny`.
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
+// No panicking paths in shipped code — the same gate the kit carries. The
+// engine had exactly two (a downcast that cannot fail and a stack that cannot
+// be empty); both are now expressed so the situation is unrepresentable rather
+// than asserted. `not(test)` because a panicking assertion in a test *is* the
+// test failing.
+#![cfg_attr(
+    not(test),
+    deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)
+)]
 
 mod assets;
 mod audio;

@@ -101,7 +101,7 @@ impl<Row: Clone> ArchTable<Row> {
             self.index.insert(moved_entity, slot);
         }
         self.index.remove(&entity);
-        Some(self.dense.pop().unwrap().1)
+        self.dense.pop().map(|(_, row)| row)
     }
 
     /// Borrow the row for `entity`, or `None` if absent.

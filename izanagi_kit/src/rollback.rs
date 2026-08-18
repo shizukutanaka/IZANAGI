@@ -212,7 +212,9 @@ where
 
         if frame >= check_distance {
             let base_frame = frame - check_distance;
-            let (bf, base_state) = window.front().expect("window is never empty");
+            let Some((bf, base_state)) = window.front() else {
+                continue; // unreachable: a snapshot is pushed before every check
+            };
             debug_assert_eq!(*bf, base_frame, "window front tracks the rollback base");
             // Re-simulate the base state forward through exactly the inputs
             // that produced `cur`, then compare.

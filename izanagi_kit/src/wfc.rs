@@ -658,7 +658,9 @@ pub fn wfc_solve_backtrack(
                 return WfcResult::Contradiction;
             }
             backtracks_used += 1;
-            let (idx, tried_mask, saved) = stack.pop().unwrap();
+            let Some((idx, tried_mask, saved)) = stack.pop() else {
+                return WfcResult::Contradiction; // guarded by is_empty above
+            };
             cells = saved;
             cells[idx] &= !tried_mask;
             // Re-propagate from idx so neighbours reflect the reduced option

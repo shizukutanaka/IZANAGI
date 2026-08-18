@@ -19,8 +19,15 @@
 //! ```
 
 /// A stack of states.
+///
+/// The top state is stored separately from the ones beneath it, so "the stack
+/// is empty" is not a representable value: [`current`](States::current) returns
+/// `&S` directly with nothing to unwrap and no invariant to remember. `pop`
+/// still refuses to remove the last state — but now that refusal is a
+/// consequence of the type rather than a guard that has to be kept correct.
 pub struct States<S: Clone> {
-    stack: Vec<S>,
+    top: S,
+    below: Vec<S>,
     transitioned_this_frame: bool,
 }
 
@@ -28,45 +35,45 @@ impl<S: Clone> States<S> {
     /// New stack with one initial state.
     pub fn new(initial: S) -> Self {
         Self {
-            stack: vec![initial],
+            top: initial,
+            below: Vec::new(),
             transitioned_this_frame: true,
         }
     }
 
     /// The current (top) state.
     pub fn current(&self) -> &S {
-        // Stack is never empty — `new` enforces it.
-        self.stack.last().expect("state stack empty")
+        &self.top
     }
 
     /// Replace the top state.
     pub fn replace(&mut self, s: S) {
-        if let Some(top) = self.stack.last_mut() {
-            *top = s;
-        }
+        self.top = s;
         self.transitioned_this_frame = true;
     }
 
     /// Push a new state on top.
     pub fn push(&mut self, s: S) {
-        self.stack.push(s);
+        self.below.push(core::mem::replace(&mut self.top, s));
         self.transitioned_this_frame = true;
     }
 
     /// Pop the top state. Refuses to empty the stack.
     pub fn pop(&mut self) -> bool {
-        if self.stack.len() <= 1 {
-            return false;
+        match self.below.pop() {
+            Some(previous) => {
+                self.top = previous;
+                self.transitioned_this_frame = true;
+                true
+            }
+            None => false,
         }
-        self.stack.pop();
-        self.transitioned_this_frame = true;
-        true
     }
 
     /// Replace the entire stack with a new initial state.
     pub fn reset(&mut self, s: S) {
-        self.stack.clear();
-        self.stack.push(s);
+        self.below.clear();
+        self.top = s;
         self.transitioned_this_frame = true;
     }
 
@@ -77,7 +84,7 @@ impl<S: Clone> States<S> {
 
     /// Stack depth.
     pub fn depth(&self) -> usize {
-        self.stack.len()
+        self.below.len() + 1
     }
 
     /// Call this at the end of each frame to clear the transition flag.

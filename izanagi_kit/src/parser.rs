@@ -126,11 +126,15 @@ pub fn parse(source: &str) -> (Content, Vec<Diagnostic>) {
             }
 
             "level" => {
-                if args.len() == 2 && arg_str(0).map(|n| n.len() <= MAX_NAME_LEN).unwrap_or(false) {
-                    match parse_dim(arg_str(1).unwrap()) {
+                // Bind both arguments once. The previous form re-derived them
+                // with `unwrap` behind a length guard several lines away, which
+                // was correct but relied on the reader checking the guard.
+                let named = arg_str(0).filter(|n| n.len() <= MAX_NAME_LEN);
+                match (args.len(), named, arg_str(1)) {
+                    (2, Some(name), Some(dim)) => match parse_dim(dim) {
                         Ok((w, h)) => {
                             content.levels.push(Level {
-                                name: arg_str(0).unwrap().to_string(),
+                                name: name.to_string(),
                                 width: w,
                                 height: h,
                                 rows: Vec::new(),
@@ -142,14 +146,15 @@ pub fn parse(source: &str) -> (Content, Vec<Diagnostic>) {
                             diags.push(Diagnostic::error_at(line_no, arg_col(1), e));
                             block = Block::None;
                         }
+                    },
+                    _ => {
+                        diags.push(Diagnostic::error_at(
+                            line_no,
+                            kw_col,
+                            "level needs: <name> <W>x<H>",
+                        ));
+                        block = Block::None;
                     }
-                } else {
-                    diags.push(Diagnostic::error_at(
-                        line_no,
-                        kw_col,
-                        "level needs: <name> <W>x<H>",
-                    ));
-                    block = Block::None;
                 }
             }
 

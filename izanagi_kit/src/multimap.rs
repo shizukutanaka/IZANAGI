@@ -234,8 +234,11 @@ impl MultiMap {
                     let mut path = Vec::new();
                     let mut cur = to_floor;
                     while cur != from_floor {
-                        let ci = arrived_via[cur as usize]
-                            .expect("every visited floor has an arrival connector");
+                        // Every visited floor was recorded with the connector
+                        // it arrived through, so this is always `Some`. If the
+                        // BFS above were ever inconsistent, "no route" is the
+                        // honest answer — not a crash in the caller's frame.
+                        let ci = arrived_via[cur as usize]?;
                         path.push(&self.connectors[ci]);
                         cur = self.connectors[ci].from_floor;
                     }

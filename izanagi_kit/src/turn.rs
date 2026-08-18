@@ -260,7 +260,13 @@ impl<A: Copy + Ord> Scheduler<A> {
                             _ => {}
                         }
                     }
-                    best.expect("an actor is ready after advancing")
+                    match best {
+                        Some(b) => b,
+                        // Energy was just advanced until someone is ready, so
+                        // this is unreachable; end the forecast rather than
+                        // panic if it ever is not.
+                        None => break,
+                    }
                 }
             };
             order.push(sim[idx].id);
@@ -324,7 +330,7 @@ impl<A: Copy + Ord> Scheduler<A> {
                     .clamp(i32::MIN as i64, i32::MAX as i64) as i32;
             }
         }
-        let i = self.ready().expect("an actor is ready after advancing");
+        let i = self.ready()?;
         self.actors[i].energy = self.actors[i].energy.saturating_sub(ACTION_COST);
         Some(self.actors[i].id)
     }
