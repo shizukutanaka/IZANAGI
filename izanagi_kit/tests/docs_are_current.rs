@@ -222,6 +222,52 @@ fn handbook_module_count_matches_reality() {
 }
 
 #[test]
+fn no_document_quotes_a_stale_engine_version() {
+    // The kit's own headline used to open with "the IZANAGI engine (v4.4.0)"
+    // while the engine's manifest said 4.1.0 — a wrong number in the first
+    // sentence a docs.rs visitor reads. Any version this repository quotes for
+    // the engine must be the one the engine actually declares.
+    let manifest = read("izanagi/Cargo.toml");
+    let real = manifest
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("version = "))
+        .map(|v| v.trim().trim_matches('"').to_string())
+        .expect("the engine manifest must declare a version");
+
+    let pattern = regex_free_versions(&read("izanagi_kit/src/lib.rs"));
+    for quoted in pattern {
+        assert_eq!(
+            quoted, real,
+            "izanagi_kit/src/lib.rs quotes engine version v{quoted}, but the \
+             engine declares {real}"
+        );
+    }
+}
+
+/// Every `vX.Y.Z` mentioned in `text`, without pulling in a regex crate.
+fn regex_free_versions(text: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let bytes: Vec<char> = text.chars().collect();
+    for (i, c) in bytes.iter().enumerate() {
+        if *c != 'v' || i + 1 >= bytes.len() || !bytes[i + 1].is_ascii_digit() {
+            continue;
+        }
+        // A preceding alphanumeric means this is part of a longer word.
+        if i > 0 && (bytes[i - 1].is_alphanumeric() || bytes[i - 1] == '_') {
+            continue;
+        }
+        let candidate: String = bytes[i + 1..]
+            .iter()
+            .take_while(|c| c.is_ascii_digit() || **c == '.')
+            .collect();
+        if candidate.matches('.').count() == 2 && !candidate.ends_with('.') {
+            out.push(candidate);
+        }
+    }
+    out
+}
+
+#[test]
 fn no_superseded_audit_documents_remain() {
     // Four documents were deleted for stating counts that had become false
     // (77/78 modules, 188/3362 tests). They are recoverable from git history;

@@ -1,12 +1,19 @@
 # izanagi_kit
 
-Zero-dependency reference modules for building a deterministic, terminal-first
-game engine in Rust. Extracted from a design review of the IZANAGI engine and
-grounded in published work on ECS storage, lockstep determinism, fixed-point
-arithmetic, error-recovering parsers, and structure-aware testing.
+Zero-dependency building blocks for a game simulation that **replays
+bit-identically** — and the tools to prove yours does.
+
+Eleven modules do nothing but interrogate a simulation: audit it for
+nondeterminism, search its state space for one that breaks an invariant,
+*prove* no such state exists, minimise any counterexample to its shortest form,
+monitor properties that span time, and check that saving and reloading changes
+nothing. The rest of the crate is the deterministic substrate they rest on
+(fixed-point maths, seeded RNG, world hashing) plus ordinary game systems
+written so they stay hashable and replay-safe.
 
 Every module is `std`-only, contains no `unsafe` (`#![forbid(unsafe_code)]`),
-and is covered by tests. There are no runtime dependencies.
+cannot panic in shipped code (`clippy::unwrap_used`/`expect_used`/`panic` are
+`deny`), and is covered by tests. There are no runtime dependencies.
 
 ## Why
 

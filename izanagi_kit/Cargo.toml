@@ -2,15 +2,16 @@
 name = "izanagi_kit"
 version = "0.1.0"
 edition = "2021"
-description = "Zero-dependency reference modules for a deterministic, terminal-first game engine: ECS storage, fixed-point math, seeded RNG, world hashing, and a text content pipeline."
+description = "Prove your game simulation replays bit-identically: bounded model checking, property testing with automatic shrinking, deterministic simulation testing, rollback sync tests, temporal property monitors, and crash-recovery checks — on top of the deterministic primitives they need (fixed-point math, seeded RNG, world hashing). Zero dependencies."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/shizukutanaka/IZANAGI"
 readme = "README.md"
-# "no-std-friendly" was inaccurate (this crate is std-only, see the module
-# doc's "All modules are `std`-only" note) and has been replaced with
-# "roguelike", which reflects the bulk of the module set (mapgen, fov,
-# pathfinding, identify, affix, encounter, ...).
-keywords = ["gamedev", "ecs", "deterministic", "fixed-point", "roguelike"]
+# Keywords target the problem someone actually has when they find this crate —
+# a simulation that will not replay the same way twice. "ecs" and "fixed-point"
+# were dropped: both are commodity, well served by other crates, and neither is
+# why anyone would choose this one. ("no-std-friendly" was removed earlier as
+# simply inaccurate; this crate is std-only.)
+keywords = ["gamedev", "deterministic", "simulation", "testing", "roguelike"]
 categories = ["game-development", "data-structures"]
 rust-version = "1.75"
 documentation = "https://docs.rs/izanagi_kit"

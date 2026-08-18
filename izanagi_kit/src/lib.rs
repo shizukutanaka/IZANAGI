@@ -1,6 +1,17 @@
-//! `izanagi_kit` — zero-dependency reference modules extracted from a design
-//! review of the IZANAGI engine (v4.4.0). Each module is a drop-in candidate
-//! addressing a P1 improvement.
+//! `izanagi_kit` — zero-dependency building blocks for a game simulation that
+//! **replays bit-identically**, and the tools to prove yours does.
+//!
+//! Eleven of these modules do nothing but interrogate a simulation. They audit
+//! it for nondeterminism, search its state space for one that breaks an
+//! invariant, *prove* no such state exists, minimise any counterexample to its
+//! shortest form, monitor properties that span time rather than one tick, and
+//! check that saving and reloading changes nothing. The rest of the crate is
+//! the deterministic substrate they rest on — fixed-point maths, seeded RNG,
+//! world hashing — plus ordinary game systems written so they stay hashable
+//! and replay-safe.
+//!
+//! Run `cargo run --example verify_pipeline_demo` first: it puts one small
+//! simulation with a planted bug through the entire pipeline.
 //!
 //! # How to read this crate
 //!
