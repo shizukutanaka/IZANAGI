@@ -14,6 +14,12 @@ readme = "README.md"
 keywords = ["gamedev", "deterministic", "simulation", "testing", "roguelike"]
 categories = ["game-development", "data-structures"]
 rust-version = "1.75"
+
+# Development-only files that were shipping to consumers. A published crate has
+# no business carrying this repository's git hooks into someone else's
+# dependency tree. Tests and examples stay: for a crate whose whole claim is
+# "this simulation provably replays", the evidence is part of the product.
+exclude = [".githooks/", ".gitignore"]
 documentation = "https://docs.rs/izanagi_kit"
 
 [dependencies]

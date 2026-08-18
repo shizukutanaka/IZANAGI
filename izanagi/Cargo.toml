@@ -3,6 +3,12 @@ name = "izanagi"
 version = "4.1.0"
 edition = "2021"
 rust-version = "1.65"
+
+# Development-only files that were shipping to consumers. A published crate has
+# no business carrying this repository's git hooks into someone else's
+# dependency tree. Tests and examples stay: for a crate whose whole claim is
+# "this simulation provably replays", the evidence is part of the product.
+exclude = [".githooks/", ".gitignore"]
 description = "A Rust game engine that just works."
 license = "MIT"
 repository = "https://github.com/shizukutanaka/IZANAGI"
