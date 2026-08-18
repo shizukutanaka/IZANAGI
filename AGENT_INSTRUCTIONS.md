@@ -79,8 +79,14 @@
    `ConnectivityMap` / `jps4` は tier 表の `pathfinding` 行に含まれるが個別記載はまだない。
 5. **[中] バージョン体系の不整合** — engine 4.1.0 / kit 0.1.0。crates.io 未公開なのに
    engine が 4.x を名乗る根拠がリポジトリ内に記録されていない(P5 — ユーザーへの確認事項)。
-6. **[小] エンジン側の f32 シミュレーション** — kit は固定小数点で決定論、engine の
-   math/tween/ease は f32。設計上の選択(P7)だが、境界の文書化が engine 側 doc に薄い。
+6. ~~**[小] エンジン側の f32 シミュレーション**~~ — **解消済み**: 境界を実測して
+   engine の crate doc に「Determinism boundary」節を追加し、`izanagi/tests/float_boundary.rs`
+   で機械検査に載せた。実測では 25 モジュール中 **8 個が完全に float-free**
+   (`assets`/`ecs`/`error`/`event`/`log`/`save`/`scene`/`state`)で、これらから組んだ状態は
+   replay に参加できる。`rng` は**分割している**のが要点 — 整数側(`u64`/`u32`/`int_range`/
+   `choose`)は replay-safe だが便利側(`f32`/`range`/`chance`)は違い、これが事故で desync する
+   最短経路。テストは両方向(float-free だったものが汚れた / 汚れていたものが綺麗になった)を
+   検出し、doc の記載と定数の一致も検査する。
 7. **[小] 新モジュールの example 不在** — `dst`/`plan`/`rollback` は doc とテストのみで、
    `examples/` に使用例がない(既存 example 群は充実)。
 8. ~~**[小] 文書が古い**~~ — **解消済み**: 乖離した4文書を削除し、残る文書の検証可能な主張を

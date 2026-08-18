@@ -20,7 +20,43 @@
 //! - No builder. No config. No plugins.
 //! - Zero external dependencies.
 //! - Headless by default; pluggable backends for windows and terminals.
-//! - Deterministic when you want it to be.
+//! - Deterministic where it matters — see below for exactly where that is.
+//!
+//! # Determinism boundary
+//!
+//! The engine renders and animates in `f32`. The companion crate
+//! `izanagi_kit` simulates in fixed-point and guarantees a bit-identical
+//! replay, and `examples/kit_bridge.rs` runs the two together, asserting that
+//! a simulation produces the same world-hash trace headless and engine-hosted.
+//!
+//! That composition only holds if you know which side of the line each piece
+//! of state lives on, because floating-point arithmetic rounds differently
+//! across x87 and SSE, with and without FMA contraction, and across
+//! optimisation levels. One `f32` in the simulation path is enough to desync
+//! two machines running the same binary.
+//!
+//! **Float-free modules.** These contain no `f32` or `f64` in production code
+//! at all, so state built from them can take part in a replay: `assets`,
+//! `ecs`, `error`, `event`, `log`, `save`, `scene`, `state`.
+//! Being float-free is *necessary, not sufficient* — the state must also be
+//! stepped deterministically and hashed, which is what the kit's
+//! `sim::Simulation` and `world_hash::DetHash` provide.
+//!
+//! **Everything else carries floats** — `render`, `math`, `ease`,
+//! `tween`, `collide`, `camera`, `time`, `input`, `audio` and the
+//! rest — and belongs to presentation, not simulation. Read from simulation
+//! state to drive them; never let a value flow back.
+//!
+//! **`rng` is split.** Its integer half (`Rng::u64`, `Rng::u32`,
+//! `Rng::int_range`, `Rng::choose`) is as replay-safe as anything in the
+//! float-free list. Its convenience half (`Rng::f32`, `Rng::range`,
+//! `Rng::chance`) is not, and is the easiest way to desync a game by accident.
+//! For a simulation that must replay, prefer `izanagi_kit`'s `SplitMix64`,
+//! which has no float surface to reach for and supports named independent
+//! sub-streams.
+//!
+//! `tests/float_boundary.rs` checks this section against the source, so the
+//! lists above cannot quietly stop being true.
 
 #![forbid(unsafe_code)]
 // Publication-grade doc hygiene (see izanagi_kit for the same policy): every
