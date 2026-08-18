@@ -5,8 +5,15 @@
 > 曖昧さを排し、各タスクに「対象ファイル・検証手順・リスク・推奨モデル」を明記する。
 >
 > 最終更新: 2026-07-21 / 基準ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`(origin と同期済み)
-> 先行文書: `izanagi_kit/STRENGTHS_WEAKNESSES.md`(2026-07-01 時点の評価 — 本書が現状を反映する後継)、
-> `izanagi_kit/RESEARCH.md`(外部出典調査。N1〜N23 候補表は実装状況を随時反映済み)
+> 併読: `izanagi_kit/RESEARCH.md`(外部出典調査。N1〜N23 候補表は実装状況を随時反映済み)
+>
+> **削除済みの先行文書**: `STRENGTHS_WEAKNESSES.md` / `FEATURE_AUDIT.md` / `IMPROVEMENTS.md` /
+> `PRODUCT_AUDIT.md` の4件は、見出しの数値が実態から乖離していたため削除した(FEATURE_AUDIT は
+> 「77 モジュール / 3362 テスト」、PRODUCT_AUDIT は「78 モジュール / 188 テスト」と主張していたが
+> 実態は 89 / 3699)。古い数値は無い数値より悪く、どれが最新か読者に判別できなくなる。
+> 内容は git 履歴から復元可能。**現行の真実の source は本書と `RESEARCH.md` の2つだけ**であり、
+> 本書の検証可能な主張(モジュール数・pinned hash)は `izanagi_kit/tests/docs_are_current.rs` が
+> ビルド時に検査するので、黙って古くなることはない。
 
 ---
 
@@ -17,8 +24,8 @@
 | workspace テスト | **3539 passed / 0 failed** |
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-| kit モジュール数 | 83(`izanagi_kit/src/*.rs`) |
-| engine モジュール数 | 25(`izanagi/src/*.rs`) |
+| kit モジュール数 | **88**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+| engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | バージョン | engine 4.1.0 / kit 0.1.0 |
@@ -76,8 +83,9 @@
    math/tween/ease は f32。設計上の選択(P7)だが、境界の文書化が engine 側 doc に薄い。
 7. **[小] 新モジュールの example 不在** — `dst`/`plan`/`rollback` は doc とテストのみで、
    `examples/` に使用例がない(既存 example 群は充実)。
-8. **[小] STRENGTHS_WEAKNESSES.md が 2026-07-01 で停止** — 本書が後継だが、同文書内の
-   個別評価(モジュール別表)は据え置きのまま。
+8. ~~**[小] 文書が古い**~~ — **解消済み**: 乖離した4文書を削除し、残る文書の検証可能な主張を
+   `tests/docs_are_current.rs` の機械検査に載せた(tier 表・README のモジュール表が存在しない
+   モジュールを挙げていないこと、pinned hash の一致、モジュール数の一致)。
 
 ## 3. 改善案(優先順位付き)
 
