@@ -60,6 +60,20 @@ Everything here serves one promise: **a simulation that replays
 bit-identically**. Not every module carries the same weight in keeping that
 promise, so they fall into four tiers — read top-down:
 
+## Start here
+
+```
+cargo run --example verify_pipeline_demo
+```
+
+One dungeon room, one planted bug, and every verification tool in the crate
+applied to it in turn — so you can see what the eleven checking modules add up
+to without reading eleven sets of docs. Three unrelated techniques (bounded
+model checking, property testing, delta debugging) converge on the same
+two-input minimal cause, and only one of them can then go on to *prove* the
+fixed version has no such state at all.
+
+
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
