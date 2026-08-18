@@ -6,6 +6,90 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added — the verification family
+
+Eleven modules that do nothing but interrogate a simulation. Each is grounded
+in published work, and each is tested against an independent oracle rather than
+hand-computed expectations.
+
+- **`sim`** — one `Simulation` trait every checking tool consumes, plus
+  `audit()`: double-run and rollback-resimulation in a single call. (Schneider,
+  *State Machine Approach*, ACM Comput. Surv. 22(4), 1990.)
+- **`verify`** — bounded model checking. `check_invariant` enumerates every
+  reachable state and either **proves** an invariant holds or returns the
+  shortest input sequence that breaks it; `check_temporal` extends that to
+  ordering properties by crossing the state space with a `temporal` monitor.
+  The result is three-way, so a proof is never confused with a search that ran
+  out of budget, and liveness is refused rather than falsely proved.
+  (Clarke/Emerson/Sistla, ACM TOPLAS 1986; Holzmann, IEEE TSE 1997; Vardi &
+  Wolper, LICS 1986.)
+- **`temporal`** — runtime verification of properties that span time:
+  `always` / `eventually` / `until` / `precedes` / `responds_within`, with an
+  LTL₃ anytime verdict during a run and a definite one at the end. (Bauer,
+  Leucker & Schallhart, ACM TOSEM 20(4), 2011; Dwyer, Avrunin & Corbett, ICSE
+  1999.)
+- **`recovery`** — crash-recovery testing. Injects a save/restore cycle after
+  every input and distinguishes an unloadable save, one that drops a hashed
+  field, and one that drops state the hash does not cover — the last of which a
+  hash comparison alone cannot see. (FoundationDB simulation testing; Pillai et
+  al., OSDI 2014.)
+- **`explore`** — archive-based state-space exploration, reaching states that
+  memoryless random play cannot. (Ecoffet et al., *First return, then explore*,
+  Nature 590, 2021.)
+- **`prop`** — property-based testing with automatic shrinking
+  (`forall_inputs`, `forall_states`), plus model-based / differential testing
+  (`forall_model`) that runs the real simulation in lockstep with a trusted
+  reference and reports the first diverging command. (Claessen & Hughes, ICFP
+  2000; Hughes, LNCS 9600, 2016; McKeeman, DTJ 1998.)
+- **`shrink`** — delta debugging: reduce a failing input sequence to a
+  1-minimal one. (Zeller & Hildebrandt, IEEE TSE 28(2), 2002.)
+- **`plan`** — BFS synthesis of a shortest input sequence reaching a goal.
+- **`dst`** — seed sweeps, double-run nondeterminism detection, and swarm
+  testing. (Groce et al., ISSTA 2012.)
+- **`rollback`** — bounded snapshot ring and a GGRS-style `sync_test`.
+- **`world_hash`** — `DetHash` coverage probes (mutation testing for state
+  hashes) and an opt-in `hash_state_mixed` after measuring FNV-1a's avalanche.
+
+### Added — elsewhere
+
+- `netinput::AdaptiveDelay` and `DelayScheduler` (1500 Archers, GDC 2001).
+- `pathfinding`: `ConnectivityMap`, `farthest_cell`, `combine_maps`, `jps4`.
+- `mapgen::MapBuilder` and `Dungeon::keep_largest_region`.
+- `wfc::CellSelector`, a pluggable collapse ordering, bit-identical by default.
+- `examples/verify_pipeline_demo.rs` — the whole pipeline on one simulation
+  with a planted bug, every printed claim asserted.
+
+### Changed
+
+- **The crate now leads with what it does.** The headline described where the
+  code came from and quoted an engine version that did not exist; the
+  crates.io description advertised the commodity half and omitted the eleven
+  modules that are the reason to choose this crate.
+- **Zero panic paths in shipped code**, compiler-enforced in both crates via
+  `#![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used,
+  clippy::panic))]`. The twelve existing sites were rewritten rather than
+  allowed; the engine's `States<S>` was restructured so an empty stack is not a
+  representable value.
+- `Fixed::mul`/`div` proven not to need i128 intermediates (N19 closed).
+
+### Removed
+
+- Four superseded audit documents whose headline numbers had become false
+  (`STRENGTHS_WEAKNESSES.md`, `FEATURE_AUDIT.md`, `IMPROVEMENTS.md`,
+  `PRODUCT_AUDIT.md`). Recoverable from git history.
+- `explore::exact_cells` and `temporal::awaiting_response` — public API that
+  duplicated something else or had no caller. `temporal::finish_state` is now
+  private.
+- This repository's git hooks are no longer shipped inside the published crate.
+
+### Fixed — process
+
+The build now checks claims that used to rot silently: documentation facts
+(`tests/docs_are_current.rs`), the engine's float boundary
+(`izanagi/tests/float_boundary.rs`), that no public function goes unexercised
+(`tests/public_api_is_exercised.rs`), and the README's own quickstart, which is
+compiled as a doctest.
+
 ### Fixed
 - **`hud::HudPanel::merge` overflowed for panels at extreme positions**
   (`hud.rs`) — the bounding-box span `x1 - x0` was a raw `i32` subtract that

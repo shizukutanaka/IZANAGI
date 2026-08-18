@@ -25,41 +25,63 @@ replay is treated as a first-class feature, not an afterthought.
 
 ## Quickstart
 
+Implement one trait, and every tool in the crate applies to your simulation.
+
 ```rust
-use izanagi_kit::entity::EntityAllocator;
-use izanagi_kit::sparse_set::SparseSet;
-use izanagi_kit::{load_level, parse, validate, Fixed, SplitMix64};
+use izanagi_kit::sim::{audit, Simulation};
+use izanagi_kit::verify::{check_invariant, Verification};
+use izanagi_kit::world_hash::{DetHash, Fnv1a};
 
-fn main() {
-    // Entities + components: generational handles, O(1) sparse-set storage.
-    let mut alloc = EntityAllocator::new();
-    let mut positions: SparseSet<(Fixed, Fixed)> = SparseSet::new();
-    let player = alloc.allocate();
-    positions.insert(player, (Fixed::from_int(3), Fixed::from_int(4)));
-
-    // Deterministic RNG: split into named, independent sub-streams up front
-    // so drawing more from one never perturbs another.
-    let master = SplitMix64::new(42);
-    let mut loot_rng = master.split(1);
-    let _roll = loot_rng.below(100);
-
-    // Content pipeline: author levels as text, parse -> validate -> load.
-    let source = "\
-prefab hero
-  glyph @
-level start 3x3
-  row ...
-  row .@.
-  row ...
-  spawn hero 1 1
-";
-    let (content, parse_diags) = parse(source);
-    let validate_diags = validate(&content);
-    assert!(parse_diags.is_empty() && validate_diags.is_empty());
-    let world = load_level(&content, "start").unwrap();
-    println!("loaded {} entities", world.entity_count()); // loaded 1 entities
+// Your game state, however you model it.
+#[derive(Clone)]
+struct Purse {
+    coins: i32,
 }
+
+// Two impls: how it advances, and how it hashes.
+impl Simulation for Purse {
+    type Input = i32;
+    fn step(&mut self, delta: &i32) {
+        self.coins = (self.coins + delta).clamp(0, 10);
+    }
+}
+impl DetHash for Purse {
+    fn det_hash(&self, h: &mut Fnv1a) {
+        h.write_i32(self.coins);
+    }
+}
+
+// Is it deterministic? `audit` double-runs it and rolls it back at every
+// frame, then hands you a hash to pin as a regression value.
+let report = audit(&Purse { coins: 5 }, &[-3, 2, -3], 2);
+assert!(report.is_deterministic());
+
+// Does a rule hold? Not "did random play find a violation" — whether one
+// exists at all, across every state the simulation can reach.
+let proof = check_invariant(
+    Purse { coins: 5 },
+    &[-3, 2],
+    |p: &Purse, d: &i32| {
+        let mut next = p.clone();
+        next.step(d);
+        next
+    },
+    |p: &Purse| p.coins >= 0,
+    10_000,
+);
+assert!(matches!(proof, Verification::Holds { .. }));
 ```
+
+See the whole pipeline applied to one simulation with a planted bug:
+
+```text
+cargo run --example verify_pipeline_demo
+```
+
+The rest of the crate is what a game needs around that core — entities and
+sparse-set storage, fixed-point maths, seeded RNG with named sub-streams,
+procedural generation, pathfinding, FOV, a text content pipeline — all written
+so nothing they touch can break the replay guarantee.
 
 ## Modules
 
@@ -69,7 +91,7 @@ promise, so they fall into four tiers — read top-down:
 
 ## Start here
 
-```
+```text
 cargo run --example verify_pipeline_demo
 ```
 
@@ -137,7 +159,7 @@ The capability map — with per-feature implementation status — lives in
 Twenty-one self-contained demos render to the terminal via the `terminal` module
 (24-bit ANSI, zero OS dependencies — they run unchanged in CI):
 
-```
+```text
 cargo run --example roguelike_demo          # mapgen + A* + FOV + scheduler + combat
 cargo run --example wfc_demo                 # Wave Function Collapse biome generation
 cargo run --example noise_terrain_demo       # 3-octave FBM terrain + biome heat-map
@@ -166,7 +188,7 @@ ANSI bytes still flow to stdout and the summary line prints to stderr.
 
 ## The content pipeline
 
-```
+```text
 text --[parser]--> Content --[validator]--> --[loader]--> ECS world
             ^                                   |
             +-------------[serializer]----------+
@@ -178,7 +200,7 @@ thousands of generated bundles.
 
 ### `.game` format
 
-```
+```text
 prefab <name>
   glyph <char>
   color <#RRGGBB>
@@ -192,7 +214,7 @@ level <name> <W>x<H>
 
 ## The `gamec` tool
 
-```
+```text
 gamec <file.game>          # validate; non-zero exit on error (CI content gate)
 gamec --fmt <file.game>    # validate and emit canonical text to stdout
 gamec --check <file.game>  # validate formatting only, no output (like `cargo fmt --check`)
@@ -202,7 +224,7 @@ gamec --sarif <file.game>  # emit diagnostics as SARIF 2.1.0, for GitHub Code Sc
 
 Diagnostics are rustc/clang-style, with the offending source line and a caret:
 
-```
+```text
 dungeon.game:2:9: error: glyph must be one character
   glyph @@
         ^
@@ -210,7 +232,7 @@ dungeon.game:2:9: error: glyph must be one character
 
 ## Build and test
 
-```
+```text
 cargo test          # all unit + integration tests
 cargo run --bin gamec -- examples/dungeon.game
 cargo run --example roguelike_demo            # see "Runnable examples" above
@@ -220,7 +242,7 @@ cargo run --example roguelike_demo            # see "Runnable examples" above
 
 Enable the local git hooks (format + clippy on commit, tests on push):
 
-```
+```text
 git config core.hooksPath .githooks
 ```
 

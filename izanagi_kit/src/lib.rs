@@ -143,6 +143,15 @@
     deny(clippy::unwrap_used, clippy::expect_used, clippy::panic)
 )]
 
+/// The README's code blocks, compiled and run as doctests.
+///
+/// A quickstart nothing compiles is a quickstart that stops working without
+/// anyone noticing. This costs one hidden item and makes `cargo test` the
+/// thing that finds out.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeExamplesAreCompiled;
+
 pub mod aabb;
 pub mod ability;
 pub mod affix;

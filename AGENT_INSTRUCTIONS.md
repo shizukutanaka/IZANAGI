@@ -21,7 +21,7 @@
 
 | 指標 | 値 |
 |---|---|
-| workspace テスト | **3721 passed / 0 failed** |
+| workspace テスト | **3722 passed / 0 failed** |
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
 | kit モジュール数 | **88**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
