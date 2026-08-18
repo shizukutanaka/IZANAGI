@@ -10,27 +10,30 @@
 > **削除済みの先行文書**: `STRENGTHS_WEAKNESSES.md` / `FEATURE_AUDIT.md` / `IMPROVEMENTS.md` /
 > `PRODUCT_AUDIT.md` の4件は、見出しの数値が実態から乖離していたため削除した(FEATURE_AUDIT は
 > 「77 モジュール / 3362 テスト」、PRODUCT_AUDIT は「78 モジュール / 188 テスト」と主張していたが
-> 実態は 89 / 3699)。古い数値は無い数値より悪く、どれが最新か読者に判別できなくなる。
+> 実態は 88 モジュール / 3709 テスト)。古い数値は無い数値より悪く、どれが最新か読者に判別できなくなる。
 > 内容は git 履歴から復元可能。**現行の真実の source は本書と `RESEARCH.md` の2つだけ**であり、
 > 本書の検証可能な主張(モジュール数・pinned hash)は `izanagi_kit/tests/docs_are_current.rs` が
 > ビルド時に検査するので、黙って古くなることはない。
 
 ---
 
-## 0. 現状スナップショット(2026-07-21 実測)
+## 0. 現状スナップショット(2026-08-18 実測)
 
 | 指標 | 値 |
 |---|---|
-| workspace テスト | **3539 passed / 0 failed** |
+| workspace テスト | **3709 passed / 0 failed** |
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
 | kit モジュール数 | **88**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
 | engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
+| panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
+| 出荷可能性 | `cargo package` 両クレート成功(kit 144 files / engine 46 files)|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界 |
 | バージョン | engine 4.1.0 / kit 0.1.0 |
 | MSRV | engine 1.65 / kit 1.75 |
-| main との差 | feature ブランチが 352 コミット先行(PR 未作成) |
+| main との差 | feature ブランチが **370** コミット先行(PR 未作成 — ユーザー明示指示待ち)|
 | kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
 
 ---
