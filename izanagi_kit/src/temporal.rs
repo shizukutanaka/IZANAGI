@@ -179,11 +179,6 @@ impl MonitorState {
     pub fn verdict(&self) -> Verdict {
         self.verdict
     }
-
-    /// Whether a response is currently outstanding (`RespondsWithin` only).
-    pub fn awaiting_response(&self) -> bool {
-        self.deadline.is_some()
-    }
 }
 
 impl crate::world_hash::DetHash for MonitorState {
@@ -402,9 +397,10 @@ impl<S> Monitor<S> {
         }
     }
 
-    /// The definite finite-trace verdict for an arbitrary [`MonitorState`] —
-    /// [`finish`](Monitor::finish) generalised off this monitor's own run.
-    pub fn finish_state(&self, current: MonitorState) -> bool {
+    /// The definite finite-trace verdict for an arbitrary [`MonitorState`].
+    /// Private: [`finish`](Monitor::finish) is the public entry point, and no
+    /// caller has yet needed to ask about a state other than the monitor's own.
+    fn finish_state(&self, current: MonitorState) -> bool {
         match current.verdict {
             Verdict::True => true,
             Verdict::False => false,

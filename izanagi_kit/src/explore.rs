@@ -55,7 +55,8 @@
 //! the state (the paper down-samples game frames to a coarse grid). Here the
 //! cell function is `Fn(&S) -> u64`, and the two useful ends are:
 //!
-//! - [`hash_state`] — every distinct state is its own cell. Exact, and the
+//! - [`hash_state`](crate::world_hash::hash_state) — every distinct state is
+//!   its own cell. Exact, and the
 //!   right choice for small state spaces.
 //! - a coarse projection, e.g. hashing only the player's position and
 //!   ignoring inventory. Fewer cells, so exploration pushes *outward* instead
@@ -131,7 +132,6 @@ use std::collections::HashMap;
 
 use crate::rng::SplitMix64;
 use crate::sim::Simulation;
-use crate::world_hash::hash_state;
 
 /// Named sub-stream for exploration, so cell selection and input sampling
 /// neither consume from nor correlate with a simulation's own seeded streams.
@@ -295,7 +295,8 @@ impl<S, I> Archive<S, I> {
 ///   shape [`plan_inputs`](crate::plan::plan_inputs) and
 ///   [`resimulate`](crate::replay::resimulate) use.
 /// - `cell_of(state) -> u64` assigns a state to a cell; pass
-///   [`hash_state`] for one cell per distinct state.
+///   [`hash_state`](crate::world_hash::hash_state) for one cell per distinct
+///   state.
 ///
 /// Cell selection prefers cells that have been explored from least often
 /// (weight `SELECT_BASE / (selections + 1)`), so effort spreads over the
@@ -467,18 +468,12 @@ where
     next
 }
 
-/// Convenience cell function: one cell per distinct state, via
-/// [`hash_state`]. Equivalent to passing `hash_state` directly, named for
-/// symmetry with coarser hand-written projections.
-pub fn exact_cells<S: crate::world_hash::DetHash>(state: &S) -> u64 {
-    hash_state(state)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::plan::plan_inputs;
     use crate::prop::forall_states;
+    use crate::world_hash::hash_state;
     use crate::world_hash::{DetHash, Fnv1a};
 
     /// A corridor of `len` cells. `+1`/`-1` move, clamped at both ends, so a
@@ -818,14 +813,6 @@ mod tests {
             explore_until(&start, &[1, -1], step, hash_state, goal, &cfg(13, 300, 10)),
             explore_sim_until(&start, &[1, -1], hash_state, goal, &cfg(13, 300, 10))
         );
-    }
-
-    #[test]
-    fn test_exact_cells_matches_hash_state() {
-        let start = corridor(20);
-        let a = explore(&start, &[1, -1], step, exact_cells, &cfg(3, 80, 8));
-        let b = explore(&start, &[1, -1], step, hash_state, &cfg(3, 80, 8));
-        assert_eq!(a.cells().collect::<Vec<_>>(), b.cells().collect::<Vec<_>>());
     }
 
     #[test]
