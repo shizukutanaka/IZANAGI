@@ -5,7 +5,7 @@ A Cargo workspace with two crates that split one product in half:
 | Crate | Role | Design center |
 | --- | --- | --- |
 | [`izanagi`](./izanagi/) | Real-time engine | `f32`, immediate-mode rendering, one `Engine` type — get a game on screen fast |
-| [`izanagi_kit`](./izanagi_kit/) | Deterministic simulation kit | Integers/fixed-point only, bit-exact replay across platforms |
+| [`izanagi_kit`](./izanagi_kit/) | Deterministic simulation kit **and the tools to prove a simulation replays** | Integers/fixed-point only, bit-exact replay across platforms; eleven modules do nothing but check that guarantee — model checking, property testing, temporal monitors, crash-recovery |
 
 They compose: [`izanagi/examples/kit_bridge.rs`](./izanagi/examples/kit_bridge.rs)
 runs a roguelike turn loop entirely in `izanagi_kit` (seeded RNG →
@@ -15,7 +15,7 @@ engine's frame loop cannot change a single bit of the simulation's world-hash
 trace.
 
 ```
-cargo test --workspace   # 3362 tests: 188 engine + 3174 kit
+cargo test --workspace   # 3,600+ tests, 0 clippy warnings, fmt clean
 ```
 
 ---
@@ -124,7 +124,7 @@ sequences. No window system required.
 
 ### Quality
 
-- **188 tests** (unit + integration + property-based + benchmark + doctest)
+- **180+ tests** (unit + integration + property-based + benchmark + doctest)
 - **0 clippy warnings**, **0 dependencies**, **`cargo fmt --check` passes**
 - **MSRV: Rust 1.75**
 
@@ -157,7 +157,7 @@ on every OS and CPU**, pinned by regression tests
 (`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH`) rather than merely asserted.
 
 ```
-cargo test -p izanagi_kit   # 3174 tests, 0 clippy warnings, fmt clean
+cargo test -p izanagi_kit   # 3,400+ tests, 0 clippy warnings, fmt clean
 ```
 
 ---

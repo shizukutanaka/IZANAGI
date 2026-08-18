@@ -16,7 +16,7 @@
 
 use std::collections::BTreeSet;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
     // CARGO_MANIFEST_DIR is `<root>/izanagi_kit`.
@@ -265,6 +265,73 @@ fn regex_free_versions(text: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// Count `#[test]` attributes under a crate. This *undercounts* the tests that
+/// actually run, because a doctest carries no attribute — which is what makes
+/// it the right measure for checking a floor.
+fn test_attributes(crate_dir: &str) -> usize {
+    fn walk(dir: &Path, total: &mut usize) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                walk(&path, total);
+            } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                *total += fs::read_to_string(&path)
+                    .unwrap_or_default()
+                    .matches("#[test]")
+                    .count();
+            }
+        }
+    }
+    let mut total = 0;
+    for sub in ["src", "tests", "examples"] {
+        walk(&repo_root().join(crate_dir).join(sub), &mut total);
+    }
+    total
+}
+
+#[test]
+fn readme_test_counts_are_floors_the_suite_actually_clears() {
+    // Three documents used to state exact counts — 3362, 3174, 188, 159 — and
+    // every one had drifted, disagreeing with reality and with each other. An
+    // exact count is a number somebody has to remember to update, which is a
+    // defect waiting to happen. They are floors now, so drift can only ever
+    // make them understatements, and each is set low enough that `#[test]`
+    // attributes clear it without counting doctests at all.
+    let kit = test_attributes("izanagi_kit");
+    let engine = test_attributes("izanagi");
+
+    for (doc, claim) in [
+        ("README.md", "3,600+ tests"),
+        ("README.md", "3,400+ tests"),
+        ("README.md", "**180+ tests**"),
+        ("izanagi/README.md", "**180+ tests**"),
+    ] {
+        assert!(
+            read(doc).contains(claim),
+            "{doc} no longer states `{claim}`; if the wording changed, update \
+             this check in the same commit"
+        );
+    }
+
+    assert!(
+        kit >= 3_400,
+        "README claims 3,400+ kit tests; only {kit} `#[test]` attributes found"
+    );
+    assert!(
+        engine >= 180,
+        "README claims 180+ engine tests; only {engine} `#[test]` attributes found"
+    );
+    assert!(
+        kit + engine >= 3_600,
+        "README claims 3,600+ workspace tests; only {} `#[test]` attributes \
+         across both crates",
+        kit + engine
+    );
 }
 
 #[test]

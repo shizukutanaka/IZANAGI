@@ -21,7 +21,7 @@
 
 | 指標 | 値 |
 |---|---|
-| workspace テスト | **3722 passed / 0 failed** |
+| workspace テスト | **3723 passed / 0 failed** |
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
 | kit モジュール数 | **88**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
@@ -30,7 +30,7 @@
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
 | 出荷可能性 | `cargo package` 両クレート成功(kit 144 files / engine 46 files)|
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界 |
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)|
 | 未検証の公開 API | **0** — `tests/public_api_is_exercised.rs` が、どのテスト・example からも呼ばれない `pub fn` の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0 |
 | MSRV | engine 1.65 / kit 1.75 |
