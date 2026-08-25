@@ -392,6 +392,34 @@ fn no_markdown_document_links_to_a_missing_file() {
 }
 
 #[test]
+fn every_manifest_version_has_a_changelog_entry() {
+    // The engine's Cargo.toml said 4.1.0 while its CHANGELOG stopped at 4.0.0,
+    // and nobody noticed until someone went looking for the rationale behind
+    // the version number. A version is a claim about what shipped; if the
+    // changelog cannot corroborate it, one of the two is wrong.
+    //
+    // `[Unreleased]` counts as corroboration for a version that has not been
+    // cut yet — the point is that the number must be *accounted for*
+    // somewhere, not that every bump needs a release section immediately.
+    for (manifest, changelog) in [
+        ("izanagi/Cargo.toml", "izanagi/CHANGELOG.md"),
+        ("izanagi_kit/Cargo.toml", "izanagi_kit/CHANGELOG.md"),
+    ] {
+        let version = read(manifest)
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("version = ").map(str::to_string))
+            .map(|v| v.trim().trim_matches('"').to_string())
+            .unwrap_or_else(|| panic!("{manifest} must declare a version"));
+        let log = read(changelog);
+        assert!(
+            log.contains(&format!("[{version}]")) || log.contains(&version),
+            "{manifest} declares {version}, but {changelog} never mentions it — \
+             add the release section, or note why the number is what it is"
+        );
+    }
+}
+
+#[test]
 fn no_superseded_audit_documents_remain() {
     // Four documents were deleted for stating counts that had become false
     // (77/78 modules, 188/3362 tests). They are recoverable from git history;

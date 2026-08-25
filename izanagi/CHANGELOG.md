@@ -12,6 +12,32 @@ below since its actual content is unknown. Everything below is what
 changed in this session.
 
 ### Added
+- **`# Determinism boundary` section in the crate docs**, naming exactly which
+  modules may hold state that has to replay. Measured, not guessed: 8 of 24
+  modules contain no `f32`/`f64` in production code (`assets`, `ecs`, `error`,
+  `event`, `log`, `save`, `scene`, `state`). The interesting case is `rng`,
+  which is split — its integer core (`u64`, `u32`, `int_range`, `choose`) is
+  replay-safe while its convenience half (`f32`, `range`, `chance`) is the
+  easiest way to desync a game by accident. `tests/float_boundary.rs` fails the
+  build if that set changes in either direction, so the claim cannot quietly
+  stop being true.
+- **`tests/claude_md_is_current.rs`** — CLAUDE.md's Map block is checked against
+  `src/`, `examples/` and `tests/` in both directions. It was listing 16 of 24
+  modules when written, and found a ninth omission (`tests/bench.rs`) while
+  being written.
+
+### Changed
+- **No panicking paths in shipped code**, compiler-enforced via
+  `#![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used,
+  clippy::panic))]`. The crate had exactly two — a downcast that cannot fail in
+  `ecs.rs`, and `States::current`'s `expect` on a stack that cannot be empty.
+  Both were rewritten rather than allowed: `States<S>` now stores `top: S`
+  beside `below: Vec<S>`, so "the stack is empty" is not a representable value
+  and `current()` returns `&S` with nothing to unwrap. `pop()` still refuses to
+  remove the last state, but now as a consequence of the type rather than a
+  guard that has to be kept correct.
+
+### Added
 - **Cargo workspace** — this crate joined a root workspace alongside the
   sibling `izanagi_kit` deterministic simulation crate (previously
   shipped as a separate zip archive at the repository root, never

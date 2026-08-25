@@ -21,7 +21,7 @@
 
 | 指標 | 値 |
 |---|---|
-| workspace テスト | **3723 passed / 0 failed** |
+| workspace テスト | **3736 passed / 0 failed** |
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
 | kit モジュール数 | **88**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
@@ -32,7 +32,7 @@
 | 出荷可能性 | `cargo package` 両クレート成功(kit 144 files / engine 46 files)|
 | 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク |
 | 未検証の公開 API | **0** — `tests/public_api_is_exercised.rs` が、どのテスト・example からも呼ばれない `pub fn` の追加を落とす |
-| バージョン | engine 4.1.0 / kit 0.1.0 |
+| バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
 | main との差 | feature ブランチが **370** コミット先行(PR 未作成 — ユーザー明示指示待ち)|
 | kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
@@ -84,8 +84,14 @@
    crate doc に 4 層のモジュール地図を追加し、`sim` / `rollback` / `dst` / `plan` /
    `AdaptiveDelay` を掲載。残る細部として `combine_maps` / `farthest_cell` /
    `ConnectivityMap` / `jps4` は tier 表の `pathfinding` 行に含まれるが個別記載はまだない。
-5. **[中] バージョン体系の不整合** — engine 4.1.0 / kit 0.1.0。crates.io 未公開なのに
-   engine が 4.x を名乗る根拠がリポジトリ内に記録されていない(P5 — ユーザーへの確認事項)。
+5. ~~**[中] バージョン体系の不整合**~~ — **要件そのものが誤りだった**: 独立に公開される
+   2 クレートが版数を揃える必要はない(bevy / bevy_ecs も揃っていない)。engine の 4.x にも
+   根拠はあり、`izanagi/CHANGELOG.md` の `[4.0.0] - 2026-04-29` に「v3.x は 858K 行に
+   膨れ上がり `cargo build` すら通らなかった。v4.0 はゼロからの書き直しで 7,000 行未満」と
+   明記されている。本書が「記録されていない」と書いていたのは、その記録を確認していなかった
+   だけ。`Cargo.toml` が 4.1.0 なのに CHANGELOG に該当項が無い件も、engine の
+   `[Unreleased]` 冒頭で既に明示されている(抽出時点で 4.1.0 だったため内容不明)。
+   版数と CHANGELOG の対応は `tests/docs_are_current.rs` が機械検査する。
 6. ~~**[小] エンジン側の f32 シミュレーション**~~ — **解消済み**: 境界を実測して
    engine の crate doc に「Determinism boundary」節を追加し、`izanagi/tests/float_boundary.rs`
    で機械検査に載せた。実測では 25 モジュール中 **8 個が完全に float-free**
@@ -117,8 +123,8 @@
 | I11 | N2: incremental multiset hash — `savefile`/`replay` ヘッダの algo バージョニング設計が先。**単独で着手しないこと** | 低 | 大 | **Opus** | 設計合意 |
 | I12 | N21: crates.io Trusted Publishing + cargo-semver-checks — 初回公開の意思決定待ち | 中 | 小 | ユーザー判断 | P5 解決 |
 
-**ユーザー判断待ち(エージェントは着手禁止)**: CI 有効化(Web UI で `docs/ci/ci.yml` を `.github/workflows/ci.yml` として追加)/ main への PR 作成 /
-P5 バージョン体系 / 0.2 破壊的変更の承認 / crates.io 公開。
+**ユーザー判断待ち**: CI 有効化(Web UI で `docs/ci/ci.yml` を `.github/workflows/ci.yml` として追加 — 2経路とも 403 で実測不能)/ crates.io 公開。
+(~~P5 バージョン体系~~ は要件誤りと判明、~~N3 0.2 破壊的変更~~ は不要と判明、~~main への PR~~ は作成済み。)
 
 ---
 
