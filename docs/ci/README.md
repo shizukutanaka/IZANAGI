@@ -13,6 +13,7 @@ permission. **Both available paths were tested, and both are blocked:**
 | --- | --- |
 | `git push` touching `.github/workflows/` | the entire push is rejected |
 | Contents API (`PUT /repos/{o}/{r}/contents/...`) | `403 Resource not accessible by integration` |
+| Git Data API (`POST /git/trees`, i.e. a multi-file push) | `403 Resource not accessible by integration` |
 
 So this is a measured limitation, not an assumption inherited from a comment —
 there is no agent-side workaround, and the file has to be created by someone

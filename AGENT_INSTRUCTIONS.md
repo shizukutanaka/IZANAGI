@@ -144,8 +144,9 @@
 4. **MSRV**: engine 1.65 / kit 1.75。`is_some_and`(1.70)や `is_none_or`(1.82)、
    `u64::isqrt`(1.84)等の新しめ API は使用禁止。clippy --fix が導入してくることがあるので注意。
 5. **`.github/workflows/` 配下を変更するコミットを作らない**。GitHub App トークンに
-   `workflows` 権限が無く、**2経路とも実測で塞がっている**: git push は push 全体が拒否、
-   Contents API は `403 Resource not accessible by integration`。エージェント側の回避策は
+   `workflows` 権限が無く、**3経路とも実測で塞がっている**: git push は push 全体が拒否、
+   Contents API と Git Data API(`POST /git/trees`)はいずれも
+   `403 Resource not accessible by integration`。エージェント側の回避策は
    存在しないので再検証は不要。CI 定義は `docs/ci/ci.yml` に置き、有効化はユーザーに委ねる。
 6. push 先は現行 feature ブランチのみ。**main へ push しない。PR は明示指示があるまで作らない。**
 

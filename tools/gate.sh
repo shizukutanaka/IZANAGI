@@ -69,8 +69,13 @@ stage "verification pipeline demo (asserts its own claims)"
 cargo run -p izanagi_kit --example verify_pipeline_demo >/dev/null
 echo "verify_pipeline_demo: ok"
 
-stage "packageability (both crates)"
-cargo package -p izanagi_kit -p izanagi --no-verify --allow-dirty
+stage "packageability (both crates, verified)"
+# No `--no-verify`: the verify step unpacks the tarball and *builds it*, which
+# is the only way a "forgot to include that file" bug shows up. `cargo package`
+# does this without contacting the registry, so it costs a compile and buys the
+# same assurance `cargo publish --dry-run` gives.
+cargo package -p izanagi_kit --allow-dirty
+cargo package -p izanagi --allow-dirty
 rm -rf target/package
 
 printf '\n\033[1;32mgate: all stages green\033[0m\n'
