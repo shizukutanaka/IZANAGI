@@ -6,10 +6,18 @@ definition is ready — it just cannot be installed from here.
 
 ## Why the agent cannot do this step
 
-Agent sessions push through a GitHub App token that lacks the `workflows`
-permission, so **any push that touches `.github/workflows/` is rejected**
-wholesale. That is why the proposed workflow sits in `docs/ci/ci.yml` instead
-of its real home.
+Agent sessions authenticate with a GitHub App token that lacks the `workflows`
+permission. **Both available paths were tested, and both are blocked:**
+
+| Path | Result |
+| --- | --- |
+| `git push` touching `.github/workflows/` | the entire push is rejected |
+| Contents API (`PUT /repos/{o}/{r}/contents/...`) | `403 Resource not accessible by integration` |
+
+So this is a measured limitation, not an assumption inherited from a comment —
+there is no agent-side workaround, and the file has to be created by someone
+authenticating as a human. That is why the definition sits in `docs/ci/ci.yml`
+instead of its real home.
 
 ## What a maintainer does (once, ~2 minutes)
 
