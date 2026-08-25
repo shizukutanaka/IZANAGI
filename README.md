@@ -1,6 +1,26 @@
 # IZANAGI
 
-A Rust game engine that just works.
+A Cargo workspace with two crates that split one product in half:
+
+| Crate | Role | Design center |
+| --- | --- | --- |
+| [`izanagi`](./izanagi/) | Real-time engine | `f32`, immediate-mode rendering, one `Engine` type — get a game on screen fast |
+| [`izanagi_kit`](./izanagi_kit/) | Deterministic simulation kit **and the tools to prove a simulation replays** | Integers/fixed-point only, bit-exact replay across platforms; eleven modules do nothing but check that guarantee — model checking, property testing, temporal monitors, crash-recovery |
+
+They compose: [`izanagi/examples/kit_bridge.rs`](./izanagi/examples/kit_bridge.rs)
+runs a roguelike turn loop entirely in `izanagi_kit` (seeded RNG →
+procedural dungeon → A* → field-of-view), renders it through `izanagi`'s
+`Engine`, and asserts — not just claims — that crossing the bridge into the
+engine's frame loop cannot change a single bit of the simulation's world-hash
+trace.
+
+```
+cargo test --workspace   # 3,600+ tests, 0 clippy warnings, fmt clean
+```
+
+---
+
+## `izanagi` — the engine
 
 ```rust
 use izanagi::Engine;
@@ -14,9 +34,7 @@ fn main() {
 
 That is the whole engine. One type, one method. No builder. No config. No plugins.
 
----
-
-## Why
+### Why
 
 Every Rust game engine asks you to learn its world before you can write a game.
 IZANAGI does not. Spawn an entity, draw a rectangle, play a sound. The engine
@@ -26,9 +44,13 @@ gets out of your way.
 - **One type.** `Engine` owns everything. Field-access for the rest.
 - **Headless first.** Tests run in CI environments unchanged.
 - **Pluggable backend.** Swap `NullBackend` for terminal, winit, or wgpu.
-- **Deterministic.** Seed the RNG, replay the run.
+- **Deterministic single-run replay.** Seed the `Rng` (avoid `from_entropy()`,
+  which deliberately breaks this), and the same inputs reproduce the same
+  run — RNG draws and ECS iteration order are both seed-stable. Not bit-exact
+  *across* different CPUs/compilers, since core math is `f32`; for that
+  stronger guarantee, use `izanagi_kit`.
 
-## A 30-second tour
+### A 30-second tour
 
 ```rust
 use izanagi::{Engine, Key, Color, Vec2};
@@ -56,22 +78,23 @@ fn main() {
 }
 ```
 
-## Run a real game
+### Run a real game
 
 ```bash
-cargo run --example hello              # 3-line hello world
-cargo run --example pong               # complete Pong, ~100 lines
-cargo run --example pong -- --terminal # play it in your terminal
-cargo run --example particles          # 500 particles/sec, gravity, fade
-cargo run --example platformer         # gravity + jumping + swept-AABB
-cargo run --example roguelike          # BSP map, combat, screen-shake
-cargo run --example world              # tilemap + camera + sprite-anim
+cargo run -p izanagi --example hello       # 3-line hello world
+cargo run -p izanagi --example pong        # complete Pong, ~100 lines
+cargo run -p izanagi --example pong -- --terminal   # play it in your terminal
+cargo run -p izanagi --example particles   # 500 particles/sec, gravity, fade
+cargo run -p izanagi --example platformer  # gravity + jumping + swept-AABB
+cargo run -p izanagi --example roguelike   # BSP map, combat, screen-shake
+cargo run -p izanagi --example world       # tilemap + camera + sprite-anim
+cargo run -p izanagi --example kit_bridge  # izanagi_kit sim rendered through Engine
 ```
 
 The terminal backend renders 24-bit colored half-blocks (`▀`) with ANSI escape
 sequences. No window system required.
 
-## Modules (24 total)
+### Modules (24 total)
 
 | Module | Purpose |
 | --- | --- |
@@ -99,15 +122,13 @@ sequences. No window system required.
 | `backend` | `Backend` trait, `NullBackend`, `TerminalBackend` |
 | `debug` | `Metrics` — FPS, worst_ms, rolling history |
 
-## Quality
+### Quality
 
-- **159 tests** — 121 unit + 19 integration (incl. 7 property-based / 200-round fuzz) + 10 benchmark + 9 doctest
-- **0 warnings**, **0 dependencies**, **`cargo fmt --check` passes**
+- **180+ tests** (unit + integration + property-based + benchmark + doctest)
+- **0 clippy warnings**, **0 dependencies**, **`cargo fmt --check` passes**
 - **MSRV: Rust 1.75**
-- **CI:** Linux + macOS + Windows
-- **~6,500 LOC total** (3,800 source + 1,200 examples + 1,500 tests)
 
-## Design
+### Design
 
 Three rules:
 
@@ -115,15 +136,56 @@ Three rules:
 2. **Say no.** Every API surface is a tax.
 3. **Demo-driven.** If `pong.rs` gets harder to write, the change is wrong.
 
-Read `ARCHITECTURE.md` for the rationale behind each design decision.
+Read [`izanagi/ARCHITECTURE.md`](./izanagi/ARCHITECTURE.md) for the rationale
+behind each design decision.
+
+---
+
+## `izanagi_kit` — the deterministic simulation kit
+
+78 zero-dependency modules covering the roguelike/simulation stack a
+lockstep-replay game actually needs: sparse-set ECS, Q16.16 fixed-point math,
+seeded RNG with named independent sub-streams, symmetric-shadowcasting FOV,
+procedural dungeon generation (rooms/BSP/caves/drunkard's-walk/WFC), A*/JPS
+pathfinding, replay/desync detection, a text content pipeline with its own
+`.game` format and `gamec` CLI, and much more — see
+[`izanagi_kit/README.md`](./izanagi_kit/README.md) for the full module table
+and a Rust quickstart.
+
+The central guarantee: **identical inputs produce a bit-identical simulation
+on every OS and CPU**, pinned by regression tests
+(`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH`) rather than merely asserted.
+
+```
+cargo test -p izanagi_kit   # 3,400+ tests, 0 clippy warnings, fmt clean
+```
+
+---
+
+## This repository
+
+Both crates live in one Cargo workspace (root `Cargo.toml`).
+
+- [`AGENT_INSTRUCTIONS.md`](./AGENT_INSTRUCTIONS.md) — current state
+  assessment and working protocol; its verifiable claims are build-checked.
+- [`izanagi_kit/RESEARCH.md`](./izanagi_kit/RESEARCH.md) — the full record of
+  what was researched, implemented (with commit hashes), and deliberately
+  deferred, with sources.
+- `tools/gate.sh` — the whole verification gate as one command: fmt, tests,
+  clippy, rustdoc, the pinned determinism hashes, the integration hash, the
+  pipeline demo, and packageability. The pre-push hook and the proposed CI
+  ([`docs/ci/`](./docs/ci/)) run exactly this script.
 
 ## Contributing
 
-See `CONTRIBUTING.md`. Two rules:
+See [`izanagi/CONTRIBUTING.md`](./izanagi/CONTRIBUTING.md). Two rules:
 
 - New code adds tests.
 - New code adds no dependencies.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+`izanagi`: MIT — see [`izanagi/LICENSE`](./izanagi/LICENSE).
+`izanagi_kit`: MIT OR Apache-2.0 — see
+[`izanagi_kit/LICENSE-MIT`](./izanagi_kit/LICENSE-MIT) /
+[`izanagi_kit/LICENSE-APACHE`](./izanagi_kit/LICENSE-APACHE).

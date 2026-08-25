@@ -1,0 +1,1102 @@
+//! Fixed-point 2-D and 3-D vectors over [`Fixed`].
+//!
+//! All arithmetic uses the same Q16.16 saturating rules as [`Fixed`] so
+//! vectors never silently wrap, and the results are bit-identical across
+//! targets — safe to fold into the world hash and deterministic in replay.
+//!
+//! Why not `f32`? See the `fixed` module: float results are not reproducible
+//! across compilers/OSes, making them unusable in the lockstep simulation
+//! layer (Gaffer on Games "Floating Point Determinism", arXiv determinism audits).
+
+use crate::{
+    world_hash::{DetHash, Fnv1a},
+    Fixed,
+};
+
+// ---------------------------------------------------------------------------
+// Vec2
+// ---------------------------------------------------------------------------
+
+/// A 2-D vector of [`Fixed`]-point components.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct Vec2 {
+    /// The x component.
+    pub x: Fixed,
+    /// The y component.
+    pub y: Fixed,
+}
+
+impl Vec2 {
+    /// The zero vector.
+    pub const ZERO: Vec2 = Vec2 {
+        x: Fixed::ZERO,
+        y: Fixed::ZERO,
+    };
+
+    /// Construct from components.
+    #[inline]
+    pub const fn new(x: Fixed, y: Fixed) -> Self {
+        Vec2 { x, y }
+    }
+
+    /// Dot product: `x₁·x₂ + y₁·y₂`.
+    #[inline]
+    pub fn dot(self, rhs: Vec2) -> Fixed {
+        self.x.mul(rhs.x) + self.y.mul(rhs.y)
+    }
+
+    /// Squared length: `x² + y²`. Stays in Q16.16; can saturate for large
+    /// vectors but never wraps.
+    #[inline]
+    pub fn len_sq(self) -> Fixed {
+        self.dot(self)
+    }
+
+    /// Length: `√(x² + y²)`. Uses integer `isqrt` internally; the result is
+    /// floored to the nearest Q16.16 representable value.
+    #[inline]
+    pub fn len(self) -> Fixed {
+        self.len_sq().sqrt()
+    }
+
+    /// Scale by a scalar: `(x·s, y·s)`.
+    #[inline]
+    pub fn scale(self, s: Fixed) -> Vec2 {
+        Vec2 {
+            x: self.x.mul(s),
+            y: self.y.mul(s),
+        }
+    }
+
+    /// Returns the unit vector in the same direction, or `None` if this vector
+    /// is zero (to avoid a divide-by-zero producing garbage). The caller
+    /// decides how to handle the degenerate case so no panic occurs.
+    pub fn normalize(self) -> Option<Vec2> {
+        let l = self.len();
+        if l == Fixed::ZERO {
+            return None;
+        }
+        Some(Vec2 {
+            x: self.x.div(l),
+            y: self.y.div(l),
+        })
+    }
+
+    /// Perpendicular vector (rotate 90° CCW): `(-y, x)`.
+    #[inline]
+    pub fn perp(self) -> Vec2 {
+        Vec2 {
+            x: -self.y,
+            y: self.x,
+        }
+    }
+
+    /// Rotate counter-clockwise by `angle` radians using the fixed-point CORDIC
+    /// [`Fixed::sin_cos`] — no float, deterministic across targets. Applies the
+    /// standard 2-D rotation matrix `(x·cos − y·sin, x·sin + y·cos)`.
+    pub fn rotate(self, angle: Fixed) -> Vec2 {
+        let (sin, cos) = angle.sin_cos();
+        Vec2 {
+            x: self.x.mul(cos) - self.y.mul(sin),
+            y: self.x.mul(sin) + self.y.mul(cos),
+        }
+    }
+
+    /// Angle of this vector from the +x axis, in radians within `(-π, π]`, via
+    /// [`Fixed::atan2`]. The zero vector returns `0`.
+    #[inline]
+    pub fn angle(self) -> Fixed {
+        Fixed::atan2(self.y, self.x)
+    }
+
+    /// Unit vector at `angle` radians from the +x axis — the inverse of `angle()`.
+    /// Uses CORDIC `sin_cos` so it is float-free and deterministic. The result
+    /// has length ≈ 1 (within the Q16.16 rounding of `sin_cos`). Useful for
+    /// "aim turret" and "spawn projectile" operations.
+    #[inline]
+    pub fn from_angle(angle: Fixed) -> Vec2 {
+        let (sin, cos) = angle.sin_cos();
+        Vec2 { x: cos, y: sin }
+    }
+
+    /// Component-wise linear interpolation: `a + (b − a)·t`. Mirrors
+    /// [`Fixed::lerp`]; `t` is typically in `[0, 1]` but is not clamped.
+    #[inline]
+    pub fn lerp(a: Vec2, b: Vec2, t: Fixed) -> Vec2 {
+        Vec2 {
+            x: Fixed::lerp(a.x, b.x, t),
+            y: Fixed::lerp(a.y, b.y, t),
+        }
+    }
+
+    /// Component-wise linear interpolation with `t` clamped to `[0, 1]`.
+    ///
+    /// Equivalent to `Vec2::lerp(a, b, t.clamp01())`. Use when `t` may come
+    /// from user input or an animation clock and should not extrapolate beyond
+    /// the `[a, b]` segment. The unclamped variant is [`lerp`](Self::lerp).
+    #[inline]
+    pub fn lerp_clamped(a: Vec2, b: Vec2, t: Fixed) -> Vec2 {
+        Vec2::lerp(a, b, t.clamp01())
+    }
+
+    /// Component-wise absolute value: `(|x|, |y|)`.
+    #[inline]
+    pub fn abs(self) -> Vec2 {
+        Vec2 {
+            x: self.x.abs(),
+            y: self.y.abs(),
+        }
+    }
+
+    /// Returns `true` when both components are zero.
+    #[inline]
+    pub fn is_zero(self) -> bool {
+        self.x.is_zero() && self.y.is_zero()
+    }
+
+    /// Smallest component value. Useful for aspect-ratio clamping and
+    /// uniform-scale guards where the limiting axis matters.
+    #[inline]
+    pub fn min_component(self) -> Fixed {
+        self.x.min(self.y)
+    }
+
+    /// Largest component value. Dual of `min_component`; useful for
+    /// extent checks and Chebyshev-distance computation.
+    #[inline]
+    pub fn max_component(self) -> Fixed {
+        self.x.max(self.y)
+    }
+
+    /// Component-wise minimum: `(min(a.x, b.x), min(a.y, b.y))`.
+    #[inline]
+    pub fn min(a: Vec2, b: Vec2) -> Vec2 {
+        Vec2 {
+            x: if a.x <= b.x { a.x } else { b.x },
+            y: if a.y <= b.y { a.y } else { b.y },
+        }
+    }
+
+    /// Component-wise maximum: `(max(a.x, b.x), max(a.y, b.y))`.
+    #[inline]
+    pub fn max(a: Vec2, b: Vec2) -> Vec2 {
+        Vec2 {
+            x: if a.x >= b.x { a.x } else { b.x },
+            y: if a.y >= b.y { a.y } else { b.y },
+        }
+    }
+
+    /// Component-wise clamp: each component clamped to `[lo, hi]`.
+    #[inline]
+    pub fn clamp(self, lo: Vec2, hi: Vec2) -> Vec2 {
+        Vec2::min(Vec2::max(self, lo), hi)
+    }
+
+    /// Squared distance to `rhs`: `(self − rhs).len_sq()`. Cheaper than
+    /// [`distance`](Self::distance) when only comparing ranges.
+    #[inline]
+    pub fn distance_sq(self, rhs: Vec2) -> Fixed {
+        (self - rhs).len_sq()
+    }
+
+    /// Euclidean distance to `rhs`: `(self − rhs).len()`.
+    #[inline]
+    pub fn distance(self, rhs: Vec2) -> Fixed {
+        (self - rhs).len()
+    }
+
+    /// Reflect this vector off a surface with the given unit `normal`.
+    ///
+    /// `reflect(n) = self − 2·(self·n)·n`
+    ///
+    /// The component along `normal` is negated; the perpendicular component is
+    /// preserved. Assumes `normal` is already unit length — non-unit normals
+    /// produce geometrically incorrect results (scale the reflection).
+    pub fn reflect(self, normal: Vec2) -> Vec2 {
+        let two_dot = self.dot(normal).mul(Fixed::from_int(2));
+        self - normal.scale(two_dot)
+    }
+
+    /// 2-D "pseudo-cross product" — the scalar `self.x * rhs.y - self.y * rhs.x`.
+    /// Positive means `rhs` is to the left of `self` (CCW turn); negative means
+    /// right (CW turn); zero means collinear. Cheaper than computing a full 3-D
+    /// cross product when only the turn direction is needed.
+    #[inline]
+    pub fn cross_2d(self, rhs: Vec2) -> Fixed {
+        self.x.mul(rhs.y) - self.y.mul(rhs.x)
+    }
+
+    /// Midpoint between `self` and `other`: `(self + other) / 2` (truncates).
+    /// Useful for bisection, spawn-point centering, and lerp parameter probing
+    /// without the floating-point hazard of `lerp(a, b, 0.5)`.
+    #[inline]
+    pub fn mid(self, other: Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x.mid(other.x),
+            y: self.y.mid(other.y),
+        }
+    }
+}
+
+impl core::ops::Add for Vec2 {
+    type Output = Vec2;
+    #[inline]
+    fn add(self, rhs: Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+        }
+    }
+}
+
+impl core::ops::Sub for Vec2 {
+    type Output = Vec2;
+    #[inline]
+    fn sub(self, rhs: Vec2) -> Vec2 {
+        Vec2 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
+    }
+}
+
+impl core::ops::Neg for Vec2 {
+    type Output = Vec2;
+    #[inline]
+    fn neg(self) -> Vec2 {
+        Vec2 {
+            x: -self.x,
+            y: -self.y,
+        }
+    }
+}
+
+impl DetHash for Vec2 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.x.det_hash(hasher);
+        self.y.det_hash(hasher);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Vec3
+// ---------------------------------------------------------------------------
+
+/// A 3-D vector of [`Fixed`]-point components.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct Vec3 {
+    /// The x component.
+    pub x: Fixed,
+    /// The y component.
+    pub y: Fixed,
+    /// The z component.
+    pub z: Fixed,
+}
+
+impl Vec3 {
+    /// The zero vector.
+    pub const ZERO: Vec3 = Vec3 {
+        x: Fixed::ZERO,
+        y: Fixed::ZERO,
+        z: Fixed::ZERO,
+    };
+
+    /// Construct from components.
+    #[inline]
+    pub const fn new(x: Fixed, y: Fixed, z: Fixed) -> Self {
+        Vec3 { x, y, z }
+    }
+
+    /// Dot product: `x₁·x₂ + y₁·y₂ + z₁·z₂`.
+    #[inline]
+    pub fn dot(self, rhs: Vec3) -> Fixed {
+        self.x.mul(rhs.x) + self.y.mul(rhs.y) + self.z.mul(rhs.z)
+    }
+
+    /// Cross product: `(y₁z₂ - z₁y₂, z₁x₂ - x₁z₂, x₁y₂ - y₁x₂)`.
+    #[inline]
+    pub fn cross(self, rhs: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.y.mul(rhs.z) - self.z.mul(rhs.y),
+            y: self.z.mul(rhs.x) - self.x.mul(rhs.z),
+            z: self.x.mul(rhs.y) - self.y.mul(rhs.x),
+        }
+    }
+
+    /// Squared length: `x² + y² + z²`.
+    #[inline]
+    pub fn len_sq(self) -> Fixed {
+        self.dot(self)
+    }
+
+    /// Length: `√(x² + y² + z²)`.
+    #[inline]
+    pub fn len(self) -> Fixed {
+        self.len_sq().sqrt()
+    }
+
+    /// Scale by a scalar.
+    #[inline]
+    pub fn scale(self, s: Fixed) -> Vec3 {
+        Vec3 {
+            x: self.x.mul(s),
+            y: self.y.mul(s),
+            z: self.z.mul(s),
+        }
+    }
+
+    /// Unit vector, or `None` for the zero vector.
+    pub fn normalize(self) -> Option<Vec3> {
+        let l = self.len();
+        if l == Fixed::ZERO {
+            return None;
+        }
+        Some(Vec3 {
+            x: self.x.div(l),
+            y: self.y.div(l),
+            z: self.z.div(l),
+        })
+    }
+
+    /// Component-wise linear interpolation: `a + (b − a)·t`. Mirrors
+    /// [`Fixed::lerp`]; `t` is typically in `[0, 1]` but is not clamped.
+    #[inline]
+    pub fn lerp(a: Vec3, b: Vec3, t: Fixed) -> Vec3 {
+        Vec3 {
+            x: Fixed::lerp(a.x, b.x, t),
+            y: Fixed::lerp(a.y, b.y, t),
+            z: Fixed::lerp(a.z, b.z, t),
+        }
+    }
+
+    /// Component-wise linear interpolation with `t` clamped to `[0, 1]`.
+    ///
+    /// Equivalent to `Vec3::lerp(a, b, t.clamp01())`. The unclamped variant is
+    /// [`lerp`](Self::lerp).
+    #[inline]
+    pub fn lerp_clamped(a: Vec3, b: Vec3, t: Fixed) -> Vec3 {
+        Vec3::lerp(a, b, t.clamp01())
+    }
+
+    /// Project to a [`Vec2`] by dropping `z`.
+    #[inline]
+    pub fn xy(self) -> Vec2 {
+        Vec2 {
+            x: self.x,
+            y: self.y,
+        }
+    }
+
+    /// Component-wise absolute value.
+    #[inline]
+    pub fn abs(self) -> Vec3 {
+        Vec3 {
+            x: self.x.abs(),
+            y: self.y.abs(),
+            z: self.z.abs(),
+        }
+    }
+
+    /// Component-wise minimum.
+    #[inline]
+    pub fn min(a: Vec3, b: Vec3) -> Vec3 {
+        Vec3 {
+            x: if a.x <= b.x { a.x } else { b.x },
+            y: if a.y <= b.y { a.y } else { b.y },
+            z: if a.z <= b.z { a.z } else { b.z },
+        }
+    }
+
+    /// Component-wise maximum.
+    #[inline]
+    pub fn max(a: Vec3, b: Vec3) -> Vec3 {
+        Vec3 {
+            x: if a.x >= b.x { a.x } else { b.x },
+            y: if a.y >= b.y { a.y } else { b.y },
+            z: if a.z >= b.z { a.z } else { b.z },
+        }
+    }
+
+    /// Component-wise clamp to `[lo, hi]`.
+    #[inline]
+    pub fn clamp(self, lo: Vec3, hi: Vec3) -> Vec3 {
+        Vec3::min(Vec3::max(self, lo), hi)
+    }
+
+    /// Squared distance to `rhs`: `(self − rhs).len_sq()`.
+    #[inline]
+    pub fn distance_sq(self, rhs: Vec3) -> Fixed {
+        (self - rhs).len_sq()
+    }
+
+    /// Euclidean distance to `rhs`: `(self − rhs).len()`.
+    #[inline]
+    pub fn distance(self, rhs: Vec3) -> Fixed {
+        (self - rhs).len()
+    }
+
+    /// `true` if all three components are zero.
+    #[inline]
+    pub fn is_zero(self) -> bool {
+        self.x.is_zero() && self.y.is_zero() && self.z.is_zero()
+    }
+
+    /// Smallest component value. Useful for extent checks and axis-aligned
+    /// minimum-size computations.
+    #[inline]
+    pub fn min_component(self) -> Fixed {
+        self.x.min(self.y).min(self.z)
+    }
+
+    /// Largest component value. Dual of `min_component`; useful for
+    /// extent checks and axis-aligned maximum-size computations.
+    #[inline]
+    pub fn max_component(self) -> Fixed {
+        self.x.max(self.y).max(self.z)
+    }
+
+    /// Midpoint between `self` and `other`: `(self + other) / 2` (truncates).
+    #[inline]
+    pub fn mid(self, other: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.x.mid(other.x),
+            y: self.y.mid(other.y),
+            z: self.z.mid(other.z),
+        }
+    }
+}
+
+impl core::ops::Add for Vec3 {
+    type Output = Vec3;
+    #[inline]
+    fn add(self, rhs: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl core::ops::Sub for Vec3 {
+    type Output = Vec3;
+    #[inline]
+    fn sub(self, rhs: Vec3) -> Vec3 {
+        Vec3 {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+        }
+    }
+}
+
+impl core::ops::Neg for Vec3 {
+    type Output = Vec3;
+    #[inline]
+    fn neg(self) -> Vec3 {
+        Vec3 {
+            x: -self.x,
+            y: -self.y,
+            z: -self.z,
+        }
+    }
+}
+
+impl DetHash for Vec3 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.x.det_hash(hasher);
+        self.y.det_hash(hasher);
+        self.z.det_hash(hasher);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Fixed;
+
+    fn fi(n: i32) -> Fixed {
+        Fixed::from_int(n)
+    }
+    fn fr(n: i32, d: i32) -> Fixed {
+        Fixed::from_ratio(n, d)
+    }
+
+    // --- Vec2 ---------------------------------------------------------------
+
+    #[test]
+    fn test_vec2_add_sub() {
+        let a = Vec2::new(fi(3), fi(4));
+        let b = Vec2::new(fi(1), fi(-2));
+        assert_eq!(a + b, Vec2::new(fi(4), fi(2)));
+        assert_eq!(a - b, Vec2::new(fi(2), fi(6)));
+    }
+
+    #[test]
+    fn test_vec2_neg() {
+        let v = Vec2::new(fi(2), fi(-5));
+        assert_eq!(-v, Vec2::new(fi(-2), fi(5)));
+    }
+
+    #[test]
+    fn test_vec2_dot() {
+        // (3,4)·(1,2) = 11
+        let a = Vec2::new(fi(3), fi(4));
+        let b = Vec2::new(fi(1), fi(2));
+        assert_eq!(a.dot(b), fi(11));
+    }
+
+    #[test]
+    fn test_vec2_len_3_4_is_5() {
+        let v = Vec2::new(fi(3), fi(4));
+        assert_eq!(v.len(), fi(5));
+    }
+
+    #[test]
+    fn test_vec2_len_sq() {
+        let v = Vec2::new(fi(3), fi(4));
+        assert_eq!(v.len_sq(), fi(25));
+    }
+
+    #[test]
+    fn test_vec2_scale() {
+        let v = Vec2::new(fi(2), fi(3));
+        assert_eq!(v.scale(fi(4)), Vec2::new(fi(8), fi(12)));
+    }
+
+    #[test]
+    fn test_vec2_normalize_unit_length() {
+        let v = Vec2::new(fi(3), fi(4));
+        let u = v.normalize().unwrap();
+        // |u| should be ≈1; allow a few Q16.16 LSBs for isqrt rounding.
+        let one_sq = u.len_sq();
+        let diff = (one_sq.raw() - Fixed::ONE.raw()).abs();
+        assert!(diff < 512, "normalized len² ≈ 1, got raw diff {diff}");
+    }
+
+    #[test]
+    fn test_vec2_normalize_zero_returns_none() {
+        assert_eq!(Vec2::ZERO.normalize(), None);
+    }
+
+    #[test]
+    fn test_vec2_perp_is_orthogonal() {
+        let v = Vec2::new(fi(3), fi(4));
+        let p = v.perp();
+        assert_eq!(v.dot(p), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_vec2_rotate_zero_is_near_identity() {
+        // CORDIC sin_cos(0) ≈ (0, 1) to a few LSBs, so a zero rotation returns
+        // the same vector within CORDIC precision (not bit-exact).
+        let v = Vec2::new(fi(3), fi(-4));
+        let r = v.rotate(Fixed::ZERO);
+        let dx = (r.x.raw() - v.x.raw()).abs();
+        let dy = (r.y.raw() - v.y.raw()).abs();
+        assert!(
+            dx < 600 && dy < 600,
+            "rotate(0)≈identity, got ({dx},{dy}) raw"
+        );
+    }
+
+    #[test]
+    fn test_vec2_rotate_quarter_turn_matches_perp() {
+        // Rotating +x by ~π/2 should land near +y, i.e. near perp().
+        let quarter = fr(355, 226); // ≈ π/2
+        let v = Vec2::new(fi(1), fi(0));
+        let r = v.rotate(quarter);
+        let p = v.perp(); // (0, 1)
+        let dx = (r.x.raw() - p.x.raw()).abs();
+        let dy = (r.y.raw() - p.y.raw()).abs();
+        assert!(dx < 600 && dy < 600, "rotate≈perp, got ({dx},{dy}) raw");
+    }
+
+    #[test]
+    fn test_vec2_rotate_preserves_length() {
+        let v = Vec2::new(fi(3), fi(4)); // len² = 25
+        let r = v.rotate(fr(1, 2)); // 0.5 rad
+        let diff = (r.len_sq().raw() - fi(25).raw()).abs();
+        // Allow CORDIC/mul rounding (a handful of LSBs scaled by the magnitude).
+        assert!(
+            diff < 4096,
+            "rotation should preserve length², raw diff {diff}"
+        );
+    }
+
+    #[test]
+    fn test_vec2_angle_round_trips() {
+        // +x axis → angle ≈ 0.
+        assert!(Vec2::new(fi(1), fi(0)).angle().raw().abs() < 600);
+        // +y axis → angle ≈ π/2 (raw ≈ 102944).
+        let a = Vec2::new(fi(0), fi(1)).angle().raw();
+        assert!((a - 102_944).abs() < 600, "angle(+y)≈π/2, got raw {a}");
+    }
+
+    #[test]
+    fn test_vec2_rotate_then_angle_adds() {
+        // Rotating +x by θ should give a vector whose angle ≈ θ.
+        let theta = fr(1, 2); // 0.5 rad
+        let r = Vec2::new(fi(1), fi(0)).rotate(theta);
+        let diff = (r.angle().raw() - theta.raw()).abs();
+        assert!(diff < 600, "angle after rotate ≈ θ, raw diff {diff}");
+    }
+
+    #[test]
+    fn test_vec2_lerp_endpoints_and_midpoint() {
+        let a = Vec2::new(fi(0), fi(10));
+        let b = Vec2::new(fi(10), fi(0));
+        assert_eq!(Vec2::lerp(a, b, Fixed::ZERO), a);
+        assert_eq!(Vec2::lerp(a, b, Fixed::ONE), b);
+        assert_eq!(Vec2::lerp(a, b, fr(1, 2)), Vec2::new(fi(5), fi(5)));
+    }
+
+    #[test]
+    fn test_vec2_distance_3_4_5() {
+        let a = Vec2::new(fi(1), fi(1));
+        let b = Vec2::new(fi(4), fi(5)); // dx=3, dy=4
+        assert_eq!(a.distance(b), fi(5));
+        assert_eq!(a.distance_sq(b), fi(25));
+    }
+
+    #[test]
+    fn test_vec2_det_hash_changes_on_mutation() {
+        use crate::world_hash::hash_state;
+        let a = Vec2::new(fi(1), fi(2));
+        let b = Vec2::new(fi(1), fi(3));
+        assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_vec2_saturates_not_wraps() {
+        let big = Vec2::new(Fixed::MAX, Fixed::MAX);
+        let one = Vec2::new(fi(1), fi(1));
+        let r = big + one;
+        assert_eq!(r.x.raw(), i32::MAX, "must saturate not wrap");
+    }
+
+    // --- Vec3 ---------------------------------------------------------------
+
+    #[test]
+    fn test_vec3_add_sub() {
+        let a = Vec3::new(fi(1), fi(2), fi(3));
+        let b = Vec3::new(fi(4), fi(-1), fi(2));
+        assert_eq!(a + b, Vec3::new(fi(5), fi(1), fi(5)));
+        assert_eq!(a - b, Vec3::new(fi(-3), fi(3), fi(1)));
+    }
+
+    #[test]
+    fn test_vec3_dot() {
+        let a = Vec3::new(fi(1), fi(2), fi(3));
+        let b = Vec3::new(fi(4), fi(5), fi(6));
+        // 1*4 + 2*5 + 3*6 = 32
+        assert_eq!(a.dot(b), fi(32));
+    }
+
+    #[test]
+    fn test_vec3_cross_standard_basis() {
+        let ex = Vec3::new(fi(1), fi(0), fi(0));
+        let ey = Vec3::new(fi(0), fi(1), fi(0));
+        let ez = Vec3::new(fi(0), fi(0), fi(1));
+        // ex × ey = ez
+        assert_eq!(ex.cross(ey), ez);
+        // ey × ez = ex
+        assert_eq!(ey.cross(ez), ex);
+        // ez × ex = ey
+        assert_eq!(ez.cross(ex), ey);
+    }
+
+    #[test]
+    fn test_vec3_cross_anticommutative() {
+        let a = Vec3::new(fi(2), fi(3), fi(4));
+        let b = Vec3::new(fi(5), fi(6), fi(7));
+        assert_eq!(a.cross(b), -b.cross(a));
+    }
+
+    #[test]
+    fn test_vec3_len_sq() {
+        let v = Vec3::new(fi(1), fi(2), fi(2));
+        // 1+4+4 = 9
+        assert_eq!(v.len_sq(), fi(9));
+    }
+
+    #[test]
+    fn test_vec3_len_pythagorean() {
+        let v = Vec3::new(fi(1), fi(2), fi(2));
+        assert_eq!(v.len(), fi(3));
+    }
+
+    #[test]
+    fn test_vec3_normalize_unit_length() {
+        let v = Vec3::new(fi(1), fi(2), fi(2)); // len = 3
+        let u = v.normalize().unwrap();
+        let one_sq = u.len_sq();
+        let diff = (one_sq.raw() - Fixed::ONE.raw()).abs();
+        assert!(diff < 512, "normalized len² ≈ 1, diff = {diff}");
+    }
+
+    #[test]
+    fn test_vec3_normalize_zero_returns_none() {
+        assert_eq!(Vec3::ZERO.normalize(), None);
+    }
+
+    #[test]
+    fn test_vec3_det_hash_changes_on_mutation() {
+        use crate::world_hash::hash_state;
+        let a = Vec3::new(fi(1), fi(2), fi(3));
+        let b = Vec3::new(fi(1), fi(2), fi(4));
+        assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_vec3_lerp_endpoints_and_midpoint() {
+        let a = Vec3::new(fi(0), fi(10), fi(2));
+        let b = Vec3::new(fi(10), fi(0), fi(6));
+        assert_eq!(Vec3::lerp(a, b, Fixed::ZERO), a);
+        assert_eq!(Vec3::lerp(a, b, Fixed::ONE), b);
+        assert_eq!(Vec3::lerp(a, b, fr(1, 2)), Vec3::new(fi(5), fi(5), fi(4)));
+    }
+
+    #[test]
+    fn test_vec3_distance() {
+        // dx=2, dy=3, dz=6 → len = 7
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(2), fi(3), fi(6));
+        assert_eq!(a.distance(b), fi(7));
+        assert_eq!(a.distance_sq(b), fi(49));
+    }
+
+    #[test]
+    fn test_vec2_fractional_scale() {
+        // (4, 8) * 0.5 = (2, 4)
+        let v = Vec2::new(fi(4), fi(8));
+        let half = fr(1, 2);
+        assert_eq!(v.scale(half), Vec2::new(fi(2), fi(4)));
+    }
+
+    #[test]
+    fn test_vec2_abs() {
+        assert_eq!(Vec2::new(fi(-3), fi(4)).abs(), Vec2::new(fi(3), fi(4)));
+        assert_eq!(Vec2::ZERO.abs(), Vec2::ZERO);
+    }
+
+    #[test]
+    fn test_vec2_min_max() {
+        let a = Vec2::new(fi(1), fi(5));
+        let b = Vec2::new(fi(3), fi(2));
+        assert_eq!(Vec2::min(a, b), Vec2::new(fi(1), fi(2)));
+        assert_eq!(Vec2::max(a, b), Vec2::new(fi(3), fi(5)));
+    }
+
+    #[test]
+    fn test_vec2_clamp() {
+        let lo = Vec2::new(fi(0), fi(0));
+        let hi = Vec2::new(fi(10), fi(10));
+        assert_eq!(
+            Vec2::new(fi(-1), fi(15)).clamp(lo, hi),
+            Vec2::new(fi(0), fi(10))
+        );
+        assert_eq!(
+            Vec2::new(fi(5), fi(5)).clamp(lo, hi),
+            Vec2::new(fi(5), fi(5))
+        );
+    }
+
+    #[test]
+    fn test_vec3_xy_drops_z() {
+        let v = Vec3::new(fi(1), fi(2), fi(99));
+        assert_eq!(v.xy(), Vec2::new(fi(1), fi(2)));
+    }
+
+    #[test]
+    fn test_vec3_abs() {
+        assert_eq!(
+            Vec3::new(fi(-1), fi(2), fi(-3)).abs(),
+            Vec3::new(fi(1), fi(2), fi(3))
+        );
+    }
+
+    #[test]
+    fn test_vec3_min_max() {
+        let a = Vec3::new(fi(1), fi(5), fi(3));
+        let b = Vec3::new(fi(2), fi(1), fi(4));
+        assert_eq!(Vec3::min(a, b), Vec3::new(fi(1), fi(1), fi(3)));
+        assert_eq!(Vec3::max(a, b), Vec3::new(fi(2), fi(5), fi(4)));
+    }
+
+    #[test]
+    fn test_vec3_clamp() {
+        let lo = Vec3::new(fi(0), fi(0), fi(0));
+        let hi = Vec3::new(fi(5), fi(5), fi(5));
+        assert_eq!(
+            Vec3::new(fi(-1), fi(3), fi(9)).clamp(lo, hi),
+            Vec3::new(fi(0), fi(3), fi(5))
+        );
+    }
+
+    #[test]
+    fn test_vec2_reflect_off_floor_reverses_y() {
+        // v = (1, 1), normal = (0, 1): dot = 1, 2*dot = 2
+        // reflect = (1,1) - (0,2) = (1,-1)
+        let v = Vec2::new(fi(1), fi(1));
+        let n = Vec2::new(fi(0), fi(1));
+        assert_eq!(v.reflect(n), Vec2::new(fi(1), fi(-1)));
+    }
+
+    #[test]
+    fn test_vec2_reflect_perpendicular_to_normal_unchanged() {
+        // v = (1, 0), normal = (0, 1): dot = 0 → reflect = v
+        let v = Vec2::new(fi(1), fi(0));
+        let n = Vec2::new(fi(0), fi(1));
+        assert_eq!(v.reflect(n), v);
+    }
+
+    #[test]
+    fn test_vec2_reflect_against_vertical_wall() {
+        // v = (3, 4), normal = (1, 0): dot = 3, 2*dot = 6
+        // reflect = (3,4) - (6,0) = (-3, 4)
+        let v = Vec2::new(fi(3), fi(4));
+        let n = Vec2::new(fi(1), fi(0));
+        assert_eq!(v.reflect(n), Vec2::new(fi(-3), fi(4)));
+    }
+
+    #[test]
+    fn test_from_angle_zero_is_east() {
+        // angle 0 → (cos 0, sin 0) = (1, 0)
+        let v = Vec2::from_angle(Fixed::ZERO);
+        // CORDIC approximation: within 0.001 of the true value
+        let tol = Fixed::from_ratio(1, 1000);
+        assert!((v.x - fi(1)).abs() <= tol, "cos(0) ≈ 1, got {:?}", v.x);
+        assert!(v.y.abs() <= tol, "sin(0) ≈ 0, got {:?}", v.y);
+    }
+
+    #[test]
+    fn test_from_angle_round_trips_with_angle() {
+        // from_angle(theta).angle() ≈ theta (within CORDIC error)
+        let pi = Fixed::from_ratio(355, 113); // approx π
+        let half_pi = pi.div(Fixed::from_int(2));
+        let v = Vec2::from_angle(half_pi);
+        let recovered = v.angle();
+        let err = (recovered - half_pi).abs();
+        // Allow tolerance of 0.01 radians (CORDIC 16-iter precision)
+        assert!(err <= Fixed::from_ratio(1, 100), "err={:?}", err);
+    }
+
+    #[test]
+    fn test_from_angle_preserves_unit_length() {
+        let angle = Fixed::from_ratio(1, 3); // ~0.33 rad
+        let v = Vec2::from_angle(angle);
+        let len = v.len();
+        let diff = (len - fi(1)).abs();
+        assert!(diff <= Fixed::from_ratio(1, 100), "len={:?}", len);
+    }
+
+    #[test]
+    fn test_is_zero_for_zero_vector() {
+        assert!(Vec2::ZERO.is_zero());
+    }
+
+    #[test]
+    fn test_is_zero_false_for_nonzero_x() {
+        let v = Vec2 {
+            x: fi(1),
+            y: Fixed::ZERO,
+        };
+        assert!(!v.is_zero());
+    }
+
+    #[test]
+    fn test_is_zero_false_for_nonzero_y() {
+        let v = Vec2 {
+            x: Fixed::ZERO,
+            y: fi(-1),
+        };
+        assert!(!v.is_zero());
+    }
+
+    // --- lerp_clamped ---
+
+    #[test]
+    fn test_lerp_clamped_t_zero_returns_a() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(20));
+        assert_eq!(Vec2::lerp_clamped(a, b, Fixed::ZERO), a);
+    }
+
+    #[test]
+    fn test_lerp_clamped_t_one_returns_b() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(20));
+        assert_eq!(Vec2::lerp_clamped(a, b, Fixed::ONE), b);
+    }
+
+    #[test]
+    fn test_lerp_clamped_t_above_one_clamps_to_b() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(20));
+        let over = Fixed::ONE + Fixed::ONE; // t = 2
+        assert_eq!(Vec2::lerp_clamped(a, b, over), b);
+    }
+
+    #[test]
+    fn test_vec3_lerp_clamped_t_below_zero_clamps_to_a() {
+        let a = Vec3::new(fi(5), fi(5), fi(5));
+        let b = Vec3::new(fi(15), fi(15), fi(15));
+        let neg = Fixed::ZERO - Fixed::ONE; // t = -1
+        assert_eq!(Vec3::lerp_clamped(a, b, neg), a);
+    }
+
+    #[test]
+    fn test_vec3_lerp_clamped_t_one_returns_b() {
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(4), fi(8), fi(16));
+        assert_eq!(Vec3::lerp_clamped(a, b, Fixed::ONE), b);
+    }
+
+    #[test]
+    fn test_vec3_lerp_clamped_matches_lerp_for_t_in_range() {
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(100), fi(100), fi(100));
+        let half = fr(1, 2);
+        assert_eq!(Vec3::lerp_clamped(a, b, half), Vec3::lerp(a, b, half));
+    }
+
+    // --- min_component / max_component ---
+
+    #[test]
+    fn test_min_component_picks_smaller() {
+        let v = Vec2::new(fi(3), fi(7));
+        assert_eq!(v.min_component(), fi(3));
+    }
+
+    #[test]
+    fn test_max_component_picks_larger() {
+        let v = Vec2::new(fi(3), fi(7));
+        assert_eq!(v.max_component(), fi(7));
+    }
+
+    #[test]
+    fn test_min_max_component_equal_when_same() {
+        let v = Vec2::new(fi(5), fi(5));
+        assert_eq!(v.min_component(), v.max_component());
+    }
+
+    #[test]
+    fn test_min_component_negative() {
+        let v = Vec2::new(fi(-2), fi(4));
+        assert_eq!(v.min_component(), fi(-2));
+    }
+
+    // --- Vec2::cross_2d ---
+
+    #[test]
+    fn test_cross_2d_orthogonal_right_up() {
+        // Right (1,0) cross Up (0,-1) in screen coords: 1*(-1) - 0*0 = -1 (CW turn)
+        let r = Vec2::new(fi(1), fi(0));
+        let u = Vec2::new(fi(0), fi(-1));
+        assert_eq!(r.cross_2d(u), fi(-1));
+    }
+
+    #[test]
+    fn test_cross_2d_collinear_is_zero() {
+        let a = Vec2::new(fi(3), fi(1));
+        let b = Vec2::new(fi(6), fi(2)); // same direction, scaled
+        assert_eq!(a.cross_2d(b), fi(0));
+    }
+
+    #[test]
+    fn test_cross_2d_anticommutative() {
+        let a = Vec2::new(fi(2), fi(3));
+        let b = Vec2::new(fi(5), fi(1));
+        assert_eq!(a.cross_2d(b), fi(0) - b.cross_2d(a));
+    }
+
+    // --- Vec2::mid ---
+
+    #[test]
+    fn test_vec2_mid_average() {
+        let a = Vec2::new(fi(0), fi(0));
+        let b = Vec2::new(fi(10), fi(4));
+        assert_eq!(Vec2::mid(a, b), Vec2::new(fi(5), fi(2)));
+    }
+
+    #[test]
+    fn test_vec2_mid_symmetric() {
+        let a = Vec2::new(fi(1), fi(7));
+        let b = Vec2::new(fi(9), fi(3));
+        assert_eq!(a.mid(b), b.mid(a));
+    }
+
+    #[test]
+    fn test_vec2_mid_self_is_identity() {
+        let v = Vec2::new(fi(4), fi(-2));
+        assert_eq!(v.mid(v), v);
+    }
+
+    // --- Vec3::is_zero ---
+
+    #[test]
+    fn test_vec3_is_zero_for_zero() {
+        assert!(Vec3::ZERO.is_zero());
+    }
+
+    #[test]
+    fn test_vec3_is_zero_false_for_nonzero_z() {
+        let v = Vec3::new(fi(0), fi(0), fi(1));
+        assert!(!v.is_zero());
+    }
+
+    #[test]
+    fn test_vec3_is_zero_false_for_nonzero_x() {
+        let v = Vec3::new(fi(1), fi(0), fi(0));
+        assert!(!v.is_zero());
+    }
+
+    // --- Vec3::min_component / max_component ---
+
+    #[test]
+    fn test_vec3_min_component() {
+        let v = Vec3::new(fi(3), fi(-1), fi(7));
+        assert_eq!(v.min_component(), fi(-1));
+    }
+
+    #[test]
+    fn test_vec3_max_component() {
+        let v = Vec3::new(fi(3), fi(-1), fi(7));
+        assert_eq!(v.max_component(), fi(7));
+    }
+
+    #[test]
+    fn test_vec3_min_max_equal_when_uniform() {
+        let v = Vec3::new(fi(5), fi(5), fi(5));
+        assert_eq!(v.min_component(), v.max_component());
+    }
+
+    // --- Vec3::mid ---
+
+    #[test]
+    fn test_vec3_mid_average() {
+        let a = Vec3::new(fi(0), fi(0), fi(0));
+        let b = Vec3::new(fi(10), fi(6), fi(4));
+        assert_eq!(a.mid(b), Vec3::new(fi(5), fi(3), fi(2)));
+    }
+
+    #[test]
+    fn test_vec3_mid_symmetric() {
+        let a = Vec3::new(fi(2), fi(8), fi(6));
+        let b = Vec3::new(fi(4), fi(2), fi(0));
+        assert_eq!(a.mid(b), b.mid(a));
+    }
+
+    #[test]
+    fn test_vec3_mid_self_is_identity() {
+        let v = Vec3::new(fi(3), fi(-3), fi(0));
+        assert_eq!(v.mid(v), v);
+    }
+}

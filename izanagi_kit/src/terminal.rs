@@ -1,0 +1,523 @@
+//! Terminal cell buffer — the presentation layer.
+//!
+//! IZANAGI is "terminal-first", but the kit had no way to actually draw. This
+//! module is a headless [`Screen`] of [`Cell`]s (a glyph plus 24-bit foreground
+//! and background colour) with drawing primitives, double-buffered change
+//! tracking, and a deterministic 24-bit-ANSI serialiser.
+//!
+//! Headless & deterministic by design: drawing only mutates an in-memory grid,
+//! so it runs unchanged in CI, snapshot-tests by inspecting cells, and folds
+//! into the world hash via [`DetHash`]. Producing real terminal output is just
+//! [`Screen::to_ansi`] (full frame) — actually writing it to a tty is the
+//! caller's job, keeping this module free of OS I/O.
+
+use crate::content::Color;
+use crate::world_hash::{DetHash, Fnv1a};
+
+/// Default foreground: white.
+const DEFAULT_FG: Color = Color {
+    r: 0xC0,
+    g: 0xC0,
+    b: 0xC0,
+};
+/// Default background: black.
+const DEFAULT_BG: Color = Color { r: 0, g: 0, b: 0 };
+
+/// One screen cell: a character and its colours.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Cell {
+    /// The displayed character.
+    pub glyph: char,
+    /// Foreground (text) color.
+    pub fg: Color,
+    /// Background color.
+    pub bg: Color,
+}
+
+impl Cell {
+    /// A blank cell: space on the default background.
+    pub const fn blank() -> Cell {
+        Cell {
+            glyph: ' ',
+            fg: DEFAULT_FG,
+            bg: DEFAULT_BG,
+        }
+    }
+}
+
+impl Default for Cell {
+    fn default() -> Cell {
+        Cell::blank()
+    }
+}
+
+impl DetHash for Cell {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.glyph as u32);
+        self.fg.det_hash(hasher);
+        self.bg.det_hash(hasher);
+    }
+}
+
+/// A `width × height` grid of [`Cell`]s with a back buffer for diffing.
+#[derive(Clone, Debug)]
+pub struct Screen {
+    width: u32,
+    height: u32,
+    cells: Vec<Cell>,
+    /// Snapshot taken at the last [`Screen::present`]; diffed against `cells`.
+    prev: Vec<Cell>,
+}
+
+impl Screen {
+    /// A blank screen of the given size.
+    pub fn new(width: u32, height: u32) -> Screen {
+        let len = (width as usize) * (height as usize);
+        Screen {
+            width,
+            height,
+            cells: vec![Cell::blank(); len],
+            prev: vec![Cell::blank(); len],
+        }
+    }
+
+    /// Grid width in cells.
+    #[inline]
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    /// Grid height in cells.
+    #[inline]
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    #[inline]
+    fn index(&self, x: i32, y: i32) -> Option<usize> {
+        if x < 0 || y < 0 || x as u32 >= self.width || y as u32 >= self.height {
+            None
+        } else {
+            Some((y as u32 * self.width + x as u32) as usize)
+        }
+    }
+
+    /// The cell at `(x, y)`, or `None` if out of bounds.
+    #[inline]
+    pub fn get(&self, x: i32, y: i32) -> Option<&Cell> {
+        self.index(x, y).map(|i| &self.cells[i])
+    }
+
+    /// Overwrite the cell at `(x, y)`. Out-of-bounds writes are silently
+    /// clipped (no panic), so callers can draw without bounds-checking.
+    #[inline]
+    pub fn put(&mut self, x: i32, y: i32, cell: Cell) {
+        if let Some(i) = self.index(x, y) {
+            self.cells[i] = cell;
+        }
+    }
+
+    /// Set a glyph and colours at `(x, y)` (clipped).
+    #[inline]
+    pub fn set(&mut self, x: i32, y: i32, glyph: char, fg: Color, bg: Color) {
+        self.put(x, y, Cell { glyph, fg, bg });
+    }
+
+    /// Fill the whole screen with one cell.
+    pub fn clear(&mut self, cell: Cell) {
+        for c in &mut self.cells {
+            *c = cell;
+        }
+    }
+
+    /// Fill a rectangle `[x, x+w) × [y, y+h)` with `cell` (clipped to bounds).
+    pub fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, cell: Cell) {
+        let w = w.min(i32::MAX as u32) as i32;
+        let h = h.min(i32::MAX as u32) as i32;
+        for dy in 0..h {
+            for dx in 0..w {
+                // saturating: put() clips, but the coordinate add must not panic
+                // for an origin near i32::MAX.
+                self.put(x.saturating_add(dx), y.saturating_add(dy), cell);
+            }
+        }
+    }
+
+    /// Draw a string left-to-right starting at `(x, y)`, one column per `char`.
+    /// Clipped at the screen edge; does not wrap.
+    pub fn draw_str(&mut self, x: i32, y: i32, text: &str, fg: Color, bg: Color) {
+        for (i, glyph) in text.chars().enumerate() {
+            self.set(x.saturating_add(i as i32), y, glyph, fg, bg);
+        }
+    }
+
+    /// Cells changed since the last [`Screen::present`], as `(x, y, cell)` in
+    /// row-major order. This is the headless equivalent of "what would be
+    /// redrawn" — ideal for snapshot tests and minimal-redraw output.
+    pub fn diff(&self) -> Vec<(u32, u32, Cell)> {
+        let mut changes = Vec::new();
+        for (i, (cur, old)) in self.cells.iter().zip(self.prev.iter()).enumerate() {
+            if cur != old {
+                let i = i as u32;
+                changes.push((i % self.width, i / self.width, *cur));
+            }
+        }
+        changes
+    }
+
+    /// Commit the current frame: the back buffer becomes the current cells, so
+    /// the next [`Screen::diff`] is relative to now.
+    pub fn present(&mut self) {
+        self.prev.copy_from_slice(&self.cells);
+    }
+
+    /// Draw a single-line box border with corners `┌┐└┘` and edges `─│`.
+    /// `w` and `h` are the outer dimensions in cells. The interior is untouched.
+    /// Fully clipped — no panic for out-of-bounds positions.
+    pub fn draw_box(&mut self, x: i32, y: i32, w: u32, h: u32, fg: Color, bg: Color) {
+        if w == 0 || h == 0 {
+            return;
+        }
+        let w = w.min(i32::MAX as u32) as i32;
+        let h = h.min(i32::MAX as u32) as i32;
+        let x1 = x.saturating_add(w - 1);
+        let y1 = y.saturating_add(h - 1);
+        // Corners
+        self.set(x, y, '┌', fg, bg);
+        self.set(x1, y, '┐', fg, bg);
+        self.set(x, y1, '└', fg, bg);
+        self.set(x1, y1, '┘', fg, bg);
+        // Top and bottom edges
+        for dx in 1..w - 1 {
+            self.set(x.saturating_add(dx), y, '─', fg, bg);
+            self.set(x.saturating_add(dx), y1, '─', fg, bg);
+        }
+        // Left and right edges
+        for dy in 1..h - 1 {
+            self.set(x, y.saturating_add(dy), '│', fg, bg);
+            self.set(x1, y.saturating_add(dy), '│', fg, bg);
+        }
+    }
+
+    /// Draw a double-line box border using Unicode double box-drawing characters
+    /// `╔╗╚╝═║`. The interior is untouched. Out-of-bounds positions are silently
+    /// clipped via the existing `set` contract. No-op for `w == 0` or `h == 0`.
+    /// Complements `draw_box` (single-line) — use for dialogue frames and
+    /// important UI windows that need visual weight.
+    pub fn draw_double_box(&mut self, x: i32, y: i32, w: u32, h: u32, fg: Color, bg: Color) {
+        if w == 0 || h == 0 {
+            return;
+        }
+        let w = w.min(i32::MAX as u32) as i32;
+        let h = h.min(i32::MAX as u32) as i32;
+        let x1 = x.saturating_add(w - 1);
+        let y1 = y.saturating_add(h - 1);
+        self.set(x, y, '╔', fg, bg);
+        self.set(x1, y, '╗', fg, bg);
+        self.set(x, y1, '╚', fg, bg);
+        self.set(x1, y1, '╝', fg, bg);
+        for dx in 1..w - 1 {
+            self.set(x.saturating_add(dx), y, '═', fg, bg);
+            self.set(x.saturating_add(dx), y1, '═', fg, bg);
+        }
+        for dy in 1..h - 1 {
+            self.set(x, y.saturating_add(dy), '║', fg, bg);
+            self.set(x1, y.saturating_add(dy), '║', fg, bg);
+        }
+    }
+
+    /// Draw a Bresenham line from `from` to `to` (inclusive of both endpoints),
+    /// setting each visited cell to `glyph`/`fg`/`bg`. Cells outside the
+    /// screen boundary are silently clipped.
+    pub fn draw_line(
+        &mut self,
+        from: (i32, i32),
+        to: (i32, i32),
+        glyph: char,
+        fg: Color,
+        bg: Color,
+    ) {
+        for (x, y) in crate::geometry::line(from, to) {
+            self.set(x, y, glyph, fg, bg);
+        }
+    }
+
+    /// Draw a horizontal run of `len` cells at row `y` starting at column `x`,
+    /// all set to `glyph`/`fg`/`bg`. Out-of-bounds cells are silently clipped
+    /// via the existing `set` contract. Equivalent to `draw_line((x,y),(x+len-1,y),…)`
+    /// but avoids the allocation and sign-flip path of the Bresenham fallback.
+    pub fn draw_h_line(&mut self, x: i32, y: i32, len: u32, glyph: char, fg: Color, bg: Color) {
+        let len = len.min(i32::MAX as u32) as i32;
+        for i in 0..len {
+            self.set(x.saturating_add(i), y, glyph, fg, bg);
+        }
+    }
+
+    /// Resize the screen to `width × height`, discarding all previous content.
+    /// Both the front and back buffers are reset to blank cells.
+    pub fn resize(&mut self, width: u32, height: u32) {
+        let len = (width as usize) * (height as usize);
+        self.width = width;
+        self.height = height;
+        self.cells = vec![Cell::blank(); len];
+        self.prev = vec![Cell::blank(); len];
+    }
+
+    /// Serialise the whole frame to a 24-bit-ANSI string: cursor home, then each
+    /// row with truecolor SGR sequences, ending with a reset. Deterministic
+    /// (SGR is re-emitted only when a cell's colours differ from the previous
+    /// one in the row, a fixed rule). Writing it to a terminal is the caller's
+    /// responsibility.
+    pub fn to_ansi(&self) -> String {
+        let mut out = String::from("\x1b[H");
+        for y in 0..self.height {
+            let mut last: Option<(Color, Color)> = None;
+            for x in 0..self.width {
+                let cell = &self.cells[(y * self.width + x) as usize];
+                if last != Some((cell.fg, cell.bg)) {
+                    out.push_str(&format!(
+                        "\x1b[38;2;{};{};{};48;2;{};{};{}m",
+                        cell.fg.r, cell.fg.g, cell.fg.b, cell.bg.r, cell.bg.g, cell.bg.b
+                    ));
+                    last = Some((cell.fg, cell.bg));
+                }
+                out.push(cell.glyph);
+            }
+            out.push_str("\x1b[0m");
+            if y + 1 < self.height {
+                out.push_str("\r\n");
+            }
+        }
+        out
+    }
+}
+
+impl DetHash for Screen {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.width);
+        hasher.write_u32(self.height);
+        for cell in &self.cells {
+            cell.det_hash(hasher);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world_hash::hash_state;
+
+    const RED: Color = Color { r: 255, g: 0, b: 0 };
+
+    #[test]
+    fn test_new_screen_is_blank() {
+        let s = Screen::new(4, 3);
+        assert_eq!(s.get(0, 0), Some(&Cell::blank()));
+        assert_eq!(s.get(3, 2), Some(&Cell::blank()));
+    }
+
+    #[test]
+    fn test_set_get_and_out_of_bounds() {
+        let mut s = Screen::new(4, 3);
+        s.set(1, 1, '@', RED, DEFAULT_BG);
+        assert_eq!(s.get(1, 1).unwrap().glyph, '@');
+        // Out of bounds: get is None, set is a no-op (no panic).
+        assert_eq!(s.get(-1, 0), None);
+        assert_eq!(s.get(4, 0), None);
+        s.set(99, 99, 'X', RED, DEFAULT_BG); // must not panic
+    }
+
+    #[test]
+    fn test_draw_str_clips_at_edge() {
+        let mut s = Screen::new(5, 1);
+        s.draw_str(3, 0, "hello", RED, DEFAULT_BG);
+        assert_eq!(s.get(3, 0).unwrap().glyph, 'h');
+        assert_eq!(s.get(4, 0).unwrap().glyph, 'e');
+        // 'l','l','o' fall off the right edge and are dropped (no wrap/panic).
+        assert_eq!(s.get(0, 0).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_fill_rect() {
+        let mut s = Screen::new(6, 6);
+        let wall = Cell {
+            glyph: '#',
+            fg: DEFAULT_FG,
+            bg: DEFAULT_BG,
+        };
+        s.fill_rect(1, 1, 2, 2, wall);
+        assert_eq!(s.get(1, 1).unwrap().glyph, '#');
+        assert_eq!(s.get(2, 2).unwrap().glyph, '#');
+        assert_eq!(s.get(3, 3).unwrap().glyph, ' '); // outside the rect
+    }
+
+    #[test]
+    fn test_diff_tracks_changes_until_present() {
+        let mut s = Screen::new(3, 3);
+        s.present(); // baseline: blank
+        assert!(s.diff().is_empty(), "no changes right after present");
+
+        s.set(1, 1, '@', RED, DEFAULT_BG);
+        let d = s.diff();
+        assert_eq!(d.len(), 1);
+        assert_eq!(d[0], (1, 1, *s.get(1, 1).unwrap()));
+
+        s.present();
+        assert!(s.diff().is_empty(), "present clears the diff");
+    }
+
+    #[test]
+    fn test_to_ansi_is_deterministic_and_contains_glyph_and_truecolor() {
+        let mut a = Screen::new(3, 1);
+        a.set(0, 0, '@', RED, DEFAULT_BG);
+        let mut b = Screen::new(3, 1);
+        b.set(0, 0, '@', RED, DEFAULT_BG);
+        let sa = a.to_ansi();
+        assert_eq!(sa, b.to_ansi(), "identical screens render identically");
+        assert!(sa.contains('@'));
+        assert!(sa.contains("38;2;255;0;0"), "truecolor fg SGR for red");
+        assert!(sa.starts_with("\x1b[H"));
+    }
+
+    #[test]
+    fn test_draw_box_corners_and_edges() {
+        let mut s = Screen::new(5, 4);
+        s.draw_box(0, 0, 5, 4, DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, '┌');
+        assert_eq!(s.get(4, 0).unwrap().glyph, '┐');
+        assert_eq!(s.get(0, 3).unwrap().glyph, '└');
+        assert_eq!(s.get(4, 3).unwrap().glyph, '┘');
+        assert_eq!(s.get(1, 0).unwrap().glyph, '─');
+        assert_eq!(s.get(0, 1).unwrap().glyph, '│');
+        // Interior is untouched.
+        assert_eq!(s.get(1, 1).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_box_zero_size_is_noop() {
+        let mut s = Screen::new(4, 4);
+        s.draw_box(0, 0, 0, 4, DEFAULT_FG, DEFAULT_BG);
+        s.draw_box(0, 0, 4, 0, DEFAULT_FG, DEFAULT_BG);
+        assert!(s.diff().is_empty());
+    }
+
+    #[test]
+    fn test_draw_box_clipped_no_panic() {
+        let mut s = Screen::new(4, 4);
+        s.draw_box(-1, -1, 6, 6, DEFAULT_FG, DEFAULT_BG); // must not panic
+    }
+
+    #[test]
+    fn test_resize_resets_content() {
+        let mut s = Screen::new(4, 4);
+        s.set(1, 1, '@', RED, DEFAULT_BG);
+        s.present();
+        s.resize(6, 3);
+        assert_eq!(s.width(), 6);
+        assert_eq!(s.height(), 3);
+        assert_eq!(s.get(1, 1).unwrap().glyph, ' ');
+        assert!(s.diff().is_empty(), "resize resets the diff baseline");
+    }
+
+    #[test]
+    fn test_resize_allows_drawing_at_new_bounds() {
+        let mut s = Screen::new(2, 2);
+        s.resize(5, 5);
+        s.set(4, 4, 'Z', RED, DEFAULT_BG);
+        assert_eq!(s.get(4, 4).unwrap().glyph, 'Z');
+    }
+
+    #[test]
+    fn test_draw_line_horizontal() {
+        let mut s = Screen::new(10, 10);
+        s.draw_line((1, 3), (5, 3), '-', RED, DEFAULT_BG);
+        for x in 1..=5 {
+            assert_eq!(s.get(x, 3).map(|c| c.glyph), Some('-'));
+        }
+        assert_eq!(s.get(0, 3).map(|c| c.glyph), Some(' ')); // not drawn
+    }
+
+    #[test]
+    fn test_draw_line_clips_out_of_bounds() {
+        let mut s = Screen::new(5, 5);
+        // Line partially outside — should not panic.
+        s.draw_line((-2, 2), (3, 2), '*', RED, DEFAULT_BG);
+        assert_eq!(s.get(0, 2).map(|c| c.glyph), Some('*'));
+        assert_eq!(s.get(3, 2).map(|c| c.glyph), Some('*'));
+    }
+
+    #[test]
+    fn test_draw_line_single_point() {
+        let mut s = Screen::new(5, 5);
+        s.draw_line((2, 2), (2, 2), '#', RED, DEFAULT_BG);
+        assert_eq!(s.get(2, 2).map(|c| c.glyph), Some('#'));
+    }
+
+    #[test]
+    fn test_det_hash_reflects_content() {
+        let mut a = Screen::new(4, 4);
+        let b = Screen::new(4, 4);
+        assert_eq!(hash_state(&a), hash_state(&b), "blank screens hash equal");
+        a.set(2, 2, '@', RED, DEFAULT_BG);
+        assert_ne!(
+            hash_state(&a),
+            hash_state(&b),
+            "a change must alter the hash"
+        );
+    }
+
+    #[test]
+    fn test_draw_double_box_corners_and_edges() {
+        let mut s = Screen::new(6, 5);
+        s.draw_double_box(0, 0, 6, 5, DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, '╔');
+        assert_eq!(s.get(5, 0).unwrap().glyph, '╗');
+        assert_eq!(s.get(0, 4).unwrap().glyph, '╚');
+        assert_eq!(s.get(5, 4).unwrap().glyph, '╝');
+        assert_eq!(s.get(1, 0).unwrap().glyph, '═');
+        assert_eq!(s.get(0, 1).unwrap().glyph, '║');
+    }
+
+    #[test]
+    fn test_draw_double_box_zero_size_is_noop() {
+        let mut s = Screen::new(4, 4);
+        s.draw_double_box(0, 0, 0, 4, DEFAULT_FG, DEFAULT_BG);
+        s.draw_double_box(0, 0, 4, 0, DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_double_box_clipped_no_panic() {
+        let mut s = Screen::new(4, 4);
+        s.draw_double_box(-1, -1, 6, 6, DEFAULT_FG, DEFAULT_BG); // must not panic
+    }
+
+    #[test]
+    fn test_draw_h_line_sets_correct_cells() {
+        let mut s = Screen::new(10, 5);
+        s.draw_h_line(2, 1, 4, '-', DEFAULT_FG, DEFAULT_BG);
+        for x in 2i32..6 {
+            assert_eq!(s.get(x, 1).unwrap().glyph, '-', "x={x}");
+        }
+        // Cells before and after should remain blank.
+        assert_eq!(s.get(1, 1).unwrap().glyph, ' ');
+        assert_eq!(s.get(6, 1).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_h_line_zero_len_is_noop() {
+        let mut s = Screen::new(8, 4);
+        s.draw_h_line(0, 0, 0, 'X', DEFAULT_FG, DEFAULT_BG);
+        assert_eq!(s.get(0, 0).unwrap().glyph, ' ');
+    }
+
+    #[test]
+    fn test_draw_h_line_clips_out_of_bounds() {
+        let mut s = Screen::new(5, 3);
+        s.draw_h_line(-2, 1, 10, '*', DEFAULT_FG, DEFAULT_BG); // must not panic
+        for x in 0i32..5 {
+            assert_eq!(s.get(x, 1).unwrap().glyph, '*', "x={x}");
+        }
+    }
+}

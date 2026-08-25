@@ -130,8 +130,8 @@ fn run(seed: u64, frames: usize) -> Vec<u64> {
 
 #[test]
 fn test_same_seed_yields_bit_identical_hash_trace() {
-    let a = run(0xC0FF_EE00, 500);
-    let b = run(0xC0FF_EE00, 500);
+    let a = run(0xC0FFEE00, 500);
+    let b = run(0xC0FFEE00, 500);
     assert_eq!(a, b, "identical inputs must replay bit-for-bit");
 }
 
@@ -155,9 +155,9 @@ fn test_trace_is_nontrivial() {
 fn test_final_hash_is_pinned() {
     // Pins the whole stack (RNG + fixed-point + storage + hash). Any accidental
     // change to algorithm or order breaks this — the regression tripwire.
-    let trace = run(0xC0FF_EE00, 500);
+    let trace = run(0xC0FFEE00, 500);
     assert_eq!(*trace.last().unwrap(), PINNED_FINAL_HASH);
 }
 
 // Pinned from a verified run; regression tripwire for the whole stack.
-const PINNED_FINAL_HASH: u64 = 0xd1a9_236e_96a2_c802;
+const PINNED_FINAL_HASH: u64 = 0xd1a9236e96a2c802;

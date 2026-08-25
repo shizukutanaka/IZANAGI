@@ -1,3 +1,12 @@
+# Workspace build artifacts (a single target/ at the root serves both crates).
+/target
+**/*.rs.bk
+
+# Both crates are zero-dependency libraries; the lockfile carries no pinning
+# value and is regenerated on demand (CI runs `cargo generate-lockfile` where
+# needed, e.g. for cargo-audit).
+Cargo.lock
+
 # OS / editor
 .DS_Store
 Thumbs.db
@@ -5,12 +14,13 @@ Thumbs.db
 *~
 .idea/
 .vscode/
-# dependencies
-node_modules/
-venv/
-__pycache__/
-*.pyc
-# env / secrets
+
+# Env / secrets
 .env
 .env.local
 *.secret
+.temp/
+
+# Claude Code session-local state (e.g. worktree checkouts created by the
+# Workflow tool for parallel agent runs) — never part of the product.
+.claude/

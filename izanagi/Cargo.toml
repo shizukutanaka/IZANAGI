@@ -1,0 +1,57 @@
+[package]
+name = "izanagi"
+version = "4.1.0"
+edition = "2021"
+rust-version = "1.65"
+
+# Development-only files that were shipping to consumers. A published crate has
+# no business carrying this repository's git hooks into someone else's
+# dependency tree. Tests and examples stay: for a crate whose whole claim is
+# "this simulation provably replays", the evidence is part of the product.
+exclude = [".githooks/", ".gitignore"]
+description = "A Rust game engine that just works."
+license = "MIT"
+repository = "https://github.com/shizukutanaka/IZANAGI"
+readme = "README.md"
+keywords = ["gamedev", "engine", "ecs"]
+categories = ["game-engines"]
+documentation = "https://docs.rs/izanagi"
+
+[dependencies]
+
+# Dev-only: used solely by the kit_bridge example to demonstrate composing
+# the engine with izanagi_kit. Core stays zero-dependency (CLAUDE.md) --
+# this never ships as part of the published `izanagi` crate.
+[dev-dependencies]
+izanagi_kit = { path = "../izanagi_kit" }
+
+# NOTE: [profile.*] sections live in the workspace root Cargo.toml — Cargo
+# ignores profiles declared in workspace members.
+
+[[example]]
+name = "pong"
+path = "examples/pong.rs"
+
+[[example]]
+name = "hello"
+path = "examples/hello.rs"
+
+[[example]]
+name = "particles"
+path = "examples/particles.rs"
+
+[[example]]
+name = "platformer"
+path = "examples/platformer.rs"
+
+[[example]]
+name = "roguelike"
+path = "examples/roguelike.rs"
+
+[[example]]
+name = "world"
+path = "examples/world.rs"
+
+[[example]]
+name = "kit_bridge"
+path = "examples/kit_bridge.rs"

@@ -44,6 +44,7 @@ impl FixedTimestep {
         Self::new(60, 5)
     }
 
+    /// Fixed step duration in nanoseconds.
     #[inline]
     pub fn step_ns(&self) -> u64 {
         self.step_ns
@@ -54,6 +55,25 @@ impl FixedTimestep {
     #[inline]
     pub fn total_steps(&self) -> u64 {
         self.total_steps
+    }
+
+    /// Current sub-step time buffered in the accumulator (nanoseconds).
+    /// Always in `[0, step_ns)`. Exposes the value normally hidden inside the
+    /// struct so callers can serialise it alongside `total_steps` for an exact
+    /// save/restore of the timestep state — or verify that two replay runs are
+    /// at identical accumulator positions.
+    #[inline]
+    pub fn accumulator_ns(&self) -> u64 {
+        self.accumulator_ns
+    }
+
+    /// Total nanoseconds of simulation time stepped so far:
+    /// `total_steps × step_ns`. Saturating — wraps only at ~585 years of
+    /// 1-ns ticks. Useful for save files that record an in-game clock, and for
+    /// time-based event triggers that fire after N nanoseconds of simulation.
+    #[inline]
+    pub fn total_time_ns(&self) -> u64 {
+        self.total_steps.saturating_mul(self.step_ns)
     }
 
     /// Deposits one real frame's elapsed time and returns how many fixed steps
@@ -78,6 +98,17 @@ impl FixedTimestep {
     #[inline]
     pub fn alpha_ratio(&self) -> (u64, u64) {
         (self.accumulator_ns, self.step_ns)
+    }
+
+    /// Discard any accumulated sub-step time, returning the nanoseconds dropped.
+    /// Call on resume after a pause, a breakpoint, or a level load so the first
+    /// new frame does not replay buffered time as a burst of catch-up steps.
+    /// Leaves `total_steps` and the configured rate untouched.
+    #[inline]
+    pub fn reset_accumulator(&mut self) -> u64 {
+        let dropped = self.accumulator_ns;
+        self.accumulator_ns = 0;
+        dropped
     }
 }
 
@@ -138,6 +169,57 @@ mod tests {
     }
 
     #[test]
+    fn test_reset_accumulator_returns_dropped_time() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let part = ts.step_ns() / 2;
+        assert_eq!(ts.advance(part), 0); // below one step
+        assert_eq!(ts.reset_accumulator(), part, "must return the dropped ns");
+        // Accumulator now empty: re-dropping yields 0.
+        assert_eq!(ts.reset_accumulator(), 0);
+    }
+
+    #[test]
+    fn test_reset_accumulator_prevents_carryover() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let step = ts.step_ns();
+        ts.advance(step - 1); // 0 steps, accumulator = step-1
+        ts.reset_accumulator();
+        // Without the reset, (step-1)+2 >= step would fire a step; after reset it must not.
+        assert_eq!(ts.advance(2), 0, "reset must clear buffered time");
+    }
+
+    #[test]
+    fn test_reset_accumulator_keeps_total_steps() {
+        let mut ts = FixedTimestep::new(60, 5);
+        ts.advance(ts.step_ns() * 2);
+        assert_eq!(ts.total_steps(), 2);
+        ts.reset_accumulator();
+        assert_eq!(ts.total_steps(), 2, "reset must not touch total_steps");
+    }
+
+    #[test]
+    fn test_accumulator_ns_starts_zero() {
+        let ts = FixedTimestep::new(60, 5);
+        assert_eq!(ts.accumulator_ns(), 0);
+    }
+
+    #[test]
+    fn test_accumulator_ns_tracks_partial_frame() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let half = ts.step_ns() / 2;
+        ts.advance(half);
+        assert_eq!(ts.accumulator_ns(), half);
+    }
+
+    #[test]
+    fn test_accumulator_ns_clears_after_reset() {
+        let mut ts = FixedTimestep::new(60, 5);
+        ts.advance(ts.step_ns() / 3);
+        ts.reset_accumulator();
+        assert_eq!(ts.accumulator_ns(), 0);
+    }
+
+    #[test]
     fn test_determinism_independent_of_frame_pacing() {
         // Same total time delivered in different chunkings => same step count.
         let total = FixedTimestep::new(60, 1000).step_ns() * 100;
@@ -148,5 +230,31 @@ mod tests {
             b.advance(total / 200); // many small frames
         }
         assert_eq!(a.total_steps(), b.total_steps());
+    }
+
+    #[test]
+    fn test_total_time_ns_zero_before_any_steps() {
+        let ts = FixedTimestep::new(60, 5);
+        assert_eq!(ts.total_time_ns(), 0);
+    }
+
+    #[test]
+    fn test_total_time_ns_equals_steps_times_step_ns() {
+        let mut ts = FixedTimestep::new(60, 100);
+        let step = ts.step_ns();
+        ts.advance(step * 10);
+        assert_eq!(ts.total_time_ns(), ts.total_steps() * step);
+    }
+
+    #[test]
+    fn test_total_time_ns_consistent_across_pacing() {
+        let step = FixedTimestep::new(60, 1000).step_ns();
+        let mut a = FixedTimestep::new(60, 1000);
+        a.advance(step * 50);
+        let mut b = FixedTimestep::new(60, 1000);
+        for _ in 0..100 {
+            b.advance(step / 2);
+        }
+        assert_eq!(a.total_time_ns(), b.total_time_ns());
     }
 }

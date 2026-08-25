@@ -17,6 +17,10 @@
 //! Block keywords (`prefab`, `level`) open a context; the indented child lines
 //! attach to the most recent open block. Malformed lines become diagnostics
 //! rather than aborting, so a single typo never hides the rest of the errors.
+//!
+//! A formal EBNF grammar with the exact lexical/boundary rules (line length,
+//! dimension bounds, color/glyph/int/uint token shapes) lives in `SPEC.md`
+//! §9.1 and is kept in 1:1 correspondence with this module.
 
 use crate::content::{parse_color, Content, Diagnostic, Level, Prefab, Spawn, Tile};
 
@@ -122,11 +126,15 @@ pub fn parse(source: &str) -> (Content, Vec<Diagnostic>) {
             }
 
             "level" => {
-                if args.len() == 2 && arg_str(0).map(|n| n.len() <= MAX_NAME_LEN).unwrap_or(false) {
-                    match parse_dim(arg_str(1).unwrap()) {
+                // Bind both arguments once. The previous form re-derived them
+                // with `unwrap` behind a length guard several lines away, which
+                // was correct but relied on the reader checking the guard.
+                let named = arg_str(0).filter(|n| n.len() <= MAX_NAME_LEN);
+                match (args.len(), named, arg_str(1)) {
+                    (2, Some(name), Some(dim)) => match parse_dim(dim) {
                         Ok((w, h)) => {
                             content.levels.push(Level {
-                                name: arg_str(0).unwrap().to_string(),
+                                name: name.to_string(),
                                 width: w,
                                 height: h,
                                 rows: Vec::new(),
@@ -138,14 +146,15 @@ pub fn parse(source: &str) -> (Content, Vec<Diagnostic>) {
                             diags.push(Diagnostic::error_at(line_no, arg_col(1), e));
                             block = Block::None;
                         }
+                    },
+                    _ => {
+                        diags.push(Diagnostic::error_at(
+                            line_no,
+                            kw_col,
+                            "level needs: <name> <W>x<H>",
+                        ));
+                        block = Block::None;
                     }
-                } else {
-                    diags.push(Diagnostic::error_at(
-                        line_no,
-                        kw_col,
-                        "level needs: <name> <W>x<H>",
-                    ));
-                    block = Block::None;
                 }
             }
 
@@ -198,6 +207,18 @@ pub fn parse(source: &str) -> (Content, Vec<Diagnostic>) {
     }
 
     (content, diags)
+}
+
+/// Count error-severity diagnostics in a slice. Convenience for CI pipelines
+/// and tool integrations that need a quick pass/fail tally without iterating.
+pub fn error_count(diags: &[Diagnostic]) -> usize {
+    diags.iter().filter(|d| d.is_error()).count()
+}
+
+/// Count warning-severity diagnostics in a slice. The complement of
+/// [`error_count`]; together they account for all diagnostics.
+pub fn warning_count(diags: &[Diagnostic]) -> usize {
+    diags.iter().filter(|d| !d.is_error()).count()
 }
 
 fn parse_dim(s: &str) -> Result<(u32, u32), String> {
@@ -450,5 +471,44 @@ level cave 5x3
         let (_, d) = parse("prefab");
         let err = d.iter().find(|x| x.is_error()).unwrap();
         assert_eq!(err.col, 7, "caret at end-of-line for missing name");
+    }
+
+    #[test]
+    fn test_error_count_empty_slice_is_zero() {
+        assert_eq!(error_count(&[]), 0);
+    }
+
+    #[test]
+    fn test_error_count_counts_only_errors() {
+        // "wobble" gives a warning; "prefab" with no name gives an error.
+        let (_, d) = parse("wobble foo\nprefab");
+        assert_eq!(error_count(&d), 1);
+    }
+
+    #[test]
+    fn test_error_count_all_warnings_is_zero() {
+        let (_, d) = parse("wobble a\nwobble b");
+        assert!(d.iter().all(|x| !x.is_error()));
+        assert_eq!(error_count(&d), 0);
+    }
+
+    #[test]
+    fn test_warning_count_empty_slice_is_zero() {
+        assert_eq!(warning_count(&[]), 0);
+    }
+
+    #[test]
+    fn test_warning_count_counts_only_warnings() {
+        // "wobble" gives a warning; "prefab" with no name gives an error.
+        let (_, d) = parse("wobble foo\nprefab");
+        assert_eq!(warning_count(&d), 1);
+        assert_eq!(error_count(&d), 1);
+    }
+
+    #[test]
+    fn test_warning_count_all_errors_is_zero() {
+        let (_, d) = parse("prefab\nprefab");
+        assert!(d.iter().all(|x| x.is_error()));
+        assert_eq!(warning_count(&d), 0);
     }
 }

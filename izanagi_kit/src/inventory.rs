@@ -1,0 +1,669 @@
+//! Slot-based inventory for roguelike items.
+//!
+//! `Inventory<T>` holds up to `capacity` items of type `T` in a fixed-size
+//! array of optional slots. Items are added to the first free slot; removed
+//! by slot index; retrieved by index or by a predicate. The slot layout is
+//! stable — removing an item leaves a gap, which is the expected roguelike
+//! model (item order reflects acquisition order, not compaction).
+//!
+//! The item type is generic so the caller defines what an item is (a struct,
+//! an enum, or even an `Entity` reference into a separate component store).
+//! `DetHash` is gated on `T: DetHash` and folds slot indices and values in
+//! canonical order so the hash is independent of internal Vec layout.
+
+use crate::world_hash::{DetHash, Fnv1a};
+
+/// A fixed-capacity slot-based inventory.
+#[derive(Clone, Debug)]
+pub struct Inventory<T> {
+    slots: Vec<Option<T>>,
+}
+
+impl<T: Clone> Inventory<T> {
+    /// Create an empty inventory with the given capacity. All slots are empty.
+    pub fn new(capacity: usize) -> Self {
+        Inventory {
+            slots: (0..capacity).map(|_| None).collect(),
+        }
+    }
+
+    /// Total number of slots (including empty ones).
+    #[inline]
+    pub fn capacity(&self) -> usize {
+        self.slots.len()
+    }
+
+    /// Number of items currently held.
+    pub fn len(&self) -> usize {
+        self.slots.iter().filter(|s| s.is_some()).count()
+    }
+
+    /// `true` if no slots are occupied.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.slots.iter().all(|s| s.is_none())
+    }
+
+    /// Whether there is at least one free slot.
+    pub fn has_space(&self) -> bool {
+        self.slots.iter().any(|s| s.is_none())
+    }
+
+    /// Add `item` to the first free slot. Returns the slot index on success,
+    /// or `None` if the inventory is full.
+    pub fn add(&mut self, item: T) -> Option<usize> {
+        if let Some((i, slot)) = self.slots.iter_mut().enumerate().find(|(_, s)| s.is_none()) {
+            *slot = Some(item);
+            Some(i)
+        } else {
+            None
+        }
+    }
+
+    /// Remove and return the item at `slot`. Returns `None` if the slot is
+    /// empty or out of bounds.
+    pub fn remove(&mut self, slot: usize) -> Option<T> {
+        self.slots.get_mut(slot)?.take()
+    }
+
+    /// Borrow the item at `slot`, or `None` if empty / out-of-bounds.
+    pub fn get(&self, slot: usize) -> Option<&T> {
+        self.slots.get(slot)?.as_ref()
+    }
+
+    /// Mutably borrow the item at `slot`, or `None` if empty / out-of-bounds.
+    /// Allows in-place modification without a `remove` + `add` round-trip.
+    #[inline]
+    pub fn get_mut(&mut self, slot: usize) -> Option<&mut T> {
+        self.slots.get_mut(slot)?.as_mut()
+    }
+
+    /// Find the first slot for which `pred(item)` is true. Returns the slot
+    /// index or `None` if no matching item is present.
+    pub fn find<F: Fn(&T) -> bool>(&self, pred: F) -> Option<usize> {
+        self.iter().find(|(_, item)| pred(item)).map(|(i, _)| i)
+    }
+
+    /// Find the first item for which `pred(item)` is true and return a mutable
+    /// reference to it, or `None` if no item matches. The mutable complement to
+    /// [`find`](Self::find) — modify an item in place without a slot round-trip.
+    pub fn find_mut<F: Fn(&T) -> bool>(&mut self, pred: F) -> Option<&mut T> {
+        self.slots.iter_mut().find_map(|s| match s {
+            Some(item) if pred(item) => Some(item),
+            _ => None,
+        })
+    }
+
+    /// Iterate `(slot_index, &item)` for all occupied slots in index order.
+    pub fn iter(&self) -> impl Iterator<Item = (usize, &T)> {
+        self.slots
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| s.as_ref().map(|item| (i, item)))
+    }
+
+    /// Swap items at `a` and `b` (both may be empty — swapping two empty slots
+    /// is a no-op). Out-of-bounds indices are silently clamped to the last slot.
+    pub fn swap(&mut self, a: usize, b: usize) {
+        let len = self.slots.len();
+        if len == 0 {
+            return;
+        }
+        let a = a.min(len - 1);
+        let b = b.min(len - 1);
+        self.slots.swap(a, b);
+    }
+
+    /// Clear all slots, leaving every slot empty. Capacity is preserved.
+    pub fn clear(&mut self) {
+        for slot in &mut self.slots {
+            *slot = None;
+        }
+    }
+
+    /// Remove the first item for which `pred` is true and return `(slot, item)`.
+    ///
+    /// Like [`remove_where`](Self::remove_where) but also returns the slot index
+    /// — useful when the UI or log needs to report *which* slot was consumed
+    /// (e.g. "used potion from slot 3") without a separate `find` round-trip.
+    /// Returns `None` if no item matches.
+    pub fn remove_where_indexed<F: Fn(&T) -> bool>(&mut self, pred: F) -> Option<(usize, T)> {
+        let idx = self
+            .slots
+            .iter()
+            .enumerate()
+            .find_map(|(i, s)| s.as_ref().filter(|item| pred(item)).map(|_| i))?;
+        self.remove(idx).map(|item| (idx, item))
+    }
+
+    /// Remove and return the first item for which `pred(item)` is true.
+    /// Returns `None` if no matching item is present.
+    pub fn remove_where<F: Fn(&T) -> bool>(&mut self, pred: F) -> Option<T> {
+        let idx = self
+            .slots
+            .iter()
+            .enumerate()
+            .find_map(|(i, s)| s.as_ref().filter(|item| pred(item)).map(|_| i))?;
+        self.remove(idx)
+    }
+
+    /// Mutable iteration: `(slot_index, &mut item)` for all occupied slots in
+    /// index order.
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = (usize, &mut T)> {
+        self.slots
+            .iter_mut()
+            .enumerate()
+            .filter_map(|(i, s)| s.as_mut().map(|item| (i, item)))
+    }
+
+    /// Count occupied slots for which `pred` returns `true`.
+    pub fn count_where<F: Fn(&T) -> bool>(&self, pred: F) -> usize {
+        self.slots
+            .iter()
+            .filter(|s| s.as_ref().is_some_and(&pred))
+            .count()
+    }
+
+    /// Index of the first empty (unoccupied) slot, or `None` if the inventory
+    /// is full. Does not consume the slot.
+    pub fn first_empty_slot(&self) -> Option<usize> {
+        self.slots.iter().position(|s| s.is_none())
+    }
+
+    /// `true` when every slot is occupied — no space for another item.
+    /// Shorthand for `!has_space()`.
+    #[inline]
+    pub fn is_full(&self) -> bool {
+        !self.has_space()
+    }
+
+    /// Returns `true` when any item satisfies `pred`. Short-circuits on the
+    /// first match. Simpler than `find(pred).is_some()` at call sites.
+    pub fn contains_where<F: Fn(&T) -> bool>(&self, pred: F) -> bool {
+        self.slots.iter().flatten().any(pred)
+    }
+
+    /// Move the item at `from` to `to`, leaving `from` empty.
+    ///
+    /// Returns `true` on success. Returns `false` if `from` is empty, `to` is
+    /// already occupied, or either index is out of bounds. When `from == to`
+    /// the item stays in place and `true` is returned as long as the slot is
+    /// occupied.
+    pub fn move_to_slot(&mut self, from: usize, to: usize) -> bool {
+        if from >= self.slots.len() || to >= self.slots.len() {
+            return false;
+        }
+        if self.slots[from].is_none() {
+            return false;
+        }
+        if from == to {
+            return true;
+        }
+        if self.slots[to].is_some() {
+            return false;
+        }
+        self.slots.swap(from, to);
+        true
+    }
+
+    /// Indices of all occupied slots in ascending order. Useful for
+    /// serialising the inventory or iterating occupied positions without
+    /// carrying the item reference: `for idx in inv.filled_slots() { … }`.
+    pub fn filled_slots(&self) -> Vec<usize> {
+        self.slots
+            .iter()
+            .enumerate()
+            .filter_map(|(i, s)| s.as_ref().map(|_| i))
+            .collect()
+    }
+
+    /// Count of occupied (non-empty) slots. Equivalent to
+    /// `count_where(|_| true)` but avoids an extra predicate allocation.
+    #[inline]
+    pub fn count_occupied(&self) -> usize {
+        self.slots.iter().filter(|s| s.is_some()).count()
+    }
+}
+
+impl<T: Clone + DetHash> DetHash for Inventory<T> {
+    /// Folds `(slot_index, item)` pairs for occupied slots in ascending index
+    /// order, plus the capacity, so two inventories with the same items at the
+    /// same slots hash identically regardless of how they were filled.
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.slots.len() as u32);
+        for (i, item) in self.iter() {
+            hasher.write_u32(i as u32);
+            item.det_hash(hasher);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world_hash::hash_state;
+
+    #[test]
+    fn test_new_is_empty() {
+        let inv: Inventory<u32> = Inventory::new(5);
+        assert!(inv.is_empty());
+        assert_eq!(inv.len(), 0);
+        assert_eq!(inv.capacity(), 5);
+    }
+
+    #[test]
+    fn test_add_returns_slot_index() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        let s = inv.add(10).unwrap();
+        assert_eq!(s, 0); // first free slot
+        let s2 = inv.add(20).unwrap();
+        assert_eq!(s2, 1);
+    }
+
+    #[test]
+    fn test_add_when_full_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(2);
+        inv.add(1);
+        inv.add(2);
+        assert_eq!(inv.add(3), None);
+        assert!(!inv.has_space());
+    }
+
+    #[test]
+    fn test_remove_clears_slot() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(42);
+        let item = inv.remove(0);
+        assert_eq!(item, Some(42));
+        assert!(inv.is_empty());
+    }
+
+    #[test]
+    fn test_remove_empty_slot_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        assert_eq!(inv.remove(0), None);
+    }
+
+    #[test]
+    fn test_remove_out_of_bounds_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(2);
+        assert_eq!(inv.remove(99), None);
+    }
+
+    #[test]
+    fn test_get_returns_item() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(55);
+        assert_eq!(inv.get(0), Some(&55));
+        assert_eq!(inv.get(1), None);
+    }
+
+    #[test]
+    fn test_find_returns_correct_slot() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        assert_eq!(inv.find(|&x| x == 20), Some(1));
+        assert_eq!(inv.find(|&x| x == 99), None);
+    }
+
+    #[test]
+    fn test_gap_after_remove_is_reused() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        inv.add(1);
+        inv.add(2);
+        inv.remove(0);
+        let s = inv.add(99).unwrap();
+        assert_eq!(s, 0); // slot 0 is the first free slot again
+    }
+
+    #[test]
+    fn test_iter_yields_occupied_in_order() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.remove(0);
+        inv.add(30);
+        let items: Vec<(usize, u32)> = inv.iter().map(|(i, &v)| (i, v)).collect();
+        assert_eq!(items, [(0, 30), (1, 20)]);
+    }
+
+    #[test]
+    fn test_swap_exchanges_items() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        inv.swap(0, 1);
+        assert_eq!(inv.get(0), Some(&2));
+        assert_eq!(inv.get(1), Some(&1));
+    }
+
+    #[test]
+    fn test_len_counts_occupied_slots() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        inv.add(3);
+        inv.remove(1);
+        assert_eq!(inv.len(), 2);
+    }
+
+    #[test]
+    fn test_det_hash_same_content_same_hash() {
+        let mut a: Inventory<u32> = Inventory::new(4);
+        let mut b: Inventory<u32> = Inventory::new(4);
+        a.add(10);
+        a.add(20);
+        b.add(10);
+        b.add(20);
+        assert_eq!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_clear_empties_all_slots_preserves_capacity() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        inv.clear();
+        assert!(inv.is_empty());
+        assert_eq!(inv.capacity(), 4);
+        // Can still add after clear.
+        let slot = inv.add(99).unwrap();
+        assert_eq!(slot, 0);
+    }
+
+    #[test]
+    fn test_remove_where_takes_first_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        let removed = inv.remove_where(|&x| x >= 20);
+        assert_eq!(removed, Some(20)); // first match at slot 1
+        assert_eq!(inv.len(), 2);
+    }
+
+    #[test]
+    fn test_remove_where_returns_none_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        inv.add(1);
+        inv.add(2);
+        assert_eq!(inv.remove_where(|&x| x > 100), None);
+        assert_eq!(inv.len(), 2); // unchanged
+    }
+
+    #[test]
+    fn test_iter_mut_allows_in_place_mutation() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        for (_, item) in inv.iter_mut() {
+            *item *= 2;
+        }
+        let items: Vec<u32> = inv.iter().map(|(_, &v)| v).collect();
+        assert_eq!(items, [20, 40, 60]);
+    }
+
+    #[test]
+    fn test_det_hash_after_remove_differs() {
+        let mut a: Inventory<u32> = Inventory::new(4);
+        let mut b: Inventory<u32> = Inventory::new(4);
+        a.add(10);
+        a.add(20);
+        b.add(10);
+        b.add(20);
+        b.remove(0);
+        assert_ne!(hash_state(&a), hash_state(&b));
+    }
+
+    #[test]
+    fn test_count_where_all_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(2);
+        inv.add(4);
+        inv.add(6);
+        assert_eq!(inv.count_where(|&v| v % 2 == 0), 3);
+    }
+
+    #[test]
+    fn test_count_where_partial_match() {
+        let mut inv: Inventory<u32> = Inventory::new(5);
+        inv.add(1);
+        inv.add(2);
+        inv.add(3);
+        assert_eq!(inv.count_where(|&v| v > 1), 2);
+    }
+
+    #[test]
+    fn test_count_where_empty_inventory_returns_zero() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert_eq!(inv.count_where(|_| true), 0);
+    }
+
+    #[test]
+    fn test_first_empty_slot_new_inventory() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert_eq!(inv.first_empty_slot(), Some(0));
+    }
+
+    #[test]
+    fn test_first_empty_slot_after_partial_fill() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10); // slot 0
+        inv.add(20); // slot 1
+        assert_eq!(inv.first_empty_slot(), Some(2));
+    }
+
+    #[test]
+    fn test_first_empty_slot_full_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(2);
+        inv.add(1);
+        inv.add(2);
+        assert_eq!(inv.first_empty_slot(), None);
+    }
+
+    #[test]
+    fn test_first_empty_slot_after_remove() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        inv.add(3);
+        inv.remove(1); // slot 1 is now free
+        assert_eq!(inv.first_empty_slot(), Some(1));
+    }
+
+    #[test]
+    fn test_is_full_when_all_slots_occupied() {
+        let mut inv: Inventory<u32> = Inventory::new(2);
+        inv.add(1);
+        inv.add(2);
+        assert!(inv.is_full());
+        assert!(!inv.has_space());
+    }
+
+    #[test]
+    fn test_is_full_false_when_space_available() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        inv.add(1);
+        assert!(!inv.is_full());
+    }
+
+    #[test]
+    fn test_get_mut_modifies_item() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        let slot = inv.add(10).unwrap();
+        *inv.get_mut(slot).unwrap() = 42;
+        assert_eq!(inv.get(slot), Some(&42));
+    }
+
+    #[test]
+    fn test_get_mut_empty_slot_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        assert!(inv.get_mut(0).is_none());
+    }
+
+    #[test]
+    fn test_get_mut_out_of_bounds_returns_none() {
+        let mut inv: Inventory<u32> = Inventory::new(1);
+        assert!(inv.get_mut(99).is_none());
+    }
+
+    #[test]
+    fn test_find_mut_modifies_matching_item() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        *inv.find_mut(|&x| x == 20).unwrap() = 99;
+        assert_eq!(inv.get(1), Some(&99));
+    }
+
+    #[test]
+    fn test_find_mut_returns_none_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1);
+        inv.add(2);
+        assert!(inv.find_mut(|&x| x == 99).is_none());
+    }
+
+    #[test]
+    fn test_find_mut_returns_first_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        inv.add(30);
+        // First item >= 20 is at slot 1 (value 20); mutate to prove identity.
+        *inv.find_mut(|&x| x >= 20).unwrap() += 1;
+        assert_eq!(inv.get(1), Some(&21));
+        assert_eq!(inv.get(2), Some(&30)); // later match untouched
+    }
+
+    #[test]
+    fn test_move_to_slot_relocates_item() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(42); // slot 0
+        assert!(inv.move_to_slot(0, 2));
+        assert_eq!(inv.get(0), None);
+        assert_eq!(inv.get(2), Some(&42));
+    }
+
+    #[test]
+    fn test_move_to_slot_returns_false_when_from_empty() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        assert!(!inv.move_to_slot(0, 1));
+    }
+
+    #[test]
+    fn test_move_to_slot_returns_false_when_to_occupied() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(1); // slot 0
+        inv.add(2); // slot 1
+        assert!(!inv.move_to_slot(0, 1)); // slot 1 is occupied
+                                          // both items remain in place
+        assert_eq!(inv.get(0), Some(&1));
+        assert_eq!(inv.get(1), Some(&2));
+    }
+
+    #[test]
+    fn test_contains_where_true_when_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(5);
+        inv.add(10);
+        assert!(inv.contains_where(|&v| v == 10));
+    }
+
+    #[test]
+    fn test_contains_where_false_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(5);
+        assert!(!inv.contains_where(|&v| v == 99));
+    }
+
+    #[test]
+    fn test_contains_where_false_on_empty() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert!(!inv.contains_where(|_| true));
+    }
+
+    // --- remove_where_indexed ---
+
+    #[test]
+    fn test_remove_where_indexed_returns_slot_and_item() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10);
+        inv.add(20);
+        let result = inv.remove_where_indexed(|&v| v == 20).unwrap();
+        assert_eq!(result, (1, 20));
+        assert_eq!(inv.len(), 1);
+    }
+
+    #[test]
+    fn test_remove_where_indexed_returns_none_when_no_match() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(5);
+        assert!(inv.remove_where_indexed(|&v| v > 100).is_none());
+    }
+
+    #[test]
+    fn test_remove_where_indexed_slot_is_then_empty() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(99);
+        let (slot, _) = inv.remove_where_indexed(|_| true).unwrap();
+        assert!(inv.get(slot).is_none());
+    }
+
+    // --- filled_slots ---
+
+    #[test]
+    fn test_filled_slots_returns_occupied_indices() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10); // slot 0
+        inv.add(20); // slot 1
+        inv.add(30); // slot 2
+        assert_eq!(inv.filled_slots(), vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn test_filled_slots_skips_removed_slots() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(10); // slot 0
+        inv.add(20); // slot 1
+        inv.add(30); // slot 2
+        inv.remove(1); // slot 1 now empty
+        assert_eq!(inv.filled_slots(), vec![0, 2]);
+    }
+
+    #[test]
+    fn test_filled_slots_empty_inventory() {
+        let inv: Inventory<u32> = Inventory::new(4);
+        assert!(inv.filled_slots().is_empty());
+    }
+
+    // --- count_occupied ---
+
+    #[test]
+    fn test_count_occupied_all_slots() {
+        let mut inv: Inventory<u32> = Inventory::new(3);
+        inv.add(1);
+        inv.add(2);
+        inv.add(3);
+        assert_eq!(inv.count_occupied(), 3);
+    }
+
+    #[test]
+    fn test_count_occupied_partial() {
+        let mut inv: Inventory<u32> = Inventory::new(4);
+        inv.add(7);
+        inv.add(8);
+        inv.remove(0);
+        assert_eq!(inv.count_occupied(), 1);
+    }
+
+    #[test]
+    fn test_count_occupied_empty() {
+        let inv: Inventory<u32> = Inventory::new(5);
+        assert_eq!(inv.count_occupied(), 0);
+    }
+}

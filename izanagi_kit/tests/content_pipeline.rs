@@ -98,7 +98,7 @@ fn test_parser_never_panics_on_garbage() {
         "\u{1F600}",
         "verylongtokenverylongtokenverylongtoken",
     ];
-    let mut rng = SplitMix64::new(0xFEE5_u64.wrapping_mul(3));
+    let mut rng = SplitMix64::new(0xFEE5u64.wrapping_mul(3));
     for _ in 0..5000 {
         let line_len = rng.below(6) as usize;
         let mut line = String::new();
@@ -113,6 +113,44 @@ fn test_parser_never_panics_on_garbage() {
             src.push('\n');
         }
         // The contract: no panic, returns. Result content is irrelevant here.
+        let (c, _d) = parse(&src);
+        let _ = validate(&c);
+    }
+}
+
+/// Complements the grammar-token fuzz with raw character diversity: arbitrary
+/// Unicode scalar values (many multi-byte), control characters, whitespace
+/// variants, comment marks, and structural chars — interleaved without the
+/// neat space separators above. This stresses the tokenizer's char-boundary
+/// slicing (`&raw[sb..byte_idx]`) and per-character column arithmetic far more
+/// adversarially than a fixed vocabulary can. Deterministic via the seeded RNG.
+#[test]
+fn test_parser_never_panics_on_random_unicode() {
+    // Structural characters that drive the parser into its various branches:
+    // line breaks, the comment marker, dimension `x`, sign, digits, hex `#`,
+    // and tabs/spaces for column counting.
+    let structural = [
+        '\n', ' ', '\t', '\r', '#', 'x', '/', '-', '0', '9', 'g', '@', ':',
+    ];
+    let mut rng = SplitMix64::new(0x1A2A3A4A5A6A7A8A);
+    for _ in 0..4000 {
+        let len = rng.below(48) as usize;
+        let mut src = String::new();
+        for _ in 0..len {
+            if rng.below(3) == 0 {
+                // ~1/3 structural to actually reach keyword/arg parsing paths.
+                src.push(structural[rng.below(structural.len() as u32) as usize]);
+            } else {
+                // Any Unicode scalar value (from_u32 yields None for surrogates,
+                // which we simply skip) — exercises multi-byte boundary slicing.
+                let cp = rng.below(0x110000);
+                if let Some(ch) = char::from_u32(cp) {
+                    src.push(ch);
+                }
+            }
+        }
+        // Contract: parse + validate must terminate without panicking, whatever
+        // the bytes. The produced content/diagnostics are irrelevant here.
         let (c, _d) = parse(&src);
         let _ = validate(&c);
     }

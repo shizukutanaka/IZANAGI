@@ -1,0 +1,1044 @@
+//! Axis-aligned bounding box (AABB) collision detection.
+//!
+//! `Aabb` is an integer rectangle defined by its top-left corner and size.
+//! All coordinates are `i32` so the box can live anywhere in world space
+//! including negative quadrants. The right/bottom edges are exclusive
+//! (`x + w`, `y + h`) — the same convention as most 2-D engines.
+//!
+//! Provided operations:
+//! - `overlaps` — true when two boxes share at least one interior point
+//!   (touching edges do not count as overlapping).
+//! - `contains_point` — true when a point lies strictly inside (or on the
+//!   boundary of) the box.
+//! - `intersection` — the overlapping sub-box, or `None` if disjoint.
+//! - `contains` — true when another box lies entirely inside this one.
+//! - `translate` — shift by an offset (saturating so the box never wraps).
+//! - `area` / `is_empty` / `center` — size and midpoint queries.
+//! - `iter_points` — row-major iteration over the interior cells.
+//!
+//! All arithmetic is integer and saturating; no float anywhere.
+
+use crate::world_hash::{DetHash, Fnv1a};
+
+/// An axis-aligned bounding box with integer coordinates.
+///
+/// The represented region is `[x, x+w) × [y, y+h)`.
+/// Zero-area boxes (`w == 0` or `h == 0`) are valid but never overlap anything.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Aabb {
+    /// Left edge (inclusive).
+    pub x: i32,
+    /// Top edge (inclusive).
+    pub y: i32,
+    /// Width in world units (`≥ 0`).
+    pub w: i32,
+    /// Height in world units (`≥ 0`).
+    pub h: i32,
+}
+
+impl Aabb {
+    /// Construct a new AABB.  Negative `w`/`h` are clamped to `0`.
+    #[inline]
+    pub fn new(x: i32, y: i32, w: i32, h: i32) -> Self {
+        Aabb {
+            x,
+            y,
+            w: w.max(0),
+            h: h.max(0),
+        }
+    }
+
+    /// Construct from a center point and size. `w` and `h` are clamped to `0`.
+    /// The top-left corner is `(cx - w/2, cy - h/2)` (integer division, biased
+    /// toward the origin — same truncation as `center()` on the returned box).
+    #[inline]
+    pub fn from_center_size(cx: i32, cy: i32, w: i32, h: i32) -> Self {
+        let w = w.max(0);
+        let h = h.max(0);
+        Aabb {
+            x: cx - w / 2,
+            y: cy - h / 2,
+            w,
+            h,
+        }
+    }
+
+    /// Construct from two corners `(x1, y1)` and `(x2, y2)`. The corners need
+    /// not be in top-left/bottom-right order; the result always has `w, h ≥ 0`.
+    #[inline]
+    pub fn from_corners(x1: i32, y1: i32, x2: i32, y2: i32) -> Self {
+        let x = x1.min(x2);
+        let y = y1.min(y2);
+        let w = x1.max(x2).saturating_sub(x);
+        let h = y1.max(y2).saturating_sub(y);
+        Aabb { x, y, w, h }
+    }
+
+    /// Expand this AABB by `amount` on every side: `x -= amount`, `y -= amount`,
+    /// `w += 2·amount`, `h += 2·amount`. Saturating. Negative `amount` shrinks;
+    /// the size is clamped to zero so the result is always a valid AABB.
+    #[inline]
+    pub fn grow(&self, amount: i32) -> Aabb {
+        let x = self.x.saturating_sub(amount);
+        let y = self.y.saturating_sub(amount);
+        let w = (self.w as i64).saturating_add(2 * amount as i64).max(0) as i32;
+        let h = (self.h as i64).saturating_add(2 * amount as i64).max(0) as i32;
+        Aabb { x, y, w, h }
+    }
+
+    /// Contract this AABB by `amount` on every side. Equivalent to
+    /// `grow(-amount)`. The size is clamped to zero.
+    #[inline]
+    pub fn shrink(&self, amount: i32) -> Aabb {
+        self.grow(-amount)
+    }
+
+    /// Exclusive right edge (`x + w`).
+    #[inline]
+    pub fn right(&self) -> i32 {
+        self.x.saturating_add(self.w)
+    }
+
+    /// Exclusive bottom edge (`y + h`).
+    #[inline]
+    pub fn bottom(&self) -> i32 {
+        self.y.saturating_add(self.h)
+    }
+
+    /// True when `self` and `other` share at least one interior point.
+    /// Touching edges (zero-width overlap) do **not** count. Empty boxes (`w ==
+    /// 0` or `h == 0`) have no interior and never overlap anything.
+    #[inline]
+    pub fn overlaps(&self, other: &Aabb) -> bool {
+        !self.is_empty()
+            && !other.is_empty()
+            && self.x < other.right()
+            && other.x < self.right()
+            && self.y < other.bottom()
+            && other.y < self.bottom()
+    }
+
+    /// True when the two boxes are *adjacent* — their edges or corners touch —
+    /// but they do **not** overlap. Two empty boxes (or an empty box and any
+    /// other) never touch. Diagonal corner contact counts as touching.
+    ///
+    /// Useful for roguelike adjacency / "reach" checks where a creature in one
+    /// room can interact with the tile in the next without standing on it.
+    #[inline]
+    pub fn touches(&self, other: &Aabb) -> bool {
+        !self.is_empty()
+            && !other.is_empty()
+            && self.grow(1).overlaps(other)
+            && !self.overlaps(other)
+    }
+
+    /// True when the point `(px, py)` lies within the box (boundary inclusive).
+    #[inline]
+    pub fn contains_point(&self, px: i32, py: i32) -> bool {
+        px >= self.x && px < self.right() && py >= self.y && py < self.bottom()
+    }
+
+    /// The overlapping sub-rectangle, or `None` if the boxes are disjoint
+    /// (including touching edges).
+    pub fn intersection(&self, other: &Aabb) -> Option<Aabb> {
+        let ix = self.x.max(other.x);
+        let iy = self.y.max(other.y);
+        // Saturate: the gap between min-right and max-left spans the full
+        // coordinate range for extreme boxes and would otherwise overflow i32
+        // before the positivity check below.
+        let iw = self.right().min(other.right()).saturating_sub(ix);
+        let ih = self.bottom().min(other.bottom()).saturating_sub(iy);
+        if iw > 0 && ih > 0 {
+            Some(Aabb::new(ix, iy, iw, ih))
+        } else {
+            None
+        }
+    }
+
+    /// Return a copy of this box shifted by `(dx, dy)` (saturating arithmetic).
+    #[inline]
+    pub fn translate(&self, dx: i32, dy: i32) -> Aabb {
+        Aabb {
+            x: self.x.saturating_add(dx),
+            y: self.y.saturating_add(dy),
+            w: self.w,
+            h: self.h,
+        }
+    }
+
+    /// Area in cells (`w * h`), computed in `i64` and saturated to `i32` so a
+    /// large box never wraps.
+    #[inline]
+    pub fn area(&self) -> i32 {
+        let a = self.w as i64 * self.h as i64;
+        a.min(i32::MAX as i64) as i32
+    }
+
+    /// True when the box encloses no cells (`w == 0` or `h == 0`).
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.w == 0 || self.h == 0
+    }
+
+    /// Centre cell (integer, biased toward the top-left on even extents) — the
+    /// same convention as [`crate::mapgen::Rect::center`].
+    #[inline]
+    pub fn center(&self) -> (i32, i32) {
+        (self.x + self.w / 2, self.y + self.h / 2)
+    }
+
+    /// The smallest AABB enclosing both `self` and `other`. Empty boxes are
+    /// excluded from the result: if one side is empty the other is returned; if
+    /// both are empty, an empty box at the origin is returned.
+    pub fn union(&self, other: &Aabb) -> Aabb {
+        if self.is_empty() && other.is_empty() {
+            return Aabb::new(0, 0, 0, 0);
+        }
+        if self.is_empty() {
+            return *other;
+        }
+        if other.is_empty() {
+            return *self;
+        }
+        let x = self.x.min(other.x);
+        let y = self.y.min(other.y);
+        let r = self.right().max(other.right());
+        let b = self.bottom().max(other.bottom());
+        // Span can exceed i32 when the union covers the full coordinate range
+        // (e.g. one box at i32::MIN, another reaching i32::MAX); saturate the
+        // width/height rather than overflow.
+        Aabb::new(x, y, r.saturating_sub(x), b.saturating_sub(y))
+    }
+
+    /// True when `other` lies entirely within `self` (boundary inclusive). An
+    /// empty `other` is never contained.
+    #[inline]
+    pub fn contains(&self, other: &Aabb) -> bool {
+        !other.is_empty()
+            && other.x >= self.x
+            && other.y >= self.y
+            && other.right() <= self.right()
+            && other.bottom() <= self.bottom()
+    }
+
+    /// Clamp `(px, py)` to the nearest point inside the box.
+    ///
+    /// If the box is empty (`w == 0` or `h == 0`) the top-left corner is
+    /// returned. Otherwise `x` is clamped to `[self.x, self.right() - 1]` and
+    /// `y` to `[self.y, self.bottom() - 1]` — the same half-open boundary used
+    /// by `contains_point`. Useful for keeping a cursor or projectile inside an
+    /// AABB without manual min/max arithmetic.
+    #[inline]
+    pub fn clamp_point(&self, px: i32, py: i32) -> (i32, i32) {
+        if self.is_empty() {
+            return (self.x, self.y);
+        }
+        (
+            px.clamp(self.x, self.right() - 1),
+            py.clamp(self.y, self.bottom() - 1),
+        )
+    }
+
+    /// The four corners in clockwise order from top-left:
+    /// `[top-left, top-right, bottom-right, bottom-left]`.
+    /// Corners use *inclusive* coordinates: `(x, y)`, `(right−1, y)`,
+    /// `(right−1, bottom−1)`, `(x, bottom−1)`.
+    /// Returns all four equal to `(x, y)` for an empty box.
+    pub fn corners(&self) -> [(i32, i32); 4] {
+        if self.is_empty() {
+            [(self.x, self.y); 4]
+        } else {
+            let r = self.right() - 1;
+            let b = self.bottom() - 1;
+            [(self.x, self.y), (r, self.y), (r, b), (self.x, b)]
+        }
+    }
+
+    /// Chebyshev distance from `(px, py)` to the nearest point on (or inside)
+    /// this box. Returns `0` for an empty box or a point inside.
+    pub fn distance_to_point(&self, px: i32, py: i32) -> i32 {
+        if self.is_empty() || self.contains_point(px, py) {
+            return 0;
+        }
+        let dx = if px < self.x {
+            self.x - px
+        } else if px >= self.right() {
+            px - self.right() + 1
+        } else {
+            0
+        };
+        let dy = if py < self.y {
+            self.y - py
+        } else if py >= self.bottom() {
+            py - self.bottom() + 1
+        } else {
+            0
+        };
+        dx.max(dy)
+    }
+
+    /// Iterate every interior cell `(x, y)` in row-major order (top-to-bottom,
+    /// left-to-right). Empty for a zero-area box. Handy for filling or scanning
+    /// a rectangular region without manual nested loops.
+    pub fn iter_points(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let (x0, y0) = (self.x, self.y);
+        let (x1, y1) = (self.right(), self.bottom());
+        (y0..y1).flat_map(move |y| (x0..x1).map(move |x| (x, y)))
+    }
+
+    /// Iterate only the border (perimeter) cells of the bounding box in
+    /// row-major order: top row → bottom row → left column (interior) →
+    /// right column (interior). Empty boxes (`w ≤ 0` or `h ≤ 0`) yield
+    /// nothing. A 1×n or n×1 box yields the same cells as `iter_points`.
+    /// Useful for placing walls, rendering outlines, or scanning edge cells
+    /// without visiting the interior.
+    pub fn iter_border(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let (x0, y0) = (self.x, self.y);
+        let (x1, y1) = (self.right(), self.bottom());
+        let empty = self.is_empty();
+        let top = (x0..x1).filter(move |_| !empty).map(move |x| (x, y0));
+        let bottom = (x0..x1)
+            .filter(move |_| !empty && y1 - y0 > 1)
+            .map(move |x| (x, y1 - 1));
+        let left = ((y0 + 1)..(y1 - 1))
+            .filter(move |_| !empty && y1 - y0 > 1)
+            .map(move |y| (x0, y));
+        let right = ((y0 + 1)..(y1 - 1))
+            .filter(move |_| !empty && y1 - y0 > 1 && x1 - x0 > 1)
+            .map(move |y| (x1 - 1, y));
+        top.chain(bottom).chain(left).chain(right)
+    }
+
+    /// Return the smallest `Aabb` that contains both `self` and the point
+    /// `(px, py)`. Empty boxes grow to contain the point (a 1×1 box at `(px,
+    /// py)` if the source is empty, or a cover of the source corners plus the
+    /// point otherwise). Useful for computing bounds of a point cloud without
+    /// constructing intermediate AABB values.
+    #[inline]
+    pub fn expand_to_include(&self, px: i32, py: i32) -> Aabb {
+        if self.is_empty() {
+            return Aabb::new(px, py, 1, 1);
+        }
+        let x0 = self.x.min(px);
+        let y0 = self.y.min(py);
+        let x1 = self.right().max(px + 1);
+        let y1 = self.bottom().max(py + 1);
+        Aabb::new(x0, y0, x1 - x0, y1 - y0)
+    }
+
+    /// Perimeter of the bounding box: `2 × (w + h)`. Returns `0` for an empty
+    /// box (`w ≤ 0` or `h ≤ 0`). Uses saturating arithmetic to avoid overflow
+    /// for extreme coordinates.
+    #[inline]
+    pub fn perimeter(&self) -> i32 {
+        if self.is_empty() {
+            0
+        } else {
+            2i32.saturating_mul(self.w.saturating_add(self.h))
+        }
+    }
+
+    /// Half-width and half-height as a tuple: `(w / 2, h / 2)` (integer
+    /// division, same floor bias as `center()`). Returns `(0, 0)` for empty
+    /// boxes. Useful for constructing symmetric offsets from the center without
+    /// repeating the `/2` at every call site.
+    #[inline]
+    pub fn half_extents(&self) -> (i32, i32) {
+        (self.w / 2, self.h / 2)
+    }
+
+    /// Split the box vertically at world-x `x`, returning `(left, right)`.
+    /// `left` covers `[self.x, x)` and `right` covers `[x, self.right())`.
+    /// If `x` is outside the box one half will be empty (`w == 0`). If the box
+    /// is empty both halves are empty. Used for BSP dungeon partitioning.
+    #[inline]
+    pub fn split_v(&self, x: i32) -> (Aabb, Aabb) {
+        let left_w = (x - self.x).clamp(0, self.w);
+        let right_w = self.w - left_w;
+        (
+            Aabb::new(self.x, self.y, left_w, self.h),
+            Aabb::new(self.x + left_w, self.y, right_w, self.h),
+        )
+    }
+
+    /// Split the box horizontally at world-y `y`, returning `(top, bottom)`.
+    /// `top` covers `[self.y, y)` and `bottom` covers `[y, self.bottom())`.
+    /// If `y` is outside the box one half will be empty (`h == 0`). If the box
+    /// is empty both halves are empty.
+    #[inline]
+    pub fn split_h(&self, y: i32) -> (Aabb, Aabb) {
+        let top_h = (y - self.y).clamp(0, self.h);
+        let bot_h = self.h - top_h;
+        (
+            Aabb::new(self.x, self.y, self.w, top_h),
+            Aabb::new(self.x, self.y + top_h, self.w, bot_h),
+        )
+    }
+
+    /// `true` when the box is non-empty and its width equals its height.
+    #[inline]
+    pub fn is_square(&self) -> bool {
+        !self.is_empty() && self.w == self.h
+    }
+
+    /// The corner of the box nearest to `(px, py)`. Returns one of the four
+    /// axis-aligned corners: `(x, y)`, `(right, y)`, `(x, bottom)`, or
+    /// `(right, bottom)`, where `right = x + w` and `bottom = y + h`.
+    /// Returns `(self.x, self.y)` for an empty box.
+    ///
+    /// Useful for snap-to-corner placement, minimum-separation geometry, and
+    /// anchor-point selection in room-joining algorithms.
+    pub fn nearest_corner(&self, px: i32, py: i32) -> (i32, i32) {
+        // Compare squared/abs distances in i64 so extreme coordinate pairs
+        // (e.g. px=i32::MAX, self.x=i32::MIN) cannot overflow the subtraction.
+        let cx = if (px as i64 - self.x as i64).abs() <= (px as i64 - self.right() as i64).abs() {
+            self.x
+        } else {
+            self.right()
+        };
+        let cy = if (py as i64 - self.y as i64).abs() <= (py as i64 - self.bottom() as i64).abs() {
+            self.y
+        } else {
+            self.bottom()
+        };
+        (cx, cy)
+    }
+}
+
+impl DetHash for Aabb {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i32(self.x);
+        hasher.write_i32(self.y);
+        hasher.write_i32(self.w);
+        hasher.write_i32(self.h);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::world_hash::hash_state;
+
+    fn r(x: i32, y: i32, w: i32, h: i32) -> Aabb {
+        Aabb::new(x, y, w, h)
+    }
+
+    // --- overlaps ---
+
+    #[test]
+    fn test_overlaps_clearly_intersecting() {
+        assert!(r(0, 0, 4, 4).overlaps(&r(2, 2, 4, 4)));
+    }
+
+    #[test]
+    fn test_overlaps_disjoint_x() {
+        assert!(!r(0, 0, 4, 4).overlaps(&r(5, 0, 4, 4)));
+    }
+
+    #[test]
+    fn test_overlaps_disjoint_y() {
+        assert!(!r(0, 0, 4, 4).overlaps(&r(0, 5, 4, 4)));
+    }
+
+    #[test]
+    fn test_overlaps_touching_right_edge_not_overlap() {
+        // right edge of first == left edge of second → no overlap
+        assert!(!r(0, 0, 4, 4).overlaps(&r(4, 0, 4, 4)));
+    }
+
+    #[test]
+    fn test_overlaps_touching_bottom_edge_not_overlap() {
+        assert!(!r(0, 0, 4, 4).overlaps(&r(0, 4, 4, 4)));
+    }
+
+    #[test]
+    fn test_overlaps_one_pixel_interior() {
+        assert!(r(0, 0, 3, 3).overlaps(&r(2, 2, 3, 3)));
+    }
+
+    #[test]
+    fn test_overlaps_zero_size_box_never_overlaps() {
+        assert!(!r(0, 0, 0, 4).overlaps(&r(0, 0, 4, 4)));
+        assert!(!r(0, 0, 4, 0).overlaps(&r(0, 0, 4, 4)));
+    }
+
+    #[test]
+    fn test_overlaps_fully_contained() {
+        assert!(r(1, 1, 2, 2).overlaps(&r(0, 0, 10, 10)));
+    }
+
+    // --- contains_point ---
+
+    #[test]
+    fn test_contains_point_inside() {
+        assert!(r(0, 0, 4, 4).contains_point(2, 2));
+    }
+
+    #[test]
+    fn test_contains_point_top_left_corner() {
+        assert!(r(0, 0, 4, 4).contains_point(0, 0));
+    }
+
+    #[test]
+    fn test_contains_point_exclusive_right_bottom() {
+        assert!(!r(0, 0, 4, 4).contains_point(4, 0));
+        assert!(!r(0, 0, 4, 4).contains_point(0, 4));
+    }
+
+    #[test]
+    fn test_contains_point_outside() {
+        assert!(!r(0, 0, 4, 4).contains_point(10, 10));
+    }
+
+    // --- intersection ---
+
+    #[test]
+    fn test_intersection_overlapping() {
+        let result = r(0, 0, 4, 4).intersection(&r(2, 2, 4, 4));
+        assert_eq!(result, Some(r(2, 2, 2, 2)));
+    }
+
+    #[test]
+    fn test_intersection_disjoint_is_none() {
+        assert_eq!(r(0, 0, 4, 4).intersection(&r(10, 0, 4, 4)), None);
+    }
+
+    #[test]
+    fn test_intersection_touching_is_none() {
+        assert_eq!(r(0, 0, 4, 4).intersection(&r(4, 0, 4, 4)), None);
+    }
+
+    #[test]
+    fn test_intersection_fully_contained() {
+        let inner = r(1, 1, 2, 2);
+        let outer = r(0, 0, 10, 10);
+        assert_eq!(inner.intersection(&outer), Some(inner));
+    }
+
+    // --- translate ---
+
+    #[test]
+    fn test_translate_positive() {
+        let moved = r(1, 2, 3, 4).translate(10, 20);
+        assert_eq!(moved, r(11, 22, 3, 4));
+    }
+
+    #[test]
+    fn test_translate_negative() {
+        let moved = r(5, 5, 3, 3).translate(-3, -3);
+        assert_eq!(moved, r(2, 2, 3, 3));
+    }
+
+    #[test]
+    fn test_translate_saturates_overflow() {
+        let a = r(i32::MAX - 1, 0, 4, 4).translate(100, 0);
+        assert_eq!(a.x, i32::MAX);
+    }
+
+    // --- negative w/h clamped ---
+
+    #[test]
+    fn test_new_negative_dimensions_clamped_to_zero() {
+        let a = Aabb::new(0, 0, -5, -3);
+        assert_eq!(a.w, 0);
+        assert_eq!(a.h, 0);
+    }
+
+    // --- det_hash ---
+
+    #[test]
+    fn test_det_hash_equal_boxes_equal_hash() {
+        assert_eq!(hash_state(&r(1, 2, 3, 4)), hash_state(&r(1, 2, 3, 4)));
+    }
+
+    #[test]
+    fn test_det_hash_different_boxes_different_hash() {
+        assert_ne!(hash_state(&r(0, 0, 4, 4)), hash_state(&r(1, 0, 4, 4)));
+    }
+
+    // --- area / is_empty / center ---
+
+    #[test]
+    fn test_area_and_is_empty() {
+        assert_eq!(r(0, 0, 4, 3).area(), 12);
+        assert!(!r(0, 0, 4, 3).is_empty());
+        assert_eq!(r(0, 0, 0, 5).area(), 0);
+        assert!(r(0, 0, 0, 5).is_empty());
+        assert!(r(0, 0, 5, 0).is_empty());
+    }
+
+    #[test]
+    fn test_area_saturates() {
+        // 50000 * 50000 = 2.5e9 > i32::MAX → saturates rather than wraps.
+        assert_eq!(r(0, 0, 50_000, 50_000).area(), i32::MAX);
+    }
+
+    #[test]
+    fn test_center_biases_top_left_on_even() {
+        assert_eq!(r(0, 0, 4, 4).center(), (2, 2));
+        assert_eq!(r(2, 3, 5, 3).center(), (4, 4));
+    }
+
+    // --- union ---
+
+    #[test]
+    fn test_union_two_disjoint_boxes() {
+        let u = r(0, 0, 4, 4).union(&r(6, 6, 4, 4));
+        assert_eq!(u, r(0, 0, 10, 10));
+    }
+
+    #[test]
+    fn test_union_overlapping_boxes() {
+        let u = r(0, 0, 4, 4).union(&r(2, 2, 4, 4));
+        assert_eq!(u, r(0, 0, 6, 6));
+    }
+
+    #[test]
+    fn test_union_with_empty_returns_other() {
+        let non_empty = r(1, 2, 3, 4);
+        assert_eq!(r(0, 0, 0, 4).union(&non_empty), non_empty);
+        assert_eq!(non_empty.union(&r(0, 0, 0, 4)), non_empty);
+    }
+
+    #[test]
+    fn test_union_symmetric() {
+        let a = r(1, 2, 3, 4);
+        let b = r(5, 6, 2, 2);
+        assert_eq!(a.union(&b), b.union(&a));
+    }
+
+    // --- contains (rect-in-rect) ---
+
+    #[test]
+    fn test_contains_fully_inside() {
+        assert!(r(0, 0, 10, 10).contains(&r(2, 2, 3, 3)));
+        // Boundary-inclusive: an inner box flush to the edges is contained.
+        assert!(r(0, 0, 10, 10).contains(&r(0, 0, 10, 10)));
+    }
+
+    #[test]
+    fn test_contains_partially_outside_is_false() {
+        assert!(!r(0, 0, 10, 10).contains(&r(8, 8, 5, 5)));
+        assert!(!r(0, 0, 10, 10).contains(&r(-1, 0, 3, 3)));
+    }
+
+    #[test]
+    fn test_contains_empty_other_is_false() {
+        assert!(!r(0, 0, 10, 10).contains(&r(2, 2, 0, 4)));
+    }
+
+    // --- iter_points ---
+
+    #[test]
+    fn test_iter_points_row_major_order() {
+        let pts: Vec<_> = r(1, 1, 2, 2).iter_points().collect();
+        assert_eq!(pts, vec![(1, 1), (2, 1), (1, 2), (2, 2)]);
+    }
+
+    #[test]
+    fn test_iter_points_count_matches_area() {
+        let b = r(-3, 5, 4, 6);
+        assert_eq!(b.iter_points().count() as i32, b.area());
+    }
+
+    #[test]
+    fn test_iter_points_empty_box_yields_nothing() {
+        assert_eq!(r(0, 0, 0, 5).iter_points().count(), 0);
+        assert_eq!(r(0, 0, 5, 0).iter_points().count(), 0);
+    }
+
+    #[test]
+    fn test_iter_points_all_inside() {
+        let b = r(2, 2, 3, 3);
+        assert!(b.iter_points().all(|(x, y)| b.contains_point(x, y)));
+    }
+
+    #[test]
+    fn test_from_corners_ordered() {
+        let b = Aabb::from_corners(1, 2, 5, 6);
+        assert_eq!(b.x, 1);
+        assert_eq!(b.y, 2);
+        assert_eq!(b.w, 4);
+        assert_eq!(b.h, 4);
+    }
+
+    #[test]
+    fn test_from_corners_reversed() {
+        // Works regardless of which corner is first.
+        let b = Aabb::from_corners(5, 6, 1, 2);
+        assert_eq!(b.x, 1);
+        assert_eq!(b.y, 2);
+        assert_eq!(b.w, 4);
+        assert_eq!(b.h, 4);
+    }
+
+    #[test]
+    fn test_from_corners_single_point() {
+        let b = Aabb::from_corners(3, 4, 3, 4);
+        assert_eq!(b.w, 0);
+        assert_eq!(b.h, 0);
+        assert!(b.is_empty());
+    }
+
+    #[test]
+    fn test_grow_expands_all_sides() {
+        let b = r(5, 5, 10, 10);
+        let g = b.grow(2);
+        assert_eq!(g.x, 3);
+        assert_eq!(g.y, 3);
+        assert_eq!(g.w, 14);
+        assert_eq!(g.h, 14);
+    }
+
+    #[test]
+    fn test_grow_negative_is_shrink() {
+        let b = r(0, 0, 10, 10);
+        let s = b.grow(-2);
+        assert_eq!(s.x, 2);
+        assert_eq!(s.y, 2);
+        assert_eq!(s.w, 6);
+        assert_eq!(s.h, 6);
+    }
+
+    #[test]
+    fn test_grow_beyond_zero_clamps() {
+        let b = r(0, 0, 4, 4);
+        let g = b.grow(-10);
+        assert_eq!(g.w, 0);
+        assert_eq!(g.h, 0);
+        assert!(g.is_empty());
+    }
+
+    #[test]
+    fn test_shrink_symmetric_with_grow() {
+        let b = r(2, 2, 8, 8);
+        assert_eq!(b.shrink(3), b.grow(-3));
+    }
+
+    // --- clamp_point ---
+
+    #[test]
+    fn test_clamp_point_inside_unchanged() {
+        let b = r(2, 3, 6, 5);
+        assert_eq!(b.clamp_point(4, 4), (4, 4));
+    }
+
+    #[test]
+    fn test_clamp_point_outside_left_top() {
+        let b = r(2, 3, 6, 5);
+        assert_eq!(b.clamp_point(0, 0), (2, 3));
+    }
+
+    #[test]
+    fn test_clamp_point_outside_right_bottom() {
+        let b = r(2, 3, 6, 5);
+        // right-1 = 7, bottom-1 = 7
+        assert_eq!(b.clamp_point(100, 100), (7, 7));
+    }
+
+    #[test]
+    fn test_clamp_point_empty_box_returns_top_left() {
+        let b = r(5, 5, 0, 0);
+        assert_eq!(b.clamp_point(10, 10), (5, 5));
+    }
+
+    #[test]
+    fn test_corners_normal_box() {
+        let b = r(1, 2, 4, 3); // right=5, bottom=5
+        let c = b.corners();
+        assert_eq!(c[0], (1, 2)); // top-left
+        assert_eq!(c[1], (4, 2)); // top-right (right-1 = 4)
+        assert_eq!(c[2], (4, 4)); // bottom-right (bottom-1 = 4)
+        assert_eq!(c[3], (1, 4)); // bottom-left
+    }
+
+    #[test]
+    fn test_corners_empty_box_all_same() {
+        let b = r(3, 4, 0, 0);
+        let c = b.corners();
+        assert!(c.iter().all(|&p| p == (3, 4)));
+    }
+
+    #[test]
+    fn test_corners_clockwise_order() {
+        // All four corners should be distinct for a non-degenerate box.
+        let b = r(0, 0, 5, 5);
+        let c = b.corners();
+        let unique: std::collections::HashSet<_> = c.iter().collect();
+        assert_eq!(unique.len(), 4, "all four corners must be distinct");
+    }
+
+    #[test]
+    fn test_distance_to_point_inside_is_zero() {
+        let b = r(0, 0, 10, 10);
+        assert_eq!(b.distance_to_point(5, 5), 0);
+    }
+
+    #[test]
+    fn test_distance_to_point_outside_right() {
+        let b = r(0, 0, 5, 5); // right=5, bottom=5
+                               // Point at (7, 2): dx = 7-5+1 = 3, dy = 0 → max = 3
+        assert_eq!(b.distance_to_point(7, 2), 3);
+    }
+
+    #[test]
+    fn test_distance_to_point_diagonal() {
+        let b = r(0, 0, 4, 4); // right=4, bottom=4
+                               // Point at (5, 6): dx=5-4+1=2, dy=6-4+1=3 → max=3
+        assert_eq!(b.distance_to_point(5, 6), 3);
+    }
+
+    #[test]
+    fn test_distance_to_point_empty_box_is_zero() {
+        let b = r(5, 5, 0, 0);
+        assert_eq!(b.distance_to_point(100, 100), 0);
+    }
+
+    #[test]
+    fn test_from_center_size_basic() {
+        let b = Aabb::from_center_size(10, 10, 6, 4);
+        // x = 10 - 6/2 = 7, y = 10 - 4/2 = 8
+        assert_eq!(b.x, 7);
+        assert_eq!(b.y, 8);
+        assert_eq!(b.w, 6);
+        assert_eq!(b.h, 4);
+    }
+
+    #[test]
+    fn test_from_center_size_center_roundtrip() {
+        let b = Aabb::from_center_size(5, 5, 4, 4);
+        let (cx, cy) = b.center();
+        assert_eq!(cx, 5);
+        assert_eq!(cy, 5);
+    }
+
+    #[test]
+    fn test_from_center_size_negative_clamped() {
+        let b = Aabb::from_center_size(0, 0, -5, -5);
+        assert_eq!(b.w, 0);
+        assert_eq!(b.h, 0);
+    }
+
+    // --- touches ---
+
+    #[test]
+    fn test_touches_shared_edge() {
+        // right edge of first == left edge of second → adjacent, not overlapping
+        assert!(r(0, 0, 4, 4).touches(&r(4, 0, 4, 4)));
+        // shared bottom edge
+        assert!(r(0, 0, 4, 4).touches(&r(0, 4, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_diagonal_corner() {
+        // corner contact at (4, 4)
+        assert!(r(0, 0, 4, 4).touches(&r(4, 4, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_overlapping_returns_false() {
+        // boxes that share interior do not "touch"
+        assert!(!r(0, 0, 4, 4).touches(&r(2, 2, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_gap_returns_false() {
+        // one-cell gap between boxes → not touching
+        assert!(!r(0, 0, 4, 4).touches(&r(5, 0, 4, 4)));
+    }
+
+    #[test]
+    fn test_touches_empty_box_never_touches() {
+        assert!(!r(0, 0, 0, 4).touches(&r(0, 0, 4, 4)));
+        assert!(!r(0, 0, 4, 4).touches(&r(4, 0, 0, 4)));
+    }
+
+    #[test]
+    fn test_expand_to_include_inside_is_unchanged() {
+        let b = r(0, 0, 10, 10);
+        let e = b.expand_to_include(5, 5);
+        assert_eq!(e, b);
+    }
+
+    #[test]
+    fn test_expand_to_include_outside_grows_box() {
+        let b = r(0, 0, 5, 5);
+        let e = b.expand_to_include(9, 9);
+        assert_eq!(e.x, 0);
+        assert_eq!(e.y, 0);
+        assert_eq!(e.w, 10); // covers 0..10
+        assert_eq!(e.h, 10);
+    }
+
+    #[test]
+    fn test_expand_to_include_empty_box_becomes_point() {
+        let b = r(0, 0, 0, 0);
+        let e = b.expand_to_include(3, 7);
+        assert_eq!(e, r(3, 7, 1, 1));
+    }
+
+    #[test]
+    fn test_perimeter_unit_square() {
+        assert_eq!(r(0, 0, 1, 1).perimeter(), 4);
+    }
+
+    #[test]
+    fn test_perimeter_rectangle() {
+        assert_eq!(r(0, 0, 3, 5).perimeter(), 16); // 2*(3+5)
+    }
+
+    #[test]
+    fn test_perimeter_empty_box_is_zero() {
+        assert_eq!(r(0, 0, 0, 0).perimeter(), 0);
+        assert_eq!(r(0, 0, -1, 4).perimeter(), 0);
+    }
+
+    #[test]
+    fn test_half_extents_normal_box() {
+        assert_eq!(r(0, 0, 10, 6).half_extents(), (5, 3));
+    }
+
+    #[test]
+    fn test_half_extents_odd_dimensions() {
+        assert_eq!(r(0, 0, 7, 5).half_extents(), (3, 2));
+    }
+
+    #[test]
+    fn test_half_extents_empty_box() {
+        assert_eq!(r(0, 0, 0, 0).half_extents(), (0, 0));
+    }
+
+    #[test]
+    fn test_split_v_halves_cover_full_width() {
+        let b = r(2, 3, 10, 6);
+        let (left, right) = b.split_v(7); // split at x=7 (5 from left edge)
+        assert_eq!(left, r(2, 3, 5, 6));
+        assert_eq!(right, r(7, 3, 5, 6));
+    }
+
+    #[test]
+    fn test_split_v_outside_left_gives_empty_left() {
+        let b = r(5, 0, 10, 4);
+        let (left, right) = b.split_v(0); // split before box
+        assert_eq!(left.w, 0);
+        assert_eq!(right, b);
+    }
+
+    #[test]
+    fn test_split_h_halves_cover_full_height() {
+        let b = r(1, 2, 8, 10);
+        let (top, bottom) = b.split_h(7); // split at y=7 (5 from top)
+        assert_eq!(top, r(1, 2, 8, 5));
+        assert_eq!(bottom, r(1, 7, 8, 5));
+    }
+
+    #[test]
+    fn test_split_h_outside_top_gives_empty_top() {
+        let b = r(0, 5, 6, 10);
+        let (top, bottom) = b.split_h(2); // split before box
+        assert_eq!(top.h, 0);
+        assert_eq!(bottom, b);
+    }
+
+    #[test]
+    fn test_split_v_widths_sum_to_original() {
+        let b = r(0, 0, 12, 8);
+        let (left, right) = b.split_v(4);
+        assert_eq!(left.w + right.w, b.w);
+    }
+
+    #[test]
+    fn test_split_h_heights_sum_to_original() {
+        let b = r(0, 0, 8, 12);
+        let (top, bottom) = b.split_h(5);
+        assert_eq!(top.h + bottom.h, b.h);
+    }
+
+    // --- iter_border ---
+
+    #[test]
+    fn test_iter_border_count_matches_perimeter_3x3() {
+        let b = r(0, 0, 3, 3);
+        let pts: Vec<_> = b.iter_border().collect();
+        // 3×3 box: perimeter = 8 cells (9 total minus 1 center)
+        assert_eq!(pts.len(), 8);
+    }
+
+    #[test]
+    fn test_iter_border_all_points_on_edge() {
+        let b = r(1, 1, 4, 4);
+        for (x, y) in b.iter_border() {
+            assert!(
+                x == b.x || x == b.right() - 1 || y == b.y || y == b.bottom() - 1,
+                "point ({x},{y}) is not on the border of {b:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_iter_border_empty_box_yields_nothing() {
+        assert_eq!(r(0, 0, 0, 4).iter_border().count(), 0);
+        assert_eq!(r(0, 0, 4, 0).iter_border().count(), 0);
+    }
+
+    #[test]
+    fn test_iter_border_single_row_equals_iter_points() {
+        let b = r(2, 5, 5, 1);
+        let border: Vec<_> = b.iter_border().collect();
+        let all: Vec<_> = b.iter_points().collect();
+        assert_eq!(border, all);
+    }
+
+    #[test]
+    fn test_iter_border_no_interior_points_in_5x5() {
+        let b = r(0, 0, 5, 5);
+        let inner = r(1, 1, 3, 3);
+        for (x, y) in b.iter_border() {
+            assert!(
+                !inner.contains_point(x, y),
+                "interior point ({x},{y}) leaked into border"
+            );
+        }
+    }
+
+    // --- is_square ---
+
+    #[test]
+    fn test_is_square_equal_dims() {
+        assert!(r(0, 0, 4, 4).is_square());
+    }
+
+    #[test]
+    fn test_is_square_unequal_dims() {
+        assert!(!r(0, 0, 4, 3).is_square());
+        assert!(!r(0, 0, 3, 4).is_square());
+    }
+
+    #[test]
+    fn test_is_square_empty_is_false() {
+        assert!(!r(0, 0, 0, 0).is_square());
+        assert!(!r(0, 0, 0, 4).is_square()); // w == 0 → empty
+    }
+
+    // --- nearest_corner ---
+
+    #[test]
+    fn test_nearest_corner_top_left() {
+        // box [2,6) x [3,7) — corners: (2,3),(6,3),(2,7),(6,7)
+        // point (1,2) is closest to top-left corner (2,3)
+        assert_eq!(r(2, 3, 4, 4).nearest_corner(1, 2), (2, 3));
+    }
+
+    #[test]
+    fn test_nearest_corner_bottom_right() {
+        assert_eq!(r(0, 0, 4, 4).nearest_corner(5, 5), (4, 4));
+    }
+
+    #[test]
+    fn test_nearest_corner_equidistant_picks_left_top() {
+        // midpoint of x is 2; exact midpoint → picks left (abs equal, <= wins)
+        let b = r(0, 0, 4, 4); // right = 4
+        let (cx, _) = b.nearest_corner(2, 0); // equal dist to 0 and 4
+        assert_eq!(cx, 0, "equidistant prefers left corner");
+    }
+}

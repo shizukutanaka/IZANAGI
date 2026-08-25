@@ -23,28 +23,189 @@ use std::collections::BTreeMap;
 /// 24-bit RGB color (matches the `#RRGGBB` authoring syntax).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Color {
+    /// Red channel.
     pub r: u8,
+    /// Green channel.
     pub g: u8,
+    /// Blue channel.
     pub b: u8,
 }
 
 impl Color {
+    /// Construct a color from its channels. `const` so it can seed palettes.
+    #[inline]
+    pub const fn rgb(r: u8, g: u8, b: u8) -> Color {
+        Color { r, g, b }
+    }
+
+    /// Format as `#RRGGBB`.
     pub fn to_hex(self) -> String {
         format!("#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
+    }
+
+    /// Parse a color from a `#RRGGBB` hex string — the inverse of
+    /// [`to_hex`](Self::to_hex). Delegates to [`parse_color`] so all
+    /// validation and error messages are consistent.
+    #[inline]
+    pub fn from_hex(s: &str) -> Result<Color, String> {
+        parse_color(s)
+    }
+
+    /// Build a color from HSV: `hue` in degrees (wrapped mod 360), `sat` and
+    /// `val` in `0..=255`. Pure integer arithmetic (no float), so it is
+    /// deterministic across targets — handy for procedural palettes and
+    /// rainbow/heat gradients. `sat == 0` yields a gray of brightness `val`.
+    pub fn from_hsv(hue: u32, sat: u8, val: u8) -> Color {
+        let v = val as u32;
+        if sat == 0 {
+            return Color {
+                r: val,
+                g: val,
+                b: val,
+            };
+        }
+        let s = sat as u32;
+        let h = hue % 360;
+        let region = h / 60; // 0..=5
+        let rem = (h % 60) * 255 / 60; // fractional position within the sextant, 0..=255
+        let p = v * (255 - s) / 255;
+        let q = v * (255 - s * rem / 255) / 255;
+        let t = v * (255 - s * (255 - rem) / 255) / 255;
+        let (r, g, b) = match region {
+            0 => (v, t, p),
+            1 => (q, v, p),
+            2 => (p, v, t),
+            3 => (p, q, v),
+            4 => (t, p, v),
+            _ => (v, p, q),
+        };
+        Color {
+            r: r as u8,
+            g: g as u8,
+            b: b as u8,
+        }
+    }
+
+    /// Linearly interpolate each channel from `a` to `b` by the ratio
+    /// `num/den` (integer, no float). `num == 0` yields `a`, `num == den`
+    /// yields `b`; values outside `[0, den]` extrapolate and clamp per channel
+    /// to `0..=255`. A zero denominator returns `a` unchanged. Use this for
+    /// heat-map gradients and fades instead of hand-rolling channel math.
+    pub fn lerp(a: Color, b: Color, num: i32, den: i32) -> Color {
+        if den == 0 {
+            return a;
+        }
+        let ch = |ca: u8, cb: u8| -> u8 {
+            // i64 so a large `num` cannot overflow `(cb - ca) * num` (channels
+            // are bounded but `num` is caller-controlled).
+            let v = ca as i64 + (cb as i64 - ca as i64) * num as i64 / den as i64;
+            v.clamp(0, 255) as u8
+        };
+        Color {
+            r: ch(a.r, b.r),
+            g: ch(a.g, b.g),
+            b: ch(a.b, b.b),
+        }
+    }
+
+    /// Desaturate to a gray of equal perceived luma, using integer Rec. 601
+    /// weights (`0.299, 0.587, 0.114` scaled to sum 256). No float.
+    #[inline]
+    pub fn grayscale(self) -> Color {
+        let y =
+            ((self.r as u32 * 77 + self.g as u32 * 150 + self.b as u32 * 29) >> 8).min(255) as u8;
+        Color { r: y, g: y, b: y }
+    }
+
+    /// Channel-wise complement: `rgb(255 − r, 255 − g, 255 − b)`.
+    /// Useful for contrast highlights and selection indicators.
+    #[inline]
+    pub const fn invert(self) -> Color {
+        Color {
+            r: 255 - self.r,
+            g: 255 - self.g,
+            b: 255 - self.b,
+        }
+    }
+
+    /// Perceived luma as a single `u8`, using integer Rec. 601 weights
+    /// (`0.299 r + 0.587 g + 0.114 b`, scaled to sum 256). Returns the same
+    /// value as all three channels of [`grayscale`](Self::grayscale).
+    #[inline]
+    pub fn luminance(self) -> u8 {
+        ((self.r as u32 * 77 + self.g as u32 * 150 + self.b as u32 * 29) >> 8).min(255) as u8
+    }
+
+    /// Scale every channel by the ratio `num/den` (integer), clamping to
+    /// `0..=255`. `num < den` dims, `num > den` brightens; a zero denominator
+    /// returns the color unchanged. Handy for shading by distance or light.
+    pub fn scale(self, num: i32, den: i32) -> Color {
+        if den == 0 {
+            return self;
+        }
+        // i64 so a large `num` cannot overflow `c * num` (the brighten path).
+        let ch = |c: u8| -> u8 { (c as i64 * num as i64 / den as i64).clamp(0, 255) as u8 };
+        Color {
+            r: ch(self.r),
+            g: ch(self.g),
+            b: ch(self.b),
+        }
+    }
+
+    /// Highest of the three channels — `max(r, g, b)`. Returns `0` for black.
+    /// Useful for normalising a colour to full brightness (divide each channel
+    /// by `max_channel / 255`) and as an overflow guard when brightening.
+    #[inline]
+    pub fn max_channel(self) -> u8 {
+        self.r.max(self.g).max(self.b)
+    }
+
+    /// Minimum value among the three channels. Useful for computing color
+    /// saturation (`max - min`) and for darkness or shadow threshold checks
+    /// without allocating an HSV decomposition.
+    #[inline]
+    pub fn min_channel(self) -> u8 {
+        self.r.min(self.g).min(self.b)
+    }
+
+    /// Composite `fg` over `bg` with integer alpha: `alpha = 0` yields `fg`,
+    /// `alpha = 255` yields `bg`. Formula: `(fg * (255 − alpha) + bg * alpha) / 255`
+    /// per channel — no float, deterministic across targets.
+    pub fn alpha_blend(fg: Color, bg: Color, alpha: u8) -> Color {
+        let a = alpha as u32;
+        let ia = 255 - a;
+        Color {
+            r: ((fg.r as u32 * ia + bg.r as u32 * a) / 255) as u8,
+            g: ((fg.g as u32 * ia + bg.g as u32 * a) / 255) as u8,
+            b: ((fg.b as u32 * ia + bg.b as u32 * a) / 255) as u8,
+        }
+    }
+}
+
+impl crate::world_hash::DetHash for Color {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_bytes(&[self.r, self.g, self.b]);
     }
 }
 
 /// An entity template. Instantiated once per [`Spawn`] that names it.
 #[derive(Clone, Debug)]
 pub struct Prefab {
+    /// The prefab's name, as referenced by [`Spawn::prefab`].
     pub name: String,
+    /// Map-cell glyph for this prefab.
     pub glyph: char,
+    /// Display color.
     pub color: Color,
+    /// Named integer stats (e.g. `hp`, `atk`).
     pub stats: BTreeMap<String, i32>,
+    /// Boolean flags set on this prefab.
     pub flags: Vec<String>,
 }
 
 impl Prefab {
+    /// Construct a prefab with the given name and default appearance/stats.
     pub fn new(name: String) -> Self {
         Self {
             name,
@@ -63,51 +224,75 @@ impl Prefab {
 /// A named map-cell appearance.
 #[derive(Clone, Debug)]
 pub struct Tile {
+    /// The tile's name, as referenced by level authoring tools.
     pub name: String,
+    /// Map-cell glyph.
     pub glyph: char,
+    /// Display color.
     pub color: Color,
 }
 
 /// A prefab placed at a level coordinate.
 #[derive(Clone, Debug)]
 pub struct Spawn {
+    /// Name of the [`Prefab`] to instantiate.
     pub prefab: String,
+    /// Column (0-based) within the level grid.
     pub x: u32,
+    /// Row (0-based) within the level grid.
     pub y: u32,
 }
 
 /// A level: a `width`x`height` grid of glyph rows plus spawns.
 #[derive(Clone, Debug)]
 pub struct Level {
+    /// The level's name.
     pub name: String,
+    /// Grid width in cells.
     pub width: u32,
+    /// Grid height in cells.
     pub height: u32,
+    /// One string per row, each `width` glyphs wide.
     pub rows: Vec<String>,
+    /// Prefabs to instantiate when the level loads.
     pub spawns: Vec<Spawn>,
 }
 
 /// The complete authored bundle produced by the parser.
 #[derive(Clone, Debug, Default)]
 pub struct Content {
+    /// All authored prefabs.
     pub prefabs: Vec<Prefab>,
+    /// All authored tile definitions.
     pub tiles: Vec<Tile>,
+    /// All authored levels.
     pub levels: Vec<Level>,
 }
 
 impl Content {
+    /// Look up a prefab definition by name.
     pub fn prefab(&self, name: &str) -> Option<&Prefab> {
         self.prefabs.iter().find(|p| p.name == name)
     }
 
+    /// Look up a level definition by name.
     pub fn level(&self, name: &str) -> Option<&Level> {
         self.levels.iter().find(|l| l.name == name)
+    }
+
+    /// Look up a tile definition by name. Symmetric with [`prefab`](Self::prefab)
+    /// and [`level`](Self::level). Returns `None` if no tile with that name exists.
+    pub fn tile(&self, name: &str) -> Option<&Tile> {
+        self.tiles.iter().find(|t| t.name == name)
     }
 }
 
 /// Severity of a pipeline diagnostic.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Severity {
+    /// A fatal problem; the content fails to load.
     Error,
+    /// A non-fatal problem; the content still loads.
     Warning,
 }
 
@@ -115,13 +300,18 @@ pub enum Severity {
 /// optional 1-based column (0 == column unknown, e.g. semantic checks).
 #[derive(Clone, Debug)]
 pub struct Diagnostic {
+    /// 1-based source line, or `0` if not applicable to a specific line.
     pub line: usize,
+    /// 1-based source column, or `0` if unknown.
     pub col: usize,
+    /// Error or warning.
     pub severity: Severity,
+    /// Human-readable description.
     pub message: String,
 }
 
 impl Diagnostic {
+    /// Construct an error diagnostic with no known column.
     pub fn error(line: usize, message: impl Into<String>) -> Self {
         Self {
             line,
@@ -131,6 +321,7 @@ impl Diagnostic {
         }
     }
 
+    /// Construct a warning diagnostic with no known column.
     pub fn warning(line: usize, message: impl Into<String>) -> Self {
         Self {
             line,
@@ -150,6 +341,7 @@ impl Diagnostic {
         }
     }
 
+    /// Warning with a known column, enabling a caret in the rendered output.
     pub fn warning_at(line: usize, col: usize, message: impl Into<String>) -> Self {
         Self {
             line,
@@ -159,6 +351,7 @@ impl Diagnostic {
         }
     }
 
+    /// `true` if this diagnostic is error-severity.
     pub fn is_error(&self) -> bool {
         self.severity == Severity::Error
     }
@@ -288,5 +481,245 @@ mod tests {
         let d = Diagnostic::error(0, "duplicate prefab 'g'");
         let r = d.render("x.game", "");
         assert_eq!(r, "x.game: error: duplicate prefab 'g'");
+    }
+
+    // --- Color operations ---
+
+    #[test]
+    fn test_color_rgb_const() {
+        const C: Color = Color::rgb(10, 20, 30);
+        assert_eq!(
+            C,
+            Color {
+                r: 10,
+                g: 20,
+                b: 30
+            }
+        );
+    }
+
+    #[test]
+    fn test_color_lerp_endpoints_and_midpoint() {
+        let black = Color::rgb(0, 0, 0);
+        let white = Color::rgb(255, 255, 255);
+        assert_eq!(Color::lerp(black, white, 0, 1), black);
+        assert_eq!(Color::lerp(black, white, 1, 1), white);
+        assert_eq!(Color::lerp(black, white, 1, 2), Color::rgb(127, 127, 127));
+    }
+
+    #[test]
+    fn test_color_lerp_per_channel() {
+        let a = Color::rgb(0, 100, 200);
+        let b = Color::rgb(100, 100, 0);
+        // quarter of the way: r 0→25, g unchanged, b 200→150
+        assert_eq!(Color::lerp(a, b, 1, 4), Color::rgb(25, 100, 150));
+    }
+
+    #[test]
+    fn test_color_lerp_zero_den_returns_a() {
+        let a = Color::rgb(1, 2, 3);
+        assert_eq!(Color::lerp(a, Color::rgb(9, 9, 9), 1, 0), a);
+    }
+
+    #[test]
+    fn test_color_lerp_extrapolation_clamps() {
+        // num > den extrapolates past b but channels clamp to 0..=255.
+        let a = Color::rgb(200, 0, 0);
+        let b = Color::rgb(255, 0, 0);
+        assert_eq!(Color::lerp(a, b, 4, 1).r, 255);
+    }
+
+    #[test]
+    fn test_color_grayscale_extremes_and_luma() {
+        assert_eq!(Color::rgb(0, 0, 0).grayscale(), Color::rgb(0, 0, 0));
+        assert_eq!(
+            Color::rgb(255, 255, 255).grayscale(),
+            Color::rgb(255, 255, 255)
+        );
+        // Pure green carries the most luma weight (150/256 ≈ 0.586).
+        let g = Color::rgb(0, 255, 0).grayscale();
+        assert_eq!(g.r, g.g);
+        assert_eq!(g.g, g.b);
+        assert!((149..=150).contains(&g.r), "green luma ≈149, got {}", g.r);
+    }
+
+    #[test]
+    fn test_color_scale_dim_brighten_clamp() {
+        let c = Color::rgb(100, 200, 50);
+        assert_eq!(c.scale(1, 2), Color::rgb(50, 100, 25)); // half
+        assert_eq!(c.scale(4, 1).g, 255); // brighten clamps
+        assert_eq!(c.scale(1, 0), c); // zero den is a no-op
+    }
+
+    #[test]
+    fn test_color_from_hsv_primaries() {
+        assert_eq!(Color::from_hsv(0, 255, 255), Color::rgb(255, 0, 0)); // red
+        assert_eq!(Color::from_hsv(120, 255, 255), Color::rgb(0, 255, 0)); // green
+        assert_eq!(Color::from_hsv(240, 255, 255), Color::rgb(0, 0, 255)); // blue
+    }
+
+    #[test]
+    fn test_color_from_hsv_zero_sat_is_gray() {
+        assert_eq!(Color::from_hsv(200, 0, 137), Color::rgb(137, 137, 137));
+        assert_eq!(Color::from_hsv(0, 0, 0), Color::rgb(0, 0, 0));
+    }
+
+    #[test]
+    fn test_color_from_hsv_hue_wraps() {
+        assert_eq!(Color::from_hsv(360, 255, 255), Color::from_hsv(0, 255, 255));
+        assert_eq!(
+            Color::from_hsv(480, 255, 255),
+            Color::from_hsv(120, 255, 255)
+        );
+    }
+
+    #[test]
+    fn test_color_invert_black_white() {
+        assert_eq!(Color::rgb(0, 0, 0).invert(), Color::rgb(255, 255, 255));
+        assert_eq!(Color::rgb(255, 255, 255).invert(), Color::rgb(0, 0, 0));
+    }
+
+    #[test]
+    fn test_color_invert_double_is_identity() {
+        let c = Color::rgb(100, 150, 200);
+        assert_eq!(c.invert().invert(), c);
+    }
+
+    #[test]
+    fn test_color_luminance_matches_grayscale() {
+        let c = Color::rgb(77, 200, 30);
+        assert_eq!(c.luminance(), c.grayscale().r);
+    }
+
+    #[test]
+    fn test_color_luminance_extremes() {
+        assert_eq!(Color::rgb(0, 0, 0).luminance(), 0);
+        assert_eq!(Color::rgb(255, 255, 255).luminance(), 255);
+    }
+
+    #[test]
+    fn test_color_from_hsv_value_scales_brightness() {
+        // Half value on pure red → darker red, no other channel introduced.
+        let dim = Color::from_hsv(0, 255, 128);
+        assert_eq!(dim, Color::rgb(128, 0, 0));
+    }
+
+    #[test]
+    fn test_alpha_blend_zero_alpha_yields_fg() {
+        let fg = Color::rgb(200, 100, 50);
+        let bg = Color::rgb(10, 20, 30);
+        assert_eq!(Color::alpha_blend(fg, bg, 0), fg);
+    }
+
+    #[test]
+    fn test_alpha_blend_full_alpha_yields_bg() {
+        let fg = Color::rgb(200, 100, 50);
+        let bg = Color::rgb(10, 20, 30);
+        assert_eq!(Color::alpha_blend(fg, bg, 255), bg);
+    }
+
+    #[test]
+    fn test_alpha_blend_midpoint_channels() {
+        let fg = Color::rgb(0, 0, 0);
+        let bg = Color::rgb(255, 200, 100);
+        let mid = Color::alpha_blend(fg, bg, 128);
+        // (0*127 + 255*128)/255 = 128, (0*127 + 200*128)/255 = 100, (0*127 + 100*128)/255 = 50
+        assert_eq!(mid.r, 128);
+        assert_eq!(mid.g, 100);
+        assert_eq!(mid.b, 50);
+    }
+
+    // --- Color::from_hex ---
+
+    #[test]
+    fn test_from_hex_valid_roundtrip() {
+        let c = Color::rgb(0xDE, 0xAD, 0xBE);
+        assert_eq!(Color::from_hex(&c.to_hex()).unwrap(), c);
+    }
+
+    #[test]
+    fn test_from_hex_invalid_returns_err() {
+        assert!(Color::from_hex("not-a-color").is_err());
+        assert!(Color::from_hex("#GGGGGG").is_err());
+    }
+
+    #[test]
+    fn test_from_hex_matches_parse_color() {
+        let s = "#A1B2C3";
+        assert_eq!(Color::from_hex(s).unwrap(), parse_color(s).unwrap());
+    }
+
+    // --- Content::tile ---
+
+    #[test]
+    fn test_tile_returns_none_on_empty_content() {
+        let c = Content::default();
+        assert!(c.tile("floor").is_none());
+    }
+
+    #[test]
+    fn test_tile_returns_matching_tile() {
+        let mut c = Content::default();
+        c.tiles.push(Tile {
+            name: "grass".to_string(),
+            glyph: '.',
+            color: Color::rgb(0, 200, 0),
+        });
+        let t = c.tile("grass").unwrap();
+        assert_eq!(t.glyph, '.');
+    }
+
+    #[test]
+    fn test_tile_returns_none_for_wrong_name() {
+        let mut c = Content::default();
+        c.tiles.push(Tile {
+            name: "wall".to_string(),
+            glyph: '#',
+            color: Color::rgb(128, 128, 128),
+        });
+        assert!(c.tile("floor").is_none());
+        assert!(c.tile("wall").is_some());
+    }
+
+    #[test]
+    fn test_max_channel_picks_highest() {
+        assert_eq!(Color::rgb(200, 100, 50).max_channel(), 200);
+        assert_eq!(Color::rgb(10, 250, 30).max_channel(), 250);
+        assert_eq!(Color::rgb(5, 5, 255).max_channel(), 255);
+    }
+
+    #[test]
+    fn test_max_channel_all_equal() {
+        assert_eq!(Color::rgb(128, 128, 128).max_channel(), 128);
+    }
+
+    #[test]
+    fn test_max_channel_black_is_zero() {
+        assert_eq!(Color::rgb(0, 0, 0).max_channel(), 0);
+    }
+
+    // --- min_channel ---
+
+    #[test]
+    fn test_min_channel_picks_lowest() {
+        assert_eq!(Color::rgb(200, 100, 50).min_channel(), 50);
+        assert_eq!(Color::rgb(10, 250, 30).min_channel(), 10);
+        assert_eq!(Color::rgb(5, 5, 255).min_channel(), 5);
+    }
+
+    #[test]
+    fn test_min_channel_all_equal() {
+        assert_eq!(Color::rgb(128, 128, 128).min_channel(), 128);
+    }
+
+    #[test]
+    fn test_min_channel_white_is_255() {
+        assert_eq!(Color::rgb(255, 255, 255).min_channel(), 255);
+    }
+
+    #[test]
+    fn test_min_channel_le_max_channel() {
+        let c = Color::rgb(80, 160, 40);
+        assert!(c.min_channel() <= c.max_channel());
     }
 }

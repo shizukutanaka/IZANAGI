@@ -1,9 +1,0 @@
-#!/bin/sh
-# Pre-push: full test suite (CLAUDE.md §6.3).
-# Enable with:  git config core.hooksPath .githooks
-set -e
-
-echo "pre-push: cargo test"
-cargo test --all-targets
-
-echo "pre-push: ok"

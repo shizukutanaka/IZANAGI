@@ -8,32 +8,152 @@
 use crate::content::{Color, Content};
 use crate::entity::{Entity, EntityAllocator};
 use crate::sparse_set::SparseSet;
+use crate::world_hash::{DetHash, Fnv1a};
+
+/// Numeric stats loaded from the prefab template onto a spawned entity.
+///
+/// Entries are stored in insertion (BTreeMap alphabetical) order so the
+/// component hashes deterministically. Use `get` for O(n) key lookup or
+/// iterate with `iter` for canonical enumeration.
+#[derive(Clone, Debug, Default)]
+pub struct Stats {
+    entries: Vec<(String, i32)>,
+}
+
+impl Stats {
+    /// Create an empty stats component.
+    pub fn new() -> Self {
+        Stats {
+            entries: Vec::new(),
+        }
+    }
+
+    /// Look up `key`, returning `Some(value)` if present.
+    pub fn get(&self, key: &str) -> Option<i32> {
+        self.entries.iter().find(|(k, _)| k == key).map(|(_, v)| *v)
+    }
+
+    /// Iterate `(key, value)` pairs in insertion order.
+    pub fn iter(&self) -> impl Iterator<Item = (&str, i32)> + '_ {
+        self.entries.iter().map(|(k, v)| (k.as_str(), *v))
+    }
+
+    /// Number of stat entries.
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    /// `true` if no stats are set.
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    /// Set `key` to `value`. Updates an existing entry in-place or appends a
+    /// new one. Use this to apply runtime buffs or overrides without removing
+    /// and re-inserting the whole `Stats` component.
+    pub fn set(&mut self, key: &str, value: i32) {
+        if let Some(e) = self.entries.iter_mut().find(|(k, _)| k == key) {
+            e.1 = value;
+        } else {
+            self.entries.push((key.to_string(), value));
+        }
+    }
+}
+
+impl DetHash for Stats {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.entries.len() as u32);
+        for (k, v) in &self.entries {
+            k.as_str().det_hash(hasher); // length-prefixed via DetHash for str
+            hasher.write_i32(*v);
+        }
+    }
+}
 
 /// Grid position of an instantiated entity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Position {
+    /// Column (0-based).
     pub x: u32,
+    /// Row (0-based).
     pub y: u32,
 }
 
 /// Terminal appearance of an instantiated entity.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Render {
+    /// Map-cell glyph.
     pub glyph: char,
+    /// Display color.
     pub color: Color,
+}
+
+impl crate::world_hash::DetHash for Position {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        hasher.write_u32(self.x);
+        hasher.write_u32(self.y);
+    }
+}
+
+impl crate::world_hash::DetHash for Render {
+    #[inline]
+    fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        crate::world_hash::DetHash::det_hash(&self.glyph, hasher);
+        crate::world_hash::DetHash::det_hash(&self.color, hasher);
+    }
 }
 
 /// A populated world for one level.
 pub struct LoadedLevel {
+    /// The entity allocator that produced every handle in [`Self::entities`].
     pub alloc: EntityAllocator,
+    /// Grid position per entity.
     pub positions: SparseSet<Position>,
+    /// Terminal appearance per entity.
     pub renders: SparseSet<Render>,
+    /// Numeric stats from the prefab template. Only populated for entities
+    /// whose prefab defines at least one stat; absent entities have no entry.
+    pub stats: SparseSet<Stats>,
+    /// Every entity spawned for this level, in spawn order.
     pub entities: Vec<Entity>,
 }
 
 impl LoadedLevel {
+    /// Number of entities spawned for this level.
     pub fn entity_count(&self) -> usize {
         self.entities.len()
+    }
+
+    /// Return the first entity at grid position `(x, y)`, or `None` if no
+    /// entity occupies that cell.
+    ///
+    /// Iterates the `positions` sparse-set in insertion order; returns the
+    /// first match (there is normally at most one entity per cell, but the
+    /// method makes no uniqueness assumption).
+    pub fn find_entity_at(&self, x: u32, y: u32) -> Option<Entity> {
+        self.entities
+            .iter()
+            .copied()
+            .find(|&e| self.positions.get(e) == Some(&Position { x, y }))
+    }
+
+    /// All entities whose position lies within `[x, x+w) × [y, y+h)`,
+    /// in insertion order. Entities without a position component are skipped.
+    /// Use for "all actors in this room" sweeps and region queries without
+    /// building a separate spatial index.
+    pub fn entities_in_rect(&self, x: u32, y: u32, w: u32, h: u32) -> Vec<Entity> {
+        self.entities
+            .iter()
+            .copied()
+            .filter(|&e| {
+                if let Some(pos) = self.positions.get(e) {
+                    pos.x >= x && pos.x < x + w && pos.y >= y && pos.y < y + h
+                } else {
+                    false
+                }
+            })
+            .collect()
     }
 }
 
@@ -49,6 +169,7 @@ pub fn load_level(content: &Content, level_name: &str) -> Result<LoadedLevel, St
         alloc: EntityAllocator::new(),
         positions: SparseSet::new(),
         renders: SparseSet::new(),
+        stats: SparseSet::new(),
         entities: Vec::new(),
     };
 
@@ -71,6 +192,11 @@ pub fn load_level(content: &Content, level_name: &str) -> Result<LoadedLevel, St
                 color: prefab.color,
             },
         );
+        if !prefab.stats.is_empty() {
+            // BTreeMap iterates in alphabetical key order — deterministic.
+            let entries = prefab.stats.iter().map(|(k, v)| (k.clone(), *v)).collect();
+            world.stats.insert(e, Stats { entries });
+        }
         world.entities.push(e);
     }
 
@@ -123,5 +249,133 @@ level cave 5x3
     fn test_load_missing_level_errs() {
         let (c, _) = parse("prefab g\n  glyph g\n");
         assert!(load_level(&c, "nope").is_err());
+    }
+
+    #[test]
+    fn test_stats_loaded_from_prefab() {
+        let src = "\
+prefab goblin
+  glyph g
+  color #f85149
+  stat hp 10
+  stat atk 3
+level cave 3x1
+  row ###
+  spawn goblin 1 0
+";
+        let (c, d) = parse(src);
+        assert!(d.iter().all(|x| !x.is_error()), "parse diags: {d:?}");
+        let w = load_level(&c, "cave").unwrap();
+        let e = w.entities[0];
+        let s = w.stats.get(e).expect("goblin should have Stats");
+        assert_eq!(s.get("hp"), Some(10));
+        assert_eq!(s.get("atk"), Some(3));
+        assert_eq!(s.get("missing"), None);
+        assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_stats_absent_for_no_stat_prefab() {
+        let w = loaded();
+        // goblin and rat have no stats in the fixture, so stats sparse set is empty.
+        for &e in &w.entities {
+            assert!(w.stats.get(e).is_none());
+        }
+    }
+
+    #[test]
+    fn test_stats_iter_alphabetical_order() {
+        let src = "\
+prefab orc
+  glyph o
+  stat zap 1
+  stat atk 5
+  stat hp 20
+level room 1x1
+  row #
+  spawn orc 0 0
+";
+        let (c, _) = parse(src);
+        let w = load_level(&c, "room").unwrap();
+        let e = w.entities[0];
+        let s = w.stats.get(e).unwrap();
+        let keys: Vec<&str> = s.iter().map(|(k, _)| k).collect();
+        // BTreeMap → alphabetical: atk, hp, zap
+        assert_eq!(keys, vec!["atk", "hp", "zap"]);
+    }
+
+    #[test]
+    fn test_stats_set_inserts_new_key() {
+        let mut s = Stats::new();
+        s.set("hp", 10);
+        assert_eq!(s.get("hp"), Some(10));
+        assert_eq!(s.len(), 1);
+    }
+
+    #[test]
+    fn test_stats_set_updates_existing_key() {
+        let mut s = Stats::new();
+        s.set("hp", 10);
+        s.set("hp", 25);
+        assert_eq!(s.get("hp"), Some(25));
+        assert_eq!(s.len(), 1, "no duplicate entry created");
+    }
+
+    #[test]
+    fn test_stats_set_preserves_other_keys() {
+        let mut s = Stats::new();
+        s.set("hp", 10);
+        s.set("atk", 3);
+        s.set("hp", 20);
+        assert_eq!(s.get("hp"), Some(20));
+        assert_eq!(s.get("atk"), Some(3));
+        assert_eq!(s.len(), 2);
+    }
+
+    #[test]
+    fn test_find_entity_at_returns_entity() {
+        let w = loaded();
+        // entities[0] = goblin at (3, 1); entities[1] = rat at (1, 1)
+        let g = w.find_entity_at(3, 1);
+        assert_eq!(g, Some(w.entities[0]));
+    }
+
+    #[test]
+    fn test_find_entity_at_absent_returns_none() {
+        let w = loaded();
+        assert_eq!(w.find_entity_at(0, 0), None);
+        assert_eq!(w.find_entity_at(2, 2), None);
+    }
+
+    #[test]
+    fn test_find_entity_at_second_entity() {
+        let w = loaded();
+        let r = w.find_entity_at(1, 1);
+        assert_eq!(r, Some(w.entities[1]));
+    }
+
+    // --- entities_in_rect ---
+
+    #[test]
+    fn test_entities_in_rect_finds_all_in_region() {
+        let w = loaded();
+        // goblin at (3,1), rat at (1,1) → rect [0,4)×[0,2) covers both
+        let found = w.entities_in_rect(0, 0, 4, 2);
+        assert_eq!(found.len(), 2, "both entities should be in the rect");
+    }
+
+    #[test]
+    fn test_entities_in_rect_empty_region_returns_none() {
+        let w = loaded();
+        let found = w.entities_in_rect(5, 5, 3, 3);
+        assert!(found.is_empty());
+    }
+
+    #[test]
+    fn test_entities_in_rect_partial_overlap() {
+        let w = loaded();
+        // rect [0,3)×[0,2) includes rat at (1,1) but not goblin at (3,1)
+        let found = w.entities_in_rect(0, 0, 3, 2);
+        assert_eq!(found.len(), 1, "only the rat at (1,1) should match");
     }
 }

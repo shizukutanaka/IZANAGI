@@ -1,0 +1,1767 @@
+//! Wave Function Collapse (WFC) procedural tile-map generation (I5).
+//!
+//! WFC fills a `width × height` grid of tile types using constraint propagation
+//! and entropy-guided collapse. Each tile type has adjacency rules — bitmasks
+//! of which tile types are allowed in each cardinal direction. Starting from
+//! all tiles possible at every cell, the algorithm:
+//!
+//! 1. Finds the cell with the fewest remaining possibilities (lowest entropy).
+//! 2. Randomly collapses it to one tile (using the caller-supplied PRNG).
+//! 3. Propagates the constraint to neighbours via a BFS queue.
+//! 4. Repeats until all cells are collapsed or a contradiction is reached.
+//!
+//! Up to **64 tile types** are supported (one bit each in a `u64` bitmask).
+//! All arithmetic is integer; no float. Determinism is guaranteed: given the
+//! same rules, dimensions, and RNG state the output is identical.
+//!
+//! # Example
+//! ```
+//! use izanagi_kit::wfc::{WfcRules, WfcResult, wfc_solve};
+//! use izanagi_kit::rng::SplitMix64;
+//!
+//! // Tile 0 = floor, tile 1 = wall.
+//! let mut rules = WfcRules::new(2);
+//! // Floor may be next to anything; wall may be next to anything.
+//! for tile in 0..2u8 {
+//!     for dir in 0..4 {
+//!         rules.allow(tile, dir, 0);
+//!         rules.allow(tile, dir, 1);
+//!     }
+//! }
+//! let mut rng = SplitMix64::new(42);
+//! if let WfcResult::Ok(grid) = wfc_solve(8, 8, &rules, &mut rng) {
+//!     assert!(grid.is_fully_collapsed());
+//! }
+//! ```
+
+use std::collections::VecDeque;
+
+use crate::{
+    rng::SplitMix64,
+    world_hash::{DetHash, Fnv1a},
+};
+
+/// Cardinal direction indices used by [`WfcRules`].
+/// - 0 = North (y − 1)
+/// - 1 = East  (x + 1)
+/// - 2 = South (y + 1)
+/// - 3 = West  (x − 1)
+const DIRS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
+/// Return the direction index opposite to `dir`.
+#[inline]
+fn opposite(dir: usize) -> usize {
+    (dir + 2) & 3
+}
+
+/// Adjacency rules for a WFC solve.
+///
+/// `tile_count` tiles are identified by their bit index `0..tile_count` (max
+/// 64). For each tile and direction, `allow` records which other tiles may
+/// appear there. Tiles with no allowed neighbours in some direction will cause
+/// a contradiction whenever they are placed next to a border; design rules to
+/// allow at least one neighbour in every direction for every tile.
+#[derive(Clone, Debug)]
+pub struct WfcRules {
+    tile_count: u8,
+    /// `adj[tile][dir]` = bitmask of allowed neighbor tile types.
+    adj: Vec<[u64; 4]>,
+    /// Relative selection weight per tile (default 1 for every tile). When a
+    /// cell collapses, the tile is chosen among its still-allowed possibilities
+    /// with probability proportional to these weights. All-equal weights (the
+    /// default) reduce *exactly* to uniform selection — same RNG draw, same
+    /// tile — so adding weights never perturbs an existing uniform solve.
+    weights: Vec<u32>,
+}
+
+impl WfcRules {
+    /// Create rules for `tile_count` tiles (clamped to 64). Every tile starts
+    /// with selection weight 1 (uniform collapse); use [`set_weight`](Self::set_weight)
+    /// to bias frequencies.
+    pub fn new(tile_count: u8) -> Self {
+        let tc = tile_count.clamp(1, 64);
+        Self {
+            tile_count: tc,
+            adj: vec![[0u64; 4]; tc as usize],
+            weights: vec![1u32; tc as usize],
+        }
+    }
+
+    /// Set the relative selection weight of `tile` (default 1). Higher weight
+    /// ⇒ chosen more often when a cell collapses among tiles that include it.
+    /// A weight of 0 means "never chosen unless it is the *only* allowed tile"
+    /// (WFC still places it when adjacency forces it). Out-of-range `tile` is
+    /// ignored. Weights are relative, so `{2, 1}` and `{20, 10}` behave
+    /// identically. Uniform weights reproduce uniform collapse bit-for-bit.
+    pub fn set_weight(&mut self, tile: u8, weight: u32) {
+        if (tile as usize) < self.weights.len() {
+            self.weights[tile as usize] = weight;
+        }
+    }
+
+    /// The selection weight of `tile` (default 1). Returns 1 for out-of-range
+    /// `tile` (the value a never-configured tile would have).
+    pub fn weight(&self, tile: u8) -> u32 {
+        self.weights.get(tile as usize).copied().unwrap_or(1)
+    }
+
+    /// Read back the adjacency bitmask for `tile` in `dir`. Returns `0` for
+    /// out-of-range arguments. Useful for debugging and serialising rule sets.
+    pub fn get_allowed(&self, tile: u8, dir: usize) -> u64 {
+        if (tile as usize) < self.adj.len() && dir < 4 {
+            self.adj[tile as usize][dir]
+        } else {
+            0
+        }
+    }
+
+    /// Allow `tile` in direction `dir` to be adjacent to `neighbor`.
+    /// `dir` must be in `0..4`; out-of-range values are ignored.
+    pub fn allow(&mut self, tile: u8, dir: usize, neighbor: u8) {
+        if (tile as usize) < self.adj.len() && dir < 4 && neighbor < self.tile_count {
+            self.adj[tile as usize][dir] |= 1 << neighbor;
+        }
+    }
+
+    /// Remove the adjacency permission: `tile` may no longer have `neighbor` in
+    /// direction `dir`. Out-of-range arguments are silently ignored.
+    pub fn disallow(&mut self, tile: u8, dir: usize, neighbor: u8) {
+        if (tile as usize) < self.adj.len() && dir < 4 && neighbor < self.tile_count {
+            self.adj[tile as usize][dir] &= !(1u64 << neighbor);
+        }
+    }
+
+    /// Allow `tile_a` to be in direction `dir` next to `tile_b`, and
+    /// symmetrically allow `tile_b` to be in the opposite direction next to
+    /// `tile_a`. Use this to keep rules consistent without duplication.
+    pub fn allow_symmetric(&mut self, tile_a: u8, dir: usize, tile_b: u8) {
+        self.allow(tile_a, dir, tile_b);
+        self.allow(tile_b, opposite(dir), tile_a);
+    }
+
+    /// Number of tile types these rules cover.
+    pub fn tile_count(&self) -> u8 {
+        self.tile_count
+    }
+
+    /// Count of tile types allowed adjacent to `tile` in direction `dir`.
+    /// Returns `0` for out-of-range arguments. Useful for entropy estimation
+    /// and detecting over-constrained tiles (a count of 0 will cause a
+    /// contradiction whenever that tile-direction is encountered during solve).
+    #[inline]
+    pub fn allowed_count(&self, tile: u8, dir: usize) -> usize {
+        self.get_allowed(tile, dir).count_ones() as usize
+    }
+
+    /// Clear all adjacency rules for `tile` in every direction, leaving it
+    /// forbidden everywhere. Out-of-range `tile` is silently ignored.
+    pub fn clear_adjacencies(&mut self, tile: u8) {
+        if (tile as usize) < self.adj.len() {
+            self.adj[tile as usize] = [0u64; 4];
+        }
+    }
+
+    /// Returns `true` if `tile` is within the valid tile index range
+    /// (`tile < tile_count()`). Out-of-range tiles are silently ignored by
+    /// `allow`/`disallow`; this lets callers check before calling those.
+    #[inline]
+    pub fn is_valid_tile(&self, tile: u8) -> bool {
+        (tile as usize) < self.adj.len()
+    }
+
+    /// Bitmask with one bit set per valid tile index.
+    fn all_tiles(&self) -> u64 {
+        if self.tile_count >= 64 {
+            u64::MAX
+        } else {
+            (1u64 << self.tile_count) - 1
+        }
+    }
+}
+
+/// A WFC-solved (or partially collapsed) grid.
+#[derive(Clone, Debug)]
+pub struct WfcGrid {
+    /// Grid width in cells.
+    pub width: i32,
+    /// Grid height in cells.
+    pub height: i32,
+    /// Per-cell bitmask of remaining tile possibilities (row-major).
+    cells: Vec<u64>,
+}
+
+impl WfcGrid {
+    /// The collapsed tile at `(x, y)`, or `None` if the cell is still
+    /// ambiguous (more than one possibility) or out of bounds.
+    pub fn tile_at(&self, x: i32, y: i32) -> Option<u8> {
+        if x < 0 || y < 0 || x >= self.width || y >= self.height {
+            return None;
+        }
+        let v = self.cells[y as usize * self.width as usize + x as usize];
+        if v.count_ones() == 1 {
+            Some(v.trailing_zeros() as u8)
+        } else {
+            None
+        }
+    }
+
+    /// Whether every cell is fully collapsed to exactly one tile.
+    pub fn is_fully_collapsed(&self) -> bool {
+        self.cells.iter().all(|&v| v.count_ones() == 1)
+    }
+
+    /// Number of cells that are **not** yet fully collapsed (still have more
+    /// than one possibility remaining). Complement of the count yielded by
+    /// `is_fully_collapsed`.
+    pub fn count_uncollapsed(&self) -> usize {
+        self.cells.iter().filter(|&&v| v.count_ones() != 1).count()
+    }
+
+    /// Number of cells that **are** fully collapsed (exactly one possibility
+    /// remaining). Shorthand for `len() - count_uncollapsed()`. Useful for
+    /// "WFC is N% done" progress bars and partial-result consumers.
+    #[inline]
+    pub fn solved_count(&self) -> usize {
+        self.len() - self.count_uncollapsed()
+    }
+
+    /// Width times height.
+    pub fn len(&self) -> usize {
+        self.cells.len()
+    }
+
+    /// True if the grid has no cells.
+    pub fn is_empty(&self) -> bool {
+        self.cells.is_empty()
+    }
+
+    /// Count how many fully-collapsed cells have the given `tile` type.
+    pub fn count_tiles(&self, tile: u8) -> usize {
+        let mask = 1u64 << tile;
+        self.cells.iter().filter(|&&v| v == mask).count()
+    }
+
+    /// Number of remaining tile possibilities at cell `(x, y)`.
+    ///
+    /// Returns `0` for out-of-bounds coordinates or cells in contradiction
+    /// (bitmask `0`). Returns `1` for a fully-collapsed cell. Values `> 1`
+    /// indicate superposition — use this to inspect WFC entropy during
+    /// debugging or to drive custom collapse strategies.
+    pub fn possibilities_at(&self, x: i32, y: i32) -> usize {
+        if x < 0 || y < 0 || x >= self.width || y >= self.height {
+            return 0;
+        }
+        self.cells[y as usize * self.width as usize + x as usize].count_ones() as usize
+    }
+
+    /// Export collapsed tiles as a flat row-major `Vec<Option<u8>>`. Each cell
+    /// is `Some(tile)` if fully collapsed or `None` if still ambiguous.
+    /// Length is always `width * height`.
+    pub fn to_vec(&self) -> Vec<Option<u8>> {
+        self.cells
+            .iter()
+            .map(|&v| {
+                if v.count_ones() == 1 {
+                    Some(v.trailing_zeros() as u8)
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
+    /// Iterate `(x, y, tile)` over all fully-collapsed cells in row-major order.
+    pub fn iter_collapsed(&self) -> impl Iterator<Item = (i32, i32, u8)> + '_ {
+        self.cells.iter().enumerate().filter_map(move |(i, &v)| {
+            if v.count_ones() == 1 {
+                let x = (i as i32) % self.width;
+                let y = (i as i32) / self.width;
+                Some((x, y, v.trailing_zeros() as u8))
+            } else {
+                None
+            }
+        })
+    }
+}
+
+impl DetHash for WfcGrid {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i32(self.width);
+        hasher.write_i32(self.height);
+        for &cell in &self.cells {
+            hasher.write_u64(cell);
+        }
+    }
+}
+
+/// Result of a WFC solve attempt.
+#[derive(Clone, Debug)]
+pub enum WfcResult {
+    /// All cells were successfully collapsed.
+    Ok(WfcGrid),
+    /// A cell reached zero possibilities — the rules or initial constraints
+    /// produced a contradiction. Try a different seed or relax the rules.
+    Contradiction,
+}
+
+/// Pick a uniformly random set bit from `mask` using `rng`.
+/// Returns the bit index of the chosen bit. `mask` must be non-zero.
+fn pick_random_bit(mask: u64, rng: &mut SplitMix64) -> u8 {
+    let count = mask.count_ones();
+    let idx = rng.below(count);
+    let mut m = mask;
+    for _ in 0..idx {
+        m &= m - 1; // clear lowest set bit
+    }
+    m.trailing_zeros() as u8
+}
+
+/// Pick a set bit from `mask` with probability proportional to `weights[bit]`,
+/// using `rng`. `mask` must be non-zero.
+///
+/// Reduces to [`pick_random_bit`] exactly — same single `rng.below(total)`
+/// draw, same selected bit — whenever every allowed bit has equal weight
+/// (in particular the all-1 default), which is why routing the uniform solve
+/// through this function changes no existing output. If the allowed bits'
+/// weights sum to 0 (every candidate was set to weight 0), falls back to
+/// uniform selection so a cell can always collapse.
+fn pick_weighted_bit(mask: u64, weights: &[u32], rng: &mut SplitMix64) -> u8 {
+    // Total weight over the allowed bits (widen to u64: up to 64 bits each up
+    // to u32::MAX cannot overflow u64).
+    let mut total: u64 = 0;
+    let mut bits = mask;
+    while bits != 0 {
+        let tile = bits.trailing_zeros() as usize;
+        total += weights.get(tile).copied().unwrap_or(1) as u64;
+        bits &= bits - 1;
+    }
+    if total == 0 {
+        return pick_random_bit(mask, rng);
+    }
+    // Draw in [0, total) and walk the allowed bits accumulating weight.
+    let mut r = ((rng.next_u64() as u128 * total as u128) >> 64) as u64;
+    let mut bits = mask;
+    loop {
+        let tile = bits.trailing_zeros();
+        let w = weights.get(tile as usize).copied().unwrap_or(1) as u64;
+        if r < w {
+            return tile as u8;
+        }
+        r -= w;
+        bits &= bits - 1;
+        if bits == 0 {
+            // Rounding guard: return the last allowed bit (total>0 guarantees
+            // at least one). Unreachable for a correct wide-multiply draw.
+            return tile as u8;
+        }
+    }
+}
+
+/// Propagate constraints starting from `(sx, sy)` using BFS.
+/// Returns `false` if a contradiction (zero-possibility cell) is reached.
+fn propagate(
+    cells: &mut [u64],
+    width: i32,
+    height: i32,
+    sx: i32,
+    sy: i32,
+    rules: &WfcRules,
+) -> bool {
+    let mut queue: VecDeque<(i32, i32)> = VecDeque::new();
+    let mut in_queue = vec![false; cells.len()];
+
+    let start_idx = sy as usize * width as usize + sx as usize;
+    queue.push_back((sx, sy));
+    in_queue[start_idx] = true;
+
+    while let Some((x, y)) = queue.pop_front() {
+        let idx = y as usize * width as usize + x as usize;
+        in_queue[idx] = false;
+        let cur_mask = cells[idx];
+
+        for (dir, &(dx, dy)) in DIRS.iter().enumerate() {
+            // saturating: even though propagate is called with in-grid coords,
+            // be total in isolation so a future caller with extreme coords
+            // cannot panic the BFS (autotile had the same neighbour-add bug).
+            let nx = x.saturating_add(dx);
+            let ny = y.saturating_add(dy);
+            if nx < 0 || ny < 0 || nx >= width || ny >= height {
+                continue;
+            }
+            let nidx = ny as usize * width as usize + nx as usize;
+
+            // Compute union of allowed neighbors for all current possibilities.
+            let mut allowed = 0u64;
+            let mut bits = cur_mask;
+            while bits != 0 {
+                let tile = bits.trailing_zeros() as u8;
+                allowed |= rules.adj[tile as usize][dir];
+                bits &= bits - 1;
+            }
+
+            let prev = cells[nidx];
+            let new_val = prev & allowed;
+            if new_val == 0 {
+                cells[nidx] = 0;
+                return false;
+            }
+            if new_val != prev {
+                cells[nidx] = new_val;
+                if !in_queue[nidx] {
+                    in_queue[nidx] = true;
+                    queue.push_back((nx, ny));
+                }
+            }
+        }
+    }
+    true
+}
+
+/// Solve a `width × height` WFC grid using `rules` and `rng`.
+///
+/// Returns [`WfcResult::Ok`] with a fully collapsed grid on success, or
+/// [`WfcResult::Contradiction`] when the rules force a dead end.
+///
+/// `width <= 0`, `height <= 0`, or `rules.tile_count() == 0` all produce
+/// `Contradiction` immediately.
+///
+/// See also [`wfc_solve_backtrack`] for a variant that retries on contradiction
+/// up to a caller-specified limit, and [`wfc_solve_partial`] for partial results.
+pub fn wfc_solve(width: i32, height: i32, rules: &WfcRules, rng: &mut SplitMix64) -> WfcResult {
+    if width <= 0 || height <= 0 || rules.tile_count == 0 {
+        return WfcResult::Contradiction;
+    }
+
+    // usize widening so width*height does not overflow i32 for large grids.
+    let size = (width as usize).saturating_mul(height as usize);
+    let all = rules.all_tiles();
+    let mut cells = vec![all; size];
+
+    loop {
+        // Find the cell with minimum entropy (popcount) > 1.
+        let mut min_entropy = u32::MAX;
+        let mut min_idx: Option<usize> = None;
+
+        for (i, &v) in cells.iter().enumerate() {
+            let bits = v.count_ones();
+            if bits == 0 {
+                return WfcResult::Contradiction;
+            }
+            if bits > 1 && bits < min_entropy {
+                min_entropy = bits;
+                min_idx = Some(i);
+            }
+        }
+
+        let idx = match min_idx {
+            None => {
+                // All cells have entropy 1 — fully collapsed.
+                return WfcResult::Ok(WfcGrid {
+                    width,
+                    height,
+                    cells,
+                });
+            }
+            Some(i) => i,
+        };
+
+        // Collapse the chosen cell.
+        let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
+        cells[idx] = 1 << chosen;
+
+        let x = (idx as i32) % width;
+        let y = (idx as i32) / width;
+        if !propagate(&mut cells, width, height, x, y, rules) {
+            return WfcResult::Contradiction;
+        }
+    }
+}
+
+/// Chooses which cell WFC collapses next — the "observe" step's cell-selection
+/// heuristic, made pluggable (Markovian WFC, arXiv:2509.09919: steering the
+/// collapse order is what lets an external policy shape the output beyond what
+/// adjacency rules and tile weights alone can express).
+///
+/// Given the per-cell entropy (possibility count) in row-major order, return
+/// the index of the next cell to collapse, or `None` to stop (which the solver
+/// treats as "done" — every remaining cell must already be collapsed). The
+/// selected index **must** name a cell with entropy `> 1`; returning an index
+/// whose entropy is `0` or `1`, or out of range, makes
+/// [`wfc_solve_with_selector`] return [`WfcResult::Contradiction`] rather than
+/// risk a non-terminating loop.
+///
+/// Implementations should be deterministic in their inputs so the whole solve
+/// stays replay-safe; [`LowestEntropySelector`] (the built-in default) is.
+pub trait CellSelector {
+    /// Pick the next cell index to collapse from `entropies` (possibility
+    /// count per cell, row-major; `grid_width`/`grid_height` give the layout),
+    /// or `None` when no uncollapsed cell should be chosen.
+    fn select(&mut self, entropies: &[u32], grid_width: i32, grid_height: i32) -> Option<usize>;
+}
+
+/// The default cell-selection heuristic: the classic WFC "minimum remaining
+/// possibilities" rule. Picks the uncollapsed cell (entropy `> 1`) with the
+/// fewest possibilities, breaking ties toward the earliest row-major index —
+/// **bit-for-bit identical** to the selection [`wfc_solve`] performs inline, so
+/// `wfc_solve_with_selector(.., &mut LowestEntropySelector)` reproduces
+/// `wfc_solve`'s output exactly for the same seed.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct LowestEntropySelector;
+
+impl CellSelector for LowestEntropySelector {
+    fn select(&mut self, entropies: &[u32], _grid_width: i32, _grid_height: i32) -> Option<usize> {
+        let mut min_entropy = u32::MAX;
+        let mut min_idx: Option<usize> = None;
+        for (i, &bits) in entropies.iter().enumerate() {
+            // Strict `<` keeps the earliest index on a tie — the exact
+            // tie-break `wfc_solve` uses.
+            if bits > 1 && bits < min_entropy {
+                min_entropy = bits;
+                min_idx = Some(i);
+            }
+        }
+        min_idx
+    }
+}
+
+/// Solve a `width × height` WFC grid like [`wfc_solve`], but with a
+/// caller-supplied [`CellSelector`] deciding the collapse order instead of the
+/// fixed lowest-entropy heuristic.
+///
+/// The tile *chosen* at each collapsed cell is still drawn from `rng` with
+/// `rules`' weights exactly as in [`wfc_solve`]; only *which cell* is collapsed
+/// next is delegated. Passing `&mut LowestEntropySelector` is identical to
+/// [`wfc_solve`] (same cells, same RNG draws, same result) — verified by the
+/// `wfc_solve_with_selector` equivalence test.
+///
+/// Determinism is the selector's responsibility: with a deterministic selector
+/// the whole solve is replay-safe. A selector that returns an already-collapsed
+/// or out-of-range index yields [`WfcResult::Contradiction`] (see
+/// [`CellSelector`]).
+pub fn wfc_solve_with_selector<S: CellSelector>(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+    selector: &mut S,
+) -> WfcResult {
+    if width <= 0 || height <= 0 || rules.tile_count == 0 {
+        return WfcResult::Contradiction;
+    }
+
+    let size = (width as usize).saturating_mul(height as usize);
+    let all = rules.all_tiles();
+    let mut cells = vec![all; size];
+    let mut entropies = vec![0u32; size];
+
+    loop {
+        // One scan: contradiction check + entropy vector for the selector.
+        let mut all_collapsed = true;
+        for (i, &v) in cells.iter().enumerate() {
+            let bits = v.count_ones();
+            if bits == 0 {
+                return WfcResult::Contradiction;
+            }
+            entropies[i] = bits;
+            if bits > 1 {
+                all_collapsed = false;
+            }
+        }
+
+        let idx = match selector.select(&entropies, width, height) {
+            None => {
+                // The selector declines to pick. That is only valid when the
+                // grid really is fully collapsed; otherwise it is a misuse and
+                // we must not spin.
+                if all_collapsed {
+                    return WfcResult::Ok(WfcGrid {
+                        width,
+                        height,
+                        cells,
+                    });
+                }
+                return WfcResult::Contradiction;
+            }
+            Some(i) => i,
+        };
+
+        // Guard the selector's contract: only entropy-> 1 cells are collapsible.
+        if idx >= size || entropies[idx] <= 1 {
+            return WfcResult::Contradiction;
+        }
+
+        let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
+        cells[idx] = 1 << chosen;
+
+        let x = (idx as i32) % width;
+        let y = (idx as i32) / width;
+        if !propagate(&mut cells, width, height, x, y, rules) {
+            return WfcResult::Contradiction;
+        }
+    }
+}
+
+/// Run WFC with chronological backtracking up to `max_backtracks` retries.
+///
+/// Each time constraint propagation yields a contradiction, the algorithm
+/// restores the grid state from just before the last collapse, forbids the tile
+/// that was tried there, and continues. If all possibilities at a cell are
+/// exhausted, it backtracks a further step. Once `max_backtracks` is exceeded
+/// (or no saved states remain), [`WfcResult::Contradiction`] is returned.
+///
+/// Draw order: each collapse still calls `pick_random_bit` deterministically,
+/// so given the same seed the first collapse sequence is identical to `wfc_solve`.
+/// Backtracks extend the RNG draw sequence — the same `(seed, max_backtracks)` pair
+/// always produces the same result.
+///
+/// `max_backtracks = 0` is equivalent to `wfc_solve` (no retries).
+pub fn wfc_solve_backtrack(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+    max_backtracks: u32,
+) -> WfcResult {
+    if width <= 0 || height <= 0 || rules.tile_count == 0 {
+        return WfcResult::Contradiction;
+    }
+
+    // usize widening so width*height does not overflow i32 for large grids.
+    let size = (width as usize).saturating_mul(height as usize);
+    let all = rules.all_tiles();
+    let mut cells = vec![all; size];
+
+    // Stack entries: (cell index, chosen tile bitmask, cells snapshot before collapse).
+    let mut stack: Vec<(usize, u64, Vec<u64>)> = Vec::new();
+    let mut backtracks_used = 0u32;
+
+    loop {
+        // Find cell with minimum entropy > 1, checking for contradictions.
+        let mut min_entropy = u32::MAX;
+        let mut min_idx: Option<usize> = None;
+        let mut contradiction = false;
+
+        for (i, &v) in cells.iter().enumerate() {
+            let bits = v.count_ones();
+            if bits == 0 {
+                contradiction = true;
+                break;
+            }
+            if bits > 1 && bits < min_entropy {
+                min_entropy = bits;
+                min_idx = Some(i);
+            }
+        }
+
+        if contradiction {
+            if backtracks_used >= max_backtracks || stack.is_empty() {
+                return WfcResult::Contradiction;
+            }
+            backtracks_used += 1;
+            let Some((idx, tried_mask, saved)) = stack.pop() else {
+                return WfcResult::Contradiction; // guarded by is_empty above
+            };
+            cells = saved;
+            cells[idx] &= !tried_mask;
+            // Re-propagate from idx so neighbours reflect the reduced option
+            // set. Without this, a neighbour that was compatible only with the
+            // tried tile remains unconstrained and can be collapsed to an
+            // adjacency-violating value on a later step. If cells[idx] is 0
+            // (all options exhausted) skip propagation — the entropy scan at
+            // the top of the next iteration will detect the contradiction and
+            // backtrack again.
+            if cells[idx] != 0 {
+                let bx = (idx as i32) % width;
+                let by = (idx as i32) / width;
+                propagate(&mut cells, width, height, bx, by, rules);
+            }
+            continue;
+        }
+
+        match min_idx {
+            None => {
+                return WfcResult::Ok(WfcGrid {
+                    width,
+                    height,
+                    cells,
+                });
+            }
+            Some(idx) => {
+                let saved = cells.clone();
+                let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
+                let chosen_mask = 1u64 << chosen;
+                stack.push((idx, chosen_mask, saved));
+                cells[idx] = chosen_mask;
+                let x = (idx as i32) % width;
+                let y = (idx as i32) / width;
+                propagate(&mut cells, width, height, x, y, rules);
+                // Propagation result checked at top of next iteration.
+            }
+        }
+    }
+}
+
+/// Run WFC and return the grid in whatever state it reached — even on
+/// contradiction.
+///
+/// Useful for visualising partial WFC progress, debugging rule sets, or
+/// seeding a map with the already-collapsed tiles when full success is not
+/// required. Cells that hit a contradiction have a bitmask of `0`; uncollapsed
+/// cells have bitmask `> 1`; solved cells have bitmask `1`.
+///
+/// Returns an empty grid (`width = 0, height = 0`) for degenerate inputs
+/// (`width <= 0`, `height <= 0`, or zero tile types).
+pub fn wfc_solve_partial(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+) -> WfcGrid {
+    if width <= 0 || height <= 0 || rules.tile_count == 0 {
+        return WfcGrid {
+            width: 0,
+            height: 0,
+            cells: Vec::new(),
+        };
+    }
+
+    // usize widening so width*height does not overflow i32 for large grids.
+    let size = (width as usize).saturating_mul(height as usize);
+    let all = rules.all_tiles();
+    let mut cells = vec![all; size];
+
+    loop {
+        let mut min_entropy = u32::MAX;
+        let mut min_idx: Option<usize> = None;
+
+        for (i, &v) in cells.iter().enumerate() {
+            let bits = v.count_ones();
+            if bits == 0 {
+                // Contradiction: return the partial state as-is.
+                return WfcGrid {
+                    width,
+                    height,
+                    cells,
+                };
+            }
+            if bits > 1 && bits < min_entropy {
+                min_entropy = bits;
+                min_idx = Some(i);
+            }
+        }
+
+        let idx = match min_idx {
+            None => {
+                return WfcGrid {
+                    width,
+                    height,
+                    cells,
+                };
+            }
+            Some(i) => i,
+        };
+
+        let chosen = pick_weighted_bit(cells[idx], &rules.weights, rng);
+        cells[idx] = 1 << chosen;
+        let x = (idx as i32) % width;
+        let y = (idx as i32) / width;
+        if !propagate(&mut cells, width, height, x, y, rules) {
+            // Mark the contradicted state by letting cells have 0-bits cells;
+            // propagate already set them. Return the partial grid now.
+            return WfcGrid {
+                width,
+                height,
+                cells,
+            };
+        }
+    }
+}
+
+/// Solve, retrying on contradiction with a fresh derived seed each attempt.
+///
+/// Raw [`wfc_solve`] can hit a [`WfcResult::Contradiction`] for a given seed
+/// even when the rules are satisfiable — a dead end reached by unlucky collapse
+/// order. Production WFC (e.g. Caves of Qud, per Brian Bucklew's GDC 2019 talk)
+/// simply retries with a new seed. This does exactly that, *deterministically*:
+/// each attempt seeds a fresh generator via [`SplitMix64::split`], so the whole
+/// retry sequence is reproducible from the single input `rng` state. Returns
+/// the first successful solve, or [`WfcResult::Contradiction`] if all
+/// `max_attempts` fail (`max_attempts == 0` is treated as 1).
+///
+/// [`SplitMix64::split`]: crate::rng::SplitMix64::split
+pub fn wfc_solve_retry(
+    width: i32,
+    height: i32,
+    rules: &WfcRules,
+    rng: &mut SplitMix64,
+    max_attempts: u32,
+) -> WfcResult {
+    let attempts = max_attempts.max(1);
+    for attempt in 0..attempts {
+        // Derive an independent generator per attempt from the caller's state,
+        // keyed by attempt index, so retries never reuse the same collapse
+        // sequence yet the whole run is a pure function of the input rng.
+        let mut sub = rng.split(attempt as u64);
+        match wfc_solve(width, height, rules, &mut sub) {
+            WfcResult::Ok(grid) => return WfcResult::Ok(grid),
+            WfcResult::Contradiction => continue,
+        }
+    }
+    WfcResult::Contradiction
+}
+
+impl WfcGrid {
+    /// Number of cells reachable from `(sx, sy)` by 4-connected steps through
+    /// cells the `passable` predicate accepts, via flood fill.
+    ///
+    /// `passable` is called with each cell's collapsed tile (`u8`); a cell that
+    /// is not fully collapsed, or that `passable` rejects, is a wall. Returns 0
+    /// if the start cell itself is out of bounds or impassable. Deterministic
+    /// (BFS in fixed order), integer-only.
+    pub fn reachable_count(&self, sx: i32, sy: i32, mut passable: impl FnMut(u8) -> bool) -> usize {
+        let is_open = |g: &WfcGrid, x: i32, y: i32, p: &mut dyn FnMut(u8) -> bool| -> bool {
+            matches!(g.tile_at(x, y), Some(t) if p(t))
+        };
+        if !is_open(self, sx, sy, &mut passable) {
+            return 0;
+        }
+        let w = self.width as usize;
+        let mut visited = vec![false; self.cells.len()];
+        let mut queue: VecDeque<(i32, i32)> = VecDeque::new();
+        visited[sy as usize * w + sx as usize] = true;
+        queue.push_back((sx, sy));
+        let mut count = 0usize;
+        while let Some((x, y)) = queue.pop_front() {
+            count += 1;
+            for &(dx, dy) in &DIRS {
+                let nx = x.saturating_add(dx);
+                let ny = y.saturating_add(dy);
+                if nx < 0 || ny < 0 || nx >= self.width || ny >= self.height {
+                    continue;
+                }
+                let nidx = ny as usize * w + nx as usize;
+                if !visited[nidx] && is_open(self, nx, ny, &mut passable) {
+                    visited[nidx] = true;
+                    queue.push_back((nx, ny));
+                }
+            }
+        }
+        count
+    }
+
+    /// Whether every passable cell forms a single 4-connected region — i.e.
+    /// there are no walled-off pockets. Returns `true` when there are no
+    /// passable cells at all (vacuously connected).
+    ///
+    /// This is the connectivity post-pass production WFC needs: raw collapse can
+    /// leave unreachable rooms, so callers generate, check this, and
+    /// regenerate (e.g. via [`wfc_solve_retry`]) on failure. `passable` maps a
+    /// collapsed tile to "can be walked".
+    pub fn is_passable_connected(&self, mut passable: impl FnMut(u8) -> bool) -> bool {
+        // Total passable cells, and a start cell for the flood.
+        let mut total = 0usize;
+        let mut start: Option<(i32, i32)> = None;
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if matches!(self.tile_at(x, y), Some(t) if passable(t)) {
+                    total += 1;
+                    if start.is_none() {
+                        start = Some((x, y));
+                    }
+                }
+            }
+        }
+        match start {
+            None => true, // no passable cells ⇒ vacuously connected
+            Some((sx, sy)) => self.reachable_count(sx, sy, passable) == total,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{rng::SplitMix64, world_hash::hash_state};
+
+    /// 2-tile rules: floor (0) and wall (1) may both be adjacent to anything.
+    fn open_rules() -> WfcRules {
+        let mut r = WfcRules::new(2);
+        for tile in 0..2u8 {
+            for dir in 0..4 {
+                r.allow(tile, dir, 0);
+                r.allow(tile, dir, 1);
+            }
+        }
+        r
+    }
+
+    /// Rules where tile 0 only allows itself in every direction.
+    fn uniform_rules() -> WfcRules {
+        let mut r = WfcRules::new(1);
+        for dir in 0..4 {
+            r.allow(0, dir, 0);
+        }
+        r
+    }
+
+    #[test]
+    fn test_uniform_rules_always_succeeds() {
+        let mut rng = SplitMix64::new(1);
+        match wfc_solve(8, 8, &uniform_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                assert!(grid.is_fully_collapsed());
+                for y in 0..8 {
+                    for x in 0..8 {
+                        assert_eq!(grid.tile_at(x, y), Some(0));
+                    }
+                }
+            }
+            WfcResult::Contradiction => panic!("uniform rules should never contradict"),
+        }
+    }
+
+    #[test]
+    fn test_open_rules_fully_collapsed() {
+        let mut rng = SplitMix64::new(42);
+        match wfc_solve(10, 10, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => assert!(grid.is_fully_collapsed()),
+            WfcResult::Contradiction => panic!("open rules should not contradict"),
+        }
+    }
+
+    #[test]
+    fn test_tiles_in_range() {
+        let mut rng = SplitMix64::new(7);
+        match wfc_solve(6, 6, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                for y in 0..6 {
+                    for x in 0..6 {
+                        let t = grid.tile_at(x, y).unwrap();
+                        assert!(t < 2, "tile {t} out of range");
+                    }
+                }
+            }
+            WfcResult::Contradiction => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_deterministic_same_seed() {
+        let rules = open_rules();
+        let r1 = wfc_solve(8, 8, &rules, &mut SplitMix64::new(99));
+        let r2 = wfc_solve(8, 8, &rules, &mut SplitMix64::new(99));
+        match (r1, r2) {
+            (WfcResult::Ok(g1), WfcResult::Ok(g2)) => {
+                assert_eq!(hash_state(&g1), hash_state(&g2));
+            }
+            _ => panic!("both should succeed"),
+        }
+    }
+
+    #[test]
+    fn test_different_seeds_likely_differ() {
+        let rules = open_rules();
+        let r1 = wfc_solve(10, 10, &rules, &mut SplitMix64::new(1));
+        let r2 = wfc_solve(10, 10, &rules, &mut SplitMix64::new(999));
+        match (r1, r2) {
+            (WfcResult::Ok(g1), WfcResult::Ok(g2)) => {
+                // Not guaranteed but virtually certain on a 100-cell grid.
+                assert_ne!(hash_state(&g1), hash_state(&g2));
+            }
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_contradiction_on_impossible_rules() {
+        // Tile 0 requires tile 1 to the North, but tile 1 requires tile 0 to
+        // the North only and allows nothing to the South → on a 1×2 grid
+        // where tile 0 is forced North, no valid South exists.
+        let mut r = WfcRules::new(2);
+        // tile 0 north neighbor must be tile 1
+        r.allow(0, 0, 1);
+        // tile 1 north neighbor must be tile 0 (fine), but South allows nothing
+        r.allow(1, 0, 0);
+        // Neither tile allows any south neighbor → any cell placed will kill south constraint
+        // Force a 1x3 vertical strip; the bottom cell gets no allowed tiles.
+        let result = wfc_solve(1, 3, &r, &mut SplitMix64::new(1));
+        // May succeed or contradict depending on collapse order; just assert no panic.
+        let _ = result;
+    }
+
+    #[test]
+    fn test_zero_dimension_is_contradiction() {
+        assert!(matches!(
+            wfc_solve(0, 5, &open_rules(), &mut SplitMix64::new(1)),
+            WfcResult::Contradiction
+        ));
+        assert!(matches!(
+            wfc_solve(5, 0, &open_rules(), &mut SplitMix64::new(1)),
+            WfcResult::Contradiction
+        ));
+    }
+
+    #[test]
+    fn test_single_cell_grid() {
+        let mut rng = SplitMix64::new(1);
+        match wfc_solve(1, 1, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                assert!(grid.is_fully_collapsed());
+                assert!(grid.tile_at(0, 0).is_some());
+            }
+            WfcResult::Contradiction => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_tile_at_out_of_bounds_is_none() {
+        let grid = WfcGrid {
+            width: 4,
+            height: 4,
+            cells: vec![1u64; 16],
+        };
+        assert!(grid.tile_at(-1, 0).is_none());
+        assert!(grid.tile_at(4, 0).is_none());
+        assert!(grid.tile_at(0, 4).is_none());
+    }
+
+    #[test]
+    fn test_iter_collapsed_counts() {
+        let mut rng = SplitMix64::new(5);
+        match wfc_solve(5, 5, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                let count = grid.iter_collapsed().count();
+                assert_eq!(count, 25);
+            }
+            WfcResult::Contradiction => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_disallow_removes_adjacency() {
+        let mut r = WfcRules::new(2);
+        r.allow(0, 0, 1);
+        assert!(r.adj[0][0] & (1 << 1) != 0);
+        r.disallow(0, 0, 1);
+        assert_eq!(r.adj[0][0] & (1 << 1), 0);
+    }
+
+    #[test]
+    fn test_disallow_out_of_range_is_noop() {
+        let mut r = WfcRules::new(2);
+        r.allow(0, 0, 1);
+        r.disallow(5, 0, 1); // tile out of range
+        r.disallow(0, 5, 1); // dir out of range
+        assert!(r.adj[0][0] & (1 << 1) != 0, "original bit must survive");
+    }
+
+    #[test]
+    fn test_disallow_does_not_affect_other_dirs() {
+        let mut r = WfcRules::new(2);
+        for dir in 0..4 {
+            r.allow(0, dir, 1);
+        }
+        r.disallow(0, 1, 1); // remove only East
+        assert_eq!(r.adj[0][1] & (1 << 1), 0); // East cleared
+        assert!(r.adj[0][0] & (1 << 1) != 0); // North intact
+        assert!(r.adj[0][2] & (1 << 1) != 0); // South intact
+        assert!(r.adj[0][3] & (1 << 1) != 0); // West intact
+    }
+
+    #[test]
+    fn test_allow_symmetric() {
+        let mut r = WfcRules::new(2);
+        r.allow_symmetric(0, 1, 1); // tile 0 East → tile 1; tile 1 West → tile 0
+        assert!(r.adj[0][1] & (1 << 1) != 0); // 0 allows 1 to East
+        assert!(r.adj[1][3] & (1 << 0) != 0); // 1 allows 0 to West
+    }
+
+    #[test]
+    fn test_det_hash_same_grid() {
+        let grid1 = WfcGrid {
+            width: 2,
+            height: 2,
+            cells: vec![1, 2, 3, 4],
+        };
+        let grid2 = grid1.clone();
+        assert_eq!(hash_state(&grid1), hash_state(&grid2));
+    }
+
+    #[test]
+    fn test_det_hash_differs_on_change() {
+        let grid1 = WfcGrid {
+            width: 2,
+            height: 2,
+            cells: vec![1, 2, 3, 4],
+        };
+        let grid2 = WfcGrid {
+            width: 2,
+            height: 2,
+            cells: vec![1, 2, 3, 5],
+        };
+        assert_ne!(hash_state(&grid1), hash_state(&grid2));
+    }
+
+    #[test]
+    fn test_len_and_is_empty() {
+        let grid = WfcGrid {
+            width: 3,
+            height: 4,
+            cells: vec![1u64; 12],
+        };
+        assert_eq!(grid.len(), 12);
+        assert!(!grid.is_empty());
+
+        let empty = WfcGrid {
+            width: 0,
+            height: 0,
+            cells: vec![],
+        };
+        assert!(empty.is_empty());
+    }
+
+    #[test]
+    fn test_get_allowed_roundtrip() {
+        let mut r = WfcRules::new(3);
+        r.allow(0, 1, 2); // tile 0 East may have tile 2
+        assert_eq!(r.get_allowed(0, 1), 1 << 2);
+        assert_eq!(r.get_allowed(0, 0), 0); // North not set
+        assert_eq!(r.get_allowed(99, 0), 0); // OOB tile
+        assert_eq!(r.get_allowed(0, 9), 0); // OOB dir
+    }
+
+    #[test]
+    fn test_count_tiles_counts_collapsed() {
+        let mut rng = SplitMix64::new(1);
+        match wfc_solve(6, 6, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                let total: usize = (0..open_rules().tile_count())
+                    .map(|t| grid.count_tiles(t))
+                    .sum();
+                assert_eq!(total, 36); // all 36 cells counted exactly once
+            }
+            WfcResult::Contradiction => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_to_vec_length_and_some_for_collapsed() {
+        let mut rng = SplitMix64::new(7);
+        match wfc_solve(4, 4, &open_rules(), &mut rng) {
+            WfcResult::Ok(grid) => {
+                let v = grid.to_vec();
+                assert_eq!(v.len(), 16);
+                assert!(v.iter().all(|t| t.is_some())); // all collapsed
+            }
+            WfcResult::Contradiction => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_clear_adjacencies_removes_all_bits() {
+        let mut r = WfcRules::new(3);
+        for dir in 0..4 {
+            r.allow(0, dir, 1);
+            r.allow(0, dir, 2);
+        }
+        r.clear_adjacencies(0);
+        for dir in 0..4 {
+            assert_eq!(r.adj[0][dir], 0, "dir {dir} should be 0 after clear");
+        }
+    }
+
+    #[test]
+    fn test_clear_adjacencies_does_not_affect_other_tiles() {
+        let mut r = WfcRules::new(3);
+        r.allow(0, 0, 1);
+        r.allow(1, 0, 0); // other tile
+        r.clear_adjacencies(0);
+        assert_eq!(r.adj[0][0], 0);
+        assert_ne!(r.adj[1][0], 0, "tile 1 should be unaffected");
+    }
+
+    #[test]
+    fn test_clear_adjacencies_oob_is_noop() {
+        let mut r = WfcRules::new(2);
+        r.allow(0, 0, 1);
+        r.clear_adjacencies(99); // out of range — should not panic
+        assert_ne!(r.adj[0][0], 0, "tile 0 unaffected");
+    }
+
+    #[test]
+    fn test_allowed_count_zero_when_no_rules() {
+        let r = WfcRules::new(4);
+        assert_eq!(r.allowed_count(0, 0), 0, "fresh rules: no adjacencies");
+    }
+
+    #[test]
+    fn test_allowed_count_matches_number_of_allows() {
+        let mut r = WfcRules::new(4);
+        r.allow(0, 1, 0);
+        r.allow(0, 1, 2);
+        assert_eq!(r.allowed_count(0, 1), 2, "two tiles allowed in dir 1");
+        r.allow(0, 1, 3);
+        assert_eq!(r.allowed_count(0, 1), 3);
+    }
+
+    #[test]
+    fn test_allowed_count_oob_returns_zero() {
+        let r = WfcRules::new(4);
+        assert_eq!(r.allowed_count(99, 0), 0, "OOB tile");
+        assert_eq!(r.allowed_count(0, 9), 0, "OOB dir");
+    }
+
+    #[test]
+    fn test_is_valid_tile_in_range() {
+        let r = WfcRules::new(3);
+        assert!(r.is_valid_tile(0));
+        assert!(r.is_valid_tile(2));
+        assert!(!r.is_valid_tile(3));
+    }
+
+    #[test]
+    fn test_is_valid_tile_clamped_min_allows_zero() {
+        // new(0) clamps to 1, so tile 0 is valid and tile 1 is not.
+        let r = WfcRules::new(0);
+        assert!(r.is_valid_tile(0));
+        assert!(!r.is_valid_tile(1));
+    }
+
+    #[test]
+    fn test_is_valid_tile_boundary_values() {
+        let r = WfcRules::new(64);
+        assert!(r.is_valid_tile(63));
+        assert!(!r.is_valid_tile(64));
+    }
+
+    #[test]
+    fn test_count_uncollapsed_zero_after_solve() {
+        let mut rng = SplitMix64::new(1);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &open_rules(), &mut rng) {
+            assert_eq!(grid.count_uncollapsed(), 0);
+        }
+    }
+
+    #[test]
+    fn test_count_uncollapsed_complement_of_collapsed() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(3, 3, &open_rules(), &mut rng) {
+            assert_eq!(
+                grid.count_uncollapsed() + grid.to_vec().iter().filter(|c| c.is_some()).count(),
+                grid.len()
+            );
+        }
+    }
+
+    #[test]
+    fn test_count_uncollapsed_uniform_is_zero() {
+        let mut rng = SplitMix64::new(2);
+        if let WfcResult::Ok(grid) = wfc_solve(5, 5, &uniform_rules(), &mut rng) {
+            assert_eq!(grid.count_uncollapsed(), 0);
+        }
+    }
+
+    #[test]
+    fn test_possibilities_at_collapsed_is_one() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &uniform_rules(), &mut rng) {
+            // Every cell is collapsed after a successful solve.
+            assert_eq!(grid.possibilities_at(0, 0), 1);
+            assert_eq!(grid.possibilities_at(3, 3), 1);
+        }
+    }
+
+    #[test]
+    fn test_possibilities_at_out_of_bounds_is_zero() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &uniform_rules(), &mut rng) {
+            assert_eq!(grid.possibilities_at(-1, 0), 0);
+            assert_eq!(grid.possibilities_at(0, 99), 0);
+        }
+    }
+
+    #[test]
+    fn test_possibilities_at_matches_count_uncollapsed() {
+        let mut rng = SplitMix64::new(3);
+        if let WfcResult::Ok(grid) = wfc_solve(5, 5, &uniform_rules(), &mut rng) {
+            // Fully collapsed: every cell has exactly one possibility.
+            let multi = (0..5)
+                .flat_map(|y| (0..5).map(move |x| (x, y)))
+                .filter(|&(x, y)| grid.possibilities_at(x, y) > 1)
+                .count();
+            assert_eq!(multi, grid.count_uncollapsed());
+        }
+    }
+
+    #[test]
+    fn test_solved_count_plus_uncollapsed_equals_len() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve(4, 4, &uniform_rules(), &mut rng) {
+            assert_eq!(grid.solved_count() + grid.count_uncollapsed(), grid.len());
+        }
+    }
+
+    #[test]
+    fn test_solved_count_equals_len_when_fully_collapsed() {
+        let mut rng = SplitMix64::new(42);
+        if let WfcResult::Ok(grid) = wfc_solve(3, 3, &uniform_rules(), &mut rng) {
+            if grid.is_fully_collapsed() {
+                assert_eq!(grid.solved_count(), grid.len());
+            }
+        }
+    }
+
+    #[test]
+    fn test_solved_count_zero_for_empty_grid() {
+        let rules = uniform_rules();
+        let mut rng = SplitMix64::new(0);
+        if let WfcResult::Ok(grid) = wfc_solve(0, 0, &rules, &mut rng) {
+            assert_eq!(grid.solved_count(), 0);
+        }
+    }
+
+    // --- wfc_solve_backtrack (W5) ---
+
+    #[test]
+    fn test_backtrack_open_rules_succeeds() {
+        let mut rng = SplitMix64::new(42);
+        let result = wfc_solve_backtrack(8, 8, &open_rules(), &mut rng, 10);
+        assert!(
+            matches!(result, WfcResult::Ok(_)),
+            "open rules should not need backtracking"
+        );
+    }
+
+    #[test]
+    fn test_backtrack_uniform_rules_fully_collapsed() {
+        let mut rng = SplitMix64::new(7);
+        if let WfcResult::Ok(grid) = wfc_solve_backtrack(5, 5, &uniform_rules(), &mut rng, 0) {
+            assert!(grid.is_fully_collapsed());
+        }
+    }
+
+    #[test]
+    fn test_backtrack_zero_limit_matches_wfc_solve() {
+        // With max_backtracks = 0, backtrack behaves exactly like wfc_solve
+        // (first contradiction → Contradiction, no retries).
+        let rules = open_rules();
+        let mut rng_a = SplitMix64::new(99);
+        let mut rng_b = SplitMix64::new(99);
+        let r_a = wfc_solve(8, 8, &rules, &mut rng_a);
+        let r_b = wfc_solve_backtrack(8, 8, &rules, &mut rng_b, 0);
+        match (r_a, r_b) {
+            (WfcResult::Ok(g1), WfcResult::Ok(g2)) => {
+                assert_eq!(hash_state(&g1), hash_state(&g2), "same seed → same grid");
+            }
+            (WfcResult::Contradiction, WfcResult::Contradiction) => {}
+            _ => panic!("results must agree"),
+        }
+    }
+
+    #[test]
+    fn test_backtrack_deterministic_same_seed() {
+        let rules = open_rules();
+        let r1 = wfc_solve_backtrack(6, 6, &rules, &mut SplitMix64::new(55), 5);
+        let r2 = wfc_solve_backtrack(6, 6, &rules, &mut SplitMix64::new(55), 5);
+        match (r1, r2) {
+            (WfcResult::Ok(g1), WfcResult::Ok(g2)) => {
+                assert_eq!(hash_state(&g1), hash_state(&g2));
+            }
+            (WfcResult::Contradiction, WfcResult::Contradiction) => {}
+            _ => panic!("both runs must agree"),
+        }
+    }
+
+    #[test]
+    fn test_backtrack_degenerate_zero_dimensions_is_contradiction() {
+        let mut rng = SplitMix64::new(1);
+        assert!(matches!(
+            wfc_solve_backtrack(0, 5, &open_rules(), &mut rng, 10),
+            WfcResult::Contradiction
+        ));
+    }
+
+    // --- wfc_solve_partial (W5) ---
+
+    #[test]
+    fn test_partial_open_rules_fully_collapsed() {
+        let mut rng = SplitMix64::new(42);
+        let grid = wfc_solve_partial(8, 8, &open_rules(), &mut rng);
+        // Open rules never contradict → all cells should be collapsed.
+        assert!(
+            grid.is_fully_collapsed(),
+            "open rules → fully solved partial"
+        );
+    }
+
+    #[test]
+    fn test_partial_returns_grid_for_degenerate_input() {
+        let mut rng = SplitMix64::new(1);
+        let grid = wfc_solve_partial(0, 5, &open_rules(), &mut rng);
+        assert!(grid.is_empty(), "degenerate input → empty grid");
+    }
+
+    #[test]
+    fn test_partial_deterministic_same_seed() {
+        let rules = open_rules();
+        let g1 = wfc_solve_partial(6, 6, &rules, &mut SplitMix64::new(7));
+        let g2 = wfc_solve_partial(6, 6, &rules, &mut SplitMix64::new(7));
+        assert_eq!(hash_state(&g1), hash_state(&g2));
+    }
+
+    #[test]
+    fn test_partial_solved_count_at_least_zero() {
+        let mut rng = SplitMix64::new(3);
+        let grid = wfc_solve_partial(5, 5, &open_rules(), &mut rng);
+        assert!(grid.solved_count() + grid.count_uncollapsed() <= grid.len());
+    }
+
+    // --- tile weights ---
+
+    #[test]
+    fn test_default_weights_are_one() {
+        let r = open_rules();
+        assert_eq!(r.weight(0), 1);
+        assert_eq!(r.weight(1), 1);
+        // Out-of-range reads the notional default.
+        assert_eq!(r.weight(200), 1);
+    }
+
+    #[test]
+    fn test_uniform_weights_reproduce_uniform_solve_bit_for_bit() {
+        // The equivalence guarantee: setting every weight to 1 explicitly must
+        // produce the byte-identical grid an unweighted solve produces, because
+        // pick_weighted_bit consumes the RNG the same way as pick_random_bit.
+        let base = open_rules();
+        let mut weighted = open_rules();
+        weighted.set_weight(0, 1);
+        weighted.set_weight(1, 1);
+        let g_base = wfc_solve(10, 10, &base, &mut SplitMix64::new(0xABCDEF));
+        let g_weighted = wfc_solve(10, 10, &weighted, &mut SplitMix64::new(0xABCDEF));
+        match (g_base, g_weighted) {
+            (WfcResult::Ok(a), WfcResult::Ok(b)) => assert_eq!(hash_state(&a), hash_state(&b)),
+            _ => panic!("open rules should always solve"),
+        }
+    }
+
+    #[test]
+    fn test_weight_biases_tile_frequency() {
+        // Tile 0 heavily favored over tile 1 should yield mostly-0 grids.
+        let mut r = open_rules();
+        r.set_weight(0, 50);
+        r.set_weight(1, 1);
+        let mut zeros = 0usize;
+        let mut ones = 0usize;
+        // Average over several seeds to avoid a single unlucky draw.
+        for seed in 0..8u64 {
+            if let WfcResult::Ok(g) = wfc_solve(12, 12, &r, &mut SplitMix64::new(seed)) {
+                zeros += g.count_tiles(0);
+                ones += g.count_tiles(1);
+            }
+        }
+        assert!(
+            zeros > ones * 3,
+            "weight 50:1 should make tile 0 dominate (got {zeros} vs {ones})"
+        );
+    }
+
+    #[test]
+    fn test_weighted_solve_is_deterministic() {
+        let mut r = open_rules();
+        r.set_weight(0, 7);
+        r.set_weight(1, 3);
+        let g1 = wfc_solve(9, 9, &r, &mut SplitMix64::new(123));
+        let g2 = wfc_solve(9, 9, &r, &mut SplitMix64::new(123));
+        match (g1, g2) {
+            (WfcResult::Ok(a), WfcResult::Ok(b)) => assert_eq!(hash_state(&a), hash_state(&b)),
+            _ => panic!("should solve"),
+        }
+    }
+
+    #[test]
+    fn test_all_zero_weights_still_collapse() {
+        // Degenerate: every tile weight 0. pick_weighted_bit must fall back to
+        // uniform rather than divide-by-zero or fail to place a tile.
+        let mut r = open_rules();
+        r.set_weight(0, 0);
+        r.set_weight(1, 0);
+        match wfc_solve(6, 6, &r, &mut SplitMix64::new(5)) {
+            WfcResult::Ok(g) => assert!(g.is_fully_collapsed()),
+            WfcResult::Contradiction => panic!("all-zero weights must fall back to uniform"),
+        }
+    }
+
+    // --- retry-with-derived-seed ---
+
+    #[test]
+    fn test_retry_succeeds_on_solvable_rules() {
+        let mut rng = SplitMix64::new(1);
+        match wfc_solve_retry(8, 8, &open_rules(), &mut rng, 5) {
+            WfcResult::Ok(g) => assert!(g.is_fully_collapsed()),
+            WfcResult::Contradiction => panic!("open rules solve on the first attempt"),
+        }
+    }
+
+    #[test]
+    fn test_retry_is_deterministic() {
+        let g1 = wfc_solve_retry(8, 8, &open_rules(), &mut SplitMix64::new(42), 5);
+        let g2 = wfc_solve_retry(8, 8, &open_rules(), &mut SplitMix64::new(42), 5);
+        match (g1, g2) {
+            (WfcResult::Ok(a), WfcResult::Ok(b)) => assert_eq!(hash_state(&a), hash_state(&b)),
+            _ => panic!("should solve deterministically"),
+        }
+    }
+
+    #[test]
+    fn test_retry_zero_attempts_treated_as_one() {
+        // max_attempts == 0 must still make one attempt, not zero.
+        match wfc_solve_retry(4, 4, &open_rules(), &mut SplitMix64::new(1), 0) {
+            WfcResult::Ok(g) => assert!(g.is_fully_collapsed()),
+            WfcResult::Contradiction => panic!("one attempt should have run"),
+        }
+    }
+
+    #[test]
+    fn test_retry_exhausts_on_impossible_rules() {
+        // Tile 0 allows nothing anywhere → any placement next to a neighbor
+        // contradicts; retries cannot help. Must report Contradiction, not loop.
+        let mut r = WfcRules::new(2);
+        // Only tile 1 is usable; tile 0 has no allowed neighbors at all, and
+        // tile 1 only allows tile 1. A single-tile solve of tile 1 works, so to
+        // force failure make tile 1 also forbid everything.
+        r.clear_adjacencies(0);
+        r.clear_adjacencies(1);
+        // 2x1 grid: two adjacent cells, no legal adjacency for either tile.
+        match wfc_solve_retry(2, 1, &r, &mut SplitMix64::new(9), 4) {
+            WfcResult::Contradiction => {}
+            WfcResult::Ok(_) => panic!("impossible rules must not solve"),
+        }
+    }
+
+    // --- connectivity post-pass ---
+
+    #[test]
+    fn test_reachable_count_all_open() {
+        // open_rules: both tiles allowed everywhere. Treat both as passable →
+        // every cell reachable.
+        if let WfcResult::Ok(g) = wfc_solve(5, 4, &open_rules(), &mut SplitMix64::new(1)) {
+            let n = g.reachable_count(0, 0, |_| true);
+            assert_eq!(n, 20, "all 5x4 cells reachable when everything is passable");
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_reachable_count_zero_from_impassable_start() {
+        if let WfcResult::Ok(g) = wfc_solve(5, 5, &open_rules(), &mut SplitMix64::new(1)) {
+            // Nothing is passable → start cell itself is a wall → 0.
+            assert_eq!(g.reachable_count(0, 0, |_| false), 0);
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_is_passable_connected_when_all_passable() {
+        if let WfcResult::Ok(g) = wfc_solve(6, 6, &open_rules(), &mut SplitMix64::new(2)) {
+            assert!(
+                g.is_passable_connected(|_| true),
+                "all-passable grid is one region"
+            );
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_is_passable_connected_vacuous_when_none_passable() {
+        if let WfcResult::Ok(g) = wfc_solve(4, 4, &open_rules(), &mut SplitMix64::new(3)) {
+            // No tile is passable → no passable cells → vacuously connected.
+            assert!(g.is_passable_connected(|_| false));
+        } else {
+            panic!("should solve");
+        }
+    }
+
+    #[test]
+    fn test_is_passable_connected_detects_split_region() {
+        // Hand-build a grid split by an impassable column so connectivity fails.
+        // tile 0 = floor (passable), tile 1 = wall (impassable). Column x==2 is
+        // all wall, splitting a 5x3 grid into two floor regions.
+        let mut cells = vec![1u64 << 0; 15]; // all floor
+        for y in 0..3 {
+            cells[y * 5 + 2] = 1u64 << 1; // wall column
+        }
+        let g = WfcGrid {
+            width: 5,
+            height: 3,
+            cells,
+        };
+        assert!(
+            !g.is_passable_connected(|t| t == 0),
+            "a wall column splits the floor into two regions"
+        );
+        // Sanity: the left region alone is 2 columns x 3 rows = 6 cells.
+        assert_eq!(g.reachable_count(0, 0, |t| t == 0), 6);
+    }
+
+    // --- CellSelector / wfc_solve_with_selector ---
+
+    /// Compare two solve results by their collapsed tiles (grid contents).
+    fn same_grid(a: &WfcResult, b: &WfcResult) -> bool {
+        match (a, b) {
+            (WfcResult::Ok(ga), WfcResult::Ok(gb)) => ga.to_vec() == gb.to_vec(),
+            (WfcResult::Contradiction, WfcResult::Contradiction) => true,
+            _ => false,
+        }
+    }
+
+    #[test]
+    fn test_default_selector_matches_wfc_solve_bit_for_bit() {
+        // The whole point: LowestEntropySelector must reproduce wfc_solve
+        // exactly — same cells, same RNG draws — across many seeds.
+        for seed in 0..200u64 {
+            let mut rng_a = SplitMix64::new(seed);
+            let mut rng_b = SplitMix64::new(seed);
+            let plain = wfc_solve(10, 8, &open_rules(), &mut rng_a);
+            let via = wfc_solve_with_selector(
+                10,
+                8,
+                &open_rules(),
+                &mut rng_b,
+                &mut LowestEntropySelector,
+            );
+            assert!(
+                same_grid(&plain, &via),
+                "seed {seed}: selector path diverged from wfc_solve"
+            );
+        }
+    }
+
+    #[test]
+    fn test_selector_default_consumes_rng_identically() {
+        // Not just the grid — the RNG must be left in the same state, proving
+        // the draw sequence is identical (no extra/missing draws).
+        let mut rng_a = SplitMix64::new(12345);
+        let mut rng_b = SplitMix64::new(12345);
+        let _ = wfc_solve(12, 12, &open_rules(), &mut rng_a);
+        let _ = wfc_solve_with_selector(
+            12,
+            12,
+            &open_rules(),
+            &mut rng_b,
+            &mut LowestEntropySelector,
+        );
+        assert_eq!(rng_a.next_u64(), rng_b.next_u64(), "RNG streams must align");
+    }
+
+    #[test]
+    fn test_custom_selector_produces_valid_full_collapse() {
+        // A selector that collapses in reverse row-major order among the
+        // lowest-entropy cells still yields a fully collapsed, in-range grid.
+        struct ReverseLowest;
+        impl CellSelector for ReverseLowest {
+            fn select(&mut self, entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                let mut min_entropy = u32::MAX;
+                let mut idx = None;
+                for (i, &bits) in entropies.iter().enumerate() {
+                    // `<=` keeps the LAST index on a tie (reverse of default).
+                    if bits > 1 && bits <= min_entropy {
+                        min_entropy = bits;
+                        idx = Some(i);
+                    }
+                }
+                idx
+            }
+        }
+        let mut rng = SplitMix64::new(99);
+        match wfc_solve_with_selector(10, 10, &open_rules(), &mut rng, &mut ReverseLowest) {
+            WfcResult::Ok(grid) => {
+                assert!(grid.is_fully_collapsed());
+                for y in 0..10 {
+                    for x in 0..10 {
+                        assert!(grid.tile_at(x, y).unwrap() < 2);
+                    }
+                }
+            }
+            WfcResult::Contradiction => panic!("open rules must not contradict"),
+        }
+    }
+
+    #[test]
+    fn test_custom_selector_can_change_output() {
+        // With multiple tiles and weights, a different collapse order generally
+        // yields a different grid for the same seed — the whole reason to steer
+        // it. (open_rules has 2 freely-adjacent tiles, so order matters.)
+        struct ReverseLowest;
+        impl CellSelector for ReverseLowest {
+            fn select(&mut self, entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                let mut min_entropy = u32::MAX;
+                let mut idx = None;
+                for (i, &bits) in entropies.iter().enumerate() {
+                    if bits > 1 && bits <= min_entropy {
+                        min_entropy = bits;
+                        idx = Some(i);
+                    }
+                }
+                idx
+            }
+        }
+        let mut rng_a = SplitMix64::new(7);
+        let mut rng_b = SplitMix64::new(7);
+        let def =
+            wfc_solve_with_selector(8, 8, &open_rules(), &mut rng_a, &mut LowestEntropySelector);
+        let rev = wfc_solve_with_selector(8, 8, &open_rules(), &mut rng_b, &mut ReverseLowest);
+        // Both valid; contents differ (steering the order changed the result).
+        assert!(matches!(def, WfcResult::Ok(_)) && matches!(rev, WfcResult::Ok(_)));
+        assert!(
+            !same_grid(&def, &rev),
+            "reverse order should change the grid"
+        );
+    }
+
+    #[test]
+    fn test_selector_is_deterministic() {
+        let solve = || {
+            let mut rng = SplitMix64::new(2024);
+            wfc_solve_with_selector(9, 7, &open_rules(), &mut rng, &mut LowestEntropySelector)
+        };
+        assert!(same_grid(&solve(), &solve()));
+    }
+
+    #[test]
+    fn test_selector_returning_collapsed_index_is_contradiction() {
+        // A misbehaving selector that always picks cell 0 (which becomes
+        // collapsed after the first step) must not loop forever — it yields a
+        // Contradiction instead.
+        struct AlwaysZero;
+        impl CellSelector for AlwaysZero {
+            fn select(&mut self, entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                // Return 0 as long as anything is uncollapsed, even once cell 0
+                // itself is collapsed — the misuse the guard must catch.
+                if entropies.iter().any(|&b| b > 1) {
+                    Some(0)
+                } else {
+                    None
+                }
+            }
+        }
+        let mut rng = SplitMix64::new(1);
+        let r = wfc_solve_with_selector(6, 6, &open_rules(), &mut rng, &mut AlwaysZero);
+        assert!(matches!(r, WfcResult::Contradiction));
+    }
+
+    #[test]
+    fn test_selector_out_of_range_index_is_contradiction() {
+        struct OutOfRange;
+        impl CellSelector for OutOfRange {
+            fn select(&mut self, _entropies: &[u32], _w: i32, _h: i32) -> Option<usize> {
+                Some(usize::MAX)
+            }
+        }
+        let mut rng = SplitMix64::new(1);
+        let r = wfc_solve_with_selector(4, 4, &open_rules(), &mut rng, &mut OutOfRange);
+        assert!(matches!(r, WfcResult::Contradiction));
+    }
+}

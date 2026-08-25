@@ -1,5 +1,20 @@
 version: 2
 updates:
+  # Cargo dependencies. Both crates ship zero runtime dependencies today; this
+  # keeps any future dev-dependencies and the lockfile current, and surfaces
+  # advisories early. `directory` is the workspace root, where Cargo.toml and
+  # Cargo.lock live — Dependabot resolves the whole workspace from there.
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "build"
+
+  # Keep the CI action versions current. Workflows live at the repo root
+  # (.github/workflows/), so this directory is correct as "/". Direct
+  # dependencies automerge server-side; transitive bumps still need review.
   - package-ecosystem: "github-actions"
     directory: "/"
     allow:
@@ -7,4 +22,6 @@ updates:
     automerge:
       - dependency-type: "direct"
     schedule:
-      interval: "weekly"
+      interval: weekly
+    commit-message:
+      prefix: "ci"
