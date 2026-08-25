@@ -5,7 +5,7 @@
 > izanagi_kit に対する**改善点を洗い出す**ための調査資料。
 >
 > - 本書は「洗い出し（enumeration）」が主目的であり、コード変更は含まない。確定バグ修正の記録は
->   [`IMPROVEMENTS.md`](./IMPROVEMENTS.md) を参照。
+>   `IMPROVEMENTS.md`(削除済み — git 履歴参照)を参照。
 > - 各改善点には**決定論への影響タグ**を付す:
 >   - 🟢 **replay-safe**: 既存の replay/lockstep 不変条件を壊さない（`PINNED_FINAL_HASH` に影響なし）。
 >   - 🟡 **gated**: 実装方法次第で draw 順序や hash 順序に影響しうる。feature flag / 別 API で隔離すべき。
@@ -49,7 +49,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 ## 2. 決定論的 fixed-point 演算 (Q16.16 fixed-point, saturating arithmetic)
 
 **現状（izanagi_kit）**: `src/fixed.rs` — Q16.16 スカラ、`saturating_mul` で sign-flip 回避、`from_ratio` の
-0 除算は符号方向へ飽和（[`IMPROVEMENTS.md`](./IMPROVEMENTS.md) のバグ修正済み）。sqrt/trig/除算の高精度関数は未提供。
+0 除算は符号方向へ飽和（バグ修正済み — 旧 `IMPROVEMENTS.md`、現在は git 履歴）。sqrt/trig/除算の高精度関数は未提供。
 
 **参考情報**
 - arXiv: **1605.03229** *"CORDIC-based Architecture for Powering Computation in Fixed-Point Arithmetic"* — hyperbolic CORDIC による pow/exp/log の整数実装。
@@ -77,7 +77,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 ## 3. 決定論的 PRNG (deterministic pseudorandom number generator, SplitMix64)
 
 **現状（izanagi_kit）**: `src/rng.rs` — SplitMix64、単一ストリーム・固定 draw 順序。`below(0)` は draw せず 0 を返す
-（release desync バグ修正済み、[`IMPROVEMENTS.md`](./IMPROVEMENTS.md)）。range 抽出の bias 除去や複数ストリームは未対応。
+（release desync バグ修正済み — 旧 `IMPROVEMENTS.md`、現在は git 履歴）。range 抽出の bias 除去や複数ストリームは未対応。
 
 **参考情報**
 - arXiv: **1805.01407** *"Scrambled Linear Pseudorandom Number Generators"*（Blackman & Vigna）— xoshiro/xoroshiro と scrambler の品質。

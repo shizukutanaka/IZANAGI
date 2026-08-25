@@ -1,0 +1,66 @@
+# Proposed CI for IZANAGI — copy this file to `.github/workflows/ci.yml`.
+#
+# It lives here (docs/ci/) instead of .github/workflows/ because the agent's
+# GitHub App token lacks the `workflows` permission: any push touching
+# .github/workflows/ is rejected. A maintainer must create the real file once,
+# via the GitHub web UI or a locally-authenticated push — see README.md next
+# to this file.
+#
+# Design: the heavy job is `tools/gate.sh`, the same script the pre-push hook
+# runs, so "green locally" and "green in CI" are one definition, not two that
+# drift. The two extra jobs check what a single stable-toolchain run cannot:
+# the declared MSRVs actually build, and the kit actually compiles for wasm.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  gate:
+    name: full verification gate (stable)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: tools/gate.sh
+
+  msrv:
+    name: MSRV builds (engine 1.65, kit 1.75)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - toolchain: "1.65"
+            package: izanagi
+          - toolchain: "1.75"
+            package: izanagi_kit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+      - uses: Swatinem/rust-cache@v2
+      # `check` not `test`: dev-dependencies and test code may use newer
+      # idioms; the MSRV promise is that *consumers* on the declared
+      # toolchain can build the crate.
+      - run: cargo check -p ${{ matrix.package }}
+
+  wasm:
+    name: kit compiles for wasm32
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p izanagi_kit --target wasm32-unknown-unknown

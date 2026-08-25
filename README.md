@@ -164,14 +164,17 @@ cargo test -p izanagi_kit   # 3,400+ tests, 0 clippy warnings, fmt clean
 
 ## This repository
 
-Both crates live in one Cargo workspace (root `Cargo.toml`). Two audit
-documents track what's implemented, what's missing, and why, at two
-different levels of detail:
+Both crates live in one Cargo workspace (root `Cargo.toml`).
 
-- [`PRODUCT_AUDIT.md`](./PRODUCT_AUDIT.md) — product-level: what each crate
-  provides, where they overlap, what's missing between them
-- [`izanagi_kit/FEATURE_AUDIT.md`](./izanagi_kit/FEATURE_AUDIT.md) —
-  kit-internal: a module-by-module sufficiency/excess audit
+- [`AGENT_INSTRUCTIONS.md`](./AGENT_INSTRUCTIONS.md) — current state
+  assessment and working protocol; its verifiable claims are build-checked.
+- [`izanagi_kit/RESEARCH.md`](./izanagi_kit/RESEARCH.md) — the full record of
+  what was researched, implemented (with commit hashes), and deliberately
+  deferred, with sources.
+- `tools/gate.sh` — the whole verification gate as one command: fmt, tests,
+  clippy, rustdoc, the pinned determinism hashes, the integration hash, the
+  pipeline demo, and packageability. The pre-push hook and the proposed CI
+  ([`docs/ci/`](./docs/ci/)) run exactly this script.
 
 ## Contributing
 

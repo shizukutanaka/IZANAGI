@@ -335,6 +335,63 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
 }
 
 #[test]
+fn no_markdown_document_links_to_a_missing_file() {
+    // Deleting the superseded audit documents left eight dead relative links
+    // across three files — READMEs pointing readers at files that no longer
+    // exist. A link is a claim that a file exists; claims get checked.
+    let docs = [
+        "README.md",
+        "AGENT_INSTRUCTIONS.md",
+        "izanagi/README.md",
+        "izanagi/CLAUDE.md",
+        "izanagi/ARCHITECTURE.md",
+        "izanagi/CONTRIBUTING.md",
+        "izanagi_kit/README.md",
+        "izanagi_kit/RESEARCH.md",
+        "izanagi_kit/SPEC.md",
+        "izanagi_kit/GAME_DEV_TAXONOMY.md",
+        "izanagi_kit/CHANGELOG.md",
+        "docs/ci/README.md",
+    ];
+    let mut dead: Vec<String> = Vec::new();
+    let mut checked = 0usize;
+    for doc in docs {
+        let dir = Path::new(doc).parent().unwrap_or_else(|| Path::new(""));
+        let text = read(doc);
+        // Every `](target)` where target is a relative path (no scheme, no
+        // pure fragment). Anchors are split off before the existence check.
+        let mut rest = text.as_str();
+        while let Some(open) = rest.find("](") {
+            rest = &rest[open + 2..];
+            let Some(close) = rest.find(')') else { break };
+            let target = &rest[..close];
+            rest = &rest[close..];
+            if target.starts_with("http") || target.starts_with('#') || target.is_empty() {
+                continue;
+            }
+            let path_part = target.split('#').next().unwrap_or(target);
+            if path_part.is_empty() {
+                continue;
+            }
+            checked += 1;
+            let resolved = repo_root().join(dir).join(path_part);
+            if !resolved.exists() {
+                dead.push(format!("{doc} -> {target}"));
+            }
+        }
+    }
+    assert!(
+        checked >= 10,
+        "expected to find relative links to check, found {checked} — has the \
+         document set changed?"
+    );
+    assert!(
+        dead.is_empty(),
+        "these markdown links point at files that do not exist: {dead:#?}"
+    );
+}
+
+#[test]
 fn no_superseded_audit_documents_remain() {
     // Four documents were deleted for stating counts that had become false
     // (77/78 modules, 188/3362 tests). They are recoverable from git history;

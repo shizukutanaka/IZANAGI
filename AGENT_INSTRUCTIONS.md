@@ -30,7 +30,7 @@
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
 | 出荷可能性 | `cargo package` 両クレート成功(kit 144 files / engine 46 files)|
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク |
 | 未検証の公開 API | **0** — `tests/public_api_is_exercised.rs` が、どのテスト・example からも呼ばれない `pub fn` の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0 |
 | MSRV | engine 1.65 / kit 1.75 |
@@ -64,9 +64,12 @@
 
 ## 2. 短所(重要度順・証拠付き)
 
-1. **[重大] CI が未稼働** — `.github/workflows/ci.yml` は GitHub App トークンの
-   `workflows` 権限不足で push 不能(履歴から除外済み)。8 job の定義はユーザーへ送付済みだが、
-   **ユーザーが GitHub Web UI で追加するまで、3492 テストも決定論 matrix も GitHub 上では一切走らない**。
+1. **[重大] CI が未稼働** — `.github/workflows/` への push は GitHub App トークンの
+   `workflows` 権限不足で**全拒否**される(エージェントは着手不可)。ready-to-install の
+   定義は **`docs/ci/ci.yml` に在中**(手順は `docs/ci/README.md`)。gate / msrv / wasm の
+   3 job で、gate は `tools/gate.sh` をそのまま実行する。**ユーザーが GitHub Web UI で
+   `.github/workflows/ci.yml` として追加するまで、3700+ テストも決定論 matrix も
+   GitHub 上では一切走らない**(API で確認: workflows 0 本)。
 2. **[重大] main が 342 コミット遅れ** — 成果は feature ブランチにのみ存在。PR 未作成
    (ユーザー明示指示待ち)。main を見た訪問者には改善が一切見えない。
 3. ~~**[中] 公開 API に panic 経路が残る**~~ — **解消済み**: 旧記載の「unwrap 242 / expect 20」は
@@ -114,7 +117,7 @@
 | I11 | N2: incremental multiset hash — `savefile`/`replay` ヘッダの algo バージョニング設計が先。**単独で着手しないこと** | 低 | 大 | **Opus** | 設計合意 |
 | I12 | N21: crates.io Trusted Publishing + cargo-semver-checks — 初回公開の意思決定待ち | 中 | 小 | ユーザー判断 | P5 解決 |
 
-**ユーザー判断待ち(エージェントは着手禁止)**: CI 有効化(Web UI で ci.yml 追加)/ main への PR 作成 /
+**ユーザー判断待ち(エージェントは着手禁止)**: CI 有効化(Web UI で `docs/ci/ci.yml` を `.github/workflows/ci.yml` として追加)/ main への PR 作成 /
 P5 バージョン体系 / 0.2 破壊的変更の承認 / crates.io 公開。
 
 ---
@@ -142,14 +145,20 @@ P5 バージョン体系 / 0.2 破壊的変更の承認 / crates.io 公開。
 ### 4.2 検証パイプライン(1 機能ごと・コミット前に全て実行)
 
 ```bash
-cargo fmt --all
-cargo test -p izanagi_kit --lib <対象module>      # 対象テスト
-cargo test --workspace                             # 全 3492+ green
-cargo clippy --workspace --all-targets             # 警告 0
-cargo fmt --all -- --check
-cd izanagi_kit && cargo test --test determinism --test roguelike_sim   # pinned hash 不変
-cargo run -p izanagi --example kit_bridge          # hash 353498ec4fbcd160 不変
+cargo fmt --all                                    # 整形(ゲートは検査のみで直さない)
+cargo test -p izanagi_kit --lib <対象module>       # 開発中の高速ループ
+tools/gate.sh                                      # ★ゲート全段
 ```
+
+`tools/gate.sh` が「green」の唯一の定義であり、以下を順に実行して最初の失敗で
+non-zero 終了する: `cargo fmt --all -- --check` / `cargo test --workspace` /
+clippy 警告 0 / rustdoc 警告 0(両クレート)/ pinned hash(`determinism` +
+`roguelike_sim`)/ `kit_bridge` の統合ハッシュ `353498ec4fbcd160` を出力に含むこと /
+`verify_pipeline_demo`(自身の主張を assert する)/ 両クレートの `cargo package`。
+
+同じスクリプトを `.githooks/pre-push` と CI 提案(`docs/ci/ci.yml` の `gate` ジョブ)が
+呼ぶので、ローカルの green と CI の green が定義上ずれない。フック有効化は**リポジトリ
+ルートで** `git config core.hooksPath .githooks`。
 
 コミットは **1 機能 = 1 コミット**、メッセージ末尾に検証結果を記載
 (先例: `git log --oneline -20` の各コミットを参照)。コミット後は毎回
