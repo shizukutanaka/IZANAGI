@@ -19,10 +19,18 @@ src/
   math.rs      — Vec2, Vec3, Mat3, Rect
   collide.rs   — swept_aabb, ray, circle
   ease.rs      — easing curves
-  rng.rs       — xorshift64 RNG
+  rng.rs       — xorshift64 RNG (integer core is replay-safe; f32 helpers are not)
   save.rs      — binary save format
   error.rs     — Error, Result
   backend.rs   — Backend trait, NullBackend, TerminalBackend
+  audio_pcm.rs — minimal WAV/PCM loader
+  camera.rs    — 2D camera (world<->screen transforms)
+  debug.rs     — runtime diagnostics and frame metrics
+  event.rs     — event bus (decouple systems)
+  gamepad.rs   — gamepad / controller input
+  log.rs       — tiny logging facility
+  sprite.rs    — sprite and frame animation
+  tilemap.rs   — grid-based world storage, camera-culled rendering
 
 examples/
   hello.rs     — 3-line smoke test
@@ -36,7 +44,14 @@ examples/
 
 tests/
   integration.rs — cross-module API contracts
+  bench.rs     — timing sanity checks
+  float_boundary.rs — the float-free module set, checked against src/
+  claude_md_is_current.rs — this file's Map block, checked against src/ and examples/
 ```
+
+The Map above is machine-checked: `tests/claude_md_is_current.rs` fails the
+build if a module or example exists that this file does not list, or vice
+versa. Update the Map in the same commit that adds or removes a file.
 
 ## Rules
 - `#![forbid(unsafe_code)]` — no exceptions.
@@ -46,7 +61,8 @@ tests/
   published crate. Backends in sub-crates only.
 - All public items need doc comments. `cargo doc --no-deps` must be clean.
 - `cargo fmt --check` must pass.
-- `cargo test` must be green before any PR.
+- `cargo test` must be green before any PR. The full workspace gate is one
+  command: `tools/gate.sh` (repository root).
 - Never add a config option without a question: "does the user actually need this?"
 - MSRV is Rust 1.65. Do not use features newer than this without a feature flag.
 
