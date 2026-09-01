@@ -47,6 +47,43 @@
 //! [`shrink_inputs`](crate::shrink::shrink_inputs) if the inputs themselves
 //! can be simplified.
 //!
+//! ## Proving things about a model, and what that buys you
+//!
+//! A real game's state space is astronomical — one `u32` turn counter is four
+//! billion states on its own — so nothing here can enumerate a whole game.
+//! What it can enumerate is a **model**: the handful of fields a property
+//! actually depends on, with the rest abstracted away. That is the normal way
+//! model checking is used, and it is why the state spaces named above are a
+//! puzzle room and a crafting economy rather than "the game".
+//!
+//! Which raises the question this module cannot answer alone: *proved about
+//! the model — so what?* A proof about a model that has drifted from the
+//! implementation is worth nothing, and the drift is invisible precisely
+//! because the model is the thing you look at.
+//!
+//! The kit has the other half already. The discipline is two steps:
+//!
+//! 1. [`forall_model`](crate::prop::forall_model) drives the real simulation
+//!    and the model through the same random command sequences and reports the
+//!    first command on which they disagree. That is evidence the abstraction
+//!    is faithful.
+//! 2. [`check_invariant`] proves the property of the model, exhaustively.
+//!
+//! Together these say: *the model agrees with the implementation on everything
+//! we sampled, and the property holds in every state the model can reach.*
+//!
+//! **That is not a proof about the implementation, and the difference matters.**
+//! Step 1 samples; it does not establish a refinement relation. A behaviour the
+//! sampling never reached can still differ. What the pair does buy is that the
+//! two ways of being wrong — a faithful model with a false property, and a true
+//! property about an unfaithful model — are each attacked by a different tool,
+//! and the second one is otherwise attacked by nothing at all.
+//!
+//! `examples/verify_pipeline_demo.rs` runs both steps against a simulation
+//! whose real state space is unbounded, so the checker reports
+//! [`Exhausted`](Verification::Exhausted) on the implementation and
+//! [`Holds`](Verification::Holds) on the model.
+//!
 //! ## The one caveat, stated precisely
 //!
 //! States are deduplicated by their 64-bit [`DetHash`] digest rather than by

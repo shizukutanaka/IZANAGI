@@ -17,6 +17,8 @@
 //! 5. `plan` — synthesise a run that reaches a goal.
 //! 6. `explore` — map the reachable state space.
 //! 7. `recovery` — does save/load preserve behaviour?
+//! 8. `forall_model` + `verify` — what a proof about a *model* is worth,
+//!    once the real state space is too large to enumerate.
 //!
 //! Each check is run against both the buggy and the fixed rules where that is
 //! meaningful, so the difference between "found no counterexample" and "proved
@@ -31,7 +33,7 @@
 use izanagi_kit::dst::dst_sweep;
 use izanagi_kit::explore::{explore, ExploreConfig};
 use izanagi_kit::plan::plan_inputs;
-use izanagi_kit::prop::forall_inputs;
+use izanagi_kit::prop::{forall_inputs, forall_model};
 use izanagi_kit::recovery::restart_test;
 use izanagi_kit::rng::SplitMix64;
 use izanagi_kit::shrink::{is_one_minimal, shrink_inputs};
@@ -123,6 +125,55 @@ impl Simulation for Room {
     type Input = Act;
     fn step(&mut self, input: &Act) {
         *self = step(true)(self, input);
+    }
+}
+
+/// The same room as `Room`, plus the bookkeeping a real game carries: a turn
+/// counter and a message log. Neither affects any rule we care about, and both
+/// make the reachable state space unbounded — one `u32` counter is four
+/// billion states before the log is considered at all.
+///
+/// This is the ordinary situation. A game's full state is never enumerable;
+/// what is enumerable is a model of the part a property depends on.
+#[derive(Clone)]
+struct RealRoom {
+    room: Room,
+    turn: u32,
+    log: Vec<&'static str>,
+}
+
+impl RealRoom {
+    fn start() -> Self {
+        RealRoom {
+            room: Room::start(),
+            turn: 0,
+            log: Vec::new(),
+        }
+    }
+}
+
+impl DetHash for RealRoom {
+    fn det_hash(&self, h: &mut Fnv1a) {
+        self.room.det_hash(h);
+        h.write_u32(self.turn);
+        h.write_u32(self.log.len() as u32);
+        for entry in &self.log {
+            h.write_str(entry);
+        }
+    }
+}
+
+impl Simulation for RealRoom {
+    type Input = Act;
+    fn step(&mut self, input: &Act) {
+        self.room = step(true)(&self.room, input);
+        self.turn += 1;
+        self.log.push(match input {
+            Act::Quaff => "quaff",
+            Act::Fight => "fight",
+            Act::Buy => "buy",
+            Act::Open => "open",
+        });
     }
 }
 
@@ -341,6 +392,67 @@ fn main() {
         Ok(()) => panic!("a lossy save must not go undetected"),
         Err(e) => println!("  lossy save caught: {e}"),
     }
+
+    // 8 ------------------------------------------------------------------
+    rule("8. forall_model + verify — what a proof about a model is worth");
+    // The real simulation carries a turn counter and a log. Nothing about the
+    // potion rule depends on them, but they make the state space unbounded —
+    // so the checker cannot enumerate it and says so rather than pretending.
+    let real_step = |r: &RealRoom, a: &Act| {
+        let mut next = r.clone();
+        next.step(a);
+        next
+    };
+    let on_the_real_thing = check_invariant(
+        RealRoom::start(),
+        &ACTS,
+        real_step,
+        |r: &RealRoom| r.room.potions >= 0,
+        20_000,
+    );
+    match &on_the_real_thing {
+        Verification::Exhausted { states, .. } => println!(
+            "  the real simulation: \x1b[33mINCONCLUSIVE\x1b[0m after {states} states — \
+             a u32 turn counter alone is 4 billion"
+        ),
+        other => println!("  unexpected: {other}"),
+    }
+    assert!(
+        on_the_real_thing.is_exhausted(),
+        "an unbounded space must not be reported as proved"
+    );
+
+    // Step 1 of the discipline: is the model faithful? Drive both through the
+    // same random commands and require they agree on everything the property
+    // mentions.
+    let faithful = forall_model(
+        0..300u64,
+        24,
+        &RealRoom::start(),
+        &Room::start(),
+        |rng: &mut SplitMix64| ACTS[rng.below(4) as usize],
+        |real: &RealRoom, model: &Room| real.room == *model,
+    );
+    println!(
+        "  model fidelity over 300 random command sequences: {}",
+        if faithful.is_ok() {
+            "agreed throughout"
+        } else {
+            "DIVERGED"
+        }
+    );
+    assert!(
+        faithful.is_ok(),
+        "the abstraction must track the implementation"
+    );
+
+    // Step 2: prove the property of the model, which *is* enumerable.
+    println!("  and on the model, the same invariant is PROVED (step 2 above).");
+    println!("  Together: the model agrees with the implementation everywhere we");
+    println!("  sampled, and the property holds in every state the model can reach.");
+    println!("  \x1b[33mThat is not a proof about the implementation\x1b[0m — sampling is");
+    println!("  not a refinement relation. What it buys is that both ways of being");
+    println!("  wrong are attacked, and the second one otherwise by nothing at all.");
 
     // ---------------------------------------------------------------------
     rule("Summary");
