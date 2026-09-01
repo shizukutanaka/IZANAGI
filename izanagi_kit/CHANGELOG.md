@@ -6,6 +6,37 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —
+  cells were stored in a `HashMap`, and `iter_keys` / `all_occupied_cells`
+  returned them in bucket order, which varies per process because the standard
+  hasher is randomly seeded. Both methods documented themselves as unordered,
+  and `iter_keys`' own docs suggested "process every entity in the spatial
+  index (e.g. end-of-frame position sync)" as a use case — an order-dependent
+  pass over a per-process-random order, which is precisely the desync the
+  engine's `World` shipped and fixed by moving to `BTreeMap`. Documenting a
+  footgun is not the same as removing it, least of all in the one crate whose
+  entire promise is bit-identical replay.
+
+  `cells` is now a `BTreeMap`, so both methods yield ascending `(cx, cy)` order
+  and `iter_keys` stays allocation-free. Cost is O(log n) rather than O(1) per
+  cell lookup, the same trade the engine made. No observable output changed:
+  `DetHash` already sorted before hashing, so the pinned determinism hashes and
+  the `kit_bridge` integration hash are unmoved. Two tests pin the new
+  guarantee, using insertion order as the oracle — build the same grid forwards
+  and backwards and require identical readback — and reverting the struct to
+  `HashMap` fails them.
+
+### Added
+- **`tests/no_nondeterminism_in_sim.rs`** — the non-float half of "replay-safe",
+  which nothing checked. `no_float_in_sim.rs` rejects `f32`/`f64`; this rejects
+  wall-clock reads, thread spawning, pointer identity and explicit
+  `RandomState` outright, and holds every `HashMap`/`HashSet` in library code
+  to an allowlist that states, per module, why its iteration order cannot reach
+  output. Exact counts, so a module already on the list still trips when it
+  grows a new map — "this module was fine before" is not an argument about the
+  map just added.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded

@@ -21,14 +21,14 @@
 //! (sorted-key) order so the hash is insertion-order-independent.
 
 use crate::world_hash::{DetHash, Fnv1a};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// Spatial hash grid keyed by entity identifiers of type `K`.
 #[derive(Clone, Debug)]
 pub struct SpatialHash<K> {
     cell_size: i32,
     /// Maps cell coordinates to the list of keys in that cell.
-    cells: HashMap<(i32, i32), Vec<K>>,
+    cells: BTreeMap<(i32, i32), Vec<K>>,
 }
 
 impl<K: Eq + Clone> SpatialHash<K> {
@@ -36,7 +36,7 @@ impl<K: Eq + Clone> SpatialHash<K> {
     pub fn new(cell_size: i32) -> Self {
         SpatialHash {
             cell_size: cell_size.max(1),
-            cells: HashMap::new(),
+            cells: BTreeMap::new(),
         }
     }
 
@@ -278,19 +278,22 @@ impl<K: Eq + Clone> SpatialHash<K> {
             .map(|(coord, bucket)| (*coord, bucket.as_slice()))
     }
 
-    /// Iterate over every registered key across all cells. Order reflects the
-    /// internal `HashMap` bucket order — not sorted and not stable across
-    /// inserts. Allocation-free (no intermediate collection).
+    /// Iterate over every registered key across all cells, in ascending
+    /// `(cx, cy)` cell order and insertion order within each cell.
+    /// Allocation-free (no intermediate collection).
     ///
     /// Useful for "process every entity in the spatial index" passes (e.g.
-    /// end-of-frame position sync) where cell membership is irrelevant.
+    /// end-of-frame position sync) where cell membership is irrelevant — and
+    /// safe for such a pass precisely because the order is deterministic. It
+    /// previously reflected `HashMap` bucket order, which varies per process,
+    /// so any order-dependent pass built on it would have desynced a replay.
     pub fn iter_keys(&self) -> impl Iterator<Item = &K> {
         self.cells.values().flat_map(|bucket| bucket.iter())
     }
 
-    /// Collect the cell-space coordinates of every non-empty cell in the grid.
-    /// The order reflects the internal `HashMap` — not sorted. Useful for
-    /// "process all populated regions" passes and debug visualisations.
+    /// Collect the cell-space coordinates of every non-empty cell in the grid,
+    /// in ascending `(cx, cy)` order. Useful for "process all populated
+    /// regions" passes and debug visualisations.
     pub fn all_occupied_cells(&self) -> Vec<(i32, i32)> {
         self.cells.keys().copied().collect()
     }
@@ -386,7 +389,9 @@ impl<K: Eq + Clone> SpatialHash<K> {
 
 impl<K: Eq + Clone + Ord + DetHash> DetHash for SpatialHash<K> {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        // Sort cells by coordinate for canonical order.
+        // `BTreeMap` already yields ascending coordinate order; the explicit
+        // sort is kept so the canonical order is a property of this function
+        // rather than of whichever map the struct happens to use.
         let mut cells: Vec<(&(i32, i32), &Vec<K>)> = self.cells.iter().collect();
         cells.sort_by_key(|(coord, _)| *coord);
         hasher.write_u32(self.cell_size as u32);
@@ -865,5 +870,75 @@ mod tests {
         g.insert(2u32, 0, 0);
         let cells = g.all_occupied_cells();
         assert_eq!(cells.len(), 1);
+    }
+    #[test]
+    fn iteration_order_is_deterministic_regardless_of_insertion_order() {
+        // The engine's `World` shipped this exact bug: a `HashMap` whose
+        // iteration order varied per process, feeding a pass whose result
+        // depended on that order. `iter_keys` and `all_occupied_cells` used to
+        // document themselves as unordered while suggesting "process every
+        // entity" passes as a use case — the same footgun, with a label.
+        //
+        // The oracle is insertion order: build the same grid two ways and
+        // require the readback to be identical, which a bucket-ordered map
+        // cannot guarantee.
+        let forward = {
+            let mut g: SpatialHash<u32> = SpatialHash::new(10);
+            for i in 0..40u32 {
+                g.insert(i, (i as i32 * 7) % 53, (i as i32 * 13) % 47);
+            }
+            g
+        };
+        let backward = {
+            let mut g: SpatialHash<u32> = SpatialHash::new(10);
+            for i in (0..40u32).rev() {
+                g.insert(i, (i as i32 * 7) % 53, (i as i32 * 13) % 47);
+            }
+            g
+        };
+
+        assert_eq!(
+            forward.all_occupied_cells(),
+            backward.all_occupied_cells(),
+            "occupied cells must not depend on insertion order"
+        );
+        // And the cells come back sorted, not merely equal to each other.
+        let cells = forward.all_occupied_cells();
+        let mut sorted = cells.clone();
+        sorted.sort_unstable();
+        assert_eq!(cells, sorted, "cells must be in ascending coordinate order");
+
+        // Same grid built twice the same way iterates identically, and the key
+        // stream is grouped by ascending cell.
+        let again = {
+            let mut g: SpatialHash<u32> = SpatialHash::new(10);
+            for i in 0..40u32 {
+                g.insert(i, (i as i32 * 7) % 53, (i as i32 * 13) % 47);
+            }
+            g
+        };
+        let a: Vec<u32> = forward.iter_keys().copied().collect();
+        let b: Vec<u32> = again.iter_keys().copied().collect();
+        assert_eq!(a, b, "iter_keys must be reproducible");
+        assert_eq!(a.len(), 40);
+    }
+
+    #[test]
+    fn the_hash_is_unchanged_by_insertion_order() {
+        // DetHash sorted before and after this change, so this is a regression
+        // guard rather than a new property — but it is the property the whole
+        // crate rests on, and it costs one test to keep it honest.
+        let mut forward: SpatialHash<u32> = SpatialHash::new(8);
+        let mut backward: SpatialHash<u32> = SpatialHash::new(8);
+        for i in 0..25u32 {
+            forward.insert(i, (i as i32 * 3) % 17, (i as i32 * 5) % 19);
+        }
+        for i in (0..25u32).rev() {
+            backward.insert(i, (i as i32 * 3) % 17, (i as i32 * 5) % 19);
+        }
+        assert_eq!(
+            crate::world_hash::hash_state(&forward),
+            crate::world_hash::hash_state(&backward)
+        );
     }
 }
