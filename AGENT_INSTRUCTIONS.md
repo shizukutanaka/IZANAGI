@@ -31,7 +31,7 @@
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし。tarball を実際にコンパイルする)|
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**|
 | 未検証の公開 API | **0** — `tests/public_api_is_exercised.rs` が、どのテスト・example からも呼ばれない `pub fn` の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
@@ -48,10 +48,10 @@
    `rollback` / `world_hash`。各々が別のバグクラスを狙い、出典が明記されている。
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(12種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(13種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
-   README Quickstart(doctest 実行)。
+   README Quickstart(doctest 実行)・**能力マップの検証系被覆**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -100,10 +100,14 @@
 - ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
-- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を12種の機械検査に。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を13種の機械検査に。
 - ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
+- ~~能力マップが検証系を1行も持たない~~ → README が「能力マップ」として案内する
+  `GAME_DEV_TAXONOMY.md` は検証系モジュールを**9件まったく言及していなかった**
+  (本書が本製品の決定的な長所と呼ぶ族が、能力表では存在しないように見えていた)。
+  section Q を追加し、以後の欠落は `docs_are_current.rs` が落とす。
 
 ## 3. 改善案(優先順位付き)
 

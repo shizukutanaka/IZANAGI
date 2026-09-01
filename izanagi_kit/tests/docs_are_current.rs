@@ -33,6 +33,23 @@ fn read(rel: &str) -> String {
 
 /// Every `pub mod` declared in `lib.rs` — the ground truth every document is
 /// checked against.
+/// The modules whose job is checking a simulation. Named once, because two
+/// documents make claims about this set and both are checked below.
+const VERIFICATION_FAMILY: &[&str] = &[
+    "sim",
+    "replay",
+    "rollback",
+    "dst",
+    "plan",
+    "explore",
+    "shrink",
+    "prop",
+    "temporal",
+    "recovery",
+    "verify",
+    "world_hash",
+];
+
 fn declared_modules() -> BTreeSet<String> {
     read("izanagi_kit/src/lib.rs")
         .lines()
@@ -112,22 +129,9 @@ fn every_tier_one_module_is_declared_and_tier_one_covers_the_verification_family
         );
     }
     // Every module whose job is checking a simulation belongs in tier 1.
-    for required in [
-        "sim",
-        "replay",
-        "rollback",
-        "dst",
-        "plan",
-        "explore",
-        "shrink",
-        "prop",
-        "temporal",
-        "recovery",
-        "verify",
-        "world_hash",
-    ] {
+    for required in VERIFICATION_FAMILY {
         assert!(
-            listed.contains(required),
+            listed.contains(*required),
             "`{required}` checks simulations but is missing from the tier 1 map"
         );
     }
@@ -442,4 +446,28 @@ fn no_superseded_audit_documents_remain() {
              genuinely needed again, its numbers must be checked here first"
         );
     }
+}
+
+#[test]
+fn the_capability_map_covers_the_verification_family() {
+    // GAME_DEV_TAXONOMY.md is what the README sends readers to for "the
+    // capability map, with per-feature implementation status". It was written
+    // before the verification modules existed and then never grew a row for
+    // any of them: ten of the twelve modules below appeared nowhere in it,
+    // including every module the handbook calls this crate's defining
+    // strength. A capability map that omits the headline capability sends the
+    // reader away believing it is absent.
+    //
+    // The map is prose, not a table this test can parse, so the check is the
+    // weakest one that would have caught the real defect: each module has to
+    // be named somewhere. That is enough — the failure mode was silence.
+    let taxonomy = read("izanagi_kit/GAME_DEV_TAXONOMY.md");
+    let missing: Vec<&&str> = VERIFICATION_FAMILY
+        .iter()
+        .filter(|m| !taxonomy.contains(&format!("`{m}`")))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "GAME_DEV_TAXONOMY.md is the capability map the README points at, and          it never mentions these simulation-checking modules: {missing:?}. Add          a row for each in the same commit that adds the module."
+    );
 }
