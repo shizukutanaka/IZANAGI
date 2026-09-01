@@ -310,6 +310,11 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
         ("README.md", "3,400+ tests"),
         ("README.md", "**180+ tests**"),
         ("izanagi/README.md", "**180+ tests**"),
+        // The handbook snapshot stated an exact 3744 and was wrong two
+        // commits later, in the very commit that removed the other exact
+        // numbers from it. Last one converted; now nothing in the snapshot
+        // carries a count that nobody checks.
+        ("AGENT_INSTRUCTIONS.md", "**3,600+ passed / 0 failed**"),
     ] {
         assert!(
             read(doc).contains(claim),

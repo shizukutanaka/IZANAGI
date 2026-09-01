@@ -45,7 +45,8 @@ examples/
 tests/
   integration.rs — cross-module API contracts
   bench.rs     — timing sanity checks
-  float_boundary.rs — the float-free module set, checked against src/
+  float_boundary.rs — the float-free module set and the absence of any
+                  comparison sort, both checked against src/
   claude_md_is_current.rs — this file's Map block, checked against src/ and examples/
 ```
 

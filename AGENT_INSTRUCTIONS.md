@@ -4,24 +4,25 @@
 > **Claude Opus / Claude Sonnet が単独セッションでそのまま実行できる粒度**で記述する。
 > 曖昧さを排し、各タスクに「対象ファイル・検証手順・リスク・推奨モデル」を明記する。
 >
-> 最終更新: 2026-07-21 / 基準ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`(origin と同期済み)
+> 最終更新はコミット履歴を正とする(`git log -1 --format=%cd AGENT_INSTRUCTIONS.md`)。
+> 基準ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`(origin と同期済み)
 > 併読: `izanagi_kit/RESEARCH.md`(外部出典調査。N1〜N23 候補表は実装状況を随時反映済み)
 >
 > **削除済みの先行文書**: `STRENGTHS_WEAKNESSES.md` / `FEATURE_AUDIT.md` / `IMPROVEMENTS.md` /
 > `PRODUCT_AUDIT.md` の4件は、見出しの数値が実態から乖離していたため削除した(FEATURE_AUDIT は
 > 「77 モジュール / 3362 テスト」、PRODUCT_AUDIT は「78 モジュール / 188 テスト」と主張していたが
-> 実態は 88 モジュール / 3709 テスト)。古い数値は無い数値より悪く、どれが最新か読者に判別できなくなる。
+> 実態は 88 モジュール / 3,600 超のテスト)。古い数値は無い数値より悪く、どれが最新か読者に判別できなくなる。
 > 内容は git 履歴から復元可能。**現行の真実の source は本書と `RESEARCH.md` の2つだけ**であり、
 > 本書の検証可能な主張(モジュール数・pinned hash)は `izanagi_kit/tests/docs_are_current.rs` が
 > ビルド時に検査するので、黙って古くなることはない。
 
 ---
 
-## 0. 現状スナップショット(2026-08-18 実測)
+## 0. 現状スナップショット(数値は `tools/gate.sh` の直近 exit 0 時点の実測)
 
 | 指標 | 値 |
 |---|---|
-| workspace テスト | **3744 passed / 0 failed** |
+| workspace テスト | **3,600+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
 | kit モジュール数 | **88**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
@@ -29,102 +30,121 @@
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
-| 出荷可能性 | `cargo package` 両クレート成功(kit 144 files / engine 46 files)|
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク |
+| 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし。tarball を実際にコンパイルする)|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)|
 | 未検証の公開 API | **0** — `tests/public_api_is_exercised.rs` が、どのテスト・example からも呼ばれない `pub fn` の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
-| main との差 | feature ブランチが **370** コミット先行(PR 未作成 — ユーザー明示指示待ち)|
+| main との差 | **0 遅れ**(main の全内容を取り込み済み)。PR #7 は作成済み・**未マージ**(CI 有効化を先にする合意)|
 | kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
 
 ---
 
-## 1. 長所(証拠付き)
+## 1. 長所(すべて測定値の裏づけあり)
 
-1. **決定論パイプラインの完結性** — 業界でも稀な end-to-end 構成が完成している:
-   `DetHash`/FNV-1a world hash → `LabeledDigest`(subsystem 粒度 desync 局所化)→
-   `DesyncReport`(本番再現バンドル)→ `dst`(seed 掃引 + 二重実行検査)→
-   `rollback::sync_test`(毎フレーム rollback 自己検査)→ `plan`(goal→入力列合成)。
-   検証系がそれ自体テストされている(例: sync_test の隠れ状態注入テスト)。
-2. **テスト密度と質** — 3492 テスト。単なる例示ではなく BFS オラクル(jps4/plan)、
-   `is_reachable` オラクル 2400 ペア(ConnectivityMap)、bit-exact 等価テスト(WFC 重み)、
-   メタモルフィック則(三角不等式・壁単調性)など**機械検証可能なオラクル**中心。
-3. **zero-dependency / `#![forbid(unsafe_code)]`** — 両クレートとも実行時依存ゼロ。
-   供給網リスクなし。wasm32 にツールチェーン追加だけでコンパイル可能(CI job 定義済み)。
-4. **文書品質が deny レベルで固定** — `#![deny(missing_docs)]` +
-   `#![deny(rustdoc::broken_intra_doc_links)]`。全公開 API に出典付き doc(GDC 講演・arXiv 論文を明記)。
-5. **アルゴリズムの正しさへの投資** — JPS4 は交換論法の証明スケッチ付き、
-   実装初稿のバグを BFS オラクルが実際に検出した記録が commit message に残る。
-6. **コンテンツパイプライン** — text → parser → validator(SARIF 出力)→ loader。
-   LLM 生成コンテンツの検証ゲートとして機能する(未使用 prefab/tile 検出まで実装)。
-7. **エンジンとキットの実証済み統合** — `kit_bridge` example が headless と engine-hosted の
-   world-hash 一致をアサートし、単一ハッシュ値で回帰を検出。
-8. **研究駆動の開発記録** — `RESEARCH.md` に出典・実装 commit・見送り理由が全て残り、
-   後続セッションが文脈を完全に復元できる。
+1. **検証系11モジュールが揃い、相互に補完する** — `sim`(監査)/ `verify`(有界モデル
+   検査・**証明**)/ `temporal`(時相性質)/ `recovery`(クラッシュ復旧)/ `explore`
+   (archive 探索)/ `prop`(性質・モデル検査)/ `shrink`(縮約)/ `plan` / `dst` /
+   `rollback` / `world_hash`。各々が別のバグクラスを狙い、出典が明記されている。
+   **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
+   「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
+2. **主張が機械検査される(12種)** — tier 表・README モジュール表・pinned hash・
+   モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
+   engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
+   README Quickstart(doctest 実行)。
+   加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0**、
+   **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
+3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
+   (jps4/plan)、代数則(三角不等式・単調性)、denotational 参照(temporal の全パターン)、
+   保存則(pool)、ビルダー等価(autotile/encounter)。
+   **検査器自身も変異注入で検証**する慣行が定着している。
+4. **zero-dependency / `#![forbid(unsafe_code)]`** — 両クレートとも実行時依存ゼロ。
+   両クレートが**検証付き**で梱包可能(`cargo package` が tarball からビルドし直す)。
+5. **「green」の定義が1つ** — `tools/gate.sh` の8段。pre-push フックと CI 提案が
+   同じスクリプトを呼ぶので、ローカルと CI が定義上ずれない。
+6. **エンジンとキットの境界が測定され機械検査される** — engine 25 モジュール中 8 が
+   完全に float-free。`rng` は整数コアが replay-safe、便利側がそうでないという
+   **分割**まで明記されている。
+7. **研究駆動の開発記録** — `RESEARCH.md` に出典・実装 commit・見送り理由が残り、
+   後続セッションが文脈を復元できる。本セッションでは「見送り理由」自体が
+   誤っていた例(N3)も記録され直した。
 
 ## 2. 短所(重要度順・証拠付き)
 
-1. **[重大] CI が未稼働** — `.github/workflows/` への push は GitHub App トークンの
-   `workflows` 権限不足で**全拒否**される(エージェントは着手不可)。ready-to-install の
-   定義は **`docs/ci/ci.yml` に在中**(手順は `docs/ci/README.md`)。gate / msrv / wasm の
-   3 job で、gate は `tools/gate.sh` をそのまま実行する。**ユーザーが GitHub Web UI で
-   `.github/workflows/ci.yml` として追加するまで、3700+ テストも決定論 matrix も
-   GitHub 上では一切走らない**(API で確認: workflows 0 本)。
-2. **[重大] main が 342 コミット遅れ** — 成果は feature ブランチにのみ存在。PR 未作成
-   (ユーザー明示指示待ち)。main を見た訪問者には改善が一切見えない。
-3. ~~**[中] 公開 API に panic 経路が残る**~~ — **解消済み**: 旧記載の「unwrap 242 / expect 20」は
-   **テストコードを含む計測**だった。実装コードのみを数え直すと kit は unwrap 6 / expect 4 /
-   `panic!` 0、engine は unwrap 1 / expect 1 で、**合計 12 箇所**(すべて到達不能かガード済み)。
-   0.2 の破壊的変更は不要で、12 箇所を書き換えて両クレートに
-   `#![cfg_attr(not(test), deny(clippy::unwrap_used, clippy::expect_used, clippy::panic))]`
-   を追加し、コンパイラが強制する不変条件にした。添字アクセス(約700箇所)とコンストラクタの
-   `assert!` は意図的に対象外 — 前者を `get().ok_or()` に置換するとコードが悪化し、
-   後者は「不正な設定を作った瞬間に報告する」ための正しい振る舞い。
-4. ~~**[中] README が新機能に追随していない**~~ — **解消済み (04d472b)**: kit README と
-   crate doc に 4 層のモジュール地図を追加し、`sim` / `rollback` / `dst` / `plan` /
-   `AdaptiveDelay` を掲載。残る細部として `combine_maps` / `farthest_cell` /
-   `ConnectivityMap` / `jps4` は tier 表の `pathfinding` 行に含まれるが個別記載はまだない。
-5. ~~**[中] バージョン体系の不整合**~~ — **要件そのものが誤りだった**: 独立に公開される
-   2 クレートが版数を揃える必要はない(bevy / bevy_ecs も揃っていない)。engine の 4.x にも
-   根拠はあり、`izanagi/CHANGELOG.md` の `[4.0.0] - 2026-04-29` に「v3.x は 858K 行に
-   膨れ上がり `cargo build` すら通らなかった。v4.0 はゼロからの書き直しで 7,000 行未満」と
-   明記されている。本書が「記録されていない」と書いていたのは、その記録を確認していなかった
-   だけ。`Cargo.toml` が 4.1.0 なのに CHANGELOG に該当項が無い件も、engine の
-   `[Unreleased]` 冒頭で既に明示されている(抽出時点で 4.1.0 だったため内容不明)。
-   版数と CHANGELOG の対応は `tests/docs_are_current.rs` が機械検査する。
-6. ~~**[小] エンジン側の f32 シミュレーション**~~ — **解消済み**: 境界を実測して
-   engine の crate doc に「Determinism boundary」節を追加し、`izanagi/tests/float_boundary.rs`
-   で機械検査に載せた。実測では 25 モジュール中 **8 個が完全に float-free**
-   (`assets`/`ecs`/`error`/`event`/`log`/`save`/`scene`/`state`)で、これらから組んだ状態は
-   replay に参加できる。`rng` は**分割している**のが要点 — 整数側(`u64`/`u32`/`int_range`/
-   `choose`)は replay-safe だが便利側(`f32`/`range`/`chance`)は違い、これが事故で desync する
-   最短経路。テストは両方向(float-free だったものが汚れた / 汚れていたものが綺麗になった)を
-   検出し、doc の記載と定数の一致も検査する。
-7. **[小] 新モジュールの example 不在** — `dst`/`plan`/`rollback` は doc とテストのみで、
-   `examples/` に使用例がない(既存 example 群は充実)。
-8. ~~**[小] 文書が古い**~~ — **解消済み**: 乖離した4文書を削除し、残る文書の検証可能な主張を
-   `tests/docs_are_current.rs` の機械検査に載せた(tier 表・README のモジュール表が存在しない
-   モジュールを挙げていないこと、pinned hash の一致、モジュール数の一致)。
+### 未解決
+
+1. **[重大] CI が未稼働** — 3経路すべて実測で 403(git push / Contents API /
+   Git Data API)。エージェント側の回避策は存在しない。定義は `docs/ci/ci.yml`、
+   手順は `docs/ci/README.md`。**ユーザーが Web UI で追加するまで、3,600+ テストも
+   MSRV も wasm も GitHub 上では一度も走らない。**
+2. **[重大] 外部利用者ゼロ — 全テストが著者自身によるもの** — これは構造的な限界で、
+   道具では埋まらない。API が使えるという証拠は `verify_pipeline_demo` と doctest だけで、
+   どちらも同じ著者が書いた。「動く」ことは 3,600+ テストが示すが、
+   **「他人に使える」ことは何も示していない。** 公開して最初の利用者が来るまで、
+   この欄は埋まらない。
+3. **[中] `verify` はモデルについて証明する。忠実性は標本にすぎない** —
+   実ゲームの状態空間は列挙不能なので、検査するのはモデル。`prop::forall_model` が
+   モデルと実装の一致を示すが、**それは標本であって精緻化の証明ではない**。
+   両者の連携は doc と demo に明記済み(`RealRoom` が INCONCLUSIVE、モデルが PROVED)。
+   これ以上を主張しないことが正しく、過大主張は道具の信頼を壊す。
+4. **[小] crates.io 未公開** — `cargo publish --dry-run` は成功する(公開可能)。
+   資格情報が無く、公開自体が取り消し不能なので、ユーザーの判断と手による。
+
+### 解消済み(本セッション)
+
+- ~~公開 API の panic 経路~~ → **要件が誤りだった**。「unwrap 242」はテストコード込みの
+  計測で、実装のみでは12箇所・全て到達不能。0.2 破壊的変更は不要で、書き換えて
+  コンパイラ強制(`deny(clippy::unwrap_used/expect_used/panic)`)に。
+- ~~バージョン体系の不整合~~ → **要件が誤りだった**。独立公開なら版数一致は不要で、
+  4.x の根拠は engine CHANGELOG `[4.0.0]` に記録済み。
+- ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
+- ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
+  印字する主張をすべて assert する。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を12種の機械検査に。
+- ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
+- ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
+  クラス全体を許可リスト方式の機械検査に載せた。
 
 ## 3. 改善案(優先順位付き)
 
+前版のこの表は 12 行あった。**8 行が閉じ、残るのは 4 行**である。閉じ方の内訳のほうが
+表そのものより重要で、**8 件のうち 3 件は実装ではなく測定で閉じた** — 要件が誤っていたか、
+対象が最初から存在しなかった。表の外の P5(バージョン体系)を加えると 4 件になる:
+
+| 閉じた要件 | 閉じ方 | 測定 |
+|---|---|---|
+| I10 / N3 zero-panic API(「0.2 破壊的変更・工数大」) | **要件が誤り** | 追跡指標「unwrap 242 / expect 20」は**テストコード込みの計測**だった。実装コードのみでは計 12 箇所、`panic!` は 0。12 箇所を書き換え、`deny` で恒久強制。シグネチャ変更は不要だった |
+| P5 バージョン体系の不整合(engine 4.1.0 vs kit 0.1.0) | **要件が誤り** | 独立に公開されるクレートに版数一致の要請はない。4.x の根拠は engine `CHANGELOG [4.0.0]` に既に記録済みだった |
+| I5 / N17 engine の float ソートを `total_cmp` 化 | **対象が存在しない** | `izanagi/src/` の `sort` / `max_by` / `min_by` / `partial_cmp` / `binary_search` は **0 件**。kit 側は `no_float_in_sim.rs` が float 自体を禁じているので派生的に 0 件。**この 0 件は測って終わりにせず `izanagi/tests/float_boundary.rs` の空の許可リストに載せた** — 最初に `sort_by` を足す人が「何を比較するのか」を書かない限りビルドが落ちる |
+| I6 / N15残 recipe/drop/encounter の孤児参照検出 | **対象が存在しない** | `Content` のフィールドは `prefabs` / `tiles` / `levels` の 3 つのみ(`izanagi_kit/src/content.rs`)。検出すべきデータ型自体が無い |
+
+残る 5 件(I1 README 同期 / I2 example 追加 / I3 N13 WFC selector / I7 N11 lockstep /
+I8 N19 `Fixed` op 行列)は実装で閉じた。詳細は §2 の解消済み一覧。
+
+> **この節から得られた教訓**: 改善案は**書き足す前に測る**。未測定のまま積んだ 12 件のうち
+> 3 件は着手すれば無駄骨だった(2 件は対象ゼロ、1 件は 15 倍の過大見積り)。
+> 以降、新しい行を足すときは「対象が何件あるか」を最初の列に書けるまで足さない。
+
+### 残っているもの
+
 | # | 改善案 | 効果 | 工数 | 推奨モデル | 依存 |
 |---|---|---|---|---|---|
-| I1 | kit README / engine README を現状に同期(新モジュール8件・オラクル検証の訴求) | 高(公開物の顔) | 小 | **Sonnet** | なし |
-| I2 | `dst`/`plan`/`rollback` の実行可能 example 追加(`examples/dst_demo.rs` 等、既存 example の書式踏襲) | 中 | 小 | **Sonnet** | なし |
-| I3 | N13: WFC selector フック(collapse 順を外部制御、既定挙動 bit 不変) | 中 | 中 | **Opus** | なし |
-| I4 | N5 残り: MapBuilder 合成層(`Dungeon` に可変 API を足さず、`Vec<bool>` グリッド変換の合成で設計) | 中 | 中〜大 | **Opus** | なし |
-| I5 | N17: engine の float ソート箇所棚卸し → `total_cmp`+index tie-break 化 | 中(決定論) | 小〜中 | **Sonnet**(棚卸し)→ **Opus**(判断) | なし |
-| I6 | N15 残り: recipe/drop/encounter の孤児参照検出(validator 拡張) | 中 | 小 | **Sonnet** | なし |
-| I7 | N11 残り: t+delay lockstep ヘルパ(1500 Archers 型、`AdaptiveDelay` の推奨値を消費) | 中 | 中 | **Opus** | なし |
-| I8 | N19 残り: `Fixed::mul/div` の i128 中間化検討 — **注意: 既存の丸め挙動を 1 bit も変えてはならない**(pinned hash が壊れる)。現行 i64 で十分か検証が先 | 低 | 小 | **Opus** | なし |
-| I9 | N20: cargo feature collections(`default=full` 必須、pinned hash テストを全 feature 組合せで確認) | 低 | 中 | **Opus** | なし |
-| I10 | N3: zero-panic API(0.2 破壊的変更)— 着手前に `clippy::unwrap_used` を **warn** で入れ実態を層別(pub API 到達可能なものだけが対象) | 高(長期) | 大 | **Opus**(設計)+ **Sonnet**(機械的変換) | ユーザーの 0.2 合意 |
+| I4 | N5 残り: MapBuilder 合成層(`Dungeon` に可変 API を足さず、`Vec<bool>` グリッド変換の合成で設計)。部品(`farthest_cell` / `keep_largest_region` / `ConnectivityMap`)は実装済みで、stage 連鎖 API 本体のみ未着手 | 中 | 中〜大 | **Opus** | なし |
+| I9 | N20: cargo feature collections(`default=full` 必須。pinned hash テストを全 feature 組合せで確認すること) | 低 | 中 | **Opus** | なし |
 | I11 | N2: incremental multiset hash — `savefile`/`replay` ヘッダの algo バージョニング設計が先。**単独で着手しないこと** | 低 | 大 | **Opus** | 設計合意 |
-| I12 | N21: crates.io Trusted Publishing + cargo-semver-checks — 初回公開の意思決定待ち | 中 | 小 | ユーザー判断 | P5 解決 |
+| I12 | N21: crates.io Trusted Publishing + cargo-semver-checks | 中 | 小 | ユーザー判断 | 初回公開の意思決定 |
 
-**ユーザー判断待ち**: CI 有効化(Web UI で `docs/ci/ci.yml` を `.github/workflows/ci.yml` として追加 — 2経路とも 403 で実測不能)/ crates.io 公開。
-(~~P5 バージョン体系~~ は要件誤りと判明、~~N3 0.2 破壊的変更~~ は不要と判明、~~main への PR~~ は作成済み。)
+これ以外の未着手候補(N10 構造化ファジング — `cargo-fuzz` が nightly を要求し本環境の
+ネットワーク制約で不可 / N16 DSL `extends` / N18 archetype storage / N22 観測フック /
+N23 LLM パイプラインの位置づけ)は **`izanagi_kit/RESEARCH.md` の N 候補表を正とする**。
+同じ候補を 2 つの表で管理すれば必ず片方が古くなる ── 本節は「今すぐ着手できるもの」だけを持ち、
+網羅は RESEARCH.md が持つ。
+
+**ユーザー判断待ち(エージェントには実行不能)**:
+1. **CI 有効化** — Web UI で `docs/ci/ci.yml` を `.github/workflows/ci.yml` として追加する。
+   エージェント側の 3 経路(push / Contents API / Git Data API)はすべて 403 で実測済み。
+   手順は [`docs/ci/README.md`](./docs/ci/README.md)。
+2. **crates.io 公開** — 資格情報が本セッションに存在しない(`cargo publish --dry-run` は成功する)。
 
 ---
 
