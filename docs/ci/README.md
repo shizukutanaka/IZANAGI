@@ -42,7 +42,7 @@ git push
 
 | Job | What it proves |
 | --- | --- |
-| `gate` | `tools/gate.sh` — the same script the pre-push hook runs: fmt, workspace tests, clippy at zero warnings, rustdoc at zero warnings, the pinned determinism hashes, the `kit_bridge` integration hash, the self-asserting pipeline demo, and `cargo package` for both crates. One definition of "green", shared between local and CI. |
+| `gate` | `tools/gate.sh` — the same script the pre-push hook runs: fmt, workspace tests, clippy at zero warnings, rustdoc at zero warnings, the pinned determinism hashes, every example run twice and required to complete headless, print a result and reproduce it byte for byte, the `kit_bridge` integration hash, the self-asserting pipeline demo, and `cargo package` for both crates. One definition of "green", shared between local and CI. |
 | `msrv` | The declared MSRVs are real: `izanagi` builds on 1.65, `izanagi_kit` on 1.75 (`cargo check`, since the MSRV promise is to consumers, not to the test suite). |
 | `wasm` | `izanagi_kit` compiles for `wasm32-unknown-unknown`. |
 

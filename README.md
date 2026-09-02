@@ -172,8 +172,9 @@ Both crates live in one Cargo workspace (root `Cargo.toml`).
   what was researched, implemented (with commit hashes), and deliberately
   deferred, with sources.
 - `tools/gate.sh` — the whole verification gate as one command: fmt, tests,
-  clippy, rustdoc, the pinned determinism hashes, the integration hash, the
-  pipeline demo, and packageability. The pre-push hook and the proposed CI
+  clippy, rustdoc, the pinned determinism hashes, every example run twice and
+  required to reproduce, the integration hash, the pipeline demo, and
+  packageability. The pre-push hook and the proposed CI
   ([`docs/ci/`](./docs/ci/)) run exactly this script.
 
 ## Contributing

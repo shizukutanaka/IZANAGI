@@ -13,7 +13,6 @@ set -eu
 cd "$(dirname "$0")/.."
 
 KIT_BRIDGE_HASH=353498ec4fbcd160
-failures=0
 
 stage() {
     printf '\n\033[1m== %s\033[0m\n' "$1"
@@ -56,6 +55,61 @@ echo "rustdoc: clean"
 
 stage "pinned determinism hashes"
 (cd izanagi_kit && cargo test --test determinism --test roguelike_sim)
+
+stage "every example runs, prints, and reproduces"
+# The gate used to run two of the workspace's 29 examples. The other 27 were
+# compiled and never executed, so an example that panicked, hung or printed
+# nothing would ship — and CLAUDE.md's rule that an example "must run headless"
+# and "must print something useful" was a rule nothing enforced.
+#
+# The list is read from the filesystem rather than written here, so a new
+# example is covered the day it is added. Each is run twice and the two outputs
+# must match byte for byte: this crate's entire promise is reproducibility, and
+# its own shop window is the last place that should go unchecked. All 29 pass
+# today, which makes this a guard rather than a discovery.
+#
+# What this does *not* check is whether the numbers an example prints are
+# right. Only `verify_pipeline_demo` and `kit_bridge` assert their own output;
+# see AGENT_INSTRUCTIONS.md §2.
+cargo build --workspace --examples --quiet
+# `timeout` catches a hang instead of stalling CI for its whole job limit. It
+# is coreutils, not POSIX, so a machine without it still runs the checks — it
+# just waits instead of failing fast.
+if command -v timeout >/dev/null 2>&1; then
+    cap="timeout 120"
+else
+    cap=""
+fi
+example_count=0
+for crate_dir in izanagi izanagi_kit; do
+    for path in "$crate_dir"/examples/*.rs; do
+        name=$(basename "$path" .rs)
+        label="$crate_dir::$name"
+        if ! first=$($cap cargo run -q -p "$crate_dir" --example "$name" 2>&1); then
+            printf '%s\n' "$first" | tail -20
+            echo "gate: example $label did not complete successfully"
+            exit 1
+        fi
+        if [ -z "$first" ]; then
+            echo "gate: example $label printed nothing — an example must show a result"
+            exit 1
+        fi
+        if ! second=$($cap cargo run -q -p "$crate_dir" --example "$name" 2>&1); then
+            echo "gate: example $label failed on its second run"
+            exit 1
+        fi
+        if [ "$first" != "$second" ]; then
+            echo "gate: example $label is not reproducible across runs:"
+            printf '%s\n' "$first" > /tmp/gate_ex_a.$$
+            printf '%s\n' "$second" > /tmp/gate_ex_b.$$
+            diff /tmp/gate_ex_a.$$ /tmp/gate_ex_b.$$ | head -20
+            rm -f /tmp/gate_ex_a.$$ /tmp/gate_ex_b.$$
+            exit 1
+        fi
+        example_count=$((example_count + 1))
+    done
+done
+echo "examples: $example_count ran headless, printed a result, and reproduced it"
 
 stage "kit_bridge integration hash"
 bridge_out=$(cargo run -p izanagi --example kit_bridge 2>&1)

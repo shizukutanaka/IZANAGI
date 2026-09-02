@@ -60,7 +60,7 @@
    **検査器自身も変異注入で検証**する慣行が定着している。
 4. **zero-dependency / `#![forbid(unsafe_code)]`** — 両クレートとも実行時依存ゼロ。
    両クレートが**検証付き**で梱包可能(`cargo package` が tarball からビルドし直す)。
-5. **「green」の定義が1つ** — `tools/gate.sh` の8段。pre-push フックと CI 提案が
+5. **「green」の定義が1つ** — `tools/gate.sh` の9段。pre-push フックと CI 提案が
    同じスクリプトを呼ぶので、ローカルと CI が定義上ずれない。
 6. **エンジンとキットの境界が測定され機械検査される** — engine 25 モジュール中 8 が
    完全に float-free。`rng` は整数コアが replay-safe、便利側がそうでないという
@@ -87,7 +87,14 @@
    モデルと実装の一致を示すが、**それは標本であって精緻化の証明ではない**。
    両者の連携は doc と demo に明記済み(`RealRoom` が INCONCLUSIVE、モデルが PROVED)。
    これ以上を主張しないことが正しく、過大主張は道具の信頼を壊す。
-4. **[小] crates.io 未公開** — `cargo publish --dry-run` は成功する(公開可能)。
+4. **[小] example が印字する数値は誰も検算していない** — 29本中 `verify_pipeline_demo`
+   (assert 9件)と `kit_bridge`(1件)を除く**27本は assert をひとつも持たない**。
+   gate は全29本について「headless 完走・非空出力・2回実行でバイト一致」を強制するので、
+   panic・ハング・沈黙・非決定性は落ちる。**しかし「安定して間違っている」出力は通る。**
+   個々の値の正しさは 3,600+ の単体テスト側で担保されており、example ごとに golden
+   ファイルを置けば今度はそれが腐る(本セッションで正確な数値を4度削除した理由と同じ)。
+   現状は意図した折り合いであり、欠落ではない — ただし主張はここまでである。
+5. **[小] crates.io 未公開** — `cargo publish --dry-run` は成功する(公開可能)。
    資格情報が無く、公開自体が取り消し不能なので、ユーザーの判断と手による。
 
 ### 解消済み(本セッション)
@@ -109,6 +116,13 @@
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~gate は 29 本の example のうち 2 本しか実行していなかった~~ → 残り27本はコンパイルされる
+  だけで一度も実行されず、panic する example もハングする example も出荷され得た。
+  engine の CLAUDE.md が「example は headless で完走し、結果を印字すること」を規則として
+  掲げていたが、それを検査するものが無かった。gate に9段目を追加 — **一覧をファイル
+  システムから読む**ので新規 example は追加当日から対象になる。3方向の変異注入で確認
+  (panic する / 何も印字しない / 壁時計を読む example をそれぞれ落とす)。
+  副産物として、全29本が**2回実行でバイト一致**することを実測した。
 - ~~能力マップが検証系を1行も持たない~~ → README が「能力マップ」として案内する
   `GAME_DEV_TAXONOMY.md` は検証系モジュールを**9件まったく言及していなかった**
   (本書が本製品の決定的な長所と呼ぶ族が、能力表では存在しないように見えていた)。
@@ -190,7 +204,9 @@ tools/gate.sh                                      # ★ゲート全段
 `tools/gate.sh` が「green」の唯一の定義であり、以下を順に実行して最初の失敗で
 non-zero 終了する: `cargo fmt --all -- --check` / `cargo test --workspace` /
 clippy 警告 0 / rustdoc 警告 0(両クレート)/ pinned hash(`determinism` +
-`roguelike_sim`)/ `kit_bridge` の統合ハッシュ `353498ec4fbcd160` を出力に含むこと /
+`roguelike_sim`)/ **全 example(29本)が headless 完走・非空出力・2回実行で
+バイト一致**(一覧はファイルシステムから読むので新規 example は追加当日から対象)/
+`kit_bridge` の統合ハッシュ `353498ec4fbcd160` を出力に含むこと /
 `verify_pipeline_demo`(自身の主張を assert する)/ 両クレートの `cargo package`。
 
 同じスクリプトを `.githooks/pre-push` と CI 提案(`docs/ci/ci.yml` の `gate` ジョブ)が
