@@ -405,15 +405,40 @@ fn public_functions() -> BTreeSet<(String, String)> {
         }
         let src = fs::read_to_string(&path).unwrap_or_default();
         let impl_end = src.find("#[cfg(test)]").unwrap_or(src.len());
+        // Trait methods carry no `pub` keyword — inside a `pub trait` they are
+        // public by definition — so a sweep looking only for `pub fn` cannot
+        // see `Simulation::step`, `DetHash::det_hash` or their siblings. All
+        // six are exercised today; the point of tracking them is the seventh.
+        let mut in_pub_trait = false;
+        let mut trait_depth: i32 = 0;
         for line in src[..impl_end].lines() {
             let trimmed = line.trim_start();
             if trimmed.starts_with("//") {
                 continue;
             }
+            if in_pub_trait {
+                trait_depth += line.matches('{').count() as i32;
+                trait_depth -= line.matches('}').count() as i32;
+                if trait_depth <= 0 {
+                    in_pub_trait = false;
+                }
+            } else if trimmed.starts_with("pub trait ") || trimmed.starts_with("pub unsafe trait ")
+            {
+                in_pub_trait = true;
+                trait_depth = line.matches('{').count() as i32 - line.matches('}').count() as i32;
+            }
+            let mut candidates: Vec<&str> = Vec::new();
+            if in_pub_trait {
+                if let Some(rest) = trimmed.strip_prefix("fn ") {
+                    candidates.push(rest);
+                }
+            }
             for prefix in ["pub fn ", "pub const fn "] {
-                let Some(rest) = trimmed.strip_prefix(prefix) else {
-                    continue;
-                };
+                if let Some(rest) = trimmed.strip_prefix(prefix) {
+                    candidates.push(rest);
+                }
+            }
+            for rest in candidates {
                 let name: String = rest
                     .chars()
                     .take_while(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '_')
@@ -460,4 +485,25 @@ fn no_public_function_goes_unexercised() {
          binary: {unexercised:#?}\n\nEither exercise them or delete them — an \
          untested public function is a promise nothing has checked."
     );
+}
+
+#[test]
+fn the_sweep_sees_trait_methods() {
+    // The blind spot this closes: `pub fn` is not the whole public surface.
+    // Every one of these is public API a consumer implements or calls, and
+    // none of them was counted before.
+    let found = public_functions();
+    for (module, method) in [
+        ("sim", "step"),
+        ("world_hash", "det_hash"),
+        ("wfc", "select"),
+        ("savefile", "migrate"),
+        ("savefile", "current_version"),
+        ("inputbuf", "next_key"),
+    ] {
+        assert!(
+            found.contains(&(module.to_string(), method.to_string())),
+            "the sweep missed the `{module}::{method}` trait method"
+        );
+    }
 }
