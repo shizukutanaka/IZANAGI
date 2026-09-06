@@ -31,7 +31,8 @@
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし)。さらに**展開した tarball の中で
-doctest・全テスト・全 example が緑**であることまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
+doctest・テスト・example・bin の4ターゲットが緑**で、さらに `gamec` が同梱 fixture を
+正しく受理・拒否することまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
 | 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G8 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**|
 | 未検証の公開 API | **両クレートで 0** — kit 1534 / engine 247 の公開関数(**トレイトメソッド11件を含む**)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
@@ -129,6 +130,12 @@ doctest・全テスト・全 example が緑**であることまで確認する �
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~「ビルドが通る」を動作の証拠として扱っていた~~ → 上の3件はすべて「ビルドは通るが
+  動かない」だった。そこで gate は tarball 内で **bin もビルドし、`gamec` を実際に走らせる** —
+  同梱の `dungeon.game` を受理し `broken.game` を拒否すること。壊れた内容を通すゲートは
+  無いより悪い。加えて**この検査自身の穴を塞いだ**: fixture が出荷されなくなった場合も
+  非ゼロ終了になるため「正しく拒否した」と区別できず、検査が静かに通ってしまう。
+  fixture の存在を先に主張するようにし、変異注入で確認した。
 - ~~公開クレートの example がコンパイルできなかった~~ → engine は `kit_bridge` example を
   同梱するが、これは `izanagi_kit` への **path による dev 依存**を使う。cargo は公開
   マニフェストから path 依存を除去する(消費者に解決できないので当然)ため、tarball には
@@ -311,9 +318,9 @@ clippy 警告 0 / rustdoc 警告 0(両クレート)/ pinned hash(`determinism` +
 バイト一致**(一覧はファイルシステムから読むので新規 example は追加当日から対象)/
 `kit_bridge` の統合ハッシュ `353498ec4fbcd160` を出力に含むこと /
 `verify_pipeline_demo`(自身の主張を assert する)/ 両クレートの `cargo package` と、
-**展開した tarball の中で `cargo test --doc` / `cargo test --tests` / `cargo build --examples`**
-(ライブラリのビルドだけでは、doctest・テスト・example のどれも検証されない — 3つとも
-実際に壊れた状態で出荷しかけた)。
+**展開した tarball の中で doctest / テスト / example / bin の4ターゲットすべて**、
+および **`gamec` を同梱 fixture に対して両方向**(`dungeon.game` を受理し `broken.game` を拒否)。
+ライブラリのビルドだけでは他のどれも検証されず、実際に3つ壊れた状態で出荷しかけた。
 
 同じスクリプトを `.githooks/pre-push` と CI 提案(`docs/ci/ci.yml` の `gate` ジョブ)が
 呼ぶので、ローカルの green と CI の green が定義上ずれない。フック有効化は**リポジトリ

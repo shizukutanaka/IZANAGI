@@ -171,7 +171,43 @@ for pkg_dir in target/package/izanagi_kit-*/ target/package/izanagi-*/; do
         (cd "$pkg_dir" && cargo build --examples 2>&1 | tail -30)
         exit 1
     fi
-    echo "packaged $name: doctests, tests and examples all build inside the tarball"
+    if ! (cd "$pkg_dir" && cargo build --bins --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot build its own binaries"
+        (cd "$pkg_dir" && cargo build --bins 2>&1 | tail -30)
+        exit 1
+    fi
+    echo "packaged $name: doctests, tests, examples and bins all pass inside the tarball"
+done
+
+# Building is not the same as working — three defects in a row proved that a
+# green build says nothing about the target actually functioning. `gamec` is
+# the kit's content gate; a consumer gets it from `cargo install izanagi_kit`,
+# so it is exercised on the fixtures the tarball itself ships, in both
+# directions. A gate that accepts broken content is not a gate.
+for kit_dir in target/package/izanagi_kit-*/; do
+    [ -d "$kit_dir" ] || continue
+    # The fixtures must be in the tarball before their verdicts mean anything.
+    # Without this, a fixture that stopped shipping would still make the
+    # "rejects the broken one" check pass — a missing file is also a non-zero
+    # exit, and the check could not tell the two apart.
+    for fixture in examples/dungeon.game examples/broken.game; do
+        if [ ! -f "$kit_dir$fixture" ]; then
+            echo "gate: $fixture is not in the packaged crate, so gamec cannot be"
+            echo "      exercised against it — the checks below would pass vacuously"
+            exit 1
+        fi
+    done
+    if ! (cd "$kit_dir" && cargo run -q --bin gamec -- examples/dungeon.game >/dev/null 2>&1); then
+        echo "gate: packaged gamec rejects examples/dungeon.game, which is valid"
+        (cd "$kit_dir" && cargo run -q --bin gamec -- examples/dungeon.game 2>&1 | tail -20)
+        exit 1
+    fi
+    if (cd "$kit_dir" && cargo run -q --bin gamec -- examples/broken.game >/dev/null 2>&1); then
+        echo "gate: packaged gamec ACCEPTS examples/broken.game — a content gate"
+        echo "      that passes broken content is worse than none"
+        exit 1
+    fi
+    echo "packaged gamec: accepts the valid fixture, rejects the broken one"
 done
 rm -rf target/package
 
