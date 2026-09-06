@@ -160,7 +160,18 @@ for pkg_dir in target/package/izanagi_kit-*/ target/package/izanagi-*/; do
         (cd "$pkg_dir" && cargo test --tests 2>&1 | tail -30)
         exit 1
     fi
-    echo "packaged $name: doctests and tests both pass inside the tarball"
+    # Examples ship too, and are compiled by none of the above. The engine's
+    # kit_bridge example used a path dev-dependency; cargo strips path
+    # dependencies from a published manifest, because a consumer cannot
+    # resolve one, so the tarball carried an example importing a crate that
+    # was not there. Three targets, three separate misses — hence checking
+    # each rather than trusting that a green build covers them.
+    if ! (cd "$pkg_dir" && cargo build --examples --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot build its own examples"
+        (cd "$pkg_dir" && cargo build --examples 2>&1 | tail -30)
+        exit 1
+    fi
+    echo "packaged $name: doctests, tests and examples all build inside the tarball"
 done
 rm -rf target/package
 

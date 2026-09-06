@@ -31,7 +31,7 @@
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし)。さらに**展開した tarball の中で
-doctest と全テストが緑**であることまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
+doctest・全テスト・全 example が緑**であることまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
 | 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G8 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**|
 | 未検証の公開 API | **両クレートで 0** — kit 1534 / engine 247 の公開関数(**トレイトメソッド11件を含む**)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
@@ -129,6 +129,15 @@ doctest と全テストが緑**であることまで確認する — 同梱し�
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~公開クレートの example がコンパイルできなかった~~ → engine は `kit_bridge` example を
+  同梱するが、これは `izanagi_kit` への **path による dev 依存**を使う。cargo は公開
+  マニフェストから path 依存を除去する(消費者に解決できないので当然)ため、tarball には
+  **存在しないクレートを import する example** が残っていた。`cargo build --examples` が
+  `unresolved import izanagi_kit` で失敗する。`cargo package --verify` はライブラリしか
+  ビルドしないので見えない。除外し(この example の仕事は本リポジトリの gate で pinned hash
+  `353498ec4fbcd160` を確認することであり、消費者は kit が無いので実行できない)、
+  gate に example ビルド段を追加。**同じクラスで3回連続の見落とし**(doctest / テスト /
+  example)だったので、ターゲットごとに個別に検査する。
 - ~~同梱した「証拠」が消費者の手元では走らなかった~~ → 両クレートの `exclude` は
   「テストと example は残す。『このシミュレーションは証明可能に replay する』を主張する
   クレートにとって、証拠は製品の一部だから」と述べている。しかし公開 tarball で
@@ -302,9 +311,9 @@ clippy 警告 0 / rustdoc 警告 0(両クレート)/ pinned hash(`determinism` +
 バイト一致**(一覧はファイルシステムから読むので新規 example は追加当日から対象)/
 `kit_bridge` の統合ハッシュ `353498ec4fbcd160` を出力に含むこと /
 `verify_pipeline_demo`(自身の主張を assert する)/ 両クレートの `cargo package` と、
-**展開した tarball の中で `cargo test --doc` と `cargo test --tests`**
-(ビルドだけでは `#[cfg(doctest)]` が消えるためパッケージ外を指す include を検出できず、
-同梱したテストが消費者の手元で走るかも分からない — どちらも実際に出荷しかけた)。
+**展開した tarball の中で `cargo test --doc` / `cargo test --tests` / `cargo build --examples`**
+(ライブラリのビルドだけでは、doctest・テスト・example のどれも検証されない — 3つとも
+実際に壊れた状態で出荷しかけた)。
 
 同じスクリプトを `.githooks/pre-push` と CI 提案(`docs/ci/ci.yml` の `gate` ジョブ)が
 呼ぶので、ローカルの green と CI の green が定義上ずれない。フック有効化は**リポジトリ

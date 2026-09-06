@@ -21,6 +21,14 @@ exclude = [
     "tests/claude_md_is_current.rs",
     "tests/architecture_md_is_current.rs",
     "tests/readme_blocks_agree.rs",
+    # kit_bridge demonstrates the engine composing with izanagi_kit, through a
+    # dev-dependency declared by path. Cargo strips path dependencies from the
+    # published manifest — it must, since a path cannot be resolved by a
+    # consumer — which leaves an example referring to a crate that is not
+    # there. `cargo build --examples` on the unpacked tarball fails to resolve
+    # `izanagi_kit`. The example keeps doing its job in this repository, where
+    # the gate runs it and checks its pinned hash; it just does not ship.
+    "examples/kit_bridge.rs",
 ]
 description = "A Rust game engine that just works."
 license = "MIT"
