@@ -7,25 +7,26 @@ below no longer hold, the change is probably wrong.
 ## The shape
 
 ```
-                ┌─────────────────────────────┐
-                │           Engine            │
-                │  (the only public type)     │
-                └──────────────┬──────────────┘
-                               │
-        ┌──────────┬───────────┼───────────┬──────────┐
-        ▼          ▼           ▼           ▼          ▼
-      World      Input       Time     Render+Audio  Scene
-       (ecs)                          (drainable)   (graph)
-                               ▲
-                               │
-                        ┌──────┴──────┐
-                        │   Backend   │   ← NullBackend (default)
-                        │   (trait)   │   ← TerminalBackend (ANSI)
-                        └─────────────┘   ← user backends (winit/wgpu)
+        ┌──────────────────────────────────────────────────┐
+        │                      Engine                      │
+        │               (the only public type)             │
+        │                                                  │
+        │   world    input    gamepads   time     assets   │
+        │   (ecs)                                          │
+        │   audio    render   scene      rng      metrics  │
+        │           (drainable) (graph)          (debug)   │
+        └────────────────────────┬─────────────────────────┘
+                                 │
+                          ┌──────┴──────┐
+                          │   Backend   │   <- NullBackend (default)
+                          │   (trait)   │   <- TerminalBackend (ANSI)
+                          └─────────────┘   <- user backends (winit/wgpu)
 ```
 
-`Engine` owns six subsystems as public fields. There is no service locator,
-no registry, no plugin trait. Field-access is the API.
+`Engine` owns ten subsystems as public fields. There is no service locator,
+no registry, no plugin trait. Field-access is the API. The count is checked
+against `pub struct Engine` by `tests/architecture_md_is_current.rs`, because
+this paragraph said "six" for as long as there were ten.
 
 ## Decision: one engine type
 
@@ -117,19 +118,34 @@ src/
 ├── time.rs       # Time, dt, elapsed
 ├── assets.rs     # Assets, Handle
 ├── audio.rs      # Audio, Voice
+├── audio_pcm.rs  # minimal WAV/PCM decoding
 ├── render.rs     # Render, Color, Draw
+├── camera.rs     # 2D camera, world<->screen
 ├── scene.rs      # Scene, Node, parent-child Mat3
+├── sprite.rs     # sprite sheets, frame animation
+├── tilemap.rs    # grid storage, camera-culled draw
 ├── state.rs      # States<S> pushdown automaton
+├── event.rs      # event bus
 ├── math.rs       # Vec2/Vec3/Mat3/Rect, ops
 ├── collide.rs    # aabb_vs_aabb, swept_aabb, ray
 ├── ease.rs       # linear/quad/cubic/back/elastic/bounce
+├── tween.rs      # Tween, Timer
 ├── rng.rs        # Rng, xorshift64
 ├── save.rs       # Save::write/read/encode/parse
 ├── error.rs      # Error, Result
+├── log.rs        # levels, macros, pluggable writer
+├── debug.rs      # Metrics, frame timing
+├── gamepad.rs    # Gamepads, Button, Stick
 └── backend.rs    # Backend trait, NullBackend, TerminalBackend
 ```
 
-Total: ~1700 lines, ~85 tests, 0 deps.
+Zero runtime dependencies, enforced by
+`izanagi_kit/tests/global_invariants_hold.rs`. The map above is enforced by
+`tests/architecture_md_is_current.rs` — it once listed 16 of the 25 files,
+so it is checked rather than trusted. Line and test counts are deliberately
+not stated here. The figures this file used to carry were wrong by factors of
+3.5 and 2.5 by the time anyone checked them, and `cargo test` reports the real
+number on every run — so a document does not need to guess at one.
 
 ## Non-goals
 

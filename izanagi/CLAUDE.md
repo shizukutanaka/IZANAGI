@@ -50,6 +50,8 @@ tests/
   claude_md_is_current.rs — this file's Map block, checked against src/ and examples/
   public_api_is_exercised.rs — every pub fn and trait method is called by
                   something, enforced the way izanagi_kit enforces it
+  architecture_md_is_current.rs — ARCHITECTURE.md's file map, subsystem
+                  count and shape diagram, checked against src/
 ```
 
 The Map above is machine-checked: `tests/claude_md_is_current.rs` fails the
