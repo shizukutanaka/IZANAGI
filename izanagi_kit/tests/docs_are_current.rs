@@ -471,3 +471,58 @@ fn the_capability_map_covers_the_verification_family() {
         "GAME_DEV_TAXONOMY.md is the capability map the README points at, and          it never mentions these simulation-checking modules: {missing:?}. Add          a row for each in the same commit that adds the module."
     );
 }
+
+#[test]
+fn no_document_points_at_an_iteration_that_has_ended() {
+    // A document that says "this iteration" freezes the moment it is written.
+    // It happened twice: GAME_DEV_TAXONOMY.md's roadmap still named the
+    // terminal module as the current work many iterations later, and SPEC.md
+    // ended its completeness checklist with a subsection listing D1/P1/R1 as
+    // work to do while the table directly above it recorded all three as done.
+    // A reader cannot tell a stale pointer from a live one, which makes it
+    // worse than no pointer at all.
+    //
+    // The rule is therefore about tense, not about content: say what is true
+    // now, and keep the list of what comes next in one place (RESEARCH.md's
+    // candidate table), where being out of date is visible.
+    let docs = [
+        "README.md",
+        "AGENT_INSTRUCTIONS.md",
+        "izanagi/README.md",
+        "izanagi/CLAUDE.md",
+        "izanagi/ARCHITECTURE.md",
+        "izanagi/CONTRIBUTING.md",
+        "izanagi_kit/README.md",
+        "izanagi_kit/RESEARCH.md",
+        "izanagi_kit/SPEC.md",
+        "izanagi_kit/GAME_DEV_TAXONOMY.md",
+        "izanagi_kit/CHANGELOG.md",
+        "docs/ci/README.md",
+    ];
+    // Phrases that name "the iteration being worked on" as if the reader were
+    // inside it. Past-tense records ("implemented in 1e45bc4") are fine and
+    // deliberately not matched.
+    let frozen = [
+        "本イテレーションで",
+        "本ループで実装",
+        "今回のイテレーション",
+        "本反復で実装",
+    ];
+    let mut found: Vec<String> = Vec::new();
+    for doc in docs {
+        let text = read(doc);
+        for (n, line) in text.lines().enumerate() {
+            for needle in frozen {
+                if line.contains(needle) {
+                    found.push(format!("{doc}:{}: {}", n + 1, line.trim()));
+                }
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "these lines point at an iteration the reader is not in: {found:#?}\n\n\
+         Rewrite them in the present tense — what is true now — and put \
+         anything still to come in RESEARCH.md's candidate table."
+    );
+}

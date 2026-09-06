@@ -2,7 +2,9 @@
 
 > 本書は `izanagi_kit` の **API 契約・不変条件・完成度** を定義する仕様書。
 > 改善点の調査は [`RESEARCH.md`](./RESEARCH.md)、変更履歴は [`CHANGELOG.md`](./CHANGELOG.md) を参照。
-> 「不足部分」は §13 完成度チェックリストの ⬜ 項目で、本イテレーションで一部を実装する。
+> §13 完成度チェックリストに **⬜(未実装)は残っていない**。未着手の候補は
+> [`RESEARCH.md`](./RESEARCH.md) の N 候補表を正とする — 同じ一覧を2つの文書で
+> 管理すれば必ず片方が古くなるため、本書は「何が契約か」だけを持つ。
 
 最終更新: 2026-06-06 / 対象ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
 
@@ -143,29 +145,24 @@ ws          = { ws-char } ;                   (* 0 個以上 *)
 
 ## 13. 完成度チェックリスト (Completeness checklist)
 
-✅ 実装済 / 🔶 一部 / ⬜ 未実装（= 不足部分）
+✅ 実装済 / 🔶 一部 / ⬜ 未実装。**現在 ⬜ は無い。**
 
 | 項目 | 状態 | 備考 |
 |------|------|------|
 | entity / sparse_set / fixed(基本) / rng(core) / world_hash(core) | ✅ | |
 | timestep（accumulator + alpha + death-spiral） | ✅ | |
 | content pipeline（parse/serialize/validate/load/gamec） | ✅ | |
-| fixed: sqrt / CORDIC trig | ✅ | 本ループで実装 |
-| fov: symmetric shadowcasting | ✅ | 本ループで実装 |
-| pathfinding: A* | ✅ | 本ループで実装 |
-| **D1 DetHash 実装（値型）＋ SparseSet 正準 hash** | ⬜→✅ | **本イテレーションで実装** |
-| **P1 Dijkstra map（flow field）＋ descend** | ⬜→✅ | **本イテレーションで実装** |
-| **R1 rng `range`/`coin` エルゴノミクス** | ⬜→✅ | **本イテレーションで実装** |
-| procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | 本イテレーションで実装（rooms + corridors, 連結保証, DetHash） |
-| C1 multi-component query (`join`/`join_mut`) | ✅ | 本イテレーションで実装。archetype storage は ⬜ |
-| C6 replay harness + snapshot/rollback + desync 検出 = `replay` | ✅ | 本イテレーションで実装（record/check/first_divergence/resimulate）|
-| geometry: Bresenham line / LOS = `geometry` | ✅ | 本イテレーションで実装（`line`/`line_of_sight`）|
+| fixed: sqrt / CORDIC trig | ✅ | |
+| fov: symmetric shadowcasting | ✅ | |
+| pathfinding: A* | ✅ | |
+| **D1 DetHash 実装（値型）＋ SparseSet 正準 hash** | ✅ | G5/G6 を値型まで配線 |
+| **P1 Dijkstra map（flow field）＋ descend** | ✅ | `pathfinding::dijkstra_map` / `descend` |
+| **R1 rng `range`/`coin` エルゴノミクス** | ✅ | low-bias 維持、draw 数決定的 |
+| procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | rooms + corridors, 連結保証, DetHash。合成層は `MapBuilder` |
+| C1 multi-component query (`join`/`join_mut`) | ✅ | archetype storage は `arch`。ECS 全体の archetype 化は RESEARCH.md N18 |
+| C6 replay harness + snapshot/rollback + desync 検出 = `replay` | ✅ | record/check/first_divergence/resimulate。有界 snapshot リングは `rollback` |
+| geometry: Bresenham line / LOS = `geometry` | ✅ | `line` / `line_of_sight` |
 | weighted A*（ε-admissible） | ✅ | `pathfinding::weighted_astar`（`f=g+weight×h`、cost ≤ weight×optimal）|
-| **JPS（Jump Point Search）** | ⬜→✅ | **本イテレーションで実装**（`pathfinding::jps`、no-corner-cut、A* と cost 一致、6000 ランダム盤面で metamorphic 検証）|
+| **JPS（Jump Point Search）** | ✅ | （`pathfinding::jps`、no-corner-cut、A* と cost 一致、6000 ランダム盤面で metamorphic 検証）|
 | 機械可読診断(JSON) | ✅ | `diag_json`（手書き JSON、CI/LSP 消費可能）|
 
-### 本イテレーションで実装する不足部分
-1. **D1**: `DetHash` を基本型と `Fixed/Entity/Position/Render/Color` に実装し、`SparseSet::det_hash` で
-   canonical 順序の容器 hash を提供（G5/G6 を値型まで配線）。
-2. **P1**: `pathfinding::dijkstra_map` と `descend`（決定的 flow field）。
-3. **R1**: `SplitMix64::range` と `coin`（low-bias 維持、draw 数決定的）。

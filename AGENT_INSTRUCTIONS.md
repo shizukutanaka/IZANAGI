@@ -31,7 +31,7 @@
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし。tarball を実際にコンパイルする)|
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G8 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言を含む)・**凍結した「本イテレーション」記述の不在**|
 | 未検証の公開 API | **両クレートで 0** — kit 1534 / engine 247 の公開関数(**トレイトメソッド11件を含む**)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
@@ -48,10 +48,12 @@
    `rollback` / `world_hash`。各々が別のバグクラスを狙い、出典が明記されている。
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(14種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(16種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
-   README Quickstart(doctest 実行)・**能力マップの検証系被覆**。
+   README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
+   **SPEC.md の全体不変条件 G1〜G8 が強制場所を名指しすること**・
+   **どの文書も終わったイテレーションを指さないこと**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -111,7 +113,7 @@
 - ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
-- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を14種の機械検査に。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を16種の機械検査に。
 - ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
@@ -120,6 +122,19 @@
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~仕様書の不変条件が誰にも強制されていなかった~~ → `SPEC.md` §2 は全モジュール必須の
+  不変条件 G1〜G8 を掲げるが、うち3件を強制するものが無かった。最大のものが **G1
+  zero runtime dependencies** — README 冒頭・両 CLAUDE.md の規則・本書のハード制約・
+  crate の package description と少なくとも5箇所が約束しているのに、`cargo add` 一発で
+  そのすべてが黙って偽になる状態だった(G2 `forbid(unsafe_code)` の存在、G8 の
+  edition/MSRV 宣言も同様)。`tests/global_invariants_hold.rs` を追加し、**G 表の各行が
+  強制場所を名指しすること自体**を検査に載せた — 9個目の不変条件を仕様に書けば、
+  どこで強制するかを書くまでビルドが落ちる。
+- ~~文書が終わったイテレーションを指す~~ → `GAME_DEV_TAXONOMY.md` と `SPEC.md` で再発
+  していた(SPEC は表が「D1/P1/R1 実装済」と書く直下で同じ3件を「不足部分」として
+  列挙する自己矛盾)。全12文書で、読者が居ないイテレーションを指す表現を禁止した。
+  禁止語の一覧は検査器(`docs_are_current.rs`)側にのみ置く — 本書に書けば本書自身が
+  引っかかる。実際この行の初稿が引っかかり、検査器に例外を足すのではなく文面を直した。
 - ~~gate は 29 本の example のうち 2 本しか実行していなかった~~ → 残り27本はコンパイルされる
   だけで一度も実行されず、panic する example もハングする example も出荷され得た。
   engine の CLAUDE.md が「example は headless で完走し、結果を印字すること」を規則として
