@@ -206,6 +206,11 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
         "the crate-level deny(clippy::unwrap_used, expect_used, panic) in both lib.rs",
     );
     m.insert(
+        "G9",
+        "izanagi_kit/tests/hashes_are_width_independent.rs (no usize DetHash \
+         impl, no write_usize, lengths as u32, no pointer-sized sentinels)",
+    );
+    m.insert(
         "G8",
         "this file: g8_*, plus izanagi_kit/tests/msrv_is_respected.rs for the code",
     );

@@ -52,7 +52,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(25種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(26種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -64,7 +64,8 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **ルート README の Rust ブロックが engine README に逐語で存在すること**・
    **`include_str!` がパッケージ外を指さないこと**・
    **kit README 冒頭の「Eleven modules」が検証系の実数と一致すること**・
-   **本書 §1 が README と同じ11件を名指しすること**。
+   **本書 §1 が README と同じ11件を名指しすること**・
+   **ポインタ幅の値が world hash に到達しないこと**(SPEC.md G9)。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -125,7 +126,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
-- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を25種の機械検査に。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を26種の機械検査に。
 - ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
@@ -134,6 +135,17 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~クロスプラットフォーム決定性が float の話だけだった~~ → 「bit 一致 replay」を
+  壊すもう一つの経路は **`usize` の幅**で、これは仮定の話ではない — CI は kit を
+  `wasm32-unknown-unknown`(`usize` = 32bit)向けにビルドする。実測した結果
+  **設計は既に正しかった**: `usize`/`isize` の `DetHash` 実装なし、`Fnv1a` に
+  `write_usize` なし(API の形で不可能にしている)、長さは `as u32`、`det_hash` 本体で
+  `usize` に言及するものゼロ、ライブラリコードに `usize::MAX` ゼロ。
+  ただし**規律による偶然であって強制されていなかった** — `impl DetHash for usize` は
+  3行の変更で、wasm job はビルドするだけでハッシュを比較しないので気づかない。
+  SPEC.md に **G9** として明記し、`hashes_are_width_independent.rs` で強制。
+  G9 を書いた時点で `global_invariants_hold.rs` が**強制場所の登録を要求して落ちた** —
+  前に作った仕組みが、演習ではなく本物の新規不変条件で機能した。
 - ~~同じ族を4つの文書が4つの数で説明していた~~ → 検証系モジュールについて
   kit README 冒頭は「Eleven」、本書 §1 は「11」だが `world_hash` を含み `replay` を欠く、
   `VERIFICATION_FAMILY` は12、能力マップ section Q は10行。**§1 は2つの誤りが

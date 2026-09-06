@@ -25,6 +25,7 @@
 | G6 | コレクション走査は **canonical 順序**（昇順 index 等）で hash する | 順序由来の非決定性排除 |
 | G7 | パニックしない公開 API（不正入力は飽和・None・no-op で処理） | 堅牢性 |
 | G8 | MSRV **1.75** / edition 2021 | 互換性 |
+| G9 | **ポインタ幅の値を hash に混ぜない**（`usize`/`isize` の `DetHash` 実装なし、`write_usize` なし、長さは `as u32`） | 32bit/64bit 間の replay 一致。CI は wasm32 (`usize` = 32bit) でビルドする |
 
 ## 3. `entity` — 世代付きエンティティ
 - `Entity{index,generation}`（opaque）, `EntityAllocator{allocate, free, is_alive}`。
