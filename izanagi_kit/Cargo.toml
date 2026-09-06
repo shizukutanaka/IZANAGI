@@ -20,7 +20,21 @@ rust-version = "1.75"
 # exclude stays as a guard in case one is ever added back here. Tests and
 # examples stay: for a crate whose whole claim is "this simulation provably
 # replays", the evidence is part of the product.
-exclude = [".githooks/", ".gitignore"]
+# Repository-scoped checks are excluded: they read documents and manifests that
+# live above this package (AGENT_INSTRUCTIONS.md, the sibling crate's sources),
+# so in a published tarball they cannot run at all. Shipping them would hand a
+# consumer a `cargo test` run full of failures about files they never received.
+# The tests that stay are the ones the note above means — evidence about the
+# code, which passes anywhere the crate is unpacked.
+exclude = [
+    ".githooks/",
+    ".gitignore",
+    "tests/docs_are_current.rs",
+    "tests/global_invariants_hold.rs",
+    "tests/msrv_is_respected.rs",
+    "tests/parser_matches_its_specification.rs",
+    "tests/public_api_is_exercised.rs",
+]
 documentation = "https://docs.rs/izanagi_kit"
 
 [dependencies]

@@ -8,7 +8,20 @@ rust-version = "1.65"
 # no business carrying this repository's git hooks into someone else's
 # dependency tree. Tests and examples stay: for a crate whose whole claim is
 # "this simulation provably replays", the evidence is part of the product.
-exclude = [".githooks/", ".gitignore"]
+# Repository-scoped checks are excluded for the same reason the kit excludes
+# its own: they read the workspace above this package, or compare the working
+# tree against documents describing it, so inside a published tarball they
+# either cannot run or are checking the wrong tree. What stays — integration,
+# bench, float_boundary — is evidence about this crate and runs anywhere it is
+# unpacked.
+exclude = [
+    ".githooks/",
+    ".gitignore",
+    "tests/public_api_is_exercised.rs",
+    "tests/claude_md_is_current.rs",
+    "tests/architecture_md_is_current.rs",
+    "tests/readme_blocks_agree.rs",
+]
 description = "A Rust game engine that just works."
 license = "MIT"
 repository = "https://github.com/shizukutanaka/IZANAGI"

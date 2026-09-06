@@ -149,7 +149,18 @@ for pkg_dir in target/package/izanagi_kit-*/ target/package/izanagi-*/; do
         (cd "$pkg_dir" && cargo test --doc 2>&1 | tail -30)
         exit 1
     fi
-    echo "packaged $name: doctests pass inside the tarball"
+    # Both crates ship their tests on purpose — "the evidence is part of the
+    # product". Evidence that fails on arrival is worse than none, and it did:
+    # six repository-scoped test files read documents and manifests living
+    # above the package, so a consumer running `cargo test` on the published
+    # crate met a wall of failures about files they never received. Those files
+    # are excluded now, and this is what keeps the rest honest.
+    if ! (cd "$pkg_dir" && cargo test --tests --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot run its own test suite"
+        (cd "$pkg_dir" && cargo test --tests 2>&1 | tail -30)
+        exit 1
+    fi
+    echo "packaged $name: doctests and tests both pass inside the tarball"
 done
 rm -rf target/package
 
