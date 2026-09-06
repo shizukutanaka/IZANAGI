@@ -33,8 +33,25 @@ fn read(rel: &str) -> String {
 
 /// Every `pub mod` declared in `lib.rs` — the ground truth every document is
 /// checked against.
-/// The modules whose job is checking a simulation. Named once, because two
-/// documents make claims about this set and both are checked below.
+/// The modules whose only job is interrogating a simulation.
+///
+/// Four documents described this family and gave four different answers: the
+/// kit README's opening sentence said eleven, AGENT_INSTRUCTIONS.md §1 said
+/// eleven but listed `world_hash` while omitting `replay` (two errors that
+/// happened to cancel), the constant below said twelve, and the capability
+/// map's section Q had ten rows. `world_hash` is the odd one out — it is the
+/// hashing primitive the others rest on, which the README's own next sentence
+/// classifies as substrate alongside fixed-point maths and seeded RNG.
+///
+/// So there are eleven, and they are named here once.
+const INTERROGATION_MODULES: &[&str] = &[
+    "sim", "replay", "rollback", "dst", "plan", "explore", "shrink", "prop", "temporal",
+    "recovery", "verify",
+];
+
+/// The eleven above plus `world_hash`. Tier 1 and the capability map are about
+/// what a reader must not miss, and the hashing primitive belongs there even
+/// though it interrogates nothing itself.
 const VERIFICATION_FAMILY: &[&str] = &[
     "sim",
     "replay",
@@ -608,4 +625,80 @@ fn both_readmes_that_can_be_doctested_are_doctested() {
              README's Rust blocks are compiled by nothing."
         );
     }
+}
+
+#[test]
+fn the_readme_headline_counts_the_interrogation_modules_correctly() {
+    // The first sentence of the crate's front page — on crates.io, on docs.rs
+    // and on GitHub. It states a number, and a number in a headline that
+    // nothing checks is one that goes wrong quietly the first time the family
+    // grows.
+    const NUMERALS: [(usize, &str); 6] = [
+        (9, "Nine"),
+        (10, "Ten"),
+        (11, "Eleven"),
+        (12, "Twelve"),
+        (13, "Thirteen"),
+        (14, "Fourteen"),
+    ];
+    let n = INTERROGATION_MODULES.len();
+    let word = NUMERALS
+        .iter()
+        .find(|(k, _)| *k == n)
+        .map(|(_, w)| *w)
+        .unwrap_or_else(|| panic!("{n} interrogation modules — extend NUMERALS"));
+    let readme = read("izanagi_kit/README.md");
+    assert!(
+        readme.contains(&format!("{word} modules do nothing but interrogate")),
+        "there are {n} interrogation modules, so the README's opening sentence \
+         must say \"{word} modules do nothing but interrogate a simulation\""
+    );
+
+    // Every one must be a real module, and none of them may be `world_hash` —
+    // the mistake the handbook made was counting the substrate as a tool.
+    let declared = declared_modules();
+    for m in INTERROGATION_MODULES {
+        assert!(
+            declared.contains(*m),
+            "`{m}` is listed as an interrogation module but is not declared"
+        );
+        assert_ne!(
+            *m, "world_hash",
+            "world_hash is the primitive the others rest on, not a tool that \
+             interrogates anything — the README classifies it as substrate two \
+             sentences later"
+        );
+    }
+}
+
+#[test]
+fn the_handbook_lists_the_same_eleven_the_readme_counts() {
+    // The handbook spells the family out; the README only counts it. They
+    // described different sets while agreeing on the total, which is the
+    // failure mode a count alone cannot catch.
+    let handbook = read("AGENT_INSTRUCTIONS.md");
+    // Anchored on prose rather than on the count, so the anchor does not drift
+    // with the number it is checking.
+    const ANCHOR: &str = "各々が別のバグクラスを狙い";
+    let at = handbook
+        .find(ANCHOR)
+        .expect("AGENT_INSTRUCTIONS.md must describe the verification family");
+    let start = handbook[..at]
+        .rfind("1. **")
+        .expect("the family paragraph is a numbered item");
+    let claim = &handbook[start..at];
+    for m in INTERROGATION_MODULES {
+        assert!(
+            claim.contains(&format!("`{m}`")),
+            "AGENT_INSTRUCTIONS.md §1 does not name `{m}` among the \
+             interrogation modules"
+        );
+    }
+    assert!(
+        !claim.contains("`world_hash`"),
+        "AGENT_INSTRUCTIONS.md §1 counts `world_hash` as an interrogation \
+         module. It is the hashing primitive the others use — including it \
+         while omitting `replay` is how the list stayed at eleven while being \
+         wrong twice."
+    );
 }

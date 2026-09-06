@@ -47,10 +47,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 1. **検証系11モジュールが揃い、相互に補完する** — `sim`(監査)/ `verify`(有界モデル
    検査・**証明**)/ `temporal`(時相性質)/ `recovery`(クラッシュ復旧)/ `explore`
    (archive 探索)/ `prop`(性質・モデル検査)/ `shrink`(縮約)/ `plan` / `dst` /
-   `rollback` / `world_hash`。各々が別のバグクラスを狙い、出典が明記されている。
+   `rollback` / `replay`(desync 局所化)。各々が別のバグクラスを狙い、出典が明記されている。
+   (`world_hash` はこの11件が**乗っている基盤**であり道具ではない — README も
+   fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(23種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(25種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -60,7 +62,9 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **ARCHITECTURE.md の file map / subsystem 数 / 図が実体と一致すること**・
    **全 fence が言語タグを持つこと**・**2つの README が doctest として配線されていること**・
    **ルート README の Rust ブロックが engine README に逐語で存在すること**・
-   **`include_str!` がパッケージ外を指さないこと**。
+   **`include_str!` がパッケージ外を指さないこと**・
+   **kit README 冒頭の「Eleven modules」が検証系の実数と一致すること**・
+   **本書 §1 が README と同じ11件を名指しすること**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -121,7 +125,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
-- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を23種の機械検査に。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を25種の機械検査に。
 - ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
@@ -130,6 +134,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~同じ族を4つの文書が4つの数で説明していた~~ → 検証系モジュールについて
+  kit README 冒頭は「Eleven」、本書 §1 は「11」だが `world_hash` を含み `replay` を欠く、
+  `VERIFICATION_FAMILY` は12、能力マップ section Q は10行。**§1 は2つの誤りが
+  打ち消し合って11になっていた**。`world_hash` は11件が乗っている**基盤**であり道具ではない
+  (README 自身も2文あとで fixed-point / seeded RNG と並べて substrate に分類している)。
+  正しい11件を `INTERROGATION_MODULES` として1箇所で定義し、README 冒頭の数詞と
+  §1 の一覧の両方をそれに対して検査する。crates.io と docs.rs の第一文である。
 - ~~「ビルドが通る」を動作の証拠として扱っていた~~ → 上の3件はすべて「ビルドは通るが
   動かない」だった。そこで gate は tarball 内で **bin もビルドし、`gamec` を実際に走らせる** —
   同梱の `dungeon.game` を受理し `broken.game` を拒否すること。壊れた内容を通すゲートは
