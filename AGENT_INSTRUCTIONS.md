@@ -31,7 +31,7 @@
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
 | panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし。tarball を実際にコンパイルする)|
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G8 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G8 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**|
 | 未検証の公開 API | **両クレートで 0** — kit 1534 / engine 247 の公開関数(**トレイトメソッド11件を含む**)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
@@ -48,14 +48,15 @@
    `rollback` / `world_hash`。各々が別のバグクラスを狙い、出典が明記されている。
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(19種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(21種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
    **SPEC.md の全体不変条件 G1〜G8 が強制場所を名指しすること**・
    **どの文書も終わったイテレーションを指さないこと**・
    **SPEC.md §9.1 の EBNF がパーサと同じキーワード集合・同じ境界値を持つこと**・
-   **ARCHITECTURE.md の file map / subsystem 数 / 図が実体と一致すること**。
+   **ARCHITECTURE.md の file map / subsystem 数 / 図が実体と一致すること**・
+   **全 fence が言語タグを持つこと**・**3つの README が doctest として配線されていること**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -115,7 +116,7 @@
 - ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
-- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を19種の機械検査に。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を21種の機械検査に。
 - ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
@@ -124,6 +125,14 @@
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~engine とルートの README が誰にもコンパイルされていなかった~~ → kit だけが
+  `#[cfg(doctest)] #[doc = include_str!]` で README を doctest 化しており、engine の README
+  (2ブロック)とルート README(2ブロック)は**何にもビルドされていなかった** — crates.io と
+  GitHub の訪問者が最初にコピーするコードである。配線した結果、ルート README の
+  **言語タグの無い fence 2件が実際の欠陥として露見**した(rustdoc は無タグ fence を Rust と
+  みなすため `cargo test --workspace` を式としてコンパイルしようとする)。`text` タグを付け、
+  全12文書の fence にタグを要求する検査と、3つの README の配線が外れないことの検査を追加。
+  ブロック自体は4件とも正しく、コンパイル・実行できた。
 - ~~ARCHITECTURE.md が実体と乖離~~ → engine の設計文書は file map に **25 中 16** しか載せて
   おらず、`audio_pcm`/`camera`/`debug`/`event`/`gamepad`/`log`/`sprite`/`tilemap`/`tween` の
   9件が存在しないかのように読めた。加えて「`Engine` owns **six** subsystems」(実際は10、

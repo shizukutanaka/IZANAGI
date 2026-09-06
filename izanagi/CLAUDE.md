@@ -4,7 +4,7 @@
 A Rust 2D/3D game engine. Zero deps, zero config. Run `cargo run --example pong` to validate.
 
 ## Map
-```
+```text
 src/
   lib.rs       — Engine type + public re-exports
   ecs.rs       — World, Entity (sparse storage, generational)

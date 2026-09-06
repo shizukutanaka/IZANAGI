@@ -526,3 +526,79 @@ fn no_document_points_at_an_iteration_that_has_ended() {
          anything still to come in RESEARCH.md's candidate table."
     );
 }
+
+#[test]
+fn every_fenced_block_declares_its_language() {
+    // An untagged fence is Rust as far as rustdoc is concerned. The workspace
+    // README carried two blocks of shell commands in bare fences; the moment
+    // that README was included as a doctest, rustdoc tried to compile
+    // `cargo test --workspace` as an expression and the build broke. The
+    // blocks had been wrong the whole time — nothing had ever looked at them.
+    //
+    // Tagging every fence costs three characters and means a document can be
+    // wired up as a doctest without first auditing it.
+    let docs = [
+        "README.md",
+        "AGENT_INSTRUCTIONS.md",
+        "izanagi/README.md",
+        "izanagi/CLAUDE.md",
+        "izanagi/ARCHITECTURE.md",
+        "izanagi/CONTRIBUTING.md",
+        "izanagi_kit/README.md",
+        "izanagi_kit/RESEARCH.md",
+        "izanagi_kit/SPEC.md",
+        "izanagi_kit/GAME_DEV_TAXONOMY.md",
+        "izanagi_kit/CHANGELOG.md",
+        "docs/ci/README.md",
+    ];
+    let mut untagged: Vec<String> = Vec::new();
+    let mut checked = 0usize;
+    for doc in docs {
+        let text = read(doc);
+        let mut inside = false;
+        for (n, line) in text.lines().enumerate() {
+            if !line.starts_with("```") {
+                continue;
+            }
+            if !inside {
+                checked += 1;
+                if line[3..].trim().is_empty() {
+                    untagged.push(format!("{doc}:{}", n + 1));
+                }
+            }
+            inside = !inside;
+        }
+    }
+    assert!(
+        checked >= 20,
+        "expected to find the documents' code blocks, found {checked} — has \
+         the document set changed?"
+    );
+    assert!(
+        untagged.is_empty(),
+        "these fenced blocks declare no language, so rustdoc would read them \
+         as Rust: {untagged:#?}\n\nUse ```text for diagrams and shell \
+         transcripts, ```rust for code meant to compile."
+    );
+}
+
+#[test]
+fn both_readmes_that_can_be_doctested_are_doctested() {
+    // izanagi_kit compiles its README's code blocks; the engine did not, and
+    // neither did the workspace README, which is the page GitHub shows first.
+    // A quickstart nothing compiles is a quickstart that stops working
+    // silently — and these are the first lines anyone copies.
+    for (lib, included) in [
+        ("izanagi_kit/src/lib.rs", "../README.md"),
+        ("izanagi/src/lib.rs", "../README.md"),
+        ("izanagi/src/lib.rs", "../../README.md"),
+    ] {
+        let src = read(lib);
+        let wiring = format!("#[doc = include_str!(\"{included}\")]");
+        assert!(
+            src.contains(&wiring),
+            "{lib} no longer includes {included} as a doctest. Without it the \
+             README's Rust blocks are compiled by nothing."
+        );
+    }
+}

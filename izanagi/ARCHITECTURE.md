@@ -6,7 +6,7 @@ below no longer hold, the change is probably wrong.
 
 ## The shape
 
-```
+```text
         ┌──────────────────────────────────────────────────┐
         │                      Engine                      │
         │               (the only public type)             │
@@ -110,7 +110,7 @@ backend in every signature. The cost of the vtable on a once-per-frame
 
 ## File map
 
-```
+```text
 src/
 ├── lib.rs        # Engine, public re-exports
 ├── ecs.rs        # World, Entity, sparse columns

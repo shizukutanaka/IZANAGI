@@ -14,7 +14,7 @@ procedural dungeon → A* → field-of-view), renders it through `izanagi`'s
 engine's frame loop cannot change a single bit of the simulation's world-hash
 trace.
 
-```
+```text
 cargo test --workspace   # 3,600+ tests, 0 clippy warnings, fmt clean
 ```
 
@@ -156,7 +156,7 @@ The central guarantee: **identical inputs produce a bit-identical simulation
 on every OS and CPU**, pinned by regression tests
 (`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH`) rather than merely asserted.
 
-```
+```text
 cargo test -p izanagi_kit   # 3,400+ tests, 0 clippy warnings, fmt clean
 ```
 

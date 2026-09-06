@@ -111,6 +111,25 @@ pub use rng::Rng;
 pub use scene::{Node, Scene};
 pub use time::Time;
 
+/// The engine README's code blocks, compiled and run as doctests.
+///
+/// `izanagi_kit` has done this since the quickstart is the first code a
+/// crates.io visitor copies, and a quickstart nothing compiles is one that
+/// stops working without anyone noticing. The engine's README was not wired
+/// up, so its two examples had never been built by anything.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+pub struct ReadmeExamplesAreCompiled;
+
+/// The workspace README's code blocks, compiled and run as doctests.
+///
+/// The repository root README belongs to no crate, so nothing compiled it
+/// either — and it is the page GitHub shows first. Its Rust blocks use only
+/// the engine, so this is where they can be checked.
+#[cfg(doctest)]
+#[doc = include_str!("../../README.md")]
+pub struct WorkspaceReadmeExamplesAreCompiled;
+
 use backend::{Backend, NullBackend};
 
 /// The engine. Your entire game runs through this.
