@@ -38,7 +38,40 @@ const POST_MSRV_APIS: &[(&str, (u32, u32), &str)] = &[
     ("Option::take_if", (1, 80), ".take_if("),
     ("slice::split_at_checked", (1, 80), ".split_at_checked("),
     ("c\"…\" literals", (1, 77), "c\""),
+    // Integer and slice helpers a fixed-point / grid / hashing crate reaches
+    // for by reflex. None appear today; the point is the day one does.
+    ("int::next_multiple_of", (1, 73), ".next_multiple_of("),
+    (
+        "Option::inspect is deliberately absent — see the note below",
+        (1, 76),
+        "\u{0}",
+    ),
+    ("slice::chunk_by", (1, 77), ".chunk_by("),
+    ("slice::first_chunk", (1, 77), ".first_chunk"),
+    ("slice::last_chunk", (1, 77), ".last_chunk"),
+    ("[u8]::trim_ascii", (1, 80), ".trim_ascii("),
+    ("std::cell::LazyCell", (1, 80), "LazyCell"),
+    ("#[expect(…)] attribute", (1, 81), "#[expect("),
+    ("slice/Iterator::is_sorted", (1, 82), ".is_sorted("),
+    ("num::midpoint", (1, 85), ".midpoint("),
+    ("int::cast_signed", (1, 87), ".cast_signed("),
+    ("int::cast_unsigned", (1, 87), ".cast_unsigned("),
+    ("int::is_multiple_of", (1, 87), ".is_multiple_of("),
+    ("slice::as_chunks", (1, 88), ".as_chunks"),
+    ("slice::as_chunks_mut", (1, 88), ".as_chunks_mut"),
+    // Syntax, not an API: a let-chain is a *parse error* on an older
+    // compiler, which is the worst kind of MSRV break — the diagnostic points
+    // at the syntax rather than at the version.
+    ("let-chains (`&& let`)", (1, 88), "&& let "),
 ];
+
+/// `Option::inspect` and `Result::inspect` stabilised in 1.76, but
+/// `Iterator::inspect` has existed since 1.0 and they share a spelling. A
+/// `.inspect(` needle would fire on every iterator chain in the workspace, and
+/// a scanner that cries wolf is one somebody switches off. It is left out
+/// deliberately rather than forgotten; the entry above holds its place with a
+/// needle that cannot occur in source text.
+const _: () = ();
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -97,21 +130,35 @@ fn library_sources(crate_dir: &str) -> Vec<(String, String)> {
 /// bounded on the left by the dot; anything else must not be preceded by an
 /// identifier character.
 fn contains_token(code: &str, needle: &str) -> bool {
-    let bounded_by_construction = needle.starts_with('.');
+    // The boundary requirement is derived from the needle's own first and last
+    // character, so a needle is never asked for a boundary that cannot exist.
+    //
+    // The first version returned `true` immediately for any needle starting
+    // with `.`, on the reasoning that a leading dot is a boundary by itself.
+    // That was sound only while every such needle also *ended* with `(`, which
+    // supplied the right-hand boundary by construction. Adding `.first_chunk`
+    // — paren-free, because the method is normally written with a turbofish —
+    // broke the assumption, and the needle matched `self.first_chunk_index`.
+    // The self-test below caught it. This is the same both-sides rule used by
+    // `no_nondeterminism_in_sim.rs` and `izanagi/tests/float_boundary.rs`.
+    fn ident_char(c: char) -> bool {
+        c.is_alphanumeric() || c == '_'
+    }
     let bytes: Vec<char> = code.chars().collect();
     let pat: Vec<char> = needle.chars().collect();
     if pat.is_empty() || bytes.len() < pat.len() {
         return false;
     }
+    let check_left = pat.first().copied().map(ident_char).unwrap_or(false);
+    let check_right = pat.last().copied().map(ident_char).unwrap_or(false);
     for i in 0..=bytes.len() - pat.len() {
         if bytes[i..i + pat.len()] != pat[..] {
             continue;
         }
-        if bounded_by_construction {
-            return true;
-        }
-        let left_ok = i == 0 || !(bytes[i - 1].is_alphanumeric() || bytes[i - 1] == '_');
-        if left_ok {
+        let left_ok = !check_left || i == 0 || !ident_char(bytes[i - 1]);
+        let after = i + pat.len();
+        let right_ok = !check_right || after >= bytes.len() || !ident_char(bytes[after]);
+        if left_ok && right_ok {
             return true;
         }
     }
@@ -199,6 +246,68 @@ fn the_scanner_catches_real_uses_and_ignores_lookalikes() {
         !contains_token(r#"DesyncPolicy::Resync => "resync","#, c_needle),
         "neither is a string ending in `c`"
     );
+
+    // The newly added needles fire on their real spellings...
+    for (name, sample) in [
+        ("int::next_multiple_of", "let n = x.next_multiple_of(8);"),
+        ("slice::chunk_by", "for run in v.chunk_by(|a, b| a == b) {}"),
+        ("[u8]::trim_ascii", "let t = bytes.trim_ascii();"),
+        (
+            "std::cell::LazyCell",
+            "static X: LazyCell<u8> = LazyCell::new(|| 1);",
+        ),
+        ("#[expect(…)] attribute", "#[expect(dead_code)]\nfn f() {}"),
+        ("slice/Iterator::is_sorted", "assert!(v.is_sorted());"),
+        ("num::midpoint", "let m = a.midpoint(b);"),
+        ("int::is_multiple_of", "if n.is_multiple_of(3) {}"),
+        ("slice::as_chunks", "let (c, r) = v.as_chunks::<4>();"),
+        ("slice::first_chunk", "let h = bytes.first_chunk::<8>();"),
+        (
+            "slice::as_chunks_mut",
+            "let (c, r) = v.as_chunks_mut::<4>();",
+        ),
+        ("let-chains (`&& let`)", "if a && let Some(x) = o {}"),
+    ] {
+        assert!(
+            contains_token(sample, needle_for(name)),
+            "the {name} needle does not fire on `{sample}`"
+        );
+    }
+
+    // ...and stay silent on the spellings they must not claim.
+    for (name, sample, why) in [
+        (
+            "num::midpoint",
+            "let p = self.midpoints.len();",
+            "a field named `midpoints` is not a call to `midpoint`",
+        ),
+        (
+            "slice/Iterator::is_sorted",
+            "let flag = self.is_sorted_flag;",
+            "a field starting with `is_sorted` is not the method",
+        ),
+        (
+            "std::cell::LazyCell",
+            "// a comment about laziness",
+            "prose about laziness is not LazyCell",
+        ),
+        (
+            "let-chains (`&& let`)",
+            "if a && letters.is_empty() {}",
+            "`letters` after `&&` is an identifier, not a let-chain",
+        ),
+        (
+            "slice::first_chunk",
+            "self.first_chunk_index = 0;",
+            "dropping the trailing paren must not make the needle match a \
+             longer identifier",
+        ),
+    ] {
+        assert!(
+            !contains_token(sample, needle_for(name)),
+            "the {name} needle wrongly fired on `{sample}` — {why}"
+        );
+    }
 
     // And the table's premise holds: is_some_and post-dates the engine's MSRV,
     // so the engine check has something to be checking.
