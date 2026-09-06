@@ -584,14 +584,21 @@ fn every_fenced_block_declares_its_language() {
 
 #[test]
 fn both_readmes_that_can_be_doctested_are_doctested() {
-    // izanagi_kit compiles its README's code blocks; the engine did not, and
-    // neither did the workspace README, which is the page GitHub shows first.
-    // A quickstart nothing compiles is a quickstart that stops working
-    // silently — and these are the first lines anyone copies.
+    // izanagi_kit compiles its README's code blocks; the engine did not. A
+    // quickstart nothing compiles is a quickstart that stops working silently,
+    // and these are the first lines anyone copies.
+    //
+    // The workspace README is deliberately NOT included this way. It sits
+    // above both crates, so `include_str!("../../README.md")` reaches outside
+    // the package and the published crate cannot run its own doctests —
+    // measured by unpacking the tarball, where `cargo test --doc` failed on
+    // exactly that line. `cargo package --verify` does not catch it because it
+    // runs a build, and `#[cfg(doctest)]` items do not exist during a build.
+    // The workspace README's blocks are checked by equality instead, in
+    // izanagi/tests/readme_blocks_agree.rs.
     for (lib, included) in [
         ("izanagi_kit/src/lib.rs", "../README.md"),
         ("izanagi/src/lib.rs", "../README.md"),
-        ("izanagi/src/lib.rs", "../../README.md"),
     ] {
         let src = read(lib);
         let wiring = format!("#[doc = include_str!(\"{included}\")]");

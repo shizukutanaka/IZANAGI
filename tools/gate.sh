@@ -123,13 +123,34 @@ stage "verification pipeline demo (asserts its own claims)"
 cargo run -p izanagi_kit --example verify_pipeline_demo >/dev/null
 echo "verify_pipeline_demo: ok"
 
-stage "packageability (both crates, verified)"
+stage "packageability (both crates, verified, doctests included)"
 # No `--no-verify`: the verify step unpacks the tarball and *builds it*, which
 # is the only way a "forgot to include that file" bug shows up. `cargo package`
 # does this without contacting the registry, so it costs a compile and buys the
 # same assurance `cargo publish --dry-run` gives.
 cargo package -p izanagi_kit --allow-dirty
 cargo package -p izanagi --allow-dirty
+
+# ...but a build is not enough. `#[cfg(doctest)]` items do not exist during a
+# build, so a `#[doc = include_str!(...)]` pointing outside the package builds
+# and verifies happily, then fails for the first consumer who runs the
+# doctests. That shipped once: izanagi included the workspace README with
+# `../../README.md`, the gate was green, and the unpacked crate could not test
+# itself. Running the doctests inside the unpacked tarball is what actually
+# proves the published crate is self-contained.
+for pkg_dir in target/package/izanagi_kit-*/ target/package/izanagi-*/; do
+    [ -d "$pkg_dir" ] || continue
+    case "$pkg_dir" in
+        *.crate) continue ;;
+    esac
+    name=$(basename "$pkg_dir")
+    if ! (cd "$pkg_dir" && cargo test --doc --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot run its own doctests"
+        (cd "$pkg_dir" && cargo test --doc 2>&1 | tail -30)
+        exit 1
+    fi
+    echo "packaged $name: doctests pass inside the tarball"
+done
 rm -rf target/package
 
 printf '\n\033[1;32mgate: all stages green\033[0m\n'

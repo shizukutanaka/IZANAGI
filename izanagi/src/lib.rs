@@ -121,15 +121,6 @@ pub use time::Time;
 #[doc = include_str!("../README.md")]
 pub struct ReadmeExamplesAreCompiled;
 
-/// The workspace README's code blocks, compiled and run as doctests.
-///
-/// The repository root README belongs to no crate, so nothing compiled it
-/// either — and it is the page GitHub shows first. Its Rust blocks use only
-/// the engine, so this is where they can be checked.
-#[cfg(doctest)]
-#[doc = include_str!("../../README.md")]
-pub struct WorkspaceReadmeExamplesAreCompiled;
-
 use backend::{Backend, NullBackend};
 
 /// The engine. Your entire game runs through this.

@@ -48,7 +48,7 @@
    `rollback` / `world_hash`。各々が別のバグクラスを狙い、出典が明記されている。
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(21種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(23種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -56,7 +56,9 @@
    **どの文書も終わったイテレーションを指さないこと**・
    **SPEC.md §9.1 の EBNF がパーサと同じキーワード集合・同じ境界値を持つこと**・
    **ARCHITECTURE.md の file map / subsystem 数 / 図が実体と一致すること**・
-   **全 fence が言語タグを持つこと**・**3つの README が doctest として配線されていること**。
+   **全 fence が言語タグを持つこと**・**2つの README が doctest として配線されていること**・
+   **ルート README の Rust ブロックが engine README に逐語で存在すること**・
+   **`include_str!` がパッケージ外を指さないこと**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -65,7 +67,8 @@
    **検査器自身も変異注入で検証**する慣行が定着している。
 4. **zero-dependency / `#![forbid(unsafe_code)]`** — 両クレートとも実行時依存ゼロ。
    両クレートが**検証付き**で梱包可能(`cargo package` が tarball からビルドし直す)。
-5. **「green」の定義が1つ** — `tools/gate.sh` の9段。pre-push フックと CI 提案が
+5. **「green」の定義が1つ** — `tools/gate.sh` の9段(最終段は tarball を展開して
+   **doctest まで走らせる**)。pre-push フックと CI 提案が
    同じスクリプトを呼ぶので、ローカルと CI が定義上ずれない。
 6. **エンジンとキットの境界が測定され機械検査される** — engine 25 モジュール中 8 が
    完全に float-free。`rng` は整数コアが replay-safe、便利側がそうでないという
@@ -116,7 +119,7 @@
 - ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
-- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を21種の機械検査に。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を23種の機械検査に。
 - ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
@@ -125,6 +128,16 @@
   247件中**24件**が未行使 — kit が最初の掃引で見つけた数と同じだった。23件をオラクル付きで
   行使し(残り1件は `#[doc(hidden)]`)、engine 側にも門番を設置。併せて両クレートの掃引が
   **トレイトメソッドを1件も数えていなかった**盲点を塞いだ(kit 6 + engine 5)。
+- ~~gate が green のまま「出荷すると壊れているクレート」を通した~~ → 直前の反復で入れた
+  `include_str!("../../README.md")` は**パッケージの外**を指しており、tarball にその
+  ファイルが入らない。展開して `cargo test --doc` を実行すると失敗する。
+  **`cargo package --verify` は捕まえない** — 存在しないファイルを捕まえるための段なのに、
+  走らせるのは**ビルド**であり、ビルド下では `#[cfg(doctest)]` の項目自体が消えるため。
+  自分の変更を疑って実測したことで発見した。include を削除し、ルート README の
+  Rust ブロックは**コンパイルされている engine README のブロックと逐語一致すること**で
+  検査する方式に変更(パッケージ境界を跨がず、重複が乖離しないことも同時に強制)。
+  gate の最終段は tarball の中で doctest を実行するようにし、クラス全体を静的にも
+  検査する(`include_str!` がパッケージ外を指さない)。両方向とも変異注入で確認。
 - ~~MSRV スキャナの針が薄く、境界規則が片側だけだった~~ → rustup が本環境で塞がれている以上、
   この静的スキャナが両クレートの MSRV 主張を支える唯一の仕組みで、ユーザーが有効化しようと
   している CI の `msrv` job が実トールチェーンで検証する対象そのもの。針を 9 → 23 に拡張
@@ -279,7 +292,9 @@ clippy 警告 0 / rustdoc 警告 0(両クレート)/ pinned hash(`determinism` +
 `roguelike_sim`)/ **全 example(29本)が headless 完走・非空出力・2回実行で
 バイト一致**(一覧はファイルシステムから読むので新規 example は追加当日から対象)/
 `kit_bridge` の統合ハッシュ `353498ec4fbcd160` を出力に含むこと /
-`verify_pipeline_demo`(自身の主張を assert する)/ 両クレートの `cargo package`。
+`verify_pipeline_demo`(自身の主張を assert する)/ 両クレートの `cargo package` と、
+**展開した tarball の中で `cargo test --doc`**(ビルドだけでは `#[cfg(doctest)]` が消えるため
+パッケージ外を指す include を検出できない — 実際に一度出荷しかけた)。
 
 同じスクリプトを `.githooks/pre-push` と CI 提案(`docs/ci/ci.yml` の `gate` ジョブ)が
 呼ぶので、ローカルの green と CI の green が定義上ずれない。フック有効化は**リポジトリ
