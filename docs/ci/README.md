@@ -44,6 +44,7 @@ git push
 | --- | --- |
 | `gate` | `tools/gate.sh` — the same script the pre-push hook runs: fmt, workspace tests, clippy at zero warnings, rustdoc at zero warnings, the pinned determinism hashes, every example run twice and required to complete headless, print a result and reproduce it byte for byte, the `kit_bridge` integration hash, the self-asserting pipeline demo, `cargo package` for both crates, and, *inside* each unpacked tarball, all four target kinds — doctests, tests, examples and bins — plus `gamec` exercised on the shipped fixtures in both directions — a build alone cannot see a `#[cfg(doctest)]` item, so it cannot see a doc include pointing outside the package. One definition of "green", shared between local and CI. |
 | `msrv` | The declared MSRVs are real: `izanagi` builds on 1.65, `izanagi_kit` on 1.75 (`cargo check`, since the MSRV promise is to consumers, not to the test suite). |
+| `release` | The suite passes with `overflow-checks` off. Debug and release disagree about arithmetic that wraps — debug panics where release continues — so a run in each is what proves the simulation path contains no silent overflow. `tools/gate.sh` checks the pinned hashes in both profiles because that costs a tenth of a second; the full release suite takes about three and a half minutes, which belongs here rather than before every push. |
 | `wasm` | `izanagi_kit` compiles for `wasm32-unknown-unknown`. |
 
 Keep `docs/ci/ci.yml` and the installed `.github/workflows/ci.yml` in sync:

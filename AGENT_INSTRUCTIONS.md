@@ -118,6 +118,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 ### 解消済み(本セッション)
 
+- ~~pinned hash は debug profile でしか検証されていなかった~~ → `overflow-checks` は
+  dev で既定 on・release で既定 off なので、シミュレーション経路の算術が静かに wrap する
+  コードは debug では panic して気づけるが release では気づけない。gate は debug の
+  pinned hash しか見ておらず、「このハッシュは安定している」という中核主張が
+  **実際に出荷される profile では一度も検証されていなかった**。実測すると release でも
+  同じハッシュが出た(健全)。gate の同じ段に release 実行を追加し、両方一致することを
+  要求する — 追加コストはコンパイル1回 + 0.1秒。CI 提案にも `release` job を追加し、
+  ワークスペース全体を release で通す(約3分半、push 前ではなく CI に置く判断)。
 - ~~公開 API の panic 経路~~ → **要件が誤りだった**。「unwrap 242」はテストコード込みの
   計測で、実装のみでは12箇所・全て到達不能。0.2 破壊的変更は不要で、書き換えて
   コンパイラ強制(`deny(clippy::unwrap_used/expect_used/panic)`)に。

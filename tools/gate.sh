@@ -53,8 +53,19 @@ if [ "$doc_warnings" -ne 0 ]; then
 fi
 echo "rustdoc: clean"
 
-stage "pinned determinism hashes"
+stage "pinned determinism hashes (debug and release)"
+# Both profiles, because they do not agree about arithmetic: `overflow-checks`
+# defaults to on for dev and off for release, so an addition that silently
+# wraps in a release build panics in a debug one. The hashes were only ever
+# checked in debug, which left the crate's central claim — this hash is stable
+# — unverified in the profile a game actually ships in.
+#
+# Requiring the same hash from both is also a free test for that overflow: if
+# any arithmetic in the simulation path wrapped, the release run would produce
+# a different trace, or the debug run would panic. It costs one extra compile
+# of two test binaries and a tenth of a second to run.
 (cd izanagi_kit && cargo test --test determinism --test roguelike_sim)
+(cd izanagi_kit && cargo test --release --test determinism --test roguelike_sim)
 
 stage "every example runs, prints, and reproduces"
 # The gate used to run two of the workspace's 29 examples. The other 27 were

@@ -8,8 +8,9 @@
 #
 # Design: the heavy job is `tools/gate.sh`, the same script the pre-push hook
 # runs, so "green locally" and "green in CI" are one definition, not two that
-# drift. The two extra jobs check what a single stable-toolchain run cannot:
-# the declared MSRVs actually build, and the kit actually compiles for wasm.
+# drift. The three extra jobs check what a single stable-toolchain debug run
+# cannot: the declared MSRVs actually build, the kit actually compiles for
+# wasm, and the whole suite still passes with `overflow-checks` off.
 
 name: CI
 
@@ -53,6 +54,21 @@ jobs:
       # idioms; the MSRV promise is that *consumers* on the declared
       # toolchain can build the crate.
       - run: cargo check -p ${{ matrix.package }}
+
+  release:
+    name: full suite in release (overflow-checks off)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # `overflow-checks` is on for dev and off for release, so the two
+      # profiles disagree about arithmetic that wraps: debug panics where
+      # release silently continues. The gate checks the pinned determinism
+      # hashes in both profiles because that is cheap; running the *whole*
+      # suite in release takes about three and a half minutes, which is a poor
+      # trade before every push and a fine one here.
+      - run: cargo test --workspace --release
 
   wasm:
     name: kit compiles for wasm32
