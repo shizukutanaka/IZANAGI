@@ -52,11 +52,11 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(26種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(27種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
-   **SPEC.md の全体不変条件 G1〜G8 が強制場所を名指しすること**・
+   **SPEC.md の全体不変条件 G1〜G10 が強制場所を名指しすること**・
    **どの文書も終わったイテレーションを指さないこと**・
    **SPEC.md §9.1 の EBNF がパーサと同じキーワード集合・同じ境界値を持つこと**・
    **ARCHITECTURE.md の file map / subsystem 数 / 図が実体と一致すること**・
@@ -65,7 +65,8 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **`include_str!` がパッケージ外を指さないこと**・
    **kit README 冒頭の「Eleven modules」が検証系の実数と一致すること**・
    **本書 §1 が README と同じ11件を名指しすること**・
-   **ポインタ幅の値が world hash に到達しないこと**(SPEC.md G9)。
+   **ポインタ幅の値が world hash に到達しないこと**(SPEC.md G9)・
+   **native-endian のバイト列が world hash に到達しないこと**(SPEC.md G10)。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -134,7 +135,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~engine の f32 境界が不明~~ → 実測(25中8が float-free、`rng` は分割)し機械検査。
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
-- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を26種の機械検査に。
+- ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を27種の機械検査に。
 - ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
@@ -154,6 +155,17 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   SPEC.md に **G9** として明記し、`hashes_are_width_independent.rs` で強制。
   G9 を書いた時点で `global_invariants_hold.rs` が**強制場所の登録を要求して落ちた** —
   前に作った仕組みが、演習ではなく本物の新規不変条件で機能した。
+- ~~クロスプラットフォーム決定性のもう一つの穴: エンディアン~~ → G9 の隣にある同じ形の
+  リスクで、Rust の `to_ne_bytes()` はターゲット CPU のネイティブなバイト順を返す
+  (x86-64・wasm32 は little-endian、一部の組込み・メインフレームは big-endian)。
+  `Fnv1a` の全 write メソッドは既に `to_le_bytes()` を明示的に呼んでおり(`to_ne_bytes`
+  ではなく)、`world_hash.rs` 自身のコメントも「no native-endian ... leakage」と設計
+  意図を述べていた。実測するとライブラリコード全体で `to_ne_bytes`/`to_be_bytes` は
+  **ゼロ**。ただし**現行 CI ターゲットはすべて little-endian なので、`to_ne_bytes` に
+  変わっても実行テストは何も気づかない**潜在バグの形だった(G9 と全く同じ構造)。
+  SPEC.md に **G10** として明記し、`hashes_are_endian_independent.rs` で静的に強制
+  (`to_ne_bytes`/`to_be_bytes` 禁止 + 各 write が `to_le_bytes` を呼ぶことを確認)。
+  G10 も同様に `global_invariants_hold.rs` の登録要求を経由した。
 - ~~同じ族を4つの文書が4つの数で説明していた~~ → 検証系モジュールについて
   kit README 冒頭は「Eleven」、本書 §1 は「11」だが `world_hash` を含み `replay` を欠く、
   `VERIFICATION_FAMILY` は12、能力マップ section Q は10行。**§1 は2つの誤りが

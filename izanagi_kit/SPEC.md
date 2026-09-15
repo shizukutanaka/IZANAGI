@@ -26,6 +26,7 @@
 | G7 | パニックしない公開 API（不正入力は飽和・None・no-op で処理） | 堅牢性 |
 | G8 | MSRV **1.75** / edition 2021 | 互換性 |
 | G9 | **ポインタ幅の値を hash に混ぜない**（`usize`/`isize` の `DetHash` 実装なし、`write_usize` なし、長さは `as u32`） | 32bit/64bit 間の replay 一致。CI は wasm32 (`usize` = 32bit) でビルドする |
+| G10 | **hash に native-endian のバイト列を混ぜない**（`to_ne_bytes`/`to_be_bytes` 禁止、全 write は `to_le_bytes` を明示） | little-endian と big-endian 間の replay 一致。現行 CI ターゲット(x86-64・wasm32)はすべて little-endian なので、実行時テストでは検出できない潜在バグ |
 
 ## 3. `entity` — 世代付きエンティティ
 - `Entity{index,generation}`（opaque）, `EntityAllocator{allocate, free, is_alive}`。

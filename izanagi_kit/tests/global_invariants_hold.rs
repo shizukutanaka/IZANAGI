@@ -211,6 +211,12 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
          impl, no write_usize, lengths as u32, no pointer-sized sentinels)",
     );
     m.insert(
+        "G10",
+        "izanagi_kit/tests/hashes_are_endian_independent.rs (no to_ne_bytes/ \
+         to_be_bytes anywhere in library code, every fixed-width write calls \
+         to_le_bytes explicitly)",
+    );
+    m.insert(
         "G8",
         "this file: g8_*, plus izanagi_kit/tests/msrv_is_respected.rs for the code",
     );
