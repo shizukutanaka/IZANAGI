@@ -80,6 +80,15 @@ tree_status() {
     printf '%s\n' "$_ts_raw" | grep -vE '^!! (target/|Cargo\.lock)$' || true
 }
 if command -v git >/dev/null 2>&1; then
+    # A sparse checkout reports clean while subtrees were never
+    # materialized — the suite's directory walks then assert over a
+    # partial tree and pass vacuously (verified: `sparse-checkout list`
+    # exits non-zero on this worktree, zero when sparse is active).
+    if git sparse-checkout list >/dev/null 2>&1; then
+        echo "gate: sparse checkout is active — parts of the suite may be" >&2
+        echo "      absent without the sentinel noticing. Unsparse first." >&2
+        exit 1
+    fi
     tree_before=$(tree_status)
 else
     echo "gate: git not found — the tree-unchanged check at the end will be skipped"

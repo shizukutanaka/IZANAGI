@@ -943,6 +943,11 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   残存は字句走査の到達不能面なので、gate に「スイートをもう一度実行し
   per-binary の result tally を diff」する段を追加(時刻文字列は除去、
   cargo 自体の失敗は tally 比較より先に exit — 空同士の一致で空成功しない)。
+- ~~ツリー走査は checkout が完全である前提で尽きると思われていた~~ →
+  `git sparse-checkout` が有効だと subtree が非materializeのまま
+  status も clean を返し、dir 走査は部分ツリーで vacuous に緑(/tmp clone で
+  `sparse-checkout set izanagi` → kit tests 不在・status 空 を実機確認)。
+  gate 冒頭で `git sparse-checkout list` rc を見て sparse 時は拒否。
 
 ## 3. 改善案(優先順位付き)
 
