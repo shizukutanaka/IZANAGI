@@ -1182,3 +1182,50 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
         }
     }
 }
+
+/// The identity freeze above proves the copies are the *same* — it cannot
+/// prove they are *right*: a lexer that never found a real marker, or that
+/// took fakes, would pass byte-equality while under-scanning every file it
+/// serves. Pin the behavior on synthetic input instead.
+#[test]
+fn the_shared_boundary_lexer_finds_real_markers_and_rejects_fakes() {
+    // Real: marker at line start (leading whitespace allowed), found at its
+    // byte offset; nothing after it is scanned.
+    let real = "fn impl_code() {}\n\n#[cfg(test)]\nmod tests {}\n";
+    let at = test_module_boundary(real).expect("a real marker must be found");
+    assert_eq!(&real[..at], "fn impl_code() {}\n\n");
+    assert_eq!(
+        test_module_boundary("    #[cfg(test)]\n"),
+        Some(4),
+        "indented real marker still counts"
+    );
+
+    // Fakes must not truncate: inside a line comment, a block comment
+    // (including a nested one), a plain string, a raw string with #s, a
+    // string on a line with real code — none of them are the boundary.
+    for fake in [
+        "// a note about #[cfg(test)]\nfn a() {}\n",
+        "/* docs say #[cfg(test)] here */\nfn a() {}\n",
+        "/* nested /* #[cfg(test)] */ comment */\nfn a() {}\n",
+        "const S: &str = \"#[cfg(test)]\";\nfn a() {}\n",
+        "const S: &str = r##\"#[cfg(test)] and a \" inside\"##;\nfn a() {}\n",
+        "fn f<'a>() -> &'a str { \"#[cfg(test)]\" }\n",
+        "let x = 1; #[cfg(test)]\n",
+    ] {
+        assert_eq!(
+            test_module_boundary(fake),
+            None,
+            "a fake marker was taken as the boundary in {fake:?}"
+        );
+    }
+    // The decisive case: a fake marker before a real one must not hide the
+    // real boundary.
+    let mixed = "const S: &str = \"#[cfg(test)]\";\nfn a() {}\n\n#[cfg(test)]\nmod t {}\n";
+    assert_eq!(
+        test_module_boundary(mixed),
+        Some(mixed.rfind("#[cfg(test)]").unwrap()),
+        "a fake early marker must not shadow the real test module"
+    );
+    // Sanity: no marker at all means the whole file is impl code.
+    assert_eq!(test_module_boundary("fn only() {}\n"), None);
+}
