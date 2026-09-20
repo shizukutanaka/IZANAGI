@@ -148,6 +148,20 @@ const BANNED: &[(&str, &str)] = &[
     // room.
     ("panic machinery", "catch_unwind"),
     ("panic machinery", "panic::"),
+    // `abort` skips unwinding *and* catch_unwind — the one exit G7's "no
+    // panic" contract cannot be negotiated around. `size_of`/`align_of` ask
+    // the target's layout — width-dependent bytes entering a hash would not
+    // be width-independent. stdout/stderr writes (`print!`/`eprintln!`/
+    // `dbg!`…) are a side channel: unexercised they are silent, exercised
+    // they would pollute the byte-compared example output.
+    ("process abort", "abort("),
+    ("layout query", "size_of"),
+    ("layout query", "align_of"),
+    ("stdout side channel", "println!"),
+    ("stdout side channel", "print!"),
+    ("stderr side channel", "eprintln!"),
+    ("stderr side channel", "eprint!"),
+    ("debug print", "dbg!"),
 ];
 
 fn kit_src() -> PathBuf {
