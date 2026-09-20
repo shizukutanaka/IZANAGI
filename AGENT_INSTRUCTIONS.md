@@ -409,7 +409,8 @@ push が classifier エラーで拒否された場合は 1〜2 回リトライ�
 - **I2 examples**: `izanagi_kit/examples/` の既存ファイル(例: `replay_demo.rs`)の
   構成(ヘッダ doc・main・最後に成否 print・非ゼロ exit)を踏襲。
   `dst_demo`(seed 掃引→意図的バグ注入→1行再現)、`plan_demo`(迷路→入力列合成→再生検証)。
-  Cargo.toml への `[[example]]` 登録を忘れない。
+  example は `examples/<name>.rs` の配置で自動検出される — `[[example]]` ブロックは
+  既定値の再述だったため削除済み(復活させない)。
 - **I5 の棚卸しフェーズ**: `grep -rn "sort\|partial_cmp\|f32" izanagi/src/` で
   float 比較・ソート箇所を列挙し、各箇所に「決定論影響あり/なし」の所見を付けた
   一覧を作る(変更はまだしない)。

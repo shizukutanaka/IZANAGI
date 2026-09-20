@@ -42,9 +42,6 @@ documentation = "https://docs.rs/izanagi_kit"
 [lib]
 path = "src/lib.rs"
 
-# docs.rs build config. all-features is a no-op today (no features) but makes
-# the badge correct if feature groups are added later; the docsrs cfg lets
-# doc-only `#[cfg(docsrs)]` attributes (e.g. feature badges) compile there.
-[package.metadata.docs.rs]
-all-features = true
-rustdoc-args = ["--cfg", "docsrs"]
+# docs.rs build config would go here if the crate had features to enumerate or
+# `#[cfg(docsrs)]` attributes to satisfy. It has neither today, so the section
+# is deliberately absent rather than reserved — re-add it with the feature.

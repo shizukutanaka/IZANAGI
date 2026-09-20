@@ -83,10 +83,11 @@ versa. Update the Map in the same commit that adds or removes a file.
 4. Add integration test in `tests/integration.rs`.
 
 ### Add an example
-1. Create `examples/<name>.rs`.
-2. Register in `Cargo.toml` `[[example]]`.
-3. Example must run headless (`cargo run --example <name>` completes without hanging).
-4. Example must print something useful at the end.
+1. Create `examples/<name>.rs` — cargo auto-discovers it; no manifest
+   registration is needed (explicit `[[example]]` blocks were removed as
+   pure restatements of the default).
+2. Example must run headless (`cargo run --example <name>` completes without hanging).
+3. Example must print something useful at the end.
 
 ### Add a backend
 1. Implement `backend::Backend` in a new `izanagi-<name>` crate.
