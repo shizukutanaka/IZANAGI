@@ -289,6 +289,49 @@ fn library_code_compiles_without_platform_profile_or_feature_conditionals() {
     );
 }
 
+/// The `key` half of every `key = value` pair on a manifest line, including
+/// keys inside inline `{ ... }` tables. String literals are blanked first so
+/// a description that merely *contains* `=` cannot masquerade as a key.
+fn manifest_line_keys(line: &str) -> Vec<String> {
+    let mut dequoted = String::with_capacity(line.len());
+    let mut in_str: Option<char> = None;
+    for c in line.chars() {
+        match in_str {
+            Some(q) if c == q => in_str = None,
+            Some(_) => {}
+            None if c == '"' || c == '\'' => in_str = Some(c),
+            // A `#` outside a string opens a TOML comment to end of line —
+            // a comment that happens to contain `key =` is not a key.
+            None if c == '#' => break,
+            None => dequoted.push(c),
+        }
+    }
+    let mut keys = Vec::new();
+    let bytes = dequoted.as_bytes();
+    for (i, &b) in bytes.iter().enumerate() {
+        if b != b'=' || i == 0 {
+            continue;
+        }
+        // Skip whitespace between the key and `=` (`debug-assertions = ...`).
+        let mut end = i;
+        while end > 0 && (bytes[end - 1] == b' ' || bytes[end - 1] == b'\t') {
+            end -= 1;
+        }
+        let mut start = end;
+        while start > 0 && {
+            let c = bytes[start - 1];
+            c.is_ascii_alphanumeric() || c == b'_' || c == b'-'
+        } {
+            start -= 1;
+        }
+        let key = &dequoted[start..end];
+        if !key.is_empty() {
+            keys.push(key.to_string());
+        }
+    }
+    keys
+}
+
 #[test]
 fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
     // Every table header below would add inputs to the build that the
@@ -297,7 +340,10 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
     // `features` declares inputs to a `cfg(feature)` no source file may
     // name, `build-dependencies` feeds a build.rs that is already banned,
     // and `lints`/`patch`/`replace` are configuration the gate ignores.
-    // Banning the header atoms keeps these manifests' grammar closed.
+    // `bin`/`test`/`bench`/`example` are the `[[...]]` target tables: they
+    // can redirect `path` at unscanned code or set `harness = false`, which
+    // compiles and "runs" a suite that executes nothing. Banning the header
+    // atoms keeps these manifests' grammar closed.
     const BANNED_SECTION_ATOMS: &[&str] = &[
         "target",
         "features",
@@ -305,27 +351,75 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
         "lints",
         "patch",
         "replace",
+        "bin",
+        "test",
+        "bench",
+        "example",
     ];
+    // The same smuggles exist as bare keys (in `[package]`, `[lib]`, or an
+    // inline table): `autotests`/`autobenches`/`autoexamples`/`autobins`
+    // switch off auto-discovery so the filesystem enumeration in gate.sh
+    // stops agreeing with what cargo builds; `harness`/`test`/`bench`/
+    // `doctest` can quietly disable a runner; `crate-type`/`proc-macro`
+    // change what linking the library even produces.
+    const BANNED_KEYS: &[&str] = &[
+        "harness",
+        "autotests",
+        "autobenches",
+        "autoexamples",
+        "autobins",
+        "crate-type",
+        "proc-macro",
+        "test",
+        "bench",
+        "doctest",
+    ];
+    // Profile tables exist legitimately (the workspace root sets opt-level/
+    // lto/strip) — but three of their keys rewrite program semantics rather
+    // than tuning output: `debug-assertions` switches every `debug_assert!`
+    // off, `overflow-checks` flips wrap-vs-panic, and `panic = "abort"`
+    // removes unwinding entirely.
+    const BANNED_PROFILE_KEYS: &[&str] = &["debug-assertions", "overflow-checks", "panic"];
     for manifest_rel in ["Cargo.toml", "izanagi_kit/Cargo.toml", "izanagi/Cargo.toml"] {
         let manifest = fs::read_to_string(repo_root().join(manifest_rel))
             .unwrap_or_else(|e| panic!("reading {manifest_rel}: {e}"));
+        let mut section = String::new();
         for line in manifest.lines().map(str::trim) {
-            let Some(rest) = line.strip_prefix('[') else {
+            if let Some(rest) = line.strip_prefix('[') {
+                // `[[bin]]` and `[a.b]` both reduce to their bare keys: take
+                // the header text and split it on '.' so
+                // `[target.'cfg(unix)'.d]` yields `target` and
+                // `[workspace.lints]` yields `lints` too.
+                let header = rest.trim_start_matches('[');
+                let header = header.split(']').next().unwrap_or(header);
+                section = header.trim().to_string();
+                for key in header.split('.') {
+                    let key = key.trim().trim_matches(|c| c == '\'' || c == '"');
+                    assert!(
+                        !BANNED_SECTION_ATOMS.contains(&key),
+                        "{manifest_rel} declares `{line}` — the `{key}` table is \
+                         build configuration the gate never reads. The section \
+                         grammar of these manifests is closed."
+                    );
+                }
                 continue;
-            };
-            // `[[bin]]` and `[a.b]` both reduce to their bare keys: take the
-            // header text and split it on '.' so `[target.'cfg(unix)'.d]`
-            // yields `target` and `[workspace.lints]` yields `lints` too.
-            let header = rest.trim_start_matches('[');
-            let header = header.split(']').next().unwrap_or(header);
-            for key in header.split('.') {
-                let key = key.trim().trim_matches(|c| c == '\'' || c == '"');
+            }
+            for key in manifest_line_keys(line) {
                 assert!(
-                    !BANNED_SECTION_ATOMS.contains(&key),
-                    "{manifest_rel} declares `{line}` — the `{key}` table is \
-                     build configuration the gate never reads. The section \
-                     grammar of these manifests is closed."
+                    !BANNED_KEYS.contains(&key.as_str()),
+                    "{manifest_rel} sets `{key}` — this key can redirect or \
+                     disable build/test targets without changing a line of \
+                     source. The manifest grammar is closed."
                 );
+                if section.starts_with("profile") {
+                    assert!(
+                        !BANNED_PROFILE_KEYS.contains(&key.as_str()),
+                        "{manifest_rel} sets `{key}` inside `[{section}]` — this \
+                         profile key changes program semantics (assertions, \
+                         overflow behaviour, panic strategy), so the same \
+                         source compiles to a different simulation"
+                    );
+                }
             }
         }
     }
@@ -333,16 +427,24 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
     // `.cargo/config.toml` (or the extensionless `config`) is read from the
     // package directory upward: `build.rustflags` there could pass `--cfg`
     // past the predicate scan above, or `--cap-lints allow` to demote the
-    // deny-level safety lints. The ban covers the workspace root and both
-    // member crates — anywhere Cargo would look while building them.
+    // deny-level safety lints. `rust-toolchain{,.toml}` and `Cross.toml`
+    // silently change *which compiler* or *which target* builds the code —
+    // the same class of unlisted build input. The ban covers the workspace
+    // root and both member crates.
     for dir in ["", "izanagi_kit", "izanagi"] {
-        for name in ["config", "config.toml"] {
-            let path = repo_root().join(dir).join(".cargo").join(name);
+        for rel in [
+            ".cargo/config",
+            ".cargo/config.toml",
+            "rust-toolchain",
+            "rust-toolchain.toml",
+            "Cross.toml",
+        ] {
+            let path = repo_root().join(dir).join(rel);
             assert!(
                 !path.exists(),
-                "{} exists — a repo-checked-in cargo config can pass rustflags \
-                 (including `--cfg` and `--cap-lints`) around every source \
-                 scan in this suite",
+                "{} exists — repo-checked-in build configuration outside the \
+                 manifests can change flags, toolchain, or target around \
+                 every scan in this suite",
                 path.display()
             );
         }

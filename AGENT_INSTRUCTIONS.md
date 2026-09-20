@@ -52,7 +52,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(36+種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(38+種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -75,7 +75,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **panic 系マクロが理由つき allowlist に凍結されていること**・
    **`#[path]`/`include!`/`include_bytes!` による走査外コード混入の不在**・
    **kit の ambient-input 禁止が fs/process/io に及ぶこと**・
-   **gate.sh が全ステージを名指しで含むこと**。
+   **gate.sh が全ステージを名指しで含み、RUSTFLAGS/RUSTDOCFLAGS を除去して走ること**・
+   **manifest の残り文法**(`[[bin]]`/`[[test]]`/`[[bench]]`/`[[example]]` ターゲットテーブル、
+   `harness`/`auto*`/`crate-type`/`proc-macro`/`test`/`bench`/`doctest` キー、profile の
+   `debug-assertions`/`overflow-checks`/`panic`)が閉じていること・
+   **`rust-toolchain`/`Cross.toml` の不在**・**`env!`/`option_env!`/`extern`/`#[no_mangle]`/`#[link` の不在**・
+   **kit が `std::arch`/`core::arch` の CPU 機能検出を使わないこと**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -333,6 +338,24 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   通るので、stage を1つ消しても exit 0 のまま。`the_gate_script_still_runs_every_stage`
   が各ステージの識別トークン(fmt/test/clippy/doc/pinned-hash 両プロファイル/
   examples 列挙/package/tarball 内検査/gamec)の存在を検査。トークン削除で検出確認。
+- ~~manifest 文法はテーブルだけ閉じれば足りると思われていた~~ → `[[bin]]`/`[[test]]`/
+  `[[bench]]`/`[[example]]` ターゲットテーブル(path 転送・`harness = false` でテストを
+  空実行化)と、テーブルを要しない `harness`/`auto*`/`crate-type`/`proc-macro`/`test`/
+  `bench`/`doctest` キーが未禁止だった。さらに既存の `[profile.*]` テーブル自体は正当だが
+  `debug-assertions`/`overflow-checks`/`panic` キーはプログラム意味論を書き換える。
+  インライン `{...}` 内のキーも拾う行キースキャンで全面禁止。注入3種で検出確認。
+- ~~ビルドを変えるファイルは .cargo だけと思われていた~~ → `rust-toolchain{,.toml}` は
+  コンパイラ自体を差し替え(注入試験で channel=1.60 は MSRV エラーでビルド停止を実演)、
+  `Cross.toml` はターゲットを変える。いずれも不在を検査。
+- ~~gate.sh は呼ばれた環境で正直に走ると思われていた~~ → RUSTFLAGS/
+  CARGO_ENCODED_RUSTFLAGS/RUSTDOCFLAGS は `--cfg`/`--cap-lints` を rustc/rustdoc に
+  届けるため、呼び出し元シェルの環境がスイート全体を弱め得た。gate.sh 冒頭で
+  無条件 unset し、その行の存在をステージ検査に追加(削除注入で検出確認)。
+- ~~出荷コードが参照するのはソースツリーだけと思われていた~~ → `env!`/`option_env!` は
+  ビルド機の環境変数をバイナリに焼き込み、`extern`/`#[no_mangle]`/`#[link` は manifest の
+  依存リストに載らないネイティブリンクを宣言できる。実測ゼロを確認し provenance 検査に
+  追加(env!・extern の実注入で検出確認)。また `std::arch`/`core::arch` の CPU 機能検出は
+  「どのマシンで走るか」への実行時分岐として kit BANNED に追加(`use std::arch` 注入で検出確認)。
 
 ## 3. 改善案(優先順位付き)
 

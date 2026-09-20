@@ -222,8 +222,12 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
         "G11",
         "izanagi_kit/tests/no_platform_cfg_in_sim.rs (cfg/cfg!/cfg_attr \
          predicates may name only test/doc/doctest/docsrs and the \
-         not/any/all combinators; no target/features/lints/patch/replace/ \
-         build-dependencies manifest tables; no .cargo config)",
+         not/any/all combinators; manifest section grammar is closed — no \
+         target/features/lints/patch/replace/build-dependencies tables, no \
+         [[bin]]/[[test]]/[[bench]]/[[example]] target tables, no harness/ \
+         auto*/crate-type/proc-macro/doctest keys, no semantic profile keys; \
+         no .cargo/rust-toolchain/Cross.toml files; tools/gate.sh unsets \
+         RUSTFLAGS/RUSTDOCFLAGS)",
     );
     m.insert(
         "G8",
@@ -603,11 +607,26 @@ fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
     // file. `include_str!` is exempt: it produces a &'static str used by
     // docs, not code, and the package-boundary check already constrains
     // where it may point.
+    //
+    // The same class covers inputs the scanners never read for other
+    // reasons: `env!`/`option_env!` bake the *build machine's* environment
+    // into the binary, and `extern`/`#[no_mangle]`/`#[link` declare linkage
+    // to native code no manifest dependency lists — a dependency the
+    // zero-dependency checks cannot see.
     for src in ["izanagi_kit/src", "izanagi/src"] {
         let sources = library_sources(&repo_root().join(src));
         assert!(!sources.is_empty(), "found no sources under {src}");
         for (name, code) in sources {
-            for needle in ["#[path", "include!(", "include_bytes!("] {
+            for needle in [
+                "#[path",
+                "include!(",
+                "include_bytes!(",
+                "env!(",
+                "option_env!",
+                "extern ",
+                "#[no_mangle",
+                "#[link",
+            ] {
                 assert!(
                     !code.contains(needle),
                     "{name} contains `{needle}` — compiled code must live in \

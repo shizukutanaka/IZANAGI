@@ -449,6 +449,8 @@ fn the_gate_script_still_runs_every_stage() {
         "gate.sh lost its fail-fast setting"
     );
     for token in [
+        "unset RUSTFLAGS",
+        "RUSTDOCFLAGS",
         "cargo fmt --all",
         "cargo test --workspace",
         "cargo clippy",

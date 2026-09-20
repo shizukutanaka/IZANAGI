@@ -114,6 +114,12 @@ const BANNED: &[(&str, &str)] = &[
     ("filesystem module", "std::fs"),
     ("filesystem access", "fs::"),
     ("I/O module", "std::io"),
+    // CPU feature detection (`std::arch::is_x86_feature_detected!` and the
+    // intrinsics behind it) is a runtime branch on *which machine* runs the
+    // binary — the same simulation code would take different paths on two
+    // honest builds on different hardware.
+    ("CPU feature detection", "std::arch"),
+    ("CPU feature detection", "core::arch"),
 ];
 
 fn kit_src() -> PathBuf {

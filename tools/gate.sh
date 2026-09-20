@@ -10,6 +10,14 @@
 # cargo and grep.
 set -eu
 
+# The gate defines "green" — so it must not inherit build inputs from the
+# ambient shell. RUSTFLAGS/CARGO_ENCODED_RUSTFLAGS can pass `--cfg` or
+# `--cap-lints allow` to rustc and RUSTDOCFLAGS the same to rustdoc; either
+# would let a developer's environment weaken or fork checks this repository
+# believes it is running. They are scrubbed unconditionally: a build that
+# needs them is exactly the build the gate does not measure.
+unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTDOCFLAGS
+
 cd "$(dirname "$0")/.."
 
 KIT_BRIDGE_HASH=353498ec4fbcd160
