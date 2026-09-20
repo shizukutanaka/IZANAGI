@@ -938,6 +938,11 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - 同族拡張: `rustfmt.toml`/`.rustfmt.toml` も整形対象ファイルから祖先へ遡って
   発見される(実機実証: 祖先の `tab_spaces = 1` で `cargo fmt --check` の
   判定が変化)。祖先 dir 走査リストへ追加。
+- ~~`cargo test` は一度走れば緑の意味を持つと思われていた~~ → 一度の緑は
+  次回 run の flaky な判定を見ない。hash-seed 順序・thread timing・scratch
+  残存は字句走査の到達不能面なので、gate に「スイートをもう一度実行し
+  per-binary の result tally を diff」する段を追加(時刻文字列は除去、
+  cargo 自体の失敗は tally 比較より先に exit — 空同士の一致で空成功しない)。
 
 ## 3. 改善案(優先順位付き)
 

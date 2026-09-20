@@ -165,6 +165,35 @@ cargo fmt --all -- --check
 stage "workspace tests"
 cargo test --workspace
 
+stage "suite determinism (the suite runs twice — a flake hides between runs)"
+# Lexical scans ban the ambient inputs a test could read, but a check can
+# still flake on something the tokens cannot see: hash-seed iteration order,
+# thread timing, leftover scratch state. One green run proves nothing about
+# the next — running the suite a second time and comparing the per-binary
+# result tallies is the only check that observes it. Timing text is
+# stripped before the diff (`finished in 8.6s` differs by design).
+if ! cargo test --workspace >/tmp/gate_suite_a.$$ 2>&1; then
+    tail -30 /tmp/gate_suite_a.$$
+    rm -f /tmp/gate_suite_a.$$
+    exit 1
+fi
+if ! cargo test --workspace >/tmp/gate_suite_b.$$ 2>&1; then
+    tail -30 /tmp/gate_suite_b.$$
+    rm -f /tmp/gate_suite_a.$$ /tmp/gate_suite_b.$$
+    exit 1
+fi
+grep -h '^test result:' /tmp/gate_suite_a.$$ | sed 's/; finished in .*//' | sort >/tmp/gate_tally_a.$$
+grep -h '^test result:' /tmp/gate_suite_b.$$ | sed 's/; finished in .*//' | sort >/tmp/gate_tally_b.$$
+if ! diff -u /tmp/gate_tally_a.$$ /tmp/gate_tally_b.$$ >/dev/null; then
+    echo "gate: the suite's result tally changed between identical runs — a"
+    echo "      check's outcome depends on run-order or ambient state:"
+    diff -u /tmp/gate_tally_a.$$ /tmp/gate_tally_b.$$ | head -20
+    rm -f /tmp/gate_suite_a.$$ /tmp/gate_suite_b.$$ /tmp/gate_tally_a.$$ /tmp/gate_tally_b.$$
+    exit 1
+fi
+rm -f /tmp/gate_suite_a.$$ /tmp/gate_suite_b.$$ /tmp/gate_tally_a.$$ /tmp/gate_tally_b.$$
+echo "suite: identical result tallies across two runs"
+
 stage "clippy (zero warnings tolerated)"
 # clippy exits 0 on warnings, so count them; -D warnings would also work but
 # grep keeps the output visible in the log instead of aborting at the first.
