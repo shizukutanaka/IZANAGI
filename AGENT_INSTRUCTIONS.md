@@ -781,6 +781,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `feature_detected` を needle に追加。
 
 
+- ~~`env::temp_dir` を白名単に残していた(スクラッチファイル用)~~ →
+  temp 配下のフラグファイルは gate 実行をまたいで残存し、
+  `join(flag).exists()` が「前回実行が仕込む skip スイッチ」になる
+  (注入→両回とも緑、TMPDIR に実存を確認)。scratch はワークスペース
+  `target/`(gitignore 済み、ツリー内)へ移し、whitelist から除去。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

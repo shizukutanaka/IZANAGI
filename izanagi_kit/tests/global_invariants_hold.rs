@@ -1667,10 +1667,14 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // injection: `env::var_os` in a test and `env::current_dir` in an
             // example both stayed green). Whitelist instead: `env::` may be
             // followed only by the argv readers (the engine examples use them
-            // for `--terminal`; argv is identical across gate runs) and
-            // `temp_dir` (integration.rs writes a scratch save there — the
-            // path itself is never asserted, so no machine data lands in a
-            // pinned output).
+            // for `--terminal`; argv is identical across gate runs).
+            // `temp_dir` was removed again: a flag file under it survives
+            // between gate runs, so `dir.join(flag).exists()` is a skip
+            // switch one run arms for the next (injected into a test —
+            // green, flag persisted in TMPDIR). Scratch now lives under the
+            // workspace `target/`, inside the tree and covered by the
+            // porcelain sentinel like everything else not on the ignore
+            // list.
             for (hit, _) in code.match_indices("env::") {
                 let before = code[..hit].chars().last().unwrap_or(' ');
                 if before.is_alphanumeric() || before == '_' {
@@ -1681,11 +1685,10 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     .take_while(|c| c.is_alphanumeric() || *c == '_')
                     .collect();
                 assert!(
-                    ident == "args" || ident == "args_os" || ident == "temp_dir",
-                    "{name} contains `env::{ident}` — only `env::args`, \
-                     `env::args_os` and `env::temp_dir` may read the machine \
-                     at run time; every other `env::` reader is a skip switch \
-                     or a machine leak"
+                    ident == "args" || ident == "args_os",
+                    "{name} contains `env::{ident}` — only `env::args` and \
+                     `env::args_os` may read the machine at run time; every \
+                     other `env::` reader is a skip switch or a machine leak"
                 );
             }
             // Raw pointers and addresses: `&x as *const T as usize` puts an

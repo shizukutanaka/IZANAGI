@@ -85,7 +85,12 @@ fn collision_with_swept_aabb() {
 
 #[test]
 fn save_roundtrip_via_temp_file() {
-    let dir = std::env::temp_dir();
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join("target")
+        .join("test_scratch");
+    std::fs::create_dir_all(&dir).unwrap();
     let path = dir.join("izanagi_integration_save.dat");
     let payload = b"level=5;hp=80;coins=42";
 
