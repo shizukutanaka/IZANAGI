@@ -734,6 +734,71 @@ fn g7_panicking_macros_are_frozen_at_named_sites() {
     );
 }
 
+/// `#[rustfmt::skip]` sites frozen by name. The attribute keeps
+/// `cargo fmt --check` green while the block under it may hold arbitrary
+/// unformatted text — the one place dense, unreadable code can hide from the
+/// format gate. `cfg_attr` cannot smuggle it (`rustfmt::skip` as a token is
+/// still counted) and comments/strings cannot fake it (`test_code` strips
+/// both).
+#[test]
+fn rustfmt_skip_is_frozen_at_named_sites() {
+    const ALLOWLIST: &[(&str, usize, &str)] = &[(
+        "izanagi_kit/examples/autotile_demo.rs",
+        1,
+        "ASCII dungeon map and tile-color literals stay readable only when \
+         rustfmt does not reflow them",
+    )];
+    let mut live: Vec<String> = Vec::new();
+    for dir_rel in [
+        "izanagi_kit/src",
+        "izanagi_kit/tests",
+        "izanagi_kit/examples",
+        "izanagi/src",
+        "izanagi/tests",
+        "izanagi/examples",
+    ] {
+        let dir = repo_root().join(dir_rel);
+        let mut entries: Vec<_> = fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("reading {dir_rel}: {e}"))
+            .flatten()
+            .collect();
+        entries.sort_by_key(|e| e.file_name());
+        for entry in entries {
+            let path = entry.path();
+            if path.extension().map(|e| e == "rs") != Some(true) {
+                continue;
+            }
+            let code = test_code(&fs::read_to_string(&path).unwrap_or_default());
+            let n = code.matches("rustfmt::skip").count();
+            if n == 0 {
+                continue;
+            }
+            let key = format!("{dir_rel}/{}", entry.file_name().to_string_lossy());
+            live.push(key.clone());
+            match ALLOWLIST.iter().find(|(f, _, _)| *f == key) {
+                Some(&(_, expected, _)) => assert_eq!(
+                    n, expected,
+                    "{key} has {n} `rustfmt::skip` attribute(s) where \
+                     {expected} are named — a new one needs its reason \
+                     written in the allowlist first"
+                ),
+                None => panic!(
+                    "{key} contains {n} `rustfmt::skip` attribute(s) outside \
+                     the allowlist — it opts code out of `cargo fmt --check`, \
+                     so every site must be named here with the reason"
+                ),
+            }
+        }
+    }
+    for (file, _, _) in ALLOWLIST {
+        assert!(
+            live.iter().any(|k| k == file),
+            "the `rustfmt::skip` allowlist names {file}, which no longer \
+             carries the attribute — a stale entry reads as permission"
+        );
+    }
+}
+
 #[test]
 fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
     // Every source scanner in this suite shares one load-bearing assumption:
