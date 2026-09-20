@@ -689,6 +689,18 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   「テスト群は独立」の仮定を機械的に担保する層。
 
 
+- ~~テストの assert! は標準 prelude に忠実と思われていた~~ → **重大**:
+  `macro_rules! assert { … => {} }` が prelude マクロをテキストで
+  シャドウし、以降の `assert!` が全部空展開される — `assert!(false)` が
+  `ok` で通ることを実証(test・example 両方に注入→緑)。`macro_rules`/
+  `macro_export`/`macro_use`/`proc_macro`/`proc-macro` を shared ニードル
+  に追加 — 「検査条件を述べるのではなく検査器自体を書き換える」経路の
+  封鎖。
+- 観察記録: gate の packaged-izanagi `cargo test --tests` が一度だけ
+  exit 1 で失敗したが、同一条件で 4 連続緑(手動3回+gate1回)。再現せず
+  原因不明 — 再発時は tail-30 より前のバイナリ出力を見る必要あり。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

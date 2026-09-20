@@ -1793,6 +1793,17 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "AtomicBool",
                 "AtomicPtr",
                 "thread_local",
+                // `macro_rules! assert { … => {} }` textually shadows the
+                // prelude macro: every `assert!` after it expands to nothing
+                // and a false assertion reports `ok` (injected into a test —
+                // `assert!(false)` passed, suite green). The whole macro
+                // definition family is banned; a check must state its
+                // conditions, not rewrite the checker.
+                "macro_rules",
+                "macro_export",
+                "macro_use",
+                "proc_macro",
+                "proc-macro",
             ] {
                 assert!(
                     !contains_token(&code, needle),
