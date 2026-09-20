@@ -473,6 +473,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   共通6ニードル + テスト限定4ニードルを追加(example 側の正当利用 —
   `env::args` の `--terminal` 処理、`process::exit` のエラーパス、
   `#[allow]` 2件 — は温存)。7種注入全て検出確認。
+- ~~gate の環境除去は CARGO*/RUST*/RUSTUP* の3族で完璧と思われていた~~ →
+  `LD_PRELOAD`/`DYLD_INSERT_LIBRARIES` はフラグではなく rustc への共有
+  ライブラリ混入経路で、除去表に無かった。`LD_*`/`DYLD_*` 族を追加
+  (注入変数を立てた実行で除去確認)。あわせて「gate の実行がツリーを
+  汚さない」を担保するものが無かった → 開始時の `git status --porcelain`
+  を記録し最終段で一致を要求(変更混入の注入で検出確認)。
 
 ## 3. 改善案(優先順位付き)
 

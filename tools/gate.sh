@@ -30,10 +30,25 @@ unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTDOCFLAGS
 # `#![feature]` (verified), `RUSTUP_TOOLCHAIN` swaps the toolchain, and an
 # ambient CARGO_HOME's config.toml injects the same flags all over again.
 # Scrub the family wholesale: anything the gate needs it sets itself.
-for v in $(env | grep -oE '^(CARGO[A-Z_]*|RUST[A-Z_]*|RUSTUP[A-Z_]*)=' | tr -d '='); do
+# `LD_*`/`DYLD_*` join the scrub for the same reason — `LD_PRELOAD` /
+# `DYLD_INSERT_LIBRARIES` do not pass a flag, they splice a shared library
+# into rustc itself, and every measurement downstream inherits it.
+for v in $(env | grep -oE '^(CARGO[A-Z_]*|RUST[A-Z_]*|RUSTUP[A-Z_]*|LD[A-Z_]*|DYLD[A-Z_]*)=' | tr -d '='); do
     unset "$v"
 done
 cd "$(dirname "$0")/.."
+
+# The checks below run repo code — test and example binaries that can write.
+# A run that modifies a tracked file, or drops a new untracked one the
+# scanners then read, is the suite editing the evidence it is measuring.
+# Snapshot now; the last stage compares. Before/after, not emptiness: a
+# dirty starting tree is the developer's own business.
+if command -v git >/dev/null 2>&1; then
+    tree_before=$(git status --porcelain)
+else
+    echo "gate: git not found — the tree-unchanged check at the end will be skipped"
+    tree_before=""
+fi
 
 # An isolated CARGO_HOME means an ambient ~/.cargo/config.toml cannot add
 # rustflags, change the target, or point cargo at a different registry
@@ -254,5 +269,21 @@ for kit_dir in target/package/izanagi_kit-*/; do
     echo "packaged gamec: accepts the valid fixture, rejects the broken one"
 done
 rm -rf target/package
+
+stage "working tree untouched by the run"
+if command -v git >/dev/null 2>&1; then
+    tree_after=$(git status --porcelain)
+    if [ "$tree_after" != "$tree_before" ]; then
+        echo "gate: the run left the working tree different than it found it:"
+        printf '%s\n' "$tree_before" > /tmp/gate_tree_a.$$
+        printf '%s\n' "$tree_after" > /tmp/gate_tree_b.$$
+        diff /tmp/gate_tree_a.$$ /tmp/gate_tree_b.$$ | head -20
+        rm -f /tmp/gate_tree_a.$$ /tmp/gate_tree_b.$$
+        exit 1
+    fi
+    echo "tree: unchanged since the gate started"
+else
+    echo "tree: skipped (git was not available)"
+fi
 
 printf '\n\033[1;32mgate: all stages green\033[0m\n'
