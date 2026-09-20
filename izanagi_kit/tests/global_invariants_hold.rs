@@ -637,6 +637,168 @@ fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
     }
 }
 
+/// Does `code` contain `needle` as a token — not as the tail of a longer
+/// identifier? The boundary is derived from the needle's own first/last
+/// character, so `unsafe` matches `unsafe {` but not `myunsafe`, while
+/// `#[cfg` (ending in an ident char) requires the next character to be a
+/// non-identifier, matching `#[cfg(test)]` but not `#[cfgfoo]`.
+fn contains_token(code: &str, needle: &str) -> bool {
+    fn ident_char(c: char) -> bool {
+        c.is_alphanumeric() || c == '_'
+    }
+    let bytes: Vec<char> = code.chars().collect();
+    let pat: Vec<char> = needle.chars().collect();
+    if pat.is_empty() || bytes.len() < pat.len() {
+        return false;
+    }
+    let check_left = pat.first().copied().map(ident_char).unwrap_or(false);
+    let check_right = pat.last().copied().map(ident_char).unwrap_or(false);
+    for i in 0..=bytes.len() - pat.len() {
+        if bytes[i..i + pat.len()] != pat[..] {
+            continue;
+        }
+        let left_ok = !check_left || i == 0 || !ident_char(bytes[i - 1]);
+        let after = i + pat.len();
+        let right_ok = !check_right || after >= bytes.len() || !ident_char(bytes[after]);
+        if left_ok && right_ok {
+            return true;
+        }
+    }
+    false
+}
+
+/// Test-file text with `//` comments dropped and `"..."` literals blanked —
+/// what remains is the code the compiler actually sees. `#[cfg(...)]` quoted
+/// inside a string (this suite passes several to its own parsers) must not
+/// count as conditional compilation, and neither may a comment.
+fn test_code(src: &str) -> String {
+    let mut out = String::with_capacity(src.len());
+    let mut in_str = false;
+    let mut esc = false;
+    let mut chars = src.chars().peekable();
+    while let Some(c) = chars.next() {
+        if in_str {
+            if esc {
+                esc = false;
+            } else if c == '\\' {
+                esc = true;
+            } else if c == '"' {
+                in_str = false;
+            }
+            out.push(' ');
+            continue;
+        }
+        if c == '/' && chars.peek() == Some(&'/') {
+            for c2 in chars.by_ref() {
+                if c2 == '\n' {
+                    out.push('\n');
+                    break;
+                }
+            }
+            continue;
+        }
+        if c == '\'' {
+            // A `'` is either a char literal or a lifetime. A char literal —
+            // 'x', '\n', '\\', '\'' — may carry a `"` that must not toggle
+            // string mode; a lifetime ('a, 'static) is left as code.
+            let mut peek = chars.clone();
+            match (peek.next(), peek.next()) {
+                (Some('\\'), _) => {
+                    // '\x' — consume the escape and the closing quote.
+                    chars.next();
+                    for c2 in chars.by_ref() {
+                        if c2 == '\'' {
+                            break;
+                        }
+                    }
+                    out.push(' ');
+                    continue;
+                }
+                (Some(_), Some('\'')) => {
+                    chars.next();
+                    chars.next();
+                    out.push(' ');
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        if c == '"' {
+            in_str = true;
+            out.push(' ');
+            continue;
+        }
+        out.push(c);
+    }
+    out
+}
+
+#[test]
+fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
+    // The suite's own files are code, and code decays silently too:
+    //
+    // * `#[ignore]` — the suite reports "N ignored" and still exits green;
+    //   a test that never runs is verification that reads as performed.
+    //   The one legitimate use is a deliberately-manual helper, and it must
+    //   be named here with the reason.
+    // * any `#[cfg`/`cfg!(`/`cfg_attr(` — a predicate in a test file can
+    //   remove a check on one platform while leaving it running on another.
+    //   A check that exists only on some machines is not a check.
+    // * `unsafe` — test crates do not inherit the lib's `forbid(unsafe_code)`;
+    //   UB inside the harness is a worse failure mode than a missing lint.
+    // * a file without `#[test]` compiles and runs nothing — the emptiest
+    //   way for a check to "pass".
+    const IGNORE_ALLOWLIST: &[(&str, &str)] = &[(
+        "det_hash_golden.rs",
+        "print_golden is a regeneration helper, run explicitly with --ignored",
+    )];
+    for tests_dir in ["izanagi_kit/tests", "izanagi/tests"] {
+        let dir = repo_root().join(tests_dir);
+        let mut entries: Vec<_> = fs::read_dir(&dir)
+            .unwrap_or_else(|e| panic!("reading {tests_dir}: {e}"))
+            .flatten()
+            .collect();
+        entries.sort_by_key(|e| e.file_name());
+        assert!(!entries.is_empty(), "found no test files under {tests_dir}");
+        for entry in entries {
+            let path = entry.path();
+            if path.extension().map(|e| e == "rs") != Some(true) {
+                continue;
+            }
+            let name = entry.file_name().to_string_lossy().to_string();
+            let code = test_code(&fs::read_to_string(&path).unwrap_or_default());
+            assert!(
+                code.contains("#[test"),
+                "{name} contains no #[test] function — a test file that \
+                 runs nothing passes vacuously"
+            );
+            let ignored = code.matches("#[ignore").count();
+            let allowed = IGNORE_ALLOWLIST.iter().filter(|(f, _)| *f == name).count();
+            assert!(
+                ignored <= allowed,
+                "{name} has {ignored} `#[ignore]` attribute(s) — a skipped \
+                 test still exits the suite green. Name it in \
+                 IGNORE_ALLOWLIST with the reason, or remove the attribute"
+            );
+            for needle in ["#[cfg", "cfg!(", "cfg_attr(", "unsafe"] {
+                assert!(
+                    !contains_token(&code, needle),
+                    "{name} contains `{needle}` — the verification suite may \
+                     not fork itself on platform, weaken its own lints, or \
+                     take unsafe shortcuts"
+                );
+            }
+        }
+    }
+    // And a stale allowlist entry is permission for nobody.
+    for (file, _) in IGNORE_ALLOWLIST {
+        assert!(
+            repo_root().join("izanagi_kit/tests").join(file).exists(),
+            "IGNORE_ALLOWLIST names {file}, which no longer exists"
+        );
+    }
+}
+
 #[test]
 fn every_global_invariant_in_the_spec_says_where_it_is_enforced() {
     let spec = read("izanagi_kit/SPEC.md");

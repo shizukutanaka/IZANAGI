@@ -52,7 +52,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(38+種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(39+種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -80,7 +80,11 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    `harness`/`auto*`/`crate-type`/`proc-macro`/`test`/`bench`/`doctest` キー、profile の
    `debug-assertions`/`overflow-checks`/`panic`)が閉じていること・
    **`rust-toolchain`/`Cross.toml` の不在**・**`env!`/`option_env!`/`extern`/`#[no_mangle]`/`#[link` の不在**・
-   **kit が `std::arch`/`core::arch` の CPU 機能検出を使わないこと**。
+   **kit が `std::arch`/`core::arch` の CPU 機能検出を使わないこと**・
+   **検証スイート自身の規律**(`#[ignore]` は命名済み allowlist のみ・tests/ に `#[cfg]`/`unsafe` なし・
+   全テストファイルに `#[test]` あり)・**rustfmt/clippy の設定面**(rustfmt の `ignore`/
+   `disable_all_formatting`/`skip_children` キー禁止・`clippy.toml` 不在・
+   `[workspace.dependencies]` 禁止)。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -356,6 +360,18 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   依存リストに載らないネイティブリンクを宣言できる。実測ゼロを確認し provenance 検査に
   追加(env!・extern の実注入で検出確認)。また `std::arch`/`core::arch` の CPU 機能検出は
   「どのマシンで走るか」への実行時分岐として kit BANNED に追加(`use std::arch` 注入で検出確認)。
+- ~~検証スイート自身は無条件に信頼されていた~~ → `#[ignore]` はスイートを緑のまま
+  「実行された」ように見せる(実際に det_hash_golden.rs の再生成ヘルパーに1箇所存在)、
+  tests/ 内の `#[cfg]` はプラットフォームでチェックを消し、テスト crate は lib の
+  `forbid(unsafe_code)` を継承しないので `unsafe` が持ち込め、ゼロ `#[test]` のファイルは
+  何も走らないままコンパイルされる。`the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks`
+  が両 crate の tests/ を走査(コメント・文字列・char リテラルを除外した上で)。
+  `#[ignore]`/`#[cfg(unix)]`/`unsafe`/無テストファイルの各注入で検出確認。
+- ~~rustfmt.toml の存在は良性と信じられていた~~ → `ignore`/`disable_all_formatting`/
+  `skip_children` キーは `cargo fmt --check` の対象を縮小できる。izanagi/rustfmt.toml は
+  存在を許したまま逃走経路キーのみ禁止。`clippy.toml`(`allow-unwrap-in-tests` 等)と
+  `[workspace.dependencies]`(path-only 検査をすり抜ける依存隠し)は不在を検査。
+  各々の注入で検出確認。
 
 ## 3. 改善案(優先順位付き)
 

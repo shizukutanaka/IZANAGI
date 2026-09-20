@@ -402,6 +402,16 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                          grammar of these manifests is closed."
                     );
                 }
+                // `[workspace]` itself is required at the root, but its
+                // `dependencies` subtable is a place to hide a registry
+                // dependency where the path-only scan of [dependencies]
+                // never looks.
+                assert!(
+                    section != "workspace.dependencies",
+                    "{manifest_rel} declares `[workspace.dependencies]` — \
+                     dependencies declared there are invisible to the \
+                     zero-dependency scans of the member manifests"
+                );
                 continue;
             }
             for key in manifest_line_keys(line) {
@@ -438,6 +448,12 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
             "rust-toolchain",
             "rust-toolchain.toml",
             "Cross.toml",
+            // A clippy.toml can soften the lints the suite relies on
+            // (`allow-unwrap-in-tests`, a different `msrv`, ...) — the deny
+            // attributes mean nothing if the linter's own config rewrites
+            // what they measure.
+            "clippy.toml",
+            ".clippy.toml",
         ] {
             let path = repo_root().join(dir).join(rel);
             assert!(
@@ -447,6 +463,32 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                  every scan in this suite",
                 path.display()
             );
+        }
+        // rustfmt.toml exists legitimately (izanagi/ carries the workspace
+        // style), but three of its keys shrink what `cargo fmt --check`
+        // checks: `ignore` lists paths to skip, `disable_all_formatting`
+        // turns the formatter off, and `skip_children` skips out-of-line
+        // modules. The file may exist; the escape hatches may not.
+        for name in ["rustfmt.toml", ".rustfmt.toml"] {
+            let path = repo_root().join(dir).join(name);
+            if !path.exists() {
+                continue;
+            }
+            let cfg = fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
+            for line in cfg.lines().map(str::trim) {
+                for key in manifest_line_keys(line) {
+                    for banned in ["ignore", "disable_all_formatting", "skip_children"] {
+                        assert!(
+                            key != banned,
+                            "{} sets `{key}` — this rustfmt key removes files \
+                             from `cargo fmt --check`, so unformatted code \
+                             would pass the gate",
+                            path.display()
+                        );
+                    }
+                }
+            }
         }
     }
 }
