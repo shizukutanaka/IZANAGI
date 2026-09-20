@@ -451,6 +451,12 @@ fn the_gate_script_still_runs_every_stage() {
     for token in [
         "unset RUSTFLAGS",
         "RUSTDOCFLAGS",
+        // The scrub is wider than the classic three names: CARGO_*,
+        // RUST* and RUSTUP_* are all the same injection class, and an
+        // isolated CARGO_HOME keeps ambient cargo config out of the
+        // measurement.
+        "RUSTC_BOOTSTRAP",
+        "CARGO_HOME",
         "cargo fmt --all",
         "cargo test --workspace",
         "cargo clippy",
@@ -611,6 +617,191 @@ fn fenced_rust_blocks_that_claim_to_run_are_not_marked_to_skip() {
              stale entry"
         );
     }
+}
+
+/// True when a fence tag marks the body as a Rust doctest: untagged fences
+/// and `rust`/`no_run`/`edition20xx` compile; `text`/`bash`/`json` and the
+/// like are prose or other languages that never build.
+fn tag_is_rust(tag: &str) -> bool {
+    let first = tag.split([',', ' ']).next().unwrap_or("");
+    matches!(first, "" | "rust" | "no_run") || first.starts_with("edition20")
+}
+
+/// `(line_number, body_line)` pairs inside rust-tagged fences. `doc_prefix`
+/// selects the comment marker for source files (`///`/`//!`); for markdown
+/// files pass None and every line counts.
+fn rust_fence_bodies(lines: std::str::Lines<'_>, doc_prefix: bool) -> Vec<(usize, String)> {
+    let mut bodies = Vec::new();
+    let mut in_rust = false;
+    let mut in_fence = false;
+    for (n, line) in lines.enumerate() {
+        let mut t = line.trim().to_string();
+        if doc_prefix {
+            if let Some(rest) = t.strip_prefix("///").or_else(|| t.strip_prefix("//!")) {
+                t = rest.trim().to_string();
+            } else {
+                // A non-doc line ends the doc-comment block; an unclosed
+                // fence ends with it, exactly as rustdoc scopes it.
+                in_fence = false;
+                in_rust = false;
+                continue;
+            }
+        }
+        if t.starts_with("```") {
+            if in_fence {
+                in_fence = false;
+                in_rust = false;
+            } else {
+                in_fence = true;
+                in_rust = tag_is_rust(t.trim_start_matches('`').trim());
+            }
+            continue;
+        }
+        if in_rust {
+            bodies.push((n + 1, line.trim().to_string()));
+        }
+    }
+    bodies
+}
+
+#[test]
+fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
+    // A ``` fence body is not markup — rustdoc compiles it as a doctest: a
+    // separate crate that the crate-level `forbid(unsafe_code)` and the
+    // clippy denies never reach, and that the source scanners never read
+    // (their needle lists strip comment lines, and doc text is comments).
+    // Verified by injection: an `unsafe { transmute }` in a doc comment
+    // compiled and ran while every check stayed green. Doc fences are code;
+    // hold them to the constructs library code may carry.
+    const BANNED_IN_FENCE: &[&str] = &[
+        "unsafe", // the forbid does not apply inside a doctest
+        "#[cfg",  // platform/profile gating inside compiled text
+        "cfg!(",
+        "cfg_attr(",
+        "#![",       // inner attributes, including feature gates
+        "include!(", // code the scanners never read, by reference
+        "include_bytes!(",
+        "env!(", // the build machine's environment, baked in
+        "option_env!(",
+        "extern ", // linkage to code no manifest lists
+        "#[no_mangle",
+        "#[link",
+        "asm!(",
+        "{:p", // pointer addresses differ run to run
+    ];
+    // `include_str!` stays exempt: it produces a `&'static str`, which is
+    // documentation, not code — and the md targets it pulls are themselves
+    // scanned below.
+
+    let mut scanned = 0usize;
+    let mut offenders: Vec<String> = Vec::new();
+    let mut check = |where_is: String, bodies: Vec<(usize, String)>| {
+        for (n, body) in bodies {
+            scanned += 1;
+            for needle in BANNED_IN_FENCE {
+                if body.contains(needle) {
+                    offenders.push(format!(
+                        "{where_is}:{n} — doctest body contains `{needle}`: \
+                         compiled code that no forbid, deny or scanner \
+                         reaches"
+                    ));
+                }
+            }
+        }
+    };
+
+    // Doc comments in library sources — every `///`/`//!` fence is a
+    // doctest.
+    for krate in ["izanagi/src", "izanagi_kit/src"] {
+        let root = repo_root().join(krate);
+        let mut stack = vec![root];
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = fs::read_dir(dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                    let rel = path
+                        .strip_prefix(repo_root())
+                        .unwrap_or(&path)
+                        .display()
+                        .to_string();
+                    let src = fs::read_to_string(&path).unwrap_or_default();
+                    check(rel, rust_fence_bodies(src.lines(), true));
+                }
+            }
+        }
+    }
+
+    // Markdown becomes a doctest only where an `include_str!` pulls it into
+    // a doc attribute. Follow the references rather than scanning prose
+    // fences in documents that never compile.
+    for krate in ["izanagi/src", "izanagi_kit/src"] {
+        let root = repo_root().join(krate);
+        let mut stack = vec![root];
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = fs::read_dir(dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                    continue;
+                }
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                let dir_path = path.parent().unwrap_or(&path).to_path_buf();
+                let mut at = 0;
+                while let Some(rel) = src[at..].find("include_str!(") {
+                    let pos = at + rel + "include_str!(".len();
+                    at = pos;
+                    let Some(path_lit) = src[pos..]
+                        .trim_start()
+                        .strip_prefix('"')
+                        .and_then(|r| r.split('"').next())
+                    else {
+                        continue;
+                    };
+                    // Normalise `..` segments so the report names the real
+                    // repository-relative path.
+                    let mut target = PathBuf::new();
+                    for comp in dir_path.join(path_lit).components() {
+                        if comp == std::path::Component::ParentDir {
+                            target.pop();
+                        } else {
+                            target.push(comp);
+                        }
+                    }
+                    let Ok(md) = fs::read_to_string(&target) else {
+                        continue;
+                    };
+                    check(
+                        target
+                            .strip_prefix(repo_root())
+                            .unwrap_or(&target)
+                            .display()
+                            .to_string(),
+                        rust_fence_bodies(md.lines(), false),
+                    );
+                }
+            }
+        }
+    }
+
+    assert!(
+        offenders.is_empty(),
+        "doctest bodies carrying unscannable code: {offenders:#?}"
+    );
+    // Vacuity: the doc corpus must actually have been walked, or a silent
+    // zero would pass on an empty scan.
+    assert!(
+        scanned > 50,
+        "only {scanned} doctest body lines scanned — the fence walker must \
+         see the corpus it claims to check"
+    );
 }
 
 #[test]
