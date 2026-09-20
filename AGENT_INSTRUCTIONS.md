@@ -185,6 +185,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   主張する(`gamec` の削除が真空で通らないように)。注入で実証: `forbid` 下の unsafe は
   そもそもコンパイルエラー、`mod sub` + `src/bin/sub/mod.rs` はコンパイルするが
   `mod ` ニードルが検出、`env!("HOME")` と forbid 行の削除もともに失敗。
+  さらに同じ段で **`src/bin/*/main.rs` 経路**: cargo は `src/bin/probe/main.rs` を
+  第2の bin ターゲットとして自動発見する — 直下 `*.rs` だけ読む初版はこれを
+  逃がしたので再帰 walk に直し(ネストした `mod` 到達ファイルも一緒に読む)、
+  `probe/main.rs` 無禁止注入が失敗することを実証。
 - ~~pinned hash は debug profile でしか検証されていなかった~~ → `overflow-checks` は
   dev で既定 on・release で既定 off なので、シミュレーション経路の算術が静かに wrap する
   コードは debug では panic して気づけるが release では気づけない。gate は debug の

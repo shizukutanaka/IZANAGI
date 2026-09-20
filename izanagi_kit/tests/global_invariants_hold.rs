@@ -600,44 +600,55 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
     // bakes the build machine into a shipped binary.
     for bin_dir in ["izanagi_kit/src/bin", "izanagi/src/bin"] {
         let dir = repo_root().join(bin_dir);
-        let Ok(entries) = fs::read_dir(&dir) else {
-            continue;
-        };
         let mut found_any = false;
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().map(|e| e == "rs") != Some(true) {
+        // Cargo discovers `src/bin/*.rs` AND `src/bin/*/main.rs` as targets;
+        // a directory walk covers both, plus nested files a `mod` could reach
+        // had `mod` not been banned above.
+        let mut stack = vec![dir.clone()];
+        while let Some(d) = stack.pop() {
+            let Ok(entries) = fs::read_dir(&d) else {
                 continue;
-            }
-            found_any = true;
-            let name = path.display().to_string();
-            let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {name}: {e}"));
-            let code = test_code(&raw);
-            assert!(
-                code.contains("#![forbid(unsafe_code)]"),
-                "{name} is a bin crate root without `#![forbid(unsafe_code)]` \
-                 — the lib-level forbid does not reach this target"
-            );
-            let body = code.replacen("#![forbid(unsafe_code)]", "", 1);
-            assert!(
-                !body.contains("#![forbid(unsafe_code)]"),
-                "{name} declares `#![forbid(unsafe_code)]` twice"
-            );
-            for needle in ["unsafe", "include!(", "include_bytes!(", "#[path", "mod "] {
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                    continue;
+                }
+                if path.extension().map(|e| e == "rs") != Some(true) {
+                    continue;
+                }
+                found_any = true;
+                let name = path.display().to_string();
+                let raw =
+                    fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {name}: {e}"));
+                let code = test_code(&raw);
                 assert!(
-                    !contains_token(&body, needle),
-                    "{name} contains `{needle}` — a shipped binary may not \
-                     take unsafe or splice in code the scans never read"
+                    code.contains("#![forbid(unsafe_code)]"),
+                    "{name} is a bin crate root without `#![forbid(unsafe_code)]` \
+                     — the lib-level forbid does not reach this target"
                 );
-            }
-            for arg in env_macro_args(&raw) {
+                let body = code.replacen("#![forbid(unsafe_code)]", "", 1);
                 assert!(
-                    arg.as_deref()
-                        .map(|a| a.starts_with("CARGO_"))
-                        .unwrap_or(false),
-                    "{name} bakes a non-CARGO_* build env var into a shipped \
-                     binary ({arg:?})"
+                    !body.contains("#![forbid(unsafe_code)]"),
+                    "{name} declares `#![forbid(unsafe_code)]` twice"
                 );
+                for needle in ["unsafe", "include!(", "include_bytes!(", "#[path", "mod "] {
+                    assert!(
+                        !contains_token(&body, needle),
+                        "{name} contains `{needle}` — a shipped binary may not \
+                         take unsafe or splice in code the scans never read"
+                    );
+                }
+                for arg in env_macro_args(&raw) {
+                    assert!(
+                        arg.as_deref()
+                            .map(|a| a.starts_with("CARGO_"))
+                            .unwrap_or(false),
+                        "{name} bakes a non-CARGO_* build env var into a shipped \
+                         binary ({arg:?})"
+                    );
+                }
             }
         }
         if bin_dir == "izanagi_kit/src/bin" {
