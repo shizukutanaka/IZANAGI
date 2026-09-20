@@ -47,8 +47,16 @@ cd "$(dirname "$0")/.."
 # scanners then read, is the suite editing the evidence it is measuring.
 # Snapshot now; the last stage compares. Before/after, not emptiness: a
 # dirty starting tree is the developer's own business.
+tree_status() {
+    # Ambient git config can blind the snapshot without touching the tree:
+    # `status.showUntrackedFiles = no` (a real user-level setting) hides
+    # dropped files, and the untracked cache can serve a stale listing —
+    # verified: a HOME pointing at a fake .gitconfig kept `?? file` out of
+    # `git status --porcelain`. The -c flags force the honest read.
+    git -c status.showUntrackedFiles=all -c core.untrackedCache=false status --porcelain
+}
 if command -v git >/dev/null 2>&1; then
-    tree_before=$(git status --porcelain)
+    tree_before=$(tree_status)
 else
     echo "gate: git not found — the tree-unchanged check at the end will be skipped"
     tree_before=""
@@ -276,7 +284,7 @@ rm -rf target/package
 
 stage "working tree untouched by the run"
 if command -v git >/dev/null 2>&1; then
-    tree_after=$(git status --porcelain)
+    tree_after=$(tree_status)
     if [ "$tree_after" != "$tree_before" ]; then
         echo "gate: the run left the working tree different than it found it:"
         printf '%s\n' "$tree_before" > /tmp/gate_tree_a.$$

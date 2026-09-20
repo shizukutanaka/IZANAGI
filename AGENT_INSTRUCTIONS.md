@@ -841,6 +841,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   不要のため無害。
 
 
+- ~~porcelain sentinel は git が正直に読む限り正しいと思われていた~~ →
+  ambient ~/.gitconfig の `status.showUntrackedFiles=no` (実在する設定)や
+  untracked cache が落とされたファイルを `git status` から隠す(偽HOME
+  で実証: `?? file` 消失)。`tree_status()` に `-c` 強制フラグを集約。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
