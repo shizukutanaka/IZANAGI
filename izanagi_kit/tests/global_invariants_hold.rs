@@ -1763,6 +1763,35 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      suite replays"
                 );
             }
+            // The one shape that escapes the probe: a bare-slash fragment
+            // inside concat! contributes the leading slash, assembling an
+            // absolute path out of pieces no probe sees whole (injected:
+            // green). That literal is legal elsewhere (a `join("/")`
+            // separator), so the ban scopes to concat! bodies.
+            let mut at = 0usize;
+            while let Some(pos) = raw[at..].find("concat!(") {
+                let start = at + pos + "concat!(".len();
+                let mut depth = 1usize;
+                let mut end = raw.len();
+                for (j, b) in bs[start..].iter().enumerate() {
+                    match b {
+                        b'(' => depth += 1,
+                        b')' => depth -= 1,
+                        _ => {}
+                    }
+                    if depth == 0 {
+                        end = start + j;
+                        break;
+                    }
+                }
+                assert!(
+                    !raw[start..end].contains("\"/\""),
+                    "{name} uses a bare slash literal inside concat! — a \
+                     path assembled from fragments is still a path this \
+                     suite does not own"
+                );
+                at = end;
+            }
             // Delegating the checked computation to outside the scanned
             // universe: a subprocess runs anything, a socket reads bytes no
             // scan can see, and env writes mutate the ambient inputs other
