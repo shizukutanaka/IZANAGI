@@ -2561,4 +2561,24 @@ mod tests {
             "expected 6000 comparisons, got {compared}"
         );
     }
+
+    #[test]
+    fn dirs_compass_order_is_pinned() {
+        // Tie-break order in astar/dijkstra/jps is DIRS order — a reorder is
+        // still deterministic but silently changes every resolved path. The
+        // SPEC's "固定コンパス順" is this sequence, not merely "some order".
+        assert_eq!(
+            DIRS,
+            [
+                (0, -1),
+                (1, -1),
+                (1, 0),
+                (1, 1),
+                (0, 1),
+                (-1, 1),
+                (-1, 0),
+                (-1, -1)
+            ]
+        );
+    }
 }

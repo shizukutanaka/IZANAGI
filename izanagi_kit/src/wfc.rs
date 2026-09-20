@@ -1764,4 +1764,13 @@ mod tests {
         let r = wfc_solve_with_selector(4, 4, &open_rules(), &mut rng, &mut OutOfRange);
         assert!(matches!(r, WfcResult::Contradiction));
     }
+
+    #[test]
+    fn dirs_compass_order_is_pinned() {
+        // 0=N, 1=E, 2=S, 3=W is the public meaning of direction indices in
+        // WfcRules adjacency tables — a reorder silently rewires every rule.
+        assert_eq!(DIRS, [(0, -1), (1, 0), (0, 1), (-1, 0)]);
+        assert_eq!(opposite(0), 2);
+        assert_eq!(opposite(1), 3);
+    }
 }
