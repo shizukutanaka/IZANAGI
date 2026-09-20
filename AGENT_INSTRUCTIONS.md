@@ -682,6 +682,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `UnixDatagram` を shared ニードルに追加。
 
 
+- ~~テストはファイル独立・順序非依存と思われていた~~ → `static` の
+  `OnceLock`/`LazyLock`/`OnceCell`/`LazyCell`/`Mutex`/`RwLock`/`atomic::`/
+  `Atomic*`/`thread_local` は同一テストバイナリ内でテスト関数を跨ぐ
+  隠れ状態で未禁止だった(3形注入→緑を実証)。shared ニードルに追加 —
+  「テスト群は独立」の仮定を機械的に担保する層。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

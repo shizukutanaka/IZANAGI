@@ -1776,6 +1776,23 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "UnixStream",
                 "UnixListener",
                 "UnixDatagram",
+                // A `static` OnceLock/Mutex/atomic in a test file is state
+                // that survives between test functions in one binary — the
+                // test-order coupling "the suite's files are independent"
+                // is supposed to exclude (injected `static` OnceLock,
+                // AtomicU64 and Mutex into a test: green).
+                "OnceLock",
+                "LazyLock",
+                "OnceCell",
+                "LazyCell",
+                "Mutex",
+                "RwLock",
+                "atomic::",
+                "AtomicU",
+                "AtomicI",
+                "AtomicBool",
+                "AtomicPtr",
+                "thread_local",
             ] {
                 assert!(
                     !contains_token(&code, needle),
