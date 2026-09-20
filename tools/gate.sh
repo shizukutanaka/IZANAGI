@@ -207,8 +207,8 @@ stage "workspace tests (release profile)"
 # Overflow wraps in release and panics in debug — a check whose outcome rests
 # on wrapping arithmetic reports red in one profile and green in the other
 # (verified: a `u8 + u8` overflow test failed debug and passed release).
-# The CI recipe in docs/ci/ci.yml already prescribes the release run; the
-# gate is the definition of green, so it must contain what it prescribes.
+# docs/ci/ci.yml scopes this to CI (judged too slow pre-push), but no CI is
+# wired — the gate is the only executor, so the release run lives here.
 cargo test --workspace --release
 
 stage "clippy (zero warnings tolerated)"
