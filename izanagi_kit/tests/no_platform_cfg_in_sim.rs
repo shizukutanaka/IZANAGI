@@ -181,7 +181,8 @@ fn test_module_boundary(src: &str) -> Option<usize> {
     None
 }
 
-/// Library sources, keyed by path relative to `src/`. `src/bin/` is excluded:
+/// Library sources, keyed by path relative to `src/`. `src/bin/` is excluded
+/// here — `no_nondeterminism_in_sim.rs` scans it under its own narrower ban set:
 /// a CLI binary's job is to respond to the machine it runs on. Everything
 /// before a file's first `#[cfg(test)]` is library code; line comments are
 /// stripped so that prose — including this file's own documentation when it

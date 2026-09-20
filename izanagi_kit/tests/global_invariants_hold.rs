@@ -336,7 +336,8 @@ fn test_module_boundary(src: &str) -> Option<usize> {
 /// Library sources of one crate's `src/`, keyed by path relative to it.
 /// Same contract as the neighbouring scanners: line comments are stripped
 /// first, then the text is cut at the first `#[cfg(test)]` marker, and
-/// `src/bin/` is excluded — a CLI's job is to answer to its machine.
+/// `src/bin/` is excluded here — a CLI's job is to answer to its machine,
+/// and `no_nondeterminism_in_sim.rs` scans it under its own narrower ban set.
 fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
     fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
         let Ok(entries) = fs::read_dir(dir) else {
