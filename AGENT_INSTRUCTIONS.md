@@ -52,7 +52,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(39+種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(41+種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -372,6 +372,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   存在を許したまま逃走経路キーのみ禁止。`clippy.toml`(`allow-unwrap-in-tests` 等)と
   `[workspace.dependencies]`(path-only 検査をすり抜ける依存隠し)は不在を検査。
   各々の注入で検出確認。
+- ~~examples/ とドキュメントのフェンス指定はスイート外と思われていた~~ → gate が
+  examples を2回バイト比較する以上、example 内の `#[cfg]` は「証拠そのもの」を
+  プラットフォームでフォークし得る。tests/ と同じ規律(#[cfg]/unsafe/#[ignore] 禁止)を
+  examples/ にも適用。md の ```ignore/no_run/compile_fail/should_panic フェンスは
+  「doctest される」主張を空にするので全 md で禁止。また .githooks/pre-push と
+  docs/ci/ci.yml が tools/gate.sh を呼ぶことを凍結 — "green" が一つの定義であることの
+  最後の継ぎ目。3種の注入で検出確認。
 
 ## 3. 改善案(優先順位付き)
 

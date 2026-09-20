@@ -752,14 +752,23 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
         "det_hash_golden.rs",
         "print_golden is a regeneration helper, run explicitly with --ignored",
     )];
-    for tests_dir in ["izanagi_kit/tests", "izanagi/tests"] {
-        let dir = repo_root().join(tests_dir);
+    // (directory, must contain #[test]) — examples are binaries the gate
+    // runs for byte-identical output, so a `#[cfg]` there would fork the
+    // *evidence* the pinned hashes stand on. The same rules apply without
+    // the #[test] floor.
+    for (dir_rel, require_tests) in [
+        ("izanagi_kit/tests", true),
+        ("izanagi/tests", true),
+        ("izanagi_kit/examples", false),
+        ("izanagi/examples", false),
+    ] {
+        let dir = repo_root().join(dir_rel);
         let mut entries: Vec<_> = fs::read_dir(&dir)
-            .unwrap_or_else(|e| panic!("reading {tests_dir}: {e}"))
+            .unwrap_or_else(|e| panic!("reading {dir_rel}: {e}"))
             .flatten()
             .collect();
         entries.sort_by_key(|e| e.file_name());
-        assert!(!entries.is_empty(), "found no test files under {tests_dir}");
+        assert!(!entries.is_empty(), "found no sources under {dir_rel}");
         for entry in entries {
             let path = entry.path();
             if path.extension().map(|e| e == "rs") != Some(true) {
@@ -768,7 +777,7 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             let name = entry.file_name().to_string_lossy().to_string();
             let code = test_code(&fs::read_to_string(&path).unwrap_or_default());
             assert!(
-                code.contains("#[test"),
+                !require_tests || code.contains("#[test"),
                 "{name} contains no #[test] function — a test file that \
                  runs nothing passes vacuously"
             );
