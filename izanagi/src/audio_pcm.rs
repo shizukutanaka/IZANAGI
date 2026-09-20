@@ -72,8 +72,11 @@ pub fn load_wav(data: &[u8]) -> Result<PcmBuffer> {
             as usize;
         pos += 8;
         if tag == b"fmt " {
-            if size < 16 {
-                return Err(err("fmt chunk too small"));
+            // `size` is the *claimed* size — a truncated file can claim a
+            // 16-byte fmt body with only a few real bytes left, and reading
+            // the fields below would index out of bounds and panic.
+            if size < 16 || pos + 16 > data.len() {
+                return Err(err("fmt chunk too small or truncated"));
             }
             audio_format = u16::from_le_bytes([data[pos], data[pos + 1]]);
             channels = u16::from_le_bytes([data[pos + 2], data[pos + 3]]);
@@ -84,7 +87,9 @@ pub fn load_wav(data: &[u8]) -> Result<PcmBuffer> {
             data_start = pos;
             data_len = size.min(data.len() - pos);
         }
-        pos += size + (size & 1); // chunks are word-aligned
+        // A bogus size must not wrap the cursor (32-bit `usize` overflow
+        // would revisit positions and loop forever on crafted input).
+        pos = pos.saturating_add(size).saturating_add(size & 1);
     }
 
     if audio_format != 1 {
@@ -206,5 +211,37 @@ mod tests {
         assert_eq!(mono.channels, 1);
         assert!((mono.samples[0] - 0.0).abs() < 1e-5);
         assert!((mono.samples[1] - 0.5).abs() < 1e-5);
+    }
+
+    #[test]
+    fn a_truncated_fmt_chunk_errors_instead_of_panicking() {
+        // The claimed chunk size used to be trusted: a file ending in
+        // `fmt ` + size=16 + 4 real bytes indexed past the buffer.
+        let mut d = Vec::new();
+        d.extend_from_slice(b"RIFF");
+        d.extend_from_slice(&64u32.to_le_bytes());
+        d.extend_from_slice(b"WAVE");
+        d.extend_from_slice(b"JUNK");
+        d.extend_from_slice(&12u32.to_le_bytes());
+        d.extend_from_slice(&[0; 12]);
+        d.extend_from_slice(b"fmt ");
+        d.extend_from_slice(&16u32.to_le_bytes());
+        d.extend_from_slice(&[1, 0, 1, 0]);
+        assert_eq!(d.len(), 44);
+        assert!(load_wav(&d).is_err());
+    }
+
+    #[test]
+    fn a_huge_chunk_size_cannot_wrap_the_cursor() {
+        // `pos += size` must saturate, not wrap — a wrapped cursor revisits
+        // earlier positions and spins forever (wasm32 `usize`).
+        let mut d = Vec::new();
+        d.extend_from_slice(b"RIFF");
+        d.extend_from_slice(&64u32.to_le_bytes());
+        d.extend_from_slice(b"WAVE");
+        d.extend_from_slice(b"JUNK");
+        d.extend_from_slice(&u32::MAX.to_le_bytes());
+        d.extend_from_slice(&[0; 8]);
+        assert!(load_wav(&d).is_err());
     }
 }
