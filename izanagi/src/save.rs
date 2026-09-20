@@ -47,7 +47,10 @@ impl Save {
         }
         let version = u16::from_le_bytes([bytes[4], bytes[5]]);
         let len = u32::from_le_bytes([bytes[6], bytes[7], bytes[8], bytes[9]]) as usize;
-        if bytes.len() < 10 + len {
+        // Subtraction, not `10 + len`: on 32-bit targets a hostile header
+        // declaring `u32::MAX` bytes wraps the addition below the guard and
+        // panics on the slice — same fix as izanagi_kit's savefile parser.
+        if len > bytes.len() - 10 {
             return Err(Error::Config(format!(
                 "save truncated: header claims {len} bytes, have {}",
                 bytes.len() - 10
@@ -84,6 +87,16 @@ mod tests {
     fn rejects_bad_magic() {
         let bytes = b"XXXX\x00\x00\x00\x00\x00\x00";
         assert!(Save::parse(bytes).is_err());
+    }
+
+    #[test]
+    fn rejects_hostile_declared_len() {
+        // A header declaring u32::MAX payload bytes: on 32-bit `usize` the
+        // old `10 + len` comparison overflowed and let the slice panic.
+        // The subtraction form cannot wrap.
+        let mut enc = Save::encode(1, b"x");
+        enc[6..10].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert!(Save::parse(&enc).is_err());
     }
 
     #[test]
