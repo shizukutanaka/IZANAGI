@@ -627,6 +627,15 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `std::ptr`/`ptr::`/`addr_of`/`ptr_eq`/`as fn` をスイート走査に追加。
 
 
+- ~~workspace 形状は [dependencies] と target テーブルを閉じれば尽きたと
+  思われていた~~ → `[workspace]` の `members` キーが未凍結で、新規メンバー
+  クレートを列挙に足すだけで全スキャンが読まないコード束が
+  `cargo test --workspace` の対象に加わった(`_sneak` クレートを作成し
+  `env::var` を持たせて注入→全検査緑を実証)。`[workspace]` セクションの
+  キーは `members`/`resolver` の2つに限定、`members` の値自体を
+  `["izanagi","izanagi_kit"]` に固定(追加・除去・並べ替え全て検出確認)。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

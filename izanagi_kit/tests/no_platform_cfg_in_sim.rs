@@ -621,6 +621,31 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                      disable build/test targets without changing a line of \
                      source. The manifest grammar is closed."
                 );
+                // `[workspace]` keys grow the build itself: `members` names
+                // which crates `cargo test --workspace` compiles and runs —
+                // appending a new member brings a whole crate of code the
+                // src/ scanners never read (verified: a `_sneak` member
+                // carrying `env::var` joined and every check stayed green).
+                // The membership list is pinned, and the only legal keys in
+                // the section are the two already in use.
+                if section == "workspace" {
+                    assert!(
+                        key == "members" || key == "resolver",
+                        "{manifest_rel} sets `{key}` inside `[workspace]` — \
+                         workspace keys decide which crates exist; new ones \
+                         must be added here and pinned deliberately"
+                    );
+                    if key == "members" {
+                        let squashed: String =
+                            line.chars().filter(|c| !c.is_whitespace()).collect();
+                        assert!(
+                            squashed == "members=[\"izanagi\",\"izanagi_kit\"]",
+                            "{manifest_rel} changed the workspace members with \
+                             `{line}` — a member crate's sources live outside \
+                             every scanner's walk"
+                        );
+                    }
+                }
                 if section.starts_with("profile") {
                     assert!(
                         !BANNED_PROFILE_KEYS.contains(&key.as_str()),
