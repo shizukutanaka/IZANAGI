@@ -89,6 +89,11 @@ impl Animation {
     /// Advance by `dt` seconds. Returns the current [`Sprite`] to draw.
     pub fn tick(&mut self, dt: f32) -> Sprite {
         if !self.done {
+            if !dt.is_finite() {
+                // NaN accumulates forever (NaN >= duration is never true):
+                // the animation would freeze permanently. Skip the frame.
+                return self.frames[self.current].sprite;
+            }
             self.elapsed += dt;
             while self.elapsed >= self.frames[self.current].duration {
                 self.elapsed -= self.frames[self.current].duration;
@@ -165,6 +170,23 @@ mod tests {
             duration: 0.0,
         };
         let _ = Animation::new(vec![f], true);
+    }
+
+    #[test]
+    fn a_nan_dt_freezes_one_frame_not_the_animation() {
+        // NaN would accumulate in `elapsed` forever — the while-loop test
+        // `elapsed >= duration` is false for NaN, so the animation froze
+        // permanently. Non-finite dt now skips a single frame.
+        let f = |d: f32| Frame {
+            sprite: Sprite::new(0, 0, 16, 16),
+            duration: d,
+        };
+        let mut a = Animation::new(vec![f(0.5), f(0.5)], true);
+        let s0 = a.tick(f32::NAN);
+        let _ = s0;
+        let _ = a.tick(0.6); // advances past frame 0
+        assert!(a.elapsed.is_finite());
+        assert_eq!(a.frame_index(), 1);
     }
 
     #[test]

@@ -32,6 +32,11 @@ impl Tween {
         if self.done {
             return true;
         }
+        // A NaN dt would poison elapsed: `min` maps NaN to the duration
+        // (instant completion) and any later real dt keeps it NaN in spirit.
+        if !dt.is_finite() {
+            return self.done;
+        }
         self.elapsed = (self.elapsed + dt).min(self.duration);
         self.done = self.elapsed >= self.duration;
         self.done
@@ -102,6 +107,12 @@ impl Timer {
     pub fn tick(&mut self, dt: f32) -> bool {
         self.just_finished = false;
         if self.finished {
+            return false;
+        }
+        if !dt.is_finite() {
+            // NaN would accumulate forever (NaN >= duration is false — the
+            // timer never fires again); ±inf on a repeating timer fires
+            // every tick. Non-finite input is a no-op frame.
             return false;
         }
         self.elapsed += dt;
@@ -210,5 +221,29 @@ mod tests {
         assert!(t.finished());
         t.reset();
         assert!(!t.finished());
+    }
+
+    #[test]
+    fn a_nan_dt_never_fires_and_does_not_poison_a_timer() {
+        let mut t = Timer::once(1.0);
+        assert!(!t.tick(f32::NAN));
+        assert!(t.elapsed.is_finite());
+        assert!(t.tick(1.0), "real dt after a NaN frame still fires");
+    }
+
+    #[test]
+    fn an_infinite_dt_does_not_stick_a_repeating_timer() {
+        let mut t = Timer::every(1.0);
+        assert!(!t.tick(f32::INFINITY));
+        assert!(t.tick(1.0), "fires on the next real frame");
+    }
+
+    #[test]
+    fn a_nan_dt_is_a_noop_for_a_tween() {
+        let mut tw = Tween::new(0.0, 10.0, 1.0, ease::linear);
+        assert!(!tw.tick(f32::NAN));
+        assert!(!tw.done());
+        assert_eq!(tw.progress(), 0.0);
+        assert!(tw.tick(1.0));
     }
 }
