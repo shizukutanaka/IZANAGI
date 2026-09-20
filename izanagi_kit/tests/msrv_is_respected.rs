@@ -209,7 +209,8 @@ fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
                 }
                 walk(&path, root, out);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
-                let src = fs::read_to_string(&path).unwrap_or_default();
+                let src = fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
                 let end = test_module_boundary(&src).unwrap_or(src.len());
                 let stripped = src[..end]
                     .lines()

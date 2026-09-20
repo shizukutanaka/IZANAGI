@@ -472,7 +472,8 @@ fn exercising_code() -> String {
     let root = repo_root();
     let mut blob = String::new();
     for path in rust_files(&root.join("izanagi_kit/src")) {
-        let src = fs::read_to_string(&path).unwrap_or_default();
+        let src =
+            fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
         if let Some(i) = test_module_boundary(&src) {
             blob.push_str(&src[i..]);
         }
@@ -487,7 +488,10 @@ fn exercising_code() -> String {
             // This file counts too: it computes the function list rather than
             // spelling it out, so its own text cannot satisfy the check by
             // accident — and the tests above it are genuine exercise.
-            blob.push_str(&fs::read_to_string(&path).unwrap_or_default());
+            blob.push_str(
+                &fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
+            );
         }
     }
     blob
@@ -505,7 +509,8 @@ fn public_functions() -> BTreeSet<(String, String)> {
         if module == "lib" {
             continue;
         }
-        let src = fs::read_to_string(&path).unwrap_or_default();
+        let src =
+            fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
         let impl_end = test_module_boundary(&src).unwrap_or(src.len());
         // Trait methods carry no `pub` keyword — inside a `pub trait` they are
         // public by definition — so a sweep looking only for `pub fn` cannot

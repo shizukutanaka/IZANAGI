@@ -534,7 +534,8 @@ fn public_functions() -> BTreeSet<(String, String)> {
         if module == "lib" {
             continue;
         }
-        let src = fs::read_to_string(&path).unwrap_or_default();
+        let src =
+            fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
         let impl_end = test_module_boundary(&src).unwrap_or(src.len());
         let mut hidden = false;
         let mut in_pub_trait = false;
@@ -596,7 +597,8 @@ fn exercising_code() -> String {
     let root = repo_root();
     let mut blob = String::new();
     for path in rust_files(&root.join("izanagi/src")) {
-        let src = fs::read_to_string(&path).unwrap_or_default();
+        let src =
+            fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
         if let Some(i) = test_module_boundary(&src) {
             blob.push_str(&src[i..]);
         }
@@ -609,7 +611,10 @@ fn exercising_code() -> String {
         "izanagi_kit/examples",
     ] {
         for path in rust_files(&root.join(dir)) {
-            blob.push_str(&fs::read_to_string(&path).unwrap_or_default());
+            blob.push_str(
+                &fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
+            );
         }
     }
     blob

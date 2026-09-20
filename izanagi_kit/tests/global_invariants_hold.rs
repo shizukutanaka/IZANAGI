@@ -361,7 +361,8 @@ fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
                 }
                 walk(&path, root, out);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
-                let src = fs::read_to_string(&path).unwrap_or_default();
+                let src = fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
                 let end = test_module_boundary(&src).unwrap_or(src.len());
                 let stripped = src[..end]
                     .lines()
@@ -779,7 +780,10 @@ fn rustfmt_skip_is_frozen_at_named_sites() {
             if path.extension().map(|e| e == "rs") != Some(true) {
                 continue;
             }
-            let code = test_code(&fs::read_to_string(&path).unwrap_or_default());
+            let code = test_code(
+                &fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
+            );
             let n = code.matches("rustfmt::skip").count();
             if n == 0 {
                 continue;
@@ -1124,7 +1128,10 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 continue;
             }
             let name = entry.file_name().to_string_lossy().to_string();
-            let code = test_code(&fs::read_to_string(&path).unwrap_or_default());
+            let code = test_code(
+                &fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
+            );
             assert!(
                 !require_tests || code.contains("#[test"),
                 "{name} contains no #[test] function — a test file that \
@@ -1206,7 +1213,10 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // `env!("CARGO_MANIFEST_DIR")` — a path cargo itself defines. The
             // argument literal must be read, so this one uses raw source with
             // string-aware skipping rather than the string-blanked `code`.
-            let env_args = env_macro_args(&fs::read_to_string(&path).unwrap_or_default());
+            let env_args = env_macro_args(
+                &fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
+            );
             if require_tests {
                 assert!(
                     env_args
@@ -1255,7 +1265,10 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             path.exists(),
             "IGNORE_ALLOWLIST names {file}, which no longer exists"
         );
-        let body = test_code(&fs::read_to_string(&path).unwrap_or_default());
+        let body = test_code(
+            &fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
+        );
         assert!(
             body.matches("#[ignore").next().is_some(),
             "IGNORE_ALLOWLIST names {file} but it no longer contains \

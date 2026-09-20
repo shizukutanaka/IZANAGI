@@ -302,7 +302,7 @@ fn test_attributes(crate_dir: &str) -> usize {
                 walk(&path, total);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
                 *total += fs::read_to_string(&path)
-                    .unwrap_or_default()
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()))
                     .matches("#[test]")
                     .count();
             }
@@ -577,7 +577,8 @@ fn fenced_rust_blocks_that_claim_to_run_are_not_marked_to_skip() {
                 .unwrap_or(&path)
                 .display()
                 .to_string();
-            let src = fs::read_to_string(&path).unwrap_or_default();
+            let src = fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
             let mut no_run_count = 0usize;
             for (n, line) in src.lines().enumerate() {
                 let trimmed = line
@@ -610,7 +611,8 @@ fn fenced_rust_blocks_that_claim_to_run_are_not_marked_to_skip() {
         }
     }
     for (file, _reason) in NO_RUN_ALLOWLIST {
-        let src = fs::read_to_string(repo_root().join(file)).unwrap_or_default();
+        let src = fs::read_to_string(repo_root().join(file))
+            .unwrap_or_else(|e| panic!("reading {file}: {e}"));
         assert!(
             src.contains("```no_run"),
             "allowlisted {file} no longer has a ```no_run fence — remove the \
@@ -729,7 +731,8 @@ fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
                         .unwrap_or(&path)
                         .display()
                         .to_string();
-                    let src = fs::read_to_string(&path).unwrap_or_default();
+                    let src = fs::read_to_string(&path)
+                        .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
                     check(rel, rust_fence_bodies(src.lines(), true));
                 }
             }
@@ -752,7 +755,8 @@ fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
                     stack.push(path);
                     continue;
                 }
-                let src = fs::read_to_string(&path).unwrap_or_default();
+                let src = fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
                 let dir_path = path.parent().unwrap_or(&path).to_path_buf();
                 let mut at = 0;
                 while let Some(rel) = src[at..].find("include_str!(") {
@@ -1222,7 +1226,8 @@ fn handbook_assert_free_example_count_is_a_floor() {
         {
             let path = entry.path();
             if path.extension().is_some_and(|x| x == "rs") {
-                let text = fs::read_to_string(&path).unwrap_or_default();
+                let text = fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
                 if !text.contains("assert") && !text.contains("panic") && !text.contains("expect") {
                     assert_free += 1;
                 }
@@ -1329,7 +1334,11 @@ fn walk_md(root: &Path) -> Vec<(String, String)> {
                     .unwrap_or(&path)
                     .display()
                     .to_string();
-                out.push((rel.clone(), fs::read_to_string(&path).unwrap_or_default()));
+                out.push((
+                    rel.clone(),
+                    fs::read_to_string(&path)
+                        .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
+                ));
             }
         }
     }
