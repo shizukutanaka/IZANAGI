@@ -92,10 +92,24 @@ fn g1_dev_dependencies_are_path_only_and_never_reach_a_consumer() {
     // *registry* dev-dependency would still put a third-party crate in the
     // build of anyone who runs the test suite, which is most of the audit
     // surface G1 exists to keep small. The engine's single dev-dependency is
-    // the sibling kit, by path, used only by examples/kit_bridge.rs.
+    // the sibling kit, by path, used only by examples/kit_bridge.rs — and
+    // the path itself is pinned: a `path =` that points *somewhere else*
+    // keeps the shape check green while the build reads a crate no scanner
+    // enumerates (verified by injection: the line retargeted to a renamed
+    // sibling copy carrying `env::var`, every check stayed green).
     for krate in CRATES {
         let manifest = read(&format!("{krate}/Cargo.toml"));
-        for dep in manifest_section(&manifest, "dev-dependencies") {
+        let deps = manifest_section(&manifest, "dev-dependencies");
+        for dep in &deps {
+            let squashed: String = dep.chars().filter(|c| !c.is_whitespace()).collect();
+            assert!(
+                squashed == "izanagi_kit={path=\"../izanagi_kit\"}",
+                "{krate} declares dev-dependency `{dep}` — the sibling path \
+                 dep is pinned verbatim: it must resolve to the crate the \
+                 scanners read"
+            );
+        }
+        for dep in deps {
             assert!(
                 dep.contains("path ="),
                 "{krate} has the dev-dependency `{dep}`, which is not a path \
