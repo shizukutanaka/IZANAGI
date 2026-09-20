@@ -806,6 +806,50 @@ fn kit_readme_demo_count_is_a_floor_the_examples_clear() {
 }
 
 #[test]
+fn handbook_assert_free_example_count_is_a_floor() {
+    // AGENT_INSTRUCTIONS states how many examples carry no assert-like token
+    // ("NN本は assert をひとつも持たない") — it drifted when three demos grew
+    // assertions. The claim is a floor: it must never exceed the real count.
+    let doc = read("AGENT_INSTRUCTIONS.md");
+    let line = doc
+        .lines()
+        .find(|l| l.contains("本は assert"))
+        .expect("handbook must state the assert-free example count");
+    let before = &line[..line.find("本は").expect("count marker")];
+    let digits: String = before
+        .chars()
+        .rev()
+        .take_while(char::is_ascii_digit)
+        .collect();
+    let claimed: usize = digits
+        .chars()
+        .rev()
+        .collect::<String>()
+        .parse()
+        .expect("the assert-free claim must carry a number before 本は");
+    let mut assert_free = 0usize;
+    for dir in ["izanagi/examples", "izanagi_kit/examples"] {
+        for entry in fs::read_dir(repo_root().join(dir))
+            .unwrap_or_else(|e| panic!("{dir}: {e}"))
+            .flatten()
+        {
+            let path = entry.path();
+            if path.extension().is_some_and(|x| x == "rs") {
+                let text = fs::read_to_string(&path).unwrap_or_default();
+                if !text.contains("assert") && !text.contains("panic") && !text.contains("expect") {
+                    assert_free += 1;
+                }
+            }
+        }
+    }
+    assert!(
+        claimed <= assert_free,
+        "handbook claims {claimed} assert-free examples but only \
+         {assert_free} exist — keep it a floor"
+    );
+}
+
+#[test]
 fn readme_msrv_claims_match_their_manifests() {
     // izanagi/README.md claimed "MSRV: Rust 1.75" while its manifest declared
     // rust-version 1.65 — an overstatement of the requirement. Whatever MSRV a

@@ -52,7 +52,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(27種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(27+種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -107,8 +107,9 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    モデルと実装の一致を示すが、**それは標本であって精緻化の証明ではない**。
    両者の連携は doc と demo に明記済み(`RealRoom` が INCONCLUSIVE、モデルが PROVED)。
    これ以上を主張しないことが正しく、過大主張は道具の信頼を壊す。
-4. **[小] example が印字する数値は誰も検算していない** — 29本中 `verify_pipeline_demo`
-   (assert 9件)と `kit_bridge`(1件)を除く**27本は assert をひとつも持たない**。
+4. **[小] example が印字する数値は誰も検算していない** — 29本中、assert を持つのは
+   `verify_pipeline_demo`・`kit_bridge`・`menu_textlayout_demo`・`replay_demo`・
+   `savefile_demo` の5本だけで、残りの**24本は assert をひとつも持たない**。
    gate は全29本について「headless 完走・非空出力・2回実行でバイト一致」を強制するので、
    panic・ハング・沈黙・非決定性は落ちる。**しかし「安定して間違っている」出力は通る。**
    個々の値の正しさは 3,600+ の単体テスト側で担保されており、example ごとに golden
