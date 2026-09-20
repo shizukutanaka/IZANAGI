@@ -138,6 +138,18 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 ### 解消済み(本セッション)
 
+- ~~doc コメントの ` ``` ` フェンスは走査が効く(フェンス検査テストがある)~~ →
+  `BANNED_IN_FENCE` はコンパイル系(unsafe/cfg/include/env!/extern/asm)のみで、
+  **実行時の ambient input 族が抜けていた**: doctest は `cargo test` の検証済み
+  ビルド内で走る別クレートなので、フェンス内の `std::net::TcpStream::connect` や
+  `std::process::Command` は「全スキャナーが見ないが確実に実行される」コードだった。
+  lib 側の BANNED と同族を追加: net/process/Command/env::var・set_var・remove_var/
+  fs::・File::・OpenOptions/io/Instant/SystemTime/thread/sync/catch_unwind/panic::/
+  set_hook・take_hook/should_panic/arch/TypeId/type_name/layout(offset_of・addr_of・
+  size_of・align_of)/ポインタ全族/NonNull/ptr_eq/HashMap・HashSet/RandomState/
+  DefaultHasher/`#[allow`・`#[warn`・`#[expect`(doctest クレート内での lint 弱化)、
+  および `#[path`/`mod `(doctest から任意ファイルへの splice — `#[path` 抜けていた)。
+  注入で実証: doc フェンス内の `TcpStream` と `#[path] mod` がともに失敗。
 - ~~example の2回実行バイト一致を通るなら出力は「バイナリ自身の計算」~~ →
   **FS は gate 実行間の暗黙チャネル**だった: run 1 で書いたバイトを run 2 が読めば
   比較は一致しつつ、実際には走査されない機器上のバイトを読んでいる。examples では

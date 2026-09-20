@@ -683,13 +683,79 @@ fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
         "#![",       // inner attributes, including feature gates
         "include!(", // code the scanners never read, by reference
         "include_bytes!(",
-        "env!(", // the build machine's environment, baked in
+        "#[path", // a doctest `mod` can point at any file on disk
+        "mod ",   // `mod x;` splices a file this scan never reads
+        "env!(",  // the build machine's environment, baked in
         "option_env!(",
         "extern ", // linkage to code no manifest lists
         "#[no_mangle",
         "#[link",
         "asm!(",
         "{:p", // pointer addresses differ run to run
+        // Ambient inputs and outside-the-scanned-universe delegation — the
+        // same families library code is denied. A doctest is a compiled
+        // crate running inside `cargo test`; a socket or subprocess here is
+        // verified-build code no scanner reads.
+        "std::net",
+        "net::",
+        "TcpStream",
+        "TcpListener",
+        "UdpSocket",
+        "ToSocketAddrs",
+        "std::process",
+        "process::",
+        "Command::new",
+        "env::var",
+        "env::set_var",
+        "env::remove_var",
+        "fs::",
+        "std::fs",
+        "File::",
+        "OpenOptions",
+        "read_to_string",
+        "read_dir",
+        "std::io",
+        "Instant",
+        "SystemTime",
+        "thread::",
+        "std::thread",
+        "std::sync",
+        "catch_unwind",
+        "panic::",
+        "set_hook",
+        "take_hook",
+        "should_panic",
+        "std::arch",
+        "core::arch",
+        "TypeId",
+        "type_name",
+        "offset_of",
+        "addr_of",
+        "size_of",
+        "align_of",
+        "into_raw",
+        "from_raw",
+        "as *",
+        "*const",
+        "*mut",
+        ".as_ptr(",
+        ".as_mut_ptr(",
+        "with_exposed_provenance",
+        "expose_addr",
+        "with_addr",
+        "map_addr",
+        ".addr(",
+        "NonNull",
+        "ptr_eq",
+        "ptr::",
+        "HashMap",
+        "HashSet",
+        "RandomState",
+        "DefaultHasher",
+        // Lint weakening inside the doctest crate.
+        "#[allow",
+        "#[warn",
+        "#[expect",
     ];
     // `include_str!` stays exempt: it produces a `&'static str`, which is
     // documentation, not code — and the md targets it pulls are themselves
