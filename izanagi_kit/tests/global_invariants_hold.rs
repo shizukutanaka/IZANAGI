@@ -1689,6 +1689,17 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 ".as_mut_ptr(",
                 "into_raw(",
                 "from_raw(",
+                // `std::ptr::addr_of!` makes a raw pointer with no `*const`
+                // in the text; `Arc::ptr_eq`/`Rc::ptr_eq`/`std::ptr::eq`
+                // compare addresses directly (both injected: green).
+                "std::ptr",
+                "ptr::",
+                "addr_of",
+                "ptr_eq",
+                // `x as fn()` coerces a fn item to a fn pointer — the only
+                // spelling that lets a formatter print an address (fn items
+                // carry no Debug impl themselves; injected: green).
+                "as fn",
             ] {
                 assert!(
                     !contains_token(&code, needle),
