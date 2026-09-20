@@ -701,6 +701,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   原因不明 — 再発時は tail-30 より前のバイナリ出力を見る必要あり。
 
 
+- ~~同期系は `Mutex`/`RwLock`/atomic を禁じれば尽きたと思われていた~~ →
+  `Once`/`mpsc`/`Condvar`/`Barrier` はスルーで、単体でも跨り状態に使える
+  (Once::call_once と mpsc::channel を注入→緑を実証)。`sync::` 一括 +
+  個別ニードル(`Once`/`Condvar`/`Barrier`/`mpsc`/`WaitTimeoutResult`)で
+  std::sync 全体を封鎖。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

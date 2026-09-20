@@ -1804,6 +1804,18 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "macro_use",
                 "proc_macro",
                 "proc-macro",
+                // The rest of the synchronization family: `Once`,
+                // `mpsc`, `Condvar`, `Barrier` are the same
+                // cross-test-state / ambient-ordering channel, and
+                // `sync::` covers whatever the named needles miss
+                // (injected `Once::call_once` and `mpsc::channel` into
+                // a test: green).
+                "sync::",
+                "Once",
+                "Condvar",
+                "Barrier",
+                "mpsc",
+                "WaitTimeoutResult",
             ] {
                 assert!(
                     !contains_token(&code, needle),
