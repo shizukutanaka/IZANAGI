@@ -1800,10 +1800,30 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // leaving the crate; one level stays legal (`../README.md`
             // is a doc idiom).
             assert!(
-                !raw.contains(concat!("..", "/..")),
+                !raw.contains(concat!(".", ".", "/.", ".")),
                 "{name} contains a literal climbing two directories — a \
                  path leaving the package reads host state this suite \
                  does not replay"
+            );
+            // The parent-segment literal itself is the atom of escape: a
+            // Path::join chain of single two-dot fragments climbs without
+            // ever writing two in a row (injected: green). Comparators
+            // test components with `s.bytes().all(|b| b == b'.')` instead
+            // of quoting the segment, so the literal appears nowhere.
+            let mut saw_parent_literal = false;
+            let mut qi = 0usize;
+            while qi + 4 <= bs.len() {
+                if bs[qi] == b'"' && bs[qi + 1] == b'.' && bs[qi + 2] == b'.' && bs[qi + 3] == b'"'
+                {
+                    saw_parent_literal = true;
+                    break;
+                }
+                qi += 1;
+            }
+            assert!(
+                !saw_parent_literal,
+                "{name} contains a bare parent-dir literal — segments are \
+                 how a join chain leaves the package"
             );
             // Delegating the checked computation to outside the scanned
             // universe: a subprocess runs anything, a socket reads bytes no

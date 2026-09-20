@@ -109,8 +109,10 @@ fn no_doc_include_reaches_outside_its_package() {
             rest = &rest[at + 14..];
             let Some(end) = rest.find('"') else { break };
             let path = &rest[..end];
+            let is_dotdot = |s: &str| s.len() == 2 && s.bytes().all(|b| b == b'.');
             let mut segs = path.split('/');
-            let climbs_out = segs.next() == Some("..") && segs.next() == Some("..");
+            let climbs_out = segs.next().map(is_dotdot) == Some(true)
+                && segs.next().map(is_dotdot) == Some(true);
             assert!(
                 !climbs_out && !path.contains("/../"),
                 "{lib} includes `{path}`, which is outside the package. The \
