@@ -14,15 +14,16 @@
 > - 出典は WebSearch のインデックスで実在確認済み。arXiv は ID を併記（abs ページは bot 403 のため
 >   一次裏取りは ar5iv / Semantic Scholar 等で補完予定）。
 
-最終更新: 2026-06-05 / 対象ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
+最終更新: 2026-09-20 / 対象ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
 
 ---
 
 ## 1. ECS アーキテクチャ / コンポーネント storage (Entity-Component-System, sparse-set)
 
 **現状（izanagi_kit）**: `src/entity.rs`（generational handle + free-list allocator、despawn→respawn 後の
-stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、swap-remove で O(1) 合成変更）。
-単一 sparse-set 方式で、archetype 化や query DSL は未実装。
+stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、swap-remove で O(1) 合成変更）、
+`src/arch.rs`（archetype テーブル — 走査型 workload 向けの opt-in primitive、N18 で計測決着済み）。
+query DSL は未実装。
 
 **参考情報（arXiv / GitHub / 同種ソフト）**
 - GitHub: [SanderMertens/ecs-faq](https://github.com/SanderMertens/ecs-faq) — ECS 設計論の網羅 FAQ（flecs 作者）。
@@ -37,8 +38,8 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 - 記事: csherratt *"Specs and Legion, two very different approaches to ECS"* — bitset filter vs archetype table の比較。
 
 **洗い出した改善点**
-1. ✅**実装済み** — **multi-component query / iteration API**（`sparse_set::join`/`join_mut`、最小集合走査・canonical 昇順）。archetype storage は残。出典: entt group/view, legion query。🟢 replay-safe（canonical 順序）。
-2. **archetype storage の optional 化**（大規模 iteration 向け）。sparse-set と併用で「変更コスト vs 走査コスト」を選択可能に。出典: bevy hybrid storage, EG 比較論文。🟡 gated（storage 切替で iteration 順序が変わるとハッシュに波及。canonical sort を hash 層で保証すれば緩和）。
+1. ✅**実装済み** — **multi-component query / iteration API**（`sparse_set::join`/`join_mut`、最小集合走査・canonical 昇順）+ **archetype storage**（`src/arch.rs` の `ArchTable`、opt-in。N18 の実測で「kit core の既定 storage にはしない」と確定）。出典: entt group/view, legion query。🟢 replay-safe（canonical 順序）。
+2. ~~**archetype storage の optional 化**~~ — **実装済み（N18）**: `arch::ArchTable` が opt-in primitive として存在。core の既定 storage 化は実測で不採用（point get で 4.3x 劣後、join 差は frame の 0.1%）。出典: bevy hybrid storage, EG 比較論文。
 3. **bitset によるコンポーネント有無の高速判定**（query 高速化）。出典: specs bitset filter。🟢 replay-safe。
 4. **generation 枯渇（u32 wrap）時の handle 再利用ポリシー明文化**。出典: hecs generational index 解説。🟢 replay-safe（テスト追加のみ）。
 5. **ZST（タグコンポーネント）最適化**（storage を確保しない marker component）。出典: entt/bevy tag。🟢 replay-safe。
@@ -49,7 +50,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 ## 2. 決定論的 fixed-point 演算 (Q16.16 fixed-point, saturating arithmetic)
 
 **現状（izanagi_kit）**: `src/fixed.rs` — Q16.16 スカラ、`saturating_mul` で sign-flip 回避、`from_ratio` の
-0 除算は符号方向へ飽和（バグ修正済み — 旧 `IMPROVEMENTS.md`、現在は git 履歴）。sqrt/trig/除算の高精度関数は未提供。
+0 除算は符号方向へ飽和（バグ修正済み — 旧 `IMPROVEMENTS.md`、現在は git 履歴）。sqrt・trig（CORDIC `sin`/`cos`/`sin_cos`/`atan2`）・除算は実装済み（下記改善点 1〜2、N19）。
 
 **参考情報**
 - arXiv: **1605.03229** *"CORDIC-based Architecture for Powering Computation in Fixed-Point Arithmetic"* — hyperbolic CORDIC による pow/exp/log の整数実装。
@@ -67,17 +68,17 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 1. ✅**実装済み** — **`sqrt()` の追加**（integer bit-by-bit isqrt、`src/fixed.rs`）。距離計算・正規化に必須。負入力は 0 へ飽和。🟢 replay-safe（新規 API、既存演算不変・`PINNED_FINAL_HASH` 不変）。
 2. ✅**実装済み** — **CORDIC による `sin`/`cos`/`sin_cos`/`atan2`**（テーブルではなく反復で決定的、16回・整数定数、`src/fixed.rs`）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
 3. **丸めモードの明示**（truncate / round-half-to-even）。乗除の丸めを文書化し API 化。出典: substrate-fixed の丸め。🟡 gated（既存の演算の丸めを変えると 🔴。新 API として追加なら 🟢）。
-4. **`Vec2`/`Vec3` 等の fixed-point ベクトル型**（dot/length/normalize）。出典: FixedMathSharp。🟢 replay-safe。
+4. ~~**`Vec2`/`Vec3` 等の fixed-point ベクトル型**~~ — **実装済み**: `src/vec.rs` の `Vec2`（`dot`/`length_sq`/`normalize`/`reflect`、全て Q16.16）。出典: FixedMathSharp。
 5. **overflow 検出モード（debug 時 panic / release saturating）**の二層化を文書化。🟢 replay-safe。
-6. **`from_ratio`・`from_int` の property test 拡充**（飽和境界 i32::MIN/MAX）。🟢 replay-safe。
-7. **lerp / clamp / sign 等のユーティリティ**。🟢 replay-safe。
+6. ~~**`from_ratio`・`from_int` の property test 拡充**~~ — **実装済み**: 飽和境界テストが存在（`test_sub_saturates_at_min`・`test_from_int_saturates_out_of_range`・`test_from_ratio_div_by_zero_saturates_by_sign` ほか）。🟢 replay-safe。
+7. ~~**lerp / clamp / sign 等のユーティリティ**~~ — **実装済み**: `lerp`・`clamp`/`clamp01`・`sign` が `fixed.rs` に存在。🟢 replay-safe。
 
 ---
 
 ## 3. 決定論的 PRNG (deterministic pseudorandom number generator, SplitMix64)
 
-**現状（izanagi_kit）**: `src/rng.rs` — SplitMix64、単一ストリーム・固定 draw 順序。`below(0)` は draw せず 0 を返す
-（release desync バグ修正済み — 旧 `IMPROVEMENTS.md`、現在は git 履歴）。range 抽出の bias 除去や複数ストリームは未対応。
+**現状（izanagi_kit）**: `src/rng.rs` — SplitMix64、`split(stream_id)` で名前付き子ストリーム分岐済み・固定 draw 順序。`below(0)` は draw せず 0 を返す
+（release desync バグ修正済み — 旧 `IMPROVEMENTS.md`、現在は git 履歴）。`below(n)` は Lemire の乗算シフト法で bias 除去済み。`src/rng_xoshiro.rs` に opt-in の xoshiro256++ もある。
 
 **参考情報**
 - arXiv: **1805.01407** *"Scrambled Linear Pseudorandom Number Generators"*（Blackman & Vigna）— xoshiro/xoroshiro と scrambler の品質。
@@ -92,12 +93,12 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 - アルゴリズム: SplitMix64（seed 派生・stream 分割の定番）。
 
 **洗い出した改善点**
-1. **modulo bias の除去**（`below(n)` を Lemire の nearly-divisionless / rejection 法へ）。現状は単純 modulo の可能性。出典: Lemire, rand crate。🔴 breaking（draw 結果が変わるため `PINNED_FINAL_HASH` 更新が必要）→ 新メソッド `below_unbiased` として追加すれば 🟡。
-2. **複数の名前付きストリーム**（`split`/`jump`）でサブシステム毎に独立な乱数列。出典: SplitMix64 split, xoshiro jump。🟡 gated（既存単一ストリームの draw 順序を保つなら追加扱い）。
+1. ~~**modulo bias の除去**~~ — **実装済み**: `below(n)` は既に Lemire の乗算シフト法（`u128` 積の上位64bit）。出典: Lemire, rand crate。
+2. ~~**複数の名前付きストリーム**~~ — **実装済み**: `SplitMix64::split(stream_id)` がサブシステム毎の独立ストリームを純関数で分岐（親を消費しない）。出典: SplitMix64 split, xoshiro jump。
 3. **PRNG 品質の自動テスト**（小規模 chi-square / 既知ベクタ回帰）。出典: PractRand/TestU01 文献。🟢 replay-safe。
 4. **`f`-range・gaussian・weighted choice 等の分布ヘルパ**（fixed-point 連携）。🟢 replay-safe（新 API）。
 5. **seed の文書化（wall-clock seed 禁止の明文化）**と replay seed の永続化。出典: lockstep 文献（C6）。🟢 replay-safe。
-6. **xoshiro256++ への移行検討**（状態 256bit、品質向上）。出典: arXiv:1805.01407。🔴 breaking（既定 RNG 変更）→ 別 generator として feature 提供なら 🟡。
+6. ~~**xoshiro256++ への移行検討**~~ — **実装済み（opt-in）**: `src/rng_xoshiro.rs` の `Xoshiro256pp` が別 generator として存在（既定は SplitMix64 のまま、pinned hash 不変）。出典: arXiv:1805.01407。
 
 ---
 
@@ -121,7 +122,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 **洗い出した改善点**
 1. ✅**実装済み（一部）** — **`DetHash` trait の実装**（基本型 + `Fixed/Entity/Position/Render/Color` + `SparseSet::det_hash` で canonical 順序の容器 hash、`src/world_hash.rs` ほか）。derive macro 化は残。出典: ggrs Config checksum。🟢 replay-safe（FNV 流用で `PINNED_FINAL_HASH` 不変）。
 2. **order-independent な集合ハッシュ**（commutative combine）で sort コスト削減。出典: order-independent hashing。🔴 breaking（hash 値が変わる）→ 別 API。
-3. **desync 二分探索ツール**（per-system / per-component checksum を出力し最初に分岐した tick・型を特定）。出典: Bugnet, Gaffer。🟢 replay-safe。
+3. ~~**desync 二分探索ツール**~~ — **実装済み（N12）**: `replay::first_divergence`/`all_divergences` + `DesyncReport`(分岐 tick・サブシステム局所化・seed・入力窓を含む再現バンドル)。出典: Bugnet, Gaffer。
 4. **xxHash/FxHash オプション**（per-frame hash の高速化）。出典: xxHash。🟡 gated（hash 関数変更で値が変わる→ feature 隔離）。
 5. **replay trace の永続化フォーマット**（seed + inputs + 期待 hash 列）。出典: Deterministic Replay Survey。🟢 replay-safe。
 6. **CI で複数 OS/arch の hash 一致を検証**（matrix で `PINNED_FINAL_HASH` を突き合わせ）。🟢 replay-safe。
@@ -131,7 +132,7 @@ stale handle 拒否）、`src/sparse_set.rs`（dense `Vec<T>` + sparse index、s
 ## 5. Fixed-timestep シミュレーションループ (fixed timestep, accumulator, death-spiral guard)
 
 **現状（izanagi_kit）**: `src/timestep.rs` — accumulator で sim tick と render frame を分離、death-spiral ガード付き。
-render 補間（interpolation alpha）や input サンプリングの tick 整合は未提供。
+render 補間は `alpha_ratio()`（残量の整数比）として提供済み。input サンプリングの tick 整合は `cmdqueue`/`netinput` が担う。
 
 **参考情報**
 - 記事: Gaffer On Games *"Fix Your Timestep!"* — accumulator パターンの原典。
@@ -146,11 +147,11 @@ render 補間（interpolation alpha）や input サンプリングの tick 整�
 - 概念: spiral of death ガード（max steps / クランプ）。
 
 **洗い出した改善点**
-1. **render 補間 alpha の提供**（`accumulator / dt` を返し、描画側で前tick↔現tick を lerp）。出典: Gaffer。🟢 replay-safe（描画専用、sim 不変）。
-2. **入力の tick 整列 API**（C7/loader と連携し、tick 境界で input を確定）。出典: jakubtomsu inputs。🟡 gated（sim へ入る input 順序は決定性に直結）。
-3. **dt を fixed-point 化**（float accumulator の丸め誤差を排除）。出典: C2 + semi-fixed 問題。🔴 breaking（tick 進行が変わりうる）→ 慎重に。
+1. ~~**render 補間 alpha の提供**~~ — **実装済み**: `timestep::alpha_ratio()` が `(accumulator_ns, step_ns)` の整数比を返す。出典: Gaffer。
+2. ~~**入力の tick 整列 API**~~ — **実装済み**: `cmdqueue` + `netinput::DelayScheduler` が input を tick 境界に整列（N11）。出典: jakubtomsu inputs。
+3. ~~**dt を fixed-point 化**~~ — **実装済み（設計で解消）**: accumulator は整数ナノ秒（`u64`）で float を持たない — 丸め誤差は構造的に存在しない。出典: C2 + semi-fixed 問題。
 4. **death-spiral ガードの可観測化**（dropped tick 数のメトリクス）。🟢 replay-safe。
-5. **rollback 対応フック**（tick を巻き戻して再シミュレートする interface）。出典: ggrs。🟢 replay-safe（拡張点の追加）。
+5. ~~**rollback 対応フック**~~ — **実装済み**: `rollback::SnapshotRing` + `sync_test` と `replay::resimulate` が巻き戻し再シミュレートを提供（N4）。出典: ggrs。
 6. **可変 tickrate のテスト**（同一 input で render fps を変えても sim hash 不変を property test 化）。🟢 replay-safe。
 
 ---
@@ -159,7 +160,7 @@ render 補間（interpolation alpha）や input サンプリングの tick 整�
 
 **現状（izanagi_kit）**: RNG(C3) + fixed-point(C2) + world_hash(C4) + timestep(C5) を統合し、
 `tests/determinism.rs` で end-to-end の bit-exact replay（`PINNED_FINAL_HASH = 0xd1a9_236e_96a2_c802`）を保証。
-ネットワーク同期層・input 配信・rollback は未実装（単機 replay のみ）。
+`src/rollback.rs`（`SnapshotRing` + `sync_test`、N4）・`src/replay.rs`（trace 記録・desync 検出・再シミュ）・`src/netinput.rs`（適応 input delay、N11）・`src/cmdqueue.rs` が実装済み — 単機 replay のみではない。
 
 **参考情報**
 - arXiv: **1705.05937** *"Engineering Record And Replay For Deployability"*（rr）— 低オーバーヘッド record/replay の設計。
@@ -174,12 +175,12 @@ render 補間（interpolation alpha）や input サンプリングの tick 整�
 - 記事: coherence docs *"Determinism, Prediction and Rollback"* — 予測と巻き戻しの実務。
 
 **洗い出した改善点**
-1. **input-only 同期の transport 非依存 API**（inputs を tick に紐付けて配信する trait、ネット実装は外部）。出典: ggrs/GGPO。🟢 replay-safe。
+1. ~~**input-only 同期の transport 非依存 API**~~ — **実装済み**: `netinput`（`NetInputBuffer`・`DelayScheduler`・`AdaptiveDelay`）が transport 非依存の input 配信を提供（N11）。出典: ggrs/GGPO。
 2. ✅**実装済み** — **rollback/replay ハーネス**（`replay::record_trace`/`check_trace`/`first_divergence`/`resimulate`、`src/replay.rs`）。出典: rr, ggrs。🟢 replay-safe。
 3. ✅**実装済み（基盤）** — **state snapshot/restore**（`replay::resimulate` が clone+再シミュで rollback 基盤を提供。`DetHash` と対）。出典: bevy_ggrs snapshot。🟢 replay-safe。
-4. **非決定 API の静的禁止**（`std::time`, `HashMap` iteration, float を lint / feature gate で遮断）。出典: yal.cc チェックリスト。🟢 replay-safe。
+4. ~~**非決定 API の静的禁止**~~ — **実装済み**: `tests/no_float_in_sim.rs`（sim 経路の float 排除）+ `global_invariants_hold.rs`（unordered 反復・clock・thread_local の allowlist 検査）が静的に遮断。出典: yal.cc チェックリスト。
 5. **クロス OS/arch の決定性 CI**（Linux/macOS/Windows で `PINNED_FINAL_HASH` 一致を必須化）。出典: Deterministic Replay Survey。🟢 replay-safe。
-6. **input prediction の対応**（未着 input を前回値で予測し、誤りは rollback）。出典: GGPO。🟢 replay-safe（拡張）。
+6. ~~**input prediction の対応**~~ — **実装済み**: `netinput::NetInputBuffer` が未着 input を予測で埋め、rollback (`SnapshotRing`) で修正（N11/N4）。出典: GGPO。
 
 ---
 
@@ -202,9 +203,9 @@ span ベースの高機能診断は限定的。
 - 概念: LSP 連携（partial parse から補完/診断を返す）。
 
 **洗い出した改善点**
-1. **error recovery（複数エラー一括報告）**。1 行目で停止せず最後まで診断収集（validator は既にこの方針 → parser へ波及）。出典: arXiv:1804.07133（Diekmann & Tratt, ECOOP 2020; CPCT+ が 98.37% を修復）, chumsky。🟢 replay-safe（ツール層）。
+1. ~~**error recovery（複数エラー一括報告）**~~ — **実装済み**: `parse` は `(Content, Vec<Diagnostic>)` を返し、最初のエラーで止まらず全診断を収集（broken.game fixture で複数診断を実証）。出典: arXiv:1804.07133, chumsky。
 2. **span ベース診断（複数ラベル・related notes）**。出典: rustc, ariadne(C9)。🟢 replay-safe。
-3. **grammar の形式仕様 / BNF 文書化**（`.game` 形式の安定化）。🟢 replay-safe。
+3. ~~**grammar の形式仕様 / BNF 文書化**~~ — **実装済み**: `SPEC.md` §9.1 が `.game` 文法を形式化し、spec↔parser の一致は機械検査済み。🟢 replay-safe。
 4. **fuzz harness（cargo-fuzz）で panic-freedom を継続検証**。出典: C8。🟢 replay-safe。
 5. **インクリメンタル/部分パース**（エディタ統合・大規模コンテンツ向け）。🟢 replay-safe。
 6. **数値・色リテラルの厳密な境界テスト**（UTF-8 マルチバイト色は修正済み → 回帰固定）。🟢 replay-safe。
@@ -231,11 +232,11 @@ span ベースの高機能診断は限定的。
 
 **洗い出した改善点**
 1. **coverage-guided fuzzing 導入**（`cargo-fuzz` ターゲットを dev-only で追加、本体は zero-dep 維持）。出典: cargo-fuzz, FuzzChick。🟢 replay-safe。
-2. **shrinking（最小反例生成）の自前実装強化**。現状の自前生成に縮約を追加。出典: proptest shrink。🟢 replay-safe。
+2. ~~**shrinking（最小反例生成）の自前実装強化**~~ — **実装済み**: `src/shrink.rs`（delta debugging、1-minimal 反例まで縮約）。出典: proptest shrink。
 3. **`Arbitrary` 互換の生成器**でテストと fuzz を共有。出典: yoshuawuyts, arbitrary。🟢 replay-safe（dev 依存のみ）。
-4. **snapshot テスト**（canonical `.game` 出力の golden file 固定）。出典: penumbra #351。🟢 replay-safe。
-5. **round-trip の意味的等価性定義の明文化**（`≅` の正確な定義：順序正規化込み）。🟢 replay-safe。
-6. **determinism property の追加**（同 seed→同 hash を proptest 化、C4/C6 連携）。🟢 replay-safe。
+4. ~~**snapshot テスト**~~ — **実装済み**: `examples/dungeon.game`/`broken.game` の fixture が canonical 出力の golden として gate で受け入れ/拒否の両方向を固定。出典: penumbra #351。
+5. ~~**round-trip の意味的等価性定義の明文化**~~ — **実装済み**: `serializer.rs` の doc が `parse(serialize(c)) ≅ c` の `≅` を順序正規化込みで定義。🟢 replay-safe。
+6. ~~**determinism property の追加**~~ — **実装済み**: `tests/determinism.rs` が同 seed→同 hash を pinned trace で固定（`PINNED_FINAL_HASH`）。🟢 replay-safe。
 
 ---
 
@@ -259,18 +260,18 @@ span ベースの高機能診断は限定的。
 
 **洗い出した改善点**
 1. ✅**実装済み** — **`--check` モード**（`--fmt` の非破壊版、整形差分があれば非ゼロ終了）。出典: `cargo fmt --check`。🟢 replay-safe。
-2. **機械可読診断出力（JSON / SARIF）**で CI アノテーション化。出典: rustc `--error-format=json`。🟢 replay-safe。
+2. ~~**機械可読診断出力（JSON / SARIF）**~~ — **実装済み**: `gamec --json`/`--sarif` が機械可読診断を出力（CI アノテーション用）。出典: rustc `--error-format=json`。
 3. **診断 UX 強化**（miette/ariadne 風の span・help・suggestion を自前 zero-dep で導入）。出典: miette, ariadne。🟢 replay-safe。
 4. **validator ルールの拡張**（到達不能タイル・孤立部屋・spawn 重なり等の意味検査）。🟢 replay-safe。
 5. **修正提案（quick-fix）**（未定義参照に近傍候補を提示）。出典: rustc suggestions。🟢 replay-safe。
-6. **loader の決定性テスト**（同 content→同 entity 割当順を固定）。C1/C4 連携。🟢 replay-safe。
+6. ~~**loader の決定性テスト**~~ — **実装済み**: `determinism.rs` が allocator の free list と `live` 順序まで pin、loader は spawn 順の entity 割当を文書化+テスト済み。C1/C4 連携。🟢 replay-safe。
 
 ---
 
 ## 10. Roguelike アルゴリズム & ターミナル描画 (FOV / pathfinding / procgen, ANSI truecolor) — 機能パリティ
 
 **現状（izanagi_kit）**: README 記載の「terminal-first」描画（24-bit ANSI 半ブロック `▀`、ヘッドレス CI で不変）。
-FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズムは**未実装領域**で、同種 toolkit との機能差が最大。
+FOV（`src/fov.rs` symmetric shadowcasting）・pathfinding（`src/pathfinding.rs`: A*/JPS/JPS4/Dijkstra map）・procedural generation（`src/mapgen.rs`、`src/wfc.rs`）は実装済み — 洗い出し時点では未実装領域だったが、本セッションで埋まった。
 
 **参考情報**
 - GitHub: [amethyst/bracket-lib](https://github.com/amethyst/bracket-lib) — Rust 製 roguelike toolkit（FOV・A*・Dijkstra map・noise）。**同種ソフトの第一参照**。
@@ -287,7 +288,7 @@ FOV・pathfinding・procedural generation 等の roguelike 標準アルゴリズ
 
 **洗い出した改善点**
 1. ✅**実装済み** — **symmetric shadowcasting FOV**（決定的・対称な視界、`src/fov.rs`、Albert Ford 法・整数有理数スロープ）。出典: stuffwithstuff, RogueBasin, libtcod。🟢 replay-safe（整数演算で実装）。
-2. ⚠️**一部実装** — **A* pathfinding**（8方向・整数 octile・`(f,h,x,y)` 全順序で tie-break 固定・corner-cut 無し、`src/pathfinding.rs`）実装済み。**Dijkstra map（flow field）が残**。出典: bracket-pathfinding。🟢 replay-safe（順序確定済み）。
+2. ✅**実装済み** — **A* pathfinding**（8方向・整数 octile・`(f,h,x,y)` 全順序で tie-break 固定・corner-cut 無し）+ **Dijkstra map**（`dijkstra_map` + flee/safety 再スキャン + `combine_maps` 係数合成、N14）、`src/pathfinding.rs`。出典: bracket-pathfinding。🟢 replay-safe（順序確定済み）。
 3. ✅**実装済み** — **決定論的 procedural generation**（seed 駆動 room-corridor、連結保証、`src/mapgen.rs`）。将来 WFC。出典: arXiv:1906.04660（Green et al., FDG'19）, 2308.07307（Nie et al., 2023、決定論的 N-WFC）。🟢 replay-safe（RNG=C3 を単一ストリームで使用）。
 4. **headless 描画スナップショットテスト**（出力セルバッファを golden 比較）。出典: ratatui TestBackend。🟢 replay-safe。
 5. **JPS による A* 高速化**（grid 限定の最適化）。🟢 replay-safe。
