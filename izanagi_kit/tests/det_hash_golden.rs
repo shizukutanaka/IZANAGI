@@ -6,8 +6,10 @@
 //! platforms and builds — the foundation of replay, lockstep netcode, and
 //! save-file checksums. `tests/determinism.rs` pins one end-to-end simulation,
 //! but that sim only exercises a handful of types (`EntityAllocator`,
-//! `SparseSet`, `Fixed`, `SplitMix64`). The ~40 *other* `DetHash`
-//! implementations are pinned nowhere.
+//! `SparseSet`, `Fixed`, `SplitMix64`). Most other `DetHash`
+//! implementations are pinned nowhere — the exact set is enumerated and kept
+//! current by `UNPINNED_DET_HASH` in `tests/global_invariants_hold.rs`, which
+//! fails if an impl is neither pinned here nor declared there.
 //!
 //! The per-module unit tests only assert `hash(x) == hash(x)` (self-consistency)
 //! and `hash(x) != hash(y)` (discrimination). **Both survive a wire-format
