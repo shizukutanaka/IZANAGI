@@ -747,20 +747,7 @@ fn no_document_points_at_an_iteration_that_has_ended() {
     // The rule is therefore about tense, not about content: say what is true
     // now, and keep the list of what comes next in one place (RESEARCH.md's
     // candidate table), where being out of date is visible.
-    let docs = [
-        "README.md",
-        "AGENT_INSTRUCTIONS.md",
-        "izanagi/README.md",
-        "izanagi/CLAUDE.md",
-        "izanagi/ARCHITECTURE.md",
-        "izanagi/CONTRIBUTING.md",
-        "izanagi_kit/README.md",
-        "izanagi_kit/RESEARCH.md",
-        "izanagi_kit/SPEC.md",
-        "izanagi_kit/GAME_DEV_TAXONOMY.md",
-        "izanagi_kit/CHANGELOG.md",
-        "docs/ci/README.md",
-    ];
+    let docs = all_markdown_documents();
     // Phrases that name "the iteration being worked on" as if the reader were
     // inside it. Past-tense records ("implemented in 1e45bc4") are fine and
     // deliberately not matched.
@@ -771,12 +758,13 @@ fn no_document_points_at_an_iteration_that_has_ended() {
         "本反復で実装",
     ];
     let mut found: Vec<String> = Vec::new();
-    for doc in docs {
-        let text = read(doc);
+    for doc in &docs {
+        let text = fs::read_to_string(doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
         for (n, line) in text.lines().enumerate() {
             for needle in frozen {
                 if line.contains(needle) {
-                    found.push(format!("{doc}:{}: {}", n + 1, line.trim()));
+                    found.push(format!("{}:{}: {}", doc.display(), n + 1, line.trim()));
                 }
             }
         }
@@ -799,24 +787,12 @@ fn every_fenced_block_declares_its_language() {
     //
     // Tagging every fence costs three characters and means a document can be
     // wired up as a doctest without first auditing it.
-    let docs = [
-        "README.md",
-        "AGENT_INSTRUCTIONS.md",
-        "izanagi/README.md",
-        "izanagi/CLAUDE.md",
-        "izanagi/ARCHITECTURE.md",
-        "izanagi/CONTRIBUTING.md",
-        "izanagi_kit/README.md",
-        "izanagi_kit/RESEARCH.md",
-        "izanagi_kit/SPEC.md",
-        "izanagi_kit/GAME_DEV_TAXONOMY.md",
-        "izanagi_kit/CHANGELOG.md",
-        "docs/ci/README.md",
-    ];
+    let docs = all_markdown_documents();
     let mut untagged: Vec<String> = Vec::new();
     let mut checked = 0usize;
-    for doc in docs {
-        let text = read(doc);
+    for doc in &docs {
+        let text = fs::read_to_string(doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
         let mut inside = false;
         for (n, line) in text.lines().enumerate() {
             if !line.starts_with("```") {
@@ -825,7 +801,7 @@ fn every_fenced_block_declares_its_language() {
             if !inside {
                 checked += 1;
                 if line[3..].trim().is_empty() {
-                    untagged.push(format!("{doc}:{}", n + 1));
+                    untagged.push(format!("{}:{}", doc.display(), n + 1));
                 }
             }
             inside = !inside;
