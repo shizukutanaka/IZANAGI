@@ -271,7 +271,8 @@ impl<K: Eq + Clone> SpatialHash<K> {
     ///
     /// `cell_coord` is the grid-cell index (not world coords); multiply by
     /// `cell_size()` to get the world-space top-left corner of the cell.
-    /// Iteration order reflects the internal `HashMap` — not sorted.
+    /// Iteration order is ascending `(cx, cy)` — the cells live in a
+    /// `BTreeMap`, so a `for` over this is a deterministic pass.
     pub fn iter_cells(&self) -> impl Iterator<Item = ((i32, i32), &[K])> {
         self.cells
             .iter()
@@ -663,6 +664,26 @@ mod tests {
         assert!(cell_keys.contains(&1));
         assert!(cell_keys.contains(&2));
         assert_eq!(cell_keys.len(), 2);
+    }
+
+    #[test]
+    fn test_iter_cells_yields_ascending_cell_order() {
+        // iter_cells is documented as ascending (cx, cy) — the property that
+        // makes a `for` over it a deterministic pass. Insert in scrambled
+        // order and assert the yielded coords come out sorted.
+        let mut g = grid();
+        for (k, x, y) in [
+            (1u32, 500, -300),
+            (2, -200, 400),
+            (3, 0, 0),
+            (4, -700, -800),
+        ] {
+            g.insert(k, x, y);
+        }
+        let coords: Vec<_> = g.iter_cells().map(|(c, _)| c).collect();
+        let mut sorted = coords.clone();
+        sorted.sort();
+        assert_eq!(coords, sorted);
     }
 
     #[test]
