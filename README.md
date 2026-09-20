@@ -126,7 +126,7 @@ sequences. No window system required.
 
 - **180+ tests** (unit + integration + property-based + benchmark + doctest)
 - **0 clippy warnings**, **0 dependencies**, **`cargo fmt --check` passes**
-- **MSRV: Rust 1.75**
+- **MSRV: Rust 1.65** (the sibling `izanagi_kit` crate needs 1.75)
 
 ### Design
 
@@ -143,7 +143,7 @@ behind each design decision.
 
 ## `izanagi_kit` — the deterministic simulation kit
 
-78 zero-dependency modules covering the roguelike/simulation stack a
+85+ zero-dependency modules covering the roguelike/simulation stack a
 lockstep-replay game actually needs: sparse-set ECS, Q16.16 fixed-point math,
 seeded RNG with named independent sub-streams, symmetric-shadowcasting FOV,
 procedural dungeon generation (rooms/BSP/caves/drunkard's-walk/WFC), A*/JPS

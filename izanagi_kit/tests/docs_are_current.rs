@@ -758,6 +758,122 @@ fn the_pipeline_demo_embeds_the_shipped_fixture_verbatim() {
 }
 
 #[test]
+fn readme_kit_module_count_is_a_floor_the_source_clears() {
+    // The root README's "N zero-dependency modules" drifted 11 behind reality
+    // (it said 78 while src/ held 89). Like the test counts it is a floor —
+    // assert the claimed number never exceeds the real module count.
+    let readme = read("README.md");
+    let claim = readme
+        .lines()
+        .find(|l| l.contains("zero-dependency modules"))
+        .expect("root README must state the kit module count");
+    let claimed: usize = claim
+        .split_whitespace()
+        .find_map(|tok| tok.trim_end_matches('+').parse().ok())
+        .expect("the module-count claim must carry a number");
+    let actual = declared_modules().len();
+    assert!(
+        claimed <= actual,
+        "README claims {claimed} kit modules but only {actual} exist — \
+         keep the number a floor below reality"
+    );
+}
+
+#[test]
+fn kit_readme_demo_count_is_a_floor_the_examples_clear() {
+    // The kit README said "Twenty-one self-contained demos" while 22 shipped
+    // — spelled-out numbers can't be machine-checked, so the claim is a digit
+    // floor now ("20+"), and this test keeps the floor honest.
+    let readme = read("izanagi_kit/README.md");
+    let claim = readme
+        .lines()
+        .find(|l| l.contains("self-contained demos"))
+        .expect("kit README must state the runnable demo count");
+    let claimed: usize = claim
+        .split_whitespace()
+        .find_map(|tok| tok.trim_end_matches('+').parse().ok())
+        .expect("the demo-count claim must carry a number");
+    let actual = fs::read_dir(repo_root().join("izanagi_kit/examples"))
+        .expect("kit examples directory")
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|x| x == "rs"))
+        .count();
+    assert!(
+        claimed <= actual,
+        "README claims {claimed} kit demos but only {actual} example files \
+         exist — keep the number a floor below reality"
+    );
+}
+
+#[test]
+fn handbook_assert_free_example_count_is_a_floor() {
+    // AGENT_INSTRUCTIONS states how many examples carry no assert-like token
+    // ("NN本は assert をひとつも持たない") — it drifted when three demos grew
+    // assertions. The claim is a floor: it must never exceed the real count.
+    let doc = read("AGENT_INSTRUCTIONS.md");
+    let line = doc
+        .lines()
+        .find(|l| l.contains("本は assert"))
+        .expect("handbook must state the assert-free example count");
+    let before = &line[..line.find("本は").expect("count marker")];
+    let digits: String = before
+        .chars()
+        .rev()
+        .take_while(char::is_ascii_digit)
+        .collect();
+    let claimed: usize = digits
+        .chars()
+        .rev()
+        .collect::<String>()
+        .parse()
+        .expect("the assert-free claim must carry a number before 本は");
+    let mut assert_free = 0usize;
+    for dir in ["izanagi/examples", "izanagi_kit/examples"] {
+        for entry in fs::read_dir(repo_root().join(dir))
+            .unwrap_or_else(|e| panic!("{dir}: {e}"))
+            .flatten()
+        {
+            let path = entry.path();
+            if path.extension().is_some_and(|x| x == "rs") {
+                let text = fs::read_to_string(&path).unwrap_or_default();
+                if !text.contains("assert") && !text.contains("panic") && !text.contains("expect") {
+                    assert_free += 1;
+                }
+            }
+        }
+    }
+    assert!(
+        claimed <= assert_free,
+        "handbook claims {claimed} assert-free examples but only \
+         {assert_free} exist — keep it a floor"
+    );
+}
+
+#[test]
+fn readme_msrv_claims_match_their_manifests() {
+    // izanagi/README.md claimed "MSRV: Rust 1.75" while its manifest declared
+    // rust-version 1.65 — an overstatement of the requirement. Whatever MSRV a
+    // crate's README states must be the manifest's own rust-version.
+    for (manifest, readme) in [
+        ("izanagi/Cargo.toml", "izanagi/README.md"),
+        ("izanagi_kit/Cargo.toml", "izanagi_kit/README.md"),
+    ] {
+        let msrv = read(manifest)
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("rust-version = "))
+            .map(|v| v.trim_matches('"').to_string())
+            .unwrap_or_else(|| panic!("{manifest} must declare rust-version"));
+        for line in read(readme).lines().filter(|l| l.contains("MSRV")) {
+            assert!(
+                line.contains(&msrv),
+                "{readme} states an MSRV that {manifest} does not declare \
+                 (rust-version = {msrv}):\n  {line}"
+            );
+        }
+    }
+}
+
+#[test]
 fn command_examples_in_docs_reference_real_targets() {
     // `cargo run --example NAME` (and --test/--bin) strings in checked-in
     // markdown are teaching material; a renamed target leaves a command that
