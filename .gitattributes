@@ -1,0 +1,7 @@
+# The suite reads checked-in files and compares them — tests match README
+# code blocks against doctested copies, compare embedded literals with shipped
+# `.game` fixtures, and scan source for banned tokens. A checkout whose line
+# endings depend on the cloner's `core.autocrlf` (the Windows default) makes
+# every one of those inputs differ by platform. `text=auto` keeps anything
+# binary untouched; `eol=lf` pins text to what this repository stores.
+* text=auto eol=lf

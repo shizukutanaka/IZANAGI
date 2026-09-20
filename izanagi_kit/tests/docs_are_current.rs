@@ -418,6 +418,26 @@ fn no_markdown_document_links_to_a_missing_file() {
 }
 
 #[test]
+fn checkout_line_endings_are_pinned() {
+    // Tests and gate steps read checked-in files: fixtures are compared byte
+    // for byte against literals embedded in examples, docs are scanned for
+    // multi-line needles, and POSIX `sh` runs gate.sh. Without a
+    // `.gitattributes` pin, a clone made with `core.autocrlf=true` — git's own
+    // Windows installer default — rewrites every text file to CRLF, and the
+    // suite's file inputs stop being the bytes that were committed. The same
+    // "identical inputs" promise the crate makes about simulation state has
+    // to hold for the repository's own files, or the evidence stops being
+    // evidence on exactly the platform cross-platform replay is about.
+    let attr = read(".gitattributes");
+    assert!(
+        attr.lines().any(|l| l.contains("eol=lf")),
+        ".gitattributes must pin text files to LF — without it the checked-\
+         out bytes of every fixture, source file and script depend on the \
+         cloner's core.autocrlf setting"
+    );
+}
+
+#[test]
 fn every_manifest_version_has_a_changelog_entry() {
     // The engine's Cargo.toml said 4.1.0 while its CHANGELOG stopped at 4.0.0,
     // and nobody noticed until someone went looking for the rationale behind
