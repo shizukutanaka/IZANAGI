@@ -702,3 +702,28 @@ fn the_handbook_lists_the_same_eleven_the_readme_counts() {
          wrong twice."
     );
 }
+
+#[test]
+fn license_files_have_no_unexpanded_template_placeholders() {
+    // The root LICENSE shipped `Copyright (c) $(date +%Y) $(echo "$REPO" | …)`
+    // — a generation template whose substitution never ran, on the file GitHub
+    // renders on the repository's own page. License text is legal prose with
+    // exactly one variable-shaped hole; every LICENSE file in the workspace is
+    // checked for the unexpanded form of it.
+    for rel in [
+        "LICENSE",
+        "izanagi/LICENSE",
+        "izanagi_kit/LICENSE-MIT",
+        "izanagi_kit/LICENSE-APACHE",
+    ] {
+        let text = read(rel);
+        assert!(
+            !text.contains("$("),
+            "{rel} contains an unexpanded template variable"
+        );
+        assert!(
+            !text.contains("${"),
+            "{rel} contains an unexpanded template variable"
+        );
+    }
+}
