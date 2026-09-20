@@ -128,8 +128,9 @@ const BANNED: &[(&str, &str)] = &[
     // Ambient inputs the input log cannot replay: the filesystem, the
     // process table, std I/O. `fs::`/`process::` catch `use`-shortened calls;
     // the `std::` spellings catch the fully qualified path a bare needle
-    // would miss at the end of a `use` line. (bin/ is out of scope — a CLI
-    // exists to read argv and files.)
+    // would miss at the end of a `use` line. (bin/ answers to its machine
+    // for argv and files — but not to everything; the narrower
+    // `bin_targets_inherit_the_bans` scan below covers it.)
     ("process module", "std::process"),
     ("process control", "process::"),
     ("filesystem module", "std::fs"),
@@ -270,7 +271,8 @@ fn test_module_boundary(src: &str) -> Option<usize> {
     None
 }
 
-/// Library sources, keyed by path relative to `src/`. `src/bin/` is excluded:
+/// Library sources, keyed by path relative to `src/`. `src/bin/` is excluded
+/// here — it has its own narrower scan in `bin_targets_inherit_the_bans`:
 /// those are CLI binaries, and reading argv or the environment is their job.
 fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
     fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
@@ -417,4 +419,89 @@ fn the_scanner_fires_and_stays_silent_in_the_right_places() {
         1
     );
     assert_eq!(count_token("DefaultHasher::new()", "DefaultHasher"), 1);
+}
+
+/// Needles banned in `src/bin/` — a zone every other scan deliberately skips
+/// because a CLI's job is to answer to its machine. "May read argv and files"
+/// is not "may do anything": the binary is shipped inside the packaged crate
+/// and exercised by the gate, so it inherits the panic-free convention (a
+/// crash inside `gamec` is a crash inside the consumer's CI), the unsafe ban
+/// (`forbid(unsafe_code)` lives in lib.rs and does NOT apply to a bin target
+/// — it is a separate crate root), the platform-cfg ban, and the same
+/// env-read/thread/pointer/abort rules that keep library code replayable.
+/// Legitimately allowed: `env::args`, `std::fs`, `std::process::ExitCode`.
+const BIN_BANNED: &[(&str, &str)] = &[
+    ("unsafe", "unsafe"),
+    ("panic!", "panic!"),
+    ("todo!", "todo!"),
+    ("unimplemented!", "unimplemented!"),
+    ("unreachable!", "unreachable!"),
+    ("assert!", "assert!("),
+    ("assert_eq!", "assert_eq!("),
+    ("assert_ne!", "assert_ne!("),
+    ("debug_assert", "debug_assert"),
+    ("unwrap", "unwrap("),
+    ("expect", "expect("),
+    ("catch_unwind", "catch_unwind"),
+    ("panic module", "panic::"),
+    ("conditional compilation", "#[cfg"),
+    ("conditional compilation", "cfg!("),
+    ("conditional compilation", "cfg_attr"),
+    ("env::var", "env::var"),
+    ("env::set_var", "env::set_var"),
+    ("env::remove_var", "env::remove_var"),
+    ("process::exit", "process::exit"),
+    ("abort", "abort("),
+    ("threads", "std::thread"),
+    ("threads", "thread::"),
+    ("threads", "Mutex"),
+    ("threads", "RwLock"),
+    ("threads", "Atomic"),
+    ("pointer escape", ".as_ptr("),
+    ("pointer escape", ".as_mut_ptr("),
+    ("pointer escape", "as *"),
+    ("raw pointer", "*const"),
+    ("raw pointer", "*mut"),
+    ("layout query", "size_of"),
+    ("layout query", "align_of"),
+];
+
+#[test]
+fn bin_targets_inherit_the_bans_that_apply_to_a_shipped_crate() {
+    let bin_dir = kit_src().join("bin");
+    let mut problems = Vec::new();
+    let mut any = false;
+    for entry in fs::read_dir(&bin_dir).expect("src/bin/").flatten() {
+        let path = entry.path();
+        if path.extension().map(|e| e == "rs") != Some(true) {
+            continue;
+        }
+        any = true;
+        let src = fs::read_to_string(&path).unwrap_or_default();
+        let end = test_module_boundary(&src).unwrap_or(src.len());
+        let code: String = src[..end]
+            .lines()
+            .filter(|l| !l.trim_start().starts_with("//"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        for (name, needle) in BIN_BANNED {
+            if count_token(&code, needle) > 0 {
+                problems.push(format!(
+                    "bin/{}: {name} — a shipped CLI is not exempt from the \
+                     crate's conventions; a bin target doesn't even inherit \
+                     lib.rs's forbid/deny attributes",
+                    entry.file_name().to_string_lossy()
+                ));
+            }
+        }
+    }
+    assert!(
+        any,
+        "src/bin/ contained no .rs files — the scan would be vacuous"
+    );
+    assert!(
+        problems.is_empty(),
+        "bin scan failed:\n{}",
+        problems.join("\n")
+    );
 }
