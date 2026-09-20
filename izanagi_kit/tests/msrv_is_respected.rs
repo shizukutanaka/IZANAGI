@@ -272,7 +272,32 @@ fn contains_token(code: &str, needle: &str) -> bool {
 
 fn check_crate(crate_dir: &str) {
     let (major, minor) = declared_msrv(crate_dir);
-    let sources = library_sources(&repo_root().join(crate_dir).join("src"));
+    let mut sources = library_sources(&repo_root().join(crate_dir).join("src"));
+    // `library_sources` skips src/bin by design (several scans care about the
+    // library only), but bins are *shipped targets*: `gamec` compiles in a
+    // consumer's tarball build under the declared MSRV, and the gate's
+    // tarball test runs on the CURRENT toolchain — a post-MSRV API in a bin
+    // slips past every other check. Scan them here with the same stripping.
+    let bin_dir = repo_root().join(crate_dir).join("src").join("bin");
+    if let Ok(entries) = fs::read_dir(&bin_dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                let end = test_module_boundary(&src).unwrap_or(src.len());
+                let stripped = src[..end]
+                    .lines()
+                    .filter(|l| !l.trim_start().starts_with("//"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let rel = path
+                    .file_name()
+                    .map(|n| format!("bin/{}", n.to_string_lossy()))
+                    .unwrap_or_default();
+                sources.insert(rel, stripped);
+            }
+        }
+    }
     assert!(
         sources.len() > 5,
         "expected to find {crate_dir}'s library sources, found {} — has the \
