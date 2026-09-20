@@ -1765,6 +1765,17 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 // both spellings into an example and `stdin()` into a test:
                 // green).
                 "stdin",
+                // `std::os::unix::net::UnixStream` opens a socket without
+                // spelling `std::net` or `fs::` — same for the unix fd/ext
+                // traits (injected `UnixStream`/`os::unix` into an example
+                // and a test: green).
+                "std::os",
+                "os::unix",
+                "os::windows",
+                "os::fd",
+                "UnixStream",
+                "UnixListener",
+                "UnixDatagram",
             ] {
                 assert!(
                     !contains_token(&code, needle),

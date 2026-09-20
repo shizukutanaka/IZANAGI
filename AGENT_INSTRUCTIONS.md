@@ -674,6 +674,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   shared ニードルに追加。
 
 
+- ~~ソケット混入は `std::net`/`TcpStream`/`UdpSocket` を禁じれば尽きたと
+  思われていた~~ → `std::os::unix::net::UnixStream` 等の unix ドメイン
+  ソケットと `os::fd`/`os::unix` の ext trait は `net`/`fs` ニードルに
+  引っかからず開ける(example・test 両方に注入→緑を実証)。`std::os`/
+  `os::unix`/`os::windows`/`os::fd`/`UnixStream`/`UnixListener`/
+  `UnixDatagram` を shared ニードルに追加。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
