@@ -438,6 +438,40 @@ fn checkout_line_endings_are_pinned() {
 }
 
 #[test]
+fn the_gate_script_still_runs_every_stage() {
+    // tools/gate.sh is the single definition of "green" — but a stage that
+    // disappears fails nothing: every check that still runs still passes.
+    // The gate itself needs a gate. Keep every stage's identifying token
+    // listed; deleting one fails here, where it cannot stay silent.
+    let gate = read("tools/gate.sh");
+    assert!(
+        gate.contains("set -eu") || gate.contains("set -e"),
+        "gate.sh lost its fail-fast setting"
+    );
+    for token in [
+        "cargo fmt --all",
+        "cargo test --workspace",
+        "cargo clippy",
+        "cargo doc",
+        "--test determinism",
+        "--release",
+        "--examples",
+        "examples/*.rs",
+        "cargo package",
+        "cargo test --doc",
+        "cargo test --tests",
+        "gamec",
+        "KIT_BRIDGE_HASH",
+    ] {
+        assert!(
+            gate.contains(token),
+            "tools/gate.sh no longer contains `{token}` — a stage that is \
+             missing cannot fail, which is exactly why this check exists"
+        );
+    }
+}
+
+#[test]
 fn every_manifest_version_has_a_changelog_entry() {
     // The engine's Cargo.toml said 4.1.0 while its CHANGELOG stopped at 4.0.0,
     // and nobody noticed until someone went looking for the rationale behind

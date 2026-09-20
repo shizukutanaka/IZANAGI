@@ -104,6 +104,16 @@ const BANNED: &[(&str, &str)] = &[
     ("environment access", "env::"),
     ("thread-local state", "thread_local"),
     ("unversioned std hashing", "DefaultHasher"),
+    // Ambient inputs the input log cannot replay: the filesystem, the
+    // process table, std I/O. `fs::`/`process::` catch `use`-shortened calls;
+    // the `std::` spellings catch the fully qualified path a bare needle
+    // would miss at the end of a `use` line. (bin/ is out of scope — a CLI
+    // exists to read argv and files.)
+    ("process module", "std::process"),
+    ("process control", "process::"),
+    ("filesystem module", "std::fs"),
+    ("filesystem access", "fs::"),
+    ("I/O module", "std::io"),
 ];
 
 fn kit_src() -> PathBuf {

@@ -29,16 +29,16 @@
 | engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
-| panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
+| panic 経路(実装コード) | `panic!` **0**・assert 系マクロは**命名済み15サイトに凍結**(両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny`。弱め属性・新規 panic マクロはテストが落とす) |
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし)。さらに**展開した tarball の中で
 doctest・テスト・example・bin の4ターゲットが緑**で、さらに `gamec` が同梱 fixture を
 正しく受理・拒否することまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**・**panic 系マクロ(assert*/debug_assert*/unreachable!/todo!/unimplemented!)が命名済みサイトに凍結されていること**・**出荷コードが `#[path]`/`include!`/`include_bytes!` で走査領域外から混入しないこと**・**kit が fs/process/io の環境入力を読まないこと**・**gate.sh が全ステージを含むこと(ゲート自身の検査)**|
 | 未検証の公開 API | **両クレートで 0** — kit 1500+ / engine 240+ の公開関数(トレイトメソッドを含む)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす(件数は成長で変わるので下限表記)|
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
 | main との差 | **0 遅れ**。PR #7 系(`b1607f1` 迄)は `617d651` で、続きのコミット列は PR #9 でマージ済み(`4e3bc5c`)。以降の作業は新ブランチで管理 |
-| kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
+| kit src 内 panic 系(**実装のみ**) | `panic!` 0・assert 系は命名済み allowlist サイトのみ(`clippy::unwrap_used/expect_used/panic` を `deny` + `panicking_macro_allowlist` で凍結。テスト込みの旧計測 242/20 はテストコードを数えていた) |
 
 ---
 
@@ -52,7 +52,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(32+種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(36+種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -71,7 +71,11 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **チェックアウト行末が LF に固定されていること**(`.gitattributes`)・
    **deny 系の安全 lint を `allow`/`expect`/`warn`/`force_warn` が弱めないこと**・
    **manifest のセクション文法が閉じていること**(`target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` 禁止)と `.cargo` 設定が存在しないこと・
-   **強制場所として名指されるファイルが実在すること**。
+   **強制場所として名指されるファイルが実在すること**・
+   **panic 系マクロが理由つき allowlist に凍結されていること**・
+   **`#[path]`/`include!`/`include_bytes!` による走査外コード混入の不在**・
+   **kit の ambient-input 禁止が fs/process/io に及ぶこと**・
+   **gate.sh が全ステージを名指しで含むこと**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -307,6 +311,28 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~SPEC が名指す強制場所の実在が未検査だった~~ → `enforcement_sites()` の
   パス表記トークンが実在することを検査する `every_named_enforcement_site_is_a_file_that_exists`
   を追加。検査ファイルの改名/削除が「強制されていると読める亡霊」を残さなくなった。
+- ~~`deny(panic)` は panic 経路全般を封じると思われていた~~ → `clippy::panic` が
+  捕まえるのは `panic!` だけ。`assert!`/`debug_assert!`/`unreachable!`/`todo!`/
+  `unimplemented!` は同じトラップに lowering されても lint をすり抜ける。実測で
+  **15箇所**存在(コンストラクタの文書化済み事前条件 assert・内部不変の
+  debug_assert・replay の zip-longest 到達不能 arm)。`panicking_macro_allowlist`
+  (ファイル・件数・理由)に命名して凍結し、新規サイトは理由を書かないと落ちる。
+  実行時入力への saturate/None/no-op 契約(G7)と区別するため、allowlist は
+  「プログラマエラーの事前条件」を明記したものだけを認める。`todo!` 注入で検出確認。
+  残存論点: スライス index `v[i]` は構文的に正当読み取りと区別不能なのでこの
+  allowlist の射程外 — G7 の境界はそこに引かれる(RESEARCH.md 参照)。
+- ~~スキャン領域の外からコードを混入する経路が未検査だった~~ → 全スキャナは
+  「コンパイルされるコード == src/ 配下のテキスト」を仮定するが、`#[path]` は
+  mod を任意ファイルに向け、`include!`/`include_bytes!` は走査外のバイトを
+  混入できる。存在ゼロを実測し `shipped_code_cannot_come_from_outside_the_scanned_tree`
+  で禁止(`include_str!` は文字列のみで済む doc 用に免除)。gen.rs を使う実注入で検出確認。
+- ~~kit の ambient input 禁止が env:: のみだった~~ → ファイルシステム・プロセス・
+  std I/O は入力ログに載らない環境入力であり BANNED リストに追加(`fs::`/
+  `process::`/`std::io` 等)。`use std::process` 注入で検出確認。
+- ~~gate.sh のステージ削除は何事も失敗させなかった~~ → 実行したチェックだけが
+  通るので、stage を1つ消しても exit 0 のまま。`the_gate_script_still_runs_every_stage`
+  が各ステージの識別トークン(fmt/test/clippy/doc/pinned-hash 両プロファイル/
+  examples 列挙/package/tarball 内検査/gamec)の存在を検査。トークン削除で検出確認。
 
 ## 3. 改善案(優先順位付き)
 

@@ -439,6 +439,185 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
     );
 }
 
+/// Panicking-macro sites that exist in library code, with the count
+/// expected and the reason the site is a documented precondition rather
+/// than a runtime-input panic path.
+///
+/// `deny(clippy::panic)` covers only `panic!` itself — `assert!`,
+/// `debug_assert!`, `unreachable!`, `todo!` and `unimplemented!` lower to
+/// the same trap without tripping the lint. The rule here is the same as
+/// the non-determinism allowlist: every existing site is named with a
+/// reason, the count is exact, and a new one fails the build until the
+/// sentence is written — which is the moment to decide whether the site
+/// should instead be a saturating/no-op return (G7's contract for
+/// *runtime* input). Slice indexing `v[i]` is the one panic family this
+/// does not enumerate: it is syntactically indistinguishable from valid
+/// reads, and bounding it belongs to the code review the allowlist gate
+/// cannot automate.
+fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> {
+    let mut m = BTreeMap::new();
+    m.insert(
+        "izanagi_kit/rollback.rs",
+        (
+            3,
+            "SnapshotRing::new's zero-capacity/zero-stride guards are documented \
+             programming-error preconditions; the debug_assert_eq self-checks \
+             the window-base invariant in development builds only",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/netinput.rs",
+        (
+            3,
+            "AdaptiveDelay::new's ordering/capacity preconditions — documented \
+             panics on programmer error, not on network input",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/timestep.rs",
+        (
+            2,
+            "FixedTimestep::new requires a nonzero rate and cap — documented \
+             constructor precondition",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/identify.rs",
+        (
+            1,
+            "Identification::new requires at least as many labels as kinds — \
+             documented constructor precondition",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/wallet.rs",
+        (
+            1,
+            "post-deposit self-check, debug builds only — it is the audit \
+             tool, not a panic path reachable from input",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/pathfinding.rs",
+        (1, "JPS chain-reconstruction invariant, debug builds only"),
+    );
+    m.insert(
+        "izanagi_kit/fov.rs",
+        (1, "Frac denominator invariant, debug builds only"),
+    );
+    m.insert(
+        "izanagi_kit/replay.rs",
+        (
+            2,
+            "the zip-longest (None, None) arms are unreachable by loop bound; \
+             the tests that exercise the divergence table cover every arm",
+        ),
+    );
+    m.insert(
+        "izanagi/sprite.rs",
+        (
+            1,
+            "Animation::new requires a nonempty frame list — documented \
+             constructor precondition",
+        ),
+    );
+    m
+}
+
+/// Occurrences of panic-lowering macros in `code`. `panic!` itself is
+/// absent: `deny(clippy::panic)` already enforces it at compile time.
+/// Identifier boundaries are required so `debug_assert!` is not double
+/// counted under `assert!` and a `my_assert!` helper is not miscounted.
+fn count_panicking_macros(code: &str) -> usize {
+    const MACROS: &[&str] = &[
+        "debug_assert_eq!(",
+        "debug_assert_ne!(",
+        "debug_assert!(",
+        "assert_eq!(",
+        "assert_ne!(",
+        "assert!(",
+        "unreachable!(",
+        "todo!(",
+        "unimplemented!(",
+    ];
+    let bytes = code.as_bytes();
+    let mut n = 0;
+    for needle in MACROS {
+        for (pos, _) in code.match_indices(needle) {
+            let prev_ok = pos == 0
+                || !(bytes[pos - 1].is_ascii_alphanumeric()
+                    || bytes[pos - 1] == b'_'
+                    || bytes[pos - 1] == b':'
+                    || bytes[pos - 1] == b'.');
+            if prev_ok {
+                n += 1;
+            }
+        }
+    }
+    n
+}
+
+#[test]
+fn g7_panicking_macros_are_frozen_at_named_sites() {
+    let allowed = panicking_macro_allowlist();
+    let mut live: Vec<String> = Vec::new();
+    for src in ["izanagi_kit/src", "izanagi/src"] {
+        for (name, code) in library_sources(&repo_root().join(src)) {
+            let n = count_panicking_macros(&code);
+            if n == 0 {
+                continue;
+            }
+            let key = format!("{}/{}", src.trim_end_matches("/src"), name);
+            live.push(key.clone());
+            match allowed.get(key.as_str()) {
+                Some(&(expected, _)) => assert_eq!(
+                    n, expected,
+                    "{key} has {n} panicking macros where {expected} are \
+                     named — a new one needs its reason written here first"
+                ),
+                None => panic!(
+                    "{key} contains {n} panicking macro(s) outside the \
+                     allowlist. G7's contract is saturate/None/no-op on bad \
+                     input; a documented programming-error precondition \
+                     belongs in panicking_macro_allowlist() with that reason"
+                ),
+            }
+        }
+    }
+    let stale: Vec<&&str> = allowed
+        .keys()
+        .filter(|k| !live.contains(&k.to_string()))
+        .collect();
+    assert!(
+        stale.is_empty(),
+        "stale panicking-macro allowlist entries read as permission: {stale:?}"
+    );
+}
+
+#[test]
+fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
+    // Every source scanner in this suite shares one load-bearing assumption:
+    // the compiled code is the text under src/. `#[path]` points a `mod` at
+    // an arbitrary file, and `include!`/`include_bytes!` splice in bytes no
+    // scan saw — either is a complete bypass of every invariant in this
+    // file. `include_str!` is exempt: it produces a &'static str used by
+    // docs, not code, and the package-boundary check already constrains
+    // where it may point.
+    for src in ["izanagi_kit/src", "izanagi/src"] {
+        let sources = library_sources(&repo_root().join(src));
+        assert!(!sources.is_empty(), "found no sources under {src}");
+        for (name, code) in sources {
+            for needle in ["#[path", "include!(", "include_bytes!("] {
+                assert!(
+                    !code.contains(needle),
+                    "{name} contains `{needle}` — compiled code must live in \
+                     the file the scanners read, not arrive by reference"
+                );
+            }
+        }
+    }
+}
+
 #[test]
 fn every_global_invariant_in_the_spec_says_where_it_is_enforced() {
     let spec = read("izanagi_kit/SPEC.md");
