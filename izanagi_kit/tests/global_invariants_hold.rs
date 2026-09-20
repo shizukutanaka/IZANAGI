@@ -998,6 +998,89 @@ fn nothing_compiles_after_the_test_module_boundary() {
                 ignored <= allowed,
                 "{name}: {ignored} `#[ignore]` inside the test module — a                  skipped test still exits the suite green; name it in                  SRC_IGNORE_ALLOWLIST with the reason"
             );
+            // The interior is *test code that runs* — `env::var`/`fs::`/
+            // `process::id` inside `mod tests` all passed every check green
+            // (verified by injection) because the lib scans cut at the
+            // boundary and the suite-dir probes only walk tests/ and
+            // examples/. Apply the ambient-input bans here too; the flat
+            // `use`-flatten keeps alias spellings visible.
+            let tail_flat = format!("{tail}\n{}", flattened_use_paths(tail).join("\n"));
+            for needle in [
+                "env::",
+                "std::env",
+                "fs::",
+                "std::fs",
+                "process::",
+                "std::process",
+                "thread::",
+                "std::thread",
+                "net::",
+                "std::net",
+                "TcpStream",
+                "TcpListener",
+                "UdpSocket",
+                "ToSocketAddrs",
+                "std::os",
+                ".as_ptr(",
+                ".as_mut_ptr(",
+                "as *",
+                "*const",
+                "*mut",
+                "catch_unwind",
+                "panic::",
+                "std::panic",
+                "set_hook",
+                "take_hook",
+                "Atomic",
+                "RwLock",
+                "OnceLock",
+                "mpsc",
+                "SystemTime",
+                "Instant",
+                "include!(",
+                "include_bytes!(",
+                "#[path",
+                "std::arch",
+                "core::arch",
+                "feature_detected",
+                "backtrace",
+                "debug_assert",
+                "metadata(",
+                "canonicalize",
+                "permissions(",
+                "file!(",
+                "line!(",
+                "column!(",
+                "module_path!(",
+                "option_env!",
+                "extern ",
+                "#[no_mangle",
+                "#[link",
+            ] {
+                assert!(
+                    !contains_token(&tail_flat, needle),
+                    "{name}: `{needle}` inside the test module — the flat \
+                     scans cut at `#[cfg(test)]`, so test-module code must \
+                     carry the same ambient-input bans as the suite dirs"
+                );
+            }
+            // `include_str!` keeps its two-site README pin even here;
+            // `env!` keeps its CARGO_MANIFEST_DIR allowance.
+            let tail_no_doc = tail_flat.replace(concat!("include_str", "!(\"../README.md\")"), "");
+            assert!(
+                !tail_no_doc.contains(concat!("include_str", "!")),
+                "{name}: `include_str!` inside the test module — only the \
+                 `../README.md` doc embed may spell it"
+            );
+            for arg in env_macro_args(tail) {
+                assert!(
+                    arg.as_deref()
+                        .map(|a| a == "CARGO_MANIFEST_DIR")
+                        .unwrap_or(false),
+                    "{name}: `env!` inside the test module — only \
+                     CARGO_MANIFEST_DIR may be baked in"
+                );
+            }
         }
     }
 }

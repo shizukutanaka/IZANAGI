@@ -897,6 +897,17 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   同じ規則で検査。
 
 
+- ~~src の `#[cfg(test)] mod tests` 内は lib 走査の切り捨てで守られている
+  と思われていた~~ → tail 検査は cfg/ignore のみで、モジュール内の
+  `env::var`/`fs::read`/`process::id` が注入で全走査緑を通過。tail に
+  ambient 系ニードル(env/fs/process/thread/net/std::os/pointer/panic
+  機構/atomic/Instant/SystemTime/arch/metadata/canonicalize/
+  permissions/include!/env! 等)を適用 — 正当使用(Mutex/channel/
+  is_terminal/std::io/thread_local/should_panic)は除外、
+  `include_str!("../README.md")` と `env!("CARGO_MANIFEST_DIR")` のみ
+  ピン許可。`src/main.rs` を bin ルート列挙に追加する件も同コミット群。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
