@@ -491,6 +491,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `format_code_in_doc_comments`/`reorder_imports`/`reorder_modules`/
   `reorder_impl_items`/`reorder_use_trees`/`skip_macro_invocations` を
   禁止表に追加(format_strings 注入で検出確認)。
+- ~~manifest の逃げ道はキーとセクションを閉じれば尽きたと思われていた~~ →
+  `[package] exclude`/`include` は正当利用されているが、エントリを1つ
+  増やすだけで tarball 検証の対象(src/tests/examples)を縮小できた。
+  許可リストを双方向照合で凍結 — 追加も除去も失敗(3種注入で検出確認)。
+- ~~`#[allow]` を禁じれば lint 弱化は尽きたと思われていた~~ → 内側属性
+  `#![allow]`/`#![warn]`/`#![expect]`/`#![feature` は `#[allow` のニードル
+  をすり抜けてファイル全体の lint を弱められた(注入で再現→検出確認)。
 
 ## 3. 改善案(優先順位付き)
 

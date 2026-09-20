@@ -615,6 +615,80 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
         }
     }
 
+    // `exclude`/`include` are legal keys with a real job — they keep the
+    // repository-scoped tests out of the published tarball. The same keys
+    // also shrink what the packaged-crate stage gets to verify: extending
+    // the list to `src/` or one more `tests/` file silently removes that
+    // evidence, and the stage still prints green. Both directions are
+    // pinned: every excluded entry must be named here, and every named
+    // entry must still be excluded — a stale entry is a lie too.
+    for (manifest_rel, allowed) in [
+        (
+            "izanagi/Cargo.toml",
+            &[
+                ".githooks/",
+                ".gitignore",
+                "tests/public_api_is_exercised.rs",
+                "tests/claude_md_is_current.rs",
+                "tests/architecture_md_is_current.rs",
+                "tests/readme_blocks_agree.rs",
+                "examples/kit_bridge.rs",
+            ][..],
+        ),
+        (
+            "izanagi_kit/Cargo.toml",
+            &[
+                ".githooks/",
+                ".gitignore",
+                "tests/docs_are_current.rs",
+                "tests/global_invariants_hold.rs",
+                "tests/msrv_is_respected.rs",
+                "tests/parser_matches_its_specification.rs",
+                "tests/public_api_is_exercised.rs",
+                "tests/no_platform_cfg_in_sim.rs",
+            ][..],
+        ),
+        ("Cargo.toml", &[][..]),
+    ] {
+        let manifest = fs::read_to_string(repo_root().join(manifest_rel))
+            .unwrap_or_else(|e| panic!("reading {manifest_rel}: {e}"));
+        let mut actual: Vec<String> = Vec::new();
+        let mut collecting = false;
+        for line in manifest.lines() {
+            // `#`-to-EOL is a comment in TOML — strip it so a comment inside
+            // the array cannot smuggle a quoted string into the entry list.
+            let line = line.split('#').next().unwrap_or("").trim();
+            let starts_list = !collecting
+                && (line.starts_with("exclude") || line.starts_with("include"))
+                && line.contains('=')
+                && line.contains('[');
+            if !collecting && !starts_list {
+                continue;
+            }
+            let mut rest = line;
+            while let Some(open) = rest.find('"') {
+                rest = &rest[open + 1..];
+                match rest.find('"') {
+                    Some(close) => {
+                        actual.push(rest[..close].to_string());
+                        rest = &rest[close + 1..];
+                    }
+                    None => break,
+                }
+            }
+            collecting = (starts_list || collecting) && !line.contains(']');
+        }
+        actual.sort();
+        let mut expected: Vec<&str> = allowed.to_vec();
+        expected.sort_unstable();
+        assert_eq!(
+            actual, expected,
+            "{manifest_rel} changed its packaged file list — the tarball is \
+             part of what the gate verifies, so edits to exclude/include \
+             need a reason named in this check"
+        );
+    }
+
     // `.cargo/config.toml` (or the extensionless `config`) is read from the
     // package directory upward: `build.rustflags` there could pass `--cfg`
     // past the predicate scan above, or `--cap-lints allow` to demote the
