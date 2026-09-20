@@ -63,8 +63,21 @@ tree_status() {
     # other ignored entry must match before/after. Files *inside* an
     # ignored directory still hide — writes under target/, .temp/ or
     # .claude/ interiors are the documented residual.
-    git -c status.showUntrackedFiles=all -c core.untrackedCache=false -c core.fsmonitor=false status --porcelain --ignored=matching |
-        grep -vE '^!! (target/|Cargo\.lock)$'
+    #
+    # Two failure shapes are handled explicitly, because both otherwise
+    # degenerate silently. If `git status` itself fails, the snapshot is
+    # empty — and an empty before equals an empty after, so the sentinel
+    # would attest "unchanged" while measuring nothing; fail closed. And
+    # `grep -v` returns 1 when every line is filtered — on a pristine tree
+    # that turns the caller's `tree_before=$(tree_status)` into a set -e
+    # abort, so the filter must not own the function's exit status.
+    _ts_raw=$(
+        git -c status.showUntrackedFiles=all -c core.untrackedCache=false -c core.fsmonitor=false status --porcelain --ignored=matching
+    ) || {
+        echo "gate: git status failed — the tree sentinel cannot attest anything" >&2
+        return 1
+    }
+    printf '%s\n' "$_ts_raw" | grep -vE '^!! (target/|Cargo\.lock)$' || true
 }
 if command -v git >/dev/null 2>&1; then
     tree_before=$(tree_status)

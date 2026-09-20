@@ -915,6 +915,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   f64 libm の区別は字句走査では原理的に不能。厳密一致で libm 出力をピンする
   書き方は機種間で緑を偽造するのでなく red flake を起こす向きの残差 —
   受容残差として記録(塞ぐなら意味解析レイヤが必要)。
+- ~~`git status` が失敗すれば sentinel が赤になると思われていた~~ →
+  `tree_status` の出力が空同士で一致し「unchanged」を空告する面と、
+  全行が `!!` フィルタに落ちる pristine tree で `grep -vE` rc1 が
+  set -e を踏んで gate 自殺する面を分離して実証(/tmp probe: rc=1 fail-closed /
+  rc=0 empty)。status を変数に退避して rc を伝播、フィルタは `|| true` で
+  終了ステータスを手放す。
 
 ## 3. 改善案(優先順位付き)
 
