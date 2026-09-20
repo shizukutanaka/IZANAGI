@@ -205,6 +205,11 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `env as`/`thread as`/`process as` エイリアスニードルで閉塞 — src 注入
   (env/panic の alias)、fence 注入、suite 注入(brace/alias/入れ子)は
   すべて失敗することを実証。
+- ~~`env!` 系だけが環境混入経路~~ → `file!`/`line!`/`column!`/`module_path!`
+  はビルドマシンのチェックアウトパスと編集位置をバイナリに焼き込むのに
+  一切 unscanned — 同一マシン2回実行のバイト一致では絶対に見えない
+  (src と example への注入で実証)。src 側の ambient 針と tests/examples
+  の suite 針の両方に4マクロを追加し、全6注入形態で検知を実証。
 - ~~`#[cfg(test)]` 境界以降はテスト領域なのでスキャン不要~~ → 全スキャナーが
   境界で切り捨てるため `mod tests` 内の `#[cfg(unix)] fn 検査()` は
   プラットフォームで黙って消えてもゲート緑のまま(注入実証)。

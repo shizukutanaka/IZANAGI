@@ -1248,6 +1248,16 @@ fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
                 "include_bytes!(",
                 "env!(",
                 "option_env!",
+                // `file!`/`line!`/`column!`/`module_path!` bake the build
+                // machine's checkout path and edit positions into shipped
+                // code — the same ambient-input class as `env!`, and a
+                // byte-compare run twice on one machine cannot see it
+                // (proven by injection: `pub fn _probe() { file!() }` in
+                // lib src and in an example both passed every check).
+                "file!(",
+                "line!(",
+                "column!(",
+                "module_path!(",
                 "extern ",
                 "#[no_mangle",
                 "#[link",
@@ -1579,7 +1589,20 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // same power, different surface. A crate-level `#![cfg(unix)]`
             // would compile the whole test file to nothing on some
             // platforms while it keeps running here.
-            for needle in ["#[cfg", "#![cfg", "cfg!(", "cfg_attr(", "unsafe"] {
+            for needle in [
+                "#[cfg",
+                "#![cfg",
+                "cfg!(",
+                "cfg_attr(",
+                "unsafe",
+                // Same ambient-input class as src: `file!()` prints the
+                // machine's checkout path — two runs on this machine still
+                // byte-match, so only a token ban can see it.
+                "file!(",
+                "line!(",
+                "column!(",
+                "module_path!(",
+            ] {
                 assert!(
                     !contains_token(&code, needle),
                     "{name} contains `{needle}` — the verification suite may \
