@@ -101,6 +101,8 @@ versa. Update the Map in the same commit that adds or removes a file.
 4. Document the result in the commit message.
 
 ## gstack skills
+Provided by the external gstack tooling, not committed to this repo —
+present at `.claude/skills/` on machines where gstack is installed:
 - `.claude/skills/add-module.md`
 - `.claude/skills/add-example.md`
 - `.claude/skills/debug-ecs.md`
