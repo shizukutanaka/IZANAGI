@@ -100,6 +100,27 @@ const BANNED: &[(&str, &str)] = &[
     ("Instant", "Instant"),
     ("thread spawning", "thread::spawn"),
     ("raw pointer address", ".as_ptr("),
+    // `.as_mut_ptr(` is the spelling `.as_ptr(` misses; `as *`, `*const`,
+    // `*mut` cover the safe cast forms `&x as *const T as usize` — every one
+    // leaks an address into hashed or output bytes.
+    ("raw pointer address", ".as_mut_ptr("),
+    ("raw pointer cast", "as *"),
+    ("raw pointer type", "*const"),
+    ("raw pointer type", "*mut"),
+    // Concurrency primitives: scheduling is the machine's ambient input —
+    // a Mutex/RwLock/channel/atomic makes ordering depend on the OS, which
+    // the input log cannot replay. `thread::`/`std::thread`/`std::sync`
+    // cover the module paths; the type names cover `use`-shortened code.
+    ("thread module", "std::thread"),
+    ("thread calls", "thread::"),
+    ("sync module", "std::sync"),
+    ("mutex", "Mutex"),
+    ("rwlock", "RwLock"),
+    ("channel", "channel("),
+    ("mpsc", "mpsc"),
+    ("atomic", "Atomic"),
+    ("condvar", "Condvar"),
+    ("barrier", "Barrier"),
     ("explicit RandomState", "RandomState"),
     ("environment access", "env::"),
     ("thread-local state", "thread_local"),
