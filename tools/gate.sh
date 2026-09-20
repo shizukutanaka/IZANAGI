@@ -33,7 +33,11 @@ unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTDOCFLAGS
 # `LD_*`/`DYLD_*` join the scrub for the same reason — `LD_PRELOAD` /
 # `DYLD_INSERT_LIBRARIES` do not pass a flag, they splice a shared library
 # into rustc itself, and every measurement downstream inherits it.
-for v in $(env | grep -oE '^(CARGO[A-Z_]*|RUST[A-Z_]*|RUSTUP[A-Z_]*|LD[A-Z_]*|DYLD[A-Z_]*)=' | tr -d '='); do
+# `GIT_*` too: `GIT_DIR`/`GIT_WORK_TREE` point `git status` at a different
+# repository, which blinds the before/after tree sentinel below — verified:
+# with a decoy GIT_DIR, a file written into this tree left the sentinel's
+# snapshot identical. Git needs no env vars to work in this tree.
+for v in $(env | grep -oE '^(CARGO[A-Z_]*|RUST[A-Z_]*|RUSTUP[A-Z_]*|LD[A-Z_]*|DYLD[A-Z_]*|GIT[A-Z_]*)=' | tr -d '='); do
     unset "$v"
 done
 cd "$(dirname "$0")/.."

@@ -834,6 +834,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   (src 側は理由付き allowlist を維持)。
 
 
+- ~~env scrub は CARGO/RUST/LD/DYLD 族で十分と思われていた~~ →
+  `GIT_DIR`/`GIT_WORK_TREE` は porcelain sentinel の `git status` を別
+  repo へ向け、実ツリーへの書込が不可視になる(decoy 実証: sentinel
+  before==after)。GIT[A-Z_]* を scrub 族に追加 — 正規 git 操作に env
+  不要のため無害。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
