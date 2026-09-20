@@ -205,6 +205,15 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `env as`/`thread as`/`process as` エイリアスニードルで閉塞 — src 注入
   (env/panic の alias)、fence 注入、suite 注入(brace/alias/入れ子)は
   すべて失敗することを実証。
+- ~~`cfg_attr` の適用対象は条件コンパイルだけ~~ → `push_applied_cfg` が
+  cfg 系のみ再帰表面化していたため、`#[cfg_attr(test, allow(dead_code))]`
+  は `#[allow` needle を一度も綴らずに「テストビルドだけ lint が緩む」
+  非対称を作れた(注入実証)。非 cfg 適用項目を `cfg_attr_apply`
+  疑似述語(外側述語\0項目)として通知し、許可は `not(test)` 下の
+  `deny`/`forbid`(crate root の clippy ゲート)と `doc` 項目のみ —
+  `test`/`doc`/`docsrs` 下の `allow`/`deny`/`repr`/`no_mangle` 等は
+  全て offender(4形態の注入で双方の挙動を実証)。合成テストは
+  疑似エントリを除外してカウント。
 - ~~pinned hash は debug profile でしか検証されていなかった~~ → `overflow-checks` は
   dev で既定 on・release で既定 off なので、シミュレーション経路の算術が静かに wrap する
   コードは debug では panic して気づけるが release では気づけない。gate は debug の
