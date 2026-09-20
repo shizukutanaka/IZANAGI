@@ -512,4 +512,68 @@ mod tests {
         assert!((p.x).abs() < 1e-5);
         assert!((p.y - 1.0).abs() < 1e-5);
     }
+
+    fn v2_close(a: Vec2, b: Vec2) -> bool {
+        (a.x - b.x).abs() < 1e-3 && (a.y - b.y).abs() < 1e-3
+    }
+
+    #[test]
+    fn mat3_compose_then_transform_equals_sequential_transform() {
+        // Associativity on points: (A * B).transform_point(p) must equal
+        // A.transform_point(B.transform_point(p)) — the property the
+        // column-major `Mul` impl lives on. A wrong index in the product
+        // still produces *some* matrix; only this catches it.
+        let mut rng = crate::rng::Rng::new(0xAE17_3C00);
+        for _ in 0..5_000 {
+            let a = Mat3::translation(Vec2::new(rng.range(-20.0, 20.0), rng.range(-20.0, 20.0)))
+                * Mat3::rotation(rng.range(-std::f32::consts::TAU, std::f32::consts::TAU))
+                * Mat3::scale(Vec2::new(rng.range(0.25, 4.0), rng.range(0.25, 4.0)));
+            let b = Mat3::translation(Vec2::new(rng.range(-20.0, 20.0), rng.range(-20.0, 20.0)))
+                * Mat3::rotation(rng.range(-std::f32::consts::TAU, std::f32::consts::TAU));
+            let p = Vec2::new(rng.range(-50.0, 50.0), rng.range(-50.0, 50.0));
+            let composed = (a * b).transform_point(p);
+            let sequential = a.transform_point(b.transform_point(p));
+            assert!(v2_close(composed, sequential), "(A*B)p={composed:?} != A(Bp)={sequential:?}");
+        }
+    }
+
+    #[test]
+    fn rotation_is_length_preserving_and_compounds() {
+        // An isometry that shrank vectors would be a silently wrong rotation;
+        // and R(a) * R(b) applied to a point must match R(a+b) — the
+        // homomorphism that makes chaining rotations lawful.
+        let mut rng = crate::rng::Rng::new(0xADE1_5EED);
+        for _ in 0..5_000 {
+            let p = Vec2::new(rng.range(-30.0, 30.0), rng.range(-30.0, 30.0));
+            let (ta, tb) = (
+                rng.range(-std::f32::consts::TAU, std::f32::consts::TAU),
+                rng.range(-std::f32::consts::TAU, std::f32::consts::TAU),
+            );
+            let rotated = Mat3::rotation(ta).transform_point(p);
+            assert!(
+                (rotated.len() - p.len()).abs() < 1e-3,
+                "rotation changed |p|: {} -> {}",
+                p.len(),
+                rotated.len()
+            );
+            let chained = (Mat3::rotation(ta) * Mat3::rotation(tb)).transform_point(p);
+            let summed = Mat3::rotation(ta + tb).transform_point(p);
+            assert!(v2_close(chained, summed), "R(a)R(b)p={chained:?} != R(a+b)p={summed:?}");
+        }
+    }
+
+    #[test]
+    fn vec2_reflect_is_an_involution_and_perp_is_orthogonal() {
+        let mut rng = crate::rng::Rng::new(0xB0BB_1E55);
+        for _ in 0..5_000 {
+            let v = Vec2::new(rng.range(-10.0, 10.0), rng.range(-10.0, 10.0));
+            let n = Vec2::new(rng.range(-1.0, 1.0), rng.range(-1.0, 1.0)).normalize();
+            if n.len() < 0.5 {
+                continue; // skip degenerate normals
+            }
+            let rr = v.reflect(n).reflect(n);
+            assert!(v2_close(rr, v), "reflect∘reflect = {rr:?} != v={v:?}");
+            assert!(v.perp().dot(v).abs() < 1e-4, "perp not orthogonal: dot={}", v.perp().dot(v));
+        }
+    }
 }
