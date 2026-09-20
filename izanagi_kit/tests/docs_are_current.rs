@@ -868,12 +868,26 @@ fn the_readme_headline_counts_the_interrogation_modules_correctly() {
         .find(|(k, _)| *k == n)
         .map(|(_, w)| *w)
         .unwrap_or_else(|| panic!("{n} interrogation modules — extend NUMERALS"));
-    let readme = read("izanagi_kit/README.md");
-    assert!(
-        readme.contains(&format!("{word} modules do nothing but interrogate")),
-        "there are {n} interrogation modules, so the README's opening sentence \
-         must say \"{word} modules do nothing but interrogate a simulation\""
-    );
+    // The sentence lives in two places with slightly different phrasing: the
+    // README's opening paragraph and the crate's lib.rs front page (the first
+    // thing docs.rs renders). Checking only the README would let the doc
+    // comment drift with the family count.
+    for (rel, phrasing) in [
+        (
+            "izanagi_kit/README.md",
+            "{word} modules do nothing but interrogate",
+        ),
+        (
+            "izanagi_kit/src/lib.rs",
+            "{word} of these modules do nothing but interrogate",
+        ),
+    ] {
+        let wanted = phrasing.replace("{word}", word);
+        assert!(
+            read(rel).contains(&wanted),
+            "there are {n} interrogation modules, so {rel} must say \"{wanted}\""
+        );
+    }
 
     // Every one must be a real module, and none of them may be `world_hash` —
     // the mistake the handbook made was counting the substrate as a tool.
