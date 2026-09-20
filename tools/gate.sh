@@ -50,10 +50,11 @@ cd "$(dirname "$0")/.."
 tree_status() {
     # Ambient git config can blind the snapshot without touching the tree:
     # `status.showUntrackedFiles = no` (a real user-level setting) hides
-    # dropped files, and the untracked cache can serve a stale listing —
-    # verified: a HOME pointing at a fake .gitconfig kept `?? file` out of
-    # `git status --porcelain`. The -c flags force the honest read.
-    git -c status.showUntrackedFiles=all -c core.untrackedCache=false status --porcelain
+    # dropped files, and the untracked cache / an fsmonitor daemon can
+    # serve a stale listing — verified: a HOME pointing at a fake
+    # .gitconfig kept `?? file` out of `git status --porcelain`. The -c
+    # flags force the honest read.
+    git -c status.showUntrackedFiles=all -c core.untrackedCache=false -c core.fsmonitor=false status --porcelain
 }
 if command -v git >/dev/null 2>&1; then
     tree_before=$(tree_status)
