@@ -33,7 +33,7 @@
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし)。さらに**展開した tarball の中で
 doctest・テスト・example・bin の4ターゲットが緑**で、さらに `gamec` が同梱 fixture を
 正しく受理・拒否することまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**|
 | 未検証の公開 API | **両クレートで 0** — kit 1500+ / engine 240+ の公開関数(トレイトメソッドを含む)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす(件数は成長で変わるので下限表記)|
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
@@ -52,7 +52,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(29+種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(32+種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
@@ -68,7 +68,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **ポインタ幅の値が world hash に到達しないこと**(SPEC.md G9)・
    **native-endian のバイト列が world hash に到達しないこと**(SPEC.md G10)・
    **条件コンパイル判別式がターゲット/プロファイル/feature を参照しないこと**(SPEC.md G11)・
-   **チェックアウト行末が LF に固定されていること**(`.gitattributes`)。
+   **チェックアウト行末が LF に固定されていること**(`.gitattributes`)・
+   **deny 系の安全 lint を `allow`/`expect`/`warn`/`force_warn` が弱めないこと**・
+   **manifest のセクション文法が閉じていること**(`target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` 禁止)と `.cargo` 設定が存在しないこと・
+   **強制場所として名指されるファイルが実在すること**。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -288,6 +291,22 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   gate.sh は `core.autocrlf=true`(git の Windows インストーラ既定)の clone で
   壊れ得た。「同一入力」はリポジトリ自身のバイトにも適用される。存在と内容は
   `docs_are_current.rs` の `checkout_line_endings_are_pinned` が検査する。
+- ~~`deny` は crate root にあるので安全と思われていた~~ → `deny` は**レベル**であり、
+  リーフの `#[allow(clippy::unwrap_used)]` 一つで局所的に無効化できる。G7 の
+  「panic 経路 0」は、deny 属性の存在と、その lint を名指す弱め属性
+  (`allow`/`expect`/`warn`/`force_warn`)が非テスト領域に無いことの両方を
+  `global_invariants_hold.rs` の `g7_*` で検査。`cfg_attr(test|doc|docsrs, …)`
+  内側の弱め属性は出荷コードに効かないので免除。実ファイルへの
+  `#[allow(clippy::unwrap_used)]` 注入で検出確認済み。
+- ~~manifest のセクション文法が開いたままだった~~ → `[target.*]` だけでなく
+  `[features]`・`[lints]`・`[patch]`・`[replace]`・`[build-dependencies]` も
+  セクション走査が見ないビルド設定であり、`.cargo/config{,.toml}` は
+  `--cfg` や `--cap-lints` を通じて **このスイート全体を迂回する**。
+  いずれも存在しないことを実測し、ヘッダ原子の禁止リスト+`.cargo` 不在検査で
+  閉じた(`no_platform_cfg_in_sim.rs`)。注入テストで両方とも検出を確認。
+- ~~SPEC が名指す強制場所の実在が未検査だった~~ → `enforcement_sites()` の
+  パス表記トークンが実在することを検査する `every_named_enforcement_site_is_a_file_that_exists`
+  を追加。検査ファイルの改名/削除が「強制されていると読める亡霊」を残さなくなった。
 
 ## 3. 改善案(優先順位付き)
 
