@@ -62,7 +62,7 @@
 - 契約: 整数ナノ秒、death-spiral ガード（`max_steps` 超過分は破棄）、`alpha_ratio` で補間（float-free, G3）。
 
 ## 9. `content`/`parser`/`serializer`/`validator`/`loader` — コンテンツパイプライン
-- `parse` → `Content`（`BTreeMap` で canonical）→ `validate`（全件収集診断）→ `load_level` → ECS。
+- `parse` → `Content`（`BTreeMap` で canonical）→ `validate`（全件収集診断）→ `load_level` → ECS。`prefab <name> extends <base>` でフィールド単位 override を書ける（解決は `resolve_prefab`、loader が反映）。
 - `serialize` は canonical・idempotent、`content_eq` で round-trip 等価。診断は rustc 風 caret（column 付き）。
 - 契約: パーサは panic-free・bounded（1024B 行 / 256×256 grid, G7）。
 
@@ -82,7 +82,7 @@ stmt        = prefab-decl | prefab-child
             | tile-decl
             | level-decl  | level-child ;
 
-prefab-decl = "prefab" , sp , name ;
+prefab-decl = "prefab" , sp , name , [ sp , "extends" , sp , name ] ;
 prefab-child= glyph-stmt | color-stmt | stat-stmt | flag-stmt ;
 glyph-stmt  = "glyph" , sp , glyph ;
 color-stmt  = "color" , sp , color ;
@@ -113,6 +113,7 @@ ws          = { ws-char } ;                   (* 0 個以上 *)
 - `glyph` は「ちょうど 1 char」（0 個や 2 個以上は診断）。
 - `int` は `i32`、`uint` (spawn 座標・寸法) は `u32` として parse。
 - 未知キーワード・引数過不足・parse 失敗はいずれも **診断を出して当該行をスキップ**（panic せず、後続行の診断も収集する）。
+- `extends` の解決（base 存在・循環なし）は意味段階の仕事であり、validator が担う（§9 の dimension 規則と同じ分業）。解決済み prefab は `Content::resolve_prefab` が返す: `stats` は key 単位で子が勝ち、`flags` は base 先頭の union、`glyph`/`color` はその行を著した場合のみ override。
 
 ## 10. `fov` — 対称シャドウキャスティング（実装済）
 - `compute_fov(origin,radius,is_opaque,mark_visible)`。整数有理数スロープ、4象限固定順、対称性保証、Euclidean radius。

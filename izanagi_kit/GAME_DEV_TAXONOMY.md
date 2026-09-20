@@ -39,7 +39,7 @@
 - G1 キー→アクションのマッピング ✅ `keymap` / G2 コマンドキュー（決定論 input feed、replay と直結）✅ `cmdqueue` / G3 入力バッファ/長押し ✅ `inputbuf`
 
 ## H. コンテンツ・アセット (Content & Assets)
-- H1 DSL パーサ ✅ `parser` / H2 シリアライズ往復 ✅ `serializer` / H3 意味検証 ✅ `validator` / H4 ECS ロード ✅ `loader` / H5 CLI ゲート ✅ `gamec`
+- H1 DSL パーサ ✅ `parser`（`extends` フィールド単位 override 含む）/ H2 シリアライズ往復 ✅ `serializer` / H3 意味検証 ✅ `validator` / H4 ECS ロード ✅ `loader` / H5 CLI ゲート ✅ `gamec`
 - H6 ホットリロード ⬜ / H7 アセット ID/ハンドル管理 ✅ `assets`
 
 ## I. ワールド・マップ (World & Map)

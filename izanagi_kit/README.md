@@ -202,7 +202,7 @@ thousands of generated bundles.
 ### `.game` format
 
 ```text
-prefab <name>
+prefab <name> [extends <base>]
   glyph <char>
   color <#RRGGBB>
   stat  <key> <int>
@@ -212,6 +212,12 @@ level <name> <W>x<H>
   row   <cells>
   spawn <prefab> <x> <y>
 ```
+
+`extends` makes a prefab a field-level patch of its base: `stat` keys and
+`flag`s are merged (the child wins a shared stat key), while `glyph`/`color`
+override only where the child writes the line itself. Bases can extend bases;
+missing bases and cycles are validation errors. `gamec --fmt` keeps the
+overlay — it never flattens a child into its resolved form.
 
 ## The `gamec` tool
 

@@ -36,6 +36,9 @@ prefab goblin
   color #f85149
   stat hp 8
   flag hostile
+prefab goblin_king extends goblin
+  glyph G
+  stat hp 30
 prefab potion
   glyph !
   color #3fb950
@@ -51,7 +54,7 @@ level room 8x5
   row #....g.#
   row ########
   spawn hero 1 1
-  spawn goblin 3 2
+  spawn goblin_king 3 2
   spawn goblin 5 3
   spawn potion 6 2
 "#;

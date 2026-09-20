@@ -10,7 +10,7 @@
 //! "verify machine-generated content" requirement.
 
 use crate::content::{Content, Diagnostic};
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 /// Returns all semantic diagnostics. Empty error set == loadable bundle.
 pub fn validate(content: &Content) -> Vec<Diagnostic> {
@@ -57,14 +57,30 @@ pub fn validate(content: &Content) -> Vec<Diagnostic> {
         }
     }
 
+    // `extends` chains: every prefab's chain must resolve. Missing bases and
+    // cycles surface via `resolve_prefab`; the message set is deduplicated
+    // because a broken chain reports the same error from each member.
+    let mut extends_diags = BTreeSet::new();
+    for prefab in &content.prefabs {
+        if let Err(e) = content.resolve_prefab(&prefab.name) {
+            extends_diags.insert(e.to_string());
+        }
+    }
+    for msg in extends_diags {
+        diags.push(Diagnostic::error(0, msg));
+    }
+
     let known_prefabs: HashSet<&str> = content.prefabs.iter().map(|p| p.name.as_str()).collect();
 
-    // Unused-prefab warnings: defined but never spawned in any level.
+    // Unused-prefab warnings: defined but never spawned in any level. A prefab
+    // serving only as an `extends` base counts as used — its fields flow into
+    // every child that spawns.
     let used_prefabs: HashSet<&str> = content
         .levels
         .iter()
         .flat_map(|l| l.spawns.iter())
         .map(|s| s.prefab.as_str())
+        .chain(content.prefabs.iter().filter_map(|p| p.extends.as_deref()))
         .collect();
     for prefab in &content.prefabs {
         if !used_prefabs.contains(prefab.name.as_str()) {
@@ -442,6 +458,79 @@ level a 2x2
             .filter(|d| d.message.contains("multiple spawns at (1,0)"))
             .count();
         assert_eq!(warns, 2, "second and third spawn each warn; got: {vd:?}");
+    }
+
+    // --- extends ---
+
+    #[test]
+    fn test_extends_undefined_base_is_error() {
+        let src = "prefab boss extends ghost\n  glyph b\n";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| d.is_error() && d.message.contains("extends undefined prefab")),
+            "expected missing-base error; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_extends_cycle_is_error() {
+        let src = "prefab a extends b\nprefab b extends a\n";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| d.is_error() && d.message.contains("extends cycle")),
+            "expected cycle error; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_extends_self_cycle_is_error() {
+        let src = "prefab a extends a\n";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(vd
+            .iter()
+            .any(|d| d.is_error() && d.message.contains("cycle")));
+    }
+
+    #[test]
+    fn test_extends_base_counts_as_used() {
+        // enemy is never spawned directly, but boss extends it and boss spawns.
+        let src = "\
+prefab enemy
+  glyph e
+prefab boss extends enemy
+  stat hp 50
+level a 1x1
+  row #
+  spawn boss 0 0
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            !vd.iter().any(|d| d.message.contains("never spawned")),
+            "an extends base must not warn as unused; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_valid_extends_bundle_is_loadable() {
+        let src = "\
+prefab enemy
+  glyph e
+  stat hp 10
+prefab boss extends enemy
+  stat hp 50
+level a 1x1
+  row #
+  spawn boss 0 0
+";
+        let (c, pd) = parse(src);
+        let vd = validate(&c);
+        assert!(is_loadable(&pd, &vd), "diags: {pd:?} {vd:?}");
     }
 
     #[test]

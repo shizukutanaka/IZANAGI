@@ -29,8 +29,28 @@ fn gen_content(rng: &mut SplitMix64) -> Content {
         let name = format!("p{i}");
         prefab_names.push(name.clone());
         let mut p = Prefab::new(name);
-        p.glyph = glyphs[rng.below(glyphs.len() as u32) as usize] as char;
-        p.color = gen_color(rng);
+        // `extends` targets only earlier prefabs, so generated chains are
+        // acyclic by construction — cycles are a validator concern, and this
+        // generator produces well-formed content on purpose.
+        if i > 0 && rng.below(3) == 0 {
+            let base = &prefab_names[rng.below(prefab_names.len() as u32) as usize];
+            p.extends = Some(base.clone());
+            // An extends overlay writes only the fields it declares; mirror
+            // authored content by marking exactly the fields we assign.
+            if rng.below(2) == 0 {
+                p.glyph = glyphs[rng.below(glyphs.len() as u32) as usize] as char;
+                p.glyph_declared = true;
+            }
+            if rng.below(2) == 0 {
+                p.color = gen_color(rng);
+                p.color_declared = true;
+            }
+        } else {
+            p.glyph = glyphs[rng.below(glyphs.len() as u32) as usize] as char;
+            p.glyph_declared = true;
+            p.color = gen_color(rng);
+            p.color_declared = true;
+        }
         let n_stats = rng.below(4) as usize;
         let mut stats = BTreeMap::new();
         for s in 0..n_stats {

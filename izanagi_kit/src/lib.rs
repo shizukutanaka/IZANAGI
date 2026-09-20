@@ -92,8 +92,9 @@
 //! - [`status`] — timed status effects / buff-debuff tracking (`StatusSet<K>`).
 //! - [`cmdqueue`] — deterministic command queue (replay-safe input abstraction).
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
-//!   the content pipeline: author game elements as text, serialize them back,
-//!   validate them, load into the ECS.
+//!   the content pipeline: author game elements as text (with `extends`
+//!   field-level prefab overlays), serialize them back, validate them, load
+//!   into the ECS.
 //!
 //! - [`ability`] — unified ability/skill system (`AbilitySet<K,E>`, `Ability<E>`, `AbilityResult`) with mana, cooldown, and range checks.
 //! - [`behavior`] — hierarchical behavior trees for game AI (`BehaviorTree<A>`, `BehaviorNode<A>`, `BehaviorStatus`).
@@ -258,7 +259,7 @@ pub use combat::{
     apply_resistance, base_damage, critical_strike, melee_attack, ranged_attack, roll_damage,
     roll_to_hit, splash_attack, Stats, StatsModifier, StrikeResult,
 };
-pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
+pub use content::{Content, Diagnostic, ExtendsError, Prefab, Severity, Tile};
 pub use damage::{DamageType, ResistanceProfile};
 pub use diag_json::severity_filter;
 pub use dialogue::{Choice, Dialogue, DialogueNode};

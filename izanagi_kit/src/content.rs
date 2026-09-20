@@ -18,7 +18,8 @@
 //! Maps use `BTreeMap`/ordered `Vec` so iteration is deterministic, keeping the
 //! pipeline consistent with the engine's bit-exact-replay goal.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
+use std::fmt;
 
 /// 24-bit RGB color (matches the `#RRGGBB` authoring syntax).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -202,6 +203,17 @@ pub struct Prefab {
     pub stats: BTreeMap<String, i32>,
     /// Boolean flags set on this prefab.
     pub flags: Vec<String>,
+    /// Base prefab this one patches, named by `prefab <name> extends <base>`.
+    /// `None` for a standalone definition. See [`Content::resolve_prefab`].
+    pub extends: Option<String>,
+    /// `true` when a `glyph` line was authored. For an `extends` prefab this
+    /// makes the field an override; without it the base's glyph is inherited.
+    /// Building an `extends` prefab programmatically: set this when assigning
+    /// `glyph`, or the assignment is silently treated as unauthored.
+    /// Bookkeeping only for standalone prefabs.
+    pub glyph_declared: bool,
+    /// Same as [`glyph_declared`](Self::glyph_declared), for `color`.
+    pub color_declared: bool,
 }
 
 impl Prefab {
@@ -217,6 +229,9 @@ impl Prefab {
             },
             stats: BTreeMap::new(),
             flags: Vec::new(),
+            extends: None,
+            glyph_declared: false,
+            color_declared: false,
         }
     }
 }
@@ -284,6 +299,125 @@ impl Content {
     /// and [`level`](Self::level). Returns `None` if no tile with that name exists.
     pub fn tile(&self, name: &str) -> Option<&Tile> {
         self.tiles.iter().find(|t| t.name == name)
+    }
+
+    /// The effective definition of `name` after `extends` resolution.
+    ///
+    /// The base chain is merged bottom-up, then the named prefab's authored
+    /// fields override it per field: `stats` merge key-wise (child wins a
+    /// shared key), `flags` union base-first (duplicates dropped), and
+    /// `glyph`/`color` override only where the corresponding `*_declared`
+    /// flag is set. The resolved prefab is flat — `extends` is `None` and both
+    /// declared flags are `true`, since every field is now concrete.
+    ///
+    /// Returns `Ok(None)` when no prefab has that name, and `Err` when its
+    /// chain is broken (missing base or a cycle). [`crate::validator`]
+    /// reports the same failures as diagnostics, and [`crate::loader`] fails
+    /// on them — so a chain that survives `validate` resolves here.
+    pub fn resolve_prefab(&self, name: &str) -> Result<Option<Prefab>, ExtendsError> {
+        // Collect the chain name -> base -> base's base ..., stopping at a
+        // standalone prefab. Membership in `seen` bounds the walk, so a cycle
+        // terminates instead of looping forever.
+        let mut chain: Vec<&Prefab> = Vec::new();
+        let mut seen: BTreeSet<&str> = BTreeSet::new();
+        let mut cur = name;
+        loop {
+            match self.prefab(cur) {
+                None if chain.is_empty() => return Ok(None),
+                None => {
+                    return Err(ExtendsError::MissingBase {
+                        prefab: chain.last().map(|p| p.name.clone()).unwrap_or_default(),
+                        base: cur.to_string(),
+                    })
+                }
+                Some(p) => {
+                    if !seen.insert(p.name.as_str()) {
+                        let pos = chain.iter().position(|q| q.name == p.name).unwrap_or(0);
+                        let mut cycle: Vec<String> =
+                            chain[pos..].iter().map(|q| q.name.clone()).collect();
+                        cycle.push(p.name.clone());
+                        return Err(ExtendsError::Cycle { cycle });
+                    }
+                    chain.push(p);
+                    match &p.extends {
+                        Some(base) => cur = base.as_str(),
+                        None => break,
+                    }
+                }
+            }
+        }
+
+        // Merge from the base-most entry toward the queried prefab.
+        let mut acc = chain[chain.len() - 1].clone();
+        for child in chain[..chain.len() - 1].iter().rev() {
+            let mut stats = acc.stats;
+            for (k, v) in &child.stats {
+                stats.insert(k.clone(), *v);
+            }
+            let mut flags = acc.flags;
+            for f in &child.flags {
+                if !flags.contains(f) {
+                    flags.push(f.clone());
+                }
+            }
+            acc = Prefab {
+                name: child.name.clone(),
+                glyph: if child.glyph_declared {
+                    child.glyph
+                } else {
+                    acc.glyph
+                },
+                color: if child.color_declared {
+                    child.color
+                } else {
+                    acc.color
+                },
+                stats,
+                flags,
+                extends: None,
+                glyph_declared: true,
+                color_declared: true,
+            };
+        }
+        // The resolved prefab is flat: no base and every field concrete. This
+        // also normalizes the chain-length-1 case (a standalone prefab), whose
+        // declared flags would otherwise keep their parse-time values.
+        acc.extends = None;
+        acc.glyph_declared = true;
+        acc.color_declared = true;
+        Ok(Some(acc))
+    }
+}
+
+/// Why an `extends` chain cannot resolve. [`Content::resolve_prefab`] returns
+/// this; `validate` reports it as a diagnostic with the same message text.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ExtendsError {
+    /// `prefab` names `base` as its `extends` target, but no such prefab exists.
+    MissingBase {
+        /// The prefab whose `extends` clause is broken.
+        prefab: String,
+        /// The named base that does not exist.
+        base: String,
+    },
+    /// The `extends` chain loops back on itself; `cycle` is the loop, listed
+    /// in resolution order (first name == last name).
+    Cycle {
+        /// The cycle members in order, e.g. `[a, b, a]`.
+        cycle: Vec<String>,
+    },
+}
+
+impl fmt::Display for ExtendsError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExtendsError::MissingBase { prefab, base } => {
+                write!(f, "prefab '{prefab}' extends undefined prefab '{base}'")
+            }
+            ExtendsError::Cycle { cycle } => {
+                write!(f, "extends cycle: {}", cycle.join(" -> "))
+            }
+        }
     }
 }
 
@@ -721,5 +855,131 @@ mod tests {
     fn test_min_channel_le_max_channel() {
         let c = Color::rgb(80, 160, 40);
         assert!(c.min_channel() <= c.max_channel());
+    }
+
+    // --- extends resolution ---
+
+    fn parsed(src: &str) -> Content {
+        let (c, d) = crate::parser::parse(src);
+        assert!(d.iter().all(|x| !x.is_error()), "parse diags: {d:?}");
+        c
+    }
+
+    const BASE_CHILD: &str = "\
+prefab enemy
+  glyph e
+  color #FF0000
+  stat hp 10
+  stat atk 3
+  flag hostile
+prefab boss extends enemy
+  stat hp 50
+  flag elite
+";
+
+    #[test]
+    fn test_resolve_prefab_missing_name_is_none() {
+        let c = parsed(BASE_CHILD);
+        assert!(matches!(c.resolve_prefab("ghost"), Ok(None)));
+    }
+
+    #[test]
+    fn test_resolve_prefab_standalone_is_itself_flattened() {
+        let c = parsed(BASE_CHILD);
+        let r = c.resolve_prefab("enemy").unwrap().unwrap();
+        assert_eq!(r.glyph, 'e');
+        assert_eq!(r.stats.get("hp"), Some(&10));
+        assert_eq!(r.extends, None);
+        assert!(r.glyph_declared && r.color_declared);
+    }
+
+    #[test]
+    fn test_resolve_prefab_inherits_undeclared_and_overrides_declared() {
+        let c = parsed(BASE_CHILD);
+        let r = c.resolve_prefab("boss").unwrap().unwrap();
+        // glyph/color undeclared on the child → inherited from enemy.
+        assert_eq!(r.glyph, 'e');
+        assert_eq!(r.color, Color::rgb(0xFF, 0, 0));
+        // stats merge key-wise: child wins hp, inherits atk.
+        assert_eq!(r.stats.get("hp"), Some(&50));
+        assert_eq!(r.stats.get("atk"), Some(&3));
+        // flags union, base-first order.
+        assert_eq!(r.flags, vec!["hostile".to_string(), "elite".to_string()]);
+    }
+
+    #[test]
+    fn test_resolve_prefab_declared_scalars_override() {
+        let c = parsed(
+            "prefab a\n  glyph g\n  color #112233\nprefab b extends a\n  glyph x\n  color #445566\n",
+        );
+        let r = c.resolve_prefab("b").unwrap().unwrap();
+        assert_eq!(r.glyph, 'x');
+        assert_eq!(r.color, Color::rgb(0x44, 0x55, 0x66));
+    }
+
+    #[test]
+    fn test_resolve_prefab_transitive_chain() {
+        let c = parsed(
+            "prefab a\n  glyph a\n  stat hp 1\nprefab b extends a\n  stat atk 2\nprefab c extends b\n  stat hp 9\n",
+        );
+        let r = c.resolve_prefab("c").unwrap().unwrap();
+        assert_eq!(r.glyph, 'a');
+        assert_eq!(r.stats.get("hp"), Some(&9));
+        assert_eq!(r.stats.get("atk"), Some(&2));
+    }
+
+    #[test]
+    fn test_resolve_prefab_missing_base_errors() {
+        let c = parsed("prefab a extends ghost\n  glyph a\n");
+        assert_eq!(
+            c.resolve_prefab("a").unwrap_err(),
+            ExtendsError::MissingBase {
+                prefab: "a".into(),
+                base: "ghost".into()
+            }
+        );
+    }
+
+    #[test]
+    fn test_resolve_prefab_cycle_errors_and_terminates() {
+        let c = parsed("prefab a extends b\nprefab b extends a\n");
+        match c.resolve_prefab("a") {
+            Err(ExtendsError::Cycle { cycle }) => {
+                assert_eq!(cycle.first(), cycle.last());
+                assert!(cycle.contains(&"a".to_string()));
+                assert!(cycle.contains(&"b".to_string()));
+            }
+            other => panic!("expected cycle error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_resolve_prefab_self_cycle() {
+        let c = parsed("prefab a extends a\n");
+        match c.resolve_prefab("a") {
+            Err(ExtendsError::Cycle { cycle }) => {
+                assert_eq!(cycle, vec!["a".to_string(), "a".to_string()])
+            }
+            other => panic!("expected cycle error, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_extends_error_display_is_diagnostic_shaped() {
+        assert_eq!(
+            ExtendsError::MissingBase {
+                prefab: "b".into(),
+                base: "a".into()
+            }
+            .to_string(),
+            "prefab 'b' extends undefined prefab 'a'"
+        );
+        assert_eq!(
+            ExtendsError::Cycle {
+                cycle: vec!["a".into(), "b".into(), "a".into()]
+            }
+            .to_string(),
+            "extends cycle: a -> b -> a"
+        );
     }
 }

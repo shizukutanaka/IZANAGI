@@ -157,7 +157,7 @@ fn the_bounds_the_grammar_states_are_the_constants_the_parser_declares() {
 /// diagnostic — `false` where the construct is legal under the grammar even
 /// though it looks hostile, because asserting otherwise would be asserting
 /// something the specification does not say.
-const HOSTILE: [(&str, bool); 22] = [
+const HOSTILE: [(&str, bool); 25] = [
     ("a line longer than the limit", true),
     ("dimension that overflows u32", true),
     ("zero dimension", true),
@@ -175,6 +175,9 @@ const HOSTILE: [(&str, bool); 22] = [
     ("spawn coordinate that overflows", true),
     ("every keyword with no arguments", true),
     ("unknown keywords", true),
+    ("extends with no base", true),
+    ("extends with a stray trailing token", true),
+    ("prefab with a stray second token", true),
     // Legal under the grammar: a name is any non-whitespace token, and NUL is
     // not whitespace. Nothing in §9.1 excludes it.
     ("a name containing NUL", false),
@@ -203,6 +206,9 @@ fn hostile_source(case: &str) -> String {
         "spawn coordinate that overflows" => "level l 4x4\nspawn g 99999999999 1".into(),
         "every keyword with no arguments" => KEYWORDS.join("\n"),
         "unknown keywords" => "wobble\nfoo bar\n// c\n\n   \n".into(),
+        "extends with no base" => "prefab p extends".into(),
+        "extends with a stray trailing token" => "prefab p extends b c".into(),
+        "prefab with a stray second token" => "prefab p junk".into(),
         "a name containing NUL" => "prefab p\0q\nglyph \0".into(),
         "i32::MIN as a stat value" => "prefab p\nstat hp -2147483648".into(),
         "comments and blank lines only" => "//\n///\n// prefab p\n\n   \n".into(),
