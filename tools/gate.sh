@@ -18,7 +18,28 @@ set -eu
 # needs them is exactly the build the gate does not measure.
 unset RUSTFLAGS CARGO_ENCODED_RUSTFLAGS RUSTDOCFLAGS
 
+# Those three are the spellings people remember — the *family* is larger,
+# and every member is the same kind of injection. `CARGO_BUILD_RUSTFLAGS`
+# (and `CARGO_TARGET_<triple>_RUSTFLAGS`, `CARGO_ENCODED_RUSTDOCFLAGS`)
+# reach rustc/rustdoc exactly like the names above — verified here:
+# `--cap-lints=allow` through CARGO_BUILD_RUSTFLAGS reduces this
+# workspace's clippy warning count to zero. `CARGO_PROFILE_*` re-adds
+# profile keys the manifest grammar bans, `RUSTC`/`RUSTDOC`/
+# `RUSTC_WRAPPER`/`RUSTC_WORKSPACE_WRAPPER` swap the binary being
+# measured, `RUSTC_BOOTSTRAP` makes a stable toolchain accept
+# `#![feature]` (verified), `RUSTUP_TOOLCHAIN` swaps the toolchain, and an
+# ambient CARGO_HOME's config.toml injects the same flags all over again.
+# Scrub the family wholesale: anything the gate needs it sets itself.
+for v in $(env | grep -oE '^(CARGO[A-Z_]*|RUST[A-Z_]*|RUSTUP[A-Z_]*)=' | tr -d '='); do
+    unset "$v"
+done
 cd "$(dirname "$0")/.."
+
+# An isolated CARGO_HOME means an ambient ~/.cargo/config.toml cannot add
+# rustflags, change the target, or point cargo at a different registry
+# while the gate measures the tree.
+export CARGO_HOME="$PWD/target/gate-cargo-home"
+mkdir -p "$CARGO_HOME"
 
 KIT_BRIDGE_HASH=353498ec4fbcd160
 
