@@ -308,7 +308,7 @@ fn top_level_items(inner: &str) -> Vec<&str> {
 /// `cfg` inside `doc`'s own parentheses, where it is an argument to the doc
 /// attribute (the docs.rs badge idiom), not conditional compilation being
 /// applied to the item.
-fn push_applied_cfg(item: &str, out: &mut Vec<(&'static str, String)>) {
+fn push_applied_cfg(item: &str, outer_pred: &str, out: &mut Vec<(&'static str, String)>) {
     let item = item.trim();
     for (form, name) in [("cfg_attr", "cfg_attr"), ("cfg!", "cfg!"), ("cfg", "cfg")] {
         let Some(rest) = item.strip_prefix(name) else {
@@ -320,18 +320,21 @@ fn push_applied_cfg(item: &str, out: &mut Vec<(&'static str, String)>) {
         let balanced = take_balanced(inner);
         if form == "cfg_attr" {
             let items = top_level_items(balanced);
-            out.push((
-                "cfg_attr",
-                items.first().copied().unwrap_or("").trim().to_string(),
-            ));
+            let pred = items.first().copied().unwrap_or("").trim().to_string();
+            out.push(("cfg_attr", pred.clone()));
             for extra in &items[1..] {
-                push_applied_cfg(extra, out);
+                push_applied_cfg(extra, &pred, out);
             }
         } else {
             out.push((form, balanced.trim().to_string()));
         }
         return;
     }
+    // Not a cfg construct at all — a cfg_attr applied some other attribute,
+    // e.g. `cfg_attr(test, allow(dead_code))` turning a lint off exactly
+    // while the suite runs. Surface it as its own entry so the whitelist
+    // can rule on which attributes may exist only under one predicate.
+    out.push(("cfg_attr_apply", format!("{outer_pred}\u{0}{item}")));
 }
 
 /// Every conditional-compilation predicate in `code`, as `(form, predicate)`
@@ -387,8 +390,10 @@ fn cfg_predicates(code: &str) -> Vec<(&'static str, String)> {
             // alone never reads. Each applied item that is itself a
             // cfg/cfg!/cfg_attr is conditional compilation smuggled past
             // the whitelist; surface its own predicate so it is checked.
+            // Non-cfg items surface as `cfg_attr_apply` pseudo-predicates
+            // carrying `outer_predicate\0item` for the main check to rule on.
             for item in top_level_items(balanced).into_iter().skip(1) {
-                push_applied_cfg(item, &mut out);
+                push_applied_cfg(item, pred, &mut out);
             }
         }
     }
@@ -420,6 +425,34 @@ fn library_code_compiles_without_platform_profile_or_feature_conditionals() {
     let mut offenders: Vec<String> = Vec::new();
     for (name, code) in library_sources(&kit_src()) {
         for (form, pred) in cfg_predicates(&code) {
+            if form == "cfg_attr_apply" {
+                // An attribute that exists only under one predicate means
+                // the suite measured a different crate than the one that
+                // ships. Permitted: `deny`/`forbid` under `not(test)` (the
+                // crate-root clippy gate — stricter for the shipped build),
+                // and `doc` items, which exist only while documenting.
+                // Verified by injection: `cfg_attr(test, allow(dead_code))`
+                // spelled no `#[allow` and passed every check.
+                let (outer, item) = pred.split_once('\u{0}').unwrap_or(("", pred.as_str()));
+                let head = item
+                    .split(|c: char| c == '(' || c == '=' || c.is_whitespace())
+                    .next()
+                    .unwrap_or("")
+                    .trim();
+                let permitted = match head {
+                    "deny" | "forbid" => predicate_atoms(outer) == ["not", "test"],
+                    "doc" => true,
+                    _ => false,
+                };
+                if !permitted {
+                    offenders.push(format!(
+                        "{name}: `cfg_attr({outer})` applies `{item}` — an \
+                         attribute that exists for only one build kind makes \
+                         the tested crate differ from the shipped one"
+                    ));
+                }
+                continue;
+            }
             if form == "cfg!" {
                 offenders.push(format!(
                     "{name}: `cfg!({pred})` — a cfg! expression evaluates the \
@@ -813,7 +846,10 @@ fn the_predicate_parser_accepts_the_markers_and_rejects_the_platform() {
         "#[ cfg ( test ) ]",
     ];
     for snippet in legal {
-        let preds = cfg_predicates(snippet);
+        let preds: Vec<_> = cfg_predicates(snippet)
+            .into_iter()
+            .filter(|(f, _)| *f != "cfg_attr_apply")
+            .collect();
         assert_eq!(
             preds.len(),
             1,
@@ -848,7 +884,10 @@ fn the_predicate_parser_accepts_the_markers_and_rejects_the_platform() {
             "target_vendor",
         ),
     ] {
-        let preds = cfg_predicates(snippet);
+        let preds: Vec<_> = cfg_predicates(snippet)
+            .into_iter()
+            .filter(|(f, _)| *f != "cfg_attr_apply")
+            .collect();
         assert_eq!(preds.len(), 1, "expected one predicate in {snippet:?}");
         let (_, pred) = &preds[0];
         assert!(
