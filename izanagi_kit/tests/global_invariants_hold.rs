@@ -987,6 +987,23 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      take unsafe shortcuts"
                 );
             }
+            if require_tests {
+                // `if x.is_ok() { assert!(...) }` makes the assertion
+                // conditional on the environment — a filesystem that can't
+                // write silently skips the check and the suite stays green.
+                // The one real offender (readme_blocks_agree.rs) is fixed;
+                // the guard shape is banned now.
+                for line in code.lines() {
+                    let t = line.trim_start();
+                    assert!(
+                        !(t.starts_with("if ")
+                            && (t.contains(".is_ok()") || t.contains(".is_err()"))),
+                        "{name}: `{t}` — an is_ok()/is_err() *guard* skips the \
+                         assertions under it when the call fails; unwrap the \
+                         call instead so failure is loud"
+                    );
+                }
+            }
             // Substring needles: `unused`/`dead_code` must match inside
             // `unused_mut`, `allow(unused_variables)`, `dead_code` — the
             // whole suppressor family, which token boundaries cannot
