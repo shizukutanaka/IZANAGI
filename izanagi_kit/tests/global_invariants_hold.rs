@@ -867,6 +867,19 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
                          take unsafe or splice in code the scans never read"
                     );
                 }
+                // A bare `#[test]` at a bin root needs no `mod` — cargo test
+                // runs it, while bin scope legitimately allows env::/fs::/
+                // process:: for the CLI's machine-facing job (verified:
+                // `#[test] fn` appended to gamec.rs passed, its env::var
+                // unflagged). Tests belong in the scanned dirs only.
+                for needle in ["#[test", "#[cfg(test", "#![cfg(test"] {
+                    assert!(
+                        !contains_token(&body, needle),
+                        "{name} contains `{needle}` — a bin carries no test \
+                         harness; suite code there escapes the env/fs/process \
+                         bans the scanned dirs enforce"
+                    );
+                }
                 for arg in env_macro_args(&raw) {
                     assert!(
                         arg.as_deref()
