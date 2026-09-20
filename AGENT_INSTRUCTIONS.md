@@ -822,6 +822,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   依存の回避路。
 
 
+- ~~fs の機械情報は metadata/clock で尽きたと思われていた~~ →
+  `fs::permissions(p).readonly()` は umask/checkout 依存の mode bits
+  (注入→緑)。`permissions(` を追加(`set_permissions` は書込側なので
+  porcelain sentinel が捕捉)。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

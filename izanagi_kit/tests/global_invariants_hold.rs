@@ -1939,6 +1939,11 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 // — machine data through the same door (injected into a
                 // test: green). It was banned for examples; tests had it.
                 "canonicalize",
+                // fs::permissions().readonly() (and mode bits) are
+                // checkout-and-umask state, not content (injected: green).
+                // `set_permissions` slips the token edge — a write, so the
+                // porcelain sentinel sees its effect anyway.
+                "permissions(",
                 // CPU-feature probes are the machine itself: a check behind
                 // `is_*_feature_detected!` exists on one host and not
                 // another, with the suite still reporting green (injected
