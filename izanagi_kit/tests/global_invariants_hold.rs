@@ -2157,6 +2157,18 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 // an aarch64 probe into a test: green).
                 "arch::",
                 "feature_detected",
+                // Attributes that reach around the harness: a
+                // `#[global_allocator]` in a test file swaps the allocator
+                // the whole suite process measures through (injected:
+                // green), and `no_mangle`/`export_name`/`link_section`/
+                // `#[link`/`#[used]` wire symbols to the linker outside
+                // anything the scan reads as a call.
+                "global_allocator",
+                "no_mangle",
+                "export_name",
+                "link_section",
+                "#[link",
+                "#[used",
             ] {
                 assert!(
                     !contains_token(&code, needle),
