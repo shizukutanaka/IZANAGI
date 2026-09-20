@@ -618,9 +618,10 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
     m.insert(
         "izanagi/sprite.rs",
         (
-            1,
-            "Animation::new requires a nonempty frame list — documented \
-             constructor precondition",
+            2,
+            "Animation::new requires a nonempty frame list AND a positive \
+             duration per frame (a 0/negative/NaN duration spins tick's \
+             while-loop forever on looping animations)",
         ),
     );
     m
