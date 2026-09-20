@@ -1331,3 +1331,171 @@ fn the_shared_boundary_lexer_finds_real_markers_and_rejects_fakes() {
     // Sanity: no marker at all means the whole file is impl code.
     assert_eq!(test_module_boundary("fn only() {}\n"), None);
 }
+
+/// Kit-defined types carrying a `DetHash` impl whose wire format is not yet
+/// pinned in `det_hash_golden.rs`. Membership is a *declaration of debt*, not
+/// a permission: the list only shrinks when a type gains a pin, and the check
+/// below fails if it grows — every new impl must be pinned or declared here
+/// in the same commit. (Measured baseline: 23 of 89 impl'd kit types pinned;
+/// these were the rest.)
+const UNPINNED_DET_HASH: &[&str] = &[
+    "Affix",
+    "AffixSlot",
+    "AffixedItem",
+    "ArchTable",
+    "AssetStore",
+    "BehaviorStatus",
+    "Calendar",
+    "Cell",
+    "ChangeTracker",
+    "Changed",
+    "Choice",
+    "CmdQueue",
+    "Color",
+    "ComponentEvent",
+    "Dialogue",
+    "DialogueNode",
+    "EncounterPack",
+    "Equipment",
+    "EventLog",
+    "EventQueue",
+    "FactionMap",
+    "Fsm",
+    "Identification",
+    "InfluenceMap",
+    "InputBuffer",
+    "Inventory",
+    "LayeredMap",
+    "LevelCurve",
+    "LightMap",
+    "Menu",
+    "MetaProgress",
+    "MonitorState",
+    "NetInputBuffer",
+    "Objective",
+    "Observed",
+    "PassabilityGrid",
+    "Pool",
+    "Position",
+    "Profiler",
+    "Progression",
+    "Quest",
+    "QuestState",
+    "RandomTable",
+    "Recipe",
+    "Rect",
+    "Render",
+    "Shop",
+    "ShuffleBag",
+    "SimpleTileTable",
+    "SpatialHash",
+    "StatsModifier",
+    "StatusSet",
+    "ThreatTable",
+    "TileMap",
+    "Trigger",
+    "Tween",
+    "TweenSequence",
+    "Visibility",
+    "VisibilityMap",
+    "Wallet",
+    "WfcGrid",
+    "Xoshiro256pp",
+];
+
+#[test]
+fn every_dethash_impl_is_pinned_or_declared() {
+    // `det_hash_golden.rs` pins wire formats, but only for the types it
+    // happens to name — a new `impl DetHash for T` adds a format nobody
+    // watches unless something forces the decision. The decision is this
+    // check: T must be named in the golden file (pinned, or used inside a
+    // pinned fixture) or declared in UNPINNED_DET_HASH.
+    let kit_src = repo_root().join("izanagi_kit/src");
+    let sources = library_sources(&kit_src);
+    let mut defined = std::collections::BTreeSet::new();
+    let mut impld = std::collections::BTreeSet::new();
+    for src in sources.values() {
+        for line in src.lines() {
+            let t = line.trim_start();
+            for pat in ["pub struct ", "pub enum "] {
+                if let Some(rest) = t.strip_prefix(pat) {
+                    if let Some(name) = rest
+                        .split(|c: char| !c.is_alphanumeric() && c != '_')
+                        .next()
+                    {
+                        if name.chars().next().is_some_and(|c| c.is_ascii_uppercase()) {
+                            defined.insert(name.to_string());
+                        }
+                    }
+                }
+            }
+            if let Some(pos) = t.find("DetHash for ") {
+                let rest = &t[pos + "DetHash for ".len()..];
+                if let Some(name) = rest
+                    .split(|c: char| !c.is_alphanumeric() && c != '_')
+                    .next()
+                {
+                    impld.insert(name.to_string());
+                }
+            }
+        }
+    }
+    let need: std::collections::BTreeSet<_> = defined.intersection(&impld).cloned().collect();
+
+    // The pinned set = capitalized tokens anywhere in the golden file's
+    // fixture code — labels name their type ("Vec2(2,-5)") and constructors
+    // name theirs (`hash_state(&BarWidget::new(..))`), so both count. The
+    // UNPINNED list lives in this file, not the golden one, so no
+    // subtraction is needed.
+    let golden = fs::read_to_string(repo_root().join("izanagi_kit/tests/det_hash_golden.rs"))
+        .expect("det_hash_golden.rs must exist");
+    let mut pinned = std::collections::BTreeSet::new();
+    for tok in golden.split(|c: char| !c.is_alphanumeric() && c != '_') {
+        if tok.len() > 1 && tok.starts_with(|c: char| c.is_ascii_uppercase()) {
+            pinned.insert(tok.to_string());
+        }
+    }
+
+    for name in &need {
+        assert!(
+            pinned.contains(name) || UNPINNED_DET_HASH.contains(&name.as_str()),
+            "`impl DetHash for {name}` is neither pinned in det_hash_golden.rs \
+             nor declared in UNPINNED_DET_HASH — pick one in this commit"
+        );
+    }
+    // Staleness cuts both ways: a declared type that gained a pin must leave
+    // the list, and an entry for a type whose impl vanished is spent.
+    for name in UNPINNED_DET_HASH {
+        assert!(
+            !pinned.contains(*name),
+            "{name} is declared UNPINNED but already named in det_hash_golden.rs \
+             — drop the declaration"
+        );
+        assert!(
+            need.contains(*name),
+            "UNPINNED_DET_HASH names {name}, which no longer has a DetHash impl"
+        );
+    }
+}
+
+#[test]
+fn the_lockfile_names_only_workspace_crates() {
+    // `[dependencies]` being empty (G1) is the manifest-level claim; the
+    // lockfile is the resolution-level truth. An entry beyond the two
+    // workspace members means an external crate was resolved in at some
+    // point — a supply-chain fact the empty tables cannot express.
+    let lock = fs::read_to_string(repo_root().join("Cargo.lock")).expect("Cargo.lock must exist");
+    for line in lock.lines() {
+        if let Some(name) = line
+            .trim()
+            .strip_prefix("name = \"")
+            .and_then(|r| r.strip_suffix('"'))
+        {
+            assert!(
+                name == "izanagi" || name == "izanagi_kit",
+                "Cargo.lock resolves external crate `{name}` — the zero-\
+                 dependency claim only covers manifest tables today"
+            );
+        }
+    }
+}
