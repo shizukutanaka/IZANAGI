@@ -177,7 +177,9 @@ impl Sim {
     }
 
     /// Canonical world checksum: actor positions + HP (id order), scheduler
-    /// state, and the player's visible-cell count.
+    /// state, and the player's visible-cell count. A projection digest, not a
+    /// full-state digest — atk/def and the (seed-derived, static) grid are
+    /// unhashed; their divergence surfaces via hp/position within a turn.
     fn hash(&self) -> u64 {
         let mut h = Fnv1a::new();
         // BTreeMap iterates in ascending key order — canonical by construction.
