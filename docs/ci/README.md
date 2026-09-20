@@ -47,5 +47,10 @@ git push
 | `release` | The suite passes with `overflow-checks` off. Debug and release disagree about arithmetic that wraps — debug panics where release continues — so a run in each is what proves the simulation path contains no silent overflow. `tools/gate.sh` checks the pinned hashes in both profiles because that costs a tenth of a second; the full release suite takes about three and a half minutes, which belongs here rather than before every push. |
 | `wasm` | `izanagi_kit` compiles for `wasm32-unknown-unknown`. |
 
+Every job was run locally before this file was offered (2026-09-20): the gate
+passes, `cargo check` is clean on 1.65 (`izanagi`) and 1.75 (`izanagi_kit`),
+the full workspace suite passes `--release`, and the kit builds for wasm32.
+The first CI run should be green, not a debugging session.
+
 Keep `docs/ci/ci.yml` and the installed `.github/workflows/ci.yml` in sync:
 propose changes here, apply them there.
