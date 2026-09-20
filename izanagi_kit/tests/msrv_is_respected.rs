@@ -97,10 +97,100 @@ fn declared_msrv(crate_dir: &str) -> (u32, u32) {
 /// once discussed the marker inside a `//` comment; searching the raw source
 /// found that first and scanned only the doc header.
 fn test_module_boundary(src: &str) -> Option<usize> {
-    src.match_indices("#[cfg(test)]").find_map(|(i, _)| {
-        let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
-        (!src[start..i].trim_start().starts_with("//")).then_some(i)
-    })
+    // The marker only counts in real code at the start of its own line. A
+    // fake inside a comment, a string or char literal, or sharing its line
+    // with other tokens would truncate the impl region early and hide code
+    // from every scan below — so the boundary is found by a tiny lexer:
+    // block comments nest, raw strings carry their own delimiter count, and
+    // `'a` may be a char literal or a lifetime.
+    let b = src.as_bytes();
+    let mut i = 0usize;
+    while i < b.len() {
+        match b[i] {
+            b'/' if b.get(i + 1) == Some(&b'/') => {
+                while i < b.len() && b[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'/' if b.get(i + 1) == Some(&b'*') => {
+                let mut depth = 1usize;
+                i += 2;
+                while i < b.len() && depth > 0 {
+                    if b[i] == b'/' && b.get(i + 1) == Some(&b'*') {
+                        depth += 1;
+                        i += 2;
+                    } else if b[i] == b'*' && b.get(i + 1) == Some(&b'/') {
+                        depth -= 1;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+            }
+            b'"' => {
+                i += 1;
+                while i < b.len() && b[i] != b'"' {
+                    if b[i] == b'\\' {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+                i += 1;
+            }
+            b'r' => {
+                // Raw string r"..." / r#"..."# — a string only when any #s
+                // are followed by '"'; otherwise r is identifier text.
+                let mut j = i + 1;
+                while b.get(j) == Some(&b'#') {
+                    j += 1;
+                }
+                if b.get(j) == Some(&b'"') {
+                    let hashes = j - i - 1;
+                    i = j + 1;
+                    while i < b.len() {
+                        if b[i] == b'"' {
+                            let mut k = 0usize;
+                            while k < hashes && b.get(i + 1 + k) == Some(&b'#') {
+                                k += 1;
+                            }
+                            if k == hashes {
+                                i += 1 + hashes;
+                                break;
+                            }
+                        }
+                        i += 1;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            b'\'' => match (b.get(i + 1), b.get(i + 2)) {
+                // 'x' / '\n' are char literals; 'a followed by code is a
+                // lifetime.
+                (Some(&b'\\'), _) => {
+                    i += 2;
+                    while i < b.len() && b[i] != b'\'' {
+                        if b[i] == b'\\' {
+                            i += 1;
+                        }
+                        i += 1;
+                    }
+                    i += 1;
+                }
+                (_, Some(&b'\'')) => i += 3,
+                _ => i += 1,
+            },
+            b'#' if src[i..].starts_with("#[cfg(test)]") => {
+                let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
+                if src[start..i].trim().is_empty() {
+                    return Some(i);
+                }
+                i += 1;
+            }
+            _ => i += 1,
+        }
+    }
+    None
 }
 
 /// Library sources only, with the trailing test module and line comments
