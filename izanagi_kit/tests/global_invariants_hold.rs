@@ -1727,6 +1727,17 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "{name} prints a pointer address with `{fmt_ptr}` — the \
                  address is ASLR input no input log can replay"
             );
+            // `Backtrace::capture`/`force_capture` harvest the ambient run —
+            // symbol names, build paths, and whether RUST_BACKTRACE was set —
+            // none of which the input log holds (injected into a test and an
+            // example: green).
+            for needle in ["backtrace", "Backtrace"] {
+                assert!(
+                    !contains_token(&code, needle),
+                    "{name} contains `{needle}` — a backtrace is ambient \
+                     machine state, not an input the suite replays"
+                );
+            }
             // Delegating the checked computation to outside the scanned
             // universe: a subprocess runs anything, a socket reads bytes no
             // scan can see, and env writes mutate the ambient inputs other

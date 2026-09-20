@@ -644,6 +644,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   (リネーム・package キー・パス書き換え全て検出確認)。
 
 
+- ~~tests/examples の環境混入は env::・ポインタ系を閉じれば尽きたと思われて
+  いた~~ → `std::backtrace::Backtrace::capture`/`force_capture` はシンボル名・
+  ビルドパス・RUST_BACKTRACE 状態を読む ambient 混入で未禁止だった
+  (test・example の両方に注入→緑を実証)。`backtrace`/`Backtrace` をスイート
+  ニードルに追加。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
