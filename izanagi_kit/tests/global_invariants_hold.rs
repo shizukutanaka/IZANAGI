@@ -1650,6 +1650,50 @@ fn no_ci_workflow_is_committed() {
 }
 
 #[test]
+fn should_panic_always_pins_the_expected_message() {
+    // `#[should_panic]` without `expected =` passes on ANY panic — a test
+    // green while the code crashes for the wrong reason is weak verification
+    // posing as strong. Every site today pins the message; nothing stopped a
+    // new bare attribute. Scans whole files (the attributes live inside the
+    // `#[cfg(test)]` regions that impl-region helpers truncate away) and
+    // requires `expected` on every `#[should_panic` line.
+    fn rs_files(dir: &Path, out: &mut Vec<PathBuf>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                rs_files(&path, out);
+            } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                out.push(path);
+            }
+        }
+    }
+    for krate in CRATES {
+        for dir_rel in ["src", "tests", "examples"] {
+            let mut files = Vec::new();
+            rs_files(&repo_root().join(krate).join(dir_rel), &mut files);
+            for path in files {
+                // test_code blanks comments and string literals so this
+                // very test's prose cannot match the needle.
+                let src = test_code(&fs::read_to_string(&path).unwrap_or_default());
+                for (i, line) in src.lines().enumerate() {
+                    if line.contains("#[should_panic") {
+                        assert!(
+                            line.contains("expected"),
+                            "{}:{} `#[should_panic]` without `expected =` is                              green on any panic — pin the message or use a                              normal assert",
+                            path.display(),
+                            i + 1
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn the_validator_never_short_circuits_its_collection() {
     // SPEC: "All findings are collected (never short-circuit) so one run
     // surfaces every problem." A validator that returned after its first
