@@ -148,6 +148,34 @@ const BANNED: &[(&str, &str)] = &[
     // room.
     ("panic machinery", "catch_unwind"),
     ("panic machinery", "panic::"),
+    // Pointer *values*, not just casts: `into_raw`/`from_raw` (covering the
+    // `_parts` spellings too), the strict-provenance surface (`expose_addr`,
+    // `with_addr`, `map_addr`, `.addr(`, `with_exposed_provenance`),
+    // `NonNull`, and identity comparisons (`ptr_eq`, `ptr::`) all turn an
+    // allocator's choices into data — different run, different addresses,
+    // different hash. `{:p` prints the same value into output bytes.
+    ("pointer identity", "into_raw"),
+    ("pointer identity", "from_raw"),
+    ("pointer identity", "expose_addr"),
+    ("pointer identity", "with_addr"),
+    ("pointer identity", "map_addr"),
+    ("pointer identity", ".addr("),
+    ("pointer identity", "with_exposed_provenance"),
+    ("pointer identity", "NonNull"),
+    ("pointer identity", "ptr_eq"),
+    ("pointer identity", "ptr::"),
+    ("pointer identity", "{:p"),
+    // `TypeId`/`type_name` hand the compiler's own naming to the program:
+    // both differ across toolchains, so a hash or log line built on them is
+    // not the same computation an honest rebuild produced. `offset_of`,
+    // `addr_of`, `size_of`/`align_of` (and their `_val` forms) leak layout —
+    // which rustc is free to change between versions for the default repr.
+    ("compiler identity", "TypeId"),
+    ("compiler identity", "type_name"),
+    ("layout leak", "offset_of"),
+    ("layout leak", "addr_of"),
+    ("layout leak", "size_of"),
+    ("layout leak", "align_of"),
 ];
 
 fn kit_src() -> PathBuf {
