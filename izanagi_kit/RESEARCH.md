@@ -327,25 +327,25 @@ FOV（`src/fov.rs` symmetric shadowcasting）・pathfinding（`src/pathfinding.r
 | 機能 (capability) | izanagi_kit | bracket-lib (Rust roguelike) | libtcod (C roguelike) | bevy/entt (ECS) | ggrs (rollback) | 最大 gap → 改善点 |
 |------------------|:----:|:----:|:----:|:----:|:----:|------------------|
 | Generational handle / sparse-set | ✅ | ✅ | — | ✅ | — | — |
-| multi-component query / iteration | ❌ | ⚠️ | — | ✅ | — | **C1-1** query API |
-| archetype storage（大規模 iteration） | ❌ | ❌ | — | ✅ | — | C1-2 optional archetype |
+| multi-component query / iteration | ✅ | ⚠️ | — | ✅ | — | ✅ `sparse_set::join`/`join_mut` 実装済み |
+| archetype storage（大規模 iteration） | ✅(opt-in) | ❌ | — | ✅ | — | ✅ `arch::ArchTable` 実装済み（N18: 既定 storage 化は実測不採用） |
 | fixed-point sqrt / trig | ✅ | ⚠️(f32) | ⚠️ | ⚠️(f32) | — | ✅ 実装済み（決定論 integer/CORDIC） |
 | 決定論 PRNG（単一ストリーム） | ✅ | ✅ | ✅ | ⚠️ | ✅(要求) | — |
 | bias なし range 抽出 | ✅ | ✅ | ⚠️ | ✅ | — | ✅ below=Lemire・range/coin 追加済み |
-| per-frame state hash / desync 検出 | ✅ | ❌ | ❌ | ⚠️ | ✅ | C4-3 desync 二分探索 |
+| per-frame state hash / desync 検出 | ✅ | ❌ | ❌ | ⚠️ | ✅ | ✅ `first_divergence`+`DesyncReport` 実装済み(N12) |
 | snapshot / restore（rollback） | ✅(基盤) | ❌ | ❌ | ⚠️(bevy_ggrs) | ✅ | ✅ replay::resimulate（clone+再シミュ） |
 | input-only 同期 / replay ハーネス | ✅ | ❌ | ❌ | ⚠️ | ✅ | ✅ replay harness 実装済み（snapshot/rollback 基盤含む） |
 | FOV（shadowcasting） | ✅ | ✅ | ✅ | ❌ | — | ✅ 実装済み（symmetric, integer） |
 | pathfinding（A*/Dijkstra） | ✅ | ✅ | ✅ | ❌ | — | ✅ A* + Dijkstra map + descend 実装済み |
 | procedural generation | ✅ | ✅ | ⚠️ | ❌ | — | ✅ 実装済み（mapgen: rooms+corridors, 連結保証） |
-| parser error recovery（複数エラー） | ⚠️ | — | — | — | — | C7-1 recovery |
+| parser error recovery（複数エラー） | ✅ | — | — | — | — | ✅ `parse` は全診断を収集 |
 | coverage-guided fuzzing | ❌ | — | — | ⚠️ | — | C8-1 cargo-fuzz |
-| 機械可読診断（JSON/SARIF） | ❌ | — | — | — | — | C9-2 JSON 診断 |
+| 機械可読診断（JSON/SARIF） | ✅ | — | — | — | — | ✅ `gamec --json`/`--sarif` 実装済み |
 
-**読み取り**: izanagi_kit の**決定論コア（hash / PRNG / fixed-point / timestep）は同種ソフトと同等以上**だが、
-**roguelike アルゴリズム層（FOV / pathfinding / procgen, = C10）と rollback 運用層（snapshot / replay harness, = C6）**で
-最大の gap がある。いずれも 🟢 replay-safe に実装可能で、決定論コアの強みを活かせる領域。
-→ 実装着手の第一候補は **C10（FOV+A*+procgen）** と **C6（snapshot+replay harness）**。
+**読み取り**: izanagi_kit の**決定論コア（hash / PRNG / fixed-point / timestep）は同種ソフトと同等以上**。
+洗い出し時点の最大 gap だった **C10（FOV+A*+procgen）と C6（snapshot+replay harness）はいずれも実装済み** —
+表の izanagi_kit 列で残る ❌ は **coverage-guided fuzzing のみ**（nightly+ネットワーク制約で環境ブロック、N10 参照）。
+残る ⚠️ はなく、query/archetype/diagnostics/recovery の4行は本表記載時点より実装が進んだため更新済み。
 
 ## 検証済み一次出典 (Verified primary sources)
 
