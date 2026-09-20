@@ -33,7 +33,7 @@
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし)。さらに**展開した tarball の中で
 doctest・テスト・example・bin の4ターゲットが緑**で、さらに `gamec` が同梱 fixture を
 正しく受理・拒否することまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**・**panic 系マクロ(assert*/debug_assert*/unreachable!/todo!/unimplemented!)が命名済みサイトに凍結されていること**・**出荷コードが `#[path]`/`include!`/`include_bytes!` で走査領域外から混入しないこと**・**kit が fs/process/io の環境入力を読まないこと**・**gate.sh が全ステージを含むこと(ゲート自身の検査)**・**manifest に [[bin]]/[[test]]/[[bench]]/[[example]] テーブルと harness/auto*/crate-type/proc-macro/test/bench/doctest キーがなく [profile.*] の意味論キー(debug-assertions/overflow-checks/panic)が未設定であること**・**rust-toolchain/Cross.toml/clippy.toml が存在せず rustfmt 設定に逃走経路キーがないこと**・**[workspace.dependencies] の不在**・**出荷コードに env!/option_env!/extern/#[no_mangle]/#[link がないこと**・**kit が std::arch/core::arch を使わないこと**・**gate.sh が RUSTFLAGS/RUSTDOCFLAGS を除去すること**・**tests/ と examples/ が #[cfg]/#![cfg]/cfg!/cfg_attr/unsafe/#[ignore] (命名済み allowlist のみ・陳腐化検査つき)を持たず全テストファイルが #[test] を含むこと**・**md のフェンスに ignore/no_run/compile_fail/should_panic がないこと**・**.githooks/pre-push と docs/ci/ci.yml が tools/gate.sh を呼ぶこと**・**kit が panic 機構(catch_unwind/panic::)を持たないこと**・**走査配下(src/tests/examples)に symlink がないこと**・**重複スキャナ helper(test_module_boundary/library_sources/contains_token/count_token/kit_src/take_balanced)が全コピーでバイト同一であること**・**AGENT が core.hooksPath の設定を指示し続けること**・**src 内 doc フェンスに ignore/compile_fail/should_panic がなく no_run は命名済み allowlist(陳腐化検査つき)のみであること**・**共有境界 lexer が偽 marker を拒否し真 marker を受理すること(合成入力検査)**・**kit に同期プリミティブ(Mutex/RwLock/channel/atomic/thread)と生ポインタ経路(as */*const/*mut/.as_mut_ptr)がないこと**|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G12 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**・**panic 系マクロ(assert*/debug_assert*/unreachable!/todo!/unimplemented!)が命名済みサイトに凍結されていること**・**出荷コードが `#[path]`/`include!`/`include_bytes!` で走査領域外から混入しないこと**・**kit が fs/process/io の環境入力を読まないこと**・**gate.sh が全ステージを含むこと(ゲート自身の検査)**・**manifest に [[bin]]/[[test]]/[[bench]]/[[example]] テーブルと harness/auto*/crate-type/proc-macro/test/bench/doctest キーがなく [profile.*] の意味論キー(debug-assertions/overflow-checks/panic)が未設定であること**・**rust-toolchain/Cross.toml/clippy.toml が存在せず rustfmt 設定に逃走経路キーがないこと**・**[workspace.dependencies] の不在**・**出荷コードに env!/option_env!/extern/#[no_mangle]/#[link がないこと**・**kit が std::arch/core::arch を使わないこと**・**gate.sh が RUSTFLAGS/RUSTDOCFLAGS を除去すること**・**tests/ と examples/ が #[cfg]/#![cfg]/cfg!/cfg_attr/unsafe/#[ignore] (命名済み allowlist のみ・陳腐化検査つき)を持たず全テストファイルが #[test] を含むこと**・**md のフェンスに ignore/no_run/compile_fail/should_panic がないこと**・**.githooks/pre-push と docs/ci/ci.yml が tools/gate.sh を呼ぶこと**・**kit が panic 機構(catch_unwind/panic::)を持たないこと**・**走査配下(src/tests/examples)に symlink がないこと**・**重複スキャナ helper(test_module_boundary/library_sources/contains_token/count_token/kit_src/take_balanced)が全コピーでバイト同一であること**・**AGENT が core.hooksPath の設定を指示し続けること**・**src 内 doc フェンスに ignore/compile_fail/should_panic がなく no_run は命名済み allowlist(陳腐化検査つき)のみであること**・**共有境界 lexer が偽 marker を拒否し真 marker を受理すること(合成入力検査)**・**kit に同期プリミティブ(Mutex/RwLock/channel/atomic/thread)と生ポインタ経路(as */*const/*mut/.as_mut_ptr)がないこと**・**gate.sh が CARGO*/RUST*/RUSTUP* 系環境変数を全除去し CARGO_HOME を target/ 内に固定すること**・**`cfg_attr` の適用側にネストした cfg/cfg!/cfg_attr も同じ許可リストで走査されること**・**`[lib]`/`[bin]`/`[test]`/`[bench]`/`[example]` の path 差し替えがなく `links` キーがないこと**・**src の doc フェンスと `include_str!` が辿る md の Rust フェンス本体が禁則トークン(unsafe/cfg/env!/include! 等)を持たないこと**・**`allow`/`expect`/`warn`/`force_warn` が lint グループ名(warnings/all/clippy::restriction 等19種)でも安全系 lint を弱めないこと**・**engine の src に unordered container(HashMap/HashSet/hashers)が一切ないこと(G12)**・**`#[rustfmt::skip]` が命名済み allowlist(1箇所・陳腐化検査つき)に凍結されていること**・**library code に `usize::BITS`/`isize::BITS` がないこと**|
 | 未検証の公開 API | **両クレートで 0** — kit 1500+ / engine 240+ の公開関数(トレイトメソッドを含む)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす(件数は成長で変わるので下限表記)|
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
@@ -416,6 +416,47 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   (ignore 注入で検出確認)。同一性凍結だけでは「全コピーが同じく間違って
   いる」は防げない — lexer 正確性を合成入力で検査化(偽 marker 受理変異で
   検出確認)。
+- ~~gate.sh の環境除去は RUSTFLAGS/RUSTDOCFLAGS の2変数で十分と思われていた~~ →
+  cargo/rustc が読む同等の注入経路は他にも存在する: `RUSTC_BOOTSTRAP=1` は stable で
+  `#![feature]` を通し、`CARGO_ENCODED_RUSTFLAGS`/`CARGO_BUILD_RUSTFLAGS`/`RUSTDOCFLAGS` は
+  `--cap-lints=allow` を全ステージに差し込め、`RUSTUP_TOOLCHAIN` は toolchain 自体を
+  差し替え、`CARGO_HOME` は呼び出し側のキャッシュを指す。**`RUSTC_BOOTSTRAP=1` で
+  `#![feature]` が実際にコンパイルされること、`--cap-lints` で警告数が 0 になることを
+  注入で確認**。gate は冒頭で `CARGO*`/`RUST*`/`RUSTUP*` 系の全環境変数を除去し
+  `CARGO_HOME` をリポジトリ内 `target/` に固定する。
+- ~~`cfg_attr` は判別式だけ見れば足りると思われていた~~ → `#[cfg_attr(test, cfg(unix))]` の
+  ように**適用側にネストした `cfg`** はスキャナを完全にすり抜けた(初回注入は
+  `#[cfg(test)]` 境界の後に置かれ「発見なし」は偽陰性 — 境界の前に置き直して本物の
+  盲点と確認)。適用側アイテムを再帰走査する `push_applied_cfg` を追加し
+  `cfg_attr(any(), cfg!(...))` まで捕捉する単体テストで固定。
+- ~~manifest 文法はテーブルとキーを閉じれば足りると思われていた~~ → **`[lib]` の
+  `path` 差し替え**が残っており、kit がスキャン済み `src/` だけを見せる再エクスポート
+  shim でライブラリ本体を走査外に置けることを実注入で確認(スキャナは src/ のみ読む)。
+  `path` を `src/lib.rs` 固定に、`links` キーを禁止に。
+- ~~doctest フェンスはタグだけ見れば足りると思われていた~~ → フェンスの**本体**は
+  一度も走査されておらず、`//! ``` ` の内側に `unsafe`/`env!`/`include!` 等を書けば
+  出荷される doctest としてコンパイルされるのに全ソース検査が素通りしていた。
+  `docs_are_current.rs` に `rust_fence_bodies` を追加し、`include_str!` で辿れる md の
+  Rust フェンスも含め本体の禁則トークンを検査(注入で検出確認)。
+- ~~安全系 lint の弱め属性は名前指しで塞いだと思われていた~~ → `#[allow(clippy::restriction)]`
+  等の **lint グループ** allow は個別名を含まないため検査を素通りし、内側スコープの
+  group allow が outer `deny(clippy::unwrap_used)` を無効化することを注入で確認。
+  19 の lint グループ名を `weakening_lint_args` の検査対象に追加。
+- ~~engine の「順序づけ 0 件」で unordered container は尽きたと思われていた~~ →
+  `audio.rs` の `voices: HashMap<Voice, Playing>` を `mix_into` が反復し **f32 `+=` fold**
+  に掛けていた。f32 加算は非結合なので hasher seed 由来の反復順がプロセス毎に出力を
+  bit ずらし得る。ecs.rs が自明視した「despawn でしか反復しない例外」は
+  `clips`/`bytes`/`names`/`HashSet<Button>`/`HashSet<Key>` でも残っていた。全て
+  `BTreeMap`/`BTreeSet` に置換(`Voice`/`Handle`/`Button`/`Key` に `Ord`)、
+  **`izanagi/tests/no_unordered_containers.rs` が型の不在を強制** — 例外管理から
+  「存在しないので書けない」へ。SPEC.md に **G12** として明記(注入で検出確認)。
+- ~~`cargo fmt --check` があれば全コードは整形済みと信じられていた~~ → `#[rustfmt::skip]` は
+  fmt の検査を通ったまま任意の未整形ブロックを置ける escape hatch(実測で正当利用は
+  autotile_demo.rs の ASCII マップ1箇所のみ)。`test_code` で文字列・コメントを除去し
+  全6ディレクトリを走査、命名済み allowlist に凍結(陳腐化検査つき・注入で検出確認)。
+- ~~usize 系の漏れは幅の値だけと思われていた~~ → `usize::BITS`/`isize::BITS` は `usize`
+  への言及を含まない定数形式の同じ漏洩。`hashes_are_width_independent.rs` の
+  センチネル表に追加(注入で検出確認)。
 
 ## 3. 改善案(優先順位付き)
 
