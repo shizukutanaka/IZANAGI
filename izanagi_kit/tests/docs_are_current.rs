@@ -758,6 +758,84 @@ fn the_pipeline_demo_embeds_the_shipped_fixture_verbatim() {
 }
 
 #[test]
+fn command_examples_in_docs_reference_real_targets() {
+    // `cargo run --example NAME` (and --test/--bin) strings in checked-in
+    // markdown are teaching material; a renamed target leaves a command that
+    // no longer exists. Doctests cover ```rust blocks; fenced shell commands
+    // are never executed, so names in them rot silently.
+    let md_files = walk_md(&repo_root());
+    assert!(
+        md_files.len() > 5,
+        "expected several checked-in markdown files, found {} — is the walk \
+         rooted at the repo?",
+        md_files.len()
+    );
+    let mut missing = Vec::new();
+    for (rel, text) in &md_files {
+        for flag in ["--example", "--test", "--bin"] {
+            let mut rest = text.as_str();
+            while let Some(pos) = rest.find(&format!("{flag} ")) {
+                let after = &rest[pos + flag.len() + 1..];
+                let name: String = after
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+                    .collect();
+                rest = &rest[pos + 1..];
+                if name.is_empty() {
+                    continue;
+                }
+                let exists = [
+                    format!("izanagi/examples/{name}.rs"),
+                    format!("izanagi_kit/examples/{name}.rs"),
+                    format!("izanagi/tests/{name}.rs"),
+                    format!("izanagi_kit/tests/{name}.rs"),
+                    format!("izanagi_kit/src/bin/{name}.rs"),
+                ]
+                .iter()
+                .any(|p| repo_root().join(p).exists());
+                if !exists {
+                    missing.push(format!("{rel}: `{flag} {name}`"));
+                }
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "docs reference targets that do not exist:\n{}",
+        missing.join("\n")
+    );
+}
+
+/// `(relative path, contents)` for every checked-in markdown file.
+fn walk_md(root: &Path) -> Vec<(String, String)> {
+    fn walk(dir: &Path, root: &Path, out: &mut Vec<(String, String)>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name == "target" || name.starts_with('.') {
+                continue;
+            }
+            if path.is_dir() {
+                walk(&path, root, out);
+            } else if name.ends_with(".md") {
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string();
+                out.push((rel.clone(), fs::read_to_string(&path).unwrap_or_default()));
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(root, root, &mut out);
+    out
+}
+
+#[test]
 fn the_shipped_fixture_passes_its_own_format_gate() {
     // `gamec --check` is the tool's documented formatting gate — the shipped
     // example must satisfy it itself. It did not: the fixture carried stats
