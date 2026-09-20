@@ -18,8 +18,9 @@
 //! be a latent cross-platform bug — exactly the kind static analysis is for,
 //! since no test run on this machine could ever observe the difference.
 
+use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn kit_src() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")
@@ -129,28 +130,37 @@ fn test_module_boundary(src: &str) -> Option<usize> {
 /// Library code of every module: everything before `#[cfg(test)]`, with line
 /// comments stripped so this doc comment's own prose ("no native-endian ...
 /// leakage") does not count as a use of the banned methods.
-fn library_sources() -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    for entry in fs::read_dir(kit_src()).expect("kit src").flatten() {
-        let path = entry.path();
-        if path.extension().map(|e| e != "rs").unwrap_or(true) {
-            continue;
+fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
+    fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if path.file_name().map(|n| n == "bin").unwrap_or(false) {
+                    continue;
+                }
+                walk(&path, root, out);
+            } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                let end = test_module_boundary(&src).unwrap_or(src.len());
+                let stripped = src[..end]
+                    .lines()
+                    .filter(|l| !l.trim_start().starts_with("//"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string();
+                out.insert(rel, stripped);
+            }
         }
-        let name = path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or_default()
-            .to_string();
-        let src = fs::read_to_string(&path).unwrap_or_default();
-        let end = test_module_boundary(&src).unwrap_or(src.len());
-        let code = src[..end]
-            .lines()
-            .filter(|l| !l.trim_start().starts_with("//"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        out.push((name, code));
     }
-    out.sort();
+    let mut out = BTreeMap::new();
+    walk(src_root, src_root, &mut out);
     out
 }
 
@@ -168,7 +178,7 @@ fn no_library_code_converts_a_number_to_native_or_big_endian_bytes() {
     // its own byte folding instead of using `Fnv1a` would be just as able to
     // introduce the same platform dependence.
     let mut offenders: Vec<String> = Vec::new();
-    for (name, code) in library_sources() {
+    for (name, code) in library_sources(&kit_src()) {
         for banned in [
             "to_ne_bytes",
             "to_be_bytes",

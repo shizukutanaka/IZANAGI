@@ -17,6 +17,7 @@
 //! on the old toolchain builds the library only, and the MSRV promise is to
 //! consumers, not to our own test suite.
 
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -195,35 +196,38 @@ fn test_module_boundary(src: &str) -> Option<usize> {
 
 /// Library sources only, with the trailing test module and line comments
 /// stripped — the same convention `no_float_in_sim.rs` uses.
-fn library_sources(crate_dir: &str) -> Vec<(String, String)> {
-    fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
+fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
+    fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
         };
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                walk(&path, out);
+                if path.file_name().map(|n| n == "bin").unwrap_or(false) {
+                    continue;
+                }
+                walk(&path, root, out);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
-                out.push(path);
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                let end = test_module_boundary(&src).unwrap_or(src.len());
+                let stripped = src[..end]
+                    .lines()
+                    .filter(|l| !l.trim_start().starts_with("//"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string();
+                out.insert(rel, stripped);
             }
         }
     }
-    let mut files = Vec::new();
-    walk(&repo_root().join(crate_dir).join("src"), &mut files);
-    files
-        .into_iter()
-        .map(|path| {
-            let src = fs::read_to_string(&path).unwrap_or_default();
-            let impl_end = test_module_boundary(&src).unwrap_or(src.len());
-            let code = src[..impl_end]
-                .lines()
-                .filter(|l| !l.trim_start().starts_with("//"))
-                .collect::<Vec<_>>()
-                .join("\n");
-            (path.display().to_string(), code)
-        })
-        .collect()
+    let mut out = BTreeMap::new();
+    walk(src_root, src_root, &mut out);
+    out
 }
 
 /// Does `code` contain `needle` as a token, rather than as the tail of a
@@ -268,7 +272,7 @@ fn contains_token(code: &str, needle: &str) -> bool {
 
 fn check_crate(crate_dir: &str) {
     let (major, minor) = declared_msrv(crate_dir);
-    let sources = library_sources(crate_dir);
+    let sources = library_sources(&repo_root().join(crate_dir).join("src"));
     assert!(
         sources.len() > 5,
         "expected to find {crate_dir}'s library sources, found {} — has the \
