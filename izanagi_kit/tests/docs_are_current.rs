@@ -387,30 +387,53 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     }
 }
 
+/// Every tracked-looking `*.md` under the repo root. The dead-link check used
+/// to name its documents in a hardcoded array; the list silently excluded
+/// SECURITY.md and izanagi/CHANGELOG.md, and any new document would have
+/// escaped inspection forever. Walking the tree makes the coverage claim true
+/// for documents that do not exist yet.
+fn all_markdown_documents() -> Vec<PathBuf> {
+    let mut docs = Vec::new();
+    fn walk(dir: &Path, docs: &mut Vec<PathBuf>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name();
+            if path.is_dir() {
+                // Build output and VCS metadata are not documentation.
+                if name == "target" || name == ".git" {
+                    continue;
+                }
+                walk(&path, docs);
+            } else if name.to_string_lossy().ends_with(".md") {
+                docs.push(path);
+            }
+        }
+    }
+    walk(&repo_root(), &mut docs);
+    docs.sort();
+    docs
+}
+
 #[test]
 fn no_markdown_document_links_to_a_missing_file() {
     // Deleting the superseded audit documents left eight dead relative links
     // across three files — READMEs pointing readers at files that no longer
     // exist. A link is a claim that a file exists; claims get checked.
-    let docs = [
-        "README.md",
-        "AGENT_INSTRUCTIONS.md",
-        "izanagi/README.md",
-        "izanagi/CLAUDE.md",
-        "izanagi/ARCHITECTURE.md",
-        "izanagi/CONTRIBUTING.md",
-        "izanagi_kit/README.md",
-        "izanagi_kit/RESEARCH.md",
-        "izanagi_kit/SPEC.md",
-        "izanagi_kit/GAME_DEV_TAXONOMY.md",
-        "izanagi_kit/CHANGELOG.md",
-        "docs/ci/README.md",
-    ];
+    let docs = all_markdown_documents();
+    assert!(
+        docs.len() >= 14,
+        "found only {} markdown documents — has the document set shrunk?",
+        docs.len()
+    );
     let mut dead: Vec<String> = Vec::new();
     let mut checked = 0usize;
-    for doc in docs {
-        let dir = Path::new(doc).parent().unwrap_or_else(|| Path::new(""));
-        let text = read(doc);
+    for doc in &docs {
+        let dir = doc.parent().unwrap_or_else(|| Path::new(""));
+        let text = fs::read_to_string(doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
         // Every `](target)` where target is a relative path (no scheme, no
         // pure fragment). Anchors are split off before the existence check.
         let mut rest = text.as_str();
@@ -427,9 +450,8 @@ fn no_markdown_document_links_to_a_missing_file() {
                 continue;
             }
             checked += 1;
-            let resolved = repo_root().join(dir).join(path_part);
-            if !resolved.exists() {
-                dead.push(format!("{doc} -> {target}"));
+            if !dir.join(path_part).exists() {
+                dead.push(format!("{} -> {target}", doc.display()));
             }
         }
     }
