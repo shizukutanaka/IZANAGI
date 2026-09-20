@@ -307,8 +307,10 @@ I8 N19 `Fixed` op 行列)は実装で閉じた。詳細は §2 の解消済み�
 **初回公開の意思決定待ち**であり、エージェントの資格情報では実行できない。
 
 網羅的な未着手候補一覧(N10 構造化ファジング — `cargo-fuzz` が nightly を要求し本環境の
-ネットワーク制約で不可 / N18 archetype storage — 反復順序に影響するため測定駆動の
-採否判断待ち)は **`izanagi_kit/RESEARCH.md` の N 候補表を正とする**。
+ネットワーク制約で不可 / N18 archetype storage — `izanagi_kit/tests/bench.rs` の実測で
+**不採用確定**: join 走査は archetype が 16x 速いが lookup/churn は SparseSet が速く、
+frame 差は 0.1% — primitive として ArchTable を据え置き)は
+**`izanagi_kit/RESEARCH.md` の N 候補表を正とする**。
 同じ候補を2つの表で管理すれば必ず片方が古くなる。
 
 **ユーザー判断待ち(エージェントには実行不能・これがプロダクトの残り全部)**:
