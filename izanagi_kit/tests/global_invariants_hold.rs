@@ -1163,6 +1163,42 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      convention, so a `mod` here can only hide a file"
                 );
             }
+            // Runtime skips and silencers. `env::var` reads the machine at
+            // *run* time — a check behind it passes on one host and not
+            // another, or writes machine data into pinned example output.
+            // `catch_unwind` swallows a real assert; a detached `thread::`
+            // loses its panic to a dropped JoinHandle; `should_panic` reads
+            // a failure as green; `set_hook`/`take_hook` rewrite what a
+            // panic means. (`env::args` stays: the engine examples use it
+            // for `--terminal`, and argv is identical across gate runs.)
+            for needle in [
+                "env::var",
+                "catch_unwind",
+                "thread::",
+                "should_panic",
+                "set_hook",
+                "take_hook",
+            ] {
+                assert!(
+                    !contains_token(&code, needle),
+                    "{name} contains `{needle}` — a check that can be skipped \
+                     at run time, or a panic that can be swallowed or \
+                     reinterpreted, is a check that may not have run"
+                );
+            }
+            // Test-dir-only: the examples keep two legitimate uses —
+            // `process::exit` on their error path and two `#[allow]` lints —
+            // but inside the suite `exit` can end the harness mid-file and
+            // `#[allow]`/`#[warn]`/`#[expect]` downgrade lints in place.
+            if require_tests {
+                for needle in ["process::exit", "#[allow", "#[warn", "#[expect"] {
+                    assert!(
+                        !contains_token(&code, needle),
+                        "{name} contains `{needle}` — tests may not exit the \
+                         harness early or soften a lint in place"
+                    );
+                }
+            }
             // `env!`/`option_env!` bake the build machine into the binary.
             // In an example that is machine data inside the byte-identical
             // output the gate pins; in a test file it is a check whose result

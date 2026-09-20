@@ -464,6 +464,15 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `#[path`/`mod ` を禁止、env 引数は文字列認識付きの `env_macro_args` で読み
   テスト側は `CARGO_MANIFEST_DIR` のみ・example は全面禁止、さらに直下以外の
   `.rs` を検査してフラットさを凍結(6種注入全て検出確認)。
+- ~~コンパイル時の逃げ道を塞げばスイート改竄は尽きたと思われていた~~ →
+  実行時の逃げ道が残っていた: `env::var` でマシン依存スキップ、
+  `catch_unwind`/`set_hook`/`take_hook` で panic を飲み込む/再定義、
+  detach された `thread::spawn` で panic を JoinHandle ごと捨てる、
+  `should_panic` で失敗を緑化、テスト内 `process::exit` でハーネスを
+  途中終了、`#[allow]`/`#[warn]`/`#[expect]` で lint を局所ダウングレード。
+  共通6ニードル + テスト限定4ニードルを追加(example 側の正当利用 —
+  `env::args` の `--terminal` 処理、`process::exit` のエラーパス、
+  `#[allow]` 2件 — は温存)。7種注入全て検出確認。
 
 ## 3. 改善案(優先順位付き)
 
