@@ -12,7 +12,7 @@
 //! its seed.
 
 use izanagi_kit::content::{Color, Content, Diagnostic, Level, Prefab, Spawn, Tile};
-use izanagi_kit::{content_eq, parse, serialize, SplitMix64};
+use izanagi_kit::{content_eq, load_level, parse, serialize, validate, SplitMix64};
 use std::collections::BTreeMap;
 
 /// Builds a well-formed `Content` from a seed. Names avoid whitespace and stay
@@ -215,6 +215,20 @@ fn test_malformed_input_never_panics_and_is_deterministic() {
             sig(&d2),
             "iter {iter}: diagnostics differ between identical parses\n---\n{m}"
         );
+        // The pipeline is total end-to-end, not just at the parser: whatever
+        // Content a hostile input produced must also survive validation
+        // (deterministically — its diagnostics are a stable signature) and
+        // level loading without panicking.
+        let v1 = validate(&parsed);
+        let v2 = validate(&parsed);
+        assert_eq!(
+            sig(&v1),
+            sig(&v2),
+            "iter {iter}: validator diagnostics differ between identical runs\n---\n{m}"
+        );
+        for level in &parsed.levels {
+            let _ = load_level(&parsed, &level.name);
+        }
         // Whatever partial Content the parser produced must also survive
         // the serializer without panicking.
         let _ = serialize(&parsed);
