@@ -1829,6 +1829,32 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "{name} contains a bare slash literal — the leading segment \
                  of an absolute path built one piece at a time"
             );
+            // `.git` as a path atom: one `..`-free climb from a package dir
+            // reaches the repo root, and `.git/info/exclude` inside it is
+            // writable state `git status` never lists — editing it makes
+            // later drops invisible to the gate's sentinel (verified:
+            // manifest.parent().join(<dot-git>) compiled and passed, and an
+            // exclude line hid an untracked file). `.gitignore` /
+            // `.gitattributes` are safe — the boundary test below requires
+            // a quote or slash on both sides of the atom.
+            let dotgit = concat!(".", "git");
+            let mut saw_git_atom = false;
+            for (gi, _) in raw.match_indices(dotgit) {
+                let l = gi.checked_sub(1).and_then(|i| bs.get(i));
+                let r = bs.get(gi + dotgit.len());
+                let ok_left = l == Some(&b'"') || l == Some(&b'/');
+                let ok_right = r == Some(&b'"') || r == Some(&b'/');
+                if ok_left && ok_right {
+                    saw_git_atom = true;
+                    break;
+                }
+            }
+            assert!(
+                !saw_git_atom,
+                "{name} spells `.git` as a path segment — the repo's own \
+                 metadata is outside the porcelain sentinel's view, so \
+                 suite code may not address it"
+            );
             // One `.parent()` per statement at most: the manifest dir is
             // inside the tree and its parent is the workspace root, so a
             // second `.parent()` in the same expression is a climb out of

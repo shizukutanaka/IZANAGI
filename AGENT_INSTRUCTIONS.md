@@ -855,6 +855,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   残存: 既存 ignored-dir 内部への書込 (target/, .temp/, .claude/)。
 
 
+- ~~`.git` は 2段登りが要るので1段 `..` 許可で届かないと思われていた~~ →
+  tests の cwd は package dir、`.` `..` 1つで repo root → `.git` へ即
+  到達。`info/exclude` 編集は status に出ない書込で後続の drop を不可視
+  化(機序実証済み)。パス成分 `.git` (両端が `"` か `/`)を byte-scan で
+  禁止 — `.gitignore`/`.gitattributes` は成分境界で安全に通過。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
