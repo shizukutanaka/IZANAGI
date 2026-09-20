@@ -847,6 +847,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   で実証: `?? file` 消失)。`tree_status()` に `-c` 強制フラグを集約。
 
 
+- ~~porcelain sentinel は untracked/modified を尽くすと思われていた~~ →
+  .gitignore の glob に合う drop (`*.swp`, `.DS_Store`) は porcelain に
+  一切出ない。`--ignored=matching` を追加(ignored-dir は `!! dir/` に
+  畳むので target churn は不発、glob 一致ファイルは個別に検出)。
+  clean clone で gate が作る `!! target/`/`!! Cargo.lock` は除外。
+  残存: 既存 ignored-dir 内部への書込 (target/, .temp/, .claude/)。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

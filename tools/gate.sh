@@ -53,8 +53,18 @@ tree_status() {
     # dropped files, and the untracked cache / an fsmonitor daemon can
     # serve a stale listing — verified: a HOME pointing at a fake
     # .gitconfig kept `?? file` out of `git status --porcelain`. The -c
-    # flags force the honest read.
-    git -c status.showUntrackedFiles=all -c core.untrackedCache=false -c core.fsmonitor=false status --porcelain
+    # flags force the honest read. `--ignored=matching` additionally lists
+    # ignored FILES under tracked dirs — a `*.swp`/`.DS_Store` drop would
+    # otherwise never appear in porcelain at all (verified:
+    # `!! izanagi/drop.swp`), while folding ignored dirs to `!! dir/` so
+    # build churn inside target/ stays invisible instead of always
+    # diffing. The two `!!` entries this gate itself creates are filtered
+    # (a clean clone gains target/ and Cargo.lock during the run); every
+    # other ignored entry must match before/after. Files *inside* an
+    # ignored directory still hide — writes under target/, .temp/ or
+    # .claude/ interiors are the documented residual.
+    git -c status.showUntrackedFiles=all -c core.untrackedCache=false -c core.fsmonitor=false status --porcelain --ignored=matching |
+        grep -vE '^!! (target/|Cargo\.lock)$'
 }
 if command -v git >/dev/null 2>&1; then
     tree_before=$(tree_status)
