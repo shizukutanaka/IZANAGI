@@ -808,6 +808,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   禁止で二重防護)。
 
 
+- ~~`env::args`/`args_os` は全4dirで正当と思われていた~~ → 正当使用は
+  examples の `--terminal` のみで、test binary の argv[0] はハーネス
+  自身の機械パス(注入→緑)。whitelist を per-dir 化: tests 側は
+  `env::` 一切不許可、examples のみ argv 許可。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

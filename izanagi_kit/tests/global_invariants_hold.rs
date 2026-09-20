@@ -1684,11 +1684,20 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     .chars()
                     .take_while(|c| c.is_alphanumeric() || *c == '_')
                     .collect();
+                // The argv readers are for the examples' `--terminal` flag;
+                // in a test binary argv is the harness's own machine path —
+                // nothing under tests/ has a legitimate env:: call at all
+                // (injected `env::args().next()` into a test: green).
+                let allowed: &[&str] = if require_tests {
+                    &[]
+                } else {
+                    &["args", "args_os"]
+                };
                 assert!(
-                    ident == "args" || ident == "args_os",
-                    "{name} contains `env::{ident}` — only `env::args` and \
-                     `env::args_os` may read the machine at run time; every \
-                     other `env::` reader is a skip switch or a machine leak"
+                    allowed.contains(&ident.as_str()),
+                    "{name} contains `env::{ident}` — only the examples may \
+                     read argv (the `--terminal` flag); every other `env::` \
+                     reader is a skip switch or a machine leak"
                 );
             }
             // Raw pointers and addresses: `&x as *const T as usize` puts an
