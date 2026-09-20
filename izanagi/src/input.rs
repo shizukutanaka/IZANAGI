@@ -169,6 +169,29 @@ mod tests {
     }
 
     #[test]
+    fn stray_release_does_not_fire_released() {
+        // `on_key_up` on a key that was never down must not report a
+        // release edge — the `remove` return value is the guard.
+        let mut i = Input::new();
+        i.on_key_up(Key::Space);
+        assert!(!i.released(Key::Space));
+        assert!(!i.down(Key::Space));
+    }
+
+    #[test]
+    fn same_frame_re_press_is_a_new_edge() {
+        // down -> up -> down inside one frame: the second press is a real
+        // new edge, and both edges are reported.
+        let mut i = Input::new();
+        i.on_key_down(Key::Space);
+        i.on_key_up(Key::Space);
+        i.on_key_down(Key::Space);
+        assert!(i.pressed(Key::Space));
+        assert!(i.released(Key::Space));
+        assert!(i.down(Key::Space));
+    }
+
+    #[test]
     fn repeated_down_does_not_fire_pressed_again() {
         let mut i = Input::new();
         i.on_key_down(Key::W);
