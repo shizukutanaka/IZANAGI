@@ -1759,6 +1759,12 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "env as",
                 "thread as",
                 "process as",
+                // stdin is ambient input: `io::stdin().read_line` returns
+                // empty instantly under a closed stdin but reads whatever
+                // a user types when cargo inherits the terminal (injected
+                // both spellings into an example and `stdin()` into a test:
+                // green).
+                "stdin",
             ] {
                 assert!(
                     !contains_token(&code, needle),
