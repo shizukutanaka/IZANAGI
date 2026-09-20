@@ -459,6 +459,8 @@ fn the_gate_script_still_runs_every_stage() {
         "CARGO_HOME",
         "cargo fmt --all",
         "cargo test --workspace",
+        "cargo test --workspace --release",
+        "sparse-checkout",
         "cargo clippy",
         "cargo doc",
         "--test determinism",

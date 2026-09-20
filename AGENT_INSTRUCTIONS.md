@@ -952,6 +952,9 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   オーバーフローテストを注入すると debug で panic・release で wrap=ok と
   判定が分岐(実証)。docs/ci/ci.yml の規定通り `cargo test --workspace
   --release` を gate に追加 — プロファイル間差異は静走査の到達不能面。
+- ~~gate 段の追加は自己完結だと思われていた~~ → `the_gate_script_still_runs_every_stage`
+  は段の識別トークンを名指しピンするので、新段はトークン未記載だと静黙の退化に
+  対し無防備。release スイート・sparse 拒否の識別トークンを同リストへ追補。
 
 ## 3. 改善案(優先順位付き)
 
