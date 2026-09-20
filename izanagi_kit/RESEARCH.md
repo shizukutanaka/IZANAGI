@@ -559,3 +559,4 @@ api-guidelines#231(MSRV)/ docs.rs metadata / rustwasm sunset(team#291)/ gamedev.
 | H51 | **Camera 回転の方向性ピン** — 既存 round_trip は rotation=0 の退化ケースのみで、sin=0/cos=1 では符号誤りが不可視。回転スイープ(64 点)で往復を一般化し、さらに「東が南に写る」方向ピンを追加 — 両変換が同じ符号誤りを持つ鏡像変異は往復を通過するが方向ピンで検出(変異実証: 往復テスト緑・方向ピンのみ発火)。往復検査は逆写像性のみ証明し手性は証明しない |
 | H52 | **world_to_tile の floor 意味論をピン** — 正座標のみの既存テストでは `.floor()` を `as i32` 切捨てに置換しても検出不能(負座標で初めて値が分岐: -0.5/16 → floor=-1 vs trunc=0)。負座標+左閉境界のピンを追加し、floor 除去変異で発火確認。座標変換の「暗黙の丸め規則」は境界でこそ差が出る |
 | H53 | **Input の stray-release 抑止と同一フレーム再押下をピン** — `on_key_up` は `down.remove` の戻り値でガード: 未押下キーの up が `released` を発火しない意味論と、同一フレーム down→up→down の再押下が新エッジを発火する意味論がともに未検査だった。ガード除去変異で発火確認。エッジ系 API は「無いはずのエッジ」も契約 |
+| H54 | **Scene の孤児化・死ハンドル意味論を値ピン** — `remove_orphans_children` は `let _ = s.world(child)` で panic 不在のみ検査、doc 契約「子は local を維持」の値は未 assert。値ピン追加(親+10/子+5 → 除去前15・除去後5)。併せて `world(dead)=IDENTITY` vs `local(dead)=最終local` の非対称を契約としてピン — alive ガード除去変異で発火 |

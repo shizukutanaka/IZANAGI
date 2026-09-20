@@ -157,4 +157,42 @@ mod tests {
         // Child's world should just be its local (no parent to walk through).
         let _ = s.world(child);
     }
+
+    #[test]
+    fn orphaned_child_keeps_its_local_as_world() {
+        // Doc contract of remove(): "children become roots (they keep their
+        // current local)". The old test called world() but never compared —
+        // a regression could change orphan semantics silently. Pin the value:
+        // parent at +10, child local +5 -> world 15 before removal, 5 after.
+        let mut s = Scene::new();
+        let parent = s.add();
+        let child = s.add_child(parent);
+        s.set_local(parent, Mat3::translation(Vec2::new(10.0, 0.0)));
+        s.set_local(child, Mat3::translation(Vec2::new(5.0, 0.0)));
+        let before = s.world(child).transform_point(Vec2::ZERO);
+        assert!((before.x - 15.0).abs() < 1e-4);
+        s.remove(parent);
+        let after = s.world(child).transform_point(Vec2::ZERO);
+        assert!(
+            (after.x - 5.0).abs() < 1e-4,
+            "orphaned child should keep its local as world, got {after:?}"
+        );
+    }
+
+    #[test]
+    fn a_removed_nodes_world_is_identity_not_garbage() {
+        // world() on a dead handle returns acc=IDENTITY (alive check runs
+        // before the local multiply). local() still reports the stored local
+        // — the pair's asymmetry is deliberate and pinned.
+        let mut s = Scene::new();
+        let n = s.add();
+        s.set_local(n, Mat3::translation(Vec2::new(7.0, 0.0)));
+        s.remove(n);
+        assert_eq!(s.world(n), Mat3::IDENTITY);
+        assert_ne!(
+            s.local(n),
+            Mat3::IDENTITY,
+            "local() reports the last-set local even after removal"
+        );
+    }
 }
