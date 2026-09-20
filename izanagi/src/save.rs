@@ -25,12 +25,9 @@ pub struct Save;
 impl Save {
     /// Write a save at `path` with an explicit schema `version`.
     pub fn write(path: impl AsRef<Path>, version: u16, data: &[u8]) -> Result<()> {
-        let mut buf = Vec::with_capacity(10 + data.len());
-        buf.extend_from_slice(&MAGIC);
-        buf.extend_from_slice(&version.to_le_bytes());
-        buf.extend_from_slice(&(data.len() as u32).to_le_bytes());
-        buf.extend_from_slice(data);
-        fs::write(path, &buf)?;
+        // Delegates to `encode` so the wire layout exists in exactly one
+        // place — the byte-pinned test covers files and memory identically.
+        fs::write(path, Self::encode(version, data))?;
         Ok(())
     }
 
@@ -102,5 +99,34 @@ mod tests {
         let (v, d) = Save::parse(&enc).unwrap();
         assert_eq!(v, 0);
         assert!(d.is_empty());
+    }
+
+    #[test]
+    fn format_layout_is_byte_exact() {
+        // Roundtrip tests cannot see a self-consistent format change — a
+        // u64 length or a BE version keeps its own tests green while every
+        // save file in the wild goes unreadable. The wire contract is
+        // pinned: MAGIC(4) + version(u16 LE) + len(u32 LE) + payload.
+        let enc = Save::encode(0x0102, b"AB");
+        assert_eq!(
+            enc,
+            b"IZAN\x02\x01\x02\x00\x00\x00AB".to_vec(),
+            "save layout drifted — old saves can no longer be read"
+        );
+        let (v, d) = Save::parse(&enc).unwrap();
+        assert_eq!(v, 0x0102);
+        assert_eq!(d, b"AB");
+    }
+
+    #[test]
+    fn write_and_encode_emit_the_same_bytes() {
+        // `write` delegates to `encode`; this guards the delegation itself —
+        // a second layout in `write` would break files while the pinned
+        // in-memory bytes stayed green.
+        let dir = std::env::temp_dir().join("izanagi_save_layout_probe.dat");
+        Save::write(&dir, 0xBEEF, b"xy").unwrap();
+        let on_disk = std::fs::read(&dir).unwrap();
+        let _ = std::fs::remove_file(&dir);
+        assert_eq!(on_disk, Save::encode(0xBEEF, b"xy"));
     }
 }
