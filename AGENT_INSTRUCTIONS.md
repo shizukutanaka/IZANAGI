@@ -907,6 +907,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `include_str!("../README.md")` と `env!("CARGO_MANIFEST_DIR")` のみ
   ピン許可。`src/main.rs` を bin ルート列挙に追加する件も同コミット群。
 
+- ~~テストファイルに `#[test]` さえあれば意味ある検査~~ → `fn t() { let _ = setup(); }` は assert 系ゼロで緑を通過する vacuous check を注入実証。require_tests に assert!/assert_eq!/expect(/unwrap(/panic!/matches!/unreachable!/todo! いずれかのトークン≥1 を要求(機構上 assert 不在のファイルは全件失敗し得る)。
 
 ## 3. 改善案(優先順位付き)
 

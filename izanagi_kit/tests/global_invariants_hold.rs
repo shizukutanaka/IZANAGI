@@ -1713,6 +1713,33 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "{name} contains no #[test] function — a test file that \
                  runs nothing passes vacuously"
             );
+            // Vacuous *content*: a file can carry `#[test]` and still assert
+            // nothing — `fn t() { let _ = setup(); }` reports green while
+            // checking zero properties. Every current file has several
+            // assertion-family tokens; require at least one.
+            if require_tests {
+                let asserts = [
+                    "assert!",
+                    "assert_eq!",
+                    "assert_ne!",
+                    "assert_matches!",
+                    "expect(",
+                    "unwrap(",
+                    "panic!",
+                    "matches!",
+                    "unreachable!",
+                    "unimplemented!",
+                    "todo!",
+                ]
+                .iter()
+                .filter(|t| contains_token(&code, t))
+                .count();
+                assert!(
+                    asserts > 0,
+                    "{name} runs tests but contains no assertion — a check \
+                     that cannot fail is a check that does not run"
+                );
+            }
             let ignored = code.matches("#[ignore").count();
             let allowed = IGNORE_ALLOWLIST.iter().filter(|(f, _)| *f == name).count();
             assert!(
