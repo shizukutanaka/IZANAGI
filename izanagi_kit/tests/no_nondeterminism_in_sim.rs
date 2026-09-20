@@ -135,6 +135,17 @@ const BANNED: &[(&str, &str)] = &[
     ("filesystem module", "std::fs"),
     ("filesystem access", "fs::"),
     ("I/O module", "std::io"),
+    // The network stack is ambient input of the same kind and worse: a
+    // socket hands the sim bytes no input log recorded, and two honest
+    // runs read different bytes. `std::net`/`net::` catch module paths
+    // (`netinput` is safe — `net::` cannot match `netinput::`), the type
+    // names catch `use`-shortened calls.
+    ("network module", "std::net"),
+    ("network module", "net::"),
+    ("network", "TcpStream"),
+    ("network", "TcpListener"),
+    ("network", "UdpSocket"),
+    ("network", "ToSocketAddrs"),
     // CPU feature detection (`std::arch::is_x86_feature_detected!` and the
     // intrinsics behind it) is a runtime branch on *which machine* runs the
     // binary — the same simulation code would take different paths on two

@@ -1252,6 +1252,29 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      reinterpreted, is a check that may not have run"
                 );
             }
+            // Delegating the checked computation to outside the scanned
+            // universe: a subprocess runs anything, a socket reads bytes no
+            // scan can see, and env writes mutate the ambient inputs other
+            // needles police. None of these appear anywhere today.
+            for needle in [
+                "Command::new",
+                "process::Command",
+                "std::net",
+                "TcpStream",
+                "TcpListener",
+                "UdpSocket",
+                "ToSocketAddrs",
+                "env::set_var",
+                "env::remove_var",
+            ] {
+                assert!(
+                    !contains_token(&code, needle),
+                    "{name} contains `{needle}` — a check or example that \
+                     runs a subprocess, opens a socket, or mutates the \
+                     environment has delegated the verified computation to \
+                     code this suite never reads"
+                );
+            }
             // Test-dir-only: the examples keep two legitimate uses —
             // `process::exit` on their error path and two `#[allow]` lints —
             // but inside the suite `exit` can end the harness mid-file and

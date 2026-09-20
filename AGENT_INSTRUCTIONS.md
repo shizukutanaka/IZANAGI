@@ -138,6 +138,18 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 ### 解消済み(本セッション)
 
+- ~~ambient input 拒否リストが時計・FS・I/O・process・arch・ポインタを網羅しているなら
+  「機器に依存する入力は全部塞がれている」~~ → ネットワークスタックだけ抜けていた:
+  sim コードが `std::net::TcpStream::connect` でソケットを開けば、入力ログも replay も
+  再構成できないバイトが直接 sim に入り、二度の正直な実行は別のバイトを読む。
+  `BANNED` に `std::net`/`net::`/`TcpStream`/`TcpListener`/`UdpSocket`/`ToSocketAddrs` を追加。
+  同じ「検査対象の計算を走査外へ委譲する」族が tests/examples にもあった —
+  `Command::new`/`process::Command` で任意のサブプロセス、`std::net` 系でソケット、
+  `env::set_var`/`env::remove_var` で他ニードルが取り締まる ambient input 自体の書き換え
+  (全対象で実使用ゼロ)。注入で実証: kit src の `TcpStream` は境界より前の実コード位置で
+  `library_code_has_no_unstable_inputs` を落とし、tests の `Command::new`・
+  examples の `UdpSocket`・tests の `env::set_var` はいずれも
+  `the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks` を落とす。
 - ~~`library_sources` が `src/` を再帰的に歩くなら出荷バイナリも走査されている~~ →
   `src/bin/` は意図的に除外されている(「CLI はその機械に答える」)が、
   `src/bin/*.rs` は**それ自身がクレートルート**なので lib の
