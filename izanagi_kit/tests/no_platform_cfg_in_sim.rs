@@ -44,11 +44,16 @@
 //! Windows console is not a Unix terminal). The kit is the crate whose
 //! promise this invariant protects.
 //!
-//! One adjacent hole closes here too rather than in a file of its own:
-//! `global_invariants_hold.rs` proves `[dependencies]` empty by reading that
-//! TOML section, but Cargo also honours `[target.'cfg(...)'.dependencies]` —
-//! a platform-conditional dependency that the section scanner cannot see.
-//! Neither manifest uses one; now nothing may add one.
+//! Adjacent holes close here too rather than in files of their own — the
+//! manifest tables and Cargo config files that feed the compiler outside
+//! the sections the other scanners read: `[target.'cfg(...)'.dependencies]`
+//! is a platform-conditional dependency invisible to the `[dependencies]`
+//! scan, `[features]` declares inputs to a `cfg(feature)` nobody may write,
+//! `[build-dependencies]` feeds a build script that is already banned,
+//! `[lints]`/`[patch]`/`[replace]` add configuration the gate never reads,
+//! and `.cargo/config.toml` can pass `rustflags` — including `--cfg` — that
+//! bypass this file's whole predicate scan. None exist today; now none may.
+//!
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -285,20 +290,60 @@ fn library_code_compiles_without_platform_profile_or_feature_conditionals() {
 }
 
 #[test]
-fn neither_manifest_hides_dependencies_behind_a_target_cfg() {
-    // `[target.'cfg(...)'.dependencies]` is a real dependency that the
-    // `[dependencies]`-section scan in global_invariants_hold.rs cannot see —
-    // a platform-keyed hole in G1. Banning the whole `[target.*]` family keeps
-    // the section grammar of these manifests closed.
-    for krate in ["izanagi_kit", "izanagi"] {
-        let manifest = fs::read_to_string(repo_root().join(krate).join("Cargo.toml"))
-            .unwrap_or_else(|e| panic!("reading {krate}/Cargo.toml: {e}"));
+fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
+    // Every table header below would add inputs to the build that the
+    // section-level scanners in this file and global_invariants_hold.rs
+    // never read: `target` is a conditional dependency or flag source,
+    // `features` declares inputs to a `cfg(feature)` no source file may
+    // name, `build-dependencies` feeds a build.rs that is already banned,
+    // and `lints`/`patch`/`replace` are configuration the gate ignores.
+    // Banning the header atoms keeps these manifests' grammar closed.
+    const BANNED_SECTION_ATOMS: &[&str] = &[
+        "target",
+        "features",
+        "build-dependencies",
+        "lints",
+        "patch",
+        "replace",
+    ];
+    for manifest_rel in ["Cargo.toml", "izanagi_kit/Cargo.toml", "izanagi/Cargo.toml"] {
+        let manifest = fs::read_to_string(repo_root().join(manifest_rel))
+            .unwrap_or_else(|e| panic!("reading {manifest_rel}: {e}"));
         for line in manifest.lines().map(str::trim) {
+            let Some(rest) = line.strip_prefix('[') else {
+                continue;
+            };
+            // `[[bin]]` and `[a.b]` both reduce to their bare keys: take the
+            // header text and split it on '.' so `[target.'cfg(unix)'.d]`
+            // yields `target` and `[workspace.lints]` yields `lints` too.
+            let header = rest.trim_start_matches('[');
+            let header = header.split(']').next().unwrap_or(header);
+            for key in header.split('.') {
+                let key = key.trim().trim_matches(|c| c == '\'' || c == '"');
+                assert!(
+                    !BANNED_SECTION_ATOMS.contains(&key),
+                    "{manifest_rel} declares `{line}` — the `{key}` table is \
+                     build configuration the gate never reads. The section \
+                     grammar of these manifests is closed."
+                );
+            }
+        }
+    }
+
+    // `.cargo/config.toml` (or the extensionless `config`) is read from the
+    // package directory upward: `build.rustflags` there could pass `--cfg`
+    // past the predicate scan above, or `--cap-lints allow` to demote the
+    // deny-level safety lints. The ban covers the workspace root and both
+    // member crates — anywhere Cargo would look while building them.
+    for dir in ["", "izanagi_kit", "izanagi"] {
+        for name in ["config", "config.toml"] {
+            let path = repo_root().join(dir).join(".cargo").join(name);
             assert!(
-                !line.starts_with("[target"),
-                "{krate}/Cargo.toml has `{line}` — a platform-conditional \
-                 section would add dependencies the G1 scan cannot see. The \
-                 zero-dependency promise holds on every target or none."
+                !path.exists(),
+                "{} exists — a repo-checked-in cargo config can pass rustflags \
+                 (including `--cfg` and `--cap-lints`) around every source \
+                 scan in this suite",
+                path.display()
             );
         }
     }

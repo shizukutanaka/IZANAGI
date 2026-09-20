@@ -20,7 +20,7 @@
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -179,7 +179,7 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
     let mut m = BTreeMap::new();
     m.insert(
         "G1",
-        "this file: g1_* (empty [dependencies], path-only dev-deps, no build.rs)",
+        "this file: g1_* (empty [dependencies], path-only dev-deps, no build script)",
     );
     m.insert(
         "G2",
@@ -195,7 +195,7 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
     );
     m.insert(
         "G5",
-        "izanagi_kit/tests/determinism.rs + roguelike_sim.rs (pinned hashes)",
+        "izanagi_kit/tests/determinism.rs + izanagi_kit/tests/roguelike_sim.rs (pinned hashes)",
     );
     m.insert(
         "G6",
@@ -203,7 +203,9 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
     );
     m.insert(
         "G7",
-        "the crate-level deny(clippy::unwrap_used, expect_used, panic) in both lib.rs",
+        "this file: g7_* (the deny attrs are asserted present at each crate \
+         root, and no allow/expect/warn/force_warn may weaken them or \
+         unsafe_code)",
     );
     m.insert(
         "G9",
@@ -220,13 +222,221 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
         "G11",
         "izanagi_kit/tests/no_platform_cfg_in_sim.rs (cfg/cfg!/cfg_attr \
          predicates may name only test/doc/doctest/docsrs and the \
-         not/any/all combinators; no [target.*] section in either manifest)",
+         not/any/all combinators; no target/features/lints/patch/replace/ \
+         build-dependencies manifest tables; no .cargo config)",
     );
     m.insert(
         "G8",
         "this file: g8_*, plus izanagi_kit/tests/msrv_is_respected.rs for the code",
     );
     m
+}
+
+/// Library sources of one crate's `src/`, keyed by path relative to it.
+/// Same contract as the neighbouring scanners: line comments are stripped
+/// first, then the text is cut at the first `#[cfg(test)]` marker, and
+/// `src/bin/` is excluded — a CLI's job is to answer to its machine.
+fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
+    fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if path.file_name().map(|n| n == "bin").unwrap_or(false) {
+                    continue;
+                }
+                walk(&path, root, out);
+            } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                let stripped = src
+                    .lines()
+                    .filter(|l| !l.trim_start().starts_with("//"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let end = stripped.find("#[cfg(test)]").unwrap_or(stripped.len());
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string();
+                out.insert(rel, stripped[..end].to_string());
+            }
+        }
+    }
+    let mut out = BTreeMap::new();
+    walk(src_root, src_root, &mut out);
+    out
+}
+
+/// Text inside a parenthesised group whose opening `(` was just consumed.
+fn take_balanced(s: &str) -> &str {
+    let mut depth = 1usize;
+    for (i, c) in s.char_indices() {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return &s[..i];
+                }
+            }
+            _ => {}
+        }
+    }
+    s
+}
+
+/// The text up to the first comma at the top nesting level: for
+/// `cfg_attr(pred, attr...)`, the predicate alone.
+fn first_top_level_arg(inner: &str) -> &str {
+    let mut depth = 0usize;
+    for (i, c) in inner.char_indices() {
+        match c {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => return &inner[..i],
+            _ => {}
+        }
+    }
+    inner
+}
+
+/// Identifier-shaped atoms with `"..."` literals stripped, so a quoted value
+/// cannot masquerade as a named lint or marker.
+fn predicate_atoms(text: &str) -> Vec<String> {
+    let mut cleaned = String::new();
+    let mut in_str = false;
+    for c in text.chars() {
+        if c == '"' {
+            in_str = !in_str;
+        } else if !in_str {
+            cleaned.push(c);
+        }
+    }
+    cleaned
+        .split(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+        .filter(|t| !t.is_empty() && !t.chars().all(|c| c.is_ascii_digit()))
+        .map(str::to_string)
+        .collect()
+}
+
+/// `(start, end)` spans of `cfg_attr(...)` argument lists whose predicate can
+/// only be true while testing or documenting — `cfg_attr(test, ...)`,
+/// `cfg_attr(docsrs, ...)`, `cfg_attr(doctest, ...)`. Anything nested in such
+/// a span never applies to shipped code, so a weakening attribute found
+/// there is out of scope. `not(...)` is deliberately not inert (`not(test)`
+/// applies to every real build), so a predicate containing it still counts.
+fn test_only_cfg_attr_spans(code: &str) -> Vec<(usize, usize)> {
+    let needle = "cfg_attr(";
+    let mut out = Vec::new();
+    for (pos, _) in code.match_indices(needle) {
+        let prev = code[..pos].chars().last();
+        if prev
+            .map(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':')
+            .unwrap_or(false)
+        {
+            continue;
+        }
+        let inner = take_balanced(&code[pos + needle.len()..]);
+        let atoms = predicate_atoms(first_top_level_arg(inner));
+        let has_marker = atoms
+            .iter()
+            .any(|a| matches!(a.as_str(), "test" | "doctest" | "doc" | "docsrs"));
+        let only_markers = atoms.iter().all(|a| {
+            matches!(
+                a.as_str(),
+                "test" | "doctest" | "doc" | "docsrs" | "any" | "all"
+            )
+        });
+        if has_marker && only_markers {
+            out.push((pos + needle.len(), pos + needle.len() + inner.len()));
+        }
+    }
+    out
+}
+
+/// Argument lists of every lint-level-lowering attribute in `code` —
+/// `allow`, `expect`, `warn`, `force_warn` — except ones nested inside a
+/// `cfg_attr` that can only fire under test/doc builds.
+fn weakening_lint_args(code: &str) -> Vec<String> {
+    const WEAKENERS: &[&str] = &["allow", "expect", "warn", "force_warn"];
+    let inert = test_only_cfg_attr_spans(code);
+    let mut out = Vec::new();
+    for w in WEAKENERS {
+        let needle = format!("{w}(");
+        for (pos, _) in code.match_indices(&needle) {
+            let prev = code[..pos].chars().last();
+            if prev
+                .map(|c| c.is_ascii_alphanumeric() || c == '_' || c == ':' || c == '.')
+                .unwrap_or(false)
+            {
+                continue;
+            }
+            if inert.iter().any(|&(s, e)| pos > s && pos <= e) {
+                continue;
+            }
+            out.push(take_balanced(&code[pos + needle.len()..]).to_string());
+        }
+    }
+    out
+}
+
+#[test]
+fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
+    // G7's panic-free promise rests on `deny(clippy::unwrap_used, ...)` at
+    // each crate root — but `deny` is a level, and a level yields to a single
+    // `#[allow(clippy::unwrap_used)]` on any item between root and leaf.
+    // `expect` is an allow with bookkeeping, `warn`/`force_warn` lower it the
+    // same way. `unsafe_code` is `forbid`, which no inner attribute can lower
+    // — so an `allow` naming it is flagged anyway: it exists only if someone
+    // tried. Both halves are checked: the denies must be there, and no
+    // weakening attribute may name a lint they carry.
+    const PROTECTED: &[&str] = &["unsafe_code", "unwrap_used", "expect_used", "panic"];
+
+    for (krate, lib) in [
+        ("izanagi_kit", "izanagi_kit/src/lib.rs"),
+        ("izanagi", "izanagi/src/lib.rs"),
+    ] {
+        assert!(
+            read(lib).contains("deny(clippy::unwrap_used"),
+            "{krate}'s panic-path deny attribute is gone from {lib} — G7 then \
+             rests on nothing at all"
+        );
+    }
+
+    let mut found = Vec::new();
+    let mut offenders: Vec<String> = Vec::new();
+    for src in ["izanagi_kit/src", "izanagi/src"] {
+        for (name, code) in library_sources(&repo_root().join(src)) {
+            for args in weakening_lint_args(&code) {
+                found.push(args.clone());
+                for atom in predicate_atoms(&args) {
+                    if PROTECTED.contains(&atom.as_str()) {
+                        offenders.push(format!(
+                            "{name}: a weakening attribute names `{atom}` — \
+                             the panic-free and unsafe-free claims hold only \
+                             if the crate-level gates apply to every item"
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "lint-level escape hatches found: {offenders:#?}"
+    );
+    // Vacuity: the scan must actually have found attributes — the crate
+    // carries benign `#[allow(missing_docs)]` markers on macro-generated
+    // items today, so a scan that found nothing at all is the scanner's
+    // failure, not proof of absence.
+    assert!(
+        found.iter().any(|a| a.contains("missing_docs")),
+        "the weakening scan found no `allow` attributes at all — the known \
+         `#[allow(missing_docs)]` markers should have shown up"
+    );
 }
 
 #[test]
@@ -274,6 +484,31 @@ fn every_global_invariant_in_the_spec_says_where_it_is_enforced() {
         "enforcement_sites() names invariants SPEC.md no longer declares: \
          {stale:?}"
     );
+}
+
+#[test]
+fn every_named_enforcement_site_is_a_file_that_exists() {
+    // The map above only counts if the files it names are real: renaming or
+    // deleting a check would leave SPEC.md pointing at a ghost — an
+    // invariant that reads as enforced and is not.
+    for (g, site) in enforcement_sites() {
+        for token in site.split(|c: char| {
+            !(c.is_ascii_alphanumeric() || c == '_' || c == '/' || c == '.' || c == '-')
+        }) {
+            if token.ends_with(".rs") || token.ends_with(".md") || token.ends_with(".sh") {
+                assert!(
+                    token.contains('/'),
+                    "{g}'s enforcement site names `{token}` without a path — \
+                     write it relative to the repo root so it can be checked"
+                );
+                assert!(
+                    repo_root().join(token).exists(),
+                    "{g} claims {token} as its enforcement, but that file does \
+                     not exist"
+                );
+            }
+        }
+    }
 }
 
 #[test]
