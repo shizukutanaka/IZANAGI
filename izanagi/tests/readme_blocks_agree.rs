@@ -4,7 +4,7 @@
 //! The repository root README belongs to no crate, so nothing compiles it, and
 //! it is the page GitHub shows first. The obvious fix was to include it as a
 //! doctest from `izanagi/src/lib.rs`, and that was tried. It is wrong:
-//! `include_str!("../../README.md")` reaches above the package directory, so
+//! an `include_str!` two directories above the package reaches outside it, so
 //! the file is not in the tarball and the published crate cannot run its own
 //! doctests. Unpacking `izanagi-4.1.0.crate` and running `cargo test --doc`
 //! fails on exactly that line.
@@ -109,8 +109,10 @@ fn no_doc_include_reaches_outside_its_package() {
             rest = &rest[at + 14..];
             let Some(end) = rest.find('"') else { break };
             let path = &rest[..end];
+            let mut segs = path.split('/');
+            let climbs_out = segs.next() == Some("..") && segs.next() == Some("..");
             assert!(
-                !path.starts_with("../../") && !path.contains("/../"),
+                !climbs_out && !path.contains("/../"),
                 "{lib} includes `{path}`, which is outside the package. The \
                  file will not be in the published tarball, and `cargo package \
                  --verify` will not notice because it runs a build rather than \

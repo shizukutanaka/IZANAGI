@@ -1792,6 +1792,19 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 );
                 at = end;
             }
+            // A relative path escapes too: `fs::read` with enough `..`
+            // segments climbs out of the package and reads whatever the
+            // host mounts there (injected a multi-climb literal into a
+            // test: green — the leading-slash probe only sees absolute
+            // paths). Two consecutive parent segments can only mean
+            // leaving the crate; one level stays legal (`../README.md`
+            // is a doc idiom).
+            assert!(
+                !raw.contains(concat!("..", "/..")),
+                "{name} contains a literal climbing two directories — a \
+                 path leaving the package reads host state this suite \
+                 does not replay"
+            );
             // Delegating the checked computation to outside the scanned
             // universe: a subprocess runs anything, a socket reads bytes no
             // scan can see, and env writes mutate the ambient inputs other

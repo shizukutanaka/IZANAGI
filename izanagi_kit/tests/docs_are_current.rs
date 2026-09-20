@@ -1237,7 +1237,7 @@ fn both_readmes_that_can_be_doctested_are_doctested() {
     // and these are the first lines anyone copies.
     //
     // The workspace README is deliberately NOT included this way. It sits
-    // above both crates, so `include_str!("../../README.md")` reaches outside
+    // above both crates, so an `include_str!` reaching two levels up leaves
     // the package and the published crate cannot run its own doctests —
     // measured by unpacking the tarball, where `cargo test --doc` failed on
     // exactly that line. `cargo package --verify` does not catch it because it
