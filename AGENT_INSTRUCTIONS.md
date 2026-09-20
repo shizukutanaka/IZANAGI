@@ -714,6 +714,16 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   shared ニードルに追加。
 
 
+- ~~MSRV・edition の主張は msrv_is_respected.rs の構文走査が担保すると
+  思われていた~~ → 同テストは「コードが post-MSRV 構文を使わない」だけで、
+  マニフェスト側の `rust-version`/`edition`/`name` 値は無ピンだった。
+  `rust-version = "1.60"` でコンパイル可・スイート緑を実証(静かな主張の
+  弱化)。`edition = "2024"`/`2018` は cargo/rustc がロード・借用検査で
+  弾く(compiler-closed)、`name` 改名は dev-dep エッジが即壊す
+  (cargo-closed)。`[package]` の三鍵をクレート別に値ピンし、
+  `default-run` を BANNED_KEYS に追加。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

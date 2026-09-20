@@ -573,6 +573,10 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
         "bench",
         "doctest",
         "links",
+        // `default-run` picks which bin `cargo run` executes — the
+        // pinned-output examples stage runs them by name, so a silent
+        // default changes which binary consumers think is the entry.
+        "default-run",
     ];
     // Profile tables exist legitimately (the workspace root sets opt-level/
     // lto/strip) — but three of their keys rewrite program semantics rather
@@ -668,6 +672,40 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                          the library's entry point must be the file the \
                          scanners read"
                     );
+                }
+                // `[package]` carries semantics too: `edition` changes what
+                // the same tokens mean (closure capture, match ergonomics),
+                // `rust-version` is the MSRV claim msrv_is_respected.rs
+                // verifies code against, and `name` is the identity the
+                // pinned dev-dependency edge names. None were pinned —
+                // `rust-version = "1.60"` compiled and the suite stayed
+                // green, silently weakening the claim.
+                if section == "package" {
+                    let expected: &[(&str, &str)] = match manifest_rel {
+                        "izanagi/Cargo.toml" => &[
+                            ("name", "\"izanagi\""),
+                            ("edition", "\"2021\""),
+                            ("rust-version", "\"1.65\""),
+                        ],
+                        "izanagi_kit/Cargo.toml" => &[
+                            ("name", "\"izanagi_kit\""),
+                            ("edition", "\"2021\""),
+                            ("rust-version", "\"1.75\""),
+                        ],
+                        _ => &[],
+                    };
+                    for &(k, v) in expected {
+                        if key == k {
+                            let squashed: String =
+                                line.chars().filter(|c| !c.is_whitespace()).collect();
+                            assert!(
+                                squashed == format!("{k}={v}"),
+                                "{manifest_rel} sets `{line}` — the pinned \
+                                 {k} for this crate is {v}; drift here changes \
+                                 what the same sources mean"
+                            );
+                        }
+                    }
                 }
             }
         }
