@@ -868,21 +868,27 @@ fn the_readme_headline_counts_the_interrogation_modules_correctly() {
         .find(|(k, _)| *k == n)
         .map(|(_, w)| *w)
         .unwrap_or_else(|| panic!("{n} interrogation modules — extend NUMERALS"));
-    // The sentence lives in two places with slightly different phrasing: the
-    // README's opening paragraph and the crate's lib.rs front page (the first
-    // thing docs.rs renders). Checking only the README would let the doc
-    // comment drift with the family count.
+    // The sentence lives in three places with three phrasings: the kit
+    // README's opening paragraph, the crate's lib.rs front page (the first
+    // thing docs.rs renders), and the workspace README's crate table. Checking
+    // only one lets the others drift out of agreement with the family count.
     for (rel, phrasing) in [
         (
             "izanagi_kit/README.md",
-            "{word} modules do nothing but interrogate",
+            "{Word} modules do nothing but interrogate",
         ),
         (
             "izanagi_kit/src/lib.rs",
-            "{word} of these modules do nothing but interrogate",
+            "{Word} of these modules do nothing but interrogate",
+        ),
+        (
+            "README.md",
+            "{word} modules do nothing but check that guarantee",
         ),
     ] {
-        let wanted = phrasing.replace("{word}", word);
+        let wanted = phrasing
+            .replace("{Word}", word)
+            .replace("{word}", &word.to_lowercase());
         assert!(
             read(rel).contains(&wanted),
             "there are {n} interrogation modules, so {rel} must say \"{wanted}\""
