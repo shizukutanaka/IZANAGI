@@ -530,6 +530,32 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
         }
     }
 
+    // The workspace root's `[workspace]` table is load-bearing too: absent
+    // `resolver = "2"`, cargo warns and falls back to resolver 1 — feature
+    // unification rules nobody declared. Zero dependencies make it a no-op
+    // today; the day one is added, the choice must not be ambient. The key
+    // must be a real key inside `[workspace]`, not the word in a comment.
+    let root_manifest =
+        fs::read_to_string(repo_root().join("Cargo.toml")).expect("workspace manifest");
+    let mut in_workspace = false;
+    let mut resolver_is_two = false;
+    for line in root_manifest.lines().map(str::trim) {
+        if line.starts_with('[') {
+            in_workspace = line.starts_with("[workspace]");
+            continue;
+        }
+        if in_workspace && manifest_line_keys(line).iter().any(|k| k == "resolver") {
+            let value = line.split_once('=').map(|x| x.1).unwrap_or("").trim();
+            resolver_is_two = value.starts_with("\"2\"") || value.starts_with("'2'");
+        }
+    }
+    assert!(
+        resolver_is_two,
+        "workspace Cargo.toml does not set `resolver = \"2\"` — cargo \
+         defaults to resolver 1 with a warning, silently changing feature \
+         unification the day a dependency exists"
+    );
+
     // `.cargo/config.toml` (or the extensionless `config`) is read from the
     // package directory upward: `build.rustflags` there could pass `--cfg`
     // past the predicate scan above, or `--cap-lints allow` to demote the
