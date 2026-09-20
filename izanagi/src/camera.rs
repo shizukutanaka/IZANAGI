@@ -76,7 +76,13 @@ impl Camera {
     ///
     /// `speed` of 5.0 is a good default — tighter follow is higher.
     pub fn follow(&mut self, target: Vec2, speed: f32, dt: f32) {
-        let t = (1.0 - (-speed * dt).exp()).clamp(0.0, 1.0);
+        let raw = 1.0 - (-speed * dt).exp();
+        // clamp() propagates NaN — a NaN `t` would poison `pos` via lerp.
+        let t = if raw.is_nan() {
+            0.0
+        } else {
+            raw.clamp(0.0, 1.0)
+        };
         self.pos = self.pos.lerp(target, t);
     }
 
@@ -175,6 +181,16 @@ mod tests {
         let r2 = cam.visible_rect();
         assert!(r2.w < r1.w);
         assert!(r2.h < r1.h);
+    }
+
+    #[test]
+    fn a_nan_dt_does_not_poison_the_camera() {
+        let mut cam = Camera::new(800.0, 600.0);
+        cam.pos = Vec2::new(1.0, 2.0);
+        cam.follow(Vec2::new(100.0, 100.0), 5.0, f32::NAN);
+        assert!(cam.pos.x.is_finite() && cam.pos.y.is_finite());
+        // A NaN frame is a no-op, not a hole in the world.
+        assert_eq!(cam.pos, Vec2::new(1.0, 2.0));
     }
 
     #[test]

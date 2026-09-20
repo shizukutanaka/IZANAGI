@@ -39,7 +39,14 @@ impl Time {
     /// Advance by `dt` seconds. Called by the engine.
     pub fn advance(&mut self, dt: f32) {
         // Clamp pathological values (debugger pauses, OS hiccups).
-        let dt = dt.clamp(0.0, 0.25);
+        // `clamp` passes NaN straight through — and `elapsed += NaN`
+        // poisons every future frame. Guard it explicitly so a NaN dt
+        // degrades to a zero-length frame instead.
+        let dt = if dt.is_nan() {
+            0.0
+        } else {
+            dt.clamp(0.0, 0.25)
+        };
         self.dt = dt;
         self.elapsed += dt;
         self.accumulator += dt;
@@ -119,6 +126,23 @@ mod tests {
         t.advance(0.016);
         assert!((t.elapsed() - 0.032).abs() < 1e-5);
         assert!((t.dt() - 0.016).abs() < 1e-5);
+    }
+
+    #[test]
+    fn advance_treats_nan_and_negative_as_a_zero_frame() {
+        // f32::clamp() propagates NaN — one NaN dt would poison `elapsed`
+        // forever. The max().min() form degrades non-finite input to a
+        // zero-length frame instead.
+        let mut t = Time::new();
+        t.advance(0.5); // a real frame first
+        t.advance(f32::NAN);
+        assert_eq!(t.dt(), 0.0);
+        assert!(t.elapsed().is_finite());
+        assert!((t.elapsed() - 0.25).abs() < 1e-5);
+        t.advance(-1.0);
+        assert_eq!(t.dt(), 0.0);
+        t.advance(f32::INFINITY);
+        assert_eq!(t.dt(), 0.25);
     }
 
     #[test]

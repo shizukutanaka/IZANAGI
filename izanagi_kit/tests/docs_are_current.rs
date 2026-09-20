@@ -347,8 +347,8 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     for (doc, claim) in [
         ("README.md", "3,600+ tests"),
         ("README.md", "3,400+ tests"),
-        ("README.md", "**180+ tests**"),
-        ("izanagi/README.md", "**180+ tests**"),
+        ("README.md", "**240+ tests**"),
+        ("izanagi/README.md", "**240+ tests**"),
         // The handbook snapshot stated an exact 3744 and was wrong two
         // commits later, in the very commit that removed the other exact
         // numbers from it. Last one converted; now nothing in the snapshot
@@ -370,7 +370,7 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     // floor fails until the claim is raised in the same commit.
     for (claim, actual) in [
         ("3,400+ tests", kit),
-        ("**180+ tests**", engine),
+        ("**240+ tests**", engine),
         ("3,600+ tests", kit + engine),
         ("**3,600+ passed / 0 failed**", kit + engine),
     ] {
