@@ -106,7 +106,7 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
-| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `arch`, `relations`, `multimap` |
+| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
 
@@ -122,6 +122,7 @@ The capability map — with per-feature implementation status — lives in
 |--------|----------------|
 | `entity` | Generational entity handles; stale handles are rejected. |
 | `sparse_set` / `arch` | O(1) component storage and an archetype table; cheap composition changes. |
+| `observe` | `Observed<T>` wraps `SparseSet` and emits `ComponentEvent`s (added / replaced / removed) into a drainable queue — the push half of change detection, complementing `change`'s pull. |
 | `fixed` | Q16.16 fixed-point with **saturating** arithmetic for cross-platform determinism. |
 | `rng` | SplitMix64 seeded PRNG; replay-safe randomness. |
 | `timestep` | Fixed-timestep accumulator with a death-spiral guard. |
@@ -229,6 +230,24 @@ dungeon.game:2:9: error: glyph must be one character
   glyph @@
         ^
 ```
+
+### The generate → verify → repair loop
+
+When content is machine-authored — procedural templates or an LLM — this
+pipeline is the gate that output must pass before it reaches the sim:
+
+```text
+generate text → gamec --json (or --sarif) → feed diagnostics back → repeat
+```
+
+The diagnostics are designed for the mistakes machine authors actually make:
+references to prefabs that were renamed or never defined, spawn coordinates
+outside the level, duplicate names, glyphs that cannot render. `--json` /
+`--sarif` exist so the verifier is itself machine-readable — a generator can
+consume them and retry without a human parsing prose.
+
+What it does not check: that the content is *good*. "Well-formed and
+self-consistent" is the contract; balance and intent remain the author's.
 
 ## Build and test
 
