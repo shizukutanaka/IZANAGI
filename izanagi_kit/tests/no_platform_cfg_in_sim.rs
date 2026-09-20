@@ -469,7 +469,7 @@ fn library_code_compiles_without_platform_profile_or_feature_conditionals() {
                          {} are permitted, because every other condition \
                          makes two honest builds of the same source compile \
                          different simulation code",
-                        ALLOWED_ATOMS.join("/")
+                        ALLOWED_ATOMS.join(&char::from(b'/').to_string())
                     ));
                 }
             }

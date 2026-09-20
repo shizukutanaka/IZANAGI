@@ -1766,35 +1766,12 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      suite replays"
                 );
             }
-            // The one shape that escapes the probe: a bare-slash fragment
-            // inside concat! contributes the leading slash, assembling an
-            // absolute path out of pieces no probe sees whole (injected:
-            // green). That literal is legal elsewhere (a `join("/")`
-            // separator), so the ban scopes to concat! bodies.
-            let mut at = 0usize;
-            while let Some(pos) = raw[at..].find("concat!(") {
-                let start = at + pos + "concat!(".len();
-                let mut depth = 1usize;
-                let mut end = raw.len();
-                for (j, b) in bs[start..].iter().enumerate() {
-                    match b {
-                        b'(' => depth += 1,
-                        b')' => depth -= 1,
-                        _ => {}
-                    }
-                    if depth == 0 {
-                        end = start + j;
-                        break;
-                    }
-                }
-                assert!(
-                    !raw[start..end].contains("\"/\""),
-                    "{name} uses a bare slash literal inside concat! — a \
-                     path assembled from fragments is still a path this \
-                     suite does not own"
-                );
-                at = end;
-            }
+            // The shapes that escape the quote-slash-alnum probe: a bare
+            // slash fragment contributes the leading character of an
+            // absolute path while spelling no machine prefix, inside or
+            // outside concat! (injected `from(<slash>).join("Users")` into
+            // a test: green). Scanned byte-wise below alongside the
+            // parent-segment literal so this file spells neither.
             // A relative path escapes too: `fs::read` with enough `..`
             // segments climbs out of the package and reads whatever the
             // host mounts there (injected a multi-climb literal into a
@@ -1813,13 +1790,23 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // ever writing two in a row (injected: green). Comparators
             // test components with `s.bytes().all(|b| b == b'.')` instead
             // of quoting the segment, so the literal appears nowhere.
+            // Byte-wise scans for the two fragment literals no whole-path
+            // probe can see: a lone slash (the root of every absolute path)
+            // and a lone parent segment (the atom of every climb). Quoting
+            // either here would make this file flag itself.
             let mut saw_parent_literal = false;
+            let mut saw_slash_literal = false;
             let mut qi = 0usize;
             while qi + 4 <= bs.len() {
-                if bs[qi] == b'"' && bs[qi + 1] == b'.' && bs[qi + 2] == b'.' && bs[qi + 3] == b'"'
-                {
-                    saw_parent_literal = true;
-                    break;
+                if bs[qi] == b'"' {
+                    if bs[qi + 1] == b'.' && bs[qi + 2] == b'.' && bs[qi + 3] == b'"' {
+                        saw_parent_literal = true;
+                        break;
+                    }
+                    if bs[qi + 1] == b'/' && bs[qi + 2] == b'"' {
+                        saw_slash_literal = true;
+                        break;
+                    }
                 }
                 qi += 1;
             }
@@ -1827,6 +1814,11 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 !saw_parent_literal,
                 "{name} contains a bare parent-dir literal — segments are \
                  how a join chain leaves the package"
+            );
+            assert!(
+                !saw_slash_literal,
+                "{name} contains a bare slash literal — the leading segment \
+                 of an absolute path built one piece at a time"
             );
             // One `.parent()` per statement at most: the manifest dir is
             // inside the tree and its parent is the workspace root, so a
