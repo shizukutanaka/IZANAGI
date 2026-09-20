@@ -92,6 +92,32 @@ fi
 export CARGO_HOME="$PWD/target/gate-cargo-home"
 mkdir -p "$CARGO_HOME"
 
+# CARGO_HOME covers the home config; the *directory* discovery is a second
+# door. Cargo reads `.cargo/config{,.toml}` walking from the package dir up
+# to `/`, and rustup does the same with `rust-toolchain{,.toml}` — an
+# ancestor config outside this repository injects rustflags or swaps the
+# toolchain while the repo's own file ban sees nothing (verified: an
+# ancestor `rustc = "/bin/false"` made `cargo check` fail; the in-repo scan
+# had no way to see it). Refuse to measure a tree whose build config lives
+# outside it.
+_dir="$PWD"
+while [ "$_dir" != "/" ]; do
+    _dir="${_dir%/*}"
+    _dir="${_dir:-/}"
+    for rel in \
+        ".cargo/config" ".cargo/config.toml" \
+        "rust-toolchain" "rust-toolchain.toml" \
+        "Cross.toml" "clippy.toml" ".clippy.toml"
+    do
+        if [ -f "$_dir/$rel" ]; then
+            echo "gate: ancestor build config $_dir/$rel exists — cargo/rustup" >&2
+            echo "      read it while measuring this tree, and no repo scan" >&2
+            echo "      can see it. Remove it or place the checkout elsewhere." >&2
+            exit 1
+        fi
+    done
+done
+
 KIT_BRIDGE_HASH=353498ec4fbcd160
 
 stage() {

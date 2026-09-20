@@ -929,6 +929,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `include_str!` が gamec.rs で親ディレクトリ越えのファイルを緑のまま焼込めた
   (注入実証)。bin ニードルに `include_str!` を追加(lib 側の README doc 埋込は
   bin には存在しないため全面禁止)。
+- ~~CARGO_HOME 隔離で ambient cargo config は断てたと思われていた~~ →
+  cargo/rustup は package dir から `/` まで祖先の `.cargo/config{,.toml}`・
+  `rust-toolchain{,.toml}` 等を読む(実機実証: 祖先に `rustc=/bin/false` を
+  置くと check が破壊、全走査は無傷)。チェックアウト外のファイルなので
+  リポ走査は原理上到達不能 — gate.sh に祖先dir走査を追加し fail-closed。
+  `.git` 成分走査同様「ツリー外の検査入力」を拒否する設計。
 
 ## 3. 改善案(優先順位付き)
 
