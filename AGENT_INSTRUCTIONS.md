@@ -457,6 +457,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~usize 系の漏れは幅の値だけと思われていた~~ → `usize::BITS`/`isize::BITS` は `usize`
   への言及を含まない定数形式の同じ漏洩。`hashes_are_width_independent.rs` の
   センチネル表に追加(注入で検出確認)。
+- ~~スイートは自前のファイルを全て走査していると信じられていた~~ → `mod`/
+  `include!`/`#[path]`/`include_bytes!` でフラットな `read_dir` が届かない
+  コードをコンパイルでき、`env!`/`option_env!` でビルドマシンをバイト出力に
+  焼き込めた。4ディレクトリ(tests+examples)で `include!`/`include_bytes!`/
+  `#[path`/`mod ` を禁止、env 引数は文字列認識付きの `env_macro_args` で読み
+  テスト側は `CARGO_MANIFEST_DIR` のみ・example は全面禁止、さらに直下以外の
+  `.rs` を検査してフラットさを凍結(6種注入全て検出確認)。
 
 ## 3. 改善案(優先順位付き)
 

@@ -992,6 +992,90 @@ fn test_code(src: &str) -> String {
     out
 }
 
+/// `env!("NAME")`/`option_env!("NAME")` arguments in `src`, at code positions
+/// only. Unlike `test_code`, string contents stay readable — the env-var name
+/// IS the thing being checked — so an `env!(` that sits inside a string
+/// literal (a scanner needle) is skipped instead of blanked. `None` marks a
+/// non-literal argument such as `env!(concat!(..))`.
+fn env_macro_args(src: &str) -> Vec<Option<String>> {
+    let b = src.as_bytes();
+    let mut i = 0usize;
+    let mut out = Vec::new();
+    while i < b.len() {
+        if b[i] == b'/' && b.get(i + 1) == Some(&b'/') {
+            while i < b.len() && b[i] != b'\n' {
+                i += 1;
+            }
+            continue;
+        }
+        if b[i] == b'"' {
+            i += 1;
+            while i < b.len() && b[i] != b'"' {
+                if b[i] == b'\\' {
+                    i += 1;
+                }
+                i += 1;
+            }
+            i += 1;
+            continue;
+        }
+        if b[i] == b'\'' {
+            match (b.get(i + 1), b.get(i + 2)) {
+                (Some(&b'\\'), _) => {
+                    i += 2;
+                    while i < b.len() && b[i] != b'\'' {
+                        i += 1;
+                    }
+                    i += 1;
+                    continue;
+                }
+                (_, Some(&b'\'')) => {
+                    i += 3;
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        let name = if b[i..].starts_with(b"option_env!") {
+            Some(b"option_env!".len())
+        } else if b[i..].starts_with(b"env!") {
+            Some(b"env!".len())
+        } else {
+            None
+        };
+        if let Some(w) = name {
+            let prev_ok = i == 0 || !(b[i - 1].is_ascii_alphanumeric() || b[i - 1] == b'_');
+            if prev_ok {
+                let mut j = i + w;
+                if b.get(j) == Some(&b'(') {
+                    j += 1;
+                    while b.get(j) == Some(&b' ') || b.get(j) == Some(&b'\t') {
+                        j += 1;
+                    }
+                    if b.get(j) == Some(&b'"') {
+                        j += 1;
+                        let start = j;
+                        while j < b.len() && b[j] != b'"' {
+                            j += 1;
+                        }
+                        out.push(
+                            std::str::from_utf8(&b[start..j])
+                                .ok()
+                                .map(|s| s.to_string()),
+                        );
+                    } else {
+                        out.push(None);
+                    }
+                }
+            }
+            i += w;
+            continue;
+        }
+        i += 1;
+    }
+    out
+}
+
 #[test]
 fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
     // The suite's own files are code, and code decays silently too:
@@ -1005,6 +1089,12 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
     //   A check that exists only on some machines is not a check.
     // * `unsafe` — test crates do not inherit the lib's `forbid(unsafe_code)`;
     //   UB inside the harness is a worse failure mode than a missing lint.
+    // * `include!`/`include_bytes!`/`#[path]`/`mod` — each splices in code this
+    //   flat walk never reads. Helpers are hand-duplicated by convention; a
+    //   `mod` pulling a sibling file would be the suite scanning less than it
+    //   compiles. `env!`/`option_env!` bake the *build machine* into the
+    //   binary — for examples, straight into the byte-identical output the
+    //   gate pins; test files may read only `CARGO_MANIFEST_DIR`.
     // * a file without `#[test]` compiles and runs nothing — the emptiest
     //   way for a check to "pass".
     const IGNORE_ALLOWLIST: &[(&str, &str)] = &[(
@@ -1028,7 +1118,7 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             .collect();
         entries.sort_by_key(|e| e.file_name());
         assert!(!entries.is_empty(), "found no sources under {dir_rel}");
-        for entry in entries {
+        for entry in &entries {
             let path = entry.path();
             if path.extension().map(|e| e == "rs") != Some(true) {
                 continue;
@@ -1060,6 +1150,64 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      take unsafe shortcuts"
                 );
             }
+            // Code the flat walk never reads: `include!`/`include_bytes!`
+            // splice in foreign text, `#[path]` points a `mod` anywhere, and
+            // `mod x;` compiles a file under this directory that no entry in
+            // this loop visits. `mod` in these dirs is banned outright —
+            // helpers are hand-copied by convention.
+            for needle in ["include!(", "include_bytes!(", "#[path", "mod "] {
+                assert!(
+                    !contains_token(&code, needle),
+                    "{name} contains `{needle}` — suite crates may not splice \
+                     in code the scanners never read; inline helpers are the \
+                     convention, so a `mod` here can only hide a file"
+                );
+            }
+            // `env!`/`option_env!` bake the build machine into the binary.
+            // In an example that is machine data inside the byte-identical
+            // output the gate pins; in a test file it is a check whose result
+            // depends on who built it. The single legitimate use is
+            // `env!("CARGO_MANIFEST_DIR")` — a path cargo itself defines. The
+            // argument literal must be read, so this one uses raw source with
+            // string-aware skipping rather than the string-blanked `code`.
+            let env_args = env_macro_args(&fs::read_to_string(&path).unwrap_or_default());
+            if require_tests {
+                assert!(
+                    env_args
+                        .iter()
+                        .all(|a| a.as_deref() == Some("CARGO_MANIFEST_DIR")),
+                    "{name} reads a build env var other than \
+                     CARGO_MANIFEST_DIR ({env_args:?}) — a check whose \
+                     outcome depends on who compiled it"
+                );
+            } else {
+                assert!(
+                    env_args.is_empty(),
+                    "{name} bakes a build-machine env var into an example — \
+                     the pinned output is no longer the binary's own"
+                );
+            }
+        }
+        // Cargo auto-discovers only top-level .rs files in these dirs, and
+        // with `mod` banned above nothing below can be compiled — but a
+        // nested .rs file would still sit here unscanned, indistinguishable
+        // from a suite member. The dirs must stay flat.
+        for entry in &entries {
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let nested: Vec<_> = fs::read_dir(&path)
+                .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()))
+                .flatten()
+                .filter(|e| e.path().extension().map(|x| x == "rs").unwrap_or(false))
+                .collect();
+            assert!(
+                nested.is_empty(),
+                "{} contains nested .rs files the flat scans cannot see: {:?}",
+                path.display(),
+                nested
+            );
         }
     }
     // And a stale allowlist entry is permission for nobody: the file must
