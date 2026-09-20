@@ -909,6 +909,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 - ~~テストファイルに `#[test]` さえあれば意味ある検査~~ → `fn t() { let _ = setup(); }` は assert 系ゼロで緑を通過する vacuous check を注入実証。require_tests に assert!/assert_eq!/expect(/unwrap(/panic!/matches!/unreachable!/todo! いずれかのトークン≥1 を要求(機構上 assert 不在のファイルは全件失敗し得る)。
 - ~~テスト/例ファイルは assert さえ書けば環境側機構は触れない~~ → `#[global_allocator]` がスイートプロセスのアロケータを全走査緑で差替(実証)。global_allocator/no_mangle/export_name/link_section/`#[link`/`#[used]` を共有ニードルへ(リンカ結線・計測経路のすり替えは走査対象コードとして呼出に現れない)。
+- ~~浮動小数点の超越関数は「検査コード側」でも全禁止できると思われていた~~ →
+  `differential.rs` が Fixed 実装の truth として f64 libm(`theta.sin()` 等)を
+  TRIG_TOL 内の近似比較で故意に使っており、`.sin()` メソッド(決定的 Fixed)と
+  f64 libm の区別は字句走査では原理的に不能。厳密一致で libm 出力をピンする
+  書き方は機種間で緑を偽造するのでなく red flake を起こす向きの残差 —
+  受容残差として記録(塞ぐなら意味解析レイヤが必要)。
 
 ## 3. 改善案(優先順位付き)
 
