@@ -491,6 +491,12 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
             }
         }
     }
+
+    // Cargo.lock is deliberately gitignored (library crates do not ship a
+    // lock), so it cannot be a checked input — asserting its contents would
+    // fail a fresh clone. Its content is pinned by a different route: the
+    // zero-dependency manifests make a third-party entry impossible to
+    // resolve.
 }
 
 #[test]

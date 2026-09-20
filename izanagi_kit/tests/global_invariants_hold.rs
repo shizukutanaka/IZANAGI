@@ -789,7 +789,11 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                  test still exits the suite green. Name it in \
                  IGNORE_ALLOWLIST with the reason, or remove the attribute"
             );
-            for needle in ["#[cfg", "cfg!(", "cfg_attr(", "unsafe"] {
+            // `#![cfg]`/`#![cfg_attr]` are the inner-attribute spellings —
+            // same power, different surface. A crate-level `#![cfg(unix)]`
+            // would compile the whole test file to nothing on some
+            // platforms while it keeps running here.
+            for needle in ["#[cfg", "#![cfg", "cfg!(", "cfg_attr(", "unsafe"] {
                 assert!(
                     !contains_token(&code, needle),
                     "{name} contains `{needle}` — the verification suite may \
@@ -799,11 +803,20 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             }
         }
     }
-    // And a stale allowlist entry is permission for nobody.
+    // And a stale allowlist entry is permission for nobody: the file must
+    // still exist AND still carry the ignored item — once the ignore is
+    // gone the permission is spent.
     for (file, _) in IGNORE_ALLOWLIST {
+        let path = repo_root().join("izanagi_kit/tests").join(file);
         assert!(
-            repo_root().join("izanagi_kit/tests").join(file).exists(),
+            path.exists(),
             "IGNORE_ALLOWLIST names {file}, which no longer exists"
+        );
+        let body = test_code(&fs::read_to_string(&path).unwrap_or_default());
+        assert!(
+            body.matches("#[ignore").next().is_some(),
+            "IGNORE_ALLOWLIST names {file} but it no longer contains \
+             #[ignore] — a stale entry reads as permission"
         );
     }
 }
