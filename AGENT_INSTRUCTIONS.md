@@ -874,6 +874,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   MSRV)であることを assert(偽 nightly で拒否確認)。
 
 
+- ~~`include_str!` の exempt は package-boundary チェックが守ると思われ
+  ていた~~ → そのチェックは `..` 相対しか見ず、`"/etc/shells"` を
+  kit lib に焼き込む注入が全走査を緑で通過(実証)。両 src で
+  `include_str!` を `include_str!("../README.md")` の2箇所にピン —
+  その他の include_str!/include_bytes!/絶対・相対の新規 include は
+  コンパイルが通っても走査が落とす。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

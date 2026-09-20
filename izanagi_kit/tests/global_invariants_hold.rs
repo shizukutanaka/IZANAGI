@@ -1258,6 +1258,18 @@ fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
         let sources = library_sources(&repo_root().join(src));
         assert!(!sources.is_empty(), "found no sources under {src}");
         for (name, code) in sources {
+            // `include_str!`'s exemption stops at the package boundary check,
+            // which only ever proved `..`-relative targets — an absolute
+            // path slipped through it (verified: `/etc/shells` baked into
+            // the kit lib compiled and passed every test). Pin the macro
+            // to the two doc-embed sites it exists for.
+            let code_no_doc = code.replace(concat!("include_str", "!(\"../README.md\")"), "");
+            assert!(
+                !code_no_doc.contains(concat!("include_str", "!")),
+                "{name} contains `include_str!` outside the two `../README.md` \
+                 doc embeds — a compile-time include bakes whatever file the \
+                 build machine happens to carry into the shipped crate"
+            );
             for needle in [
                 "#[path",
                 "include!(",
