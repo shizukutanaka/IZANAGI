@@ -40,12 +40,23 @@ fn engine_src() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")
 }
 
+/// The offset of a file's test module — the first `#[cfg(test)]` that is a
+/// real attribute line, not the text of a comment that mentions it. (The
+/// kit's lib.rs carries such a comment; searching the raw source found that
+/// first and scanned only the doc header.)
+fn test_module_boundary(src: &str) -> Option<usize> {
+    src.match_indices("#[cfg(test)]").find_map(|(i, _)| {
+        let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
+        (!src[start..i].trim_start().starts_with("//")).then_some(i)
+    })
+}
+
 /// Production source of one module: everything before its `#[cfg(test)]`
 /// marker, with line comments stripped. Mirrors the kit's `no_float_in_sim`
 /// scanner, including its assumption of one trailing test module per file.
 fn production_code(path: &PathBuf) -> String {
     let src = fs::read_to_string(path).expect("engine source file");
-    let impl_end = src.find("#[cfg(test)]").unwrap_or(src.len());
+    let impl_end = test_module_boundary(&src).unwrap_or(src.len());
     src[..impl_end]
         .lines()
         .filter(|l| !l.trim_start().starts_with("//"))

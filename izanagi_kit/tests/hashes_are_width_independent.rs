@@ -30,6 +30,17 @@ fn kit_src() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")
 }
 
+/// The offset of a file's test module — the first `#[cfg(test)]` that is a
+/// real attribute line, not the text of a comment that mentions it. lib.rs
+/// once discussed the marker inside a `//` comment; searching the raw source
+/// found that first and scanned only the doc header.
+fn test_module_boundary(src: &str) -> Option<usize> {
+    src.match_indices("#[cfg(test)]").find_map(|(i, _)| {
+        let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
+        (!src[start..i].trim_start().starts_with("//")).then_some(i)
+    })
+}
+
 /// Library code of every module: everything before `#[cfg(test)]`, with line
 /// comments stripped so prose about `usize` does not count as a use of it.
 fn library_sources() -> Vec<(String, String)> {
@@ -45,7 +56,7 @@ fn library_sources() -> Vec<(String, String)> {
             .unwrap_or_default()
             .to_string();
         let src = fs::read_to_string(&path).unwrap_or_default();
-        let end = src.find("#[cfg(test)]").unwrap_or(src.len());
+        let end = test_module_boundary(&src).unwrap_or(src.len());
         let code = src[..end]
             .lines()
             .filter(|l| !l.trim_start().starts_with("//"))

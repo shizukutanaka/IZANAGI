@@ -409,6 +409,18 @@ fn rust_files(dir: &Path) -> Vec<PathBuf> {
     out
 }
 
+/// The offset of a file's test module — the first `#[cfg(test)]` that is a
+/// real attribute line, not the text of a comment that mentions it. (The
+/// kit's lib.rs carries such a comment; searching the raw source found that
+/// first, silently moving every later line from one side of the
+/// production/test split to the other.)
+fn test_module_boundary(src: &str) -> Option<usize> {
+    src.match_indices("#[cfg(test)]").find_map(|(i, _)| {
+        let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
+        (!src[start..i].trim_start().starts_with("//")).then_some(i)
+    })
+}
+
 /// Every `pub fn` and every trait method the engine exposes, as
 /// `(module, name)`.
 ///
@@ -433,7 +445,7 @@ fn public_functions() -> BTreeSet<(String, String)> {
             continue;
         }
         let src = fs::read_to_string(&path).unwrap_or_default();
-        let impl_end = src.find("#[cfg(test)]").unwrap_or(src.len());
+        let impl_end = test_module_boundary(&src).unwrap_or(src.len());
         let mut hidden = false;
         let mut in_pub_trait = false;
         let mut trait_depth: i32 = 0;
@@ -495,7 +507,7 @@ fn exercising_code() -> String {
     let mut blob = String::new();
     for path in rust_files(&root.join("izanagi/src")) {
         let src = fs::read_to_string(&path).unwrap_or_default();
-        if let Some(i) = src.find("#[cfg(test)]") {
+        if let Some(i) = test_module_boundary(&src) {
             blob.push_str(&src[i..]);
         }
     }

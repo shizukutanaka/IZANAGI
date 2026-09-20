@@ -110,6 +110,18 @@ fn kit_src() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")
 }
 
+/// The offset of a file's test module — the first `#[cfg(test)]` that is a
+/// real attribute line. A `//` comment merely *mentioning* the marker must not
+/// end library code early: lib.rs carries such a comment, and a bare
+/// `find("#[cfg(test)]")` on the raw source truncates the scan at the doc
+/// header, silently removing the file's real body from every check below.
+fn test_module_boundary(src: &str) -> Option<usize> {
+    src.match_indices("#[cfg(test)]").find_map(|(i, _)| {
+        let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
+        (!src[start..i].trim_start().starts_with("//")).then_some(i)
+    })
+}
+
 /// Library sources, keyed by path relative to `src/`. `src/bin/` is excluded:
 /// those are CLI binaries, and reading argv or the environment is their job.
 fn library_sources() -> BTreeMap<String, String> {
@@ -126,7 +138,7 @@ fn library_sources() -> BTreeMap<String, String> {
                 walk(&path, root, out);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
                 let src = fs::read_to_string(&path).unwrap_or_default();
-                let impl_end = src.find("#[cfg(test)]").unwrap_or(src.len());
+                let impl_end = test_module_boundary(&src).unwrap_or(src.len());
                 let code = src[..impl_end]
                     .lines()
                     .filter(|l| !l.trim_start().starts_with("//"))

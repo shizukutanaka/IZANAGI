@@ -364,6 +364,18 @@ fn rust_files(dir: &Path) -> Vec<PathBuf> {
     out
 }
 
+/// The offset of a file's test module — the first `#[cfg(test)]` that is a
+/// real attribute line, not the text of a comment that mentions it. lib.rs
+/// once discussed the marker inside a `//` comment; searching the raw source
+/// found that first, silently moving every later line from one side of the
+/// production/test split to the other.
+fn test_module_boundary(src: &str) -> Option<usize> {
+    src.match_indices("#[cfg(test)]").find_map(|(i, _)| {
+        let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
+        (!src[start..i].trim_start().starts_with("//")).then_some(i)
+    })
+}
+
 /// Everything that counts as exercising an API: in-file `#[cfg(test)]`
 /// modules, integration tests, examples and binaries, across both crates.
 fn exercising_code() -> String {
@@ -371,7 +383,7 @@ fn exercising_code() -> String {
     let mut blob = String::new();
     for path in rust_files(&root.join("izanagi_kit/src")) {
         let src = fs::read_to_string(&path).unwrap_or_default();
-        if let Some(i) = src.find("#[cfg(test)]") {
+        if let Some(i) = test_module_boundary(&src) {
             blob.push_str(&src[i..]);
         }
     }
@@ -404,7 +416,7 @@ fn public_functions() -> BTreeSet<(String, String)> {
             continue;
         }
         let src = fs::read_to_string(&path).unwrap_or_default();
-        let impl_end = src.find("#[cfg(test)]").unwrap_or(src.len());
+        let impl_end = test_module_boundary(&src).unwrap_or(src.len());
         // Trait methods carry no `pub` keyword — inside a `pub trait` they are
         // public by definition — so a sweep looking only for `pub fn` cannot
         // see `Simulation::step`, `DetHash::det_hash` or their siblings. All
