@@ -344,6 +344,121 @@ fn test_module_boundary(src: &str) -> Option<usize> {
     None
 }
 
+/// The structural text of `src` from `offset` on: comments (line and nested
+/// block), `"..."`/`r"..."` strings, and `'x'` char literals dropped, with a
+/// space standing in for each dropped byte. Used to ask what the compiler
+/// sees *after* the `#[cfg(test)]` boundary — a region every needle scan
+/// deliberately never reads.
+fn structural_tail(src: &str, offset: usize) -> String {
+    let b = src.as_bytes();
+    let mut out = String::new();
+    let mut i = offset;
+    while i < b.len() {
+        match b[i] {
+            b'/' if b.get(i + 1) == Some(&b'/') => {
+                while i < b.len() && b[i] != b'\n' {
+                    out.push(' ');
+                    i += 1;
+                }
+            }
+            b'/' if b.get(i + 1) == Some(&b'*') => {
+                out.push_str("  ");
+                let mut depth = 1usize;
+                i += 2;
+                while i < b.len() && depth > 0 {
+                    if b[i] == b'/' && b.get(i + 1) == Some(&b'*') {
+                        depth += 1;
+                        i += 2;
+                    } else if b[i] == b'*' && b.get(i + 1) == Some(&b'/') {
+                        depth -= 1;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+            }
+            b'"' => {
+                out.push(' ');
+                i += 1;
+                while i < b.len() && b[i] != b'"' {
+                    if b[i] == b'\\' {
+                        i += 1;
+                    }
+                    out.push(' ');
+                    i += 1;
+                }
+                if i < b.len() {
+                    out.push(' ');
+                    i += 1;
+                }
+            }
+            b'r' => {
+                let mut j = i + 1;
+                while b.get(j) == Some(&b'#') {
+                    j += 1;
+                }
+                if b.get(j) == Some(&b'"') {
+                    let hashes = j - i - 1;
+                    for _ in 0..=hashes + 1 {
+                        out.push(' ');
+                    }
+                    i = j + 1;
+                    while i < b.len() {
+                        out.push(' ');
+                        if b[i] == b'"' {
+                            let mut k = 0usize;
+                            while k < hashes && b.get(i + 1 + k) == Some(&b'#') {
+                                k += 1;
+                            }
+                            if k == hashes {
+                                for _ in 0..=hashes {
+                                    out.push(' ');
+                                }
+                                i += 1 + hashes;
+                                break;
+                            }
+                        }
+                        i += 1;
+                    }
+                } else {
+                    out.push('r');
+                    i += 1;
+                }
+            }
+            b'\'' => match (b.get(i + 1), b.get(i + 2)) {
+                (Some(&b'\\'), _) => {
+                    out.push(' ');
+                    i += 2;
+                    while i < b.len() && b[i] != b'\'' {
+                        if b[i] == b'\\' {
+                            i += 1;
+                        }
+                        out.push(' ');
+                        i += 1;
+                    }
+                    if i < b.len() {
+                        out.push(' ');
+                        i += 1;
+                    }
+                }
+                (Some(_), Some(&b'\'')) => {
+                    out.push_str("   ");
+                    i += 3;
+                }
+                _ => {
+                    out.push('\'');
+                    i += 1;
+                }
+            },
+            c => {
+                out.push(c as char);
+                i += 1;
+            }
+        }
+    }
+    out
+}
+
 /// Library sources of one crate's `src/`, keyed by path relative to it.
 /// Same contract as the neighbouring scanners: line comments are stripped
 /// first, then the text is cut at the first `#[cfg(test)]` marker, and
@@ -656,6 +771,64 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
                 found_any,
                 "izanagi_kit/src/bin scanned empty — gamec lives there, and \
                  an empty scan would pass vacuously"
+            );
+        }
+    }
+}
+
+#[test]
+fn nothing_compiles_after_the_test_module_boundary() {
+    // Every scanner here cuts a file at the first line-start `#[cfg(test)]` —
+    // that is the design: the test module may do what library code may not.
+    // The cut only works if the boundary opens the file's LAST item; a pub
+    // fn or impl block written below `mod tests` compiles and runs while no
+    // needle in this suite ever sees its text. Verified by injection: a
+    // `std::net::TcpStream` call after the boundary passed every check.
+    for src in ["izanagi_kit/src", "izanagi/src"] {
+        let root = repo_root().join(src);
+        for (name, _) in library_sources(&root) {
+            let raw = fs::read_to_string(root.join(&name))
+                .unwrap_or_else(|e| panic!("reading {name}: {e}"));
+            let Some(boundary) = test_module_boundary(&raw) else {
+                continue;
+            };
+            let tail = structural_tail(&raw, boundary);
+            let tail = tail.trim_start();
+            let tail = tail
+                .strip_prefix("#[cfg(test)]")
+                .unwrap_or_else(|| panic!("{name}: boundary marker lost"));
+            let tail = tail.trim_start();
+            assert!(
+                tail.starts_with("mod "),
+                "{name}: the first `#[cfg(test)]` does not open a module — \
+                 whatever follows the marker compiles but is never scanned"
+            );
+            let open = tail
+                .find('{')
+                .unwrap_or_else(|| panic!("{name}: test module has no body"));
+            let mut depth = 0usize;
+            let mut closed_at = None;
+            // Bytes, not char_indices: `{`/`}` are ASCII and can never appear
+            // inside a multi-byte char, and the position feeds a str slice.
+            for (i, &c) in tail.as_bytes().iter().enumerate().skip(open) {
+                match c {
+                    b'{' => depth += 1,
+                    b'}' => {
+                        depth -= 1;
+                        if depth == 0 {
+                            closed_at = Some(i);
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            let closed =
+                closed_at.unwrap_or_else(|| panic!("{name}: unbalanced braces after boundary"));
+            assert!(
+                tail[closed + 1..].trim().is_empty(),
+                "{name} has code after the test module — cargo compiles it, \
+                 but every scan stopped at `#[cfg(test)]` and never saw it"
             );
         }
     }

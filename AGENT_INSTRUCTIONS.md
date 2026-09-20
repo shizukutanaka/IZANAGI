@@ -189,6 +189,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   第2の bin ターゲットとして自動発見する — 直下 `*.rs` だけ読む初版はこれを
   逃がしたので再帰 walk に直し(ネストした `mod` 到達ファイルも一緒に読む)、
   `probe/main.rs` 無禁止注入が失敗することを実証。
+- ~~`#[cfg(test)]` 以降はテスト領域なのでスキャナーが切り捨ててよい~~ →
+  切り捨てが正しいのは「境界がファイル最後の item を開く時」だけで、`mod tests`
+  の *後* に書かれた `pub fn`/`impl` はコンパイルも clippy も通るが全スキャナーが
+  読まない(global_invariants_hold::nothing_compiles_after_the_test_module_boundary が
+  境界後の構造テキストを `mod <ident> {…}` のみと機械強制 — `mod` 後にコードを
+  置く注入と、マーカーが `mod` 以外を開く注入はともに失敗することを実証)。
 - ~~pinned hash は debug profile でしか検証されていなかった~~ → `overflow-checks` は
   dev で既定 on・release で既定 off なので、シミュレーション経路の算術が静かに wrap する
   コードは debug では panic して気づけるが release では気づけない。gate は debug の
