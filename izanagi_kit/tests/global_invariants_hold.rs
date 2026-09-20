@@ -882,7 +882,19 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
             !body.contains("#![forbid(unsafe_code)]"),
             "{name} declares `#![forbid(unsafe_code)]` twice"
         );
-        for needle in ["unsafe", "include!(", "include_bytes!(", "#[path", "mod "] {
+        // `include_str!` joins the splice family: a bin may not bake file
+        // bytes from outside the scanned tree into the shipped binary —
+        // injected a parent-climbing `include_str!` into gamec.rs and it
+        // passed green. The lib-side `../README.md` doc embeds do not
+        // exist for bins, so the ban is total here.
+        for needle in [
+            "unsafe",
+            "include!(",
+            "include_bytes!(",
+            "include_str!(",
+            "#[path",
+            "mod ",
+        ] {
             assert!(
                 !contains_token(&body, needle),
                 "{name} contains `{needle}` — a shipped binary may not \

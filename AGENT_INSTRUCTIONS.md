@@ -925,6 +925,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `#[cfg(unix)]`/`#[cfg(not(unix))]`/`cfg!(unix)` が gamec.rs で全て緑で通過
   (host 条件で出荷ツールの振る舞いを分岐できる)。`#[test` の脇のニードルを
   `#[cfg`/`#![cfg`/`cfg!(`/`cfg_attr(` 全面禁止へ拡張。
+- ~~bin ルートのスプライス系は `include!`/`include_bytes!`/`#[path]` で尽きたと思われていた~~ →
+  `include_str!` が gamec.rs で親ディレクトリ越えのファイルを緑のまま焼込めた
+  (注入実証)。bin ニードルに `include_str!` を追加(lib 側の README doc 埋込は
+  bin には存在しないため全面禁止)。
 
 ## 3. 改善案(優先順位付き)
 
