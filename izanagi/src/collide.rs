@@ -176,6 +176,59 @@ mod tests {
     }
 
     #[test]
+    fn swept_aabb_reports_a_fast_bullet_through_a_thin_wall() {
+        // Tunneling is the classic swept-collision bug: 400 units of motion
+        // against a 1-px wall must still register a hit.
+        let bullet = Rect::new(0.0, 0.0, 2.0, 2.0);
+        let wall = Rect::new(200.0, -50.0, 1.0, 100.0);
+        let hit = swept_aabb(&bullet, Vec2::new(400.0, 0.0), &wall).unwrap();
+        assert_eq!(hit.normal, Vec2::new(-1.0, 0.0));
+    }
+
+    #[test]
+    fn swept_aabb_is_symmetric_under_swapped_roles() {
+        // "a moving by m into b" is the same relative motion as "b moving by
+        // -m into a": the entry test must agree either way. A sign slip in
+        // one of the motion branches flips only one direction — hand-picked
+        // cases never run the crossed axis combinations this sweeps.
+        let mut rng = crate::rng::Rng::new(0xC011_1DE5);
+        let mut hits = 0u32;
+        for _ in 0..20_000 {
+            let a = Rect::new(
+                rng.range(-50.0, 50.0),
+                rng.range(-50.0, 50.0),
+                rng.range(0.5, 20.0),
+                rng.range(0.5, 20.0),
+            );
+            let b = Rect::new(
+                rng.range(-50.0, 50.0),
+                rng.range(-50.0, 50.0),
+                rng.range(0.5, 20.0),
+                rng.range(0.5, 20.0),
+            );
+            let m = Vec2::new(rng.range(-400.0, 400.0), rng.range(-400.0, 400.0));
+            let fwd = swept_aabb(&a, m, &b);
+            let rev = swept_aabb(&b, Vec2::new(-m.x, -m.y), &a);
+            assert_eq!(
+                fwd.is_some(),
+                rev.is_some(),
+                "role-swapped sweep disagrees: a={a:?} b={b:?} m={m:?}"
+            );
+            if let (Some(f), Some(r)) = (fwd, rev) {
+                hits += 1;
+                assert!(
+                    (f.t - r.t).abs() < 1e-3,
+                    "swapped-role hit times diverge: {} vs {}",
+                    f.t,
+                    r.t
+                );
+            }
+        }
+        // The sweep must exercise both outcomes, not vacuously pass on misses.
+        assert!(hits > 100, "suspiciously few hits: {hits}");
+    }
+
+    #[test]
     fn ray_misses_box() {
         let b = Rect::new(10.0, 100.0, 10.0, 10.0);
         assert!(ray_vs_aabb(Vec2::ZERO, Vec2::X, &b).is_none());
