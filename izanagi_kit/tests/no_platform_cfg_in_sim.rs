@@ -278,6 +278,61 @@ fn first_top_level_arg(pred: &str) -> &str {
     pred
 }
 
+/// Every comma-separated item at the top level of `inner`, in order.
+fn top_level_items(inner: &str) -> Vec<&str> {
+    let mut out = Vec::new();
+    let mut depth = 0usize;
+    let mut start = 0usize;
+    for (i, c) in inner.char_indices() {
+        match c {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            ',' if depth == 0 => {
+                out.push(&inner[start..i]);
+                start = i + 1;
+            }
+            _ => {}
+        }
+    }
+    out.push(&inner[start..]);
+    out
+}
+
+/// If `item` — one top-level item from a `cfg_attr` apply list — is itself
+/// a `cfg`/`cfg!`/`cfg_attr` construct, surface its predicate as an entry
+/// in `out` so it faces the same whitelist as a real attribute. A nested
+/// `cfg_attr` recurses: its apply list can hide the same trick again.
+///
+/// Only a *top-level* item is treated this way: `doc(cfg(all()))` keeps its
+/// `cfg` inside `doc`'s own parentheses, where it is an argument to the doc
+/// attribute (the docs.rs badge idiom), not conditional compilation being
+/// applied to the item.
+fn push_applied_cfg(item: &str, out: &mut Vec<(&'static str, String)>) {
+    let item = item.trim();
+    for (form, name) in [("cfg_attr", "cfg_attr"), ("cfg!", "cfg!"), ("cfg", "cfg")] {
+        let Some(rest) = item.strip_prefix(name) else {
+            continue;
+        };
+        let Some(inner) = rest.trim_start().strip_prefix('(') else {
+            continue;
+        };
+        let balanced = take_balanced(inner);
+        if form == "cfg_attr" {
+            let items = top_level_items(balanced);
+            out.push((
+                "cfg_attr",
+                items.first().copied().unwrap_or("").trim().to_string(),
+            ));
+            for extra in &items[1..] {
+                push_applied_cfg(extra, out);
+            }
+        } else {
+            out.push((form, balanced.trim().to_string()));
+        }
+        return;
+    }
+}
+
 /// Every conditional-compilation predicate in `code`, as `(form, predicate)`
 /// with form one of `"cfg"`, `"cfg!"`, `"cfg_attr"`.
 ///
@@ -324,6 +379,17 @@ fn cfg_predicates(code: &str) -> Vec<(&'static str, String)> {
             balanced
         };
         out.push((form, pred.trim().to_string()));
+        if form == "cfg_attr" {
+            // The predicate is only the first item. Everything after it is
+            // the attribute being applied — where `#[cfg_attr(not(test),
+            // cfg(unix))]` hides a platform conditional the predicate scan
+            // alone never reads. Each applied item that is itself a
+            // cfg/cfg!/cfg_attr is conditional compilation smuggled past
+            // the whitelist; surface its own predicate so it is checked.
+            for item in top_level_items(balanced).into_iter().skip(1) {
+                push_applied_cfg(item, &mut out);
+            }
+        }
     }
     out
 }
@@ -457,7 +523,10 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
     // switch off auto-discovery so the filesystem enumeration in gate.sh
     // stops agreeing with what cargo builds; `harness`/`test`/`bench`/
     // `doctest` can quietly disable a runner; `crate-type`/`proc-macro`
-    // change what linking the library even produces.
+    // change what linking the library even produces. `links` declares a
+    // native library the manifest's empty [dependencies] never lists —
+    // cargo refuses it without a build script today (build.rs is banned),
+    // but the grammar stays closed only if the key itself is named.
     const BANNED_KEYS: &[&str] = &[
         "harness",
         "autotests",
@@ -469,6 +538,7 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
         "test",
         "bench",
         "doctest",
+        "links",
     ];
     // Profile tables exist legitimately (the workspace root sets opt-level/
     // lto/strip) — but three of their keys rewrite program semantics rather
@@ -524,6 +594,20 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                          profile key changes program semantics (assertions, \
                          overflow behaviour, panic strategy), so the same \
                          source compiles to a different simulation"
+                    );
+                }
+                // `[lib]` is the one target table left legal — but its
+                // `path` is the library's root file. Pointing it anywhere
+                // but src/lib.rs compiles a file the source scanners never
+                // enumerate (verified by injection: a redirected root
+                // carried banned needles while every scan stayed green).
+                if section == "lib" && key == "path" {
+                    let squashed: String = line.chars().filter(|c| !c.is_whitespace()).collect();
+                    assert!(
+                        squashed == "path=\"src/lib.rs\"",
+                        "{manifest_rel} redirects the lib root with `{line}` — \
+                         the library's entry point must be the file the \
+                         scanners read"
                     );
                 }
             }
@@ -679,6 +763,33 @@ fn the_predicate_parser_accepts_the_markers_and_rejects_the_platform() {
         assert!(
             predicate_atoms(pred).iter().any(|a| a == atom),
             "{snippet:?} must surface {atom:?}, got {pred:?}"
+        );
+    }
+
+    // A conditional nested in a cfg_attr's apply list must surface too:
+    // `#[cfg_attr(not(test), cfg(unix))]` applied `#[cfg(unix)]` while the
+    // predicate-level scan saw only `not(test)` — verified by injection.
+    // `doc(cfg(...))` is exempt: its cfg is an argument to `doc`, not an
+    // applied item.
+    for (snippet, atom) in [
+        ("#[cfg_attr(not(test), cfg(unix))]", "unix"),
+        (
+            "#[cfg_attr(test, cfg_attr(any(), cfg(target_endian = \"big\")))]",
+            "target_endian",
+        ),
+        (
+            "#![cfg_attr(any(), cfg!(target_arch = \"wasm32\"))]",
+            "target_arch",
+        ),
+    ] {
+        let preds = cfg_predicates(snippet);
+        assert!(
+            preds
+                .iter()
+                .skip(1)
+                .any(|(_, pred)| predicate_atoms(pred).iter().any(|a| a == atom)),
+            "{snippet:?} must surface nested atom {atom:?} as its own \
+             predicate, got {preds:?}"
         );
     }
 
