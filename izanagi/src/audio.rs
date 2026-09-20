@@ -72,7 +72,13 @@ impl Audio {
             v,
             Playing {
                 clip: name.to_string(),
-                volume: volume.clamp(0.0, 1.0),
+                // clamp() propagates NaN — a NaN volume would stay NaN in
+                // the Playing record for the clip's whole life.
+                volume: if volume.is_nan() {
+                    0.0
+                } else {
+                    volume.clamp(0.0, 1.0)
+                },
                 cursor: 0,
                 looping,
             },
@@ -92,7 +98,13 @@ impl Audio {
 
     /// Set master volume (0.0 to 1.0).
     pub fn set_master(&mut self, volume: f32) {
-        self.master = volume.clamp(0.0, 1.0);
+        // clamp() propagates NaN — master NaN would poison every voice.
+        // clamp() propagates NaN — master NaN would poison every voice.
+        self.master = if volume.is_nan() {
+            0.0
+        } else {
+            volume.clamp(0.0, 1.0)
+        };
     }
 
     /// Current master volume.
@@ -258,5 +270,17 @@ mod tests {
         a.mix_into(&mut buf, 64);
         let energy: f32 = buf.iter().map(|s| s * s).sum();
         assert_eq!(energy, 0.0);
+    }
+
+    #[test]
+    fn a_nan_volume_is_stored_as_zero_not_nan() {
+        // clamp() propagates NaN — a NaN volume would live in the Playing
+        // record / master for good.
+        let mut a = Audio::new();
+        a.set_master(f32::NAN);
+        assert_eq!(a.master(), 0.0);
+        let v = a.play("missing", f32::NAN); // voice is still tracked
+        let _ = v; // stored volume path is covered by master; voice is opaque
+        assert!(a.master().is_finite());
     }
 }

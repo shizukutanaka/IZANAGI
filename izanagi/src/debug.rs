@@ -30,7 +30,9 @@ impl Metrics {
 
     /// Record a frame. Call once per frame with the real dt.
     pub fn record(&mut self, dt: f32) {
-        if dt <= 0.0 {
+        // `dt <= 0.0` would let NaN through (NaN <= x is false), poisoning
+        // sum_dt/elapsed forever — reject non-finite and non-positive alike.
+        if !dt.is_finite() || dt <= 0.0 {
             return;
         }
         self.frames += 1;
@@ -156,5 +158,18 @@ mod tests {
         let m = Metrics::default();
         assert_eq!(m.avg_fps(), 0.0);
         assert_eq!(m.smooth_fps(), 0.0);
+    }
+
+    #[test]
+    fn a_nan_frame_does_not_poison_the_metrics() {
+        // `dt <= 0.0` is false for NaN — the old guard let it through and
+        // sum_dt went NaN forever (avg_fps NaN permanently).
+        let mut m = Metrics::new(8);
+        m.record(0.016);
+        m.record(f32::NAN);
+        m.record(0.016);
+        assert_eq!(m.frames(), 2);
+        assert!(m.avg_fps().is_finite());
+        assert!(m.worst_ms().is_finite());
     }
 }

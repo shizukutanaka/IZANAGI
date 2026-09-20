@@ -89,6 +89,24 @@ pub struct Gamepads {
     pads: [Pad; 4],
 }
 
+/// clamp() propagates NaN — a NaN stick event would leave the axis NaN
+/// until the next event. Degrade it to neutral instead.
+fn clamp_axis(v: f32) -> f32 {
+    if v.is_nan() {
+        0.0
+    } else {
+        v.clamp(-1.0, 1.0)
+    }
+}
+
+fn clamp_trigger(v: f32) -> f32 {
+    if v.is_nan() {
+        0.0
+    } else {
+        v.clamp(0.0, 1.0)
+    }
+}
+
 impl Gamepads {
     /// Create with all pads disconnected.
     pub fn new() -> Self {
@@ -180,8 +198,8 @@ impl Gamepads {
     pub fn on_left_stick(&mut self, id: usize, x: f32, y: f32) {
         if let Some(p) = self.pads.get_mut(id) {
             p.left = Stick {
-                x: x.clamp(-1.0, 1.0),
-                y: y.clamp(-1.0, 1.0),
+                x: clamp_axis(x),
+                y: clamp_axis(y),
             };
         }
     }
@@ -190,8 +208,8 @@ impl Gamepads {
     pub fn on_right_stick(&mut self, id: usize, x: f32, y: f32) {
         if let Some(p) = self.pads.get_mut(id) {
             p.right = Stick {
-                x: x.clamp(-1.0, 1.0),
-                y: y.clamp(-1.0, 1.0),
+                x: clamp_axis(x),
+                y: clamp_axis(y),
             };
         }
     }
@@ -199,8 +217,8 @@ impl Gamepads {
     /// Feed trigger values.
     pub fn on_triggers(&mut self, id: usize, lt: f32, rt: f32) {
         if let Some(p) = self.pads.get_mut(id) {
-            p.lt = lt.clamp(0.0, 1.0);
-            p.rt = rt.clamp(0.0, 1.0);
+            p.lt = clamp_trigger(lt);
+            p.rt = clamp_trigger(rt);
         }
     }
 
@@ -272,5 +290,20 @@ mod tests {
         let g = Gamepads::new();
         assert!(!g.down(99, Button::South));
         assert_eq!(g.left_trigger(99), 0.0);
+    }
+
+    #[test]
+    fn a_nan_axis_degrades_to_neutral() {
+        // clamp() propagates NaN — a glitching driver event would leave the
+        // stick NaN until the next event.
+        let mut g = Gamepads::new();
+        g.on_connect(0, true);
+        g.on_left_stick(0, f32::NAN, 0.5);
+        g.on_triggers(0, f32::NAN, 1.0);
+        let s = g.left_stick(0);
+        assert_eq!(s.x, 0.0);
+        assert_eq!(s.y, 0.5);
+        assert_eq!(g.left_trigger(0), 0.0);
+        assert_eq!(g.right_trigger(0), 1.0);
     }
 }
