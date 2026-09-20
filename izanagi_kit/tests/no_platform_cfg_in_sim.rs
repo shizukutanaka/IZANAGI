@@ -646,10 +646,13 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
             );
         }
         // rustfmt.toml exists legitimately (izanagi/ carries the workspace
-        // style), but three of its keys shrink what `cargo fmt --check`
-        // checks: `ignore` lists paths to skip, `disable_all_formatting`
-        // turns the formatter off, and `skip_children` skips out-of-line
-        // modules. The file may exist; the escape hatches may not.
+        // style), but several of its keys shrink what `cargo fmt --check`
+        // checks: `ignore`/`skip_children`/`skip_macro_invocations` list
+        // code to skip, `disable_all_formatting` turns the formatter off,
+        // and the `format_*`/`reorder_*` family each declines to check one
+        // category — `format_strings = false` still passes the gate with
+        // unformatted string literals in every file. The file may exist;
+        // the opt-outs may not.
         for name in ["rustfmt.toml", ".rustfmt.toml"] {
             let path = repo_root().join(dir).join(name);
             if !path.exists() {
@@ -659,12 +662,25 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                 .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
             for line in cfg.lines().map(str::trim) {
                 for key in manifest_line_keys(line) {
-                    for banned in ["ignore", "disable_all_formatting", "skip_children"] {
+                    for banned in [
+                        "ignore",
+                        "disable_all_formatting",
+                        "skip_children",
+                        "skip_macro_invocations",
+                        "format_macro_bodies",
+                        "format_macro_matchers",
+                        "format_strings",
+                        "format_code_in_doc_comments",
+                        "reorder_imports",
+                        "reorder_modules",
+                        "reorder_impl_items",
+                        "reorder_use_trees",
+                    ] {
                         assert!(
                             key != banned,
-                            "{} sets `{key}` — this rustfmt key removes files \
-                             from `cargo fmt --check`, so unformatted code \
-                             would pass the gate",
+                            "{} sets `{key}` — this rustfmt key stops \
+                             `cargo fmt --check` checking a category of \
+                             code, so unformatted code would pass the gate",
                             path.display()
                         );
                     }

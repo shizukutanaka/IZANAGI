@@ -484,6 +484,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   「〜を含まない」系検査がvacuousに緑化する経路だった。全箇所を
   `unwrap_or_else(|e| panic!(...))` に変換 — 列挙されたファイルが読めな
   いことは対象の不在ではなくスキャンの破損(chmod 000 注入で検出確認)。
+- ~~rustfmt.toml の逃げ道は `ignore`/`disable_all_formatting`/`skip_children`
+  の3キーで尽きたと思われていた~~ → `format_strings = false` のような
+  `format_*` キーは「カテゴリ丸ごと fmt 検査を外す」同じ逃げ道だった。
+  `format_macro_bodies`/`format_macro_matchers`/`format_strings`/
+  `format_code_in_doc_comments`/`reorder_imports`/`reorder_modules`/
+  `reorder_impl_items`/`reorder_use_trees`/`skip_macro_invocations` を
+  禁止表に追加(format_strings 注入で検出確認)。
 
 ## 3. 改善案(優先順位付き)
 
