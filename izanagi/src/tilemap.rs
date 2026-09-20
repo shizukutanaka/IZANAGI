@@ -149,6 +149,23 @@ mod tests {
     }
 
     #[test]
+    fn world_to_tile_floors_negatives_and_is_left_closed() {
+        // `.floor()` vs a plain `as i32` truncation differ only for negative
+        // points: -0.5/16 floors to -1 but truncates to 0. Pin the semantics
+        // so the floor cannot be silently "simplified" away.
+        let m = Tilemap::new(20, 20, 16.0);
+        // Exact left edge belongs to the new tile ([48, 64) -> 3).
+        assert_eq!(m.world_to_tile(Vec2::new(48.0, 64.0)), (3, 4));
+        // Just inside still maps down.
+        assert_eq!(m.world_to_tile(Vec2::new(47.9, 63.9)), (2, 3));
+        // Negative points floor: -0.5 is tile -1, -16.1 is tile -2 —
+        // truncation would give 0 and -1.
+        assert_eq!(m.world_to_tile(Vec2::new(-0.5, -0.5)), (-1, -1));
+        assert_eq!(m.world_to_tile(Vec2::new(-16.0, -16.0)), (-1, -1));
+        assert_eq!(m.world_to_tile(Vec2::new(-16.1, -16.1)), (-2, -2));
+    }
+
+    #[test]
     fn visible_tiles_skips_empty() {
         let mut m = Tilemap::new(10, 10, 16.0);
         m.set(2, 2, 1);
