@@ -132,6 +132,42 @@ mod tests {
     }
 
     #[test]
+    fn round_trip_holds_under_rotation() {
+        // rotation == 0 is a degenerate case: sin=0, cos=1, so a sign slip in
+        // either transform is invisible. Sweep real rotations.
+        let mut cam = Camera::new(800.0, 600.0);
+        cam.pos = Vec2::new(50.0, -30.0);
+        cam.zoom = 1.7;
+        let w = Vec2::new(123.0, -45.6);
+        let mut i = 0u64;
+        while i < 64 {
+            cam.rotation = (i as f32) * 0.1 - 3.2;
+            let back = cam.screen_to_world(cam.world_to_screen(w));
+            assert!(
+                (back.x - w.x).abs() < 1e-2 && (back.y - w.y).abs() < 1e-2,
+                "rotation {}: {:?} -> {:?}",
+                cam.rotation,
+                w,
+                back
+            );
+            i += 1;
+        }
+    }
+
+    #[test]
+    fn rotation_ninety_degrees_maps_east_to_south() {
+        // Roundtrip cannot catch a mirrored world: if BOTH transforms used
+        // the same wrong sign they are still inverses of each other. Pin the
+        // direction: with rotation = +PI/2 a point east of the camera maps
+        // below screen center.
+        let mut cam = Camera::new(800.0, 600.0);
+        cam.rotation = std::f32::consts::FRAC_PI_2;
+        let s = cam.world_to_screen(cam.pos + Vec2::new(10.0, 0.0));
+        assert!((s.x - 400.0).abs() < 1e-2, "x should stay centered: {s:?}");
+        assert!(s.y > 300.0, "east should rotate to screen-south: {s:?}");
+    }
+
+    #[test]
     fn zoom_shrinks_visible_rect() {
         let mut cam = Camera::new(800.0, 600.0);
         let r1 = cam.visible_rect();
