@@ -1196,9 +1196,21 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // Test-dir-only: the examples keep two legitimate uses —
             // `process::exit` on their error path and two `#[allow]` lints —
             // but inside the suite `exit` can end the harness mid-file and
-            // `#[allow]`/`#[warn]`/`#[expect]` downgrade lints in place.
+            // `#[allow]`/`#[warn]`/`#[expect]` downgrade lints in place —
+            // as do their `#![...]` inner-attribute spellings, which silence
+            // the whole file at once (verified: `#![allow(dead_code)]`
+            // escaped the outer-attribute needle until these were added).
             if require_tests {
-                for needle in ["process::exit", "#[allow", "#[warn", "#[expect"] {
+                for needle in [
+                    "process::exit",
+                    "#[allow",
+                    "#[warn",
+                    "#[expect",
+                    "#![allow",
+                    "#![warn",
+                    "#![expect",
+                    "#![feature",
+                ] {
                     assert!(
                         !contains_token(&code, needle),
                         "{name} contains `{needle}` — tests may not exit the \
