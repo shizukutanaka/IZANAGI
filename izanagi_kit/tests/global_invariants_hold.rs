@@ -217,6 +217,12 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
          to_le_bytes explicitly)",
     );
     m.insert(
+        "G11",
+        "izanagi_kit/tests/no_platform_cfg_in_sim.rs (cfg/cfg!/cfg_attr \
+         predicates may name only test/doc/doctest/docsrs and the \
+         not/any/all combinators; no [target.*] section in either manifest)",
+    );
+    m.insert(
         "G8",
         "this file: g8_*, plus izanagi_kit/tests/msrv_is_respected.rs for the code",
     );

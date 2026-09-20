@@ -34,6 +34,9 @@ exclude = [
     "tests/msrv_is_respected.rs",
     "tests/parser_matches_its_specification.rs",
     "tests/public_api_is_exercised.rs",
+    # Reads the sibling crate's manifest (`izanagi/Cargo.toml`) as well as this
+    # one, so it is repository-scoped for the same reason as the rest.
+    "tests/no_platform_cfg_in_sim.rs",
 ]
 documentation = "https://docs.rs/izanagi_kit"
 

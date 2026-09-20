@@ -27,6 +27,7 @@
 | G8 | MSRV **1.75** / edition 2021 | 互換性 |
 | G9 | **ポインタ幅の値を hash に混ぜない**（`usize`/`isize` の `DetHash` 実装なし、`write_usize` なし、長さは `as u32`） | 32bit/64bit 間の replay 一致。CI は wasm32 (`usize` = 32bit) でビルドする |
 | G10 | **hash に native-endian のバイト列を混ぜない**（`to_ne_bytes`/`to_be_bytes` 禁止、全 write は `to_le_bytes` を明示） | little-endian と big-endian 間の replay 一致。現行 CI ターゲット(x86-64・wasm32)はすべて little-endian なので、実行時テストでは検出できない潜在バグ |
+| G11 | **条件コンパイルでターゲット・プロファイル・feature に分岐しない**（library code の `cfg`/`cfg!`/`cfg_attr` 判別式は `test`/`doc`/`doctest`/`docsrs` と `not`/`any`/`all` のみ。manifest の `[target.*]` セクション禁止） | 「値」ではなく「コンパイルされるコードそのもの」がターゲットやプロファイルで変わる経路。`#[cfg(target_pointer_width)]` は禁止トークンを一切使わず G4/G9/G10 を迂回できる |
 
 ## 3. `entity` — 世代付きエンティティ
 - `Entity{index,generation}`（opaque）, `EntityAllocator{allocate, free, is_alive}`。
