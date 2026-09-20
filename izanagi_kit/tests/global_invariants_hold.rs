@@ -589,6 +589,65 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
         "the weakening scan found no `allow` attributes at all — the known \
          `#[allow(missing_docs)]` markers should have shown up"
     );
+
+    // `src/bin/` is deliberately out of `library_sources` — a CLI answers to
+    // its machine — but a bin target is its own crate root: the lib's
+    // `#![forbid(unsafe_code)]` does not apply there, and no scanner read
+    // the directory at all. Every shipped binary carries the attribute
+    // itself and may not splice in code this suite never reads. `env!`
+    // stays legal for cargo-provided `CARGO_*` constants
+    // (`CARGO_PKG_VERSION` is the idiomatic version string) — anything else
+    // bakes the build machine into a shipped binary.
+    for bin_dir in ["izanagi_kit/src/bin", "izanagi/src/bin"] {
+        let dir = repo_root().join(bin_dir);
+        let Ok(entries) = fs::read_dir(&dir) else {
+            continue;
+        };
+        let mut found_any = false;
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().map(|e| e == "rs") != Some(true) {
+                continue;
+            }
+            found_any = true;
+            let name = path.display().to_string();
+            let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {name}: {e}"));
+            let code = test_code(&raw);
+            assert!(
+                code.contains("#![forbid(unsafe_code)]"),
+                "{name} is a bin crate root without `#![forbid(unsafe_code)]` \
+                 — the lib-level forbid does not reach this target"
+            );
+            let body = code.replacen("#![forbid(unsafe_code)]", "", 1);
+            assert!(
+                !body.contains("#![forbid(unsafe_code)]"),
+                "{name} declares `#![forbid(unsafe_code)]` twice"
+            );
+            for needle in ["unsafe", "include!(", "include_bytes!(", "#[path", "mod "] {
+                assert!(
+                    !contains_token(&body, needle),
+                    "{name} contains `{needle}` — a shipped binary may not \
+                     take unsafe or splice in code the scans never read"
+                );
+            }
+            for arg in env_macro_args(&raw) {
+                assert!(
+                    arg.as_deref()
+                        .map(|a| a.starts_with("CARGO_"))
+                        .unwrap_or(false),
+                    "{name} bakes a non-CARGO_* build env var into a shipped \
+                     binary ({arg:?})"
+                );
+            }
+        }
+        if bin_dir == "izanagi_kit/src/bin" {
+            assert!(
+                found_any,
+                "izanagi_kit/src/bin scanned empty — gamec lives there, and \
+                 an empty scan would pass vacuously"
+            );
+        }
+    }
 }
 
 /// Panicking-macro sites that exist in library code, with the count

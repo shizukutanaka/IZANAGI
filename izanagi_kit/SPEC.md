@@ -18,7 +18,7 @@
 | ID | 不変条件 | 根拠 |
 |----|---------|------|
 | G1 | **zero runtime dependencies**（`Cargo.toml` の `[dependencies]` 空） | 監査面の最小化 |
-| G2 | **`#![forbid(unsafe_code)]`** | メモリ安全 |
+| G2 | **`#![forbid(unsafe_code)]`**（bin ターゲットは独立クレートルートのため各 `src/bin/*.rs` も自身で宣言し、`unsafe`/`include!`/`#[path]`/`mod` を持たない） | メモリ安全 |
 | G3 | **シミュレーション経路で `f32`/`f64` を使わない**（fixed-point / 整数のみ） | クロスプラットフォーム決定論 |
 | G4 | **wall-clock / thread-local をシミュレーション種にしない** | replay 再現性 |
 | G5 | **状態 hash 列が同一入力で bit 一致**（`PINNED_FINAL_HASH` を CI で固定） | lockstep desync 検出 |

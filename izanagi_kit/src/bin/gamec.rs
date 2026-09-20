@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 //! `gamec` — the game-content checker/compiler.
 //!
 //! Usage: `gamec [--help | --fmt | --json | --sarif | --check] <file.game>`

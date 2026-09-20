@@ -138,6 +138,20 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 ### 解消済み(本セッション)
 
+- ~~`library_sources` が `src/` を再帰的に歩くなら出荷バイナリも走査されている~~ →
+  `src/bin/` は意図的に除外されている(「CLI はその機械に答える」)が、
+  `src/bin/*.rs` は**それ自身がクレートルート**なので lib の
+  `#![forbid(unsafe_code)]` は `gamec` に届かず、ファイルは誰にも読まれていなかった:
+  `unsafe`、走査外の `src/bin/<name>/mod.rs` への `mod`(cargo が bin に自動昇格するのは
+  `src/bin/*.rs` と `src/bin/*/main.rs` だけで `mod.rs` は拾わない)、`env!("SECRET")`
+  がすべて無検査で入れた。`g7_the_safety_denies_are_present_and_nothing_weakens_them`
+  は両クレートの `src/bin/*.rs` を読むようになり: 各ファイル自身の
+  `#![forbid(unsafe_code)]` を要求し(1回剥がしてから検査 — 属性自身の `unsafe_code`
+  テキストがニードルを満たさないように)、`unsafe`/`include!`/`include_bytes!`/`#[path`/`mod `
+  を拒否し、`env!` の引数を `CARGO_*` に限定し、`izanagi_kit/src/bin` が空でないことを
+  主張する(`gamec` の削除が真空で通らないように)。注入で実証: `forbid` 下の unsafe は
+  そもそもコンパイルエラー、`mod sub` + `src/bin/sub/mod.rs` はコンパイルするが
+  `mod ` ニードルが検出、`env!("HOME")` と forbid 行の削除もともに失敗。
 - ~~pinned hash は debug profile でしか検証されていなかった~~ → `overflow-checks` は
   dev で既定 on・release で既定 off なので、シミュレーション経路の算術が静かに wrap する
   コードは debug では panic して気づけるが release では気づけない。gate は debug の
