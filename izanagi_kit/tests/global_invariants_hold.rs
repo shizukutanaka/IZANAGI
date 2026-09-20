@@ -1500,3 +1500,64 @@ fn the_lockfile_names_only_workspace_crates() {
         }
     }
 }
+
+#[test]
+fn every_source_file_is_a_declared_module() {
+    // `library_sources` scans every .rs under src/ — but the compiler only
+    // builds files reachable from a `mod` declaration rooted at lib.rs. A
+    // `src/foo.rs` with no `mod foo;` is scanned green while compiling into
+    // nothing: the suite sees text, the build sees nothing. (Demonstrated:
+    // an orphan file passed the whole suite without a rebuild.)
+    for (krate, lib) in [
+        ("izanagi_kit", "izanagi_kit/src/lib.rs"),
+        ("izanagi", "izanagi/src/lib.rs"),
+    ] {
+        let src_root = repo_root().join(krate).join("src");
+        let lib_src = fs::read_to_string(repo_root().join(lib)).unwrap_or_default();
+        let mut declared = std::collections::BTreeSet::new();
+        for line in lib_src.lines() {
+            let t = line.trim_start();
+            for pat in ["pub mod ", "mod "] {
+                if let Some(rest) = t.strip_prefix(pat) {
+                    if let Some(name) = rest
+                        .split(|c: char| !c.is_alphanumeric() && c != '_')
+                        .next()
+                    {
+                        declared.insert(name.to_string());
+                    }
+                }
+            }
+        }
+        // mod.rs-style subdirectories count too: src/foo/mod.rs is declared
+        // by `mod foo` in lib.rs the same way src/foo.rs is.
+        for entry in fs::read_dir(&src_root).expect("src/").flatten() {
+            let path = entry.path();
+            let name = entry.file_name().to_string_lossy().to_string();
+            if name == "bin" && path.is_dir() {
+                continue; // bin targets are targets, not modules
+            }
+            if path.is_dir() {
+                // a subdirectory is reachable iff `mod <dir>` exists and it
+                // contains mod.rs — enforce the declaration half here
+                assert!(
+                    declared.contains(&name),
+                    "{krate}/src/{name}/ is an orphan directory — no `mod` \
+                     declaration reaches it, so its files compile into nothing"
+                );
+                continue;
+            }
+            if path.extension().map(|e| e == "rs") != Some(true) {
+                continue;
+            }
+            let stem = name.trim_end_matches(".rs").to_string();
+            if stem == "lib" {
+                continue;
+            }
+            assert!(
+                declared.contains(&stem),
+                "{krate}/src/{name} is an orphan file — no `mod {stem}` in \
+                 lib.rs, so the suite scans text the compiler never builds"
+            );
+        }
+    }
+}
