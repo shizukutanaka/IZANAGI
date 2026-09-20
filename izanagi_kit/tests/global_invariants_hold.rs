@@ -896,6 +896,23 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
         "det_hash_golden.rs",
         "print_golden is a regeneration helper, run explicitly with --ignored",
     )];
+    // A file can pass `#[test`-presence and still verify nothing: an empty
+    // body is the quietest green there is. The floor is one real assertion
+    // token per file — measurement harnesses (bench.rs) report instead of
+    // assert, and are named here with the reason.
+    const NO_ASSERT_ALLOWLIST: &[(&str, &str)] = &[(
+        "bench.rs",
+        "timing harness — its output is the artifact; a real failure still \
+         crashes the run",
+    )];
+    const ASSERT_TOKENS: &[&str] = &[
+        "assert",
+        "expect(",
+        "panic!",
+        "unreachable!",
+        "prop_assert",
+        "should_panic",
+    ];
     // (directory, must contain #[test]) — examples are binaries the gate
     // runs for byte-identical output, so a `#[cfg]` there would fork the
     // *evidence* the pinned hashes stand on. The same rules apply without
@@ -925,6 +942,20 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "{name} contains no #[test] function — a test file that \
                  runs nothing passes vacuously"
             );
+            if require_tests {
+                let asserts = ASSERT_TOKENS
+                    .iter()
+                    .map(|t| code.matches(t).count())
+                    .sum::<usize>();
+                let excused = NO_ASSERT_ALLOWLIST.iter().any(|(f, _)| *f == name);
+                assert!(
+                    asserts > 0 || excused,
+                    "{name} runs {asserts} assertions — a test file that \
+                     asserts nothing is verification that reads as \
+                     performed. Name it in NO_ASSERT_ALLOWLIST with the \
+                     reason"
+                );
+            }
             let ignored = code.matches("#[ignore").count();
             let allowed = IGNORE_ALLOWLIST.iter().filter(|(f, _)| *f == name).count();
             assert!(
@@ -961,6 +992,31 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             body.matches("#[ignore").next().is_some(),
             "IGNORE_ALLOWLIST names {file} but it no longer contains \
              #[ignore] — a stale entry reads as permission"
+        );
+    }
+    // Same staleness rule for the assert exemption: the file must exist and
+    // must still be assertion-free — the moment it gains asserts the entry
+    // is spent and must be removed.
+    for (file, _) in NO_ASSERT_ALLOWLIST {
+        let mut found = false;
+        for dir in ["izanagi_kit/tests", "izanagi/tests"] {
+            let path = repo_root().join(dir).join(file);
+            if !path.exists() {
+                continue;
+            }
+            found = true;
+            let body = test_code(&fs::read_to_string(&path).unwrap_or_default());
+            let asserts: usize = ASSERT_TOKENS.iter().map(|t| body.matches(t).count()).sum();
+            assert_eq!(
+                asserts, 0,
+                "NO_ASSERT_ALLOWLIST names {file} but it now asserts — \
+                 remove the stale entry"
+            );
+            break;
+        }
+        assert!(
+            found,
+            "NO_ASSERT_ALLOWLIST names {file}, which no longer exists"
         );
     }
 }
