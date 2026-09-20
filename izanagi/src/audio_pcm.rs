@@ -214,6 +214,48 @@ mod tests {
     }
 
     #[test]
+    fn load_wav_never_panics_on_any_truncation_or_single_byte_corruption() {
+        // Same contract as the text parser's garbage fuzzers: every prefix
+        // length and every single-byte flip of a valid file must be Err or
+        // Ok — never panic. The truncated-fmt OOB above is what this sweep
+        // would have caught.
+        // Two shapes: fmt-first (the common file) and fmt-LAST — only the
+        // second can be truncated mid-fmt-payload, which is the OOB family
+        // fixed above. A sweep of just the first shape cannot reach it: the
+        // 44-byte floor rejects every prefix before the chunk loop.
+        let shapes = [minimal_wav(8, &[0, 1, 2, 3, 252, 253, 254, 255]), {
+            let mut d = Vec::new();
+            d.extend_from_slice(b"RIFF");
+            d.extend_from_slice(&64u32.to_le_bytes());
+            d.extend_from_slice(b"WAVE");
+            d.extend_from_slice(b"JUNK");
+            d.extend_from_slice(&12u32.to_le_bytes());
+            d.extend_from_slice(&[0; 12]);
+            d.extend_from_slice(b"fmt ");
+            d.extend_from_slice(&16u32.to_le_bytes());
+            d.extend_from_slice(&[0; 16]);
+            d
+        }];
+        for full in &shapes {
+            for n in 0..=full.len() {
+                let _ = load_wav(&full[..n]);
+            }
+            for i in 0..full.len() {
+                let mut d = full.clone();
+                d[i] ^= 0xFF;
+                let _ = load_wav(&d);
+            }
+        }
+        let mut g = vec![0xAAu8; 96];
+        for seed in 0..512u32 {
+            for (i, b) in g.iter_mut().enumerate() {
+                *b = seed.wrapping_mul(31).wrapping_add(i as u32) as u8;
+            }
+            let _ = load_wav(&g);
+        }
+    }
+
+    #[test]
     fn a_truncated_fmt_chunk_errors_instead_of_panicking() {
         // The claimed chunk size used to be trusted: a file ending in
         // `fmt ` + size=16 + 4 real bytes indexed past the buffer.

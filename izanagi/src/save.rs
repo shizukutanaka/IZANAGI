@@ -90,6 +90,26 @@ mod tests {
     }
 
     #[test]
+    fn parse_never_panics_on_any_truncation_or_single_byte_corruption() {
+        let full = Save::encode(3, b"payload bytes here");
+        for n in 0..=full.len() {
+            let _ = Save::parse(&full[..n]);
+        }
+        for i in 0..full.len() {
+            let mut d = full.clone();
+            d[i] ^= 0xFF;
+            let _ = Save::parse(&d);
+        }
+        let mut g = vec![0xAAu8; 96];
+        for seed in 0..512u32 {
+            for (i, b) in g.iter_mut().enumerate() {
+                *b = seed.wrapping_mul(31).wrapping_add(i as u32) as u8;
+            }
+            let _ = Save::parse(&g);
+        }
+    }
+
+    #[test]
     fn rejects_hostile_declared_len() {
         // A header declaring u32::MAX payload bytes: on 32-bit `usize` the
         // old `10 + len` comparison overflowed and let the slice panic.
