@@ -727,3 +727,32 @@ fn license_files_have_no_unexpanded_template_placeholders() {
         );
     }
 }
+
+#[test]
+fn the_pipeline_demo_embeds_the_shipped_fixture_verbatim() {
+    // content_pipeline_demo claims its `VALID_CONTENT` is "the same dungeon
+    // as examples/dungeon.game". That claim was already false once — the
+    // demo gained `extends` content while the shipped fixture did not — and
+    // it would rot again silently. Extract the literal and compare.
+    let demo = read("izanagi_kit/examples/content_pipeline_demo.rs");
+    let anchor = demo
+        .find("const VALID_CONTENT")
+        .expect("the demo must declare VALID_CONTENT");
+    let start = demo[anchor..]
+        .find("r#\"")
+        .expect("VALID_CONTENT must be a raw string")
+        + anchor
+        + 3;
+    let end = demo[start..]
+        .find("\"#")
+        .expect("VALID_CONTENT's raw string must close")
+        + start;
+    let embedded = demo[start..end].trim();
+    let fixture = read("izanagi_kit/examples/dungeon.game");
+    assert_eq!(
+        embedded,
+        fixture.trim(),
+        "VALID_CONTENT and examples/dungeon.game diverged — update one or drop \
+         the doc comment's parity claim"
+    );
+}
