@@ -75,7 +75,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **検査器自身も変異注入で検証**する慣行が定着している。
 4. **zero-dependency / `#![forbid(unsafe_code)]`** — 両クレートとも実行時依存ゼロ。
    両クレートが**検証付き**で梱包可能(`cargo package` が tarball からビルドし直す)。
-5. **「green」の定義が1つ** — `tools/gate.sh` の9段(最終段は tarball を展開して
+5. **「green」の定義が1つ** — `tools/gate.sh` の7段(最終段は tarball を展開して
    **doctest まで走らせる**)。pre-push フックと CI 提案が
    同じスクリプトを呼ぶので、ローカルと CI が定義上ずれない。
 6. **エンジンとキットの境界が測定され機械検査される** — engine 25 モジュール中 8 が
@@ -360,9 +360,10 @@ tools/gate.sh                                      # ★ゲート全段
 non-zero 終了する: `cargo fmt --all -- --check` / `cargo test --workspace` /
 clippy 警告 0 / rustdoc 警告 0(両クレート)/ pinned hash(`determinism` +
 `roguelike_sim`)/ **全 example(29本)が headless 完走・非空出力・2回実行で
-バイト一致**(一覧はファイルシステムから読むので新規 example は追加当日から対象)/
-`kit_bridge` の統合ハッシュ `353498ec4fbcd160` を出力に含むこと /
-`verify_pipeline_demo`(自身の主張を assert する)/ 両クレートの `cargo package` と、
+バイト一致**(一覧はファイルシステムから読むので新規 example は追加当日から対象。
+このループ内で `kit_bridge` の統合ハッシュ `353498ec4fbcd160` も出力から grep する。
+`verify_pipeline_demo` は自身の主張を assert!/panic! で検証するため非ゼロ終了が
+ループに捕捉される — 専用段は不要と判断し畳み込み済み)/ 両クレートの `cargo package` と、
 **展開した tarball の中で doctest / テスト / example / bin の4ターゲットすべて**、
 および **`gamec` を同梱 fixture に対して両方向**(`dungeon.game` を受理し `broken.game` を拒否)。
 ライブラリのビルドだけでは他のどれも検証されず、実際に3つ壊れた状態で出荷しかけた。

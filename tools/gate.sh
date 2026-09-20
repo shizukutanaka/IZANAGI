@@ -80,7 +80,9 @@ stage "every example runs, prints, and reproduces"
 # today, which makes this a guard rather than a discovery.
 #
 # What this does *not* check is whether the numbers an example prints are
-# right. Only `verify_pipeline_demo` and `kit_bridge` assert their own output;
+# right. `verify_pipeline_demo` asserts its own claims with assert!/panic! (a
+# failed claim is a non-zero exit, which the run check below already catches)
+# and `kit_bridge`'s output is grepped for its pinned hash in this same loop;
 # see AGENT_INSTRUCTIONS.md §2.
 cargo build --workspace --examples --quiet
 # `timeout` catches a hang instead of stalling CI for its whole job limit. It
@@ -96,7 +98,12 @@ for crate_dir in izanagi izanagi_kit; do
     for path in "$crate_dir"/examples/*.rs; do
         name=$(basename "$path" .rs)
         label="$crate_dir::$name"
-        if ! first=$($cap cargo run -q -p "$crate_dir" --example "$name" 2>&1); then
+        # Run the freshly built binary directly: `cargo run` would only repeat
+        # the freshness check `cargo build --examples` already did, ~40ms and
+        # a cargo process spawn per call. Examples take no args, read no files
+        # and use no cargo env vars, so the exec is identical for this check.
+        bin="target/debug/examples/$name"
+        if ! first=$($cap "$bin" 2>&1); then
             printf '%s\n' "$first" | tail -20
             echo "gate: example $label did not complete successfully"
             exit 1
@@ -105,7 +112,7 @@ for crate_dir in izanagi izanagi_kit; do
             echo "gate: example $label printed nothing — an example must show a result"
             exit 1
         fi
-        if ! second=$($cap cargo run -q -p "$crate_dir" --example "$name" 2>&1); then
+        if ! second=$($cap "$bin" 2>&1); then
             echo "gate: example $label failed on its second run"
             exit 1
         fi
@@ -117,22 +124,19 @@ for crate_dir in izanagi izanagi_kit; do
             rm -f /tmp/gate_ex_a.$$ /tmp/gate_ex_b.$$
             exit 1
         fi
+        # kit_bridge's own integration check: the headless run's final hash is
+        # pinned, proving engine-hosted and headless simulation agree.
+        if [ "$label" = "izanagi::kit_bridge" ]; then
+            printf '%s\n' "$first" | tail -1
+            if ! printf '%s' "$first" | grep -q "$KIT_BRIDGE_HASH"; then
+                echo "gate: kit_bridge output does not contain the pinned hash $KIT_BRIDGE_HASH"
+                exit 1
+            fi
+        fi
         example_count=$((example_count + 1))
     done
 done
 echo "examples: $example_count ran headless, printed a result, and reproduced it"
-
-stage "kit_bridge integration hash"
-bridge_out=$(cargo run -p izanagi --example kit_bridge 2>&1)
-printf '%s\n' "$bridge_out" | tail -1
-if ! printf '%s' "$bridge_out" | grep -q "$KIT_BRIDGE_HASH"; then
-    echo "gate: kit_bridge output does not contain the pinned hash $KIT_BRIDGE_HASH"
-    exit 1
-fi
-
-stage "verification pipeline demo (asserts its own claims)"
-cargo run -p izanagi_kit --example verify_pipeline_demo >/dev/null
-echo "verify_pipeline_demo: ok"
 
 stage "packageability (both crates, verified, doctests included)"
 # No `--no-verify`: the verify step unpacks the tarball and *builds it*, which
