@@ -46,12 +46,6 @@ struct Health {
     max_hp: i32,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Team {
-    Player,
-    Enemy,
-}
-
 struct Map {
     tiles: [u8; MAP_W * MAP_H],
 }
@@ -99,11 +93,7 @@ enum Phase {
 }
 
 #[derive(Debug, Clone)]
-#[allow(dead_code)]
-struct CombatEvent {
-    attacker: Team,
-    damage: i32,
-}
+struct CombatEvent;
 
 // ─── Procedural map (BSP rooms) ─────────────────────────────────────────────
 
@@ -296,10 +286,7 @@ fn main() {
                         if let Some(idx) = enemy_idx {
                             let dmg = e.rng.int_range(3, 8);
                             enemies[idx].1.hp -= dmg;
-                            combat.send(CombatEvent {
-                                attacker: Team::Player,
-                                damage: dmg,
-                            });
+                            combat.send(CombatEvent);
                             messages.push(format!("Hit for {}!", dmg));
                             shake.restart();
                             if enemies[idx].1.hp <= 0 {
@@ -334,10 +321,7 @@ fn main() {
                             if (epos.x - ppos.x).abs() <= 1 && (epos.y - ppos.y).abs() <= 1 {
                                 let dmg = e.rng.int_range(1, 5);
                                 player_hp.hp -= dmg;
-                                combat.send(CombatEvent {
-                                    attacker: Team::Enemy,
-                                    damage: dmg,
-                                });
+                                combat.send(CombatEvent);
                                 messages.push(format!("You take {}!", dmg));
                                 flash_timer.reset();
                                 let _ = ehp.hp; // suppress unused

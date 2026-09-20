@@ -932,6 +932,16 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
         assert!(!entries.is_empty(), "found no sources under {dir_rel}");
         for entry in entries {
             let path = entry.path();
+            // This scan is flat, and so is cargo's test-target discovery —
+            // only top-level `tests/*.rs` files become test crates. A file
+            // in a subdirectory is compiled by nobody and scanned by this
+            // loop never: the deadest code there is.
+            assert!(
+                !path.is_dir(),
+                "{dir_rel}/{} is a directory — sources inside it are \
+                 invisible to this scan and to cargo test",
+                entry.file_name().to_string_lossy()
+            );
             if path.extension().map(|e| e == "rs") != Some(true) {
                 continue;
             }
@@ -975,6 +985,42 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      not fork itself on platform, weaken its own lints, or \
                      take unsafe shortcuts"
                 );
+            }
+            // Substring needles: `unused`/`dead_code` must match inside
+            // `unused_mut`, `allow(unused_variables)`, `dead_code` — the
+            // whole suppressor family, which token boundaries cannot
+            // express. (roguelike.rs shipped write-only CombatEvent fields
+            // behind #[allow(dead_code)] until this needle existed.)
+            for needle in ["dead_code", "unused"] {
+                assert!(
+                    !code.contains(needle),
+                    "{name} contains `{needle}` — a suppressor attribute in \
+                     the suite hides decay instead of reporting it"
+                );
+            }
+            if require_tests {
+                // Environment reads make a test's result depend on the
+                // machine it runs on: `env::var` skips or branches per
+                // developer shell, `env::args` reads argv, `set_var`/
+                // `remove_var` poison the shared process for sibling tests.
+                // (`temp_dir` is exempt — the path differs but the check is
+                // the same.)
+                for needle in [
+                    "env::var(",
+                    "env::var_os",
+                    "env::set_var",
+                    "env::remove_var",
+                    "env::args",
+                    "env::current_dir",
+                    "env::current_exe",
+                ] {
+                    assert!(
+                        !code.contains(needle),
+                        "{name} reads the ambient environment via `{needle}` \
+                         — a test whose result depends on the machine is not \
+                         a check"
+                    );
+                }
             }
         }
     }
