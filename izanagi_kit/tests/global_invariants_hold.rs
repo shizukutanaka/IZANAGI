@@ -1944,6 +1944,11 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 // `set_permissions` slips the token edge — a write, so the
                 // porcelain sentinel sees its effect anyway.
                 "permissions(",
+                // `debug_assert!` compiles the check out of release runs —
+                // the gate re-runs the pinned-hash tests under release, so a
+                // check written this way is vacuous there (injected into a
+                // test: green). Src files keep it behind the allowlist.
+                "debug_assert",
                 // CPU-feature probes are the machine itself: a check behind
                 // `is_*_feature_detected!` exists on one host and not
                 // another, with the suite still reporting green (injected

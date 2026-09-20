@@ -828,6 +828,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   porcelain sentinel が捕捉)。
 
 
+- ~~`debug_assert` は src の allowlist 管理で済むと思われていた~~ →
+  suite dir では非 allowlist なので pinned-hash テストの release 走査で
+  検査が消える(注入→緑)。tests/examples では `debug_assert` 全面禁止
+  (src 側は理由付き allowlist を維持)。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
