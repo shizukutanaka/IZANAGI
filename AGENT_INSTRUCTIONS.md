@@ -814,6 +814,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `env::` 一切不許可、examples のみ argv 許可。
 
 
+- ~~`canonicalize` は examples 禁止で十分と思われていた~~ → tests の
+  `fs::canonicalize(p)` は symlink 解決後の機械絶対パスを返す
+  (/tmp vs /private/tmp)(注入→緑)。共有 needle へ昇格。
+- 残存(記録のみ): `read_dir` の返却順・`target/` 配下の gitignore 書込・
+  複数文に分けた parent() 登り — トークン走査では到達不能なデータフロー
+  依存の回避路。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

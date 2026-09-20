@@ -1934,6 +1934,11 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 // the repo (injected `metadata(..).modified()` into a test:
                 // green). `metadata(` is the only way in.
                 "metadata(",
+                // fs::canonicalize resolves a repo-relative path into the
+                // host's absolute mount/symlink layout (/tmp vs /private/tmp)
+                // — machine data through the same door (injected into a
+                // test: green). It was banned for examples; tests had it.
+                "canonicalize",
                 // CPU-feature probes are the machine itself: a check behind
                 // `is_*_feature_detected!` exists on one host and not
                 // another, with the suite still reporting green (injected
@@ -1999,7 +2004,8 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     "OpenOptions",
                     "read_to_string",
                     "read_dir",
-                    "canonicalize",
+                    // (`canonicalize` moved to the shared list — tests had
+                    // it open too.)
                     // The wall clock is the same ambient channel: an example
                     // printing `Instant::now().elapsed()` bytes differs run to
                     // run, and two fast-enough runs can still byte-match —
