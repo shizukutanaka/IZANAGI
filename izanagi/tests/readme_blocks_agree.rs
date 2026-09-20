@@ -22,7 +22,7 @@
 //! other half of the problem.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -138,17 +138,18 @@ fn the_block_extractor_reads_rust_and_skips_everything_else() {
     // A `text` fence between two `rust` fences must not merge them.
     let sample = "```rust\nlet a = 1;\n```\n```text\nnot rust\n```\n```rust\nlet b = 2;\n```\n";
     let path = repo_root().join("target/readme_blocks_agree_probe.md");
-    if let Some(parent) = path.parent() {
-        let _ = fs::create_dir_all(parent);
-    }
-    if fs::write(&path, sample).is_ok() {
-        let blocks = rust_blocks("target/readme_blocks_agree_probe.md");
-        assert_eq!(
-            blocks,
-            vec!["let a = 1;\n".to_string(), "let b = 2;\n".to_string()],
-            "the extractor must take the two rust blocks and neither the text \
-             block nor anything between them"
-        );
-        let _ = fs::remove_file(&path);
-    }
+    fs::create_dir_all(path.parent().unwrap_or_else(|| Path::new(".")))
+        .expect("probe directory must be creatable");
+    // Unconditional: an `if write.is_ok()` guard would turn an unwritable
+    // filesystem into a silently skipped assertion — a green that checked
+    // nothing.
+    fs::write(&path, sample).expect("probe file must be writable");
+    let blocks = rust_blocks("target/readme_blocks_agree_probe.md");
+    assert_eq!(
+        blocks,
+        vec!["let a = 1;\n".to_string(), "let b = 2;\n".to_string()],
+        "the extractor must take the two rust blocks and neither the text \
+         block nor anything between them"
+    );
+    fs::remove_file(&path).expect("probe file must be removable");
 }

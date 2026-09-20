@@ -987,6 +987,23 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      take unsafe shortcuts"
                 );
             }
+            if require_tests {
+                // `if x.is_ok() { assert!(...) }` makes the assertion
+                // conditional on the environment — a filesystem that can't
+                // write silently skips the check and the suite stays green.
+                // The one real offender (readme_blocks_agree.rs) is fixed;
+                // the guard shape is banned now.
+                for line in code.lines() {
+                    let t = line.trim_start();
+                    assert!(
+                        !(t.starts_with("if ")
+                            && (t.contains(".is_ok()") || t.contains(".is_err()"))),
+                        "{name}: `{t}` — an is_ok()/is_err() *guard* skips the \
+                         assertions under it when the call fails; unwrap the \
+                         call instead so failure is loud"
+                    );
+                }
+            }
             // Substring needles: `unused`/`dead_code` must match inside
             // `unused_mut`, `allow(unused_variables)`, `dead_code` — the
             // whole suppressor family, which token boundaries cannot
@@ -1021,6 +1038,39 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                          — a test whose result depends on the machine is not \
                          a check"
                     );
+                }
+                // `env!`/`option_env!` read the environment at *compile*
+                // time — the same ambient input, one layer earlier.
+                // CARGO_MANIFEST_DIR is the single anchored constant the
+                // suite may see; anything else makes the build host a test
+                // input. (This reads raw source — `test_code` blanks string
+                // literals, which would hide the variable name itself.)
+                let raw = fs::read_to_string(&path).unwrap_or_default();
+                let needle = ["env", "!("].concat(); // keep the literal out of
+                                                     // this file so the scan cannot flag its own needle
+                for line in raw.lines() {
+                    if line.trim_start().starts_with("//") {
+                        continue;
+                    }
+                    for (pos, _) in line.match_indices(&needle) {
+                        // A quote right before `env` means the token lives
+                        // inside a string literal (e.g. a banned-needle list
+                        // entry like `"env!("`), not a macro call.
+                        if line[..pos].trim_end().ends_with(['"', '\'']) {
+                            continue;
+                        }
+                        let rest = line[pos + needle.len()..].trim_start();
+                        let var = rest
+                            .strip_prefix('"')
+                            .and_then(|r| r.split('"').next())
+                            .unwrap_or("");
+                        assert_eq!(
+                            var, "CARGO_MANIFEST_DIR",
+                            "{name} reads `{var}` (or uses an unparseable \
+                             env!) at compile time — only CARGO_MANIFEST_DIR \
+                             is an anchored constant"
+                        );
+                    }
                 }
             }
         }
@@ -1560,4 +1610,40 @@ fn every_source_file_is_a_declared_module() {
             );
         }
     }
+}
+
+#[test]
+fn shipped_code_has_no_decay_suppressors() {
+    // The suite banned `dead_code`/`unused*` suppressors in tests/examples
+    // (round 15); shipped src has the same failure mode and was unmeasured —
+    // `#[allow(dead_code)]` on an item means it compiles to be read by nobody
+    // while rustc stops watching it. `missing_docs`/`clippy::*` keeps its
+    // documented exemptions; decay suppressors get none.
+    for krate in ["izanagi_kit", "izanagi"] {
+        for (name, code) in library_sources(&repo_root().join(krate).join("src")) {
+            for args in weakening_lint_args(&code) {
+                for atom in predicate_atoms(&args) {
+                    assert!(
+                        atom != "dead_code" && !atom.starts_with("unused"),
+                        "{krate}/{name} carries a `{atom}` suppressor — \
+                         shipped decay hides behind it"
+                    );
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn no_ci_workflow_is_committed() {
+    // House rule: workflow definitions are never committed — a file under
+    // .github/workflows/ would start running CI on every push without anyone
+    // opting in here. dependabot.yml is allowed; it opens PRs, it does not
+    // execute the build.
+    let wf = repo_root().join(".github/workflows");
+    assert!(
+        !wf.exists(),
+        ".github/workflows/ exists — committed CI config is banned; remove \
+         it or take the CI decision in AGENT_INSTRUCTIONS §3 first"
+    );
 }
