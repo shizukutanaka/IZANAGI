@@ -955,6 +955,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~gate 段の追加は自己完結だと思われていた~~ → `the_gate_script_still_runs_every_stage`
   は段の識別トークンを名指しピンするので、新段はトークン未記載だと静黙の退化に
   対し無防備。release スイート・sparse 拒否の識別トークンを同リストへ追補。
+- ~~`include_str!` は doc 埋込の慣用なので tests/examples では黙認されていた~~ →
+  同一ディレクトリの非走査ペイロードへの `include_str!("p.txt")` が example
+  に全スイート緑で混入(実証)。`include!`/`include_bytes!` の族に合流させて
+  全面禁止 — 昇格なしでも走査外バイトを焼込め、example ではピン出力を汚す。
 
 ## 3. 改善案(優先順位付き)
 

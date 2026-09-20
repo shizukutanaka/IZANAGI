@@ -1794,7 +1794,18 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // `mod x;` compiles a file under this directory that no entry in
             // this loop visits. `mod` in these dirs is banned outright —
             // helpers are hand-copied by convention.
-            for needle in ["include!(", "include_bytes!(", "#[path", "mod "] {
+            // `include_str!` is in the family too: it needs no parent climb —
+            // a same-directory payload file (verified: `include_str!("p.txt")`
+            // in an example passed the whole suite green) already splices in
+            // bytes no scanner ever reads, and examples bake them into the
+            // byte-identical output the gate pins.
+            for needle in [
+                "include!(",
+                "include_str!(",
+                "include_bytes!(",
+                "#[path",
+                "mod ",
+            ] {
                 assert!(
                     !contains_token(&code, needle),
                     "{name} contains `{needle}` — suite crates may not splice \
