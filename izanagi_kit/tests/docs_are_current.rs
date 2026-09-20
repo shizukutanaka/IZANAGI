@@ -33,6 +33,40 @@ fn read(rel: &str) -> String {
 
 /// Every `pub mod` declared in `lib.rs` — the ground truth every document is
 /// checked against.
+/// The modules whose only job is interrogating a simulation.
+///
+/// Four documents described this family and gave four different answers: the
+/// kit README's opening sentence said eleven, AGENT_INSTRUCTIONS.md §1 said
+/// eleven but listed `world_hash` while omitting `replay` (two errors that
+/// happened to cancel), the constant below said twelve, and the capability
+/// map's section Q had ten rows. `world_hash` is the odd one out — it is the
+/// hashing primitive the others rest on, which the README's own next sentence
+/// classifies as substrate alongside fixed-point maths and seeded RNG.
+///
+/// So there are eleven, and they are named here once.
+const INTERROGATION_MODULES: &[&str] = &[
+    "sim", "replay", "rollback", "dst", "plan", "explore", "shrink", "prop", "temporal",
+    "recovery", "verify",
+];
+
+/// The eleven above plus `world_hash`. Tier 1 and the capability map are about
+/// what a reader must not miss, and the hashing primitive belongs there even
+/// though it interrogates nothing itself.
+const VERIFICATION_FAMILY: &[&str] = &[
+    "sim",
+    "replay",
+    "rollback",
+    "dst",
+    "plan",
+    "explore",
+    "shrink",
+    "prop",
+    "temporal",
+    "recovery",
+    "verify",
+    "world_hash",
+];
+
 fn declared_modules() -> BTreeSet<String> {
     read("izanagi_kit/src/lib.rs")
         .lines()
@@ -112,22 +146,9 @@ fn every_tier_one_module_is_declared_and_tier_one_covers_the_verification_family
         );
     }
     // Every module whose job is checking a simulation belongs in tier 1.
-    for required in [
-        "sim",
-        "replay",
-        "rollback",
-        "dst",
-        "plan",
-        "explore",
-        "shrink",
-        "prop",
-        "temporal",
-        "recovery",
-        "verify",
-        "world_hash",
-    ] {
+    for required in VERIFICATION_FAMILY {
         assert!(
-            listed.contains(required),
+            listed.contains(*required),
             "`{required}` checks simulations but is missing from the tier 1 map"
         );
     }
@@ -310,6 +331,11 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
         ("README.md", "3,400+ tests"),
         ("README.md", "**180+ tests**"),
         ("izanagi/README.md", "**180+ tests**"),
+        // The handbook snapshot stated an exact 3744 and was wrong two
+        // commits later, in the very commit that removed the other exact
+        // numbers from it. Last one converted; now nothing in the snapshot
+        // carries a count that nobody checks.
+        ("AGENT_INSTRUCTIONS.md", "**3,600+ passed / 0 failed**"),
     ] {
         assert!(
             read(doc).contains(claim),
@@ -437,4 +463,402 @@ fn no_superseded_audit_documents_remain() {
              genuinely needed again, its numbers must be checked here first"
         );
     }
+}
+
+#[test]
+fn the_capability_map_covers_the_verification_family() {
+    // GAME_DEV_TAXONOMY.md is what the README sends readers to for "the
+    // capability map, with per-feature implementation status". It was written
+    // before the verification modules existed and then never grew a row for
+    // any of them: ten of the twelve modules below appeared nowhere in it,
+    // including every module the handbook calls this crate's defining
+    // strength. A capability map that omits the headline capability sends the
+    // reader away believing it is absent.
+    //
+    // The map is prose, not a table this test can parse, so the check is the
+    // weakest one that would have caught the real defect: each module has to
+    // be named somewhere. That is enough — the failure mode was silence.
+    let taxonomy = read("izanagi_kit/GAME_DEV_TAXONOMY.md");
+    let missing: Vec<&&str> = VERIFICATION_FAMILY
+        .iter()
+        .filter(|m| !taxonomy.contains(&format!("`{m}`")))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "GAME_DEV_TAXONOMY.md is the capability map the README points at, and          it never mentions these simulation-checking modules: {missing:?}. Add          a row for each in the same commit that adds the module."
+    );
+}
+
+#[test]
+fn no_document_points_at_an_iteration_that_has_ended() {
+    // A document that says "this iteration" freezes the moment it is written.
+    // It happened twice: GAME_DEV_TAXONOMY.md's roadmap still named the
+    // terminal module as the current work many iterations later, and SPEC.md
+    // ended its completeness checklist with a subsection listing D1/P1/R1 as
+    // work to do while the table directly above it recorded all three as done.
+    // A reader cannot tell a stale pointer from a live one, which makes it
+    // worse than no pointer at all.
+    //
+    // The rule is therefore about tense, not about content: say what is true
+    // now, and keep the list of what comes next in one place (RESEARCH.md's
+    // candidate table), where being out of date is visible.
+    let docs = [
+        "README.md",
+        "AGENT_INSTRUCTIONS.md",
+        "izanagi/README.md",
+        "izanagi/CLAUDE.md",
+        "izanagi/ARCHITECTURE.md",
+        "izanagi/CONTRIBUTING.md",
+        "izanagi_kit/README.md",
+        "izanagi_kit/RESEARCH.md",
+        "izanagi_kit/SPEC.md",
+        "izanagi_kit/GAME_DEV_TAXONOMY.md",
+        "izanagi_kit/CHANGELOG.md",
+        "docs/ci/README.md",
+    ];
+    // Phrases that name "the iteration being worked on" as if the reader were
+    // inside it. Past-tense records ("implemented in 1e45bc4") are fine and
+    // deliberately not matched.
+    let frozen = [
+        "本イテレーションで",
+        "本ループで実装",
+        "今回のイテレーション",
+        "本反復で実装",
+    ];
+    let mut found: Vec<String> = Vec::new();
+    for doc in docs {
+        let text = read(doc);
+        for (n, line) in text.lines().enumerate() {
+            for needle in frozen {
+                if line.contains(needle) {
+                    found.push(format!("{doc}:{}: {}", n + 1, line.trim()));
+                }
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "these lines point at an iteration the reader is not in: {found:#?}\n\n\
+         Rewrite them in the present tense — what is true now — and put \
+         anything still to come in RESEARCH.md's candidate table."
+    );
+}
+
+#[test]
+fn every_fenced_block_declares_its_language() {
+    // An untagged fence is Rust as far as rustdoc is concerned. The workspace
+    // README carried two blocks of shell commands in bare fences; the moment
+    // that README was included as a doctest, rustdoc tried to compile
+    // `cargo test --workspace` as an expression and the build broke. The
+    // blocks had been wrong the whole time — nothing had ever looked at them.
+    //
+    // Tagging every fence costs three characters and means a document can be
+    // wired up as a doctest without first auditing it.
+    let docs = [
+        "README.md",
+        "AGENT_INSTRUCTIONS.md",
+        "izanagi/README.md",
+        "izanagi/CLAUDE.md",
+        "izanagi/ARCHITECTURE.md",
+        "izanagi/CONTRIBUTING.md",
+        "izanagi_kit/README.md",
+        "izanagi_kit/RESEARCH.md",
+        "izanagi_kit/SPEC.md",
+        "izanagi_kit/GAME_DEV_TAXONOMY.md",
+        "izanagi_kit/CHANGELOG.md",
+        "docs/ci/README.md",
+    ];
+    let mut untagged: Vec<String> = Vec::new();
+    let mut checked = 0usize;
+    for doc in docs {
+        let text = read(doc);
+        let mut inside = false;
+        for (n, line) in text.lines().enumerate() {
+            if !line.starts_with("```") {
+                continue;
+            }
+            if !inside {
+                checked += 1;
+                if line[3..].trim().is_empty() {
+                    untagged.push(format!("{doc}:{}", n + 1));
+                }
+            }
+            inside = !inside;
+        }
+    }
+    assert!(
+        checked >= 20,
+        "expected to find the documents' code blocks, found {checked} — has \
+         the document set changed?"
+    );
+    assert!(
+        untagged.is_empty(),
+        "these fenced blocks declare no language, so rustdoc would read them \
+         as Rust: {untagged:#?}\n\nUse ```text for diagrams and shell \
+         transcripts, ```rust for code meant to compile."
+    );
+}
+
+#[test]
+fn both_readmes_that_can_be_doctested_are_doctested() {
+    // izanagi_kit compiles its README's code blocks; the engine did not. A
+    // quickstart nothing compiles is a quickstart that stops working silently,
+    // and these are the first lines anyone copies.
+    //
+    // The workspace README is deliberately NOT included this way. It sits
+    // above both crates, so `include_str!("../../README.md")` reaches outside
+    // the package and the published crate cannot run its own doctests —
+    // measured by unpacking the tarball, where `cargo test --doc` failed on
+    // exactly that line. `cargo package --verify` does not catch it because it
+    // runs a build, and `#[cfg(doctest)]` items do not exist during a build.
+    // The workspace README's blocks are checked by equality instead, in
+    // izanagi/tests/readme_blocks_agree.rs.
+    for (lib, included) in [
+        ("izanagi_kit/src/lib.rs", "../README.md"),
+        ("izanagi/src/lib.rs", "../README.md"),
+    ] {
+        let src = read(lib);
+        let wiring = format!("#[doc = include_str!(\"{included}\")]");
+        assert!(
+            src.contains(&wiring),
+            "{lib} no longer includes {included} as a doctest. Without it the \
+             README's Rust blocks are compiled by nothing."
+        );
+    }
+}
+
+#[test]
+fn the_readme_headline_counts_the_interrogation_modules_correctly() {
+    // The first sentence of the crate's front page — on crates.io, on docs.rs
+    // and on GitHub. It states a number, and a number in a headline that
+    // nothing checks is one that goes wrong quietly the first time the family
+    // grows.
+    const NUMERALS: [(usize, &str); 6] = [
+        (9, "Nine"),
+        (10, "Ten"),
+        (11, "Eleven"),
+        (12, "Twelve"),
+        (13, "Thirteen"),
+        (14, "Fourteen"),
+    ];
+    let n = INTERROGATION_MODULES.len();
+    let word = NUMERALS
+        .iter()
+        .find(|(k, _)| *k == n)
+        .map(|(_, w)| *w)
+        .unwrap_or_else(|| panic!("{n} interrogation modules — extend NUMERALS"));
+    let readme = read("izanagi_kit/README.md");
+    assert!(
+        readme.contains(&format!("{word} modules do nothing but interrogate")),
+        "there are {n} interrogation modules, so the README's opening sentence \
+         must say \"{word} modules do nothing but interrogate a simulation\""
+    );
+
+    // Every one must be a real module, and none of them may be `world_hash` —
+    // the mistake the handbook made was counting the substrate as a tool.
+    let declared = declared_modules();
+    for m in INTERROGATION_MODULES {
+        assert!(
+            declared.contains(*m),
+            "`{m}` is listed as an interrogation module but is not declared"
+        );
+        assert_ne!(
+            *m, "world_hash",
+            "world_hash is the primitive the others rest on, not a tool that \
+             interrogates anything — the README classifies it as substrate two \
+             sentences later"
+        );
+    }
+}
+
+#[test]
+fn the_handbook_lists_the_same_eleven_the_readme_counts() {
+    // The handbook spells the family out; the README only counts it. They
+    // described different sets while agreeing on the total, which is the
+    // failure mode a count alone cannot catch.
+    let handbook = read("AGENT_INSTRUCTIONS.md");
+    // Anchored on prose rather than on the count, so the anchor does not drift
+    // with the number it is checking.
+    const ANCHOR: &str = "各々が別のバグクラスを狙い";
+    let at = handbook
+        .find(ANCHOR)
+        .expect("AGENT_INSTRUCTIONS.md must describe the verification family");
+    let start = handbook[..at]
+        .rfind("1. **")
+        .expect("the family paragraph is a numbered item");
+    let claim = &handbook[start..at];
+    for m in INTERROGATION_MODULES {
+        assert!(
+            claim.contains(&format!("`{m}`")),
+            "AGENT_INSTRUCTIONS.md §1 does not name `{m}` among the \
+             interrogation modules"
+        );
+    }
+    assert!(
+        !claim.contains("`world_hash`"),
+        "AGENT_INSTRUCTIONS.md §1 counts `world_hash` as an interrogation \
+         module. It is the hashing primitive the others use — including it \
+         while omitting `replay` is how the list stayed at eleven while being \
+         wrong twice."
+    );
+}
+
+#[test]
+fn license_files_have_no_unexpanded_template_placeholders() {
+    // The root LICENSE shipped `Copyright (c) $(date +%Y) $(echo "$REPO" | …)`
+    // — a generation template whose substitution never ran, on the file GitHub
+    // renders on the repository's own page. License text is legal prose with
+    // exactly one variable-shaped hole; every LICENSE file in the workspace is
+    // checked for the unexpanded form of it.
+    for rel in [
+        "LICENSE",
+        "izanagi/LICENSE",
+        "izanagi_kit/LICENSE-MIT",
+        "izanagi_kit/LICENSE-APACHE",
+    ] {
+        let text = read(rel);
+        assert!(
+            !text.contains("$("),
+            "{rel} contains an unexpanded template variable"
+        );
+        assert!(
+            !text.contains("${"),
+            "{rel} contains an unexpanded template variable"
+        );
+    }
+}
+
+#[test]
+fn the_pipeline_demo_embeds_the_shipped_fixture_verbatim() {
+    // content_pipeline_demo claims its `VALID_CONTENT` is "the same dungeon
+    // as examples/dungeon.game". That claim was already false once — the
+    // demo gained `extends` content while the shipped fixture did not — and
+    // it would rot again silently. Extract the literal and compare.
+    let demo = read("izanagi_kit/examples/content_pipeline_demo.rs");
+    let anchor = demo
+        .find("const VALID_CONTENT")
+        .expect("the demo must declare VALID_CONTENT");
+    let start = demo[anchor..]
+        .find("r#\"")
+        .expect("VALID_CONTENT must be a raw string")
+        + anchor
+        + 3;
+    let end = demo[start..]
+        .find("\"#")
+        .expect("VALID_CONTENT's raw string must close")
+        + start;
+    let embedded = demo[start..end].trim();
+    let fixture = read("izanagi_kit/examples/dungeon.game");
+    assert_eq!(
+        embedded,
+        fixture.trim(),
+        "VALID_CONTENT and examples/dungeon.game diverged — update one or drop \
+         the doc comment's parity claim"
+    );
+}
+
+#[test]
+fn command_examples_in_docs_reference_real_targets() {
+    // `cargo run --example NAME` (and --test/--bin) strings in checked-in
+    // markdown are teaching material; a renamed target leaves a command that
+    // no longer exists. Doctests cover ```rust blocks; fenced shell commands
+    // are never executed, so names in them rot silently.
+    let md_files = walk_md(&repo_root());
+    assert!(
+        md_files.len() > 5,
+        "expected several checked-in markdown files, found {} — is the walk \
+         rooted at the repo?",
+        md_files.len()
+    );
+    let mut missing = Vec::new();
+    for (rel, text) in &md_files {
+        for flag in ["--example", "--test", "--bin"] {
+            let mut rest = text.as_str();
+            while let Some(pos) = rest.find(&format!("{flag} ")) {
+                let after = &rest[pos + flag.len() + 1..];
+                let name: String = after
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+                    .collect();
+                rest = &rest[pos + 1..];
+                if name.is_empty() {
+                    continue;
+                }
+                let exists = [
+                    format!("izanagi/examples/{name}.rs"),
+                    format!("izanagi_kit/examples/{name}.rs"),
+                    format!("izanagi/tests/{name}.rs"),
+                    format!("izanagi_kit/tests/{name}.rs"),
+                    format!("izanagi_kit/src/bin/{name}.rs"),
+                ]
+                .iter()
+                .any(|p| repo_root().join(p).exists());
+                if !exists {
+                    missing.push(format!("{rel}: `{flag} {name}`"));
+                }
+            }
+        }
+    }
+    assert!(
+        missing.is_empty(),
+        "docs reference targets that do not exist:\n{}",
+        missing.join("\n")
+    );
+}
+
+/// `(relative path, contents)` for every checked-in markdown file.
+fn walk_md(root: &Path) -> Vec<(String, String)> {
+    fn walk(dir: &Path, root: &Path, out: &mut Vec<(String, String)>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
+            if name == "target" || name.starts_with('.') {
+                continue;
+            }
+            if path.is_dir() {
+                walk(&path, root, out);
+            } else if name.ends_with(".md") {
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string();
+                out.push((rel.clone(), fs::read_to_string(&path).unwrap_or_default()));
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(root, root, &mut out);
+    out
+}
+
+#[test]
+fn the_shipped_fixture_passes_its_own_format_gate() {
+    // `gamec --check` is the tool's documented formatting gate — the shipped
+    // example must satisfy it itself. It did not: the fixture carried stats
+    // in authored order and lowercase hex colors while the canonical form
+    // sorts and uppercases them. `//` comments and blank lines are trivia:
+    // legal in source, absent from canonical form, ignored by the check.
+    use izanagi_kit::{parse, serialize};
+    let fixture = read("izanagi_kit/examples/dungeon.game");
+    let (content, diags) = parse(&fixture);
+    assert!(
+        diags.iter().all(|d| !d.is_error()),
+        "the shipped fixture must parse without errors: {diags:?}"
+    );
+    let trivia = |l: &&str| {
+        let t = l.trim_start();
+        t.is_empty() || t.starts_with("//")
+    };
+    let body: Vec<&str> = fixture.lines().filter(|l| !trivia(l)).collect();
+    let canonical_text = serialize(&content);
+    let canonical: Vec<&str> = canonical_text.lines().collect();
+    assert_eq!(
+        body, canonical,
+        "examples/dungeon.game is not in canonical form — \
+         run `cargo run --bin gamec -- --fmt` over it (comments may stay)"
+    );
 }

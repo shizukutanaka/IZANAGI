@@ -292,6 +292,17 @@ impl<I: core::fmt::Debug> core::fmt::Display for ModelFailure<I> {
 /// model is the simpler, trusted side (a naive reference, or an older
 /// implementation). Both are run on clones, so the arguments are left
 /// untouched. `agree` should be a pure function of the two states.
+///
+/// # Pairing this with exhaustive verification
+///
+/// A second use for this is as the first half of an abstraction argument.
+/// [`verify::check_invariant`](crate::verify::check_invariant) can only
+/// enumerate a state space small enough to enumerate, which a real game's is
+/// not — so you check a *model* of the part that matters. This function is what
+/// gives that model standing: it is evidence the abstraction still agrees with
+/// the implementation. Sampling is not a refinement proof, and
+/// [`verify`](crate::verify)'s module docs are explicit about what the pair
+/// does and does not establish.
 pub fn forall_model<S, M, G, A>(
     seeds: impl IntoIterator<Item = u64>,
     max_len: usize,

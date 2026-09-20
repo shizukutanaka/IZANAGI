@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -80,6 +80,7 @@
 //! - [`world_hash`] — FNV-1a per-frame state checksum for bit-exact replay, `hash_unordered` for permutation-invariant multiset hashing, and `LabeledDigest` for per-subsystem hash breakdowns that localize desyncs.
 //! - [`camera`] — integer camera / viewport (world↔screen coordinate mapping).
 //! - [`change`] — dirty-flag change detection (`Changed<T>`, `ChangeTracker`).
+//! - [`observe`] — structural-change events on component storage (`Observed<T>`, `ComponentEvent`): the push half of change awareness — inserts, overwrites and removals arrive as a drainable [`eventqueue`] stream.
 //! - [`combat`] — integer combat formula (stats, melee/ranged, hit roll).
 //! - [`damage`] — typed damage (`DamageType`) and per-type resistance/vulnerability profiles (`ResistanceProfile`).
 //! - [`encounter`] — procedural group-encounter rolling (`EncounterPack`: count ranges + appearance chances per slot).
@@ -91,8 +92,9 @@
 //! - [`status`] — timed status effects / buff-debuff tracking (`StatusSet<K>`).
 //! - [`cmdqueue`] — deterministic command queue (replay-safe input abstraction).
 //! - [`content`] / [`parser`] / [`serializer`] / [`validator`] / [`loader`] —
-//!   the content pipeline: author game elements as text, serialize them back,
-//!   validate them, load into the ECS.
+//!   the content pipeline: author game elements as text (with `extends`
+//!   field-level prefab overlays), serialize them back, validate them, load
+//!   into the ECS.
 //!
 //! - [`ability`] — unified ability/skill system (`AbilitySet<K,E>`, `Ability<E>`, `AbilityResult`) with mana, cooldown, and range checks.
 //! - [`behavior`] — hierarchical behavior trees for game AI (`BehaviorTree<A>`, `BehaviorNode<A>`, `BehaviorStatus`).
@@ -197,6 +199,7 @@ pub mod msglog;
 pub mod multimap;
 pub mod netinput;
 pub mod noise;
+pub mod observe;
 pub mod parser;
 pub mod passability;
 pub mod pathfinding;
@@ -256,7 +259,7 @@ pub use combat::{
     apply_resistance, base_damage, critical_strike, melee_attack, ranged_attack, roll_damage,
     roll_to_hit, splash_attack, Stats, StatsModifier, StrikeResult,
 };
-pub use content::{Content, Diagnostic, Prefab, Severity, Tile};
+pub use content::{Content, Diagnostic, ExtendsError, Prefab, Severity, Tile};
 pub use damage::{DamageType, ResistanceProfile};
 pub use diag_json::severity_filter;
 pub use dialogue::{Choice, Dialogue, DialogueNode};
@@ -310,6 +313,7 @@ pub use noise::{
     noise_3d_in_range, normalize_noise, ridge_noise_2d, value_noise_1d, value_noise_1d_wrap,
     value_noise_2d, value_noise_2d_wrap, value_noise_3d,
 };
+pub use observe::{ComponentEvent, Observed};
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{

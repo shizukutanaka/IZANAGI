@@ -3,7 +3,7 @@
 //! Grammar (keyword-led lines; `//` comments and blank lines ignored):
 //!
 //! ```text
-//!   prefab <name>
+//!   prefab <name> [extends <base>]
 //!     glyph <char>
 //!     color <#RRGGBB>
 //!     stat  <key> <int>
@@ -97,19 +97,49 @@ pub fn parse(source: &str) -> (Content, Vec<Diagnostic>) {
         match keyword {
             "prefab" => match arg_str(0) {
                 Some(name) if name.len() <= MAX_NAME_LEN => {
-                    content.prefabs.push(Prefab::new(name.to_string()));
-                    block = Block::Prefab(content.prefabs.len() - 1);
+                    // Optional `extends <base>` clause; anything else after the
+                    // name is a malformed header. A failed header opens no
+                    // block: leaving the previous one open would let its child
+                    // lines attach to the wrong prefab.
+                    let extends = match args.len() {
+                        1 => Ok(None),
+                        3 if arg_str(1) == Some("extends") => {
+                            match arg_str(2).filter(|b| b.len() <= MAX_NAME_LEN) {
+                                Some(base) => Ok(Some(base.to_string())),
+                                None => Err(("prefab base name too long", arg_col(2))),
+                            }
+                        }
+                        _ => Err(("prefab needs: <name> [extends <base>]", arg_col(1))),
+                    };
+                    match extends {
+                        Ok(ext) => {
+                            let mut p = Prefab::new(name.to_string());
+                            p.extends = ext;
+                            content.prefabs.push(p);
+                            block = Block::Prefab(content.prefabs.len() - 1);
+                        }
+                        Err((msg, col)) => {
+                            diags.push(Diagnostic::error_at(line_no, col, msg));
+                            block = Block::None;
+                        }
+                    }
                 }
-                Some(_) => diags.push(Diagnostic::error_at(
-                    line_no,
-                    arg_col(0),
-                    "prefab name too long",
-                )),
-                None => diags.push(Diagnostic::error_at(
-                    line_no,
-                    eol_col,
-                    "prefab needs a name",
-                )),
+                Some(_) => {
+                    diags.push(Diagnostic::error_at(
+                        line_no,
+                        arg_col(0),
+                        "prefab name too long",
+                    ));
+                    block = Block::None;
+                }
+                None => {
+                    diags.push(Diagnostic::error_at(
+                        line_no,
+                        eol_col,
+                        "prefab needs a name",
+                    ));
+                    block = Block::None;
+                }
             },
 
             "tile" => {
@@ -280,7 +310,10 @@ fn apply_prefab_attr(
 ) {
     match (kw, args) {
         ("glyph", [(g, gc)]) => match single_char(g) {
-            Some(c) => p.glyph = c,
+            Some(c) => {
+                p.glyph = c;
+                p.glyph_declared = true;
+            }
             None => diags.push(Diagnostic::error_at(
                 line,
                 *gc,
@@ -288,7 +321,10 @@ fn apply_prefab_attr(
             )),
         },
         ("color", [(c, cc)]) => match parse_color(c) {
-            Ok(col) => p.color = col,
+            Ok(col) => {
+                p.color = col;
+                p.color_declared = true;
+            }
             Err(e) => diags.push(Diagnostic::error_at(line, *cc, e)),
         },
         ("stat", [(k, _), (v, vc)]) => match v.parse::<i32>() {
@@ -510,5 +546,54 @@ level cave 5x3
         let (_, d) = parse("prefab\nprefab");
         assert!(d.iter().all(|x| x.is_error()));
         assert_eq!(warning_count(&d), 0);
+    }
+
+    // --- extends header ---
+
+    #[test]
+    fn test_prefab_extends_header_parses() {
+        let (c, d) = parse("prefab a\n  glyph a\nprefab b extends a\n  stat hp 5\n");
+        assert!(d.iter().all(|x| !x.is_error()), "diags: {d:?}");
+        assert_eq!(c.prefabs[1].extends.as_deref(), Some("a"));
+        assert_eq!(c.prefabs[0].extends, None);
+    }
+
+    #[test]
+    fn test_prefab_extends_sets_declared_flags_on_child_lines() {
+        let (c, _) = parse("prefab a\nprefab b extends a\n  glyph x\n");
+        assert!(!c.prefabs[0].glyph_declared, "no glyph line, no flag");
+        assert!(c.prefabs[1].glyph_declared);
+        assert!(!c.prefabs[1].color_declared);
+    }
+
+    #[test]
+    fn test_prefab_header_malformed_tail_is_error() {
+        for src in [
+            "prefab a extends",
+            "prefab a extends b c",
+            "prefab a b",
+            "prefab a x y",
+        ] {
+            let (_, d) = parse(src);
+            assert!(d.iter().any(|x| x.is_error()), "no error for {src:?}");
+        }
+    }
+
+    #[test]
+    fn test_prefab_extends_base_name_too_long() {
+        let src = format!("prefab a extends {}", "b".repeat(200));
+        let (_, d) = parse(&src);
+        assert!(d
+            .iter()
+            .any(|x| x.is_error() && x.message.contains("too long")));
+    }
+
+    #[test]
+    fn test_failed_prefab_header_opens_no_block() {
+        // A rejected header must not leave the previous prefab's block open:
+        // otherwise its child lines would attach to the wrong prefab.
+        let (c, d) = parse("prefab good\n  glyph g\nprefab bad junk\n  stat hp 1\n");
+        assert!(d.iter().any(|x| x.is_error()));
+        assert!(c.prefabs[0].stats.is_empty(), "stat leaked to 'good'");
     }
 }

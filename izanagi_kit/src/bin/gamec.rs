@@ -1,6 +1,6 @@
 //! `gamec` — the game-content checker/compiler.
 //!
-//! Usage: `gamec [--fmt | --json | --sarif | --check] <file.game>`
+//! Usage: `gamec [--help | --fmt | --json | --sarif | --check] <file.game>`
 //!
 //! Parses and validates an authored content file, prints every diagnostic with
 //! its line number, and on success prints a load summary (entity counts per
@@ -11,14 +11,28 @@
 //! satisfies taxonomy P4). Human-readable diagnostics are suppressed on stderr.
 //! `--sarif` emits diagnostics as a SARIF 2.1.0 document, the format GitHub
 //! Code Scanning's `upload-sarif` action consumes for inline PR annotations.
-//! `--fmt` emits canonical serialized content to stdout (no change).
-//! `--check` verifies formatting without output — exits non-zero if the file's
-//! serialized form differs from its source (like `cargo fmt --check`).
+//! `--fmt` writes canonical serialized content to stdout; the input file is
+//! not modified. Canonical form sorts `stat` keys, uppercases hex colors and
+//! drops comments and blank lines — pipe it back over the file to format it.
+//! `--check` verifies formatting without output — exits non-zero if any
+//! content line differs from the canonical serialized form. `//` comments and
+//! blank lines are free-form: the canonical form carries none, so they are
+//! ignored by the comparison (like `cargo fmt --check` tolerating comments).
 
 use izanagi_kit::content::Severity;
 use izanagi_kit::diag_json::{diag_json, diag_sarif};
 use izanagi_kit::{is_loadable, load_level, parse, validate};
+use std::io::Write;
 use std::process::ExitCode;
+
+const USAGE: &str = "usage: gamec [--help | --fmt | --json | --sarif | --check] <file.game>";
+
+/// Writes payload output through a locked stdout so a closed pipe (EPIPE,
+/// e.g. `gamec --json | head -1`) is a clean failure, not a panic.
+fn emit(text: &str) -> bool {
+    let mut out = std::io::stdout().lock();
+    out.write_all(text.as_bytes()).is_ok() && out.flush().is_ok()
+}
 
 #[derive(PartialEq)]
 enum OutputMode {
@@ -36,9 +50,13 @@ fn main() -> ExitCode {
         [flag, p] if flag == "--json" => (OutputMode::Json, p.clone()),
         [flag, p] if flag == "--sarif" => (OutputMode::Sarif, p.clone()),
         [flag, p] if flag == "--check" => (OutputMode::Check, p.clone()),
-        [p] => (OutputMode::Human, p.clone()),
+        [flag] if flag == "--help" || flag == "-h" => {
+            println!("{USAGE}");
+            return ExitCode::SUCCESS;
+        }
+        [p] if !p.starts_with('-') => (OutputMode::Human, p.clone()),
         _ => {
-            eprintln!("usage: gamec [--fmt | --json | --sarif | --check] <file.game>");
+            eprintln!("{USAGE}");
             return ExitCode::from(2);
         }
     };
@@ -60,8 +78,12 @@ fn main() -> ExitCode {
         .collect();
 
     if mode == OutputMode::Json {
-        println!("{}", diag_json(&path, &all_diags));
-        return if is_loadable(&parse_diags, &validate_diags) {
+        let ok = is_loadable(&parse_diags, &validate_diags);
+        if !emit(&format!("{}\n", diag_json(&path, &all_diags))) {
+            eprintln!("{path}: error: failed to write JSON to stdout");
+            return ExitCode::FAILURE;
+        }
+        return if ok {
             ExitCode::SUCCESS
         } else {
             ExitCode::FAILURE
@@ -69,8 +91,12 @@ fn main() -> ExitCode {
     }
 
     if mode == OutputMode::Sarif {
-        println!("{}", diag_sarif(&path, &all_diags));
-        return if is_loadable(&parse_diags, &validate_diags) {
+        let ok = is_loadable(&parse_diags, &validate_diags);
+        if !emit(&format!("{}\n", diag_sarif(&path, &all_diags))) {
+            eprintln!("{path}: error: failed to write SARIF to stdout");
+            return ExitCode::FAILURE;
+        }
+        return if ok {
             ExitCode::SUCCESS
         } else {
             ExitCode::FAILURE
@@ -92,11 +118,15 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
         let canonical = izanagi_kit::serialize(&content);
-        if source != canonical {
-            eprintln!(
-                "{}: file needs formatting (content differs when serialized)",
-                path
-            );
+        // Trivia (`//` comment lines and blank lines) carry no semantics and
+        // the canonical form emits none — compare content lines only, so a
+        // commented, sectioned file can still pass the format gate.
+        let trivia = |l: &&str| {
+            let t = l.trim_start();
+            t.is_empty() || t.starts_with("//")
+        };
+        if source.lines().filter(|l| !trivia(l)).ne(canonical.lines()) {
+            eprintln!("{path}: file needs formatting (content differs when serialized)");
             return ExitCode::FAILURE;
         }
         return ExitCode::SUCCESS;
@@ -114,12 +144,12 @@ fn main() -> ExitCode {
 
     if !is_loadable(&parse_diags, &validate_diags) {
         if mode != OutputMode::Fmt {
-            println!(
-                "parsed: {} prefab(s), {} tile(s), {} level(s)",
+            emit(&format!(
+                "parsed: {} prefab(s), {} tile(s), {} level(s)\n",
                 content.prefabs.len(),
                 content.tiles.len(),
                 content.levels.len()
-            );
+            ));
         }
         eprintln!("FAILED: {errors} error(s), {warnings} warning(s)");
         return ExitCode::FAILURE;
@@ -127,12 +157,15 @@ fn main() -> ExitCode {
 
     if mode == OutputMode::Fmt {
         // Emit canonical text to stdout (pipeable); diagnostics already on stderr.
-        print!("{}", izanagi_kit::serialize(&content));
+        if !emit(&izanagi_kit::serialize(&content)) {
+            eprintln!("{path}: error: failed to write formatted content to stdout");
+            return ExitCode::FAILURE;
+        }
         return ExitCode::SUCCESS;
     }
 
-    println!(
-        "parsed: {} prefab(s), {} tile(s), {} level(s)",
+    let mut out = format!(
+        "parsed: {} prefab(s), {} tile(s), {} level(s)\n",
         content.prefabs.len(),
         content.tiles.len(),
         content.levels.len()
@@ -140,11 +173,11 @@ fn main() -> ExitCode {
 
     for level in &content.levels {
         match load_level(&content, &level.name) {
-            Ok(w) => println!(
-                "level '{}': {} entit(y/ies) loaded",
+            Ok(w) => out.push_str(&format!(
+                "level '{}': {} entit(y/ies) loaded\n",
                 level.name,
                 w.entity_count()
-            ),
+            )),
             Err(e) => {
                 eprintln!("{path}: error: {e}");
                 return ExitCode::FAILURE;
@@ -152,6 +185,9 @@ fn main() -> ExitCode {
         }
     }
 
-    println!("OK: {warnings} warning(s)");
+    out.push_str(&format!("OK: {warnings} warning(s)\n"));
+    if !emit(&out) {
+        return ExitCode::FAILURE;
+    }
     ExitCode::SUCCESS
 }

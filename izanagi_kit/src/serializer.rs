@@ -37,9 +37,20 @@ pub fn serialize(content: &Content) -> String {
 }
 
 fn write_prefab(out: &mut String, p: &Prefab) {
-    writeln!(out, "prefab {}", p.name).ok();
-    writeln!(out, "  glyph {}", p.glyph).ok();
-    writeln!(out, "  color {}", p.color.to_hex()).ok();
+    match &p.extends {
+        Some(base) => writeln!(out, "prefab {} extends {}", p.name, base).ok(),
+        None => writeln!(out, "prefab {}", p.name).ok(),
+    };
+    // An `extends` prefab serializes only the fields it authored — writing the
+    // resolved values would flatten the overlay and a re-parse would produce
+    // different declared flags. Standalone prefabs always write both lines,
+    // which is what keeps the canonical form byte-identical to before.
+    if p.extends.is_none() || p.glyph_declared {
+        writeln!(out, "  glyph {}", p.glyph).ok();
+    }
+    if p.extends.is_none() || p.color_declared {
+        writeln!(out, "  color {}", p.color.to_hex()).ok();
+    }
     for (key, value) in &p.stats {
         writeln!(out, "  stat {key} {value}").ok();
     }
@@ -108,6 +119,15 @@ pub fn first_diff(a: &Content, b: &Content) -> Option<String> {
         }
         if pa.flags != pb.flags {
             return Some(format!("prefab[{i}].flags differ"));
+        }
+        if pa.extends != pb.extends {
+            return Some(format!(
+                "prefab[{i}].extends {:?} vs {:?}",
+                pa.extends, pb.extends
+            ));
+        }
+        if let Some(d) = declared_diff(pa, pb, i) {
+            return Some(d);
         }
     }
     for (i, (ta, tb)) in a.tiles.iter().zip(&b.tiles).enumerate() {
@@ -199,6 +219,15 @@ pub fn diff(a: &Content, b: &Content) -> Vec<String> {
         if pa.flags != pb.flags {
             out.push(format!("prefab[{i}].flags differ"));
         }
+        if pa.extends != pb.extends {
+            out.push(format!(
+                "prefab[{i}].extends {:?} vs {:?}",
+                pa.extends, pb.extends
+            ));
+        }
+        if let Some(d) = declared_diff(pa, pb, i) {
+            out.push(d);
+        }
     }
     for (i, (ta, tb)) in a.tiles.iter().zip(&b.tiles).enumerate() {
         if ta.name != tb.name {
@@ -243,6 +272,29 @@ pub fn diff(a: &Content, b: &Content) -> Vec<String> {
     out
 }
 
+/// Declared-flag differences matter only under `extends`, where they decide
+/// whether a field is an override or inherited; on a standalone prefab they
+/// are bookkeeping with no semantic content (the serializer writes both
+/// fields regardless), so they are not compared there.
+fn declared_diff(a: &Prefab, b: &Prefab, i: usize) -> Option<String> {
+    if a.extends.is_none() && b.extends.is_none() {
+        return None;
+    }
+    if a.glyph_declared != b.glyph_declared {
+        return Some(format!(
+            "prefab[{i}].glyph_declared {} vs {}",
+            a.glyph_declared, b.glyph_declared
+        ));
+    }
+    if a.color_declared != b.color_declared {
+        return Some(format!(
+            "prefab[{i}].color_declared {} vs {}",
+            a.color_declared, b.color_declared
+        ));
+    }
+    None
+}
+
 fn prefabs_eq(a: &Content, b: &Content) -> bool {
     if a.prefabs.len() != b.prefabs.len() {
         return false;
@@ -253,6 +305,8 @@ fn prefabs_eq(a: &Content, b: &Content) -> bool {
             && x.color == y.color
             && x.stats == y.stats
             && x.flags == y.flags
+            && x.extends == y.extends
+            && declared_diff(x, y, 0).is_none()
     })
 }
 
@@ -462,6 +516,66 @@ level cave 5x3
             !diff(&a, &b).is_empty(),
             "diff must not be empty when content_eq is false (height)"
         );
+    }
+
+    // --- extends ---
+
+    const EXTENDS_SAMPLE: &str = "\
+prefab enemy
+  glyph e
+  color #FF0000
+  stat hp 10
+  flag hostile
+prefab boss extends enemy
+  stat hp 50
+  flag elite
+";
+
+    #[test]
+    fn test_extends_roundtrip_preserves_overlay() {
+        let (c1, d1) = parse(EXTENDS_SAMPLE);
+        assert!(d1.iter().all(|x| !x.is_error()));
+        let text = serialize(&c1);
+        // Canonical form keeps the overlay: no resolved glyph/color line is
+        // emitted for the child.
+        assert!(text.contains("prefab boss extends enemy"));
+        assert!(
+            !text.contains("prefab boss extends enemy\n  glyph"),
+            "resolved fields must not flatten into the overlay:\n{text}"
+        );
+        let (c2, d2) = parse(&text);
+        assert!(d2.iter().all(|x| !x.is_error()), "diags: {d2:?}");
+        assert!(content_eq(&c1, &c2), "round-trip must preserve extends");
+        // The resolved meaning round-trips too.
+        assert_eq!(
+            c1.resolve_prefab("boss").unwrap().unwrap().stats,
+            c2.resolve_prefab("boss").unwrap().unwrap().stats
+        );
+    }
+
+    #[test]
+    fn test_extends_serialize_is_idempotent() {
+        let (c1, _) = parse(EXTENDS_SAMPLE);
+        let t1 = serialize(&c1);
+        let (c2, _) = parse(&t1);
+        assert_eq!(t1, serialize(&c2), "canonical form must be a fixed point");
+    }
+
+    #[test]
+    fn test_first_diff_detects_extends_change() {
+        let (a, _) = parse(EXTENDS_SAMPLE);
+        let (b, _) = parse(&EXTENDS_SAMPLE.replace("extends enemy", "extends potion"));
+        assert!(!content_eq(&a, &b));
+        assert!(first_diff(&a, &b).unwrap().contains("extends"));
+    }
+
+    #[test]
+    fn test_first_diff_detects_declared_flag_change() {
+        // Same resolved fields, different declared-ness under extends.
+        let (a, _) = parse("prefab a\n  glyph g\nprefab b extends a\n  glyph x\n");
+        let (b, _) = parse("prefab a\n  glyph g\nprefab b extends a\n");
+        assert!(!content_eq(&a, &b));
+        assert!(first_diff(&a, &b).is_some());
     }
 
     #[test]

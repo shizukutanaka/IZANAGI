@@ -4,7 +4,7 @@
 A Rust 2D/3D game engine. Zero deps, zero config. Run `cargo run --example pong` to validate.
 
 ## Map
-```
+```text
 src/
   lib.rs       — Engine type + public re-exports
   ecs.rs       — World, Entity (sparse storage, generational)
@@ -45,8 +45,16 @@ examples/
 tests/
   integration.rs — cross-module API contracts
   bench.rs     — timing sanity checks
-  float_boundary.rs — the float-free module set, checked against src/
+  float_boundary.rs — the float-free module set and the absence of any
+                  comparison sort, both checked against src/
   claude_md_is_current.rs — this file's Map block, checked against src/ and examples/
+  public_api_is_exercised.rs — every pub fn and trait method is called by
+                  something, enforced the way izanagi_kit enforces it
+  architecture_md_is_current.rs — ARCHITECTURE.md's file map, subsystem
+                  count and shape diagram, checked against src/
+  readme_blocks_agree.rs — the workspace README's Rust blocks must appear
+                  verbatim in izanagi/README.md, which is doctested; and no
+                  include_str! may reach outside the package
 ```
 
 The Map above is machine-checked: `tests/claude_md_is_current.rs` fails the
@@ -75,10 +83,11 @@ versa. Update the Map in the same commit that adds or removes a file.
 4. Add integration test in `tests/integration.rs`.
 
 ### Add an example
-1. Create `examples/<name>.rs`.
-2. Register in `Cargo.toml` `[[example]]`.
-3. Example must run headless (`cargo run --example <name>` completes without hanging).
-4. Example must print something useful at the end.
+1. Create `examples/<name>.rs` — cargo auto-discovers it; no manifest
+   registration is needed (explicit `[[example]]` blocks were removed as
+   pure restatements of the default).
+2. Example must run headless (`cargo run --example <name>` completes without hanging).
+3. Example must print something useful at the end.
 
 ### Add a backend
 1. Implement `backend::Backend` in a new `izanagi-<name>` crate.
@@ -92,6 +101,8 @@ versa. Update the Map in the same commit that adds or removes a file.
 4. Document the result in the commit message.
 
 ## gstack skills
+Provided by the external gstack tooling, not committed to this repo —
+present at `.claude/skills/` on machines where gstack is installed:
 - `.claude/skills/add-module.md`
 - `.claude/skills/add-example.md`
 - `.claude/skills/debug-ecs.md`

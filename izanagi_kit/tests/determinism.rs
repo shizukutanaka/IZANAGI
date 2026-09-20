@@ -106,6 +106,11 @@ impl World {
     }
 
     /// Canonical state checksum: sorted positions + entity ids + RNG stream.
+    /// Velocities, the allocator's free list and `live` ordering are
+    /// deliberately unhashed — this is a projection digest, and its soundness
+    /// rests on an invariant: every unhashed field must feed a hashed one
+    /// within a tick (velocity integrates into position; free-list order picks
+    /// the next entity id). `test_unhashed_fields_reach_the_hash` enforces it.
     fn hash(&self) -> u64 {
         let mut h = Fnv1a::new();
         for (e, p) in self.positions.iter_sorted() {
@@ -157,6 +162,44 @@ fn test_final_hash_is_pinned() {
     // change to algorithm or order breaks this — the regression tripwire.
     let trace = run(0xC0FFEE00, 500);
     assert_eq!(*trace.last().unwrap(), PINNED_FINAL_HASH);
+}
+
+#[test]
+fn test_unhashed_fields_reach_the_hash() {
+    // `World::hash` is a projection: it does not write velocity, the free
+    // list, or `live` order. The pin still detects divergence in those fields
+    // because each feeds a hashed field — velocity integrates into position
+    // on the next step. Prove the propagation: perturb velocity only, confirm
+    // the instant hash is unchanged, then confirm it diverges one tick later.
+    // If a future field feeds nothing hashed, the pin goes blind to it.
+    let mut a = World::new(7);
+    let mut b = World::new(7);
+    for _ in 0..8 {
+        a.step();
+        b.step();
+    }
+    assert_eq!(a.hash(), b.hash(), "identical runs must agree");
+    let e = *b
+        .live
+        .last()
+        .expect("the sim should have live entities by now");
+    let v = b
+        .velocities
+        .get_mut(e)
+        .expect("live entities have velocity");
+    v.dx = v.dx + Fixed::ONE;
+    assert_eq!(
+        a.hash(),
+        b.hash(),
+        "velocity is deliberately outside the hashed projection"
+    );
+    a.step();
+    b.step();
+    assert_ne!(
+        a.hash(),
+        b.hash(),
+        "an unhashed-field divergence must propagate into the hash"
+    );
 }
 
 // Pinned from a verified run; regression tripwire for the whole stack.

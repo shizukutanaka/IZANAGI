@@ -216,7 +216,6 @@ fn main() {
 
     // ── right panel notes ─────────────────────────────────────────────────────
     let nx = DIV_X + 2;
-    let mut ny = 5;
     let notes: [(&str, Color); 9] = [
         ("step = 1s/60 ≈ 16.67ms", INFO_FG),
         ("", INFO_FG),
@@ -228,11 +227,10 @@ fn main() {
         ("  backlog is dropped so the", INFO_FG),
         ("  sim slows, never spirals.", INFO_FG),
     ];
-    for (text, col) in notes {
+    for (ny, (text, col)) in (5..).zip(notes) {
         if !text.is_empty() {
             screen.draw_str(nx, ny, text, col, BG);
         }
-        ny += 1;
     }
 
     // Recovery proof.

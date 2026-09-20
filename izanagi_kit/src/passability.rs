@@ -186,9 +186,7 @@ impl PassabilityGrid {
     /// "seal entire floor as solid" / "clear all walls" primitives before
     /// carving a new layout.
     pub fn fill(&mut self, blocked: bool) {
-        for cell in &mut self.cells {
-            *cell = blocked;
-        }
+        self.cells.fill(blocked);
     }
 
     /// Iterate `(x, y)` coordinates of all **blocked** cells in row-major order.

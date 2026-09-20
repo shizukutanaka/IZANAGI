@@ -11,8 +11,8 @@
 //! Deterministic via the kit's seeded RNG, so any failure reproduces in CI from
 //! its seed.
 
-use izanagi_kit::content::{Color, Content, Level, Prefab, Spawn, Tile};
-use izanagi_kit::{content_eq, parse, serialize, SplitMix64};
+use izanagi_kit::content::{Color, Content, Diagnostic, Level, Prefab, Spawn, Tile};
+use izanagi_kit::{content_eq, load_level, parse, serialize, validate, SplitMix64};
 use std::collections::BTreeMap;
 
 /// Builds a well-formed `Content` from a seed. Names avoid whitespace and stay
@@ -29,8 +29,28 @@ fn gen_content(rng: &mut SplitMix64) -> Content {
         let name = format!("p{i}");
         prefab_names.push(name.clone());
         let mut p = Prefab::new(name);
-        p.glyph = glyphs[rng.below(glyphs.len() as u32) as usize] as char;
-        p.color = gen_color(rng);
+        // `extends` targets only earlier prefabs, so generated chains are
+        // acyclic by construction — cycles are a validator concern, and this
+        // generator produces well-formed content on purpose.
+        if i > 0 && rng.below(3) == 0 {
+            let base = &prefab_names[rng.below(prefab_names.len() as u32) as usize];
+            p.extends = Some(base.clone());
+            // An extends overlay writes only the fields it declares; mirror
+            // authored content by marking exactly the fields we assign.
+            if rng.below(2) == 0 {
+                p.glyph = glyphs[rng.below(glyphs.len() as u32) as usize] as char;
+                p.glyph_declared = true;
+            }
+            if rng.below(2) == 0 {
+                p.color = gen_color(rng);
+                p.color_declared = true;
+            }
+        } else {
+            p.glyph = glyphs[rng.below(glyphs.len() as u32) as usize] as char;
+            p.glyph_declared = true;
+            p.color = gen_color(rng);
+            p.color_declared = true;
+        }
         let n_stats = rng.below(4) as usize;
         let mut stats = BTreeMap::new();
         for s in 0..n_stats {
@@ -127,5 +147,90 @@ fn test_serialize_is_canonical_under_fuzz() {
         let (reparsed, _) = parse(&t1);
         let t2 = serialize(&reparsed);
         assert_eq!(t1, t2, "iter {iter}: serialization not canonical");
+    }
+}
+
+/// Hostile single-character edits applied to serialized content. Where the
+/// generator above owns *deep* coverage, mutation owns a different contract:
+/// `parse` is a total function — it returns diagnostics on every input,
+/// never panics, and reports the same diagnostics twice.
+fn mutate(rng: &mut SplitMix64, text: &str) -> String {
+    const HOSTILE: &[char] = &[
+        '"', '#', '[', ']', '{', '}', ':', '=', '\t', '\r', '\0', '\\', '\u{7f}', '\u{2028}', '\'',
+        '`', '@', '!', '*', '😀', ' ', 'x', '9', '-',
+    ];
+    let mut chars: Vec<char> = text.chars().collect();
+    for _ in 0..1 + rng.below(6) {
+        match rng.below(4) {
+            0 | 1 if !chars.is_empty() => {
+                let i = rng.below(chars.len() as u32) as usize;
+                if rng.below(2) == 0 {
+                    chars.remove(i);
+                } else {
+                    chars[i] = HOSTILE[rng.below(HOSTILE.len() as u32) as usize];
+                }
+            }
+            2 => {
+                let i = rng.below(chars.len() as u32 + 1) as usize;
+                chars.insert(i, HOSTILE[rng.below(HOSTILE.len() as u32) as usize]);
+            }
+            3 if !chars.is_empty() => {
+                chars.truncate(rng.below(chars.len() as u32) as usize);
+            }
+            _ => {}
+        }
+    }
+    chars.into_iter().collect()
+}
+
+#[test]
+fn test_malformed_input_never_panics_and_is_deterministic() {
+    let mut rng = SplitMix64::new(0xBADCA5E);
+    let mut corpus: Vec<String> = Vec::new();
+    for _ in 0..64 {
+        corpus.push(serialize(&gen_content(&mut rng)));
+    }
+    corpus.extend([
+        String::new(),
+        "\n\n\n".to_string(),
+        "prefab".to_string(),
+        "prefab p".to_string(),
+        "level l 1x1\nrow @".repeat(10_000),
+        "\"#[]{}".repeat(1_000),
+        "😀\t".repeat(500),
+    ]);
+    for iter in 0..4000 {
+        let base = &corpus[rng.below(corpus.len() as u32) as usize];
+        let m = mutate(&mut rng, base);
+        // A panic fails the test at the call site — no catch needed.
+        let (parsed, d1) = parse(&m);
+        let (_, d2) = parse(&m);
+        let sig = |d: &[Diagnostic]| {
+            d.iter()
+                .map(|d| (d.line, d.col, d.severity, d.message.clone()))
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            sig(&d1),
+            sig(&d2),
+            "iter {iter}: diagnostics differ between identical parses\n---\n{m}"
+        );
+        // The pipeline is total end-to-end, not just at the parser: whatever
+        // Content a hostile input produced must also survive validation
+        // (deterministically — its diagnostics are a stable signature) and
+        // level loading without panicking.
+        let v1 = validate(&parsed);
+        let v2 = validate(&parsed);
+        assert_eq!(
+            sig(&v1),
+            sig(&v2),
+            "iter {iter}: validator diagnostics differ between identical runs\n---\n{m}"
+        );
+        for level in &parsed.levels {
+            let _ = load_level(&parsed, &level.name);
+        }
+        // Whatever partial Content the parser produced must also survive
+        // the serializer without panicking.
+        let _ = serialize(&parsed);
     }
 }

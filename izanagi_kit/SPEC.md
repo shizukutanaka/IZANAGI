@@ -2,7 +2,9 @@
 
 > 本書は `izanagi_kit` の **API 契約・不変条件・完成度** を定義する仕様書。
 > 改善点の調査は [`RESEARCH.md`](./RESEARCH.md)、変更履歴は [`CHANGELOG.md`](./CHANGELOG.md) を参照。
-> 「不足部分」は §13 完成度チェックリストの ⬜ 項目で、本イテレーションで一部を実装する。
+> §13 完成度チェックリストに **⬜(未実装)は残っていない**。未着手の候補は
+> [`RESEARCH.md`](./RESEARCH.md) の N 候補表を正とする — 同じ一覧を2つの文書で
+> 管理すれば必ず片方が古くなるため、本書は「何が契約か」だけを持つ。
 
 最終更新: 2026-06-06 / 対象ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`
 
@@ -23,6 +25,8 @@
 | G6 | コレクション走査は **canonical 順序**（昇順 index 等）で hash する | 順序由来の非決定性排除 |
 | G7 | パニックしない公開 API（不正入力は飽和・None・no-op で処理） | 堅牢性 |
 | G8 | MSRV **1.75** / edition 2021 | 互換性 |
+| G9 | **ポインタ幅の値を hash に混ぜない**（`usize`/`isize` の `DetHash` 実装なし、`write_usize` なし、長さは `as u32`） | 32bit/64bit 間の replay 一致。CI は wasm32 (`usize` = 32bit) でビルドする |
+| G10 | **hash に native-endian のバイト列を混ぜない**（`to_ne_bytes`/`to_be_bytes` 禁止、全 write は `to_le_bytes` を明示） | little-endian と big-endian 間の replay 一致。現行 CI ターゲット(x86-64・wasm32)はすべて little-endian なので、実行時テストでは検出できない潜在バグ |
 
 ## 3. `entity` — 世代付きエンティティ
 - `Entity{index,generation}`（opaque）, `EntityAllocator{allocate, free, is_alive}`。
@@ -58,7 +62,7 @@
 - 契約: 整数ナノ秒、death-spiral ガード（`max_steps` 超過分は破棄）、`alpha_ratio` で補間（float-free, G3）。
 
 ## 9. `content`/`parser`/`serializer`/`validator`/`loader` — コンテンツパイプライン
-- `parse` → `Content`（`BTreeMap` で canonical）→ `validate`（全件収集診断）→ `load_level` → ECS。
+- `parse` → `Content`（`BTreeMap` で canonical）→ `validate`（全件収集診断）→ `load_level` → ECS。`prefab <name> extends <base>` でフィールド単位 override を書ける（解決は `resolve_prefab`、loader が反映）。
 - `serialize` は canonical・idempotent、`content_eq` で round-trip 等価。診断は rustc 風 caret（column 付き）。
 - 契約: パーサは panic-free・bounded（1024B 行 / 256×256 grid, G7）。
 
@@ -78,7 +82,7 @@ stmt        = prefab-decl | prefab-child
             | tile-decl
             | level-decl  | level-child ;
 
-prefab-decl = "prefab" , sp , name ;
+prefab-decl = "prefab" , sp , name , [ sp , "extends" , sp , name ] ;
 prefab-child= glyph-stmt | color-stmt | stat-stmt | flag-stmt ;
 glyph-stmt  = "glyph" , sp , glyph ;
 color-stmt  = "color" , sp , color ;
@@ -109,6 +113,7 @@ ws          = { ws-char } ;                   (* 0 個以上 *)
 - `glyph` は「ちょうど 1 char」（0 個や 2 個以上は診断）。
 - `int` は `i32`、`uint` (spawn 座標・寸法) は `u32` として parse。
 - 未知キーワード・引数過不足・parse 失敗はいずれも **診断を出して当該行をスキップ**（panic せず、後続行の診断も収集する）。
+- `extends` の解決（base 存在・循環なし）は意味段階の仕事であり、validator が担う（§9 の dimension 規則と同じ分業）。解決済み prefab は `Content::resolve_prefab` が返す: `stats` は key 単位で子が勝ち、`flags` は base 先頭の union、`glyph`/`color` はその行を著した場合のみ override。
 
 ## 10. `fov` — 対称シャドウキャスティング（実装済）
 - `compute_fov(origin,radius,is_opaque,mark_visible)`。整数有理数スロープ、4象限固定順、対称性保証、Euclidean radius。
@@ -143,29 +148,24 @@ ws          = { ws-char } ;                   (* 0 個以上 *)
 
 ## 13. 完成度チェックリスト (Completeness checklist)
 
-✅ 実装済 / 🔶 一部 / ⬜ 未実装（= 不足部分）
+✅ 実装済 / 🔶 一部 / ⬜ 未実装。**現在 ⬜ は無い。**
 
 | 項目 | 状態 | 備考 |
 |------|------|------|
 | entity / sparse_set / fixed(基本) / rng(core) / world_hash(core) | ✅ | |
 | timestep（accumulator + alpha + death-spiral） | ✅ | |
 | content pipeline（parse/serialize/validate/load/gamec） | ✅ | |
-| fixed: sqrt / CORDIC trig | ✅ | 本ループで実装 |
-| fov: symmetric shadowcasting | ✅ | 本ループで実装 |
-| pathfinding: A* | ✅ | 本ループで実装 |
-| **D1 DetHash 実装（値型）＋ SparseSet 正準 hash** | ⬜→✅ | **本イテレーションで実装** |
-| **P1 Dijkstra map（flow field）＋ descend** | ⬜→✅ | **本イテレーションで実装** |
-| **R1 rng `range`/`coin` エルゴノミクス** | ⬜→✅ | **本イテレーションで実装** |
-| procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | 本イテレーションで実装（rooms + corridors, 連結保証, DetHash） |
-| C1 multi-component query (`join`/`join_mut`) | ✅ | 本イテレーションで実装。archetype storage は ⬜ |
-| C6 replay harness + snapshot/rollback + desync 検出 = `replay` | ✅ | 本イテレーションで実装（record/check/first_divergence/resimulate）|
-| geometry: Bresenham line / LOS = `geometry` | ✅ | 本イテレーションで実装（`line`/`line_of_sight`）|
+| fixed: sqrt / CORDIC trig | ✅ | |
+| fov: symmetric shadowcasting | ✅ | |
+| pathfinding: A* | ✅ | |
+| **D1 DetHash 実装（値型）＋ SparseSet 正準 hash** | ✅ | G5/G6 を値型まで配線 |
+| **P1 Dijkstra map（flow field）＋ descend** | ✅ | `pathfinding::dijkstra_map` / `descend` |
+| **R1 rng `range`/`coin` エルゴノミクス** | ✅ | low-bias 維持、draw 数決定的 |
+| procedural generation（seed 駆動ダンジョン）= `mapgen` | ✅ | rooms + corridors, 連結保証, DetHash。合成層は `MapBuilder` |
+| C1 multi-component query (`join`/`join_mut`) | ✅ | archetype storage は `arch`。ECS 全体の archetype 化は RESEARCH.md N18 |
+| C6 replay harness + snapshot/rollback + desync 検出 = `replay` | ✅ | record/check/first_divergence/resimulate。有界 snapshot リングは `rollback` |
+| geometry: Bresenham line / LOS = `geometry` | ✅ | `line` / `line_of_sight` |
 | weighted A*（ε-admissible） | ✅ | `pathfinding::weighted_astar`（`f=g+weight×h`、cost ≤ weight×optimal）|
-| **JPS（Jump Point Search）** | ⬜→✅ | **本イテレーションで実装**（`pathfinding::jps`、no-corner-cut、A* と cost 一致、6000 ランダム盤面で metamorphic 検証）|
+| **JPS（Jump Point Search）** | ✅ | （`pathfinding::jps`、no-corner-cut、A* と cost 一致、6000 ランダム盤面で metamorphic 検証）|
 | 機械可読診断(JSON) | ✅ | `diag_json`（手書き JSON、CI/LSP 消費可能）|
 
-### 本イテレーションで実装する不足部分
-1. **D1**: `DetHash` を基本型と `Fixed/Entity/Position/Render/Color` に実装し、`SparseSet::det_hash` で
-   canonical 順序の容器 hash を提供（G5/G6 を値型まで配線）。
-2. **P1**: `pathfinding::dijkstra_map` と `descend`（決定的 flow field）。
-3. **R1**: `SplitMix64::range` と `coin`（low-bias 維持、draw 数決定的）。

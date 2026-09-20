@@ -174,8 +174,12 @@ pub fn load_level(content: &Content, level_name: &str) -> Result<LoadedLevel, St
     };
 
     for spawn in &level.spawns {
+        // Resolve `extends` chains so a spawn of an overlay prefab inherits its
+        // base's fields. Validation reports broken chains as diagnostics first;
+        // loader still fails loudly rather than silently dropping entities.
         let prefab = content
-            .prefab(&spawn.prefab)
+            .resolve_prefab(&spawn.prefab)
+            .map_err(|e| e.to_string())?
             .ok_or_else(|| format!("spawn references undefined prefab '{}'", spawn.prefab))?;
         let e = world.alloc.allocate();
         world.positions.insert(
@@ -369,6 +373,41 @@ level room 1x1
         let w = loaded();
         let found = w.entities_in_rect(5, 5, 3, 3);
         assert!(found.is_empty());
+    }
+
+    #[test]
+    fn test_load_resolves_extends_overlay() {
+        let src = "\
+prefab enemy
+  glyph e
+  color #f85149
+  stat hp 10
+  stat atk 3
+prefab boss extends enemy
+  stat hp 50
+level room 2x1
+  row ##
+  spawn boss 0 0
+";
+        let (c, d) = parse(src);
+        assert!(d.iter().all(|x| !x.is_error()), "parse diags: {d:?}");
+        let w = load_level(&c, "room").unwrap();
+        let e = w.entities[0];
+        // Inherited appearance, merged stats (child wins shared key).
+        let r = w.renders.get(e).unwrap();
+        assert_eq!(r.glyph, 'e');
+        assert_eq!(r.color.r, 0xF8);
+        let s = w.stats.get(e).expect("boss should have merged Stats");
+        assert_eq!(s.get("hp"), Some(50));
+        assert_eq!(s.get("atk"), Some(3));
+    }
+
+    #[test]
+    fn test_load_extends_cycle_errors_loudly() {
+        let src = "prefab a extends b\nprefab b extends a\nlevel l 1x1\n  row #\n  spawn a 0 0\n";
+        let (c, _) = parse(src);
+        let err = load_level(&c, "l").err().expect("load must fail");
+        assert!(err.contains("extends cycle"), "got: {err}");
     }
 
     #[test]

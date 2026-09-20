@@ -8,13 +8,15 @@
 //! This demo embeds two content bundles inline (no file I/O needed):
 //!
 //!   1. `VALID_CONTENT` — the same dungeon as `examples/dungeon.game`,
-//!      parsed, validated, and loaded. Entities are rendered to a terminal
-//!      Screen at their grid positions.
+//!      byte for byte (a test in `docs_are_current` pins the two together).
+//!      It is parsed, validated, and loaded; entities are rendered to a
+//!      terminal Screen at their grid positions.
 //!
-//!   2. `BROKEN_CONTENT` — intentionally erroneous DSL matching
-//!      `examples/broken.game`. Parse errors are rendered in a diagnostic
-//!      panel (line, col, message) — identical output to `gamec` in human
-//!      mode.
+//!   2. `BROKEN_CONTENT` — a bundle carrying one of each diagnostic class
+//!      (bad glyph, bad color, missing args, an empty level), richer than the
+//!      shipped `broken.game` fixture, which only needs to make `gamec` exit
+//!      non-zero. Parse errors are rendered in a diagnostic panel (line, col,
+//!      message) — the same text `gamec` prints in human mode.
 //!
 //! Run with `cargo run --example content_pipeline_demo`.
 
@@ -25,33 +27,34 @@ use std::io::{self, Write};
 // ── content DSL strings ───────────────────────────────────────────────────────
 
 const VALID_CONTENT: &str = r#"
-// A tiny dungeon room
+// IZANAGI sample content — a tiny dungeon room
 prefab hero
   glyph @
   color #00C4CC
-  stat hp 20
   stat atk 5
+  stat hp 20
 prefab goblin
   glyph g
-  color #f85149
+  color #F85149
   stat hp 8
   flag hostile
+prefab goblin_king extends goblin
+  glyph G
+  stat hp 30
 prefab potion
   glyph !
-  color #3fb950
+  color #3FB950
   flag item
-
 tile floor . #3A3A3A
 tile wall # #6E7681
-
 level room 8x5
   row ########
   row #@.....#
-  row #..g..!#
+  row #..G..!#
   row #....g.#
   row ########
   spawn hero 1 1
-  spawn goblin 3 2
+  spawn goblin_king 3 2
   spawn goblin 5 3
   spawn potion 6 2
 "#;

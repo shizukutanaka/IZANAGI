@@ -14,7 +14,7 @@ procedural dungeon → A* → field-of-view), renders it through `izanagi`'s
 engine's frame loop cannot change a single bit of the simulation's world-hash
 trace.
 
-```
+```text
 cargo test --workspace   # 3,600+ tests, 0 clippy warnings, fmt clean
 ```
 
@@ -156,7 +156,7 @@ The central guarantee: **identical inputs produce a bit-identical simulation
 on every OS and CPU**, pinned by regression tests
 (`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH`) rather than merely asserted.
 
-```
+```text
 cargo test -p izanagi_kit   # 3,400+ tests, 0 clippy warnings, fmt clean
 ```
 
@@ -172,8 +172,9 @@ Both crates live in one Cargo workspace (root `Cargo.toml`).
   what was researched, implemented (with commit hashes), and deliberately
   deferred, with sources.
 - `tools/gate.sh` — the whole verification gate as one command: fmt, tests,
-  clippy, rustdoc, the pinned determinism hashes, the integration hash, the
-  pipeline demo, and packageability. The pre-push hook and the proposed CI
+  clippy, rustdoc, the pinned determinism hashes, every example run twice and
+  required to reproduce, the integration hash, the pipeline demo, and
+  packageability. The pre-push hook and the proposed CI
   ([`docs/ci/`](./docs/ci/)) run exactly this script.
 
 ## Contributing

@@ -177,11 +177,7 @@ impl Profiler {
                 count += 1;
             }
         }
-        if count == 0 {
-            0
-        } else {
-            sum / count
-        }
+        sum.checked_div(count).unwrap_or(0)
     }
 
     /// Number of `record()` calls for `section` in the current (unflushed) tick.

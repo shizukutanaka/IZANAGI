@@ -248,8 +248,7 @@ fn main() {
     }
 
     // Operation log on the right.
-    let mut ly = 4i32;
-    for (msg, result) in &log {
+    for (ly, (msg, result)) in (4i32..).zip(&log) {
         if ly >= 22 {
             break;
         }
@@ -262,7 +261,6 @@ fn main() {
         let body_fg = if result.is_none() { INFO_FG } else { STAT_FG };
         let body: String = msg.chars().take(36).collect();
         screen.draw_str(LOG_X + 4, ly, &body, body_fg, BG);
-        ly += 1;
     }
 
     // Bottom separator + stats.

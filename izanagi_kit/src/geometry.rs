@@ -563,32 +563,14 @@ pub fn rotate_90_ccw(x: i32, y: i32) -> (i32, i32) {
 }
 
 /// Floor of the square root of a non-negative `i64`, computed with integer
-/// arithmetic only (Newton's method). `isqrt(n)² <= n < (isqrt(n)+1)²`.
+/// arithmetic only. `isqrt(n)² <= n < (isqrt(n)+1)²`. Delegates to
+/// `fixed::isqrt_u64`, which is overflow-safe for any non-negative `i64`,
+/// including `i64::MAX`.
 fn isqrt(n: i64) -> i64 {
-    if n < 2 {
-        return n.max(0);
+    if n < 0 {
+        return 0;
     }
-    // Bit-by-bit integer square root using only add/shift/compare. Overflow-safe
-    // for any non-negative `i64`, including `i64::MAX` — Newton's `x + n/x` would
-    // overflow there (initial `x == n`). Returns the floor of the real root,
-    // identical to the previous implementation for all in-range inputs.
-    let n = n as u64;
-    let mut rem = n;
-    let mut root: u64 = 0;
-    let mut bit: u64 = 1 << 62;
-    while bit > rem {
-        bit >>= 2;
-    }
-    while bit != 0 {
-        if rem >= root + bit {
-            rem -= root + bit;
-            root = (root >> 1) + bit;
-        } else {
-            root >>= 1;
-        }
-        bit >>= 2;
-    }
-    root as i64
+    crate::fixed::isqrt_u64(n as u64) as i64
 }
 
 #[cfg(test)]

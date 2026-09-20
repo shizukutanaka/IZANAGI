@@ -306,6 +306,17 @@ mod tests {
     }
 
     #[test]
+    fn test_control_chars_escape_as_unicode() {
+        // < U+0020 must become \uXXXX — the escape class no sibling test
+        // covers. DEL (0x7f) is legal raw in JSON and passes through.
+        let diags = vec![Diagnostic::error(1, "bell\u{7}nul\u{0}del\u{7f}")];
+        let json = diag_json("i.game", &diags);
+        assert!(json.contains("\\u0007"));
+        assert!(json.contains("\\u0000"));
+        assert!(json.contains("del\u{7f}"), "DEL is legal raw in JSON");
+    }
+
+    #[test]
     fn test_parse_file_value() {
         let json = diag_json("myfile.game", &[]);
         assert_eq!(parse_json_field(&json, "file"), "myfile.game");

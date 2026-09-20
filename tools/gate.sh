@@ -13,7 +13,6 @@ set -eu
 cd "$(dirname "$0")/.."
 
 KIT_BRIDGE_HASH=353498ec4fbcd160
-failures=0
 
 stage() {
     printf '\n\033[1m== %s\033[0m\n' "$1"
@@ -54,28 +53,177 @@ if [ "$doc_warnings" -ne 0 ]; then
 fi
 echo "rustdoc: clean"
 
-stage "pinned determinism hashes"
+stage "pinned determinism hashes (debug and release)"
+# Both profiles, because they do not agree about arithmetic: `overflow-checks`
+# defaults to on for dev and off for release, so an addition that silently
+# wraps in a release build panics in a debug one. The hashes were only ever
+# checked in debug, which left the crate's central claim — this hash is stable
+# — unverified in the profile a game actually ships in.
+#
+# Requiring the same hash from both is also a free test for that overflow: if
+# any arithmetic in the simulation path wrapped, the release run would produce
+# a different trace, or the debug run would panic. It costs one extra compile
+# of two test binaries and a tenth of a second to run.
 (cd izanagi_kit && cargo test --test determinism --test roguelike_sim)
+(cd izanagi_kit && cargo test --release --test determinism --test roguelike_sim)
 
-stage "kit_bridge integration hash"
-bridge_out=$(cargo run -p izanagi --example kit_bridge 2>&1)
-printf '%s\n' "$bridge_out" | tail -1
-if ! printf '%s' "$bridge_out" | grep -q "$KIT_BRIDGE_HASH"; then
-    echo "gate: kit_bridge output does not contain the pinned hash $KIT_BRIDGE_HASH"
-    exit 1
+stage "every example runs, prints, and reproduces"
+# The gate used to run two of the workspace's 29 examples. The other 27 were
+# compiled and never executed, so an example that panicked, hung or printed
+# nothing would ship — and CLAUDE.md's rule that an example "must run headless"
+# and "must print something useful" was a rule nothing enforced.
+#
+# The list is read from the filesystem rather than written here, so a new
+# example is covered the day it is added. Each is run twice and the two outputs
+# must match byte for byte: this crate's entire promise is reproducibility, and
+# its own shop window is the last place that should go unchecked. All 29 pass
+# today, which makes this a guard rather than a discovery.
+#
+# What this does *not* check is whether the numbers an example prints are
+# right. `verify_pipeline_demo` asserts its own claims with assert!/panic! (a
+# failed claim is a non-zero exit, which the run check below already catches)
+# and `kit_bridge`'s output is grepped for its pinned hash in this same loop;
+# see AGENT_INSTRUCTIONS.md §2.
+cargo build --workspace --examples --quiet
+# `timeout` catches a hang instead of stalling CI for its whole job limit. It
+# is coreutils, not POSIX, so a machine without it still runs the checks — it
+# just waits instead of failing fast.
+if command -v timeout >/dev/null 2>&1; then
+    cap="timeout 120"
+else
+    cap=""
 fi
+example_count=0
+for crate_dir in izanagi izanagi_kit; do
+    for path in "$crate_dir"/examples/*.rs; do
+        name=$(basename "$path" .rs)
+        label="$crate_dir::$name"
+        # Run the freshly built binary directly: `cargo run` would only repeat
+        # the freshness check `cargo build --examples` already did, ~40ms and
+        # a cargo process spawn per call. Examples take no args, read no files
+        # and use no cargo env vars, so the exec is identical for this check.
+        bin="target/debug/examples/$name"
+        if ! first=$($cap "$bin" 2>&1); then
+            printf '%s\n' "$first" | tail -20
+            echo "gate: example $label did not complete successfully"
+            exit 1
+        fi
+        if [ -z "$first" ]; then
+            echo "gate: example $label printed nothing — an example must show a result"
+            exit 1
+        fi
+        if ! second=$($cap "$bin" 2>&1); then
+            echo "gate: example $label failed on its second run"
+            exit 1
+        fi
+        if [ "$first" != "$second" ]; then
+            echo "gate: example $label is not reproducible across runs:"
+            printf '%s\n' "$first" > /tmp/gate_ex_a.$$
+            printf '%s\n' "$second" > /tmp/gate_ex_b.$$
+            diff /tmp/gate_ex_a.$$ /tmp/gate_ex_b.$$ | head -20
+            rm -f /tmp/gate_ex_a.$$ /tmp/gate_ex_b.$$
+            exit 1
+        fi
+        # kit_bridge's own integration check: the headless run's final hash is
+        # pinned, proving engine-hosted and headless simulation agree.
+        if [ "$label" = "izanagi::kit_bridge" ]; then
+            printf '%s\n' "$first" | tail -1
+            if ! printf '%s' "$first" | grep -q "$KIT_BRIDGE_HASH"; then
+                echo "gate: kit_bridge output does not contain the pinned hash $KIT_BRIDGE_HASH"
+                exit 1
+            fi
+        fi
+        example_count=$((example_count + 1))
+    done
+done
+echo "examples: $example_count ran headless, printed a result, and reproduced it"
 
-stage "verification pipeline demo (asserts its own claims)"
-cargo run -p izanagi_kit --example verify_pipeline_demo >/dev/null
-echo "verify_pipeline_demo: ok"
-
-stage "packageability (both crates, verified)"
+stage "packageability (both crates, verified, doctests included)"
 # No `--no-verify`: the verify step unpacks the tarball and *builds it*, which
 # is the only way a "forgot to include that file" bug shows up. `cargo package`
 # does this without contacting the registry, so it costs a compile and buys the
 # same assurance `cargo publish --dry-run` gives.
 cargo package -p izanagi_kit --allow-dirty
 cargo package -p izanagi --allow-dirty
+
+# ...but a build is not enough. `#[cfg(doctest)]` items do not exist during a
+# build, so a `#[doc = include_str!(...)]` pointing outside the package builds
+# and verifies happily, then fails for the first consumer who runs the
+# doctests. That shipped once: izanagi included the workspace README with
+# `../../README.md`, the gate was green, and the unpacked crate could not test
+# itself. Running the doctests inside the unpacked tarball is what actually
+# proves the published crate is self-contained.
+for pkg_dir in target/package/izanagi_kit-*/ target/package/izanagi-*/; do
+    [ -d "$pkg_dir" ] || continue
+    case "$pkg_dir" in
+        *.crate) continue ;;
+    esac
+    name=$(basename "$pkg_dir")
+    if ! (cd "$pkg_dir" && cargo test --doc --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot run its own doctests"
+        (cd "$pkg_dir" && cargo test --doc 2>&1 | tail -30)
+        exit 1
+    fi
+    # Both crates ship their tests on purpose — "the evidence is part of the
+    # product". Evidence that fails on arrival is worse than none, and it did:
+    # six repository-scoped test files read documents and manifests living
+    # above the package, so a consumer running `cargo test` on the published
+    # crate met a wall of failures about files they never received. Those files
+    # are excluded now, and this is what keeps the rest honest.
+    if ! (cd "$pkg_dir" && cargo test --tests --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot run its own test suite"
+        (cd "$pkg_dir" && cargo test --tests 2>&1 | tail -30)
+        exit 1
+    fi
+    # Examples ship too, and are compiled by none of the above. The engine's
+    # kit_bridge example used a path dev-dependency; cargo strips path
+    # dependencies from a published manifest, because a consumer cannot
+    # resolve one, so the tarball carried an example importing a crate that
+    # was not there. Three targets, three separate misses — hence checking
+    # each rather than trusting that a green build covers them.
+    if ! (cd "$pkg_dir" && cargo build --examples --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot build its own examples"
+        (cd "$pkg_dir" && cargo build --examples 2>&1 | tail -30)
+        exit 1
+    fi
+    if ! (cd "$pkg_dir" && cargo build --bins --quiet >/dev/null 2>&1); then
+        echo "gate: the packaged crate $name cannot build its own binaries"
+        (cd "$pkg_dir" && cargo build --bins 2>&1 | tail -30)
+        exit 1
+    fi
+    echo "packaged $name: doctests, tests, examples and bins all pass inside the tarball"
+done
+
+# Building is not the same as working — three defects in a row proved that a
+# green build says nothing about the target actually functioning. `gamec` is
+# the kit's content gate; a consumer gets it from `cargo install izanagi_kit`,
+# so it is exercised on the fixtures the tarball itself ships, in both
+# directions. A gate that accepts broken content is not a gate.
+for kit_dir in target/package/izanagi_kit-*/; do
+    [ -d "$kit_dir" ] || continue
+    # The fixtures must be in the tarball before their verdicts mean anything.
+    # Without this, a fixture that stopped shipping would still make the
+    # "rejects the broken one" check pass — a missing file is also a non-zero
+    # exit, and the check could not tell the two apart.
+    for fixture in examples/dungeon.game examples/broken.game; do
+        if [ ! -f "$kit_dir$fixture" ]; then
+            echo "gate: $fixture is not in the packaged crate, so gamec cannot be"
+            echo "      exercised against it — the checks below would pass vacuously"
+            exit 1
+        fi
+    done
+    if ! (cd "$kit_dir" && cargo run -q --bin gamec -- examples/dungeon.game >/dev/null 2>&1); then
+        echo "gate: packaged gamec rejects examples/dungeon.game, which is valid"
+        (cd "$kit_dir" && cargo run -q --bin gamec -- examples/dungeon.game 2>&1 | tail -20)
+        exit 1
+    fi
+    if (cd "$kit_dir" && cargo run -q --bin gamec -- examples/broken.game >/dev/null 2>&1); then
+        echo "gate: packaged gamec ACCEPTS examples/broken.game — a content gate"
+        echo "      that passes broken content is worse than none"
+        exit 1
+    fi
+    echo "packaged gamec: accepts the valid fixture, rejects the broken one"
+done
 rm -rf target/package
 
 printf '\n\033[1;32mgate: all stages green\033[0m\n'

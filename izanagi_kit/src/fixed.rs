@@ -83,7 +83,10 @@ const CORDIC_ATAN: [i32; 16] = [
 /// Floor of the integer square root of `n`, computed bit-by-bit with only
 /// add/shift/compare. (`u64::isqrt` would be cleaner but stabilised in 1.84,
 /// past this crate's 1.75 MSRV.) Deterministic on every target.
-fn isqrt_u64(n: u64) -> u64 {
+///
+/// Shared by `geometry::isqrt` — keep this the crate's single integer-square-
+/// root implementation.
+pub(crate) fn isqrt_u64(n: u64) -> u64 {
     let mut rem = n;
     let mut root: u64 = 0;
     // Largest power of four not exceeding `n`.
