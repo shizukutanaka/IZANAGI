@@ -193,7 +193,7 @@ fn test_module_boundary(src: &str) -> Option<usize> {
 /// first — truncating the file at 89 characters of doc header and silently
 /// never seeing the `cfg_attr` lint gate or the `cfg(doctest)` wiring that
 /// came after it. The sibling scanners shared the order; this one does not.
-fn library_sources() -> BTreeMap<String, String> {
+fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
     fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
@@ -207,8 +207,8 @@ fn library_sources() -> BTreeMap<String, String> {
                 walk(&path, root, out);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
                 let src = fs::read_to_string(&path).unwrap_or_default();
-                let impl_end = test_module_boundary(&src).unwrap_or(src.len());
-                let stripped = src[..impl_end]
+                let end = test_module_boundary(&src).unwrap_or(src.len());
+                let stripped = src[..end]
                     .lines()
                     .filter(|l| !l.trim_start().starts_with("//"))
                     .collect::<Vec<_>>()
@@ -223,8 +223,7 @@ fn library_sources() -> BTreeMap<String, String> {
         }
     }
     let mut out = BTreeMap::new();
-    let root = kit_src();
-    walk(&root, &root, &mut out);
+    walk(src_root, src_root, &mut out);
     out
 }
 
@@ -352,7 +351,7 @@ fn predicate_atoms(pred: &str) -> Vec<String> {
 #[test]
 fn library_code_compiles_without_platform_profile_or_feature_conditionals() {
     let mut offenders: Vec<String> = Vec::new();
-    for (name, code) in library_sources() {
+    for (name, code) in library_sources(&kit_src()) {
         for (form, pred) in cfg_predicates(&code) {
             if form == "cfg!" {
                 offenders.push(format!(
@@ -604,7 +603,7 @@ fn the_scanner_finds_every_form_that_exists_in_library_code() {
     // make the check above pass on an empty scan.
     let mut forms: Vec<&'static str> = Vec::new();
     let mut total = 0usize;
-    for (_, code) in library_sources() {
+    for (_, code) in library_sources(&kit_src()) {
         for (form, _) in cfg_predicates(&code) {
             forms.push(form);
             total += 1;

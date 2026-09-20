@@ -494,6 +494,16 @@ fn the_gate_is_what_the_hooks_and_the_documented_ci_run() {
         pre_commit.contains("cargo fmt") && pre_commit.contains("clippy"),
         ".githooks/pre-commit lost its fmt/clippy fast checks"
     );
+    // A checked-in hooks directory does not run by itself: git only finds it
+    // when the clone sets `core.hooksPath`. That setting is per-clone local
+    // state no repository file can enforce — the only enforceable link is
+    // that the instruction to set it keeps existing.
+    let instructions = read("AGENT_INSTRUCTIONS.md");
+    assert!(
+        instructions.contains("core.hooksPath"),
+        "AGENT_INSTRUCTIONS.md no longer tells a fresh clone to set \
+         core.hooksPath — .githooks/ would exist but never fire"
+    );
 }
 
 #[test]
@@ -519,6 +529,87 @@ fn fenced_rust_blocks_that_claim_to_run_are_not_marked_to_skip() {
                 );
             }
         }
+    }
+
+    // The same opt-outs exist inside source-file doc comments: `//!` fenced
+    // blocks are doctests too, and md scanning never saw them. `ignore`,
+    // `compile_fail` and `should_panic` are banned outright — a doc example
+    // that cannot even compile rots silently (one did: log.rs used `ignore`
+    // on a snippet whose `use` path had been wrong since the macros moved
+    // to the crate root). `no_run` is allowed only where the example has a
+    // side effect worth skipping — and the allowlist must stay current.
+    const NO_RUN_ALLOWLIST: &[(&str, &str)] = &[
+        (
+            "izanagi/src/lib.rs",
+            "the example runs Engine::run's frame loop",
+        ),
+        (
+            "izanagi/src/save.rs",
+            "the example writes a real file to disk",
+        ),
+    ];
+    for krate in ["izanagi/src", "izanagi_kit/src"] {
+        let root = repo_root().join(krate);
+        let mut stack = vec![root];
+        let mut files = Vec::new();
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = fs::read_dir(dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                    files.push(path);
+                }
+            }
+        }
+        for path in files {
+            let rel = path
+                .strip_prefix(repo_root())
+                .unwrap_or(&path)
+                .display()
+                .to_string();
+            let src = fs::read_to_string(&path).unwrap_or_default();
+            let mut no_run_count = 0usize;
+            for (n, line) in src.lines().enumerate() {
+                let trimmed = line
+                    .trim_start()
+                    .trim_start_matches(['/', '!'])
+                    .trim_start();
+                if !trimmed.starts_with("```") {
+                    continue;
+                }
+                let tag = trimmed.trim_start_matches('`').trim();
+                for flag in ["ignore", "compile_fail", "should_panic"] {
+                    assert!(
+                        !tag.split([',', ' ']).any(|t| t == flag),
+                        "{rel}:{} — ````{flag}` in a doc comment marks this \
+                         example so it cannot even compile; doc examples in \
+                         this repository are compiled evidence",
+                        n + 1
+                    );
+                }
+                if tag.split([',', ' ']).any(|t| t == "no_run") {
+                    no_run_count += 1;
+                }
+            }
+            let allowed = NO_RUN_ALLOWLIST.iter().filter(|(f, _)| *f == rel).count();
+            assert!(
+                no_run_count <= allowed,
+                "{rel} has {no_run_count} ```no_run doc fences, allowlist \
+                 holds {allowed} — skipping execution needs a reason"
+            );
+        }
+    }
+    for (file, _reason) in NO_RUN_ALLOWLIST {
+        let src = fs::read_to_string(repo_root().join(file)).unwrap_or_default();
+        assert!(
+            src.contains("```no_run"),
+            "allowlisted {file} no longer has a ```no_run fence — remove the \
+             stale entry"
+        );
     }
 }
 

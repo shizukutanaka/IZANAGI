@@ -258,7 +258,7 @@ fn test_module_boundary(src: &str) -> Option<usize> {
 
 /// Library sources, keyed by path relative to `src/`. `src/bin/` is excluded:
 /// those are CLI binaries, and reading argv or the environment is their job.
-fn library_sources() -> BTreeMap<String, String> {
+fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
     fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
@@ -272,8 +272,8 @@ fn library_sources() -> BTreeMap<String, String> {
                 walk(&path, root, out);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
                 let src = fs::read_to_string(&path).unwrap_or_default();
-                let impl_end = test_module_boundary(&src).unwrap_or(src.len());
-                let code = src[..impl_end]
+                let end = test_module_boundary(&src).unwrap_or(src.len());
+                let stripped = src[..end]
                     .lines()
                     .filter(|l| !l.trim_start().starts_with("//"))
                     .collect::<Vec<_>>()
@@ -283,13 +283,12 @@ fn library_sources() -> BTreeMap<String, String> {
                     .unwrap_or(&path)
                     .display()
                     .to_string();
-                out.insert(rel, code);
+                out.insert(rel, stripped);
             }
         }
     }
     let mut out = BTreeMap::new();
-    let root = kit_src();
-    walk(&root, &root, &mut out);
+    walk(src_root, src_root, &mut out);
     out
 }
 
@@ -329,7 +328,7 @@ fn count_token(code: &str, needle: &str) -> usize {
 
 #[test]
 fn every_hash_map_in_library_code_is_accounted_for() {
-    let sources = library_sources();
+    let sources = library_sources(&kit_src());
     assert!(
         sources.len() > 50,
         "expected to find the kit's library sources, found {} — has the \
@@ -371,7 +370,7 @@ fn every_hash_map_in_library_code_is_accounted_for() {
 #[test]
 fn library_code_has_no_unstable_inputs() {
     let mut problems = Vec::new();
-    for (file, code) in library_sources() {
+    for (file, code) in library_sources(&kit_src()) {
         for (name, needle) in BANNED {
             if count_token(&code, needle) > 0 {
                 problems.push(format!(

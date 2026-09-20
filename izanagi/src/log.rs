@@ -3,8 +3,9 @@
 //! A static, lock-free per-thread level filter. Backends call
 //! [`set_writer`] to redirect output; the default writes to stderr.
 //!
-//! ```ignore
-//! use izanagi::log::{info, warn, set_level, Level};
+//! ```rust
+//! use izanagi::{info, warn};
+//! use izanagi::log::{set_level, Level};
 //!
 //! set_level(Level::Warn);
 //! info!("ignored");

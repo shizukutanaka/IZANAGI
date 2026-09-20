@@ -23,8 +23,9 @@
 //! once, and the wasm job would not notice: it compiles the crate, it does not
 //! compare a hash against another target's. So the shape is checked here.
 
+use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 fn kit_src() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")
@@ -133,28 +134,37 @@ fn test_module_boundary(src: &str) -> Option<usize> {
 
 /// Library code of every module: everything before `#[cfg(test)]`, with line
 /// comments stripped so prose about `usize` does not count as a use of it.
-fn library_sources() -> Vec<(String, String)> {
-    let mut out = Vec::new();
-    for entry in fs::read_dir(kit_src()).expect("kit src").flatten() {
-        let path = entry.path();
-        if path.extension().map(|e| e != "rs").unwrap_or(true) {
-            continue;
+fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
+    fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                if path.file_name().map(|n| n == "bin").unwrap_or(false) {
+                    continue;
+                }
+                walk(&path, root, out);
+            } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
+                let src = fs::read_to_string(&path).unwrap_or_default();
+                let end = test_module_boundary(&src).unwrap_or(src.len());
+                let stripped = src[..end]
+                    .lines()
+                    .filter(|l| !l.trim_start().starts_with("//"))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string();
+                out.insert(rel, stripped);
+            }
         }
-        let name = path
-            .file_name()
-            .and_then(|s| s.to_str())
-            .unwrap_or_default()
-            .to_string();
-        let src = fs::read_to_string(&path).unwrap_or_default();
-        let end = test_module_boundary(&src).unwrap_or(src.len());
-        let code = src[..end]
-            .lines()
-            .filter(|l| !l.trim_start().starts_with("//"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        out.push((name, code));
     }
-    out.sort();
+    let mut out = BTreeMap::new();
+    walk(src_root, src_root, &mut out);
     out
 }
 
@@ -214,7 +224,7 @@ fn no_det_hash_implementation_mentions_a_pointer_sized_type() {
     // hashing a pointer-sized value or casting one, and both deserve the
     // reader's attention.
     let mut offenders: Vec<String> = Vec::new();
-    for (name, code) in library_sources() {
+    for (name, code) in library_sources(&kit_src()) {
         let mut rest = code.as_str();
         while let Some(at) = rest.find("fn det_hash(") {
             rest = &rest[at..];
@@ -258,7 +268,7 @@ fn library_code_uses_no_pointer_sized_sentinel() {
     // `CellSelector` to check the contradiction path, which is why this scans
     // library code only.
     let mut offenders: Vec<String> = Vec::new();
-    for (name, code) in library_sources() {
+    for (name, code) in library_sources(&kit_src()) {
         for sentinel in ["usize::MAX", "isize::MAX", "isize::MIN"] {
             if code.contains(sentinel) {
                 offenders.push(format!("{name}: {sentinel}"));
@@ -293,7 +303,7 @@ fn lengths_are_hashed_at_a_fixed_width() {
 fn the_body_scanner_finds_bodies_and_ignores_prose() {
     // Both directions on synthetic input: a scanner that found no det_hash
     // bodies would make the check above pass vacuously.
-    let hits = library_sources()
+    let hits = library_sources(&kit_src())
         .iter()
         .filter(|(_, code)| code.contains("fn det_hash("))
         .count();

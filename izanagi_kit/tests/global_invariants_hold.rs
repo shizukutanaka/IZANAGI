@@ -776,6 +776,17 @@ fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
 /// `#[cfg` (ending in an ident char) requires the next character to be a
 /// non-identifier, matching `#[cfg(test)]` but not `#[cfgfoo]`.
 fn contains_token(code: &str, needle: &str) -> bool {
+    // The boundary requirement is derived from the needle's own first and last
+    // character, so a needle is never asked for a boundary that cannot exist.
+    //
+    // The first version returned `true` immediately for any needle starting
+    // with `.`, on the reasoning that a leading dot is a boundary by itself.
+    // That was sound only while every such needle also *ended* with `(`, which
+    // supplied the right-hand boundary by construction. Adding `.first_chunk`
+    // — paren-free, because the method is normally written with a turbofish —
+    // broke the assumption, and the needle matched `self.first_chunk_index`.
+    // The self-test below caught it. This is the same both-sides rule used by
+    // `no_nondeterminism_in_sim.rs` and `izanagi/tests/float_boundary.rs`.
     fn ident_char(c: char) -> bool {
         c.is_alphanumeric() || c == '_'
     }
@@ -1083,43 +1094,138 @@ path = \"src/lib.rs\"
     );
 }
 
-/// Test files are separate crates: they cannot share code, so
-/// `test_module_boundary` is duplicated by hand into every scanner. That is
-/// only honest if the copies stay identical — a drifted copy is a scanner
-/// with a private blind spot (this file once carried a weaker `find`-based
-/// variant). Compare the function bodies byte for byte.
+/// Test files are separate crates: they cannot share code, so the small
+/// scanner helpers are duplicated by hand into every file that needs them.
+/// That is only honest if the copies stay identical — a drifted copy is a
+/// scanner with a private blind spot (both `library_sources` and
+/// `contains_token` had already drifted when this check was added).
+/// Compare each helper's function body byte for byte across its copies.
 #[test]
-fn the_boundary_lexer_is_the_same_in_every_scanner() {
-    let files = [
-        "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
-        "izanagi_kit/tests/hashes_are_endian_independent.rs",
-        "izanagi_kit/tests/hashes_are_width_independent.rs",
-        "izanagi_kit/tests/msrv_is_respected.rs",
-        "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
-        "izanagi_kit/tests/no_float_in_sim.rs",
-        "izanagi_kit/tests/public_api_is_exercised.rs",
-        "izanagi_kit/tests/global_invariants_hold.rs",
-        "izanagi/tests/float_boundary.rs",
-        "izanagi/tests/public_api_is_exercised.rs",
+fn shared_scanner_helpers_are_identical_in_every_file() {
+    let groups: &[(&str, &[&str])] = &[
+        (
+            "test_module_boundary",
+            &[
+                "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
+                "izanagi_kit/tests/hashes_are_endian_independent.rs",
+                "izanagi_kit/tests/hashes_are_width_independent.rs",
+                "izanagi_kit/tests/msrv_is_respected.rs",
+                "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
+                "izanagi_kit/tests/no_float_in_sim.rs",
+                "izanagi_kit/tests/public_api_is_exercised.rs",
+                "izanagi_kit/tests/global_invariants_hold.rs",
+                "izanagi/tests/float_boundary.rs",
+                "izanagi/tests/public_api_is_exercised.rs",
+            ],
+        ),
+        (
+            "library_sources",
+            &[
+                "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
+                "izanagi_kit/tests/hashes_are_endian_independent.rs",
+                "izanagi_kit/tests/hashes_are_width_independent.rs",
+                "izanagi_kit/tests/msrv_is_respected.rs",
+                "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
+                "izanagi_kit/tests/global_invariants_hold.rs",
+            ],
+        ),
+        (
+            "contains_token",
+            &[
+                "izanagi_kit/tests/msrv_is_respected.rs",
+                "izanagi_kit/tests/no_float_in_sim.rs",
+                "izanagi_kit/tests/global_invariants_hold.rs",
+            ],
+        ),
+        (
+            "count_token",
+            &[
+                "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
+                "izanagi/tests/float_boundary.rs",
+            ],
+        ),
+        (
+            "kit_src",
+            &[
+                "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
+                "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
+                "izanagi_kit/tests/hashes_are_width_independent.rs",
+                "izanagi_kit/tests/hashes_are_endian_independent.rs",
+            ],
+        ),
+        (
+            "take_balanced",
+            &[
+                "izanagi_kit/tests/global_invariants_hold.rs",
+                "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
+            ],
+        ),
     ];
-    fn extract(src: &str) -> &str {
+    fn extract<'a>(src: &'a str, fname: &str) -> &'a str {
+        let marker = format!("fn {fname}");
         let start = src
-            .find("fn test_module_boundary")
-            .expect("scanner is missing test_module_boundary");
+            .find(&marker)
+            .unwrap_or_else(|| panic!("{fname} missing from a file that must carry it"));
         let rest = &src[start..];
         let end = rest.find("\n}").expect("unclosed fn") + 2;
         &rest[..end]
     }
-    let mut bodies = Vec::new();
-    for file in files {
-        let src = fs::read_to_string(repo_root().join(file)).expect("read scanner");
-        bodies.push((file, extract(&src).to_string()));
+    for (fname, files) in groups {
+        let mut bodies = Vec::new();
+        for file in *files {
+            let src = fs::read_to_string(repo_root().join(file)).expect("read scanner");
+            bodies.push((*file, extract(&src, fname).to_string()));
+        }
+        let (first_name, first) = &bodies[0];
+        for (name, body) in &bodies[1..] {
+            assert_eq!(body, first, "{name}'s {fname} drifted from {first_name}'s");
+        }
     }
-    let (first_name, first) = &bodies[0];
-    for (name, body) in &bodies[1..] {
+}
+
+/// The identity freeze above proves the copies are the *same* — it cannot
+/// prove they are *right*: a lexer that never found a real marker, or that
+/// took fakes, would pass byte-equality while under-scanning every file it
+/// serves. Pin the behavior on synthetic input instead.
+#[test]
+fn the_shared_boundary_lexer_finds_real_markers_and_rejects_fakes() {
+    // Real: marker at line start (leading whitespace allowed), found at its
+    // byte offset; nothing after it is scanned.
+    let real = "fn impl_code() {}\n\n#[cfg(test)]\nmod tests {}\n";
+    let at = test_module_boundary(real).expect("a real marker must be found");
+    assert_eq!(&real[..at], "fn impl_code() {}\n\n");
+    assert_eq!(
+        test_module_boundary("    #[cfg(test)]\n"),
+        Some(4),
+        "indented real marker still counts"
+    );
+
+    // Fakes must not truncate: inside a line comment, a block comment
+    // (including a nested one), a plain string, a raw string with #s, a
+    // string on a line with real code — none of them are the boundary.
+    for fake in [
+        "// a note about #[cfg(test)]\nfn a() {}\n",
+        "/* docs say #[cfg(test)] here */\nfn a() {}\n",
+        "/* nested /* #[cfg(test)] */ comment */\nfn a() {}\n",
+        "const S: &str = \"#[cfg(test)]\";\nfn a() {}\n",
+        "const S: &str = r##\"#[cfg(test)] and a \" inside\"##;\nfn a() {}\n",
+        "fn f<'a>() -> &'a str { \"#[cfg(test)]\" }\n",
+        "let x = 1; #[cfg(test)]\n",
+    ] {
         assert_eq!(
-            body, first,
-            "{name}'s test_module_boundary drifted from {first_name}'s"
+            test_module_boundary(fake),
+            None,
+            "a fake marker was taken as the boundary in {fake:?}"
         );
     }
+    // The decisive case: a fake marker before a real one must not hide the
+    // real boundary.
+    let mixed = "const S: &str = \"#[cfg(test)]\";\nfn a() {}\n\n#[cfg(test)]\nmod t {}\n";
+    assert_eq!(
+        test_module_boundary(mixed),
+        Some(mixed.rfind("#[cfg(test)]").unwrap()),
+        "a fake early marker must not shadow the real test module"
+    );
+    // Sanity: no marker at all means the whole file is impl code.
+    assert_eq!(test_module_boundary("fn only() {}\n"), None);
 }
