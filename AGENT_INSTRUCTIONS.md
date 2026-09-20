@@ -659,6 +659,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   のため保持)。
 
 
+- ~~examples の非決定性は時計・ファイル系を閉じれば尽きたと思われて
+  いた~~ → `HashMap`/`HashSet`/`hash_map`/`RandomState`/`DefaultHasher`/
+  `SipHasher` は反復順がプロセス乱数シードで変わるのに example で未禁止
+  (3形とも注入→緑を実証; pin 出力2連比較は運で一致し得る)。examples-only
+  ニードルに追加(tests は自身の HashMap が自分を flake させるだけなので
+  保持 — 注入で緑のままを確認)。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

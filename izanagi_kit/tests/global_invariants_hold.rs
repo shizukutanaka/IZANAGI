@@ -1820,6 +1820,17 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     "UNIX_EPOCH",
                     "std::time",
                     "time::",
+                    // Unordered containers hash with RandomState seeded per
+                    // process — iteration order differs between the two runs
+                    // of the pinned compare (injected `HashMap`/`RandomState`/
+                    // `DefaultHasher` into an example: green). Tests keep
+                    // them; a test's own HashMap can only flake itself.
+                    "HashMap",
+                    "HashSet",
+                    "hash_map",
+                    "RandomState",
+                    "DefaultHasher",
+                    "SipHasher",
                 ] {
                     assert!(
                         !contains_token(&code, needle),
