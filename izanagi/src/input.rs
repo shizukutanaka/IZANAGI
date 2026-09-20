@@ -2,10 +2,10 @@
 //!
 //! Keyboard keys, mouse buttons, mouse position. Queried, not subscribed.
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 /// A keyboard key. Subset covering what games actually use.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(missing_docs)]
 pub enum Key {
     Up,
@@ -38,9 +38,9 @@ pub enum Key {
 
 /// Input state for the current frame.
 pub struct Input {
-    down: HashSet<Key>,
-    pressed: HashSet<Key>,
-    released: HashSet<Key>,
+    down: BTreeSet<Key>,
+    pressed: BTreeSet<Key>,
+    released: BTreeSet<Key>,
     mouse_x: f32,
     mouse_y: f32,
     mouse_down: bool,
@@ -51,9 +51,9 @@ impl Input {
     /// Create an empty input state.
     pub fn new() -> Self {
         Self {
-            down: HashSet::new(),
-            pressed: HashSet::new(),
-            released: HashSet::new(),
+            down: BTreeSet::new(),
+            pressed: BTreeSet::new(),
+            released: BTreeSet::new(),
             mouse_x: 0.0,
             mouse_y: 0.0,
             mouse_down: false,

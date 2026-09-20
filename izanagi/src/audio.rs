@@ -5,10 +5,10 @@
 //! audio backend (e.g. cpal) reads `mix_into` to fill the output stream.
 
 use crate::audio_pcm::PcmBuffer;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 /// A handle to a playing sound.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Voice(u64);
 
 struct Playing {
@@ -20,9 +20,14 @@ struct Playing {
 }
 
 /// Audio mixer.
+///
+/// Both maps are `BTreeMap`, not `HashMap`: `mix_into` iterates `voices` and
+/// folds each into the output with `+=` on `f32` samples — an order that
+/// `HashMap` would choose per-process by hasher seed, so the same voice set
+/// could mix to bit-different buffers on two runs of the same build.
 pub struct Audio {
-    clips: HashMap<String, PcmBuffer>,
-    voices: HashMap<Voice, Playing>,
+    clips: BTreeMap<String, PcmBuffer>,
+    voices: BTreeMap<Voice, Playing>,
     master: f32,
     next: u64,
 }
@@ -31,8 +36,8 @@ impl Audio {
     /// Create a mixer at full volume with no clips loaded.
     pub fn new() -> Self {
         Self {
-            clips: HashMap::new(),
-            voices: HashMap::new(),
+            clips: BTreeMap::new(),
+            voices: BTreeMap::new(),
             master: 1.0,
             next: 1,
         }

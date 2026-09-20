@@ -23,7 +23,7 @@
 //! ```
 
 use std::any::{Any, TypeId};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 /// A handle to an entity. Invalidated after [`World::despawn`].
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -63,10 +63,11 @@ trait Column: Any {
 // iterates in ascending key (entity index) order, deterministically, at the
 // cost of O(log n) instead of O(1) per access -- the right trade for an
 // engine whose README claims "Deterministic. Seed the RNG, replay the run."
-// `World.columns` below (keyed by TypeId) does NOT need the same fix: it is
-// only ever iterated in `despawn` to apply the same side-effecting `remove`
-// to every column, and that result does not depend on which column goes
-// first.
+// `World.columns` below (keyed by TypeId) used to be the one named
+// exception -- it was only iterated in `despawn`, applying the same
+// commutative `remove` to every column. The exception is gone: this crate
+// now holds no unordered container at all, so `HashMap`/`HashSet` cannot
+// return without a tests/no_unordered_containers.rs failure.
 struct TypedColumn<T: 'static> {
     data: BTreeMap<u32, T>,
 }
@@ -98,7 +99,7 @@ fn typed_mut<T: 'static>(col: &mut dyn Column) -> Option<&mut TypedColumn<T>> {
 pub struct World {
     generations: Vec<u32>,
     free: Vec<u32>,
-    columns: HashMap<TypeId, Box<dyn Column>>,
+    columns: BTreeMap<TypeId, Box<dyn Column>>,
     alive: u64,
 }
 
@@ -108,7 +109,7 @@ impl World {
         Self {
             generations: Vec::new(),
             free: Vec::new(),
-            columns: HashMap::new(),
+            columns: BTreeMap::new(),
             alive: 0,
         }
     }

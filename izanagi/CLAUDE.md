@@ -55,6 +55,9 @@ tests/
   readme_blocks_agree.rs — the workspace README's Rust blocks must appear
                   verbatim in izanagi/README.md, which is doctested; and no
                   include_str! may reach outside the package
+  no_unordered_containers.rs — bans HashMap/HashSet and the std hashers in
+                  src/ outright; the only ordered containers are BTreeMap/
+                  BTreeSet
 ```
 
 The Map above is machine-checked: `tests/claude_md_is_current.rs` fails the

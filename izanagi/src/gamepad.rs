@@ -6,7 +6,7 @@
 //! Up to 4 gamepads (indices 0–3) are tracked simultaneously.
 
 /// Standard gamepad buttons (Xbox layout naming).
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(missing_docs)]
 pub enum Button {
     South,
@@ -52,12 +52,12 @@ impl Stick {
     }
 }
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 struct Pad {
-    down: HashSet<Button>,
-    pressed: HashSet<Button>,
-    released: HashSet<Button>,
+    down: BTreeSet<Button>,
+    pressed: BTreeSet<Button>,
+    released: BTreeSet<Button>,
     left: Stick,
     right: Stick,
     lt: f32,
@@ -68,9 +68,9 @@ struct Pad {
 impl Pad {
     fn new() -> Self {
         Self {
-            down: HashSet::new(),
-            pressed: HashSet::new(),
-            released: HashSet::new(),
+            down: BTreeSet::new(),
+            pressed: BTreeSet::new(),
+            released: BTreeSet::new(),
             left: Stick::default(),
             right: Stick::default(),
             lt: 0.0,

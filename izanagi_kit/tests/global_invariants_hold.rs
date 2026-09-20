@@ -222,12 +222,23 @@ fn enforcement_sites() -> BTreeMap<&'static str, &'static str> {
         "G11",
         "izanagi_kit/tests/no_platform_cfg_in_sim.rs (cfg/cfg!/cfg_attr \
          predicates may name only test/doc/doctest/docsrs and the \
-         not/any/all combinators; manifest section grammar is closed — no \
-         target/features/lints/patch/replace/build-dependencies tables, no \
-         [[bin]]/[[test]]/[[bench]]/[[example]] target tables, no harness/ \
-         auto*/crate-type/proc-macro/doctest keys, no semantic profile keys; \
+         not/any/all combinators — cfg_attr apply items are walked \
+         recursively with the same allowlist; manifest section grammar is \
+         closed — no target/features/lints/patch/replace/build-dependencies \
+         tables, no [[bin]]/[[test]]/[[bench]]/[[example]] target tables, \
+         no harness/auto*/crate-type/proc-macro/doctest/links keys, [lib] \
+         path is pinned to izanagi_kit/src/lib.rs, no semantic profile keys; \
          no .cargo/rust-toolchain/Cross.toml files; tools/gate.sh unsets \
-         RUSTFLAGS/RUSTDOCFLAGS)",
+         every CARGO*/RUST*/RUSTUP* env var and pins CARGO_HOME into \
+         target/)",
+    );
+    m.insert(
+        "G12",
+        "izanagi/tests/no_unordered_containers.rs (engine src may not \
+         mention HashMap/HashSet/hash_map/hash_set/DefaultHasher/\
+         RandomState/SipHash/BuildHasher at all) + \
+         izanagi_kit/tests/no_nondeterminism_in_sim.rs hash-map allowlist \
+         for the kit",
     );
     m.insert(
         "G8",
@@ -1220,6 +1231,7 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi_kit/tests/global_invariants_hold.rs",
                 "izanagi/tests/float_boundary.rs",
                 "izanagi/tests/public_api_is_exercised.rs",
+                "izanagi/tests/no_unordered_containers.rs",
             ],
         ),
         (
@@ -1231,6 +1243,7 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi_kit/tests/msrv_is_respected.rs",
                 "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
                 "izanagi_kit/tests/global_invariants_hold.rs",
+                "izanagi/tests/no_unordered_containers.rs",
             ],
         ),
         (
@@ -1246,6 +1259,14 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
             &[
                 "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
                 "izanagi/tests/float_boundary.rs",
+                "izanagi/tests/no_unordered_containers.rs",
+            ],
+        ),
+        (
+            "engine_src",
+            &[
+                "izanagi/tests/float_boundary.rs",
+                "izanagi/tests/no_unordered_containers.rs",
             ],
         ),
         (

@@ -2,18 +2,19 @@
 //!
 //! In-memory store with optional file-system backing. No global state.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 /// Simple asset handle.
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Handle(u64);
 
-/// Asset loader and cache.
+/// Asset loader and cache. `BTreeMap`, like every map in this crate, so no
+/// hash-seeded iteration order can reach observable behaviour.
 pub struct Assets {
     root: PathBuf,
-    bytes: HashMap<Handle, Vec<u8>>,
-    names: HashMap<String, Handle>,
+    bytes: BTreeMap<Handle, Vec<u8>>,
+    names: BTreeMap<String, Handle>,
     next: u64,
 }
 
@@ -22,8 +23,8 @@ impl Assets {
     pub fn new() -> Self {
         Self {
             root: PathBuf::from("."),
-            bytes: HashMap::new(),
-            names: HashMap::new(),
+            bytes: BTreeMap::new(),
+            names: BTreeMap::new(),
             next: 1,
         }
     }
