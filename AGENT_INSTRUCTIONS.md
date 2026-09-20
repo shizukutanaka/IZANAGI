@@ -600,6 +600,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   限定。`#[doc = concat!(...)]` の分割合成も拒否(検出確認)。
 
 
+- ~~tests/examples の環境読みは `env::var` を禁じれば尽きたと思われていた~~ →
+  ident 境界により `env::var_os` が `env::var` ニードルをすり抜け、
+  `env::vars`/`current_dir`/`temp_dir`/`current_exe`/`home_dir` はそもそも
+  未掲載(注入で var_os/current_dir の両方が緑のまま通ることを実証)。
+  `env::` の後続 ident をホワイトリスト化 — `args`/`args_os`(argv は
+  gate ラン間で同一)と `temp_dir`(スクラッチ保存・値非観測)のみ許可。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

@@ -1632,7 +1632,6 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // panic means. (`env::args` stays: the engine examples use it
             // for `--terminal`, and argv is identical across gate runs.)
             for needle in [
-                "env::var",
                 "catch_unwind",
                 "thread::",
                 "should_panic",
@@ -1644,6 +1643,34 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     "{name} contains `{needle}` — a check that can be skipped \
                      at run time, or a panic that can be swallowed or \
                      reinterpreted, is a check that may not have run"
+                );
+            }
+            // `env::var` as a needle left `env::var_os`/`env::vars`/
+            // `env::current_dir`/`env::temp_dir`/`env::current_exe` unflagged —
+            // the token edge after `var` is an identifier character in
+            // `var_os`, and the other readers were never named (verified by
+            // injection: `env::var_os` in a test and `env::current_dir` in an
+            // example both stayed green). Whitelist instead: `env::` may be
+            // followed only by the argv readers (the engine examples use them
+            // for `--terminal`; argv is identical across gate runs) and
+            // `temp_dir` (integration.rs writes a scratch save there — the
+            // path itself is never asserted, so no machine data lands in a
+            // pinned output).
+            for (hit, _) in code.match_indices("env::") {
+                let before = code[..hit].chars().last().unwrap_or(' ');
+                if before.is_alphanumeric() || before == '_' {
+                    continue;
+                }
+                let ident: String = code[hit + "env::".len()..]
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect();
+                assert!(
+                    ident == "args" || ident == "args_os" || ident == "temp_dir",
+                    "{name} contains `env::{ident}` — only `env::args`, \
+                     `env::args_os` and `env::temp_dir` may read the machine \
+                     at run time; every other `env::` reader is a skip switch \
+                     or a machine leak"
                 );
             }
             // Delegating the checked computation to outside the scanned
