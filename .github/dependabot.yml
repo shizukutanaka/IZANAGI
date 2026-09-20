@@ -13,13 +13,14 @@ updates:
       prefix: "build"
 
   # Keep the CI action versions current. Workflows live at the repo root
-  # (.github/workflows/), so this directory is correct as "/". Direct
-  # dependencies automerge server-side; transitive bumps still need review.
+  # (.github/workflows/), so this directory is correct as "/". Only direct
+  # dependencies get update PRs; transitive bumps are left to review. To have
+  # those PRs land themselves, enable GitHub's auto-merge in repo settings —
+  # `automerge` is not a dependabot.yml key (unknown keys make GitHub reject
+  # the whole config).
   - package-ecosystem: "github-actions"
     directory: "/"
     allow:
-      - dependency-type: "direct"
-    automerge:
       - dependency-type: "direct"
     schedule:
       interval: weekly
