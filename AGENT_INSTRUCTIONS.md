@@ -37,7 +37,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 | 未検証の公開 API | **両クレートで 0** — kit 1534 / engine 247 の公開関数(**トレイトメソッド11件を含む**)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす |
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
-| main との差 | **0 遅れ**(main の全内容を取り込み済み)。PR #7 は作成済み・**未マージ**(CI 有効化を先にする合意)|
+| main との差 | **0 遅れ**。PR #7(`b1607f1` までの内容)はマージ済み(`617d651`)。残りの43コミットは PR #8 として作成済み・**未マージ**|
 | kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
 
 ---
@@ -136,7 +136,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
 - ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を27種の機械検査に。
-- ~~main が遅れている~~ → main をマージして 0 遅れ、PR #7 作成済み(未マージ)。
+- ~~main が遅れている~~ → main をマージして 0 遅れ。PR #7 はマージ済み、続きの43コミットは PR #8(未マージ)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
 - ~~engine には公開 API の門番が無かった~~ → kit だけが「未検証の公開 API 0」を強制しており、
@@ -317,7 +317,7 @@ frame 差は 0.1% — primitive として ArchTable を据え置き)は
 1. **CI 有効化** — Web UI で `docs/ci/ci.yml` を `.github/workflows/ci.yml` として追加する。
    エージェント側の 3 経路(push / Contents API / Git Data API)はすべて 403 で実測済み。
    手順は [`docs/ci/README.md`](./docs/ci/README.md)。
-2. **PR #7 のマージ** — CI が green であることを確認してから、という合意による。
+2. **PR #8 のマージ** — PR #7(`b1607f1` 迄)は `617d651` でマージ済み。残り43コミットを含む PR #8 のマージが残る。CI が green であることを確認してから、という合意による。
 3. **crates.io 公開** — 資格情報が本セッションに存在しない(`cargo publish --dry-run` は成功)。
 
 これ以外に、コードで閉じられる欠陥は現時点で特定されていない。§2 の未解決4件のうち
