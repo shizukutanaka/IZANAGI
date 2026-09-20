@@ -269,6 +269,20 @@ mod tests {
     use crate::world_hash::hash_state;
 
     #[test]
+    fn test_ordering_contract_is_pinned() {
+        // `is_explored` is `state >= Remembered` — derived Ord follows the
+        // explicit discriminant values, so renumbering `Unseen = 2` keeps
+        // every hash pin green while flipping exploredness for every map.
+        assert!(Visibility::Unseen < Visibility::Remembered);
+        assert!(Visibility::Remembered < Visibility::Visible);
+        assert_eq!(Visibility::Unseen.rank(), 0);
+        assert_eq!(Visibility::Remembered.rank(), 1);
+        assert_eq!(Visibility::Visible.rank(), 2);
+        let demoted = Visibility::Unseen.max(Visibility::Remembered);
+        assert_eq!(demoted, Visibility::Remembered);
+    }
+
+    #[test]
     fn test_new_is_all_unseen() {
         let v = VisibilityMap::new(4, 3);
         assert_eq!(v.len(), 12);
