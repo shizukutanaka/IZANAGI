@@ -495,6 +495,37 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
     // tried. Both halves are checked: the denies must be there, and no
     // weakening attribute may name a lint they carry.
     const PROTECTED: &[&str] = &["unsafe_code", "unwrap_used", "expect_used", "panic"];
+    // Naming the lint is not the only way to lower it: an inner-scope
+    // `#[allow]` on a *group* containing it overrides the outer deny just
+    // as completely — `#[allow(clippy::restriction)]` silences
+    // `unwrap_used`/`expect_used`/`panic` without naming any of them
+    // (verified by injection: clippy stayed silent on a real unwrap).
+    // `warnings`/`all`/`unused`/`deprecated` and friends are the same
+    // shape on the rustc side. Every weakening attribute must name
+    // specific lints, so a group atom is itself the offence.
+    const GROUPS: &[&str] = &[
+        "warnings",
+        "all",
+        "unused",
+        "deprecated",
+        "future_incompatible",
+        "nonstandard_style",
+        "rust_2018_idioms",
+        "rust_2018_compatibility",
+        "rust_2021_compatibility",
+        "rust_2024_compatibility",
+        // clippy's groups (`clippy::all`, `clippy::pedantic`, ...) appear
+        // as bare atoms once `::` splits them — none is a lint name.
+        "restriction",
+        "pedantic",
+        "nursery",
+        "cargo",
+        "complexity",
+        "correctness",
+        "perf",
+        "style",
+        "suspicious",
+    ];
 
     for (krate, lib) in [
         ("izanagi_kit", "izanagi_kit/src/lib.rs"),
@@ -519,6 +550,14 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
                             "{name}: a weakening attribute names `{atom}` — \
                              the panic-free and unsafe-free claims hold only \
                              if the crate-level gates apply to every item"
+                        ));
+                    }
+                    if GROUPS.contains(&atom.as_str()) {
+                        offenders.push(format!(
+                            "{name}: a weakening attribute names the lint \
+                             group `{atom}` — a group allow at item scope \
+                             overrides the crate-level denies without naming \
+                             them; name the specific lint instead"
                         ));
                     }
                 }
