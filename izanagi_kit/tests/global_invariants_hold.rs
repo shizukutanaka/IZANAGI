@@ -1808,6 +1808,18 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     "read_to_string",
                     "read_dir",
                     "canonicalize",
+                    // The wall clock is the same ambient channel: an example
+                    // printing `Instant::now().elapsed()` bytes differs run to
+                    // run, and two fast-enough runs can still byte-match —
+                    // nondeterminism that hides behind the pinned compare
+                    // (injected `Instant::now`/`SystemTime::now` into an
+                    // example: green). Tests keep the clock — bench.rs's
+                    // timing sanity checks are its job.
+                    "Instant",
+                    "SystemTime",
+                    "UNIX_EPOCH",
+                    "std::time",
+                    "time::",
                 ] {
                     assert!(
                         !contains_token(&code, needle),

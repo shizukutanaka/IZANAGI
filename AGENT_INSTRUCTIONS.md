@@ -651,6 +651,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   ニードルに追加。
 
 
+- ~~examples の ambient 混入は fs:: を禁じれば尽きたと思われていた~~ →
+  壁時計(`Instant`/`SystemTime`/`UNIX_EPOCH`/`std::time`)は未禁止で、
+  example が `Instant::now()` の elapsed を印字すれば pin 出力が実行毎に
+  変わる(十分速い2ランで誤って byte-match し得る) — 注入で緑を実証。
+  examples-only ニードルに追加(tests は bench.rs の timing 検査が正当利用
+  のため保持)。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。
