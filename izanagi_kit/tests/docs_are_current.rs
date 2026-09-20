@@ -382,6 +382,27 @@ fn no_document_quotes_a_stale_engine_version() {
              engine declares {real}"
         );
     }
+
+    // The handbook's snapshot table has a version row ("engine 4.1.0 / kit
+    // 0.1.0") that states both versions — and nobody checked it. A bump would
+    // leave it stale in the file reviewers read first. Kit's version is
+    // parsed from its own manifest the same way.
+    let kit_manifest = read("izanagi_kit/Cargo.toml");
+    let kit_real = kit_manifest
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("version = "))
+        .map(|v| v.trim().trim_matches('"').to_string())
+        .expect("the kit manifest must declare a version");
+    let handbook = read("AGENT_INSTRUCTIONS.md");
+    let row = handbook
+        .lines()
+        .find(|l| l.contains("バージョン") && l.contains("engine"))
+        .expect("AGENT_INSTRUCTIONS.md must have a version row naming engine");
+    assert!(
+        row.contains(&format!("engine {real}")) && row.contains(&format!("kit {kit_real}")),
+        "the version row says `{row}`, but the manifests declare engine \
+         {real} / kit {kit_real} — update it in the same commit as the bump"
+    );
 }
 
 /// Every `vX.Y.Z` mentioned in `text`, without pulling in a regex crate.
