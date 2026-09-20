@@ -5,7 +5,7 @@
 > 曖昧さを排し、各タスクに「対象ファイル・検証手順・リスク・推奨モデル」を明記する。
 >
 > 最終更新はコミット履歴を正とする(`git log -1 --format=%cd AGENT_INSTRUCTIONS.md`)。
-> 基準ブランチ: `claude/deepresearch-ultrathink-improve-yq2th`(origin と同期済み)
+> 基準ブランチ: `main`(`claude/deepresearch-ultrathink-improve-yq2th` の全内容は PR #9 でマージ済み・`4e3bc5c`)
 > 併読: `izanagi_kit/RESEARCH.md`(外部出典調査。N1〜N23 候補表は実装状況を随時反映済み)
 >
 > **削除済みの先行文書**: `STRENGTHS_WEAKNESSES.md` / `FEATURE_AUDIT.md` / `IMPROVEMENTS.md` /
@@ -29,16 +29,16 @@
 | engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
-| panic 経路(実装コード) | **0** — 両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny` |
+| panic 経路(実装コード) | `panic!` **0**・assert 系マクロは**命名済み15サイトに凍結**(両クレートで `clippy::unwrap_used`/`expect_used`/`panic` を `deny`。弱め属性・新規 panic マクロはテストが落とす) |
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし)。さらに**展開した tarball の中で
 doctest・テスト・example・bin の4ターゲットが緑**で、さらに `gamec` が同梱 fixture を
 正しく受理・拒否することまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G10 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**・**panic 系マクロ(assert*/debug_assert*/unreachable!/todo!/unimplemented!)が命名済みサイトに凍結されていること**・**出荷コードが `#[path]`/`include!`/`include_bytes!` で走査領域外から混入しないこと**・**kit が fs/process/io の環境入力を読まないこと**・**gate.sh が全ステージを含むこと(ゲート自身の検査)**・**manifest に [[bin]]/[[test]]/[[bench]]/[[example]] テーブルと harness/auto*/crate-type/proc-macro/test/bench/doctest キーがなく [profile.*] の意味論キー(debug-assertions/overflow-checks/panic)が未設定であること**・**rust-toolchain/Cross.toml/clippy.toml が存在せず rustfmt 設定に逃走経路キーがないこと**・**[workspace.dependencies] の不在**・**出荷コードに env!/option_env!/extern/#[no_mangle]/#[link がないこと**・**kit が std::arch/core::arch を使わないこと**・**gate.sh が RUSTFLAGS/RUSTDOCFLAGS を除去すること**・**tests/ と examples/ が #[cfg]/#![cfg]/cfg!/cfg_attr/unsafe/#[ignore] (命名済み allowlist のみ・陳腐化検査つき)を持たず全テストファイルが #[test] を含むこと**・**md のフェンスに ignore/no_run/compile_fail/should_panic がないこと**・**.githooks/pre-push と docs/ci/ci.yml が tools/gate.sh を呼ぶこと**・**kit が panic 機構(catch_unwind/panic::)を持たないこと**・**走査配下(src/tests/examples)に symlink がないこと**・**全走査の #[cfg(test)] 境界が lexer 実装で同一であること(偽 marker での打切不可・コピー間 drift 不可)**・**kit に同期プリミティブ(Mutex/RwLock/channel/atomic/thread)と生ポインタ経路(as */*const/*mut/.as_mut_ptr)がないこと**|
 | 未検証の公開 API | **両クレートで 0** — kit 1500+ / engine 240+ の公開関数(トレイトメソッドを含む)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす(件数は成長で変わるので下限表記)|
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
-| main との差 | **0 遅れ**。PR #7(`b1607f1` までの内容)はマージ済み(`617d651`)。それ以降のコミット列は PR #8 として作成済み・**未マージ**(件数は push 毎に増える)|
-| kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
+| main との差 | **0 遅れ**。PR #7 系(`b1607f1` 迄)は `617d651` で、続きのコミット列は PR #9 でマージ済み(`4e3bc5c`)。以降の作業は新ブランチで管理 |
+| kit src 内 panic 系(**実装のみ**) | `panic!` 0・assert 系は命名済み allowlist サイトのみ(`clippy::unwrap_used/expect_used/panic` を `deny` + `panicking_macro_allowlist` で凍結。テスト込みの旧計測 242/20 はテストコードを数えていた) |
 
 ---
 
@@ -52,11 +52,11 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    fixed-point / seeded RNG と並べて substrate に分類している。)
    **決定的な非対称性**: 全ツールが「見つからなかった」を言えるが、
    「存在しない」を言えるのは `verify` だけ(三値の `Holds`/`Violated`/`Exhausted`)。
-2. **主張が機械検査される(27+種)** — tier 表・README モジュール表・pinned hash・
+2. **主張が機械検査される(41+種)** — tier 表・README モジュール表・pinned hash・
    モジュール数・engine 版数・版数と CHANGELOG の対応・f32 境界・**engine の順序づけ 0 件**・
    engine CLAUDE.md の Map・全 md の相対リンク・README のテスト数下限・
    README Quickstart(doctest 実行)・**能力マップの検証系被覆**・
-   **SPEC.md の全体不変条件 G1〜G10 が強制場所を名指しすること**・
+   **SPEC.md の全体不変条件 G1〜G11 が強制場所を名指しすること**・
    **どの文書も終わったイテレーションを指さないこと**・
    **SPEC.md §9.1 の EBNF がパーサと同じキーワード集合・同じ境界値を持つこと**・
    **ARCHITECTURE.md の file map / subsystem 数 / 図が実体と一致すること**・
@@ -66,7 +66,25 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    **kit README 冒頭の「Eleven modules」が検証系の実数と一致すること**・
    **本書 §1 が README と同じ11件を名指しすること**・
    **ポインタ幅の値が world hash に到達しないこと**(SPEC.md G9)・
-   **native-endian のバイト列が world hash に到達しないこと**(SPEC.md G10)。
+   **native-endian のバイト列が world hash に到達しないこと**(SPEC.md G10)・
+   **条件コンパイル判別式がターゲット/プロファイル/feature を参照しないこと**(SPEC.md G11)・
+   **チェックアウト行末が LF に固定されていること**(`.gitattributes`)・
+   **deny 系の安全 lint を `allow`/`expect`/`warn`/`force_warn` が弱めないこと**・
+   **manifest のセクション文法が閉じていること**(`target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` 禁止)と `.cargo` 設定が存在しないこと・
+   **強制場所として名指されるファイルが実在すること**・
+   **panic 系マクロが理由つき allowlist に凍結されていること**・
+   **`#[path]`/`include!`/`include_bytes!` による走査外コード混入の不在**・
+   **kit の ambient-input 禁止が fs/process/io に及ぶこと**・
+   **gate.sh が全ステージを名指しで含み、RUSTFLAGS/RUSTDOCFLAGS を除去して走ること**・
+   **manifest の残り文法**(`[[bin]]`/`[[test]]`/`[[bench]]`/`[[example]]` ターゲットテーブル、
+   `harness`/`auto*`/`crate-type`/`proc-macro`/`test`/`bench`/`doctest` キー、profile の
+   `debug-assertions`/`overflow-checks`/`panic`)が閉じていること・
+   **`rust-toolchain`/`Cross.toml` の不在**・**`env!`/`option_env!`/`extern`/`#[no_mangle]`/`#[link` の不在**・
+   **kit が `std::arch`/`core::arch` の CPU 機能検出を使わないこと**・
+   **検証スイート自身の規律**(`#[ignore]` は命名済み allowlist のみ・tests/ に `#[cfg]`/`unsafe` なし・
+   全テストファイルに `#[test]` あり)・**rustfmt/clippy の設定面**(rustfmt の `ignore`/
+   `disable_all_formatting`/`skip_children` キー禁止・`clippy.toml` 不在・
+   `[workspace.dependencies]` 禁止)。
    加えて **panic 経路 0**(コンパイラ強制)、**未検証の公開 API 0(両クレート)**、
    **MSRV 違反 0**(静的検査)、**非 float の非決定論ソース 0**(許可リスト方式)。
 3. **オラクル中心のテスト 3,600+ 件** — 手計算値ではなく独立実装との照合。BFS オラクル
@@ -137,7 +155,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~新モジュールの example 不在~~ → `verify_pipeline_demo` が11モジュールを1本で通し、
   印字する主張をすべて assert する。
 - ~~文書が古い~~ → 乖離4文書を削除、残りの検証可能な主張を27種の機械検査に。
-- ~~main が遅れている~~ → main をマージして 0 遅れ。PR #7 はマージ済み、続きの43コミットは PR #8(未マージ)。
+- ~~main が遅れている~~ → main をマージして 0 遅れ。PR #7 はマージ済み、続きのコミット列は PR #9 でマージ済み(`4e3bc5c`)。
 - ~~非 float の非決定論が未検査~~ → 監査で `SpatialHash` の**実バグ**を発見・修正し、
   クラス全体を許可リスト方式の機械検査に載せた。
 - ~~engine には公開 API の門番が無かった~~ → kit だけが「未検証の公開 API 0」を強制しており、
@@ -265,6 +283,125 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `GAME_DEV_TAXONOMY.md` は検証系モジュールを**9件まったく言及していなかった**
   (本書が本製品の決定的な長所と呼ぶ族が、能力表では存在しないように見えていた)。
   section Q を追加し、以後の欠落は `docs_are_current.rs` が落とす。
+- ~~条件コンパイルは「使われていない」だけで強制されていなかった~~ → G9/G10 が封じたのは
+  hash に届く**値**の経路であり、`#[cfg(target_pointer_width = "64")]` や
+  `cfg!(debug_assertions)` は禁止トークンを一切使わずに「コンパイルされるコード
+  そのもの」をターゲット・プロファイルで変えられる — pinned hash は実行を比較する
+  だけでビルド差分を見ない。実測で library code の対象 cfg は **0 件**
+  (規律による偶然だった)のを、**G11** として SPEC に明記し
+  `tests/no_platform_cfg_in_sim.rs` が `cfg`/`cfg!`/`cfg_attr` の全判別式を
+  許可リスト(`test`/`doc`/`doctest`/`docsrs` + `not`/`any`/`all`)で検査。
+  同型の迂回として manifest の `[target.'cfg(...)'.dependencies]` セクション
+  (G1 の空 `[dependencies]` 検査をすり抜ける)も両クレートで禁止。変異注入
+  (`#[cfg(unix)]` を実ファイルに混入)で検出を確認済み。
+- ~~`#[cfg(test)]` の境界検索がコメント内の文字列に引っかかっていた~~ → lib.rs:132 の
+  `// ... #[cfg(test)]` という記述が生ソース検索の境界になり、全スキャンが
+  lib.rs を89文字の doc ヘッダで打ち切っていた(後続の `cfg_attr` deny・`cfg(doctest)`
+  配線・`pub mod` 宣言を一度も見ていなかった)。新チェッカーの自己検証で発覚。
+  `test_module_boundary`(非コメント行に限定した境界検索)を7ファイル9箇所へ水平展開。
+- ~~チェックアウトの行末が clone 側の設定依存だった~~ → `* text=auto eol=lf` の
+  `.gitattributes` を追加。fixture のバイト比較・複数行 `contains` 検査・`sh` の
+  gate.sh は `core.autocrlf=true`(git の Windows インストーラ既定)の clone で
+  壊れ得た。「同一入力」はリポジトリ自身のバイトにも適用される。存在と内容は
+  `docs_are_current.rs` の `checkout_line_endings_are_pinned` が検査する。
+- ~~`deny` は crate root にあるので安全と思われていた~~ → `deny` は**レベル**であり、
+  リーフの `#[allow(clippy::unwrap_used)]` 一つで局所的に無効化できる。G7 の
+  「panic 経路 0」は、deny 属性の存在と、その lint を名指す弱め属性
+  (`allow`/`expect`/`warn`/`force_warn`)が非テスト領域に無いことの両方を
+  `global_invariants_hold.rs` の `g7_*` で検査。`cfg_attr(test|doc|docsrs, …)`
+  内側の弱め属性は出荷コードに効かないので免除。実ファイルへの
+  `#[allow(clippy::unwrap_used)]` 注入で検出確認済み。
+- ~~manifest のセクション文法が開いたままだった~~ → `[target.*]` だけでなく
+  `[features]`・`[lints]`・`[patch]`・`[replace]`・`[build-dependencies]` も
+  セクション走査が見ないビルド設定であり、`.cargo/config{,.toml}` は
+  `--cfg` や `--cap-lints` を通じて **このスイート全体を迂回する**。
+  いずれも存在しないことを実測し、ヘッダ原子の禁止リスト+`.cargo` 不在検査で
+  閉じた(`no_platform_cfg_in_sim.rs`)。注入テストで両方とも検出を確認。
+- ~~SPEC が名指す強制場所の実在が未検査だった~~ → `enforcement_sites()` の
+  パス表記トークンが実在することを検査する `every_named_enforcement_site_is_a_file_that_exists`
+  を追加。検査ファイルの改名/削除が「強制されていると読める亡霊」を残さなくなった。
+- ~~`deny(panic)` は panic 経路全般を封じると思われていた~~ → `clippy::panic` が
+  捕まえるのは `panic!` だけ。`assert!`/`debug_assert!`/`unreachable!`/`todo!`/
+  `unimplemented!` は同じトラップに lowering されても lint をすり抜ける。実測で
+  **15箇所**存在(コンストラクタの文書化済み事前条件 assert・内部不変の
+  debug_assert・replay の zip-longest 到達不能 arm)。`panicking_macro_allowlist`
+  (ファイル・件数・理由)に命名して凍結し、新規サイトは理由を書かないと落ちる。
+  実行時入力への saturate/None/no-op 契約(G7)と区別するため、allowlist は
+  「プログラマエラーの事前条件」を明記したものだけを認める。`todo!` 注入で検出確認。
+  残存論点: スライス index `v[i]` は構文的に正当読み取りと区別不能なのでこの
+  allowlist の射程外 — G7 の境界はそこに引かれる(RESEARCH.md 参照)。
+- ~~スキャン領域の外からコードを混入する経路が未検査だった~~ → 全スキャナは
+  「コンパイルされるコード == src/ 配下のテキスト」を仮定するが、`#[path]` は
+  mod を任意ファイルに向け、`include!`/`include_bytes!` は走査外のバイトを
+  混入できる。存在ゼロを実測し `shipped_code_cannot_come_from_outside_the_scanned_tree`
+  で禁止(`include_str!` は文字列のみで済む doc 用に免除)。gen.rs を使う実注入で検出確認。
+- ~~kit の ambient input 禁止が env:: のみだった~~ → ファイルシステム・プロセス・
+  std I/O は入力ログに載らない環境入力であり BANNED リストに追加(`fs::`/
+  `process::`/`std::io` 等)。`use std::process` 注入で検出確認。
+- ~~gate.sh のステージ削除は何事も失敗させなかった~~ → 実行したチェックだけが
+  通るので、stage を1つ消しても exit 0 のまま。`the_gate_script_still_runs_every_stage`
+  が各ステージの識別トークン(fmt/test/clippy/doc/pinned-hash 両プロファイル/
+  examples 列挙/package/tarball 内検査/gamec)の存在を検査。トークン削除で検出確認。
+- ~~manifest 文法はテーブルだけ閉じれば足りると思われていた~~ → `[[bin]]`/`[[test]]`/
+  `[[bench]]`/`[[example]]` ターゲットテーブル(path 転送・`harness = false` でテストを
+  空実行化)と、テーブルを要しない `harness`/`auto*`/`crate-type`/`proc-macro`/`test`/
+  `bench`/`doctest` キーが未禁止だった。さらに既存の `[profile.*]` テーブル自体は正当だが
+  `debug-assertions`/`overflow-checks`/`panic` キーはプログラム意味論を書き換える。
+  インライン `{...}` 内のキーも拾う行キースキャンで全面禁止。注入3種で検出確認。
+- ~~ビルドを変えるファイルは .cargo だけと思われていた~~ → `rust-toolchain{,.toml}` は
+  コンパイラ自体を差し替え(注入試験で channel=1.60 は MSRV エラーでビルド停止を実演)、
+  `Cross.toml` はターゲットを変える。いずれも不在を検査。
+- ~~gate.sh は呼ばれた環境で正直に走ると思われていた~~ → RUSTFLAGS/
+  CARGO_ENCODED_RUSTFLAGS/RUSTDOCFLAGS は `--cfg`/`--cap-lints` を rustc/rustdoc に
+  届けるため、呼び出し元シェルの環境がスイート全体を弱め得た。gate.sh 冒頭で
+  無条件 unset し、その行の存在をステージ検査に追加(削除注入で検出確認)。
+- ~~出荷コードが参照するのはソースツリーだけと思われていた~~ → `env!`/`option_env!` は
+  ビルド機の環境変数をバイナリに焼き込み、`extern`/`#[no_mangle]`/`#[link` は manifest の
+  依存リストに載らないネイティブリンクを宣言できる。実測ゼロを確認し provenance 検査に
+  追加(env!・extern の実注入で検出確認)。また `std::arch`/`core::arch` の CPU 機能検出は
+  「どのマシンで走るか」への実行時分岐として kit BANNED に追加(`use std::arch` 注入で検出確認)。
+- ~~検証スイート自身は無条件に信頼されていた~~ → `#[ignore]` はスイートを緑のまま
+  「実行された」ように見せる(実際に det_hash_golden.rs の再生成ヘルパーに1箇所存在)、
+  tests/ 内の `#[cfg]` はプラットフォームでチェックを消し、テスト crate は lib の
+  `forbid(unsafe_code)` を継承しないので `unsafe` が持ち込め、ゼロ `#[test]` のファイルは
+  何も走らないままコンパイルされる。`the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks`
+  が両 crate の tests/ を走査(コメント・文字列・char リテラルを除外した上で)。
+  `#[ignore]`/`#[cfg(unix)]`/`unsafe`/無テストファイルの各注入で検出確認。
+- ~~rustfmt.toml の存在は良性と信じられていた~~ → `ignore`/`disable_all_formatting`/
+  `skip_children` キーは `cargo fmt --check` の対象を縮小できる。izanagi/rustfmt.toml は
+  存在を許したまま逃走経路キーのみ禁止。`clippy.toml`(`allow-unwrap-in-tests` 等)と
+  `[workspace.dependencies]`(path-only 検査をすり抜ける依存隠し)は不在を検査。
+  各々の注入で検出確認。
+- ~~examples/ とドキュメントのフェンス指定はスイート外と思われていた~~ → gate が
+  examples を2回バイト比較する以上、example 内の `#[cfg]` は「証拠そのもの」を
+  プラットフォームでフォークし得る。tests/ と同じ規律(#[cfg]/unsafe/#[ignore] 禁止)を
+  examples/ にも適用。md の ```ignore/no_run/compile_fail/should_panic フェンスは
+  「doctest される」主張を空にするので全 md で禁止。また .githooks/pre-push と
+  docs/ci/ci.yml が tools/gate.sh を呼ぶことを凍結 — "green" が一つの定義であることの
+  最後の継ぎ目。3種の注入で検出確認。
+
+- ~~内側属性は `#[cfg]` 検査をすり抜けていた~~ → `#![cfg]` は同じ力の別表記。
+  ファイル冒頭の `#![cfg(unix)]` はテスト/example 全体をプラットフォーム条件化できる。
+  禁止 needle に追加(`#![cfg(unix)]` 注入で検出確認)。また `#[ignore]` allowlist に
+  「対象ファイルが実際に `#[ignore]` を保持する」陳腐化検査を追加(ignore 除去注入で
+  検出確認)。副産物: Cargo.lock は gitignore 済み(ライブラリの正しい性質)と確認 —
+  内容は zero-dep manifest 経由で間接凍結。
+- ~~panic は deny で封じられていたと思われていた(第2段)~~ → lint の否定は
+  `panic!` だけで、`catch_unwind`/`std::panic::*` は panic を**吸収**する
+  機構 — G7「panic しない」の別の穴(実 panic を catch して通過結果に換金
+  できる)。kit BANNED に追加(`catch_unwind` 注入で検出確認)。また走査配下
+  (src/tests/examples)の symlink 不在を検査 — symlink はレビュー面に出ない
+  外部バイトを読み込む(symlink 注入で検出確認)。
+- ~~非決定論の抜け道は時計・環境・I/O で尽きたと思われていた(第3段)~~ →
+  スケジューリング(Mutex/RwLock/channel/atomic/thread)とポインタアドレス
+  漏洩の safe な別表記(`.as_mut_ptr(`、`as *`、`*const`/`*mut` cast)は未
+  凍結だった。BANNED 追加(Mutex 注入で検出確認)。
+- ~~境界検出は安全になったと思われていた(第1段で // コメント対策済み)~~ →
+  `#[cfg(test)]` の偽 marker は文字列リテラル・ブロックコメント・行中配置
+  でも打切りを引き起こし、しかも実装は 10 箇所 3 種に drift していた
+  (global_invariants と no_platform_cfg は弱い find 版、no_float は行
+  contains 版)。lexer 化して全面統一し、コピー同一性をテスト化(文字列内
+  偽 marker + drift 注入で検出確認)。
 
 ## 3. 改善案(優先順位付き)
 
@@ -318,7 +455,7 @@ frame 差は 0.1% — primitive として ArchTable を据え置き)は
 1. **CI 有効化** — Web UI で `docs/ci/ci.yml` を `.github/workflows/ci.yml` として追加する。
    エージェント側の 3 経路(push / Contents API / Git Data API)はすべて 403 で実測済み。
    手順は [`docs/ci/README.md`](./docs/ci/README.md)。
-2. **PR #8 のマージ** — PR #7(`b1607f1` 迄)は `617d651` でマージ済み。残り43コミットを含む PR #8 のマージが残る。CI が green であることを確認してから、という合意による。
+2. ~~PR #8 のマージ~~ — **解消**: 当該ブランチの内容は PR #9 として main にマージ済み(`4e3bc5c`)。
 3. **crates.io 公開** — 資格情報が本セッションに存在しない(`cargo publish --dry-run` は成功)。
 
 これ以外に、コードで閉じられる欠陥は現時点で特定されていない。§2 の未解決4件のうち

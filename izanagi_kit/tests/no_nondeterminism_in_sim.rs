@@ -100,14 +100,160 @@ const BANNED: &[(&str, &str)] = &[
     ("Instant", "Instant"),
     ("thread spawning", "thread::spawn"),
     ("raw pointer address", ".as_ptr("),
+    // `.as_mut_ptr(` is the spelling `.as_ptr(` misses; `as *`, `*const`,
+    // `*mut` cover the safe cast forms `&x as *const T as usize` — every one
+    // leaks an address into hashed or output bytes.
+    ("raw pointer address", ".as_mut_ptr("),
+    ("raw pointer cast", "as *"),
+    ("raw pointer type", "*const"),
+    ("raw pointer type", "*mut"),
+    // Concurrency primitives: scheduling is the machine's ambient input —
+    // a Mutex/RwLock/channel/atomic makes ordering depend on the OS, which
+    // the input log cannot replay. `thread::`/`std::thread`/`std::sync`
+    // cover the module paths; the type names cover `use`-shortened code.
+    ("thread module", "std::thread"),
+    ("thread calls", "thread::"),
+    ("sync module", "std::sync"),
+    ("mutex", "Mutex"),
+    ("rwlock", "RwLock"),
+    ("channel", "channel("),
+    ("mpsc", "mpsc"),
+    ("atomic", "Atomic"),
+    ("condvar", "Condvar"),
+    ("barrier", "Barrier"),
     ("explicit RandomState", "RandomState"),
     ("environment access", "env::"),
     ("thread-local state", "thread_local"),
     ("unversioned std hashing", "DefaultHasher"),
+    // Ambient inputs the input log cannot replay: the filesystem, the
+    // process table, std I/O. `fs::`/`process::` catch `use`-shortened calls;
+    // the `std::` spellings catch the fully qualified path a bare needle
+    // would miss at the end of a `use` line. (bin/ is out of scope — a CLI
+    // exists to read argv and files.)
+    ("process module", "std::process"),
+    ("process control", "process::"),
+    ("filesystem module", "std::fs"),
+    ("filesystem access", "fs::"),
+    ("I/O module", "std::io"),
+    // CPU feature detection (`std::arch::is_x86_feature_detected!` and the
+    // intrinsics behind it) is a runtime branch on *which machine* runs the
+    // binary — the same simulation code would take different paths on two
+    // honest builds on different hardware.
+    ("CPU feature detection", "std::arch"),
+    ("CPU feature detection", "core::arch"),
+    // `catch_unwind`/`panic::` are panic *machinery*: in a crate whose public
+    // contract is saturate/None/no-op on bad input (G7), catching a panic is
+    // how a real panic gets laundered into a passing result. The lint denies
+    // panic! but the runtime API around it is a different door to the same
+    // room.
+    ("panic machinery", "catch_unwind"),
+    ("panic machinery", "panic::"),
 ];
 
 fn kit_src() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src")
+}
+
+/// The offset of a file's test module — the first `#[cfg(test)]` that is a
+/// real attribute line. A `//` comment merely *mentioning* the marker must not
+/// end library code early: lib.rs carries such a comment, and a bare
+/// `find("#[cfg(test)]")` on the raw source truncates the scan at the doc
+/// header, silently removing the file's real body from every check below.
+fn test_module_boundary(src: &str) -> Option<usize> {
+    // The marker only counts in real code at the start of its own line. A
+    // fake inside a comment, a string or char literal, or sharing its line
+    // with other tokens would truncate the impl region early and hide code
+    // from every scan below — so the boundary is found by a tiny lexer:
+    // block comments nest, raw strings carry their own delimiter count, and
+    // `'a` may be a char literal or a lifetime.
+    let b = src.as_bytes();
+    let mut i = 0usize;
+    while i < b.len() {
+        match b[i] {
+            b'/' if b.get(i + 1) == Some(&b'/') => {
+                while i < b.len() && b[i] != b'\n' {
+                    i += 1;
+                }
+            }
+            b'/' if b.get(i + 1) == Some(&b'*') => {
+                let mut depth = 1usize;
+                i += 2;
+                while i < b.len() && depth > 0 {
+                    if b[i] == b'/' && b.get(i + 1) == Some(&b'*') {
+                        depth += 1;
+                        i += 2;
+                    } else if b[i] == b'*' && b.get(i + 1) == Some(&b'/') {
+                        depth -= 1;
+                        i += 2;
+                    } else {
+                        i += 1;
+                    }
+                }
+            }
+            b'"' => {
+                i += 1;
+                while i < b.len() && b[i] != b'"' {
+                    if b[i] == b'\\' {
+                        i += 1;
+                    }
+                    i += 1;
+                }
+                i += 1;
+            }
+            b'r' => {
+                // Raw string r"..." / r#"..."# — a string only when any #s
+                // are followed by '"'; otherwise r is identifier text.
+                let mut j = i + 1;
+                while b.get(j) == Some(&b'#') {
+                    j += 1;
+                }
+                if b.get(j) == Some(&b'"') {
+                    let hashes = j - i - 1;
+                    i = j + 1;
+                    while i < b.len() {
+                        if b[i] == b'"' {
+                            let mut k = 0usize;
+                            while k < hashes && b.get(i + 1 + k) == Some(&b'#') {
+                                k += 1;
+                            }
+                            if k == hashes {
+                                i += 1 + hashes;
+                                break;
+                            }
+                        }
+                        i += 1;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+            b'\'' => match (b.get(i + 1), b.get(i + 2)) {
+                // 'x' / '\n' are char literals; 'a followed by code is a
+                // lifetime.
+                (Some(&b'\\'), _) => {
+                    i += 2;
+                    while i < b.len() && b[i] != b'\'' {
+                        if b[i] == b'\\' {
+                            i += 1;
+                        }
+                        i += 1;
+                    }
+                    i += 1;
+                }
+                (_, Some(&b'\'')) => i += 3,
+                _ => i += 1,
+            },
+            b'#' if src[i..].starts_with("#[cfg(test)]") => {
+                let start = src[..i].rfind('\n').map_or(0, |p| p + 1);
+                if src[start..i].trim().is_empty() {
+                    return Some(i);
+                }
+                i += 1;
+            }
+            _ => i += 1,
+        }
+    }
+    None
 }
 
 /// Library sources, keyed by path relative to `src/`. `src/bin/` is excluded:
@@ -126,7 +272,7 @@ fn library_sources() -> BTreeMap<String, String> {
                 walk(&path, root, out);
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
                 let src = fs::read_to_string(&path).unwrap_or_default();
-                let impl_end = src.find("#[cfg(test)]").unwrap_or(src.len());
+                let impl_end = test_module_boundary(&src).unwrap_or(src.len());
                 let code = src[..impl_end]
                     .lines()
                     .filter(|l| !l.trim_start().starts_with("//"))

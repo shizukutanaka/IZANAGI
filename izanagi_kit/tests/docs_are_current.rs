@@ -418,6 +418,111 @@ fn no_markdown_document_links_to_a_missing_file() {
 }
 
 #[test]
+fn checkout_line_endings_are_pinned() {
+    // Tests and gate steps read checked-in files: fixtures are compared byte
+    // for byte against literals embedded in examples, docs are scanned for
+    // multi-line needles, and POSIX `sh` runs gate.sh. Without a
+    // `.gitattributes` pin, a clone made with `core.autocrlf=true` — git's own
+    // Windows installer default — rewrites every text file to CRLF, and the
+    // suite's file inputs stop being the bytes that were committed. The same
+    // "identical inputs" promise the crate makes about simulation state has
+    // to hold for the repository's own files, or the evidence stops being
+    // evidence on exactly the platform cross-platform replay is about.
+    let attr = read(".gitattributes");
+    assert!(
+        attr.lines().any(|l| l.contains("eol=lf")),
+        ".gitattributes must pin text files to LF — without it the checked-\
+         out bytes of every fixture, source file and script depend on the \
+         cloner's core.autocrlf setting"
+    );
+}
+
+#[test]
+fn the_gate_script_still_runs_every_stage() {
+    // tools/gate.sh is the single definition of "green" — but a stage that
+    // disappears fails nothing: every check that still runs still passes.
+    // The gate itself needs a gate. Keep every stage's identifying token
+    // listed; deleting one fails here, where it cannot stay silent.
+    let gate = read("tools/gate.sh");
+    assert!(
+        gate.contains("set -eu") || gate.contains("set -e"),
+        "gate.sh lost its fail-fast setting"
+    );
+    for token in [
+        "unset RUSTFLAGS",
+        "RUSTDOCFLAGS",
+        "cargo fmt --all",
+        "cargo test --workspace",
+        "cargo clippy",
+        "cargo doc",
+        "--test determinism",
+        "--release",
+        "--examples",
+        "examples/*.rs",
+        "cargo package",
+        "cargo test --doc",
+        "cargo test --tests",
+        "gamec",
+        "KIT_BRIDGE_HASH",
+    ] {
+        assert!(
+            gate.contains(token),
+            "tools/gate.sh no longer contains `{token}` — a stage that is \
+             missing cannot fail, which is exactly why this check exists"
+        );
+    }
+}
+
+#[test]
+fn the_gate_is_what_the_hooks_and_the_documented_ci_run() {
+    // .githooks/pre-push and docs/ci/ci.yml are the two places "green" is
+    // invoked outside a developer's terminal. Both exist today and both
+    // exec tools/gate.sh — but nothing stopped them drifting toward a
+    // smaller definition. Pin the reference.
+    for file in [".githooks/pre-push", "docs/ci/ci.yml"] {
+        let text = read(file);
+        assert!(
+            text.contains("tools/gate.sh"),
+            "{file} no longer invokes tools/gate.sh — the gate is only the \
+             definition of green if everything that claims to check it runs it"
+        );
+    }
+    // The pre-commit hook is deliberately the fast subset — it must still be
+    // real checks, not a no-op that lets hooks lie about running anything.
+    let pre_commit = read(".githooks/pre-commit");
+    assert!(
+        pre_commit.contains("cargo fmt") && pre_commit.contains("clippy"),
+        ".githooks/pre-commit lost its fmt/clippy fast checks"
+    );
+}
+
+#[test]
+fn fenced_rust_blocks_that_claim_to_run_are_not_marked_to_skip() {
+    // `three READMEs' Rust blocks run as doctests` is a checked claim — but a
+    // fence can quietly opt out: ```ignore never compiles, ```no_run never
+    // executes, ```compile_fail/```should_panic pass *because* they fail.
+    // None exist today; none may be added silently.
+    for (rel_path, contents) in walk_md(&repo_root()) {
+        for (n, line) in contents.lines().enumerate() {
+            let trimmed = line.trim_start();
+            if !trimmed.starts_with("```") {
+                continue;
+            }
+            let tag = trimmed.trim_start_matches('`').trim();
+            for flag in ["ignore", "no_run", "compile_fail", "should_panic"] {
+                assert!(
+                    !tag.split([',', ' ']).any(|t| t == flag),
+                    "{rel_path}:{} — ````{flag}` marks this block so it cannot \
+                     actually run or must fail; the doctest claims in this \
+                     repository are about blocks that run",
+                    n + 1
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn every_manifest_version_has_a_changelog_entry() {
     // The engine's Cargo.toml said 4.1.0 while its CHANGELOG stopped at 4.0.0,
     // and nobody noticed until someone went looking for the rationale behind
