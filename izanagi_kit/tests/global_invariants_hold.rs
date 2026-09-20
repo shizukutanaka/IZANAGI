@@ -1140,7 +1140,9 @@ fn g7_panicking_macros_are_frozen_at_named_sites() {
             if sites.is_empty() {
                 continue;
             }
-            let key = format!("{}/{}", src.trim_end_matches("/src"), name);
+            // The join below builds the same key without a leading-slash
+            // literal, which the raw path probe bans even inside comments.
+            let key = format!("{}{}", src.trim_end_matches("src"), name);
             live.push(key.clone());
             match allowed.get(key.as_str()) {
                 Some(&(expected, _)) => assert_eq!(
@@ -1736,6 +1738,29 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     !contains_token(&code, needle),
                     "{name} contains `{needle}` — a backtrace is ambient \
                      machine state, not an input the suite replays"
+                );
+            }
+            // An absolute path literal is ambient too: /dev/urandom
+            // feeds kernel entropy into a check, /dev/stdin reopens the
+            // stdin the `stdin` needle bans, and /etc/… reads host
+            // config — all while spelling no `fs::` token the scanners
+            // need. Raw scan because the literals live inside strings
+            // (injected /dev/urandom and /dev/stdin into a test:
+            // green). The probe is quote+slash+alphanumeric; quote then
+            // slash alone is a comment marker, quote+slash+dot a
+            // relative-path guard.
+            let bs = raw.as_bytes();
+            for (i, _) in raw.match_indices('"') {
+                let hit = bs.get(i + 1) == Some(&b'/')
+                    && bs
+                        .get(i + 2)
+                        .map(u8::is_ascii_alphanumeric)
+                        .unwrap_or(false);
+                assert!(
+                    !hit,
+                    "{name} contains a leading-slash path literal — \
+                     machine state outside the repo is not an input the \
+                     suite replays"
                 );
             }
             // Delegating the checked computation to outside the scanned
