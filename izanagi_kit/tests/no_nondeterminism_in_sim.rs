@@ -24,8 +24,10 @@
 //! reaches output, so the rule is an **allowlist with reasons** rather than a
 //! judgement. Every hash-map use in library code must be named below with why
 //! it is safe. A new one fails until someone writes that sentence, which is
-//! the moment to think about it. Wall-clock, threading and pointer identity
-//! are rejected outright — no library use of them here is legitimate.
+//! the moment to think about it. Wall-clock, threading (spawned or
+//! thread-local), environment reads, pointer identity, and `std`'s
+//! version-unstable `DefaultHasher` are rejected outright — no library use
+//! of them here is legitimate.
 
 use std::collections::BTreeMap;
 use std::fs;
@@ -99,6 +101,9 @@ const BANNED: &[(&str, &str)] = &[
     ("thread spawning", "thread::spawn"),
     ("raw pointer address", ".as_ptr("),
     ("explicit RandomState", "RandomState"),
+    ("environment access", "env::"),
+    ("thread-local state", "thread_local"),
+    ("unversioned std hashing", "DefaultHasher"),
 ];
 
 fn kit_src() -> PathBuf {
@@ -218,7 +223,7 @@ fn every_hash_map_in_library_code_is_accounted_for() {
 }
 
 #[test]
-fn library_code_reads_no_clock_threads_or_addresses() {
+fn library_code_has_no_unstable_inputs() {
     let mut problems = Vec::new();
     for (file, code) in library_sources() {
         for (name, needle) in BANNED {
@@ -246,4 +251,11 @@ fn the_scanner_fires_and_stays_silent_in_the_right_places() {
     assert_eq!(count_token("let t = Instant::now();", "Instant"), 1);
     assert_eq!(count_token("struct InstantiationCache;", "Instant"), 0);
     assert_eq!(count_token("v.as_ptr()", ".as_ptr("), 1);
+    assert_eq!(count_token("let k = std::env::var(\"X\");", "env::"), 1);
+    assert_eq!(count_token("let myenv::X = 1;", "env::"), 0);
+    assert_eq!(
+        count_token("thread_local! { static A: u8 = 0 }", "thread_local"),
+        1
+    );
+    assert_eq!(count_token("DefaultHasher::new()", "DefaultHasher"), 1);
 }
