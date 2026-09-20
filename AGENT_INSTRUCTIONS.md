@@ -34,10 +34,10 @@
 doctest・テスト・example・bin の4ターゲットが緑**で、さらに `gamec` が同梱 fixture を
 正しく受理・拒否することまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
 | 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G10 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**|
-| 未検証の公開 API | **両クレートで 0** — kit 1534 / engine 247 の公開関数(**トレイトメソッド11件を含む**)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす |
+| 未検証の公開 API | **両クレートで 0** — kit 1500+ / engine 240+ の公開関数(トレイトメソッドを含む)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす(件数は成長で変わるので下限表記)|
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
-| main との差 | **0 遅れ**。PR #7(`b1607f1` までの内容)はマージ済み(`617d651`)。残りの43コミットは PR #8 として作成済み・**未マージ**|
+| main との差 | **0 遅れ**。PR #7(`b1607f1` までの内容)はマージ済み(`617d651`)。それ以降のコミット列は PR #8 として作成済み・**未マージ**(件数は push 毎に増える)|
 | kit src 内 panic 系(**実装のみ**) | **0**(`clippy::unwrap_used/expect_used/panic` を `deny` で強制。テスト込みの旧計測 242/20 はテストコードを数えていた) |
 
 ---
