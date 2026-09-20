@@ -195,6 +195,16 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   読まない(global_invariants_hold::nothing_compiles_after_the_test_module_boundary が
   境界後の構造テキストを `mod <ident> {…}` のみと機械強制 — `mod` 後にコードを
   置く注入と、マーカーが `mod` 以外を開く注入はともに失敗することを実証)。
+- ~~`env::var` 等の「パス形」ニードルは banned path をそのまま綴ったコードを
+  捕捉する~~ → `use std::env::{var}`(ブレース輸入)や `use std::env as e`
+  (エイリアス輸入)は banned path を一度も綴らずに同じ呼び出しをコンパイルする
+  — `env::var` ニードルを完全に素通りする(subprocess の `Command` も
+  `use std::process::{Command as C}` で同型)。flattened_use_paths が `use`
+  文のブレースを展開して `a::b` 群を走査対象に復元し(3ファイルに byte 同一
+  複製+GROUPS 登録)、`std::env`/`std::panic` のモジュール根ニードルと
+  `env as`/`thread as`/`process as` エイリアスニードルで閉塞 — src 注入
+  (env/panic の alias)、fence 注入、suite 注入(brace/alias/入れ子)は
+  すべて失敗することを実証。
 - ~~pinned hash は debug profile でしか検証されていなかった~~ → `overflow-checks` は
   dev で既定 on・release で既定 off なので、シミュレーション経路の算術が静かに wrap する
   コードは debug では panic して気づけるが release では気づけない。gate は debug の

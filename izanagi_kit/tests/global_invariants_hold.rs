@@ -344,6 +344,104 @@ fn test_module_boundary(src: &str) -> Option<usize> {
     None
 }
 
+/// `use` statements flattened so `use a::{b, c::{d}}` also appears as the
+/// separate paths `a::b` and `a::c::d`. A brace (or brace + `as`) import is
+/// how a banned `a::b` token disappears from the text — `use std::env::{var}`
+/// compiles `env::var` without ever spelling it (verified by injection).
+/// `x as y` keeps the real path: the alias is the evasion, not the path.
+fn flattened_use_paths(code: &str) -> Vec<String> {
+    fn split_top_level_commas(items: &str) -> Vec<&str> {
+        let mut out = Vec::new();
+        let mut depth = 0usize;
+        let mut start = 0usize;
+        for (i, c) in items.char_indices() {
+            match c {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                ',' if depth == 0 => {
+                    out.push(&items[start..i]);
+                    start = i + 1;
+                }
+                _ => {}
+            }
+        }
+        out.push(&items[start..]);
+        out
+    }
+    fn expand(prefix: &str, items: &str, out: &mut Vec<String>) {
+        for item in split_top_level_commas(items) {
+            let item = item.trim();
+            if item.is_empty() {
+                continue;
+            }
+            if let Some(brace) = item.find("::{") {
+                let inner = &item[brace + 3..item.len().saturating_sub(1)];
+                expand(&format!("{prefix}::{}", &item[..brace]), inner, out);
+            } else if let Some(inner) = item.strip_prefix('{') {
+                expand(prefix, inner.strip_suffix('}').unwrap_or(inner), out);
+            } else {
+                // `a::b as c` keeps the whole spelling — `a::b` needles still
+                // match, and an `a::b as `-needle can see the alias import.
+                let (base, alias) = match item.split_once(" as ") {
+                    Some((b, a)) => (b.trim(), Some(a.trim())),
+                    None => (item, None),
+                };
+                match base {
+                    "self" => out.push(match alias {
+                        Some(a) => format!("{prefix} as {a}"),
+                        None => prefix.to_string(),
+                    }),
+                    "*" | "" => {}
+                    b => out.push(format!(
+                        "{prefix}::{b}{}",
+                        alias.map_or(String::new(), |a| format!(" as {a}"))
+                    )),
+                }
+            }
+        }
+    }
+    let mut flat = Vec::new();
+    let mut i = 0usize;
+    while let Some(p) = code[i..].find("use ") {
+        let start = i + p;
+        // `use` must start a statement: preceded only by non-ident text —
+        // `reuse`/`misuse` or `x::use` (not legal Rust) must not count. The
+        // previous byte is ASCII here: a multi-byte char ends in bytes that
+        // are never alphanumeric, which is exactly the boundary we want.
+        if start > 0 && {
+            let p = code.as_bytes()[start - 1];
+            p.is_ascii_alphanumeric() || p == b'_'
+        } {
+            i = start + 4;
+            continue;
+        }
+        let end = match code[start..].find(';') {
+            Some(e) => start + e,
+            // A `use` without `;` is not a statement — doc prose can carry
+            // the word; skip the token itself and keep scanning for a real
+            // terminated `use` later in the file.
+            None => {
+                i = start + 4;
+                continue;
+            }
+        };
+        let stmt = code[start + 4..end].trim();
+        // `use a::b::{c}` — expand from the crate root (a leading `::`? no:
+        // statements are `use path;` where path may itself start with braces
+        // or bare names like `crate::x`).
+        if let Some(brace) = stmt.find("::{") {
+            let head = stmt[..brace].to_string();
+            let inner = stmt[brace + 3..]
+                .strip_suffix('}')
+                .unwrap_or(&stmt[brace + 3..]);
+            expand(&head, inner, &mut flat);
+        }
+        flat.push(stmt.to_string());
+        i = end + 1;
+    }
+    flat
+}
+
 /// The structural text of `src` from `offset` on: comments (line and nested
 /// block), `"..."`/`r"..."` strings, and `'x'` char literals dropped, with a
 /// space standing in for each dropped byte. Used to ask what the compiler
@@ -1392,6 +1490,10 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 &fs::read_to_string(&path)
                     .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
             );
+            // Brace imports rewrite the text the needles spell: scanning the
+            // flattened paths keeps `use std::env::{var}` readable as the
+            // `env::var` it actually compiles to.
+            let code = format!("{code}\n{}", flattened_use_paths(&code).join("\n"));
             assert!(
                 !require_tests || code.contains("#[test"),
                 "{name} contains no #[test] function — a test file that \
@@ -1456,7 +1558,11 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             // Delegating the checked computation to outside the scanned
             // universe: a subprocess runs anything, a socket reads bytes no
             // scan can see, and env writes mutate the ambient inputs other
-            // needles police. None of these appear anywhere today.
+            // needles police. None of these appear anywhere today. The
+            // trailing `as ` needles close the alias-import twin of each
+            // banned module — `use std::env as e` spells no `env::var` yet
+            // compiles one (`e::var`); flattened_use_paths keeps the alias
+            // spelling visible here so `env as` catches it.
             for needle in [
                 "Command::new",
                 "process::Command",
@@ -1467,6 +1573,9 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "ToSocketAddrs",
                 "env::set_var",
                 "env::remove_var",
+                "env as",
+                "thread as",
+                "process as",
             ] {
                 assert!(
                     !contains_token(&code, needle),
@@ -1835,6 +1944,14 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
             &[
                 "izanagi_kit/tests/global_invariants_hold.rs",
                 "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
+            ],
+        ),
+        (
+            "flattened_use_paths",
+            &[
+                "izanagi_kit/tests/global_invariants_hold.rs",
+                "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
+                "izanagi_kit/tests/docs_are_current.rs",
             ],
         ),
     ];

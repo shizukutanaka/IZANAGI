@@ -666,6 +666,104 @@ fn rust_fence_bodies(lines: std::str::Lines<'_>, doc_prefix: bool) -> Vec<(usize
     bodies
 }
 
+/// `use` statements flattened so `use a::{b, c::{d}}` also appears as the
+/// separate paths `a::b` and `a::c::d`. A brace (or brace + `as`) import is
+/// how a banned `a::b` token disappears from the text — `use std::env::{var}`
+/// compiles `env::var` without ever spelling it (verified by injection).
+/// `x as y` keeps the real path: the alias is the evasion, not the path.
+fn flattened_use_paths(code: &str) -> Vec<String> {
+    fn split_top_level_commas(items: &str) -> Vec<&str> {
+        let mut out = Vec::new();
+        let mut depth = 0usize;
+        let mut start = 0usize;
+        for (i, c) in items.char_indices() {
+            match c {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                ',' if depth == 0 => {
+                    out.push(&items[start..i]);
+                    start = i + 1;
+                }
+                _ => {}
+            }
+        }
+        out.push(&items[start..]);
+        out
+    }
+    fn expand(prefix: &str, items: &str, out: &mut Vec<String>) {
+        for item in split_top_level_commas(items) {
+            let item = item.trim();
+            if item.is_empty() {
+                continue;
+            }
+            if let Some(brace) = item.find("::{") {
+                let inner = &item[brace + 3..item.len().saturating_sub(1)];
+                expand(&format!("{prefix}::{}", &item[..brace]), inner, out);
+            } else if let Some(inner) = item.strip_prefix('{') {
+                expand(prefix, inner.strip_suffix('}').unwrap_or(inner), out);
+            } else {
+                // `a::b as c` keeps the whole spelling — `a::b` needles still
+                // match, and an `a::b as `-needle can see the alias import.
+                let (base, alias) = match item.split_once(" as ") {
+                    Some((b, a)) => (b.trim(), Some(a.trim())),
+                    None => (item, None),
+                };
+                match base {
+                    "self" => out.push(match alias {
+                        Some(a) => format!("{prefix} as {a}"),
+                        None => prefix.to_string(),
+                    }),
+                    "*" | "" => {}
+                    b => out.push(format!(
+                        "{prefix}::{b}{}",
+                        alias.map_or(String::new(), |a| format!(" as {a}"))
+                    )),
+                }
+            }
+        }
+    }
+    let mut flat = Vec::new();
+    let mut i = 0usize;
+    while let Some(p) = code[i..].find("use ") {
+        let start = i + p;
+        // `use` must start a statement: preceded only by non-ident text —
+        // `reuse`/`misuse` or `x::use` (not legal Rust) must not count. The
+        // previous byte is ASCII here: a multi-byte char ends in bytes that
+        // are never alphanumeric, which is exactly the boundary we want.
+        if start > 0 && {
+            let p = code.as_bytes()[start - 1];
+            p.is_ascii_alphanumeric() || p == b'_'
+        } {
+            i = start + 4;
+            continue;
+        }
+        let end = match code[start..].find(';') {
+            Some(e) => start + e,
+            // A `use` without `;` is not a statement — doc prose can carry
+            // the word; skip the token itself and keep scanning for a real
+            // terminated `use` later in the file.
+            None => {
+                i = start + 4;
+                continue;
+            }
+        };
+        let stmt = code[start + 4..end].trim();
+        // `use a::b::{c}` — expand from the crate root (a leading `::`? no:
+        // statements are `use path;` where path may itself start with braces
+        // or bare names like `crate::x`).
+        if let Some(brace) = stmt.find("::{") {
+            let head = stmt[..brace].to_string();
+            let inner = stmt[brace + 3..]
+                .strip_suffix('}')
+                .unwrap_or(&stmt[brace + 3..]);
+            expand(&head, inner, &mut flat);
+        }
+        flat.push(stmt.to_string());
+        i = end + 1;
+    }
+    flat
+}
+
 #[test]
 fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
     // A ``` fence body is not markup — rustdoc compiles it as a doctest: a
@@ -708,6 +806,8 @@ fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
         "env::var",
         "env::set_var",
         "env::remove_var",
+        "std::env", // `use std::env as e` dodges `env::` while compiling `e::var`
+        "std::panic",
         "fs::",
         "std::fs",
         "File::",
@@ -766,6 +866,10 @@ fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
     let mut check = |where_is: String, bodies: Vec<(usize, String)>| {
         for (n, body) in bodies {
             scanned += 1;
+            // Brace/alias imports hide the banned path — `use std::{env as e}`
+            // compiles `std::env` without spelling it; scan the flattened
+            // paths alongside the literal fence text.
+            let body = format!("{body}\n{}", flattened_use_paths(&body).join("\n"));
             for needle in BANNED_IN_FENCE {
                 if body.contains(needle) {
                     offenders.push(format!(
