@@ -1918,6 +1918,17 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      code this suite never reads"
                 );
             }
+            // The whole module beyond the exit-on-error idiom: `id()` is
+            // a fresh skip switch per launch and `abort`/`set_exit_code`
+            // can forge or hide a suite result (injected `process::id`
+            // into a test: green — only Command/exit were named). `exit`
+            // itself keeps its per-dir rule below.
+            let sans_exit = code.replace("process::exit(", "");
+            assert!(
+                !sans_exit.contains("process::"),
+                "{name} contains `process::` — the process table and exit \
+                 path are machine state outside the suite's replay"
+            );
             // Test-dir-only: the examples keep two legitimate uses —
             // `process::exit` on their error path and two `#[allow]` lints —
             // but inside the suite `exit` can end the harness mid-file and
