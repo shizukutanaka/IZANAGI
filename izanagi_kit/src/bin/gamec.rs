@@ -11,9 +11,13 @@
 //! satisfies taxonomy P4). Human-readable diagnostics are suppressed on stderr.
 //! `--sarif` emits diagnostics as a SARIF 2.1.0 document, the format GitHub
 //! Code Scanning's `upload-sarif` action consumes for inline PR annotations.
-//! `--fmt` emits canonical serialized content to stdout (no change).
-//! `--check` verifies formatting without output — exits non-zero if the file's
-//! serialized form differs from its source (like `cargo fmt --check`).
+//! `--fmt` writes canonical serialized content to stdout; the input file is
+//! not modified. Canonical form sorts `stat` keys, uppercases hex colors and
+//! drops comments and blank lines — pipe it back over the file to format it.
+//! `--check` verifies formatting without output — exits non-zero if any
+//! content line differs from the canonical serialized form. `//` comments and
+//! blank lines are free-form: the canonical form carries none, so they are
+//! ignored by the comparison (like `cargo fmt --check` tolerating comments).
 
 use izanagi_kit::content::Severity;
 use izanagi_kit::diag_json::{diag_json, diag_sarif};
@@ -114,11 +118,15 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
         let canonical = izanagi_kit::serialize(&content);
-        if source != canonical {
-            eprintln!(
-                "{}: file needs formatting (content differs when serialized)",
-                path
-            );
+        // Trivia (`//` comment lines and blank lines) carry no semantics and
+        // the canonical form emits none — compare content lines only, so a
+        // commented, sectioned file can still pass the format gate.
+        let trivia = |l: &&str| {
+            let t = l.trim_start();
+            t.is_empty() || t.starts_with("//")
+        };
+        if source.lines().filter(|l| !trivia(l)).ne(canonical.lines()) {
+            eprintln!("{path}: file needs formatting (content differs when serialized)");
             return ExitCode::FAILURE;
         }
         return ExitCode::SUCCESS;

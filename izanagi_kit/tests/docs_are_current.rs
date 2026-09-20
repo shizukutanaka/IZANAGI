@@ -756,3 +756,31 @@ fn the_pipeline_demo_embeds_the_shipped_fixture_verbatim() {
          the doc comment's parity claim"
     );
 }
+
+#[test]
+fn the_shipped_fixture_passes_its_own_format_gate() {
+    // `gamec --check` is the tool's documented formatting gate — the shipped
+    // example must satisfy it itself. It did not: the fixture carried stats
+    // in authored order and lowercase hex colors while the canonical form
+    // sorts and uppercases them. `//` comments and blank lines are trivia:
+    // legal in source, absent from canonical form, ignored by the check.
+    use izanagi_kit::{parse, serialize};
+    let fixture = read("izanagi_kit/examples/dungeon.game");
+    let (content, diags) = parse(&fixture);
+    assert!(
+        diags.iter().all(|d| !d.is_error()),
+        "the shipped fixture must parse without errors: {diags:?}"
+    );
+    let trivia = |l: &&str| {
+        let t = l.trim_start();
+        t.is_empty() || t.starts_with("//")
+    };
+    let body: Vec<&str> = fixture.lines().filter(|l| !trivia(l)).collect();
+    let canonical_text = serialize(&content);
+    let canonical: Vec<&str> = canonical_text.lines().collect();
+    assert_eq!(
+        body, canonical,
+        "examples/dungeon.game is not in canonical form — \
+         run `cargo run --bin gamec -- --fmt` over it (comments may stay)"
+    );
+}

@@ -31,11 +31,11 @@ const VALID_CONTENT: &str = r#"
 prefab hero
   glyph @
   color #00C4CC
-  stat hp 20
   stat atk 5
+  stat hp 20
 prefab goblin
   glyph g
-  color #f85149
+  color #F85149
   stat hp 8
   flag hostile
 prefab goblin_king extends goblin
@@ -43,12 +43,10 @@ prefab goblin_king extends goblin
   stat hp 30
 prefab potion
   glyph !
-  color #3fb950
+  color #3FB950
   flag item
-
 tile floor . #3A3A3A
 tile wall # #6E7681
-
 level room 8x5
   row ########
   row #@.....#
