@@ -288,7 +288,11 @@ fn regex_free_versions(text: &str) -> Vec<String> {
     out
 }
 
-/// Count `#[test]` attributes under a crate. This *undercounts* the tests that
+/// Count `#[test]` attributes under a crate. Only lines whose first
+/// non-whitespace characters are the attribute count — a `// #[test]` comment
+/// or a `"#[test]"` string literal is not a test, and a substring match would
+/// let prose inflate the floor it is checked against. (Baseline: 10 phantom
+/// matches existed across the tree.) This still *undercounts* the tests that
 /// actually run, because a doctest carries no attribute — which is what makes
 /// it the right measure for checking a floor.
 fn test_attributes(crate_dir: &str) -> usize {
@@ -303,7 +307,8 @@ fn test_attributes(crate_dir: &str) -> usize {
             } else if path.extension().map(|e| e == "rs").unwrap_or(false) {
                 *total += fs::read_to_string(&path)
                     .unwrap_or_default()
-                    .matches("#[test]")
+                    .lines()
+                    .filter(|line| line.trim_start().starts_with("#[test"))
                     .count();
             }
         }
@@ -313,6 +318,19 @@ fn test_attributes(crate_dir: &str) -> usize {
         walk(&repo_root().join(crate_dir).join(sub), &mut total);
     }
     total
+}
+
+/// `"3,400+ tests"` → `3400`.
+fn claimed_floor(claim: &str) -> usize {
+    claim
+        .split('+')
+        .next()
+        .unwrap_or("")
+        .chars()
+        .filter(|c| c.is_ascii_digit())
+        .collect::<String>()
+        .parse()
+        .unwrap_or(0)
 }
 
 #[test]
@@ -344,20 +362,29 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
         );
     }
 
-    assert!(
-        kit >= 3_400,
-        "README claims 3,400+ kit tests; only {kit} `#[test]` attributes found"
-    );
-    assert!(
-        engine >= 180,
-        "README claims 180+ engine tests; only {engine} `#[test]` attributes found"
-    );
-    assert!(
-        kit + engine >= 3_600,
-        "README claims 3,600+ workspace tests; only {} `#[test]` attributes \
-         across both crates",
-        kit + engine
-    );
+    // A floor has two failure modes: it can overclaim (suite no longer
+    // clears it — the old check) or it can go stale (the suite outgrew it so
+    // far the claim is technically true and practically a lie — README says
+    // "3,400+" while 6,000 real tests run). The band `actual >= claim >=
+    // actual * 3/4` closes both directions: raising reality past ~133% of a
+    // floor fails until the claim is raised in the same commit.
+    for (claim, actual) in [
+        ("3,400+ tests", kit),
+        ("**180+ tests**", engine),
+        ("3,600+ tests", kit + engine),
+        ("**3,600+ passed / 0 failed**", kit + engine),
+    ] {
+        let floor = claimed_floor(claim);
+        assert!(
+            actual >= floor,
+            "a doc claims `{claim}` but only {actual} `#[test]` attributes exist"
+        );
+        assert!(
+            floor * 4 >= actual * 3,
+            "the `{claim}` floor has gone stale: {actual} attributes now run — \
+             raise the documented floor in the same commit"
+        );
+    }
 }
 
 #[test]
