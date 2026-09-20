@@ -862,6 +862,18 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   禁止 — `.gitignore`/`.gitattributes` は成分境界で安全に通過。
 
 
+- ~~ツリー内に secrets を置く経路は ignore と sentinel で見えると思われていた~~ →
+  `.env`/`*.secret` は *読み* が問題 — gitignored 機密を test が読み
+  assert メッセージ経由で流出可。成分境界(`.env`=左 `"`/`/`、
+  `.secret`=サフィックス)で両者をスキャン禁止に。同機構で `.git` も
+  既に禁止済み(info/exclude 編集→後続 drop 不可視化を塞ぐ)。
+- ~~gate の緑は toolchain 非依存だと思われていた~~ → rustup の
+  directory override や別 toolchain で `cargo` が解決されると fmt/
+  clippy/`#![feature]` 受理が変わり、検証前提自体が揺れる。gate.sh
+  冒頭で `rustc`/`cargo`/`rustfmt` が stable かつ >=1.75(workspace
+  MSRV)であることを assert(偽 nightly で拒否確認)。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

@@ -1855,6 +1855,34 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                  metadata is outside the porcelain sentinel's view, so \
                  suite code may not address it"
             );
+            // Same component-boundary rule for the repo's declared secret
+            // slots: `.env` and `*.secret` are gitignored on purpose and
+            // may hold machine credentials — a test reading them pipes
+            // secrets through assert output. Spelled self-evadingly so
+            // this file does not trip its own scan.
+            let mut saw_secret_atom = false;
+            // `.env` names a *component* (needs a quote/slash on its left);
+            // `.secret` is a *suffix* — `foo.secret` — so only its right
+            // edge is a path boundary.
+            for (atom, needs_left) in [(concat!(".", "env"), true), (concat!(".", "secret"), false)]
+            {
+                for (gi, _) in raw.match_indices(atom) {
+                    let l = gi.checked_sub(1).and_then(|i| bs.get(i));
+                    let r = bs.get(gi + atom.len());
+                    let ok_left = !needs_left || l == Some(&b'"') || l == Some(&b'/');
+                    let ok_right = r == Some(&b'"') || r == Some(&b'/') || r == Some(&b'.');
+                    if ok_left && ok_right {
+                        saw_secret_atom = true;
+                        break;
+                    }
+                }
+            }
+            assert!(
+                !saw_secret_atom,
+                "{name} spells a secret-file path segment — `.env`/`*.secret` \
+                 exist to hold credentials off the index; reading them is \
+                 the machine's contents entering the suite"
+            );
             // One `.parent()` per statement at most: the manifest dir is
             // inside the tree and its parent is the workspace root, so a
             // second `.parent()` in the same expression is a climb out of

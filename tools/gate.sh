@@ -85,6 +85,40 @@ stage() {
     printf '\n\033[1m== %s\033[0m\n' "$1"
 }
 
+stage "toolchain (stable channel, >= workspace MSRV)"
+# Every check below is compiled and linted by whatever `cargo` resolves to:
+# a per-directory `rustup override`, a rust-toolchain.toml (banned, but the
+# ban itself runs on the toolchain it questions), or a dev's default can
+# silently swap rustc/rustfmt semantics — `#![feature]` on nightly, fmt
+# and clippy differences per release. The suite's own premise is MSRV
+# 1.75 (the workspace maximum) on the stable channel; assert it.
+rustc_v=$(rustc --version)
+case "$rustc_v" in
+    *nightly*|*beta*)
+        echo "gate: '$rustc_v' — the suite must run on stable; pre-release channels admit #![feature] and differing lint sets"
+        exit 1
+        ;;
+esac
+rustc_minor=$(echo "$rustc_v" | sed -E 's/^rustc 1\.([0-9]+).*/\1/')
+case "$rustc_minor" in
+    ''|*[!0-9]*)
+        echo "gate: unparseable rustc version '$rustc_v'"
+        exit 1
+        ;;
+esac
+if [ "$rustc_minor" -lt 75 ]; then
+    echo "gate: rustc '$rustc_v' is below the workspace MSRV (1.75)"
+    exit 1
+fi
+for tool_v in "$(cargo --version)" "$(rustfmt --version)"; do
+    case "$tool_v" in
+        *nightly*|*beta*)
+            echo "gate: pre-release component '$tool_v' — stable toolchain required"
+            exit 1
+            ;;
+    esac
+done
+
 stage "rustfmt (check only — the gate verifies, it does not rewrite)"
 cargo fmt --all -- --check
 
