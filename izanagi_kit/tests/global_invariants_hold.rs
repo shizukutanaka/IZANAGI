@@ -1828,6 +1828,21 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "{name} contains a bare parent-dir literal — segments are \
                  how a join chain leaves the package"
             );
+            // One `.parent()` per statement at most: the manifest dir is
+            // inside the tree and its parent is the workspace root, so a
+            // second `.parent()` in the same expression is a climb out of
+            // the repo — `join`/`read`/`exists` on it reaches the machine
+            // unmonitored (injected `parent().parent().join(...)` into a
+            // test: green). Multi-statement indirection stays possible —
+            // every legit use here climbs exactly once.
+            for seg in code.split(';') {
+                assert!(
+                    seg.matches(".parent()").count() <= 1,
+                    "{name} climbs more than one level in a single \
+                     expression — a second `.parent()` from a \
+                     manifest-anchored path leaves the tree"
+                );
+            }
             // Delegating the checked computation to outside the scanned
             // universe: a subprocess runs anything, a socket reads bytes no
             // scan can see, and env writes mutate the ambient inputs other
