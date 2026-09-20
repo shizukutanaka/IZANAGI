@@ -269,7 +269,15 @@ fn library_code_uses_no_pointer_sized_sentinel() {
     // library code only.
     let mut offenders: Vec<String> = Vec::new();
     for (name, code) in library_sources(&kit_src()) {
-        for sentinel in ["usize::MAX", "isize::MAX", "isize::MIN"] {
+        for sentinel in [
+            "usize::MAX",
+            "isize::MAX",
+            "isize::MIN",
+            // `BITS` is the same leak in constant form: usize::BITS is 64
+            // here and 32 on wasm32.
+            "usize::BITS",
+            "isize::BITS",
+        ] {
             if code.contains(sentinel) {
                 offenders.push(format!("{name}: {sentinel}"));
             }
