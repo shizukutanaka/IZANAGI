@@ -1919,6 +1919,12 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 // same thing (injected into a test and an example: green).
                 "is_terminal",
                 "IsTerminal",
+                // fs::metadata().modified()/created()/accessed() pour the
+                // host filesystem's timestamps into a check — machine input
+                // through the door tests legitimately keep open for reading
+                // the repo (injected `metadata(..).modified()` into a test:
+                // green). `metadata(` is the only way in.
+                "metadata(",
                 // CPU-feature probes are the machine itself: a check behind
                 // `is_*_feature_detected!` exists on one host and not
                 // another, with the suite still reporting green (injected
