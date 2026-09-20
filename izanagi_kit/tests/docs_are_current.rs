@@ -297,6 +297,47 @@ fn no_document_quotes_a_stale_pinned_hash() {
 }
 
 #[test]
+fn no_document_quotes_a_stale_kit_bridge_hash() {
+    // The kit_bridge integration hash lives in gate.sh as KIT_BRIDGE_HASH and
+    // is grepped out of the example's output on every run — the value is
+    // verified there. But AGENT_INSTRUCTIONS.md quotes the bare
+    // `353498ec4fbcd160` in three places, with no const name binding it, and
+    // nothing checked that the two agreed. Same hole as the pinned hashes.
+    let gate = read("tools/gate.sh");
+    let real = gate
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("KIT_BRIDGE_HASH="))
+        .map(str::trim)
+        .expect("tools/gate.sh must define KIT_BRIDGE_HASH");
+    let mut stale: Vec<String> = Vec::new();
+    for doc in all_markdown_documents() {
+        let text = fs::read_to_string(&doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
+        for (n, line) in text.lines().enumerate() {
+            if !line.contains("kit_bridge") {
+                continue;
+            }
+            for tok in line.split(|c: char| !(c.is_ascii_hexdigit() || c == 'x')) {
+                let digits = tok.trim_start_matches("0x");
+                // Twelve-plus hex digits is a hash-shaped literal, not a flag
+                // value like 0x10 or a version-ish fragment.
+                if digits.len() >= 12
+                    && digits.chars().all(|c| c.is_ascii_hexdigit())
+                    && digits != real
+                {
+                    stale.push(format!("{}:{}: {tok}", doc.display(), n + 1));
+                }
+            }
+        }
+    }
+    assert!(
+        stale.is_empty(),
+        "these documents quote a kit_bridge hash that is not the one gate.sh \
+         pins ({real}): {stale:#?}"
+    );
+}
+
+#[test]
 fn handbook_module_count_matches_reality() {
     // The snapshot table states how many modules each crate has. A number
     // nobody checks is a number that drifts — this one had drifted by twelve
