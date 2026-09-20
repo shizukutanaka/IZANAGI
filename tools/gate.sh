@@ -107,7 +107,8 @@ while [ "$_dir" != "/" ]; do
     for rel in \
         ".cargo/config" ".cargo/config.toml" \
         "rust-toolchain" "rust-toolchain.toml" \
-        "Cross.toml" "clippy.toml" ".clippy.toml"
+        "Cross.toml" "clippy.toml" ".clippy.toml" \
+        "rustfmt.toml" ".rustfmt.toml"
     do
         if [ -f "$_dir/$rel" ]; then
             echo "gate: ancestor build config $_dir/$rel exists — cargo/rustup" >&2
