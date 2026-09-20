@@ -219,6 +219,84 @@ fn handbook_quotes_the_real_pinned_hashes() {
 }
 
 #[test]
+fn no_document_quotes_a_stale_pinned_hash() {
+    // The pinned values leak into documents other than the handbook —
+    // RESEARCH.md quotes `PINNED_FINAL_HASH = 0xd1a9_236e_96a2_c802` in three
+    // places, and only the digit grouping differs from the constant. Naming a
+    // constant beside a value is a claim that the two are equal; any markdown
+    // that does it has to agree with the source.
+    let real: Vec<(&str, String)> = [
+        ("izanagi_kit/tests/determinism.rs", "PINNED_FINAL_HASH"),
+        (
+            "izanagi_kit/tests/roguelike_sim.rs",
+            "PINNED_ROGUELIKE_HASH",
+        ),
+    ]
+    .into_iter()
+    .map(|(file, konst)| {
+        let line = read(file)
+            .lines()
+            .find(|l| l.contains(&format!("const {konst}")))
+            .unwrap_or_else(|| panic!("{file} must define {konst}"))
+            .to_string();
+        let value = line
+            .split('=')
+            .nth(1)
+            .and_then(|v| v.split(';').next())
+            .map(str::trim)
+            .unwrap_or_else(|| panic!("cannot parse {konst}"))
+            .replace('_', "");
+        (konst, value)
+    })
+    .collect();
+    let mut stale: Vec<String> = Vec::new();
+    for doc in all_markdown_documents() {
+        let text = fs::read_to_string(&doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
+        for (n, line) in text.lines().enumerate() {
+            for (konst, value) in &real {
+                // A quote looks like `NAME = 0x…` / `NAME=0x…`: the constant
+                // bound to a literal. Other hashes on the same line (e.g. a
+                // changelog saying "PINNED_* are unaffected" beside a golden
+                // hash being updated) are not claims about the constant.
+                let mut search_from = 0;
+                while let Some(at) = line[search_from..].find(konst) {
+                    let start = search_from + at + konst.len();
+                    let tail = &line[start..];
+                    let quoted = tail
+                        .trim_start_matches(|c: char| c == '`' || c.is_whitespace())
+                        .strip_prefix('=')
+                        .map(|t| t.trim_start_matches(|c: char| c == '`' || c.is_whitespace()));
+                    if let Some(rest) = quoted {
+                        let lit: String = rest
+                            .chars()
+                            .take_while(|c| c.is_ascii_hexdigit() || *c == 'x' || *c == '_')
+                            .collect();
+                        let digits = lit.trim_start_matches("0x").replace('_', "");
+                        if lit.starts_with("0x")
+                            && digits.len() >= 8
+                            && digits != value.trim_start_matches("0x")
+                        {
+                            stale.push(format!(
+                                "{}:{}: {konst} quoted as {lit}",
+                                doc.display(),
+                                n + 1
+                            ));
+                        }
+                    }
+                    search_from = start;
+                }
+            }
+        }
+    }
+    assert!(
+        stale.is_empty(),
+        "these documents quote a pinned-hash value that is not the real one: \
+         {stale:#?}\n\nUpdate them in the same commit that changes the constant."
+    );
+}
+
+#[test]
 fn handbook_module_count_matches_reality() {
     // The snapshot table states how many modules each crate has. A number
     // nobody checks is a number that drifts — this one had drifted by twelve
