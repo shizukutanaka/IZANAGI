@@ -1816,6 +1816,12 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 "Barrier",
                 "mpsc",
                 "WaitTimeoutResult",
+                // `stdout().is_terminal()` reads whether the harness is a
+                // pipe — a check that changes behavior between `cargo test`
+                // in a terminal and CI's captured output is not checking the
+                // same thing (injected into a test and an example: green).
+                "is_terminal",
+                "IsTerminal",
             ] {
                 assert!(
                     !contains_token(&code, needle),
