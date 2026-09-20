@@ -948,6 +948,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   status も clean を返し、dir 走査は部分ツリーで vacuous に緑(/tmp clone で
   `sparse-checkout set izanagi` → kit tests 不在・status 空 を実機確認)。
   gate 冒頭で `git sparse-checkout list` rc を見て sparse 時は拒否。
+- ~~スイートは debug profile だけ走れば足りると思われていた~~ → `u8+u8`
+  オーバーフローテストを注入すると debug で panic・release で wrap=ok と
+  判定が分岐(実証)。docs/ci/ci.yml の規定通り `cargo test --workspace
+  --release` を gate に追加 — プロファイル間差異は静走査の到達不能面。
 
 ## 3. 改善案(優先順位付き)
 

@@ -203,6 +203,14 @@ fi
 rm -f /tmp/gate_suite_a.$$ /tmp/gate_suite_b.$$ /tmp/gate_tally_a.$$ /tmp/gate_tally_b.$$
 echo "suite: identical result tallies across two runs"
 
+stage "workspace tests (release profile)"
+# Overflow wraps in release and panics in debug — a check whose outcome rests
+# on wrapping arithmetic reports red in one profile and green in the other
+# (verified: a `u8 + u8` overflow test failed debug and passed release).
+# The CI recipe in docs/ci/ci.yml already prescribes the release run; the
+# gate is the definition of green, so it must contain what it prescribes.
+cargo test --workspace --release
+
 stage "clippy (zero warnings tolerated)"
 # clippy exits 0 on warnings, so count them; -D warnings would also work but
 # grep keeps the output visible in the log instead of aborting at the first.
