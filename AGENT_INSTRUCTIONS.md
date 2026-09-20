@@ -33,7 +33,7 @@
 | 出荷可能性 | `cargo package` 両クレート成功(`--no-verify` なし)。さらに**展開した tarball の中で
 doctest・テスト・example・bin の4ターゲットが緑**で、さらに `gamec` が同梱 fixture を
 正しく受理・拒否することまで確認する — 同梱した「証拠」が消費者の手元で実際に走る |
-| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**・**panic 系マクロ(assert*/debug_assert*/unreachable!/todo!/unimplemented!)が命名済みサイトに凍結されていること**・**出荷コードが `#[path]`/`include!`/`include_bytes!` で走査領域外から混入しないこと**・**kit が fs/process/io の環境入力を読まないこと**・**gate.sh が全ステージを含むこと(ゲート自身の検査)**・**manifest に [[bin]]/[[test]]/[[bench]]/[[example]] テーブルと harness/auto*/crate-type/proc-macro/test/bench/doctest キーがなく [profile.*] の意味論キー(debug-assertions/overflow-checks/panic)が未設定であること**・**rust-toolchain/Cross.toml/clippy.toml が存在せず rustfmt 設定に逃走経路キーがないこと**・**[workspace.dependencies] の不在**・**出荷コードに env!/option_env!/extern/#[no_mangle]/#[link がないこと**・**kit が std::arch/core::arch を使わないこと**・**gate.sh が RUSTFLAGS/RUSTDOCFLAGS を除去すること**・**tests/ と examples/ が #[cfg]/#![cfg]/cfg!/cfg_attr/unsafe/#[ignore] (命名済み allowlist のみ・陳腐化検査つき)を持たず全テストファイルが #[test] を含むこと**・**md のフェンスに ignore/no_run/compile_fail/should_panic がないこと**・**.githooks/pre-push と docs/ci/ci.yml が tools/gate.sh を呼ぶこと**・**kit が panic 機構(catch_unwind/panic::)を持たないこと**・**走査配下(src/tests/examples)に symlink がないこと**・**重複スキャナ helper(test_module_boundary/library_sources/contains_token/count_token/kit_src/take_balanced)が全コピーでバイト同一であること**・**AGENT が core.hooksPath の設定を指示し続けること**・**src 内 doc フェンスに ignore/compile_fail/should_panic がなく no_run は命名済み allowlist(陳腐化検査つき)のみであること**・**共有境界 lexer が偽 marker を拒否し真 marker を受理すること(合成入力検査)**・**kit がレイアウト照会(size_of/align_of)・abort・stdout/stderr サイドチャネル(println/dbg 等)を持たないこと**・**workspace が resolver = "2" を実キーとして設定すること**・**全テストファイルが実 assert を含むこと(vacuous 緑不可・測定系は命名済み allowlist+陳腐化検査)**・**kit に同期プリミティブ(Mutex/RwLock/channel/atomic/thread)と生ポインタ経路(as */*const/*mut/.as_mut_ptr)がないこと**・**tests/・examples/ にサブディレクトリがないこと(平坦走査の盲点の不在)**・**tests/・examples/ に dead_code/unused 系抑制子がないこと**・**tests/ が env::var/args/set_var/remove_var/current_dir/current_exe を読まないこと(機械不変のスイート)**・**README/AGENT のテスト数フロアが実数の 75% 以内の新鮮さを保つこと(下限+帯域)**・**`#[test]` 属性計測が行頭アンカーでコメント/文字列の水増しを受けないこと**・**kit 定義型の全 `impl DetHash` が golden ピン済みか `UNPINNED_DET_HASH` で明示宣言されること(双方向陳腐化検査つき)**・**Cargo.lock がワークスペース2クレート以外を解決しないこと(解決層の zero-dep)**・**src/bin/ も unsafe/panic/unwrap/expect/cfg/env::var/thread/ポインタ/layout 照会を持たないこと(bin ターゲットは lib.rs の forbid/deny を継承しない別クレート root)**・**src/ 配下の全 .rs が lib.rs の `mod`/`pub mod` で宣言されていること(走査されるがコンパイルされない孤立ファイルの不在)**・**出荷 src に dead_code/unused* 抑制子がないこと(両クレート)**・**.github/workflows/ が存在しないこと(CI 非コミット規則の強制)**・**tests/ の env!/option_env! が CARGO_MANIFEST_DIR のみを読むこと(コンパイル時環境入力の禁止)**・**tests/ に `if <x>.is_ok()/is_err()` ガードで包まれた条件 assert がないこと(環境依存スキップの禁止)**|
+| 機械検査された文書主張 | tier 表・README モジュール表・pinned hash・モジュール数・engine 版数・f32 境界・README のテスト数下限・README の Quickstart(doctest として実行)・engine CLAUDE.md の Map・全 md の相対リンク・**非 float 非決定論ソースの許可リスト**(`HashMap`/壁時計/スレッド/アドレス依存)・**engine の順序づけ 0 件**(float 比較ソートの不在)・**能力マップが検証系12モジュールを名指しすること**・**SPEC.md の G1〜G11 が強制場所を持つこと**(zero-dep / `forbid(unsafe_code)` / edition / MSRV 宣言 / 条件コンパイル判別式の禁止を含む)・**凍結した「本イテレーション」記述の不在**・**`.game` 文法とパーサの一致**(キーワード9種・行長1024・名前32・寸法256)・**ARCHITECTURE.md の file map と Engine の公開フィールド数**・**3つの README の Rust ブロックが doctest として実行されること**・**`.gitattributes` がテキストを LF に固定していること**・**manifest に `target`/`features`/`lints`/`patch`/`replace`/`build-dependencies` テーブルがなく `.cargo` 設定ファイルが存在しないこと**・**`allow`/`expect`/`warn`/`force_warn` が安全系 lint(`unsafe_code`/`unwrap_used`/`expect_used`/`panic`)を弱めないこと**・**SPEC が名指す強制場所のファイルが実在すること**・**panic 系マクロ(assert*/debug_assert*/unreachable!/todo!/unimplemented!)が命名済みサイトに凍結されていること**・**出荷コードが `#[path]`/`include!`/`include_bytes!` で走査領域外から混入しないこと**・**kit が fs/process/io の環境入力を読まないこと**・**gate.sh が全ステージを含むこと(ゲート自身の検査)**・**manifest に [[bin]]/[[test]]/[[bench]]/[[example]] テーブルと harness/auto*/crate-type/proc-macro/test/bench/doctest キーがなく [profile.*] の意味論キー(debug-assertions/overflow-checks/panic)が未設定であること**・**rust-toolchain/Cross.toml/clippy.toml が存在せず rustfmt 設定に逃走経路キーがないこと**・**[workspace.dependencies] の不在**・**出荷コードに env!/option_env!/extern/#[no_mangle]/#[link がないこと**・**kit が std::arch/core::arch を使わないこと**・**gate.sh が RUSTFLAGS/RUSTDOCFLAGS を除去すること**・**tests/ と examples/ が #[cfg]/#![cfg]/cfg!/cfg_attr/unsafe/#[ignore] (命名済み allowlist のみ・陳腐化検査つき)を持たず全テストファイルが #[test] を含むこと**・**md のフェンスに ignore/no_run/compile_fail/should_panic がないこと**・**.githooks/pre-push と docs/ci/ci.yml が tools/gate.sh を呼ぶこと**・**kit が panic 機構(catch_unwind/panic::)を持たないこと**・**走査配下(src/tests/examples)に symlink がないこと**・**重複スキャナ helper(test_module_boundary/library_sources/contains_token/count_token/kit_src/take_balanced)が全コピーでバイト同一であること**・**AGENT が core.hooksPath の設定を指示し続けること**・**src 内 doc フェンスに ignore/compile_fail/should_panic がなく no_run は命名済み allowlist(陳腐化検査つき)のみであること**・**共有境界 lexer が偽 marker を拒否し真 marker を受理すること(合成入力検査)**・**kit がレイアウト照会(size_of/align_of)・abort・stdout/stderr サイドチャネル(println/dbg 等)を持たないこと**・**workspace が resolver = "2" を実キーとして設定すること**・**全テストファイルが実 assert を含むこと(vacuous 緑不可・測定系は命名済み allowlist+陳腐化検査)**・**kit に同期プリミティブ(Mutex/RwLock/channel/atomic/thread)と生ポインタ経路(as */*const/*mut/.as_mut_ptr)がないこと**・**tests/・examples/ にサブディレクトリがないこと(平坦走査の盲点の不在)**・**tests/・examples/ に dead_code/unused 系抑制子がないこと**・**tests/ が env::var/args/set_var/remove_var/current_dir/current_exe を読まないこと(機械不変のスイート)**・**README/AGENT のテスト数フロアが実数の 75% 以内の新鮮さを保つこと(下限+帯域)**・**`#[test]` 属性計測が行頭アンカーでコメント/文字列の水増しを受けないこと**・**kit 定義型の全 `impl DetHash` が golden ピン済みか `UNPINNED_DET_HASH` で明示宣言されること(双方向陳腐化検査つき)**・**Cargo.lock がワークスペース2クレート以外を解決しないこと(解決層の zero-dep)**・**src/bin/ も unsafe/panic/unwrap/expect/cfg/env::var/thread/ポインタ/layout 照会を持たないこと(bin ターゲットは lib.rs の forbid/deny を継承しない別クレート root)**・**src/ 配下の全 .rs が lib.rs の `mod`/`pub mod` で宣言されていること(走査されるがコンパイルされない孤立ファイルの不在)**・**出荷 src に dead_code/unused* 抑制子がないこと(両クレート)**・**.github/workflows/ が存在しないこと(CI 非コミット規則の強制)**・**tests/ の env!/option_env! が CARGO_MANIFEST_DIR のみを読むこと(コンパイル時環境入力の禁止)**・**tests/ に `if <x>.is_ok()/is_err()` ガードで包まれた条件 assert がないこと(環境依存スキップの禁止)**・**validate() が全 findings を収集すること(early-exit primitive 構造禁止 + 全 defect クラス同時発火テスト)**・**manifest の license フィールド・LICENSE ファイル内容・README 記載が三方向一致すること)**・**kit に interior mutability(RefCell/cell::Cell/OnceCell/LazyLock/Rc/Arc/lazy_static/once_cell)がないこと**・**save の wire layout がバイトピンされ write が encode に委譲されていること**・**serialize の canonical 出力が文字列ピンされていること**・**diag_json/diag_sarif の出力がバイトピンされていること**・**DIRS コンパス順(pathfinding 8 方向・plan/wfc 4 方向)と wfc の opposite() がピンされていること**・**xoshiro の jump() 後状態と出力が値ピンされていること(弱い「差異あり」テストではタイポを見逃す)**・**Visibility の順序契約(Unseen<Remembered<Visible と rank 値)がピンされていること**・**SpatialHash::iter_cells の昇順反復がピンされ doc が実装(BTreeMap)と一致していること**・**両クレートの公開 API 集合(pub 宣言・struct/enum/trait メンバー・複数行シグネチャ・API 属性)が hash+件数でピンされていること**・**swept_aabb の役割交換対称性と tunneling(細壁への高速衝突)が性質テストされていること**・**Mat3 の点結合則・rotation の等長性+準同型・reflect 対合・perp 直交が性質テストされていること**・**ECS の get/get_mut/remove が stale ハンドル(世代不一致)を拒否すること**・**Animation が duration ≤ 0/NaN のフレームを構築時に拒否すること(tick の無限ループ経路の封鎖)**・**load_wav が切り詰め・巨大サイズの悪性 WAV で panic/無限ループせず Err を返すこと**・**Save::parse が u32::MAX 宣言長でも wrap せず Err を返すこと(32-bit 加算 wrap の封鎖)**・**3系のバイナリデコーダ(savefile/load_wav/Save::parse)が全接頭辞・全1バイト破壊・乱数 garbage で panic しないこと**|
 | 未検証の公開 API | **両クレートで 0** — kit 1500+ / engine 240+ の公開関数(トレイトメソッドを含む)。各クレートの `tests/public_api_is_exercised.rs` が、どのテスト・example・bench からも呼ばれない公開関数の追加を落とす(件数は成長で変わるので下限表記)|
 | バージョン | engine 4.1.0 / kit 0.1.0(独立公開なので一致は不要。4.x の根拠は engine CHANGELOG `[4.0.0]`)|
 | MSRV | engine 1.65 / kit 1.75 |
@@ -474,6 +474,57 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 - ~~`if x.is_ok() { assert! }` は無害と思われていた~~ → 書込み失敗時に
   assert が丸ごとスキップされる環境依存の静かな緑。readme_blocks_agree
   の probe を無条件化し、ガード形状自体を tests 全域で禁止(変異確認)。
+- ~~validate() は「全 findings を収集(never short-circuit)」と信じられ
+  ていた~~ → 未強制: 全既存 fixture が単一 defect クラス — first-finding
+  bail も全緑。impl 領域の early-exit primitive(return/?/break/continue)
+  構造禁止 + 13 クラス同時発火 bundle の二層で凍結(return 変異で両層発火)。
+- ~~LICENSE ファイルは存在すればよい~~ → manifest フィールド・ファイル
+  内容・README 記載の三方向 drift が可能だった。署名句(MIT/Apache)
+  一致検査で凍結(内容差替・manifest 変更の2変異で発火確認)。
+- ~~HashMap 等の許可リストだけで十分~~ → interior mutability(Cell/
+  RefCell/OnceCell/Rc/Arc/lazy_static)は別の偽決定論経路として未禁。
+  実測ゼロ、モジュールパス needle で terminal::Cell と区別して凍結。
+- ~~roundtrip テストがあれば wire 形式は安全~~ → 自己整合的な形式
+  変更(BE/u64 化等)は roundtrip 緑のまま既存ファイルを全て壊す。
+  save.rs は write/encode 二重実装だった → 委譲で単一化+バイトピン+
+  ディスク一致テスト。serialize も canonical 出力を文字列ピン。
+  diag_json/diag_sarif も同型 — 機械消費 JSON をバイトピン(構造
+  assert は形式 drift を見ない)。
+- ~~「固定コンパス順」は順序が固定されていれば済む~~ → SPEC の主張は
+  この順序であり、配列の並替えは決定性のまま経路・WFC 規則の方向
+  index(0=N/1=E/2=S/3=W)の意味を変える。3 つの DIRS テーブルと
+  opposite() をピン。
+- ~~「順序の契約」は doc コメントに書けば済む~~ → 派生 Ord は判別値を
+  見るため `Unseen = 0` を 2 に書替えるだけで hash 緑のまま
+  is_explored が全マップで反転。順序+rank を値ピン。
+- ~~イテレータ順は「決定的なら何でも」で済む~~ → 公開 iter_cells の
+  doc が「HashMap 順・未ソート」と実装(BTreeMap・昇順)に反していた。
+  順序契約は昇順ピン+doc 一致が正しい形。
+- ~~「全 API が呼ばれる」を検査すれば API は守られている~~ → 呼出し検査は
+  *集合* を見ない: シグネチャ変更・バリアント追加は緑のまま通る。
+  公開面の hash+件数ピンで、API の変更は意図的な更新を要求される形に。
+- ~~衝突判定は手選びの正解例で十分~~ → swept の entry/exit 符号ミスは
+  片方向だけを壊し、固定例は交差軸を通さない。役割交換の metamorphic
+  性質(2万ケース)と tunneling 最小ケースで閉じた。
+- ~~行列演算は固定例で十分~~ → Mul の列-major index ずれは「行列らしい
+  出力」を返すため結合則性質 (A*B)p==A(Bp) のみが捕捉する。
+- ~~世代ハンドルは「存在する」ので stale は弾かれる~~ → alive 検査は
+  insert にしか無く get/remove は index のみ: 再使用後に旧ハンドルが
+  新エンティティを読み書きできた。機構の存在≠強制 — 全アクセサに
+  alive ガードを追加。
+- ~~フレーム duration はコンテンツ側の責任~~ → `while elapsed >= dur` は
+  dur≤0 で永久回転しループ再生のゲームをフリーズさせる — データ起因の
+  ハングは構築時 assert で弾く。
+- ~~フォーマットの申告サイズは信用できる~~ → 切り詰め WAV はサイズだけ
+  正直な申告で OOB panic — 申告値と実残バイトは別物として検査する。
+- ~~宣言長の加算比較は wrap しない~~ → `10 + len` は 32-bit で wrap — 修正が
+  片方のパーサに伝播しない同型バグは横断掃引で閉じる。
+- ~~網羅スイープがあれば任意入力の安全性は証明される~~ → fixture 形状が
+  経路に届かなければスイープは vacuous — 到達可能な形状を選ぶ。
+- ~~jump() は「違う stream を生む」を検査すれば済む~~ → JUMP 定数の1桁
+  タイポでも差異テストは緑のまま非重複の約束が壊れる。jump 後 state と
+  出力ワードを値ピン。astar_cardinal 専用の 4方向 CARDINALS も fn 内に
+  隠れて未ピンだった → CARDINAL_DIRS に昇格してピン統合。
 
 ## 3. 改善案(優先順位付き)
 

@@ -50,6 +50,8 @@ const COST_DIAG: i32 = 14;
 
 /// Neighbour offsets in a fixed compass order (N, NE, E, SE, S, SW, W, NW). A
 /// fixed order keeps expansion — and thus the result — deterministic.
+const CARDINAL_DIRS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
 const DIRS: [(i32, i32); 8] = [
     (0, -1),
     (1, -1),
@@ -541,7 +543,6 @@ where
         return Some(vec![start]);
     }
 
-    const CARDINALS: [(i32, i32); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
     let mut open: BinaryHeap<Reverse<(i32, i32, i32, i32)>> = BinaryHeap::new();
     let mut g_score: HashMap<(i32, i32), i32> = HashMap::new();
     let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
@@ -560,7 +561,7 @@ where
         if cur == goal {
             return Some(jps_reconstruct(&came_from, start, goal));
         }
-        for (dx, dy) in CARDINALS {
+        for (dx, dy) in CARDINAL_DIRS {
             if !walk(cx + dx, cy + dy) {
                 continue;
             }
@@ -2559,6 +2560,27 @@ mod tests {
         assert!(
             compared >= 6000,
             "expected 6000 comparisons, got {compared}"
+        );
+    }
+
+    #[test]
+    fn dirs_compass_order_is_pinned() {
+        // Tie-break order in astar/dijkstra/jps is DIRS order — a reorder is
+        // still deterministic but silently changes every resolved path. The
+        // SPEC's "固定コンパス順" is this sequence, not merely "some order".
+        assert_eq!(CARDINAL_DIRS, [(0, -1), (1, 0), (0, 1), (-1, 0)]);
+        assert_eq!(
+            DIRS,
+            [
+                (0, -1),
+                (1, -1),
+                (1, 0),
+                (1, 1),
+                (0, 1),
+                (-1, 1),
+                (-1, 0),
+                (-1, -1)
+            ]
         );
     }
 }

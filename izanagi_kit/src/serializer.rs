@@ -532,6 +532,36 @@ prefab boss extends enemy
 ";
 
     #[test]
+    fn test_serialize_output_is_pinned_byte_exact() {
+        // Roundtrip and idempotence both survive a self-consistent format
+        // change — e.g. `stat` emitted before `glyph`, or `#ffffff` in
+        // lowercase — because parse+serialize+parse+serialize agree either
+        // way. But saved .game files and diff-based reviews see the drift.
+        // Canonicality means *the text itself* is stable, so pin it.
+        let (c, d) = parse(SAMPLE);
+        assert!(d.iter().all(|x| !x.is_error()), "fixture must parse: {d:?}");
+        let expected = "\
+prefab goblin
+  glyph g
+  color #F85149
+  stat atk 3
+  stat hp 10
+  flag hostile
+tile floor . #3A3A3A
+level cave 5x3
+  row #####
+  row #.g.#
+  row #####
+  spawn goblin 2 1
+";
+        assert_eq!(
+            serialize(&c),
+            expected,
+            "canonical serialized text changed — the format drifted"
+        );
+    }
+
+    #[test]
     fn test_extends_roundtrip_preserves_overlay() {
         let (c1, d1) = parse(EXTENDS_SAMPLE);
         assert!(d1.iter().all(|x| !x.is_error()));

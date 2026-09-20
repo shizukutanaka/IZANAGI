@@ -238,6 +238,25 @@ mod tests {
     }
 
     #[test]
+    fn test_jump_state_and_output_are_pinned() {
+        // jump() exists so each parallel actor gets a provably non-overlapping
+        // stream — a typo'd JUMP constant still yields "a different stream"
+        // (the weak test above passes) but silently collides streams. Pin the
+        // post-jump state and first output word exactly.
+        let mut jumped = Xoshiro256pp::new(42).jumped();
+        assert_eq!(
+            jumped.state(),
+            [
+                0x8174_6704_fde8_96b5,
+                0x645e_9449_32da_e0ae,
+                0xf477_6829_231c_282c,
+                0x2393_f979_8732_dba1
+            ]
+        );
+        assert_eq!(jumped.next_u64(), 0xc0b6_f4be_293b_1ae5);
+    }
+
+    #[test]
     fn test_jump_is_deterministic() {
         let mut a = Xoshiro256pp::new(123);
         let mut b = Xoshiro256pp::new(123);

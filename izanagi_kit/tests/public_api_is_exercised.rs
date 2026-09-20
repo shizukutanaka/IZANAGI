@@ -609,3 +609,120 @@ fn the_sweep_sees_trait_methods() {
         );
     }
 }
+
+/// Every line that is part of the crate's public signature surface: `pub`
+/// declarations, the members of `pub struct`/`enum`/`trait` bodies (whose
+/// members carry no `pub` keyword of their own), signature continuation
+/// lines (multi-line parameter/`where` clauses), and the API-bearing
+/// attributes `deprecated`/`non_exhaustive`/`must_use`. Order-independent:
+/// callers sort the result before hashing.
+fn public_surface_lines() -> BTreeSet<String> {
+    fn collapse(s: &str) -> String {
+        s.split_whitespace().collect::<Vec<_>>().join(" ")
+    }
+    let mut out = BTreeSet::new();
+    for path in rust_files(&repo_root().join("izanagi_kit/src")) {
+        let src = fs::read_to_string(&path).unwrap_or_default();
+        let impl_end = test_module_boundary(&src).unwrap_or(src.len());
+        // Depth of braces inside a `pub {struct,enum,trait,union,mod}` body:
+        // Some(n) while we are capturing member lines, None outside.
+        let mut block: Option<i32> = None;
+        // Paren depth while riding a multi-line `pub` signature.
+        let mut sig: Option<i32> = None;
+        for line in src[..impl_end].lines() {
+            let t = collapse(line.trim_start());
+            if t.is_empty() || t.starts_with("//") {
+                continue;
+            }
+            if let Some(d) = block.as_mut() {
+                *d += line.matches('{').count() as i32;
+                *d -= line.matches('}').count() as i32;
+                if *d <= 0 {
+                    // The closing-brace line ends the block (and may itself be
+                    // the tail of a signature — it carries no API by itself).
+                    block = None;
+                    continue;
+                }
+                out.insert(t.clone());
+            }
+            if let Some(d) = sig.as_mut() {
+                if !t.starts_with("pub ")
+                    && !t.starts_with("fn ")
+                    && !t.starts_with("#[")
+                    && !t.starts_with("}")
+                {
+                    out.insert(t.clone());
+                    *d += line.matches('(').count() as i32;
+                    *d -= line.matches(')').count() as i32;
+                    // The parameter list has closed; `{` starts the body and
+                    // `;` ends a trait declaration — either terminates the
+                    // signature. Bare `where`/`->` tails carry neither and
+                    // keep being captured.
+                    if *d <= 0 && (line.contains('{') || t.ends_with(';')) {
+                        sig = None;
+                    }
+                    continue;
+                }
+                sig = None;
+            }
+            let is_api_attr = t.starts_with("#[")
+                && ["deprecated", "non_exhaustive", "must_use"]
+                    .iter()
+                    .any(|a| t.contains(a));
+            if is_api_attr {
+                out.insert(t.clone());
+            }
+            if !t.starts_with("pub ") || t.starts_with("pub(") {
+                continue;
+            }
+            out.insert(t.clone());
+            let opens_block = [
+                "pub struct ",
+                "pub enum ",
+                "pub trait ",
+                "pub union ",
+                "pub mod ",
+            ]
+            .iter()
+            .any(|p| t.starts_with(p))
+                && line.contains('{');
+            if opens_block {
+                block = Some(line.matches('{').count() as i32 - line.matches('}').count() as i32);
+            } else {
+                let parens = line.matches('(').count() as i32 - line.matches(')').count() as i32;
+                if parens > 0 && !line.contains('{') && !t.ends_with(';') {
+                    sig = Some(parens);
+                }
+            }
+        }
+    }
+    out
+}
+
+#[test]
+fn the_public_api_surface_is_pinned() {
+    // `no_public_function_goes_unexercised` proves every public function is
+    // *called* — it says nothing about the *set*: an added parameter, a new
+    // enum variant, a widened field, a removed re-export all drift silently
+    // under it. The surface is now pinned: any change flips this hash and
+    // forces the diff to be a deliberate act, not a side effect.
+    use izanagi_kit::world_hash::Fnv1a;
+    let lines = public_surface_lines();
+    let mut h = Fnv1a::new();
+    for line in &lines {
+        h.write_str(line);
+        h.write_u8(0);
+    }
+    let actual = h.finish();
+    const PINNED_COUNT: usize = 2283;
+    const PINNED_HASH: u64 = 0x7537_7e9b_01eb_f7c9;
+    if lines.len() != PINNED_COUNT || actual != PINNED_HASH {
+        for line in &lines {
+            eprintln!("surface| {line}");
+        }
+        panic!(
+            "public API surface changed (count {} vs {PINNED_COUNT}, hash              {actual:#018x} vs {PINNED_HASH:#018x}) — every added/removed/             edited public item is listed above; if the change is intended,              update the pin in the same commit",
+            lines.len()
+        );
+    }
+}

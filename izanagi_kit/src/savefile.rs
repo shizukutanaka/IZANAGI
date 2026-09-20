@@ -339,6 +339,30 @@ mod tests {
     }
 
     #[test]
+    fn load_bytes_never_panics_on_any_truncation_or_single_byte_corruption() {
+        // The parser fuzzers do this for text; the binary decoder had only
+        // point tests. A decoder must return Err — never panic — on every
+        // truncation length and every single-byte corruption of a valid file.
+        let full = save_bytes(&SaveHeader::new(9), b"some payload bytes");
+        for n in 0..=full.len() {
+            let _ = load_bytes(&full[..n]);
+        }
+        for i in 0..full.len() {
+            let mut d = full.clone();
+            d[i] ^= 0xFF;
+            let _ = load_bytes(&d);
+        }
+        // Arbitrary garbage, deterministic and dependency-free.
+        let mut g = vec![0xAAu8; 96];
+        for seed in 0..512u32 {
+            for (i, b) in g.iter_mut().enumerate() {
+                *b = seed.wrapping_mul(31).wrapping_add(i as u32) as u8;
+            }
+            let _ = load_bytes(&g);
+        }
+    }
+
+    #[test]
     fn test_declared_len_beyond_buffer_is_too_short() {
         let mut data = save_bytes(&SaveHeader { version: 1 }, b"payload");
         // Set the declared length to something larger than actual.

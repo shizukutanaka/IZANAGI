@@ -217,4 +217,11 @@ mod tests {
         );
         assert_eq!(plan, None);
     }
+
+    #[test]
+    fn dirs_compass_order_is_pinned() {
+        // N/E/S/W as indices — search order and any rule tables indexed by
+        // direction depend on this exact sequence.
+        assert_eq!(DIRS, [(0, -1), (1, 0), (0, 1), (-1, 0)]);
+    }
 }

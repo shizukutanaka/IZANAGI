@@ -548,4 +548,36 @@ mod tests {
         let bracket_closes = sarif.matches(']').count();
         assert_eq!(bracket_opens, bracket_closes, "brackets must balance");
     }
+
+    #[test]
+    fn test_diag_json_output_is_pinned_byte_exact() {
+        // Structural asserts (contains, brace balance, field extraction)
+        // survive a format drift that breaks machine consumers — a key
+        // rename, a spacing change, a different escape scheme all keep
+        // `contains("severity")` green. The wire contract is the bytes.
+        let diags = vec![
+            Diagnostic::error_at(2, 5, "bad \"cell\""),
+            Diagnostic::warning_at(0, 0, "unused"),
+        ];
+        let expected = "{\n  \"file\": \"x.game\",\n  \"diagnostics\": [\n    {\"severity\": \"error\", \"line\": 2, \"col\": 5, \"message\": \"bad \\\"cell\\\"\"},\n    {\"severity\": \"warning\", \"line\": 0, \"col\": 0, \"message\": \"unused\"}\n  ],\n  \"errors\": 1,\n  \"warnings\": 1\n}";
+        assert_eq!(
+            diag_json("x.game", &diags),
+            expected,
+            "diag_json format drifted"
+        );
+    }
+
+    #[test]
+    fn test_diag_sarif_output_is_pinned_byte_exact() {
+        let diags = vec![
+            Diagnostic::error_at(2, 5, "bad"),
+            Diagnostic::warning(0, "unused"),
+        ];
+        let expected = r#"{"$schema":"https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json","version":"2.1.0","runs":[{"tool":{"driver":{"name":"gamec","informationUri":"https://github.com/shizukutanaka/IZANAGI","rules":[{"id":"content-error","name":"ContentError","shortDescription":{"text":"Content validation error"}},{"id":"content-warning","name":"ContentWarning","shortDescription":{"text":"Content validation warning"}}]}},"results":[{"ruleId":"content-error","level":"error","message":{"text":"bad"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"x.game"},"region":{"startLine":2,"startColumn":5}}}]},{"ruleId":"content-warning","level":"warning","message":{"text":"unused"},"locations":[{"physicalLocation":{"artifactLocation":{"uri":"x.game"}}}]}]}]}"#;
+        assert_eq!(
+            diag_sarif("x.game", &diags),
+            expected,
+            "diag_sarif format drifted"
+        );
+    }
 }

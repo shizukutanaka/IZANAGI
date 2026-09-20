@@ -1201,3 +1201,54 @@ fn the_shipped_fixture_passes_its_own_format_gate() {
          run `cargo run --bin gamec -- --fmt` over it (comments may stay)"
     );
 }
+
+#[test]
+fn license_claims_agree_across_manifest_file_and_readme() {
+    // Three sources of truth that can drift: the manifest `license` field,
+    // the LICENSE file's actual contents, and the README's claim about it.
+    // An MIT declaration over an Apache file (or a README naming a license
+    // the crate does not carry) is legal prose lying in three directions.
+    for (manifest_rel, field, files, readme_claim) in [
+        (
+            "izanagi/Cargo.toml",
+            "\"MIT\"",
+            vec!["izanagi/LICENSE"],
+            "izanagi/README.md",
+        ),
+        (
+            "izanagi_kit/Cargo.toml",
+            "\"MIT OR Apache-2.0\"",
+            vec!["izanagi_kit/LICENSE-MIT", "izanagi_kit/LICENSE-APACHE"],
+            "izanagi_kit/README.md",
+        ),
+    ] {
+        let manifest = read(manifest_rel);
+        let license_line = manifest
+            .lines()
+            .map(str::trim)
+            .find(|l| l.starts_with("license"))
+            .unwrap_or_else(|| panic!("{manifest_rel} declares no license"));
+        assert!(
+            license_line.contains(field),
+            "{manifest_rel} license field `{license_line}` != expected {field}"
+        );
+        for f in &files {
+            let text = read(f);
+            let (sig_a, sig_b) = if f.contains("APACHE") {
+                ("Apache License", "Version 2.0")
+            } else {
+                ("MIT License", "Permission is hereby granted")
+            };
+            assert!(
+                text.contains(sig_a) && text.contains(sig_b),
+                "{f} does not contain the {sig_a} signature — the file's \
+                 contents no longer match the license it claims to be"
+            );
+        }
+        let readme = read(readme_claim);
+        assert!(
+            readme.contains("MIT") && (files.len() == 1 || readme.contains("Apache")),
+            "{readme_claim} no longer claims the license the manifest declares"
+        );
+    }
+}

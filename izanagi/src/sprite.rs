@@ -70,6 +70,13 @@ impl Animation {
     /// `looping = true` wraps back to frame 0 on completion.
     pub fn new(frames: Vec<Frame>, looping: bool) -> Self {
         assert!(!frames.is_empty(), "animation must have at least one frame");
+        // A zero/negative/NaN duration makes the `tick` while-loop consume
+        // the same frame forever (elapsed never shrinks) — a looping
+        // animation would hang the game. `+inf` is fine: it holds the frame.
+        assert!(
+            frames.iter().all(|f| f.duration > 0.0),
+            "every frame needs a positive duration (got a 0/negative/NaN frame)"
+        );
         Self {
             frames,
             looping,
@@ -146,6 +153,42 @@ mod tests {
                 .collect(),
             looping,
         )
+    }
+
+    #[test]
+    #[should_panic(expected = "positive duration")]
+    fn zero_duration_frame_is_rejected() {
+        // Previously this constructed fine and `tick` hung forever in the
+        // while-loop on looping animations — a content-driven freeze.
+        let f = Frame {
+            sprite: Sprite::new(0, 0, 16, 16),
+            duration: 0.0,
+        };
+        let _ = Animation::new(vec![f], true);
+    }
+
+    #[test]
+    fn infinite_duration_holds_the_frame() {
+        // `+inf` is the sanctioned "hold this frame" value — allowed by the
+        // positive-duration check and simply never advances.
+        let mut a = Animation::new(
+            vec![
+                Frame {
+                    sprite: Sprite::new(0, 0, 16, 16),
+                    duration: f32::INFINITY,
+                },
+                Frame {
+                    sprite: Sprite::new(16, 0, 16, 16),
+                    duration: 0.1,
+                },
+            ],
+            true,
+        );
+        for _ in 0..5 {
+            a.tick(100.0);
+        }
+        assert_eq!(a.frame_index(), 0);
+        assert!(!a.done());
     }
 
     #[test]

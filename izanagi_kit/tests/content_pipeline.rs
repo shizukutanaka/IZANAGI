@@ -155,3 +155,62 @@ fn test_parser_never_panics_on_random_unicode() {
         let _ = validate(&c);
     }
 }
+
+#[test]
+fn test_validate_surfaces_every_defect_class_in_one_bundle() {
+    // The contract is "never short-circuit": every defect class in
+    // validator.rs must surface from a single validate() call. One bundle
+    // carries all of them at once; a validator that bailed after its first
+    // finding would leave at least one needle unfound.
+    let src = "\
+prefab g
+  glyph g
+prefab g
+  glyph h
+prefab u
+  glyph u
+prefab kid extends ghost
+  glyph k
+tile floor . #000000
+tile floor , #000000
+tile wall # #000000
+level a 3x3
+  row ...
+  row ...
+level a 2x2
+  row ....
+  row ..
+  spawn ghost 0 0
+  spawn g 9 9
+  spawn g 0 0
+  spawn g 0 0
+";
+    let (mut c, pd) = parse(src);
+    // Control glyphs cannot be written in the text format — the parser
+    // stores any char, so inject post-parse to reach both control checks.
+    c.prefabs[2].glyph = '\u{1B}'; // prefab 'u'
+    c.tiles[0].glyph = '\u{7}'; // tile 'floor' (first def)
+    let vd = validate(&c);
+    let all: Vec<&str> = vd.iter().map(|d| d.message.as_str()).collect();
+    for needle in [
+        "duplicate prefab",
+        "duplicate tile",
+        "duplicate level",
+        "prefab 'u': glyph",   // control char in prefab
+        "tile 'floor': glyph", // control char in tile
+        "extends undefined prefab",
+        "never spawned",
+        "never appears in any level",
+        "declared height",
+        "!= declared width",
+        "undefined prefab 'ghost'", // spawn referencing a missing prefab
+        "outside",
+        "multiple spawns at (0,0)",
+    ] {
+        assert!(
+            all.iter().any(|m| m.contains(needle)),
+            "defect class `{needle}` missing — validate() dropped a finding\nall: {all:?}"
+        );
+    }
+    assert!(!is_loadable(&pd, &vd), "this bundle must never load");
+}
