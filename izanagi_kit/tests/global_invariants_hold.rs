@@ -928,6 +928,36 @@ fn nothing_compiles_after_the_test_module_boundary() {
                 "{name} has code after the test module — cargo compiles it, \
                  but every scan stopped at `#[cfg(test)]` and never saw it"
             );
+            // The module interior is scanned here and nowhere else: every
+            // flat scan cut at the boundary, so an attribute inside `mod
+            // tests` is invisible to them. `#[cfg(unix)] fn the_check()`
+            // compiles on some platforms and vanishes on others — a test
+            // that never runs while the suite stays green (proven by
+            // injection past every check), and `cfg!`/`cfg_attr` fork or
+            // weaken it the same way. `#[ignore]` is counted against the
+            // same named-site allowlist the tests/ dirs already use, since
+            // a skipped test exits green either way.
+            for needle in ["#[cfg", "#![cfg", "cfg!(", "cfg_attr("] {
+                assert!(
+                    !tail.contains(needle),
+                    "{name}: `{needle}` inside the test module — the suite                      must not fork or soften itself on build conditions its                      own scanners cannot see"
+                );
+            }
+            const SRC_IGNORE_ALLOWLIST: &[(&str, usize, &str)] = &[(
+                "savefile.rs",
+                1,
+                "print_golden_save is a regeneration helper, run with --ignored",
+            )];
+            let ignored = tail.matches("#[ignore").count();
+            let allowed = SRC_IGNORE_ALLOWLIST
+                .iter()
+                .filter(|(f, _, _)| *f == name)
+                .map(|(_, n, _)| *n)
+                .sum();
+            assert!(
+                ignored <= allowed,
+                "{name}: {ignored} `#[ignore]` inside the test module — a                  skipped test still exits the suite green; name it in                  SRC_IGNORE_ALLOWLIST with the reason"
+            );
         }
     }
 }

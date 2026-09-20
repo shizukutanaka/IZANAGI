@@ -205,6 +205,13 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `env as`/`thread as`/`process as` エイリアスニードルで閉塞 — src 注入
   (env/panic の alias)、fence 注入、suite 注入(brace/alias/入れ子)は
   すべて失敗することを実証。
+- ~~`#[cfg(test)]` 境界以降はテスト領域なのでスキャン不要~~ → 全スキャナーが
+  境界で切り捨てるため `mod tests` 内の `#[cfg(unix)] fn 検査()` は
+  プラットフォームで黙って消えてもゲート緑のまま(注入実証)。
+  tests/examples ディレクトリにあった `#[cfg`/`cfg!`/`cfg_attr`/`#[ignore`
+  禁則を境界以降の構造テキストにも適用し、`#[ignore]` は
+  SRC_IGNORE_ALLOWLIST(savefile.rs の print_golden_save)に名指しで
+  許可 — 4形態の注入で双方の挙動を実証。
 - ~~panic 系マクロは「ファイル毎の個数」を凍結すれば十分~~ → `debug_assert!` を
   `assert!` に入れ替えるだけで「debug限定の監査 assert」が「出荷パニック」に
   昇格するのに個数は変わらずゲートを通る(注入実証)。凍結対象を個数から
