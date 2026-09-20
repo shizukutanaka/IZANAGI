@@ -780,6 +780,32 @@ fn readme_kit_module_count_is_a_floor_the_source_clears() {
 }
 
 #[test]
+fn kit_readme_demo_count_is_a_floor_the_examples_clear() {
+    // The kit README said "Twenty-one self-contained demos" while 22 shipped
+    // — spelled-out numbers can't be machine-checked, so the claim is a digit
+    // floor now ("20+"), and this test keeps the floor honest.
+    let readme = read("izanagi_kit/README.md");
+    let claim = readme
+        .lines()
+        .find(|l| l.contains("self-contained demos"))
+        .expect("kit README must state the runnable demo count");
+    let claimed: usize = claim
+        .split_whitespace()
+        .find_map(|tok| tok.trim_end_matches('+').parse().ok())
+        .expect("the demo-count claim must carry a number");
+    let actual = fs::read_dir(repo_root().join("izanagi_kit/examples"))
+        .expect("kit examples directory")
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|x| x == "rs"))
+        .count();
+    assert!(
+        claimed <= actual,
+        "README claims {claimed} kit demos but only {actual} example files \
+         exist — keep the number a floor below reality"
+    );
+}
+
+#[test]
 fn readme_msrv_claims_match_their_manifests() {
     // izanagi/README.md claimed "MSRV: Rust 1.75" while its manifest declared
     // rust-version 1.65 — an overstatement of the requirement. Whatever MSRV a

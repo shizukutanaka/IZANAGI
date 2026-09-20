@@ -157,7 +157,7 @@ The capability map — with per-feature implementation status — lives in
 
 ## Runnable examples
 
-Twenty-one self-contained demos render to the terminal via the `terminal` module
+20+ self-contained demos render to the terminal via the `terminal` module
 (24-bit ANSI, zero OS dependencies — they run unchanged in CI):
 
 ```text
