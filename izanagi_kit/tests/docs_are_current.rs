@@ -758,6 +758,30 @@ fn the_pipeline_demo_embeds_the_shipped_fixture_verbatim() {
 }
 
 #[test]
+fn readme_msrv_claims_match_their_manifests() {
+    // izanagi/README.md claimed "MSRV: Rust 1.75" while its manifest declared
+    // rust-version 1.65 — an overstatement of the requirement. Whatever MSRV a
+    // crate's README states must be the manifest's own rust-version.
+    for (manifest, readme) in [
+        ("izanagi/Cargo.toml", "izanagi/README.md"),
+        ("izanagi_kit/Cargo.toml", "izanagi_kit/README.md"),
+    ] {
+        let msrv = read(manifest)
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("rust-version = "))
+            .map(|v| v.trim_matches('"').to_string())
+            .unwrap_or_else(|| panic!("{manifest} must declare rust-version"));
+        for line in read(readme).lines().filter(|l| l.contains("MSRV")) {
+            assert!(
+                line.contains(&msrv),
+                "{readme} states an MSRV that {manifest} does not declare \
+                 (rust-version = {msrv}):\n  {line}"
+            );
+        }
+    }
+}
+
+#[test]
 fn command_examples_in_docs_reference_real_targets() {
     // `cargo run --example NAME` (and --test/--bin) strings in checked-in
     // markdown are teaching material; a renamed target leaves a command that

@@ -126,7 +126,7 @@ sequences. No window system required.
 
 - **180+ tests** (unit + integration + property-based + benchmark + doctest)
 - **0 clippy warnings**, **0 dependencies**, **`cargo fmt --check` passes**
-- **MSRV: Rust 1.75**
+- **MSRV: Rust 1.65** (the sibling `izanagi_kit` crate needs 1.75)
 
 ### Design
 

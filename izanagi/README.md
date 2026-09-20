@@ -103,9 +103,8 @@ sequences. No window system required.
 
 - **180+ tests** — unit + integration (incl. property-based and fuzz rounds) + benchmark + doctest
 - **0 warnings**, **0 dependencies**, **`cargo fmt --check` passes**
-- **MSRV: Rust 1.75**
-- **CI:** Linux + macOS + Windows
-- **~6,500 LOC total** (3,800 source + 1,200 examples + 1,500 tests)
+- **MSRV: Rust 1.65**
+- **~9,000 LOC total** (5,900+ source + 1,500+ examples + 1,800+ tests)
 
 ## Design
 
