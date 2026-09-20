@@ -894,12 +894,16 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
         // process:: for the CLI's machine-facing job (verified:
         // `#[test] fn` appended to gamec.rs passed, its env::var
         // unflagged). Tests belong in the scanned dirs only.
-        for needle in ["#[test", "#[cfg(test", "#![cfg(test"] {
+        // `#[cfg]`/`cfg!` are banned wholesale, not only the test-cfg
+        // spellings: `#[cfg(unix)]` on a bin item forks the shipped tool's
+        // behavior per host (injected cfg(unix)/cfg(not(unix))/cfg!(unix)
+        // into gamec.rs — all three compiled and ran green).
+        for needle in ["#[test", "#[cfg", "#![cfg", "cfg!(", "cfg_attr("] {
             assert!(
                 !contains_token(&body, needle),
                 "{name} contains `{needle}` — a bin carries no test \
-                 harness; suite code there escapes the env/fs/process \
-                 bans the scanned dirs enforce"
+                 harness and no platform forking; both escape the bans \
+                 the scanned dirs enforce"
             );
         }
         for arg in env_macro_args(&raw) {

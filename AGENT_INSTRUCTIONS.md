@@ -921,6 +921,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   set -e を踏んで gate 自殺する面を分離して実証(/tmp probe: rc=1 fail-closed /
   rc=0 empty)。status を変数に退避して rc を伝播、フィルタは `|| true` で
   終了ステータスを手放す。
+- ~~bin ルートの cfg 系は test-cfg の綴りだけ止めれば足りると思われていた~~ →
+  `#[cfg(unix)]`/`#[cfg(not(unix))]`/`cfg!(unix)` が gamec.rs で全て緑で通過
+  (host 条件で出荷ツールの振る舞いを分岐できる)。`#[test` の脇のニードルを
+  `#[cfg`/`#![cfg`/`cfg!(`/`cfg_attr(` 全面禁止へ拡張。
 
 ## 3. 改善案(優先順位付き)
 
