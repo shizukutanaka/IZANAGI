@@ -222,6 +222,127 @@ fn test_golden_hashes_discriminate() {
     assert_eq!(uniq.len(), total, "two golden fixtures collided");
 }
 
+#[test]
+fn every_field_reaches_the_hash() {
+    // A golden pin binds ONE fixture — an impl that silently stopped reading
+    // a field the fixture never varies would stay green forever. The
+    // complementary contract: perturbing each field alone must move the
+    // hash. (FNV-1a avalanches single-bit deltas in distinct inputs
+    // deterministically; these specific values cannot collide.)
+    let f = |n: i32| Fixed::from_int(n);
+
+    let base = Vec2::new(f(2), f(-5));
+    assert_ne!(
+        hash_state(&base),
+        hash_state(&Vec2::new(f(3), f(-5))),
+        "Vec2.x"
+    );
+    assert_ne!(
+        hash_state(&base),
+        hash_state(&Vec2::new(f(2), f(-4))),
+        "Vec2.y"
+    );
+
+    let base = Vec3::new(f(1), f(2), f(3));
+    assert_ne!(
+        hash_state(&base),
+        hash_state(&Vec3::new(f(9), f(2), f(3))),
+        "Vec3.x"
+    );
+    assert_ne!(
+        hash_state(&base),
+        hash_state(&Vec3::new(f(1), f(9), f(3))),
+        "Vec3.y"
+    );
+    assert_ne!(
+        hash_state(&base),
+        hash_state(&Vec3::new(f(1), f(2), f(9))),
+        "Vec3.z"
+    );
+
+    let base = Aabb::new(1, 2, 3, 4);
+    for (name, other) in [
+        ("Aabb.x", Aabb::new(9, 2, 3, 4)),
+        ("Aabb.y", Aabb::new(1, 9, 3, 4)),
+        ("Aabb.w", Aabb::new(1, 2, 9, 4)),
+        ("Aabb.h", Aabb::new(1, 2, 3, 9)),
+    ] {
+        assert_ne!(hash_state(&base), hash_state(&other), "{name}");
+    }
+
+    let base = Dice::new(3, 6, 1);
+    for (name, other) in [
+        ("Dice.count", Dice::new(4, 6, 1)),
+        ("Dice.sides", Dice::new(3, 8, 1)),
+        ("Dice.modifier", Dice::new(3, 6, -2)),
+    ] {
+        assert_ne!(hash_state(&base), hash_state(&other), "{name}");
+    }
+
+    // Camera fields are pub; vary each on one instance.
+    let base = Camera {
+        top_left_x: 5,
+        top_left_y: 6,
+        screen_w: 16,
+        screen_h: 16,
+    };
+    for (name, other) in [
+        (
+            "Camera.top_left_x",
+            Camera {
+                top_left_x: 7,
+                ..base
+            },
+        ),
+        (
+            "Camera.top_left_y",
+            Camera {
+                top_left_y: 8,
+                ..base
+            },
+        ),
+        (
+            "Camera.screen_w",
+            Camera {
+                screen_w: 24,
+                ..base
+            },
+        ),
+        (
+            "Camera.screen_h",
+            Camera {
+                screen_h: 24,
+                ..base
+            },
+        ),
+    ] {
+        assert_ne!(hash_state(&base), hash_state(&other), "{name}");
+    }
+
+    // Entity { index, generation }: index via two allocations, generation via
+    // free + realloc of the same slot.
+    let mut alloc = EntityAllocator::new();
+    let e0 = alloc.allocate();
+    let e1 = alloc.allocate();
+    assert_ne!(hash_state(&e0), hash_state(&e1), "Entity.index");
+    alloc.free(e0);
+    let e0_recycled = alloc.allocate();
+    assert_eq!(e0_recycled.index(), e0.index());
+    assert_ne!(
+        hash_state(&e0),
+        hash_state(&e0_recycled),
+        "Entity.generation"
+    );
+
+    // Single-field types: the pin covers one value; here the value must move.
+    assert_ne!(
+        hash_state(&Cooldown::new(5)),
+        hash_state(&Cooldown::new(6)),
+        "Cooldown.remaining"
+    );
+    assert_ne!(hash_state(&f(3)), hash_state(&f(4)), "Fixed.raw");
+}
+
 /// Prints the current (name, hash) table for pasting into `EXPECTED`.
 /// Ignored by default — run explicitly only when regenerating after a
 /// deliberate format change.
