@@ -18,7 +18,7 @@
 //! until someone says where it is enforced, which is the moment to notice
 //! whether it can be.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -1164,10 +1164,27 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
         "det_hash_golden.rs",
         "print_golden is a regeneration helper, run explicitly with --ignored",
     )];
+    // `#[allow]`/`#[warn]`/`#[expect]` soften a lint in place — banned outright
+    // in test files, but examples legitimately carry a couple. They are
+    // frozen by (file, count, reason) so a *new* site fails until named,
+    // and a deleted one makes its entry stale enough to fail too.
+    const EXAMPLE_ALLOW_ALLOWLIST: &[(&str, usize, &str)] = &[
+        (
+            "platformer.rs",
+            1,
+            "clippy::unnecessary_map_or reads better as map_or on the option chain",
+        ),
+        (
+            "roguelike.rs",
+            1,
+            "dead_code on fields kept for the documented spawn-table shape",
+        ),
+    ];
     // (directory, must contain #[test]) — examples are binaries the gate
     // runs for byte-identical output, so a `#[cfg]` there would fork the
     // *evidence* the pinned hashes stand on. The same rules apply without
     // the #[test] floor.
+    let mut seen_allowlisted: BTreeSet<&str> = BTreeSet::new();
     for (dir_rel, require_tests) in [
         ("izanagi_kit/tests", true),
         ("izanagi/tests", true),
@@ -1300,6 +1317,59 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     );
                 }
             }
+            // Examples-only: the filesystem is a channel between gate runs —
+            // an example that writes bytes in run one and reads them in run
+            // two reproduces perfectly while computing nothing the pinned
+            // output claims it computed. No example touches the filesystem
+            // today; the pinned output must come from the binary's own code,
+            // not from bytes on this machine. (Tests keep `fs::` — reading
+            // the repo is the scanners' whole job.)
+            if !require_tests {
+                for needle in [
+                    "fs::",
+                    "File::",
+                    "OpenOptions",
+                    "read_to_string",
+                    "read_dir",
+                    "canonicalize",
+                ] {
+                    assert!(
+                        !contains_token(&code, needle),
+                        "{name} contains `{needle}` — an example's pinned \
+                         output must be the binary's own computation, not \
+                         bytes it read off this machine"
+                    );
+                }
+                let softening: usize = [
+                    "#[allow",
+                    "#[warn",
+                    "#[expect",
+                    "#![allow",
+                    "#![warn",
+                    "#![expect",
+                ]
+                .iter()
+                .map(|n| code.matches(n).count())
+                .sum();
+                let allowed: usize = EXAMPLE_ALLOW_ALLOWLIST
+                    .iter()
+                    .filter(|(f, _, _)| *f == name)
+                    .map(|(_, c, _)| c)
+                    .sum();
+                assert!(
+                    softening == allowed,
+                    "{name} has {softening} lint-softening attribute(s), \
+                     allowlist names {allowed} — add a site to \
+                     EXAMPLE_ALLOW_ALLOWLIST with its reason, and delete the \
+                     entry when the attribute goes"
+                );
+                seen_allowlisted.extend(
+                    EXAMPLE_ALLOW_ALLOWLIST
+                        .iter()
+                        .filter(|(f, _, _)| *f == name)
+                        .map(|(f, _, _)| f),
+                );
+            }
             // `env!`/`option_env!` bake the build machine into the binary.
             // In an example that is machine data inside the byte-identical
             // output the gate pins; in a test file it is a check whose result
@@ -1367,6 +1437,13 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
             body.matches("#[ignore").next().is_some(),
             "IGNORE_ALLOWLIST names {file} but it no longer contains \
              #[ignore] — a stale entry reads as permission"
+        );
+    }
+    for (file, _, _) in EXAMPLE_ALLOW_ALLOWLIST {
+        assert!(
+            seen_allowlisted.contains(file),
+            "EXAMPLE_ALLOW_ALLOWLIST names {file}, which no longer exists — \
+             a stale entry reads as permission"
         );
     }
 }

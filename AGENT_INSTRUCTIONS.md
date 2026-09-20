@@ -138,6 +138,15 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 ### 解消済み(本セッション)
 
+- ~~example の2回実行バイト一致を通るなら出力は「バイナリ自身の計算」~~ →
+  **FS は gate 実行間の暗黙チャネル**だった: run 1 で書いたバイトを run 2 が読めば
+  比較は一致しつつ、実際には走査されない機器上のバイトを読んでいる。examples では
+  `fs::`/`File::`/`OpenOptions`/`read_to_string`/`read_dir`/`canonicalize` を禁止
+  (tests は据え置き — リポジトリを読むのが scanner の本筋)。併せて examples の
+  `#[allow]`/`#[warn]`/`#[expect]`(および `#![...]` 内側綴り)を (file,count,reason)
+  の `EXAMPLE_ALLOW_ALLOWLIST` で等価一致に凍結 — 新規追加も既存削除(=古い許可の
+  亡霊化)も失敗する。注入で実証: example に `fs::read_to_string` を入れると失敗、
+  `#[allow]` 追加・`#![warn]` 追加・platformer の既存 `#[allow]` 削除の3方向とも失敗。
 - ~~ambient input 拒否リストが時計・FS・I/O・process・arch・ポインタを網羅しているなら
   「機器に依存する入力は全部塞がれている」~~ → ネットワークスタックだけ抜けていた:
   sim コードが `std::net::TcpStream::connect` でソケットを開けば、入力ログも replay も
