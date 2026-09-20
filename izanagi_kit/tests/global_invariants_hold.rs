@@ -635,6 +635,42 @@ fn shipped_code_cannot_come_from_outside_the_scanned_tree() {
             }
         }
     }
+
+    // The same assumption breaks one level up: a symlink under a scanned
+    // directory reads as the *target's* content — bytes the repository's
+    // diff and review surfaces never show. Checked-in trees must be real
+    // files.
+    for dir in [
+        "izanagi_kit/src",
+        "izanagi/src",
+        "izanagi_kit/tests",
+        "izanagi/tests",
+        "izanagi_kit/examples",
+        "izanagi/examples",
+    ] {
+        fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
+            let Ok(entries) = fs::read_dir(dir) else {
+                return;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                // DirEntry::file_type does not follow links — the entry's own
+                // kind is what the repository actually stores.
+                if entry.file_type().map(|t| t.is_symlink()).unwrap_or(false) {
+                    out.push(path);
+                } else if path.is_dir() {
+                    walk(&path, out);
+                }
+            }
+        }
+        let mut links = Vec::new();
+        walk(&repo_root().join(dir), &mut links);
+        assert!(
+            links.is_empty(),
+            "symlinks under {dir}: {links:?} — a scanned path must BE the \
+             file, not point at bytes that live outside the reviewed tree"
+        );
+    }
 }
 
 /// Does `code` contain `needle` as a token — not as the tail of a longer

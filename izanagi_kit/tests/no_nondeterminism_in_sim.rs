@@ -120,6 +120,13 @@ const BANNED: &[(&str, &str)] = &[
     // honest builds on different hardware.
     ("CPU feature detection", "std::arch"),
     ("CPU feature detection", "core::arch"),
+    // `catch_unwind`/`panic::` are panic *machinery*: in a crate whose public
+    // contract is saturate/None/no-op on bad input (G7), catching a panic is
+    // how a real panic gets laundered into a passing result. The lint denies
+    // panic! but the runtime API around it is a different door to the same
+    // room.
+    ("panic machinery", "catch_unwind"),
+    ("panic machinery", "panic::"),
 ];
 
 fn kit_src() -> PathBuf {
