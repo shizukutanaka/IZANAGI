@@ -758,6 +758,28 @@ fn the_pipeline_demo_embeds_the_shipped_fixture_verbatim() {
 }
 
 #[test]
+fn readme_kit_module_count_is_a_floor_the_source_clears() {
+    // The root README's "N zero-dependency modules" drifted 11 behind reality
+    // (it said 78 while src/ held 89). Like the test counts it is a floor —
+    // assert the claimed number never exceeds the real module count.
+    let readme = read("README.md");
+    let claim = readme
+        .lines()
+        .find(|l| l.contains("zero-dependency modules"))
+        .expect("root README must state the kit module count");
+    let claimed: usize = claim
+        .split_whitespace()
+        .find_map(|tok| tok.trim_end_matches('+').parse().ok())
+        .expect("the module-count claim must carry a number");
+    let actual = declared_modules().len();
+    assert!(
+        claimed <= actual,
+        "README claims {claimed} kit modules but only {actual} exist — \
+         keep the number a floor below reality"
+    );
+}
+
+#[test]
 fn readme_msrv_claims_match_their_manifests() {
     // izanagi/README.md claimed "MSRV: Rust 1.75" while its manifest declared
     // rust-version 1.65 — an overstatement of the requirement. Whatever MSRV a
