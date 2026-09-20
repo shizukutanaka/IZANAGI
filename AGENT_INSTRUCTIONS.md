@@ -205,6 +205,12 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `env as`/`thread as`/`process as` エイリアスニードルで閉塞 — src 注入
   (env/panic の alias)、fence 注入、suite 注入(brace/alias/入れ子)は
   すべて失敗することを実証。
+- ~~panic 系マクロは「ファイル毎の個数」を凍結すれば十分~~ → `debug_assert!` を
+  `assert!` に入れ替えるだけで「debug限定の監査 assert」が「出荷パニック」に
+  昇格するのに個数は変わらずゲートを通る(注入実証)。凍結対象を個数から
+  「マクロ名+呼び出し先頭40文字」のサイトキー多重集合に強化 —
+  昇格・メッセージ変更・削除・追加の4形態で検知を実証
+  (g7_panicking_macros_are_frozen_at_named_sites)。
 - ~~`cfg_attr` の適用対象は条件コンパイルだけ~~ → `push_applied_cfg` が
   cfg 系のみ再帰表面化していたため、`#[cfg_attr(test, allow(dead_code))]`
   は `#[allow` needle を一度も綴らずに「テストビルドだけ lint が緩む」

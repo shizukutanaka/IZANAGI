@@ -940,19 +940,26 @@ fn nothing_compiles_after_the_test_module_boundary() {
 /// `debug_assert!`, `unreachable!`, `todo!` and `unimplemented!` lower to
 /// the same trap without tripping the lint. The rule here is the same as
 /// the non-determinism allowlist: every existing site is named with a
-/// reason, the count is exact, and a new one fails the build until the
+/// reason and its call-text prefix is frozen — a count alone cannot see
+/// `debug_assert!` quietly strengthening to `assert!` (a debug-only audit
+/// becoming a shipped panic; proven by injection), and a new site fails
+/// the build until the
 /// sentence is written — which is the moment to decide whether the site
 /// should instead be a saturating/no-op return (G7's contract for
 /// *runtime* input). Slice indexing `v[i]` is the one panic family this
 /// does not enumerate: it is syntactically indistinguishable from valid
 /// reads, and bounding it belongs to the code review the allowlist gate
 /// cannot automate.
-fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> {
+fn panicking_macro_allowlist() -> BTreeMap<&'static str, (&'static [&'static str], &'static str)> {
     let mut m = BTreeMap::new();
     m.insert(
         "izanagi_kit/rollback.rs",
         (
-            3,
+            &[
+                "assert!(capacity > 0, \"SnapshotRing capacity mus",
+                "assert!(stride > 0, \"SnapshotRing stride must be",
+                "debug_assert_eq!(*bf, base_frame, \"window front tracks th",
+            ][..],
             "SnapshotRing::new's zero-capacity/zero-stride guards are documented \
              programming-error preconditions; the debug_assert_eq self-checks \
              the window-base invariant in development builds only",
@@ -961,7 +968,11 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
     m.insert(
         "izanagi_kit/netinput.rs",
         (
-            3,
+            &[
+                "assert!(lower_permille <= raise_permille, \"lower",
+                "assert!(min_delay <= max_delay, \"min_delay must ",
+                "assert!(window_cap > 0, \"window_cap must be > 0\"",
+            ][..],
             "AdaptiveDelay::new's ordering/capacity preconditions — documented \
              panics on programmer error, not on network input",
         ),
@@ -969,7 +980,10 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
     m.insert(
         "izanagi_kit/timestep.rs",
         (
-            2,
+            &[
+                "assert!(max_steps > 0, \"max_steps must be > 0\");",
+                "assert!(steps_per_second > 0, \"steps_per_second ",
+            ][..],
             "FixedTimestep::new requires a nonzero rate and cap — documented \
              constructor precondition",
         ),
@@ -977,7 +991,7 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
     m.insert(
         "izanagi_kit/identify.rs",
         (
-            1,
+            &["assert!(labels.len() >= sorted_kinds.len(), \"not"][..],
             "Identification::new requires at least as many labels as kinds — \
              documented constructor precondition",
         ),
@@ -985,23 +999,32 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
     m.insert(
         "izanagi_kit/wallet.rs",
         (
-            1,
+            &["debug_assert!(ok); other.deposit(c, amount); true } pu"][..],
             "post-deposit self-check, debug builds only — it is the audit \
              tool, not a panic path reachable from input",
         ),
     );
     m.insert(
         "izanagi_kit/pathfinding.rs",
-        (1, "JPS chain-reconstruction invariant, debug builds only"),
+        (
+            &["debug_assert_eq!(cur, start, \"jump-point chain must termi"][..],
+            "JPS chain-reconstruction invariant, debug builds only",
+        ),
     );
     m.insert(
         "izanagi_kit/fov.rs",
-        (1, "Frac denominator invariant, debug builds only"),
+        (
+            &["debug_assert!(den > 0, \"Frac denominator must be posit"][..],
+            "Frac denominator invariant, debug builds only",
+        ),
     );
     m.insert(
         "izanagi_kit/replay.rs",
         (
-            2,
+            &[
+                "unreachable!(\"i < max(len) so at least one side is So",
+                "unreachable!(\"tick < max(len) so at least one side is",
+            ][..],
             "the zip-longest (None, None) arms are unreachable by loop bound; \
              the tests that exercise the divergence table cover every arm",
         ),
@@ -1009,7 +1032,7 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
     m.insert(
         "izanagi/sprite.rs",
         (
-            1,
+            &["assert!(!frames.is_empty(), \"animation must have"][..],
             "Animation::new requires a nonempty frame list — documented \
              constructor precondition",
         ),
@@ -1021,7 +1044,7 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
 /// absent: `deny(clippy::panic)` already enforces it at compile time.
 /// Identifier boundaries are required so `debug_assert!` is not double
 /// counted under `assert!` and a `my_assert!` helper is not miscounted.
-fn count_panicking_macros(code: &str) -> usize {
+fn panicking_macro_sites(code: &str) -> Vec<String> {
     const MACROS: &[&str] = &[
         "debug_assert_eq!(",
         "debug_assert_ne!(",
@@ -1034,7 +1057,7 @@ fn count_panicking_macros(code: &str) -> usize {
         "unimplemented!(",
     ];
     let bytes = code.as_bytes();
-    let mut n = 0;
+    let mut sites = Vec::new();
     for needle in MACROS {
         for (pos, _) in code.match_indices(needle) {
             let prev_ok = pos == 0
@@ -1042,12 +1065,25 @@ fn count_panicking_macros(code: &str) -> usize {
                     || bytes[pos - 1] == b'_'
                     || bytes[pos - 1] == b':'
                     || bytes[pos - 1] == b'.');
-            if prev_ok {
-                n += 1;
+            if !prev_ok {
+                continue;
             }
+            // The site's identity is the macro plus a prefix of its call
+            // text, so `debug_assert!` quietly strengthening to `assert!`
+            // (a debug-only audit becoming a shipped panic — proven by
+            // injection) changes the site even though the count does not.
+            let tail: String = code[pos + needle.len()..]
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ")
+                .chars()
+                .take(40)
+                .collect();
+            sites.push(format!("{needle}{tail}"));
         }
     }
-    n
+    sites.sort();
+    sites
 }
 
 #[test]
@@ -1056,23 +1092,25 @@ fn g7_panicking_macros_are_frozen_at_named_sites() {
     let mut live: Vec<String> = Vec::new();
     for src in ["izanagi_kit/src", "izanagi/src"] {
         for (name, code) in library_sources(&repo_root().join(src)) {
-            let n = count_panicking_macros(&code);
-            if n == 0 {
+            let sites = panicking_macro_sites(&code);
+            if sites.is_empty() {
                 continue;
             }
             let key = format!("{}/{}", src.trim_end_matches("/src"), name);
             live.push(key.clone());
             match allowed.get(key.as_str()) {
                 Some(&(expected, _)) => assert_eq!(
-                    n, expected,
-                    "{key} has {n} panicking macros where {expected} are \
-                     named — a new one needs its reason written here first"
+                    sites,
+                    expected.to_vec(),
+                    "{key}'s panicking-macro sites drifted — a site changed \
+                     kind or text, and a count alone cannot see that"
                 ),
                 None => panic!(
-                    "{key} contains {n} panicking macro(s) outside the \
+                    "{key} contains {} panicking macro(s) outside the \
                      allowlist. G7's contract is saturate/None/no-op on bad \
                      input; a documented programming-error precondition \
-                     belongs in panicking_macro_allowlist() with that reason"
+                     belongs in panicking_macro_allowlist() with that reason",
+                    sites.len()
                 ),
             }
         }
@@ -1893,7 +1931,7 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi/tests/float_boundary.rs",
                 "izanagi/tests/public_api_is_exercised.rs",
                 "izanagi/tests/no_unordered_containers.rs",
-            ],
+            ][..],
         ),
         (
             "library_sources",
@@ -1905,7 +1943,7 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
                 "izanagi_kit/tests/global_invariants_hold.rs",
                 "izanagi/tests/no_unordered_containers.rs",
-            ],
+            ][..],
         ),
         (
             "contains_token",
@@ -1913,7 +1951,7 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi_kit/tests/msrv_is_respected.rs",
                 "izanagi_kit/tests/no_float_in_sim.rs",
                 "izanagi_kit/tests/global_invariants_hold.rs",
-            ],
+            ][..],
         ),
         (
             "count_token",
@@ -1921,14 +1959,14 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
                 "izanagi/tests/float_boundary.rs",
                 "izanagi/tests/no_unordered_containers.rs",
-            ],
+            ][..],
         ),
         (
             "engine_src",
             &[
                 "izanagi/tests/float_boundary.rs",
                 "izanagi/tests/no_unordered_containers.rs",
-            ],
+            ][..],
         ),
         (
             "kit_src",
@@ -1937,14 +1975,14 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
                 "izanagi_kit/tests/hashes_are_width_independent.rs",
                 "izanagi_kit/tests/hashes_are_endian_independent.rs",
-            ],
+            ][..],
         ),
         (
             "take_balanced",
             &[
                 "izanagi_kit/tests/global_invariants_hold.rs",
                 "izanagi_kit/tests/no_platform_cfg_in_sim.rs",
-            ],
+            ][..],
         ),
         (
             "flattened_use_paths",
@@ -1952,7 +1990,7 @@ fn shared_scanner_helpers_are_identical_in_every_file() {
                 "izanagi_kit/tests/global_invariants_hold.rs",
                 "izanagi_kit/tests/no_nondeterminism_in_sim.rs",
                 "izanagi_kit/tests/docs_are_current.rs",
-            ],
+            ][..],
         ),
     ];
     fn extract<'a>(src: &'a str, fname: &str) -> &'a str {
