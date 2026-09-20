@@ -1909,6 +1909,12 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 // same thing (injected into a test and an example: green).
                 "is_terminal",
                 "IsTerminal",
+                // CPU-feature probes are the machine itself: a check behind
+                // `is_*_feature_detected!` exists on one host and not
+                // another, with the suite still reporting green (injected
+                // an aarch64 probe into a test: green).
+                "arch::",
+                "feature_detected",
             ] {
                 assert!(
                     !contains_token(&code, needle),
