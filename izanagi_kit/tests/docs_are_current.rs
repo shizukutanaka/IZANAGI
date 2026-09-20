@@ -979,6 +979,76 @@ fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
 }
 
 #[test]
+fn doc_attributes_only_carry_the_readme_include() {
+    // `#[doc = "..."]` strings are documentation too — rustdoc compiles
+    // their ```rust fences into doctests exactly like `///` lines, but the
+    // fence walker above reads comment prefixes only, so a `#[doc]` string
+    // is a doctest nobody scans (verified by injection: three `#[doc =]`
+    // attrs spelling a ```rust fence ran `std::env::var` while this file
+    // stayed green). The one legitimate `#[doc]` is the README wiring
+    // `#[doc = include_str!("../README.md")]` — every other spelling is
+    // banned outright; the strings it could carry are unscannable prose.
+    let mut offenders: Vec<String> = Vec::new();
+    for krate in ["izanagi/src", "izanagi_kit/src"] {
+        let root = repo_root().join(krate);
+        let mut stack = vec![root];
+        while let Some(dir) = stack.pop() {
+            let Ok(entries) = fs::read_dir(dir) else {
+                continue;
+            };
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    stack.push(path);
+                    continue;
+                }
+                if !path.extension().map(|e| e == "rs").unwrap_or(false) {
+                    continue;
+                }
+                let rel = path
+                    .strip_prefix(repo_root())
+                    .unwrap_or(&path)
+                    .display()
+                    .to_string();
+                let src = fs::read_to_string(&path)
+                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
+                let mut at = 0;
+                while let Some(off) = src[at..].find("#[doc") {
+                    let pos = at + off + "#[doc".len();
+                    at = pos;
+                    // `#![doc` shares the prefix — the inner spelling is the
+                    // same attribute and gets the same rule.
+                    let after = src[pos..].trim_start();
+                    let ok = after.starts_with("= include_str!(")
+                        || after.starts_with("=include_str!(")
+                        // `#[doc(hidden)]`-style forms carry flags, not
+                        // prose — no text, no doctest.
+                        || after.starts_with('(');
+                    if !ok {
+                        offenders.push(format!(
+                            "{rel}: `#[doc` carrying `{:.24}` — only `#[doc = \
+                             include_str!(..)]` may carry documentation text; \
+                             a string literal here is an unscanned doctest",
+                            after
+                        ));
+                    }
+                }
+            }
+        }
+    }
+    assert!(
+        offenders.is_empty(),
+        "doc attributes outside the README include wiring: {offenders:#?}"
+    );
+    // Vacuity: the wiring must actually exist or the check passes on a scan
+    // that found nothing.
+    assert!(
+        read("izanagi_kit/src/lib.rs").contains("#[doc = include_str!"),
+        "the README doc-include wiring vanished from lib.rs — has the          doctest corpus been disconnected?"
+    );
+}
+
+#[test]
 fn every_manifest_version_has_a_changelog_entry() {
     // The engine's Cargo.toml said 4.1.0 while its CHANGELOG stopped at 4.0.0,
     // and nobody noticed until someone went looking for the rationale behind
