@@ -193,18 +193,27 @@ impl World {
 
     /// Remove component `T` from `e`, returning the value.
     pub fn remove<T: 'static>(&mut self, e: Entity) -> Option<T> {
+        if !self.alive(e) {
+            return None;
+        }
         let col = self.columns.get_mut(&TypeId::of::<T>())?;
         typed_mut::<T>(col.as_mut())?.data.remove(&e.index)
     }
 
     /// Borrow component `T` on `e`.
     pub fn get<T: 'static>(&self, e: Entity) -> Option<&T> {
+        if !self.alive(e) {
+            return None;
+        }
         let col = self.columns.get(&TypeId::of::<T>())?;
         typed::<T>(col.as_ref())?.data.get(&e.index)
     }
 
     /// Mutably borrow component `T` on `e`.
     pub fn get_mut<T: 'static>(&mut self, e: Entity) -> Option<&mut T> {
+        if !self.alive(e) {
+            return None;
+        }
         let col = self.columns.get_mut(&TypeId::of::<T>())?;
         typed_mut::<T>(col.as_mut())?.data.get_mut(&e.index)
     }
@@ -549,6 +558,24 @@ mod tests {
             query_order_after_removal, expected_after_removal,
             "order stays ascending after a middle entity is removed"
         );
+    }
+
+    #[test]
+    fn stale_handle_cannot_alias_a_recycled_index() {
+        let mut w = World::new();
+        let e1 = w.spawn();
+        w.insert(e1, Hp(100));
+        w.despawn(e1);
+        let e2 = w.spawn(); // reuses e1's index
+        w.insert(e2, Hp(50));
+        assert!(!w.alive(e1));
+        // A stale handle must not see the new entity's component: before
+        // get/get_mut/remove checked `alive`, this read returned e2's Hp —
+        // generation checks existed only on `insert`.
+        assert_eq!(w.get::<Hp>(e1), None);
+        assert_eq!(w.remove::<Hp>(e1), None);
+        assert_eq!(w.get_mut::<Hp>(e1).map(|h| h.0), None);
+        assert_eq!(w.get::<Hp>(e2), Some(&Hp(50)));
     }
 
     #[test]
