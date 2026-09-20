@@ -494,6 +494,16 @@ fn the_gate_is_what_the_hooks_and_the_documented_ci_run() {
         pre_commit.contains("cargo fmt") && pre_commit.contains("clippy"),
         ".githooks/pre-commit lost its fmt/clippy fast checks"
     );
+    // A checked-in hooks directory does not run by itself: git only finds it
+    // when the clone sets `core.hooksPath`. That setting is per-clone local
+    // state no repository file can enforce — the only enforceable link is
+    // that the instruction to set it keeps existing.
+    let instructions = read("AGENT_INSTRUCTIONS.md");
+    assert!(
+        instructions.contains("core.hooksPath"),
+        "AGENT_INSTRUCTIONS.md no longer tells a fresh clone to set \
+         core.hooksPath — .githooks/ would exist but never fire"
+    );
 }
 
 #[test]

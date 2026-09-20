@@ -142,24 +142,41 @@ fn collect_rs(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
-fn is_ident_byte(b: u8) -> bool {
-    b == b'_' || b.is_ascii_alphanumeric()
-}
-
-/// `tok` appears in `line` as a standalone identifier (not a substring of a
-/// longer identifier such as `from_f64_lossy` or `myf32`).
-fn contains_token(line: &str, tok: &str) -> bool {
-    let bytes = line.as_bytes();
-    let mut from = 0;
-    while let Some(rel) = line[from..].find(tok) {
-        let start = from + rel;
-        let end = start + tok.len();
-        let before_ok = start == 0 || !is_ident_byte(bytes[start - 1]);
-        let after_ok = end >= bytes.len() || !is_ident_byte(bytes[end]);
-        if before_ok && after_ok {
+/// `tok` appears in `line` as a token: a boundary is required on each side
+/// only where the needle itself ends in an identifier character, so `f32`
+/// does not match inside `myf32` but `.as_ptr(` still matches `v.as_ptr(x`.
+fn contains_token(code: &str, needle: &str) -> bool {
+    // The boundary requirement is derived from the needle's own first and last
+    // character, so a needle is never asked for a boundary that cannot exist.
+    //
+    // The first version returned `true` immediately for any needle starting
+    // with `.`, on the reasoning that a leading dot is a boundary by itself.
+    // That was sound only while every such needle also *ended* with `(`, which
+    // supplied the right-hand boundary by construction. Adding `.first_chunk`
+    // — paren-free, because the method is normally written with a turbofish —
+    // broke the assumption, and the needle matched `self.first_chunk_index`.
+    // The self-test below caught it. This is the same both-sides rule used by
+    // `no_nondeterminism_in_sim.rs` and `izanagi/tests/float_boundary.rs`.
+    fn ident_char(c: char) -> bool {
+        c.is_alphanumeric() || c == '_'
+    }
+    let bytes: Vec<char> = code.chars().collect();
+    let pat: Vec<char> = needle.chars().collect();
+    if pat.is_empty() || bytes.len() < pat.len() {
+        return false;
+    }
+    let check_left = pat.first().copied().map(ident_char).unwrap_or(false);
+    let check_right = pat.last().copied().map(ident_char).unwrap_or(false);
+    for i in 0..=bytes.len() - pat.len() {
+        if bytes[i..i + pat.len()] != pat[..] {
+            continue;
+        }
+        let left_ok = !check_left || i == 0 || !ident_char(bytes[i - 1]);
+        let after = i + pat.len();
+        let right_ok = !check_right || after >= bytes.len() || !ident_char(bytes[after]);
+        if left_ok && right_ok {
             return true;
         }
-        from = start + 1;
     }
     false
 }
