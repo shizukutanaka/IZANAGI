@@ -889,6 +889,14 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `#[test`/`#[cfg(test`/`#![cfg(test` を禁止追加。
 
 
+- ~~bin ルートは `src/bin/` のみだと思われていた~~ → cargo は
+  `<crate>/src/main.rs` も bin target として発見 — そのファイルは
+  `src/bin` walk の外で `forbid(unsafe_code)` 必須も `#[test]` 禁止も
+  掛からず、`unsafe` を含む main.rs が全走査緑で通った(実証)。
+  bin ルート列挙をファイル収集型に変更し `src/main.rs` を両クレートで
+  同じ規則で検査。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

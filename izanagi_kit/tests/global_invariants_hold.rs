@@ -825,6 +825,17 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
     // stays legal for cargo-provided `CARGO_*` constants
     // (`CARGO_PKG_VERSION` is the idiomatic version string) — anything else
     // bakes the build machine into a shipped binary.
+    // Cargo also treats `<crate>/src/main.rs` as a bin target — a root that
+    // lives outside `src/bin/` and so outside the tree walk below (verified:
+    // a `src/main.rs` with an `unsafe` fn compiled and stayed green — the
+    // lib-level forbid never reached it). Collect every bin root first.
+    let mut bin_files: Vec<std::path::PathBuf> = Vec::new();
+    for main in ["izanagi_kit/src/main.rs", "izanagi/src/main.rs"] {
+        let p = repo_root().join(main);
+        if p.exists() {
+            bin_files.push(p);
+        }
+    }
     for bin_dir in ["izanagi_kit/src/bin", "izanagi/src/bin"] {
         let dir = repo_root().join(bin_dir);
         let mut found_any = false;
@@ -846,49 +857,7 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
                     continue;
                 }
                 found_any = true;
-                let name = path.display().to_string();
-                let raw =
-                    fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {name}: {e}"));
-                let code = test_code(&raw);
-                assert!(
-                    code.contains("#![forbid(unsafe_code)]"),
-                    "{name} is a bin crate root without `#![forbid(unsafe_code)]` \
-                     — the lib-level forbid does not reach this target"
-                );
-                let body = code.replacen("#![forbid(unsafe_code)]", "", 1);
-                assert!(
-                    !body.contains("#![forbid(unsafe_code)]"),
-                    "{name} declares `#![forbid(unsafe_code)]` twice"
-                );
-                for needle in ["unsafe", "include!(", "include_bytes!(", "#[path", "mod "] {
-                    assert!(
-                        !contains_token(&body, needle),
-                        "{name} contains `{needle}` — a shipped binary may not \
-                         take unsafe or splice in code the scans never read"
-                    );
-                }
-                // A bare `#[test]` at a bin root needs no `mod` — cargo test
-                // runs it, while bin scope legitimately allows env::/fs::/
-                // process:: for the CLI's machine-facing job (verified:
-                // `#[test] fn` appended to gamec.rs passed, its env::var
-                // unflagged). Tests belong in the scanned dirs only.
-                for needle in ["#[test", "#[cfg(test", "#![cfg(test"] {
-                    assert!(
-                        !contains_token(&body, needle),
-                        "{name} contains `{needle}` — a bin carries no test \
-                         harness; suite code there escapes the env/fs/process \
-                         bans the scanned dirs enforce"
-                    );
-                }
-                for arg in env_macro_args(&raw) {
-                    assert!(
-                        arg.as_deref()
-                            .map(|a| a.starts_with("CARGO_"))
-                            .unwrap_or(false),
-                        "{name} bakes a non-CARGO_* build env var into a shipped \
-                         binary ({arg:?})"
-                    );
-                }
+                bin_files.push(path);
             }
         }
         if bin_dir == "izanagi_kit/src/bin" {
@@ -896,6 +865,50 @@ fn g7_the_safety_denies_are_present_and_nothing_weakens_them() {
                 found_any,
                 "izanagi_kit/src/bin scanned empty — gamec lives there, and \
                  an empty scan would pass vacuously"
+            );
+        }
+    }
+    for path in bin_files {
+        let name = path.display().to_string();
+        let raw = fs::read_to_string(&path).unwrap_or_else(|e| panic!("reading {name}: {e}"));
+        let code = test_code(&raw);
+        assert!(
+            code.contains("#![forbid(unsafe_code)]"),
+            "{name} is a bin crate root without `#![forbid(unsafe_code)]` \
+             — the lib-level forbid does not reach this target"
+        );
+        let body = code.replacen("#![forbid(unsafe_code)]", "", 1);
+        assert!(
+            !body.contains("#![forbid(unsafe_code)]"),
+            "{name} declares `#![forbid(unsafe_code)]` twice"
+        );
+        for needle in ["unsafe", "include!(", "include_bytes!(", "#[path", "mod "] {
+            assert!(
+                !contains_token(&body, needle),
+                "{name} contains `{needle}` — a shipped binary may not \
+                 take unsafe or splice in code the scans never read"
+            );
+        }
+        // A bare `#[test]` at a bin root needs no `mod` — cargo test
+        // runs it, while bin scope legitimately allows env::/fs::/
+        // process:: for the CLI's machine-facing job (verified:
+        // `#[test] fn` appended to gamec.rs passed, its env::var
+        // unflagged). Tests belong in the scanned dirs only.
+        for needle in ["#[test", "#[cfg(test", "#![cfg(test"] {
+            assert!(
+                !contains_token(&body, needle),
+                "{name} contains `{needle}` — a bin carries no test \
+                 harness; suite code there escapes the env/fs/process \
+                 bans the scanned dirs enforce"
+            );
+        }
+        for arg in env_macro_args(&raw) {
+            assert!(
+                arg.as_deref()
+                    .map(|a| a.starts_with("CARGO_"))
+                    .unwrap_or(false),
+                "{name} bakes a non-CARGO_* build env var into a shipped \
+                 binary ({arg:?})"
             );
         }
     }
