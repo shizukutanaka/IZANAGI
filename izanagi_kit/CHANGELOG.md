@@ -89,6 +89,22 @@ hand-computed expectations.
 - `wfc::CellSelector`, a pluggable collapse ordering, bit-identical by default.
 - `examples/verify_pipeline_demo.rs` — the whole pipeline on one simulation
   with a planted bug, every printed claim asserted.
+- `content`: `prefab <name> extends <base>` — a field-level patch overlay for
+  `.game` prefabs. Stats merge key-wise (child wins), flags union base-first,
+  and `glyph`/`color` override only when the child declares them, so an
+  explicit reset is distinguishable from "not mentioned". Resolution is lazy
+  via `Content::resolve_prefab`; missing bases and cycles surface as
+  `ExtendsError` diagnostics in the validator and as loud load failures.
+  `gamec --fmt` keeps the overlay rather than flattening it, so round-trips
+  preserve `extends`.
+- `observe::Observed<T>` — a `SparseSet` wrapper that pushes `Added`/
+  `Replaced`/`Removed` events into an internal queue in program order: the
+  push half of change awareness, next to `change::Changed`'s pull. Events are
+  data — ordered, hashable, replayable — and the storage's `DetHash` folds
+  pending events in, so a forgotten drain surfaces as a desync rather than a
+  silent skip. Opt-in; the default path is bit-identical.
+- `tests/bench.rs` — a timing harness in the engine's bench style, head-to-
+  head on `SparseSet`+`join` vs `arch::ArchTable`. It is what closed N18.
 
 ### Changed
 
@@ -102,6 +118,13 @@ hand-computed expectations.
   allowed; the engine's `States<S>` was restructured so an empty stack is not a
   representable value.
 - `Fixed::mul`/`div` proven not to need i128 intermediates (N19 closed).
+- N18 (archetype storage for the core) closed by measurement: `ArchTable`
+  wins multi-component joins ~16x but loses scattered point lookups ~4x and
+  churn ~2x to `SparseSet`, and the join delta is ~0.1% of a 60fps frame —
+  not worth an iteration-order semantics change. `ArchTable` stays as the
+  opt-in primitive for scan-heavy consumers.
+- `geometry::isqrt` was a verbatim copy of `fixed::isqrt_u64`; it now
+  delegates. Same output on every `i64` input.
 
 ### Removed
 
