@@ -170,7 +170,8 @@ const BANNED: &[(&str, &str)] = &[
     // `with_addr`, `map_addr`, `.addr(`, `with_exposed_provenance`),
     // `NonNull`, and identity comparisons (`ptr_eq`, `ptr::`) all turn an
     // allocator's choices into data — different run, different addresses,
-    // different hash. `{:p` prints the same value into output bytes.
+    // different hash. The pointer format flag prints the same value into
+    // output bytes.
     ("pointer identity", "into_raw"),
     ("pointer identity", "from_raw"),
     ("pointer identity", "expose_addr"),
@@ -181,7 +182,7 @@ const BANNED: &[(&str, &str)] = &[
     ("pointer identity", "NonNull"),
     ("pointer identity", "ptr_eq"),
     ("pointer identity", "ptr::"),
-    ("pointer identity", "{:p"),
+    ("pointer identity", concat!("{:", "p")),
     // `TypeId`/`type_name` hand the compiler's own naming to the program:
     // both differ across toolchains, so a hash or log line built on them is
     // not the same computation an honest rebuild produced. `offset_of`,

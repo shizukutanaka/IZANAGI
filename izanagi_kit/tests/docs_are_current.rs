@@ -789,7 +789,7 @@ fn fenced_rust_blocks_run_only_code_the_scanners_could_see() {
         "#[no_mangle",
         "#[link",
         "asm!(",
-        "{:p", // pointer addresses differ run to run
+        concat!("{:", "p"), // pointer addresses differ run to run
         // Ambient inputs and outside-the-scanned-universe delegation — the
         // same families library code is denied. A doctest is a compiled
         // crate running inside `cargo test`; a socket or subprocess here is

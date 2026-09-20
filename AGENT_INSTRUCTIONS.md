@@ -608,6 +608,18 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   gate ラン間で同一)と `temp_dir`(スクラッチ保存・値非観測)のみ許可。
 
 
+- ~~tests/examples のポインタ禁止は src と同じ表が効いていると思われていた~~ →
+  src のポインタ表(no_nondeterminism_in_sim.rs)は library_sources にだけ
+  適用され、tests/examples は `as *`/`*const`/`*mut`/`.as_ptr(`/
+  `into_raw(`/ポインタ書式フラグを全て通した(`&x as *const u8 as usize` を
+  テストと example の両方に注入して緑を実証)。スイート走査にもポインタ
+  ニードルを追加 — 書式フラグは文字列内に潜むため raw ソース走査で。
+- ~~`#[link]` 系の宣言は `#[link` ニードルで尽きると思われていた~~ →
+  `#[export_name]`/`#[link_section]`/`#[used]` は検査をすり抜けるが
+  `forbid(unsafe_code)` が unsafe 属性としてコンパイルを拒否(注入で
+  実証→コンパイル段で失敗)。検査不要と確認 — コンパイラが塞いでいた。
+
+
 ## 3. 改善案(優先順位付き)
 
 この表は 12 行あった。**11 行が閉じ、残る1行はユーザーの意思決定待ち**である。

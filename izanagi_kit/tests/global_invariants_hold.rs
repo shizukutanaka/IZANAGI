@@ -1564,10 +1564,9 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 continue;
             }
             let name = entry.file_name().to_string_lossy().to_string();
-            let code = test_code(
-                &fs::read_to_string(&path)
-                    .unwrap_or_else(|e| panic!("reading {}: {e}", path.display())),
-            );
+            let raw = fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("reading {}: {e}", path.display()));
+            let code = test_code(&raw);
             // Brace imports rewrite the text the needles spell: scanning the
             // flattened paths keeps `use std::env::{var}` readable as the
             // `env::var` it actually compiles to.
@@ -1673,6 +1672,36 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                      or a machine leak"
                 );
             }
+            // Raw pointers and addresses: `&x as *const T as usize` puts an
+            // ASLR address into the values a check compares; the pointer
+            // format flag prints one into bytes the gate pins;
+            // `into_raw`/`from_raw` spell a pointer without `*const` in the
+            // text (all verified green by injection in a test and an
+            // example). The pointer-format flag lives inside a format string
+            // — invisible once literals are blanked — so the raw source is
+            // scanned for it, and the needle below is spelled so this file
+            // does not match itself.
+            for needle in [
+                "as *",
+                "*const",
+                "*mut",
+                ".as_ptr(",
+                ".as_mut_ptr(",
+                "into_raw(",
+                "from_raw(",
+            ] {
+                assert!(
+                    !contains_token(&code, needle),
+                    "{name} contains `{needle}` — a machine address in a check \
+                     is ASLR input no input log can replay"
+                );
+            }
+            let fmt_ptr = concat!("{:", "p}");
+            assert!(
+                !raw.contains(fmt_ptr),
+                "{name} prints a pointer address with `{fmt_ptr}` — the \
+                 address is ASLR input no input log can replay"
+            );
             // Delegating the checked computation to outside the scanned
             // universe: a subprocess runs anything, a socket reads bytes no
             // scan can see, and env writes mutate the ambient inputs other
