@@ -577,6 +577,11 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
         // pinned-output examples stage runs them by name, so a silent
         // default changes which binary consumers think is the entry.
         "default-run",
+        // `build` names a build script — arbitrary code that runs at every
+        // compile, emits cfgs/env vars no source scan can see, and lives in
+        // a file no scanner walks (injected a script that wrote a sentinel:
+        // it ran while every check stayed green).
+        "build",
     ];
     // Profile tables exist legitimately (the workspace root sets opt-level/
     // lto/strip) — but three of their keys rewrite program semantics rather
@@ -709,6 +714,21 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                 }
             }
         }
+    }
+
+    // Banning the `build` key is only half the door: cargo auto-discovers a
+    // `build.rs` at each package root and runs it with no manifest entry at
+    // all (injected a bare izanagi_kit/build.rs that wrote a sentinel — it
+    // ran while every manifest check stayed green). The script file itself
+    // must not exist anywhere cargo would pick it up.
+    for crate_dir in [".", "izanagi", "izanagi_kit"] {
+        let script = repo_root().join(crate_dir).join("build.rs");
+        assert!(
+            !script.exists(),
+            "{} exists — a build script is arbitrary compile-time code that \
+             no scanner reads and no manifest key needs to name",
+            script.display()
+        );
     }
 
     // `exclude`/`include` are legal keys with a real job — they keep the
