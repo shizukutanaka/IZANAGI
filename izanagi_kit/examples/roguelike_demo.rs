@@ -166,9 +166,7 @@ impl Sim {
     }
 
     fn refresh_fov(&mut self) {
-        for v in &mut self.visible {
-            *v = false;
-        }
+        self.visible.fill(false);
         let pos = match self.actors.get(&PLAYER) {
             Some(p) => p.pos,
             None => return,

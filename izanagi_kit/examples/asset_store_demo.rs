@@ -307,10 +307,9 @@ fn main() {
     screen.draw_str(1, 4, "hndl  spr  name", HDR_FG, BG);
 
     // Live assets in ascending index order.
-    let mut row = 5i32;
     let live: Vec<(AssetHandle<Sprite>, Sprite)> =
         store.iter().map(|(h, s)| (h, s.clone())).collect();
-    for (h, s) in &live {
+    for (row, (h, s)) in (5i32..).zip(&live) {
         if row >= 21 {
             break;
         }
@@ -318,7 +317,6 @@ fn main() {
         screen.draw_str(1, row, &hstr, HANDLE_FG, BG);
         screen.set(7, row, s.glyph, s.color, BG);
         screen.draw_str(10, row, s.name, NAME_FG, BG);
-        row += 1;
     }
 
     // A little "sprite sheet" strip below the table.
@@ -333,8 +331,7 @@ fn main() {
     screen.draw_str(1, 20, "a new gen; old handle dies.", INFO_FG, BG);
 
     // Operation log.
-    let mut ly = 4i32;
-    for line in &log {
+    for (ly, line) in (4i32..).zip(&log) {
         if ly >= 22 {
             break;
         }
@@ -350,7 +347,6 @@ fn main() {
             _ => STAT_FG,
         };
         screen.draw_str(LOG_X + 4, ly, &body, body_fg, BG);
-        ly += 1;
     }
 
     // Bottom separator + stats.

@@ -126,9 +126,7 @@ impl Screen {
 
     /// Fill the whole screen with one cell.
     pub fn clear(&mut self, cell: Cell) {
-        for c in &mut self.cells {
-            *c = cell;
-        }
+        self.cells.fill(cell);
     }
 
     /// Fill a rectangle `[x, x+w) × [y, y+h)` with `cell` (clipped to bounds).

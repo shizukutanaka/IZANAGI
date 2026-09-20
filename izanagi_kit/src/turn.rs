@@ -341,7 +341,7 @@ impl<A: Copy + Ord + crate::world_hash::DetHash> Scheduler<A> {
     /// of replay-checked world state, independent of add order).
     pub fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
         let mut ordered: Vec<&Actor<A>> = self.actors.iter().collect();
-        ordered.sort_unstable_by(|x, y| x.id.cmp(&y.id));
+        ordered.sort_unstable_by_key(|x| x.id);
         hasher.write_u32(ordered.len() as u32);
         for a in ordered {
             a.id.det_hash(hasher);

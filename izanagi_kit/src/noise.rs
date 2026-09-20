@@ -136,6 +136,16 @@ fn lerp_u32(a: u32, b: u32, t: u32) -> u32 {
     }
 }
 
+/// Renormalise an octave-summed accumulator into `[0, 65535]`:
+/// `acc * 65535 / total_amp`, saturated — and `0` when `total_amp == 0`
+/// (`octaves == 0`, so no layer contributed).
+#[inline]
+fn renormalize(acc: u64, total_amp: u64) -> u32 {
+    (acc * 65535)
+        .checked_div(total_amp)
+        .map_or(0, |q| q.min(65535) as u32)
+}
+
 /// Fractional Brownian motion in 2-D: sum `octaves` layers of [`value_noise_2d`],
 /// each at double the frequency and half the amplitude of the previous, then
 /// renormalise to `[0, 65535]`. This is the standard way to turn flat value
@@ -161,11 +171,7 @@ pub fn fbm_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
             break; // further octaves contribute nothing
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// Fractional Brownian motion in 1-D — the [`fbm_2d`] analogue over
@@ -186,11 +192,7 @@ pub fn fbm_1d(x: i32, seed: u64, octaves: u32) -> u32 {
             break;
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// 2-D value noise that tiles seamlessly with period `(period_x, period_y)`.
@@ -265,11 +267,7 @@ pub fn fbm_1d_wrap(x: i32, seed: u64, octaves: u32, period: i32) -> u32 {
             break;
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// Tileable 2-D FBM — like [`fbm_2d`] but each octave tiles at `period`
@@ -292,11 +290,7 @@ pub fn fbm_2d_wrap(x: i32, y: i32, seed: u64, octaves: u32, period: i32) -> u32 
             break;
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// Map a noise value from the standard `[0, 65535]` output range to the
@@ -360,11 +354,7 @@ pub fn ridge_noise_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
             break;
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// 2-D turbulence noise — FBM with per-octave absolute-value folding for
@@ -388,11 +378,7 @@ pub fn turbulence_2d(x: i32, y: i32, seed: u64, octaves: u32) -> u32 {
             break;
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// 1-D turbulence noise — FBM with per-octave absolute-value folding, producing
@@ -415,11 +401,7 @@ pub fn turbulence_1d(x: i32, seed: u64, octaves: u32) -> u32 {
             break;
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// Sample 2-D noise at `(x, y)` and map the result to the half-open integer
@@ -506,11 +488,7 @@ pub fn fbm_3d(x: i32, y: i32, z: i32, seed: u64, octaves: u32) -> u32 {
             break;
         }
     }
-    if total_amp == 0 {
-        0
-    } else {
-        ((acc * 65535) / total_amp).min(65535) as u32
-    }
+    renormalize(acc, total_amp)
 }
 
 /// Sample 3-D noise at `(x, y, z)` and map the result to `[lo, hi)`.

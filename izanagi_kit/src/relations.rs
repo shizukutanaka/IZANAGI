@@ -252,10 +252,7 @@ impl Relations {
             if chain1.contains(&current) {
                 return Some(current);
             }
-            match self.parent_of(current) {
-                None => return None,
-                Some(p) => current = p,
-            }
+            current = self.parent_of(current)?;
         }
     }
 
