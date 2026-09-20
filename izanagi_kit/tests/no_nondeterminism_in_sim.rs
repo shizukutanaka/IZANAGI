@@ -124,6 +124,22 @@ const BANNED: &[(&str, &str)] = &[
     ("explicit RandomState", "RandomState"),
     ("environment access", "env::"),
     ("thread-local state", "thread_local"),
+    // Interior mutability: a `Cell`/`RefCell`/`OnceCell` inside an otherwise
+    // pure-looking type is a hidden memo cache — a second call can return a
+    // value the input log never produced. `Rc`/`Arc`/`lazy_static` are the
+    // same shape: shared ownership of mutable or lazily-initialised state
+    // that escapes the DetHash/equality view. `terminal::Cell` is a screen
+    // cell, not `std::cell::Cell` — the module-path needle keeps it legal.
+    ("interior mutability", "RefCell"),
+    ("interior mutability", "cell::Cell"),
+    ("lazy cell", "OnceCell"),
+    ("lazy cell", "LazyLock"),
+    ("shared ownership", "Rc<"),
+    ("shared ownership", "Rc::"),
+    ("shared ownership", "Arc<"),
+    ("shared ownership", "Arc::"),
+    ("lazy static", "lazy_static"),
+    ("lazy static", "once_cell"),
     ("unversioned std hashing", "DefaultHasher"),
     // Ambient inputs the input log cannot replay: the filesystem, the
     // process table, std I/O. `fs::`/`process::` catch `use`-shortened calls;

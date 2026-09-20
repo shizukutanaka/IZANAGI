@@ -1647,3 +1647,26 @@ fn no_ci_workflow_is_committed() {
          it or take the CI decision in AGENT_INSTRUCTIONS §3 first"
     );
 }
+
+#[test]
+fn the_validator_never_short_circuits_its_collection() {
+    // SPEC: "All findings are collected (never short-circuit) so one run
+    // surfaces every problem." A validator that returned after its first
+    // finding would still pass every existing test — each fixture carries
+    // one defect class. Structurally: no early-exit primitive may appear in
+    // validator.rs's impl region. test_code blanks strings/comments/chars
+    // first, so `?`/`return`/`break`/`continue` here are real code tokens.
+    let src =
+        fs::read_to_string(repo_root().join("izanagi_kit/src/validator.rs")).unwrap_or_default();
+    let code = test_code(&src);
+    let boundary = test_module_boundary(&code).unwrap_or(code.len());
+    let impl_region = &code[..boundary];
+    for needle in ["return", "?", "break", "continue"] {
+        assert!(
+            !impl_region.contains(needle),
+            "validator.rs impl region contains `{needle}` — an early-exit \
+             primitive would let validate() drop findings it promised to \
+             collect. Iterate and push every Diagnostic instead"
+        );
+    }
+}
