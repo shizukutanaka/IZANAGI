@@ -4224,7 +4224,11 @@ fn prop_scheduler_time_until_ready_formula() {
             } else {
                 (deficit + speed - 1) / speed
             };
-            assert_eq!(s.time_until_ready(id), Some(expected), "formula mismatch");
+            assert_eq!(
+                s.time_until_ready(id),
+                Some(expected as i64),
+                "formula mismatch"
+            );
             assert_eq!(
                 s.time_until_ready(id) == Some(0),
                 energy >= ACTION_COST,

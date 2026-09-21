@@ -157,13 +157,18 @@ impl<A: Copy + Ord> Scheduler<A> {
     ///
     /// Useful for AI planning ("the goblin acts in 3 turns") and UI countdown
     /// displays without driving the scheduler forward.
-    pub fn time_until_ready(&self, id: A) -> Option<i32> {
+    /// Note the return type is `i64`: with `set_energy` able to bank values
+    /// down to `i32::MIN`, the true wait can exceed `i32::MAX` units.
+    pub fn time_until_ready(&self, id: A) -> Option<i64> {
         let actor = self.actors.iter().find(|a| a.id == id)?;
-        let deficit = ACTION_COST - actor.energy;
+        // i64 throughout, same as next_turn: `ACTION_COST - energy` and
+        // `deficit + speed - 1` both overflow i32 for extreme stored values.
+        let deficit = ACTION_COST as i64 - actor.energy as i64;
         if deficit <= 0 {
             Some(0)
         } else {
-            Some((deficit + actor.speed - 1) / actor.speed)
+            // speed >= 1 by construction (add/set_speed clamp).
+            Some((deficit + actor.speed as i64 - 1) / actor.speed as i64)
         }
     }
 
@@ -803,5 +808,23 @@ mod tests {
         let from_all: Vec<u32> = s.all_actors();
         let from_iter: Vec<u32> = s.iter_actors().collect();
         assert_eq!(from_all, from_iter);
+    }
+
+    #[test]
+    fn time_until_ready_extreme_energy_does_not_overflow() {
+        // set_energy can bank i32::MIN; ACTION_COST - energy and
+        // deficit + speed - 1 both exceed i32, so the wait is computed in
+        // i64 and reported as i64.
+        let mut s = Scheduler::<u32>::new();
+        s.add(1u32, 10);
+        s.set_energy(1u32, i32::MIN);
+        assert_eq!(
+            s.time_until_ready(1u32),
+            Some((ACTION_COST as i64 - i32::MIN as i64 + 9) / 10)
+        );
+        let mut s2 = Scheduler::<u32>::new();
+        s2.add(1u32, i32::MAX);
+        s2.set_energy(1u32, -1_000_000_000);
+        assert!(s2.time_until_ready(1u32).is_some());
     }
 }
