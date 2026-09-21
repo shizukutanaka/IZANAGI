@@ -124,6 +124,8 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   `% len`/`% cap`/`% stride` サイトはガード済み・construct-time assert
   済み・`char_indices` 境界維持を再確認して非穴。
 
+- **非飽和縮小キャスト**: `(hi - lo) as i64`/`lo + (x as i32)` — i32 空間で引算・加算するとスパン超過や MIN 境界で wrap/panic。`hi as i64 - lo as i64` のように先に昇格。`izanagi_kit::noise`(`normalize_noise`)
+
 ### 未解決
 
 > **この4件の性質**: 1 と 5 は**ユーザーの操作を待っているだけ**で、作業は完了している。

@@ -305,8 +305,8 @@ pub fn normalize_noise(v: u32, lo: i32, hi: i32) -> i32 {
     if lo >= hi {
         return lo;
     }
-    let range = (hi - lo) as i64;
-    lo + (((v as i64) * range) / 65535).min(range) as i32
+    let range = hi as i64 - lo as i64;
+    (lo as i64 + (((v as i64) * range) / 65535).min(range)) as i32
 }
 
 /// Map a raw hash `h` (full `u32` range, e.g. from [`hash_1d`] / [`hash_2d`])
@@ -1025,5 +1025,14 @@ mod tests {
     fn test_fbm_2d_in_range_degenerate_range_returns_lo() {
         let v = fbm_2d_in_range(0, 0, 1, 2, 7, 7);
         assert_eq!(v, 7, "lo == hi should return lo");
+    }
+
+    #[test]
+    fn normalize_noise_full_i32_range() {
+        // The scaled term alone can exceed i32::MAX when hi - lo spans the
+        // full integer range; adding `lo` after narrowing would wrap.
+        assert_eq!(normalize_noise(65535, i32::MIN, i32::MAX), i32::MAX);
+        assert_eq!(normalize_noise(0, i32::MIN, i32::MAX), i32::MIN);
+        assert_eq!(normalize_noise(32768, i32::MIN, i32::MAX), 32768);
     }
 }
