@@ -171,9 +171,12 @@ impl Camera {
     #[inline]
     pub fn chebyshev_to_center(&self, wx: i32, wy: i32) -> u32 {
         let (cx, cy) = self.center();
-        let dx = (cx - wx).unsigned_abs();
-        let dy = (cy - wy).unsigned_abs();
-        dx.max(dy)
+        // i64 intermediate: |cx - wx| reaches ~2^32 at coordinate extremes —
+        // the same defence world_to_screen documents. u32 holds the result
+        // exactly (max legal Chebyshev distance is u32::MAX).
+        let dx = (cx as i64 - wx as i64).unsigned_abs();
+        let dy = (cy as i64 - wy as i64).unsigned_abs();
+        dx.max(dy) as u32
     }
 
     /// The centre of the screen viewport in screen-space, i.e.
@@ -189,10 +192,11 @@ impl Camera {
     /// returning `None`. Useful for "draw an arrow toward an off-screen target."
     #[inline]
     pub fn clamp_world_to_screen(&self, wx: i32, wy: i32) -> (u32, u32) {
-        let max_x = self.screen_w.saturating_sub(1) as i32;
-        let max_y = self.screen_h.saturating_sub(1) as i32;
-        let sx = (wx - self.top_left_x).clamp(0, max_x) as u32;
-        let sy = (wy - self.top_left_y).clamp(0, max_y) as u32;
+        let max_x = self.screen_w.saturating_sub(1) as i64;
+        let max_y = self.screen_h.saturating_sub(1) as i64;
+        // i64 deltas: wx - top_left overflows i32 at coordinate extremes.
+        let sx = (wx as i64 - self.top_left_x as i64).clamp(0, max_x) as u32;
+        let sy = (wy as i64 - self.top_left_y as i64).clamp(0, max_y) as u32;
         (sx, sy)
     }
 
@@ -211,27 +215,38 @@ impl Camera {
     /// inner region no pan occurs. Useful for keeping the player visible without
     /// constantly re-centring the view on every step.
     pub fn follow(&mut self, wx: i32, wy: i32, margin: u32, world_w: u32, world_h: u32) {
-        let m = margin as i32;
-        let inner_l = self.top_left_x + m;
-        let inner_r = self.top_left_x + self.screen_w as i32 - m - 1;
-        let inner_t = self.top_left_y + m;
-        let inner_b = self.top_left_y + self.screen_h as i32 - m - 1;
-        let dx = if wx < inner_l {
-            wx - inner_l
-        } else if inner_r >= inner_l && wx > inner_r {
-            wx - inner_r
+        // i64 throughout: top_left + screen_w and wx - inner_* overflow
+        // i32 at coordinate extremes.
+        let m = margin as i64;
+        let wx64 = wx as i64;
+        let wy64 = wy as i64;
+        let inner_l = self.top_left_x as i64 + m;
+        let inner_r = self.top_left_x as i64 + self.screen_w as i64 - m - 1;
+        let inner_t = self.top_left_y as i64 + m;
+        let inner_b = self.top_left_y as i64 + self.screen_h as i64 - m - 1;
+        let dx = if wx64 < inner_l {
+            wx64 - inner_l
+        } else if inner_r >= inner_l && wx64 > inner_r {
+            wx64 - inner_r
         } else {
             0
         };
-        let dy = if wy < inner_t {
-            wy - inner_t
-        } else if inner_b >= inner_t && wy > inner_b {
-            wy - inner_b
+        let dy = if wy64 < inner_t {
+            wy64 - inner_t
+        } else if inner_b >= inner_t && wy64 > inner_b {
+            wy64 - inner_b
         } else {
             0
         };
         if dx != 0 || dy != 0 {
-            self.pan(dx, dy, world_w, world_h);
+            // pan() takes i32; the delta magnitude can exceed it, so clamp —
+            // pan re-clamps to the world bounds anyway.
+            self.pan(
+                dx.clamp(i32::MIN as i64, i32::MAX as i64) as i32,
+                dy.clamp(i32::MIN as i64, i32::MAX as i64) as i32,
+                world_w,
+                world_h,
+            );
         }
     }
 
@@ -246,11 +261,17 @@ impl Camera {
     /// deciding when to trigger the lazy-follow camera.
     #[inline]
     pub fn distance_to_edge(&self, wx: i32, wy: i32) -> i32 {
-        let d_left = wx - self.top_left_x;
-        let d_right = self.top_left_x + self.screen_w as i32 - 1 - wx;
-        let d_top = wy - self.top_left_y;
-        let d_bottom = self.top_left_y + self.screen_h as i32 - 1 - wy;
-        d_left.min(d_right).min(d_top).min(d_bottom)
+        // i64 intermediates: each edge distance can reach ~2^32; the min is
+        // saturated back to i32 for the public signature.
+        let d_left = wx as i64 - self.top_left_x as i64;
+        let d_right = self.top_left_x as i64 + self.screen_w as i64 - 1 - wx as i64;
+        let d_top = wy as i64 - self.top_left_y as i64;
+        let d_bottom = self.top_left_y as i64 + self.screen_h as i64 - 1 - wy as i64;
+        d_left
+            .min(d_right)
+            .min(d_top)
+            .min(d_bottom)
+            .clamp(i32::MIN as i64, i32::MAX as i64) as i32
     }
 
     /// Total number of cells in the viewport: `screen_w × screen_h`. Useful
