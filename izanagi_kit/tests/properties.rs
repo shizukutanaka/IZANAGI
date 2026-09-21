@@ -1019,9 +1019,10 @@ fn prop_savefile_magic_corruption_always_detected() {
 
 /// **Length-field fault injection** — flipping any byte of the 4-byte payload
 /// length (bytes 16-19) must never produce `Ok`: an oversized length is
-/// rejected as `TooShort`, an undersized length reads the wrong slice and is
-/// caught by `ChecksumMismatch`. A zero-length payload save is included so a
-/// length flipped *down to* 0 is exercised too.
+/// rejected as `TooShort`, an undersized length leaves bytes after the declared
+/// payload and is rejected as `TrailingBytes` before the checksum is even
+/// consulted. A zero-length payload save is included so a length flipped *down
+/// to* 0 is exercised too.
 #[test]
 fn prop_savefile_len_field_corruption_never_accepted() {
     use izanagi_kit::savefile::{load_bytes, save_bytes, LoadError, SaveHeader};
@@ -1035,10 +1036,39 @@ fn prop_savefile_len_field_corruption_never_accepted() {
         saved[pos] ^= 0xFF;
 
         match load_bytes(&saved) {
-            Err(LoadError::TooShort) | Err(LoadError::ChecksumMismatch) => {}
+            Err(LoadError::TooShort)
+            | Err(LoadError::ChecksumMismatch)
+            | Err(LoadError::TrailingBytes) => {}
             Err(other) => panic!("unexpected error for len-field flip: {other:?}"),
             Ok(_) => panic!("len-field corruption accepted at byte {pos}"),
         }
+    }
+}
+
+/// **Appended-garbage fault injection** — appending any bytes after a valid
+/// save must always be rejected as `TrailingBytes`: those bytes are covered by
+/// no checksum, so accepting them would let corrupted saves load as if clean.
+#[test]
+fn prop_savefile_trailing_bytes_always_rejected() {
+    use izanagi_kit::savefile::{load_bytes, save_bytes, LoadError, SaveHeader};
+    let mut rng = SplitMix64::new(0x77A1_11E4);
+    for _ in 0..ITERS {
+        let len = rng.below(64) as usize;
+        let payload: Vec<u8> = (0..len).map(|_| rng.below(256) as u8).collect();
+        let mut saved = save_bytes(&SaveHeader::new(9), &payload);
+
+        // Append 1-8 garbage bytes (including payload-looking bytes — the
+        // framing must reject them regardless of content).
+        let extra = 1 + rng.below(8) as usize;
+        for _ in 0..extra {
+            saved.push(rng.below(256) as u8);
+        }
+
+        assert_eq!(
+            load_bytes(&saved),
+            Err(LoadError::TrailingBytes),
+            "{extra} trailing byte(s) accepted over {len}-byte payload"
+        );
     }
 }
 

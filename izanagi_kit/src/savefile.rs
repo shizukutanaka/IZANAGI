@@ -92,6 +92,13 @@ pub fn load_bytes(data: &[u8]) -> Result<(SaveHeader, &[u8]), LoadError> {
     if payload_len > data.len() - 20 {
         return Err(LoadError::TooShort);
     }
+    // Bytes after the declared payload are accepted nowhere: the checksum
+    // covers only the payload, so silently ignoring trailing bytes would let
+    // corrupted saves (appended garbage, concatenated writes) load as if
+    // clean. Reject them so every byte of the file is validated.
+    if payload_len < data.len() - 20 {
+        return Err(LoadError::TrailingBytes);
+    }
     let payload = &data[20..20 + payload_len];
     if fnv1a(payload) != checksum {
         return Err(LoadError::ChecksumMismatch);
@@ -127,6 +134,9 @@ pub enum LoadError {
     BadMagic,
     /// The payload's FNV-1a hash does not match the stored checksum.
     ChecksumMismatch,
+    /// Bytes follow the declared payload — the buffer is longer than the
+    /// declared length, so part of the file is covered by no checksum.
+    TrailingBytes,
     /// A [`Migrator`] could not convert the save file from its stored version.
     MigrationFailed,
 }
@@ -135,9 +145,10 @@ impl LoadError {
     /// Returns `true` when the error indicates a wrong-file condition rather
     /// than data corruption — i.e. the save slot should be treated as empty
     /// rather than damaged. Only [`BadMagic`](Self::BadMagic) qualifies (the
-    /// buffer simply is not a save file). [`TooShort`](Self::TooShort) and
-    /// [`ChecksumMismatch`](Self::ChecksumMismatch) indicate truncation or
-    /// payload corruption and are not recoverable.
+    /// buffer simply is not a save file). [`TooShort`](Self::TooShort),
+    /// [`ChecksumMismatch`](Self::ChecksumMismatch) and
+    /// [`TrailingBytes`](Self::TrailingBytes) indicate truncation or payload
+    /// corruption and are not recoverable.
     #[inline]
     pub fn is_recoverable(&self) -> bool {
         matches!(self, LoadError::BadMagic)
@@ -151,6 +162,7 @@ impl LoadError {
             LoadError::TooShort => "save file too short",
             LoadError::BadMagic => "not a save file (bad magic)",
             LoadError::ChecksumMismatch => "save file corrupted (checksum mismatch)",
+            LoadError::TrailingBytes => "save file has bytes after the payload",
             LoadError::MigrationFailed => "save file version migration failed",
         }
     }
@@ -168,6 +180,9 @@ impl core::fmt::Display for LoadError {
             }
             LoadError::ChecksumMismatch => {
                 write!(f, "save file checksum mismatch: payload may be corrupted")
+            }
+            LoadError::TrailingBytes => {
+                write!(f, "save file has trailing bytes after the declared payload")
             }
             LoadError::MigrationFailed => {
                 write!(f, "save file migration failed: incompatible version")

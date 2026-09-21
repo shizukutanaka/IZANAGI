@@ -130,6 +130,8 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 - **savefile ヘッダ領域の fault-injection 欠損**: 破損注入は payload・checksum フィールド・truncation のみで、magic(bytes 0-3)・len(bytes 16-19)・version(bytes 4-7) の各ヘッダフィールドは未走査だった — TigerBeetle VOPR 式にフィールド別 corruption sweep で閉塞: magic→常に `BadMagic`、len→`TooShort`/`ChecksumMismatch` で受理なし、version→checksum が payload のみを保護する設計意図のもと `Ok` + 破損値通過を固定(「version は読者の検査対象」契約の恒久 pin)。`izanagi_kit/tests/properties.rs`
 
+- **savefile の末尾ゴミバイトは未検出で受理されていた**: `payload_len < data.len() - 20` の場合、payload 後の余剰バイトは checksum の対象外で**静かに読み捨てられ、破損 save が正常と区別不能**だった(注入で実証)。厳格等長へ修正: 不足側は `LoadError::TrailingBytes` で拒否し、ファイル全バイトが検証対象になるようにした。`izanagi_kit::savefile`(`load_bytes`)
+
 ### 未解決
 
 > **この4件の性質**: 1 と 5 は**ユーザーの操作を待っているだけ**で、作業は完了している。
