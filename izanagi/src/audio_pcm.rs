@@ -72,8 +72,8 @@ pub fn load_wav(data: &[u8]) -> Result<PcmBuffer> {
             as usize;
         pos += 8;
         if tag == b"fmt " {
-            if size < 16 {
-                return Err(err("fmt chunk too small"));
+            if size < 16 || pos + 16 > data.len() {
+                return Err(err("fmt chunk too small or truncated"));
             }
             audio_format = u16::from_le_bytes([data[pos], data[pos + 1]]);
             channels = u16::from_le_bytes([data[pos + 2], data[pos + 3]]);
@@ -206,5 +206,22 @@ mod tests {
         assert_eq!(mono.channels, 1);
         assert!((mono.samples[0] - 0.0).abs() < 1e-5);
         assert!((mono.samples[1] - 0.5).abs() < 1e-5);
+    }
+
+    #[test]
+    fn truncated_fmt_chunk_returns_err_not_panic() {
+        // A fmt chunk header claiming 16 bytes at EOF: the payload the parser
+        // wants at pos..pos+16 does not exist. Previously read OOB → panic.
+        let mut d = b"RIFF".to_vec();
+        d.extend_from_slice(&100u32.to_le_bytes());
+        d.extend_from_slice(b"WAVE");
+        // An unknown 20-byte chunk so the scanner lands on the fmt header.
+        d.extend_from_slice(b"JUNK");
+        d.extend_from_slice(&20u32.to_le_bytes());
+        d.resize(40, 0);
+        d.extend_from_slice(b"fmt ");
+        d.extend_from_slice(&16u32.to_le_bytes());
+        assert_eq!(d.len(), 48);
+        assert!(load_wav(&d).is_err());
     }
 }
