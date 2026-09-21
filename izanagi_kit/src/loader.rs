@@ -148,7 +148,13 @@ impl LoadedLevel {
             .copied()
             .filter(|&e| {
                 if let Some(pos) = self.positions.get(e) {
-                    pos.x >= x && pos.x < x + w && pos.y >= y && pos.y < y + h
+                    // `x + w`/`y + h` overflow u32 at coordinate extremes;
+                    // compare in u64 so the half-open range stays exact.
+                    let (xw, yh) = (x as u64 + w as u64, y as u64 + h as u64);
+                    (pos.x as u64) >= x as u64
+                        && (pos.x as u64) < xw
+                        && (pos.y as u64) >= y as u64
+                        && (pos.y as u64) < yh
                 } else {
                     false
                 }
@@ -416,5 +422,28 @@ level room 2x1
         // rect [0,3)×[0,2) includes rat at (1,1) but not goblin at (3,1)
         let found = w.entities_in_rect(0, 0, 3, 2);
         assert_eq!(found.len(), 1, "only the rat at (1,1) should match");
+    }
+
+    #[test]
+    fn entities_in_rect_extreme_rect_does_not_overflow() {
+        // x + w / y + h are computed in u32 — a rect extending past u32::MAX
+        // must not overflow. Needs a real entity so the filter closure runs.
+        let mut w = crate::loader::LoadedLevel {
+            alloc: crate::entity::EntityAllocator::new(),
+            positions: crate::sparse_set::SparseSet::new(),
+            renders: crate::sparse_set::SparseSet::new(),
+            stats: crate::sparse_set::SparseSet::new(),
+            entities: Vec::new(),
+        };
+        let e = w.alloc.allocate();
+        w.positions.insert(
+            e,
+            crate::loader::Position {
+                x: u32::MAX - 3,
+                y: u32::MAX - 3,
+            },
+        );
+        w.entities.push(e);
+        let _ = w.entities_in_rect(u32::MAX - 5, u32::MAX - 5, 20, 20);
     }
 }
