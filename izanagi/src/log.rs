@@ -51,8 +51,14 @@ thread_local! {
 }
 
 /// Redirect log output (per-thread). Pass `None` to restore stderr.
+/// A writer that calls this from inside `write_all` is ignored (the borrow is
+/// held for the duration of that write — see `_emit`).
 pub fn set_writer(w: Option<Box<dyn Write + 'static>>) {
-    WRITER.with(|cell| *cell.borrow_mut() = w);
+    WRITER.with(|cell| {
+        if let Ok(mut slot) = cell.try_borrow_mut() {
+            *slot = w;
+        }
+    });
 }
 
 /// Implementation detail used by the [`error!`] / [`warn!`] / etc. macros.
@@ -157,6 +163,7 @@ mod tests {
         impl std::io::Write for Reentrant {
             fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
                 crate::info!("reentrant from inside write");
+                crate::log::set_writer(None); // also reenter the setter path
                 Ok(buf.len())
             }
             fn flush(&mut self) -> std::io::Result<()> {
