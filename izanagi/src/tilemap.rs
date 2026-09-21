@@ -25,7 +25,7 @@ impl Tilemap {
     /// New tilemap, all tiles 0 (empty).
     pub fn new(cols: u32, rows: u32, tile_size: f32) -> Self {
         Self {
-            tiles: vec![0; (cols * rows) as usize],
+            tiles: vec![0; cols as usize * rows as usize],
             cols,
             rows,
             tile_size: tile_size.max(1.0),
@@ -50,9 +50,15 @@ impl Tilemap {
 
     /// Fill a rectangular region with `id`.
     pub fn fill(&mut self, col: i32, row: i32, w: u32, h: u32, id: u16) {
-        for r in row..row + h as i32 {
-            for c in col..col + w as i32 {
-                self.set(c, r, id);
+        // `col + w` / `row + h` overflow i32 at coordinate extremes, and OOB
+        // cells are no-ops anyway — intersect the rect with the map in i64.
+        let c0 = col.max(0);
+        let r0 = row.max(0);
+        let c1 = (col as i64 + w as i64).clamp(0, self.cols as i64) as i32;
+        let r1 = (row as i64 + h as i64).clamp(0, self.rows as i64) as i32;
+        for r in r0..r1 {
+            for c in c0..c1 {
+                self.tiles[r as usize * self.cols as usize + c as usize] = id;
             }
         }
     }
@@ -164,5 +170,14 @@ mod tests {
         m.set(1, 1, 1);
         assert!(m.is_solid_at(Vec2::new(20.0, 20.0))); // inside tile (1,1)
         assert!(!m.is_solid_at(Vec2::new(0.5, 0.5))); // tile (0,0) is empty
+    }
+
+    #[test]
+    fn fill_extreme_coordinates_do_not_overflow() {
+        let mut t = Tilemap::new(4, 4, 16.0);
+        // `row + h` used to overflow i32 at extremes — now clamped in i64.
+        t.fill(0, i32::MAX - 5, 1, 20, 7);
+        t.fill(i32::MIN, 0, u32::MAX, 1, 9); // huge w wraps `as i32` — still safe
+        assert_eq!(t.get(0, 0), 9);
     }
 }
