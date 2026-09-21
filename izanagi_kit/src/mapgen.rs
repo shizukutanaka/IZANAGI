@@ -233,7 +233,7 @@ impl Dungeon {
         if !self.in_bounds(x, y) {
             return true;
         }
-        self.tiles[(y as u32 * self.width + x as u32) as usize]
+        self.tiles[y as usize * self.width as usize + x as usize]
     }
 
     /// Is `(x, y)` an in-bounds floor cell?
@@ -333,7 +333,7 @@ impl Dungeon {
             for x in 0..self.width as i32 {
                 // Fill any floor cell that belongs to a different component.
                 if matches!(cm.component(x, y), Some(c) if c != keep) {
-                    self.tiles[(y as u32 * self.width + x as u32) as usize] = true;
+                    self.tiles[y as usize * self.width as usize + x as usize] = true;
                     filled += 1;
                 }
             }
@@ -349,7 +349,7 @@ impl Dungeon {
                     && cy >= 0
                     && (cx as u32) < w
                     && (cy as u32) < h
-                    && !tiles[(cy as u32 * w + cx as u32) as usize]
+                    && !tiles[cy as usize * w as usize + cx as usize]
             });
         }
         filled
@@ -358,7 +358,7 @@ impl Dungeon {
     #[inline]
     fn carve(&mut self, x: i32, y: i32) {
         if self.in_bounds(x, y) {
-            self.tiles[(y as u32 * self.width + x as u32) as usize] = false;
+            self.tiles[y as usize * self.width as usize + x as usize] = false;
         }
     }
 
@@ -546,7 +546,7 @@ pub fn generate_cave(width: u32, height: u32, rng: &mut SplitMix64, params: Cave
         for y in 1..h - 1 {
             for x in 1..w - 1 {
                 let walls = wall_neighbours(&d, x, y);
-                let idx = (y as u32 * width + x as u32) as usize;
+                let idx = y as usize * width as usize + x as usize;
                 next[idx] = walls >= 5;
             }
         }
@@ -581,7 +581,7 @@ fn cull_to_largest_region(d: &mut Dungeon) {
     let size = (d.width as usize).saturating_mul(d.height as usize);
     let mut region = vec![u32::MAX; size]; // region id per cell; MAX = unassigned/wall
     let mut sizes: Vec<u32> = Vec::new();
-    let idx = |x: i32, y: i32| (y as u32 * d.width + x as u32) as usize;
+    let idx = |x: i32, y: i32| y as usize * d.width as usize + x as usize;
 
     let mut stack: Vec<(i32, i32)> = Vec::new();
     for sy in 0..h {
@@ -681,9 +681,9 @@ fn bsp_build(
 
     // Choose split orientation: bias toward halving the longer side, else coin.
     let vertical = if can_split_w && can_split_h {
-        if area.w * 100 > area.h * 125 {
+        if area.w as u64 * 100 > area.h as u64 * 125 {
             true
-        } else if area.h * 100 > area.w * 125 {
+        } else if area.h as u64 * 100 > area.w as u64 * 125 {
             false
         } else {
             rng.coin(1, 2)
@@ -800,25 +800,25 @@ pub fn generate_drunkard(
         return d;
     }
     let (w, h) = (width as i32, height as i32);
-    let interior = ((w - 2) as u32) * ((h - 2) as u32);
+    let interior = (w as usize - 2) * (h as usize - 2);
     let fill = params.fill_percent.clamp(1, 100);
     // Target distinct floor cells; at least 1, never more than the interior.
-    let target = (interior * fill / 100).clamp(1, interior);
+    let target = (interior * fill as usize / 100).clamp(1, interior);
     // Generous default step cap: enough slack to reach the target on an open
     // walk while still bounding the worst case.
     let max_steps = if params.max_steps == 0 {
         interior.saturating_mul(8).max(64)
     } else {
-        params.max_steps
+        params.max_steps as usize
     };
 
     // Start the digger at the centre of the interior.
     let mut x = w / 2;
     let mut y = h / 2;
     d.carve(x, y);
-    let mut carved = 1u32;
+    let mut carved = 1usize;
 
-    let mut steps = 0u32;
+    let mut steps = 0usize;
     while carved < target && steps < max_steps {
         steps += 1;
         // One draw per step: a cardinal direction (replay-safe).
