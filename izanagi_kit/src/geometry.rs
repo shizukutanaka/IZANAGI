@@ -549,7 +549,11 @@ pub fn reflect_point(point: (i32, i32), center: (i32, i32)) -> (i32, i32) {
 /// only the taxi-cab metric is needed.
 #[inline]
 pub fn manhattan_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
-    (b.0 - a.0).abs() + (b.1 - a.1).abs()
+    // i64 intermediates: `b - a` on coordinates crossing i32::MIN/MAX is a
+    // 2^32 span; saturate to the same ceiling `Distance::between` documents.
+    let dx = (b.0 as i64 - a.0 as i64).abs();
+    let dy = (b.1 as i64 - a.1 as i64).abs();
+    dx.saturating_add(dy).min(i64::from(i32::MAX)) as i32
 }
 
 /// Chebyshev distance between `a` and `b`: `max(|dx|, |dy|)`. Shorthand for
@@ -557,7 +561,10 @@ pub fn manhattan_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
 /// 8-directional range checks and adjacency tests.
 #[inline]
 pub fn chebyshev_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
-    (b.0 - a.0).abs().max((b.1 - a.1).abs())
+    // Same i64 widening as `manhattan_distance` — see `Distance::between`.
+    let dx = (b.0 as i64 - a.0 as i64).abs();
+    let dy = (b.1 as i64 - a.1 as i64).abs();
+    dx.max(dy).min(i64::from(i32::MAX)) as i32
 }
 
 /// Rotate point `(x, y)` 90° clockwise around the origin in **screen
@@ -1452,5 +1459,22 @@ mod tests {
             1
         ));
         let _ = crate::geometry::rect_center(i32::MAX - 3, 0, 10, 4);
+    }
+    #[test]
+    fn manhattan_distance_extreme_coords_saturate() {
+        // i32::MIN .. i32::MAX crossing: |b - a| spans 2^32 in i64.
+        assert_eq!(manhattan_distance((i32::MIN, 0), (0, 0)), i32::MAX);
+        assert_eq!(
+            manhattan_distance((i32::MIN, i32::MIN), (i32::MAX, i32::MAX)),
+            i32::MAX
+        );
+    }
+
+    #[test]
+    fn chebyshev_distance_extreme_coords_saturate() {
+        assert_eq!(chebyshev_distance((0, i32::MIN), (0, 0)), i32::MAX);
+        assert_eq!(chebyshev_distance((i32::MIN, 0), (i32::MAX, 0)), i32::MAX);
+        // In-range value is exact.
+        assert_eq!(chebyshev_distance((0, 0), (3, 5)), 5);
     }
 }
