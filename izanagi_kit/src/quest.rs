@@ -151,7 +151,7 @@ impl Objective {
 
 impl DetHash for Objective {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(&self.name);
+        self.name.det_hash(hasher);
         hasher.write_u32(self.target);
         hasher.write_u32(self.current);
         self.state.det_hash(hasher);
@@ -270,7 +270,7 @@ impl Quest {
 
 impl DetHash for Quest {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(&self.name);
+        self.name.det_hash(hasher);
         hasher.write_u32(self.objectives.len() as u32);
         for obj in &self.objectives {
             obj.det_hash(hasher);

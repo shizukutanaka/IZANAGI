@@ -241,14 +241,14 @@ impl Dialogue {
 
 impl DetHash for Choice {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(&self.label);
+        self.label.det_hash(hasher);
         hasher.write_u32(self.target as u32);
     }
 }
 
 impl DetHash for DialogueNode {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(&self.text);
+        self.text.det_hash(hasher);
         hasher.write_u32(self.choices.len() as u32);
         for c in &self.choices {
             c.det_hash(hasher);
@@ -378,6 +378,27 @@ mod tests {
         let c = &d.node(0).unwrap().choices()[0];
         assert_eq!(c.label(), "ask");
         assert_eq!(c.target(), 1);
+    }
+
+    #[test]
+    fn write_str_fields_are_length_prefixed() {
+        // Choice::det_hash folds raw `write_str(label)` ++ `write_u32(target)`
+        // — the label carries NO length prefix, so the byte stream is
+        // ambiguous across the label/target boundary:
+        //   ("a", 98)  ++ ("bc", 7)  →  61 | 62 00 00 00 | 62 63 | 07 00 00 00
+        //   ("ab", 0x62000000) ++ ("c", 7) → 61 62 | 00 00 00 62 | 63 | 07..
+        // — byte-identical streams from structurally different choices.
+        let n1 = DialogueNode::new("x")
+            .with_choice("a", 98)
+            .with_choice("bc", 7);
+        let n2 = DialogueNode::new("x")
+            .with_choice("ab", 0x6200_0000)
+            .with_choice("c", 7);
+        assert_ne!(
+            hash_state(&n1),
+            hash_state(&n2),
+            "structurally different nodes produced identical canonical hashes"
+        );
     }
 
     #[test]

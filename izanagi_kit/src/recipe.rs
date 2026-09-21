@@ -150,7 +150,7 @@ impl<K: Ord + Clone, O: Clone + PartialEq> Recipe<K, O> {
 
 impl<K: Ord + Clone + DetHash, O: Clone + PartialEq + DetHash> DetHash for Recipe<K, O> {
     fn det_hash(&self, hasher: &mut Fnv1a) {
-        hasher.write_str(&self.name);
+        self.name.det_hash(hasher);
         hasher.write_u32(self.ingredients.len() as u32);
         for i in &self.ingredients {
             i.key.det_hash(hasher);
