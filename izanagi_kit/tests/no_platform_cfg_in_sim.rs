@@ -931,6 +931,9 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
             // what they measure.
             "clippy.toml",
             ".clippy.toml",
+            // A submodule is a whole directory of code no scan here reads —
+            // the gitlink's contents live outside this tree entirely.
+            ".gitmodules",
         ] {
             let path = repo_root().join(dir).join(rel);
             assert!(
