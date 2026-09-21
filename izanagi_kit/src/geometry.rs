@@ -17,8 +17,10 @@
 pub fn line(a: (i32, i32), b: (i32, i32)) -> Vec<(i32, i32)> {
     let (mut x, mut y) = a;
     let (x1, y1) = b;
-    let dx = (x1 - x).abs();
-    let dy = -(y1 - y).abs();
+    // i64: |x1 - x| and |y1 - y| each reach ~2^32 for extreme endpoints,
+    // so the i32 subtraction itself would overflow.
+    let dx = (x1 as i64 - x as i64).abs();
+    let dy = -(y1 as i64 - y as i64).abs();
     let sx = if x < x1 { 1 } else { -1 };
     let sy = if y < y1 { 1 } else { -1 };
     let mut err = dx + dy;
@@ -150,27 +152,29 @@ pub fn circle(cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
     let mut pts = std::collections::BTreeSet::new();
     let mut x = radius;
     let mut y = 0;
-    let mut p: i32 = 1 - radius;
+    let mut p: i64 = 1 - radius as i64;
     while x >= y {
+        // saturating: a centre near i32::MIN/MAX clips the far octants
+        // at the coordinate boundary rather than wrapping or panicking.
         let plots = [
-            (cx + x, cy + y),
-            (cx - x, cy + y),
-            (cx + x, cy - y),
-            (cx - x, cy - y),
-            (cx + y, cy + x),
-            (cx - y, cy + x),
-            (cx + y, cy - x),
-            (cx - y, cy - x),
+            (cx.saturating_add(x), cy.saturating_add(y)),
+            (cx.saturating_sub(x), cy.saturating_add(y)),
+            (cx.saturating_add(x), cy.saturating_sub(y)),
+            (cx.saturating_sub(x), cy.saturating_sub(y)),
+            (cx.saturating_add(y), cy.saturating_add(x)),
+            (cx.saturating_sub(y), cy.saturating_add(x)),
+            (cx.saturating_add(y), cy.saturating_sub(x)),
+            (cx.saturating_sub(y), cy.saturating_sub(x)),
         ];
         for pt in plots {
             pts.insert(pt);
         }
         y += 1;
         if p < 0 {
-            p += 2 * y + 1;
+            p += 2 * y as i64 + 1;
         } else {
             x -= 1;
-            p += 2 * (y - x) + 1;
+            p += 2 * (y as i64 - x as i64) + 1;
         }
     }
     pts.into_iter().collect()
@@ -192,7 +196,7 @@ pub fn filled_circle(cx: i32, cy: i32, radius: i32) -> Vec<(i32, i32)> {
     for dy in -radius..=radius {
         for dx in -radius..=radius {
             if (dx as i64) * (dx as i64) + (dy as i64) * (dy as i64) <= r2 {
-                pts.push((cx + dx, cy + dy));
+                pts.push((cx.saturating_add(dx), cy.saturating_add(dy)));
             }
         }
     }
@@ -208,10 +212,10 @@ pub fn rect(x: i32, y: i32, w: i32, h: i32) -> Vec<(i32, i32)> {
     if w <= 0 || h <= 0 {
         return Vec::new();
     }
-    let mut pts = Vec::with_capacity((w * h) as usize);
+    let mut pts = Vec::with_capacity(w as usize * h as usize);
     for dy in 0..h {
         for dx in 0..w {
-            pts.push((x + dx, y + dy));
+            pts.push((x.saturating_add(dx), y.saturating_add(dy)));
         }
     }
     pts
@@ -246,7 +250,7 @@ pub fn ring_annulus(cx: i32, cy: i32, inner_r: i32, outer_r: i32) -> Vec<(i32, i
         for dx in -outer_r..=outer_r {
             let d2 = (dx as i64) * (dx as i64) + (dy as i64) * (dy as i64);
             if d2 >= inner_r2 && d2 <= outer_r2 {
-                pts.push((cx + dx, cy + dy));
+                pts.push((cx.saturating_add(dx), cy.saturating_add(dy)));
             }
         }
     }
@@ -267,11 +271,11 @@ pub fn rect_perimeter(x: i32, y: i32, w: i32, h: i32) -> Vec<(i32, i32)> {
     if w == 1 || h == 1 {
         return rect(x, y, w, h);
     }
-    let mut pts = Vec::with_capacity(2 * (w + h - 2) as usize);
+    let mut pts = Vec::with_capacity(2 * (w as usize + h as usize - 2));
     for dy in 0..h {
         for dx in 0..w {
             if dy == 0 || dy == h - 1 || dx == 0 || dx == w - 1 {
-                pts.push((x + dx, y + dy));
+                pts.push((x.saturating_add(dx), y.saturating_add(dy)));
             }
         }
     }
@@ -298,7 +302,12 @@ pub fn chebyshev_ring(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
     if r == 0 {
         return vec![(cx, cy)];
     }
-    rect_perimeter(cx - r, cy - r, 2 * r + 1, 2 * r + 1)
+    rect_perimeter(
+        cx.saturating_sub(r),
+        cy.saturating_sub(r),
+        r.saturating_mul(2).saturating_add(1),
+        r.saturating_mul(2).saturating_add(1),
+    )
 }
 
 /// The cells on the boundary of a diamond (Manhattan-distance-`r` ring)
@@ -315,8 +324,8 @@ pub fn diamond(cx: i32, cy: i32, r: i32) -> Vec<(i32, i32)> {
     let mut pts: BTreeSet<(i32, i32)> = BTreeSet::new();
     for dy in -r..=r {
         let dx = r - dy.abs();
-        pts.insert((cx - dx, cy + dy));
-        pts.insert((cx + dx, cy + dy));
+        pts.insert((cx.saturating_sub(dx), cy.saturating_add(dy)));
+        pts.insert((cx.saturating_add(dx), cy.saturating_add(dy)));
     }
     pts.into_iter().collect()
 }
@@ -368,7 +377,7 @@ pub fn cone(origin: (i32, i32), facing: (i32, i32), range: i32) -> Vec<(i32, i32
             // i128: an extreme `facing` pushes |f|² toward i64::MAX, so both
             // dot² and dist_sq·|f|² overflow i64 even for a tiny `range`.
             if 2 * (dot as i128) * (dot as i128) >= (dist_sq as i128) * f_mag_sq {
-                cells.push((ox + dx, oy + dy));
+                cells.push((ox.saturating_add(dx), oy.saturating_add(dy)));
             }
         }
     }

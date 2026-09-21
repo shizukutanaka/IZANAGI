@@ -130,7 +130,7 @@ impl<T: Clone> TileMap<T> {
         if w <= 0 || h <= 0 {
             return Vec::new();
         }
-        let mut out = Vec::with_capacity((w * h) as usize);
+        let mut out = Vec::with_capacity(w as usize * h as usize);
         for row in 0..h {
             for col in 0..w {
                 let cell = self
@@ -156,8 +156,8 @@ impl<T: Clone> TileMap<T> {
         }
         for row in 0..h {
             for col in 0..w {
-                let src = row * w + col;
-                if let Some(tile) = data.get(src as usize) {
+                let src = row as usize * w as usize + col as usize;
+                if let Some(tile) = data.get(src) {
                     self.set(x + col, y + row, tile.clone());
                 }
             }

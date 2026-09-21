@@ -99,7 +99,7 @@ impl Screen {
         if x < 0 || y < 0 || x as u32 >= self.width || y as u32 >= self.height {
             None
         } else {
-            Some((y as u32 * self.width + x as u32) as usize)
+            Some(y as usize * self.width as usize + x as usize)
         }
     }
 
@@ -272,7 +272,7 @@ impl Screen {
         for y in 0..self.height {
             let mut last: Option<(Color, Color)> = None;
             for x in 0..self.width {
-                let cell = &self.cells[(y * self.width + x) as usize];
+                let cell = &self.cells[y as usize * self.width as usize + x as usize];
                 if last != Some((cell.fg, cell.bg)) {
                     out.push_str(&format!(
                         "\x1b[38;2;{};{};{};48;2;{};{};{}m",
