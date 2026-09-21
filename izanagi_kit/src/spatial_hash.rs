@@ -271,7 +271,8 @@ impl<K: Eq + Clone> SpatialHash<K> {
     ///
     /// `cell_coord` is the grid-cell index (not world coords); multiply by
     /// `cell_size()` to get the world-space top-left corner of the cell.
-    /// Iteration order reflects the internal `HashMap` — not sorted.
+    /// Iteration is ascending `(cx, cy)` cell order — the same canonical order
+    /// `iter_keys` and `all_occupied_cells` use.
     pub fn iter_cells(&self) -> impl Iterator<Item = ((i32, i32), &[K])> {
         self.cells
             .iter()
