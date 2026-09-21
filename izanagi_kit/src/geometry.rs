@@ -575,14 +575,16 @@ pub fn chebyshev_distance(a: (i32, i32), b: (i32, i32)) -> i32 {
 /// symmetry generation without floating-point math.
 #[inline]
 pub fn rotate_90_cw(x: i32, y: i32) -> (i32, i32) {
-    (-y, x)
+    // saturating_neg: -i32::MIN overflows; clamp to i32::MAX (nearest value).
+    (y.saturating_neg(), x)
 }
 
 /// Rotate point `(x, y)` 90° counter-clockwise around the origin in **screen
 /// coordinates** (y increases downward). Inverse of [`rotate_90_cw`].
 #[inline]
 pub fn rotate_90_ccw(x: i32, y: i32) -> (i32, i32) {
-    (y, -x)
+    // saturating_neg: same i32::MIN guard as rotate_90_cw.
+    (y, x.saturating_neg())
 }
 
 /// Floor of the square root of a non-negative `i64`, computed with integer
@@ -1476,5 +1478,14 @@ mod tests {
         assert_eq!(chebyshev_distance((i32::MIN, 0), (i32::MAX, 0)), i32::MAX);
         // In-range value is exact.
         assert_eq!(chebyshev_distance((0, 0), (3, 5)), 5);
+    }
+
+    #[test]
+    fn rotate_90_handles_min_component() {
+        // -i32::MIN is unrepresentable; rotation saturates to i32::MAX.
+        assert_eq!(rotate_90_cw(0, i32::MIN), (i32::MAX, 0));
+        assert_eq!(rotate_90_ccw(i32::MIN, 0), (0, i32::MAX));
+        assert_eq!(rotate_90_cw(1, 2), (-2, 1));
+        assert_eq!(rotate_90_ccw(1, 2), (2, -1));
     }
 }

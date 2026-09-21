@@ -82,8 +82,12 @@ impl Aabb {
     pub fn grow(&self, amount: i32) -> Aabb {
         let x = self.x.saturating_sub(amount);
         let y = self.y.saturating_sub(amount);
-        let w = (self.w as i64).saturating_add(2 * amount as i64).max(0) as i32;
-        let h = (self.h as i64).saturating_add(2 * amount as i64).max(0) as i32;
+        let w = (self.w as i64)
+            .saturating_add(2 * amount as i64)
+            .clamp(0, i64::from(i32::MAX)) as i32;
+        let h = (self.h as i64)
+            .saturating_add(2 * amount as i64)
+            .clamp(0, i64::from(i32::MAX)) as i32;
         Aabb { x, y, w, h }
     }
 
@@ -91,7 +95,7 @@ impl Aabb {
     /// `grow(-amount)`. The size is clamped to zero.
     #[inline]
     pub fn shrink(&self, amount: i32) -> Aabb {
-        self.grow(-amount)
+        self.grow(amount.saturating_neg())
     }
 
     /// Exclusive right edge (`x + w`).
@@ -1088,5 +1092,16 @@ mod tests {
     fn from_center_size_extreme_does_not_overflow() {
         // cx - w/2 underflows at i32::MIN with any positive w.
         let _ = Aabb::from_center_size(i32::MIN, i32::MAX, 4, 4);
+    }
+
+    #[test]
+    fn shrink_min_amount_does_not_panic() {
+        // shrink(i32::MIN) negated amount -> grow(i32::MAX): clamps to zero.
+        let a = Aabb::new(0, 0, 10, 10);
+        let shrunk = a.shrink(i32::MIN);
+        // shrink(-i32::MIN) saturates to grow(i32::MAX): w/h cap at i32::MAX,
+        // x/y pin to i32::MIN.
+        assert_eq!(shrunk.w, i32::MAX);
+        assert_eq!(shrunk.h, i32::MAX);
     }
 }
