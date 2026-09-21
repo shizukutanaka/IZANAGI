@@ -68,8 +68,10 @@ impl Rng {
         if hi <= lo {
             return lo;
         }
-        let span = (hi - lo) as u32;
-        lo + (self.u32() % span) as i32
+        // `hi - lo` can exceed i32::MAX (e.g. i32::MIN..i32::MAX spans ~2^32),
+        // so compute the span in i64 — the subtraction must not wrap.
+        let span = (hi as i64 - lo as i64) as u64;
+        (lo as i64 + (self.u32() as u64 % span) as i64) as i32
     }
 
     /// Random element of a slice, or `None` if empty.
@@ -166,5 +168,28 @@ mod tests {
         }
         let rate = hits as f32 / 10_000.0;
         assert!((rate - 0.3).abs() < 0.05, "rate = {rate}");
+    }
+    #[test]
+    fn _probe_int_range_full_span() {
+        let mut r = Rng::new(7);
+        // i32::MIN..i32::MAX → (hi - lo) overflows i32 in debug builds
+        let _ = r.int_range(i32::MIN, i32::MAX);
+    }
+
+    #[test]
+    fn int_range_full_span_does_not_overflow() {
+        // i32::MIN..i32::MAX spans ~2^32 — wider than i32 can hold. The span
+        // must be computed in a wider type; the naive `(hi - lo)` subtraction
+        // panics in debug builds and wraps in release.
+        let mut r = Rng::new(7);
+        for _ in 0..1000 {
+            let _ = r.int_range(i32::MIN, i32::MAX); // must not panic
+        }
+        // Negative-low, positive-high spans also overflow a plain i32 subtract.
+        let mut r2 = Rng::new(13);
+        for _ in 0..1000 {
+            let v = r2.int_range(-2_000_000_000, 2_000_000_000);
+            assert!((-2_000_000_000..2_000_000_000).contains(&v));
+        }
     }
 }
