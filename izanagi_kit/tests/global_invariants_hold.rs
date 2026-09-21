@@ -2571,6 +2571,60 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 );
             }
         }
+        // Every .rs in the tree must live where the scans look — auto-
+        // discovery has more dirs than this suite enumerates (benches,
+        // `tests/*/main.rs`, `examples/*/main.rs`, future target kinds), so
+        // pin the SET of directories a .rs may occupy. A stray elsewhere is
+        // code the checks never read, whether or not cargo would build it.
+        let mut rs_dirs: BTreeSet<String> = BTreeSet::new();
+        let mut stack = vec![repo_root()];
+        while let Some(dir) = stack.pop() {
+            let Ok(rd) = fs::read_dir(&dir) else {
+                continue;
+            };
+            for entry in rd.flatten() {
+                let p = entry.path();
+                let rel = p
+                    .strip_prefix(repo_root())
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned();
+                // The dot-git atom must not be spelled literally in a scanned
+                // file — build it the way the probes forbid.
+                if rel == "target"
+                    || rel.starts_with(concat!(".", "git"))
+                    || rel.starts_with("target/")
+                {
+                    continue;
+                }
+                if p.is_dir() {
+                    stack.push(p);
+                } else if p.extension().map(|e| e == "rs").unwrap_or(false) {
+                    if let Some(parent) = rel.rfind('/') {
+                        rs_dirs.insert(rel[..parent].to_string());
+                    } else {
+                        rs_dirs.insert(".".to_string());
+                    }
+                }
+            }
+        }
+        let want: BTreeSet<String> = [
+            "izanagi/examples",
+            "izanagi/src",
+            "izanagi/tests",
+            "izanagi_kit/examples",
+            "izanagi_kit/src",
+            "izanagi_kit/src/bin",
+            "izanagi_kit/tests",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        assert_eq!(
+            rs_dirs,
+            want,
+            ".rs files live outside the scanned dirs — auto-discovered or              not, code the suite never reads must not exist: {rs_dirs:?}"
+        );
         // `benches/` is the one auto-discovered target dir whose files get
         // their own crate root: they compile under `cargo test` (verified —
         // a benches/evil.rs produced libevil-*.rlib) yet sit outside every
