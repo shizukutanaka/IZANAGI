@@ -259,12 +259,15 @@ impl<E: Clone> TimerQueue<E> {
     /// Each fired entry is cloned into the output before potential requeue, so
     /// the caller always owns the returned events.
     pub fn advance(&mut self, ticks: u32) -> Vec<E> {
-        let mut fired: Vec<E> = Vec::new();
         let mut requeue: Vec<Entry<E>> = Vec::new();
 
+        // Capture firing tick alongside the event so the result can be
+        // sorted by remaining time — a stable sort keeps insertion order
+        // among entries that fire on the same tick.
+        let mut firing: Vec<(u32, E)> = Vec::new();
         for entry in self.entries.drain(..) {
             if entry.remaining <= ticks {
-                fired.push(entry.event.clone());
+                firing.push((entry.remaining, entry.event.clone()));
                 if let Some(period) = entry.period {
                     // Remaining ticks after the first fire; re-arm with period.
                     let leftover = ticks - entry.remaining;
@@ -287,7 +290,8 @@ impl<E: Clone> TimerQueue<E> {
         }
 
         self.entries = requeue;
-        fired
+        firing.sort_by_key(|(remaining, _)| *remaining);
+        firing.into_iter().map(|(_, e)| e).collect()
     }
 }
 
@@ -754,5 +758,14 @@ mod tests {
             hash_state(&q2),
             "identical queues must produce the same hash"
         );
+    }
+
+    #[test]
+    fn advance_returns_events_in_firing_order() {
+        let mut q: TimerQueue<&'static str> = TimerQueue::new();
+        q.schedule(5, "late");
+        q.schedule(1, "early");
+        q.schedule(3, "mid");
+        assert_eq!(q.advance(10), vec!["early", "mid", "late"]);
     }
 }

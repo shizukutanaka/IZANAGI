@@ -126,6 +126,8 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 - **非飽和縮小キャスト**: `(hi - lo) as i64`/`lo + (x as i32)` — i32 空間で引算・加算するとスパン超過や MIN 境界で wrap/panic。`hi as i64 - lo as i64` のように先に昇格。`izanagi_kit::noise`(`normalize_noise`)
 
+- **発火順の doc-vs-impl 不一致**: 「残り tick 昇順で返す」と文書化しつつ drain 順(挿入順)で返す — 実装を doc に合わせる(安定 sort で同点=挿入順を維持)。`izanagi_kit::timer`(`TimerQueue::advance`)
+
 ### 未解決
 
 > **この4件の性質**: 1 と 5 は**ユーザーの操作を待っているだけ**で、作業は完了している。
