@@ -120,12 +120,16 @@ impl LightMap {
         if intensity == 0 {
             return;
         }
-        let r = radius.max(0);
+        // i64 throughout: `cx ± r` and `intensity * (r - d)` both overflow
+        // their i32/u32 homes for extreme (but legal) inputs.
+        let r = radius.max(0) as i64;
+        let cx = cx as i64;
+        let cy = cy as i64;
         // Bounding box clipped to the map.
         let x0 = (cx - r).max(0) as u32;
         let y0 = (cy - r).max(0) as u32;
-        let x1 = (cx + r).min(self.width as i32 - 1).max(-1);
-        let y1 = (cy + r).min(self.height as i32 - 1).max(-1);
+        let x1 = (cx + r).min(self.width as i64 - 1).max(-1);
+        let y1 = (cy + r).min(self.height as i64 - 1).max(-1);
         if x1 < 0 || y1 < 0 {
             return;
         }
@@ -134,11 +138,14 @@ impl LightMap {
 
         for y in y0..=y1 {
             for x in x0..=x1 {
-                let d = chebyshev(cx, cy, x as i32, y as i32);
+                let d = chebyshev(cx, cy, x as i64, y as i64);
                 let contribution = if r == 0 {
                     intensity
                 } else {
-                    (intensity as u32 * (r - d) as u32 / r as u32) as u16
+                    // d <= r within the clipped box, so r - d >= 0; the u64
+                    // product cannot overflow and the quotient fits u16
+                    // because (r - d) / r <= 1.
+                    (intensity as u64 * (r - d) as u64 / r as u64) as u16
                 };
                 let idx = y as usize * self.width as usize + x as usize;
                 self.levels[idx] = self.levels[idx].saturating_add(contribution).min(MAX_LIGHT);
@@ -175,8 +182,8 @@ impl LightMap {
 }
 
 #[inline]
-fn chebyshev(ax: i32, ay: i32, bx: i32, by: i32) -> i32 {
-    (ax - bx).unsigned_abs().max((ay - by).unsigned_abs()) as i32
+fn chebyshev(ax: i64, ay: i64, bx: i64, by: i64) -> i64 {
+    (ax - bx).unsigned_abs().max((ay - by).unsigned_abs()) as i64
 }
 
 impl DetHash for LightMap {
@@ -323,5 +330,18 @@ mod tests {
             hash_state(&c),
             "extra light must change hash"
         );
+    }
+
+    #[test]
+    fn add_light_extreme_inputs_do_not_overflow() {
+        // cx +- r and intensity * (r - d) exceed i32/u32 for legal inputs;
+        // both are computed in 64-bit so a huge radius near the edge or a
+        // full-range span degrades gracefully instead of panicking.
+        let mut lm = LightMap::new(8, 8);
+        lm.add_light(i32::MAX, i32::MAX, i32::MAX, MAX_LIGHT);
+        lm.add_light(i32::MIN, i32::MIN, i32::MAX, MAX_LIGHT);
+        lm.add_light(4, 4, 200_000, u16::MAX);
+        lm.add_light(4, 4, i32::MAX, u16::MAX);
+        assert!(lm.max_level() <= MAX_LIGHT);
     }
 }
