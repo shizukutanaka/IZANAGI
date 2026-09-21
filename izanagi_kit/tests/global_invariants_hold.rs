@@ -2893,3 +2893,46 @@ fn the_shared_boundary_lexer_finds_real_markers_and_rejects_fakes() {
     // Sanity: no marker at all means the whole file is impl code.
     assert_eq!(test_module_boundary("fn only() {}\n"), None);
 }
+#[test]
+fn squeeze_sigil_ws_recovers_every_comment_and_space_evasion() {
+    // The normalizer is the only thing standing between a banned needle and
+    // "the compiler saw `env::var` but the scan saw `env :: var`". Pin its
+    // contract so a later weakening cannot silently reopen the hole.
+    for (input, want) in [
+        ("env::var", "env::var"),
+        ("std :: env :: var", "std::env::var"),
+        ("std\n::\t env", "std::env"),
+        ("env ! (\"H\")", "env!(\"H\")"),
+        ("cfg ! (unix)", "cfg!(unix)"),
+        ("# [cfg(test)]", "#[cfg(test)]"),
+        ("x . floor ( )", "x.floor( )"),
+        ("env /*x*/ :: var", "env::var"),
+        ("env /*a /*b*/ c*/ :: var", "env::var"),
+        ("std/*a*/::/*b*/env/*c*/::/*d*/var", "std::env::var"),
+        ("env //x\n::var", "env::var"),
+        ("env::var // note\n(", "env::var("),
+        ("env///doc\n::var", "env::var"),
+        ("env//!doc\n::var", "env::var"),
+    ] {
+        assert_eq!(squeeze_sigil_ws(input), want, "normalizer lost {input:?}");
+    }
+    // String contents survive as one region (comment tokens inside them are
+    // never honored), though pass 2 still squeezes their interior whitespace —
+    // that biases toward a false-positive red, never a false-negative green.
+    assert_eq!(
+        squeeze_sigil_ws("let s = \"a :: b /*c*/ //d\";"),
+        "let s = \"a::b /*c*/ //d\";"
+    );
+    // Legal char literals that contain comment sigils (`'/'`, `'*'`, `'\\''`,
+    // `'\\u{2f}'`) are consumed whole so their `/` or `*` can never open a
+    // comment over the needle that follows. A two-char `'/*'` pseudo-literal
+    // does not exist in compiling code, so that case needs no handling.
+    for (input, want) in [
+        ("let c = '/';env::var", "let c = ';env::var"),
+        ("let c = '*';env::var", "let c = ';env::var"),
+        ("let c = '\\'';x :: y", "let c = '';x::y"),
+        ("let c = '\\u{2f}';env :: var", "let c = ';env::var"),
+    ] {
+        assert_eq!(squeeze_sigil_ws(input), want, "char literal {input:?}");
+    }
+}
