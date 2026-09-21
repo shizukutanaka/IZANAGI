@@ -61,7 +61,9 @@ impl Stats {
     /// Apply `amount` damage (clamped to the current HP; HP floor is 0).
     #[inline]
     pub fn take_damage(&mut self, amount: i32) {
-        self.hp = (self.hp - amount.max(0)).max(0);
+        // hp is a pub field — it can hold i32::MIN via direct assignment, so
+        // the subtraction must saturate before the clamp does its job.
+        self.hp = self.hp.saturating_sub(amount.max(0)).max(0);
     }
 
     /// Heal by `amount` (clamped to `max_hp`; no overheal).
@@ -105,7 +107,7 @@ impl Stats {
     /// Useful for healing AI ("how much do I need?") and damage-preview UI.
     #[inline]
     pub fn missing_hp(&self) -> i32 {
-        (self.max_hp - self.hp).max(0)
+        (self.max_hp as i64 - self.hp as i64).clamp(0, i32::MAX as i64) as i32
     }
 
     /// Apply `amount` damage and return the **overkill** — the excess damage
@@ -115,8 +117,8 @@ impl Stats {
     #[inline]
     pub fn take_overkill_damage(&mut self, amount: i32) -> i32 {
         let amount = amount.max(0);
-        let overkill = (amount - self.hp).max(0);
-        self.hp = (self.hp - amount).max(0);
+        let overkill = (amount as i64 - self.hp as i64).clamp(0, i32::MAX as i64) as i32;
+        self.hp = self.hp.saturating_sub(amount).max(0);
         overkill
     }
 
@@ -127,7 +129,7 @@ impl Stats {
     /// conditional abilities that activate when the target is weakened.
     #[inline]
     pub fn is_bloodied(&self) -> bool {
-        self.max_hp > 0 && self.hp * 2 < self.max_hp
+        self.max_hp > 0 && self.hp as i64 * 2 < self.max_hp as i64
     }
 
     /// Returns `true` when HP is at or above `max_hp`.
@@ -893,5 +895,23 @@ mod tests {
         };
         s.clamp_hp();
         assert_eq!(s.hp, 10);
+    }
+
+    #[test]
+    fn extreme_hp_values_do_not_overflow() {
+        // hp is a pub field — direct assignment can hold i32::MIN, and
+        // subtraction/multiplication overflowed before the clamps ran.
+        let mut s = Stats {
+            hp: i32::MIN,
+            max_hp: 100,
+            attack: 10,
+            defense: 0,
+        };
+        s.take_damage(1);
+        assert_eq!(s.hp, 0);
+        assert_eq!(s.missing_hp(), 100);
+        let _ = s.take_overkill_damage(1);
+        let s2 = Stats::new(i32::MAX, 10, 0);
+        assert!(!s2.is_bloodied());
     }
 }
