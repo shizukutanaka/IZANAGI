@@ -184,7 +184,10 @@ impl Aabb {
     /// same convention as [`crate::mapgen::Rect::center`].
     #[inline]
     pub fn center(&self) -> (i32, i32) {
-        (self.x + self.w / 2, self.y + self.h / 2)
+        (
+            self.x.saturating_add(self.w / 2),
+            self.y.saturating_add(self.h / 2),
+        )
     }
 
     /// The smallest AABB enclosing both `self` and `other`. Empty boxes are
@@ -233,10 +236,11 @@ impl Aabb {
         if self.is_empty() {
             return (self.x, self.y);
         }
-        (
-            px.clamp(self.x, self.right() - 1),
-            py.clamp(self.y, self.bottom() - 1),
-        )
+        // right() saturates at i32::MAX, so right() - 1 can be < x when
+        // x == i32::MAX — clamp the bound itself, i32::clamp panics on min>max.
+        let rx = (self.right() as i64 - 1).max(self.x as i64) as i32;
+        let by = (self.bottom() as i64 - 1).max(self.y as i64) as i32;
+        (px.clamp(self.x, rx), py.clamp(self.y, by))
     }
 
     /// The four corners in clockwise order from top-left:
@@ -260,21 +264,22 @@ impl Aabb {
         if self.is_empty() || self.contains_point(px, py) {
             return 0;
         }
-        let dx = if px < self.x {
-            self.x - px
-        } else if px >= self.right() {
-            px - self.right() + 1
+        // i64: px - right() and self.x - px overflow i32 across MIN/MAX.
+        let dx = if (px as i64) < self.x as i64 {
+            self.x as i64 - px as i64
+        } else if px as i64 >= self.right() as i64 {
+            px as i64 - self.right() as i64 + 1
         } else {
             0
         };
-        let dy = if py < self.y {
-            self.y - py
-        } else if py >= self.bottom() {
-            py - self.bottom() + 1
+        let dy = if (py as i64) < self.y as i64 {
+            self.y as i64 - py as i64
+        } else if py as i64 >= self.bottom() as i64 {
+            py as i64 - self.bottom() as i64 + 1
         } else {
             0
         };
-        dx.max(dy)
+        dx.max(dy).clamp(0, i32::MAX as i64) as i32
     }
 
     /// Iterate every interior cell `(x, y)` in row-major order (top-to-bottom,
@@ -296,15 +301,22 @@ impl Aabb {
         let (x0, y0) = (self.x, self.y);
         let (x1, y1) = (self.right(), self.bottom());
         let empty = self.is_empty();
+        // right() saturates, so y1 - y0 / x1 - x0 and the +/-1 endpoints are
+        // computed in i64 — at extremes they overflow i32 (and an empty box at
+        // i32::MIN would panic evaluating y1 - 1 even though nothing is yielded).
+        let tall = y1 as i64 - y0 as i64 > 1;
+        let wide = x1 as i64 - x0 as i64 > 1;
+        let yl = y0 as i64 + 1;
+        let yr = y1 as i64 - 1;
         let top = (x0..x1).filter(move |_| !empty).map(move |x| (x, y0));
         let bottom = (x0..x1)
-            .filter(move |_| !empty && y1 - y0 > 1)
-            .map(move |x| (x, y1 - 1));
-        let left = ((y0 + 1)..(y1 - 1))
-            .filter(move |_| !empty && y1 - y0 > 1)
+            .filter(move |_| !empty && tall)
+            .map(move |x| (x, yr as i32));
+        let left = ((yl.min(i32::MAX as i64) as i32)..(yr.min(i32::MAX as i64) as i32))
+            .filter(move |_| !empty && tall)
             .map(move |y| (x0, y));
-        let right = ((y0 + 1)..(y1 - 1))
-            .filter(move |_| !empty && y1 - y0 > 1 && x1 - x0 > 1)
+        let right = ((yl.min(i32::MAX as i64) as i32)..(yr.min(i32::MAX as i64) as i32))
+            .filter(move |_| !empty && tall && wide)
             .map(move |y| (x1 - 1, y));
         top.chain(bottom).chain(left).chain(right)
     }
@@ -321,9 +333,13 @@ impl Aabb {
         }
         let x0 = self.x.min(px);
         let y0 = self.y.min(py);
-        let x1 = self.right().max(px + 1);
-        let y1 = self.bottom().max(py + 1);
-        Aabb::new(x0, y0, x1 - x0, y1 - y0)
+        // px + 1 overflows at i32::MAX; x1 - x0 can exceed i32::MAX too, so
+        // compute the span in i64 and saturate the stored width.
+        let x1 = self.right().max(px.saturating_add(1));
+        let y1 = self.bottom().max(py.saturating_add(1));
+        let w = (x1 as i64 - x0 as i64).min(i32::MAX as i64) as i32;
+        let h = (y1 as i64 - y0 as i64).min(i32::MAX as i64) as i32;
+        Aabb::new(x0, y0, w, h)
     }
 
     /// Perimeter of the bounding box: `2 × (w + h)`. Returns `0` for an empty
@@ -353,11 +369,13 @@ impl Aabb {
     /// is empty both halves are empty. Used for BSP dungeon partitioning.
     #[inline]
     pub fn split_v(&self, x: i32) -> (Aabb, Aabb) {
-        let left_w = (x - self.x).clamp(0, self.w);
+        // x - self.x overflows i32 across MIN/MAX; self.x + left_w too when
+        // x is near i32::MAX. Compute in i64 / saturating.
+        let left_w = (x as i64 - self.x as i64).clamp(0, self.w as i64) as i32;
         let right_w = self.w - left_w;
         (
             Aabb::new(self.x, self.y, left_w, self.h),
-            Aabb::new(self.x + left_w, self.y, right_w, self.h),
+            Aabb::new(self.x.saturating_add(left_w), self.y, right_w, self.h),
         )
     }
 
@@ -367,11 +385,11 @@ impl Aabb {
     /// is empty both halves are empty.
     #[inline]
     pub fn split_h(&self, y: i32) -> (Aabb, Aabb) {
-        let top_h = (y - self.y).clamp(0, self.h);
+        let top_h = (y as i64 - self.y as i64).clamp(0, self.h as i64) as i32;
         let bot_h = self.h - top_h;
         (
             Aabb::new(self.x, self.y, self.w, top_h),
-            Aabb::new(self.x, self.y + top_h, self.w, bot_h),
+            Aabb::new(self.x, self.y.saturating_add(top_h), self.w, bot_h),
         )
     }
 
@@ -1040,5 +1058,28 @@ mod tests {
         let b = r(0, 0, 4, 4); // right = 4
         let (cx, _) = b.nearest_corner(2, 0); // equal dist to 0 and 4
         assert_eq!(cx, 0, "equidistant prefers left corner");
+    }
+
+    #[test]
+    fn extreme_coordinates_do_not_overflow() {
+        // clamp_point: x = i32::MAX makes right() saturate so min > max → panic.
+        let b = Aabb::new(i32::MAX, 0, 1, 1);
+        let _ = b.clamp_point(0, 0);
+        // center: x + w/2 overflows.
+        let b2 = Aabb::new(i32::MAX - 10, 0, 20, 4);
+        let _ = b2.center();
+        // distance_to_point: px - right() + 1 / self.x - px overflow at MIN/MAX.
+        let b3 = Aabb::new(i32::MIN, i32::MIN, 10, 10);
+        let _ = b3.distance_to_point(i32::MAX, i32::MAX);
+        // split_v/split_h: (x - self.x) overflows when box.x = i32::MIN, x = i32::MAX.
+        let _ = b3.split_v(i32::MAX);
+        let _ = b3.split_h(i32::MAX);
+        // iter_border: y1 - 1 / y1 - y0 evaluated eagerly even for empty/degenerate.
+        let b4 = Aabb::new(i32::MIN, i32::MIN, 0, 0);
+        let _ = b4.iter_border().count();
+        // expand_to_include: px + 1 overflows at px = i32::MAX.
+        let b5 = Aabb::new(0, 0, 4, 4);
+        let _ = b5.expand_to_include(i32::MAX, 0);
+        let _ = b5.expand_to_include(i32::MIN, i32::MIN);
     }
 }
