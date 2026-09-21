@@ -80,20 +80,23 @@ impl<K: Eq + Clone> InputBuffer<K> {
     pub fn tick(&mut self, ticks: u32) -> Vec<K> {
         let mut fired: Vec<K> = Vec::new();
         for h in &mut self.held {
-            // Initial press fires immediately (held_ticks == 0 before increment).
+            let mut prev_held = h.held_ticks;
+            h.held_ticks = h.held_ticks.saturating_add(ticks);
+            // Initial press fires immediately and consumes one tick of the
+            // window: the repeat baseline is the held_ticks value after that
+            // first tick, so repeats falling inside a multi-tick press window
+            // still fire — `press(k)` then `tick(n)` is equivalent to `tick(1)`
+            // followed by `tick(n - 1)`.
             if !h.fired_initial {
                 fired.push(h.key.clone());
                 h.fired_initial = true;
-                h.held_ticks = h.held_ticks.saturating_add(ticks);
-                continue;
+                prev_held = prev_held.saturating_add(1);
             }
-
-            h.held_ticks = h.held_ticks.saturating_add(ticks);
 
             // Check how many repeats fall in this tick window.
             if h.held_ticks > self.initial_delay {
                 let repeat_ticks = h.held_ticks - self.initial_delay;
-                let prev_ticks = repeat_ticks.saturating_sub(ticks);
+                let prev_ticks = prev_held.saturating_sub(self.initial_delay);
                 // Number of repeats fired so far (before this tick).
                 let prev_count = prev_ticks / self.repeat_period;
                 let new_count = repeat_ticks / self.repeat_period;
@@ -581,6 +584,30 @@ mod tests {
         assert_eq!(b.count_repeating(), 2);
     }
 
+    #[test]
+    fn test_multi_tick_press_window_fires_repeats_equivalent_to_single_ticks() {
+        // press(k) then tick(n) must equal tick(1) + tick(n-1): the initial
+        // press consumes one tick of the window, and repeats that fall in the
+        // remaining n-1 ticks still fire. (Before the fix, tick(5) after a
+        // press yielded only the initial fire — repeats at held_ticks 3,4,5
+        // were skipped and never counted again.)
+        for &(delay, period, n) in &[(2u32, 1u32, 5u32), (0, 1, 5), (3, 2, 8), (1, 1, 1)] {
+            let mut multi: InputBuffer<u32> = InputBuffer::new(delay, period);
+            multi.press(7u32);
+            let fired_multi = multi.tick(n);
+            let mut single: InputBuffer<u32> = InputBuffer::new(delay, period);
+            single.press(7u32);
+            let mut fired_single = single.tick(1);
+            for _ in 1..n {
+                fired_single.extend(single.tick(1));
+            }
+            assert_eq!(
+                fired_multi.len(),
+                fired_single.len(),
+                "tick({n}) after press must fire the same count as {n} single ticks (delay={delay}, period={period})"
+            );
+        }
+    }
     // --- KeySource / ListKeySource / pump_from (W3) ---
 
     #[test]
