@@ -2936,3 +2936,66 @@ fn squeeze_sigil_ws_recovers_every_comment_and_space_evasion() {
         assert_eq!(squeeze_sigil_ws(input), want, "char literal {input:?}");
     }
 }
+#[test]
+fn flattened_use_paths_expands_every_import_shape_a_scan_can_miss() {
+    // `use` imports are the one way a banned `a::b` spelling disappears from
+    // the text while still compiling it — pin the expansion so a weakened
+    // flattener cannot quietly reopen that hole.
+    let flat = flattened_use_paths(
+        "use std::env::{var};\
+         use a::b::{c, d::{e, f}};\
+         use std::env as alias;\
+         use crate::x::y;\
+         use a::b::{self, g};\
+         use g::h::*;",
+    );
+    for want in [
+        "std::env::var",
+        "a::b::c",
+        "a::b::d::e",
+        "a::b::d::f",
+        "std::env as alias",
+        "crate::x::y",
+        "a::b",
+        "a::b::g",
+        "g::h::*",
+    ] {
+        assert!(
+            flat.iter().any(|p| p == want),
+            "flattened paths lost {want:?}: {flat:?}"
+        );
+    }
+    // `use` inside an identifier (`reuse`, `misuse`) or without a `;`
+    // terminator (doc prose) must not count as an import statement.
+    let prose = flattened_use_paths("let reuse = 1; // misuse of use words\nuse never terminated");
+    assert!(
+        prose.iter().all(|p| !p.contains("env")),
+        "non-statement `use` leaked into flattened paths: {prose:?}"
+    );
+}
+#[test]
+fn the_small_scanners_keep_their_contracts() {
+    // take_balanced returns the inside of a `(...)` group starting one level
+    // deep — `cfg_attr(test, cfg(unix))` reads as `test`/`cfg(unix)` only if
+    // the nesting math is exact.
+    assert_eq!(take_balanced("a(b), c) rest"), "a(b), c");
+    assert_eq!(take_balanced("x), y"), "x");
+    assert_eq!(take_balanced("unterminated"), "unterminated");
+    // first_top_level_arg stops at the comma outside any nesting.
+    assert_eq!(first_top_level_arg("test, cfg(unix)"), "test");
+    assert_eq!(first_top_level_arg("all(a, b), c"), "all(a, b)");
+    // predicate_atoms drops string contents so a quoted "unix" cannot pass as
+    // a named cfg atom.
+    let atoms = predicate_atoms(r#"cfg(all(unix, \"windows\"))"#);
+    assert!(atoms.iter().any(|a| a == "unix"));
+    assert!(!atoms.iter().any(|a| a.contains("windows")));
+    // structural_tail blanks comments, strings, raw strings and char literals
+    // so nothing after #[cfg(test)] can hide a needle in them.
+    let tail = structural_tail(
+        "fn a() {} /* c\"d\" */ let s = \"x\"; let r = r##\"y\"##; let c = 'z'; env::var",
+        0,
+    );
+    assert!(tail.contains("env::var"), "{tail:?}");
+    assert!(!tail.contains("x\""), "{tail:?}");
+    assert!(!tail.contains('z'), "{tail:?}");
+}

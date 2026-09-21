@@ -969,6 +969,9 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 ### 空白・コメントによる字句走査の回避は正規化で塞ぐ(2026-09)
 
 ~~`std :: env :: var` / `env ! (` / `std/*c*/::env::var` — `::` `.` `!` `#` 周辺の空白とブロックコメントはコンパイラには同一だが字句ニードルに一致しない~~ — *finding:* `src`/`test_code`/`env_macro_args` の三系統の走査が全て素文字列一致のため、空白挿入・`/* */` 分断・ネストしたコメントで全 ambient ニードルを迂回できた(実機注入で緑確認)。*fix:* 両 haystack 生成 (`library_sources` 7 コピー + `test_code`) に `squeeze_sigil_ws` — パス1がブロックコメント(ネスト対応)と行コメントを単一空白へ畳み込み、パス2がシジル隣接空白を除去。char リテラル(`'/*'`)はコメント誤認を防ぐため丸ごと消費、文字列内は保存。`env_macro_args` は空白耐性 matcher。注入 → 緑 → 正規化 → 赤 → gate 緑の両方向で実証。
+### スキャナ自身も回帰ピンで守る(2026-09)
+
+~~走査 helper は「正しく動く」ことを前提に全チェックが成り立つが、その契約を検証するテストが無いものは将来の弱化を静黙で通す~~ — *finding:* `squeeze_sigil_ws`/`flattened_use_paths`/`take_balanced`/`first_top_level_arg`/`predicate_atoms`/`structural_tail` に直接の assert が無かった(中間生成物を弱めるリファクタが全走査の前提を崩しても緑のまま)。*fix:* 各 helper の変換契約を表形式でピン — コメント形別・シジル空白・文字列内保護・char リテラル消費・import 展開・境界検出を `assert_eq!`/`contains` で固定。
 
 ## 3. 改善案(優先順位付き)
 
