@@ -105,6 +105,16 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 ## 2. 短所(重要度順・証拠付き)
 
+
+- ~~`.clamp(lo, hi)` は「範囲を作る安全な API」として gate の panic 走査を~~
+  → `f32::clamp`/`i32::clamp` は **`lo > hi` で panic** するし、f32 は NaN
+  境界でも落ちる — clippy::panic の字句面の外。`influence.rs` の
+  `clamp_cells(min, max)` と `math.rs` の `Vec2::clamp(lo, hi)` は
+  公開 API の引数境界を未ソートで投げていて、注入で両方 panic を実証。
+  修正: コンポーネントごとに `(lo.min(hi), lo.max(hi))` で正規化
+  (f32::min/max は非 NaN 側を返すので NaN 境界も吸収)。回帰テストを
+  `#[cfg(test)]` モジュール内に追加。
+
 ### 未解決
 
 > **この4件の性質**: 1 と 5 は**ユーザーの操作を待っているだけ**で、作業は完了している。

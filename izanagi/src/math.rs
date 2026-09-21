@@ -79,9 +79,12 @@ impl Vec2 {
 
     /// Component-wise clamp.
     pub fn clamp(self, lo: Self, hi: Self) -> Self {
+        // f32::clamp panics on inverted bounds and treats f32::min/max as
+        // non-NaN-preferring, so sorting per component also absorbs NaN bounds
+        // (NaN.min(x) == x) rather than panicking.
         Self {
-            x: self.x.clamp(lo.x, hi.x),
-            y: self.y.clamp(lo.y, hi.y),
+            x: self.x.clamp(lo.x.min(hi.x), lo.x.max(hi.x)),
+            y: self.y.clamp(lo.y.min(hi.y), lo.y.max(hi.y)),
         }
     }
 
@@ -511,5 +514,14 @@ mod tests {
         let p = r.transform_point(Vec2::X);
         assert!((p.x).abs() < 1e-5);
         assert!((p.y - 1.0).abs() < 1e-5);
+    }
+
+    /// Inverted per-component bounds sort instead of panicking
+    /// (`f32::clamp` rejects `lo > hi`).
+    #[test]
+    fn vec2_clamp_inverted_bounds_sort() {
+        let v = Vec2::new(3.0, 3.0);
+        let c = v.clamp(Vec2::new(10.0, -1.0), Vec2::new(5.0, 4.0));
+        assert_eq!(c, Vec2::new(5.0, 3.0));
     }
 }

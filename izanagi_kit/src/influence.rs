@@ -130,8 +130,11 @@ impl InfluenceMap {
     /// Use after combining multiple influence layers to prevent extreme values
     /// from dominating AI decisions.
     pub fn clamp_cells(&mut self, min: i32, max: i32) {
+        // i32::clamp panics when min > max; sort the bounds so a swapped call
+        // clamps into [min, max] instead of panicking.
+        let (lo, hi) = (min.min(max), min.max(max));
         for v in &mut self.cells {
-            *v = (*v).clamp(min, max);
+            *v = (*v).clamp(lo, hi);
         }
     }
 
@@ -702,5 +705,15 @@ mod tests {
         m.add_source(i32::MAX, i32::MAX, 100, i32::MAX);
         m.add_source(0, 0, i32::MAX, 0);
         assert_eq!(m.cells[0], i32::MAX);
+    }
+
+    /// `clamp_cells(min, max)` with `min > max` sorts the bounds instead of
+    /// panicking (`i32::clamp` panics on an inverted range).
+    #[test]
+    fn clamp_cells_inverted_bounds_sort() {
+        let mut map = InfluenceMap::new(4, 4);
+        map.fill(7);
+        map.clamp_cells(10, 5);
+        assert!(map.iter().all(|(_, _, v)| (5..=10).contains(&v)));
     }
 }
