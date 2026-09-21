@@ -396,7 +396,7 @@ where
             archive
                 .entries
                 .iter()
-                .map(|e| (SELECT_BASE / (e.selected + 1)).max(1)),
+                .map(|e| (SELECT_BASE / e.selected.saturating_add(1)).max(1)),
         );
         let idx = match rng.weighted_index(&weights) {
             Some(i) => i,
