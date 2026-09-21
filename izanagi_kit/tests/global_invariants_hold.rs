@@ -1970,6 +1970,16 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                     "{name} runs tests but contains no assertion — a check \
                      that cannot fail is a check that does not run"
                 );
+                // `assert!(true)` spells an assertion while checking
+                // nothing — the tautology satisfies the floor above without
+                // verifying a property. (The false twin is already frozen as
+                // a panicking macro.) The text is normalized, so this is the
+                // literal spelling `assert!(true)` regardless of comments.
+                assert!(
+                    !code.contains("assert!(true)"),
+                    "{name} contains `assert!(true)` — a tautology passes \
+                     vacuously; assert a real property instead"
+                );
             }
             let ignored = code.matches("#[ignore").count();
             let allowed = IGNORE_ALLOWLIST.iter().filter(|(f, _)| *f == name).count();

@@ -972,6 +972,9 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 ### スキャナ自身も回帰ピンで守る(2026-09)
 
 ~~走査 helper は「正しく動く」ことを前提に全チェックが成り立つが、その契約を検証するテストが無いものは将来の弱化を静黙で通す~~ — *finding:* `squeeze_sigil_ws`/`flattened_use_paths`/`take_balanced`/`first_top_level_arg`/`predicate_atoms`/`structural_tail` に直接の assert が無かった(中間生成物を弱めるリファクタが全走査の前提を崩しても緑のまま)。*fix:* 各 helper の変換契約を表形式でピン — コメント形別・シジル空白・文字列内保護・char リテラル消費・import 展開・境界検出を `assert_eq!`/`contains` で固定。
+### 恒真 assert は禁止(2026-09)
+
+~~`assert!(true)` は assert 系トークンとして計数され、テスト床を満たしながら何も検証しない~~ — *finding:* 注入で緑確認(assert 床はファイル単位のため実害は限定的だが、書けること自体が問題)。*fix:* `assert!(true)` リテラルを suite で禁止 — 正規化済みテキストで一致させるためコメント分断も効かない。
 
 ## 3. 改善案(優先順位付き)
 
