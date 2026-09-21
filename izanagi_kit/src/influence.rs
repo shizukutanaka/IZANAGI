@@ -87,22 +87,28 @@ impl InfluenceMap {
     /// are unaffected. `radius == 0` affects only the source cell. Saturating.
     pub fn add_source(&mut self, sx: i32, sy: i32, strength: i32, radius: i32) {
         let r = radius.max(0);
-        let x0 = (sx - r).max(0);
-        let y0 = (sy - r).max(0);
-        let x1 = (sx + r).min(self.width - 1);
-        let y1 = (sy + r).min(self.height - 1);
+        // sx +/- r and x - sx overflow i32 at coordinate extremes (e.g.
+        // sx = i32::MIN with r > 0), so the box and distances are i64.
+        let rl = r as i64;
+        let x0 = (sx as i64 - rl).max(0) as i32;
+        let y0 = (sy as i64 - rl).max(0) as i32;
+        let x1 = (sx as i64 + rl).min(self.width as i64 - 1) as i32;
+        let y1 = (sy as i64 + rl).min(self.height as i64 - 1) as i32;
 
         for y in y0..=y1 {
             for x in x0..=x1 {
-                let dist = (x - sx).abs().max((y - sy).abs()); // Chebyshev
-                if dist > r {
+                let dist = (x as i64 - sx as i64)
+                    .abs()
+                    .max((y as i64 - sy as i64).abs()); // Chebyshev
+                if dist > rl {
                     continue;
                 }
                 let contrib = if r == 0 {
                     strength
                 } else {
-                    // Linear falloff: strength * (r - dist) / r
-                    strength.saturating_mul(r - dist) / r
+                    // Linear falloff: strength * (r - dist) / r.
+                    // r - dist <= r <= i32::MAX so the cast is lossless.
+                    strength.saturating_mul((rl - dist) as i32) / r
                 };
                 let idx = y as usize * self.width as usize + x as usize;
                 self.cells[idx] = self.cells[idx].saturating_add(contrib);
@@ -686,5 +692,15 @@ mod tests {
         let b = InfluenceMap::new(2, 1);
         a.add_map(&b);
         assert_eq!(a.get(0, 0), Some(100));
+    }
+
+    #[test]
+    fn add_source_extreme_coordinates_do_not_overflow() {
+        let mut m = InfluenceMap::new(8, 8);
+        // sx - r / sx + r / x - sx used to panic in i32 at extremes.
+        m.add_source(i32::MIN, i32::MIN, 100, 10);
+        m.add_source(i32::MAX, i32::MAX, 100, i32::MAX);
+        m.add_source(0, 0, i32::MAX, 0);
+        assert_eq!(m.cells[0], i32::MAX);
     }
 }
