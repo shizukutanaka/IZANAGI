@@ -981,6 +981,9 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 ### `.github/` の内容も列挙で固定(2026-09)
 
 ~~`.github/` は走査対象外のまま残っており、`workflows/` を追加すればスイートが定義しない「緑」が別途動き得た~~ — *finding:* `workflows/ci.yml` を置いた注入で全スイート緑を実証。*fix:* `.github/` を再帰列挙し内容を `["dependabot.yml"]` にピン。
+### `benches/` 自動検出ターゲットを拒否(2026-09)
+
+~~`benches/x.rs` は独立クレートとして `cargo test` でコンパイルされるが、スイート走査・`forbid(unsafe_code)`・module census のいずれにも乗らない~~ — *finding:* `izanagi_kit/benches/evil.rs` を置く注入で rlib 生成 + 全スイート緑を実証(bench ターゲットは tests/ 外のため全走査の範囲外、かつ lib の lint 属性も継承しない)。*fix:* 各クレートの `benches/` ディレクトリ存在を拒否 — タイミング計測は `tests/bench.rs` へ。
 
 ## 3. 改善案(優先順位付き)
 

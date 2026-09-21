@@ -2571,6 +2571,18 @@ fn the_verification_suite_cannot_quietly_skip_or_disable_its_own_checks() {
                 );
             }
         }
+        // `benches/` is the one auto-discovered target dir whose files get
+        // their own crate root: they compile under `cargo test` (verified —
+        // a benches/evil.rs produced libevil-*.rlib) yet sit outside every
+        // scan and outside the lib's forbid(unsafe_code). No benchmark may
+        // live there; the repo's timing checks are tests/bench.rs.
+        for crate_dir in ["izanagi", "izanagi_kit"] {
+            let benches = repo_root().join(crate_dir).join("benches");
+            assert!(
+                !benches.exists(),
+                "{crate_dir}/benches/ exists — auto-discovered bench targets                  compile as separate crates no scan reads and no safety                  attribute covers; write timing checks as tests instead"
+            );
+        }
         // Cargo auto-discovers only top-level .rs files in these dirs, and
         // with `mod` banned above nothing below can be compiled — but a
         // nested .rs file would still sit here unscanned, indistinguishable
