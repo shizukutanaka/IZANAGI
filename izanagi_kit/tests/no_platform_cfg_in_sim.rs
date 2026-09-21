@@ -944,6 +944,28 @@ fn no_manifest_section_or_cargo_config_smuggles_build_variation() {
                 path.display()
             );
         }
+        // A checked-in CI definition would run a different gate than the
+        // one this suite pins — `.github/` may carry only dependabot.yml.
+        let gh = repo_root().join(dir).join(".github");
+        if gh.is_dir() {
+            let mut found: Vec<String> = Vec::new();
+            let mut stack = vec![gh.clone()];
+            while let Some(d) = stack.pop() {
+                for entry in fs::read_dir(&d).unwrap().flatten() {
+                    let p = entry.path();
+                    found.push(p.strip_prefix(&gh).unwrap().to_string_lossy().to_string());
+                    if p.is_dir() {
+                        stack.push(p);
+                    }
+                }
+            }
+            found.sort();
+            assert_eq!(
+                found,
+                ["dependabot.yml"],
+                ".github/ carries more than dependabot.yml — CI there runs                  a definition of green this suite does not pin: {found:?}"
+            );
+        }
         // rustfmt.toml exists legitimately (izanagi/ carries the workspace
         // style), but several of its keys shrink what `cargo fmt --check`
         // checks: `ignore`/`skip_children`/`skip_macro_invocations` list
