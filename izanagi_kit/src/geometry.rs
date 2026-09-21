@@ -229,7 +229,13 @@ pub fn rect(x: i32, y: i32, w: i32, h: i32) -> Vec<(i32, i32)> {
 /// `rect_contains(rx, ry, rw, rh, px, py)`.
 #[inline]
 pub fn rect_contains(x: i32, y: i32, w: i32, h: i32, px: i32, py: i32) -> bool {
-    w > 0 && h > 0 && px >= x && px < x + w && py >= y && py < y + h
+    // `x + w`/`y + h` overflow i32 at extremes — compare in i64.
+    w > 0
+        && h > 0
+        && px as i64 >= x as i64
+        && (px as i64) < x as i64 + w as i64
+        && py as i64 >= y as i64
+        && (py as i64) < y as i64 + h as i64
 }
 
 /// Cells in the annular ring between `inner_r` and `outer_r` (inclusive on
@@ -419,7 +425,8 @@ where
 /// of this room?" spawn placement and camera targeting.
 #[inline]
 pub fn rect_center(x: i32, y: i32, w: i32, h: i32) -> (i32, i32) {
-    (x + w / 2, y + h / 2)
+    // `x + w/2` overflows i32 at extremes — saturate the emitted coordinate.
+    (x.saturating_add(w / 2), y.saturating_add(h / 2))
 }
 
 /// Grid distance metrics between two cells.
@@ -1432,5 +1439,18 @@ mod tests {
             knockback((0, 0), (1, 0), 10, wall),
             knockback((0, 0), (1, 0), 10, wall)
         );
+    }
+
+    #[test]
+    fn rect_fns_extreme_coordinates_do_not_overflow() {
+        assert!(crate::geometry::rect_contains(
+            0,
+            0,
+            i32::MAX,
+            i32::MAX,
+            1,
+            1
+        ));
+        let _ = crate::geometry::rect_center(i32::MAX - 3, 0, 10, 4);
     }
 }

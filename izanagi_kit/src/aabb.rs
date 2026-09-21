@@ -55,9 +55,10 @@ impl Aabb {
     pub fn from_center_size(cx: i32, cy: i32, w: i32, h: i32) -> Self {
         let w = w.max(0);
         let h = h.max(0);
+        // `cx - w/2` underflows i32 at `cx = i32::MIN` — saturate the origin.
         Aabb {
-            x: cx - w / 2,
-            y: cy - h / 2,
+            x: cx.saturating_sub(w / 2),
+            y: cy.saturating_sub(h / 2),
             w,
             h,
         }
@@ -1081,5 +1082,11 @@ mod tests {
         let b5 = Aabb::new(0, 0, 4, 4);
         let _ = b5.expand_to_include(i32::MAX, 0);
         let _ = b5.expand_to_include(i32::MIN, i32::MIN);
+    }
+
+    #[test]
+    fn from_center_size_extreme_does_not_overflow() {
+        // cx - w/2 underflows at i32::MIN with any positive w.
+        let _ = Aabb::from_center_size(i32::MIN, i32::MAX, 4, 4);
     }
 }

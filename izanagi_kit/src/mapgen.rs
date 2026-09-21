@@ -57,8 +57,10 @@ impl Rect {
             return None;
         }
         Some(Rect {
-            x: self.x + n,
-            y: self.y + n,
+            // `x + n` overflows u32 for rectangles parked at the coordinate
+            // ceiling — saturate rather than wrap.
+            x: self.x.saturating_add(n),
+            y: self.y.saturating_add(n),
             w: self.w - n2,
             h: self.h - n2,
         })
@@ -270,10 +272,17 @@ impl Dungeon {
         if x < 0 || y < 0 {
             return None;
         }
-        let (ux, uy) = (x as u32, y as u32);
+        let (ux, uy) = (x as u64, y as u64);
+        // `r.x + r.w` overflows u32 for adversarial pub-field rectangles —
+        // compare in u64.
         self.rooms
             .iter()
-            .find(|r| ux >= r.x && ux < r.x + r.w && uy >= r.y && uy < r.y + r.h)
+            .find(|r| {
+                ux >= r.x as u64
+                    && ux < r.x as u64 + r.w as u64
+                    && uy >= r.y as u64
+                    && uy < r.y as u64 + r.h as u64
+            })
             .copied()
     }
 
@@ -1878,5 +1887,32 @@ mod tests {
         let first = build(0);
         let differs = (1..30u64).any(|s| build(s) != first);
         assert!(differs, "output must depend on base_seed");
+    }
+
+    #[test]
+    fn rect_shrink_and_containing_extreme_do_not_overflow() {
+        // pub fields: x near u32::MAX + shrink inset overflows `x + n`.
+        let r = Rect {
+            x: u32::MAX - 2,
+            y: 0,
+            w: 10,
+            h: 10,
+        };
+        let _ = r.shrink(4); // n2 = 8 < w → x + 4 wraps
+                             // room_containing: `ux >= r.x` must be true for `r.x + r.w` to run —
+                             // r.x <= i32::MAX with huge w overflows u32 in the bounds check.
+        let mut d = crate::mapgen::generate_dungeon(
+            8,
+            8,
+            &mut crate::rng::SplitMix64::new(1),
+            crate::mapgen::GenParams::default(),
+        );
+        d.rooms.push(Rect {
+            x: i32::MAX as u32,
+            y: 0,
+            w: 10,
+            h: 10,
+        });
+        let _ = d.room_containing(i32::MAX, 1);
     }
 }
