@@ -70,10 +70,17 @@ pub fn _emit(level: Level, args: std::fmt::Arguments<'_>) {
     };
     let line = format!("[{tag}] {args}\n");
     WRITER.with(|cell| {
-        if let Some(w) = cell.borrow_mut().as_mut() {
-            let _ = w.write_all(line.as_bytes());
-        } else {
-            let _ = std::io::stderr().write_all(line.as_bytes());
+        // The writer is user-supplied; if its `write_all` reenters the logger
+        // we must not panic on the double borrow — drop the reentrant write.
+        if let Ok(mut slot) = cell.try_borrow_mut() {
+            match slot.as_mut() {
+                Some(w) => {
+                    let _ = w.write_all(line.as_bytes());
+                }
+                None => {
+                    let _ = std::io::stderr().write_all(line.as_bytes());
+                }
+            }
         }
     });
 }
@@ -142,5 +149,22 @@ mod tests {
         debug!("filtered");
         trace!("filtered");
         set_level(Level::Info);
+    }
+
+    #[test]
+    fn reentrant_writer_does_not_panic() {
+        struct Reentrant;
+        impl std::io::Write for Reentrant {
+            fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+                crate::info!("reentrant from inside write");
+                Ok(buf.len())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        crate::log::set_writer(Some(Box::new(Reentrant)));
+        crate::info!("outer");
+        crate::log::set_writer(None);
     }
 }
