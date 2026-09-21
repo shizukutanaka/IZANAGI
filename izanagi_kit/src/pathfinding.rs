@@ -130,30 +130,32 @@ where
         let cur = (cx, cy);
         let cur_g = g_score[&cur];
         // Lazy deletion: skip stale heap entries left over from a cheaper relax.
-        if f != cur_g + octile(cur, goal) {
+        if f != cur_g.saturating_add(octile(cur, goal)) {
             continue;
         }
         if cur == goal {
             return Some(reconstruct(&came_from, goal));
         }
         for (dx, dy) in DIRS {
-            let (nx, ny) = (cx + dx, cy + dy);
+            let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
             if is_blocked(nx, ny) {
                 continue;
             }
             let diagonal = dx != 0 && dy != 0;
             // Never squeeze through a wall corner.
-            if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+            if diagonal
+                && (is_blocked(cx.saturating_add(dx), cy) || is_blocked(cx, cy.saturating_add(dy)))
+            {
                 continue;
             }
             let step = if diagonal { COST_DIAG } else { COST_ORTHO };
-            let tentative = cur_g + step;
+            let tentative = cur_g.saturating_add(step);
             let neighbour = (nx, ny);
             if tentative < *g_score.get(&neighbour).unwrap_or(&i32::MAX) {
                 g_score.insert(neighbour, tentative);
                 came_from.insert(neighbour, cur);
                 let h = octile(neighbour, goal);
-                open.push(Reverse((tentative + h, h, nx, ny)));
+                open.push(Reverse((tentative.saturating_add(h), h, nx, ny)));
             }
         }
     }
@@ -193,35 +195,47 @@ where
 
     let h0 = octile(start, goal);
     g_score.insert(start, 0);
-    open.push(Reverse((w * h0, w * h0, start.0, start.1)));
+    open.push(Reverse((
+        w.saturating_mul(h0),
+        w.saturating_mul(h0),
+        start.0,
+        start.1,
+    )));
 
     while let Some(Reverse((f, _wh, cx, cy))) = open.pop() {
         let cur = (cx, cy);
         let cur_g = g_score[&cur];
         // Lazy deletion: skip stale heap entries.
-        if f != cur_g + w * octile(cur, goal) {
+        if f != cur_g.saturating_add(w.saturating_mul(octile(cur, goal))) {
             continue;
         }
         if cur == goal {
             return Some(reconstruct(&came_from, goal));
         }
         for (dx, dy) in DIRS {
-            let (nx, ny) = (cx + dx, cy + dy);
+            let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
             if is_blocked(nx, ny) {
                 continue;
             }
             let diagonal = dx != 0 && dy != 0;
-            if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+            if diagonal
+                && (is_blocked(cx.saturating_add(dx), cy) || is_blocked(cx, cy.saturating_add(dy)))
+            {
                 continue;
             }
             let step = if diagonal { COST_DIAG } else { COST_ORTHO };
-            let tentative = cur_g + step;
+            let tentative = cur_g.saturating_add(step);
             let neighbour = (nx, ny);
             if tentative < *g_score.get(&neighbour).unwrap_or(&i32::MAX) {
                 g_score.insert(neighbour, tentative);
                 came_from.insert(neighbour, cur);
                 let h = octile(neighbour, goal);
-                open.push(Reverse((tentative + w * h, w * h, nx, ny)));
+                open.push(Reverse((
+                    tentative.saturating_add(w.saturating_mul(h)),
+                    w.saturating_mul(h),
+                    nx,
+                    ny,
+                )));
             }
         }
     }
@@ -260,13 +274,13 @@ fn jps_jump<W: Fn(i32, i32) -> bool>(
         if dx != 0 && dy != 0 {
             // Diagonal: this cell is a jump point if a straight probe in either
             // component direction finds one (a forced neighbour lies that way).
-            if jps_jump(x + dx, y, dx, 0, goal, walk).is_some()
-                || jps_jump(x, y + dy, 0, dy, goal, walk).is_some()
+            if jps_jump(x.saturating_add(dx), y, dx, 0, goal, walk).is_some()
+                || jps_jump(x, y.saturating_add(dy), 0, dy, goal, walk).is_some()
             {
                 return Some((x, y));
             }
             // Continue diagonally only without cutting a corner.
-            if walk(x + dx, y) && walk(x, y + dy) {
+            if walk(x.saturating_add(dx), y) && walk(x, y.saturating_add(dy)) {
                 x += dx;
                 y += dy;
                 continue;
@@ -276,22 +290,26 @@ fn jps_jump<W: Fn(i32, i32) -> bool>(
             // Horizontal: no-corner-cutting forced neighbour — a perpendicular
             // cell is open but the cell diagonally *behind* it is blocked, so the
             // only way to reach it is to turn here.
-            if (walk(x, y + 1) && !walk(x - dx, y + 1)) || (walk(x, y - 1) && !walk(x - dx, y - 1))
+            if (walk(x, y.saturating_add(1)) && !walk(x.saturating_sub(dx), y.saturating_add(1)))
+                || (walk(x, y.saturating_sub(1))
+                    && !walk(x.saturating_sub(dx), y.saturating_sub(1)))
             {
                 return Some((x, y));
             }
-            if walk(x + dx, y) {
+            if walk(x.saturating_add(dx), y) {
                 x += dx;
                 continue;
             }
             return None;
         } else {
             // Vertical (dy != 0) — symmetric no-corner-cutting forced neighbour.
-            if (walk(x + 1, y) && !walk(x + 1, y - dy)) || (walk(x - 1, y) && !walk(x - 1, y - dy))
+            if (walk(x.saturating_add(1), y) && !walk(x.saturating_add(1), y.saturating_sub(dy)))
+                || (walk(x.saturating_sub(1), y)
+                    && !walk(x.saturating_sub(1), y.saturating_sub(dy)))
             {
                 return Some((x, y));
             }
-            if walk(x, y + dy) {
+            if walk(x, y.saturating_add(dy)) {
                 y += dy;
                 continue;
             }
@@ -314,9 +332,11 @@ fn jps_successors<W: Fn(i32, i32) -> bool>(cx: i32, cy: i32, walk: &W) -> Vec<(i
     let mut v = Vec::new();
     for (dx, dy) in DIRS {
         let legal = if dx != 0 && dy != 0 {
-            walk(cx + dx, cy) && walk(cx, cy + dy) && walk(cx + dx, cy + dy)
+            walk(cx.saturating_add(dx), cy)
+                && walk(cx, cy.saturating_add(dy))
+                && walk(cx.saturating_add(dx), cy.saturating_add(dy))
         } else {
-            walk(cx + dx, cy + dy)
+            walk(cx.saturating_add(dx), cy.saturating_add(dy))
         };
         if legal {
             v.push((dx, dy));
@@ -345,8 +365,8 @@ fn jps_reconstruct(
     for w in points.windows(2) {
         let (ax, ay) = w[0];
         let (bx, by) = w[1];
-        let sx = (bx - ax).signum();
-        let sy = (by - ay).signum();
+        let sx = (bx as i64 - ax as i64).signum() as i32;
+        let sy = (by as i64 - ay as i64).signum() as i32;
         let (mut x, mut y) = (ax, ay);
         while (x, y) != (bx, by) {
             x += sx;
@@ -397,22 +417,29 @@ where
         let cur = (cx, cy);
         let cur_g = g_score[&cur];
         // Lazy deletion: skip stale heap entries left over from a cheaper relax.
-        if f != cur_g + octile(cur, goal) {
+        if f != cur_g.saturating_add(octile(cur, goal)) {
             continue;
         }
         if cur == goal {
             return Some(jps_reconstruct(&came_from, start, goal));
         }
         for (dx, dy) in jps_successors(cx, cy, &walk) {
-            if let Some(jp) = jps_jump(cx + dx, cy + dy, dx, dy, goal, &walk) {
+            if let Some(jp) = jps_jump(
+                cx.saturating_add(dx),
+                cy.saturating_add(dy),
+                dx,
+                dy,
+                goal,
+                &walk,
+            ) {
                 // A jump ray is purely straight or purely diagonal, so the octile
                 // distance equals the exact segment cost.
-                let tentative = cur_g + octile(cur, jp);
+                let tentative = cur_g.saturating_add(octile(cur, jp));
                 if tentative < *g_score.get(&jp).unwrap_or(&i32::MAX) {
                     g_score.insert(jp, tentative);
                     came_from.insert(jp, cur);
                     let h = octile(jp, goal);
-                    open.push(Reverse((tentative + h, h, jp.0, jp.1)));
+                    open.push(Reverse((tentative.saturating_add(h), h, jp.0, jp.1)));
                 }
             }
         }
@@ -472,7 +499,9 @@ fn jps4_jump<W: Fn(i32, i32) -> bool>(
             if x == goal.0 {
                 return Some((x, y));
             }
-            if (walk(x, y + 1) && !walk(x - dx, y + 1)) || (walk(x, y - 1) && !walk(x - dx, y - 1))
+            if (walk(x, y.saturating_add(1)) && !walk(x.saturating_sub(dx), y.saturating_add(1)))
+                || (walk(x, y.saturating_sub(1))
+                    && !walk(x.saturating_sub(dx), y.saturating_sub(1)))
             {
                 return Some((x, y));
             }
@@ -481,14 +510,16 @@ fn jps4_jump<W: Fn(i32, i32) -> bool>(
             if y == goal.1 {
                 return Some((x, y));
             }
-            if (walk(x + 1, y) && !walk(x + 1, y - dy)) || (walk(x - 1, y) && !walk(x - 1, y - dy))
+            if (walk(x.saturating_add(1), y) && !walk(x.saturating_add(1), y.saturating_sub(dy)))
+                || (walk(x.saturating_sub(1), y)
+                    && !walk(x.saturating_sub(1), y.saturating_sub(dy)))
             {
                 return Some((x, y));
             }
             // Dominant-axis probes: scan east and west from this cell; a hit
             // means a canonical path may turn here.
-            if jps4_jump(x + 1, y, 1, 0, goal, walk).is_some()
-                || jps4_jump(x - 1, y, -1, 0, goal, walk).is_some()
+            if jps4_jump(x.saturating_add(1), y, 1, 0, goal, walk).is_some()
+                || jps4_jump(x.saturating_sub(1), y, -1, 0, goal, walk).is_some()
             {
                 return Some((x, y));
             }
@@ -554,25 +585,32 @@ where
         let cur = (cx, cy);
         let cur_g = g_score[&cur];
         // Lazy deletion: skip stale heap entries left over from a cheaper relax.
-        if f != cur_g + manhattan(cur, goal) {
+        if f != cur_g.saturating_add(manhattan(cur, goal)) {
             continue;
         }
         if cur == goal {
             return Some(jps_reconstruct(&came_from, start, goal));
         }
         for (dx, dy) in CARDINALS {
-            if !walk(cx + dx, cy + dy) {
+            if !walk(cx.saturating_add(dx), cy.saturating_add(dy)) {
                 continue;
             }
-            if let Some(jp) = jps4_jump(cx + dx, cy + dy, dx, dy, goal, &walk) {
+            if let Some(jp) = jps4_jump(
+                cx.saturating_add(dx),
+                cy.saturating_add(dy),
+                dx,
+                dy,
+                goal,
+                &walk,
+            ) {
                 // A jump ray is a straight cardinal segment, so the Manhattan
                 // distance equals the exact segment cost.
-                let tentative = cur_g + manhattan(cur, jp);
+                let tentative = cur_g.saturating_add(manhattan(cur, jp));
                 if tentative < *g_score.get(&jp).unwrap_or(&i32::MAX) {
                     g_score.insert(jp, tentative);
                     came_from.insert(jp, cur);
                     let h = manhattan(jp, goal);
-                    open.push(Reverse((tentative + h, h, jp.0, jp.1)));
+                    open.push(Reverse((tentative.saturating_add(h), h, jp.0, jp.1)));
                 }
             }
         }
@@ -614,15 +652,17 @@ where
             continue;
         }
         for (dx, dy) in DIRS {
-            let (nx, ny) = (cx + dx, cy + dy);
+            let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
             if is_blocked(nx, ny) {
                 continue;
             }
             let diagonal = dx != 0 && dy != 0;
-            if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+            if diagonal
+                && (is_blocked(cx.saturating_add(dx), cy) || is_blocked(cx, cy.saturating_add(dy)))
+            {
                 continue;
             }
-            let next = cost + if diagonal { COST_DIAG } else { COST_ORTHO };
+            let next = cost.saturating_add(if diagonal { COST_DIAG } else { COST_ORTHO });
             if next > max_cost {
                 continue;
             }
@@ -772,12 +812,15 @@ where
             let current = flee[&(cx, cy)];
             let mut best = current;
             for (dx, dy) in DIRS {
-                let (nx, ny) = (cx + dx, cy + dy);
+                let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
                 if is_blocked(nx, ny) {
                     continue;
                 }
                 let diagonal = dx != 0 && dy != 0;
-                if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                if diagonal
+                    && (is_blocked(cx.saturating_add(dx), cy)
+                        || is_blocked(cx, cy.saturating_add(dy)))
+                {
                     continue;
                 }
                 if let Some(&nv) = flee.get(&(nx, ny)) {
@@ -885,7 +928,7 @@ where
         }
         // Find the farthest j > anchor reachable via a clear Bresenham segment.
         let mut j = path.len() - 1;
-        while j > anchor + 1 {
+        while j > anchor.saturating_add(1) {
             if los_segment_clear(path[anchor], path[j], &mut is_blocked) {
                 break;
             }
@@ -980,12 +1023,15 @@ impl ConnectivityMap {
                 while let Some((cx, cy)) = queue.pop_front() {
                     count += 1;
                     for (dx, dy) in DIRS {
-                        let (nx, ny) = (cx + dx, cy + dy);
+                        let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
                         if nx < 0 || ny < 0 || nx >= w || ny >= h || is_blocked(nx, ny) {
                             continue;
                         }
                         let diagonal = dx != 0 && dy != 0;
-                        if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+                        if diagonal
+                            && (is_blocked(cx.saturating_add(dx), cy)
+                                || is_blocked(cx, cy.saturating_add(dy)))
+                        {
                             continue;
                         }
                         if labels[idx(nx, ny)] < 0 {
@@ -1100,16 +1146,18 @@ where
             continue;
         }
         for (dx, dy) in DIRS {
-            let (nx, ny) = (cx + dx, cy + dy);
+            let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
             if visited.contains_key(&(nx, ny)) || is_blocked(nx, ny) {
                 continue;
             }
             let diagonal = dx != 0 && dy != 0;
-            if diagonal && (is_blocked(cx + dx, cy) || is_blocked(cx, cy + dy)) {
+            if diagonal
+                && (is_blocked(cx.saturating_add(dx), cy) || is_blocked(cx, cy.saturating_add(dy)))
+            {
                 continue;
             }
-            visited.insert((nx, ny), dist + 1);
-            queue.push_back((nx, ny, dist + 1));
+            visited.insert((nx, ny), dist.saturating_add(1));
+            queue.push_back((nx, ny, dist.saturating_add(1)));
         }
     }
     result
@@ -1146,12 +1194,15 @@ where
     queue.push_back(start);
     while let Some((cx, cy)) = queue.pop_front() {
         for (dx, dy) in DIRS {
-            let (nx, ny) = (cx + dx, cy + dy);
+            let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
             if visited.contains(&(nx, ny)) || !is_passable(nx, ny) {
                 continue;
             }
             let diagonal = dx != 0 && dy != 0;
-            if diagonal && (!is_passable(cx + dx, cy) || !is_passable(cx, cy + dy)) {
+            if diagonal
+                && (!is_passable(cx.saturating_add(dx), cy)
+                    || !is_passable(cx, cy.saturating_add(dy)))
+            {
                 continue;
             }
             visited.insert((nx, ny));
@@ -1201,7 +1252,7 @@ where
     // make every border cell a false frontier)?
     let borders_unknown = |x: i32, y: i32, is_blocked: &mut B, is_explored: &mut E| {
         for (dx, dy) in DIRS {
-            let (nx, ny) = (x + dx, y + dy);
+            let (nx, ny) = (x.saturating_add(dx), y.saturating_add(dy));
             if !is_explored(nx, ny) && !is_blocked(nx, ny) {
                 return true;
             }
@@ -1232,21 +1283,21 @@ where
             return Some(path);
         }
         for (dx, dy) in DIRS {
-            let (nx, ny) = (cx + dx, cy + dy);
+            let (nx, ny) = (cx.saturating_add(dx), cy.saturating_add(dy));
             // Only travel through explored, passable cells.
             if is_blocked(nx, ny) || !is_explored(nx, ny) {
                 continue;
             }
             let diagonal = dx != 0 && dy != 0;
             if diagonal
-                && (is_blocked(cx + dx, cy)
-                    || is_blocked(cx, cy + dy)
-                    || !is_explored(cx + dx, cy)
-                    || !is_explored(cx, cy + dy))
+                && (is_blocked(cx.saturating_add(dx), cy)
+                    || is_blocked(cx, cy.saturating_add(dy))
+                    || !is_explored(cx.saturating_add(dx), cy)
+                    || !is_explored(cx, cy.saturating_add(dy)))
             {
                 continue;
             }
-            let next = cost + if diagonal { COST_DIAG } else { COST_ORTHO };
+            let next = cost.saturating_add(if diagonal { COST_DIAG } else { COST_ORTHO });
             if next < *dist.get(&(nx, ny)).unwrap_or(&i32::MAX) {
                 dist.insert((nx, ny), next);
                 parent.insert((nx, ny), (cx, cy));
@@ -2560,5 +2611,21 @@ mod tests {
             compared >= 6000,
             "expected 6000 comparisons, got {compared}"
         );
+    }
+
+    #[test]
+    fn astar_extreme_coordinates_do_not_overflow() {
+        // i32 coords: a start/goal at i32::MAX must not panic on `x + dx` or
+        // the g/h accumulation — keep the goal adjacent so the search is O(1).
+        let p = crate::pathfinding::astar((i32::MAX - 1, 0), (i32::MAX, 0), |_, _| false);
+        assert_eq!(p.as_deref(), Some(&[(i32::MAX - 1, 0), (i32::MAX, 0)][..]));
+        // Opposite extremes: heuristic saturates; unreachable goal returns None
+        // once the open set drains (bounded — no wrap-around re-expansion).
+        let unreachable = crate::pathfinding::astar(
+            (i32::MIN + 1, 0),
+            (i32::MAX - 1, 0),
+            |x, _| x != i32::MIN + 1, // wall everything but the start
+        );
+        assert!(unreachable.is_none());
     }
 }

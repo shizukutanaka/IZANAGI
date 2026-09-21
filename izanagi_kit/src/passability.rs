@@ -212,10 +212,17 @@ impl PassabilityGrid {
     /// become wall) and dungeon connectivity checks without allocating a list.
     #[inline]
     pub fn count_neighbors_blocked(&self, x: i32, y: i32) -> usize {
-        [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-            .iter()
-            .filter(|&&(nx, ny)| self.is_blocked(nx, ny))
-            .count()
+        // `x - 1`/`y + 1` under/overflow at coordinate extremes; saturating
+        // keeps the coordinate out of bounds, which counts as blocked anyway.
+        [
+            (x.saturating_sub(1), y),
+            (x.saturating_add(1), y),
+            (x, y.saturating_sub(1)),
+            (x, y.saturating_add(1)),
+        ]
+        .iter()
+        .filter(|&&(nx, ny)| self.is_blocked(nx, ny))
+        .count()
     }
 
     /// Count of passable 4-directional neighbours of `(x, y)`. Out-of-bounds
@@ -224,10 +231,15 @@ impl PassabilityGrid {
     /// at call sites and the edge-case (OOB cells count as blocked in both).
     #[inline]
     pub fn count_neighbors_passable(&self, x: i32, y: i32) -> usize {
-        [(x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)]
-            .iter()
-            .filter(|&&(nx, ny)| self.is_passable(nx, ny))
-            .count()
+        [
+            (x.saturating_sub(1), y),
+            (x.saturating_add(1), y),
+            (x, y.saturating_sub(1)),
+            (x, y.saturating_add(1)),
+        ]
+        .iter()
+        .filter(|&&(nx, ny)| self.is_passable(nx, ny))
+        .count()
     }
 
     /// Flip every cell in place: passable → blocked, blocked → passable.
@@ -619,5 +631,13 @@ mod tests {
     fn test_count_neighbors_passable_open_field_is_four() {
         let g = PassabilityGrid::new(5, 5);
         assert_eq!(g.count_neighbors_passable(2, 2), 4);
+    }
+
+    #[test]
+    fn count_neighbors_extreme_coordinates_do_not_overflow() {
+        let g = PassabilityGrid::new(4, 4);
+        assert_eq!(g.count_neighbors_blocked(i32::MIN, 0), 4);
+        assert_eq!(g.count_neighbors_blocked(i32::MAX, 0), 4);
+        assert_eq!(g.count_neighbors_passable(i32::MIN, i32::MAX), 0);
     }
 }

@@ -109,8 +109,9 @@ impl<T: Clone> TileMap<T> {
     pub fn fill_rect(&mut self, x: i32, y: i32, w: i32, h: i32, tile: T) {
         let x0 = x.max(0) as u32;
         let y0 = y.max(0) as u32;
-        let x1 = ((x + w.max(0)) as u32).min(self.width);
-        let y1 = ((y + h.max(0)) as u32).min(self.height);
+        // `x + w` / `y + h` overflow i32 at coordinate extremes — clip in i64.
+        let x1 = (x as i64 + w.max(0) as i64).clamp(0, self.width as i64) as u32;
+        let y1 = (y as i64 + h.max(0) as i64).clamp(0, self.height as i64) as u32;
         for row in y0..y1 {
             for col in x0..x1 {
                 let idx = row as usize * self.width as usize + col as usize;
@@ -1184,5 +1185,12 @@ mod tests {
                 assert_eq!(m.get(x, y), Some(&0));
             }
         }
+    }
+
+    #[test]
+    fn fill_rect_extreme_coordinates_do_not_overflow() {
+        let mut m: crate::tilemap::TileMap<i32> = crate::tilemap::TileMap::new(4, 4, 0);
+        m.fill_rect(i32::MAX - 1, 0, 10, 1, 7); // x + w overflows i32
+        m.fill_rect(0, i32::MAX - 1, 1, 10, 7); // y + h overflows i32
     }
 }
