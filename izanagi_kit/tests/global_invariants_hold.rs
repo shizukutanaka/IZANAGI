@@ -584,7 +584,78 @@ fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
     fn squeeze_sigil_ws(code: &str) -> String {
         const SIGILS: &[char] = &[':', '.', '!', '#'];
         let chars: Vec<char> = code.chars().collect();
-        let mut out = String::with_capacity(code.len());
+        // Pass 1: block comments are tokens too (`env /*..*/ :: var`
+        // compiles while spelling no needle — verified green by injection)
+        // — drop them with a ` ` marker; strings and char literals keep
+        // their contents (a fake `'/*'` must not open comment mode).
+        let mut pass = String::with_capacity(code.len());
+        let mut in_str = false;
+        let mut esc = false;
+        let mut depth = 0usize;
+        let mut i = 0usize;
+        while i < chars.len() {
+            let c = chars[i];
+            if in_str {
+                pass.push(c);
+                if esc {
+                    esc = false;
+                } else if c == '\\' {
+                    esc = true;
+                } else if c == '"' {
+                    in_str = false;
+                }
+                i += 1;
+                continue;
+            }
+            if c == '\'' {
+                // A char literal must be consumed whole — `'/*'` cannot be
+                // allowed to fake-open comment mode and swallow real code.
+                // A lifetime ('a, 'static) stays code.
+                pass.push(c);
+                let n1 = chars.get(i + 1).copied();
+                let n2 = chars.get(i + 2).copied();
+                if n1 == Some('\\') {
+                    i += 2;
+                    while i < chars.len() && chars[i] != '\'' {
+                        i += 1;
+                    }
+                    i += 1;
+                } else if n1.is_some() && n2 == Some('\'') {
+                    i += 3;
+                } else {
+                    i += 1;
+                }
+                continue;
+            }
+            if depth > 0 {
+                if c == '/' && chars.get(i + 1) == Some(&'*') {
+                    depth += 1;
+                    i += 2;
+                    continue;
+                }
+                if c == '*' && chars.get(i + 1) == Some(&'/') {
+                    depth -= 1;
+                    i += 2;
+                    continue;
+                }
+                i += 1;
+                continue;
+            }
+            if c == '/' && chars.get(i + 1) == Some(&'*') {
+                depth = 1;
+                pass.push(' ');
+                i += 2;
+                continue;
+            }
+            if c == '"' {
+                in_str = true;
+            }
+            pass.push(c);
+            i += 1;
+        }
+        // Pass 2: sigil-adjacent whitespace reads as one token.
+        let chars: Vec<char> = pass.chars().collect();
+        let mut out = String::with_capacity(pass.len());
         for (i, &c) in chars.iter().enumerate() {
             if c.is_whitespace() {
                 let prev = out.chars().last();
@@ -600,6 +671,7 @@ fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
         }
         out
     }
+
     fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
@@ -1597,31 +1669,6 @@ fn test_code(src: &str) -> String {
 /// `#` and before `(`/`[` (verified: `std :: env :: var` in a test file
 /// passed the whole suite green). Scanners must see the token stream the
 /// compiler sees, so sigil-adjacent space is squeezed out here.
-fn squeeze_sigil_ws(code: &str) -> String {
-    const SIGILS: &[char] = &[':', '.', '!', '#'];
-    let chars: Vec<char> = code.chars().collect();
-    let mut out = String::with_capacity(code.len());
-    for (i, &c) in chars.iter().enumerate() {
-        if c.is_whitespace() {
-            let prev = out.chars().last();
-            let next = chars[i + 1..].iter().find(|n| !n.is_whitespace());
-            let squeeze = matches!(prev, Some(p) if SIGILS.contains(&p))
-                || matches!(next, Some(&n) if SIGILS.contains(&n) || n == '(' || n == '[');
-            if !squeeze {
-                out.push(c);
-            }
-            continue;
-        }
-        out.push(c);
-    }
-    out
-}
-
-/// `env!("NAME")`/`option_env!("NAME")` arguments in `src`, at code positions
-/// only. Unlike `test_code`, string contents stay readable — the env-var name
-/// IS the thing being checked — so an `env!(` that sits inside a string
-/// literal (a scanner needle) is skipped instead of blanked. `None` marks a
-/// non-literal argument such as `env!(concat!(..))`.
 fn env_macro_args(src: &str) -> Vec<Option<String>> {
     let b = src.as_bytes();
     let mut i = 0usize;
@@ -1705,6 +1752,97 @@ fn env_macro_args(src: &str) -> Vec<Option<String>> {
             continue;
         }
         i += 1;
+    }
+    out
+}
+
+fn squeeze_sigil_ws(code: &str) -> String {
+    const SIGILS: &[char] = &[':', '.', '!', '#'];
+    let chars: Vec<char> = code.chars().collect();
+    // Pass 1: block comments are tokens too (`env /*..*/ :: var`
+    // compiles while spelling no needle — verified green by injection)
+    // — drop them with a ` ` marker; strings and char literals keep
+    // their contents (a fake `'/*'` must not open comment mode).
+    let mut pass = String::with_capacity(code.len());
+    let mut in_str = false;
+    let mut esc = false;
+    let mut depth = 0usize;
+    let mut i = 0usize;
+    while i < chars.len() {
+        let c = chars[i];
+        if in_str {
+            pass.push(c);
+            if esc {
+                esc = false;
+            } else if c == '\\' {
+                esc = true;
+            } else if c == '"' {
+                in_str = false;
+            }
+            i += 1;
+            continue;
+        }
+        if c == '\'' {
+            // A char literal must be consumed whole — `'/*'` cannot be
+            // allowed to fake-open comment mode and swallow real code.
+            // A lifetime ('a, 'static) stays code.
+            pass.push(c);
+            let n1 = chars.get(i + 1).copied();
+            let n2 = chars.get(i + 2).copied();
+            if n1 == Some('\\') {
+                i += 2;
+                while i < chars.len() && chars[i] != '\'' {
+                    i += 1;
+                }
+                i += 1;
+            } else if n1.is_some() && n2 == Some('\'') {
+                i += 3;
+            } else {
+                i += 1;
+            }
+            continue;
+        }
+        if depth > 0 {
+            if c == '/' && chars.get(i + 1) == Some(&'*') {
+                depth += 1;
+                i += 2;
+                continue;
+            }
+            if c == '*' && chars.get(i + 1) == Some(&'/') {
+                depth -= 1;
+                i += 2;
+                continue;
+            }
+            i += 1;
+            continue;
+        }
+        if c == '/' && chars.get(i + 1) == Some(&'*') {
+            depth = 1;
+            pass.push(' ');
+            i += 2;
+            continue;
+        }
+        if c == '"' {
+            in_str = true;
+        }
+        pass.push(c);
+        i += 1;
+    }
+    // Pass 2: sigil-adjacent whitespace reads as one token.
+    let chars: Vec<char> = pass.chars().collect();
+    let mut out = String::with_capacity(pass.len());
+    for (i, &c) in chars.iter().enumerate() {
+        if c.is_whitespace() {
+            let prev = out.chars().last();
+            let next = chars[i + 1..].iter().find(|n| !n.is_whitespace());
+            let squeeze = matches!(prev, Some(p) if SIGILS.contains(&p))
+                || matches!(next, Some(&n) if SIGILS.contains(&n) || n == '(' || n == '[');
+            if !squeeze {
+                out.push(c);
+            }
+            continue;
+        }
+        out.push(c);
     }
     out
 }
