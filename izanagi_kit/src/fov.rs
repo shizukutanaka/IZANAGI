@@ -102,16 +102,22 @@ where
     V: FnMut(i32, i32, i64),
 {
     /// Map quadrant-local `(depth, col)` to absolute map coordinates.
+    /// i64 intermediates saturate to i32: an origin at i32::MIN/MAX plus any
+    /// positive depth would otherwise overflow the i32 arithmetic.
     #[inline]
     fn transform(&self, depth: i64, col: i64) -> (i32, i32) {
-        let d = depth as i32;
-        let c = col as i32;
-        match self.index {
-            0 => (self.ox + c, self.oy - d),
-            1 => (self.ox + d, self.oy + c),
-            2 => (self.ox + c, self.oy + d),
-            _ => (self.ox - d, self.oy + c),
-        }
+        let d = depth;
+        let c = col;
+        let (x, y) = match self.index {
+            0 => (self.ox as i64 + c, self.oy as i64 - d),
+            1 => (self.ox as i64 + d, self.oy as i64 + c),
+            2 => (self.ox as i64 + c, self.oy as i64 + d),
+            _ => (self.ox as i64 - d, self.oy as i64 + c),
+        };
+        (
+            x.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+            y.clamp(i64::from(i32::MIN), i64::from(i32::MAX)) as i32,
+        )
     }
 
     #[inline]
@@ -813,5 +819,14 @@ mod tests {
             count > 0 && count < total,
             "row filter should select a subset"
         );
+    }
+
+    #[test]
+    fn fov_extreme_origin_does_not_overflow() {
+        // Origin near i32::MIN/MAX with nonzero depth overflowed i32 in
+        // `transform`; i64 intermediates saturate instead.
+        compute_fov((i32::MAX - 2, 0), 4, |_, _| false, |_, _| {});
+        compute_fov((i32::MIN + 2, i32::MAX - 1), 6, |_, _| true, |_, _| {});
+        let _ = fov_to_vec((i32::MIN + 1, i32::MIN + 1), 3, |_, _| false);
     }
 }
