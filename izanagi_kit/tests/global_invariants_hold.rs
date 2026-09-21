@@ -576,6 +576,30 @@ fn structural_tail(src: &str, offset: usize) -> String {
 /// first, then the text is cut at the first `#[cfg(test)]` marker, and
 /// `src/bin/` is excluded — a CLI's job is to answer to its machine.
 fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
+    // Whitespace may sit on either side of `::`, `.`, `!`, `#` and before
+    // `(`/`[` — `env :: var`, `cfg ! (x)` and `# [cfg]` all compile while
+    // spelling no needle (verified: `std :: env :: var` in a test file
+    // passed the whole suite green). Scanners must see the token stream
+    // the compiler sees, so sigil-adjacent space is squeezed out here.
+    fn squeeze_sigil_ws(code: &str) -> String {
+        const SIGILS: &[char] = &[':', '.', '!', '#'];
+        let chars: Vec<char> = code.chars().collect();
+        let mut out = String::with_capacity(code.len());
+        for (i, &c) in chars.iter().enumerate() {
+            if c.is_whitespace() {
+                let prev = out.chars().last();
+                let next = chars[i + 1..].iter().find(|n| !n.is_whitespace());
+                let squeeze = matches!(prev, Some(p) if SIGILS.contains(&p))
+                    || matches!(next, Some(&n) if SIGILS.contains(&n) || n == '(' || n == '[');
+                if !squeeze {
+                    out.push(c);
+                }
+                continue;
+            }
+            out.push(c);
+        }
+        out
+    }
     fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
@@ -601,7 +625,7 @@ fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
                     .unwrap_or(&path)
                     .display()
                     .to_string();
-                out.insert(rel, stripped);
+                out.insert(rel, squeeze_sigil_ws(&stripped));
             }
         }
     }
@@ -1565,6 +1589,31 @@ fn test_code(src: &str) -> String {
         }
         out.push(c);
     }
+    squeeze_sigil_ws(&out)
+}
+
+/// `env :: var`, `cfg ! (x)`, `# [cfg]` and `x . parent()` all compile while
+/// spelling no needle — whitespace may sit on either side of `::`, `.`, `!`,
+/// `#` and before `(`/`[` (verified: `std :: env :: var` in a test file
+/// passed the whole suite green). Scanners must see the token stream the
+/// compiler sees, so sigil-adjacent space is squeezed out here.
+fn squeeze_sigil_ws(code: &str) -> String {
+    const SIGILS: &[char] = &[':', '.', '!', '#'];
+    let chars: Vec<char> = code.chars().collect();
+    let mut out = String::with_capacity(code.len());
+    for (i, &c) in chars.iter().enumerate() {
+        if c.is_whitespace() {
+            let prev = out.chars().last();
+            let next = chars[i + 1..].iter().find(|n| !n.is_whitespace());
+            let squeeze = matches!(prev, Some(p) if SIGILS.contains(&p))
+                || matches!(next, Some(&n) if SIGILS.contains(&n) || n == '(' || n == '[');
+            if !squeeze {
+                out.push(c);
+            }
+            continue;
+        }
+        out.push(c);
+    }
     out
 }
 
@@ -1612,20 +1661,28 @@ fn env_macro_args(src: &str) -> Vec<Option<String>> {
                 _ => {}
             }
         }
-        let name = if b[i..].starts_with(b"option_env!") {
-            Some(b"option_env!".len())
-        } else if b[i..].starts_with(b"env!") {
-            Some(b"env!".len())
+        let name = if b[i..].starts_with(b"option_env") {
+            Some(b"option_env".len())
+        } else if b[i..].starts_with(b"env") {
+            Some(b"env".len())
         } else {
             None
         };
         if let Some(w) = name {
             let prev_ok = i == 0 || !(b[i - 1].is_ascii_alphanumeric() || b[i - 1] == b'_');
-            if prev_ok {
-                let mut j = i + w;
+            let mut j = i + w;
+            while b.get(j).is_some_and(|c| c.is_ascii_whitespace()) {
+                j += 1;
+            }
+            // `env ! ("X")` is the same macro — whitespace must not hide it.
+            if prev_ok && b.get(j) == Some(&b'!') {
+                j += 1;
+                while b.get(j).is_some_and(|c| c.is_ascii_whitespace()) {
+                    j += 1;
+                }
                 if b.get(j) == Some(&b'(') {
                     j += 1;
-                    while b.get(j) == Some(&b' ') || b.get(j) == Some(&b'\t') {
+                    while b.get(j).is_some_and(|c| c.is_ascii_whitespace()) {
                         j += 1;
                     }
                     if b.get(j) == Some(&b'"') {

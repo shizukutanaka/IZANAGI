@@ -131,6 +131,30 @@ fn test_module_boundary(src: &str) -> Option<usize> {
 /// comments stripped so this doc comment's own prose ("no native-endian ...
 /// leakage") does not count as a use of the banned methods.
 fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
+    // Whitespace may sit on either side of `::`, `.`, `!`, `#` and before
+    // `(`/`[` — `env :: var`, `cfg ! (x)` and `# [cfg]` all compile while
+    // spelling no needle (verified: `std :: env :: var` in a test file
+    // passed the whole suite green). Scanners must see the token stream
+    // the compiler sees, so sigil-adjacent space is squeezed out here.
+    fn squeeze_sigil_ws(code: &str) -> String {
+        const SIGILS: &[char] = &[':', '.', '!', '#'];
+        let chars: Vec<char> = code.chars().collect();
+        let mut out = String::with_capacity(code.len());
+        for (i, &c) in chars.iter().enumerate() {
+            if c.is_whitespace() {
+                let prev = out.chars().last();
+                let next = chars[i + 1..].iter().find(|n| !n.is_whitespace());
+                let squeeze = matches!(prev, Some(p) if SIGILS.contains(&p))
+                    || matches!(next, Some(&n) if SIGILS.contains(&n) || n == '(' || n == '[');
+                if !squeeze {
+                    out.push(c);
+                }
+                continue;
+            }
+            out.push(c);
+        }
+        out
+    }
     fn walk(dir: &Path, root: &Path, out: &mut BTreeMap<String, String>) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
@@ -156,7 +180,7 @@ fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
                     .unwrap_or(&path)
                     .display()
                     .to_string();
-                out.insert(rel, stripped);
+                out.insert(rel, squeeze_sigil_ws(&stripped));
             }
         }
     }
