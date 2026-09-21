@@ -128,8 +128,10 @@ impl<K: Eq + Clone> StatusSet<K> {
     }
 
     /// Sum of all active magnitudes. Useful for computing a net modifier.
-    pub fn total_magnitude(&self) -> i32 {
-        self.entries.iter().map(|(_, e)| e.magnitude).sum()
+    /// The return is `i64`: magnitudes are arbitrary `i32`, so the true sum
+    /// can exceed `i32::MAX` (e.g. two `i32::MAX` buffs).
+    pub fn total_magnitude(&self) -> i64 {
+        self.entries.iter().map(|(_, e)| e.magnitude as i64).sum()
     }
 
     /// Iterate active effects in application order.
@@ -894,5 +896,14 @@ mod tests {
         let mut s2 = StatusSet::new();
         s2.apply(Buff::Might, 3, 5);
         assert_eq!(s2.dot_total(|k| *k == Buff::Poison), 0);
+    }
+
+    #[test]
+    fn extreme_magnitudes_sum_in_i64() {
+        let mut s: StatusSet<u32> = StatusSet::new();
+        s.apply(1, 10, i32::MAX);
+        s.apply(2, 10, i32::MAX);
+        // The true sum exceeds i32 — previously this panicked.
+        assert_eq!(s.total_magnitude(), i32::MAX as i64 * 2);
     }
 }
