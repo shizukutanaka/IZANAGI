@@ -115,6 +115,15 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   (f32::min/max は非 NaN 側を返すので NaN 境界も吸収)。回帰テストを
   `#[cfg(test)]` モジュール内に追加。
 
+
+- ~~`x % 0`/`x %= 0` の剰余除算は `/` 走査の隣接で済むと思われていた~~ →
+  `%` は別トークンで、*除算を通るが 0 になりうる派生値* が残っていた:
+  `FixedTimestep::new(sps > 1_000_000_000)` で `step_ns = 1e9 / sps = 0`、
+  `advance()` の `accumulator_ns %= step_ns` が `% 0` で panic(注入実証)。
+  修正: `step_ns` を `.max(1)` で 1ns に飽和。audio/menu/hud/msglog 等の
+  `% len`/`% cap`/`% stride` サイトはガード済み・construct-time assert
+  済み・`char_indices` 境界維持を再確認して非穴。
+
 ### 未解決
 
 > **この4件の性質**: 1 と 5 は**ユーザーの操作を待っているだけ**で、作業は完了している。

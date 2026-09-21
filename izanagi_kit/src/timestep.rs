@@ -32,7 +32,9 @@ impl FixedTimestep {
         assert!(steps_per_second > 0, "steps_per_second must be > 0");
         assert!(max_steps > 0, "max_steps must be > 0");
         Self {
-            step_ns: 1_000_000_000 / steps_per_second as u64,
+            // Saturate to 1 ns when the tick rate exceeds 1e9 Hz so
+            // advance()'s `%=` never sees a zero divisor.
+            step_ns: (1_000_000_000 / steps_per_second as u64).max(1),
             accumulator_ns: 0,
             max_steps,
             total_steps: 0,
@@ -256,5 +258,14 @@ mod tests {
             b.advance(step / 2);
         }
         assert_eq!(a.total_time_ns(), b.total_time_ns());
+    }
+
+    #[test]
+    fn step_ns_saturates_to_one() {
+        // steps_per_second > 1_000_000_000 saturates step_ns to 1 ns
+        // rather than producing 0 (which would panic advance()'s `%=`).
+        let mut ts = FixedTimestep::new(2_000_000_000, 5);
+        let _ = ts.advance(1);
+        assert_eq!(ts.step_ns(), 1);
     }
 }
