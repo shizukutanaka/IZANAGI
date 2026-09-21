@@ -994,6 +994,81 @@ fn prop_savefile_checksum_field_corruption_always_detected() {
     }
 }
 
+/// **Magic-field fault injection** — flipping any byte of the 4-byte magic
+/// (bytes 0-3) must always produce `BadMagic`: a corrupted signature can never
+/// be mistaken for a save file.
+#[test]
+fn prop_savefile_magic_corruption_always_detected() {
+    use izanagi_kit::savefile::{load_bytes, save_bytes, LoadError, SaveHeader};
+    let mut rng = SplitMix64::new(0xBA6_1E57);
+    for _ in 0..ITERS {
+        let len = rng.below(64) as usize;
+        let payload: Vec<u8> = (0..len).map(|_| rng.below(256) as u8).collect();
+        let mut saved = save_bytes(&SaveHeader::new(1), &payload);
+
+        let pos = rng.below(4) as usize;
+        saved[pos] ^= 0xFF;
+
+        assert_eq!(
+            load_bytes(&saved),
+            Err(LoadError::BadMagic),
+            "magic corruption not detected at byte {pos}"
+        );
+    }
+}
+
+/// **Length-field fault injection** — flipping any byte of the 4-byte payload
+/// length (bytes 16-19) must never produce `Ok`: an oversized length is
+/// rejected as `TooShort`, an undersized length reads the wrong slice and is
+/// caught by `ChecksumMismatch`. A zero-length payload save is included so a
+/// length flipped *down to* 0 is exercised too.
+#[test]
+fn prop_savefile_len_field_corruption_never_accepted() {
+    use izanagi_kit::savefile::{load_bytes, save_bytes, LoadError, SaveHeader};
+    let mut rng = SplitMix64::new(0x1E11_F1E1);
+    for _ in 0..ITERS {
+        let len = rng.below(64) as usize;
+        let payload: Vec<u8> = (0..len).map(|_| rng.below(256) as u8).collect();
+        let mut saved = save_bytes(&SaveHeader::new(5), &payload);
+
+        let pos = 16 + rng.below(4) as usize;
+        saved[pos] ^= 0xFF;
+
+        match load_bytes(&saved) {
+            Err(LoadError::TooShort) | Err(LoadError::ChecksumMismatch) => {}
+            Err(other) => panic!("unexpected error for len-field flip: {other:?}"),
+            Ok(_) => panic!("len-field corruption accepted at byte {pos}"),
+        }
+    }
+}
+
+/// **Version-field fault injection** — flipping any byte of the 4-byte version
+/// (bytes 4-7) leaves the payload and checksum intact, so `load_bytes` still
+/// succeeds but reports the *corrupted* version. This pins the documented
+/// contract that the version field is unprotected metadata the reader must
+/// validate itself (the checksum deliberately covers only the payload).
+#[test]
+fn prop_savefile_version_field_corruption_passes_through() {
+    use izanagi_kit::savefile::{load_bytes, save_bytes, SaveHeader};
+    let mut rng = SplitMix64::new(0x07E5_71E7);
+    for _ in 0..ITERS {
+        let len = rng.below(64) as usize;
+        let payload: Vec<u8> = (0..len).map(|_| rng.below(256) as u8).collect();
+        let mut saved = save_bytes(&SaveHeader::new(3), &payload);
+
+        let pos = 4 + rng.below(4) as usize;
+        saved[pos] ^= 0xFF;
+
+        match load_bytes(&saved) {
+            Ok((header, bytes)) => {
+                assert_ne!(header.version, 3, "version flip was silently ignored");
+                assert_eq!(bytes, payload.as_slice(), "payload must be intact");
+            }
+            Err(e) => panic!("version corruption must not fail the load: {e:?}"),
+        }
+    }
+}
+
 /// `splash_attack` contract, generalized beyond the two example-based unit
 /// tests. Target `i` receives `max(1, attack − falloff·i)` raw damage, then
 /// `max(1, raw − defense)`, so two documented properties must hold for every

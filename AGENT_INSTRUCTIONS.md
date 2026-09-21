@@ -128,6 +128,8 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
 
 - **発火順の doc-vs-impl 不一致**: 「残り tick 昇順で返す」と文書化しつつ drain 順(挿入順)で返す — 実装を doc に合わせる(安定 sort で同点=挿入順を維持)。`izanagi_kit::timer`(`TimerQueue::advance`)
 
+- **savefile ヘッダ領域の fault-injection 欠損**: 破損注入は payload・checksum フィールド・truncation のみで、magic(bytes 0-3)・len(bytes 16-19)・version(bytes 4-7) の各ヘッダフィールドは未走査だった — TigerBeetle VOPR 式にフィールド別 corruption sweep で閉塞: magic→常に `BadMagic`、len→`TooShort`/`ChecksumMismatch` で受理なし、version→checksum が payload のみを保護する設計意図のもと `Ok` + 破損値通過を固定(「version は読者の検査対象」契約の恒久 pin)。`izanagi_kit/tests/properties.rs`
+
 ### 未解決
 
 > **この4件の性質**: 1 と 5 は**ユーザーの操作を待っているだけ**で、作業は完了している。
