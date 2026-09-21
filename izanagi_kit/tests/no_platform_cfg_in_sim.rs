@@ -265,6 +265,16 @@ fn library_sources(src_root: &Path) -> BTreeMap<String, String> {
                 i += 2;
                 continue;
             }
+            if c == '/' && chars.get(i + 1) == Some(&'/') {
+                // A line comment is a token separator too — `env //x` + `::var` on
+                // the next line must normalize to `env::var`, not hide the needle.
+                pass.push(' ');
+                i += 2;
+                while i < chars.len() && chars[i] != '\n' {
+                    i += 1;
+                }
+                continue;
+            }
             if c == '"' {
                 in_str = true;
             }
