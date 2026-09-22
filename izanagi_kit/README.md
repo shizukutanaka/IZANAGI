@@ -248,6 +248,11 @@ The capability map — with per-feature implementation status — lives in
 | `shunting` | `shunting_yard` + `eval`/`eval_rpn` — infix→postfix + strict `i64` evaluation; truncating `/`/`%`, `None` on overflow, div-by-zero, malformed input. |
 | `sat` | `collide`/`overlap` — separating-axis convex collision in `i128`: boundary contact counts, witness = min-overlap axis + projection-unit depth. |
 | `buddy` | `Buddy` — binary buddy allocator: sorted lowest-address free lists, eager coalescing, canonical state (no two buddies simultaneously free). |
+| `xorfilter` | `XorFilter` — static xor-filter membership: ~0.4% false positives, no false negatives, three-slot XOR lookup (Graf & Lemire). |
+| `lru` | `Lru` — least-recently-used cache: canonical (stamp, key) eviction over two BTreeMaps. |
+| `vose` | `AliasTable` — Vose's alias method: O(1) weighted sampling, exact integer distribution. |
+| `quadtree` | `Quadtree` — bucketed dynamic point index: canonical sorted rect queries, best-first `nearest`. |
+| `cartesian` | `Cartesian` — O(n) cartesian tree: heap on values, BST on positions; LCA answers range extrema. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
