@@ -130,6 +130,44 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   budget since the hex lattice is unbounded. Matches a BFS oracle on random
   obstacle fields.
 
+### Added — space-filling curves, contours, flow, assignment, rewriting
+
+- **`zorder`** — Morton (1966) z-order and Skilling Hilbert space-filling
+  codes: `morton_encode`/`morton_decode` in 2D/3D and 64-bit widths,
+  `hilbert_encode`/`hilbert_decode`, `spatial_sort` for
+  locality-preserving point ordering, and `morton_key` over signed
+  coordinates via sign-bit bias. Hilbert's encode-time quadrant transform
+  rotates against the *full* grid mask `n-1` (decode uses the level size
+  `s-1`) — the asymmetric detail that published writeups routinely get
+  wrong. Verified by exhaustive round-trips at every resolution and the
+  4-adjacency of consecutive Hilbert indices.
+- **`msquares`** — marching-squares iso-contour extraction on integer
+  scalar fields: `case_index`, `contour_segments`, `contour_loops`.
+  Segment endpoints live on edge midpoints in doubled coordinates (no
+  fractions, no interpolation parameter); the two saddle cases are
+  resolved canonically by the bilinear-centre asymptotic decider. Chains
+  close into loops; interior-vertex even-degree and loop-consumption
+  invariants are oracle-checked on random fields.
+- **`flow`** — `FlowNet`, an Edmonds–Karp max-flow / min-cut network over
+  `u32` capacities: `add_edge`/`add_edge_undirected`, `max_flow`,
+  `min_cut` (the residual-reachable source partition), `flow_on`
+  (per-add-call pushed flow). BFS neighbour order is insertion order, so
+  the returned cut is deterministic as well as the (theorem-unique) flow
+  value. Verified on random networks: cut capacity equals flow value and
+  flow is conserved at every interior vertex.
+- **`hungarian`** — `assign_min_cost`, the Kuhn–Munkres O(n³) potential
+  method on `n ≤ m` `i64` matrices (negatives allowed, so a profit matrix
+  is just a negated one). Every row receives a distinct column; ties break
+  deterministically under fixed scan order. Verified against a
+  brute-force enumeration of all injective assignments.
+- **`lsystem`** — deterministic Lindenmayer rewriting plus an integer
+  turtle: `expand` applies rules in parallel (the 0L form — stochastic
+  variants intentionally omitted), `turtle_cells` interprets `F/G/f/g`,
+  `+`/`-`, `[`/`]` over `DIRS_4`/`DIRS_8`/`DIRS_HEX` direction sets and
+  draws through `gridcast` so diagonal strokes never skip cells. Verified
+  on the Fibonacci system, branch-state restoration, and 8-connectivity
+  of expanded plants.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded
