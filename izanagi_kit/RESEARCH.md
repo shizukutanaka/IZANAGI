@@ -905,3 +905,39 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Rabin (1981, fingerprinting by random polynomials) / Karp–Rabin (1987, IBM JRD) / Tridgell (1996, rsync) / Xia et al. (2016, FastCDC) / Manber–Myers (1991, SODA/ FOCS'89) / Kasai et al. (2001, LCP) / Bentley (1975, CACM "Multidimensional binary search trees") / Aspvall–Plass–Tarjan (1979, IPL) / Knuth–Moore (1975, "An analysis of alpha-beta pruning")。
 
 **実装物**: cp-algorithms 2-SAT・suffix-array 項 / librsync 指紋窓 / Qt KdTree・scipy cKDTree の query 形対比 / Qiita・Zenn の Rabin–Karp・CDC・kd-tree・2-SAT 解説記事群 / chessprogramming.org negamax 形。
+
+# 第16次: 外部出典サーベイ — 順列代数・数論変換・回文構造・厳密線形代数・整数曲線 (2026-09-22)
+
+## 方針
+
+> 前回までの「文字列・空間・制約・探索」の一般化として、数学基盤の整数厳密版を整備。
+> perm(順列の正準形と全単射)、conv(float FFT を排除する数論畳み込み)、
+> manacher(文字列対称構造)、gauss(float pivot を排除する厳密消去)、
+> bezier(有理 t の厳密スプライン)を実装。
+> PR #28–#31 は本ラウンド時点で open — 本ブランチは #31 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `perm` — 順列代数 + factoradic 順位列挙 | 対称群の標準演算(合成・逆・巡回分解・符号・位数) + Lehmer コード factoradic(Knuth TAOCP 4A §7.2.1.2)。`unrank` が `r ∈ 0..n!` を順列に全単射で写すので「seed の下位 k bit がそのまま配置順」になる正準列挙。結合法則・逆元・`p^order=e`・符号=inversion パリティ・n≤7 全順列の rank/unrank 往復を乱数検証 | 🟢 純粋追加 |
+| `conv` — NTT 畳み込み mod 998244353 | NTT 標準 modulus 119·2²³+1・原始根3(cp-algorithms 系)。bit-reversal + 反復 butterfly で `O(n log n)`、全演算が u64/u128 — float FFT が決定論を壊す理由(丸め誤差が被験者依存)を素因数的に回避。d2d の合計分布・loot の母関数計数が整数厳密になる。naive O(n²) mod-p 全一致・可換性・`convolve_i64` の失敗閉鎖を検証 | 🟢 純粋追加 |
+| `manacher` — O(n) 回文構造 | Manacher 1975 の d1/d2 配列。半開区間 [l,r) 慣行で書くと鏡像 index が inclusive 系から +1/−1 ずれる — 初版で leftmost 以外の全回文が +1 カウントされ、BTreeSet 列挙オラクルが即捕捉して `l+r−1−i`/`l+r−i` に確定。名付け lint・生成 seed の対称性スコアに利用 | 🟢 純粋追加 |
+| `gauss` — Bareiss 厳密消去(det/solve/rank) | Bareiss 1968 fraction-free elimination — 各ステップが先行 pivot での整除を厳密に行うので i64 行列の det が i128 で絶対厳密。`solve` は拡大行列 + 既約 (num,den) 逆戻入で「連立方程式が解けない」の None が singular 証明になる。`rank` は独立経路で `det==0 ⟺ rank<n` を相互検証。permutation 展開 det・A·x=b 復元を乱数検証 | 🟢 純粋追加 |
+| `bezier` — 有理 t の整数厳密曲線 | Bernstein/De Casteljau を `t=num/den` に持ち上げ、(1−t)³P₀… を `u=d−t` の整数展開で評価 — 座標は全て既約 i128 分数。Catmull-Rom は standard basis で内点 2 点を厳密補間。カメラパス・投射物弧・patrol 経路が機種非依存で bit-identical。Horner 形オラクル・端点復元・補間性・等分割 polyline を乱数検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| FFT over complex floats | Cooley–Tukey | float が決定論公理に抵触 — NTT が用途の全てを賄う |
+| Strassen / 任意精度線形代数 | — | Bareiss で n≤8 のゲーム用途は十分。大行列需要はまず無い |
+| EERTREE / palindrome tree | Rubinchik'14 | 前回検討で `suffix` が一般形として優先 — manacher は d1/d2 の専用形として今回補完(両者で用途が直交) |
+| B-spline / NURBS | de Boor | Catmull-Rom の補間性がゲーム経路の標準形。制御点が外部曲線を逸脱する B-spline はパス編集 UX に不適 |
+| Gröbner 基底・多変数制約 | Buchberger | 2-SAT/gauss で実用帯をカバー。実装複雑度が段違い |
+
+## 出典(第16次、search-index 照合)
+
+**論文・仕様**: Knuth TAOCP vol.4A §7.2.1.2(factoradic/Lehmer コード) / Pollard (1971, NTT) / cp-algorithms NTT・Manacher 項 / Manacher (1975, JACM) / Bareiss (1968, Sylvester's identity) / Bernstein–Bézier・De Casteljau (1959–63) / Catmull–Rom (1974)。
+
+**実装物**: cp-algorithms(convolution・manacher) / KACTL NTT 形対比 / AtCoder Library convolution の modulus 選定 / Qiita・Zenn の NTT・Bareiss・Manacher 解説記事群 / redblobgames Bézier 項の曲面形対比。
