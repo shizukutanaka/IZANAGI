@@ -30,9 +30,12 @@ impl PcmBuffer {
         if self.channels == 1 {
             return self.clone();
         }
+        // `chunks_exact` drops a trailing odd sample — `chunks` would hand
+        // the last frame a 1-element slice and `c[1]` would panic on a
+        // stereo buffer with an odd sample count.
         let mono: Vec<f32> = self
             .samples
-            .chunks(2)
+            .chunks_exact(2)
             .map(|c| (c[0] + c[1]) * 0.5)
             .collect();
         PcmBuffer {
@@ -198,6 +201,19 @@ mod tests {
         assert_eq!(buf.sample_rate, 44100);
         assert_eq!(buf.samples.len(), 44100);
         assert!((buf.duration() - 1.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn to_mono_ignores_trailing_odd_sample() {
+        // A stereo buffer with an odd sample count: the dangling sample
+        // has no partner — drop it rather than panic.
+        let stereo = PcmBuffer {
+            samples: vec![0.5, -0.5, 0.9],
+            channels: 2,
+            sample_rate: 44100,
+        };
+        let mono = stereo.to_mono();
+        assert_eq!(mono.samples.len(), 1);
     }
 
     #[test]
