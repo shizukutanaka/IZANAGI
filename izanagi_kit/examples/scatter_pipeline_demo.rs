@@ -109,7 +109,12 @@ const REGION_COLORS: [Color; 8] = [
         b: 170,
     },
 ];
-const REGION_GLYPHS: [char; 8] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+// Region glyphs derive from the seed index ('a', 'b', …) so every seed gets a
+// unique letter for up to 26 regions; colours cycle through the 8-entry
+// palette above.
+fn region_glyph(i: usize) -> char {
+    (b'a' + (i % 26) as u8) as char
+}
 
 fn main() {
     // ── 1. scatter ────────────────────────────────────────────────────────────
@@ -166,8 +171,14 @@ fn main() {
     for y in 0..MAP_H {
         for x in 0..MAP_W {
             if let Some(owner) = grid.get(x, y) {
-                let i = owner as usize % REGION_GLYPHS.len();
-                screen.set(MAP_X + x, MAP_Y + y, REGION_GLYPHS[i], REGION_COLORS[i], BG);
+                let i = owner as usize;
+                screen.set(
+                    MAP_X + x,
+                    MAP_Y + y,
+                    region_glyph(i),
+                    REGION_COLORS[i % REGION_COLORS.len()],
+                    BG,
+                );
             }
         }
     }
@@ -190,13 +201,16 @@ fn main() {
 
     screen.draw_str(PANEL_X, 5, "region sizes:", PANEL_FG, BG);
     let sizes = grid.region_sizes();
-    for (i, &s) in sizes.iter().enumerate().take(8) {
+    // Three entries per row keeps every region visible inside the 80x24 frame.
+    for (i, &s) in sizes.iter().enumerate() {
         let c = REGION_COLORS[i % REGION_COLORS.len()];
-        screen.set(PANEL_X + 1, 6 + i as i32, REGION_GLYPHS[i % 8], c, BG);
-        screen.draw_str(PANEL_X + 2, 6 + i as i32, &format!(" {s:>4}"), PANEL_FG, BG);
+        let col = PANEL_X + 1 + (i as i32 % 3) * 9;
+        let row = 6 + i as i32 / 3;
+        screen.set(col, row, region_glyph(i), c, BG);
+        screen.draw_str(col + 1, row, &format!(" {s:>4}"), PANEL_FG, BG);
     }
 
-    let edge_y = 15;
+    let edge_y = 7 + sizes.len().div_ceil(3) as i32;
     screen.draw_str(
         PANEL_X,
         edge_y,
@@ -205,18 +219,21 @@ fn main() {
         BG,
     );
     let edge_str: Vec<String> = edges.iter().map(|&(i, j)| format!("{i}-{j}")).collect();
-    screen.draw_str(PANEL_X, edge_y + 1, &edge_str.join(" "), DIM_FG, BG);
+    for (row, chunk) in edge_str.chunks(5).enumerate() {
+        screen.draw_str(PANEL_X, edge_y + 1 + row as i32, &chunk.join(" "), DIM_FG, BG);
+    }
 
+    let packet_y = edge_y + 1 + edge_str.len().div_ceil(5) as i32 + 1;
     screen.draw_str(
         PANEL_X,
-        edge_y + 3,
+        packet_y,
         &format!("packet: {} bits / {} bytes", w.bit_len(), packet.len()),
         PANEL_FG,
         BG,
     );
-    for (row, chunk) in packet.chunks(4).enumerate() {
+    for (row, chunk) in packet.chunks(8).enumerate() {
         let hex: Vec<String> = chunk.iter().map(|b| format!("{b:02x}")).collect();
-        screen.draw_str(PANEL_X, edge_y + 4 + row as i32, &hex.join(" "), DIM_FG, BG);
+        screen.draw_str(PANEL_X, packet_y + 1 + row as i32, &hex.join(" "), DIM_FG, BG);
     }
 
     // ── output ────────────────────────────────────────────────────────────────
