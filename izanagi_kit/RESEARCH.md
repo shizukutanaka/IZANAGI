@@ -679,3 +679,33 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文**: Morton (IBM Research Report 1966) / Skilling (Bayesian inference and maximum entropy 2004 — Hilbert xy↔d) / Lorensen & Cline (SIGGRAPH'87) / Edmonds & Karp (JACM 1972) / Kuhn (Naval Research Logistics 1955) / Lindenmayer (1968)・Prusinkiewicz & Lindenmayer *ABOP*。
 
 **実装物**: Wikipedia "Hilbert curve" 反復写像 / e-maxx cp-algorithms hungarian ページ / KACTL・USACO guide max-flow 実装群 / Paul Bourke・Qiita・Zenn の L-system・marching squares・z-order 記事群。
+
+# 第9次: 外部出典サーベイ — 多角形述語・polyline 簡約・接頭辞和・多パターン走査・差分 (2026-09-22)
+
+> taxonomy 残存ギャップは引き続き全て意図的スコープ外のため、幾何・文字列・クエリの
+> アルゴリズム層を継続棚卸し。5系統実装。本ラウンドは PR #24 (第8次) の上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `poly` — 整数 2D 多角形述語・凸包・耳切り三角分割 | shoelace 公式、`orient` 回帰の computational geometry 定石、Andrew monotone chain (1979)、ear clipping (Eberly 系)。`point_in_polygon` は even-odd + half-open 頂点規約 + 交差乗算の整数比較。耳 test は**境界上の頂点も拒否**する inclusive 判定 — strict interior 判定では凹頂点が耳辺上に乗るケースを見逃し、三角形が凹部へ食い出す(実測で L 字多角形の面積不一致を再現・解析して修正) | 🟢 純粋追加 |
+| `rdp` — Ramer–Douglas–Peucker polyline 簡約 | RDP (1973-74)。`msquares::contour_loops` 出力の canonical 後段 — 階段状 contour を整数閾値で salient corner に圧縮。距離比較は `|cross|² vs eps²·|chord|²` への i128 交差乗算で真の垂距に対する閾値を厳密化。`simplify_loop` は重心最遠点アンカーで閉ループの切れ目を内容定義化(index 0 依存を排除) | 🟢 純粋追加 |
+| `fenwick` — Fenwick tree / BIT | Fenwick (IBM J. Res. Dev. 1979)。接頭辞和クエリの定番構造 — リーダーボード・経済台帳・重み付き抽選の `lower_bound` 秩序統計量。`from_slice` は n 回 add ではなく責任区間直接伝播の O(n) 構築。乱数列の全クエリ(prefix/range/total)をブルートフォース接頭辞和と照合 | 🟢 純粋追加 |
+| `ahocor` — Aho–Corasick 多パターン走査 | Aho & Corasick (CACM 1975)。fail リンク + dict リンクで O(text+hits)。子遷移は BTreeMap(dense [u8;256] より記憶小・走査順 canonical)。emit は (end_pos, pattern_idx) ソートで overlapping/suffix 内包 match も全件取得。禁止語フィルタ・署名パターン検出・diag 抽出層 | 🟢 純粋追加 |
+| `diff` — Myers 差分 + Levenshtein + LCS | Myers "An O(ND) Difference Algorithm" (1986) 貪欲 frontier + 保存 trace backtrack。`hunks` は unified-diff 形の (a_start, del, b_start, ins) 塊。desync report・セーブ比較・did-you-mean 候補の差分層。**backtrack は frontier level を直接 iterate** — level 0 まで降りると `Ins(-1)` 型の underflow(実測で発覚・修正)。スクリプト適用 = 目標再現・最小性 n+m−2·lcs を乱数ペアでオラクル検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Segment tree / sparse table | 定石 | Fenwick が prefix-sum 系をカバー。範囲 min/max が必要になれば後続で |
+| Yen / k-shortest paths | Yen 1971 | 経路多様化は `weighted_astar` + 障害追加で近似的に可能。真の k-最短路は後続候補 |
+| Bentley–Ottmann 線分交差 sweep | 1979 | `zorder` + 個別 orient 判定で用途をカバー。全体交差列挙は需要が薄い |
+| Suffix array / FM-index | Manber–Myers / Ferragina | Aho–Corasick が多パターン側をカバー。全文索引は replay log 検索が必要になれば |
+
+## 出典(第9次、search-index 照合)
+
+**論文**: Fenwick (IBM J. Res. Dev. 1979) / Aho & Corasick (CACM 1975) / Myers (Algorithmica 1986) / Douglas & Peucker (Cartographica 1973) / Andrew (IPL 1979 monotone chain) / Eberly ear-clipping 実装系。
+
+**実装物**: cp-algorithms fenwick・hungarian・aho-corasick ページ / Wikipedia "Ramer–Douglas–Peucker"・"Myers diff"・"point in polygon"・"convex hull" / Qiita・Zenn の BIT・耳切り三角分割・Aho-Corasick 記事群。
