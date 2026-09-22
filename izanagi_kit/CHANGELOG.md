@@ -353,6 +353,48 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   every-position scan over tiny alphabets (forcing overlaps) and by
   stream-vs-batch equivalence over random chunkings.
 
+### Added — causality tracking, hash trees, membership filters, snapshot sync, substring compression
+
+- **`vclock`** — `VClock`: Lamport/Fidge–Mattern vector clocks over a
+  `BTreeMap<u32,u64>` actor table. `tick`/`merge`/`compare` yield the
+  four-way causal order (`Before`/`After`/`Equal`/`Concurrent`), so
+  diverged peer histories are provably distinguishable — the predicate
+  a lockstep desync report needs to say "peer A's frame never saw peer
+  B's input". Verified against the partial-order axioms, the
+  least-upper-bound property of `merge`, and a message-flow simulation
+  in which every received snapshot must precede the merge result.
+- **`merkle`** — `Merkle`: binary hash tree over domain-tagged `u64`
+  leaf hashes (`root`/`proof`/`verify`/`first_diff`). Odd nodes are
+  promoted unchanged rather than duplicated, avoiding Bitcoin-style
+  malleability. Peers compare roots to learn *whether* state diverged
+  and descend to the first bad leaf in `O(log n)` node comparisons —
+  the stored-state analogue of `replay::first_divergence`. Verified by
+  proof round-trips on every leaf, naive leaf-scan equality for
+  `first_diff`, and order sensitivity of the root.
+- **`bloom`** — `Bloom`: seeded Bloom filter using Kirsch–Mitzenmacher
+  double hashing (`h1 + i·h2`) over a `Fnv1a` pair, so the filter is a
+  pure function of `(seed, params, inserted multiset)`. One-sided
+  error: inserted keys always test present, `definitely_absent` names
+  the safe direction, `sizing` gives the `(bits, probes)` heuristic
+  and `load_permille` a false-positive-rate proxy. Verified: zero
+  false negatives across geometries/seeds, measured FPR inside the
+  information-theoretic bound, and bit-array equality under reordered
+  insertion.
+- **`delta`** — `Delta`/`diff_sorted`/`apply_sorted`: snapshot deltas
+  over ordered `u64→u64` maps, with a canonical wire form (ascending
+  keys as delta varints over `bits`) that rejects truncated,
+  non-increasing, and trailing-garbage encodings. `Del` of an absent
+  key fails closed. Verified by round-trip identity on random map
+  pairs, minimality of the op count, and malformed-stream rejection.
+- **`lzss`** — `compress`/`decompress`: greedy LZ77-family codec on
+  the `bits` wire — 4096-byte window, match length 3–18, tokens are
+  `0`+8-bit literal or `1`+12-bit `(offset−1)`+4-bit length behind a
+  u64 raw-length header. Smallest-offset tie-break makes output a pure
+  function of input; completing the `rle`→`lzss`→`huffman` ladder.
+  Verified by round-trips over noise/repetitive/run inputs, measurable
+  compression on periodic text, and rejection of truncation,
+  out-of-window offsets, and absurd length claims.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded

@@ -83,6 +83,7 @@
 - J16 あいまい検索・優先順位付け（コマンドパレット・did-you-mean ランカー）✅ `fuzzy`（fzf 式 subsequence scoring — `score`/`rank`/`rank_str`、case-insensitive byte 走査。CONSECUTIVE(連続 run) が支配的重み、boundary(`_-. /`・camel hump) 補助、GAP ペナルティ。全順序は score desc → len → bytes → index で決定的、部分列 oracle で score↔subseq 同値を乱数検証）
 - J17 根付き森の祖先/深さ/距離クエリ（ゾーン木・スキルツリー・エンティティ階層の共通祖先）✅ `lca`（binary lifting — O(n log n) 構築で `lca`/`ancestor`/`dist`/`depth` を O(log n)。循環・範囲外 parent は invalid マークで `None` を返し panic しない。祖先集合列挙 oracle と全対一致を乱数森で検証）
 - J18 単一パターン走査（区切り・ヘッダ・プロトコルセンチネル）✅ `kmp`（Knuth–Morris–Pratt — O(text) 前処理 `fail` 表で後戻りなし走査。`find`/`find_all`/`count` + 1 byte ずつ供給する `Stream` でチャンク境界分割の match も絶対位置を報告。ブルートフォース全位置走査と全一致・ストリーム=バッチ同値を乱数検証。`ahocor` の単一パターン版）
+- J19 確率的所属判定（高価な完全一致の前置フィルタ — replay checkpoint・entity 重複除去）✅ `bloom`（Kirsch–Mitzenmacher double hashing `h1+i·h2` — `Fnv1a` 対に seed を塩して `(seed, params, multiset)` の純関数。片方向誤りのみ: 挿入済みは必ず present、`definitely_absent` が安全方向。`sizing` で (bits, probes) 設計、`load_permille` が FPR 代理。false-negative 不存在・FPR 情報理論限界内・ビット列純関数性を乱数検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
@@ -100,10 +101,12 @@
 ## N. 永続化・セーブ (Persistence)
 - N1 コンテンツ serialize ✅ / N2 ワールド save/load ✅ `savefile` / N3 バージョニング ✅ `savefile::SaveHeader::version` / N4 走長圧縮（スパースな盤面・連続値）✅ `rle`（`(count,byte)` pair — 255+ run は自動分割、bytes 版と `encode_u32`/`decode_u32` の素直 pair 版。zero-count・奇数長を reject する構造的 malformed 検査 = authenticity 側路。`decode(encode(x))==x` を乱数 run-heavy モデルで往復検証）
 - N5 エントロピー圧縮（偏った頻度分布の wire/save 層 — `rle` と `bits` の間の帯域削減）✅ `huffman`（canonical Huffman — 2-queue マージで (weight, node-id) 決定的、コードは (長さ, symbol) 順 canonical 割当 = wire は `(symbol,length)` 表のみ。MSB-first パック + ビット総数ヘッダ。decode は非 prefix・長さ超過・ビット残しを全て `None` で拒否。往復同一・prefix-free・Kraft 等式・skewed 圧縮率を乱数検証）
+- N6 辞書式圧縮（繰り返し部分列を持つ wire/save 層 — RLE の連続 run と Huffman の頻度偏りの中間領域）✅ `lzss`（greedy LZ77 系 — 4096 window、match 3–18、最小 offset 優先 tie-break で圧縮結果が入力の純関数。`bits` 上の `0`+8bit literal / `1`+12bit(offset-1)+4bit len トークン列 + u64 生長ヘッダ。decode は切り詰め・窓外 offset・長さ超過を全て `None` で拒否。往復同一・repetitive 圧縮率・手組 malformed 拒否を乱数検証）
 
 ## O. ネットワーク (Networking)
 - O1 rollback/replay 基盤 ✅ `replay` / O2 input 同期 transport ⬜（ソケット I/O はヘッドレス方針で意図的に範囲外）/ O3 予測/補正 ✅ `netinput`（`NetInputBuffer`: 決定論的 input 予測・誤予測検出。transport 非依存＝呼び手が受信バイトを供給）
 - O4 ビットレベル wire codec ✅ `bits`（`BitWriter`/`BitReader` — Gaffer 式のパックドビットフィールド・範囲整数・protobuf 型 canonical varint+zigzag。lockstep パケットをバイト境界無駄なく直列化、canonical 性を decode 側で強制）
+- O5 因果順序・状態同期（マルチピア状態の合流・分岐・不一致検出）✅ `vclock`（Lamport/Fidge–Mattern ベクタクロック — `tick`/`merge`/`compare` が4値因果順序 Before/After/Equal/Concurrent を返す。BTreeMap 保持で列挙も決定的。公理系・最小上限性・メッセージ流シミュレーションを乱数検証）+ `merkle`（DetHash 葉上の二分ハッシュ木 — root 比較で発散有無、`first_diff` で O(log n) 下降して不一致葉 index を特定。`replay::first_divergence` のストア版。proof 往復・naive 葉走査一致・order 依存性を乱数検証）+ `delta`（順序 `u64→u64` マップのスナップショット差分 — `diff_sorted`/`apply_sorted` の全単射往復 + 昇順キー delta varint の canonical wire。`Del` 不存在キーは `None` で失敗閉鎖。乱数マップ対で round-trip・最小 op 数・malformed 拒否を検証）
 
 ## P. ツール・デバッグ (Tooling / Debug)
 - P1 コンテンツ検証 CLI ✅ `gamec` / P2 desync 二分探索 ✅ `replay::first_divergence` / P3 ロギング/プロファイル ✅ `profiler` / P4 機械可読診断(JSON/SARIF) ✅ `diag_json` / `gamec --json`
