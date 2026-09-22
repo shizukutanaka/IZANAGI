@@ -263,6 +263,11 @@ The capability map — with per-feature implementation status — lives in
 | `polylabel` | `polylabel` — pole of inaccessibility: integer B&B maximizing min squared distance to a polygon boundary. |
 | `mphf` | `Mphf` — CHD minimal perfect hash: static `n` keys → `[0,n)` bijection via per-bucket displacements. |
 | `mis` | `maximal_independent_set` — canonical greedy MIS: ascending-order inclusion, pure function of the edge set. |
+| `chacha` | `ChaCha20` — RFC 8439 ChaCha20 keystream: counter-mode streaming XOR cipher, pure state. |
+| `sha256` | `Sha256` / `sha256` — FIPS 180-4 SHA-256 digest: incremental writes, canonical padding. |
+| `dbscan` | `dbscan` — squared-distance density clustering: canonical index-order expansion, `-1` noise. |
+| `kmeans` | `kmeans` — deterministic integer k-means: farthest-point init + Lloyd iterations to fixpoint. |
+| `rtree` | `Rtree` — STR bulk-loaded static R-tree: pure-function point index, brute-force-equal queries. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

@@ -171,6 +171,12 @@
 - J91 静的完全ハッシュ(CHD displacement — n keys→[0,n) 全単射)✅ `mphf`(2段 displacement、バケットは (size desc,idx) 正準順で解決、(key set,seed) の純関数で挿入順非依存を検証。dispatch 表・opcode 索引向け)
 - J92 貪欲最大独立集合(greedy MIS — 昇順正準形)✅ `mis`(index 昇順走査・既選択近傍が無ければ採用 — 辺集合のみの一意決定、自己ループは構造的に不適格。独立性+極大性を定義通り全乱択検証)
 
+- J93 対称ストリーム暗号(ChaCha20 — ARX 20 ラウンド)✅ `chacha`(RFC 8439: `[SIGMA|key8|counter|nonce3]` u32 状態、10 回の列+対角ダブルラウンド、キーストリーム = 作業状態+初期状態。§2.3.2 ブロックベクトル `22 4f 51 f3`・§2.4.2 暗号ベクトル `6e 2e 35 9a`・チャンク分割≡一括を既知値検証 — replay ワールドの per-tick 暗号ストリーム)
+- J94 暗号学的ハッシュ(SHA-256 — FIPS 180-4)✅ `sha256`(K[64] 定数 + メッセージスケジュール σ0/σ1、インクリメンタル write + 正準 BE パディング。`abc`=`ba7816bf`・空=`e3b0c442`・56文字・10^6×'a'=`cdc76e5c` 全既知値一致、チャンク分割不変 — `merkle`/`crc` の暗号級ワイヤ検証補完)
+- J95 密度クラスタリング(DBSCAN — eps²/minPts、クラスタ数不要)✅ `dbscan`(平方距離判定で √ 排除、昇順 index 正準のシード展開 + キューで (points,eps2,min_pts) の純関数。コア点は必ずラベル化・境界点はコア近接・クラスタコアは eps 連鎖の3条件を定義照合 — spawn 群検出・熱分布解析向け)
+- J96 決定的クラスタリング(整数 k-means — seed 不要)✅ `kmeans`(farthest-point 初期化で乱数排除、Lloyd 反復を assignment 不動点まで。argmin 一貫・冪等・inertia 再計算一致を乱択照合 — `dbscan` の k 指定補完、勢力分割・拠点割当)
+- J97 静的矩形索引(STR 梱包 R-tree — 点集合の純関数)✅ `rtree`(sort-tile-recursive 全ソート梱包で挿入順が構造的に漏れない packed R-tree。矩形クエリは昇順正準でブルートフォース全照合、形状は点集合のみの関数 — レベルロード時構築の読み取り専用索引)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
