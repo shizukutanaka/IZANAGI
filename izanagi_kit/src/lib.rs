@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`chacha`], [`sha256`], [`dbscan`], [`kmeans`], [`rtree`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -220,6 +220,11 @@
 //! - [`polylabel`] — `polylabel`: pole of inaccessibility — integer branch-and-bound maximizing min squared distance to boundary.
 //! - [`mphf`] — `Mphf`: CHD minimal perfect hash — static `n` keys → `[0,n)` bijection via per-bucket displacements.
 //! - [`mis`] — `maximal_independent_set`: canonical greedy MIS — ascending-order inclusion, pure function of the edge set.
+//! - [`chacha`] — `ChaCha20`: RFC 8439 ChaCha20 keystream — streaming XOR cipher, counter-mode pure state.
+//! - [`sha256`] — `Sha256`/`sha256`: FIPS 180-4 SHA-256 digest — incremental write, canonical big-endian padding.
+//! - [`dbscan`] — `dbscan`: squared-distance density clustering — canonical index-order expansion, `-1` noise labels.
+//! - [`kmeans`] — `kmeans`: deterministic integer k-means — farthest-point init + Lloyd iterations to fixpoint.
+//! - [`rtree`] — `Rtree`: STR bulk-loaded static R-tree — pure-function point index, brute-force-equal queries.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -279,6 +284,7 @@ pub mod calendar;
 pub mod camera;
 pub mod cartesian;
 pub mod centroid;
+pub mod chacha;
 pub mod change;
 pub mod chash;
 pub mod cht;
@@ -295,6 +301,7 @@ pub mod cron;
 pub mod cuckoof;
 pub mod dagsp;
 pub mod damage;
+pub mod dbscan;
 pub mod delaunay;
 pub mod delta;
 pub mod diag_json;
@@ -347,6 +354,7 @@ pub mod intervaltree;
 pub mod inventory;
 pub mod kdtree;
 pub mod keymap;
+pub mod kmeans;
 pub mod kmp;
 pub mod kmv;
 pub mod knapsack;
@@ -415,12 +423,14 @@ pub mod rng_xoshiro;
 pub mod rollback;
 pub mod rolling;
 pub mod rsfec;
+pub mod rtree;
 pub mod sam;
 pub mod sat;
 pub mod savefile;
 pub mod segment;
 pub mod segtree;
 pub mod serializer;
+pub mod sha256;
 pub mod shop;
 pub mod shrink;
 pub mod shufflebag;

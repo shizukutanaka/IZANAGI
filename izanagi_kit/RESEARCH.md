@@ -1350,3 +1350,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Fan, Andersen, Kaminsky & Mitzenmacher, "Cuckoo Filter: Practically Better Than Bloom" (CoNEXT 2014) / Duda, "Asymmetric numeral systems" (2009/2013) / mapbox polylabel (grid B&B アルゴリズム) / BDZ・CHD minimal perfect hashing / 貪欲 MIS 教科書定式。
 
 **実装物**: cp-algorithms・Qiita・Zenn の Cuckoo filter・rANS・polylabel・MPH 解説、 Fabian "ryg" Giesen の rANS 実装ノート。
+
+
+# 第31次: ストリーム暗号・暗号学的ハッシュ・クラスタ・静的索引
+
+| 採用 | 根拠 / 検証 | 判定 |
+|---|---|---|
+| `chacha` — ChaCha20 | RFC 8439 ARX 構造: `[SIGMA|key8|counter|nonce3]` 状態、quarter-round 回転 16/12/8/7 × 10 ダブルラウンド、出力 = 作業+初期状態。§2.3.2 ブロック `22 4f 51 f3`・§2.4.2 暗号 `6e 2e 35 9a` を Python 参照実装と両側一致確認、チャンク分割 ≡ 一括適用。replay 系に seed 由来の決定性暗号ストリームを提供 | 🟢 純粋追加 |
+| `sha256` — SHA-256 | FIPS 180-4: K[64]・σ0/σ1・Σ0/Σ1、インクリメンタル write + 正準 BE パディング(`be_bytes` 族は幅規則で禁止 → 手動シフト抽出)。`abc`=`ba7816bf`・空=`e3b0c442`・56 文字=`248d6a61`・10^6×'a'=`cdc76e5c` 全 NIST ベクトル一致 + 分割不変 + 1bit 反転で完全差分 | 🟢 純粋追加 |
+| `dbscan` — 密度クラスタ | Ester et al. (1996): eps²・min_pts のみでクラスタ数不要。平方距離判定で √ を排除、シード+展開キュー共に昇順 index の正準形 — (points,eps2,min_pts) の純関数。3 定義照合: コア点(密度充足)は必ずラベル化、境界点は同クラスタのコアに eps 近接、各クラスタのコアは eps² 連鎖で連結 | 🟢 純粋追加 |
+| `kmeans` — 整数 k-means | farthest-point(Gonzalez 式)初期化で乱数を排除 + 整数重心丸めの Lloyd 反復。不動点停止(assignment 不変)で上限 256 回。全ラベルが argmin 一貫・冪等・inertia 再計算一致 — `dbscan` の k 指定補完 | 🟢 純粋追加 |
+| `rtree` — STR R-tree | Leutenegger, Edgington & Lopez (1997) STR 梱包: x ソート→タイル化→y ソート→m 梱包を層毎に再帰 — 全工程が総ソートのため木形状は点集合の純関数(挿入順非依存を反転入力で検証)。矩形クエリは昇順正準でブルートフォース全照合。leaf 化けの `div_ceil` 二重計算で group_size を正しく取る修正点を stack overflow として観測・修正 | 🟢 純粋追加 |
+
+見送り(第31次): cuckoo テーブル本体・SwissTable(`cuckoof`/`xorfilter` で近似は充足 — 厳格 dict は `treap`/`BTreeMap` 需要)、sais O(n) SA(`suffix` の doubling で実務十分)、rope(`piecetable` で充足)、regex・linkcut・planarity・JPS 拡張・GJK/EPA・TLSF・Chomsky-full expr・edit-distance fuzzy・bitboard/magic(前次見送り継続 — 需要顕在化まで凍結)。
+
+## 出典(第31次、search-index 照合)
+
+**論文・仕様**: RFC 8439 "ChaCha20 and Poly1305" / FIPS 180-4 SHA-256 / Ester, Kriegel, Sander & Xu, "A Density-Based Algorithm for Discovering Clusters" (KDD 1996) / Lloyd (1982) k-means + Gonzalez farthest-point seeding / Leutenegger, Edgington & Lopez, "STR: A Simple and Efficient Algorithm for R-Tree Packing" (ICDE 1997)。
+
+**実装物**: ring/rust-crypto 系 ChaCha・SHA-2 定数表、Qiita・Zenn の DBSCAN/k-means/R-tree 解説、scikit-learn・RBush・rtree-rs の梱包設計メモ。

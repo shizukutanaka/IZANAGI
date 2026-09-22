@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — stream cipher, cryptographic digest, clustering, static spatial index
+
+- `chacha` — `ChaCha20`: RFC 8439 ChaCha20 keystream — `[SIGMA|key|counter|nonce]` block function, streaming XOR apply
+- `sha256` — `Sha256`/`sha256`: FIPS 180-4 SHA-256 — incremental writes, canonical big-endian padding, all NIST vectors
+- `dbscan` — `dbscan`: squared-distance density clustering — canonical index-order expansion, pure function of `(points, eps², min_pts)`
+- `kmeans` — `kmeans`: deterministic integer k-means — farthest-point initialization, Lloyd iterations to assignment fixpoint
+- `rtree` — `Rtree`: STR bulk-loaded static R-tree — pure-function point index, canonical ascending-order queries
+
 ### Added — deletion-capable filters, entropy coding, interior poles, perfect hashing, independent sets
 
 - `cuckoof` — `CuckooFilter`: deletion-capable membership filter — two candidate buckets `h2 = h1 ^ hash(fp)`, seeded bounded kick chain
