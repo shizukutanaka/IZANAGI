@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -60,6 +60,19 @@
 //! - [`lsystem`] — deterministic L-system rewriting + integer turtle
 //!   (`expand`, `turtle_cells`, `DIRS_4`/`DIRS_8`/`DIRS_HEX`) for
 //!   branching plants and procedural structures.
+//! - [`poly`] — exact `i128` 2D polygon ops: `area2` shoelace,
+//!   `point_in_polygon` (even-odd + boundary), `convex_hull` (Andrew
+//!   monotone chain), `ear_clip` triangulation.
+//! - [`rdp`] — Ramer–Douglas–Peucker polyline simplification in integer
+//!   coordinates (canonical downstream pass for `msquares` contours).
+//! - [`fenwick`] — Fenwick tree / BIT over `i64`: `O(log n)` prefix sums,
+//!   point updates, and an order-statistic `lower_bound` for running
+//!   leaderboards and weighted picks.
+//! - [`ahocor`] — Aho–Corasick multi-pattern `&[u8]` matcher
+//!   (`O(text + hits)`, all overlapping occurrences, scan-order output).
+//! - [`diff`] — Myers `O(ND)` minimal edit scripts (`diff`, `hunks`,
+//!   `apply`) plus `levenshtein` / `lcs_len` — field-level diffs for
+//!   desync reports and `did-you-mean` diagnostics.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk, Bridson Poisson-disc scatter; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`) + farthest-cell stair placement (`farthest_cell`), O(1) reachability via precomputed connected components (`ConnectivityMap`), auto-explore.
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
@@ -186,6 +199,7 @@ pub struct ReadmeExamplesAreCompiled;
 pub mod aabb;
 pub mod ability;
 pub mod affix;
+pub mod ahocor;
 pub mod arch;
 pub mod assets;
 pub mod autotile;
@@ -202,6 +216,7 @@ pub mod delaunay;
 pub mod diag_json;
 pub mod dialogue;
 pub mod dice;
+pub mod diff;
 pub mod dst;
 pub mod easing;
 pub mod encounter;
@@ -210,6 +225,7 @@ pub mod equipment;
 pub mod eventqueue;
 pub mod explore;
 pub mod faction;
+pub mod fenwick;
 pub mod fixed;
 pub mod flow;
 pub mod fov;
@@ -244,12 +260,14 @@ pub mod parser;
 pub mod passability;
 pub mod pathfinding;
 pub mod plan;
+pub mod poly;
 pub mod pool;
 pub mod profiler;
 pub mod progression;
 pub mod prop;
 pub mod quest;
 pub mod random_table;
+pub mod rdp;
 pub mod recipe;
 pub mod recovery;
 pub mod relations;

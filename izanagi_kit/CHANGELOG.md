@@ -168,6 +168,39 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   on the Fibonacci system, branch-state restoration, and 8-connectivity
   of expanded plants.
 
+### Added — polygon predicates, polyline simplification, prefix sums, multi-pattern scan, diffs
+
+- **`poly`** — exact `i128` 2D polygon ops: `area2` shoelace,
+  `point_in_polygon` (even-odd with exact boundary classification),
+  `convex_hull` (Andrew monotone chain, collinear edge points dropped),
+  and `ear_clip` triangulation. The ear test rejects candidates whose
+  boundary carries another polygon vertex — a reflex vertex on the ear
+  edge lets the triangle bleed into the notch (found via an L-shape
+  area mismatch). Oracle-checked: triangle areas partition the polygon
+  exactly, the hull strictly convex and containing every input point.
+- **`rdp`** — Ramer–Douglas–Peucker polyline simplification (`simplify`,
+  `simplify_loop`) on integer points: the perpendicular-distance test is
+  cross-multiplied into `i128` (`|cross|²` vs `eps²·|chord|²`), so
+  `epsilon` bounds true distance. The canonical downstream pass for
+  `msquares` contours; loop anchoring uses the farthest-from-centroid
+  point so the cut is content-defined. Idempotent, order-preserving.
+- **`fenwick`** — `Fenwick`, a binary indexed tree over `i64`: `add`
+  (bool, no panic on out-of-range), `prefix_sum`, `range_sum`, `total`,
+  `lower_bound` order statistic, and `from_slice`'s O(n) direct build.
+  Every query oracle-checked against a brute-force prefix-sum model.
+- **`ahocor`** — `AhoCorasick`, the CACM'75 multi-pattern `&[u8]`
+  matcher: trie + fail links built in BFS order, `scan` emits every
+  occurrence including overlapping and suffix-contained matches as
+  `(end_pos, pattern)` pairs in scan order. BTreeMap children keep
+  memory proportional to edges. Oracle-checked against brute-force
+  substring search at every position.
+- **`diff`** — Myers O(ND) minimal edit scripts: `diff` produces
+  `Keep`/`Del`/`Ins` ops, `hunks` coalesces them into unified-diff
+  `(a_start, del, b_start, ins)` runs, `apply` verifies the round trip,
+  plus `levenshtein` and `lcs_len`. For field-level desync reports and
+  did-you-mean diagnostics. Oracle-checked: applied scripts reproduce
+  the target and edit counts hit the `n+m−2·lcs` minimum.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded

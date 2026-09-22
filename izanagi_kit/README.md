@@ -106,7 +106,7 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
-| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
+| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
 
@@ -153,6 +153,11 @@ The capability map — with per-feature implementation status — lives in
 | `flow` | Edmonds–Karp max-flow / min-cut (`FlowNet`, `max_flow`, `min_cut`, `flow_on`) — bottleneck and partition analysis on capacity networks. |
 | `hungarian` | `assign_min_cost`: Kuhn–Munkres minimum-cost assignment on `n ≤ m` matrices — unit→target matching and build-order style problems. |
 | `lsystem` | Deterministic L-system rewriting + integer turtle (`expand`, `turtle_cells`, `DIRS_4`/`DIRS_8`/`DIRS_HEX`) — branching plants and procedural structures drawn through `gridcast`. |
+| `poly` | Exact `i128` 2D polygon ops (`area2` shoelace, `point_in_polygon` even-odd + boundary, `convex_hull` Andrew monotone chain, `ear_clip` triangulation). |
+| `rdp` | Ramer–Douglas–Peucker polyline simplification (`simplify`, `simplify_loop`) — integer-exact, the canonical downstream pass for `msquares` contours. |
+| `fenwick` | Fenwick tree / BIT over `i64` (`add`, `prefix_sum`, `range_sum`, `lower_bound` order statistic) — `O(log n)` running totals for leaderboards and weighted picks. |
+| `ahocor` | Aho–Corasick multi-pattern `&[u8]` matcher (`scan` → `(end_pos, pattern)` in scan order, `O(text + hits)`, overlaps included). |
+| `diff` | Myers `O(ND)` minimal edit scripts (`diff`, `hunks`, `apply`) + `levenshtein` / `lcs_len` — field-level diffs for desync reports and diagnostics. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
