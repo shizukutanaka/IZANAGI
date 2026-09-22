@@ -34,9 +34,13 @@
 use izanagi_kit::{
     ability::{Ability, AbilitySet},
     behavior::{BehaviorNode, BehaviorTree},
-    generate_dungeon, hash_state, Aabb, BarWidget, Camera, Connector, Cooldown, DamageType, Dice,
-    Dungeon, EntityAllocator, Fixed, GenParams, HFsm, HudPanel, MsgLog, MultiMap, Relations,
-    ResistanceProfile, Screen, SplitMix64, StatLine, Stats, TimerQueue, Vec2, Vec3,
+    generate_dungeon,
+    geometry::Distance,
+    hash_state,
+    voronoi::{voronoi_partition, VoronoiGrid},
+    Aabb, BarWidget, Camera, Connector, Cooldown, DamageType, Dice, Dungeon, EntityAllocator,
+    Fixed, GenParams, HFsm, HudPanel, MsgLog, MultiMap, Relations, ResistanceProfile, Screen,
+    SplitMix64, StatLine, Stats, TimerQueue, Vec2, Vec3,
 };
 
 /// Build the canonical (name, golden-hash) table. Each entry constructs a
@@ -86,6 +90,11 @@ fn cases() -> Vec<(&'static str, u64)> {
         let mut rng = SplitMix64::new(0xD17A9E);
         generate_dungeon(24, 16, &mut rng, GenParams::default())
     };
+
+    // Voronoi partition of a fixed 8x8 with two seeds. Pins the per-cell
+    // owner/distance vectors' hash order — a change to `cells`/`dist`
+    // write order flips this.
+    let voronoi: VoronoiGrid = voronoi_partition(&[(1, 1), (6, 3)], 8, 8, Distance::Manhattan);
 
     // A two-floor multi-map with one connector. Pins the `floors` field
     // (Round 12) alongside current_floor and connectors.
@@ -149,6 +158,7 @@ fn cases() -> Vec<(&'static str, u64)> {
         ("TimerQueue<u32>[5;5r3]", hash_state(&timers)),
         ("Dungeon(24x16,seed)", hash_state(&dungeon)),
         ("MultiMap(2floors,1conn)", hash_state(&multimap)),
+        ("VoronoiGrid(8x8,2seeds)", hash_state(&voronoi)),
     ]
 }
 
@@ -179,6 +189,7 @@ const EXPECTED: &[(&str, u64)] = &[
     ("TimerQueue<u32>[5;5r3]", 0x9e3d87f791d59425),
     ("Dungeon(24x16,seed)", 0xe31ab41e7035e685),
     ("MultiMap(2floors,1conn)", 0xa84ad2b8abb52eb8),
+    ("VoronoiGrid(8x8,2seeds)", 0xd6994b2321550617),
 ];
 
 #[test]

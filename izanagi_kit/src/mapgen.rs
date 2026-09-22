@@ -869,6 +869,128 @@ pub struct MapBuilder {
     stages: Vec<Box<dyn FnMut(&mut Dungeon, &mut SplitMix64)>>,
 }
 
+/// Poisson-disc sampling (Bridson, SIGGRAPH 2007 sketch "Fast Poisson Disk
+/// Sampling in Arbitrary Dimensions") — scatter points inside a `width ×
+/// `height` rectangle such that every pair is at least `radius` apart.
+///
+/// The classic "blue noise" placement primitive: uniform coverage without
+/// clumping, which jittered-grid or uniform-random scatter can't guarantee.
+/// Use it to place dungeon rooms, resources, encounter seeds, or any feature
+/// that needs a minimum separation; feed the result to
+/// [`voronoi::voronoi_partition`](crate::voronoi::voronoi_partition) and
+/// [`voronoi::mst_edges`](crate::voronoi::mst_edges) to get the full
+/// scatter → territory → connectivity pipeline (the TinyKeep-style recipe).
+///
+/// Algorithm: a background grid with cell size `radius/√2` holds at most one
+/// point per cell (the strict interior bound that makes the neighbourhood
+/// check exact). The first point is uniform in the rectangle; each round
+/// picks a random *active* point and tries `attempts` candidates sampled
+/// uniformly from its annulus `[radius, 2·radius)` — via rejection from the
+/// enclosing square, the standard integer-friendly substitute for polar
+/// sampling — accepting the first that is in-bounds and ≥ `radius` from all
+/// placed points. A point that fails all attempts leaves the active set.
+///
+/// Determinism: all choices draw from `rng` in a fixed order. `attempts` is
+/// Bridson's `k` (30 is the paper's default; smaller runs faster and
+/// sparser). Edge cases are total: a degenerate rectangle or `radius <= 0`
+/// returns no points, `attempts == 0` returns just the first point.
+///
+/// ```
+/// use izanagi_kit::mapgen::poisson_disc;
+/// use izanagi_kit::rng::SplitMix64;
+///
+/// let mut rng = SplitMix64::new(7);
+/// let pts = poisson_disc(100, 100, 10, &mut rng, 30);
+/// for i in 0..pts.len() {
+///     for j in (i + 1)..pts.len() {
+///         let dx = (pts[i].0 - pts[j].0) as i64;
+///         let dy = (pts[i].1 - pts[j].1) as i64;
+///         assert!(dx * dx + dy * dy >= 100);
+///     }
+/// }
+/// ```
+pub fn poisson_disc(
+    width: u32,
+    height: u32,
+    radius: i32,
+    rng: &mut SplitMix64,
+    attempts: u32,
+) -> Vec<(i32, i32)> {
+    let (w, h) = (width as i32, height as i32);
+    if w <= 0 || h <= 0 || radius <= 0 {
+        return Vec::new();
+    }
+    // Grid cell = radius/√2, floored conservatively so a cell can never hold
+    // two legal points: any pair inside one cell would be < radius apart.
+    let cell = ((radius as i64) * 7071 / 10000).max(1) as i32;
+    let gw = ((w as i64 + cell as i64 - 1) / cell as i64) as i32;
+    let gh = ((h as i64 + cell as i64 - 1) / cell as i64) as i32;
+    // -1 = empty cell, else index into `points`.
+    let mut grid = vec![-1i32; (gw * gh) as usize];
+    let cell_of = |p: (i32, i32)| (p.0 / cell, p.1 / cell);
+    // Neighbourhood radius in cells: any point closer than `radius` must lie
+    // in a cell at most ceil(radius/cell) away in each axis.
+    let win = ((radius as i64 + cell as i64 - 1) / cell as i64) as i32;
+    let r_sq = radius as i64 * radius as i64;
+
+    let mut points: Vec<(i32, i32)> = Vec::new();
+    let mut active: Vec<usize> = Vec::new();
+    let first = rng.within_rect(0, 0, w, h);
+    let (fx, fy) = cell_of(first);
+    grid[(fy * gw + fx) as usize] = 0;
+    points.push(first);
+    active.push(0);
+
+    while let Some(pos) = rng.pick_index(active.len()) {
+        let (cx, cy) = points[active[pos]];
+        let mut accepted = false;
+        for _ in 0..attempts {
+            // Uniform sample from the annulus [r, 2r): rejection-sample the
+            // enclosing square [-2r, 2r)² keeping only the ring.
+            let dx = rng.range(-2 * radius, 2 * radius);
+            let dy = rng.range(-2 * radius, 2 * radius);
+            let d_sq = dx as i64 * dx as i64 + dy as i64 * dy as i64;
+            if d_sq < r_sq || d_sq >= 4 * r_sq {
+                continue;
+            }
+            let cand = (cx + dx, cy + dy);
+            if cand.0 < 0 || cand.1 < 0 || cand.0 >= w || cand.1 >= h {
+                continue;
+            }
+            let (gx, gy) = cell_of(cand);
+            let mut ok = true;
+            'neigh: for ny in (gy - win).max(0)..=(gy + win).min(gh - 1) {
+                for nx in (gx - win).max(0)..=(gx + win).min(gw - 1) {
+                    let pi = grid[(ny * gw + nx) as usize];
+                    if pi >= 0 {
+                        let (px, py) = points[pi as usize];
+                        let ddx = (cand.0 - px) as i64;
+                        let ddy = (cand.1 - py) as i64;
+                        if ddx * ddx + ddy * ddy < r_sq {
+                            ok = false;
+                            break 'neigh;
+                        }
+                    }
+                }
+            }
+            if ok {
+                let pi = points.len() as i32;
+                grid[(gy * gw + gx) as usize] = pi;
+                points.push(cand);
+                active.push(pi as usize);
+                accepted = true;
+                break;
+            }
+        }
+        if !accepted {
+            // swap_remove is fine: the active list's order only affects which
+            // index pick_index maps to, and the draws stay deterministic.
+            active.swap_remove(pos);
+        }
+    }
+    points
+}
+
 impl MapBuilder {
     /// Start a pipeline from an already-generated `dungeon` (from any of the
     /// `generate_*` functions, or hand-built).
@@ -1878,5 +2000,73 @@ mod tests {
         let first = build(0);
         let differs = (1..30u64).any(|s| build(s) != first);
         assert!(differs, "output must depend on base_seed");
+    }
+
+    // --- poisson_disc ---
+
+    #[test]
+    fn test_poisson_disc_min_separation_and_bounds() {
+        let mut rng = SplitMix64::new(1234);
+        for _ in 0..8 {
+            let pts = poisson_disc(60, 40, 7, &mut rng, 30);
+            assert!(!pts.is_empty());
+            for &(x, y) in &pts {
+                assert!(
+                    x >= 0 && y >= 0 && x < 60 && y < 40,
+                    "out of bounds: {x},{y}"
+                );
+            }
+            // Oracle: every pair at least `radius` apart (the contract, checked
+            // independently of the grid acceleration structure).
+            for i in 0..pts.len() {
+                for j in (i + 1)..pts.len() {
+                    let dx = (pts[i].0 - pts[j].0) as i64;
+                    let dy = (pts[i].1 - pts[j].1) as i64;
+                    assert!(dx * dx + dy * dy >= 49, "pair too close: {pts:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_poisson_disc_deterministic_and_seed_sensitive() {
+        let mut a = SplitMix64::new(42);
+        let mut b = SplitMix64::new(42);
+        let mut c = SplitMix64::new(43);
+        let pa = poisson_disc(50, 50, 6, &mut a, 30);
+        let pb = poisson_disc(50, 50, 6, &mut b, 30);
+        let pc = poisson_disc(50, 50, 6, &mut c, 30);
+        assert_eq!(pa, pb, "same seed must give byte-identical points");
+        assert_ne!(pa, pc, "different seed should scatter differently");
+    }
+
+    #[test]
+    fn test_poisson_disc_density_covers() {
+        // With k=30 on a 80x80 field at r=8 the sampler should reach typical
+        // blue-noise density — well above a single point and well below the
+        // theoretical hexagonal packing bound.
+        let mut rng = SplitMix64::new(9);
+        let pts = poisson_disc(80, 80, 8, &mut rng, 30);
+        assert!(pts.len() > 20, "suspiciously sparse: {}", pts.len());
+        // Hexagonal packing upper bound for r-separated points in 80x80:
+        // ~ area / (r^2 * sqrt(3)/2) ≈ 115 — allow slack for edge effects.
+        assert!(pts.len() <= 130, "suspiciously dense: {}", pts.len());
+    }
+
+    #[test]
+    fn test_poisson_disc_edge_cases() {
+        let mut rng = SplitMix64::new(5);
+        assert!(poisson_disc(0, 10, 3, &mut rng, 30).is_empty());
+        assert!(poisson_disc(10, 0, 3, &mut rng, 30).is_empty());
+        assert!(poisson_disc(10, 10, 0, &mut rng, 30).is_empty());
+        assert!(poisson_disc(10, 10, -4, &mut rng, 30).is_empty());
+        // attempts == 0: only the initial point survives.
+        assert_eq!(poisson_disc(20, 20, 3, &mut rng, 0).len(), 1);
+        // radius larger than the field: at most one point fits.
+        let big = poisson_disc(10, 10, 50, &mut rng, 30);
+        assert!(big.len() <= 1);
+        // radius 1: nothing filters — every candidate ≥1 apart still legal.
+        let dense = poisson_disc(6, 6, 1, &mut rng, 30);
+        assert!(!dense.is_empty());
     }
 }

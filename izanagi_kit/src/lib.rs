@@ -21,8 +21,8 @@
 //!
 //! | Tier | What it is | Modules |
 //! |---|---|---|
-//! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -36,7 +36,7 @@
 //! - [`fixed`] — Q16.16 fixed-point for cross-platform-deterministic math.
 //! - [`fov`] — symmetric shadowcasting field-of-view (integer, deterministic).
 //! - [`geometry`] — integer Bresenham line drawing and line-of-sight.
-//! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk; deterministic).
+//! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk, Bridson Poisson-disc scatter; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`) + farthest-cell stair placement (`farthest_cell`), O(1) reachability via precomputed connected components (`ConnectivityMap`), auto-explore.
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
 //! - [`replay`] — replay trace recording, desync detection and rollback, plus production desync repro bundles (`DesyncReport`).
@@ -118,6 +118,8 @@
 //! - [`savefile`] — versioned binary save-file framing (`save_bytes`, `load_bytes`, `SaveHeader`).
 //! - [`wfc`] — Wave Function Collapse procedural tile-map generation (`WfcRules`, `wfc_solve`, `WfcGrid`).
 //! - [`multimap`] — multi-floor dungeon stack (`MultiMap`, `Connector`).
+//! - [`bits`] — LSB-first bit-level wire codec (`BitWriter`/`BitReader`): packed bitfields, ranged integers, and canonical protobuf-style varint+zigzag — the lockstep-netcode packet primitive (Gaffer serialization strategies) the byte-oriented [`savefile`] container doesn't cover.
+//! - [`voronoi`] — exact nearest-seed spatial partition (`voronoi_partition`, `voronoi_flood` through passable terrain) and `mst_edges` (Kruskal MST): the scatter → territory → connectivity procgen pipeline — pairs with [`mapgen::poisson_disc`].
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -161,6 +163,7 @@ pub mod arch;
 pub mod assets;
 pub mod autotile;
 pub mod behavior;
+pub mod bits;
 pub mod calendar;
 pub mod camera;
 pub mod change;
@@ -240,6 +243,7 @@ pub mod validator;
 pub mod vec;
 pub mod verify;
 pub mod visibility;
+pub mod voronoi;
 pub mod wallet;
 pub mod wfc;
 pub mod world_hash;

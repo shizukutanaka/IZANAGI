@@ -105,8 +105,8 @@ fixed version has no such state at all.
 
 | Tier | What it is | Modules |
 |---|---|---|
-| **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `savefile`, `timestep` |
-| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
+| **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
+| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
 
@@ -140,11 +140,12 @@ The capability map — with per-feature implementation status — lives in
 | `prop` | Property-based testing (QuickCheck) — random sequences, checked property, counterexample returned already shrunk. Plus model-based / differential testing (`forall_model`) — run the real sim in lockstep with a trusted reference model and shrink any diverging command sequence. |
 | `netinput` | Transport-agnostic multi-player input prediction and misprediction detection for rollback netcode (`NetInputBuffer`), plus `AdaptiveDelay` tuning input delay to the measured misprediction rate. |
 | `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
-| `mapgen` / `wfc` / `multimap` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions, drunkard's-walk caverns), Wave Function Collapse, multi-level worlds. |
+| `mapgen` / `wfc` / `multimap` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions, drunkard's-walk caverns, Bridson Poisson-disc scatter), Wave Function Collapse, multi-level worlds. |
 | `fov` / `pathfinding` / `influence` / `fsm` / `hfsm` | Symmetric FOV (binary + distance-attenuated), (weighted) A* + path smoothing + Dijkstra flow maps + rescanned flee/safety maps + frontier-seeking auto-explore, influence maps, flat and hierarchical (parent-state + wildcard) state machines. |
 | `ability` / `behavior` | Unified skill system (mana/cooldown/range/effect resolution in one call) and hierarchical behavior trees (sequence/selector/invert/repeat leaves) for game AI. |
 | `aabb` / `spatial_hash` / `passability` | Axis-aligned bounding-box overlap, spatial-hash broad-phase queries, and a grid passability/collision layer. |
 | `geometry` | Bresenham lines / line-of-sight and integer distance metrics (Manhattan, Chebyshev, Euclidean). |
+| `voronoi` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain) and `mst_edges` (Kruskal MST) — scatter → territory → connectivity. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
 | `damage` / `encounter` / `affix` / `equipment` | Typed damage + resistance profiles, procedural group encounters, item enchantment, worn loadouts with stat aggregation. |
@@ -153,7 +154,8 @@ The capability map — with per-feature implementation status — lives in
 | `identify` | Scrambled per-seed item appearances (unidentified potions/scrolls) revealed on demand (`Identification`). |
 | `threat` / `pool` / `tween` / `wallet` / `shop` / `dialogue` / `trigger` | Per-combatant aggro tables, bounded regenerating resources (mana/stamina), eased time-driven value interpolation (`Tween`) plus single-clock chained playback (`TweenSequence`), fungible currency wallets, wallet-backed buy/sell price listings, branching NPC conversation trees, condition→action rule sets for scripted events. |
 | `savefile` | Versioned, checksummed binary save framing. |
-| `noise` | Deterministic integer value-noise and hashing for procedural generation. |
+| `bits` | LSB-first bit-level wire codec (`BitWriter`/`BitReader`): packed bitfields, ranged integers, canonical varint+zigzag — the lockstep packet primitive. |
+| `noise` | Deterministic integer value-noise and hashing for procedural generation — value/fbm/ridge/turbulence plus Worley cellular noise (exact F1/F2). |
 
 ## Runnable examples
 
@@ -182,6 +184,7 @@ cargo run --example asset_store_demo         # AssetStore<T> generational handle
 cargo run --example hud_panels_demo          # HudPanel + BarWidget + StatLine status screen
 cargo run --example timestep_demo            # FixedTimestep accumulator + death-spiral guard
 cargo run --example cave_spawn_demo          # cellular cave + depth-scaled RandomTable + Distance
+cargo run --example scatter_pipeline_demo    # poisson_disc → voronoi → MST → BitWriter
 ```
 
 Pipe any of them to a truecolor terminal for full colour; in a plain pipe the

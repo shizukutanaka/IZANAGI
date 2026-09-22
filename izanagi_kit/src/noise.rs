@@ -499,6 +499,136 @@ pub fn noise_3d_in_range(x: i32, y: i32, z: i32, seed: u64, lo: i32, hi: i32) ->
     hash_range(hash_3d(x, y, z, seed), lo, hi)
 }
 
+/// The result of a [`worley_2d`] sample: the two nearest feature-point
+/// distances and the owning cell.
+///
+/// Distances are Euclidean (not squared), in the same units as the input
+/// coordinates (Q16.16 when the inputs are Q16.16). `f1 <= f2` always.
+/// `cell` is the grid cell containing the nearest feature point — stable
+/// per-cell feature data means `cell` can be hashed (e.g. with [`hash_2d`])
+/// for per-region attributes like biome IDs.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WorleySample {
+    /// Distance to the nearest feature point.
+    pub f1: u32,
+    /// Distance to the second-nearest feature point.
+    pub f2: u32,
+    /// Grid cell containing the nearest feature point.
+    pub cell: (i32, i32),
+}
+
+/// Integer square root of a `u128` (Newton's method, floor). Exact — used to
+/// turn squared feature distances into true distances without floating point.
+fn isqrt_u128(n: u128) -> u128 {
+    if n == 0 {
+        return 0;
+    }
+    // Newton from a power-of-two overestimate converges monotonically to
+    // floor(sqrt(n)); stop when the estimate stops decreasing.
+    let bits = 128 - n.leading_zeros();
+    let mut x = 1u128 << bits.div_ceil(2);
+    loop {
+        let next = (x + n / x) / 2;
+        if next >= x {
+            return x;
+        }
+        x = next;
+    }
+}
+
+/// Worley (cellular / Voronoi F-k) noise in 2-D — Steven Worley, SIGGRAPH '96.
+///
+/// The space is tiled into `cell_size`-square cells, each holding one
+/// jittered feature point placed by [`hash_2d`]; the function returns the
+/// distances to the nearest (`f1`) and second-nearest (`f2`) feature points,
+/// plus the owning cell. `f1` yields the classic cellular "stone cells"
+/// texture; `f2 - f1` (see [`worley_2d_f2_minus_f1`]) yields vein/crater
+/// ridges; `cell` supports per-cell attributes for biome or district maps.
+///
+/// `x`, `y`, and `cell_size` are Q16.16 fixed-point coordinates (the same
+/// convention as [`value_noise_2d`]); `cell_size <= 0` is clamped to the
+/// smallest positive step so the function stays total. Feature points are
+/// placed at 16-bit jitter resolution
+/// inside their cell, and ties resolve to the earliest cell in the fixed
+/// 5×5 scan order — so every sample is exact and deterministic, unlike the
+/// standard GPU shortcut (jump flooding, Rong & Tan 2006) which is only
+/// approximate.
+///
+/// Cost is 25 feature lookups — a 5×5 neighbourhood, not the 3×3 nearly
+/// every implementation uses. The 3×3 claim is only approximate: a feature
+/// two cells away can sit arbitrarily close to `cell_size` from the sample,
+/// while the sample's own feature can be as far as √2·cell_size away, so an
+/// adversarial jitter layout lets an out-of-ring feature win. With the 5×5
+/// ring any feature outside is strictly more than 2·cell_size away while the
+/// sample's own feature is strictly less than √2·cell_size — so the winner
+/// is always inside the scan, provably exact.
+pub fn worley_2d(x: i32, y: i32, seed: u64, cell_size: i32) -> WorleySample {
+    let cs = cell_size.max(1) as i64; // Q16.16 units, never zero
+                                      // Cell containing the sample: floor(x / cell_size). Both operands are
+                                      // Q16.16 so the scale cancels, leaving a plain integer index.
+    let bx = (x as i64).div_euclid(cs);
+    let by = (y as i64).div_euclid(cs);
+
+    let mut f1_sq = u128::MAX;
+    let mut f2_sq = u128::MAX;
+    let mut best_cell = (0i64, 0i64);
+    for gy in (by - 2)..=(by + 2) {
+        for gx in (bx - 2)..=(bx + 2) {
+            let h = hash_2d(gx as i32, gy as i32, seed);
+            // Jitter: two independent 16-bit fractions inside the cell.
+            let jx = (h & 0xffff) as i64;
+            let jy = ((h >> 16) & 0xffff) as i64;
+            let fx = gx * cs + jx * cs / 65536;
+            let fy = gy * cs + jy * cs / 65536;
+            let dx = (x as i64 - fx) as i128;
+            let dy = (y as i64 - fy) as i128;
+            let d_sq = (dx * dx + dy * dy) as u128;
+            if d_sq < f1_sq {
+                f2_sq = f1_sq;
+                f1_sq = d_sq;
+                best_cell = (gx, gy);
+            } else if d_sq < f2_sq {
+                f2_sq = d_sq;
+            }
+        }
+    }
+    WorleySample {
+        f1: isqrt_u128(f1_sq).min(u32::MAX as u128) as u32,
+        f2: isqrt_u128(f2_sq).min(u32::MAX as u128) as u32,
+        cell: (
+            best_cell.0.clamp(i32::MIN as i64, i32::MAX as i64) as i32,
+            best_cell.1.clamp(i32::MIN as i64, i32::MAX as i64) as i32,
+        ),
+    }
+}
+
+/// `f2 - f1` Worley noise — the "craters" variant, bright on cell borders.
+///
+/// Zero exactly on cell boundaries and growing toward cell interiors; the
+/// classic cheap texture for veins, cracked earth, plate boundaries, and
+/// any mask that should be darkest along Voronoi edges.
+#[inline]
+pub fn worley_2d_f2_minus_f1(x: i32, y: i32, seed: u64, cell_size: i32) -> u32 {
+    let w = worley_2d(x, y, seed, cell_size);
+    w.f2 - w.f1
+}
+
+/// Worley `f1` mapped to the half-open integer range `[lo, hi)`.
+///
+/// `f1` lies in `[0, ~2·cell_size]` for typical samples (the nearest feature
+/// is at most a cell-and-a-half away in each axis); this maps that range
+/// linearly onto `[lo, hi)`, clamping outliers. Combinator matching
+/// [`noise_2d_in_range`]. Returns `lo` when `lo >= hi`.
+pub fn worley_2d_in_range(x: i32, y: i32, seed: u64, cell_size: i32, lo: i32, hi: i32) -> i32 {
+    if lo >= hi {
+        return lo;
+    }
+    let span = (hi - lo) as i64;
+    let max_f1 = (cell_size.max(1) as i64) * 2;
+    let f1 = worley_2d(x, y, seed, cell_size).f1 as i64;
+    lo + (f1.min(max_f1) * span / max_f1) as i32
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1025,5 +1155,128 @@ mod tests {
     fn test_fbm_2d_in_range_degenerate_range_returns_lo() {
         let v = fbm_2d_in_range(0, 0, 1, 2, 7, 7);
         assert_eq!(v, 7, "lo == hi should return lo");
+    }
+
+    // --- Worley noise ---
+
+    /// Brute-force oracle: the feature point of cell (cx, cy), then the true
+    /// nearest/second-nearest feature distance to (x, y) scanning a 5×5
+    /// neighbourhood — a different code path than the 3×3 implementation.
+    fn feature_point(cx: i64, cy: i64, cs: i64, seed: u64) -> (i64, i64) {
+        let h = hash_2d(cx as i32, cy as i32, seed);
+        let jx = (h & 0xffff) as i64;
+        let jy = ((h >> 16) & 0xffff) as i64;
+        (cx * cs + jx * cs / 65536, cy * cs + jy * cs / 65536)
+    }
+
+    #[test]
+    fn test_worley_matches_bruteforce_oracle() {
+        let cs: i64 = 4 << 16;
+        let seed = 7;
+        // Step by half a world unit — dense enough to cross many cells,
+        // sparse enough to stay fast (~48x48 samples).
+        for y in (-3i32 << 16..3i32 << 16).step_by(1 << 15) {
+            for x in (-3i32 << 16..3i32 << 16).step_by(1 << 15) {
+                let w = worley_2d(x, y, seed, cs as i32);
+                // Oracle: independent reimplementation of the same 5×5 scan.
+                let bx = (x as i64).div_euclid(cs);
+                let by = (y as i64).div_euclid(cs);
+                let mut f1 = u128::MAX;
+                let mut f2 = u128::MAX;
+                for gy in (by - 2)..=(by + 2) {
+                    for gx in (bx - 2)..=(bx + 2) {
+                        let (fx, fy) = feature_point(gx, gy, cs, seed);
+                        let dx = (x as i64 - fx) as i128;
+                        let dy = (y as i64 - fy) as i128;
+                        let d = (dx * dx + dy * dy) as u128;
+                        if d < f1 {
+                            f2 = f1;
+                            f1 = d;
+                        } else if d < f2 {
+                            f2 = d;
+                        }
+                    }
+                }
+                assert_eq!(w.f1 as u128, isqrt_u128(f1), "f1 mismatch at ({x},{y})");
+                assert_eq!(w.f2 as u128, isqrt_u128(f2), "f2 mismatch at ({x},{y})");
+            }
+        }
+    }
+
+    #[test]
+    fn test_worley_deterministic_and_ordered() {
+        for i in 0..50 {
+            let x = (i * 7919) << 4;
+            let y = (i * 104729) << 3;
+            let a = worley_2d(x, y, 42, 8 << 16);
+            let b = worley_2d(x, y, 42, 8 << 16);
+            assert_eq!(a, b);
+            assert!(a.f1 <= a.f2, "f1 must never exceed f2");
+        }
+    }
+
+    #[test]
+    fn test_worley_cell_stability() {
+        // Samples inside the same feature's Voronoi region report the same
+        // owning cell; adjacent cells' samples generally report different ones.
+        let cs = 4 << 16;
+        let mut seen = std::collections::BTreeSet::new();
+        for y in 0..8 {
+            for x in 0..8 {
+                seen.insert(worley_2d(x << 16, y << 16, 5, cs).cell);
+            }
+        }
+        assert!(
+            seen.len() >= 4,
+            "8x8 samples at cell_size 4 should see several cells"
+        );
+    }
+
+    #[test]
+    fn test_worley_f2_minus_f1_properties() {
+        for i in 0..64 {
+            let d = worley_2d_f2_minus_f1(i << 14, (i * 37) << 14, 9, 4 << 16);
+            let w = worley_2d(i << 14, (i * 37) << 14, 9, 4 << 16);
+            assert_eq!(d, w.f2 - w.f1);
+        }
+    }
+
+    #[test]
+    fn test_worley_in_range_bounds_and_degenerate() {
+        for i in 0..64 {
+            let v = worley_2d_in_range(i << 15, 0, 3, 2 << 16, 10, 40);
+            assert!((10..40).contains(&v), "out of range: {v}");
+        }
+        assert_eq!(worley_2d_in_range(0, 0, 3, 2 << 16, 7, 7), 7);
+        // Degenerate cell_size: total — must not panic.
+        let _ = worley_2d(0, 0, 1, 0);
+        let _ = worley_2d(0, 0, 1, -5);
+        assert_eq!(
+            worley_2d_in_range(0, 0, 1, 0, 0, 10),
+            worley_2d_in_range(0, 0, 1, 0, 0, 10)
+        );
+    }
+
+    #[test]
+    fn test_worley_seed_independence() {
+        let a = worley_2d(1 << 16, 2 << 16, 1, 4 << 16);
+        let b = worley_2d(1 << 16, 2 << 16, 2, 4 << 16);
+        // Different seeds almost surely differ in the distance pair.
+        assert!(a.f1 != b.f1 || a.f2 != b.f2 || a.cell != b.cell);
+    }
+
+    #[test]
+    fn test_isqrt_u128_exact() {
+        assert_eq!(isqrt_u128(0), 0);
+        assert_eq!(isqrt_u128(1), 1);
+        assert_eq!(isqrt_u128(2), 1);
+        assert_eq!(isqrt_u128(3), 1);
+        assert_eq!(isqrt_u128(4), 2);
+        assert_eq!(isqrt_u128(u64::MAX as u128), u32::MAX as u128);
+        // Floor property on a spread of values.
+        for &n in &[15u128, 16, 17, u64::MAX as u128, u128::MAX / 3] {
+            let r = isqrt_u128(n);
+            assert!(r * r <= n && (r + 1) * (r + 1) > n, "isqrt wrong at {n}");
+        }
     }
 }
