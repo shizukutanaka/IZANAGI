@@ -1296,3 +1296,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Wu & Manber (1992, Shift-And/agrep) / Dijkstra (1961, shunting-yard) / Gottschalk (1996, OBBTree/SAT) / Knuth TAOCP buddy / Linux buddy allocator / Crowley (1998, piece table 参照系)。
 
 **実装物**: cp-algorithms(shift-and・buddy 系) / redblobgames grid pathfinding / Planetary Annihilation flow-field 技術解説 / Qiita・Zenn の Shift-And・shunting-yard・SAT・buddy 解説記事群。
+
+# 第28次: メンバーシップ・キャッシュ・重み抽選・動的空間・配列木橋
+
+| 採用 | 根拠 / 検証 | 判定 |
+|---|---|---|
+| `xorfilter` — xor filter | Graf & Lemire (2020) xor filter: bloom の後継で ~1.23B/key・fp ~1/256・挿入済みは必ず true。3 分割 disjoint 区間で h1,h2,h3 の衝突なしを構造保証し、degree-1 slot の BFS peel で構築 — 2-core 残存なら seed を変えて再試行(≤64)。claimant を XOR 記録して deg==1 slot の唯一キーを O(1) 特定。検証は BTreeSet oracle で 40 trial の全メンバー受理 + 4000 probe の fp ≤4% 境界 + 同一 build の表一致 | 🟢 純粋追加 |
+| `lru` — LRU cache | 教科書定石(ordered map + recency queue): linked list ではなく BTreeMap×2 の (stamp,key) ソート index で排出順を正準化 — 同刻印の key 衝突は構造上起きない(u64 単調刻印)が仮に起きても key 昇順で決着する設計。`get` は刻印更新、`peek` は刻印不変、`by_recency`/`pop_lru` は canonical 直列化。VecDeque シャドー oracle で全 op・排出列・drain を照合 | 🟢 純粋追加 |
+| `vose` — Vose alias | Vose (1991) 線形 alias 法: float `p_i` の代わりに `scaled[i]=w_i·n` を u128 で保持し small(<total)/large(≥total) を厳密分割。核心の正当性は枚挙可能 — 全 (bucket,coin) の `n·total` ペアで各 item は `w_k·n` 件に写像されることを直接検証(実装の近似ではなく厳密分配)。pop 順は index 最大側で正準、coin は `next_u64 % total` で seeded 決定 | 🟢 純粋追加 |
+| `quadtree` — bucketed point quadtree | Finkel & Bentley (1974) 系 bucketed quadtree: 半開矩形 4 分岐(NW,NE,SW,SE 固定順)、bucket 超過で遅延分割、1-wide/1-tall 帯は can_split=false で leaf 溢れ(hang しない)。回答は常に sort 正準 — 木形状は挿入列の純関数。`nearest` は子矩形 min-dist² の BinaryHeap best-first、タイは辞書順小の点で正準。全矩形 brute-force + nearest 全点照合 oracle(重複点の multiset 意味論も検証) | 🟢 純粋追加 |
+| `cartesian` — cartesian tree | Vuillemin (1980) O(n) スタック構築: heap-on-values × BST-on-positions の一意木 — Fischer–Heun RMQ と treap 形状の理論的土台。重複値は (val,idx) 総順序で canonical(左端最小が根)。`rmq` = i,j の LCA が範囲極値 index を返すことを brute-force argmin と 300 配列×40 区間照合、heap 順序・inorder=0..n・部分木の連続区間性と包含関係を全検証 | 🟢 純粋追加 |
+
+見送り(第28次): 可変メンバーシップ(cuckoo/SwissTable — 既出見送り継続、静的構造で需要十分)、rope(piece table で代替済みのまま)、SA-IS(線形接尾辞配列 — 既出 `suffix` doubling で十分)、jump-point search(`flowfield`+A* で十分、見送り継続)、regex 完全構文(部分集合のみ需要、見送り継続)。
+
+## 出典(第28次、search-index 照合)
+
+**論文・仕様**: Graf & Lemire (2020, xor filter) / Vose (1991, alias method) / Finkel & Bentley (1974, quad trees) / Vuillemin (1980, cartesian trees) / Sleator–Tarjan LRU 定石文献。
+
+**実装物**: cp-algorithms(cartesian/RMQ 系)・FastFilter(Lemire 系参照実装)・redblobgames spatial index・Qiita・Zenn の xor filter・alias method・quadtree・cartesian tree 解説記事群。

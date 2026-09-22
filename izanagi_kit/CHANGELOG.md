@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — membership filters, caches, weighted sampling, spatial index, array-to-tree bridge
+
+- `xorfilter` — `XorFilter`: static xor filter (Graf & Lemire) — ~0.4% false-positive rate, zero false negatives for baked-in keys, deterministic BFS-peel construction with automatic seed retry
+- `lru` — `Lru`: bounded LRU cache over `u64` — canonical (stamp, key) eviction, `get`/`peek`/`by_recency`/`pop_lru`
+- `vose` — `AliasTable`: Vose's alias method — O(1) weighted sampling with an exact integer distribution over `u128` internals
+- `quadtree` — `Quadtree`: bucketed dynamic point index over `u32` — canonical sorted `query`/`count`, best-first `nearest`
+- `cartesian` — `Cartesian`: O(n) cartesian tree — heap on values + BST on positions, `rmq`/`subtree_range`/`inorder`
+
 ### Added — approximate string search, swarm pathfinding, expression eval, convex collision, buddy allocation
 
 Round-27 survey additions (192 → 197 modules):

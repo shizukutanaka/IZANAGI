@@ -153,6 +153,12 @@
 - J76 凸形状の衝突判定(SAT — 分離軸の非存在が重なりの証 + 最小重なり軸目撃者)✅ `sat`(両多角形の辺法線のみが候補軸、投影重なりで早期 exit。境界接触は重なり、`depth` は投影単位(|axis| 除算が真の深さ)、axis は重心差で a→b 正準向き。edge-intersect + 包含 oracle 3000 照合)
 - J77 固定アリーナの冪2 割付(buddy allocator — split-on-alloc/merge-on-free)✅ `buddy`(log2 分離 free list、最小 order・最低位アドレス選択で状態は操作列の純関数。free は buddy 同時解放なら合体を繰返す eager coalescing —「二つの buddy が同時に free」は常に不成立の canonical 性質。byte-shadow oracle + 全 drain で全域使用可能を検証)
 
+- J78 静的メンバーシップ判定(xor filter — 3 スロット XOR で bloom の片方向誤りのみ)✅ `xorfilter`(BFS peel の degree-1 キューで構築、残存 2-core は seed 交代で最大64試行。fingerprint は0以外の `u8` — 挿入済みキーは構築保証で必ず `true`、fp ~1/256 を 4000 probe で境界検証)
+- J79 置換付き作業集合(LRU cache — 最古の最近使用を排出)✅ `lru`(BTreeMap×2 で (stamp,key) 辞書順の正準排出 — 挿入順・ポインタ非依存。`get` は使用刻印を更新、`peek` は不変。VecDeque シャドー oracle 全 op 照合)
+- J80 O(1) 重み付き抽選(Vose alias — 構築 O(n)・抽選 1 コイン)✅ `vose`(`prob`/`alias` を `u128` 厳密に構成 — 全 (bucket,coin) ペア `n·total` 件を枚挙し各 item に `w_k·n` 件の厳密分配を oracle 照合。small/large の pop は index 最大側固定で正準)
+- J81 動的点空間索引(bucketed quadtree — 挿入分割・矩形クエリ)✅ `quadtree`(半開矩形 4 分岐、bucket 超過で分割、1-wide 帯は分割不可で leaf 溢れ — hang しない。回答はソート正準、`nearest` は子矩形 min-dist² の best-first。全矩形 oracle + 最寄り brute-force 照合)
+- J82 配列→木の正準橋(cartesian tree — heap on values + BST on positions)✅ `cartesian`(Vuillemin O(n) スタック構築、重複は (val,idx) 辞書順で一意 — 左端最小が根。`rmq` = i,j の LCA が範囲極値を答える。heap 順序・inorder=0..n・ブルートフォース argmin・部分木連続区間性を全検証)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
