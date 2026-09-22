@@ -17,6 +17,10 @@
 - B1 fixed-point Q16.16 ✅ `fixed` / B2 sqrt・CORDIC trig ✅ / B3 整数幾何（line/LOS）✅ `geometry`
 - B4 fixed ベクトル（vec2/vec3, dot/len/normalize）✅ `vec` / B5 easing・tween（整数）✅ `easing` / B6 補間（lerp/clamp/sign）✅ `Fixed::lerp/clamp/sign/abs`
 - B7 整数論・モジュラ演算（周期イベント整合・剰余アドレッシング・ハッシュ素性）✅ `ntheory`（`gcd`/`lcm`/`extgcd`/`mod_inv`/`mod_pow`/`crt2`/`crt` — unsigned-abs ユークリッド、Bézout 逆元、u128 中間の binary modpow、中国剰余合成は非 coprime も矛盾検出付き。ブルートフォース gcd・Bézout 恒等式・CRT 合同性/一意性/矛盾性を乱数オラクル検証）
+- B8 順列代数・順位列挙（spawn 順シャッフルの正準形・perm→seed 全単射）✅ `perm`（`identity`/`is_valid`/`compose`/`inverse`/`cycles`/`sign`/`order`/`apply`/`rank`/`unrank` — 群演算は入力検証付き、巡回分解は最小要素先頭の canonical 形、位数はサイクル長 lcm。Lehmer コードの factoradic で n≤20 の `rank`/`unrank` 全単射 = 順列がそのままシード値になる。結合法則・逆元・`p^order=e`・符号=inversion パリティ・rank/unrank 全単射(n≤7 全網羅)を乱数検証）
+- B9 数論変換畳み込み（ダイス合計分布・loot 母関数計数・音程畳み込み）✅ `conv`（NTT mod 998244353 = 119·2²³+1 原始根3 — ビット反転置換 + 反復 butterfly の `O(n log n)` 多項式積、全中間は u64/u128 のみで float FFT の丸めを根本回避。`convolve_i64` は係数上限が modulus を超えると包んでしまうため `None` を返す失敗閉鎖設計。naive O(n²) mod-p と全一致・可換性・負数復元を乱数検証）
+- B10 厳密線形代数（制約連立解・透過率・体積保存判定）✅ `gauss`（Bareiss fraction-free 消去 — `det` は i128 中間で float pivot の「小さすぎる」曖昧さが存在しない絶対値、`solve` は拡大行列上の Bareiss + 既約 (num,den) 逆戻入、`rank` は独立した交差乗算経路。`det==0` ⟺ `rank<n` の同値・permutation 展開 det・A·x=b 復元を乱数検証）
+- B11 整数厳密パラメトリック曲線（カメラ経路・投射物弧・patrol ルート）✅ `bezier`（Bernstein 形を `u=d−t` の整数展開で評価 — `cubic_pos`/`catmull_pos` は `t=num/den` の有理 t で座標が既約 i128 分数、共通 gcd で縮約。`flatten_cubic`/`flatten_catmull` は端点保存の等分割 polyline、Catmull-Rom は両内点を厳密補間。Horner 展開オラクル・端点復元・補間性を乱数検証）
 
 ## C. 状態とデータ (State & Data / ECS)
 - C1 generational entity ✅ `entity` / C2 sparse-set storage ✅ / C3 多コンポーネント join ✅
@@ -87,6 +91,7 @@
 - J20 接尾辞配列・文字列構造解析（corpus 監査・`markov` が覚えた gram の検査・重複部分列）✅ `suffix`（prefix-doubling O(n log² n) 構築 + Kasai LCP — `search` が全出現を `O(pat log n + hits)`、`longest_repeated`/`distinct_substrings` が文字列の重複構造を曝く。naive ソート・素朴 LCP・全位置走査・BTreeSet 部分文字列数で乱数オラクル検証）
 - J21 制約充足 2-SAT（key-and-lock・ペア排他・tech-tree ゲーティング）✅ `twosat`（Aspvall–Plass–Tarjan — `a∨b` を含意辺 `¬a→b`,`¬b→a` に変えて `graph::strongly_connected` で SCC 分解。変数とその否定が同 SCC で UNSAT。sinks-first 順位で `rank[t]<rank[f]` の正極性を採る canonical 解。n≤7 でブルートフォース SAT/UNSAT 判定一致 + 解が `check` を通ることを乱数検証）
 - J22 ゲーム木完全探索（盤面 AI・戦術検証・後退解析）✅ `minimax`（deterministic negamax + αβ — `Game` トレイト（`moves`/`apply`/`evaluate`/`terminal`）に対し `score`/`best_move`。着手順は `moves` の canonical 順、同値は先着側を保持、終端スコアは ply 割引で最短勝ちを優先。Tic-Tac-Toe 全域で αβ=naive negamax 一致 + 完全棋譜引き分け・即勝ち・最遅敗を既知値検証）
+- J23 回文構造クエリ（名付け lint・シード美観・対称 ID 生成）✅ `manacher`（Manacher 1975 — `odd_radii`/`even_radii` (d1/d2) を O(n) で構築、`longest_palindrome` は leftmost タイブレーク、`count_palindromes` は Σd1+Σd2 の個別 (start,len) 数。半開 [l,r) の鏡像 index を inclusive 慣行から正しく変換（初版のずれを BTreeSet 列挙オラクルが捕捉）。ブルートフォース全部分列検査・d1/d2 の真値性/最大性を乱数検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`

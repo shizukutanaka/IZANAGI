@@ -433,6 +433,47 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — permutation algebra, NTT convolution, palindrome structure, exact linear algebra, integer curves
+
+- **`perm`** — `identity`/`is_valid`/`compose`/`inverse`/`cycles`/
+  `sign`/`order`/`apply`/`rank`/`unrank`: permutation group operations
+  with canonical cycle form (least element first, cycles sorted) plus
+  Lehmer-code factoradic ranking — `unrank` maps `r ∈ 0..n!` onto
+  permutations bijectively for `n ≤ 20`, so low seed bits literally
+  pick a spawn ordering. Verified by associativity/inverse/
+  `p^order = e` group axioms, sign = inversion parity, and exhaustive
+  rank/unrank round-trips for `n ≤ 7`.
+- **`conv`** — `convolve`/`convolve_i64`: number-theoretic-transform
+  convolution mod `998244353` (primitive root 3, `u128` intermediates)
+  — `O(n log n)` polynomial products for dice-sum distributions and
+  generating-function counts with none of float FFT's rounding
+  nondeterminism. `convolve_i64` returns `None` rather than a wrapped
+  answer when the exact coefficients would exceed the modulus.
+  Verified against naive `O(n²)` modular convolution, commutativity,
+  and signed-value recovery.
+- **`manacher`** — `odd_radii`/`even_radii`/`longest_palindrome`/
+  `count_palindromes`: Manacher's `O(n)` palindrome structure (the
+  classic `d1`/`d2` arrays) for string symmetry — name linting, seed
+  prettiness, palindromic quest IDs. Verified against exhaustive
+  palindrome enumeration plus per-entry truth/maximality of both
+  radius arrays.
+- **`gauss`** — `det`/`solve`/`rank`: Bareiss fraction-free Gaussian
+  elimination over `i64` matrices with `i128` intermediates — exact
+  determinants (no "pivot too small" ambiguity), exact rational
+  solutions as reduced `(num, den)` pairs, and exact rank; `None` is
+  a *proof* of singularity. `det` and `rank` run independent
+  elimination paths that verify `det == 0 ⟺ rank < n`. Checked
+  against permutation-expansion determinants and full `A·x = b`
+  rational verification.
+- **`bezier`** — `cubic_pos`/`catmull_pos`/`flatten_cubic`/
+  `flatten_catmull`: integer-exact parametric curves evaluated at
+  rational `t = num/den` — every coordinate a reduced `i128`
+  fraction, so camera paths, projectile arcs, and patrol routes are
+  bit-identical across machines. Catmull-Rom interpolates both inner
+  knots exactly; flatteners emit endpoint-preserving polylines.
+  Verified against an independent Horner-form oracle, endpoint
+  restoration, and the interpolation property.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded
