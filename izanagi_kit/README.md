@@ -213,6 +213,11 @@ The capability map — with per-feature implementation status — lives in
 | `coloring` | `dsatur`/`is_proper` — DSATUR graph coloring (saturation → degree → index tie-breaks); exact on bipartite/cycles, strong heuristic elsewhere. |
 | `dsurb` | `DsuRollback` — union-find with `snapshot`/`rollback`: hypothetical connectivity queries (`connected` under a tentative merge, then undo). No path compression → `O(log n)` find. |
 | `cht` | `LiChao` — min-envelope of lines `y = a·x + b` over a bounded integer domain: `insert` + `query_min` in `O(log X)`, `i128` evaluation. |
+| `bwt` | `bwt`/`bwt_inverse` + `mtf_encode`/`mtf_decode` — cyclic Burrows–Wheeler transform (rotation order via `SuffixArray` on the doubled string) and move-to-front coding — the reversible front half of a bzip2-style pipeline before `rle`/`huffman`. |
+| `hld` | `Hld` — heavy-light decomposition: `path_vertices`, `path_segments` (`O(log n)` flat ranges for `segtree`/`fenwick`), `subtree_segment` over a `parent[]` tree. |
+| `mincut` | `global_min_cut` — Stoer–Wagner `O(n³)` global min cut (weight + one side) without choosing terminals; deterministic lowest-index tie-breaks. |
+| `miller` | `is_prime`/`factor` — exact `u64` primality via the 7-base deterministic Miller–Rabin set, sorted factorization by trial division + Brent rho (fixed polynomial schedule). |
+| `wavelet` | `WaveletMatrix` — `access`/`rank`/`freq_less`/`range_freq`/`quantile` on `u32` sequences in `O(bits)` — layered stable-partition bitplanes, no floating point. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

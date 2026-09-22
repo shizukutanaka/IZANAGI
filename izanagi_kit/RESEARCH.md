@@ -1075,3 +1075,35 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Edmonds–Karp (1972) / Klein (1967, cycle-canceling) / Brélaz (1979, DSATUR) / Li Chao (1986) / knapsack DP 教科書定石 / undoable DSU(競プロ)。
 
 **実装物**: cp-algorithms(mincost_flow・DSU rollback・Li Chao tree) / KACTL(MinCostMaxFlow・RollbackUF・LineContainer) / emaxx(DSATUR・Li Chao) / Qiita・Zenn の最小費用流・ナップサック・彩色・Undo可能UnionFind・Li Chao Tree 解説記事群。
+
+# 第21次 — 可逆変換・木パスクエリ・全域カット・素数性・区間統計(2026-09-22、第8サイクル)
+
+> 「圧縮の可逆前段は」(bwt)、「木の区間操作は」(hld)、
+> 「最小分断コストは」(mincut)、「素数かは厳密に」(miller)、
+> 「区間の中央値・頻度は」(wavelet) — 符号化・クエリ・数論の残存層。
+> PR #28–#36 は本ラウンド時点で open — 本ブランチは #36 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `bwt` — Burrows–Wheeler + MTF | Burrows & Wheeler 1994 / bzip2 pipeline。巡回 BWT(no sentinel)は doubled-string 上の `SuffixArray` で回転順を確定 — primary index は rotation-0 の行。inverse は LF-mapping(count/first/occ)で `inv` 置換を歩く。周期入力では duplicate 回転の primary が一意でない点を oracle で分離。回転行列 oracle・往復一致・小アルファベット乱数検証 | 🟢 純粋追加 |
+| `hld` — heavy-light decomposition | Sleator–Tarjan 1983(競プロ実装形式)。max-size 子=heavy(同値は最小 index)、light 子が新 chain 起点。`path_segments` が `O(log n)` の flat range を path 順で返し `segtree`/`fenwick` に直載せ可能。subtree は preorder 連続区間で 1 range。祖先 climb oracle・BFS subtree 集合・乱数照合 | 🟢 純粋追加 |
+| `mincut` — Stoer–Wagner 全域最小カット | Stoer & Wagner 1997。終端不要の `O(n³)`: 各 phase で最密接頂点を A に加え最後の2点を s,t として t を s に収縮、phase cut = t の残余接続重み。全対 s-t maxflow (`flow::FlowNet`) oracle で乱数照合、crossing 再計算で側集合の正当性も検証 | 🟢 純粋追加 |
+| `miller` — 決定的 Miller–Rabin + 分解 | Jaeschke/Sinclair の `u64` 全域決定的 7-base 集合。sieve oracle と 20 万件全照合、Carmichael/SPSP 有名数を全拒否。Brent rho は固定多項式 `x²+c`(c=1,2,…)で factor が `n` の純関数 — trial division ≤1000 + rho で sorted 素因数列 | 🟢 純粋追加 |
+| `wavelet` — wavelet matrix | Claude & Navarro 2012。MSB 安定分割 bitplane 行列:`ones` 前置和 + `zeros` 分割点のみ保持(bitvec すら不要— `pref[i+1]-pref[i]` でビット復元)。rank は (l,r) の matched-section 追跡が必須(1-boundary 近似は ones-hop 後に不正確になる bug を oracle が捕捉)。全操作 brute-force 照合 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Suffix automaton / Eertree | — | `suffix`(SA+LCP)と `manacher` が部分文字列・回文の主用途をカバー。SAM の遷移圧縮は次ラウンド候補 |
+| Held–Karp exact TSP | — | tsp ヒューリスティックの厳密 oracle として有効だが n≤20 制約の価値を熟考中 |
+| Cuckoo filter | — | bloom の削除対応版として有望。両者の誤り特性差を先に明文化したい |
+| Dominators (Lengauer–Tarjan) | — | CFG 解析向け — kit の現状に dominator 需要が弱い。簡易 iterative 版は次回検討 |
+
+## 出典(第21次、search-index 照合)
+
+**論文・仕様**: Burrows & Wheeler (1994) / Sleator & Tarjan (1983, link-cut/HLD) / Stoer & Wagner (1997) / Miller–Rabin deterministic bases (Jaeschke 1993, Sinclair set) / Claude & Navarro (2012, wavelet matrix) / Brent (1980, rho variant) / Bentley MTF。
+
+**実装物**: cp-algorithms(HLD・BWT・Miller–Rabin・Brent rho) / KACTL(StressTest patterns) / emaxx / Qiita・Zenn の BWT・HLD・Stoer-Wagner・Miller-Rabin・wavelet matrix 解説記事群。
