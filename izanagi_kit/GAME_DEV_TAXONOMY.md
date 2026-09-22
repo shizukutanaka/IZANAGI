@@ -106,6 +106,11 @@
 - J35 決定的選択・k番目・中央値（スコア上位k・中央ダメージ・順位報酬 — 乱択 quickselect を避けたい）✅ `bfprt`（median-of-medians — group-of-5 中央値の再帰中央値を pivot に `O(n)` 保証、Dutch-flag partition で `lt/gt` 帰還。sorted 配列 oracle・全重複・逆順 adversarial を乱数検証）
 - J36 整数ラスタ化（LOS 光線・弾道セル・ポリゴン領域のセル判定）✅ `raster`（Bresenham — 辞書順小 endpoint 起点の正準方向で逆順対称を構造的保証。midpoint circle は8分円対称 push。`fill_polygon` は2倍座標で「セル中心は奇座標」を使い i128 有理 crossing で境界曖昧ゼロの偶奇判定。DDA oracle・`poly::point_in_polygon` 全セル照合を乱数検証）
 - J37 線形漸化式の k 項（周期イベントの跳び読み・漸化式コストの n 週目・Fibonacci 系成長）✅ `linrec`（companion-matrix 冪乗で `O(d³ log k)` — naive `O(dk)` の陪乗置換。`linrec` は `i128` checked で `None` 失敗閉鎖、`linrec_mod` は `u128` 中間で常時 total。naive 漸化式 oracle・mod ⟺ exact 整合を乱数検証）
+- J38 最小費用流（単位原価付き輸送・割当+移動コスト — flow の純量版を拡張）✅ `mcflow`（Edmonds–Karp で最大流 → `bellman::negative_cycle` で負閉路を見つけ bottleneck 分だけ回す cycle-canceling — 整数容量で厳密最適、負コスト辺も安全。全域列挙 oracle・負閉路 rerouting 回帰を乱数検証）
+- J39 ナップサック DP（重量上限の最適荷物 — 戦利品選択・資源配分）✅ `knapsack`（`O(n·W)` — 0/1 は全 DP 表で witness 復元(tie は先 index 優先)、無限は last[c] 逆たどり。2^n 列挙 oracle・bounded 展開 oracle と乱数照合）
+- J40 グラフ彩色（領域配色・チャネル/レジスタ割当 — 隣が違う最小色数）✅ `coloring`（DSATUR — 飽和度→次数→index の決定的 tie-break で二部/サイクルは厳密解。proper 性+小グラフの彩色数 bound を乱数検証）
+- J41 取消可能連結判定（「この辺があったら?」仮説クエリ — 条件付き通行可否）✅ `dsurb`（rollback union-find — path compression を捨てて union-by-size+操作ジャーナルで任意 snapshot へ O(深度) 巻戻し。BFS 再構築 oracle との component 一致を乱数検証）
+- J42 直線包絡クエリ（線型コスト選択・凸 DP 遷移 — min_j aⱼx+bⱼ）✅ `cht`（Li Chao tree — 区間中央の勝者を各ノードに保持し敗者だけが降りる `O(log X)` 挿入・クエリ。i128 評価、brute-force 包絡と乱数照合）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`

@@ -208,6 +208,11 @@ The capability map — with per-feature implementation status — lives in
 | `bfprt` | `select`/`median` — median-of-medians `O(n)` deterministic selection: worst-case linear k-th element with no randomness, pivot-of-pivots recursion. |
 | `raster` | `line`/`circle`/`fill_polygon` — Bresenham line (reversal-symmetric via canonical direction), midpoint circle, and integer-exact scanline polygon fill; every cell center is classified by a rational crossing count in `i128`. |
 | `linrec` | `linrec`/`linrec_mod` — k-th term of a linear recurrence `aₙ = Σ cᵢaₙ₋ᵢ₋₁` in `O(d³ log k)` via companion-matrix exponentiation; exact `i128` (None on overflow) and always-total modular variants. |
+| `mcflow` | `FlowNet::min_cost_max_flow` — Edmonds–Karp max flow then negative-cycle canceling via `bellman`: exact min cost at max flow, signed per-unit costs, deterministic by insertion order. |
+| `knapsack` | `knapsack_01`/`knapsack_unbounded` — `O(n·W)` loot-under-weight with deterministic witness reconstruction (ties keep earliest items). |
+| `coloring` | `dsatur`/`is_proper` — DSATUR graph coloring (saturation → degree → index tie-breaks); exact on bipartite/cycles, strong heuristic elsewhere. |
+| `dsurb` | `DsuRollback` — union-find with `snapshot`/`rollback`: hypothetical connectivity queries (`connected` under a tentative merge, then undo). No path compression → `O(log n)` find. |
+| `cht` | `LiChao` — min-envelope of lines `y = a·x + b` over a bounded integer domain: `insert` + `query_min` in `O(log X)`, `i128` evaluation. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

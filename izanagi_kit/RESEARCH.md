@@ -1043,3 +1043,35 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Knuth TAOCP(patience tails / LIS) / CLRS §24.2(DAG SSSP) / Blum–Floyd–Pratt–Rivest–Tarjan (1973, median-of-medians) / Bresenham (1965) / Pitteway (1967, midpoint circle) / Kitamasa・行列累乗定石。
 
 **実装物**: cp-algorithms(LIS・negative cycle) / emaxx(K-th element・LIS) / KACTL(LIS・LineHull) / redblobgames(line drawing 記事) / Qiita・Zenn の LIS・BFPRT・Bresenham・行列累乗解説記事群。
+
+# 第20次 — 費用流・ナップサック・彩色・取消可能連結・直線包絡(2026-09-22、第8サイクル)
+
+> 「一番安い輸送は」(mcflow)、「上限内の最適選択は」(knapsack)、
+> 「隣と違う色を最小で」(coloring)、「仮説を取り消せる連結は」(dsurb)、
+> 「直線束の下限は」(cht) — 割当・DP・構造の残存古典定石層。
+> PR #28–#35 は本ラウンド時点で open — 本ブランチは #35 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `mcflow` — 最小費用最大流 | Edmonds–Karp + Klein 1967 cycle-canceling。`bellman::negative_cycle` で残余負閉路を特定し bottleneck 容量を回す — 整数容量で厳密最適。負コスト辺は残余逆向きで自然に扱える。全域列挙 oracle(全 path フロー割当)・負閉路 rerouting 回帰テストを乱数検証 | 🟢 純粋追加 |
+| `knapsack` — 0/1+無限ナップサック | 教科書 DP。0/1 は **全 DP 表**を保持 — ローリング行だと「i 層の最適」と「後層の改善」が混ざり witness が壊れる問題をレイヤ比較で解消(tie は先 index 優先で復元一意)。2^n 全列挙 oracle・bounded 展開 oracle を乱数照合 | 🟢 純粋追加 |
+| `coloring` — DSATUR 彩色 | Brélaz 1979。飽和度→次数→index の tie-break で二部/サイクルは厳密解、一般は強いヒューリスティック。`is_proper` で properness を構造検査。全 k-coloring 探索 oracle で彩色数 bound + 既知族(クリーク・奇/偶 cycle・K_{2,3})を乱数検証 | 🟢 純粋追加 |
+| `dsurb` — rollback union-find | 競プロ定石(undoable DSU)。path compression は任意深度を書き換え undo 不能 → union-by-size+ジャーナルで `O(log n)` find と引き換えに任意 snapshot 復帰。「この辺があったら?」仮説クエリ・オフライン接続性向け。BFS 再構築 oracle との component 一致を乱数検証 | 🟢 純粋追加 |
+| `cht` — Li Chao tree | Li Chao 1986 / cp-algorithms。区間中央点で勝つ直線を各ノードに保持、敗者が勝つ側のみ降る `O(log X)` 挿入。`i128` 評価で int64 係数の積でも溢れない。brute-force 全直線 min oracle を乱数照合 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| SSP + Johnson potentials の min-cost flow | — | potentials 版は速いが負辺の初期化が必要。cycle-canceling は `bellman` 再利用で検証済み閉路列を直接得られ、整数容量の規模で十分 |
+| Edmonds blossom(一般マッチング) | — | 実装規模が大きく bipartite が用途の大半をカバー。MCMF による一般割当で代替可能 |
+| Persistent segtree / 完全永続構造 | — | 検証オラクルが肥大。dsurb が「履歴への問合せ」の実用形を先に提供 |
+| Held–Karp exact TSP | — | tsp のヒューリスティック+本ラウンドの DP 系でカバー傾向。n≤20 の厳密版は次ラウンド候補 |
+
+## 出典(第20次、search-index 照合)
+
+**論文・仕様**: Edmonds–Karp (1972) / Klein (1967, cycle-canceling) / Brélaz (1979, DSATUR) / Li Chao (1986) / knapsack DP 教科書定石 / undoable DSU(競プロ)。
+
+**実装物**: cp-algorithms(mincost_flow・DSU rollback・Li Chao tree) / KACTL(MinCostMaxFlow・RollbackUF・LineContainer) / emaxx(DSATUR・Li Chao) / Qiita・Zenn の最小費用流・ナップサック・彩色・Undo可能UnionFind・Li Chao Tree 解説記事群。
