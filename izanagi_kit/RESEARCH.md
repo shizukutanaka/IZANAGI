@@ -773,3 +773,34 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文**: Hierholzer & Wiener (1873, Eulerian 路の古典) / Fischer & Heun (2006, RMQ) / Shamos & Hoey (1975, closest pair divide&conquer) / Bentley & Ottmann (1979, sweep line — 見送り評価用) / Cormen et al. CLRS §33 (orientation predicates)。
 
 **実装物**: cp-algorithms sparse-table・closest-pair-of-points ページ / emaxx Eulerian path / Wikipedia "Eulerian path"・"Closest pair of points problem"・"Sparse table"・"Interval tree" / redblobgames line-intersection ノート / Qiita・Zenn の蟻本系 sparse table・closest pair・区間スケジューリング記事群。
+
+# 第12次: 外部出典サーベイ — 周期スケジュール・fuzzy 順位付け・オンライン統計・Markov 名付け・ダウンサンプリング (2026-09-22)
+
+> 時刻・文字列・時系列のユーティリティ層を棚卸し。5系統実装。
+> PR #27 (第11次) は本ラウンド時点で open — 本ブランチはその tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `cron` — POSIX cron 次発火時刻 | Vixie/POSIX cron 5-field 仕様 + Quartz `a/n` ステップ拡張(`a/n` = a..hi step n。POSIX では `*/n` のみ。crontab.guru・Quartz ドキュメント照合)。dom∧dow 同時制約で OR 規則(POSIX)、どちらか一方のみ制約なら AND。`7≡0` Sunday マージ、月/曜日名を case-insensitive で受理。bitset + day-loop(5年水平) で発火走査 — 1分グリッドのブルートフォース oracle と乱数一致。`31 feb` 等の不可能スケジュールは `None`(hang しない)。Hinnant civil-from-days で O(days) | 🟢 純粋追加 |
+| `fuzzy` — fzf 式 subsequence ランカー | junegunn/fzf の scoring shape(連続 run が支配的・boundary 補助・gap ペナルティ)。CONSECUTIVE=10 > BOUNDARY=8 > CHAR=1 > GAP=−1。全順序は score desc → len → bytes → index で tie 不可 = 純関数。`trie::keys_with_prefix` のランク付け後段・`diff::levenshtein` の did-you-mean と役割分担 | 🟢 純粋追加 |
+| `stats` — Welford オンラインモーメント | Welford (1962) + Chan et al. parallel merge。全量 `i64·SCALE` 固定小数(SCALE=10⁶) — mean/var は丸め込み整数、stddev は `isqrt` で整数化。merge は δ²·na·nb/n のチャン公式で shard 統計を結合可能(mapreduce 用途)。naive 2-pass i128 oracle に ±SCALE 相当のドリフト内一致を乱数検証 | 🟢 純粋追加 |
+| `markov` — コーパス学習の名付け生成 | 古典 Markov 連鎖テキスト生成(Rogue/roguelike 界隈の名付け定石)。order-k の byte-level 遷移を BEGIN/END パディング語から BTreeMap の cumulative-weight 表に構築。サンプルは `SplitMix64::below` で昇順 byte — 全て内容定義で挿入順・ハッシュ順は出力に漏れない。出力の全 order-k gram が corpus に存在(oracle)・seed 一致で完全一致・seed 分岐で分岐を検証 | 🟢 純粋追加 |
+| `lttb` — 時系列ダウンサンプリング | Steinarsson (University of Iceland 2013) LTTB — 各 bucket で前選択点×次 bucket 重心の三角形面積最大の点を採用。i128 2倍面積評価で厳密。bucket 境界は floor division で内容定義、端点保存・順序保存部分列。「毎 k 番目」サンプラーが破壊する孤立 spike を必ず保持する例を pin | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| DDSketch / t-digest 分位点 | Datadog 2019 / Dunning 2019 | `stats` のモーメント範囲外。p50/p99 が需要化したら別モジュールで。`RunningStats` は mean/var のみに絞った |
+| Quartz 6/7-field(秒・年フィールド) | Quartz scheduler | POSIX 5-field で需要を満たす。秒粒度は `timer` 系の役割 |
+| Skeleton-based fuzzy(マルチパス DP) | fzf v2 / fzy | 単一走査の左端 greedy で実用上十分。DP 版は score 意味の乖離リスクがあり差し替え需要時 |
+| 高次 Markov(k>4)・名前学習の reverse 化 | roguelike 系記事 | order 固定を train の引数化で済む。逆方向学習は別層 |
+| GPU 系ダウンサンプリング(JFA 等) | — | LTTB が CPU O(n) で十分。GPU は方針上範囲外 |
+
+## 出典(第12次、search-index 照合)
+
+**論文・仕様**: Welford (1962, online mean/var) / Chan, Golub & LeVeque (1979, parallel variance merge) / Steinarsson (2013, LTTB thesis, University of Iceland) / POSIX cron 5-field spec + Quartz CronExpression の `a/n` 拡張 / Markov 連鎖名付け(古典、roguelike 界隈定石)。
+
+**実装物**: junegunn/fzf scoring 実装(CONSECUTIVE・BOUNDARY の重み比較) / crontab.guru・Quartz CronExpression ドキュメント / cp-algorithms・Wikipedia "Algorithms for calculating variance" / redblobgames・fzy ソースの boundary 判定 / Qiita・Zenn の cron 実装・Welford・LTTB 記事群。

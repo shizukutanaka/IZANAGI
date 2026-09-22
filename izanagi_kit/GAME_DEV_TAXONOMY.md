@@ -11,6 +11,7 @@
 ## A. 時間とループ (Time & Loop)
 - A1 固定タイムステップ ✅ `timestep` / A2 補間 alpha ✅ / A3 death-spiral ガード ✅
 - A4 スケジューラ（タイマー・クールダウン・遅延イベント）✅ `timer` / A5 ターン制エネルギー系（speed-based turn order）✅ `turn`
+- A6 暦定周期イベント（定期スポーン・サーバイベント窓・日次リセット）✅ `cron`（POSIX 5-field cron — `Cron::parse` + `next_after`/`next_n_after` で ms 時間軸の次発火時刻。dom ∧ dow 同時制約時の POSIX OR 規則、`7 ≡ 0` Sunday、Quartz 式 `a/n` ステップ。bitset day-loop + Howard Hinnant civil-from-days で O(days) スキャン。分数走査ブルートフォース oracle と乱数検証）
 
 ## B. 数学 (Math)
 - B1 fixed-point Q16.16 ✅ `fixed` / B2 sqrt・CORDIC trig ✅ / B3 整数幾何（line/LOS）✅ `geometry`
@@ -25,6 +26,7 @@
 - D4 重み付き抽選（weighted choice / loot table）✅ `weighted_index` / D5 ダイス（NdM）✅ `dice` / D6 value/Perlin noise（整数）✅ `noise`
 - D7 named 独立ストリーム（サブシステム毎に非干渉な乱数列）✅ `SplitMix64::split(stream_id)` / D8 長周期・高統計品質な代替 PRNG（opt-in・既定不変）✅ `rng_xoshiro::Xoshiro256pp`（2²⁵⁶ 周期、`jump()` で並列ストリーム）
 - D9 セルラー/Worley ノイズ ✅ `noise::worley_2d`（Worley SIGGRAPH'96 — 正確な F1/F2 距離とセル ID。`worley_2d_f2_minus_f1` で火口・静脈状リッジ。5×5 走査で厳密性を証明、GPU JFA 近似は意図的に不採用）
+- D10 コーパス学習の名付け生成（NPC・地名・アイテム名）✅ `markov::NameGen`（order-k byte-level Markov 連鎖 — BEGIN/END パディング語から cumulative-weight 表を BTreeMap で構築、遷移は `SplitMix64::below` で昇順 byte 走査。同じ (corpus, k, seed) で同じ名が全プラットフォームで再現 = rng stream の純関数。gram 全包含・seed 一致/分岐を検証）
 
 ## E. 決定論・リプレイ (Determinism & Replay)
 - E1 state hashing FNV-1a ✅ `world_hash` / E2 DetHash（値型＋容器）✅ / E3 replay trace・desync 検出 ✅ `replay`
@@ -64,6 +66,7 @@
 - I22 前置辞書・オートコンプリート（did-you-mean 候補・識別子表）✅ `trie`（byte trie — `insert`/`remove`/`contains`/`starts_with`/`keys`/`keys_with_prefix`。BTreeMap 子で listings は必ず byte 辞書順 = 挿入順非依存。`diff::levenshtein` の候補源として did-you-mean を構成。BTreeSet オラクルと挿入・削除・prefix 列挙の同値を乱数検証）
 - I23 静的範囲最小/最大クエリ（焼き付けコスト場・波形エンベロープ — 更新不要でクエリ熱い場合）✅ `rmq::SparseTable`（sparse table — `O(n log n)` 構築で `range_min`/`range_max` を O(1)。冪等演算なので重複ブロック合成がそのまま使える = disjoint cover の管理不要。`segtree`（点更新あり）の静的補完。ランダム n≤50 の全範囲をブルートフォース min/max と一致検証）
 - I24 区間集合（占有時間帯・予約窓・scanline 壁区間）✅ `interval::IntervalSet`（sorted disjoint 半開 `[lo,hi)` — `insert` は接続・橋渡し全件マージ、`remove` は切断で split、`clip` は交差残し。`contains`/`overlaps` は二分探索 O(log n)。BTreeSet 点集合オラクルと insert/remove/clip 混合系列の同値 + 不変条件（ソート・非隣接）を乱数検証）
+- I25 ストリーミング統計・集約（テレメトリ・負荷統計・バランス監視）✅ `stats::RunningStats`（Welford 1982 online moments — `push`/`push_all`/`merge`/`mean`/`variance`/`sample_variance`/`stddev`/`min`/`max`。全量 i64·SCALE 固定小数、Chan parallel-merge で分割済み shard を結合可能 = mapreduce 用途。naive 2-pass oracle と ±SCALE 範囲の一致を乱数検証）
 
 ## J. 視界・AI・ナビ (Visibility / AI / Navigation)
 - J1 対称 FOV ✅ `fov` / J2 A* 経路 ✅ `pathfinding`（正方格）/ `hexgrid::hex_astar`（六角格 — 厳密 hex distance を consistent heuristic として最短路保証、`(f,h,q,r)` 辞書順で決定的）/ J3 Dijkstra map（flow field）✅ / J4 descend（chase/flee）✅ / J5 LOS ✅ `geometry`
@@ -75,6 +78,7 @@
 - J13 二分マッチング（unit↔job 非加重割当・チーム編成）✅ `bipartite::hopcroft_karp`（Hopcroft–Karp O(E·√V) — BFS layered graph + DFS augment、走査順固定で決定的。`kuhn_match` 素朴増広路とのサイズ一致・matched edge が adj に存在・right 再利用なしを乱数検証。`hungarian`（加重）の補完）
 - J14 巡回経路計画（哨戒・visit-all ミッション）✅ `tsp`（NN 構築 + first-improvement 2-opt — `nn_tour`/`tsp_2opt`/`tour_cost`。結果は city 0 始点・次点最小 index で canonical 化、同一直線条件と探索順は index 規則のみ。2-opt ≤ NN 不変・n≤8 ブルートフォース最適との hit-rate 検証）
 - J15 全辺走査ルート（巡回点検・ウォーター配給・全通路往路）✅ `euler::euler_walk`（Hierholzer 1973 — 無向多重グラフの Eulerian circuit/path を O(E)。次数奇数性で Circuit/Path を判定、非連結・odd>2 は `None`。自己ループは次数2・平行辺は個別辺として扱う。辺消費は入力順 first-unused で決定的。消費多重集合一致 oracle + ランダム Eulerian 多重グラフでの往復検証）
+- J16 あいまい検索・優先順位付け（コマンドパレット・did-you-mean ランカー）✅ `fuzzy`（fzf 式 subsequence scoring — `score`/`rank`/`rank_str`、case-insensitive byte 走査。CONSECUTIVE(連続 run) が支配的重み、boundary(`_-. /`・camel hump) 補助、GAP ペナルティ。全順序は score desc → len → bytes → index で決定的、部分列 oracle で score↔subseq 同値を乱数検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
@@ -87,6 +91,7 @@
 ## M. UI
 - M1 メッセージログ ✅ `msglog` / M2 メニュー/ウィジェット ✅ `menu` / M3 テキストレイアウト/折返し ✅ `textlayout` / M4 HUD ✅ `hud`
 - M5 矩形 bin packing（アトラス・インベントリ・ダイアログ敷詰）✅ `pack::pack_skyline`（Jylänki *A Thousand Ways to Pack the Bin* 2010 の skyline/bottom-left 法 — 入力順がそのまま配置順の純粋関数。重なり・境界逸脱を不変条件オラクルで検証）
+- M6 時系列ダウンサンプリング（密な系列を小さな HUD グラフへ）✅ `lttb::lttb`（Steinarsson 2013 の Largest-Triangle-Three-Buckets — 各 bucket で prev選択点×次 bucket 重心との三角形面積最大の点を採用。i128 2倍面積で厳密、端点保存・順序保存部分列。nth-point 選択が形状を壊す spike 保存を検証）
 
 ## N. 永続化・セーブ (Persistence)
 - N1 コンテンツ serialize ✅ / N2 ワールド save/load ✅ `savefile` / N3 バージョニング ✅ `savefile::SaveHeader::version` / N4 走長圧縮（スパースな盤面・連続値）✅ `rle`（`(count,byte)` pair — 255+ run は自動分割、bytes 版と `encode_u32`/`decode_u32` の素直 pair 版。zero-count・奇数長を reject する構造的 malformed 検査 = authenticity 側路。`decode(encode(x))==x` を乱数 run-heavy モデルで往復検証）
