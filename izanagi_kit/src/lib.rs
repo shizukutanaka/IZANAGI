@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -180,6 +180,11 @@
 //! - [`dlx`] — `exact_cover`: Algorithm X exact cover over a binary incidence matrix, returning the lexicographically-first solution — placement puzzles, polyomino packing, constraint floors.
 //! - [`arborescence`] — `directed_mst`: Edmonds' minimum-cost arborescence (directed spanning tree into a root) via cycle contraction, returning total weight plus the chosen edge indices.
 //! - [`xorbasis`] — `XorBasis`: GF(2) linear basis over `u64` in reduced row-echelon form — `contains`, `max_xor`, `rank`, `kth`-smallest span element; the canonical xor-span certificate.
+//! - [`eertree`] — `Eertree`: palindromic tree (eertree) over `&[u8]` — `distinct_palindromes`, `palindromic_substring_count`, `occurrences`, `longest_palindrome` in one online `O(n)` construction.
+//! - [`mo`] — Mo's offline range queries: `mos_order` (block-sorted query permutation) plus `range_distinct` — batched window answers without a data structure.
+//! - [`histrect`] — `largest_rectangle` (histogram via monotonic stack) and `maximal_rectangle` (binary matrix via running heights) — building footprints, warehouse slotting, territory blobs.
+//! - [`stable`] — `stable_match`: Gale–Shapley proposer-optimal stable marriage plus the `is_stable` blocking-pair verifier — NPC pairing, draft picks, quest assignment.
+//! - [`wdsu`] — `WeightedDsu`: potential-annotated union-find where `unite(u, v, w)` asserts `pot[v] - pot[u] == w` and contradictions return `false` — relative-height and offset constraints.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -257,6 +262,7 @@ pub mod dlx;
 pub mod dst;
 pub mod dsurb;
 pub mod easing;
+pub mod eertree;
 pub mod encounter;
 pub mod entity;
 pub mod equipment;
@@ -278,6 +284,7 @@ pub mod gridcast;
 pub mod hamdp;
 pub mod hexgrid;
 pub mod hfsm;
+pub mod histrect;
 pub mod hld;
 pub mod hud;
 pub mod huffman;
@@ -313,6 +320,7 @@ pub mod miller;
 pub mod mincut;
 pub mod minhash;
 pub mod minimax;
+pub mod mo;
 pub mod msglog;
 pub mod msquares;
 pub mod multimap;
@@ -358,6 +366,7 @@ pub mod sim;
 pub mod slide;
 pub mod sparse_set;
 pub mod spatial_hash;
+pub mod stable;
 pub mod stats;
 pub mod status;
 pub mod suffix;
@@ -383,6 +392,7 @@ pub mod visibility;
 pub mod voronoi;
 pub mod wallet;
 pub mod wavelet;
+pub mod wdsu;
 pub mod wfc;
 pub mod world_hash;
 pub mod xorbasis;

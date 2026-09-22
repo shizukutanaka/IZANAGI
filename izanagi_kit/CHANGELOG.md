@@ -433,6 +433,33 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — palindrome structures, offline range queries, maximal rectangles, stable matching, weighted union-find
+
+Round-23 survey additions (172 → 177 modules):
+
+- **`eertree`** — `Eertree`: palindromic tree over `&[u8]` —
+  `distinct_palindromes`, `palindromic_substring_count` (`Σ occ`),
+  `occurrences(pat)` (center-out node walk), `longest_palindrome`;
+  online extension with the imaginary-root (`len = −1`) terminating
+  every suffix-link search, `occ` propagated `len`-descending on
+  `finish`.
+- **`mo`** — Mo's offline range queries: `mos_order` (block-sorted,
+  serpentine query permutation via integer `isqrt`) plus
+  `range_distinct` driving `add`/`remove` over a `BTreeMap` counter —
+  batched window answers with no data structure.
+- **`histrect`** — `largest_rectangle`: monotonic-stack largest
+  histogram rectangle `O(n)` (virtual `h = 0` flushes the stack) and
+  `maximal_rectangle`: per-row running heights feeding the same scan —
+  building footprints, warehouse slotting, territory blobs.
+- **`stable`** — `stable_match`: Gale–Shapley proposer-optimal stable
+  marriage over full `n × n` preference permutations (proposal order
+  provably irrelevant to the unique optimum), plus `is_stable`, an
+  independent blocking-pair verifier.
+- **`wdsu`** — `WeightedDsu`: potential-annotated union-find —
+  `unite(u, v, w)` asserts `pot[v] − pot[u] == w` and returns `false`
+  on contradiction (component unchanged), `diff` answers
+  `pot[v] − pot[u]` inside a component, `same`, `components`.
+
 ### Added — substring automata, exact tours, exact cover, directed trees, xor bases
 
 Round-22 survey additions (167 → 172 modules):
