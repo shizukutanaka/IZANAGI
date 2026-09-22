@@ -617,3 +617,34 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文**: Bowyer & Watson 1981 (*Comput. J.* 24(2)) / Wilson STOC'96 / Guibas & Stolfi 1985 (Lawson flip / quad-edge 構造) / Fortune 1987 (見送り)。
 
 **実装物**: redblobgames hex ガイド / TinyKeep mapgen (Petteri 2014) / Buckblog *Mazes for Programmers* / Bowyer-Watson 参照実装群 (hug-sun 等) / Qiita・Zenn の hex・迷路・Delaunay 記事群。
+
+# 第7次: 外部出典サーベイ — レイキャスト・グラフ解析・矩形パッキン (2026-09-22)
+
+> taxonomy の残存ギャップ(E5 derive macro・H6 ホットリロード・O2 ソケット transport)は
+> すべて意図的スコープ外のため、今回は**アルゴリズム層の未実装領域**を棚卸し:
+> グリッド ray 走査、グラフ構造解析、矩形パッキン、六角 A*。4系統実装。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `gridcast` — `grid_ray`/`ray_blocked_at`/`clear_los` グリッド ray 走査 | Amanatides & Woo, *A Fast Voxel Traversal Algorithm for Ray Tracing* (Eurographics'87)。Bresenham(geometry)は列ごとに1 cell を選ぶラスタ化だが、DDA は**線分が入る全 cell を入射順に**列挙する別物 — 弾道・掃引 LOS に必要な層がなかった。実装は全座標を 2 倍し端点を cell 中心に置く整数厳密版; 次境界比較 `tMaxX < tMaxY` は i128 交叉乗算。**corner 通過(tMaxX==tMaxY)では対角 cell のみに進入**し側方 cell はゼロ長交差として除外 — slab-test オラクル(開箱との正長交差)で 500 ray の集合一致を検証し、対称性 `ray(a,b)=rev(ray(b,a))` を確認 | 🟢 純粋追加 |
+| `graph` — Tarjan SCC・関節点・橋・Kahn topo・`UnionFind` | Tarjan 1972 (*SIAM J. Comput.* 1(2), low-link)、Kahn 1962 (topological sort)。マップ接続性の解析と tech tree / 依存 DAG の build order を担う層が未実装だった。DFS は全て**反復版**(再帰深度非依存)。`topo_sort` は ready-queue を `BinaryHeap<Reverse>` にし辞書順最小の canonical order を保証。articulation/bridges は「parent への木辺を1本だけ skip」(平行辺の2本目は真の back edge として low を下げる)まで踏み込み、remove-and-recount オラクルで検証。`UnionFind` は `voronoi::mst_edges` 内部で使われていた構造を独立公開(小さい index を root に保つタイブレークで representative が union 列の純粋関数)| 🟢 純粋追加 |
+| `pack::pack_skyline` — skyline(bottom-left)矩形パッキン | Jylänki, *A Thousand Ways to Pack the Bin* (2010、定番サーベイ)。テクスチャアトラス・インベントリ・ダイアログ敷詰に使う。入力順=配置順の純粋関数で決定的。skyline node の split/merge で不変条件(重なりなし・bin 内)を維持 — 乱数矩形 200 ケースのオラクル検証 | 🟢 純粋追加 |
+| `hexgrid::hex_astar` — 六角格子上の A* | redblobgames pathfinding ガイド。厳密な hex `distance` が consistent heuristic になるため各 node は高々1回だけ expand、戻り値は常に真の最短路。open heap の tie-break を `(f, h, q, r)` 辞書順に固定、簿記は全て ordered map。格子が非有界なので `max_steps` 予算を必須引数に。ランダム障害フィールド上で BFS オラクル一致を検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| BVH シーン分割 / quadtree | gaffer・kd-tree 系 | `spatial_hash` が同用途を担う。四分木は浮動座標向きで整数グリッドのこの kit では冗長 |
+| R*-tree 矩形検索 | Beckmann 1990 | 永続的な動的 index は `spatial_hash` で十分。pack は packing(配置)であって空間検索ではない |
+| MaxRects packing | Jylänki 2010 | skyline より 2-3% 充填率が上がるが実装複雑度が跳ねる。skyline は「bottom-left + 入力順」で十分実用的、必要になれば後続ラウンドで追加 |
+| Hopcroft-Tarjan 平面性判定 | HT 1974 | Delaunay 配線が既に平面性を保証するので用途が薄い |
+| SAT/separating-axis 衝突 | 一般物理文献 | `aabb`+`passability`+`gridcast` の組合せがこの kit の衝突層。任意凸形状は整数厳密化が高コスト |
+
+## 出典(第7次、search-index 照合)
+
+**論文**: Amanatides & Woo (Eurographics'87) / Tarjan (SIAM J. Comput. 1972) / Kahn (1962) / Jylänki (*A Thousand Ways to Pack the Bin*, 2010)。
+
+**実装物**: redblobgames grids/pathfinding ガイド / cp-algorithms (cut points・bridges・SCC ページ) / jakedowns blog skyline packing 実装 / Qiita・Zenn の DDA・グラフアルゴリズム・パッキン記事群。

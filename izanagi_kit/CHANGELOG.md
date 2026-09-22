@@ -97,6 +97,39 @@ connectivity) and the lockstep packet primitive, all in published-work form:
 - **`mapgen::Dungeon` write surface** — `new_walled`, `carve_floor`,
   `fill_wall` (builders like `wilson_maze`/`carve_corridors` need them).
 
+### Added — ray traversal, graph structure, and bin packing
+
+- **`gridcast`** — Amanatides–Woo grid ray traversal (Eurographics'87):
+  `grid_ray` walks every cell a segment *enters* — not one cell per column
+  like Bresenham — in entry order, all integer arithmetic on doubled
+  coordinates with the next-boundary comparison cross-multiplied in `i128`.
+  A ray exiting exactly through a corner enters only the diagonally-adjacent
+  cell (the two side cells get zero-length intersection), keeping the walk
+  minimal and the traversal symmetric: `grid_ray(a,b)` is `grid_ray(b,a)`
+  reversed. `ray_blocked_at` and `clear_los` layer LOS queries on top.
+  Verified against an independent slab-test oracle over 500 random rays.
+- **`graph`** — deterministic graph algorithms on `u32` adjacency lists,
+  all iterative (no recursion-depth limit): Tarjan SCC (`strongly_connected`,
+  components in reverse topological order), `articulation_points`, `bridges`
+  (parallel edges handled correctly — they are never bridges),
+  `topo_sort` (Kahn with ascending ready-queue = lexicographically smallest
+  order, `None` on cycle), and `UnionFind` (path-halving + union-by-rank with
+  smaller-index tie-break so representatives are pure functions of the union
+  sequence). Verified against mutual-reachability, remove-and-recount, and
+  linear-extension oracles on random graphs.
+- **`pack`** — skyline (bottom-left) rectangle bin packing from Jylänki's
+  *A Thousand Ways to Pack the Bin* (2010): `pack_skyline` drops each
+  rectangle to the lowest fitting skyline segment in input order — a pure
+  function of the input slice — for texture atlases, inventory grids and
+  dialog tiling. Placement invariants (no overlap, inside the bin) are
+  oracle-checked on random inputs.
+- **`hexgrid::hex_astar`** — hex-grid A* in the redblobgames formulation:
+  unit-cost steps over the six `DIRECTIONS` with exact hex `distance` as
+  the consistent heuristic (every node expanded at most once), deterministic
+  `(f, h, q, r)` heap order, ordered-map bookkeeping, and a `max_steps`
+  budget since the hex lattice is unbounded. Matches a BFS oracle on random
+  obstacle fields.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded
