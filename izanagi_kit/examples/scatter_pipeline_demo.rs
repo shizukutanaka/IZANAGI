@@ -220,7 +220,13 @@ fn main() {
     );
     let edge_str: Vec<String> = edges.iter().map(|&(i, j)| format!("{i}-{j}")).collect();
     for (row, chunk) in edge_str.chunks(5).enumerate() {
-        screen.draw_str(PANEL_X, edge_y + 1 + row as i32, &chunk.join(" "), DIM_FG, BG);
+        screen.draw_str(
+            PANEL_X,
+            edge_y + 1 + row as i32,
+            &chunk.join(" "),
+            DIM_FG,
+            BG,
+        );
     }
 
     let packet_y = edge_y + 1 + edge_str.len().div_ceil(5) as i32 + 1;
@@ -233,7 +239,13 @@ fn main() {
     );
     for (row, chunk) in packet.chunks(8).enumerate() {
         let hex: Vec<String> = chunk.iter().map(|b| format!("{b:02x}")).collect();
-        screen.draw_str(PANEL_X, packet_y + 1 + row as i32, &hex.join(" "), DIM_FG, BG);
+        screen.draw_str(
+            PANEL_X,
+            packet_y + 1 + row as i32,
+            &hex.join(" "),
+            DIM_FG,
+            BG,
+        );
     }
 
     // ── output ────────────────────────────────────────────────────────────────

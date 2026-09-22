@@ -67,6 +67,36 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   corridors, then serialized into a `BitWriter` packet and rendered in the
   terminal.
 
+### Added — wiring, mazes, and hex-grid math
+
+- **`delaunay`** — integer-exact Delaunay triangulation (`delaunay`,
+  `delaunay_edges`): Bowyer–Watson incremental insertion in its
+  split + Lawson-flip form, with the incircle test evaluated as an `i128`
+  determinant and cocircular (`det == 0`) treated as outside so diagonal
+  choices stay canonical. The super-triangle sits at distance ~`span²`
+  (not ~`span`) — a tighter super-triangle lets circumcircles through
+  (hull edge, super vertex) capture interior points, flips hull edges into
+  super-touching triangles, and leaves holes after they're dropped
+  (regression-tested as `hull_edge_cannot_flip_to_super_vertex`).
+- **`hexgrid`** — axial-coordinate hex math in the redblobgames recipe set:
+  `Hex`, `DIRECTIONS`, `distance`, `line` (cube lerp + `cube_round` with a
+  fixed away-from-zero tiebreak), `ring`, `spiral`, odd/even-r offset
+  conversion, `random_in_range`. `Hex` implements `DetHash` (pinned).
+- **`maze`** — `wilson_maze`: Wilson's loop-erased random-walk algorithm
+  (STOC'96) produces perfect mazes drawn uniformly from spanning trees —
+  DFS backtracker mazes are provably non-uniform. Cells on odd coordinates,
+  corridors at +1, output is a `mapgen::Dungeon`.
+- **`pathfinding::min_cost_path`** — weighted A* over an arbitrary
+  `enter_cost: FnMut(i32,i32) -> Option<i32>` (the `None` corner-cut rule
+  matches the 8-directional `astar`). `mapgen::carve_corridors` layers the
+  TinyKeep recipe on top — floor costs 1, walls `wall_cost` — and bridges
+  diagonal steps so carved corridors stay 4-connected.
+- **`voronoi::mst_edges_over`** — restricted Kruskal: MST of a point set
+  over an allowed edge set (e.g. the Delaunay wiring) rather than the
+  complete graph; returns a forest on disconnected inputs.
+- **`mapgen::Dungeon` write surface** — `new_walled`, `carve_floor`,
+  `fill_wall` (builders like `wilson_maze`/`carve_corridors` need them).
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded

@@ -37,6 +37,7 @@ use izanagi_kit::{
     generate_dungeon,
     geometry::Distance,
     hash_state,
+    hexgrid::Hex,
     voronoi::{voronoi_partition, VoronoiGrid},
     Aabb, BarWidget, Camera, Connector, Cooldown, DamageType, Dice, Dungeon, EntityAllocator,
     Fixed, GenParams, HFsm, HudPanel, MsgLog, MultiMap, Relations, ResistanceProfile, Screen,
@@ -159,6 +160,7 @@ fn cases() -> Vec<(&'static str, u64)> {
         ("Dungeon(24x16,seed)", hash_state(&dungeon)),
         ("MultiMap(2floors,1conn)", hash_state(&multimap)),
         ("VoronoiGrid(8x8,2seeds)", hash_state(&voronoi)),
+        ("Hex(2,-3)", hash_state(&Hex::new(2, -3))),
     ]
 }
 
@@ -190,6 +192,7 @@ const EXPECTED: &[(&str, u64)] = &[
     ("Dungeon(24x16,seed)", 0xe31ab41e7035e685),
     ("MultiMap(2floors,1conn)", 0xa84ad2b8abb52eb8),
     ("VoronoiGrid(8x8,2seeds)", 0xd6994b2321550617),
+    ("Hex(2,-3)", 0xafbeef221f187241),
 ];
 
 #[test]

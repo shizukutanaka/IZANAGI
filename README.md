@@ -143,11 +143,11 @@ behind each design decision.
 
 ## `izanagi_kit` — the deterministic simulation kit
 
-90+ zero-dependency modules covering the roguelike/simulation stack a
+94+ zero-dependency modules covering the roguelike/simulation stack a
 lockstep-replay game actually needs: sparse-set ECS, Q16.16 fixed-point math,
 seeded RNG with named independent sub-streams, symmetric-shadowcasting FOV,
-procedural dungeon generation (rooms/BSP/caves/drunkard's-walk/Poisson-disc/WFC
-+ Voronoi territory), A*/JPS
+procedural dungeon generation (rooms/BSP/caves/drunkard's-walk/Poisson-disc/
+Wilson-maze/WFC + Voronoi territory/Delaunay/hex-grid), A*/JPS
 pathfinding, a lockstep bit-level wire codec, replay/desync detection, a text
 content pipeline with its own
 `.game` format and `gamec` CLI, and much more — see

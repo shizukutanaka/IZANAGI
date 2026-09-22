@@ -349,6 +349,67 @@ pub fn mst_edges(points: &[(i32, i32)]) -> Vec<(u32, u32)> {
     out
 }
 
+/// Kruskal minimum spanning tree **restricted to a candidate edge set** —
+/// the TinyKeep recipe: triangulate room centers ([`crate::delaunay`]), then
+/// take the MST *of those edges* so corridor carving connects adjacent rooms
+/// instead of jumping across the map.
+///
+/// `allowed` lists candidate edges as `(i, j)` point-index pairs (`i != j`;
+/// order within a pair is normalized). Returns a subset of `allowed` —
+/// deduplicated, sorted by `(distance², min, max)` selection order — forming
+/// the min-cost forest over `points`. For a connected candidate graph over
+/// `n` points that's exactly `n − 1` edges; disconnected inputs return each
+/// component's spanning tree (a forest, `n − components` edges).
+///
+/// Determinism: candidates sort by `(distance, i, j)` — total and canonical.
+pub fn mst_edges_over(points: &[(i32, i32)], allowed: &[(u32, u32)]) -> Vec<(u32, u32)> {
+    let n = points.len();
+    if n < 2 || allowed.is_empty() {
+        return Vec::new();
+    }
+    let mut edges: Vec<(i64, u32, u32)> = allowed
+        .iter()
+        .filter(|&&(i, j)| i != j && (i as usize) < n && (j as usize) < n)
+        .map(|&(i, j)| {
+            (
+                Distance::EuclideanSquared.between(points[i as usize], points[j as usize]) as i64,
+                i.min(j),
+                i.max(j),
+            )
+        })
+        .collect();
+    edges.sort_unstable();
+    edges.dedup_by_key(|e| (e.1, e.2));
+
+    let mut parent: Vec<u32> = (0..n as u32).collect();
+    fn find(parent: &mut [u32], x: u32) -> u32 {
+        let mut r = x;
+        while parent[r as usize] != r {
+            r = parent[r as usize];
+        }
+        let mut c = x;
+        while parent[c as usize] != r {
+            let next = parent[c as usize];
+            parent[c as usize] = r;
+            c = next;
+        }
+        r
+    }
+
+    let mut out = Vec::with_capacity(n - 1);
+    for (_, i, j) in edges {
+        let (ri, rj) = (find(&mut parent, i), find(&mut parent, j));
+        if ri != rj {
+            parent[ri as usize] = rj;
+            out.push((i, j));
+            if out.len() == n - 1 {
+                break;
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -565,6 +626,136 @@ mod tests {
             assert!((4..=5).contains(&x), "border outside the seam: {x}");
         }
         assert!(!borders.is_empty());
+    }
+
+    /// Prim's algorithm restricted to `allowed` — the independent oracle
+    /// `mst_edges_over` (Kruskal) must match in total cost.
+    fn restricted_prim_cost(points: &[(i32, i32)], allowed: &[(u32, u32)]) -> i64 {
+        let n = points.len();
+        // Adjacency from allowed edges.
+        let mut adj: Vec<Vec<(usize, i64)>> = vec![Vec::new(); n];
+        for &(i, j) in allowed {
+            let (i, j) = (i as usize, j as usize);
+            if i >= n || j >= n || i == j {
+                continue;
+            }
+            let d = Distance::EuclideanSquared.between(points[i], points[j]) as i64;
+            adj[i].push((j, d));
+            adj[j].push((i, d));
+        }
+        // Prim from vertex 0 over reachable component only.
+        let mut in_tree = vec![false; n];
+        let mut total = 0i64;
+        let mut fringe: Vec<(i64, usize)> = Vec::new();
+        in_tree[0] = true;
+        for &(v, d) in &adj[0] {
+            fringe.push((d, v));
+        }
+        while !fringe.is_empty() {
+            // Linear-scan the min — fine for oracle sizes.
+            let (pos, &(d, v)) = fringe
+                .iter()
+                .enumerate()
+                .min_by_key(|&(_, &e)| e)
+                .unwrap_or((0, &(0, 0)));
+            fringe.swap_remove(pos);
+            if in_tree[v] {
+                continue;
+            }
+            in_tree[v] = true;
+            total += d;
+            for &(u, du) in &adj[v] {
+                if !in_tree[u] {
+                    fringe.push((du, u));
+                }
+            }
+        }
+        total
+    }
+
+    fn mst_cost(points: &[(i32, i32)], edges: &[(u32, u32)]) -> i64 {
+        edges
+            .iter()
+            .map(|&(i, j)| {
+                Distance::EuclideanSquared.between(points[i as usize], points[j as usize]) as i64
+            })
+            .sum()
+    }
+
+    #[test]
+    fn mst_edges_over_matches_restricted_prim() {
+        let mut rng = SplitMix64::new(0xE5E5);
+        for _ in 0..100 {
+            let n = rng.range(3, 12) as usize;
+            let pts: Vec<(i32, i32)> = (0..n)
+                .map(|_| (rng.range(0, 40), rng.range(0, 40)))
+                .collect();
+            // Random allowed subset of the complete graph.
+            let allowed: Vec<(u32, u32)> = (0..n)
+                .flat_map(|i| ((i + 1)..n).map(move |j| (i as u32, j as u32)))
+                .filter(|_| rng.below(100) < 70)
+                .collect();
+            let mst = mst_edges_over(&pts, &allowed);
+            // Every result edge is allowed and normalized.
+            let allowed_set: BTreeSet<(u32, u32)> =
+                allowed.iter().map(|&(i, j)| (i.min(j), i.max(j))).collect();
+            for &e in &mst {
+                assert!(allowed_set.contains(&e), "result edge not allowed");
+            }
+            // Connectivity: the tree edges must reach all of component(0) —
+            // verify via union on allowed that result is a min forest:
+            // cost equals restricted Prim on a connected candidate graph.
+            if allowed.len() >= n - 1 {
+                // Check the allowed graph is connected first.
+                let mut p: Vec<u32> = (0..n as u32).collect();
+                for &(i, j) in &allowed {
+                    let (mut a, mut b) = (i, j);
+                    while p[a as usize] != a {
+                        a = p[a as usize];
+                    }
+                    while p[b as usize] != b {
+                        b = p[b as usize];
+                    }
+                    p[a as usize] = b;
+                }
+                let root = |p: &mut Vec<u32>, mut x: u32| {
+                    while p[x as usize] != x {
+                        x = p[x as usize];
+                    }
+                    x
+                };
+                let r0 = root(&mut p, 0);
+                if (0..n as u32).all(|i| root(&mut p, i) == r0) {
+                    assert_eq!(mst.len(), n - 1, "connected graph → spanning tree");
+                    assert_eq!(
+                        mst_cost(&pts, &mst),
+                        restricted_prim_cost(&pts, &allowed),
+                        "Kruskal cost must equal Prim cost"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn mst_edges_over_edge_cases() {
+        // Path graph: only n−1 candidates, all selected.
+        let pts = [(0, 0), (1, 0), (2, 0), (3, 0)];
+        let path_edges = [(0, 1), (1, 2), (2, 3)];
+        let mst = mst_edges_over(&pts, &path_edges);
+        assert_eq!(mst, path_edges);
+        // Disconnected allowed set → forest.
+        let mst = mst_edges_over(&pts, &[(0, 1), (2, 3)]);
+        assert_eq!(mst.len(), 2);
+        // Empty/degenerate.
+        assert!(mst_edges_over(&pts, &[]).is_empty());
+        assert!(mst_edges_over(&[], &[(0, 1)]).is_empty());
+        // Out-of-range / self-loop candidates are ignored.
+        let mst = mst_edges_over(&pts, &[(0, 0), (0, 9), (0, 1), (1, 2), (2, 3)]);
+        assert_eq!(mst, path_edges);
+        // Duplicated candidates collapse.
+        let mst = mst_edges_over(&pts, &[(0, 1), (1, 0), (1, 2), (2, 3)]);
+        assert_eq!(mst, path_edges);
     }
 
     #[test]
