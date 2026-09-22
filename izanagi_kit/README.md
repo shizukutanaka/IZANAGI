@@ -193,6 +193,11 @@ The capability map — with per-feature implementation status — lives in
 | `manacher` | `odd_radii`/`even_radii`/`longest_palindrome`/`count_palindromes` — Manacher's `O(n)` palindrome structure (d1/d2 arrays). String symmetry queries for name linting and seed prettiness. |
 | `gauss` | `det`/`solve`/`rank` — Bareiss fraction-free Gaussian elimination over `i64` matrices with `i128` intermediates: exact determinants, exact rational solutions `(num, den)`, and exact rank. `None` = provably singular. |
 | `bezier` | `cubic_pos`/`catmull_pos`/`flatten_cubic`/`flatten_catmull` — integer-exact parametric curves evaluated at rational `t = num/den`: every coordinate a reduced `i128` fraction — bit-identical camera paths and patrol routes. |
+| `kmv` | `Kmv` — K-minimum-values distinct-count sketch: the `k` smallest seeded hashes; exact below `k`, `(k−1)·2⁶⁴/vₖ` estimate above; merge = union of minima. |
+| `cms` | `CountMin` — count-min sketch frequency estimation: `depth×width` counter matrix, one-sided error (`estimate ≥ truth` always), elementwise merge. |
+| `quantile` | `Quantile` — Greenwald–Khanna ε-approximate quantiles: `(v,g,δ)` tuples with periodic compaction; `|true_rank − φ·n| ≤ ε·n` on every answer. |
+| `chash` | `pick`/`pick_top`/`distribution` — rendezvous (HRW) consistent hashing: argmax seeded weight per key; removing a node remaps only its keys. |
+| `lzw` | `encode`/`decode` — LZW phrase-table codec, 12-bit codes on `bits` (dict cap 4096, KwKwK decoder case handled); the wire carries no dictionary — rebuilt in lockstep. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

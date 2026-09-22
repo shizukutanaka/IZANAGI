@@ -941,3 +941,39 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Knuth TAOCP vol.4A §7.2.1.2(factoradic/Lehmer コード) / Pollard (1971, NTT) / cp-algorithms NTT・Manacher 項 / Manacher (1975, JACM) / Bareiss (1968, Sylvester's identity) / Bernstein–Bézier・De Casteljau (1959–63) / Catmull–Rom (1974)。
 
 **実装物**: cp-algorithms(convolution・manacher) / KACTL NTT 形対比 / AtCoder Library convolution の modulus 選定 / Qiita・Zenn の NTT・Bareiss・Manacher 解説記事群 / redblobgames Bézier 項の曲面形対比。
+
+---
+
+# 第17次 — 要約構造(sketch)・割当・適応圧縮(2026-09-22、第7サイクル)
+
+> bloom(所属)は既にある — では「何個」「何回」「p99 は」も省メモリで
+> 答えられるかが残課題。kmv(distinct 概数)、cms(頻度推定)、
+> quantile(ε近似分位)、chash(最小混乱の割当)、lzw(辞書を wire に
+> 載せない適応圧縮)を実装。
+> PR #28–#32 は本ラウンド時点で open — 本ブランチは #32 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `kmv` — KMV distinct-count sketch | K-minimum-values(Bar-Yossef et al. 2002 系の第 k 最小値法)。seed 付き Fnv1a の k 最小値を保持、推定は `(k−1)·2⁶⁴/vₖ` の純整数演算 — HyperLogLog の调和平均のような float 近似誤差が設計上存在しない。distinct<k は厳密カウント。merge は最小値集合の合併でストリーム合併と同値(冪等・可換)。BTreeSet 正確数・4σ 整数窓・merge 一致を乱数検証 | 🟢 純粋追加 |
+| `cms` — count-min sketch | Cormode–Muthukrishnan 2005。`depth×width` カウンタ + 独立 seed 行 hash。推定 = min(row) で片方向誤りのみ(衝突は加算のみ = 絶対に過小評価しない) — 「上限を超えたら通報」用途に安全側の誤り。merge は要素和、次元/seed 不一致は `None` で拒否。片方向性・merge=単一ストリーム・経験過剰境界を乱数検証 | 🟢 純粋追加 |
+| `quantile` — Greenwald–Khanna ε近似分位 | GK 2001 の `(v,g,δ)` タプル列 + `g+g'+δ' ≤ ⌊2εn⌋` の周期 compact。query は `r_i^max > r+εn` の最初の i の一つ前を返す — 初版で limit に 2εn(バンド全幅)を使い順位境界違反を oracle が捕捉、εn(半分)が正解。`|真順位 − φn| ≤ εn` を全十分位で sorted-oracle 照合。小ストリーム厳密・端点 δ=0・退化引数を検証 | 🟢 純粋追加 |
+| `chash` — rendezvous(HRW)一貫ハッシュ | Thaler–Ravishankar 1998 (HRW)。"highest random weight" — `argmax_n hash(seed,n,key)`。ノード除去でそのノードの key のみが再配置される最小混乱性 = Karger consistent hashing より単純で環状虚ノード不要。`pick_top` で複製先上位 r 件。除去時非移動性・ノード順序不変・pick=top[0]・大域均衡を乱数検証 | 🟢 純粋追加 |
+| `lzw` — LZW codec | Welch 1984 / Unix compress・GIF の句圧縮。greedy 最長一致、12-bit 固定コードで `bits` 上に展開、辞書 256+3840=4096 で freeze。wire に辞書を載せず decoder がコード列から lockstep 再構築 — KwKwK(code==dict.len() = prev+prev[0])を構造的に処理。往復同一・repetitive 圧縮率・切り詰め prefix 安全を乱数検証。`rle→lzss→huffman` 梯子を「適応型」で完備 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| HyperLogLog | Flajolet 2007 | 標準形は調和平均に float 必須。KMV が整数のみで同じ問題を解く(union も厳密) |
+| t-digest | Dunning | merge 中心の重心更新で内部に float/比率。GK の (v,g,δ) が全て整数で公理適合 |
+| Jump consistent hash | Lamping–Veach 2014 | HRW の方が pick_top(複製先)・weighted variant に自然拡張でき、本用途(ゲーム規模)では線形走査で十分 |
+| DEFLATE 完全実装 | RFC 1951 | lzss+huffman の組合せで実質同等。独自 window/huffman 連結の複雑度に対し便益が薄い |
+| FST / 有限状態トランスデューサ | — | trie/suffix で辞書構造はカバー。適用帯が曖昧 |
+
+## ���典(第17次、search-index 照合)
+
+**論文・仕様**: Bar-Yossef et al. (2002, KMV/第k最小値) / Cormode–Muthukrishnan (2005, count-min) / Greenwald–Khanna (2001, quantile sketches) / Thaler–Ravishankar (1998, rendezvous hashing) / Welch (1984, LZW, IEEE Computer) / Kirsch–Mitzenmacher (bloom 引用の双 hashing を cms で再利用)。
+
+**実装物**: cp-algorithms・Wikipedia の GK/Rendezvous/LZW 疑似コード / Redis の HRW 利用対比 / Lucene の KMV 変種対比 / Qiita・Zenn の count-min・GK・LZW 解説記事群 / GIF87a 可変幅コード対比(本実装は固定幅で単純化)。

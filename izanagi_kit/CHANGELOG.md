@@ -433,6 +433,39 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — summary sketches, rendezvous hashing, adaptive dictionary compression
+
+- **`kmv`** — `Kmv::new`/`add`/`add_hash`/`estimate`/`merge`: K-minimum-
+  values distinct-count sketch over seeded Fnv1a hashes. Exact while
+  `distinct < k`; above that the integer-only estimate `(k−1)·2⁶⁴/vₖ`
+  (u128 intermediate, `u64` saturated). `merge` is union of minima —
+  idempotent, commutative, equal to the merged stream. Verified
+  against `BTreeSet` exact counts with a 4σ integer window.
+- **`cms`** — `CountMin::new`/`add`/`add_count`/`estimate`/`merge`/
+  `total`/`depth`/`width`: count-min sketch frequency estimation on a
+  `depth×width` counter matrix with independent seeded row hashes.
+  One-sided error by construction — collisions only add, so estimates
+  never undercount. `merge` refuses (`None`) on dimension/seed
+  mismatch rather than producing meaningless counters.
+- **`quantile`** — `Quantile::new`/`add`/`quantile`/`len`: Greenwald–
+  Khanna ε-approximate quantiles — `(v,g,δ)` tuples with periodic
+  `g_i + g_{i+1} + δ_{i+1} ≤ ⌊2εn⌋` compaction, all-integer arithmetic.
+  Every returned value satisfies `|true_rank − φ·n| ≤ ε·n`, verified
+  per-decile against a sorted oracle on 50k streams.
+- **`chash`** — `pick`/`pick_seed`/`pick_top`/`pick_top_seed`/
+  `distribution`: rendezvous (HRW) consistent hashing — each key maps
+  to the maximum seeded weight node; removing a node remaps only the
+  keys it owned (minimal disruption), and the assignment is a pure
+  function of `(nodes, key)` so every peer agrees with zero
+  communication. `pick_top` yields ordered replication groups.
+- **`lzw`** — `encode`/`decode`: LZW phrase-table codec emitting
+  fixed-width 12-bit codes on `bits` (256 literals + dictionary grown
+  to 4096 then frozen). The wire carries no dictionary — the decoder
+  rebuilds it in lockstep, handling the KwKwK (`code == dict.len()`)
+  case structurally. Truncated/out-of-range wires return `None` or an
+  exact prefix; round-trip verified on random, repetitive, and
+  text-modeled inputs.
+
 ### Added — permutation algebra, NTT convolution, palindrome structure, exact linear algebra, integer curves
 
 - **`perm`** — `identity`/`is_valid`/`compose`/`inverse`/`cycles`/
