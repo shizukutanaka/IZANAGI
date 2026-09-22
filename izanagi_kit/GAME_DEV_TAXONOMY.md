@@ -92,6 +92,10 @@
 - J21 制約充足 2-SAT（key-and-lock・ペア排他・tech-tree ゲーティング）✅ `twosat`（Aspvall–Plass–Tarjan — `a∨b` を含意辺 `¬a→b`,`¬b→a` に変えて `graph::strongly_connected` で SCC 分解。変数とその否定が同 SCC で UNSAT。sinks-first 順位で `rank[t]<rank[f]` の正極性を採る canonical 解。n≤7 でブルートフォース SAT/UNSAT 判定一致 + 解が `check` を通ることを乱数検証）
 - J22 ゲーム木完全探索（盤面 AI・戦術検証・後退解析）✅ `minimax`（deterministic negamax + αβ — `Game` トレイト（`moves`/`apply`/`evaluate`/`terminal`）に対し `score`/`best_move`。着手順は `moves` の canonical 順、同値は先着側を保持、終端スコアは ply 割引で最短勝ちを優先。Tic-Tac-Toe 全域で αβ=naive negamax 一致 + 完全棋譜引き分け・即勝ち・最遅敗を既知値検証）
 - J23 回文構造クエリ（名付け lint・シード美観・対称 ID 生成）✅ `manacher`（Manacher 1975 — `odd_radii`/`even_radii` (d1/d2) を O(n) で構築、`longest_palindrome` は leftmost タイブレーク、`count_palindromes` は Σd1+Σd2 の個別 (start,len) 数。半開 [l,r) の鏡像 index を inclusive 慣行から正しく変換（初版のずれを BTreeSet 列挙オラクルが捕捉）。ブルートフォース全部分列検査・d1/d2 の真値性/最大性を乱数検証）
+- J24 カーディナリティ推定（distinct カウントの省メモリ概算 — replay checkpoint dedup・entity 流出率監査）✅ `kmv`（K-minimum-values sketch — seed 付き Fnv1a hash の k 最小値を保持、distinct<k では厳密、`(k−1)·2⁶⁴/vₖ` の整数推定で浮動小数点を根本回避。merge は最小値集合の合併 = ストリーム合併と同値。BTreeSet 正確数・4σ 整数窓・merge 最小値一致を乱数検証）
+- J25 頻度推定スケッチ（巨大 key 空間の到着回数 — packet rate・loot 履歴・hot-cell 検出）✅ `cms`（count-min sketch — `depth×width` カウンタ行列、行ごとに独立 seed hash、estimate=min で片方向誤りのみ（衝突は足すだけ = 決して過小評価しない）。merge は要素和、次元/seed 不一致は `None` で拒否。片方向性・合併=単一ストリーム一致・経験過剰境界を乱数検証）
+- J26 ε近似分位数（レイテンシ・ダメージ分布の省メモリ要約 — p50/p99 監査）✅ `quantile`（Greenwald–Khanna 2001 — `(v,g,δ)` タプル列 + 周期的 compact で `O((1/ε)log εn)` メモリ、全て整数演算。query は `|真の順位 − φ·n| ≤ ε·n` を保証、端点は δ=0 で厳密。ソート済み真値との全十分位順位境界一致・小ストリーム厳密性・退化引数を乱数検証）
+- J27 一貫ハッシュ割当（shard→peer の最小移動割当・レプリケーション群・coordinator 不要の決定的分割）✅ `chash`（rendezvous/HRW hashing — `argmax_n hash(seed,n,key)`、ノード除去でそのノードの key のみが再配置される最小混乱性、順序非依存の canonical tie-break。`pick_top` で上位 r ノード = 複製先。除去時の非移動性・順序不変・pick=top[0]・大域均衡を乱数検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
@@ -112,6 +116,7 @@
 - N5 エントロピー圧縮（偏った頻度分布の wire/save 層 — `rle` と `bits` の間の帯域削減）✅ `huffman`（canonical Huffman — 2-queue マージで (weight, node-id) 決定的、コードは (長さ, symbol) 順 canonical 割当 = wire は `(symbol,length)` 表のみ。MSB-first パック + ビット総数ヘッダ。decode は非 prefix・長さ超過・ビット残しを全て `None` で拒否。往復同一・prefix-free・Kraft 等式・skewed 圧縮率を乱数検証）
 - N6 辞書式圧縮（繰り返し部分列を持つ wire/save 層 — RLE の連続 run と Huffman の頻度偏りの中間領域）✅ `lzss`（greedy LZ77 系 — 4096 window、match 3–18、最小 offset 優先 tie-break で圧縮結果が入力の純関数。`bits` 上の `0`+8bit literal / `1`+12bit(offset-1)+4bit len トークン列 + u64 生長ヘッダ。decode は切り詰め・窓外 offset・長さ超過を全て `None` で拒否。往復同一・repetitive 圧縮率・手組 malformed 拒否を乱数検証）
 - N7 内容定義チャンキング（編集位置に頑健な可変長分割 — delta sync・差分バックアップの前置層）✅ `rolling`（Rabin–Karp mod-2^64 多項式指紋 — `Rolling` 固定窓 + `find_all` 全出現 + `chunks` が `hash & mask == 0` の CDC 境界を [min,max] 内に強制。局所編集が遠方境界を動かさない prefix 安定性・chunk 幅制約・再計算一致を乱数検証。`delta` と組んで rsync 型の転送量削減を構成）
+- N8 適応辞書圧縮（モデル表を持たない wire/save 層 — LZSS の窓探索が重い箇所の句表現）✅ `lzw`（LZW — greedy 最長一致、12-bit 固定コードで `bits` 上に展開、辞書は初期 256 literal + 3840 phrase で 4096 に達したら freeze。wire に辞書を載せず decoder が lockstep 再構築 = 写像はストリームの純関数。KwKwK（code==dict.len()）辺ケース・切り詰め・範囲外コードを `None` または厳密 prefix で処理。往復同一・repetitive 圧縮率を乱数検証）
 
 ## O. ネットワーク (Networking)
 - O1 rollback/replay 基盤 ✅ `replay` / O2 input 同期 transport ⬜（ソケット I/O はヘッドレス方針で意図的に範囲外）/ O3 予測/補正 ✅ `netinput`（`NetInputBuffer`: 決定論的 input 予測・誤予測検出。transport 非依存＝呼び手が受信バイトを供給）
