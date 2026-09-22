@@ -836,3 +836,37 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Euclid(古典) / Bezout 恒等式 / 中国剰余定理(非 coprime 拡張)/ Knuth–Morris–Pratt (1977, SIAM J. Comput.) / Huffman (1952, Proc. IRE) + canonical codes(Schwartz 1964, DEFLATE RFC 1951) / Seidel & Aragon (1996, "Randomized Search Trees", Algorithmica) / binary lifting(Schieber & Vishkin 1988 の木クエリ系)。
 
 **実装物**: cp-algorithms 各項(gcd/extgcd/CRT/binary lifting KMP)/ rust `std::str::find` の empty-pattern 意味 / junegunn fzf 対比のための KMP stream 形 / redblobgames・Qiita・Zenn の treap・CRT・Huffman 解説記事群 / DEFLATE canonical table(RFC 1951 §3.2.2)。
+
+# 第14次: 外部出典サーベイ — 因果順序・ハッシュ木・所属判定・差分同期・辞書圧縮 (2026-09-22)
+
+> 第13次までで基盤数学と文字列/集合層を完備したので、今回はマルチピア状態同期に必要な
+> 「同じものを見たか」を証明する構造群に集中。lockstep/replay の desync 報告が
+> 「フレーム番号+ハッシュ値」の一点比較しか持てなかったのに対し、どの項目が分岐したかを
+> 構造的に割り出す道具一式(vclock/merkle/delta)と、wire 層の圧縮完備(lzss)・
+> 前置フィルタ(bloom)を実装。PR #28/#29 は本ラウンド時点で open — 本ブランチは #29 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `vclock` — Lamport/Fidge–Mattern ベクタクロック | Lamport 1978 (partial ordering) + Fidge/Mattern 1988 (vector time)。actor→counter の BTreeMap 表現で列挙順も決定的。`compare` が Before/After/Equal/Concurrent の4値を返し「分岐した履歴」を first-class で表す — 単一 Lamport clock の「時刻比較では concurrent が区別できない」限界を構造的に解消。部分順序公理(反射・反対称・推移)・merge の最小上限性・メッセージ流シミュレーション(受信 snapshot ≤ merge 結果)を乱数検証 | 🟢 純粋追加 |
+| `merkle` — DetHash 葉上の二分ハッシュ木 | Merkle 1979/87。「root 一致 ⟺ 状態一致」の証人構造 + 証明(proof/verify)+ 差分検出(`first_diff` で O(log n) 下降 = `replay::first_divergence` のストア版)。奇数ノードは複製せず昇格(Bitcoin 式 dup の malleability 回避)。ドメイン分離タグ付き Fnv1a 合成。proof 往復・naive 葉走査一致・葉順序依存性・長さ違いの構造的不一致を乱数検証 | 🟢 純粋追加 |
+| `bloom` — seeded Bloom filter | Bloom 1970 + Kirsch–Mitzenmacher 2006(double hashing `h1+i·h2` で k 個のハッシュ関数を2個から生成 — 実測で単独ハッシュ列と同等の FPR)。片方向誤りのみ(挿入済みは必ず present)なので高価な完全一致の前置フィルタに直結。Fnv1a×2+seed で `(seed, params, multiset)` の純関数。false-negative 不存在・FPR が情報理論限界内(m=8.5n, k=6 で <8% 実測 vs 理論 ~2%)・ビット列の挿入順非依存性を乱数検証 | 🟢 純粋追加 |
+| `delta` — 順序マップのスナップショット差分 | state-sync の delta encoding(Gaffer/Replica 系の手法 — 全量送信ではなく変更 op のみ送る)。`diff_sorted`/`apply_sorted` が sorted `u64→u64` view 上で全単射往復。wire は昇順キー delta varint(bits 層)で canonical — 非昇順・切り詰め・ゴミ残りを拒否。`Del` 不存在キーは `None` で失敗閉鎖(警告で通さない)。往復同一・op 数最小性・malformed 拒否を乱数検証 | 🟢 純粋追加 |
+| `lzss` — greedy LZ77 系 codec | LZSS(Storer–Szymanski 1982、LZ77 の flag-bit 実用形)。4096 window・match 3–18・`0`+8bit literal / `1`+12bit(offset-1)+4bit len + u64 生長ヘッダ — `rle`→`lzss`→`huffman`→`bits` の圧縮梯子を完備(run 長・繰り返し部分列・頻度偏りの各 regime をカバー)。greedy 最長一致+最小 offset 優先で出力が入力の純関数。往復同一(ノイズ・周期・run)・repetitive 圧縮率・malformed 全拒否を乱数検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| CRDT (G-Set/LWW-Map/OR-Set) | Shapiro 2011 | マージ半格子は kit の replay 前提(共有権威時計)と相性が薄い。vclock+delta が因果追跡の骨格を既に与えるので、CRDT 型はマルチリーダー合流需要が出た時 |
+| DMCA/rsync rolling hash 差分 | Tridgell'96 | 可変長ブロック境界同期は wire 層需要。順序マップの固定キー差分(`delta`)で snapshot 同期のコアは済んだ |
+| LZMA/range coding | Pavlov | 圧縮率は上がるが range coder の整数厳密化は別大物 — `lzss`+`huffman` で帯域削減の実用帯はカバー |
+| PATRICIA/radix tree | — | `trie` が既に供給。経路圧縮はメモリ効率の改善で決定性影響なし |
+| B-tree / skip list | — | `treap` の seed 優先度が「key 集合のみで一意形状」を与えるため lockstep 辞書要件は充足 |
+
+## 出典(第14次、search-index 照合)
+
+**論文・仕様**: Lamport (1978, CACM "Time, Clocks...") / Fidge (1988), Mattern (1989) ベクタ時計 / Merkle (1979/1987, CRYPTO) / Bloom (1970, CACM) / Kirsch & Mitzenmacher (2006, "Less Hashing, Same Performance", ESA/Internet Math) / Storer & Szymanski (1982, JACM "Data compression via textual substitution") / Ziv & Lempel (1977) / 中国剰余同様の標準形。
+
+**実装物**: RFC 8974 Merkle tree 記述 / Bitcoin-duplicate 方式の CVE 的 malleability 記述(昇格方式の根拠)/ MIT 6.824 DDIA(Kleppmann) の vector clock 章 / mrembley・Qiita・Zenn の Bloom/LZSS 解説記事群 / cp-algorithms・netty lz4 の LZ77 系 token 形対比。
