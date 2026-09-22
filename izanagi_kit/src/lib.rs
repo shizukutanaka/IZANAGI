@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -46,6 +46,20 @@
 //!   tech trees and dependency graphs.
 //! - [`pack`] — skyline (bottom-left) rectangle bin packing (Jylänki 2010):
 //!   deterministic texture-atlas / inventory / dialog tiling.
+//! - [`zorder`] — Morton (z-order) and Hilbert space-filling-curve codes +
+//!   `spatial_sort`: deterministic locality-preserving ordering for spatial
+//!   keys and cache-friendly sweeps.
+//! - [`msquares`] — marching-squares iso-contour extraction on integer
+//!   scalar fields (canonical saddle resolution; doubled-coordinate
+//!   segments + loop chaining).
+//! - [`flow`] — Edmonds–Karp max-flow / min-cut (`FlowNet`) for bottleneck
+//!   and partition analysis on capacity networks.
+//! - [`hungarian`] — `assign_min_cost`: Kuhn–Munkres minimum-cost
+//!   assignment on `n ≤ m` matrices (unit→target matching, build order
+//!   where rows are interchangeable).
+//! - [`lsystem`] — deterministic L-system rewriting + integer turtle
+//!   (`expand`, `turtle_cells`, `DIRS_4`/`DIRS_8`/`DIRS_HEX`) for
+//!   branching plants and procedural structures.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk, Bridson Poisson-disc scatter; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`) + farthest-cell stair placement (`farthest_cell`), O(1) reachability via precomputed connected components (`ConnectivityMap`), auto-explore.
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
@@ -197,6 +211,7 @@ pub mod eventqueue;
 pub mod explore;
 pub mod faction;
 pub mod fixed;
+pub mod flow;
 pub mod fov;
 pub mod fsm;
 pub mod geometry;
@@ -205,6 +220,7 @@ pub mod gridcast;
 pub mod hexgrid;
 pub mod hfsm;
 pub mod hud;
+pub mod hungarian;
 pub mod identify;
 pub mod influence;
 pub mod inputbuf;
@@ -212,11 +228,13 @@ pub mod inventory;
 pub mod keymap;
 pub mod lightmap;
 pub mod loader;
+pub mod lsystem;
 pub mod mapgen;
 pub mod maze;
 pub mod menu;
 pub mod meta;
 pub mod msglog;
+pub mod msquares;
 pub mod multimap;
 pub mod netinput;
 pub mod noise;
@@ -266,6 +284,7 @@ pub mod voronoi;
 pub mod wallet;
 pub mod wfc;
 pub mod world_hash;
+pub mod zorder;
 
 pub use aabb::Aabb;
 pub use ability::{Ability, AbilityResult, AbilitySet};

@@ -648,3 +648,34 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文**: Amanatides & Woo (Eurographics'87) / Tarjan (SIAM J. Comput. 1972) / Kahn (1962) / Jylänki (*A Thousand Ways to Pack the Bin*, 2010)。
 
 **実装物**: redblobgames grids/pathfinding ガイド / cp-algorithms (cut points・bridges・SCC ページ) / jakedowns blog skyline packing 実装 / Qiita・Zenn の DDA・グラフアルゴリズム・パッキン記事群。
+
+# 第8次: 外部出典サーベイ — 空間充填曲線・等高線・network flow・割当・L-system (2026-09-22)
+
+> taxonomy 残存ギャップは引き続き全て意図的スコープ外のため、アルゴリズム層を継続棚卸し:
+> 局所性保存の空間コード、スカラー場の等高線、容量ネットワーク解析、最小コスト割当、
+> 書換系プロシージャル生成。5系統実装。本ラウンドは PR #23 (第7次) の上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `zorder` — Morton/Hilbert 空間充填曲線コード + `spatial_sort` | Morton 1966 (z-order ビットインタリーブ)、Skilling xy↔d 写像 (Hilbert 曲線、Wikipedia 準拠の反復版)。空間キーの局所性保存ソートは cache-friendly 走査・空間 partition の基礎。符号付き座標は sign-bit bias (`x ^ 0x8000_0000`) で biased 順序に。**encode の quadrant 変換は level size `s` ではなく全 grid mask `n-1` への回転** — この非対称が Skilling 実装の定番誤記で、decode は逆に `s-1` を使う非対称を踏襲。Hilbert の隣接 index が必ず 4-近傍である性質と xy↔d round-trip を全 bits ≤ 16 で性質検査 | 🟢 純粋追加 |
+| `msquares` — marching squares 等高線抽出 | Lorensen & Cline 系の 2D 版 (SIGGRAPH'87 系譜)。スカラー場の iso-contour は地形高度線・霧境界・区域描出に使う。辺中点出力を**倍精度座標**(cell は [2i,2i+2]×[2j,2j+2]、端点は奇/偶の組)で整数化 — 補間係数なしの canonical extraction。鞍部(5/10 case)の ambiguity は**双線形中心値の漸近決定子**で一意解決。interior 頂点の偶数次数性・ループ連鎖保存を乱数場でオラクル検証 | 🟢 純粋追加 |
+| `flow::FlowNet` — Edmonds–Karp max-flow / min-cut | Edmonds & Karp (JACM 1972)。接続ボトルネック・区域分断・物流割当の解析層。BFS augmenting path は隣接走査順が決定的なので残余 cut も一意。`add_edge_undirected` は両方向 cap の2 pair として記録し `flow_on` で追加番号から逆流も参照可能。**cut 容量 = max flow**(定理)と全中間頂点の保存則を乱数ネットでオラクル検証 | 🟢 純粋追加 |
+| `hungarian::assign_min_cost` — 最小コスト割当 | Kuhn–Munkres (Naval Research Logistics 1955; e-maxx 形式の O(n³) ポテンシャル法)。unit→target 割当・build order 最適化に使う n ≤ m 行列版。i64 コストで負値可(利得行列は negate)。全注入写像の列挙ブルートフォースで 200 乱数行列の最適値一致を検証 | 🟢 純粋追加 |
+| `lsystem` — deterministic L-system 展開 + 整数 turtle | Lindenmayer 1968 / Prusinkiewicz & Lindenmayer *The Algorithmic Beauty of Plants*。0L 並列書換 `expand` は `(axiom, rules, iters)` の純粋関数(stochastic variant は replay 公理から意図的に不採用)。turtle は `F/G/f/g` 移動描画・`+-` 回転・`[]` push/pop。`DIRS_4/8/HEX` 方向集合で方格・六角格を切替可能、描画は `gridcast` 経由で対角 cell 欠落なし。Fibonacci 系長・枝復帰・8-連結性を検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Marching cubes (3D) | Lorensen & Cline 1987 | この kit はグリッド sim 主体で voxel 等高線は用途が薄い。msquares が 2D 部分をカバー |
+| Dinic / push-relabel max-flow | Dinic 1970 / Goldberg-Tarjan | Edmonds–Karp はゲーム規模で十分速く、隣接順走査の方が説明が容易。大規模解析が必要になれば後続で |
+| R-tree / kd-tree 空間索引 | Guttman 1984 | `spatial_hash` + `zorder` の組合せで用途をカバー。永続動的 index は過剰 |
+| Stochastic / parametric L-system | ABOP | 非決定拡張は replay 公理と正面衝突。seed 駆動の拡張は利用側で `rng` を介して構築可能(規則が静的データなら deterministic) |
+
+## 出典(第8次、search-index 照合)
+
+**論文**: Morton (IBM Research Report 1966) / Skilling (Bayesian inference and maximum entropy 2004 — Hilbert xy↔d) / Lorensen & Cline (SIGGRAPH'87) / Edmonds & Karp (JACM 1972) / Kuhn (Naval Research Logistics 1955) / Lindenmayer (1968)・Prusinkiewicz & Lindenmayer *ABOP*。
+
+**実装物**: Wikipedia "Hilbert curve" 反復写像 / e-maxx cp-algorithms hungarian ページ / KACTL・USACO guide max-flow 実装群 / Paul Bourke・Qiita・Zenn の L-system・marching squares・z-order 記事群。
