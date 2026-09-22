@@ -433,6 +433,25 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — min-cost flow, knapsacks, coloring, undoable connectivity, line envelopes
+- **`mcflow`** — `FlowNet::min_cost_max_flow`: Edmonds–Karp augmentation
+  to maximum flow, then cycle-canceling via `bellman::negative_cycle` —
+  push each negative residual cycle's bottleneck until cost is minimal.
+  Signed per-unit costs, exact integer result, deterministic ordering.
+- **`knapsack`** — `knapsack_01`/`knapsack_unbounded`: `O(n·W)` exact
+  knapsack with witness reconstruction. The 0/1 variant keeps the full
+  DP table so reconstruction can compare layers (ties keep earliest
+  items — deterministic loadouts).
+- **`coloring`** — `dsatur`/`is_proper`: DSATUR coloring with
+  saturation → degree → index tie-breaks; exact on bipartite graphs and
+  cycles, a strong deterministic heuristic otherwise.
+- **`dsurb`** — `DsuRollback`: union-find with `snapshot`/`rollback` for
+  hypothetical connectivity queries. Union-by-size plus a merge journal;
+  no path compression (it can't be undone) so `find` is `O(log n)`.
+- **`cht`** — `LiChao`: Li Chao tree over a bounded integer domain —
+  `insert` lines `y = a·x + b`, `query_min` in `O(log X)` with `i128`
+  evaluation. For `min_j (aⱼ·x + bⱼ)` transitions and cost curves.
+
 ### Added — subsequence, DAG paths, selection, rasterization, recurrence jump
 - **`lis`** — `lis`/`lis_len`: patience-sorting longest increasing
   subsequence in `O(n log n)` returning an actual witness subsequence
