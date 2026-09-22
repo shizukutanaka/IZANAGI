@@ -870,3 +870,38 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Lamport (1978, CACM "Time, Clocks...") / Fidge (1988), Mattern (1989) ベクタ時計 / Merkle (1979/1987, CRYPTO) / Bloom (1970, CACM) / Kirsch & Mitzenmacher (2006, "Less Hashing, Same Performance", ESA/Internet Math) / Storer & Szymanski (1982, JACM "Data compression via textual substitution") / Ziv & Lempel (1977) / 中国剰余同様の標準形。
 
 **実装物**: RFC 8974 Merkle tree 記述 / Bitcoin-duplicate 方式の CVE 的 malleability 記述(昇格方式の根拠)/ MIT 6.824 DDIA(Kleppmann) の vector clock 章 / mrembley・Qiita・Zenn の Bloom/LZSS 解説記事群 / cp-algorithms・netty lz4 の LZ77 系 token 形対比。
+
+# 第15次: 外部出典サーベイ — 転がし指紋・接尾辞配列・点索引・2-SAT・ゲーム木 (2026-09-22)
+
+## 方針
+
+> 前回の「分岐を証明する構造」(vclock/merkle/delta) の自然な続きとして、
+> 差分転送の前段(内容定義チャンキング = rolling)、文字列構造の監査(suffix)、
+> 均一密度を仮定しない空間索引(kdtree)、制約判定(twosat)、探索AIの非乱数版(minimax)を実装。
+> PR #28/#29/#30 は本ラウンド時点で open — 本ブランチは #30 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `rolling` — Rabin–Karp 転がし指紋 + CDC | Rabin fingerprint(Karp–Rabin 1987) + rsync/Tridgell'96 系の内容定義分割・FastCDC(Xia'16)の [min,max] 強制形。mod-2^64 多項式 `ΣbᵢB^{n-1-i}` で push/pop ともに O(1)。`chunks` は `hash&mask==0` で切断し最小幅・最大幅を強制 — 局所編集が遠方の境界を動かさない「編集頑健性」が delta 同期の転送量を決める。再計算一致・naive 全位置走査・chunk 幅制約・prefix 安定性(編集前の境界が保存される)を乱数検証 | 🟢 純粋追加 |
+| `suffix` — 接尾辞配列 + Kasai LCP | Manber–Myers 1991 prefix-doubling + Kasai 2001 LCP 構築。`search` が `O(pat log n + hits)` の全出現、`longest_repeated`/`distinct_substrings` が文字列の重複構造を曝く — `markov` 系の生成器が実際に何を覚えたかを数える監査層。naive ソート・素朴 LCP・全位置走査・BTreeSet 部分列数で乱数一致検証 | 🟢 純粋追加 |
+| `kdtree` — 静的 2-D kd-tree | Bentley 1975。median-split で平衡構築、分割軸交互・全 tuple sort で tie まで決定的。`nearest`/`within`/`in_rect` を期待 O(log n)。`closestpair` が「全体の最近対」を問うのに対しこちらは「この点の近傍」を問う。i128 距離²・辞書順 tie-break・入力順非依存をブルートフォース全走査と乱数一致検証(順列不変性込み) | 🟢 純粋追加 |
+| `twosat` — 含意グラフ 2-SAT | Aspvall–Plass–Tarjan 1979。`a∨b` を `¬a→b`,`¬b→a` に変え `graph::strongly_connected` で SCC 分解。sinks-first 出力順位で `rank[t]<rank[f]` の正極性 = canonical 解(初手で逆極性を書いて brute-force 検証が捕捉 → 反転)。n≤7 の全 2^n 割当と SAT/UNSAT 一致 + 解自身が `check` を通ることを乱数検証 | 🟢 純粋追加 |
+| `minimax` — 決定的 negamax αβ | Knuth–Moore 1975 negamax + αβ。`Game` トレイト(moves/apply/evaluate/terminal)に対する `score`/`best_move` — `mcts` の乱数対称的な全探索版。canonical 着手順・同値先着・ply 割引終端スコア。Tic-Tac-Toe 全域(深さ4で全到達局面)で αβ=naive negamax 一致・完全棋譜の引き分け・win-in-1・最遅敗の既知値を検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| 固定長ブロック差分(rsync 二相版) | Tridgell'96 | `delta` の順序マップ差分 + `rolling::chunks` で機能は分解済み |
+| EERTREE / palindrome tree | Rubinchik'14 | 用途が回文検出に限定 — `suffix` が部分列構造の一般形を供給 |
+| BVH (AABB 木) | — | `kdtree` が点索引を供給。AABB 体索引は `aabb`/`spatial_hash` の補間需要が出た時 |
+| SAT 一般形 / CDCL | Marques-Silva | 2-SAT の多項式形で実用帯をカバー。一般 SAT は型/証明規模が別物 |
+| 並行 alpha-beta / MTD(f) | Plaat | 探索順を乱さない方が replay 直結。行列入替探索は「canonical 順」保証を壊すので今回は素直形 |
+
+## 出典(第15次、search-index 照合)
+
+**論文・仕様**: Rabin (1981, fingerprinting by random polynomials) / Karp–Rabin (1987, IBM JRD) / Tridgell (1996, rsync) / Xia et al. (2016, FastCDC) / Manber–Myers (1991, SODA/ FOCS'89) / Kasai et al. (2001, LCP) / Bentley (1975, CACM "Multidimensional binary search trees") / Aspvall–Plass–Tarjan (1979, IPL) / Knuth–Moore (1975, "An analysis of alpha-beta pruning")。
+
+**実装物**: cp-algorithms 2-SAT・suffix-array 項 / librsync 指紋窓 / Qt KdTree・scipy cKDTree の query 形対比 / Qiita・Zenn の Rabin–Karp・CDC・kd-tree・2-SAT 解説記事群 / chessprogramming.org negamax 形。
