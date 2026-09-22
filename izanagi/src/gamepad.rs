@@ -152,8 +152,18 @@ impl Gamepads {
     // ── Backend feed methods ─────────────────────────────────────────────
 
     /// Mark pad `id` connected or disconnected.
+    ///
+    /// Disconnecting also resets the pad to neutral — every held button,
+    /// pending press/release edge, stick and trigger is dropped, silently,
+    /// with no release edges synthesized: the player never released the
+    /// button, the device simply vanished. Without this a button held at
+    /// unplug time would report `down` forever (gilrs and SDL reset device
+    /// state on removal for the same reason).
     pub fn on_connect(&mut self, id: usize, connected: bool) {
         if let Some(p) = self.pads.get_mut(id) {
+            if !connected {
+                *p = Pad::new();
+            }
             p.connected = connected;
         }
     }
@@ -265,6 +275,52 @@ mod tests {
         g.on_triggers(0, 2.0, -1.0);
         assert_eq!(g.left_trigger(0), 1.0);
         assert_eq!(g.right_trigger(0), 0.0);
+    }
+
+    #[test]
+    fn disconnect_clears_held_buttons_sticks_and_triggers() {
+        let mut g = Gamepads::new();
+        g.on_connect(1, true);
+        g.on_button_down(1, Button::South);
+        g.on_left_stick(1, 0.5, -0.5);
+        g.on_right_stick(1, 0.25, 0.25);
+        g.on_triggers(1, 0.9, 0.4);
+        g.on_connect(1, false);
+        assert!(!g.connected(1));
+        assert!(!g.down(1, Button::South), "held button must not survive unplug");
+        assert_eq!(g.left_stick(1), Stick::default());
+        assert_eq!(g.right_stick(1), Stick::default());
+        assert_eq!(g.left_trigger(1), 0.0);
+        assert_eq!(g.right_trigger(1), 0.0);
+    }
+
+    #[test]
+    fn disconnect_synthesizes_no_release_edge() {
+        // The held button was never released — the pad vanished. Silent
+        // reset must not fabricate a `released` event for it.
+        let mut g = Gamepads::new();
+        g.on_connect(0, true);
+        g.on_button_down(0, Button::South);
+        g.end_frame();
+        g.on_connect(0, false);
+        assert!(!g.released(0, Button::South));
+        assert!(!g.pressed(0, Button::South));
+    }
+
+    #[test]
+    fn reconnect_starts_clean_and_new_press_is_a_fresh_edge() {
+        let mut g = Gamepads::new();
+        g.on_connect(0, true);
+        g.on_button_down(0, Button::Start);
+        g.on_connect(0, false);
+        g.on_connect(0, true);
+        assert!(g.connected(0));
+        assert!(!g.down(0, Button::Start), "state must not carry over reconnect");
+        g.on_button_down(0, Button::Start);
+        assert!(
+            g.pressed(0, Button::Start),
+            "press after reconnect is a new edge, not a continuation"
+        );
     }
 
     #[test]
