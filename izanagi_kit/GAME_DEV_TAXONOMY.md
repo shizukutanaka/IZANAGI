@@ -60,6 +60,8 @@
 - I18 多角形述語・三角分割（領域外形・分割・検査）✅ `poly`（shoelace `area2`、even-odd `point_in_polygon` + 境界判定、Andrew monotone chain `convex_hull`、`ear_clip` 三角分割。全判定は `orient` で i128 厳密。ear の頂点-on-境界ケース — 凹頂点が辺上に乗ると三角が凹部へ食い出る — は inclusive 判定で拒否。面積分割一致・凸包全点包含・非凸 L 字をオラクル検証）
 - I19 ポリライン簡約（等高線の頂点数削減）✅ `rdp`（Ramer–Douglas–Peucker。距離比較は |cross|² vs eps²|chord|² の i128 交差乗算で真の垂距に対する整数閾値。`simplify_loop` は重心最遠点をアンカーに回転して閉ループの切れ目を内容定義化。端点保存・次数順保存・冪等性を検証）
 - I20 ランキング・重み付き抽選の接頭辞和（リーダーボード・経済台帳）✅ `fenwick`（Fenwick 1979 BIT — `add`/`prefix_sum`/`range_sum`/`total`/`lower_bound` 秩序統計量。`from_slice` は O(n) 直接構築。乱数ブルートフォース接頭辞和と全クエリ一致を検証）
+- I21 範囲集約クエリ（min/max/sum on 任意窓 — スライド視界・地形帯統計）✅ `segtree::SegTree`（bottom-up 反復 segment tree、`set` 点更新 + `range_min`/`range_max`/`range_sum`/`range_stats` を O(log n)。size は次冪で node index が内容定義。200 回 × ランダム n ≤ 40 の全クエリをブルートフォース区間走査と一致検証）
+- I22 前置辞書・オートコンプリート（did-you-mean 候補・識別子表）✅ `trie`（byte trie — `insert`/`remove`/`contains`/`starts_with`/`keys`/`keys_with_prefix`。BTreeMap 子で listings は必ず byte 辞書順 = 挿入順非依存。`diff::levenshtein` の候補源として did-you-mean を構成。BTreeSet オラクルと挿入・削除・prefix 列挙の同値を乱数検証）
 
 ## J. 視界・AI・ナビ (Visibility / AI / Navigation)
 - J1 対称 FOV ✅ `fov` / J2 A* 経路 ✅ `pathfinding`（正方格）/ `hexgrid::hex_astar`（六角格 — 厳密 hex distance を consistent heuristic として最短路保証、`(f,h,q,r)` 辞書順で決定的）/ J3 Dijkstra map（flow field）✅ / J4 descend（chase/flee）✅ / J5 LOS ✅ `geometry`
@@ -68,6 +70,8 @@
 - J10 最小コスト割当（unit→target・build order の割当て）✅ `hungarian::assign_min_cost`（Kuhn–Munkres O(n³) ポテンシャル法、n ≤ m 行列・i64 コストで負値も可 = 利得行列は negate で済む。全行が distinct 列を得る。固定走査順で複数最適解間も決定的 — 全注入マップ列挙ブルートフォースで最適性をオラクル検証）
 - J11 複数パターン走査（禁止語・署名パターン・diag 抽出）✅ `ahocor`（Aho–Corasick CACM'75 — trie + fail リンクで O(text+hits)。overlap・suffix 内包 match を全件 (end_pos, pattern) で走査順に出力。BTreeMap 子遷移 + BFS fail 構築で決定的。ブルートフォース部分文字列走査との全一致を乱数検証）
 - J12 差分・編集距離（desync 報告・did-you-mean・セーブ比較）✅ `diff`（Myers O(ND) 1986 貪欲法 — `diff` は最小 Keep/Del/Ins スクリプト、`hunks` は unified-diff 形の塊、`apply` で検証可能なラウンドトリップ。`levenshtein`/`lcs_len` 付き。スクリプト適用 = 目標再現・編集数最小性 n+m-2·lcs・位置順整合を乱数ペアでオラクル検証）
+- J13 二分マッチング（unit↔job 非加重割当・チーム編成）✅ `bipartite::hopcroft_karp`（Hopcroft–Karp O(E·√V) — BFS layered graph + DFS augment、走査順固定で決定的。`kuhn_match` 素朴増広路とのサイズ一致・matched edge が adj に存在・right 再利用なしを乱数検証。`hungarian`（加重）の補完）
+- J14 巡回経路計画（哨戒・visit-all ミッション）✅ `tsp`（NN 構築 + first-improvement 2-opt — `nn_tour`/`tsp_2opt`/`tour_cost`。結果は city 0 始点・次点最小 index で canonical 化、同一直線条件と探索順は index 規則のみ。2-opt ≤ NN 不変・n≤8 ブルートフォース最適との hit-rate 検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
@@ -80,7 +84,7 @@
 - M5 矩形 bin packing（アトラス・インベントリ・ダイアログ敷詰）✅ `pack::pack_skyline`（Jylänki *A Thousand Ways to Pack the Bin* 2010 の skyline/bottom-left 法 — 入力順がそのまま配置順の純粋関数。重なり・境界逸脱を不変条件オラクルで検証）
 
 ## N. 永続化・セーブ (Persistence)
-- N1 コンテンツ serialize ✅ / N2 ワールド save/load ✅ `savefile` / N3 バージョニング ✅ `savefile::SaveHeader::version`
+- N1 コンテンツ serialize ✅ / N2 ワールド save/load ✅ `savefile` / N3 バージョニング ✅ `savefile::SaveHeader::version` / N4 走長圧縮（スパースな盤面・連続値）✅ `rle`（`(count,byte)` pair — 255+ run は自動分割、bytes 版と `encode_u32`/`decode_u32` の素直 pair 版。zero-count・奇数長を reject する構造的 malformed 検査 = authenticity 側路。`decode(encode(x))==x` を乱数 run-heavy モデルで往復検証）
 
 ## O. ネットワーク (Networking)
 - O1 rollback/replay 基盤 ✅ `replay` / O2 input 同期 transport ⬜（ソケット I/O はヘッドレス方針で意図的に範囲外）/ O3 予測/補正 ✅ `netinput`（`NetInputBuffer`: 決定論的 input 予測・誤予測検出。transport 非依存＝呼び手が受信バイトを供給）

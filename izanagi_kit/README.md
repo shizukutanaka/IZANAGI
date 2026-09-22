@@ -106,7 +106,7 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
-| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
+| **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
 
@@ -158,6 +158,11 @@ The capability map — with per-feature implementation status — lives in
 | `fenwick` | Fenwick tree / BIT over `i64` (`add`, `prefix_sum`, `range_sum`, `lower_bound` order statistic) — `O(log n)` running totals for leaderboards and weighted picks. |
 | `ahocor` | Aho–Corasick multi-pattern `&[u8]` matcher (`scan` → `(end_pos, pattern)` in scan order, `O(text + hits)`, overlaps included). |
 | `diff` | Myers `O(ND)` minimal edit scripts (`diff`, `hunks`, `apply`) + `levenshtein` / `lcs_len` — field-level diffs for desync reports and diagnostics. |
+| `trie` | Byte trie (`insert`/`remove`/`contains`/`starts_with`/`keys_with_prefix`) — `BTreeMap` children give byte-lexicographic listings; the did-you-mean candidate source for `diff::levenshtein`. |
+| `segtree` | `SegTree` range min / max / sum over `i64` with point `set` (`range_stats` returns all three in one `O(log n)` walk) — sliding-window aggregates where `fenwick` only does prefix sums. |
+| `bipartite` | `hopcroft_karp` `O(E·√V)` maximum bipartite matching + `kuhn_match` parity oracle — unweighted unit↔job pairing, complementing `hungarian`'s weighted assignment. |
+| `tsp` | Deterministic tour heuristics (`nn_tour` nearest-neighbour, `tsp_2opt` first-improvement descent, `tour_cost`) — canonicalized rotation + orientation; patrol routes and visit-all missions. |
+| `rle` | Run-length coding (`encode`/`decode`, `encode_u32`/`decode_u32`) — the cheapest lossless compaction before `bits` wire packing; malformed input decodes to `None`. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
