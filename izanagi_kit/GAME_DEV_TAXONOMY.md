@@ -130,6 +130,12 @@
 - J56 安定割当(優先度リスト駆動のマッチング — どの割当にも「より良い相互指名」が存在しない)✅ `stable`（Gale–Shapley — 提案者最適が一意に定まるので提案順は結果に影響しない、`is_stable` で blocking-pair 不存在を独立検証。n≤5 全順列安定マッチング枚挙で男側最適性を照合）
 - J57 ポテンシャル付き連結成分(相対高さ・オフセット制約 — `x − y = w` の差分制約の矛盾検出)✅ `wdsu`（重み付き DSU — `weight[x] = pot[x] − pot[parent[x]]`、find で経路圧縮+重み伝播、`unite` は矛盾で false。attach は小側を大側に `rel[v] − rel[u] − w` で接続 — 独立成分リプレイ oracle と全クエリ照合）
 
+- J58 支配関係解析(単一入口領域・spawn gating・CFG 的支配木)✅ `dominators`（Cooper–Harvey–Kennedy 反復法 — RPO 番号付け + `intersect` フィンガーウォークの不動点で `idom`、子リスト整列済み支配木、Cytron 辺境 `frontier`。集合不動点 oracle(`dom[v] = {v} ∪ ⋂ dom[preds]`)と全域照合）
+- J59 2次元矩形集約(稠密グリッドの頻度・熱量 — 1-D BIT では矩形和が書けない)✅ `fenwick2d`（2-D Fenwick — `i += i & −i` の2軸版で `O(log w·log h)`、`rect_sum` は包含除去4項。稠密 Vec オラクル全矩形照合）
+- J60 下界付き輸送(供給ルート・維持パイプ — 各辺に最小流量がある輸送計画)✅ `circulation`（`feasible_circulation` — `req[v] = demand − lo_in + lo_out` の還元で超源点/沈点に接続、`req>0` は `v→tt`・`req<0` は `ss→v`(方向を誤ると保留流で witness が壊れる)。Hoffman 切断条件全 2^n subset oracle 照合）
+- J61 故障分離解析(どの辺が共通サイクル上にあるか — 橋は単体成分として浮上)✅ `biconn`（Tarjan 辺スタック二重連結分解 — `low[w] ≥ disc[v]` で子 subtree の成分を閉じてスタックを pop。単純サイクル全列挙オラクル(2-辺平行サイクル含む)と成分集合一致照合）
+- J62 近似重複検出(生成コンテンツの類似度監査 — ビット単位多数決の locality-sensitive 指紋)✅ `simhash`（Charikar — 特徴ハッシュの各 bit が ±weight 投票、正票が bit=1。多重出現=重みの multiset 意味論、tie は 0。bit-major 独立再計数 oracle 照合）
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

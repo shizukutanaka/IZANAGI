@@ -1175,3 +1175,38 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Rubinchik & Shur (2015, eertree) / Mo's algorithm (競プロ区間クエリ定石) / Gale & Shapley (1962, College Admissions) / weighted/potential union-find (差分制約 DSU) / monotone-stack largest-rectangle 定石。
 
 **実装物**: cp-algorithms(eertree・Mo・potential DSU・largest rectangle) / eertree.org(オンライン構築手順) / emaxx / Qiita・Zenn の eertree・Mo's・Gale–Shapley・重み付きUF・ヒストグラム最大矩形解説記事群。
+
+# 第24次サーベイ — 支配木・2-D BIT・下界付き流量・二重連結・類似度指紋
+
+> 「この頂点を通らなければ到達できないのは」(dominators)、
+> 「矩形領域の合計は」(fenwick2d)、「各辺に最低流量がある供給網は」(circulation)、
+> 「共通サイクル上の辺の集合は」(biconn)、「生成物の近似重複は」(simhash) —
+> 第23次で見送りに挙げた dominators・2D Fenwick・circulation を含む、
+> グラフ解析・集約・フィンガープリント層。
+> PR #28–#39 は本ラウンド時点で open — 本ブランチは #39 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `dominators` — 支配木+支配辺境 | Cooper, Harvey & Kennedy (2001)「A Simple, Fast Dominance Algorithm」— RPO 順の `intersect` フィンガーウォークが Lengauer–Tarjan より単純で実効速い。反復 postorder DFS → RPO 番号付け → 不動点ループで `idom` を収束、子は整列して決定的。Cytron の辺境 `frontier[b] = preds[b] を idom[b] まで遡る` 走査。到達不能頂点は `UNREACH` マークで除外。集合不動点 oracle(`dom[v] = {v} ∪ ⋂dom[pred]`)と全頂点照合 | 🟢 純粋追加 |
+| `fenwick2d` — 2-D Fenwick BIT | 競プロ定石 — `i += i & −i` を2軸に拡張、1-based を row-major `(i−1)·h + (j−1)` に写像。`rect_sum` は4隅の包含除去、クランプで空→0。行-major だと `i` の外側ループが行ブロック跨ぎで親へ飛ぶ古典的 index 算術。稠密 Vec オラクル全矩形照合 | 🟢 純粋追加 |
+| `circulation` — 下界+デマンド付き可行巡回流 | 古典的還元(Kleinberg–Tardos / emaxx): `req[v] = demand[v] − lo_in[v] + lo_out[v]`、`req>0` なら `v→tt`、`req<0` なら `ss→v` — **方向を逆にすると保留流で witness が保存則を壊す**(本ラウンドの oracle が初版の逆配置を捕捉: SS→0→1→2→TT の経路が demand を満たすが witness は不成立)。`flow::add_edge` が `u==v`/`c==0` で早期 return して `adds` エントリを積まないため rank 写像 `added` が必須 — スキップ辺は `lo` がそのまま強制値。feasible ⟺ maxflow == Σreq>0。Hoffman 切断条件(∀S: hi_in(S)−lo_out(S) ≥ demand(S))の全 2^n subset oracle で可/不可を照合 + witness 独立検証 | 🟢 純粋追加 |
+| `biconn` — 二重連結成分分解 | Tarjan 辺スタック法: DFS で辺を積み、`low[w] ≥ disc[v]`(子 subtree が v より上に辿れない)で成分を閉じてスタックから pop — 橋は singleton 成分として自然に浮上。無向 DFS では back edge は全て祖先向き(`disc[w] < disc[v]` 側のみ push で二度積み回避)。反復 DFS (頂点,親辺,adj index) フレーム。多重辺の 2-cycle は実サイクル — oracle(単純サイクル全列挙)が両者で一致確認 | 🟢 純粋追加 |
+| `simhash` — Charikar LSH 指紋 | Charikar (STOC 2002) / Google の near-dup 検出 — 特徴ハッシュの各 bit が ±weight 投票し bit=正票多数。多重出現はそのまま重み(multiplicity IS weight — 再 seed 化すると多重性を潰す誤設計を検討段で棄却)。tie(正負同票)は 0 で正準化 — 符号半平面の unsigned 慣行。`hamming` = popcount、`near_dupes` は全ペア O(n²)。bit-major 独立再計数 oracle 照合 + 類似度順序性(部分共通 < 完全 disjoint) | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Suffix array induced sorting (SA-IS) | — | `suffix` の prefix-doubling で需要はカバー。SA-IS は実装が大きく別ラウンド候補 |
+| Cuckoo / SwissTable ハッシュ | — | ハッシュ表の決定性は DetHash + BTreeMap 層が担う。open-addressing の真の需要は依然薄い |
+| Rope / piece table | — | エディタ用文字列構造。`bits`/`delta` 層とは別軸で大きい — 引き続き別ラウンド候補 |
+| Hopcroft–Tarjan planarity | — | 平面性判定は procgen 需要が出てから。実装が最重級 |
+| Link-cut tree | — | 動的木のパスクエリ。`hld`+`dsurb` で静的/undo 版は充足 |
+
+## 出典(第24次、search-index 照合)
+
+**論文・仕様**: Cooper, Harvey & Kennedy (2001, dominators) / Cytron et al. (1991, SSA dominance frontiers) / Hoffman circulation theorem (1960) / Tarjan (1972, biconnected components) / Charikar (STOC 2002, SimHash)。
+
+**実装物**: cp-algorithms(circulation 還元・dominators CHK・biconn 辺スタック・simhash) / emaxx / Kleinberg–Tardos 教科書(下界付き可行流) / Qiita・Zenn の dominator・2-D BIT・辺連結分解・SimHash 解説記事群。
