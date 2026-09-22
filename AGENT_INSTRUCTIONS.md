@@ -555,6 +555,13 @@ I8 N19 `Fixed` op 行列)は実装で閉じた。詳細は §2 の解消済み�
 
 ### 残っているもの
 
+> **追記(後続セッション)**: 上の「もう無い」は当時のスナップショットで、RESEARCH.md の
+> 🟢 backlog 行は生きていた。3行を実装で閉じた(C3-3 PRNG 統計品質テスト /
+> C5-4 dropped_steps 可観測化 / C9-5 did-you-mean 修正提案、いずれも N24 へ記録)。
+> 併せて engine 側の panic 経路を棚卸しし、audio の short-buffer panic + HashMap
+> 混合順・gamepad の disconnect ghost input・tilemap の u32 wrap を3件修正。
+> **C9 の残り(span ベース診断・help 文・quick-fix の lint 側適用)はまだ開いている。**
+
 **エージェントが着手できる改善案は、もう無い。** 前版に残っていた4行のうち3行は、
 着手ではなく**測定**で閉じた:
 

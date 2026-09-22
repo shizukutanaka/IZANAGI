@@ -22,10 +22,18 @@ pub struct Tilemap {
 }
 
 impl Tilemap {
-    /// New tilemap, all tiles 0 (empty).
+    /// New tilemap, all tiles 0 (empty). Panics if `cols * rows` cannot
+    /// be allocated — an explicit constructor failure, same policy as
+    /// [`crate::sprite::Animation::new`]'s empty-frames assert.
     pub fn new(cols: u32, rows: u32, tile_size: f32) -> Self {
+        // `cols * rows` must be widened before multiplying: in u32 it wraps
+        // at ~4.3e9 and produces an undersized vec whose bounds checks
+        // against `cols`/`rows` still pass — `get`/`set` then panic on the
+        // real index, far from the actual mistake.
+        let len = (cols as usize).checked_mul(rows as usize);
+        assert!(len.is_some(), "tilemap {cols}x{rows} does not fit in memory");
         Self {
-            tiles: vec![0; (cols * rows) as usize],
+            tiles: vec![0; len.unwrap_or(0)],
             cols,
             rows,
             tile_size: tile_size.max(1.0),
@@ -156,6 +164,16 @@ mod tests {
         let view = Rect::new(0.0, 0.0, 160.0, 160.0);
         let tiles: Vec<_> = m.visible_tiles(&view).collect();
         assert_eq!(tiles.len(), 2);
+    }
+
+    #[test]
+    #[should_panic]
+    fn absurd_dimensions_fail_at_construction() {
+        // u32::MAX² tiles: the old `cols * rows` u32 multiply wrapped to 1
+        // and returned a tilemap claiming ~4.3 billion columns backed by a
+        // 1-element vec — `get`/`set` then panicked on their own indexing.
+        // The failure must happen here, in the constructor.
+        let _ = Tilemap::new(u32::MAX, u32::MAX, 16.0);
     }
 
     #[test]

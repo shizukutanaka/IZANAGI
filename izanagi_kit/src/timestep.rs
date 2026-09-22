@@ -23,6 +23,7 @@ pub struct FixedTimestep {
     accumulator_ns: u64,
     max_steps: u32,
     total_steps: u64,
+    dropped_steps: u64,
 }
 
 impl FixedTimestep {
@@ -36,6 +37,7 @@ impl FixedTimestep {
             accumulator_ns: 0,
             max_steps,
             total_steps: 0,
+            dropped_steps: 0,
         }
     }
 
@@ -76,8 +78,23 @@ impl FixedTimestep {
         self.total_steps.saturating_mul(self.step_ns)
     }
 
+    /// Fixed steps discarded by the death-spiral guard so far, cumulative.
+    ///
+    /// [`advance`](Self::advance) drops backlog once a frame would run more
+    /// than `max_steps` — the correct behaviour, but previously invisible:
+    /// a game falling behind real time looked identical to one keeping up.
+    /// A value that keeps growing means the sim cannot keep pace and is
+    /// effectively running in slow motion — the signal to lower tick load
+    /// or warn the player. The sub-step remainder is preserved, not
+    /// counted: it is buffered time, not dropped time.
+    #[inline]
+    pub fn dropped_steps(&self) -> u64 {
+        self.dropped_steps
+    }
+
     /// Deposits one real frame's elapsed time and returns how many fixed steps
-    /// to run now. Surplus beyond `max_steps` is discarded (death-spiral guard).
+    /// to run now. Surplus beyond `max_steps` is discarded (death-spiral guard)
+    /// and counted in [`dropped_steps`](Self::dropped_steps).
     pub fn advance(&mut self, frame_ns: u64) -> u32 {
         self.accumulator_ns = self.accumulator_ns.saturating_add(frame_ns);
         let mut steps = 0u32;
@@ -87,6 +104,9 @@ impl FixedTimestep {
         }
         if steps == self.max_steps && self.accumulator_ns >= self.step_ns {
             // Clamp: drop the backlog so we don't spiral. Keep sub-step remainder.
+            self.dropped_steps = self
+                .dropped_steps
+                .saturating_add(self.accumulator_ns / self.step_ns);
             self.accumulator_ns %= self.step_ns;
         }
         self.total_steps += steps as u64;
@@ -256,5 +276,43 @@ mod tests {
             b.advance(step / 2);
         }
         assert_eq!(a.total_time_ns(), b.total_time_ns());
+    }
+
+    #[test]
+    fn test_dropped_steps_starts_at_zero() {
+        let ts = FixedTimestep::new(60, 5);
+        assert_eq!(ts.dropped_steps(), 0);
+    }
+
+    #[test]
+    fn test_dropped_steps_counts_stall_backlog() {
+        let mut ts = FixedTimestep::new(60, 5);
+        // A 1-second stall = 60 steps of backlog; max_steps runs 5, the
+        // remaining 55 are dropped — and now counted.
+        assert_eq!(ts.advance(1_000_000_000), 5);
+        assert_eq!(ts.dropped_steps(), 55);
+    }
+
+    #[test]
+    fn test_dropped_steps_excludes_preserved_remainder() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let step = ts.step_ns();
+        // 5 whole steps + a sub-step remainder: the remainder is buffered,
+        // not dropped — it fires the next step normally.
+        assert_eq!(ts.advance(step * 5 + step / 2), 5);
+        assert_eq!(ts.dropped_steps(), 0);
+        assert_eq!(ts.accumulator_ns(), step / 2);
+    }
+
+    #[test]
+    fn test_dropped_steps_accumulates_across_stalls() {
+        let mut ts = FixedTimestep::new(60, 5);
+        let step = ts.step_ns();
+        ts.advance(step * 7); // drop 2
+        ts.advance(step * 8); // drop 3
+        assert_eq!(ts.dropped_steps(), 5);
+        // Only clamped backlog counts — a normal frame adds nothing.
+        ts.advance(step);
+        assert_eq!(ts.dropped_steps(), 5);
     }
 }

@@ -1157,4 +1157,106 @@ mod tests {
         no_draw!("gaussian_approx(spread==0)", r.gaussian_approx(10, 0));
         no_draw!("skip(0)", r.skip(0));
     }
+
+    // --- statistical quality (C3-3) -------------------------------------
+    //
+    // The golden hash tests pin that the stream is *the same* every run;
+    // these tests pin that the stream is *good*: the reference SplitMix64
+    // outputs, uniformity of `below`, and avalanche on seed perturbation —
+    // the PractRand/TestU01-style sanity checks adapted to fixed vectors.
+
+    #[test]
+    fn test_splitmix64_matches_reference_vectors() {
+        // The published reference stream for seed 0 (Vigna/Steele
+        // splitmix64.c). A typo'd constant or a dropped xorshift-multiply
+        // step would pass every bounds test while diverging here.
+        let mut r = SplitMix64::new(0);
+        let expected: [u64; 8] = [
+            0xE220_A839_7B1D_CDAF,
+            0x6E78_9E6A_A1B9_65F4,
+            0x06C4_5D18_8009_454F,
+            0xF88B_B8A8_724C_81EC,
+            0x1B39_896A_51A8_749B,
+            0x53CB_9F0C_747E_A2EA,
+            0x2C82_9ABE_1F45_32E1,
+            0xC584_133A_C916_AB3C,
+        ];
+        for (i, &want) in expected.iter().enumerate() {
+            assert_eq!(
+                r.next_u64(),
+                want,
+                "draw {i} diverged from the reference SplitMix64 stream"
+            );
+        }
+    }
+
+    #[test]
+    fn test_below_is_chi_square_uniform() {
+        // 60_000 draws of below(6) from a fixed seed → ~10 000 per face.
+        // chi² = Σ (observed − expected)²/expected; df = 5. The stream is
+        // deterministic so the statistic has one exact value (≈1.19); a
+        // modulo-bias or state-mixing regression inflates it well past the
+        // bound (p < 0.001 at chi² = 20.5).
+        let mut r = SplitMix64::new(12345);
+        let mut counts = [0u64; 6];
+        for _ in 0..60_000 {
+            counts[r.below(6) as usize] += 1;
+        }
+        let e = 10_000.0f64;
+        let chi2: f64 = counts
+            .iter()
+            .map(|&c| {
+                let d = c as f64 - e;
+                d * d / e
+            })
+            .sum();
+        assert!(
+            chi2 < 15.0,
+            "below(6) distribution implausibly skewed: counts={counts:?} chi2={chi2}"
+        );
+    }
+
+    #[test]
+    fn test_seed_bit_flip_avalanches_output() {
+        // Strict avalanche criterion, smoke-test scale: flipping any single
+        // seed bit should flip about half the first output's bits. SM64's
+        // two xorshift-multiply rounds exist for exactly this; a weakened
+        // mixer leaves correlated low-variance outputs.
+        let base = SplitMix64::new(0).next_u64();
+        for bit in 0..64 {
+            let flipped = SplitMix64::new(1u64 << bit).next_u64();
+            let diff = (base ^ flipped).count_ones();
+            assert!(
+                (16..=48).contains(&diff),
+                "seed bit {bit} flipped {diff}/64 output bits — mixer too weak"
+            );
+        }
+    }
+
+    #[test]
+    fn test_consecutive_outputs_are_serially_uncorrelated() {
+        // Pearson r between x[i] and x[i+1] over 10 000 draws, computed in
+        // fixed-point-free f64 (test-only; the sim itself never touches it).
+        // A generator with serial correlation — the classic LCG failure —
+        // shows |r| far above noise; SM64 sits at ~0.
+        let mut r = SplitMix64::new(777);
+        let scale = 1.0 / (u64::MAX as f64 + 1.0);
+        let mut xs = Vec::with_capacity(10_001);
+        for _ in 0..10_001 {
+            xs.push(r.next_u64() as f64 * scale);
+        }
+        let n = 10_000;
+        let mean_a: f64 = xs[..n].iter().sum::<f64>() / n as f64;
+        let mean_b: f64 = xs[1..=n].iter().sum::<f64>() / n as f64;
+        let (mut cov, mut var_a, mut var_b) = (0.0, 0.0, 0.0);
+        for i in 0..n {
+            let da = xs[i] - mean_a;
+            let db = xs[i + 1] - mean_b;
+            cov += da * db;
+            var_a += da * da;
+            var_b += db * db;
+        }
+        let r = cov / (var_a * var_b).sqrt();
+        assert!(r.abs() < 0.03, "serial correlation r={r} is above noise");
+    }
 }

@@ -9,7 +9,7 @@
 //! (silently referencing a renamed prefab, off-by-one coordinates): exactly the
 //! "verify machine-generated content" requirement.
 
-use crate::content::{Content, Diagnostic};
+use crate::content::{Content, Diagnostic, ExtendsError};
 use std::collections::{BTreeSet, HashSet};
 
 /// Returns all semantic diagnostics. Empty error set == loadable bundle.
@@ -63,7 +63,16 @@ pub fn validate(content: &Content) -> Vec<Diagnostic> {
     let mut extends_diags = BTreeSet::new();
     for prefab in &content.prefabs {
         if let Err(e) = content.resolve_prefab(&prefab.name) {
-            extends_diags.insert(e.to_string());
+            let msg = match &e {
+                ExtendsError::MissingBase { base, .. } => {
+                    match suggest_name(base, content.prefabs.iter().map(|p| p.name.as_str())) {
+                        Some(s) => format!("{e} (did you mean '{s}'?)"),
+                        None => e.to_string(),
+                    }
+                }
+                ExtendsError::Cycle { .. } => e.to_string(),
+            };
+            extends_diags.insert(msg);
         }
     }
     for msg in extends_diags {
@@ -146,13 +155,20 @@ pub fn validate(content: &Content) -> Vec<Diagnostic> {
         let mut occupied: HashSet<(u32, u32)> = HashSet::new();
         for spawn in &level.spawns {
             if !known_prefabs.contains(spawn.prefab.as_str()) {
-                diags.push(Diagnostic::error(
-                    0,
-                    format!(
+                let msg = match suggest_name(
+                    &spawn.prefab,
+                    content.prefabs.iter().map(|p| p.name.as_str()),
+                ) {
+                    Some(s) => format!(
+                        "level '{}': spawn references undefined prefab '{}' (did you mean '{}'?)",
+                        level.name, spawn.prefab, s
+                    ),
+                    None => format!(
                         "level '{}': spawn references undefined prefab '{}'",
                         level.name, spawn.prefab
                     ),
-                ));
+                };
+                diags.push(Diagnostic::error(0, msg));
             }
             if spawn.x >= level.width || spawn.y >= level.height {
                 diags.push(Diagnostic::error(
@@ -194,6 +210,46 @@ pub fn is_loadable(parse_diags: &[Diagnostic], validate_diags: &[Diagnostic]) ->
 /// tool integrations that need a tally rather than an iteration.
 pub fn error_count(diags: &[Diagnostic]) -> usize {
     diags.iter().filter(|d| d.is_error()).count()
+}
+
+/// Closest defined name to `want`, or `None` when nothing is close enough
+/// to plausibly be a typo. Candidates are taken in declaration order so a
+/// distance tie resolves the same way every run — the diagnostic set must
+/// stay deterministic. The threshold mirrors rustc's suggestion radius
+/// (roughly a third of the longer name), so fat-fingered single edits
+/// surface while genuinely different names do not.
+fn suggest_name<'a>(want: &str, candidates: impl Iterator<Item = &'a str>) -> Option<&'a str> {
+    let mut best: Option<(&str, usize)> = None;
+    for cand in candidates {
+        let d = edit_distance(want, cand);
+        let threshold = (want.chars().count().max(cand.chars().count()) / 3).max(1);
+        if d <= threshold {
+            match best {
+                Some((_, bd)) if bd <= d => {}
+                _ => best = Some((cand, d)),
+            }
+        }
+    }
+    best.map(|(c, _)| c)
+}
+
+/// Levenshtein edit distance over `char`s (not bytes — names may hold
+/// multibyte glyphs). O(len·len) table; identifiers are short so this is
+/// cheap, and integer-only so it cannot drift between builds.
+fn edit_distance(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut prev: Vec<usize> = (0..=b.len()).collect();
+    for (i, ca) in a.iter().enumerate() {
+        let mut cur = vec![i + 1; b.len() + 1];
+        for (j, cb) in b.iter().enumerate() {
+            cur[j + 1] = (prev[j] + usize::from(ca != cb))
+                .min(cur[j] + 1)
+                .min(prev[j + 1] + 1);
+        }
+        prev = cur;
+    }
+    prev[b.len()]
 }
 
 fn check_unique<'a>(names: impl Iterator<Item = &'a str>, kind: &str, diags: &mut Vec<Diagnostic>) {
@@ -552,5 +608,95 @@ level b 1x1
             !vd.iter().any(|d| d.message.contains("multiple spawns")),
             "per-level occupancy must not collide across levels; got: {vd:?}"
         );
+    }
+
+    // --- did-you-mean suggestions ---------------------------------------
+
+    #[test]
+    fn test_undefined_spawn_suggests_nearest_prefab() {
+        let src = "\
+prefab ghost
+  glyph g
+level a 1x1
+  row .
+  spawn ghast 0 0
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| d.message.contains("(did you mean 'ghost'?)")),
+            "expected a suggestion for the typo'd prefab; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_distant_name_gets_no_suggestion() {
+        let src = "\
+prefab goblin
+  glyph g
+level a 1x1
+  row .
+  spawn zz 0 0
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| d.message.contains("undefined prefab 'zz'")),
+            "error must still fire; got: {vd:?}"
+        );
+        assert!(
+            !vd.iter().any(|d| d.message.contains("did you mean")),
+            "no suggestion for an unrelated name; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_extends_missing_base_suggests_nearest_prefab() {
+        let src = "\
+prefab enemy
+  glyph e
+prefab boss extends enem
+  glyph b
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| d.message.contains("(did you mean 'enemy'?)")),
+            "expected a suggestion on the missing extends base; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_suggestion_tie_resolves_to_first_declared() {
+        // 'gat' is distance 1 from both 'gab' and 'gad'; declaration order
+        // must break the tie so the diagnostic set is stable run to run.
+        let src = "\
+prefab gab
+  glyph a
+prefab gad
+  glyph d
+level a 1x1
+  row .
+  spawn gat 0 0
+";
+        let (c, _) = parse(src);
+        let vd = validate(&c);
+        assert!(
+            vd.iter()
+                .any(|d| d.message.contains("(did you mean 'gab'?)")),
+            "earliest-declared candidate must win the tie; got: {vd:?}"
+        );
+    }
+
+    #[test]
+    fn test_edit_distance_multibyte_names() {
+        // Char-level distance: 'ö' is one edit from 'o', not two.
+        assert_eq!(edit_distance("snäke", "snake"), 1);
+        assert_eq!(edit_distance("goblin", "goblin"), 0);
+        assert_eq!(edit_distance("abc", "acb"), 2);
+        assert_eq!(edit_distance("", "abc"), 3);
     }
 }
