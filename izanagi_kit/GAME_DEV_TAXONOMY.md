@@ -159,6 +159,12 @@
 - J81 動的点空間索引(bucketed quadtree — 挿入分割・矩形クエリ)✅ `quadtree`(半開矩形 4 分岐、bucket 超過で分割、1-wide 帯は分割不可で leaf 溢れ — hang しない。回答はソート正準、`nearest` は子矩形 min-dist² の best-first。全矩形 oracle + 最寄り brute-force 照合)
 - J82 配列→木の正準橋(cartesian tree — heap on values + BST on positions)✅ `cartesian`(Vuillemin O(n) スタック構築、重複は (val,idx) 辞書順で一意 — 左端最小が根。`rmq` = i,j の LCA が範囲極値を答える。heap 順序・inorder=0..n・ブルートフォース argmin・部分木連続区間性を全検証)
 
+- J83 索引付き優先度キュー(indexed heap — key でdecrease-key 可能)✅ `iheap`((prio,key) 辞書順 pop で正準、`set`/`decrease`/`increase`/`remove` を pos[] 逆引きで O(log n)。BTreeMap オラクル全 op・drain 順照合)
+- J84 範囲順位統計の永続版(chairman persistent segment tree — path-copy で全 prefix に root)✅ `pstree`(座標圧縮 + 差分 root 対で `a[l..=r]` の `kth`/`freq`/`range_count` を O(log n)。slice sort oracle 全照合、版間非 alias を検証)
+- J85 wire 完全性チェックサム(CRC-32 IEEE — チャンク不変)✅ `crc`(table-driven reflected 0xEDB88320、既知ベクタ CBF43926 + 全 1bit 反転を検出 + 任意チャンク分割で oneshot と一致 — bit-level 除算 oracle 照合)
+- J86 確率的ゲーム木探索(UCB1 MCTS — 反復制の section 探索)✅ `mcts`(integer-only UCB — `ln`→`log2` で定数吸収、勝率は permille。ロールアウトは SplitMix64 seeded で (position,budget,seed) の純関数。**子の勝率は親視点 1000−mean で読む** のが UCB の要所 — 子 mover の stored view を直接使うと best-first が逆転し、oracle(必勝手選択)が捕捉。強制勝ち・必須ブロック・seed 一致を検証)
+- J87 世代付き安定ハンドル(slot map — gen バンプで stale を構造拒否)✅ `slotmap`((slot:u32,gen:u32) 詰め込み u64、remove で gen+1 → 旧 handle は永久に不成立。LIFO recycle + gen 枯渇で永久退役。BTreeMap オラクル 2000 op + 世代分離・不明 handle 全拒否を検証)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

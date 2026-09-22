@@ -1314,3 +1314,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Graf & Lemire (2020, xor filter) / Vose (1991, alias method) / Finkel & Bentley (1974, quad trees) / Vuillemin (1980, cartesian trees) / Sleator–Tarjan LRU 定石文献。
 
 **実装物**: cp-algorithms(cartesian/RMQ 系)・FastFilter(Lemire 系参照実装)・redblobgames spatial index・Qiita・Zenn の xor filter・alias method・quadtree・cartesian tree 解説記事群。
+
+# 第29次: 索引ヒープ・永続木・チェックサム・探索・ハンドル
+
+| 採用 | 根拠 / 検証 | 判定 |
+|---|---|---|
+| `iheap` — indexed binary heap | Dijkstra 定石の一般化(教科書 indexed priority queue): pos[] 逆引きで `set`/`decrease`/`increase`/`remove` を O(log n)。pop は (prio,key) 辞書順 — 同優先度は key 昇順で正準(挿入順非依存を保証)。`remove` は末尾 swap→pop→両方向 sift で heap 性維持。BTreeMap オラクルで 200 配列×300 op の全遷移・peek・drain 照合 | 🟢 純粋追加 |
+| `pstree` — persistent segment tree | chairman tree 定石(持久化線段樹): path-copy 挿入で prefix 毎に root を切る — 過去版を一切書換えず `O(n log n)` node arena。`a[l..=r]` の kth/freq/range_count は roots[r+1]−roots[l] の差分降下。座標圧縮で i64 全域対応。slice sort + 全範囲 brute-force oracle 200 配列×50 クエリ照合、版の非 alias 性を確認 | 🟢 純粋追加 |
+| `crc` — CRC-32 streaming | IEEE 802.3 reflected poly 0xEDB88320(教科書 + zlib 系): 8bit 後退シフトを 256 エントリ const テーブルで前計算、seed !0・final !。chunk 分割が検査値に影響しないことを任意分割照合、既知ベクタ CBF43926/414FA339/D202EF8D、全 byte×全 bit 反転を検出 — bit-level 多項式除算 oracle 500 照合 | 🟢 純粋追加 |
+| `mcts` — seeded UCB1 MCTS | Kocsis & Szepesvári (2006) UCT: selection/expansion/rollout/backprop の 4 相を `minimax::Game` 上に構成。float 禁止のため UCB は整数版 — `ln`→`⌈log2⌉` 置換は ln N=ln2·log2 N により探索定数に吸収可能、√は Newton isqrt、勝率は {0,500,1000} permille。**子ノードの wins はその子の side-to-move 視点で蓄積されるため、親からの UCB 評価は 1000−child_mean が必須** — stored view をそのまま使う初版は best-first が逆転し「必勝手を選ばない」bug として強制勝ちオラクルが捕捉。展開は canonical moves() 順、rollout は SplitMix64 seeded、最終 argmax は最多 visit・同率は canonical 順 | 🟢 純粋追加 |
+| `slotmap` — generational slot map | 教科書 slot map(bitsquid/EnTT 系): (slot,gen) 詰め込み u64 handle、remove で gen++ → 全ての旧 handle が構造的に不成立(ABA 防止)。LIFO recycle で再利用順は操作列の純関数、gen が u32::MAX に達した slot は alias 防止のため永久退役。entries は slot 順 canonical 出力。BTreeMap+stale 集合の shadow oracle 2000 op + recycle 新世代・不明 handle 全拒否を検証 | 🟢 純粋追加 |
+
+見送り(第29次): regex(見送り継続 — tokenizer/部分集合需要のみ)、link-cut tree(動的木 — `dsurb`/`hld` で需要十分、見送り継続)、planarity 判定(見送り継続)、GJK/EPA(SAT で凸衝突は充足、見送り継続)、bitboard/magic(bitboard は別途需要待ち)。
+
+## 出典(第29次、search-index 照合)
+
+**論文・仕様**: Kocsis & Szepesvári (2006, UCT) / Vuillemin 系 indexed priority queue 教科書 / IEEE 802.3 CRC-32 / chairman tree(持久化線段樹)競プロ文献 / bitsquid・EnTT の slot map 設計。
+
+**実装物**: cp-algorithms(indexed heap・persistent segtree・MCTS 系解説)・zlib CRC 参照実装・skypjack/entt slot map・Qiita・Zenn の持久化セグ木・UCB・世代付きハンドル解説記事群。

@@ -253,6 +253,11 @@ The capability map — with per-feature implementation status — lives in
 | `vose` | `AliasTable` — Vose's alias method: O(1) weighted sampling, exact integer distribution. |
 | `quadtree` | `Quadtree` — bucketed dynamic point index: canonical sorted rect queries, best-first `nearest`. |
 | `cartesian` | `Cartesian` — O(n) cartesian tree: heap on values, BST on positions; LCA answers range extrema. |
+| `iheap` | `IHeap` — indexed min-heap: key-addressed `set`/`decrease`/`remove`, canonical (priority, key) pop order. |
+| `pstree` | `PersistentTree` — chairman persistent segment tree: per-version roots, `kth`/`freq`/`range_count` slices. |
+| `crc` | `crc32` / `Crc32` — streaming IEEE CRC-32, chunk-invariant wire integrity. |
+| `mcts` | `mcts` — seeded UCB1 tree search over `minimax::Game`, integer-only statistics. |
+| `slotmap` | `Slotmap` — generational `u64` handles: stale handles structurally rejected, canonical slot-order entries. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
