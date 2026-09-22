@@ -101,6 +101,11 @@
 - J30 負辺最短路・負閉路検出（通貨裁定・資源変換の net-cost・負ゲイン辺を含むグラフ）✅ `bellman`（Bellman–Ford — `O(V·E)` で `pathfinding` の非負辺領域を拡張。extra pass に relax できる辺が残れば到達可能な負閉路で `None`。`negative_cycle` は virtual-source 接続でグラフ全域の負閉路を頂点列で返す。独立 relax オラクル・path 累積重み一致・閉路 sum<0 を乱数検証）
 - J31 正規化有理数算術（確率木・drop rate・分数が厳密のまま残るべきあらゆる場所）✅ `frac`（`Frac` — `(num,den)` を常に gcd=1・den>0 に正規化 = 等値は構造的一致。全演算 `i128` 厳密、掛算は cross-reduce で headroom 確保、`den==0` 生成は clamp・`/0` は `None`。cross-multiply 真値・還元不変条件・`+`/`-`/`*`/`/` 往復を乱数検証）
 - J32 単調デック窓集約（tick 窓の極値 — 直近 w フレームの最悪遅延・巡回回廊の範囲値）✅ `slide`（monotonic deque — `segtree` の O(n log n) を「範囲が 1 ずつ滑る」限定で O(n) に圧縮。`slide_min`/`slide_max` が全窓を一巡で返す。brute-force 全窓照合・単調/退化入力を乱数検証）
+- J33 最長増加部分列（上達曲線・連撃ボーナス・単調イベント列の最長 run）✅ `lis`（patience sorting 系 `O(n log n)` — `tails` は各長の最小末尾 index を保持、`parent` 鎖で実 witness を復元。O(n²) DP oracle との長一致+復元列の単調性を乱数検証）
+- J34 DAG 両端パス（スキル木の最短/最長到達・クリティカルパス — 工順制約のボトルネック鎖）✅ `dagsp`（`topo_sort` 上の `O(V+E)` 両方向 relax — `dag_paths` は lo/hi を同時返却、`critical_path` は「どの点からでも始められる」全頂点0初期化の longest path で critical chain を頂点列で返す。Bellman–Ford oracle・負辺反転同値・閉路→None を乱数検証）
+- J35 決定的選択・k番目・中央値（スコア上位k・中央ダメージ・順位報酬 — 乱択 quickselect を避けたい）✅ `bfprt`（median-of-medians — group-of-5 中央値の再帰中央値を pivot に `O(n)` 保証、Dutch-flag partition で `lt/gt` 帰還。sorted 配列 oracle・全重複・逆順 adversarial を乱数検証）
+- J36 整数ラスタ化（LOS 光線・弾道セル・ポリゴン領域のセル判定）✅ `raster`（Bresenham — 辞書順小 endpoint 起点の正準方向で逆順対称を構造的保証。midpoint circle は8分円対称 push。`fill_polygon` は2倍座標で「セル中心は奇座標」を使い i128 有理 crossing で境界曖昧ゼロの偶奇判定。DDA oracle・`poly::point_in_polygon` 全セル照合を乱数検証）
+- J37 線形漸化式の k 項（周期イベントの跳び読み・漸化式コストの n 週目・Fibonacci 系成長）✅ `linrec`（companion-matrix 冪乗で `O(d³ log k)` — naive `O(dk)` の陪乗置換。`linrec` は `i128` checked で `None` 失敗閉鎖、`linrec_mod` は `u128` 中間で常時 total。naive 漸化式 oracle・mod ⟺ exact 整合を乱数検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`

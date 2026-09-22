@@ -433,6 +433,26 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — subsequence, DAG paths, selection, rasterization, recurrence jump
+- **`lis`** — `lis`/`lis_len`: patience-sorting longest increasing
+  subsequence in `O(n log n)` returning an actual witness subsequence
+  (verified against an `O(n²)` DP oracle on 400 random inputs).
+- **`dagsp`** — `dag_paths`/`critical_path`: DAG shortest and longest
+  distances in `O(V+E)` over `topo_sort`. `critical_path` returns the
+  critical vertex chain — longest path initialised `dist[v]=0` at every
+  vertex (a path may start at a non-source when all incoming edges are
+  negative — the initialisation subtlety an oracle caught).
+- **`bfprt`** — `select`/`median`: Blum–Floyd–Pratt–Rivest–Tarjan
+  median-of-medians selection — deterministic `O(n)` worst case, Dutch-
+  flag three-way partition, no RNG anywhere.
+- **`raster`** — `line`/`circle`/`fill_polygon`: integer grid
+  rasterization. The Bresenham line is reversal-symmetric by construction
+  (canonical lexicographic direction); `fill_polygon` classifies cell
+  centres with `i128` rational crossings — no boundary ambiguity.
+- **`linrec`** — `linrec`/`linrec_mod`: k-th term of a linear recurrence
+  via companion-matrix exponentiation in `O(d³ log k)`; exact `i128`
+  (None on overflow) or modular `u64` with `u128` intermediates.
+
 ### Added — set similarity, Z-scan, signed shortest paths, rationals, window aggregates
 - **`minhash`** — MinHash similarity signatures: `k` independent seeded
   minima per set; `estimate` returns Jaccard in permille (error ~ `1/√k`,

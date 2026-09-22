@@ -1011,3 +1011,35 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Broder (1997, MinHash) / Gusfield (*Algorithms on Strings*, Z-algorithm 章) / Bellman (1958)・Moore (1959, Bellman–Ford) / Fischer–Paterson (1974, 見送り) / cp-algorithms(Z-function・Bellman–Ford・negative cycle) / monotonic queue 標準技法。
 
 **実装物**: cp-algorithms(z-function・bellman_ford) / emaxx(Z 関数) / Qiita・Zenn の MinHash・Z-Algorithm・Bellman-Ford・単調 queue 解説記事群 / KACTL SlidingMinimum 対比 / Lucene MinHash 変種対比。
+
+# 第19次 — 部分列・DAGパス・選択・ラスタ化・漸化式(2026-09-22、第8サイクル)
+
+> 「列の最長単調部分は」(lis)、「依存グラフの最短と最長は」(dagsp)、
+> 「乱択なしのk番目は」(bfprt)、「セル列に落とす」(raster)、
+> 「漸化式のk項を跳ぶ」(linrec) — DP/選択/描画の残った古典定石層。
+> PR #28–#34 は本ラウンド時点で open — 本ブランチは #34 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `lis` — 最長増加部分列 | patience sorting の tails 配列定石(Knuth/競プロ)。`tails` は各長の最小末尾 index、`parent` で witness 復元。`O(n²)` DP oracle(全 dp[i] 最大+辿り直し)と長一致・復元列の真単調性を 400 乱数検証 | 🟢 純粋追加 |
+| `dagsp` — DAG 最短/最長路 | CLRS §24.2 / cp-algorithms。`topo_sort` 上で両方向 relax 一回 `O(V+E)`。`critical_path` は「全頂点 dist=0 初期化」の unbounded-start longest path — 入辺全てが負なら非 source 起点が正しい設計を BF oracle が捕捉。shortest≡BF・longest≡反転重みBFの負・cycle→None を乱数検証 | 🟢 純粋追加 |
+| `bfprt` — median-of-medians 選択 | Blum–Floyd–Pratt–Rivest–Tarjan 1973。group-of-5 中央値を再帰で pivot に worst-case `O(n)` 保証 — quickselect の期待値に依存しない。Dutch-flag `lt/gt` partition で pivot 相等も確実。sorted oracle 全 k・全重複・逆順 adversarial を 400 乱数検証 | 🟢 純粋追加 |
+| `raster` — Bresenham + midpoint circle + 走査線充填 | Bresenham 1965 / Pitteway 1967。「どちらの端点から引いても同じセル集合」を tie-break が壊す問題 → 辞書順小 endpoint に正準化して構造的対称化。`fill_polygon` は座標2倍化で「頂点=偶・セル中心=奇」を作り i128 有理 crossing で境界判定を厳密化。DDA 密 sample oracle(部分集合+8連結+逆転)・`poly::point_in_polygon` 全セル照合を乱数検証 | 🟢 純粋追加 |
+| `linrec` — 線形漸化式 k 項 | companion-matrix exponentiation(行列累乗)/ Kitamasa。`O(d³ log k)` で naive `O(dk)` の陪乗置換。`linrec` は `i128` checked で `None` 失敗閉鎖、`linrec_mod` は `u128` 中間で常時 total — ハッシュ種・周期イベントの跳び読み向け。naive 漸化式 oracle・mod ⟺ exact 整合を 300 乱数検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Kitamasa 多項式法 | — | 陪乗は companion 行列と同じ O(d² log k)。行列版は実装が自明・検証しやすい、d ≤ 数十の用途で十分 |
+| Berlekamp–Massey | — | 係数自体を列から逆求する用途が IZANAGI では未確認。将来 seed 監査用途で検討余地 |
+| Bresenham 対称変種(symmetric Bresenham) | — | 正準方向化で構造解決する方が古典形を維持でき検証しやすい |
+| Xiaolin Wu アンチエイリアス線 | — | 整数域にグレースケールが無い — セル描画は二値で十分 |
+
+## 出典(第19次、search-index 照合)
+
+**論文・仕様**: Knuth TAOCP(patience tails / LIS) / CLRS §24.2(DAG SSSP) / Blum–Floyd–Pratt–Rivest–Tarjan (1973, median-of-medians) / Bresenham (1965) / Pitteway (1967, midpoint circle) / Kitamasa・行列累乗定石。
+
+**実装物**: cp-algorithms(LIS・negative cycle) / emaxx(K-th element・LIS) / KACTL(LIS・LineHull) / redblobgames(line drawing 記事) / Qiita・Zenn の LIS・BFPRT・Bresenham・行列累乗解説記事群。
