@@ -168,6 +168,11 @@ The capability map — with per-feature implementation status — lives in
 | `rmq` | `SparseTable` — static `O(1)` range min/max after `O(n log n)` build; the query-hot complement to `segtree`'s updatable tree. |
 | `closestpair` | `closest_pair` — `O(n log n)` divide-and-conquer closest pair of points in `i128` squared distance; lexicographic `(dist², p, q)` tie-break makes the answer content-defined. |
 | `interval` | `IntervalSet` — sorted disjoint half-open `i64` intervals (`insert`/`remove`/`clip`/`contains`/`overlaps`); occupancy and reservation bookkeeping. |
+| `cron` | `Cron::parse` + `next_after`/`next_n_after` — 5-field cron next-fire times on the millisecond timeline; POSIX OR-rule for dom/dow, `7 ≡ 0` Sunday, Quartz `a/n` steps. Event cooldowns and spawn schedules. |
+| `fuzzy` | fzf-style subsequence scoring (`score`, `rank`, `rank_str`) — consecutive-run-dominant weights, boundary bonuses, deterministic total order (score → length → bytes → index). Command palettes and did-you-mean pickers. |
+| `stats` | `RunningStats` — Welford online moments in `i64·SCALE` fixed point (`push`/`merge`/`mean`/`variance`/`sample_variance`/`stddev`); Chan parallel-merge keeps shards joinable. Telemetry and balance dashboards without storing samples. |
+| `markov` | `NameGen` — order-k byte-level Markov name generator driven by `SplitMix64`; cumulative-weight tables in `BTreeMap` make the chain a pure function of `(corpus, seed)`. NPC/place/item naming. |
+| `lttb` | `lttb` — Largest-Triangle-Three-Buckets downsampling (Steinarsson 2013) in `i128` twice-area math; endpoints preserved, order-preserving subsequence. Dense time-series → small HUD charts. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

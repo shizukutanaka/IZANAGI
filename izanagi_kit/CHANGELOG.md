@@ -271,6 +271,43 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   against a `BTreeSet` point model through random insert/remove/clip
   sequences, with the sorted-non-adjacent invariant asserted each step.
 
+### Added — scheduling, fuzzy ranking, streaming stats, seeded naming, downsampling
+
+- **`cron`** — `Cron::parse` + `next_after`/`next_n_after`: POSIX 5-field
+  cron expressions answered as next-fire times on the millisecond
+  timeline. Bitset field sets with a day-loop scan bounded by a 5-year
+  horizon; the POSIX OR-rule applies only when *both* day-of-month and
+  day-of-week are restricted, `7 ≡ 0` Sunday aliases are merged, and
+  Quartz-style `a/n` means `a..hi` step `n`. Oracle-checked against a
+  minute-scanning brute force across random calendars, leap years, and
+  the rare-by-construction "impossible" schedules (`31 feb`) that return
+  `None` forever.
+- **`fuzzy`** — fzf-style subsequence scoring for command palettes and
+  did-you-mean pickers: `score`, `rank`, `rank_str`. Consecutive runs
+  dominate the weighting (fzf's scoring shape), word-boundary starts
+  (start/`_-. /` separators/camel humps) boost, gaps cost; the total
+  order is score desc → length → bytes → index, so equal keys cannot
+  tie. Oracle-checked by a subsequence predicate over thousands of
+  random pattern/candidate pairs.
+- **`stats`** — `RunningStats`: Welford online mean/variance in
+  `i64·SCALE` fixed point, plus `min`/`max`/`count` and Chan's
+  parallel `merge` — telemetry and balance dashboards without storing
+  samples, and shardable for map-reduce style aggregation. Oracle-checked
+  against an exact two-pass `i128` oracle with bounded fixed-point drift.
+- **`markov`** — `NameGen`: order-`k` byte-level Markov chain trained on
+  a word corpus, sampled through `SplitMix64` draws over cumulative-weight
+  tables kept in `BTreeMap` — the generated name is a pure function of
+  `(corpus, k, seed)` on every platform. Oracle-checked by asserting every
+  order-`k` gram of each output actually occurs in the corpus, and by
+  a skewed corpus that must emit `ab` ~9× more often than `ac`.
+- **`lttb`** — `lttb`: Largest-Triangle-Three-Buckets downsampling
+  (Steinarsson 2013) for dense time-series onto small charts. Bucket
+  boundaries come from floor division of the interior point count, each
+  bucket keeps the point maximizing `i128` twice-area against the
+  previous pick and the next bucket's centroid; endpoints are always
+  preserved and the output is an order-preserving subsequence. The
+  lone-spike case every `keep-every-k-th` sampler destroys is pinned.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded
