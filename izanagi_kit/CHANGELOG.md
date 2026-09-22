@@ -433,6 +433,32 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — substring automata, exact tours, exact cover, directed trees, xor bases
+
+Round-22 survey additions (167 → 172 modules):
+
+- **`sam`** — `Sam`: suffix automaton built by online extension — `contains`,
+  `occurrences` (`finish` propagates end-position counts down suffix links
+  in `len`-descending order), `longest_common`, `distinct_substrings`
+  (`Σ len[v] − len[link[v]]`), `longest_repeated`; `len`/`is_empty` for the
+  text itself.
+- **`hamdp`** — `tsp_exact`: Held–Karp exact TSP `O(n²·2ⁿ)` for `n ≤ 16`
+  cities over `u32` weights (`u32::MAX` = absent edge); returns cost plus
+  the lexicographically-smallest optimal tour, reconstructed via greedy
+  prefix + exact tail re-solve.
+- **`dlx`** — `exact_cover`: Algorithm X over a binary incidence matrix —
+  fewest-row column heuristic (lowest index on ties), covered-column bitset
+  plus a journal of disabled rows for exact undo; returns the
+  lexicographically-first sorted row-id solution.
+- **`arborescence`** — `directed_mst`: Edmonds' minimum-cost arborescence
+  via cycle contraction (min incoming edge → cycle → contract with
+  `w − best_in` adjustment → expand); returns total weight plus the chosen
+  edge indices, `None` when any non-root vertex is unreachable.
+- **`xorbasis`** — `XorBasis`: GF(2) linear basis over `u64` kept in
+  reduced row-echelon form at every insert — `contains`, `max_xor`,
+  `rank`, `kth`-smallest span element, `span_size`, `vectors`; canonical
+  form makes the result insertion-order-independent.
+
 ### Added — reversible transforms, tree path queries, min cut, primality, wavelet queries
 
 Round-21 survey additions (162 → 167 modules):

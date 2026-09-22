@@ -1107,3 +1107,37 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Burrows & Wheeler (1994) / Sleator & Tarjan (1983, link-cut/HLD) / Stoer & Wagner (1997) / Miller–Rabin deterministic bases (Jaeschke 1993, Sinclair set) / Claude & Navarro (2012, wavelet matrix) / Brent (1980, rho variant) / Bentley MTF。
 
 **実装物**: cp-algorithms(HLD・BWT・Miller–Rabin・Brent rho) / KACTL(StressTest patterns) / emaxx / Qiita・Zenn の BWT・HLD・Stoer-Wagner・Miller-Rabin・wavelet matrix 解説記事群。
+
+# 第22次サーベイ — 文字列圧縮・厳密最適化・制約探索・有向全域木・線形基底
+
+> 「部分文字列の重いクエリは」(sam)、「小規模巡回の真の最適は」(hamdp)、
+> 「丁度1度ずつ覆う配置は」(dlx)、「根へ向かう最小有向木は」(arborescence)、
+> 「xor 結合の可否と最大は」(xorbasis) — 前回「次回候補」に挙げた SAM と
+> Held–Karp を含む、厳密解・正準形の残存層。
+> PR #28–#37 は本ラウンド時点で open — 本ブランチは #37 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `sam` — suffix automaton | Blumer et al. 1985 / cp-algorithms SAM。オンライン拡張は「既存遷移を先に読んでから c→cur を挿入」が正しい順序(先に挿入すると根の遷移を q と誤読し link[cur]=cur の自己ループになる — oracle が捕捉)。`occurrences` は `finish` で len 降順の suffix-link 伝播、`distinct_substrings` は Σ len[v]−len[link[v]]。windows 走査・BTreeSet 全部分文字列・brute-force LCS 照合 | 🟢 純粋追加 |
+| `hamdp` — Held–Karp exact TSP | Held & Karp 1962 / Bellman。`dp[mask][j]`(j∈mask に終わる最小コスト)O(n²·2ⁿ)、n≤16 前提で u64 コスト。`u32::MAX`=辺なしを全経路で失敗閉鎖。witness は greedy 最小 index + `tail_cost`(残余都市への再 Held–Karp)で辞書順最小最適ツアーを確定 — dp 差分推論ではなく exact tail を毎回計算する設計に倒し全順列 oracle で検証 | 🟢 純粋追加 |
+| `dlx` — Algorithm X exact cover | Knuth 2000 (dancing links — 本実装はジャーナル方式)。最小候補列選択(同数は最小 index)+「cover が自行を col_rows 経由で自然 disable する」設計: `covered` bitset + 「cover で無効化した行」のジャーナル。初期版は「列に coverer 0 → 即失敗」と「列を被覆済み」を混同して `exact_cover(3,&[])=Some` になっていた — covered 配列で区別に修正。200 反復 subset 枚挙 oracle 一致 | 🟢 純粋追加 |
+| `arborescence` — Edmonds directed MST | Edmonds 1967 (Chu–Liu/Edmonds)。各非根の最小入辺を選び、閉路があれば収縮(entering edge は w−best_in へ調整)→ 再帰 → 展開(被 entry で置換されるメンバー=displaced だけ best_in を捨てる)。コストは cost' + Σ_cyc best_in(cost' が既に調整済み)の帳簿を oracle が確認。(n−1) 辺 subset 枚挙(非根入辺1・根到達)+ witness 独立検証 | 🟢 純粋追加 |
+| `xorbasis` — GF(2) 線形基底 | 標準 xor-basis(cp-algorithms k-th 構成)。逐次 RREF: 消去済み x は既存ピボット bit を持たないので、新ピボット x の MSB を他ベクトルから `^= x` で除いても他ピボット bit は揺らがない不変条件。`kth` は vec 昇順 basis の bit-写像が正確な順序を出すのに RREF が必要 — 最終の「下降一括除去」だと中間ピボット bit を再混入させる bug を kth 列挙 oracle が捕捉し逐次 RREF に確定 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Eertree (palindromic tree) | — | `manacher` が最長回文・`sam` が部分文字列構造をカバー。回文「数え上げ」系だけでは新規軸が薄い — 次ラウンド再検討 |
+| 2D Fenwick | — | `fenwick` 1-D + `segtree` で矩形クエリは擬似的に書ける。真の 2-D BIT はグリッド集約需要が出てから |
+| Dominators (Cooper iterative) | — | CFG/dominator 需要が依然弱い。`graph` 系の制御構造が必要になった時点で |
+| Stable marriage (Gale–Shapley) | — | 割当としては `hungarian`/`bipartite` が強い。安定性保証は「優先度リスト駆動」の需要があるとき実装 |
+| Rope / piece table | — | エディタ用文字列構造。`bits`/`delta` 層とは別軸で大きい — 別ラウンド候補 |
+
+## 出典(第22次、search-index 照合)
+
+**論文・仕様**: Blumer, Blumer, Haussler, Ehrenfeucht, Chen & Seiferas (1985, DAWG) / Held & Karp (1962, TSP DP) / Bellman (1962) / Knuth (2000, Algorithm X / dancing links) / Edmonds (1967) & Chu–Liu (1965) optimum branchings / cp-algorithms xor-basis k-th element 構成。
+
+**実装物**: cp-algorithms(SAM・xor basis・Edmonds DMST) / KACTL(FastDlx・DFSMatching・DirectedMST 系の形) / emaxx(suffix automaton) / Qiita・Zenn の SAM・Held–Karp・Algorithm X・最小費用有向全域木・xor basis 解説記事群。
