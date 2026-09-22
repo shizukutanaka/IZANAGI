@@ -433,6 +433,36 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — dominator trees, 2-D prefix sums, feasible flow, biconnectivity, similarity fingerprints
+
+Round-24 survey additions (177 → 182 modules):
+
+- **`dominators`** — `Dominators`: Cooper–Harvey–Kennedy iterative
+  dominator tree over an arbitrary successor closure — `idom`,
+  `dominators(v)` root-chains, sorted `children`, and Cytron
+  `frontier` dominance frontiers. Spawn gating, dependency
+  scheduling, single-entry regions.
+- **`fenwick2d`** — `Fenwick2d`: 2-D binary indexed tree over a dense
+  `w × h` `i64` grid — `add`, `prefix`, `rect_sum` (inclusion–
+  exclusion on four corners), `get`, `total`; heatmap and resource
+  fields where 1-D BITs cannot answer rectangles.
+- **`circulation`** — `feasible_circulation(n, edges, demands)`:
+  feasible circulation with per-edge lower/upper capacities and
+  vertex demands, via `req[v] = demand − lo_in + lo_out` and a
+  super-source/sink reduction over `flow`. Returns per-edge flows
+  `lo + residual` or `None`; skipped (self-loop / forced `lo==hi`)
+  edges carry their lower bound.
+- **`biconn`** — `biconnected_components`: Tarjan edge-stack
+  decomposition into maximal biconnected edge sets — edges on a
+  common simple cycle land together, bridges and articulation
+  failures surface as singleton components. Handles multigraphs
+  (parallel edges form real 2-cycles).
+- **`simhash`** — Charikar locality-sensitive fingerprints:
+  `simhash` / `weighted_simhash` (each feature hash votes ±weight
+  per bit, positive majority wins, ties → 0), `hamming`, and
+  `near_dupes` — near-duplicate detection for generated content
+  with multiset semantics.
+
 ### Added — palindrome structures, offline range queries, maximal rectangles, stable matching, weighted union-find
 
 Round-23 survey additions (172 → 177 modules):

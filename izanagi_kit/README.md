@@ -228,6 +228,11 @@ The capability map — with per-feature implementation status — lives in
 | `histrect` | `largest_rectangle`, `maximal_rectangle` — monotonic-stack largest histogram rectangle and running-height maximal all-true submatrix. |
 | `stable` | `stable_match`, `is_stable` — Gale–Shapley proposer-optimal stable marriage plus a blocking-pair verifier. |
 | `wdsu` | `WeightedDsu` — potential-annotated union-find: `unite(u, v, w)` asserts `pot[v] − pot[u] = w`, contradictions rejected, `diff` answers inside a component. |
+| `dominators` | `Dominators` — Cooper–Harvey–Kennedy iterative dominator tree (`idom`, `dominators(v)` chains) plus `frontier` dominance frontiers for control-flow style analysis. |
+| `fenwick2d` | `Fenwick2d` — 2-D BIT over a dense `w × h` `i64` grid: `add`, `prefix`, `rect_sum`, `get`, `total` in `O(log w · log h)`. |
+| `circulation` | `feasible_circulation` — lower/upper-capacity feasible circulation via super-source/sink reduction over `flow`; returns per-edge flows or `None`. |
+| `biconn` | `biconnected_components` — Tarjan edge-stack biconnected decomposition: maximal edge sets sharing a common simple cycle; bridges emerge as singletons. |
+| `simhash` | `simhash` / `weighted_simhash` / `hamming` / `near_dupes` — Charikar 64-bit locality-sensitive fingerprints over weighted feature multisets. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
