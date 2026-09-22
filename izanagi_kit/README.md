@@ -233,6 +233,11 @@ The capability map — with per-feature implementation status — lives in
 | `circulation` | `feasible_circulation` — lower/upper-capacity feasible circulation via super-source/sink reduction over `flow`; returns per-edge flows or `None`. |
 | `biconn` | `biconnected_components` — Tarjan edge-stack biconnected decomposition: maximal edge sets sharing a common simple cycle; bridges emerge as singletons. |
 | `simhash` | `simhash` / `weighted_simhash` / `hamming` / `near_dupes` — Charikar 64-bit locality-sensitive fingerprints over weighted feature multisets. |
+| `gf2` | `add`/`sub`/`mul`/`mul_t`/`inv`/`pow`/`div` + `Tables` — GF(2⁸) field arithmetic over the AES polynomial `0x11B`; the arithmetic layer erasure codes build on. |
+| `rsfec` | `ReedSolomon` — Vandermonde Reed–Solomon erasure coding over `gf2`: `encode`, `encode_shards`, `reconstruct` recovers `k` data shards from any `k`-of-`k+m` subset. |
+| `fmidx` | `FmIndex` — FM-index over a cyclic BWT: `count`/`locate`/`range` via `C` table + spaced `Occ` checkpoints + full suffix array. |
+| `zerobfs` | `zero_one_bfs` / `dial` — linear-ish shortest paths for `{0,1}` and small-cap weights; `Option<Vec<Option<u32>>>` distances, `bellman`-compatible. |
+| `dpll` | `solve` — DPLL SAT over CNF: unit propagation, pure-literal elimination, smallest-variable split; canonical models (unset vars = `false`). |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

@@ -136,6 +136,12 @@
 - J61 故障分離解析(どの辺が共通サイクル上にあるか — 橋は単体成分として浮上)✅ `biconn`（Tarjan 辺スタック二重連結分解 — `low[w] ≥ disc[v]` で子 subtree の成分を閉じてスタックを pop。単純サイクル全列挙オラクル(2-辺平行サイクル含む)と成分集合一致照合）
 - J62 近似重複検出(生成コンテンツの類似度監査 — ビット単位多数決の locality-sensitive 指紋)✅ `simhash`（Charikar — 特徴ハッシュの各 bit が ±weight 投票、正票が bit=1。多重出現=重みの multiset 意味論、tie は 0。bit-major 独立再計数 oracle 照合）
 
+- J63 有限体演算(消去符号・乱択検証の算術核 — GF(2⁸) の乗除/べき/逆元)✅ `gf2`（AES 多項式 `0x11B` 上の農民乗算 + exp/log `Tables`(生成元 3)。`sub`=`add`=xor、`inv`=`exp[255−log]`。2000反復の体公理乱数照合 + 生成元が全非零を巡回する検証）
+- J64 消失訂正(パケット損失・shard 再構成 — k/m 任意欠損からのデータ復元)✅ `rsfec`（Vandermonde Reed–Solomon over `gf2` — 係数行列 `V(total,data)·V_top⁻¹` で任意 data 行が可逆。`reconstruct` は現存 data 行の逆行列で復元し parity は再 encode。4-of-8 全 70 subset 網羅 + 60反復乱択損失照合）
+- J65 副線形文字列検索(生成テキストの `count`/`locate` — O(m) で全出現)✅ `fmidx`（巡回 BWT 上の FM-index — C 表 + 32 行毎の Occ チェックポイント + 完全 SA。巡回一致(パターンが末尾→先頭へ wrap)を文書化した semantics。naive 巡回照合 oracle 全パターン照合）
+- J66 微小重み最短路(0/1 通行コスト・小容量グリッド — Dijkstra の heap 不要領域)✅ `zerobfs`（`zero_one_bfs` は VecDeque 両端、`dial` は `cap·(n−1)` バケット配列 — 申告 `cap` を超える辺は失敗閉鎖 None。`bellman` 最短距離 oracle 600 乱数照合）
+- J67 充足可能性判定(パズル規則・配置制約・desync 監査の CNF 判定)✅ `dpll`（DPLL — unit propagation + pure-literal 除去の不動点 + 最小変数 split で canonical model(未設定変数は false)。`solve` は `(clauses)` の純関数。2^n 全割当 brute-force oracle で satisfiability + model 検証を照合）
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
