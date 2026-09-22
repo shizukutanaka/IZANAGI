@@ -218,6 +218,16 @@ The capability map — with per-feature implementation status — lives in
 | `mincut` | `global_min_cut` — Stoer–Wagner `O(n³)` global min cut (weight + one side) without choosing terminals; deterministic lowest-index tie-breaks. |
 | `miller` | `is_prime`/`factor` — exact `u64` primality via the 7-base deterministic Miller–Rabin set, sorted factorization by trial division + Brent rho (fixed polynomial schedule). |
 | `wavelet` | `WaveletMatrix` — `access`/`rank`/`freq_less`/`range_freq`/`quantile` on `u32` sequences in `O(bits)` — layered stable-partition bitplanes, no floating point. |
+| `sam` | `Sam` — suffix automaton: `contains`, `occurrences`, `longest_common`, `distinct_substrings`, `longest_repeated` on an `O(n)`-state structure built by online extension + `finish`. |
+| `hamdp` | `tsp_exact` — Held–Karp exact TSP for `n ≤ 16` cities over `u32` weights (`u32::MAX` = absent edge); returns cost plus the lexicographically-smallest optimal tour. |
+| `dlx` | `exact_cover` — Algorithm X exact cover over a binary incidence matrix; returns the lexicographically-first sorted row-id solution (`n_cols == 0` → empty cover). |
+| `arborescence` | `directed_mst` — Edmonds' minimum-cost arborescence (directed spanning tree rooted at `root`) via cycle contraction; returns total weight plus chosen edge indices. |
+| `xorbasis` | `XorBasis` — GF(2) linear basis over `u64` in RREF: `contains`, `max_xor`, `rank`, `kth`-smallest span element; insertion-order-independent canonical form. |
+| `eertree` | `Eertree` — palindromic tree over `&[u8]`: `distinct_palindromes`, `palindromic_substring_count`, `occurrences(pat)`, `longest_palindrome` in one online `O(n)` build. |
+| `mo` | `mos_order`, `range_distinct` — Mo's offline range queries: block-sorted query permutation plus a sliding-window distinct-count driver. |
+| `histrect` | `largest_rectangle`, `maximal_rectangle` — monotonic-stack largest histogram rectangle and running-height maximal all-true submatrix. |
+| `stable` | `stable_match`, `is_stable` — Gale–Shapley proposer-optimal stable marriage plus a blocking-pair verifier. |
+| `wdsu` | `WeightedDsu` — potential-annotated union-find: `unite(u, v, w)` asserts `pot[v] − pot[u] = w`, contradictions rejected, `diff` answers inside a component. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

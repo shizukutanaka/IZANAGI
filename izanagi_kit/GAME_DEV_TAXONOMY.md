@@ -118,6 +118,18 @@
 - J46 厳密素数判定・素因数分解（決定論的周期検証・Zobrist 類指数の因数監査 — 疑似乱数に依らない素数性）✅ `miller`（`u64` 全域で決定的 7-base Miller–Rabin — SPSP/Carmichael 全拒否、sieve oracle と 20 万件照合。Brent rho で合成数を固定多項式スケジュールで分解、出力 sorted）
 - J47 区間統計クエリ（頻度・中央値・範囲個数 — wavelet matrix で O(bits)/クエリ）✅ `wavelet`（MSB 安定分割 bitplane 行列 — `access`/`rank`/`freq_less`/`range_freq`/`quantile` を整数のみで — 区間 k 番目や値頻度を `segtree` 系と別軸でカバー。brute-force 全操作照合）
 
+- J48 部分文字列の状態数圧縮(全部分文字列の包含・出現数・最長共通 — SA では O(n) メモリを超える重いクエリ)✅ `sam`（suffix automaton — オンライン拡張 + `finish` の出現数伝播。`contains`/`occurrences`/`longest_common`/`distinct_substrings`(Σ len−link.len)/`longest_repeated`。windows 走査・BTreeSet 全部分文字列オラクル照合）
+- J49 厳密巡回最適化(完全 TSP — ヒューリスティックの上限が要る小規模巡回経路)✅ `hamdp`（Held–Karp `O(n²·2ⁿ)` n≤16 — `u32::MAX`=辺なしの失敗閉鎖、witness は辞書順最小最適ツアーを貪欲+tail 再計算で復元。全順列 oracle と 120 乱数コスト+witness 照合）
+- J50 厳密被覆探索(配置パズル・ポリオミノ敷詰 — 「各行が各列を丁度1度覆う」制約充足)✅ `dlx`（Algorithm X — 最小候補列選択 + disabled-rows ジャーナル undo、辞書順最初の解を返す。200 反復で部分集合枚挙 oracle と可解性一致 + 解の被覆正当性を独立検証）
+- J51 有向最小全域木(単一司令系の最小コスト伝達網・根付き通信木)✅ `arborescence`（Edmonds 最小費用有向全域木 — 最小入辺選択→閉路検出→収縮(重み調整 w−best)→展開の再帰。(n−1) 辺 subset 枚挙 oracle + witness の「全非根に入辺1・根へ到達」独立検証）
+- J52 xor 線形包監査(ビットマスク特性の結合可能性・最大 xor 選択 — GF(2) 基底の正準形)✅ `xorbasis`（逐次 RREF — 消去済み x が他ピボット bit を持たないため挿入時の MSB 除去が不変条件を保つ。`contains`/`max_xor`/`rank`/`kth` を全閉包列挙・独立 rank oracle・順列不変で照合）
+
+- J53 回文の全構造(回文の種類数・出現数・最長回文を1本のオンライン構築で — `manacher` は半径配列のみ)✅ `eertree`（palindromic tree — IMAG(len=−1)根が常に遷移可能で suffix-link 探索の停止条件を担う。`occ` は位置毎の最長接尾辞回文のみ +1 し `finish` で len 降順伝播、BTreeSet 全回文列挙 oracle 照合）
+- J54 オフライン区間クエリ一括処理(窓をソートして共有 — データ構造なしで区間集約)✅ `mo`（Mo's algorithm — `(l/block, r)` 偶奇蛇行ソートの `mos_order` + `add`/`remove` で駆動する `range_distinct`、窓は1要素ずつ滑らせる。全区間 brute-force 照合、`isqrt` は整数二分で f64 不使用）
+- J55 矩形最大面積(ヒストグラム最大矩形・01 行列の最大真部分行列 — 建物 footprint・倉庫スロット)✅ `histrect`（`largest_rectangle` 単調スタック O(n) — 仮想 h=0 で残スタックを flush、左端は stack.last()+1。`maximal_rectangle` は行毎の高さ累計に流し込み。O(n³) 全ペア min・列ラン全真 oracle 照合）
+- J56 安定割当(優先度リスト駆動のマッチング — どの割当にも「より良い相互指名」が存在しない)✅ `stable`（Gale–Shapley — 提案者最適が一意に定まるので提案順は結果に影響しない、`is_stable` で blocking-pair 不存在を独立検証。n≤5 全順列安定マッチング枚挙で男側最適性を照合）
+- J57 ポテンシャル付き連結成分(相対高さ・オフセット制約 — `x − y = w` の差分制約の矛盾検出)✅ `wdsu`（重み付き DSU — `weight[x] = pot[x] − pot[parent[x]]`、find で経路圧縮+重み伝播、`unite` は矛盾で false。attach は小側を大側に `rel[v] − rel[u] − w` で接続 — 独立成分リプレイ oracle と全クエリ照合）
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
