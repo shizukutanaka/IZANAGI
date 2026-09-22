@@ -147,6 +147,12 @@
 - J71 多点接続木の近似(中立点 Steiner — ネットワーク配線・リソース接続の最小木)✅ `steiner`（Kou–Markowsky–Berman 2-近似 — 終端間最短路の metric closure → Kruskal MST → 経路展開 → 残 MST で cycle prune。Dreyfus–Wagner 厳密解 oracle(k≤5)で `opt ≤ w ≤ 2·opt` を 300 乱数照合 + tree 形状検証）
 - J72 ジャーナル永続化(WAL — 書換え前の append-only 記録、torn tail 耐性)✅ `wal`（`[kind|len|crc|payload]` レコード、crc は domain 分離 Fnv1a。replay は truncated/corrupt レコードで停止し `stopped_at` オフセットを返す torn-tail 耐性 semantics — 全 cut で clean ⟺ 境界位置を検証、bit-flip で以降拒否、truncate で破損除去）
 
+- J73 近似文字列照合(typo 許容の検索・did-you-mean — k 置換以内の一致列挙)✅ `bitap`(Shift-And ビット並列 — 1 文字毎の状態遷移を `u64` 1 ワードで進め、Hamming-fuzzy は error 行毎に 1 ワード追加。置換項の bit-0 種付け(空 prefix は常に真)を欠くと pattern[0] 置換が落ちる bug を naive Hamming oracle が捕捉 — `(prev<<1)|1` で確定。挿入/削除は許容しない Hamming 意味論、naive 全窓照合 400 反復)
+- J74 群体経路誘導(1 目的〜全 agent の O(1)/step 誘導 — integration + vector field)✅ `flowfield`(goal set 逆向き Dijkstra の統合フィールド + 各セル最小 dist 隣接への方向場。8 連結・両 ortho 通行可能時のみ対角で角抜けなし、整数 √2≈3/2 倍率で 2·cost 単位。descent 単調 + 終端到達性を oracle 検証、壁セルは dir 無し)
+- J75 式・ルール文字列の評価(ダメージ式・条件式 — 中置→後置→スタック評価)✅ `shunting`(Dijkstra shunting-yard — `+ - * / %` 二項と右結合単項 `Neg`、括弧。交互構造の parse 検証で eval 可能な postfix のみ産出、i64 切断 `/ %`・`/0`・overflow は全て None 失敗閉鎖。再帰降下オラクル 2000 乱数照合)
+- J76 凸形状の衝突判定(SAT — 分離軸の非存在が重なりの証 + 最小重なり軸目撃者)✅ `sat`(両多角形の辺法線のみが候補軸、投影重なりで早期 exit。境界接触は重なり、`depth` は投影単位(|axis| 除算が真の深さ)、axis は重心差で a→b 正準向き。edge-intersect + 包含 oracle 3000 照合)
+- J77 固定アリーナの冪2 割付(buddy allocator — split-on-alloc/merge-on-free)✅ `buddy`(log2 分離 free list、最小 order・最低位アドレス選択で状態は操作列の純関数。free は buddy 同時解放なら合体を繰返す eager coalescing —「二つの buddy が同時に free」は常に不成立の canonical 性質。byte-shadow oracle + 全 drain で全域使用可能を検証)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

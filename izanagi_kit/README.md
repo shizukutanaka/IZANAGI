@@ -243,6 +243,11 @@ The capability map — with per-feature implementation status — lives in
 | `piecetable` | `PieceTable` — editor-style text buffer: immutable `original` + append-only `added` + piece list; `insert`/`delete`/`get`/`to_bytes`. |
 | `steiner` | `steiner_tree` — Kou–Markowsky–Berman 2-approx Steiner tree: metric closure -> terminal MST -> path unfolding -> cycle prune. |
 | `wal` | `Wal` + `decode` — write-ahead log codec: `[kind|len|crc|payload]` records, Fnv1a checksums, torn-tail-tolerant replay (`Decoded.stopped_at`). |
+| `bitap` | `Bitap` — Shift-And bit-parallel search: exact + Hamming-fuzzy (`k` substitutions) over ≤64-byte patterns in one `u64` word per level. |
+| `flowfield` | `FlowField` — one-to-all pathfinding: Dijkstra integration field + per-cell direction field; 8-connected, no corner cutting, 2·ortho / 3·diag integer costs. |
+| `shunting` | `shunting_yard` + `eval`/`eval_rpn` — infix→postfix + strict `i64` evaluation; truncating `/`/`%`, `None` on overflow, div-by-zero, malformed input. |
+| `sat` | `collide`/`overlap` — separating-axis convex collision in `i128`: boundary contact counts, witness = min-overlap axis + projection-unit depth. |
+| `buddy` | `Buddy` — binary buddy allocator: sorted lowest-address free lists, eager coalescing, canonical state (no two buddies simultaneously free). |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
