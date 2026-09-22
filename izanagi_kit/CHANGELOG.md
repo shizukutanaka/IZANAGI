@@ -308,6 +308,51 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   preserved and the output is an order-preserving subsequence. The
   lone-spike case every `keep-every-k-th` sampler destroys is pinned.
 
+### Added — number theory, ancestor queries, entropy coding, ordered sets, single-pattern scan
+
+- **`ntheory`** — `gcd`/`lcm`/`extgcd`/`mod_inv`/`mod_pow`/`crt2`/`crt`:
+  the modular-arithmetic backbone for periodic-event alignment and
+  residue addressing. Euclidean gcd over `unsigned_abs` (so
+  `i64::MIN` arguments cannot overflow), Bézout coefficients from the
+  extended algorithm drive `mod_inv`, binary `mod_pow` keeps
+  intermediates in `u128`, and `crt` composes pairwise even when the
+  moduli share factors — inconsistent systems return `None` instead
+  of a wrong answer. Oracle-checked against a brute-force gcd scan,
+  the Bézout identity, and CRT congruence/uniqueness/inconsistency
+  classes over random terms.
+- **`lca`** — `Lca`: binary-lifting lowest common ancestor over a
+  rooted forest given as a `parent[]` array. `O(n log n)` build,
+  `O(log n)` `lca`/`ancestor`/`dist`/`depth`; cycles and out-of-range
+  parents mark the touched nodes invalid so queries return `None`
+  rather than looping or corrupting answers. Oracle-checked against
+  an ancestor-set enumeration on random forests, plus deep chains
+  and self-queries.
+- **`huffman`** — `encode`/`decode`/`build_book`: canonical Huffman
+  codec for the wire layer between `rle` and `bits`. The two-queue
+  merge makes the tree a pure function of the frequency table, and
+  canonical assignment (codes in `(length, symbol)` order) means the
+  self-contained stream only carries a `(symbol, length)` table —
+  no tree shape. Malformed input (truncated tables, lengths > 32,
+  bit-count overruns, trailing partial codes) decodes to `None`.
+  Round-trips over random and skewed alphabets, prefix-freeness, and
+  the Kraft equality are property-checked.
+- **`treap`** — `Treap`: a deterministic ordered `u64` set. Priorities
+  are `splitmix64(key ^ seed)`, so tree shape is unique for a given
+  key set — insertion order cannot leak into iteration or structure,
+  which is exactly what a lockstep dictionary needs. Arena storage
+  plus merge/split gives `insert`/`remove`/`contains`/`min`/`max` and
+  `rank`/`select` order statistics. Oracle-checked against `BTreeSet`
+  across mixed op sequences; shuffled insertion orders yield
+  identical `(key, depth)` signatures, and the heap invariant is
+  walked directly.
+- **`kmp`** — `Kmp`: Knuth–Morris–Pratt single-pattern search with a
+  `Stream` variant that accepts bytes one at a time and reports
+  absolute match starts across chunk boundaries — the delimiter/
+  sentinel scanner for packet streams. `ahocor` remains the
+  multi-pattern layer. Oracle-checked against a naive
+  every-position scan over tiny alphabets (forcing overlaps) and by
+  stream-vs-batch equivalence over random chunkings.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded
