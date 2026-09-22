@@ -242,6 +242,32 @@ impl Dungeon {
         self.in_bounds(x, y) && !self.is_wall(x, y)
     }
 
+    /// An all-wall `width × height` dungeon with no rooms — the starting
+    /// point for carver-style generators ([`crate::maze`],
+    /// [`carve_corridors`], or custom drunkard's-walk passes).
+    pub fn new_walled(width: u32, height: u32) -> Dungeon {
+        Dungeon::filled(width, height)
+    }
+
+    /// Carve `(x, y)` to floor. No-op for out-of-bounds cells, so carvers can
+    /// push paths one tile past the boundary without clipping checks. Does
+    /// not update [`rooms`](Self::rooms) — carve-only dungeons report
+    /// `room_count() == 0`.
+    #[inline]
+    pub fn carve_floor(&mut self, x: i32, y: i32) {
+        if self.in_bounds(x, y) {
+            self.tiles[(y as u32 * self.width + x as u32) as usize] = false;
+        }
+    }
+
+    /// Wall `(x, y)` back in. No-op for out-of-bounds cells.
+    #[inline]
+    pub fn fill_wall(&mut self, x: i32, y: i32) {
+        if self.in_bounds(x, y) {
+            self.tiles[(y as u32 * self.width + x as u32) as usize] = true;
+        }
+    }
+
     /// Number of rooms placed (zero for all-wall or cave dungeons).
     #[inline]
     pub fn room_count(&self) -> usize {
@@ -989,6 +1015,59 @@ pub fn poisson_disc(
         }
     }
     points
+}
+
+/// Carve corridors through `dungeon` connecting each `edges` pair of
+/// `points` — the TinyKeep wiring step: triangulate room centers with
+/// [`crate::delaunay`], select edges with [`crate::voronoi::mst_edges_over`],
+/// then dig each corridor with [`crate::pathfinding::min_cost_path`].
+///
+/// Entry costs: floor tiles cost `1`, wall tiles cost `wall_cost`
+/// (clamped ≥ 1), out-of-bounds is impassable. With a high `wall_cost` a
+/// corridor prefers routing through already-carved floor — corridors merge
+/// into shared tunnels instead of drawing parallel walls — while a low
+/// `wall_cost` makes straighter, more separate tunnels. Diagonal moves never
+/// cut a wall corner (they require both orthogonal neighbours enterable).
+///
+/// Determinism: corridors are carved in `edges` order and each path is the
+/// unique min-cost path under the `(g, x, y)` tie-break, so identical inputs
+/// give byte-identical dungeons.
+pub fn carve_corridors(
+    dungeon: &mut Dungeon,
+    points: &[(i32, i32)],
+    edges: &[(u32, u32)],
+    wall_cost: i32,
+) {
+    let wall_cost = wall_cost.max(1);
+    for &(i, j) in edges {
+        let (a, b) = match (points.get(i as usize), points.get(j as usize)) {
+            (Some(&a), Some(&b)) => (a, b),
+            _ => continue,
+        };
+        let d_ref = &*dungeon;
+        if let Some((path, _)) = crate::pathfinding::min_cost_path(a, b, |x, y| {
+            if !d_ref.in_bounds(x, y) {
+                None
+            } else if d_ref.is_wall(x, y) {
+                Some(wall_cost)
+            } else {
+                Some(1)
+            }
+        }) {
+            for (pi, &(x, y)) in path.iter().enumerate() {
+                dungeon.carve_floor(x, y);
+                // Diagonal path steps are only corner-adjacent — carve the
+                // horizontal bridge tile (x, py) too so the finished corridor
+                // stays 4-connected (walkable without diagonal moves).
+                if pi > 0 {
+                    let (px, py) = path[pi - 1];
+                    if x != px && y != py {
+                        dungeon.carve_floor(x, py);
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl MapBuilder {
@@ -2068,5 +2147,125 @@ mod tests {
         // radius 1: nothing filters — every candidate ≥1 apart still legal.
         let dense = poisson_disc(6, 6, 1, &mut rng, 30);
         assert!(!dense.is_empty());
+    }
+
+    /// BFS flood over floor tiles; returns reachable set.
+    fn floor_reachable(d: &Dungeon, start: (i32, i32)) -> std::collections::BTreeSet<(i32, i32)> {
+        let mut seen = std::collections::BTreeSet::new();
+        let mut frontier = vec![start];
+        seen.insert(start);
+        while let Some((x, y)) = frontier.pop() {
+            for &(dx, dy) in &[(0, -1), (1, 0), (0, 1), (-1, 0)] {
+                let (nx, ny) = (x + dx, y + dy);
+                if d.is_floor(nx, ny) && seen.insert((nx, ny)) {
+                    frontier.push((nx, ny));
+                }
+            }
+        }
+        seen
+    }
+
+    #[test]
+    fn test_carve_corridors_connects_points() {
+        // Three room centers in a solid-walled field — corridors must join
+        // them into one connected floor region.
+        let mut d = Dungeon::new_walled(30, 20);
+        let pts = [(4, 4), (25, 4), (14, 15)];
+        // Seed the room floors first (as a real generator would).
+        for &(x, y) in &pts {
+            for dy in 0..3 {
+                for dx in 0..3 {
+                    d.carve_floor(x + dx, y + dy);
+                }
+            }
+        }
+        let edges = crate::voronoi::mst_edges_over(&pts, &[(0, 1), (1, 2), (0, 2)]);
+        assert_eq!(edges.len(), 2);
+        carve_corridors(&mut d, &pts, &edges, 25);
+        let reach = floor_reachable(&d, pts[0]);
+        for &p in &pts {
+            assert!(reach.contains(&p), "point {p:?} unreachable");
+        }
+        // Deterministic: same ops, same bytes.
+        let mut d2 = Dungeon::new_walled(30, 20);
+        for &(x, y) in &pts {
+            for dy in 0..3 {
+                for dx in 0..3 {
+                    d2.carve_floor(x + dx, y + dy);
+                }
+            }
+        }
+        carve_corridors(&mut d2, &pts, &edges, 25);
+        assert_eq!(d, d2);
+    }
+
+    #[test]
+    fn test_carve_corridors_merges_through_existing_floor() {
+        // A pre-carved L corridor: high wall cost should route the new
+        // corridor along it, digging few or no extra walls for the detour.
+        let mut d = Dungeon::new_walled(20, 20);
+        for x in 2..16 {
+            d.carve_floor(x, 10); // horizontal corridor
+        }
+        for y in 10..16 {
+            d.carve_floor(15, y); // down-branch
+        }
+        let walls_before: usize = (0..20)
+            .flat_map(|y| (0..20).map(move |x| (x, y)))
+            .filter(|&(x, y)| d.is_wall(x, y))
+            .count();
+        let pts = [(2, 10), (15, 15)];
+        // Start and goal are already floor — with wall_cost high the path
+        // should already exist (zero new wall cells dug).
+        carve_corridors(&mut d, &pts, &[(0, 1)], 100);
+        let walls_after: usize = (0..20)
+            .flat_map(|y| (0..20).map(move |x| (x, y)))
+            .filter(|&(x, y)| d.is_wall(x, y))
+            .count();
+        assert_eq!(walls_before, walls_after, "existing path must be reused");
+        // Now a point not on the corridor: must dig at least a stub, but a
+        // direct dig is bounded — it joins the corridor.
+        let mut d2 = Dungeon::new_walled(20, 20);
+        for x in 2..16 {
+            d2.carve_floor(x, 10);
+        }
+        for y in 10..16 {
+            d2.carve_floor(15, y);
+        }
+        carve_corridors(&mut d2, &pts, &[(0, 1), (0, 1)], 100); // dup edge: idempotent
+        let reach = floor_reachable(&d2, pts[0]);
+        assert!(reach.contains(&pts[1]));
+    }
+
+    #[test]
+    fn test_new_walled_and_carve_floor() {
+        let mut d = Dungeon::new_walled(10, 8);
+        for y in 0..8 {
+            for x in 0..10 {
+                assert!(d.is_wall(x, y));
+            }
+        }
+        assert_eq!(d.room_count(), 0);
+        d.carve_floor(3, 4);
+        assert!(d.is_floor(3, 4));
+        // OOB carve is a no-op.
+        d.carve_floor(-1, 0);
+        d.carve_floor(0, -1);
+        d.carve_floor(10, 0);
+        d.carve_floor(0, 8);
+        d.fill_wall(3, 4);
+        assert!(d.is_wall(3, 4));
+    }
+
+    #[test]
+    fn test_carve_corridors_out_of_bounds_endpoints_skipped() {
+        let mut d = Dungeon::new_walled(10, 10);
+        let pts = [(0, 0), (1, 1)];
+        d.carve_floor(1, 1);
+        // Edge to an out-of-bounds point index — skipped, not a panic.
+        carve_corridors(&mut d, &pts, &[(0, 5)], 10);
+        // Edge from an OOB coordinate — enter_cost None → no carve.
+        carve_corridors(&mut d, &[(-5, -5), (1, 1)], &[(0, 1)], 10);
+        assert!(d.is_wall(5, 5));
     }
 }

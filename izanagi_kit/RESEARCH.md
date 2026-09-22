@@ -587,3 +587,33 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文**: Bridson 2007 (SIGGRAPH sketch)/ Rong & Tan (I3D 2006)/ Worley (SIGGRAPH'96)/ Dormans cyclic dungeon(参考)。
 
 **実装物**: kchapelier/poisson-disk-sampling / TinyKeep mapgen 記事 / Slay-the-Spire mapgen 記事 / protobuf encoding 仕様 / Gaffer serialization 記事群 / iquilezles noise 記事 / Qiita セルラーノイズ・Poisson 記事群 / Unity Graphics Programming vol.4。
+
+# 第6次: 外部出典サーベイ — 迷路・六角・三角分割・回廊掘削 (2026-09-22)
+
+> 第5次で完成した scatter→territory→connectivity パイプラインの**下流層**が未実装だった:
+> 接続するための三角分割配線(Delaunay)、許可エッジ制限下の MST、掘削自体の
+> 最小コスト隧道、迷路生成、六角グリッド。5系統実装。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `delaunay::delaunay` + `delaunay_edges` — 整数厳密 Delaunay 三角分割 | Bowyer & Watson, *Comput. J.* 24(2) 1981。**cavity-fan ではなく split+Lawson-flip 増分挿入を採用** — cavity 版は非 star-shaped cavity で hull 内に穴を残す実害を再現(回帰テスト化)。incircle は i128 の 3×3 lifted 行列式で厳密評価、`det==0` の cocircular は「外」扱いとし対角線選択を canonical に固定。**super-triangle は `span²` 距離**(本セッション最大の知見: 距離 `~span` では "(hull edge, super vertex) の外接円が内部点を包み hull 辺が super 側へ flip され、super 三角形の除去後に内部穴" になる。遠方 super では sagitta = edge²/8D < 1 となり整数点は絶対に包めない) | 🟢 純粋追加。pinned hash 不変 |
+| `hexgrid` — axial 座標の六角計量一式 | Amit Patel, redblobgames.com/grids/hexagons (実務標準); Qiita/Zenn の hex 記事群も同レシピ。`s = −q−r`、distance = (|dq|+|dr|+|ds|)/2、cube lerp + `cube_round`(最大誤差軸を丸め戻す)、line/ring/spiral/offset 変換。**cube_round の tiebreak は away-from-zero に固定**(IEEE 系 round-half-even 依存を排除)| 🟢 純粋追加。`Hex` に `DetHash` — golden ピン済み |
+| `maze::wilson_maze` — Wilson の loop-erased random walk で perfect maze | Wilson, STOC'96 (*Generating random spanning trees more quickly than the product time*)。全域木を**一様分布**で生成する数少ない正しい迷路アルゴリズム(DFS backtracker 系は分布が歪む)。Buckblog (Mazes for Programmers) の手順 — LERW の「既訪 walk を pos+1 以降 drain で消す」ループ消去をそのまま実装。cell=奇数座標・回廊=+1 の定石レイアウト | 🟢 純粋追加 |
+| `pathfinding::min_cost_path` + `mapgen::carve_corridors` — 重み A* と TinyKeep 式隧道 | TinyKeep mapgen 記事(Petteri, 2014)の corridor recipe — 「既存床は安く・壁掘りは wall_cost」の重み A* で MST エッジを掘る。`enter_cost: FnMut→Option<i32>` の一般化(床=1/壁=wall_cost/OOB=None)。対角ステップは橋 cell を併掘して 4-連結を維持(斜め掘りだと物理的に通行不能になる見落としを実測で捕捉) | 🟢 純粋追加 |
+| `voronoi::mst_edges_over` — restricted Kruskal | TinyKeep の本流 recipe: 全対 MST ではなく Delaunay エッジ集合上の MST(配線図上で最小接続)。invalid ペア除外→(dist_sq,i,j) 全順序→union-find。disconnected 入力では森を返す | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Prim's/recursive-backtracker 迷路 | Buckblog 迷路シリーズ | 生成木の分布が一様でない(偏りが構造的に解析可能)。Wilson は一様性の保証があり DST 系との親和性が高い |
+| Fortune's algorithm (Delaunay/Voronoi) | Fortune 1987 | sweep-line は浮動イベント点前提。整数厳密では Bowyer–Watson 系が実装も証明も現実的 |
+| 六角 offset/q-r 双対座標のみ | redblobgames | axial 単系に統一 — 2系統併存は変換 bug の温床。cube(3成分)は内部表現のみ |
+
+## 出典(第6次、search-index 照合)
+
+**論文**: Bowyer & Watson 1981 (*Comput. J.* 24(2)) / Wilson STOC'96 / Guibas & Stolfi 1985 (Lawson flip / quad-edge 構造) / Fortune 1987 (見送り)。
+
+**実装物**: redblobgames hex ガイド / TinyKeep mapgen (Petteri 2014) / Buckblog *Mazes for Programmers* / Bowyer-Watson 参照実装群 (hug-sun 等) / Qiita・Zenn の hex・迷路・Delaunay 記事群。

@@ -230,6 +230,89 @@ where
     None
 }
 
+/// Find a minimum-cost 8-directional path from `start` to `goal`, inclusive
+/// of both endpoints — `None` if no path exists. Returns `(path, cost)`.
+///
+/// Unlike [`astar`]/[`weighted_astar`], where walls are hard blockers, this
+/// is a **Dijkstra search over per-cell entry costs**: `enter_cost(x, y)`
+/// returns `Some(cost)` to allow entering the cell at price `cost`, or
+/// `None` to forbid it. `enter_cost` must return `None` for out-of-bounds
+/// cells to bound the search (the same contract as `is_blocked`).
+///
+/// Movement mirrors [`astar`]: orthogonal steps cost `enter_cost × 10`,
+/// diagonal steps `enter_cost × 14` — never cutting a corner (a diagonal
+/// requires both orthogonal neighbours enterable). Costs are in tenths;
+/// `enter_cost = 1` everywhere reproduces `astar`'s `COST_ORTHO`/`COST_DIAG`.
+///
+/// This is the TinyKeep corridor primitive: give floors cost 1 and walls a
+/// high cost, and paths between rooms prefer merging into existing corridors
+/// instead of digging parallel tunnels. Determinism: the open-set key
+/// `(f, g, x, y)` is unique and total; ties resolve by coordinates.
+///
+/// ```
+/// use izanagi_kit::pathfinding::min_cost_path;
+///
+/// // Open 10x10 plane, uniform cost — equivalent to astar.
+/// let (path, cost) = min_cost_path((0, 0), (3, 0), |_x, _y| Some(1)).unwrap();
+/// assert_eq!(path, vec![(0, 0), (1, 0), (2, 0), (3, 0)]);
+/// assert_eq!(cost, 30);
+/// ```
+pub fn min_cost_path<C>(
+    start: (i32, i32),
+    goal: (i32, i32),
+    mut enter_cost: C,
+) -> Option<(Vec<(i32, i32)>, i32)>
+where
+    C: FnMut(i32, i32) -> Option<i32>,
+{
+    let start_cost = enter_cost(start.0, start.1);
+    if start_cost.is_none() || enter_cost(goal.0, goal.1).is_none() {
+        return None;
+    }
+    if start == goal {
+        return Some((vec![start], 0));
+    }
+
+    let mut open: BinaryHeap<Reverse<(i32, i32, i32, i32)>> = BinaryHeap::new();
+    let mut g_score: HashMap<(i32, i32), i32> = HashMap::new();
+    let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
+
+    g_score.insert(start, 0);
+    open.push(Reverse((0, 0, start.0, start.1)));
+
+    while let Some(Reverse((f, g, cx, cy))) = open.pop() {
+        let cur = (cx, cy);
+        // Lazy deletion: stale heap entries carry an outdated g.
+        if g != g_score[&cur] {
+            continue;
+        }
+        if cur == goal {
+            return Some((reconstruct(&came_from, goal), f));
+        }
+        for (dx, dy) in DIRS {
+            let (nx, ny) = (cx + dx, cy + dy);
+            let enter = match enter_cost(nx, ny) {
+                Some(c) if c >= 0 => c,
+                _ => continue,
+            };
+            let diagonal = dx != 0 && dy != 0;
+            if diagonal && (enter_cost(cx + dx, cy).is_none() || enter_cost(cx, cy + dy).is_none())
+            {
+                continue;
+            }
+            let step = enter * if diagonal { COST_DIAG } else { COST_ORTHO };
+            let tentative = g + step;
+            let neighbour = (nx, ny);
+            if tentative < *g_score.get(&neighbour).unwrap_or(&i32::MAX) {
+                g_score.insert(neighbour, tentative);
+                came_from.insert(neighbour, cur);
+                open.push(Reverse((tentative, tentative, nx, ny)));
+            }
+        }
+    }
+    None
+}
+
 // ---------------------------------------------------------------------------
 // Jump Point Search (JPS)
 // ---------------------------------------------------------------------------
@@ -2560,6 +2643,239 @@ mod tests {
         assert!(
             compared >= 6000,
             "expected 6000 comparisons, got {compared}"
+        );
+    }
+
+    /// Oracle: brute-force Dijkstra (Bellman-Ford relaxation to fixpoint) —
+    /// the ground truth `min_cost_path` must agree with.
+    fn brute_min_cost(
+        w: i32,
+        h: i32,
+        start: (i32, i32),
+        goal: (i32, i32),
+        enter_cost: &dyn Fn(i32, i32) -> Option<i32>,
+    ) -> Option<i32> {
+        if enter_cost(start.0, start.1).is_none() || enter_cost(goal.0, goal.1).is_none() {
+            return None;
+        }
+        let idx = |x: i32, y: i32| (y * w + x) as usize;
+        let mut dist = vec![i64::MAX; (w * h) as usize];
+        dist[idx(start.0, start.1)] = 0;
+        // Relax until fixpoint — tiny grids only.
+        for _ in 0..(w * h) {
+            let mut changed = false;
+            for y in 0..h {
+                for x in 0..w {
+                    let d = dist[idx(x, y)];
+                    if d == i64::MAX {
+                        continue;
+                    }
+                    for (dx, dy) in DIRS {
+                        let (nx, ny) = (x + dx, y + dy);
+                        if nx < 0 || ny < 0 || nx >= w || ny >= h {
+                            continue;
+                        }
+                        let enter = match enter_cost(nx, ny) {
+                            Some(c) if c >= 0 => c,
+                            _ => continue,
+                        };
+                        let diagonal = dx != 0 && dy != 0;
+                        if diagonal
+                            && (enter_cost(x + dx, y).is_none() || enter_cost(x, y + dy).is_none())
+                        {
+                            continue;
+                        }
+                        let step = enter * if diagonal { COST_DIAG } else { COST_ORTHO };
+                        let cand = d + step as i64;
+                        if cand < dist[idx(nx, ny)] {
+                            dist[idx(nx, ny)] = cand;
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            if !changed {
+                break;
+            }
+        }
+        let g = dist[idx(goal.0, goal.1)];
+        if g == i64::MAX {
+            None
+        } else {
+            Some(g as i32)
+        }
+    }
+
+    #[test]
+    fn min_cost_matches_brute_force_oracle() {
+        let mut rng = crate::rng::SplitMix64::new(0xC057);
+        for _ in 0..200 {
+            let (w, h) = (8, 8);
+            // Random cost field: 30% walls(None), else cost 1..=6.
+            let cells: Vec<Option<i32>> = (0..w * h)
+                .map(|_| {
+                    if rng.below(10) < 3 {
+                        None
+                    } else {
+                        Some(rng.range(1, 7))
+                    }
+                })
+                .collect();
+            let mut enter = |x: i32, y: i32| -> Option<i32> {
+                if x < 0 || y < 0 || x >= w || y >= h {
+                    None
+                } else {
+                    cells[(y * w + x) as usize]
+                }
+            };
+            let start = (rng.range(0, w), rng.range(0, h));
+            let goal = (rng.range(0, w), rng.range(0, h));
+            let oracle = brute_min_cost(w, h, start, goal, &enter);
+            let got = min_cost_path(start, goal, &mut enter);
+            match (got, oracle) {
+                (None, None) => {}
+                (Some((path, cost)), Some(oc)) => {
+                    assert_eq!(cost, oc, "cost mismatch {start:?}→{goal:?}");
+                    // Path endpoints and adjacency.
+                    assert_eq!(path[0], start);
+                    assert_eq!(path[path.len() - 1], goal);
+                    for win in path.windows(2) {
+                        let d = (win[1].0 - win[0].0).abs() + (win[1].1 - win[0].1).abs();
+                        assert!((1..=2).contains(&d), "non-adjacent step");
+                    }
+                    // Path cost must equal the returned cost.
+                    let mut check = 0i32;
+                    for win in path.windows(2) {
+                        let e = enter(win[1].0, win[1].1).unwrap_or(0);
+                        let diag = win[1].0 != win[0].0 && win[1].1 != win[0].1;
+                        check += e * if diag { COST_DIAG } else { COST_ORTHO };
+                    }
+                    assert_eq!(check, cost);
+                }
+                (a, b) => panic!(
+                    "reachability mismatch: got {:?} vs oracle {:?}",
+                    a.is_some(),
+                    b
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn min_cost_prefers_cheap_floor_over_wall_tunnel() {
+        // 9x5 field: all walls cost 100, a pre-carved horizontal corridor
+        // costs 1. A→B should detour through the corridor, not dig straight.
+        let enter = |x: i32, y: i32| -> Option<i32> {
+            if x < 0 || y < 0 || x >= 9 || y >= 5 {
+                return None;
+            }
+            if y == 2 {
+                Some(1) // existing corridor row
+            } else {
+                Some(100)
+            }
+        };
+        let (path, cost) = min_cost_path((0, 2), (8, 2), enter).unwrap();
+        // Already in the corridor: stays on it.
+        assert_eq!(cost, 8 * COST_ORTHO);
+        assert!(path.iter().all(|&(_, y)| y == 2));
+        // Off-corridor start: cheaper to join the corridor than dig straight
+        // through 100-cost walls. Digging straight would cost ~6 ortho +
+        // ~2 diagonal wall entries ≈ 8800; the corridor detour digs only the
+        // stub in and out.
+        let (path2, cost2) = min_cost_path((1, 0), (7, 4), enter).unwrap();
+        assert!(cost2 < 5000, "must not dig straight: {cost2}");
+        // And it must actually route along the cheap corridor row.
+        let corridor_steps = path2.iter().filter(|&&(_, y)| y == 2).count();
+        assert!(
+            corridor_steps >= 5,
+            "path must use the corridor row, got {corridor_steps}: {path2:?}"
+        );
+    }
+
+    #[test]
+    fn min_cost_never_cuts_corners() {
+        // Narrow U: only diagonal entry to the pocket, must be refused.
+        let walls: HashSet<(i32, i32)> = [(1, 0), (0, 1)].into_iter().collect();
+        let enter = move |x: i32, y: i32| -> Option<i32> {
+            if x < 0 || y < 0 || x >= 4 || y >= 4 || walls.contains(&(x, y)) {
+                None
+            } else {
+                Some(1)
+            }
+        };
+        // (0,0)→(1,1): diagonal blocked since both orthos are walls.
+        assert!(min_cost_path((0, 0), (1, 1), enter).is_none());
+        // With only (0,1) open the diagonal is still refused — the rule needs
+        // BOTH orthos. The path detours orthogonally instead: 10 + 10 = 20.
+        let enter2 = move |x: i32, y: i32| -> Option<i32> {
+            if x < 0 || y < 0 || x >= 4 || y >= 4 || (x, y) == (1, 0) {
+                None
+            } else {
+                Some(1)
+            }
+        };
+        let (path, cost) = min_cost_path((0, 0), (1, 1), enter2).unwrap();
+        assert_eq!(cost, 2 * COST_ORTHO);
+        assert_eq!(path, vec![(0, 0), (0, 1), (1, 1)]);
+        // Both orthos open → the diagonal is allowed at 14.
+        let open = |x: i32, y: i32| -> Option<i32> {
+            if x < 0 || y < 0 || x >= 4 || y >= 4 {
+                None
+            } else {
+                Some(1)
+            }
+        };
+        let (path2, cost2) = min_cost_path((0, 0), (1, 1), open).unwrap();
+        assert_eq!(cost2, COST_DIAG);
+        assert_eq!(path2, vec![(0, 0), (1, 1)]);
+    }
+
+    #[test]
+    fn min_cost_start_goal_edge_cases() {
+        let enter = |x: i32, y: i32| -> Option<i32> {
+            if x < 0 || y < 0 || x >= 5 || y >= 5 {
+                None
+            } else {
+                Some(1)
+            }
+        };
+        assert_eq!(
+            min_cost_path((2, 2), (2, 2), enter),
+            Some((vec![(2, 2)], 0))
+        );
+        // Blocked start/goal → None.
+        let enter2 = |x: i32, y: i32| -> Option<i32> {
+            if (x, y) == (0, 0) || x < 0 || y < 0 || x >= 5 || y >= 5 {
+                None
+            } else {
+                Some(1)
+            }
+        };
+        assert!(min_cost_path((0, 0), (3, 3), enter2).is_none());
+        // Zero cost cells are allowed and free.
+        let free = |x: i32, y: i32| -> Option<i32> {
+            if x < 0 || y < 0 || x >= 5 || y >= 5 {
+                None
+            } else {
+                Some(0)
+            }
+        };
+        assert_eq!(min_cost_path((0, 0), (4, 4), free).unwrap().1, 0);
+    }
+
+    #[test]
+    fn min_cost_deterministic() {
+        let enter = |x: i32, y: i32| -> Option<i32> {
+            if x < 0 || y < 0 || x >= 12 || y >= 12 {
+                None
+            } else {
+                Some(1 + (x * 7 + y * 13) % 5)
+            }
+        };
+        assert_eq!(
+            min_cost_path((0, 0), (11, 11), enter),
+            min_cost_path((0, 0), (11, 11), enter)
         );
     }
 

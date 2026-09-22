@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -120,6 +120,9 @@
 //! - [`multimap`] — multi-floor dungeon stack (`MultiMap`, `Connector`).
 //! - [`bits`] — LSB-first bit-level wire codec (`BitWriter`/`BitReader`): packed bitfields, ranged integers, and canonical protobuf-style varint+zigzag — the lockstep-netcode packet primitive (Gaffer serialization strategies) the byte-oriented [`savefile`] container doesn't cover.
 //! - [`voronoi`] — exact nearest-seed spatial partition (`voronoi_partition`, `voronoi_flood` through passable terrain) and `mst_edges` (Kruskal MST): the scatter → territory → connectivity procgen pipeline — pairs with [`mapgen::poisson_disc`].
+//! - [`delaunay`] — Bowyer–Watson integer triangulation (`delaunay`, `delaunay_edges`): the "connect nearby rooms" primitive that makes corridor carving organic instead of tree-like (TinyKeep-style).
+//! - [`hexgrid`] — axial hex-grid math (redblobgames formulation): distance, lines, rings, spirals, offset conversion — six-neighbor maps for hex-Civ boards and hex WFC.
+//! - [`maze`] — Wilson's algorithm uniform random spanning trees rendered into [`mapgen::Dungeon`] walls: perfect mazes (exactly one path between any two cells) for roguelike cave-ins and puzzle floors.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -171,6 +174,7 @@ pub mod cmdqueue;
 pub mod combat;
 pub mod content;
 pub mod damage;
+pub mod delaunay;
 pub mod diag_json;
 pub mod dialogue;
 pub mod dice;
@@ -186,6 +190,7 @@ pub mod fixed;
 pub mod fov;
 pub mod fsm;
 pub mod geometry;
+pub mod hexgrid;
 pub mod hfsm;
 pub mod hud;
 pub mod identify;
@@ -196,6 +201,7 @@ pub mod keymap;
 pub mod lightmap;
 pub mod loader;
 pub mod mapgen;
+pub mod maze;
 pub mod menu;
 pub mod meta;
 pub mod msglog;

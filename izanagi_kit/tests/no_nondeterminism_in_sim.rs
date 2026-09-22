@@ -60,8 +60,9 @@ fn allowed() -> BTreeMap<&'static str, (usize, &'static str)> {
     m.insert(
         "pathfinding.rs",
         (
-            37,
-            "search bookkeeping (visited/came_from/g_score) is lookup-only; \
+            41,
+            "search bookkeeping (visited/came_from/g_score, including \
+             min_cost_path's two maps) is lookup-only; \
               the two maps that *are* iterated handle order explicitly — \
               farthest_cell breaks ties on a row-major total order, and the \
               flee rescan sorts its cell list before relaxing",
