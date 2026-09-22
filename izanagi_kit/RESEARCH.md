@@ -1247,3 +1247,34 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Reed & Solomon (1960) / Ferragina & Manzini (FOCS 2000, FM-index) / Davis, Putnam, Logemann & Loveland (1960, 1962) / AES 有限体 `0x11B` (FIPS-197) / Dial (1969, bucket shortest path)。
 
 **実装物**: cp-algorithms(0-1 BFS・Dial・DPLL・GF(2^8) 演算) / Backblaze の Reed–Solomon 解説(k+m coding matrix) / Qiita・Zenn の RS 符号・FM-index・0-1 BFS・DPLL 解説記事群。
+
+# 第26次: 区間クエリ・重心分解・本文バッファ・Steiner 近似・先行書き込みログ
+
+> 永続化とクエリ構造の残存層。第25次の見送り表から `piecetable` を引き上げ(本ラウンドで実装)、残りの cuckoo/linkcut/sais は引き続き需要観察。
+> PR #28–#41 は本ラウンド時点で open — 本ブランチは #41 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `intervaltree` — centered interval tree | 計算幾何定石(cp-algorithms / CGAL Interval_tree): pivot は端点スパンの**中点** — 端点 median だと葉の `hi` と一致して停止しないことがある(単一区間 (0,3) で pivot=3 が hi≤pivot に再帰し続ける再現 bug)。`by_lo` 昇順・`by_hi` 降順で stab は条件側のみ線形走査 + 部分木 1 方向。`overlap(l,l)` は `stab(l)` に退化、`l>r` は失敗閉鎖空 — 集合論的意味論を文書化して oracle を一致させた。300 反復 naive 照合 | 🟢 純粋追加 |
+| `centroid` — centroid decomposition | 競プロ定石: 各除去が成分を ≤半分に分割する分解木(深さ ≤ ceil(log2 n))。木以外の入力では DFS `sizes` に `seen` が必須 — `w != par[u]` は直近の親しか排除せず閉路で無限ループする bug を 4-cycle で再現・修正。`find` の重側歩行も spanning-tree 辺のみに限定して停止性を保証(非木辺の `sz` は別側に計上済み)。全頂点で除去後 piece ≤ half の oracle 照合 + 深さ上界 + `lca` 祖先列検証 | 🟢 純粋追加 |
+| `piecetable` — piece table | Crowley (1998, "Data Structures for Text Sequences"): 不変 `original` + append-only `added` + piece 列の三段構造 — エディタ定石を sim スケールに適用。`insert` は包含 piece の split、`delete` は両端点 trim + 隣接 coalesce で piece 数膨張を抑制。Vec::splice/drain を oracle に 300 反復の乱択 op 列で完全一致 + out-of-range 拒否 | 🟢 純粋追加 |
+| `steiner` — Steiner 2-近似 | Kou–Markowsky–Berman (1981): 終端間最短路の metric closure → MST → 経路展開 → union の MST で cycle prune(重みは単調非増)。2·opt 保証は「最適木の Euler 巡回のショートカット巡回 ≤ 2·opt ≥ closure MST」。oracle は Dreyfus–Wagner 厳密 DP(部分集合 DP + 行毎 multi-source Dijkstra で `O(3^k n + 2^k n²)`)— `opt ≤ w ≤ 2·opt` 300 乱数照合 + |E|=|V|−1 の tree 検証 | 🟢 純粋追加 |
+| `wal` — write-ahead log | SQLite WAL / Aries: `[kind|len|crc|payload]` レコード、crc は `"walv1" ‖ kind ‖ len ‖ payload` の domain 分離 Fnv1a。replay は**先頭からの正当 prefix** semantics — torn/corrupt レコードで停止し `stopped_at` を返す(以降のオフセット desync で全て信用不能)。全 cut 位置で `clean ⟺ stopped_at == cut`、payload/kind の bit-flip で prefix 拒否、`truncate(stopped_at)` で修復を検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Link-cut tree | — | 動的木パスクエリ。`centroid`+`hld`+`dsurb` で静的/undo/分解の三層は充足 — 全動的は依然待ち |
+| SA-IS induced sorting | — | `suffix` prefix-doubling + `fmidx` で需要カバー |
+| Cuckoo / SwissTable | — | open-addressing ハッシュ表の需要は引き続き薄い(DetHash+BTreeMap が担う) |
+| Rope | — | `piecetable` がテキストバッファ需要をカバー。永続 rope は別軸で引き続き候補 |
+| Planarity testing | — | `delaunay`+`biconn`+`poly` で部分的需要は充足。完全 planarity は実装規模が大きい |
+
+## 出典(第26次、search-index 照合)
+
+**論文・仕様**: Kou, Markowsky & Berman (1981, Steiner 2-approx) / Dreyfus & Wagner (1971, exact Steiner DP) / Crowley (1998, piece table) / SQLite WAL 設計 / cp-algorithms(centroid decomposition・interval tree・0-1 BFS 系)。
+
+**実装物**: cp-algorithms / CGAL Interval_tree 参照設計 / Qiita・Zenn の重心分解・Steiner 木・piece table・WAL 解説記事群。

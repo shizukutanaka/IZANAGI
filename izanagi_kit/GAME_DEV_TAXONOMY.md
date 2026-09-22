@@ -141,6 +141,11 @@
 - J65 副線形文字列検索(生成テキストの `count`/`locate` — O(m) で全出現)✅ `fmidx`（巡回 BWT 上の FM-index — C 表 + 32 行毎の Occ チェックポイント + 完全 SA。巡回一致(パターンが末尾→先頭へ wrap)を文書化した semantics。naive 巡回照合 oracle 全パターン照合）
 - J66 微小重み最短路(0/1 通行コスト・小容量グリッド — Dijkstra の heap 不要領域)✅ `zerobfs`（`zero_one_bfs` は VecDeque 両端、`dial` は `cap·(n−1)` バケット配列 — 申告 `cap` を超える辺は失敗閉鎖 None。`bellman` 最短距離 oracle 600 乱数照合）
 - J67 充足可能性判定(パズル規則・配置制約・desync 監査の CNF 判定)✅ `dpll`（DPLL — unit propagation + pure-literal 除去の不動点 + 最小変数 split で canonical model(未設定変数は false)。`solve` は `(clauses)` の純関数。2^n 全割当 brute-force oracle で satisfiability + model 検証を照合）
+- J68 区間クエリ(当たり判定窓・時刻区間の stab/overlap — [lo,hi) 半開の中心点木)✅ `intervaltree`（centered interval tree — pivot は端点スパンの中点で必ず ≥1 区間を厳密に横断(終端保証)。`by_lo` 昇順/`by_hi` 降順の二方向リストで stab は 1 側のみ走査、overlap は straddle 時のみ両側下降。`l==r` は stab 退化 semantics、naive 全区間列挙 oracle 300 照合）
+- J69 木の経路/距離クエリ前処理(重心分解 — 各除去が成分を半分以下に分割する O(log n) 深さ)✅ `centroid`（centroid decomposition — `parent`/`children`/`depth`/`order`/`roots` + 重心木 `lca`。`sizes` は seen 付き iterative DFS、`find` は spanning-tree 辺のみ歩く重側移動で停止保証。任意木で全除去点の分割サイズ ≤ half を oracle 検証 + 深さ ≤ ceil(log2 n)）
+- J70 大きい本文バッファ編集(スクリプト・ログ・シリアライズ状態の insert/delete — piece table)✅ `piecetable`（Crowley 1998 — 不変 `original` + append-only `added` + 片持ちリストの三段構造。`insert` は added 追記 + 包含 piece の split、`delete` は端点 trim + 中間 drop + 隣接 coalesce。`O(#pieces)` locate で Vec splice oracle 300 反復照合）
+- J71 多点接続木の近似(中立点 Steiner — ネットワーク配線・リソース接続の最小木)✅ `steiner`（Kou–Markowsky–Berman 2-近似 — 終端間最短路の metric closure → Kruskal MST → 経路展開 → 残 MST で cycle prune。Dreyfus–Wagner 厳密解 oracle(k≤5)で `opt ≤ w ≤ 2·opt` を 300 乱数照合 + tree 形状検証）
+- J72 ジャーナル永続化(WAL — 書換え前の append-only 記録、torn tail 耐性)✅ `wal`（`[kind|len|crc|payload]` レコード、crc は domain 分離 Fnv1a。replay は truncated/corrupt レコードで停止し `stopped_at` オフセットを返す torn-tail 耐性 semantics — 全 cut で clean ⟺ 境界位置を検証、bit-flip で以降拒否、truncate で破損除去）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`

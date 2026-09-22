@@ -238,6 +238,11 @@ The capability map — with per-feature implementation status — lives in
 | `fmidx` | `FmIndex` — FM-index over a cyclic BWT: `count`/`locate`/`range` via `C` table + spaced `Occ` checkpoints + full suffix array. |
 | `zerobfs` | `zero_one_bfs` / `dial` — linear-ish shortest paths for `{0,1}` and small-cap weights; `Option<Vec<Option<u32>>>` distances, `bellman`-compatible. |
 | `dpll` | `solve` — DPLL SAT over CNF: unit propagation, pure-literal elimination, smallest-variable split; canonical models (unset vars = `false`). |
+| `intervaltree` | `IntervalTree` — centered interval tree: `stab` (point) and `overlap` (range) queries over `[lo,hi)` spans; `u32` results sorted ascending. |
+| `centroid` | `Centroid` — centroid decomposition of a forest: `parent`/`children`/`depth`/`order`/`roots` plus centroid-tree `lca`; depth `<= ceil(log2 n)` guaranteed. |
+| `piecetable` | `PieceTable` — editor-style text buffer: immutable `original` + append-only `added` + piece list; `insert`/`delete`/`get`/`to_bytes`. |
+| `steiner` | `steiner_tree` — Kou–Markowsky–Berman 2-approx Steiner tree: metric closure -> terminal MST -> path unfolding -> cycle prune. |
+| `wal` | `Wal` + `decode` — write-ahead log codec: `[kind|len|crc|payload]` records, Fnv1a checksums, torn-tail-tolerant replay (`Decoded.stopped_at`). |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
