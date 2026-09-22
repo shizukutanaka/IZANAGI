@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — indexed queues, persistent trees, checksums, tree search, generational handles
+
+- `iheap` — `IHeap`: indexed binary heap — key-addressed `set`/`decrease`/`increase`/`remove`, canonical `(priority, key)` pop order
+- `pstree` — `PersistentTree`: chairman persistent segment tree — version roots per prefix, `kth`/`freq`/`range_count` over any slice
+- `crc` — `crc32`/`Crc32`: streaming IEEE CRC-32 — chunk-invariant, detects every single-bit flip
+- `mcts` — `mcts`: seeded UCB1 Monte-Carlo tree search over `minimax::Game` — integer-only statistics, pure function of `(position, budget, seed)`
+- `slotmap` — `Slotmap`: generational `u64` handle store — stale handles structurally rejected, canonical slot-order iteration
+
 ### Added — membership filters, caches, weighted sampling, spatial index, array-to-tree bridge
 
 - `xorfilter` — `XorFilter`: static xor filter (Graf & Lemire) — ~0.4% false-positive rate, zero false negatives for baked-in keys, deterministic BFS-peel construction with automatic seed retry
