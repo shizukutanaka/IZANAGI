@@ -433,6 +433,27 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — set similarity, Z-scan, signed shortest paths, rationals, window aggregates
+- **`minhash`** — MinHash similarity signatures: `k` independent seeded
+  minima per set; `estimate` returns Jaccard in permille (error ~ `1/√k`,
+  no floats), `union` merges positionwise, and `jaccard_exact` ships as a
+  public sorted-merge oracle for verification.
+- **`zfunc`** — Z-algorithm prefix-match array in `O(n)`: `z` per-position
+  prefix-match lengths, `z_search`/`z_search_bytes` substring search via
+  `pat+sep+text` (falls back to naive scan when the separator byte appears
+  in either side), `borders`, `min_period`.
+- **`bellman`** — Bellman–Ford single-source shortest paths with signed
+  edges (`O(V·E)`): returns `None` when a negative cycle is reachable;
+  `negative_cycle` connects a super-source to return an actual cycle's
+  vertex list. Extends `pathfinding` to the negative-weight domain.
+- **`frac`** — `Frac` normalized `i128` rationals: `gcd=1, den>0` kept
+  structurally so equality is value equality; `+`/`-`/`*`/`÷`(Option),
+  compare, `abs`, `neg`, `split_mixed`. The user-facing counterpart of
+  `gauss`/`bezier`'s internal fractions.
+- **`slide`** — `slide_min`/`slide_max` monotonic-deque sliding-window
+  extrema in `O(n)` — `segtree`'s range answer compressed to linear when
+  the range slides by one.
+
 ### Added — summary sketches, rendezvous hashing, adaptive dictionary compression
 
 - **`kmv`** — `Kmv::new`/`add`/`add_hash`/`estimate`/`merge`: K-minimum-
