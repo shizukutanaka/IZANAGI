@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -73,6 +73,21 @@
 //! - [`diff`] — Myers `O(ND)` minimal edit scripts (`diff`, `hunks`,
 //!   `apply`) plus `levenshtein` / `lcs_len` — field-level diffs for
 //!   desync reports and `did-you-mean` diagnostics.
+//! - [`trie`] — byte trie with `BTreeMap` children: byte-lexicographic
+//!   `keys`/`keys_with_prefix` listings, the did-you-mean candidate
+//!   source paired with `diff::levenshtein`.
+//! - [`segtree`] — `SegTree` range min/max/sum over `i64` with point
+//!   `set`: `O(log n)` sliding-window aggregates where `fenwick` only
+//!   does prefix sums.
+//! - [`bipartite`] — `hopcroft_karp` `O(E·√V)` maximum bipartite
+//!   matching (plus a `kuhn_match` parity oracle) — unweighted
+//!   unit↔job pairing, complementing `hungarian`'s weighted version.
+//! - [`tsp`] — deterministic tour heuristics (`nn_tour` seed,
+//!   `tsp_2opt` first-improvement descent, `tour_cost`) with
+//!   canonicalized rotation/orientation — patrol and visit-all routes.
+//! - [`rle`] — run-length coding (`encode`/`decode`,
+//!   `encode_u32`/`decode_u32`): the cheapest lossless layer before
+//!   `bits` wire packing; malformed input decodes to `None`.
 //! - [`mapgen`] — seed-driven procedural dungeon generation (rooms, cellular caves, BSP, drunkard's-walk, Bridson Poisson-disc scatter; deterministic).
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`) + farthest-cell stair placement (`farthest_cell`), O(1) reachability via precomputed connected components (`ConnectivityMap`), auto-explore.
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
@@ -204,6 +219,7 @@ pub mod arch;
 pub mod assets;
 pub mod autotile;
 pub mod behavior;
+pub mod bipartite;
 pub mod bits;
 pub mod calendar;
 pub mod camera;
@@ -272,10 +288,12 @@ pub mod recipe;
 pub mod recovery;
 pub mod relations;
 pub mod replay;
+pub mod rle;
 pub mod rng;
 pub mod rng_xoshiro;
 pub mod rollback;
 pub mod savefile;
+pub mod segtree;
 pub mod serializer;
 pub mod shop;
 pub mod shrink;
@@ -291,7 +309,9 @@ pub mod threat;
 pub mod tilemap;
 pub mod timer;
 pub mod timestep;
+pub mod trie;
 pub mod trigger;
+pub mod tsp;
 pub mod turn;
 pub mod tween;
 pub mod validator;

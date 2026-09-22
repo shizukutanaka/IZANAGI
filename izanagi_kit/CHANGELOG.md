@@ -201,6 +201,39 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   did-you-mean diagnostics. Oracle-checked: applied scripts reproduce
   the target and edit counts hit the `n+m−2·lcs` minimum.
 
+### Added — prefix dictionaries, range aggregates, matchings, tours, compaction
+
+- **`trie`** — byte trie with `BTreeMap` children (`insert`, `remove`,
+  `contains`, `starts_with`, `keys`, `keys_with_prefix`) — every listing
+  is byte-lexicographic, a pure function of the key set. The
+  did-you-mean candidate source paired with `diff::levenshtein`.
+  Oracle-checked against a `BTreeSet` model through random
+  insert/remove/prefix sequences.
+- **`segtree`** — `SegTree` range min/max/sum over `i64` with point
+  `set`; `range_stats` returns all three aggregates in one `O(log n)`
+  walk. Covers arbitrary windows where `fenwick` only answers prefix
+  sums. Oracle-checked against brute-force interval scans on random
+  update/query mixes.
+- **`bipartite`** — `hopcroft_karp` `O(E·√V)` maximum bipartite matching
+  plus `kuhn_match`, a naive augmenting-path implementation kept as the
+  parity oracle. Unweighted unit↔job pairing, complementing
+  `hungarian`'s weighted assignment. Sizes agree with the oracle on 300
+  random graphs; matched edges verified present in `adj` with no right
+  node reused.
+- **`tsp`** — deterministic tour heuristics: `nn_tour` nearest-neighbour
+  construction and `tsp_2opt` first-improvement descent on an `i64`
+  matrix, canonicalized to city 0 start with `tour[1] < tour[n−1]`
+  orientation; `tour_cost` validates the permutation. Patrol routes and
+  visit-all missions. Oracle-checked: 2-opt never worse than the NN
+  seed, and hits the brute-force optimum on the large majority of
+  n ≤ 8 instances.
+- **`rle`** — run-length coding: `encode`/`decode` over `(count, byte)`
+  pairs (255+ runs split automatically) plus `encode_u32`/`decode_u32`
+  for integer streams. The cheapest lossless compaction layer before
+  `bits` wire packing; malformed input (odd length, zero count) decodes
+  to `None` rather than panicking. Round-trip exact on random
+  run-heavy models.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded

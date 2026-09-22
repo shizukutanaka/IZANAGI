@@ -709,3 +709,35 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文**: Fenwick (IBM J. Res. Dev. 1979) / Aho & Corasick (CACM 1975) / Myers (Algorithmica 1986) / Douglas & Peucker (Cartographica 1973) / Andrew (IPL 1979 monotone chain) / Eberly ear-clipping 実装系。
 
 **実装物**: cp-algorithms fenwick・hungarian・aho-corasick ページ / Wikipedia "Ramer–Douglas–Peucker"・"Myers diff"・"point in polygon"・"convex hull" / Qiita・Zenn の BIT・耳切り三角分割・Aho-Corasick 記事群。
+
+# 第10次: 外部出典サーベイ — 前置辞書・範囲集約・二分マッチング・巡回経路・走長圧縮 (2026-09-22)
+
+> taxonomy 残存ギャップは依然全て意図的スコープ外のため、クエリ構造・割当・経路計画・
+> 圧縮の定石アルゴリズムを継続棚卸し。5系統実装。PR #23/#24 は本ラウンド着手前に
+> main へマージ済み — 本ブランチは第9次 PR #25 の tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `trie` — byte 前置辞書 | 古典的 trie (Fredkin 1960 / Knuth TAOCP §6.3)。`ahocor` が multi-pattern *走査* を担うのに対し、こちらは *集合の辞書順列挙* — `keys_with_prefix` が `diff::levenshtein` の did-you-mean 候補源。子遷移は BTreeMap で listings は常に byte 辞書順(挿入順非依存)。BTreeSet 参照モデルと insert/remove/prefix 列挙の同値を乱数検証 | 🟢 純粋追加 |
+| `segtree` — 範囲 min/max/sum | 反復 bottom-up segment tree(cp-algorithms 系レイアウト — size=次冪、葉は `size+i`)。fenwick が prefix-sum のみを担うのに対し任意窓集約 — `range_stats` が 1 walk で (min,max,sum) を同時返却。200 系のランダム update/query 系列をブルートフォース区間走査と全一致検証 | 🟢 純粋追加 |
+| `bipartite` — Hopcroft–Karp 二分最大マッチング | Hopcroft & Karp (SIAM J. Comput. 1973) — BFS layered graph + DFS augment で O(E·√V)。`hungarian`(加重 n≤m)の非加重版として補完。`kuhn_match` 素朴増広路を parity oracle として併載し 300 ランダムグラフでサイズ一致、matched edge の adj 存在・right 一意性を不変検証 | 🟢 純粋追加 |
+| `tsp` — NN + 2-opt 巡回経路 | nearest-neighbour 構築 + 2-opt (Croes 1958) first-improvement descent。結果は city 0 始点・`tour[1] < tour[n-1]` で canonical 化(逆巡回を同一視)。全 tie-break は index 規則 → 行列のみの純関数。n≤8 のブルートフォース最適との hit-rate 計測 + 2-opt≤NN の不変検証 | 🟢 純粋追加 |
+| `rle` — 走長符号 | `(count:u8, value)` pair の古典 RLE — `bits` wire codec 直前の最安ロスレス層。255+ run は自動分割。zero-count・奇数長は encode が生成し得ないため `decode → None` が構造的 authenticity 検査として機能。run-heavy 乱数モデルで往復完全一致 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| kd-tree 最近傍クエリ | Bentley 1975 | `zorder::spatial_sort` + `spatial_hash` が空間クエリをカバー。真の kNN は需要が出れば |
+| Stoer–Wagner global min-cut | 1997 | `flow::min_cut` が s-t 切断をカバー。全域最小カットは解析用途が薄い |
+| Yen k-最短路 | 1971 | 第9次と同じ判断 — `weighted_astar` + 障害追加で近似的に足りる |
+| LZW / Huffman | 1977/1952 | `rle` が盤面圧縮の 80% をカバー。本格符号は wire 帯域が課題になれば |
+| Bloom filter | 1970 | 確率的 membership は「偽陽性率が seed に依存」= replay 公理と微妙に緊張。trie/BTreeSet で厳密に足りる |
+
+## 出典(第10次、search-index 照合)
+
+**論文**: Hopcroft & Karp (SIAM J. Comput. 1973) / Croes (Operations Research 1958, 2-opt) / Fredkin (CACM 1960, trie memory) / Bentley (CACM 1975, kd-tree — 見送り評価用) / Fenwick 系文献の segment-tree 比較。
+
+**実装物**: cp-algorithms segment tree(iterative 系)・Hopcroft–Karp・Kuhn ページ / USACO guide matching・segtree / Wikipedia "2-opt"・"run-length encoding"���"trie" / Qiita・Zenn の seg-tree・二分マッチング・巡回セールスマン記事群。
