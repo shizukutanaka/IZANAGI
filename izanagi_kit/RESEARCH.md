@@ -1141,3 +1141,37 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Blumer, Blumer, Haussler, Ehrenfeucht, Chen & Seiferas (1985, DAWG) / Held & Karp (1962, TSP DP) / Bellman (1962) / Knuth (2000, Algorithm X / dancing links) / Edmonds (1967) & Chu–Liu (1965) optimum branchings / cp-algorithms xor-basis k-th element 構成。
 
 **実装物**: cp-algorithms(SAM・xor basis・Edmonds DMST) / KACTL(FastDlx・DFSMatching・DirectedMST 系の形) / emaxx(suffix automaton) / Qiita・Zenn の SAM・Held–Karp・Algorithm X・最小費用有向全域木・xor basis 解説記事群。
+
+# 第23次サーベイ — 回文構造・オフライン区間・矩形最大化・安定割当・重み付き連結
+
+> 「回文の全構造を1本で」(eertree)、「区間クエリを窓ソートで一括に」(mo)、
+> 「最大矩形は」(histrect)、「相互指名の衝突しない割当は」(stable)、
+> 「相対差の矛盾しない連結は」(wdsu) — 前回見送りに挙げた eertree・
+> Gale–Shapley を含む、残存の定石クエリ/制約層。
+> PR #28–#38 は本ラウンド時点で open — 本ブランチは #38 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `eertree` — palindromic tree | Rubinchik & Shur 2015 / eertree.org。IMAG(len=−1)根を「常に遷移可能」(`l < 0 || text[i−l−1] == c`)として設計しないと suffix-link 探索が停止しない — 省略すると無限ループ。`occ` は各位置の最長接尾辞回文のみ +1、`finish` で len 降順に link へ伝播すると総出現数。`node_of(pat)` は中心から1文字ずつ遷移を辿る(2文字消費は遷移誤り)。BTreeSet 全回文列挙・naive 最長回文 oracle 照合 | 🟢 純粋追加 |
+| `mo` — Mo's オフライン区間クエリ | 競プロ定石(cp-algorithms / emaxx)。`isqrt` を整数二分で実装(f64 禁止)。ソートキー `(l/block, b%2==0 ? r : !r, i)` の蛇行で窓移動量を削減。カウンタは値が大きいと Vec が爆発するため `BTreeMap<u32,u32>` + `distinct` で駆動、窓端 `ql.min(n)`/`qr.clamp` を構造的に丸める。全区間 brute-force 照合 | 🟢 純粋追加 |
+| `histrect` — ヒストグラム/0-1 行列最大矩形 | 競プロ定石(monotone stack)+ maximal rectangle via running heights。「右端に仮想 h=0 を供給して残スタックを全 flush」「左端は pop 後の `stack.last()+1` でピアノの蓋の向こうまで伸びる」二つの定石。行毎に高さを更新して same 関数へ流す max-rectangle が標準解法。O(n³) 全ペア最小高・列ラン全真 oracle 照合 | 🟢 純粋追加 |
+| `stable` — Gale–Shapley 安定結婚 | Gale & Shapley 1962。提案者側最適は提案順に依らず一意 — 提案キューの discipline が結果に影響しないことを乱数順列で確認。`is_stable` は blocking-pair 不存在の独立述語(全 (m,w) で双方向優先度を検査)。n≤5 の全順列安定マッチング枚挙 oracle で man-optimality を照合 | 🟢 純粋追加 |
+| `wdsu` — 重み付き union-find | 差分制約 DSU(cp-algorithms / 競プロ potential UF)。`weight[x] = pot[x]−pot[parent[x]]`、find の経路圧縮で `weight[x] += weight[p]` を伝播。attach は `weight[ru] = rel[v] − rel[u] − w`(ru を rv 下に)または対称式 — 符号を両 attach 方向で検算。`unite` は矛盾を検出して false(成分不変) — `dsurb` の undo 系と別軸。自己辺 (u,u,w) は w=0 でのみ受理 — オラクルが自己辺を「常に受理」と誤読する bug を捕捉。独立成分リプレイ oracle 全クエリ照合 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Dominators (Cooper iterative) | — | CFG/dominator 需要が依然弱い。`graph` 系の制御構造が必要になった時点で |
+| Rope / piece table | — | エディタ用文字列構造。`bits`/`delta` 層とは別軸で大きい — 別ラウンド候補 |
+| 2D Fenwick | — | `fenwick` 1-D + `segtree` で矩形クエリは擬似的に書ける。真の 2-D BIT はグリッド集約需要が出てから |
+| Cuckoo hashing | — | ハッシュ表の決定性は DetHash 層と別の用途。必要性が薄い |
+| Circulation (lower-bound flow) | — | `mcflow` が費用流をカバー。下界付き輸送は需要が出てから |
+
+## 出典(第23次、search-index 照合)
+
+**論文・仕様**: Rubinchik & Shur (2015, eertree) / Mo's algorithm (競プロ区間クエリ定石) / Gale & Shapley (1962, College Admissions) / weighted/potential union-find (差分制約 DSU) / monotone-stack largest-rectangle 定石。
+
+**実装物**: cp-algorithms(eertree・Mo・potential DSU・largest rectangle) / eertree.org(オンライン構築手順) / emaxx / Qiita・Zenn の eertree・Mo's・Gale–Shapley・重み付きUF・ヒストグラム最大矩形解説記事群。
