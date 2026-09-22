@@ -96,6 +96,11 @@
 - J25 頻度推定スケッチ（巨大 key 空間の到着回数 — packet rate・loot 履歴・hot-cell 検出）✅ `cms`（count-min sketch — `depth×width` カウンタ行列、行ごとに独立 seed hash、estimate=min で片方向誤りのみ（衝突は足すだけ = 決して過小評価しない）。merge は要素和、次元/seed 不一致は `None` で拒否。片方向性・合併=単一ストリーム一致・経験過剰境界を乱数検証）
 - J26 ε近似分位数（レイテンシ・ダメージ分布の省メモリ要約 — p50/p99 監査）✅ `quantile`（Greenwald–Khanna 2001 — `(v,g,δ)` タプル列 + 周期的 compact で `O((1/ε)log εn)` メモリ、全て整数演算。query は `|真の順位 − φ·n| ≤ ε·n` を保証、端点は δ=0 で厳密。ソート済み真値との全十分位順位境界一致・小ストリーム厳密性・退化引数を乱数検証）
 - J27 一貫ハッシュ割当（shard→peer の最小移動割当・レプリケーション群・coordinator 不要の決定的分割）✅ `chash`（rendezvous/HRW hashing — `argmax_n hash(seed,n,key)`、ノード除去でそのノードの key のみが再配置される最小混乱性、順序非依存の canonical tie-break。`pick_top` で上位 r ノード = 複製先。除去時の非移動性・順序不変・pick=top[0]・大域均衡を乱数検証）
+- J28 集合類似度推定（spawn 重複監査・近似 dedup・corpus の近傍クラスタリング）✅ `minhash`（MinHash — `k` 個の独立 seed 最小値を保持、Jaccard 推定は permille で `O(1/√k)` 誤差、浮動小数点なし。`union` は位置別 min で mergeable。sorted merge-join の `jaccard_exact` を内蔵 oracle として公開し 40 試行で `err²·k` 境界を検証）
+- J29 線形文字列走査・周期構造（パターン検索・prefix=suffix・繰返し最小周期）✅ `zfunc`（Z-algorithm — 各位置の「そこからの prefix 一致長」を O(n)。`z_search` は `pat+sep+text` 連結、sep が本文混入のとき naive へ退化する安全弁。`borders`/`min_period` で構造解析。全位置 naive 照合・borders brute-force・周期最小性を乱数検証）
+- J30 負辺最短路・負閉路検出（通貨裁定・資源変換の net-cost・負ゲイン辺を含むグラフ）✅ `bellman`（Bellman–Ford — `O(V·E)` で `pathfinding` の非負辺領域を拡張。extra pass に relax できる辺が残れば到達可能な負閉路で `None`。`negative_cycle` は virtual-source 接続でグラフ全域の負閉路を頂点列で返す。独立 relax オラクル・path 累積重み一致・閉路 sum<0 を乱数検証）
+- J31 正規化有理数算術（確率木・drop rate・分数が厳密のまま残るべきあらゆる場所）✅ `frac`（`Frac` — `(num,den)` を常に gcd=1・den>0 に正規化 = 等値は構造的一致。全演算 `i128` 厳密、掛算は cross-reduce で headroom 確保、`den==0` 生成は clamp・`/0` は `None`。cross-multiply 真値・還元不変条件・`+`/`-`/`*`/`/` 往復を乱数検証）
+- J32 単調デック窓集約（tick 窓の極値 — 直近 w フレームの最悪遅延・巡回回廊の範囲値）✅ `slide`（monotonic deque — `segtree` の O(n log n) を「範囲が 1 ずつ滑る」限定で O(n) に圧縮。`slide_min`/`slide_max` が全窓を一巡で返す。brute-force 全窓照合・単調/退化入力を乱数検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`

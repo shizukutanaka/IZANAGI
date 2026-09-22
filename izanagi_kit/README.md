@@ -198,6 +198,11 @@ The capability map — with per-feature implementation status — lives in
 | `quantile` | `Quantile` — Greenwald–Khanna ε-approximate quantiles: `(v,g,δ)` tuples with periodic compaction; `|true_rank − φ·n| ≤ ε·n` on every answer. |
 | `chash` | `pick`/`pick_top`/`distribution` — rendezvous (HRW) consistent hashing: argmax seeded weight per key; removing a node remaps only its keys. |
 | `lzw` | `encode`/`decode` — LZW phrase-table codec, 12-bit codes on `bits` (dict cap 4096, KwKwK decoder case handled); the wire carries no dictionary — rebuilt in lockstep. |
+| `minhash` | `signature`/`estimate`/`union`/`jaccard_exact` — MinHash similarity signatures: `k` independent seeded minima; Jaccard estimate in permille (error ~ `1/√k`), union mergeable. |
+| `zfunc` | `z`/`z_search`/`z_search_bytes`/`borders`/`min_period` — Z-algorithm prefix-match array in `O(n)`: substring search, border enumeration, smallest period. |
+| `bellman` | `shortest`/`negative_cycle` — Bellman–Ford single-source paths with signed edges (`O(V·E)`); super-source negative-cycle finder returns the actual cycle vertices. |
+| `frac` | `Frac` — normalized `i128` rational (`num`/`den` reduced, `den>0`): exact `+`/`-`/`*`/`÷`/compare/mixed-split; `den==0` clamps, division-by-zero returns `None`. |
+| `slide` | `slide_min`/`slide_max` — monotonic-deque sliding-window extrema in `O(n)` — the `segtree` answer compressed to linear when the range slides by one. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

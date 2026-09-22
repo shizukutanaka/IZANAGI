@@ -977,3 +977,37 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Bar-Yossef et al. (2002, KMV/第k最小値) / Cormode–Muthukrishnan (2005, count-min) / Greenwald–Khanna (2001, quantile sketches) / Thaler–Ravishankar (1998, rendezvous hashing) / Welch (1984, LZW, IEEE Computer) / Kirsch–Mitzenmacher (bloom 引用の双 hashing を cms で再利用)。
 
 **実装物**: cp-algorithms・Wikipedia の GK/Rendezvous/LZW 疑似コード / Redis の HRW 利用対比 / Lucene の KMV 変種対比 / Qiita・Zenn の count-min・GK・LZW 解説記事群 / GIF87a 可変幅コード対比(本実装は固定幅で単純化)。
+
+---
+
+# 第18次 — 類似度・文字列・負辺経路・有理数・窓集約(2026-09-22、第8サイクル)
+
+> 集合が「似ているか」(minhash)、文字列が「どこで一致するか」(zfunc)、
+> 負の利益を持つグラフで「最短は/套利は」(bellman)、分数を「丸めずに」
+> (frac)、滑る窓の「極値を線形で」(slide) — 残った未実装の古典定石層。
+> PR #28–#33 は本ラウンド時点で open — 本ブランチは #33 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `minhash` — MinHash 類似度署名 | Broder 1997 (AltaVista dedup)。`k` 個の独立 seed hash の最小値ベクトル — `P(min_A = min_B) = J(A,B)` を使い signature 一致率が Jaccard 推定量。推定は permille 整数(`err ~ 1/√k`)、`union` は位置別 min で mergeable。内蔵 oracle `jaccard_exact`(sorted merge-join)に対し 40 試行 `err²·k ≤ 9·10⁶` 境界を検証 | 🟢 純粋追加 |
+| `zfunc` — Z-algorithm | Gusfield 1997 / cp-algorithms Z-function。各位置 i の prefix 一致長 z[i] を Z-box 再利用で O(n)。`z_search` は `pat+0xFF+text` 連結 → z[i]==|pat| の位置列、sep 混入時は naive fallback(正しさ保証)。`borders`(prefix=suffix)は z 値の後ろから読み、`min_period` は `z[p]==n−p` の最小 p。全位置 naive・borders brute-force・周期最小性を乱数検証 | 🟢 純粋追加 |
+| `bellman` — Bellman–Ford | Bellman 1958 / Moore 1959。`O(V·E)` で負辺を扱う SSSP — `pathfinding` の非負領域を拡張。n−1 pass 後にまだ relax できる辺 = 到達可能負閉路 → `None`。`negative_cycle` は super-source(全頂点へ 0 辺)で「どこかの」負閉路の頂点列を返す — 通貨裁定・バフ掛け算の非負性検査に直結。独立 relax oracle・path 累積重み一致・閉路 sum<0 を乱数検証 | 🟢 純粋追加 |
+| `frac` — 正規化有理数 | 計算代数系の canonical form(gcd=1・den>0 で等値=構造的一致)。全演算 `i128` 厳密、掛算は cross-reduce(`a/d' × b/d` で gcd 済み同士の積)で桁 headroom 確保 — `bezier`/`gauss` が返す分数と同じ形の user-facing 型版。`den==0` 生成は `0/1` に clamp(total 化)、`/0` は `None`。cross-multiply 真値・還元不変条件・四則往復を乱数検証 | 🟢 純粋追加 |
+| `slide` — 単調デック窓集約 | 競プロ定石(monotone queue)— `segtree` O(n log n) を「窓が 1 要素ずつ滑る」限定で O(n) に圧縮。deque 先頭が常に窓の最良候補、tail から支配される要素を追い出す。直近 w フレームの最悪遅延・巡回経路の極値に。全窓 brute-force 照合・単調/退化入力を乱数検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| SimHash | Charikar 2002 | MinHash が同用途(近似 dedup)を同じメモリで解き、Jaccard の推定値が解釈容易。cosine 類似度用途は bloom 重複で検討余地 |
+| FFT 文字列マッチング(ワイルドカード) | Fischer–Paterson 1974 | `conv` の NTT で原理的には可能だが、コード規模に対し適用帯が狭い。zfunc/kmp で決定的版はカバー済み |
+| SPFA | Moore の queue 版 | worst-case が Bellman–Ford に退化、決定性メリットなし。辺列走査の古典形を採用 |
+| 任意精度 BigInt 有理数 | — | i128 で公開 API 面の複雑さを避ける。溢れが問題になる規模は `gauss` 直接利用 |
+
+## 出典(第18次、search-index 照合)
+
+**論文・仕様**: Broder (1997, MinHash) / Gusfield (*Algorithms on Strings*, Z-algorithm 章) / Bellman (1958)・Moore (1959, Bellman–Ford) / Fischer–Paterson (1974, 見送り) / cp-algorithms(Z-function・Bellman–Ford・negative cycle) / monotonic queue 標準技法。
+
+**実装物**: cp-algorithms(z-function・bellman_ford) / emaxx(Z 関数) / Qiita・Zenn の MinHash・Z-Algorithm・Bellman-Ford・単調 queue 解説記事群 / KACTL SlidingMinimum 対比 / Lucene MinHash 変種対比。
