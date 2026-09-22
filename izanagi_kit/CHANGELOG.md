@@ -433,6 +433,48 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — interval queries, tree decomposition, text buffers, approximate Steiner, write-ahead log
+
+Round-26 survey additions (187 → 192 modules):
+
+- **`intervaltree`** — `IntervalTree`: centered interval tree over
+  half-open `[lo, hi)` spans — `stab` (point hits) and `overlap`
+  (range hits) return sorted `u32` indices. The pivot is the
+  midpoint of the endpoint span, which provably lands strictly
+  inside ≥1 interval so recursion always shrinks (an endpoint
+  median does not — it can equal a leaf `hi` and never terminate).
+  `overlap(l,l)` degenerates to `stab(l)`; `l>r` fails closed to
+  empty. Naive all-interval oracle, 300 randomized comparisons.
+- **`centroid`** — `Centroid`: centroid decomposition of a forest —
+  `parent`/`children`/`depth`/`order`/`roots` per vertex plus a
+  `lca` on the centroid tree (`O(log n)` walks; also the basis for
+  `O(log n)`-amortized tree distance queries). `sizes` uses an
+  iterative `seen`-marked DFS and `find` walks only spanning-tree
+  edges toward the oversized side — both required for guaranteed
+  termination on cyclic inputs, where the classic guarantees are
+  stated for trees anyway. Oracle: every removal's pieces ≤ half.
+- **`piecetable`** — `PieceTable`: editor-style text buffer
+  (Crowley 1998) — immutable `original` + append-only `added` +
+  a piece list; `insert` appends and splits one piece, `delete`
+  trims endpoints and drops the middle, adjacent same-store pieces
+  coalesce. `O(#pieces)` locate — the right trade at sim scale
+  versus `O(n)` Vec shifts. Vec-splice oracle, 300 randomized
+  comparisons; out-of-range edits fail closed (`false`).
+- **`steiner`** — `steiner_tree`: Kou–Markowsky–Berman
+  2-approximate Steiner tree — per-terminal Dijkstra metric
+  closure, Kruskal MST on terminals, shortest-path unfolding, and
+  a final MST over the unioned edges to prune cycles (weight can
+  only drop). `None` when terminals are disconnected. Oracle:
+  Dreyfus–Wagner exact DP (`k ≤ 5`) — `opt ≤ w ≤ 2·opt` on 300
+  random graphs, plus tree-shape and spanning checks.
+- **`wal`** — `Wal` + `decode`: write-ahead log codec —
+  `[kind:u8|len:u32|crc:u64|payload]` records, CRC = domain-
+  separated Fnv1a over `"walv1" ‖ kind ‖ len ‖ payload`. Replay is
+  torn-tail tolerant: decoding stops at the first truncated or
+  checksum-mismatched record and reports `stopped_at` — verified
+  at *every* cut position and under bit flips; `truncate(stopped_at)`
+  repairs the log.
+
 ### Added — field arithmetic, erasure coding, compressed indexes, lightweight shortest paths, SAT
 
 Round-25 survey additions (182 → 187 modules):
