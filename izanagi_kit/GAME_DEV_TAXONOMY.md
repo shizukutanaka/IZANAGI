@@ -84,11 +84,15 @@
 - J17 根付き森の祖先/深さ/距離クエリ（ゾーン木・スキルツリー・エンティティ階層の共通祖先）✅ `lca`（binary lifting — O(n log n) 構築で `lca`/`ancestor`/`dist`/`depth` を O(log n)。循環・範囲外 parent は invalid マークで `None` を返し panic しない。祖先集合列挙 oracle と全対一致を乱数森で検証）
 - J18 単一パターン走査（区切り・ヘッダ・プロトコルセンチネル）✅ `kmp`（Knuth–Morris–Pratt — O(text) 前処理 `fail` 表で後戻りなし走査。`find`/`find_all`/`count` + 1 byte ずつ供給する `Stream` でチャンク境界分割の match も絶対位置を報告。ブルートフォース全位置走査と全一致・ストリーム=バッチ同値を乱数検証。`ahocor` の単一パターン版）
 - J19 確率的所属判定（高価な完全一致の前置フィルタ — replay checkpoint・entity 重複除去）✅ `bloom`（Kirsch–Mitzenmacher double hashing `h1+i·h2` — `Fnv1a` 対に seed を塩して `(seed, params, multiset)` の純関数。片方向誤りのみ: 挿入済みは必ず present、`definitely_absent` が安全方向。`sizing` で (bits, probes) 設計、`load_permille` が FPR 代理。false-negative 不存在・FPR 情報理論限界内・ビット列純関数性を乱数検証）
+- J20 接尾辞配列・文字列構造解析（corpus 監査・`markov` が覚えた gram の検査・重複部分列）✅ `suffix`（prefix-doubling O(n log² n) 構築 + Kasai LCP — `search` が全出現を `O(pat log n + hits)`、`longest_repeated`/`distinct_substrings` が文字列の重複構造を曝く。naive ソート・素朴 LCP・全位置走査・BTreeSet 部分文字列数で乱数オラクル検証）
+- J21 制約充足 2-SAT（key-and-lock・ペア排他・tech-tree ゲーティング）✅ `twosat`（Aspvall–Plass–Tarjan — `a∨b` を含意辺 `¬a→b`,`¬b→a` に変えて `graph::strongly_connected` で SCC 分解。変数とその否定が同 SCC で UNSAT。sinks-first 順位で `rank[t]<rank[f]` の正極性を採る canonical 解。n≤7 でブルートフォース SAT/UNSAT 判定一致 + 解が `check` を通ることを乱数検証）
+- J22 ゲーム木完全探索（盤面 AI・戦術検証・後退解析）✅ `minimax`（deterministic negamax + αβ — `Game` トレイト（`moves`/`apply`/`evaluate`/`terminal`）に対し `score`/`best_move`。着手順は `moves` の canonical 順、同値は先着側を保持、終端スコアは ply 割引で最短勝ちを優先。Tic-Tac-Toe 全域で αβ=naive negamax 一致 + 完全棋譜引き分け・即勝ち・最遅敗を既知値検証）
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
 - K5 最近点対（密度検証・近接 hotspot 解析）✅ `closestpair::closest_pair`（分割統治 O(n log n) — strip scan は y マージ済み、i128 距離²。同距は `(dist²,p,q)` 辞書順最小を返すので集合のみの純関数。O(n²) ブルートフォース argmin と同一 tie-break で 400 乱数集合一致検証）
+- K6 静的点索引（spawn 点・POI の最近傍/範囲クエリ — 均一密度を仮定しない空間分割）✅ `kdtree`（median-split 2-D kd-tree — `nearest`/`within`/`in_rect` を期待 O(log n)、分割軸交互・全 tuple sort で tie-break まで決定的。入力順に依らず同一点集合 → 同一回答。i128 距離²・辞書順 tie-break をブルートフォース全走査と乱数一致検証）
 
 ## L. ゲームプレイ系 (Gameplay systems)
 - L1 ターンスケジューラ（energy system）✅ `turn` / L2 ステータス/戦闘式 ✅ `combat` / L3 インベントリ/アイテム ✅ `inventory` / L4 状態異常（buff/debuff の期限管理）✅ `status`
@@ -102,6 +106,7 @@
 - N1 コンテンツ serialize ✅ / N2 ワールド save/load ✅ `savefile` / N3 バージョニング ✅ `savefile::SaveHeader::version` / N4 走長圧縮（スパースな盤面・連続値）✅ `rle`（`(count,byte)` pair — 255+ run は自動分割、bytes 版と `encode_u32`/`decode_u32` の素直 pair 版。zero-count・奇数長を reject する構造的 malformed 検査 = authenticity 側路。`decode(encode(x))==x` を乱数 run-heavy モデルで往復検証）
 - N5 エントロピー圧縮（偏った頻度分布の wire/save 層 — `rle` と `bits` の間の帯域削減）✅ `huffman`（canonical Huffman — 2-queue マージで (weight, node-id) 決定的、コードは (長さ, symbol) 順 canonical 割当 = wire は `(symbol,length)` 表のみ。MSB-first パック + ビット総数ヘッダ。decode は非 prefix・長さ超過・ビット残しを全て `None` で拒否。往復同一・prefix-free・Kraft 等式・skewed 圧縮率を乱数検証）
 - N6 辞書式圧縮（繰り返し部分列を持つ wire/save 層 — RLE の連続 run と Huffman の頻度偏りの中間領域）✅ `lzss`（greedy LZ77 系 — 4096 window、match 3–18、最小 offset 優先 tie-break で圧縮結果が入力の純関数。`bits` 上の `0`+8bit literal / `1`+12bit(offset-1)+4bit len トークン列 + u64 生長ヘッダ。decode は切り詰め・窓外 offset・長さ超過を全て `None` で拒否。往復同一・repetitive 圧縮率・手組 malformed 拒否を乱数検証）
+- N7 内容定義チャンキング（編集位置に頑健な可変長分割 — delta sync・差分バックアップの前置層）✅ `rolling`（Rabin–Karp mod-2^64 多項式指紋 — `Rolling` 固定窓 + `find_all` 全出現 + `chunks` が `hash & mask == 0` の CDC 境界を [min,max] 内に強制。局所編集が遠方境界を動かさない prefix 安定性・chunk 幅制約・再計算一致を乱数検証。`delta` と組んで rsync 型の転送量削減を構成）
 
 ## O. ネットワーク (Networking)
 - O1 rollback/replay 基盤 ✅ `replay` / O2 input 同期 transport ⬜（ソケット I/O はヘッドレス方針で意図的に範囲外）/ O3 予測/補正 ✅ `netinput`（`NetInputBuffer`: 決定論的 input 予測・誤予測検出。transport 非依存＝呼び手が受信バイトを供給）

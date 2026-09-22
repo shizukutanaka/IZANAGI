@@ -395,6 +395,44 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   compression on periodic text, and rejection of truncation,
   out-of-window offsets, and absurd length claims.
 
+### Added — rolling fingerprints, suffix arrays, spatial index, 2-SAT, game search
+
+- **`rolling`** — `Rolling`/`hash_bytes`/`find_all`/`chunks`: Rabin–Karp
+  mod-2^64 polynomial fingerprints. A fixed-window rolling hash
+  (push/pop update in `O(1)`), a multi-match byte search confirmed
+  byte-wise, and `chunks` — content-defined boundaries emitted when
+  `hash & mask == 0` inside `[min, max]` enforcement. A local edit only
+  perturbs nearby chunks, which is what makes delta sync cheap.
+  Verified against one-shot recompute, naive all-positions scan, chunk
+  width bounds/determinism, and prefix stability under single-byte edits.
+- **`suffix`** — `SuffixArray`: prefix-doubling suffix array plus Kasai
+  LCP. `search` returns every occurrence in `O(pat·log n + hits)`,
+  `lcp`/`lcp_array` expose shared prefixes, `longest_repeated` and
+  `distinct_substrings` measure how much a corpus repeats — the audit
+  layer for `markov`-style generators. Verified against naive suffix
+  sort, direct LCP computation, all-position scan, and `BTreeSet`
+  substring counts.
+- **`kdtree`** — `KdTree`: static median-split 2-D spatial index over
+  `(i32, i32)`. `nearest`/`within`/`in_rect` run in expected `O(log n)`
+  with `i128` squared distances and lexicographic tie-breaks — a pure
+  function of the point set, insensitive to input order. Verified
+  against brute-force scans for all three queries plus input-order
+  permutation invariance.
+- **`twosat`** — `TwoSat`/`Lit`: 2-SAT over the implication graph,
+  reusing `graph::strongly_connected` (Aspvall–Plass–Tarjan).
+  `add_clause`/`add_unit`/`add_implies`/`add_equiv`/`add_xor`;
+  `solve` returns a canonical assignment picked by SCC order, `None`
+  when a variable meets its negation in one component. Verified
+  against exhaustive `2^n` satisfiability and the solver's own `check`.
+- **`minimax`** — `Game` trait + `score`/`best_move`: deterministic
+  negamax with alpha-beta. Moves are tried in the canonical order
+  `Game::moves` supplies, ties keep the first candidate, terminal
+  scores fold in ply so fast wins rank above slow ones — the
+  exhaustive counterpart to `mcts`. Verified over the full
+  Tic-Tac-Toe tree: alpha-beta equals unpruned negamax at every
+  reachable position, perfect self-play draws, and a win-in-1 plus a
+  maximally-delayed loss hit their known ply-discounted values.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded
