@@ -433,6 +433,52 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — approximate string search, swarm pathfinding, expression eval, convex collision, buddy allocation
+
+Round-27 survey additions (192 → 197 modules):
+
+- **`bitap`** — `Bitap`: Shift-And bit-parallel search (Wu & Manber
+  1992) — patterns ≤ 64 bytes track match state in one `u64`;
+  `fuzzy_search(text, k)` adds one state word per allowed
+  substitution (Hamming only — insertions/deletions are *not*
+  tolerated). The substitution term needs its own bit-0 seed
+  (`(prev << 1) | 1`): the empty prefix is always true, and
+  without it substituting `pattern[0]` can never fire — a real
+  correctness bug the naive per-window Hamming oracle caught.
+  End positions (index past the hit) returned ascending.
+- **`flowfield`** — `FlowField`: one-to-all swarm pathfinding —
+  reverse Dijkstra integration field from a goal set plus a
+  per-cell direction field, so every agent moves O(1)/step after
+  one build. 8-connected, diagonal moves need both orthogonals
+  free (no corner cutting), integer √2≈1.5 scaling
+  (`2·cost` ortho / `3·cost` diag) keeps distances exact.
+  Verified by an independent field re-build plus structural
+  invariants: every direction strictly descends and every
+  reachable cell's path terminates on a goal.
+- **`shunting`** — `shunting_yard` + `eval`/`eval_rpn`: Dijkstra's
+  infix→postfix with strict `i64` evaluation — `+ - * / %`, the
+  right-associative unary `Neg`, parentheses. Operand/operator
+  alternation and paren depth are checked during the parse, so a
+  `Some` postfix is always evaluable; `/` and `%` truncate toward
+  zero like Rust, and division-by-zero, `i64::MIN / -1`, and every
+  overflow return `None` rather than panicking. Recursive-descent
+  oracle, 2000 random expressions.
+- **`sat`** — `collide`/`overlap`: separating-axis convex collision
+  in `i128` — only edge normals are candidate axes, early-exit on
+  the first separator. Boundary contact counts as overlap;
+  `depth` is in projection units (true depth = `depth/|axis|`) and
+  the axis is canonically oriented centroid-to-centroid. Points
+  are legal (their projection inside every facet slab is
+  containment). Oracle: inclusive edge-intersection + containment
+  both directions, 3000 random hull comparisons.
+- **`buddy`** — `Buddy`: binary buddy allocator — power-of-two
+  blocks split on demand and eagerly coalesce on free, with sorted
+  lowest-address free lists so the allocator state is a pure
+  function of its operation sequence and the canonical invariant
+  (no two buddies simultaneously free) always holds. Byte-shadow
+  oracle + full drain check across 300 arenas; double-free and
+  foreign addresses return `false`.
+
 ### Added — interval queries, tree decomposition, text buffers, approximate Steiner, write-ahead log
 
 Round-26 survey additions (187 → 192 modules):

@@ -1278,3 +1278,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Kou, Markowsky & Berman (1981, Steiner 2-approx) / Dreyfus & Wagner (1971, exact Steiner DP) / Crowley (1998, piece table) / SQLite WAL 設計 / cp-algorithms(centroid decomposition・interval tree・0-1 BFS 系)。
 
 **実装物**: cp-algorithms / CGAL Interval_tree 参照設計 / Qiita・Zenn の重心分解・Steiner 木・piece table・WAL 解説記事群。
+
+# 第27次: 近似文字列照合・群体経路・式評価・凸衝突・冪2割付
+
+| 採用 | 根拠 / 検証 | 判定 |
+|---|---|---|
+| `bitap` — Shift-And bit-parallel | Wu & Manber (1992) / cp-algorithms 系解説: pattern ≤64 byte は `u64` 1 ワードで Shift-And 進行し、fuzzy (Hamming k) は誤り行毎に 1 ワードの多重追跡。置換項 `(prev<<1)|1` の bit-0 種付けを欠くと pattern[0] 置換が一切落ちる実 bug を naive Hamming 全窓 oracle が捕捉 — 空 prefix は常に真なので進行項・置換項それぞれに `|1` が要ることを確認し両項独立の seed で確定。挿入・削除は許容しない Hamming 意味論(編集距離ではない)であることを、"needl " 窓が末尾空白→'e' 置換として正当に k=1 一致する例で明文化 | 🟢 純粋追加 |
+| `flowfield` — integration + vector field | *Supreme Commander 2* / *Planetary Annihilation* 系の TD swarm 定石 + redblobgames grid 参照: 目的集合からの逆向き Dijkstra で 1 構築・全 agent O(1)/step。8 連結で対角は両 ortho 隣接が通行可能な時のみ(角抜け禁止)、整数 √2≈1.5 倍率で ortho=2·cost・diag=3·cost の厳密整数距離。検証は dist 全セル oracle 一致 + dir が必ず厳密降下し goal に到達する性質検査(独立構築 oracle は弱いため、argmin/単調性/終端性の contract 検査を主体に) | 🟢 純粋追加 |
+| `shunting` — shunting-yard + i64 eval | Dijkstra (1961) operator-stack: `+ - * / %` と右結合単項 `Neg`、括弧。operand/operator 交互 + paren 深度を parse 時検証し、評価不能な postfix を産出しない構造保証。`/`・`%` は Rust と同じゼロ方向切断、`/0`・`i64::MIN/-1`・全 overflow は `None` の失敗閉鎖 — panic 経路が存在しないことを全演算で確認。oracle は別実装の再帰降下評価器で 2000 乱数式照合 | 🟢 純粋追加 |
+| `sat` — separating-axis convex collision | Gottschalk 系 SAT 定石(辺法線のみが候補軸)、`i128` 投影で float 軸を根絶。境界接触は重なり(closed polygon)。depth は axis 未正規化の投影単位 = `depth/|axis|` が真の深さ、axis は重心差で a→b の正準向き。点(辺なし退化形)も凸多角形として受理 — 点の投影区間が全辺法線で多角形 slab 内なら内部、凸多面の法線 slab 交差が多面を再構成する性質で正当化。oracle は edge-intersect(端点包含)+ 両方向頂点包含の独立判定で 3000 乱数照合 | 🟢 純粋追加 |
+| `buddy` — binary buddy allocator | Knuth/Kerrighan 系 buddy 定石 + Linux page buddy: 冪2 ブロックを需要時 split・解放時 eager merge。free list を address sort し最小 order・最低位を採用することで状態は操作列の純関数に(決定性)。「二つの buddy が同時 free でない」canonical 性質が coalescing の完全性を保証。oracle は byte-shadow 占有列 + 全ブロック天然整列 + `free_bytes` 不変 + 最終 drain で全 byte 割付可能(合体漏れ検出)を 300 arena×200 op で検証。double-free/未割付 free は false 失敗閉鎖 | 🟢 純粋追加 |
+
+見送り(第27次): 編集距離 fuzzy 照合(既出 `diff` の Levenshtein で代替可能、Bitap Hamming と非重複)、GJK/EPA(汎用凸距離 — SAT は凸限定で軽い、需要出れば拡張)、TLSF(境界付き worst-case allocator — buddy の O(log) で現在需要十分)、Chomsky 完全な式構文(比較・関数呼出し — tokenizer 公開 API と合わせ需要待ち)、jump-point search(格子経路高速化 — `pathfinding` A* + `flowfield` で需要十分)。
+
+## 出典(第27次、search-index 照合)
+
+**論文・仕様**: Wu & Manber (1992, Shift-And/agrep) / Dijkstra (1961, shunting-yard) / Gottschalk (1996, OBBTree/SAT) / Knuth TAOCP buddy / Linux buddy allocator / Crowley (1998, piece table 参照系)。
+
+**実装物**: cp-algorithms(shift-and・buddy 系) / redblobgames grid pathfinding / Planetary Annihilation flow-field 技術解説 / Qiita・Zenn の Shift-And・shunting-yard・SAT・buddy 解説記事群。
