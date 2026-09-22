@@ -282,6 +282,97 @@ pub fn random_in_range(center: Hex, radius: i32, rng: &mut SplitMix64) -> Hex {
     center + (Hex::new(dq, rng.range(dr_lo, dr_hi + 1)))
 }
 
+/// A* on the hex grid (redblobgames formulation): unit-cost steps over the
+/// six [`DIRECTIONS`], with the exact hex [`distance`] as the admissible —
+/// and consistent — heuristic, so every node is expanded at most once and
+/// the returned path is always a true shortest path.
+///
+/// `passable` decides whether a cell may be entered (the start and goal are
+/// always allowed regardless). `max_steps` bounds the search: at most that
+/// many cells are relaxed before giving up — required because the hex
+/// lattice is unbounded and a walled-in goal would otherwise search
+/// forever. The map scale sets a sane bound; the hex-disc of radius
+/// `distance(start, goal)` holds `1 + 3d(d+1)` cells, so twice that is a
+/// generous default for open maps.
+///
+/// Returns `Some(path)` — start-inclusive, goal-inclusive — or `None` when
+/// the goal is unreachable or the step budget runs out. Deterministic: the
+/// open set pops lowest `f`, breaking ties by lowest `h` then by
+/// `(q, r)` order, and all bookkeeping lives in ordered maps.
+///
+/// ```
+/// use izanagi_kit::hexgrid::{hex_astar, distance, Hex};
+/// let path = hex_astar(Hex::new(0, 0), Hex::new(3, -1), |_| true, 1000).unwrap();
+/// assert_eq!(path.len() as i32, distance(Hex::new(0, 0), Hex::new(3, -1)) + 1);
+/// ```
+pub fn hex_astar(
+    start: Hex,
+    goal: Hex,
+    mut passable: impl FnMut(Hex) -> bool,
+    max_steps: u32,
+) -> Option<Vec<Hex>> {
+    use std::cmp::Reverse;
+    use std::collections::{BTreeMap, BinaryHeap};
+
+    if start == goal {
+        return Some(vec![start]);
+    }
+    // g-score and came_from keyed by (q, r); open heap by (f, h, q, r).
+    let mut g: BTreeMap<(i32, i32), u32> = BTreeMap::new();
+    let mut came_from: BTreeMap<(i32, i32), Hex> = BTreeMap::new();
+    let mut open: BinaryHeap<Reverse<(u32, u32, i32, i32)>> = BinaryHeap::new();
+    let mut closed = std::collections::BTreeSet::new();
+
+    g.insert((start.q, start.r), 0);
+    let h0 = distance(start, goal) as u32;
+    open.push(Reverse((h0, h0, start.q, start.r)));
+    let mut relaxed = 0u32;
+
+    while let Some(Reverse((_f, _h, q, r))) = open.pop() {
+        if !closed.insert((q, r)) {
+            continue; // stale heap entry
+        }
+        let cur = Hex::new(q, r);
+        if cur == goal {
+            // Reconstruct.
+            let mut path = vec![goal];
+            let mut at = goal;
+            while at != start {
+                at = came_from[&(at.q, at.r)];
+                path.push(at);
+            }
+            path.reverse();
+            return Some(path);
+        }
+        relaxed += 1;
+        if relaxed > max_steps {
+            return None;
+        }
+        let g_cur = g[&(q, r)];
+        for n in cur.neighbors() {
+            if !passable(n) && n != goal {
+                continue;
+            }
+            let key = (n.q, n.r);
+            if closed.contains(&key) {
+                continue;
+            }
+            let g_new = g_cur + 1;
+            let better = match g.get(&key) {
+                Some(&old) => g_new < old,
+                None => true,
+            };
+            if better {
+                g.insert(key, g_new);
+                came_from.insert(key, cur);
+                let hn = distance(n, goal) as u32;
+                open.push(Reverse((g_new + hn, hn, n.q, n.r)));
+            }
+        }
+    }
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -448,5 +539,102 @@ mod tests {
 
     fn hash_of(h: Hex) -> u64 {
         crate::world_hash::hash_state(&h)
+    }
+
+    /// BFS oracle on an obstacle field: the true shortest-path length.
+    fn bfs_len(
+        start: Hex,
+        goal: Hex,
+        blocked: &std::collections::BTreeSet<(i32, i32)>,
+    ) -> Option<usize> {
+        let mut frontier = vec![start];
+        let mut seen = std::collections::BTreeSet::from([(start.q, start.r)]);
+        let mut steps = 0usize;
+        loop {
+            if frontier.contains(&goal) {
+                return Some(steps);
+            }
+            if seen.len() > 5000 {
+                return None; // bounded region — unreachable
+            }
+            let mut next = Vec::new();
+            for &h in &frontier {
+                for n in h.neighbors() {
+                    if !blocked.contains(&(n.q, n.r)) && seen.insert((n.q, n.r)) {
+                        next.push(n);
+                    }
+                }
+            }
+            if next.is_empty() {
+                return None;
+            }
+            frontier = next;
+            steps += 1;
+        }
+    }
+
+    #[test]
+    fn hex_astar_matches_bfs_oracle() {
+        let mut rng = SplitMix64::new(0xA57A);
+        for _ in 0..200 {
+            // Random obstacle field around the origin.
+            let mut blocked = std::collections::BTreeSet::new();
+            for h in spiral(Hex::ORIGIN, 8) {
+                if rng.below(100) < 25 {
+                    blocked.insert((h.q, h.r));
+                }
+            }
+            let a = Hex::new(rng.range(-6, 7), rng.range(-6, 7));
+            let b = Hex::new(rng.range(-6, 7), rng.range(-6, 7));
+            blocked.remove(&(a.q, a.r));
+            blocked.remove(&(b.q, b.r));
+            let path = hex_astar(a, b, |h| !blocked.contains(&(h.q, h.r)), 5000);
+            match (path, bfs_len(a, b, &blocked)) {
+                (None, None) => {}
+                (Some(p), Some(d)) => {
+                    assert_eq!(p.len() - 1, d, "path is shortest");
+                    assert_eq!(p[0], a);
+                    assert_eq!(p[p.len() - 1], b);
+                    for w in p.windows(2) {
+                        assert_eq!(distance(w[0], w[1]), 1);
+                        assert!(!blocked.contains(&(w[1].q, w[1].r)));
+                    }
+                }
+                (got, oracle) => panic!(
+                    "mismatch: astar={:?} bfs={:?}",
+                    got.map(|p| p.len()),
+                    oracle
+                ),
+            }
+        }
+    }
+
+    #[test]
+    fn hex_astar_walled_goal_and_budget() {
+        // Goal fully walled off by its own neighbors → unreachable.
+        let goal = Hex::new(2, -1);
+        let walls: std::collections::BTreeSet<(i32, i32)> =
+            goal.neighbors().iter().map(|h| (h.q, h.r)).collect();
+        assert!(hex_astar(Hex::ORIGIN, goal, |h| !walls.contains(&(h.q, h.r)), 10_000).is_none());
+        // Tiny budget cannot finish even a clear run.
+        assert!(hex_astar(Hex::ORIGIN, Hex::new(50, 0), |_| true, 10).is_none());
+        // Same start and goal.
+        assert_eq!(
+            hex_astar(Hex::ORIGIN, Hex::ORIGIN, |_| false, 1),
+            Some(vec![Hex::ORIGIN])
+        );
+    }
+
+    #[test]
+    fn hex_astar_is_deterministic() {
+        let run = || {
+            hex_astar(
+                Hex::new(-3, 1),
+                Hex::new(4, -2),
+                |h| !(h.q == 0 && h.r == 0),
+                10_000,
+            )
+        };
+        assert_eq!(run(), run());
     }
 }
