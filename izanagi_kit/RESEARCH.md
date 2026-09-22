@@ -554,3 +554,36 @@ api-guidelines#231(MSRV)/ docs.rs metadata / rustwasm sunset(team#291)/ gamedev.
 | H45 | **実バグ: WAV パーサが申告サイズを信頼し切り詰め入力で OOB panic** — `fmt ` チャンクは `size>=16` の申告のみ検査し実残バイトを見ず、`data[pos+14]` 系読取りがバッファ終端を超えた(信頼性/DoS)。`pos += size` も 32-bit usize で wrap し得る(カーソル巻戻り→無限ループ)。実残サイズ検査 + saturating_add カーソルに修正、回帰テスト2件追加 |
 | H46 | **実バグ(2件目): エンジン save パーサに同型の 32-bit wrap バグ** — kit savefile が直した「宣言長 + 固定オフセットの加算比較」を `izanagi/save.rs` が踏んでいた: `bytes.len() < 10 + len` は wasm32 で `len=u32::MAX` が加算 wrap してガードを抜け slice panic。兄弟パーサへの修正伝播漏れ — 同一リポ内でバグの"系"は横断掃引が必要。減算形式に修正 + 敵対 len テスト |
 | H47 | **3系のバイナリデコーダに全接頭辞+全バイト破壊スイープ追加** — テキストパーサには garbage ファズがあったが savefile/load_wav/Save::parse は点テストのみ。**スイープ自身にも vacuity があった**: minimal_wav(fmt 先頭)の接頭辞は 44B 下限に遮られ脆弱状態に到達不能 — fmt を末尾に置く第2 fixture で初めて R36 の OOB 系を検出可能に(変異で実証)。「スイープがある」≠「経路に届く」 |
+
+---
+
+# 第5次: 外部出典サーベイ — procgen 配置パイプラインと lockstep wire codec (2026-09-22)
+
+GitHub・論文・Qiita/Zenn・海外技術情報を対象に第1・2次とは別パスの棚卸し。
+前回までの棚卸しが検証機構へ収斂したのに対し、今回は**コンテンツ生成側の隙間**を調べた:
+scatter(配置)→ territory(領域)→ connectivity(接続)という手続き生成の標準パイプラインが
+全く未実装だったこと、および lockstep の基盤プリミティブであるビット列 codec が
+未実装だったことが判明。4件すべて実装。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `mapgen::poisson_disc` — Bridson アルゴリズムの最小間隔散布 | Bridson, *Fast Poisson Disk Sampling in Arbitrary Dimensions* (SIGGRAPH 2007 sketch, doi:10.1145/1278780.1278807)。参照実装 kchapelier/poisson-disk-sampling、Unity *Graphics Programming* vol.4 第7章。`radius/√2` グリッド(整数では `r·7071/10000` で保守的 floor)+ active-list + annulus 拒否サンプルで文献どおり k=30 既定。三角形サンプルは極座標ではなく外接正方形からの拒否法に置換(Trig 不要・均一性は等価: 環状領域上の一様分布)| 🟢 純粋追加、pinned hash 不変 |
+| `voronoi::voronoi_partition` + `voronoi_flood` + `mst_edges` — 厳密最近seed分割・可通行BFS版・Kruskal MST | Rong & Tan JFA(I3D 2006, doi:10.1145/1111411.1111431)は意図的に**不採用**(GPU 近似=このクレートの厳密性公理に反する)。`O(whk)` 素朴法がゲーム規模では正解 — 検証コストをゼロにする「approximate ではない」保証付き。`voronoi_flood` は DijkstraMap のはしごが降りない先の「どの領土か」を返す BFS 版。mst_edges は TinyKeep/Slay-the-Spire 系 dungeon 配線の標準部品(散乱→領域→接続のパイプライン完結)| 🟢 純粋追加。`VoronoiGrid` に `DetHash` — golden ピン済み |
+| `noise::worley_2d` 系 — Worley セルラーノイズ (F1/F2/cell) | Worley, SIGGRAPH'96 (doi:10.1145/237170.237267)、iq 解説、Qiita GLSL 記事群。**3×3 走査は近似に過ぎないことを確認して 5×5 を採用**: 隣2セルの feature は `cs` 距離まで近づき得る一方、自セル feature は `√2·cs` まで遠ざかり得るので、悪条件では 3×3 の外側が勝つ。5×5 なら外側は `2·cs` 超で `√2·cs` に必ず負け、証明可能な厳密性に到達する(この論点は既存記事にはほぼ記載がない)。5×5 独立オラクルで実装を検証 | 🟢 純粋追加 |
+| `bits::BitWriter`/`BitReader` — LSB-first ビット列 wire codec | Gaffer *Reading and Writing Packets* / *Serialization Strategies*(lockstep ネットコードのカノニカルプリミティブ)+ protobuf wire format(varint LEB128 + zigzag)。packed bitfield・`write_ranged`(bits_required)·canonical varint(非 canonical trailing-zero group を decode 側で拒否し、値↔バイトの全単射を保持)。`savefile` はバイトコンテナ、`serializer` は `.game` テキストであり、ビット単位の wire 形式を担う層が無かった | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| jump flooding (JFA) GPU Voronoi | Rong & Tan 2006 | GPU 専用かつ近似 — このクレートの「証明可能な結果」公理に反する。CPU `O(whk)` が規模的に正解 |
+| Simplex/Perlin 勾配ノイズ | Perlin 2002, Gustavson 2005 | 既存の value/fbm/ridge/turbulence 群で実用上被覆済み。勾配ノイズの追加は純粋重複で新規知見を産まない |
+| 空間分割の四分木 | gaffer・kd-tree 系 | `spatial_hash` が同用途を担っている。四分木は本質的に浮動座標向きで、整数グリッドのこの kit では冗長 |
+
+## 出典(第5次、search-index 照合)
+
+**論文**: Bridson 2007 (SIGGRAPH sketch)/ Rong & Tan (I3D 2006)/ Worley (SIGGRAPH'96)/ Dormans cyclic dungeon(参考)。
+
+**実装物**: kchapelier/poisson-disk-sampling / TinyKeep mapgen 記事 / Slay-the-Spire mapgen 記事 / protobuf encoding 仕様 / Gaffer serialization 記事群 / iquilezles noise 記事 / Qiita セルラーノイズ・Poisson 記事群 / Unity Graphics Programming vol.4。

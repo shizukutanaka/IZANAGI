@@ -37,6 +37,36 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   grows a new map — "this module was fine before" is not an argument about the
   map just added.
 
+### Added — scatter → territory → wire primitives
+
+The standard procgen pipeline (scatter seeds → partition territory → wire
+connectivity) and the lockstep packet primitive, all in published-work form:
+
+- **`mapgen::poisson_disc`** — Bridson's minimal-separation scatter (SIGGRAPH
+  2007): `radius/√2` cell grid + active list + annulus rejection sampling.
+  Blue-noise placement for rooms, resources, and spawn points.
+- **`voronoi`** — exact nearest-seed spatial partition:
+  `voronoi_partition` under a selectable `geometry::Distance` metric (lowest
+  seed index wins ties) and `voronoi_flood`, the BFS variant that respects
+  passable terrain so walls partition territory. `mst_edges` gives the Kruskal
+  minimum-spanning edges that connect scattered sites — the
+  scatter → territory → connectivity pipeline in three calls. `VoronoiGrid`
+  implements `DetHash` and is pinned in `det_hash_golden`.
+- **`noise::worley_2d`** — Worley cellular noise (SIGGRAPH'96): exact integer
+  `F1`/`F2` feature distances and owning cell id, `worley_2d_f2_minus_f1` for
+  vein/crater ridges, `worley_2d_in_range` for quantized output. Uses a 5×5
+  scan — the classic 3×3 is only approximate (documented in the module header);
+  the extra rings make exactness provable rather than empirical.
+- **`bits`** — LSB-first bit-level wire codec: `BitWriter`/`BitReader` with
+  packed bitfields, ranged integers (`write_ranged`/`read_ranged`), and
+  canonical protobuf-style varint + zigzag. The reader rejects non-canonical
+  encodings, keeping value ↔ bytes bijective — the packet primitive lockstep
+  netcode layers on (Gaffer serialization strategies).
+- **`examples/scatter_pipeline_demo`** — the pipeline end to end:
+  `poisson_disc` seeds → `voronoi_partition` territories → `mst_edges`
+  corridors, then serialized into a `BitWriter` packet and rendered in the
+  terminal.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded
