@@ -1210,3 +1210,40 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Cooper, Harvey & Kennedy (2001, dominators) / Cytron et al. (1991, SSA dominance frontiers) / Hoffman circulation theorem (1960) / Tarjan (1972, biconnected components) / Charikar (STOC 2002, SimHash)。
 
 **実装物**: cp-algorithms(circulation 還元・dominators CHK・biconn 辺スタック・simhash) / emaxx / Kleinberg–Tardos 教科書(下界付き可行流) / Qiita・Zenn の dominator・2-D BIT・辺連結分解・SimHash 解説記事群。
+
+# 第25次サーベイ — 有限体・消失訂正・圧縮索引・軽量最短路・SAT
+
+> 「shard が欠けても復元できるか」(rsfec の上に立つ `gf2`)、
+> 「巨大テキストをインデックスで検索できるか」(fmidx)、
+> 「重みが 0/1 しかないとき heap は要らない」(zerobfs)、
+> 「ルールを CNF に落として矛盾なく満たせるか」(dpll) —
+> 通信信頼性・検索・判定の基盤層。第24次の見送り表に残った cuckoo/rope/linkcut
+> 系は引き続き需要観察、本ラウンドは通信レイヤの不足していた
+> 誤り訂正と探索/判定の残存定石を優先。
+> PR #28–#40 は本ラウンド時点で open — 本ブランチは #40 tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `gf2` — GF(2⁸) 体演算 | AES 多項式 `x⁸+x⁴+x³+x+1` (`0x11B`) — `sub`=`add`=xor、乗算はロシア農民法で log 無しに O(8)、`Tables` は生成元 3 の exp/log 写像(`x·3 = (x<<1)^x` は多項式時間に原始元 — `exp.copy_within(..255,255)` でインデックス 255 を持つ exp、log は非ゼロのみ)。`inv`=`exp[255−log[a]]`、0 の除算は `None`。2000 反復の乱数体公理照合 + 生成元が全 255 非零元を巡回する検証 | 🟢 純粋追加 |
+| `rsfec` — Reed–Solomon 消失訂正 | Backblaze/FEC 定石(k+m coding matrix): 係数行列は `V(total,data)·V_top⁻¹`(Vandermonde の上 data 行の逆を右掛け → top data 行が恒等行列になりつつ任意 data 行が可逆)。`reconstruct` は現存 data 行の部分行列逆でデータ復元、欠けた parity は復元後に再 encode — GF 上 Gauss–Jordan(pivot 検索・`inv` でスケール・全行消去)。4-of-8 の全 70 subset 網羅 + 60 反復乱択損失照合、malformed shard 拒否 | 🟢 純粋追加 |
+| `fmidx` — FM-index | Ferragina & Manzini (2000): `C[b]` = b 未満の総数、`Occ(b,i)` = `l[..i]` 中の b 出現数で backward search が区間を縮める。実装は巡回 BWT 上 — `C` 表 + `OCC_STEP=32` 毎の全バイト集計チェックポイント(`occ[k]` = `l[..k·STEP]` のカウント)+ 間は線形走査、完全 SA で `locate` も O(occ)(checkpointed 版なら LF-mapping が必要になるため完全 SA のまま)。巡回一致(パターンが wrap する出現)をドキュメント化した semantics、naive 巡回列挙 oracle 300 反復照合 | 🟢 純粋追加 |
+| `zerobfs` — 0-1 BFS + Dial | 競プロ定石(cp-algorithms): 重み {0,1} は VecDeque(0 は front、1 は back)で monotone queue、重み ∈ 0..=cap は `cap·(n−1)` 個のバケット配列(最短距離の上限が cap·(n−1) — 非負最短路は頂点を繰り返さない)。どちらも「申告した上界を破る辺」は `None` で失敗閉鎖(黙って切り詰めると破綻する)。`bellman` オラクル乱数 600 照合 | 🟢 純粋追加 |
+| `dpll` — DPLL SAT | Davis–Putnam–Logemann–Loveland (1960/62): unit propagation + pure literal 除去を不動点まで回し、最小変数で split(`true` 分岐優先)。CDCL ではない(節学習・VSIDS なし)— ゲームスケールの制約判定に exact で十分速い層。返す model は canonical(未設定変数 `false`)で `solve` は `(clauses)` の純関数 — 同一 CNF は同一 model。2^n 全割当 brute-force oracle で satisfiability + 返却 model が全 clause を充足する独立検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| CDCL (conflict-driven clause learning) | — | `dpll` でゲームスケールの CNF は充足。学習は実装が数倍の規模になり本ラウンドの範囲外 |
+| Cuckoo / SwissTable | — | ハッシュ表の決定性需要は DetHash + BTreeMap が担う。open-addressing の真の需要は依然薄い |
+| Rope / piece table | — | エディタ用文字列構造。`bits`/`delta` 層とは別軸で大きい — 引き続き別ラウンド候補 |
+| Link-cut tree | — | 動的木のパスクエリ。`hld`+`dsurb` で静的/undo 版は充足 |
+| SA-IS induced sorting | — | `suffix` の prefix-doubling で需要はカバー。`fmidx` が SA に依存するため、必要になればそこへ波及 |
+
+## 出典(第25次、search-index 照合)
+
+**論文・仕様**: Reed & Solomon (1960) / Ferragina & Manzini (FOCS 2000, FM-index) / Davis, Putnam, Logemann & Loveland (1960, 1962) / AES 有限体 `0x11B` (FIPS-197) / Dial (1969, bucket shortest path)。
+
+**実装物**: cp-algorithms(0-1 BFS・Dial・DPLL・GF(2^8) 演算) / Backblaze の Reed–Solomon 解説(k+m coding matrix) / Qiita・Zenn の RS 符号・FM-index・0-1 BFS・DPLL 解説記事群。

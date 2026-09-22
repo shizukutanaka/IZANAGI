@@ -433,6 +433,42 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — field arithmetic, erasure coding, compressed indexes, lightweight shortest paths, SAT
+
+Round-25 survey additions (182 → 187 modules):
+
+- **`gf2`** — GF(2⁸) field arithmetic over the AES polynomial `0x11B`:
+  `add`/`sub` (xor), peasant `mul`, exp/log `Tables` built on
+  generator 3, `mul_t`, `inv`, `pow`, `div` (`None` on divide by
+  zero) — the arithmetic core erasure codes and universal hashing
+  build on. Field axioms oracle-checked; the generator is verified
+  to cycle through all 255 nonzero elements.
+- **`rsfec`** — `ReedSolomon`: Vandermonde Reed–Solomon erasure
+  coding over `gf2` — coding matrix `V(total,data)·V_top⁻¹` keeps
+  the top `data` rows the identity while every `data`-row subset
+  stays invertible. `encode` / `encode_shards` fill parity shards,
+  `reconstruct` recovers `k` data shards from any surviving `k`
+  and re-encodes missing parity — lockstep packet-loss recovery.
+  Exhaustive 4-of-8 (all 70 subsets) + random-loss oracle checks.
+- **`fmidx`** — `FmIndex`: FM-index over a cyclic BWT — `C` table
+  plus `Occ` checkpoints every 32 rows plus the full rotation
+  suffix array. `count`/`locate`/`range` run sublinear backward
+  search; cyclic occurrence semantics (patterns may wrap end→start)
+  are documented and oracle-checked against naive cyclic
+  enumeration.
+- **`zerobfs`** — `zero_one_bfs` (deque: 0-edges front, 1-edges
+  back, `O(V+E)`) and `dial` (bucket array of `cap·(n−1)` slots,
+  `O(cap·V+E)`) — linear-ish shortest paths when edge weights are
+  tiny integers. Edges exceeding the declared bound fail closed
+  (`None`). `bellman`-compatible distance vectors, Bellman–Ford
+  oracle-checked.
+- **`dpll`** — `solve`: DPLL SAT over CNF — unit propagation and
+  pure-literal elimination to a fixpoint, then a deterministic
+  smallest-variable split (`true` first). Returned models are
+  canonical (unset variables `false`), so `solve` is a pure
+  function of the clause set. Brute-force `2^n` oracle checks
+  satisfiability and validates every returned model.
+
 ### Added — dominator trees, 2-D prefix sums, feasible flow, biconnectivity, similarity fingerprints
 
 Round-24 survey additions (177 → 182 modules):
