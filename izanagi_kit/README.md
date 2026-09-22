@@ -258,6 +258,11 @@ The capability map — with per-feature implementation status — lives in
 | `crc` | `crc32` / `Crc32` — streaming IEEE CRC-32, chunk-invariant wire integrity. |
 | `mcts` | `mcts` — seeded UCB1 tree search over `minimax::Game`, integer-only statistics. |
 | `slotmap` | `Slotmap` — generational `u64` handles: stale handles structurally rejected, canonical slot-order entries. |
+| `cuckoof` | `CuckooFilter` — deletion-capable membership filter: u8 fingerprints, `h2 = h1 ^ hash(fp)`, bounded kicks. |
+| `rans` | `Rans` — rANS entropy codec: normalized power-of-2 table, single-state integer coder approaching the entropy bound. |
+| `polylabel` | `polylabel` — pole of inaccessibility: integer B&B maximizing min squared distance to a polygon boundary. |
+| `mphf` | `Mphf` — CHD minimal perfect hash: static `n` keys → `[0,n)` bijection via per-bucket displacements. |
+| `mis` | `maximal_independent_set` — canonical greedy MIS: ascending-order inclusion, pure function of the edge set. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

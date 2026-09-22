@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — deletion-capable filters, entropy coding, interior poles, perfect hashing, independent sets
+
+- `cuckoof` — `CuckooFilter`: deletion-capable membership filter — two candidate buckets `h2 = h1 ^ hash(fp)`, seeded bounded kick chain
+- `rans` — `Rans`: rANS entropy codec — largest-remainder normalized table, single-state integer coder, sub-bit/symbol compression
+- `polylabel` — `polylabel`: pole of inaccessibility — integer-only branch-and-bound maximizing min squared distance to a polygon boundary
+- `mphf` — `Mphf`: CHD minimal perfect hash — static `n` keys → `[0,n)` bijection, pure function of `(key set, seed)`
+- `mis` — `maximal_independent_set`: canonical greedy MIS — ascending-order inclusion, verified independent + maximal per definition
+
 ### Added — indexed queues, persistent trees, checksums, tree search, generational handles
 
 - `iheap` — `IHeap`: indexed binary heap — key-addressed `set`/`decrease`/`increase`/`remove`, canonical `(priority, key)` pop order

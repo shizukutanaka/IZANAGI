@@ -1332,3 +1332,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Kocsis & Szepesvári (2006, UCT) / Vuillemin 系 indexed priority queue 教科書 / IEEE 802.3 CRC-32 / chairman tree(持久化線段樹)競プロ文献 / bitsquid・EnTT の slot map 設計。
 
 **実装物**: cp-algorithms(indexed heap・persistent segtree・MCTS 系解説)・zlib CRC 参照実装・skypjack/entt slot map・Qiita・Zenn の持久化セグ木・UCB・世代付きハンドル解説記事群。
+
+# 第30次: 削除可能フィルタ・エントロピー符号・内陸極点・完全ハッシュ・独立集合
+
+| 採用 | 根拠 / 検証 | 判定 |
+|---|---|---|
+| `cuckoof` — Cuckoo filter | Fan, Andersen, Kaminsky & Mitzenmacher (2014): u8 fingerprint + `h2=h1^hash(fp)` で消去が再ハッシュ不要に — Bloom が構造的に持てない delete を実現。kick victim は (key,seed,kick) の SplitMix64 で選び table は (keys,seed) の純関数(再構築一致を検証)。偽陰性ゼロ・2000 op BTreeSet 照合・fp 率上界確認 | 🟢 純粋追加 |
+| `rans` — rANS entropy codec | Duda (2013) ANS: Huffman の 1 bit/symbol 下限を割るエントロピー符号。largest-remainder 正規化で Σ=L=2^12(全シンボル freq≥1、剰余は降順・同率は小 index が優先で正準)。encoder は逆順 consume→decoder 順序復元、u64 状態+ u16 排出の乱数3k 往復一致・wire 切り詰め/末尾ゴミ全拒否。歪分布 ~0.2 bit/symbol で圧縮確認 | 🟢 純粋追加 |
+| `polylabel` — integer pole | mapbox polylabel の整数化: セル上界を `(ceil√d²+ceil√r²)²` に保持し全比較を i128 有理数の平方距離で実施 — float/√ を一切出さずに剪定が厳密。lattice 点のみを評価(PIP=Inside)し同点は辞書順最小で正準。凸多角形乱択・L字の lattice 全走査 oracle と最適値一致 | 🟢 純粋追加 |
+| `mphf` — CHD perfect hash | BDZ/CHD 2段 displacement: `mphf = h(key, d[bucket]) mod n`、バケット解決順は (size desc, idx) 正準、(key set,seed) の純関数(挿入順非依存を検証)。乱択 key 集合で全単射性・dup 除去・foreign key も [0,n) 全域写像を確認 | 🟢 純粋追加 |
+| `mis` — canonical greedy MIS | 教科書貪欲: index 昇順走査、既選択近傍が無い頂点を採用 — 辺集合のみの一意決定(辺順序非依存を検証)。自己ループは構造的に不適格。独立性(両端点同時選択なし)+ 極大性(非選択点は被覆済)を定義通り全乱択検証 | 🟢 純粋追加 |
+
+見送り(第30次): regex・linkcut・planarity・rope・GJK/EPA・TLSF・Chomsky-full expr・edit-distance fuzzy(第29次見送り継続 — 需要顕在化まで凍結)、bitboard/magic(需要待ち)。
+
+## 出典(第30次、search-index 照合)
+
+**論文・仕様**: Fan, Andersen, Kaminsky & Mitzenmacher, "Cuckoo Filter: Practically Better Than Bloom" (CoNEXT 2014) / Duda, "Asymmetric numeral systems" (2009/2013) / mapbox polylabel (grid B&B アルゴリズム) / BDZ・CHD minimal perfect hashing / 貪欲 MIS 教科書定式。
+
+**実装物**: cp-algorithms・Qiita・Zenn の Cuckoo filter・rANS・polylabel・MPH 解説、 Fabian "ryg" Giesen の rANS 実装ノート。
