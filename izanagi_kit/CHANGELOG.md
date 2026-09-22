@@ -433,6 +433,28 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — reversible transforms, tree path queries, min cut, primality, wavelet queries
+
+Round-21 survey additions (162 → 167 modules):
+
+- **`bwt`** — cyclic Burrows–Wheeler transform `bwt`/`bwt_inverse`
+  (rotation ordering from `SuffixArray` over the doubled string, LF-mapping
+  inverse) plus `mtf_encode`/`mtf_decode` — the reversible front half of a
+  bzip2-style pipeline ahead of `rle`/`huffman`.
+- **`hld`** — heavy-light decomposition (`Hld`): `path_vertices`, `path_segments`
+  (`O(log n)` flat ranges for `segtree`/`fenwick`), `subtree_segment` over a
+  `parent[]` tree; deterministic heavy-child tie-break (max size, lowest index).
+- **`mincut`** — `global_min_cut`: Stoer–Wagner `O(n³)` global min cut
+  returning cut weight + one side; parallel edges sum, ties break to the
+  lowest vertex index.
+- **`miller`** — `is_prime`/`factor`: exact `u64` primality via the
+  deterministic 7-base Miller–Rabin set (`{2,325,9375,…,1795265022}` covers
+  all `n < 2^64`), sorted factorization via trial division + Brent rho with
+  a fixed polynomial schedule.
+- **`wavelet`** — `WaveletMatrix`: `access`/`rank`/`freq_less`/`range_freq`/
+  `quantile` on `u32` sequences in `O(bits)` — layered stable-partition
+  bitplanes; all-integer, allocation-once.
+
 ### Added — min-cost flow, knapsacks, coloring, undoable connectivity, line envelopes
 - **`mcflow`** — `FlowNet::min_cost_max_flow`: Edmonds–Karp augmentation
   to maximum flow, then cycle-canceling via `bellman::negative_cycle` —

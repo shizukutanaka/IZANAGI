@@ -112,6 +112,12 @@
 - J41 取消可能連結判定（「この辺があったら?」仮説クエリ — 条件付き通行可否）✅ `dsurb`（rollback union-find — path compression を捨てて union-by-size+操作ジャーナルで任意 snapshot へ O(深度) 巻戻し。BFS 再構築 oracle との component 一致を乱数検証）
 - J42 直線包絡クエリ（線型コスト選択・凸 DP 遷移 — min_j aⱼx+bⱼ）✅ `cht`（Li Chao tree — 区間中央の勝者を各ノードに保持し敗者だけが降りる `O(log X)` 挿入・クエリ。i128 評価、brute-force 包絡と乱数照合）
 
+- J43 可逆変換符号（BWT+MTF — 圧縮前段の局所性集約：リプレイログ・セーブの可逆前処理）✅ `bwt`（巡回 BWT — doubled-string 上の suffix array で回転順を決定、primary index で `inverse` が厳密復元。MTF と合わせて bzip2 型パイプラインの前半を完備。回転行列 oracle・往復一致・周期入力を乱数検証）
+- J44 木のパスクエリ（スキル木集計・親子集団の区間操作 — O(log n) 分割へ平坦化）✅ `hld`（heavy-light decomposition — max-size 子=heavy、light 子が新 chain。`path_vertices` で頂点列、`path_segments` で `segtree`/`fenwick` に直載せの `O(log n)` 連続区間、subtree は preorder 連続。祖先 oracle・BFS subtree 集合・乱数照合）
+- J45 全域最小カット（ネットワーク脆弱点・クラスタ分割コスト — s-t 未定で最小分断）✅ `mincut`（Stoer–Wagner 最密接頂点収縮 `O(n³)` — 全対 s-t maxflow (`flow`) を oracle に乱数照合、非連結は 0、側集合も返却）
+- J46 厳密素数判定・素因数分解（決定論的周期検証・Zobrist 類指数の因数監査 — 疑似乱数に依らない素数性）✅ `miller`（`u64` 全域で決定的 7-base Miller–Rabin — SPSP/Carmichael 全拒否、sieve oracle と 20 万件照合。Brent rho で合成数を固定多項式スケジュールで分解、出力 sorted）
+- J47 区間統計クエリ（頻度・中央値・範囲個数 — wavelet matrix で O(bits)/クエリ）✅ `wavelet`（MSB 安定分割 bitplane 行列 — `access`/`rank`/`freq_less`/`range_freq`/`quantile` を整数のみで — 区間 k 番目や値頻度を `segtree` 系と別軸でカバー。brute-force 全操作照合）
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
