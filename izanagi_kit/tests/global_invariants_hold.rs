@@ -600,6 +600,15 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
         ),
     );
     m.insert(
+        "izanagi/tilemap.rs",
+        (
+            1,
+            "Tilemap::new requires cols*rows to fit in usize — a checked \
+             overflow here would otherwise build an undersized vec that \
+             passes bounds checks and panics far from the constructor",
+        ),
+    );
+    m.insert(
         "izanagi_kit/pathfinding.rs",
         (1, "JPS chain-reconstruction invariant, debug builds only"),
     );
