@@ -234,6 +234,43 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   to `None` rather than panicking. Round-trip exact on random
   run-heavy models.
 
+### Added — geometric predicates, Eulerian walks, static range queries, interval sets
+
+- **`segment`** — integer-exact segment predicates: `segments_intersect`
+  (straddle test plus four endpoint-on-segment cases), `point_on_segment`,
+  `point_segment_dist2`, and `segment_dist2`, all in `i128` orientation
+  math. `dist2` returns the **ceiling** of the true squared distance, so
+  `== 0` still means "exactly touches" — floor division silently
+  collapsed sub-unit rational distances to zero and broke that
+  invariant. Oracle-checked against an independent intersection
+  formulation and dense point sampling.
+- **`euler`** — `euler_walk`: Hierholzer Eulerian circuit/path over an
+  undirected multigraph in `O(E)`. Degree parity decides
+  `EulerKind::Circuit`/`Path` (self-loops count as degree 2, parallel
+  edges as separate edges); a BFS reachability pass rejects
+  disconnected inputs and wrong odd counts return `None`. Edge
+  consumption is first-unused in input order, so the walk is a pure
+  function of the edge list. Oracle-checked by replaying the walk
+  against the input multiset.
+- **`rmq`** — `SparseTable`: static `O(1)` `range_min`/`range_max` after
+  an `O(n log n)` build over `i64`. Min/max are idempotent, so two
+  overlapping blocks compose the answer directly — the query-hot,
+  read-only complement to `segtree`'s updatable tree. Oracle-checked
+  against brute-force scans on every range of random inputs.
+- **`closestpair`** — `closest_pair`: `O(n log n)` divide-and-conquer
+  closest pair of points with `i128` squared distances and a y-merge
+  strip scan. All ties resolve to the lexicographically smallest
+  `(dist², p, q)`, so the answer is a pure function of the point set —
+  verified identical under input shuffling and against an `O(n²)`
+  exhaustive argmin on 400 random sets.
+- **`interval`** — `IntervalSet`: a sorted, disjoint, half-open set of
+  `i64` intervals with `insert` (merges touched and bridged spans),
+  `remove` (splits intervals it cuts through), `clip`, and
+  `O(log n)` `contains`/`overlaps`/`overlapping` queries via
+  `partition_point`. Occupancy/reservation bookkeeping. Oracle-checked
+  against a `BTreeSet` point model through random insert/remove/clip
+  sequences, with the sorted-non-adjacent invariant asserted each step.
+
 ### Added — the verification family
 
 Eleven modules that do nothing but interrogate a simulation. Each is grounded

@@ -741,3 +741,35 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文**: Hopcroft & Karp (SIAM J. Comput. 1973) / Croes (Operations Research 1958, 2-opt) / Fredkin (CACM 1960, trie memory) / Bentley (CACM 1975, kd-tree — 見送り評価用) / Fenwick 系文献の segment-tree 比較。
 
 **実装物**: cp-algorithms segment tree(iterative 系)・Hopcroft–Karp・Kuhn ページ / USACO guide matching・segtree / Wikipedia "2-opt"・"run-length encoding"���"trie" / Qiita・Zenn の seg-tree・二分マッチング・巡回セールスマン記事群。
+
+# 第11次: 外部出典サーベイ — 線分述語・オイラー路・静的RMQ・最近点対・区間集合 (2026-09-22)
+
+> 計算幾何の残存基盤(線分・点対)と、グラフ/クエリの定石(オイラー路・sparse table・
+> 区間集合)を棚卸し。5系統実装。PR #25/#26 は本ラウンド時点で open —
+> 本ブランチは第10次 PR #26 の tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `segment` — 線分述語 | 計算幾何教科書の orientation/straddle 系(Cormen §33, de Berg et al.)。判定は i128 cross 厳密、端点-on-線分・collinear・退化(点=点)を全分岐。`point_segment_dist2` は floor ではなく **ceiling** 返却 — floor だと 1 未満の有理距離が 0 に潰れて「dist²==0 ⟺ 接する」不変が崩れる事をテストが捕捉、ceiling なら整数のまま「0 iff 幾何学的接触」「≤r² の判定は整数 r で厳密」を同時に満たす | 🟢 純粋追加 |
+| `euler` — Hierholzer オイラー路 | Hierholzer & Wiener (1873) 定石 + Fleury との比較文献。無向多重グラフ(自己ループ次数2・平行辺個別)を dense-index 化して O(E) の反復 Hierholzer。次数判定 → BFS 連結検査 → 主走査の3段。辺消費は入力順 first-unused で決定的。`Some((kind, walk))` / 非存在 `None` — 巡回点検ルート・全通路往路(NPC patrol on edges) | 🟢 純粋追加 |
+| `rmq` — sparse table 静的範囲 min/max | Fischer & Heun (2006) 系 sparse table。`O(n log n)` 構築 → `O(1)` クエリ。min/max は冪等なので 2 ブロック重複合成がそのまま使える(disjoint cover 不要 = sparse table が冪等演算で簡潔になる理由)。`segtree`(点更新 O(log n))の静的補完 — 焼き付けデータへの高頻度クエリ | 🟢 純粋追加 |
+| `closestpair` — 最近点対 | Shamos & Hoey (1975) 分割統治 O(n log n)。y マージ + strip 走査(上限7点)の定石形。全 tie を `(dist², p, q)` 辞書順で解くので答は集合のみの純関数 — 入力配列順序にも依存しない(乱数シャッフル同一性検証付き)。poisson_disc の最小間隔検証・voronoi の近接 seed 解析に直結 | 🟢 純粋追加 |
+| `interval` — 区間集合演算 | sorted disjoint interval list(GTL/BLAST 系 occupancy 構造)。`insert` は接触・橋渡しの全件マージ、`remove` は切断時 split、`clip` は交差残し — 全て `Vec::splice` で in-place、クエリは `partition_point` 二分探索 O(log n)。BTreeSet 点集合オラクルで混合系列の逐次同値検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Bentley–Ottmann 全交差列挙 | 1979 | `segments_intersect` が pairwise をカバー。sweep line 全列挙は n 大の GIS 用途で需要が出れば |
+| Fleury の橋回避オイラー路 | 古典 | Hierholzer が O(E) で Fleury O(E²) より定石 — 橋検査が不要な分 Hierholzer を採用 |
+| Farach–Colton ±1RMQ O(1)/O(n) | 2000 | sparse table の O(1) で十分(構築 O(n log n) を許容)。±1 専用最適化は seed 後の棚卸し |
+| 動的区間木(augmented BST) | CLRS §14 | 静的 sorted vec が read-heavy で定石。BTreeMap augmented は需要時 |
+| Li–Weis K-Skip-Graph / 重心挿入 union-find | 各種 | `euler` の辺集合定義域では過剰 |
+
+## 出典(第11次、search-index 照合)
+
+**論文**: Hierholzer & Wiener (1873, Eulerian 路の古典) / Fischer & Heun (2006, RMQ) / Shamos & Hoey (1975, closest pair divide&conquer) / Bentley & Ottmann (1979, sweep line — 見送り評価用) / Cormen et al. CLRS §33 (orientation predicates)。
+
+**実装物**: cp-algorithms sparse-table・closest-pair-of-points ページ / emaxx Eulerian path / Wikipedia "Eulerian path"・"Closest pair of points problem"・"Sparse table"・"Interval tree" / redblobgames line-intersection ノート / Qiita・Zenn の蟻本系 sparse table・closest pair・区間スケジューリング記事群。
