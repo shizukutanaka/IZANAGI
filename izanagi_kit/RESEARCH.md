@@ -804,3 +804,35 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Welford (1962, online mean/var) / Chan, Golub & LeVeque (1979, parallel variance merge) / Steinarsson (2013, LTTB thesis, University of Iceland) / POSIX cron 5-field spec + Quartz CronExpression の `a/n` 拡張 / Markov 連鎖名付け(古典、roguelike 界隈定石)。
 
 **実装物**: junegunn/fzf scoring 実装(CONSECUTIVE・BOUNDARY の重み比較) / crontab.guru・Quartz CronExpression ドキュメント / cp-algorithms・Wikipedia "Algorithms for calculating variance" / redblobgames・fzy ソースの boundary 判定 / Qiita・Zenn の cron 実装・Welford・LTTB 記事群。
+
+# 第13次: 外部出典サーベイ — 整数論・木祖先クエリ・エントロピー符号・順序集合・単一パターン走査 (2026-09-22)
+
+> 前回までの層(mapgen→delaunay→接続、文字列・クエリ・時系列)の基盤層を棚卸し。
+> 「他モジュールが暗黙に仮定するが未実装だった」数学・走査・集合の定石5系統を実装。
+> PR #28 (第12次) は本ラウンド時点で open — 本ブランチはその tip 上に積層。
+
+## 実装済み(本セッション)
+
+| 実装 | 対応する知見 / 出典 | 決定論影響 |
+|---|---|---|
+| `ntheory` — gcd/extgcd/mod_pow/mod_inv/CRT | ユークリッド互除法(古典) + 拡張ユークリッド Bézout + binary modular exponentiation + 中国剰余定理(非 coprime 版は gcd 条件 `r1≡r2 (mod g)` で矛盾検出、合成 modulus は lcm)。`cron` の周期整合・`bits`/hash の residue 計算が暗黙に必要とする層。`unsigned_abs` で `i64::MIN` 入力の overflow を構造的に回避。ブルートフォース gcd 全走査・Bézout 恒等式 `a·x+b·y=g`・CRT の合同性/一意性/矛盾性を乱数オラクル検証 | 🟢 純粋追加 |
+| `lca` — binary lifting LCA | Euler-tour RMQ 版と並ぶ定石;構築 O(n log n)・クエリ O(log n) の `up[k][v]` 表。根付き森は `parent[]` 配列入力 — 循環/範囲外は stamp 検査で invalid 化し `None` 返却(hang しない)。ゾーン木・スキルツリー・エンティティ階層の共通祖先=最小包含領域クエリ。祖先集合列挙 oracle との全対一致を乱数森で検証 | 🟢 純粋追加 |
+| `huffman` — canonical Huffman codec | Huffman 1952 + canonical assignment(DEFLATE 系の wire 形:(len, sym) ソート順の連番コード — ツリー形は送らない)。2-queue merge で O(n) 構築かつ (weight, node-id) タイブレークで一意木。wire = (sym,len) 表 + bit_count + MSB-first パックで自己完結。`rle`→`huffman`→`bits` の圧縮段階を完備。往復同一・prefix-free・Kraft 等式・malformed 全拒否を乱数検証 | 🟢 純粋追加 |
+| `treap` — seeded 優先度 treap | Seidel & Aragon (1996) treap。BST ∩ min-heap(prio = `splitmix64(key^seed)` 内容定義)→ 形状は key 集合の一意関数で挿入順に非依存 = HashSet 反復の「platform ごとの列挙順」を排しつつ sorted 列挙を得る決定的辞書。merge/split 構成でコード小さく証明可能な構造。BTreeSet 全 ops 同値・シャッフル挿入で (key,depth) 署名一致・ヒープ不変量を検証 | 🟢 純粋追加 |
+| `kmp` — KMP 単一パターン + streaming | Knuth–Morris–Pratt (1977) — `fail` 表前処理で後戻りなし O(n) 走査。`ahocor` が multi-pattern を担うのに対し単一パターンの廉価層(区切り・ヘッダ・センチネル)。`Stream` は 1 byte 供給で match を絶対 index 返却 = パケット境界で分割された match も取れる wire 走査。naive 全位置走査との全一致(重複 match 含む)・stream≡batch を乱数チャンク分割で検証 | 🟢 純粋追加 |
+
+## 検討して見送った候補
+
+| 候補 | 出典 | 見送り理由 |
+|---|---|---|
+| Miller–Rabin 素数判定 | Miller'76/Rabin'80 | `ntheory` の範囲外需要。素数合成サイズが要るハッシュ表が kit に無いため定石組込み時 |
+| Euler-tour + RMQ 版 LCA | Tarjan/Harel'84 | binary lifting でクエリ十分。定数係数改善は `rmq` との組合せ需要時 |
+| Arithmetic / range coding | Sayood | Huffman より圧縮率は高いが range coder の整数化は別大物。wire は canonical Huffman で誤差許容帯に十分 |
+| AVL/red-black / B-tree | — | treap の「hash 優先度=形状が key 集合のみで一意」性は挿入順非依存性の証明に直結。常勤 BST は優先度の表れない deterministic shape を持たない |
+| Boyer–Moore / Sunday | — | KMP の文字ごと処理は stream 供給に直交する構造 — 高速スキップ系は巨大バッファ走査で需要化した時 |
+
+## 出典(第13次、search-index 照合)
+
+**論文・仕様**: Euclid(古典) / Bezout 恒等式 / 中国剰余定理(非 coprime 拡張)/ Knuth–Morris–Pratt (1977, SIAM J. Comput.) / Huffman (1952, Proc. IRE) + canonical codes(Schwartz 1964, DEFLATE RFC 1951) / Seidel & Aragon (1996, "Randomized Search Trees", Algorithmica) / binary lifting(Schieber & Vishkin 1988 の木クエリ系)。
+
+**実装物**: cp-algorithms 各項(gcd/extgcd/CRT/binary lifting KMP)/ rust `std::str::find` の empty-pattern 意味 / junegunn fzf 対比のための KMP stream 形 / redblobgames・Qiita・Zenn の treap・CRT・Huffman 解説記事群 / DEFLATE canonical table(RFC 1951 §3.2.2)。
