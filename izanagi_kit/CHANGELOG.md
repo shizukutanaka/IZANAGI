@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — succinct/monotone structures, BLAKE2s, calipers, SMAWK
+
+- `elias` — Elias–Fano monotone `u64` sequence: `access`/`rank`/`successor`/`successor_strict` over a unary-gap high bitmap + verbatim low bits; construction sorts a copy so the index is a pure function of the multiset.
+- `patricia` — crit-bit (PATRICIA) radix tree over `u64`: `insert`/`contains`/`min`/`max`/`floor`/`ceil`/`predecessor`/`successor` and sorted-order `iter`; bound queries prune by subtree min/max since untested high bits make branch membership non-trivial.
+- `blake2s` — BLAKE2s-256: streaming `Blake2s` + `blake2s`/`blake2s_keyed` (RFC 7693 keyed-MAC mode, no HMAC needed); key block stays buffered so an empty message finishes correctly.
+- `rotcal` — rotating calipers on a convex hull: `diameter` (pair + squared distance), `min_width` and `min_rect_area` as exact `Frac` values; four-calipers pointers are edge-0 seeded so monotone advance can't miss extrema.
+- `smawk` — SMAWK row-argmin `O(rows+cols)` for totally monotone implicit matrices: ties to smallest column; the engine for Monge-DP speedups.
+
 ### Added — keyed hashes, pairing heap, sorting network, offline LCA
 
 - `siphash` — SipHash-2-4 keyed 64-bit PRF: streaming `SipHash` state (split-independent via an 8-byte staging buffer) + one-shot `siphash`; paper vectors verified.
