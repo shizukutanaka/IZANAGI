@@ -82,6 +82,32 @@ each in published-work form with an independent oracle:
   table scatter written to hashed slots and an honest
   dumb7fill-oracle fallback.
 
+### Added — Link–Cut trees, splay BST, Myers edit distance, GJK, TLSF
+
+Dynamic trees, self-adjusting search, bit-parallel string metrics,
+exact convex distance, and O(1) segregated allocation, each in
+published-work form with an independent oracle:
+
+- **`linkcut`** — Link–Cut dynamic tree (Sleator & Tarjan): `link`/
+  `cut`/`connected`/`lca`/`path_min` over a rooted forest via
+  aux-path splays with lazy `rev` propagation; `access`'s return
+  value doubles as the LCA.
+- **`splay`** — bottom-up splay BST: zig / zig-zig / zig-zag
+  promotion makes the tree shape a pure function of the operation
+  sequence — amortized balance with zero RNG and zero bookkeeping.
+- **`editdist`** — Myers' one-`u64` automaton: `dist` for whole
+  Levenshtein and `find_leq` for approximate-search end positions;
+  the left-column injection bit selects the free-start boundary,
+  patterns > 64 words fall back to DP.
+- **`gjk`** — integer 2-D GJK: the closest point of the Minkowski
+  difference is carried as a `Frac` rational, so `distance2`
+  returns exact squared distance and `overlap` is exact —
+  verified against SAT and a rational brute-force oracle.
+- **`tlsf`** — TLSF-style segregated allocator: two-level (fl, sl)
+  bins, neighbor coalescing, and deterministic lowest-address fit;
+  `alloc` refuses only when no free block fits, enforced by a
+  shadow-oracle invariant.
+
 ### Added — radix sort, rank/select, de Bruijn, continued fractions, Earley
 
 Word-level sorts, dense-index primitives, cyclic sequences, exact

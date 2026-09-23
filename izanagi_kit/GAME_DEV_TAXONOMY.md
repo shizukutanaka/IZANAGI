@@ -227,6 +227,11 @@
 - J140 算術符号化(区間細分 entropy 符号)✅ `arith`(Subbotin carry-less range coder — キャリー伝搬を range 切詰で回避した byte 出力のストリーミング符号、呼出側周波数モデル・往復完全一致)
 - J141 SwissTable 型制御 byte 表(高密度単一テーブル)✅ `swiss`(16 slot probe group+7bit h2 fingerprint で key 配列非接触の判定多数、tombstone 削除、負荷15/16&墓石閾値で倍長 rehash — cuckoo との設計対極)
 - J142 マジックビットボード(衝突なし掛算索引 attack 表)✅ `magic`(relevant occ = 各 ray 終端のみ除く `ray & opp(ray)`、seeded magic 探索で (occ·m)>>shift 完全ハッシュ、尽きれば dumb7fill oracle に正直 fallback)
+- J143 Link–Cut 動的木(根付き森の link/cut/path 集約)✅ `linkcut`(aux splay+遅延 rev push の標準形 — access の戻り値が最後の経路親=LCA、make_root で reroot、BFS oracle と連結/経路 min を照合)
+- J144 スプレー木(アクセス局所性による償却平衡 BST)✅ `splay`(bottom-up zig/zig-zig/zig-zag — 木形状は操作列のみの関数で RNG 不要、BTreeSet oracle と全 op 照合)
+- J145 ビット並列編集距離(Myers 1-word automaton)✅ `editdist`(≤64 パターンの `dist` と `find_leq` 近似照合端位置 — 左列注入 bit が全文/自由開始の境界を切替、DP oracle 乱択照合)
+- J146 GJK 凸体距離(Minkowski 差 support 写像)✅ `gjk`(2D 整数 GJK、最近点を Frac 有理数で保持し厳密二乗距離 — SAT oracle ブール+有理数 brute oracle と 400 乱数凸包照合)
+- J147 TLSF アロケータ(segregated-fit O(1) 動的割付)✅ `tlsf`(fl/sl 二段 bin + free coalescing — 「収まるブロックがあるのに拒否しない」正直拒否を oracle が強制、最低アドレス採用で決定的)
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

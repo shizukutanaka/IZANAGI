@@ -1535,3 +1535,20 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Nong (2013) SA-IS O(N) Time + divsufsort / Flajolet et al. (2007) HLL + Heule et al. (2013) / Subbotin (1999) carry-less range coder + Witten–Neal–Cleary (1987) / Bening–Kingsley–Luaces (CppCon 2017) SwissTable + Abseil raw_hash_set / Romstad & Kannan magic move bitboards(chessprogramming wiki)。
 
 **実装物**: SA-IS 擬似コード(Nong 論文)、redis ClickHouse の HLL、Matt Mahoney の carry-less レンジコーダ、Abseil の制御 byte 仕様、chessprogramming wiki の magic 生成器 — Qiita/Zenn の SA-IS・HLL・算術符号・SwissTable・magic bitboard 解説を参照し全て整数のみで実装。
+
+
+## 第41次: 動的木・償却平衡・ビット距離・凸体距離・分離割付
+
+- `linkcut` — Link–Cut 木: preferred-path 分解を aux splay で保持、`access` が root↔x 経路を一つの splay に集約し「最後の経路親(=二度目 access での LCA)」を返す。遅延 `rev` は splay 前に祖先連鎖を pop-push で伝播。link は make_root+巡回検査で森を維持、cut は隣接関係を確認して誠実拒否。BFS 隣接 oracle と connected/path_min を乱択照合
+- `splay` — ボトムアップ splay: zig(親が根)/zig-zig(同方向は親先回転)/zig-zag(自身二回)。アクセス頂点を根へ昇格 → 局所的作業負荷で償却 O(log n)、木形状は操作列のみの純関数で RNG 一切不要。BTreeSet oracle 全 op 照合+正準 in-order 検証
+- `editdist` — Myers ビットベクトル DP: `xv=eq|mv; xh=((eq&pv)+pv)^pv|eq; ph=mv|~(xh|pv); mh=pv&xh` の1-word オートマトンで score を ±1 更新。**設計の核心は境界**: 全文 `dist` は左列 `D[i][0]=i` で `Ph<<1|1` 注入、自由開始 `find_leq` は `D[i][0]=0` で `|0` 注入 — 上段は両方 `D[0][j]=j`。64 語を超える pattern は DP/`diff::levenshtein` に正直 fallback
+- `gjk` — 2D 整数 GJK: Minkowski 差 `A⊖B` の support 写像で原点を包む simplex を反復。最近点 v は `Frac` 有理数 {nx,ny,den} で保持し全比較を整数交叉乗算 — `distance2` が厳密二乗距離を返す。終了条件は `|v|² ≤ dot(w,v)` すなわち `len2_num ≤ den·dot_i`(den 因子が必須 — 脱落すると SAT oracle が即不一致)。凸包 400 乱数で有理 oracle と一致
+- `tlsf` — TLSF 分離割付: size≥32 は (fl=最上位bit, sl=上位4bit) の二段 bin、SMALL=32 未満は exact bin。`alloc` は `bin_of(want)` 以降の bin を候補走査して収まる最下位ブロックを採用 — 古典 `mapping_search` 切上げは want 自身の bin 内の exact-fit を見逃す設計値を正直拒否 oracle が捕捉 → 候補毎の fit 検査に確定。free は next/prev 双方向 coalescing(stale `blocks` 残存も oracle が捕捉)
+
+**継続延期バックログ**: 平面性判定、EPA(GJK の penetration 版)、真の 3 段 recursive vEB、ED25519、alphahull、SwissTable の SIMD 群制御(本物の group 演算)、edit-distance 本格 fuzzy(64 超 pattern の bitap)。
+
+## 出典(第41次、search-index 照合)
+
+**論文・仕様**: Sleator & Tarjan (1985) "Self-adjusting binary search trees" + (1983) "A data structure for dynamic trees" / Myers (1999) "A fast bit-vector algorithm for approximate string matching based on dynamic programming" + Navarro & Raffinot "Flexible Pattern Matching in Strings" §6 / Gilbert–Johnson–Keerthi (1988) GJK + Gino van den Bergen "Collision Detection in Interactive 3D Environments" / Masmano et al. (2004) TLSF: a new dynamic memory allocator for real-time systems。
+
+**実装物**: competitive-programming の Link–Cut 実装形、sedgewick の bottom-up splay、Myers 論文のビットベクトル疑似コード、dyn4j/bullet の GJK 参照実装、NuttX/rtems の TLSF — Qiita/Zenn の Link–Cut・Myers bitap・GJK・TLSF 解説を参照し全て整数のみで実装。
