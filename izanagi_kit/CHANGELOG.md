@@ -88,6 +88,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`seamcarve`** — integer seam carving (`energy`/`find_vseam`/`remove_vseam`): squared one-sided-gradient energy `u32`, 8-connected seam DP with leftmost ties, malformed seams rejected via `None` rather than clamped.
 - **`ost`** — order-statistic treap (`Ost`): priority `splitmix64(seed ⊕ mix(key))` makes the shape a pure function of the key set; `select`/`rank`/`lower_bound` over subtree sizes, recursive size/heap invariant check + `BTreeSet` shadow oracle.
 
+- **`kkpart`** — Karmarkar–Karp largest-differencing partition (`partition` → `Option<(u64, Vec<bool>)>`): each residual heap element carries `(plus, minus)` index bitmasks, so the returned `d` is a *concrete achievable* difference — `d ≥ optimal` holds by construction, verified against brute `2ⁿ` enumeration on n≤9.
+- **`xfast`** — x-fast predecessor/successor trie over `u64`: 65 level tables of prefix→`(min,max)` leaf bounds; `pred`/`succ` binary-search the levels for the divergence node (`O(log U)` table ops) then resolve from the diverging child's leaf bounds. `BTreeSet` shadow oracle, 60×400 ops.
+- **`seglazy`** — segment tree beats + lazy range add (`SegLazy::add`/`chmin`/`chmax`/`sum`/`get`): `push` replays a pending `lz` add into children via `apply_add` *before* clamping them to the parent's extrema — the order is load-bearing or a stale-low child is clamped against the pre-add ceiling. Naive per-element oracle, 120×300 ops + add/clamp interleaving test.
+- **`tunstall`** — Tunstall variable-to-fixed code (`Tunstall::build`/`encode`/`decode`/`phrase`): greedy highest-probability-leaf expansion to `2ᵏ` codewords, probabilities compared exactly via `BigInt` cross-multiplication; DFS-order canonical codes; prefix-free + Σprob=1 verified exactly over `BigInt`.
+- **`ortho`** — exact Gram–Schmidt QR over `Frac` (`qr` → `(Mat, Mat)`): unnormalized orthogonal `Q` (`QᵀQ = diag`), unit-diagonal `R`, `A = Q·R` exactly; dependent columns return the zero vector and `rank` counts nonzero columns — brute Gaussian-elimination rank oracle on 150 random matrices.
+
 ### Fixed
 - **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —
   cells were stored in a `HashMap`, and `iter_keys` / `all_occupied_cells`

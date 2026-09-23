@@ -1739,7 +1739,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `gcm` — AES-128-GCM AEAD(aes の上に): GF(2^128) 乗算はビットシリアル shift-xor(R = 0xE1<<120)、GHASH の累積器は aad→ct を**連鎖**させる — 別々に計算して XOR 合成するのは fold 構造違反(NIST ベクタで捕捉)。J0 = IV‖0^31‖1(12B)または GHASH 導出。**設計値捕捉**: 掲載ベクタの期待値を記憶で誤記 — 純 Python AES+GCM を書いて完全独立に相互検証し、no-AAD 版 tag=cc15abcc…/AAD 版 tag=5bc94fbc… を確定。往復 + タグ/暗号文改竄全拒否 40 乱数
 - `polyclip` — Sutherland–Hodgman 多角形クリップ(全 Frac 厳密): clipper は i128 shoelace 符号で CCW 正規化、inside = 有向辺の左側(cross ≥ 0)、交点パラメータ `t = cross(cd, a−s)/cross(cd, sd)`。**設計値捕捉**: t の符号が反転すると交点が線分の裏側に出て全面消失(0 面積回帰が捕捉)→ 分子は a−s が正。出力は連続重複 + 端点重複を dedup して閉路化。乱択矩形 oracle(面積上界 + 全頂点 inside)+ winding 非依存の決定出力
 
-**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
 
 ## 出典(第53次、search-index 照合)
 
@@ -1756,7 +1756,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `dtw` — 動的時間伸縮(整数弾性距離): dp[i][j] = |a_i−b_j| + min(上,左,対角)。Sakoe–Chiba 帯版と対角優先の正準経路復元。**設計値捕捉**: 境界セルを「左/上移動で伝播可能」にすると枯渇 prefix が自由消費され真値を過小に返す(24 vs 14 で捕捉) — i==0||j==0 は INF に留める。三角不等式は一般には不成立(メトリック非メトリック) — 検証は同一長の対称性・非負・恒等路線上界のみ。再帰メモ oracle 300 乱数全照合
 - `pathcover` — DAG 最小パス被覆(Dilworth 鎖分割): L_u—R_v の二部コピー + hopcroft_karp 最大マッチングで被覆 = n − |matching|。**設計値捕捉**: 被覆再構成は「マッチングで前駆を持たない頂点から succ 連鎖を辿る」— succ 関数の列挙 oracle(n≤6 で (n+1)^n 全列挙、indeg≤1+非閉路条件)で optimality 照合。閉路入力は topo_order が None → 全体 None
 
-**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
 
 ## 出典(第54次、search-index 照合)
 
@@ -1772,7 +1772,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `verlet` — 整数 Verlet 統合(Q16.16): `x' = x + (x−x_prev)·damping + a` + 距離リンクを iters 回緩和、両端半分の `(len−rest)` 誤差を軸方向へ。**設計値捕捉**: damping=1 は無減衰でエネルギー保存 — リンクが平衡を貫通して持続振動する(両端点が入れ替わる大振動も観測)ため、収束主張には damping < 1 が必須。緩和順は挿入順リストでトレースの一部
 - `vnoise` — 整数バリューノイズ+fBm: SplitMix64 格子ハッシュ(負 index も bit-mix 吸収)→ 上位16bit を Q16.16 へ、smootherstep `u²(3−2u)` 双線形補間、fbm は amp·freq の mul 更新+正規化。**設計値**: セル床は `raw >> 16` 算術シフト(負座標で二の補数 frac が [0,1) へ)、転置補間 oracle は丸め経路違いで±4量子一致
 
-**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
 
 ## 出典(第55次、search-index 照合)
 
@@ -1788,7 +1788,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `radixheap` — 単調基数ヒープ(Dijkstra 向け): **設計値捕捉** — バケツ判定は `msb(key XOR last)` が正しい(初版 `bit_len(key−last)` は last 前進時に高バケツへ残った小キーが最下位バケツの最小を潜り順序不変式を破壊 — BTreeMap シャドウ oracle が step 9 で (38 vs 33) の不一致を捕捉)。XOR 版では単調 push ⇒ 高バケツは厳密に大キーが証明可能。3000-op interleaved oracle 全照合
 - `life` — 疎 B3/S23 セルオートマトン: `BTreeSet<(i64,i64)>` がそのまま正準状態(同一集合⇒同一トレース)。近傍カウントを BTreeMap 一発走査。グライダー4step 平行移動・blinker・still life 不変、稠密グリッド oracle 30試行×12世代で全照合
 
-**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
 
 ## 出典(第56次、search-index 照合)
 
@@ -1804,7 +1804,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `turnpike` — Skiena のターンパイク再構成: `n(n−1)/2` 個の距離マルチ集合から点列を復元。左優先 DFS で決定的。**設計値捕捉**: `need` の存在検査は*multiplicity 対応*が必須 — 同距離が2箇所から要求されるケース(例: `|x−p1|=|x−p2|`)を単一 presence で通すと残差マルチ集合が壊れ真の解へ辿り着かない(oracle が unsolved 誤報として捕捉)。homometric mates `{0,1,5,7,8}` vs `{0,1,3,7,8}` で同距離集合を確認、roundtrip oracle 200乱択
 - `kpaths` — Yen の k-最短単純路: spur 偏差ごとに banned edges(受理済み経路の同 prefix 出辺)と banned nodes(root prefix)で Dijkstra 再実行、候補は `(cost, path)` BTreeMap。**設計値**: Yen の契約は「最小 k 個のコスト列」— 等コスト経路の内部順序は実装依存なので oracle は top-k コストベクタ一致+全経路が単純経路集合に含まれること+純関数再実行一致の3条件で検証(初版は等コスト経路の列挙順まで強制契約化しており、Yen の真の仕様外要求として oracle 側を修正)
 
-**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
 
 ## 出典(第57次、search-index 照合)
 
@@ -1820,7 +1820,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `stirling` — Stirling 数 mod p: 符号付き s1(`s(n,k)=s(n−1,k−1)−(n−1)s(n−1,k)`)、unsigned `us1`(順列の cycle 数 — `perm::unrank`+`cycles` で n≤7 全順列列挙の独立 oracle)、s2(閉形式 `1/k!·Σ(−1)^j C(k,j)(k−j)^n` と三角 DP を相互検証)、`bell`、`falling_coeffs`(降冪 xⁿ̲=Σs(n,k)xᵏ — Horner 評価 vs 直接積で恒等式 oracle)
 - `onion` — 凸包玉ねぎ層分解: `poly::convex_hull` の繰り返し peel。**設計値捕捉**: hull 辺上の共線点は monotone-chain の出力に*含まれない*(strict-corner 契約)ため、その点は peel を生き残り独立した退化レイヤを形成 — 「玉ねぎ深度」の正直な意味論であり、doc で明示。全共線点列は各 peel が両端点2個しか除去しないため ⌈n/2⌉ 層。層数・層集合・union 復元・厳密入れ子を別ループ oracle で全照合
 
-**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
 
 ## 出典(第58次、search-index 照合)
 
@@ -1836,10 +1836,26 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `seamcarve` — Avidan–Shamir 継目削り: 二乗勾配エネルギー(境界は片側差分)+ 8-連結 seam DP(左端 argmin)+ `remove_vseam`(不正 seam は None)。**設計値捕捉**: 力任せ oracle の `go()` で「途中打ち切りパス」を `best` の初期値に残すと全 seam 未満のコストを返す — 葉行のみが base case。初版実装は正しかった(536 vs 5 で oracle が自壊を告白)
 - `ost` — 順序統計 treap: `insert`/`erase`/`contains`/`select`/`rank`/`lower_bound`。優先度は `splitmix64(seed ⊕ mix(key))` — 形状がキー集合の純関数で挿入順序非依存。size/heap 不変式を再帰検査 + BTreeSet oracle 60 ラウンド×300 op 全照合
 
-**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
 
 ## 出典(第59次、search-index 照合)
 
 **論文・仕様**: Karp (1978) "A characterization of the minimum cycle mean in a digraph" / Hirschberg (1975) "A linear space algorithm for computing maximal common subsequences" / Avidan & Shamir (2007) "Seam carving for content-aware image resizing" / Cormen et al. CLRS §15.2 行列連鎖、§15.4 + Knuth の順序統計木 — Qiita/Zenn/海外技術記事の Karp 復元・Hirschberg・seam carving・order-statistics tree 解説を参照し全て整数のみで実装。
 
 **実装物**: Library Checker 系 cycle API 形状、AtCoder/ACL 系 LCS 復元の空間最適化、画像縮退 seam API、GNU pbds tree_order_statistics_node_update 相当の rank/select — 全て整数のみで実装。
+
+## 第60次: KK分割・x-fast・beats+lazy・Tunstall・厳密QR
+
+- `kkpart` — Karmarkar–Karp 最大差分化分割: 残差ヒープ要素が `(plus, minus)` index bitmask を保持し、差分ステップで y の山を反転併合。**設計値捕捉**: 不変式 `v = Σplus − Σminus` で返却値 d が「実現可能な差分」— よって d ≥ optimal が構造的に証明される(近似保証をテストが主張するのでなく、分割そのものを返す設計)。n≤9 の 2ⁿ 全列挙 oracle で達成性+下界性を全照合
+- `xfast` — x-fast trie(Willard 1983): 65 層の prefix→(min,max) 葉範囲テーブル、pred/succ はレベル二分探索で「x のパスが分岐する最深ノード」を特定し分岐子の葉境界から解く。**設計値捕捉**: 層 l の prefix 存在は全層 ≤l に存在を含意する単調性が二分探索を正当化; 葉の双方向リンクは BTreeSet で代替(O(1) hop でなく O(log n) — doc で正直に明記)
+- `seglazy` — 延期バックログ消化: segbeats に `add` lazy を合成。**設計値捕捉**: `push` は pending add を子へ `apply_add` して*から* clamp を適用 — 逆順だと stale-low の子 mx が add 前の天井でクランプされ不変式を破壊。add 適用は NEG/POS sentinel を素通し("第二極値なし"の意味を保存)。120×300 op naive oracle + add/clamp 交互2000回
+- `tunstall` — Tunstall 可変→固定長符号: 根から最大確率葉を A 子へ展開、葉数が 2ᵏ を超える直前で停止。葉確率は経路重み積だが深い経路で u128 溢れするため `BigInt` 交叉積で厳密比較(den^depth 差の正規化は不可能な大きさ)。DFS 順が正準コード、prefix-free・Σp=1・budget タイト性を BigInt 厳密検証
+- `ortho` — Frac 上の厳密 Gram–Schmidt/QR: `qⱼ = aⱼ − Σ (⟨aⱼ,qₖ⟩/⟨qₖ,qₖ⟩)qₖ`、Q は*非正規化*直交(ℚ に √ が無いため QᵀQ=diag が限界)、R は単位対角上三角で A=Q·R が厳密成立。従属列の q は零ベクトル(エラーでなく仕様)、rank = 非零列数をガウス消去 oracle で照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
+
+## 出典(第60次、search-index 照合)
+
+**論文・仕様**: Karmarkar & Karp (1982) "The Differencing Method of Set Partitioning" / Willard (1983) "Log-Logarithmic Worst-Case Range Queries" の x-fast trie / J. Dai (jiry_2) "Segment Tree Beats" の add 合成形 / Tunstall (1967) "Synthesis of Noiseless Compression Codes" + Savari & Gallager (1997) / Golub & Van Loan *Matrix Computations* §5.2 — Qiita/Zenn/海外技術記事の KK partition・x-fast/y-fast・segbeats lazy add・Tunstall coding・Gram-Schmidt QR 解説を参照し全て整数のみで実装。
+
+**実装物**: Library Checker `range_chmin_chmax_add_range_sum` 準拠の beats+add 形状、Demaine 6.851 講義の x-fast 層テーブル構造、競プロ系 KK 復元の bitmask 追跡、Tunstall 教科書の貪欲葉展開、教科書系 classical Gram-Schmidt(修正版��なく — 厳密算術なら数値誤差を考慮する理由が無い)— 全て整数のみで実装。
