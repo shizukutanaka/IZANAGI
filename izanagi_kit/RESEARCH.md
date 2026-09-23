@@ -1499,3 +1499,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Pagh & Rodler, "Cuckoo hashing" (2001) / Chess Programming Wiki(bitboards, dumb7fill) / Cocke–Younger–Kasami + Hopcroft & Ullman (1979) / cp-algorithms half-plane intersection + Preparata & Shamos / Willard, "Log-logarithmic worst-case range queries" (1983)。
 
 **実装物**: Rust std/hashbrown の cuckoo kick 設計、ChessProgramming dumb7fill/occluded fill、教科書 CYK 三角表、cp-algorithms/KACTL の deque HPI 規約、y-fast の rep/bucket 二層 — Qiita/Zenn のカッコーハッシュ・ビットボード・CYK・半平面交差解説を参照し整数のみで逐語実装。
+
+## 第39次 線形整列・稠密索引・巡回列・有理近似・任意CFG(round 39)
+
+**採用モジュール(252→257)**: `radixsort` / `rankselect` / `debruijn` / `cf` / `earley`
+
+- `radixsort` — 8bit×8 pass の安定 LSD 基数ソート + `[0,bound)` 計数ソート + `(key,payload)` 安定版。初版 `dst.resize(len, src[0])` が空配列でパニック → 早期 return。安定性は「同キー内で入力順保持」を反転入力で直接検証
+- `rankselect` — Jacobson 二段 directory(L0=512bit superblock 絶対 rank、L1=word 内相対)。rank1 は2 lookup+popcount、select1 は superblock 二分探索+word 走査。naive 全位置・全 k 照合
+- `debruijn` — FKM アルゴリズム: k 進 Lyndon 語(長|n)を辞書順連結で B(k,n) 一発生成。「先頭以外を prefix 反復で延長→末尾から increment」が正しい遷移 — 全 k^n 語の巡回窓一意性を `is_debruijn` + 独立全列挙で検証
+- `cf` — Euclid の連分数展開(末尾1を前方に畳んだ canonical 形)+ 全収束列 + `best_approx`: cap を超える収束点で semiconvergent 係数 t=(cap−q_{i−2})/q_{i−1} の2候補比較、同距離は小分母優先。全探索 oracle で300乱数照合
+- `earley` — Earley chart パーサ(predict/scan/complete)。設計値: スキャンが chart[i+1] へ入れたアイテムが現位置の queue で pop されると位置 i の byte で誤走査 — **位置別 queue が必須**(単一 VecDeque 版が a^nb^n で即座に失敗)。合成 S'→S で受理判定、ε規則・混長産出・自己再帰 start も受理。CYK オラクル(メモ化 derives)を任意規則に一般化して120文法×40入力全照合
+
+**継続延期バックログ**: SwissTable、link-cut、sais、平面性判定、GJK/EPA、TLSF、edit-distance fuzzy、magic bitboard、真の 3 段 recursive vEB、HLL(整数化)、ED25519、alphahull。earley は「Chomsky-full」延期項を消化。
+
+## 出典(第39次、search-index 照合)
+
+**論文・仕様**: Knuth TAOCP 5.2.5(distribution counting/radix)/ Jacobson (1989) rank 構造 + González et al. (2005) select / Fredericksen–Kessler–Maiorana (1978) FKM + Ruskey 7章 / Khinchin "Continued Fractions" 最良近似定理 / Earley (1970) CACM 13(2) + Aycock–Horspool (2002) practical Earley。
+
+**実装物**: cp-algorithms counting sort、SDSL rank_select の superblock 設計、Wikipedia de Bruijn の FKM 擬似コード、教科書連分数の semiconvergent 評価、Earley 擬似コードの chart-set fixpoint — Qiita/Zenn の基数ソート・rank/select・de Bruijn・Earley 解説を参照し整数のみで逐語実装。

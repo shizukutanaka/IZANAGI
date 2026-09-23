@@ -217,6 +217,11 @@
 - J130 CYK 構文認識(CNF 文法 — 動的計画受理)✅ `cyk`(bin[a][b] を lhs bitset に前計算した O(n³) 三角表。`accepts`/`derive`/`cell` — メモ化再帰 oracle で小規模 CFG を全照合)
 - J131 半平面交差(実行領域の凸多角形 — deque 構築)✅ `halfplane`(方向角を quadrant+cross で整数整列、頂点は全て Frac。閉交点 push・連続重複/共線の正規化・shoelace で CCW 化 — 空/非有界/退化は None で失敗閉鎖)
 - J132 y-fast トライ(rep 層+クラスタ — u32 前駆後継)✅ `yfast`(内容分割 bucket が median で分裂、rep 昇順 Vec。predecessor は strict<、successor は inclusive≥ で veb と意味合わせ — BTreeSet oracle で全演算照合)
+- J133 基数/計数ソート(比較なし線形整列)✅ `radixsort`(8bit×8 pass の安定 LSD + `[0,bound)` 計数ソート + `(key,payload)` 安定版 — 挿入順を残したいイベント整列向け)
+- J134 rank/select ビットベクトル(稠密索引の基底)✅ `rankselect`(512bit superblock の Jacobson 二段 directory、word 内 select は byte 走査 — wavelet/elias の下位プリミティブ版)
+- J135 de Bruijn 列(全 k-mer を一巡する巡回列)✅ `debruijn`(FKM の Lyndon 語連結で B(k,n) を一発生成 + `is_debruijn` 検証器 + `window_hash` 巡回窓指紋)
+- J136 連分数(有理数の正準展開)✅ `cf`(`to_cf`/`from_cf`/`convergents`/`best_approx` — cap 内分母の最良近似は semiconvergent 境界との2候補比較、同距離は小分母優先)
+- J137 Earley 構文認識(任意 CFG — ε規則・混長産出可)✅ `earley`(位置別 queue の predict/scan/complete fixpoint、合成 S'→S で受理判定 — cyk の CNF 制約を解除、メモ化再帰 oracle 全照合)
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

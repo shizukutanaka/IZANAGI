@@ -56,6 +56,32 @@ oracles:
   promotion on removal, strict `predecessor` / inclusive `successor`
   matching `veb` semantics — BTreeSet oracle over all operations.
 
+### Added — radix sort, rank/select, de Bruijn, continued fractions, Earley
+
+Word-level sorts, dense-index primitives, cyclic sequences, exact
+rational approximation, and unrestricted grammar recognition, all
+in published-work form with independent oracles:
+
+- **`radixsort`** — LSD radix sort over `u64` (eight stable 8-bit
+  counting passes), counting sort over `[0, bound)`, and a stable
+  `(key, payload)` variant — insertion order survives equal keys,
+  the property tick-sorted event queues actually need.
+- **`rankselect`** — Jacobson two-level rank/select bitvector:
+  `rank0/1` is two lookups plus a popcount, `select0/1` a bounded
+  superblock scan — the dense-index primitive `wavelet`/`elias`
+  build on.
+- **`debruijn`** — de Bruijn `B(k, n)` via FKM Lyndon-word
+  concatenation, an `is_debruijn` verifier, and a `window_hash`
+  cyclic-window fingerprint.
+- **`cf`** — exact continued fractions over `Frac`: canonical
+  `to_cf`/`from_cf` round-trip, `convergents`, and `best_approx`
+  (closest rational with denominator <= cap, ties to the smaller
+  denominator) — oracle-checked against exhaustive enumeration.
+- **`earley`** — Earley chart parser for arbitrary CFGs: position
+  queues keep scan-ahead items out of the current set, ε-rules and
+  mixed-length productions work without CNF conversion — `cyk`'s
+  restriction lifted.
+
 ### Added
 - **`tests/no_nondeterminism_in_sim.rs`** — the non-float half of "replay-safe",
   which nothing checked. `no_float_in_sim.rs` rejects `f32`/`f64`; this rejects
