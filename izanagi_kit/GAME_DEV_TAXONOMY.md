@@ -310,6 +310,11 @@
 - J215 行動木 ✅ `btree`(Sequence/Selector が Running 子を per-node `mem` に記憶して resume — Condition の Running は Failure へ写像)
 - J216 整数 Verlet 統合 ✅ `verlet`(Q16.16 Jakobsen 距離制約緩和 — 無減衰はエネルギー保存で平衡を貫通振動、収束には damping < 1 が必須)
 - J217 整数バリューノイズ+fBm ✅ `vnoise`(SplitMix64 格子ハッシュ + smootherstep 双線形補間 — `raw >> 16` 算術シフトのセル床が負座標安全)
+- J218 簡約順序付き二分決定図 ✅ `bdd`((var,lo,hi) ハッシュコンシング + apply/restrict/exists — 正準形はノード id 一致まで効く)
+- J219 厳密有理 LP 単体法 ✅ `simplex`(Frac タブロー + Bland 最小添字規則 — 退化巡回が定理として不可)
+- J220 packrat PEG パーサ ✅ `peg`((rule,pos) メモ化順序選択 — 左再帰ガードと Star/Plus 無進行停止で全性保持)
+- J221 単調基数ヒープ ✅ `radixheap`(msb(key XOR last) バケツ — bit_len(key−last) は陳腐バケツに小キーを残して不変式破壊)
+- J222 疎 Life セルオートマトン ✅ `life`(BTreeSet 生存集合がそのまま正準状態 — B3/S23、稠密グリッド oracle 全照合)
 
 
 ## K. 物理・衝突 (Physics / Collision)

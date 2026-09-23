@@ -1779,3 +1779,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Harabor & Grastien (2011/2014) "Online Graph Pruning for Pathfinding on Grid Maps" の jump point 定義(自然/強制近傍、角接触規則)/ Orkin (2003) "Applying Goal-Oriented Action Planning to Games" の pre/effects 状態遷移 / Colledanchise & Ögren の行動木 Resume 意味論(Running 子の記憶)/ Jakobsen (2001) "Advanced Character Physics" の Verlet+制約緩和 / Perlin (1985) + "Texturing and Modeling" fBm — Qiita/Zenn/海外技術記事の JPS・GOAP・行動木・Verlet・value noise 解説を参照し全て整数のみで実装。
 
 **実装物**: 競技プログラミング/ゲームAI慣行の JPS ジャンプ規則、F.E.A.R./gore 系 GOAP ビットマスク表現、Unreal/Unity 系 BT の Running-resume、Jakobsen/Thomas Jakobsen 系緩和ソルバ、libnoise/stb 系 value noise の格子ハッシュ — 整数のみで実装。
+
+## 第56次: 二分決定図・厳密単体法・packrat PEG・基数ヒープ・Life
+
+- `bdd` — 簡約順序付き二分決定図(ROBDD): `(var,lo,hi)` ハッシュコンシング(BTreeMap 独特表)で構造的に同一の式は同ノード id。`apply`(Op::{And,Or,Xor,Diff,Implies})は Shannon 再帰+`(op,a,b)` 全メモ化、`restrict`/`exists`/`count_sat`(u128 厳密)/`eval`。真理表 oracle で200乱択合成式の全16割当+充足数を全照合、正準性テストは `(x0∧x1)∨¬x0 ≡ ¬x0∨x1` の id 一致まで確認
+- `simplex` — Frac 厳密単体法 LP ソルバ: `max cᵀx s.t. Ax≤b, x≥0`、Phase I(補助変数 x₀ 列追加・最負 b 行ピボット)+Phase II、**Bland 規則**(最小添字進入/退出)で退化巡回が定理として不可 — Beale の巡回例(最適値 1/20)で検証。頂点全列挙 oracle(C(m+n,n) 基底 → gauss::solve → 実行可能頂点の最大目的値)120乱択照合
+- `peg` — packrat PEG パーサ: `(rule,pos)` メモ化の順序選択再帰下降。**設計値**: `Star`/`Plus` は子が空マッチした時点で停止必須(no-progress break — 無いと無限ループ)、左再帰は active 集合ガードで代替枝失敗化、Class は構築時ソート+dedup で binary_search。200文法×20入力でメモ化版 vs 素朴再帰版の完全等価を検証
+- `radixheap` — 単調基数ヒープ(Dijkstra 向け): **設計値捕捉** — バケツ判定は `msb(key XOR last)` が正しい(初版 `bit_len(key−last)` は last 前進時に高バケツへ残った小キーが最下位バケツの最小を潜り順序不変式を破壊 — BTreeMap シャドウ oracle が step 9 で (38 vs 33) の不一致を捕捉)。XOR 版では単調 push ⇒ 高バケツは厳密に大キーが証明可能。3000-op interleaved oracle 全照合
+- `life` — 疎 B3/S23 セルオートマトン: `BTreeSet<(i64,i64)>` がそのまま正準状態(同一集合⇒同一トレース)。近傍カウントを BTreeMap 一発走査。グライダー4step 平行移動・blinker・still life 不変、稠密グリッド oracle 30試行×12世代で全照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+
+## 出典(第56次、search-index 照合)
+
+**論文・仕様**: Bryant (1986) "Graph-based Algorithms for Boolean Function Manipulation" の ROBDD unique-table/apply 構成 / Dantzig (1963) + Bland (1977) "New finite pivoting rules" の anti-cycling / Ford (2004) "Parsing Expression Grammars" (POPL) の packrat 構成 / Ahuja, Mehlhorn, Orlin & Tarjan (1990) "Faster algorithms for the shortest path problem" §3 の radix heap(XOR バケツは monotone radix heap の標準形)/ Gardner (1970) B3/S23 — Qiita/Zenn/海外技術記事の BDD・単体法・PEG・radix heap・Life 解説を参照し全て整数のみで実装。
+
+**実装物**: BuDDy/m dd 系の mk+apply メモ化形、教科書系二相単体法の Bland 規則実装、PEG.js/rust-peg 系の packrat メモ化、競技プログラミング慣行の radix heap bucket 再配置、sparse Life の隣接カウント走査 — 整数のみで実装。
