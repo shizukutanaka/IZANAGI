@@ -15,7 +15,7 @@ engine's frame loop cannot change a single bit of the simulation's world-hash
 trace.
 
 ```text
-cargo test --workspace   # 3,600+ tests, 0 clippy warnings, fmt clean
+cargo test --workspace   # 4,700+ tests, 0 clippy warnings, fmt clean
 ```
 
 ---
@@ -143,7 +143,7 @@ behind each design decision.
 
 ## `izanagi_kit` — the deterministic simulation kit
 
-322+ zero-dependency modules covering the roguelike/simulation stack a
+327+ zero-dependency modules covering the roguelike/simulation stack a
 lockstep-replay game actually needs: sparse-set ECS, Q16.16 fixed-point math,
 seeded RNG with named independent sub-streams, symmetric-shadowcasting FOV,
 procedural dungeon generation (rooms/BSP/caves/drunkard's-walk/Poisson-disc/
@@ -159,7 +159,7 @@ on every OS and CPU**, pinned by regression tests
 (`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH`) rather than merely asserted.
 
 ```text
-cargo test -p izanagi_kit   # 3,400+ tests, 0 clippy warnings, fmt clean
+cargo test -p izanagi_kit   # 4,500+ tests, 0 clippy warnings, fmt clean
 ```
 
 ---

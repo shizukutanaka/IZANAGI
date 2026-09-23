@@ -1730,3 +1730,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Shamir (1979) "How to share a secret" の GF(p) 補間構成 / Edmonds & Johnson (1973) + Kwan Mei-Ko (1962) の中国式配点 — Euler 増大の奇数次マッチング形 / Daciuk, Mihov, Watson, Watson (2000) "Incremental construction of minimal acyclic finite-state automata" の register 手法 / Luby (2002) "LT codes" の ideal/robust soliton 分布と BP 剥離 / Felzenszwalb & Huttenlocher (2012) "Distance transforms of sampled functions" の放物線下包絡アルゴリズム — Qiita/Zenn/海外技術記事の秘密分散・中国式配点・FST・fountain code・距離変換解説を参照し全て整数のみで実装。
 
 **実装物**: 教科書形の係数評価/Lagrange、競技プログラミング慣行の配点増大パイプライン、fst ライブラリ形の bottom-up register、LT 実装の robust-soliton 重み表形、F&H の z/v 配列構成 — 整数のみで実装。
+
+## 第53次: B+木・スイープ線交差・組合せ・GCM・多角形クリップ
+
+- `bplus` — B+木順序マップ u64→u64(order 4..64、葉連鎖+range 走査): 葉 split は separator コピー昇格、内部 split は中央キー移動昇格 — 不変式は「separator = 右部分木の最小キー」。**設計値捕捉**: 葉の先頭キー削除時に祖先 separator が陳腐化 — `fix_sep` で「非先頭スロットを持つ最近祖先」まで上昇して keys[pos−1] を新最小に更新(shadow oracle が step 192 で捕捉)。underflow は借用2分岐→merge_into、arena + freelist、BTreeMap 照合 4000 op × orders{4,6,16}
+- `bentley` — Bentley–Ottmann 交差列挙(全有理点): BTreeMap を (x,y) 優先度付きイベント列として Cross イベントも同じキューに投入。status は (y at p.x, slope, id) で毎バッチ再整列 — 同一 p で concurrent な seg が近接するため隣接ペア検査だけで交差を拾う。**設計値捕捉**: 垂直線分は status に入れられない(y_at 不定) — その x-line 中は `verticals` に保持し「status ∪ 端点 seg」全対と対検査、さらに touched 計数で共有端点も拾う。共線 overlap は報告しない(連続体)が共有端点は報告 — 両規約を brute oracle にも反映して 120 乱数全照合
+- `comb` — 組合せ rank/unrank(combinadic): `choose128` は `acc·(n−k+i) = i·C(n−k+i, i)` の不変式で毎回の除算が厳密 — gcd 正規化が要らない。`rank` は辞書順で「i 番目が v である部分集合の個数 Σ C(n−v−1, k−1−i)」、`unrank` は逆走査。**設計値捕捉**: `next_comb` の可増分境界は `comb[idx] < n − k + idx`(0-index 最大値 n−(k−idx)) — `+1` が漏れると範囲外値を生成して走査が暴発する(35 vs 20)。n≤8 で全列挙往復照合、辞書順 oracle
+- `gcm` — AES-128-GCM AEAD(aes の上に): GF(2^128) 乗算はビットシリアル shift-xor(R = 0xE1<<120)、GHASH の累積器は aad→ct を**連鎖**させる — 別々に計算して XOR 合成するのは fold 構造違反(NIST ベクタで捕捉)。J0 = IV‖0^31‖1(12B)または GHASH 導出。**設計値捕捉**: 掲載ベクタの期待値を記憶で誤記 — 純 Python AES+GCM を書いて完全独立に相互検証し、no-AAD 版 tag=cc15abcc…/AAD 版 tag=5bc94fbc… を確定。往復 + タグ/暗号文改竄全拒否 40 乱数
+- `polyclip` — Sutherland–Hodgman 多角形クリップ(全 Frac 厳密): clipper は i128 shoelace 符号で CCW 正規化、inside = 有向辺の左側(cross ≥ 0)、交点パラメータ `t = cross(cd, a−s)/cross(cd, sd)`。**設計値捕捉**: t の符号が反転すると交点が線分の裏側に出て全面消失(0 面積回帰が捕捉)→ 分子は a−s が正。出力は連続重複 + 端点重複を dedup して閉路化。乱択矩形 oracle(面積上界 + 全頂点 inside)+ winding 非依存の決定出力
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+
+## 出典(第53次、search-index 照合)
+
+**論文・仕様**: Bayer & McCreight (1972) + Comer (1979) の B+木 copy-up/move-up 構造 / Bentley & Ottmann (1979) スイープ線アルゴリズム + de Berg et al. の status/event 構成 / 組合せ論の combinadic rank/unrank(Lehmer 符号系)/ NIST SP 800-38D + McGrew & Viega の GCM 仕様(GHASH fold 構造、J0 導出)/ Sutherland & Hodgman (1974) 多角形クリップの半平面 pass — Qiita/Zenn/海外技術記事の B+木・線分交差・combinadic・GCM・ポリゴンクリップ解説を参照し全て整数のみで実装。
+
+**実装物**: Rust BTreeMap 系の split/borrow 骨格、FHO 系 sweep のイベント分類、競技プログラミング慣行の combinadic、BearSSL/mbedtls 系のビットシリアル GHASH、clip ライブラリの正規化形 — 整数のみで実装。
