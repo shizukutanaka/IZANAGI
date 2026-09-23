@@ -238,6 +238,12 @@
 - J151 EPA 侵入深度(原点包含多胞体拡張)✅ `epa`(GJK 収束 simplex を seed、最近 edge を外向法線 support で拡張 — SAT witness を brute oracle にした Frac 厳密 MTV)
 - J152 α-shape(スケール付き点集合境界)✅ `alphahull`(delaunay 三角形を外接半径² ≤ α² で選別、1 回出現 edge が境界 — 垂線二等分線外心と abc/4A の独立 2 式で半径照合)
 
+- J153 implicit treap(ランダム不要な列編集木)✅ `imptreap`(seeded 優先度 min-heap マージ + 遅延 rev フラグ — 伝播中ノードの子側有効フラグ反転は「親の保留 flip が子の effective rev を反転」する不変式で確定、Vec オラクル全 op 照合)
+- J154 meet-in-the-middle(半全列挙組合せ探索)✅ `meetmid`(subset_sums/subset_sum/count_subsets/best_fit — 右半分 binary search + 再列挙 witness 復元、i128 和でオーバーフロー安全)
+- J155 GF(p) 線形連立(mod 素数の RREF)✅ `modlin`(u128 積 mod・Fermat 逆元・free vars=0 規約の solve/nullspace — 部分集合枚挙・全代入の両 oracle 照合)
+- J156 recursive vEB(O(log log U) 前駆後継)✅ `veb3`(LEAF_BITS=6 の葉 mask + summary/cluster 再帰 — min をクラスタ外に保持する CLRS 式では「summary.predecessor が無い hi に min フォールバック」が必須、葉の shift guard は宇宙境界ではなく幅 64 で確定)
+- J157 multi-word bit-parallel DP(64 語超オートマトン)✅ `bigedit`(⌈m/64⌉ 語の Myers frontier — `(Eq&Pv)+Pv` の多倍長キャリー連鎖と `Ph`/`Mh` 左シフトの語間繰上り、score は最終語の bit m−1 のみ読む)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

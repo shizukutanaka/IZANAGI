@@ -82,6 +82,36 @@ each in published-work form with an independent oracle:
   table scatter written to hashed slots and an honest
   dumb7fill-oracle fallback.
 
+### Added — implicit treap, meet-in-the-middle, GF(p) linear systems, recursive vEB, multi-word Myers
+
+Sequence editing, halved enumerations, modular linear algebra,
+deep predecessor sets, and wide-pattern edit distance:
+
+- **`imptreap`** — implicit-key treap over a slab arena: `split`/
+  `merge`/`insert`/`remove`/`reverse`/`get`, seeded-priority
+  min-heap merges, lazy `rev` flags — `get` accumulates flip
+  parity down the descent (a pending parent flip inverts the
+  child's effective flag), `Vec` oracle on every op.
+- **`meetmid`** — meet-in-the-middle subset search:
+  `subset_sums` (all `2^(n/2)` `i128` sums per half), `subset_sum`
+  with index-witness reconstruction, `count_subsets` range
+  counting via `partition_point`, `best_fit` — brute-force
+  enumeration oracle.
+- **`modlin`** — GF(p) linear algebra over `u64` residues:
+  `rref`, `rank`, `solve` (free variables zeroed), `nullspace`
+  basis — `u128` inner products, Fermat inverses; subset-
+  enumerated rank and exhaustive-solution oracles.
+- **`veb3`** — recursive van Emde Boas `O(log log U)` set: leaf
+  `u64` masks below `LEAF_BITS`, summary+cluster recursion above;
+  min held outside clusters (CLRS), predecessor falls back to
+  `self.min` when the summary has no earlier cluster — BTreeSet
+  oracle across insertion/deletion/query orders.
+- **`bigedit`** — multi-word Myers bit-vector edit distance for
+  patterns beyond 64 bytes: `ceil(m/64)`-word carry chaining in
+  the `(Eq&Pv)+Pv` add and the `Ph`/`Mh` shifts, score from the
+  last word's `m−1` bit only — `dist` and `find_leq`, cross-
+  checked against the single-word `editdist` and a DP oracle.
+
 ### Added — SHA-512, Ed25519, blossom, EPA, alpha hull
 
 Signature-grade hashing, twisted-Edwards signatures, general

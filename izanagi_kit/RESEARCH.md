@@ -1569,3 +1569,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: FIPS 180-4 Secure Hash Standard / Bernstein et al. (2011) Ed25519 + RFC 8032 §5,§7.1 公式ベクトル + Hisil et al. EFD add-2008-hwcd-3 / Edmonds (1965) "Paths, trees, and flowers" + e-maxx blossom 実装形 / van den Bergen (2001) EPA + bullet btGjkEpa2 / Edelsbrunner–Kirkpatrick–Seidel (1983) α-shape + CGAL 2D alpha shapes。
 
 **実装物**: donna64/ref10 の radix-51 fe25519、libsodium の mod-L 畳み込み、competitive-programming の blossom、dyn4j/bullet の EPA、CGAL α-shape — Qiita/Zenn/海外技術記事の Ed25519・Edmonds・EPA・α-shape 解説を参照し全て整数のみで実装。
+
+## 第43次: 列編集木・半全列挙・有限体線形・多段vEB・多語オートマトン
+
+- `imptreap` — implicit-key treap: arena `Vec<Node>` + `SplitMix64` 優先度で再現可能な min-heap マージ。`split`/`merge`/`insert`/`remove`/`reverse`/`get` — **設計値: 遅延 rev フラグは「親の保留 flip が子の effective フラグを反転」するため、`get` は遅延適用ではなく降下中に flip パリティを累積しなければならない**(pending 親の反転を descent で拾わないと子の左右を誤読する — Vec oracle が pred/get 混乱で即捕捉)
+- `meetmid` — meet-in-the-middle: `subset_sums` が `i128` 和で全 2^(n/2) を正攻に、右半分は sort + `partition_point`/`binary_search`。`subset_sum` は witness index を返すため右半 hit 後に再列挙で復元、`count_subsets` は区間 count、`best_fit` は cap 未満最大和(cap<0 は `i128::MIN`)
+- `modlin` — GF(p) 線形: `rref`/`rank`/`solve`/`nullspace`。積は u128 回避で `(a*b)%p` を u128 に保持(u64² は ~2^128 で u64 積が溢れるため必須)、逆元は Fermat `inv=a^(p−2)`。solve は free vars=0 規約、nullspace は free 列に 1・pivot 列に −RREF 係数。rank は部分集合枚挙 oracle、非自明解は全代入列挙と照合
+- `veb3` — recursive van Emde Boas: LEAF_BITS=6 以下は `u64` mask、上位は hi=⌈bits/2⌉ 個 cluster + summary 再帰。**三つの設計値をオラクルが捕捉**: (1) 葉の shift guard は宇宙境界 `x+1>=self.bits` ではなくシフト幅 `x+1>=64`(u64 シフトは mod 64 で意味を失う)(2) `predecessor` は `summary.predecessor(hi)=None` の時 `self.min` にフォールバック必須(min は cluster 外に保持される CLRS 不変)(3) 葉表現は「mask が全集合・min/max は純粋 cache」の一貫不変 — insert を一律に書かないと new-min が mask に入らず破壊
+- `bigedit` — multi-word Myers: 任意長 pattern を ⌈m/64⌉ 語の frontier で。語間キャリーは (a) `(Eq&Pv)+Pv` の多倍長加算(overflowing_add ×2 の carry 繋鎖)(b) `Ph`/`Mh` <<1 の top-bit 受渡し(word0 は `dist` なら |1、`find_leq` なら |0)(c) score は最終語の bit m−1 のみ更新。`editdist` の single-word 版と m≤64 で完全不一致なし cross-check + DP oracle 全照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御(本物の group 演算)。
+
+## 出典(第43次、search-index 照合)
+
+**論文・仕様**: Seidel & Aragon (1996) treaps + CLRS "dynamic order statistics" implicit-key 系 / Horowitz & Sahni (1974) meet-in-the-middle + Schroeppel & Shamir (1981) / Bareiss / van Emde Boas (1977) "Preserving order in a forest in less than logarithmic time" + CLRS 3rd §20.3 proto-vEB→vEB / Myers (1999) §4 multi-word + Hyyrö (2003) "A bit-vector algorithm" carry 規律。
+
+**実装物**: competitive-programming の implicit treap・meet-in-the-middle 形、e-maxx modlin、protobuf/CLRS の vEB 逐語実装、edlib/SeqAn の multi-word Myers — Qiita/Zenn/海外技術記事の implicit treap・MITM・GF(p) RREF・vEB・bitap 解説を参照し全て整数のみで実装。
