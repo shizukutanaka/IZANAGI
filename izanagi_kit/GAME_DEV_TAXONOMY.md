@@ -320,6 +320,11 @@
 - J225 二面体群 D4 変換 ✅ `dihedral`((swap,sx,sy) closed-form — 8×8 Cayley 表を点対応 oracle で全項検証)
 - J226 ターンパイク再構成 ✅ `turnpike`(Skiena バックトラック — need の重複 multiplicity 検査が必須)
 - J227 Yen の k-最短路 ✅ `kpaths`(spur 偏差 + (cost,path) 正準候補 — 契約は「最小 k 個のコスト」)
+- J228 形式的冪級数 ✅ `fps`(GF(p) 上の inv/log/exp/pow — Newton 反復は*追跡次数*駆動が必須: norm 縮退で無限ループ)
+- J229 矩形和集合面積 ✅ `rectunion`(x-sweep + slab 毎の y 区間 union — O(n²) で正直に)
+- J230 区間グラフスケジューリング ✅ `intervalgraph`(最早終了貪欲 + 深さ sweep + 加重 DP — 退化区間は全 API で選択不能)
+- J231 スターリング数・ベル数 ✅ `stirling`(signed s1/us1/s2/bell mod p — s2 は閉形式、s1 は順列 cycle 列挙で相互検証)
+- J232 凸包玉ねぎ層 ✅ `onion`(hull 辺上の点は頂点でないため独自レイヤに残存 — hull 契約の正直な帰結)
 
 
 ## K. 物理・衝突 (Physics / Collision)
