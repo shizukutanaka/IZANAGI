@@ -6,6 +6,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **`varint`** — canonical LEB128 unsigned + zigzag signed codec (`encode_u64`/`encode_i64`/`decode_u64`/`decode_i64`/`decode_all`): every value maps to exactly one byte string (trailing zero-group and 10-byte overflow/padding rejected), byte-identical round-trip oracle over all bit boundaries.
+- **`hornsat`** — Dowling–Gallier linear Horn SAT (`Clause{pos,neg}`, `imp`/`fact`/`goal` helpers, `solve` least-model closure): per-variable watch lists + `remaining` counters in a FIFO unit-propagation queue, `O(Σ|neg|)`; brute-force 2^n oracle agreement over random instances.
+- **`bigint`** — sign-magnitude arbitrary-precision integer over u64 limbs (`zero`/`from_i64`/`from_i128`/`from_limbs`/`neg`/`abs`/`is_negative`/`add`/`sub`/`mul`/`pow`/`cmp`/`eq`/`limbs`/`to_i128`/`to_u64`): schoolbook magnitude ops with u128 products, `-(i128::MIN)` handled via the `m==1<<127` special case; 2,000-op i128 `checked_*` oracle.
+- **`segbeats`** — segment tree beats: range `chmin`/`chmax`/`sum`/`get` via max/second-max/count-max and the mirror min ledgers; the push is just "clamp children to the parent's `mx`/`mn`" (no explicit lazy tags) and sum queries must push too, since children under a lazily-updated node hold stale sums.
+- **`ett`** — Euler-tour tree dynamic-forest connectivity (`link`/`cut`/`connected`/`tree_size`): each tree's cyclic edge tour lives in one implicit treap (seeded priorities, parent pointers for root climbs and in-order indices), each vertex owns a permanent vertex node, and `link` = reroot both + `U+[uv]+V+[vu]` while `cut` isolates the span between the two half-edge occurrences; BFS adjacency oracle replay.
+
 ### Fixed
 - **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —
   cells were stored in a `HashMap`, and `iter_keys` / `all_occupied_cells`

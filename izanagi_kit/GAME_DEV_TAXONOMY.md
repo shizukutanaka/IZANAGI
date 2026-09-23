@@ -243,6 +243,11 @@
 - J155 GF(p) 線形連立(mod 素数の RREF)✅ `modlin`(u128 積 mod・Fermat 逆元・free vars=0 規約の solve/nullspace — 部分集合枚挙・全代入の両 oracle 照合)
 - J156 recursive vEB(O(log log U) 前駆後継)✅ `veb3`(LEAF_BITS=6 の葉 mask + summary/cluster 再帰 — min をクラスタ外に保持する CLRS 式では「summary.predecessor が無い hi に min フォールバック」が必須、葉の shift guard は宇宙境界ではなく幅 64 で確定)
 - J157 multi-word bit-parallel DP(64 語超オートマトン)✅ `bigedit`(⌈m/64⌉ 語の Myers frontier — `(Eq&Pv)+Pv` の多倍長キャリー連鎖と `Ph`/`Mh` 左シフトの語間繰上り、score は最終語の bit m−1 のみ読む)
+- J158 canonical LEB128/zigzag wire codec(最小符号化を検査する写像符号化)✅ `varint`(encode/decode 往復一致 + 非 canonical 拒否 — 終端 byte の trailing-zero 群と第10 byte の `payload==1` 制約で「値→唯一の byte 列」な写像に確定)
+- J159 Dowling–Gallier 線形 Horn SAT(最小モデル帰結)✅ `hornsat`(`Clause{pos,neg}` + watch[v] 逆引き + remaining カウンタの FIFO 単位伝播 — brute 2^n オラクル全照合、unit 導出で least model 一意)
+- J160 sign-magnitude 多倍長整数(u64 limb BigInt)✅ `bigint`(add/sub/mul/pow + `to_i128`/`to_u64` 往復 — `−(i128::MIN)` の符号反転桁溢れは `m==1<<127` の直接返却で確定、i128 checked_* oracle 2000 照合)
+- J161 segment tree beats(範囲 chmin/chmax/sum)✅ `segbeats`(max/smax/cmax + min/smin/cmin の第二極値帳簿で amortized O(log² n) — push は「親の mx/mn を子へ clamp」のみで明示 lazy タグ不要、読み取り側も stale 子 sum を避けるため push 必須)
+- J162 Euler-tour tree(動的森連結性)✅ `ett`(各頂点の恒常 vertex-node + 有向 half-edge ノードの巡回列 implicit treap — link は代表ノードでの reroot + `U+[uv]+V+[vu]` 連結、cut は `A x B y C` の 4-split、connected は親指針の root 比較 — linkcut と同じ森だが連結のみなので splay expose が一切不要)
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`

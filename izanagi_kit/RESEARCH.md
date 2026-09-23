@@ -1585,3 +1585,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Seidel & Aragon (1996) treaps + CLRS "dynamic order statistics" implicit-key 系 / Horowitz & Sahni (1974) meet-in-the-middle + Schroeppel & Shamir (1981) / Bareiss / van Emde Boas (1977) "Preserving order in a forest in less than logarithmic time" + CLRS 3rd §20.3 proto-vEB→vEB / Myers (1999) §4 multi-word + Hyyrö (2003) "A bit-vector algorithm" carry 規律。
 
 **実装物**: competitive-programming の implicit treap・meet-in-the-middle 形、e-maxx modlin、protobuf/CLRS の vEB 逐語実装、edlib/SeqAn の multi-word Myers — Qiita/Zenn/海外技術記事の implicit treap・MITM・GF(p) RREF・vEB・bitap 解説を参照し全て整数のみで実装。
+
+## 第44次: wire codec・最小モデル帰結・多倍長・beats・動的森
+
+- `varint` — canonical LEB128 u64 + zigzag i64: 符号化が値の「写像」である設計 — 全値↔唯一の byte 列。**設計値: canonicality は2つの穴を塞ぐ** — (a) 終端 byte で `i>1 && payload==0` を拒否(`[0x80,0x00]` は 0 の非最小形)(b) 第10 byte は `payload==1` 厳格(u64 桁溢れ >1 と padding =0 を同時に潰す)。bit 境界全値の byte-identical round-trip + malformed 7 類で oracle 照合
+- `hornsat` — Dowling–Gallier 線形 Horn SAT: `Clause{pos:Option<u32>,neg:Vec<u32>}`、watch[v] に neg を登録 + remaining[c]=|neg|。`remaining==0` 種付け FIFO で `Σ|neg|` 線形 — `pos=None` 種 clause は即 UNSAT、unit 導出は least model(代入された変数のみ true)。brute 2^n 全代入 oracle と 400 乱数インスタンス照合、least-model 一意性確認
+- `bigint` — sign-magnitude u64 limb BigInt: `norm` が上位ゼロ除去+zero→非負、加減は比較→同符号加算/異符号減算の2系統、`mul` schoolbook で u128 積→(lo,hi)、`pow` 二進。**設計値: `to_i128` で `-(i128::MIN)` は neg 化で桁溢れ — `m==1<<127` を `Some(i128::MIN)` 直接返却**。i128 checked_* oracle 2000・limb 境界 `[1,0,!0-1,!0]`・3 limb 拒否を照合
+- `segbeats` — segment tree beats(`chmin`/`chmax`/`sum`/`get`): max/smax/cmax + min/smin/cmin の第二極値帳簿。**設計値2件**: (1) push は明示 lazy タグ不要 — lazy 着弾後の親 mx/mn がそのまま子の尊重すべき clamp で「`mx[c]>mx[v]` 時のみ子へ `update_max`」の textbook 形に確定 (2) sum 読み取りは push 必須 — lazy ノード配下の子 sum は stale(親 sum のみ畳まれるため)。非べき乗 n は 2n では index 溢れ → 4n heap cell。Vec naive oracle 200×60 op 照合
+- `ett` — Euler-tour tree 動的森: 各木の巡回 edge tour を implicit treap(親指針+rank index)1本で保持、各頂点は恒常 vertex-node、有向 half-edge は `BTreeMap<(u32,u32),u32>`。`link` = 代表ノードで reroot(split+merge の巡回回転)×2 → `U+[uv]+V+[vu]`、`cut` = `A x B y C` の 4-split で B(v側)+C+A(u側)、`connected` = root 一致。linkcut の sibling で連結のみ — splay expose 一切不要。BFS adjacency oracle 30×120 op + 60 頂点 chain/cut/relink 照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御(本物の group 演算)、`utf8` strict DFA codec、`segbeats` add-lazy 変種。
+
+## 出典(第44次、search-index 照合)
+
+**論文・仕様**: Google Protocol Buffers wire format(LEB128 canonical 性の実務規範)+ Fujiwara(2013) "negative literals in Horn clauses" / Dowling & Gallier (1984) "Linear-time algorithms for testing the satisfiability of propositional Horn formulae" / Knuth TAOCP §4.3.3 multi-precision / Okanohara 実践的 beats + jiayiqi's segbeats blog(Zenn/海外解説の second-extremum ledger 形)/ Henzinger & King (1999) + Tarjan (1997) "Dynamic trees as search trees via Euler tours" + competitive-programming ETT の半辺 tour 実装形。
+
+**実装物**: protobuf/libprotobuf-mutator の varint、SAT4j/minisat の Horn-clause watcher、rust-bigint/java BigInteger の limb 形、beet-aizu/library-checker の segment tree beats、e-maxx/cp-algorithms の ET-tree — Qiita/Zenn/海外技術記事の varint・Horn SAT・多倍長・segbeats・ETT 解説を参照し全て整数のみで実装。
