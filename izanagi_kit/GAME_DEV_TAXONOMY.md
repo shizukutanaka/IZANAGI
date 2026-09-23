@@ -315,6 +315,11 @@
 - J220 packrat PEG パーサ ✅ `peg`((rule,pos) メモ化順序選択 — 左再帰ガードと Star/Plus 無進行停止で全性保持)
 - J221 単調基数ヒープ ✅ `radixheap`(msb(key XOR last) バケツ — bit_len(key−last) は陳腐バケツに小キーを残して不変式破壊)
 - J222 疎 Life セルオートマトン ✅ `life`(BTreeSet 生存集合がそのまま正準状態 — B3/S23、稠密グリッド oracle 全照合)
+- J223 Fibonacci ヒープ ✅ `fibheap`(アリーナ+sibling 環、cut/cascade の decrease_key、pop で次数統合 — (key,seq) 正準順)
+- J224 Halton 準乱数列 ✅ `halton`(radical inverse を厳密 Frac 化 — base^k 層化が性質検査として成り立つ)
+- J225 二面体群 D4 変換 ✅ `dihedral`((swap,sx,sy) closed-form — 8×8 Cayley 表を点対応 oracle で全項検証)
+- J226 ターンパイク再構成 ✅ `turnpike`(Skiena バックトラック — need の重複 multiplicity 検査が必須)
+- J227 Yen の k-最短路 ✅ `kpaths`(spur 偏差 + (cost,path) 正準候補 — 契約は「最小 k 個のコスト」)
 
 
 ## K. 物理・衝突 (Physics / Collision)

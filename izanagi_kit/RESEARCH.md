@@ -1795,3 +1795,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Bryant (1986) "Graph-based Algorithms for Boolean Function Manipulation" の ROBDD unique-table/apply 構成 / Dantzig (1963) + Bland (1977) "New finite pivoting rules" の anti-cycling / Ford (2004) "Parsing Expression Grammars" (POPL) の packrat 構成 / Ahuja, Mehlhorn, Orlin & Tarjan (1990) "Faster algorithms for the shortest path problem" §3 の radix heap(XOR バケツは monotone radix heap の標準形)/ Gardner (1970) B3/S23 — Qiita/Zenn/海外技術記事の BDD・単体法・PEG・radix heap・Life 解説を参照し全て整数のみで実装。
 
 **実装物**: BuDDy/m dd 系の mk+apply メモ化形、教科書系二相単体法の Bland 規則実装、PEG.js/rust-peg 系の packrat メモ化、競技プログラミング慣行の radix heap bucket 再配置、sparse Life の隣接カウント走査 — 整数のみで実装。
+
+## 第57次: Fibonacci ヒープ・Halton 準乱数・D4 群・ターンパイク・Yen
+
+- `fibheap` — Fredman–Tarjan の Fibonacci ヒープをアリーナ実装: 循環 sibling 環 + (key,seq) 正準 pop 順で純関数的トレース。`push`/`meld`/`decrease_key` は O(1) lazy、`pop` で次数統合。**設計値**: ステールハンドルは `live` ビットで拒否(pop 後の id 再利用は呼び出し側責任)、consolidate は「先に全 root 切り離し→by_degree で link→root 環を再構築」の3相に分けると link 中の環破壊を構造上排除。3000-op BTreeMap シャドウ oracle(decrease_key 追跡つき)で全照合
+- `halton` — radical inverse `i/b^k` を厳密 `Frac` で返す Halton 準乱数列: 浮動小数点を経由しないため base^k 層化(先頭 b^k 項が全 j/b^k セルを丁度1回)が*性質検査として*成立。`Halton` は Iterator 実装(index=1 開始の古典慣例)、`point(i)` は純関数。低速累積 oracle で2000乱択照合
+- `dihedral` — 正方格子の二面体群 D4 を `(swap, sx, sy)` closed-form で: `apply` は整数3命令、`compose` は swap=XOR + 入力スロット別の符号積、swap 元の `inverse` は符号入替で閉じる。検証は全部隊走査: 8×8 Cayley 表の全64項を「点対応で一致する唯一の元」を探す oracle と照合 — 導出した closed-form の4ケース全てが機械検証された
+- `turnpike` — Skiena のターンパイク再構成: `n(n−1)/2` 個の距離マルチ集合から点列を復元。左優先 DFS で決定的。**設計値捕捉**: `need` の存在検査は*multiplicity 対応*が必須 — 同距離が2箇所から要求されるケース(例: `|x−p1|=|x−p2|`)を単一 presence で通すと残差マルチ集合が壊れ真の解へ辿り着かない(oracle が unsolved 誤報として捕捉)。homometric mates `{0,1,5,7,8}` vs `{0,1,3,7,8}` で同距離集合を確認、roundtrip oracle 200乱択
+- `kpaths` — Yen の k-最短単純路: spur 偏差ごとに banned edges(受理済み経路の同 prefix 出辺)と banned nodes(root prefix)で Dijkstra 再実行、候補は `(cost, path)` BTreeMap。**設計値**: Yen の契約は「最小 k 個のコスト列」— 等コスト経路の内部順序は実装依存なので oracle は top-k コストベクタ一致+全経路が単純経路集合に含まれること+純関数再実行一致の3条件で検証(初版は等コスト経路の列挙順まで強制契約化しており、Yen の真の仕様外要求として oracle 側を修正)
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+
+## 出典(第57次、search-index 照合)
+
+**論文・仕様**: Fredman & Tarjan (1987) "Fibonacci heaps and their uses in improved network optimization algorithms" (JACM) の lazy binomial forest + cascading cut / Halton (1964) "Algorithm 247: Radical-inverse quasi-random point sequence" (CACM) / 二面体群 D4 の標準表示 ⟨r,s | r⁴=s²=1, srs=r⁻¹⟩ / Skiena, Smith & Lemke (1990) "Reconstructing sets from interpoint distances" (SoCG) の backtracking / Yen (1971) "Finding the k shortest loopless paths in a network" (Management Science) — Qiita/Zenn/海外技術記事の Fibonacci heap・低 discrepancy sequence・ターンパイク・Yen 解説を参照し全て整数のみで実装。
+
+**実装物**: CLRS §19 の cut/cascade 手続きをアリーナ化、libstdc++ の radix-inplace ではなくランダムアクセス版、d4 group の bit-packed 表現、turnpike 教科書版の multiset BTreeMap 化、yen における重複辺 dedup(min weight)の正準化 — 整数のみで実装。
