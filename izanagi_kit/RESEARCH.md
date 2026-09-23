@@ -1877,3 +1877,20 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 
 **実装物**: NURBS ライブラリ系の同次 (wx,wy,w) リフト評価、Sage/GAP 系 orbit-count API、cp-alg の two-stack min-queue、BioPython/Edlib 系 local-alignment API 形状、Library Checker 系 argmin インターフェース — 整数のみで実装。
 
+## 第62次: 楕円曲線・p進整数・グレイ符号・整数分割・彩色数え上げ
+
+- `ec` — GF(p) 楕円曲線群法則: 短 Weierstrass `y²=x³+ax+b` の affine chord-tangent を i128 中間値で全厳密。`on_curve` が呼び出し前提を明示し、`p<5`(拡張法則が必要)/非体利用を正直に拒否 — `double` は `y=0`→Inf、`add` は同 x・逆 y→Inf、逆元非存在(合成 p)は Inf に退化。巡回群表(19点曲線)で全 Cayley 表、大きめ素数での結合律・スカラー法則を oracle 検証
+- `adic` — 切断 p進整数 `Z_p mod pᵏ`: add/sub/mul/neg は mod pᵏ 厳密、unit は `gcd(v,p)=1`(**合成 p も正しく** — `2 mod 4ᵏ` は非unit)、`inv` は i64 extgcd(modulus を `new` で i64 範囲に限定して全域化)、`val` は切断 0 に `None`(真の付値は未知のまま)。`lift`/`trunc` で精度遷移、リング演算は `unwrap` なし全域
+- `gray` — BRGC グレイ符号: `to_gray(i)=i^(i>>1)`、prefix-xor 逆写像、全 2ⁿ `sequence`、`SubsetWalk` Iterator は部分集合を1ビット step で走査し `last_flip` が遷移ビットを同報 — 単位 step・置換性・flip 報告の3不変式を oracle 検証
+- `partitions` — 整数分割: `count` は Euler 五角数漸化式 `p(n)=Σ(−1)^{k+1} p(n−g_k)` を `BigInt` で(p(100)=190,569,292 — u64 超過も厳密)。`count_bounded`(p(n,m) 三角: 部品 1 削除 or 全部品 −1)と `count_distinct`(q(n,m) DP)が互いの shadow oracle — Σ_m p(n,m)=p(n) かつ **distinct=odd 分割の Euler 定理を双方で検証**。`enumerate` は降次語彙順 `[n]→[1,…,1]`
+- `chrompoly` — 厳密彩色数え上げ: 削除-縮約 `P(G)=P(G−e)−P(G/e)` を `BigInt` で最小辺の正準再帰 — `count`(u128 オプション)・`count_poly`(任意精度 k)・`chromatic`(最小 k)。kⁿ 全列挙 oracle(400 乱択)と C₄ 閉形式 `k(k−1)(k²−3k+3)` で照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
+
+
+## 出典(第62次、search-index 照合)
+
+**論文・仕様**: Cohen & Frey *Handbook of Elliptic and Hyperelliptic Curve Cryptography* §13.2 の affine 群法則 / Gouvêa *p-adic Numbers* の切断 Z_p 演算 / TAOCP 7.2.1.1 BRGC / Andrews *The Theory of Partitions* §1.3 Euler 五角数漸化式 / Read (JCT 1968) chromatic polynomial の削除-縮約 — Qiita/Zenn/海外技術記事の EC point math・p-adic・Gray code・partition number・chromatic polynomial 解説を参照し全て整数のみで実装。
+
+**実装物**: Sage/pari 系 EC API の add/double/mul/on_curve 形状、p-adic リング API(Sage `Zp` の val/lift)、BRGC 教科書 rank/unrank+subset walk、Euler pentagonal+p(n,m) DP 双 oracle、NetworkX 系 chromatic_polynomial 評価 — 整数のみで実装。
+

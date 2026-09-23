@@ -340,6 +340,11 @@
 - J245 最小値キュー ✅ `minq`(各スタックスロットが running min を保持 — pour 時に一括再構築で償却 O(1))
 - J246 Smith–Waterman ✅ `ssw`(0-floor restart セル + (i,j) 最早勝者セルで正準化 — witness は restart まで traceback)
 - J247 離散三分探索 ✅ `ternary`(契約は*厳密*単峰性 — 階段降下の等値 probe は argmin を局所化不能、末尾窓を全評価+全体最小検証)
+- J248 GF(p) 楕円曲線 ✅ `ec`(chord-tangent 法則を i128 中間値で — `on_curve` 前提を明示、非体利用は正直に拒否)
+- J249 切断 p進整数 ✅ `adic`(mod pᵏ の厳密環演算 + gcd-units の inv/div — 合成 p も正しく扱い、valuation/lift/trunc 完備)
+- J250 グレイ符号 ✅ `gray`(BRGC rank/unrank + SubsetWalk — 1ビット step の部分集合走査で flip ビットを同報)
+- J251 整数分割 ✅ `partitions`(Euler 五角数漸化式の p(n) を BigInt で — bounded/distinct DP が互いの oracle、distinct=odd の Euler 定理を双方検証)
+- J252 彩色数え上げ ✅ `chrompoly`(削除-縮約 P(G)=P(G−e)−P(G/e) を BigInt で — kⁿ 全列挙 oracle と C₄ 閉形式で照合)
 
 
 ## K. 物理・衝突 (Physics / Collision)

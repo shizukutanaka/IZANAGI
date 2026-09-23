@@ -100,6 +100,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`ssw`** — Smith–Waterman local alignment (`local`, `score`): 0-floor restart cells, earliest-`i`-then-`j` canonical winner, traceback to the restart for exact witness ranges; verified against the max over all substring pairs of the global NW score.
 - **`ternary`** — discrete ternary argmin (`argmin_seq`, `argmin_domain`): *strict* unimodality is the contract — on a flat staircase an equality probe cannot confine the argmin to either side, so the tail window is evaluated exhaustively and the result is global-min-verified (`None` rather than a silent wrong index).
 
+- **`ec`** — elliptic-curve group law over GF(p) (`Curve::add`/`double`/`neg`/`mul`, `on_curve`): affine chord-tangent formulas with `i128` intermediates; `p < 5` (needs the extended law) and non-field use are rejected honestly — verified via the cyclic group table of `y² = x³ + 2x + 2/F17` and scalar-law oracles.
+- **`adic`** — truncated p-adic integers (`Adic::new`/`add`/`sub`/`mul`/`neg`/`inv`/`div`/`val`/`lift`/`trunc`): exact residues mod `pᵏ`; units are `gcd(v,p)=1` (composite `p` handled correctly — `2 mod 4ᵏ` is not a unit), `inv` via i64 `extgcd` with the modulus bounded by `new`.
+- **`gray`** — binary-reflected Gray codes (`to_gray`/`from_gray`/`sequence`, `SubsetWalk` iterator): unit-step subset traversal; `last_flip` reports which bit changed.
+- **`partitions`** — integer partitions (`count`/`count_bounded`/`count_distinct`/`enumerate`): pentagonal `p(n)` over `BigInt`, the `p(n,m)` and distinct-parts DP triangles shadowing each other (`Σ_m p(n,m) = p(n)`, distinct = odd parts by Euler's theorem, both directions checked), descending-lex enumeration.
+- **`chrompoly`** — exact chromatic counting (`count`/`count_poly`/`chromatic`): deletion–contraction `P(G) = P(G−e) − P(G/e)` over `BigInt`, canonical smallest-edge recursion; verified against brute `kⁿ` coloring enumeration (400 random graphs) and the C₄ closed form `k(k−1)(k²−3k+3)`.
+
 ### Fixed
 - **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —
   cells were stored in a `HashMap`, and `iter_keys` / `all_occupied_cells`
