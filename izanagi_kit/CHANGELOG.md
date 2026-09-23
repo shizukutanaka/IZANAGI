@@ -110,6 +110,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`mobius`** — Möbius function + Dirichlet convolution (`mu_sieve`/`mu`/`convolve`/`invert`/`coprime_count`/`sigma_sum`): linear-sieve `μ`, `f ∗ μ` recovers divisor-summed `g` exactly (200 roundtrips), inclusion–exclusion coprime counting vs direct gcd enumeration.
 - **`jacobi`** — Kronecker symbol `(a|n)` for all integers: binary quadratic-reciprocity algorithm, `n ∈ {−1,0,1}` extension conventions; verified against the Euler criterion `a^((p−1)/2) mod p` (4000 cases) and multiplicativity `(a|mn) = (a|m)(a|n)` (3000 cases).
 - **`egypt`** — Egyptian fractions (`decompose`/`expand`/`verify`): Fibonacci–Sylvester greedy `d = ⌈den/num⌉` over `Frac` — distinct unit fractions only, `i128` overflow honestly `None`, numerator-descent invariant verified as the termination proof.
+- **`lucas`** — Lucas sequences (`lucas`/`lucas_mod`): exact `i128` `(U_k, V_k)` + fast doubling mod odd `m` returning `(U,V,Qᵏ)`; residue-parity halving, `V²−D·U²=4Qⁿ` identity oracle, doubling vs scan on 3000 cases.
+- **`frobenius`** — coin problem (`frobenius`/`representable`): min-residue Dijkstra `dist[r]` = smallest representable `≡ r (mod min)`, `g = max dist − m`; Sylvester closed form for k=2, DP representability oracle, McNuggets 43.
+- **`josephus`** — Josephus problem (`survivor`/`survivor2`/`order`): O(n) recurrence, `2l` closed form for k=2, full elimination order in `O(n log n)` via the order-statistic treap — brute `Vec` oracle over 400 cases.
+- **`bernoulli`** — exact Bernoulli numbers + Faulhaber (`bernoulli`/`faulhaber`): Akiyama–Tanigawa over `Frac` (B₁ = +1/2 convention); direct power-sum oracle, `B_{2k+1} = 0`, and the generating recurrence `Σ C(n+1,j)·Bⱼ = n+1` all verified.
+- **`eulerian`** — Eulerian numbers (`eulerian`/`permutations`): BigInt recurrence `(n−k)·⟨n−1,k−1⟩ + (k+1)·⟨n−1,k⟩`; row-sum `n!`, the Worpitzky identity `xⁿ = Σ ⟨n k⟩·C(x+k,n)`, and `permutations` enumeration length = `⟨n k⟩` all verified.
 
 ### Fixed
 - **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —
