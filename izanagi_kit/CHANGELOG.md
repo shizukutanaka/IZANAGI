@@ -94,6 +94,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`tunstall`** — Tunstall variable-to-fixed code (`Tunstall::build`/`encode`/`decode`/`phrase`): greedy highest-probability-leaf expansion to `2ᵏ` codewords, probabilities compared exactly via `BigInt` cross-multiplication; DFS-order canonical codes; prefix-free + Σprob=1 verified exactly over `BigInt`.
 - **`ortho`** — exact Gram–Schmidt QR over `Frac` (`qr` → `(Mat, Mat)`): unnormalized orthogonal `Q` (`QᵀQ = diag`), unit-diagonal `R`, `A = Q·R` exactly; dependent columns return the zero vector and `rank` counts nonzero columns — brute Gaussian-elimination rank oracle on 150 random matrices.
 
+- **`ratbezier`** — rational Bézier evaluation over `Frac` (`eval`, `eval_deriv`): homogeneous `(w·x, w·y, w)` lifts interpolated by de Casteljau and divided back exactly — every curve point is an exact rational pair; the derivative comes from the degree-1 difference curve through the quotient rule.
+- **`polya`** — Pólya/Burnside orbit counting (`burnside`, `necklaces`, `bracelets`): `#orbits = (1/|G|)·Σk^{cycles(g)}` summed over `BigInt` with exact limb-wise division by `|G|`; `necklaces(4,3) = 24`, `bracelets(6,2) = 13`.
+- **`minq`** — `MinQueue`/`MinStack` minimum structures: every stack slot stores its running minimum, so `pop`/`min` are `O(1)` amortized; the `in→out` pour rebuilds out's minima in a single pass.
+- **`ssw`** — Smith–Waterman local alignment (`local`, `score`): 0-floor restart cells, earliest-`i`-then-`j` canonical winner, traceback to the restart for exact witness ranges; verified against the max over all substring pairs of the global NW score.
+- **`ternary`** — discrete ternary argmin (`argmin_seq`, `argmin_domain`): *strict* unimodality is the contract — on a flat staircase an equality probe cannot confine the argmin to either side, so the tail window is evaluated exhaustively and the result is global-min-verified (`None` rather than a silent wrong index).
+
 ### Fixed
 - **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —
   cells were stored in a `HashMap`, and `iter_keys` / `all_occupied_cells`
