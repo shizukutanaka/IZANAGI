@@ -1517,3 +1517,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Knuth TAOCP 5.2.5(distribution counting/radix)/ Jacobson (1989) rank 構造 + González et al. (2005) select / Fredericksen–Kessler–Maiorana (1978) FKM + Ruskey 7章 / Khinchin "Continued Fractions" 最良近似定理 / Earley (1970) CACM 13(2) + Aycock–Horspool (2002) practical Earley。
 
 **実装物**: cp-algorithms counting sort、SDSL rank_select の superblock 設計、Wikipedia de Bruijn の FKM 擬似コード、教科書連分数の semiconvergent 評価、Earley 擬似コードの chart-set fixpoint — Qiita/Zenn の基数ソート・rank/select・de Bruijn・Earley 解説を参照し整数のみで逐語実装。
+
+## 第40次 線形構築・loglog推定・区間符号・制御byte表・完全ハッシュ(round 40)
+
+**採用モジュール(257→262)**: `sais` / `hll` / `arith` / `swiss` / `magic`
+
+- `sais` — SA-IS 誘導ソート O(n): S/L 型分類→LMS を bucket tail 配置→L 左走査・S 右走査の誘導 pass で LMS 部分列を命名→簡約文字列を再帰→戻り誘導。suffix の prefix-doubling(O(n log n))と別系統。命名比較は「文字+次 LMS フラグ」一致まで走査 — naive oracle が全乱数・周期・定数・全相異形状で一致
+- `hll` — 整数化 HyperLogLog: p index bit→m=2^p レジスタが leading-zero 最大値を保持。raw 推定 αm²/Σ2^{-r} を i128 の 64-bit 固定小数分母で評価。merge=elementwise max(冪等・可換・合併=単一ストリーム)。小域(E≤5m/2)は線形計数 m·ln(m/V) — ln は num/den→[1,2) 縮約+atanh 級数(t≤1/3)の Q32 固定小数、float 一切なし。オラクルが捕捉した設計値: 空レジスタ支配による小域過大推定(n=100,m=1024→786)は raw HLL 固有のバイアスで、線形計数が正しい補正
+- `arith` — Subbotin carry-less range coder。`[low,low+range)` を (cum,freq,total) で細分、頂byte 確定で出力。キャリー伝搬は `range = -low & (BOT-1)` 切詰で回避(byte 列が入力の純関数)。decoder は low/range を鏡像維持+code 残差 — 呼出側モデルが一致すれば adaptive も決定的
+- `swiss` — SwissTable 風: 16 slot group + 7bit h2 fingerprint で key 配列非接触の判定多数。h1→group home、group 単位 probing、tombstone=DELETED(byte で区別、chain 維持)。負荷15/16 または tombstone 1/4 で倍長 rehash。seeded hash で (items,seed) の純関数 — BTreeSet oracle 全乱択照合
+- `magic` — マジックビットボード: relevant occ は「各 ray の終端のみ除く」`ray & opp(ray)` — 盤端リング全体を除く初版設計は blocker として有効な角升(例 a1 の b1..g1)を潰す設計値を sq=0 で捕捉。(occ·m)>>(64−bits) の完全ハッシュを seeded 乱択で発見、尽きれば brute=true で dumb7fill oracle に正直 fallback — 誤テーブル値でなく正しい退化経路
+
+**継続延期バックログ**: link-cut、平面性判定、GJK/EPA、TLSF、edit-distance fuzzy(bitap/diff/bktree で近似済、本格版)、真の 3 段 recursive vEB、ED25519、alphahull、SwissTable の SIMD 群制御(本物の group 演算)。
+
+## 出典(第40次、search-index 照合)
+
+**論文・仕様**: Nong (2013) SA-IS O(N) Time + divsufsort / Flajolet et al. (2007) HLL + Heule et al. (2013) / Subbotin (1999) carry-less range coder + Witten–Neal–Cleary (1987) / Bening–Kingsley–Luaces (CppCon 2017) SwissTable + Abseil raw_hash_set / Romstad & Kannan magic move bitboards(chessprogramming wiki)。
+
+**実装物**: SA-IS 擬似コード(Nong 論文)、redis ClickHouse の HLL、Matt Mahoney の carry-less レンジコーダ、Abseil の制御 byte 仕様、chessprogramming wiki の magic 生成器 — Qiita/Zenn の SA-IS・HLL・算術符号・SwissTable・magic bitboard 解説を参照し全て整数のみで実装。

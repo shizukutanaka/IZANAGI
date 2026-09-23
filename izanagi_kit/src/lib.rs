@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`chacha`], [`sha256`], [`dbscan`], [`kmeans`], [`rtree`], [`poly1305`], [`veb`], [`roaring`], [`lyndon`], [`sosdp`], [`skiplist`], [`karatsuba`], [`lsm`], [`pgm`], [`aes`], [`fenwickrange`], [`geohash`], [`octree`], [`base64`], [`vertexcover`], [`siphash`], [`hmac`], [`pairingheap`], [`bitonic`], [`offlinelca`], [`elias`], [`patricia`], [`blake2s`], [`rotcal`], [`smawk`], [`rope`], [`bktree`], [`mincircle`], [`slopetrick`], [`regex`], [`cuckoo`], [`bitboard`], [`cyk`], [`halfplane`], [`yfast`], [`radixsort`], [`rankselect`], [`debruijn`], [`cf`], [`earley`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`chacha`], [`sha256`], [`dbscan`], [`kmeans`], [`rtree`], [`poly1305`], [`veb`], [`roaring`], [`lyndon`], [`sosdp`], [`skiplist`], [`karatsuba`], [`lsm`], [`pgm`], [`aes`], [`fenwickrange`], [`geohash`], [`octree`], [`base64`], [`vertexcover`], [`siphash`], [`hmac`], [`pairingheap`], [`bitonic`], [`offlinelca`], [`elias`], [`patricia`], [`blake2s`], [`rotcal`], [`smawk`], [`rope`], [`bktree`], [`mincircle`], [`slopetrick`], [`regex`], [`cuckoo`], [`bitboard`], [`cyk`], [`halfplane`], [`yfast`], [`radixsort`], [`rankselect`], [`debruijn`], [`cf`], [`earley`], [`sais`], [`hll`], [`arith`], [`swiss`], [`magic`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -265,6 +265,11 @@
 //! - [`debruijn`] — FKM de Bruijn `B(k,n)` sequences plus verifier and cyclic-window hash.
 //! - [`cf`] — exact continued fractions over `Frac`: canonical expansion, convergents, best approx.
 //! - [`earley`] — Earley chart parser for arbitrary CFGs: ε-rules and mixed-length productions.
+//! - [`sais`] — induced-sorting suffix array: S/L typing, LMS naming, `O(n)` for byte alphabets.
+//! - [`hll`] — integer HyperLogLog: `p`-bit registers, max merge, fixed-point estimate + `ln` LC.
+//! - [`arith`] — Subbotin carry-less range coder: streaming interval subdivision, no carry buffer.
+//! - [`swiss`] — SwissTable `u64` set: 16-slot groups, `h2` fingerprints, tombstone deletes.
+//! - [`magic`] — magic bitboards: seeded `(occ·m)>>shift` perfect hashing of slider attacks.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -308,6 +313,7 @@ pub mod affix;
 pub mod ahocor;
 pub mod arborescence;
 pub mod arch;
+pub mod arith;
 pub mod assets;
 pub mod autotile;
 pub mod base64;
@@ -397,6 +403,7 @@ pub mod hexgrid;
 pub mod hfsm;
 pub mod histrect;
 pub mod hld;
+pub mod hll;
 pub mod hmac;
 pub mod hud;
 pub mod huffman;
@@ -427,6 +434,7 @@ pub mod lttb;
 pub mod lyndon;
 pub mod lzss;
 pub mod lzw;
+pub mod magic;
 pub mod manacher;
 pub mod mapgen;
 pub mod markov;
@@ -496,6 +504,7 @@ pub mod rope;
 pub mod rotcal;
 pub mod rsfec;
 pub mod rtree;
+pub mod sais;
 pub mod sam;
 pub mod sat;
 pub mod savefile;
@@ -523,6 +532,7 @@ pub mod stats;
 pub mod status;
 pub mod steiner;
 pub mod suffix;
+pub mod swiss;
 pub mod temporal;
 pub mod terminal;
 pub mod textlayout;
