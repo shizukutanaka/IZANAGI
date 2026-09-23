@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — ordered sets, learned indexes, big-integer product, block cipher
+
+- `skiplist` — `SkipList`: deterministic `u64` ordered set — level = `trailing_zeros(hash(key,seed))` (geometric, pure function of key set), `insert`/`remove`/`contains`/`iter`, lane shape insertion-order-independent.
+- `karatsuba` — `mul`/`schoolbook_mul`: Karatsuba multiplication over base-2^64 limbs — `O(n^1.585)` multi-word unsigned product, u128 intermediates, `CUTOFF=16` dispatch.
+- `lsm` — `Lsm`: log-structured merge index — BTreeMap memtable, frozen sorted runs newest-first, tombstone deletes, tiered `compact`; observable state is a pure function of the op log.
+- `pgm` — `PgmIndex`: PGM-style learned index over sorted `u64` — rational-slope segments with exact `ε` bound, predict + windowed binary search for `get`/`rank`.
+- `aes` — `Aes128`: AES-128 block encrypt/decrypt — S-box computed via `gf2` inverse + affine (no stored table), FIPS-197 vectors verified.
+
 ### Added — one-time MAC, predecessor sets, compressed bitmaps, string canonicalization, lattice transforms
 
 - `poly1305` — `Poly1305` + `poly1305`: RFC 8439 one-time authenticator (5×26-bit DJB limbs, incremental `write`/`finish`, split-invariant; §2.5.2 tag verified).

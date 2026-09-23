@@ -1388,3 +1388,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: RFC 8439 §2.5 (Poly1305) / Bernstein, "The Poly1305-AES message-authentication code" (2005) / van Emde Boas, "Preserving order in a forest in less than logarithmic time" (1977) / Chambi, Lemire, Kaser et al., "Better bitmap performance with Roaring bitmaps" (SPE 2016) / Duval, "Factorizing words over an ordered alphabet" (1983) / Booth, "Lexicographically least circular substrings" (1980) / Yates, "The design and analysis of factorial experiments" (1937, SOS zeta の原型) / Walsh (1923)–Hadamard 変換。
 
 **実装物**: poly1305-donna(26-bit limb 版)・RustCrypto/poly1305 の limb 分割、roaring-rs のコンテナ設計、cp-algorithms の Duval/Booth コード、Qiita・Zenn の SOSDP(高速ゼータ/メビウス)解説 — OR/AND/XOR 畳み込みまでの展開系を踏襲。
+
+## 第33次 順序集合・索引・乗算・暗号(round 33)
+
+**採用モジュール(222→227)**: `skiplist` / `karatsuba` / `lsm` / `pgm` / `aes`
+
+- `skiplist` — Pugh の skip list のコイン投げを `trailing_zeros(hash(key,seed))` に置換。幾何分布レベルが (key,seed) の純関数 → 車線構造が挿入順非依存(レane検証で確認: node index は allocation 順依存なので比較は各レベルのキー列)。`treap` の二分木平衡に対するリスト平衡の対極 — BTreeSet oracle で全 op 照合
+- `karatsuba` — base-2^64 limb の O(n^1.585) 乗算。z1=(a0+a1)(b0+b1)−z0−z2 を magnitude 演算(add/sub が u128 carry で正確)、CUTOFF=16 で schoolbook 降下 — schoolbook oracle で全サイズ・非対称長照合
+- `lsm` — BTreeMap memtable + 凍結 sorted run(newest-first)+ tombstone 削除 + 自動 tier compaction。観測状態が操作列の純関数 — iter/compact は merge 方向が決定的(newest wins、runs[] そのまま or_insert で走査)。BTreeMap oracle で全 op + compaction 前後一致
+- `pgm` — Ferragina–Vinciguerra PGM の整数版。固定サイズ区分 + 有理傾斜 num/den + 構築時の厳密 max deviation ε — predict→[p−ε,p+ε] binary search。全工程整数、brute-force rank/get oracle 全照合
+- `aes` — AES-128 ブロック暗号(FIPS-197)。S-box は格納テーブルではなく `sbox(x)=affine(gf2::inv(x))` を構築時計算 — 逆元+アフィン変換が定義のまま。FIPS-197 §C.1 既知解答 + 全256定数ブロック往復 + 1bit 反転 avalanche(≥8/16 bytes 差分) — `chacha`/`sha256`/`poly1305` にブロック暗号を追加し暗号レイヤー完備
+
+**継続延期バックログ**: cuckoo hashing / SwissTable、link-cut、sais、平面性判定、rope、regex、jps、GJK/EPA、TLSF、Chomsky-full expr、edit-distance fuzzy、bitboard/magic、真の 3 段 recursive vEB/y-fast trie、HLL(整数化)、ED25519。理由は前次と同じ(整数化困難・スコープ過大・実用優位が薄い)。
+
+## 出典(第33次、search-index 照合)
+
+**論文・仕様**: Pugh, "Skip lists: a probabilistic alternative to balanced trees" (1990) / Karatsuba & Ofman (1962) / O'Neil et al., "The log-structured merge-tree" (1996) / Ferragina & Vinciguerra, "The PGM-index" (VLDB 2020) / FIPS-197 (AES)。
+
+**実装物**: deterministic skip list(hash レベル方式、Redis/tantivy 系の seeded 構築)、rust-num/num-bigint の karatsuba 分割境界、RocksDB/LevelDB の run 構造、PGM paper の区分モデル、RustCrypto/aes の S-box 算出(affine(inv)) — Qiita/Zenn の LSM/PGM/AES 解説を参照し整数のみで逐語実装。

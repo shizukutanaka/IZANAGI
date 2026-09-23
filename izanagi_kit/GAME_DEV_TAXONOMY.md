@@ -182,6 +182,11 @@
 - J100 圧縮ビットマップ集合(Roaring — コンテナ分割)✅ `roaring`(上位 16bit でコンテナ分割: 疎=sorted u16 array、密=1024-word bitset、4096 閾値で双方向変換。集合演算はコンテナ対を wordwise 合成 + normalize — (membership) の純関数で挿入順非依存を検証。BTreeSet oracle で union/intersect/difference/sym-diff 全照合 — entity フラグ・rank 索引の常駐表現)
 - J101 Lyndon 分解・最小回転(Duval/Booth — 周期構造の正準形)✅ `lyndon`(Duval `O(n)` 因子分解: `s[i..j)=w^p·w'` で完全コピー `i≤k` 個のみ emit — 周期語混入 bug を因子全 Lyndon オラクルが捕捉。Booth 最小回転 index・`is_lyndon` を全回転枚挙で照合 — 巡回構造(necklace 盤面・回転対称ステート)の正準形化)
 - J102 部分集合格変換(SOS zeta/Möbius + Walsh–Hadamard — 畳み込み基盤)✅ `sosdp`(subset/superset zeta↔Möbius 逆対 `O(n·2^n)`、OR/AND 畳み込み = zeta→点ごと積→Möbius、xor 畳み込み = FWHT 版。naive O(4^n) 全照合 + WHT 畳合 2^n スケール検証 — `conv`/NTT の多項式積と並ぶ bitmask DP の計数基盤)
+- J103 決定性スキップリスト(hash レベル — 順序集合の確率的平衡)✅ `skiplist`(Pugh の skip list のコイン投げを `trailing_zeros(hash(key,seed))` に置換 — 幾何分布レベルが (key,seed) の純関数で車線構造が挿入順非依存。BTreeSet oracle で全 op 照合 + 全レベル車線キー列が 2 構築順で一致 — ヒープ非依存の順序マップとして `treap` の対極)
+- J104 Karatsuba 多倍長乗算(u64 limb — サブ二次積)✅ `karatsuba`(base-2^64 limb の O(n^1.585) 積: CUTOFF=16 で schoolbook に降下、z1=(a0+a1)(b0+b1)−z0−z2 を magnitude 演算で。u128 中間のみ — RSA/将来の bigint 需要と多項式評価の乗算基盤、schoolbook oracle 全乱択照合)
+- J105 LSM 索引(memtable + 凍結ソート実行 + 墓石 — 書込優先順序ストア)✅ `lsm`(BTreeMap memtable が容量で凍結 run 化、`insert(0)` で newest-first 積層、iter/compact は最新勝ち merge、tombstone 削除。観測状態が操作列の純関数 — `wal`/`delta` の永続裏付けとして BTreeMap oracle で全 op + compaction 前後一致を検証)
+- J106 PGM 学習索引(区分線形モデル — 予測位置±ε 局所探索)✅ `pgm`(Ferragina–Vinciguerra の整数版: 固定サイズ区分に有理傾斜 + 構築時の厳密 max deviation ε を保持、predict→[p−ε,p+ε] binary search。全工程整数のみ — `veb`/`roaring` と並ぶ第三の u64 索引戦略で brute-force rank/get oracle 全照合)
+- J107 AES-128 ブロック暗号(FIPS-197 — S-box は gf2 逆元+affine で算出)✅ `aes`(テーブル非格納: `sbox(x)=affine(gf2::inv(x))` を構築時計算、GF(2^8) mix_columns は `gf2::mul` の 9/11/13/14 行列。FIPS-197 §C.1 既知解答 + 全256定数ブロック往復 + 1bit 反転の avalanche ≥8/16 bytes — `chacha`/`sha256`/`poly1305` の暗号家族をブロック暗号で完備)
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
