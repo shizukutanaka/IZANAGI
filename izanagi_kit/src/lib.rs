@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`chacha`], [`sha256`], [`dbscan`], [`kmeans`], [`rtree`], [`poly1305`], [`veb`], [`roaring`], [`lyndon`], [`sosdp`], [`skiplist`], [`karatsuba`], [`lsm`], [`pgm`], [`aes`], [`fenwickrange`], [`geohash`], [`octree`], [`base64`], [`vertexcover`], [`siphash`], [`hmac`], [`pairingheap`], [`bitonic`], [`offlinelca`], [`elias`], [`patricia`], [`blake2s`], [`rotcal`], [`smawk`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`chacha`], [`sha256`], [`dbscan`], [`kmeans`], [`rtree`], [`poly1305`], [`veb`], [`roaring`], [`lyndon`], [`sosdp`], [`skiplist`], [`karatsuba`], [`lsm`], [`pgm`], [`aes`], [`fenwickrange`], [`geohash`], [`octree`], [`base64`], [`vertexcover`], [`siphash`], [`hmac`], [`pairingheap`], [`bitonic`], [`offlinelca`], [`elias`], [`patricia`], [`blake2s`], [`rotcal`], [`smawk`], [`rope`], [`bktree`], [`mincircle`], [`slopetrick`], [`regex`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -250,6 +250,11 @@
 //! - [`blake2s`] — BLAKE2s-256 (RFC 7693): streaming digest and keyed-MAC mode without the HMAC construction.
 //! - [`rotcal`] — rotating calipers on a convex hull: diameter, min width, min-area rectangle — all exact `Frac`.
 //! - [`smawk`] — SMAWK `O(n+m)` row argmin for totally monotone implicit matrices (Monge-DP machinery).
+//! - [`rope`] — balanced rope text buffer: `O(log n)` insert/remove/split/concat with a depth-guard rebuild.
+//! - [`bktree`] — Burkhard–Keller metric tree over `diff::levenshtein`: `within`/`nearest` fuzzy-string queries.
+//! - [`mincircle`] — Welzl smallest enclosing circle on `Frac` points: exact rational center and r².
+//! - [`slopetrick`] — slope-trick convex piecewise-linear function: `O(log n)` abs/ramp adds, slides, clamps.
+//! - [`regex`] — Thompson-construction byte NFA regex: `.*` classes alternation quantifiers, no backtracking.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -305,6 +310,7 @@ pub mod bipartite;
 pub mod bitap;
 pub mod bitonic;
 pub mod bits;
+pub mod bktree;
 pub mod blake2s;
 pub mod bloom;
 pub mod buddy;
@@ -414,6 +420,7 @@ pub mod menu;
 pub mod merkle;
 pub mod meta;
 pub mod miller;
+pub mod mincircle;
 pub mod mincut;
 pub mod minhash;
 pub mod minimax;
@@ -456,6 +463,7 @@ pub mod raster;
 pub mod rdp;
 pub mod recipe;
 pub mod recovery;
+pub mod regex;
 pub mod relations;
 pub mod replay;
 pub mod rle;
@@ -465,6 +473,7 @@ pub mod rng_xoshiro;
 pub mod roaring;
 pub mod rollback;
 pub mod rolling;
+pub mod rope;
 pub mod rotcal;
 pub mod rsfec;
 pub mod rtree;
@@ -484,6 +493,7 @@ pub mod simhash;
 pub mod siphash;
 pub mod skiplist;
 pub mod slide;
+pub mod slopetrick;
 pub mod slotmap;
 pub mod smawk;
 pub mod sosdp;

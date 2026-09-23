@@ -206,6 +206,12 @@
 - J121 回転キャリパ(rotating calipers — 凸包の直径/幅/最小面積外接矩形)✅ `rotcal`(単調 advance の antipodal 走査、全演算 i128 cross product で Frac 面積・Frac 幅。最小矩形の 4 本 caliper は edge-0 で線形初期化が必須 — jl の単調指針が 0 手前の真最小を見落とす bug を brute-force oracle が捕捉)
 - J122 SMAWK(AKMSW 1987 — 全単調暗黙行列の O(n+m) 行 argmin)✅ `smawk`(Reduce が列を stack 刈り → 奇数行に再帰 → 偶数行は境界内走査。Monge-DP/Knuth 最適化の土台 — テスト生成器は積項が anti-Monge になる罠を検証で確定、真 Monge = a+b−wx 昇順ペア)
 
+- J123 ロープ(balanced rope — 大テキストの O(log n) 編集)✅ `rope`(葉チャンクの二分木。depth > 2⌈log2 n⌉+1 で引き金になる全葉再構成 rebalance — 先頭連続挿入の退化も線形復帰。`mem::take` 評価順の穴を len 先取りで修正)
+- J124 BK 木(メトリック木 — Levenshtein 距離の索引)✅ `bktree`(辺ラベル=親鍵との編集距離、検索は [d−r,d+r] 帯だけ下降 — 三角不等式刈りで brute-force の一桁絞込み、結果は (dist,key) 正準)
+- J125 最小包含円(Welzl — smallest enclosing circle)✅ `mincircle`(sort+dedup で正準入力 → 3重ループの反復 Welzl。共線/重複を widest-pair 直径フォールバックで処理、座標は全て Frac — MEC 一意性で入力順非依存を保証)
+- J126 スロープトリック(凸区分線形関数 — DP 遷移の高速化)✅ `slopetrick`(L=max-heap/R=min-heap の正規4行形: `min_f += max(0,a−topR); pushr(a); pushl(popr)`。slide(a,b) の平行 offset で最小区間が [lo+a,hi+b] に — a>b(空窓)は規約外。密グリッド oracle が境界汚染の罠を検証)
+- J127 Thompson NFA 正規表現(バックトラックなし byte 正規表現)✅ `regex`(再帰降下→命令列コンパイル、ε-closure を `seen` 集合で絞る pike loop。unanchored は各ステップで start を再播種、out ポインタを HOLE=!0 sentinel で後patch。AST レンダ oracle で端位置集合を全照合)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
