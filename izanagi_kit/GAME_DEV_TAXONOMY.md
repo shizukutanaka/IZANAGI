@@ -330,6 +330,11 @@
 - J235 行列連鎖積順序 ✅ `matchain`(O(n³) DP + postorder Step — 左端 argmin が tie を正準化)
 - J236 継目削り ✅ `seamcarve`(二乗勾配エネルギー + 左端 argmin seam DP — 途中打切りパスは seam でない)
 - J237 順序統計木 ✅ `ost`(subtree-size treap — priority=splitmix(seed⊕key) で形状が集合の純関数)
+- J238 Karmarkar–Karp 分割 ✅ `kkpart`(残差ヒープに (plus,minus) mask を同梱 — 返す d が達成可能なため d ≥ optimal が構造的に保証)
+- J239 x-fast trie ✅ `xfast`(65 層 prefix→(min,max) 表 — レベル二分探索で分岐点を特定、葉 hop は BTreeSet で代替)
+- J240 beats+lazy add ✅ `seglazy`(延期バックログ消化 — push は add を*先に*伝搬してから clamp)
+- J241 Tunstall 符号 ✅ `tunstall`(最大確率葉を 2ᵏ まで貪欲展開 — BigInt 交叉積で厳密比較、DFS 順で正準コード)
+- J242 厳密 Gram–Schmidt ✅ `ortho`(Frac 上の非正規化 Q + 単位対角 R — A=Q·R が厳密成立、従属列は零ベクトル)
 
 
 ## K. 物理・衝突 (Physics / Collision)
