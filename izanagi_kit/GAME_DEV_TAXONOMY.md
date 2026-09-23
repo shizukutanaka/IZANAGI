@@ -267,6 +267,12 @@
 - J176 Robin Hood 開番地集合 ✅ `robin`(probe 長の強奪挿入 + 後退シフト削除で tombstone 不要、`max_probe_len` 診断、0.75 負荷で slot 順 rehash)
 - J177 winnowing 文書指紋 ✅ `winnow`(k-gram ハッシュ列の各窓から rightmost-min を選択 — k+w−1 バイトの共有走査で必ず共通指紋が出る保証)
 
+- J178 scapegoat 木(α 重み平衡)✅ `scapegoat`(挿入時 `4·size(child) > 3·size(node)` の最深祖先を中央値再構築、削除後は `len < α·max_size` で全木再構築 — ノード毎 α 不変式は挿入後のみ保証)
+- J179 左辺ヒープ(mergeable PQ)✅ `leftist`(rank=null path length、右背骨のみ O(log n)、`from_slice` 対 meld O(n) — multiset オラクルで構造不変式全照合)
+- J180 ビーム探索 ✅ `beam`((score,生成順) 正準ランク、parent-link 経路復元、`minimax::Game` 上の `beam_moves`)
+- J181 パーセプトロン線形分類 ✅ `perceptron`(i128 スコア・飽和 `w+=y·x` 更新、update-trace oracle で教科書規則と完全一致、one-vs-rest 多クラス)
+- J182 鞍背探索(行+列ソート行列)✅ `saddleback`(右上起点で每步 row/col 破棄 O(r+c) — 全走査 oracle で phantom-hit/見落とし両方向照合)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

@@ -1649,3 +1649,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: O'Neill (2009) "The Genuine Sieve of Eratosthenes" + cp-algorithms の linear sieve/segmented sieve 実装形 / Sprague (1935)・Grundy (1939) 不偏ゲームの mex 理論 + Bouton (1901) Nim — subtraction game の周期定理は Berlekamp–Conway–Guy "Winning Ways" §4 / gap buffer: GNU Emacs `insdel.c` の move_gap/insert/delete 規約 + Finlånder "The Craft of Text Editing" §7 / Celis, Larson, Munro (1985) "Robin Hood Hashing" + Appleby Rust hashbrown tombstone-free backward-shift / Schleimer, Wilkerson, Aiken (SIGMOD 2003) "Winnowing: Local Algorithms for Document Fingerprinting" の rightmost-min・窓保証。
 
 **実装物**: cp-algorithms/e-maxx の sieve 実装形、atcoder Library Checker の grundy 問題系、Emacs/XEmacs gap buffer コード、Rust std collections の Robin Hood 系譜(rust-lang/hashbrown の backward-shift)、MOSS・Google schleimer-winnowing 実装 — Qiita/Zenn/海外技術記事の線形篩・Nim 数・gap buffer・Robin Hood・winnowing 解説を参照し全て整数のみで実装。
+
+## 第48次: 自己調整構造・探索・分類・鞍背
+
+- `scapegoat` — α 重み平衡 scapegoat 木(Galperin & Rivest 1993、α=3/4): 挿入で `4·size(child) > 3·size(node)` を満たす最深祖先を median-split 全再構築。設計値: per-node α 不変式は*挿入後のみ*保証 — 削除は max_size 高水位で `len < α·max_size` まで不均衡を許容(oracle が「right heavy」を捕捉し仕様通りと確定)。削除 splice は全木 O(n) サイズ再計算で amortized 費に吸収
+- `leftist` — 左辺ヒープ: rank=null path length、`rank(left) ≥ rank(right)` で右背骨のみ O(log n) 保証。`merge` のみが実操作で push/pop/heapify は帰着。`from_slice` は pairwise-meld O(n)。multiset oracle で構造不変式(rank/heap order)を全ステップ照合 — 4096 乱数後も rank ≤ 13 を確認
+- `beam` — 決定的ビーム探索: (score,生成順) で canonical ランク → `expand` の出力順の純関数。parent-link arena で経路復元、best は全 level 横断最深でなく最大スコア。`beam_moves` は `minimax::Game` 上で root-perspective 高スコア幅 w 展開
+- `perceptron` — Rosenblatt 線形分類: `w += y·x, b += y` 誤分類更新。i128 スコア蓄積 + saturating 更新で巨大 magnitude も決定的。Novikoff 収束を update-trace oracle が教科書規則と bit 完全一致で裏付け、one-vs-rest argmax(同点は小ラベル正準)の多クラス
+- `saddleback` — 鞍背探索(Bird 2006): 右上起点 `O(r+c)`。**実 bug 捕捉**: ragged 行で `m[r][c]` の境界外アクセス — `continue` が loop 先頭の index 読み出しより後に置かれており panic。`c >= m[r].len()` 早期ガードで「セル不在 = 列破棄」として解決。全走査 oracle で phantom-hit/見落としの両方向照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、mtt、bandit。
+
+## 出典(第48次、search-index 照合)
+
+**論文・仕様**: Galperin & Rivest (SCG 1993) "Scapegoat Trees" の α-weight 再構築・max_size 高水位規約 / Crane (1972) "Linear Lists and Priority Queues as Balanced Binary Trees" の leftist tree = null-path 左右不変式 + Okasaki "Purely Functional Data Structures" 実装形 / Lowerre (1976) HARPY beam search + Bisiani (1987) 幅正準化 / Rosenblatt (1958) パーセプトロン + Novikoff (1962) 収束定理 (R/γ)² + one-vs-rest argmax / Bird & Millward (Oxford) "Saddleback Search" + Martin Gardner 行列探索 puzzle + Bir, Pontus "Pearls of Functional Algorithm Design" の saddleback 章。
+
+**実装物**: Okasaki PFD の leftist 形、cp-algorithms のビーム探索慣行、scikit-learn Perceptron の one-vs-rest 形、Haskell pearls の saddleback — Qiita/Zenn/海外技術記事の scapegoat・leftist heap・beam search・パーセプトロン・鞍背探索解説を参照し全て整数のみで実装。
