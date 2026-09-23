@@ -115,6 +115,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`josephus`** — Josephus problem (`survivor`/`survivor2`/`order`): O(n) recurrence, `2l` closed form for k=2, full elimination order in `O(n log n)` via the order-statistic treap — brute `Vec` oracle over 400 cases.
 - **`bernoulli`** — exact Bernoulli numbers + Faulhaber (`bernoulli`/`faulhaber`): Akiyama–Tanigawa over `Frac` (B₁ = +1/2 convention); direct power-sum oracle, `B_{2k+1} = 0`, and the generating recurrence `Σ C(n+1,j)·Bⱼ = n+1` all verified.
 - **`eulerian`** — Eulerian numbers (`eulerian`/`permutations`): BigInt recurrence `(n−k)·⟨n−1,k−1⟩ + (k+1)·⟨n−1,k⟩`; row-sum `n!`, the Worpitzky identity `xⁿ = Σ ⟨n k⟩·C(x+k,n)`, and `permutations` enumeration length = `⟨n k⟩` all verified.
+- **`catalan`** — Catalan family (`binomial`/`catalan`/`ballot`/`dyck`): exact `BigInt` binomials, the `Cᵢ` recurrence, Bertrand ballot numbers, and Dyck-path generation — count = `C_n` + validity + uniqueness against a `2^{2n}` enumeration oracle.
+- **`derange`** — derangements + rencontres (`derangement`/`rencontres`/`derangements`): `Dₙ = (n−1)(Dₙ₋₁ + Dₙ₋₂)` over `BigInt`, `R(n,k) = C(n,k)·!(n−k)` reusing `catalan::binomial`, and `perm::unrank`-driven enumeration — row-sum `n!` and histogram oracles.
+- **`zeckendorf`** — Zeckendorf Fibonacci representation (`zeckendorf`/`decode`/`is_zeckendorf`): greedy descent via `partition_point`; uniqueness oracle enumerates every non-adjacent-index subset and proves exactly one sums to `n`.
+- **`digit`** — digit DP (`count_avoid_digit`/`count_digit_sum`): tight-bound `(pos, tight, started)` walk; the `started` flag is what makes leading zeros non-digits — brute oracles to `n ≤ 20,000`.
+- **`hanoi`** — Tower of Hanoi (`moves`/`move_at`/`state`): the `2ⁿ−1` optimal sequence, `O(n)` pointwise `move_at` through the `2ⁿ⁻¹−1` split, and post-`k` peg assignments — legality simulation and the `ctz(k+1)` disk characterization both verified.
 
 ### Fixed
 - **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —

@@ -1929,3 +1929,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Concrete Mathematics §1.3 (Josephus 漸化式・k=2 閉形式)・§6.2 (Eulerian 数・Worpitzky) / TAOCP §1.2.9 (Bernoulli) / Sylvester (1882) g(a,b)=ab−a−b / Brauer–Davison の residue-Dijkstra Frobenius / Akiyama–Tanigawa (2001) — Qiita/Zenn/海外技術記事の Lucas doubling・硬貨問題・ヨセフス・Faulhaber 解説を参照し全て整数のみで実装。
 
 **実装物**: cp-algorithms/Library-Checker `lucas_number` の doubling 恒等式と odd-mod halving、競技プロ系 min-residue Dijkstra (dist[x mod m] ≤ x 判定)、order-statistic tree による淘汰順シミュレーション、Akiyama–Tanigawa の in-place 三角 — 整数のみで実装。
+
+
+## 第65次: Catalan・撹乱順列・Zeckendorf・桁DP・ハノイ塔
+
+- `catalan` — Catalan 系統: `binomial` は chain `res·(n+1−i)/i` の各除算厳密、`catalan` は Cᵢ=Cᵢ₋₁(4i−2)/(i+1)、`ballot` は Bertrand 票差数 (a−b)/(a+b)·C(a+b,a) — 全て `BigInt` 厳密。`dyck` は '('/')' バックトラック生成 — 個数=C_n・全 validity・BTreeSet 一意性 + 2^{2n} 全列挙 oracle・ballot mask oracle
+- `derange` — 撹乱順列: `derangement` は Dₙ=(n−1)(Dₙ₋₁+Dₙ₋₂) 漸化式、`rencontres(n,k)=C(n,k)·!(n−k)` で comb モジュール再利用、`derangements` は `perm::unrank` で固定点0の全置換列挙。行和 ΣR(n,k)=n!・R(n,n−1)=0・列挙histogram oracle の3検証
+- `zeckendorf` — Zeckendorf フィボナッチ表現: 貪欲+`partition_point` 二部探索で降順非隣接表現。ユニーク性 oracle: 非隣接 index 部分集合の全列挙が「表現が丁度1つ=貪欲結果」を構造検証 — 存在(Zeckendorf 定理前半)と一意性(後半)を同時に機械検証
+- `digit` — 桁 DP: tight-bound DP が (pos,tight,started) 状態を MSD→LSD 走査 — `started` フラグが「先頭ゼロは数の桁ではない」を符号化する微妙点であり全性の本体。count_avoid_digit の d=0 は x=0 自体も除外、count_digit_sum は s 上限早期 break。両者に n≤20000 brute oracle
+- `hanoi` — ハノイ塔: `moves` は古典再帰、`move_at` は分割点 k=2ⁿ⁻¹−1 の左右半分を降下する O(n) 点クエリ(左: from→aux、右: aux→to)。`state` は k 手リプレイ。検証は全手合法性シミュレーション(トップ冪板・小≤大) + ctz(k+1) 特性(move k は冪板 ctz(k+1) を動かす定理) の2系統
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
+
+
+## 出典(第65次、search-index 照合)
+
+**論文・仕様**: TAOCP 7.2.1.6 (Catalan/Dyck path 生成)・Concrete Mathematics §2.3 (derangement 漸化式・rencontres) / Zeckendorf (1972) 表現定理 / Brown (1964) 貪欲一意性 / AtCoder EDPC・ACL 系の桁DP (pos-tight-started 3状態) / Lucas (1883) ハノイ塔・Frame–Stewart 系手順解析 (ctz(k+1) 特性は Stockmeyer 等) — Qiita/Zenn/海外技術記事の Catalan・derangement・Zeckendorf・digit-DP・Hanoi 解説を参照し全て整数のみで実装。
+
+**実装物**: SymPy `binomial`/`subfactorial` の API 形状、Library-Checker `zeckendorf` 貪欲+partition_point、cp-algorithms/競プロ典型の digit-DP (pos,tight,started)、典型 k 番目ハノイ手 `move_at` の二分降下 — 整数のみで実装。
