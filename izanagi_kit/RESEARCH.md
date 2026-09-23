@@ -1617,3 +1617,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Höhrmann (2008) "Flexible and Economical UTF-8 Decoder" の DFA 表 + Unicode 準拠 maximal-subpart 置換規範 / atcoder library `lazy_segtree` の (min/max/sum)+add モノイド + cp-algorithms lazy propagation / Tonelli (1891)・Shanks (1973) "Five algorithms for modular square roots" + cp-algorithms / Shanks (1971) baby-step giant-step + Stinson "Cryptography: Theory and Practice" の最小指数規約 / Hopcroft (1971) "An n log n algorithm for minimizing states" + Knuutila (TUCS 2001) の splitter 再調査。
 
 **実装物**: Bjoern Hoehrmann 公開 DFA テーブル、ACL/kactl の lazy segtree 形、e-maxx/cp-algorithms の tonelli・bsgs 実装形、ecma/C# FiniteAutomata の Hopcroft worklist — Qiita/Zenn/海外技術記事の UTF-8 DFA・lazy 伝搬・Tonelli–Shanks・離散対数・DFA 最小化解説を参照し全て整数のみで実装。
+
+## 第46次: 厳密曲線・線形回帰・xor 索引・レプリケーション
+
+- `bspline` — de Boor 整数化: `eval(degree, ctrl, knots, t)` は Frac 係数で厳密一点評価。**設計値3件**: (a) `denom==0` は `alpha=0`(`d[j]=d[j−1]`)— `continue` だと d[j] が前段残りで汚染され oracle が捕捉 (b) 右端 `t==u[n+1]` は「最後の非空 span ≤ n」に帰着 — `s=n` クランプは次数0 で空の後尾 span を指し左連続の曲線値を破る (c) oracle 側の教訓: 定義域右端は `u[m]` ではなく `u[n+1]`、`t==right_end` を半開区間所属から除外しないと基底が二重計数で分割の一意性 ΣN=2 に破綻。再帰 Cox–de Boor 基底 oracle + partition-of-unity 全点照合
+- `bmassey` — Berlekamp–Massey 最短 LFSR: C[0]=1・長さ L+1・`s[n]=−Σ_{j≥1}C[j]·s[n−j]` の規約、更新は `coef=d·b^{p−2}`(Fermat)。Fibonacci mod7 → [1,6,6]、定数列 → [1,6]、全ゼロ → [1]、幾何 2ⁿ → [1,5] の既知ベクタ + mod 998244353 の LFSR 回復。**テスト側 bug 捕捉**: oracle `min_complexity` が成功時 `return l` でなく `continue 'outer` → 全ゼロ列の want=4 を算出 — GF(p)^L 全 r 枚挙の検証器自身が壊れていた
+- `xortrie` — bit trie(u64、高々64深): `insert`/`contains`/`remove` は multiplicity cnt、`descend` は greedy opposite-bit、`max_xor_pair` は O(n·64) で全要素の greedy パートナーを取り `(lo,hi)` dedup + xor 降順→pair 昇順の正準選定。`len` は live multiplicity 計数 — 集合等価 oracle には distinct-key 操作が必須(remove 後の期待値誤読を捕捉)
+- `orset` — add-wins OR-Set: dot=(replica,ctr)、`remove` は観測済み add-dot のみカバー、adds 写像は縮小しない(removes が墓標カバレッジ)。merge = 両 map union で交換・結合・冪等 — 並行 add 不滅・re-add は新 dot で存続。**設計値**: `remove` の返値は「live dot が存在したか」— adds[v] 非空チェックだとカバー済み dead dot でも true を返す穴。oracle は per-replica (adds,removes) シャドーで全ステップ contains 照合 + 収束・冪等・順序独立の3性質
+- `lww` — LWW-element-set: orset の対極 — remove は常に (clock,replica) stamp を書く(未観測要素でも消せる)。要素の生死は add/rem 両 stamp の大きい側、同時刻タイは remove 勝ち(Riak 規約)。`added_since(clock)` で差分出荷。**設計値**: oracle が impl の内部 ctr と同期するには add 側で `views[r].2 = s.0` と返却 stamp の clock を直接拾う必要(独自に +=1 すると merge 後に乖離)
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御(本物の group 演算)、`segbeats` add-lazy 変種。
+
+## 出典(第46次、search-index 照合)
+
+**論文・仕様**: de Boor (1978) "A Practical Guide to Splines" + Piegl & Tiller "The NURBS Book" §2 の de Boor 漸化式と clamped 端点規約 / Berlekamp (1968) "Algebraic Coding Theory" + Massey (1969) "Shift-register synthesis and BCH decoding" + cp-algorithms の BM 実装形 / Pain & Pichery xor-trie max-xor 慣行 + Library Checker `set_xor_min`/`max_xor_pair` 問題系 / Shapiro, Preguiça, Baquero, Zawirski (2011) "A comprehensive study of Convergent and Commutative Replicated Data Types" の OR-Set(add-wins observed-remove)と LWW-Register / Riak KV の LWW-element-set tie→remove 規約。
+
+**実装物**: geomdl/NURBS-Python の de Boor 評価形、AtCoder 提出の BM、Library Checker 提出の binary-trie xor、Automerge/Yjs の OR-Set、Riak・Redis Enterprise の CRDT LWW-eset — Qiita/Zenn/海外技術記事の B-スプライン・Berlekamp–Massey・binary trie・CRDT 解説を参照し全て整数のみで実装。
