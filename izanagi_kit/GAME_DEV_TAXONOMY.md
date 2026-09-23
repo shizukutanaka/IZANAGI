@@ -232,6 +232,12 @@
 - J145 ビット並列編集距離(Myers 1-word automaton)✅ `editdist`(≤64 パターンの `dist` と `find_leq` 近似照合端位置 — 左列注入 bit が全文/自由開始の境界を切替、DP oracle 乱択照合)
 - J146 GJK 凸体距離(Minkowski 差 support 写像)✅ `gjk`(2D 整数 GJK、最近点を Frac 有理数で保持し厳密二乗距離 — SAT oracle ブール+有理数 brute oracle と 400 乱数凸包照合)
 - J147 TLSF アロケータ(segregated-fit O(1) 動的割付)✅ `tlsf`(fl/sl 二段 bin + free coalescing — 「収まるブロックがあるのに拒否しない」正直拒否を oracle が強制、最低アドレス採用で決定的)
+- J148 SHA-512(64bit 語ハッシュ・長文標準)✅ `sha512`(FIPS 180-4、80 段 K 定数・128bit 長さフィールド・手動 BE 語 load — NIST 全 4 ベクトル+分割不変)
+- J149 EdDSA 署名(twisted Edwards 上の Schnorr 系)✅ `ed25519`(RFC 8032 — radix-51 リム GF(p) + mod-L スカラー分離、EFD 完全加法、非正規 s/encoding 拒否、公式 TEST1-3 ベクトル)
+- J150 一般グラフ最大マッチング(奇閉路花の収縮)✅ `blossom`(Edmonds — BFS 内 base[] 縮約の e-maxx 形 O(n³)、n≤9 全列挙 oracle + 決定性)
+- J151 EPA 侵入深度(原点包含多胞体拡張)✅ `epa`(GJK 収束 simplex を seed、最近 edge を外向法線 support で拡張 — SAT witness を brute oracle にした Frac 厳密 MTV)
+- J152 α-shape(スケール付き点集合境界)✅ `alphahull`(delaunay 三角形を外接半径² ≤ α² で選別、1 回出現 edge が境界 — 垂線二等分線外心と abc/4A の独立 2 式で半径照合)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

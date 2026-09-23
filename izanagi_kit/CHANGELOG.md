@@ -82,6 +82,34 @@ each in published-work form with an independent oracle:
   table scatter written to hashed slots and an honest
   dumb7fill-oracle fallback.
 
+### Added — SHA-512, Ed25519, blossom, EPA, alpha hull
+
+Signature-grade hashing, twisted-Edwards signatures, general
+matching, penetration depth, and scaled point-set boundaries —
+each in published-work form with an independent oracle:
+
+- **`sha512`** — FIPS 180-4 streaming SHA-512: `write`/`finish`
+  incremental digest with a 128-bit length field, manual BE word
+  loads (no `to_be_bytes` — the repo's width rule), NIST vectors
+  plus split-invariance and 111–128-byte boundary coverage.
+- **`ed25519`** — RFC 8032 sign/verify/keypair: radix-51 limb
+  GF(p) field (the radix-64 column sums overflow `u128`), `[u64;4]`
+  mod-L scalars by bit-fold reduction, complete Edwards addition
+  (`D = 2·Z1·Z2`), canonical `decompress` rejecting non-canonical
+  encodings — RFC TEST 1–3 vectors, tamper, group-law sanity.
+- **`blossom`** — Edmonds' blossom maximum matching on general
+  graphs: `base[]` blossom contraction inside BFS, `O(n³)`,
+  exhaustive-subset oracle for n ≤ 9 plus a two-triangle case
+  where contraction is actually needed.
+- **`epa`** — expanding polytope penetration depth: seeds the
+  origin-enclosing simplex from the GJK loop, expands the closest
+  edge along its outward normal until support stalls — exact
+  `Frac` depth² + integer MTV axis, SAT-witness brute oracle.
+- **`alphahull`** — alpha shape over `delaunay`: keeps triangles
+  whose circumradius² fits `α²` (exact `i128` rational
+  circumcenter), boundary = once-used edges; the `abc/(4·area)`
+  formula double-checks every radius in tests.
+
 ### Added — Link–Cut trees, splay BST, Myers edit distance, GJK, TLSF
 
 Dynamic trees, self-adjusting search, bit-parallel string metrics,

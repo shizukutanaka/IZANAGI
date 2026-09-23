@@ -31,25 +31,25 @@ use crate::frac::Frac;
 
 type P = (i64, i64);
 
-fn sub(a: P, b: P) -> (i128, i128) {
+pub(crate) fn sub(a: P, b: P) -> (i128, i128) {
     (a.0 as i128 - b.0 as i128, a.1 as i128 - b.1 as i128)
 }
 
-fn cross(a: (i128, i128), b: (i128, i128)) -> i128 {
+pub(crate) fn cross(a: (i128, i128), b: (i128, i128)) -> i128 {
     a.0 * b.1 - a.1 * b.0
 }
 
 /// A point on the convex set expressed exactly: `(x,y) =
 /// (nx/den, ny/den)` with `den > 0`.
 #[derive(Clone, Copy, Debug)]
-struct V {
-    nx: i128,
-    ny: i128,
-    den: i128,
+pub(crate) struct V {
+    pub(crate) nx: i128,
+    pub(crate) ny: i128,
+    pub(crate) den: i128,
 }
 
 impl V {
-    fn of(p: P) -> V {
+    pub(crate) fn of(p: P) -> V {
         V {
             nx: p.0 as i128,
             ny: p.1 as i128,
@@ -58,22 +58,22 @@ impl V {
     }
     /// `dot(self, w)` for integer `w`, scaled by `den` (compare
     /// against integer targets multiplied by `den` too).
-    fn dot_i(&self, w: P) -> i128 {
+    pub(crate) fn dot_i(&self, w: P) -> i128 {
         self.nx * w.0 as i128 + self.ny * w.1 as i128
     }
     /// `|v|² * den` — the numerator of `|v|²` times `den`, so
     /// `|v|² · den²` comparisons stay integral: `v_len2() vs
     /// den·dot(w,v)`.
-    fn len2_num(&self) -> i128 {
+    pub(crate) fn len2_num(&self) -> i128 {
         self.nx * self.nx + self.ny * self.ny
     }
-    fn is_zero(&self) -> bool {
+    pub(crate) fn is_zero(&self) -> bool {
         self.nx == 0 && self.ny == 0
     }
 }
 
 /// Closest point to the origin on segment `pa`–`pb`.
-fn closest_seg(pa: P, pb: P) -> V {
+pub(crate) fn closest_seg(pa: P, pb: P) -> V {
     let abx = pb.0 as i128 - pa.0 as i128;
     let aby = pb.1 as i128 - pa.1 as i128;
     let d = abx * abx + aby * aby;
@@ -97,13 +97,13 @@ fn closest_seg(pa: P, pb: P) -> V {
 }
 
 /// Compare `|u|²` vs `|w|²` across different denominators.
-fn lt_len2(u: V, w: V) -> bool {
+pub(crate) fn lt_len2(u: V, w: V) -> bool {
     u.len2_num() * w.den * w.den < w.len2_num() * u.den * u.den
 }
 
 /// Reduce a 3-point simplex to the sub-simplex carrying the
 /// closest point to the origin; returns the point itself.
-fn closest_tri(p: &[P]) -> (Vec<P>, V) {
+pub(crate) fn closest_tri(p: &[P]) -> (Vec<P>, V) {
     let (a, b, c) = (p[0], p[1], p[2]);
     // inside test: the origin lies inside iff the cross products
     // of each edge with the vector edge→origin share one sign
@@ -144,7 +144,7 @@ fn closest_tri(p: &[P]) -> (Vec<P>, V) {
 
 /// Farthest point of `pts` in direction `dir` (a rational pair
 /// `(dx,dy)`; scaling `den` out: `argmax nx·x + ny·y`).
-fn support_pts(pts: &[P], dir: (i128, i128)) -> P {
+pub(crate) fn support_pts(pts: &[P], dir: (i128, i128)) -> P {
     let mut best = pts[0];
     let mut bs = dir.0 * best.0 as i128 + dir.1 * best.1 as i128;
     for &p in &pts[1..] {
@@ -159,7 +159,7 @@ fn support_pts(pts: &[P], dir: (i128, i128)) -> P {
 
 /// Support of the Minkowski difference `a ⊖ b`: the point
 /// `sup_a(dir) − sup_b(−dir)`.
-fn support_diff(a: &[P], b: &[P], dir: (i128, i128)) -> P {
+pub(crate) fn support_diff(a: &[P], b: &[P], dir: (i128, i128)) -> P {
     let sa = support_pts(a, dir);
     let sb = support_pts(b, (-dir.0, -dir.1));
     (sa.0.wrapping_sub(sb.0), sa.1.wrapping_sub(sb.1))
@@ -167,7 +167,7 @@ fn support_diff(a: &[P], b: &[P], dir: (i128, i128)) -> P {
 
 /// Closest point of the current simplex to the origin, with the
 /// simplex reduced to the feature carrying it.
-fn reduce(simplex: &mut Vec<P>) -> V {
+pub(crate) fn reduce(simplex: &mut Vec<P>) -> V {
     match simplex.len() {
         1 => V::of(simplex[0]),
         2 => {
