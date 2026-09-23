@@ -1746,3 +1746,20 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Bayer & McCreight (1972) + Comer (1979) の B+木 copy-up/move-up 構造 / Bentley & Ottmann (1979) スイープ線アルゴリズム + de Berg et al. の status/event 構成 / 組合せ論の combinadic rank/unrank(Lehmer 符号系)/ NIST SP 800-38D + McGrew & Viega の GCM 仕様(GHASH fold 構造、J0 導出)/ Sutherland & Hodgman (1974) 多角形クリップの半平面 pass — Qiita/Zenn/海外技術記事の B+木・線分交差・combinadic・GCM・ポリゴンクリップ解説を参照し全て整数のみで実装。
 
 **実装物**: Rust BTreeMap 系の split/borrow 骨格、FHO 系 sweep のイベント分類、競技プログラミング慣行の combinadic、BearSSL/mbedtls 系のビットシリアル GHASH、clip ライブラリの正規化形 — 整数のみで実装。
+
+
+## 第54次: 双端ヒープ・範囲計数・極大クリーク・時間伸縮・パス被覆
+
+- `mmheap` — Min-max ヒープ(min/max 交互レベルの双端優先度キュー): 最大値は根の最大子(index 1/2)の浅い位置に限定されるため peek が両端 O(1)。sift は側別(side)分岐で子+孫の最良候補へ。**設計値捕捉**: `pop_max` で m が末尾スロットの時、先に pop すると `a[m] = last` が範囲外 — pop 対象自身が max なので move を skip。BTreeMultiset シャドー 20 ケース×2000 op 全照合
+- `mstree` — マージソート木(静的範囲計数): 各ノードが子の sorted run を保持、クエリは O(log n) ノード×二分探索。**設計値捕捉**: 配列ヒープ配置(n+i 葉)は冪次 n でしか mid-split と一致しない — 任意 n では再帰 build のノード id をそのまま索引に使う(4n 容量)必要がある。brute slice 全照合 40 ケース×200 クエリ
+- `clique` — Bron–Kerbosch 極大クリーク列挙(u64 隣接マスク、頂点≤64): Tomita のピボット u ∈ P∪X で |P∩N(u)| 最大を選び枝刈り。**設計値**: 出力は discovery 順をソートして正準化 — 入力のみの純関数。n≤8 で maximal 性の部分集合全走査 oracle 全照合、max_clique サイズも brute 一致
+- `dtw` — 動的時間伸縮(整数弾性距離): dp[i][j] = |a_i−b_j| + min(上,左,対角)。Sakoe–Chiba 帯版と対角優先の正準経路復元。**設計値捕捉**: 境界セルを「左/上移動で伝播可能」にすると枯渇 prefix が自由消費され真値を過小に返す(24 vs 14 で捕捉) — i==0||j==0 は INF に留める。三角不等式は一般には不成立(メトリック非メトリック) — 検証は同一長の対称性・非負・恒等路線上界のみ。再帰メモ oracle 300 乱数全照合
+- `pathcover` — DAG 最小パス被覆(Dilworth 鎖分割): L_u—R_v の二部コピー + hopcroft_karp 最大マッチングで被覆 = n − |matching|。**設計値捕捉**: 被覆再構成は「マッチングで前駆を持たない頂点から succ 連鎖を辿る」— succ 関数の列挙 oracle(n≤6 で (n+1)^n 全列挙、indeg≤1+非閉路条件)で optimality 照合。閉路入力は topo_order が None → 全体 None
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+
+## 出典(第54次、search-index 照合)
+
+**論文・仕様**: Atkinson, Sack, Santoro & Strothotte (1986) "Min-max heaps and generalized priority queues" の交互レベル構造 / merge-sort tree の競技プログラミング定石(sorted run ノード) / Bron & Kerbosch (1973) + Tomita ピボットの極大クリーク列挙 / Sakoe & Chiba (1978) の帯制約 DTW / Dilworth の鎖分割 + Fulkerson の二部被覆帰着 — Qiita/Zenn/海外技術記事の min-max heap・mstree・クリーク列挙・DTW・パス被覆解説を参照し全て整数のみで実装。
+
+**実装物**: std::collections 系ヒープの sift 骨格、競技プログラミング慣行の mstree/被覆帰着、networkx 系クリーク列挙のピボット形、dtw 実装の境界 INF 規約、Ford–Fulkerson 系マッチング被覆 — 整数のみで実装。

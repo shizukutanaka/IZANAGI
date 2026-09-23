@@ -300,6 +300,12 @@
 - J205 組合せ rank/unrank ✅ `comb`(choose128 の `acc = C(n−k+i, i)` 不変式で各除算が厳密 — gcd 正規化不要; 辞書順 combinadic)
 - J206 AES-128-GCM AEAD ✅ `gcm`(GF(2^128) GHASH ビットシリアル、`R = 0xE1<<120`; aad→ct の累積器は連鎖必須 — 別計算の XOR 合成は誤り; J0 = IV‖1(12B) else GHASH 導出)
 - J207 Sutherland–Hodgman ポリゴンクリップ ✅ `polyclip`(clipper は shoelace 符号で CCW 正規化、交点 t = cross(cd, a−s)/cross(cd, sd) — 符号反転は空クリップで検出)
+- J208 Min-max ヒープ ✅ `mmheap`(min/max 交互レベルで両端 O(1) peek — pop_max は max が末尾スロット時 move を skip、pop 対象自身を書き戻さない)
+- J209 マージソート木 ✅ `mstree`(静的範囲計数 O(log² n) — ノード配置は再帰 mid-split、2n ヒープ配置は冪次 n 限定)
+- J210 極大クリーク列挙 ✅ `clique`(Bron–Kerbosch + Tomita ピボット P\N(u) — u64 隣接マスク、出力はソート正準で純関数)
+- J211 動的時間伸縮 ✅ `dtw`(i64 厳密 Σ|差| DP + Sakoe–Chiba 帯 + 経路復元 — 境界セルは INF、枯渇 prefix は整列不能)
+- J212 DAG 最小パス被覆 ✅ `pathcover`(二部 L_u—R_v マッチング帰着で被覆 = n − |matching| — 閉路入力は None、Kahn 最小優先で正準順)
+
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
