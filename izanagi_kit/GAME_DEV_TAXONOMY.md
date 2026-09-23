@@ -273,6 +273,12 @@
 - J181 パーセプトロン線形分類 ✅ `perceptron`(i128 スコア・飽和 `w+=y·x` 更新、update-trace oracle で教科書規則と完全一致、one-vs-rest 多クラス)
 - J182 鞍背探索(行+列ソート行列)✅ `saddleback`(右上起点で每步 row/col 破棄 O(r+c) — 全走査 oracle で phantom-hit/見落とし両方向照合)
 
+- J183 AVL 木(高平衡)✅ `avltree`(全変更で `|h(l)-h(r)|≤1` を回転復元 — BTreeSet シャドーで op 毎に不変式照合、昇順挿入でも高 ~log n)
+- J184 マルチアーム・バンディット ✅ `bandit`(UCB1 の Q8 整数形 `mean·256+isqrt(bonus)` + seeded ε-greedy — 全腕訪問→収束を検証、epsilon=0 で greedy 退化)
+- J185 Zobrist ハッシュ ✅ `zobrist`((piece,square)→u64 鍵 XOR、toggle=厳密 undo、side-to-move 鍵は表末尾から派生 — transposition table 用増分ハッシュ)
+- J186 教科書 RSA(パディング無し)✅ `rsa`(bigint 上で除法を自前実装: 二進長除法 rem/商、modpow、拡張 Euclid modinv、固定証人 Miller–Rabin — seed 決定的鍵生成、署名/暗号往復)
+- J187 JSON パーサ(整数部分集合)✅ `json`(RFC 8259 − float、厳密拒否: leading zero・lone surrogate・非終端・末尾ゴミ、canonical render は BTreeMap ソート鍵 — `parse(render(x))==x`)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

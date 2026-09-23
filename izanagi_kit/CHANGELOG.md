@@ -7,6 +7,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **`avltree`** — height-balanced AVL tree over `u64` keys (`insert`/`remove`/`contains`/`values`/`min`/`max`/`height`): LL/RR/LR/RL rotations restore `|h(l) - h(r)| <= 1` after every mutation; a `BTreeSet` shadow oracle audits the invariant after every op.
+- **`bandit`** — deterministic multi-armed bandits (`reward`/`mean`/`greedy_pick`/`ucb1_pick`/`eps_greedy_pick`/`best_arm`, `isqrt`, `SCALE`): UCB1 evaluated in Q8 fixed point (`mean·256 + isqrt(2·log2(total)·SCALE²·256/pulls)`), plus a seeded ε-greedy — every pick is a pure function of pull history.
+- **`zobrist`** — incremental Zobrist hashing (`toggle`/`move_piece`/`hash`/`rehash`/`hash_with_side`, `side_key`): `(piece, square)` keys drawn from a seeded `SplitMix64`; XOR toggling gives exact undo, verified against `rehash` every step.
+- **`rsa`** — textbook RSA over `BigInt` (`KeyPair::generate`/`encrypt`/`decrypt`/`sign`/`verify`, `n`/`e`): seeded probable-prime keygen; the module supplies its own magnitude arithmetic (binary long-division `rem`/`div`, `modpow`, extended-Euclid `modinv`, fixed-witness Miller–Rabin) because `BigInt` has no division. No padding — not wire-grade crypto.
+- **`json`** — strict integer-subset JSON parser (`parse`/`render`, `Json`, `Error`): RFC 8259 minus floats; `\uXXXX` escapes decode through surrogate pairing (lone surrogates rejected); canonical `render` (sorted keys, minimal escapes) satisfies `parse(render(x)) == x`.
 - **`scapegoat`** — α weight-balanced scapegoat tree (`insert`/`remove`/`contains`/`values`/`min`/`max`/`height`/`n_rebuilds`): insert rebuilds the lowest ancestor violating `4·size(child) > 3·size(node)` by median split; deletes let imbalance drift until `len < α·max_size` — the per-node α invariant is only guaranteed after inserts.
 - **`leftist`** — leftist heap (`push`/`pop`/`peek`/`meld`/`from_slice`/`sorted`/`right_spine_len`): merge-only core on the `O(log n)` right spine, rank = null-path length; `from_slice` pairwise-melds in `O(n)`.
 - **`beam`** — deterministic beam search (`beam_search` → `BeamResult{best, score, path, levels, expanded}`, `beam_moves` over `minimax::Game`): children ranked by `(score, generation order)` so the search is a pure function of `expand`'s output order; parent-link path reconstruction.
