@@ -355,6 +355,11 @@
 - J260 ヨセフス問題 ✅ `josephus`(O(n) 漸化式+k=2 閉形式+ost で O(n log n) 全淘汰順 — Vec oracle 照合)
 - J261 Bernoulli 数 ✅ `bernoulli`(Akiyama–Tanigawa を Frac 厳密で + Faulhaber 冪和 — 直接和 oracle・B_奇=0・生成漸化式の3検証)
 - J262 Eulerian 数 ✅ `eulerian`(BigInt 漸化式+descent=k 置換列挙 — 行和 n!・Worpitzky 恒等式・列挙長=⟨n k⟩ の3定理)
+- J263 Catalan 数・Dyck 経路 ✅ `catalan`(BigInt 二項係数+Catalan 漸化式+バロット数+Dyck 文字列生成 — 2^{2n} 全列挙 oracle)
+- J264 撹乱順列・Rencontres 数 ✅ `derange`(!n 漸化式+R(n,k)=C(n,k)·!(n−k)+unrank 全列挙 — 行和 n!・histogram oracle)
+- J265 Zeckendorf 表現 ✅ `zeckendorf`(貪欲+decode+is_zeckendorf — 非隣接部分集合列挙で存在と一意性を両面検証)
+- J266 桁 DP ✅ `digit`(count_avoid_digit/count_digit_sum — started フラグで先頭 0 を非桁扱い、brute oracle 照合)
+- J267 ハノイ塔 ✅ `hanoi`(最適 2ⁿ−1 手順+move_at k 番目+k 手後状態 — ctz(k+1) 冪板特性・全手合法性シミュレーション)
 
 
 ## K. 物理・衝突 (Physics / Collision)
