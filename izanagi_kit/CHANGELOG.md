@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — rope, BK-tree, smallest circle, slope trick, NFA regex
+
+- `rope` — balanced rope text buffer: `concat`/`insert`/`remove`/`split`/`slice`/`to_string` in `O(log n)` on node weights; depth > `2·⌈log2 n⌉+1` triggers a whole-leaf rebuild so degenerate edit patterns recover in amortized linear time.
+- `bktree` — Burkhard–Keller metric tree indexing `diff::levenshtein` distances: `insert`/`contains`/`within` (band-pruned descent) / `nearest` (best-first bound update); results sorted by `(dist, key)`.
+- `mincircle` — Welzl smallest enclosing circle on `Frac` points: sorted+deduped input makes the iterative triple loop a pure function of the point set (MEC uniqueness); collinear points fall back to the widest-pair diameter circle.
+- `slopetrick` — slope-trick convex piecewise-linear primitive (`SlopeTrick`): `O(log n)` `add_a_minus_x`/`add_x_minus_a`/`add_abs` in the canonical four-line heap form, `clear_left`/`clear_right` prefix/suffix mins, `slide(a,b)` sliding-window min, `shift` domain translate, `eval`/`min`/`argmin`.
+- `regex` — Thompson-construction byte regex (`Regex`): literals, `.`, `[a-z]`/`[^..]`/`\d`/`\w`/`\s` classes, `|`/`?`/`+`/`*` and groups; pike loop with `seen`-set ε-closure, unanchored match reseeds `start` per step; syntax errors return `None` (no panic).
+
 ### Added — succinct/monotone structures, BLAKE2s, calipers, SMAWK
 
 - `elias` — Elias–Fano monotone `u64` sequence: `access`/`rank`/`successor`/`successor_strict` over a unary-gap high bitmap + verbatim low bits; construction sorts a copy so the index is a pure function of the multiset.

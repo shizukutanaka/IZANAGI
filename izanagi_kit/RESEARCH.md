@@ -1463,3 +1463,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Elias, "Efficient storage and retrieval by content and address of static files" (1974) + Fano (1971) + Vigna, "Quasi-succinct indices" (2013) / Morrison, "PATRICIA" (1968) + Bernstein crit-bit trees (2006) + Okasaki & Gill (1998) / RFC 7693 (BLAKE2) / Shamos 1978 + Toussaint, "Solving geometric problems with the rotating calipers" (1983) / Aggarwal, Klawe, Moran, Shor & Wilber, "Geometric applications of a matrix-searching algorithm" (1987)。
 
 **実装物**: sux/sux4j の rank/select、djb critbit.c の split 挿入、RustCrypto blake2 の param 注入と buffer 運用、e-maxx/cp-algorithms の回転キャリパ四指針形、KACTL の SMAWK — Qiita/Zenn の Elias-Fano・crit-bit・SMAWK 解説も参照し整数のみで逐語実装。
+
+## 第37次 テキスト編集・メトリック索引・最小包含円・凸 DP・正規表現(round 37)
+
+**採用モジュール(242→247)**: `rope` / `bktree` / `mincircle` / `slopetrick` / `regex`
+
+- `rope` — 二分木ロープ(葉 `Vec<u8>` チャンク)。`concat`/`split`/`insert`/`remove`/`slice`/`to_string` を node-weight で O(log n)。深さ > 2⌈log2 n⌉+1 で全葉 balanced 再構成 — 先頭固定挿入の一次退化でも線形 amortized 復帰を検証。設計値: `insert` が `mem::take(self)` 評価後に `self.len()` を読むと pos が常に 0 にクランプ → len 先取りで修正
+- `bktree` — Burkhard–Keller メトリック木(1973)。辺ラベル = 親鍵との `diff::levenshtein` 距離、`within` は [d−r,d+r] 帯のみ下降(三角不等式刈り)、`nearest` は best-first 境界更新。80 鍵・4 文字辞書 × 300 query を brute-force 全照合
+- `mincircle` — Welzl 最小包含円の反復形(sort+dedup 正準化 → 3 重ループ)。`Frac` 座標で中心・r² とも有理厳密、共線点は widest-pair 直径円へフォールバック。MEC の一意性から入力順非依存を順列テストで検証
+- `slopetrick` — slope trick(凸区分線形関数の合成)。正規の4行形に確定: `add_a_minus_x` は `min_f += max(0, a − topR); push_r(a); push_l(pop_min_r)` — 条件分岐版は L が maxR を越える逆転区間を生み argmin/eval を破壊する bug を oracle が捕捉。`slide(a,b)`(平行 offset)で `f(x)=min_{x−b≤y≤x−a}` — モデル側は ±800 の帯で clamp 汚染を到達不能に
+- `regex` — Thompson 構成の byte NFA 正規表現(`.`, `[a-z]`/`[^..]`/`\d\w\s`, `|`, `?`/`+`/`*`, グループ)。再帰降下で `Inst` 列にコンパイル、HOLE sentinel の out ポインタを一括 patch。is_match は各位置で start を再播種する unanchored pike loop — `frag.start` を 0 と誤用する bug を `a|` 空マッチケースが捕捉。AST 生成→レンダの独立 oracle で端位置集合を全照合
+
+**継続延期バックログ**: cuckoo hashing / SwissTable、link-cut、sais、平面性判定、jps、GJK/EPA、TLSF、Chomsky-full expr、edit-distance fuzzy、bitboard/magic、真の 3 段 recursive vEB/y-fast trie、HLL(整数化)、ED25519、halfplane 交差、alphahull。rope/bktree/regex は本ラウンドで消化。
+
+## 出典(第37次、search-index 照合)
+
+**論文・仕様**: Boehm, Atkinson & Plass, "Ropes: an Alternative to Strings" (1995) / Burkhard & Keller, "Some approaches to best-match file searching" (1973) / Welzl, "Smallest enclosing disks" (1991) + de Berg et al. Computational Geometry / drken「slope trick」解説 + MtSaka/competitive-library の正規 heap 実装 + maspy slope_trick / Thompson (1968) + Cox, "Regular Expression Matching Can Be Simple And Fast" (2007) pike loop。
+
+**実装物**: rope の weight 再帰 + rebalance 閾値、cp 系の BK-tree edge ラベル索引、KACTL の circumcircle/minEnclosingCircle、slope-trick の L/R heap 規約、russ cox nfa.c の Frag/patch 構造 — Qiita/Zenn のロープ・BK木・slope trick・正規表現エンジン解説を参照し整数のみで逐語実装。
