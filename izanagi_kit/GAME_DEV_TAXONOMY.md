@@ -261,6 +261,12 @@
 - J171 add-wins OR-Set CRDT ✅ `orset`((replica,ctr) dot、remove は観測済み dot のみ — 並行 add 不滅、merge は両 map union で交換・冪等・結合)
 - J172 LWW-element-set CRDT ✅ `lww`((clock,replica) stamp の勝者側が生死を決定、同時刻タイは remove 勝ち — orset の対極で未観測要素も remove が stamp を書く)
 
+- J173 線形篩 + 区間素数表 ✅ `sieve`(SPF で phi/tau/sigma/factor、segmented `primes_between` は `ceil(lo/p)·p` を `p^2` にクランプ — Miller–Rabin オラクル照合)
+- J174 Sprague–Grundy 不偏ゲーム数 ✅ `grundy`(mex・take-away 表・多山合成・`detect_period` — 周期報告は末尾 `memory` 個の検証済み周期を定理として要求)
+- J175 ギャップバッファ(Emacs 型)✅ `gapbuffer`(連続 gap、`copy_within` の両方向移動、delete は実削除数返却 — Vec シャドー oracle 全 op 照合)
+- J176 Robin Hood 開番地集合 ✅ `robin`(probe 長の強奪挿入 + 後退シフト削除で tombstone 不要、`max_probe_len` 診断、0.75 負荷で slot 順 rehash)
+- J177 winnowing 文書指紋 ✅ `winnow`(k-gram ハッシュ列の各窓から rightmost-min を選択 — k+w−1 バイトの共有走査で必ず共通指紋が出る保証)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

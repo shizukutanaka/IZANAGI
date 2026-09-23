@@ -1633,3 +1633,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: de Boor (1978) "A Practical Guide to Splines" + Piegl & Tiller "The NURBS Book" §2 の de Boor 漸化式と clamped 端点規約 / Berlekamp (1968) "Algebraic Coding Theory" + Massey (1969) "Shift-register synthesis and BCH decoding" + cp-algorithms の BM 実装形 / Pain & Pichery xor-trie max-xor 慣行 + Library Checker `set_xor_min`/`max_xor_pair` 問題系 / Shapiro, Preguiça, Baquero, Zawirski (2011) "A comprehensive study of Convergent and Commutative Replicated Data Types" の OR-Set(add-wins observed-remove)と LWW-Register / Riak KV の LWW-element-set tie→remove 規約。
 
 **実装物**: geomdl/NURBS-Python の de Boor 評価形、AtCoder 提出の BM、Library Checker 提出の binary-trie xor、Automerge/Yjs の OR-Set、Riak・Redis Enterprise の CRDT LWW-eset — Qiita/Zenn/海外技術記事の B-スプライン・Berlekamp–Massey・binary trie・CRDT 解説を参照し全て整数のみで実装。
+
+## 第47次: 素数索引・ゲーム数・エディタ構造・開番地・文書指紋
+
+- `sieve` — 線形篩 SPF + Eratosthenes + セグメント篩: `spf_sieve`/`factor`/`is_prime_table`/`factor_map`/`primes_up_to` + `Primes{phi,tau,sigma}` + `primes_between`。設計値2件: (a) `sigma(0)` は `v==0` の早期 return が必須 — 空の factor_map では Π(1)=1 が誤返却される (b) セグメント篩の marking 開始は `ceil(lo/p)·p` を `p^2` にクランプ — lo<p² の窓で小倍数を消し忘れる。p==0 を残基として残す `factor` 規約と `out=out/p*(p−1)` の phi 実装で overflow 回避。Miller–Rabin オラクル 60 セグメント + 1M 窓照合
+- `grundy` — Sprague–Grundy: `mex`/`take_away`/`position_grundy`/`nim_sum`/`winning_move`/`losing`/`detect_period`。**設計値(定理としての周期検出)**: 引き算ゲーム表は最終的に周期化するが「短い検証済み周期尾部」は単なる偶然 — 保証ある周期 (s,p) は `n−s−p ≥ memory`(再帰の lookback = max moves)が必要で、`.max(1)` 床がないと memory=0 で (n−1,1) の vacuous 報告が真の p=3 を隠す。最後の bad index `s = i+1−p` の計算式を oracle で確定
+- `gapbuffer` — Emacs 型 gap buffer(Vec<u8>): gap=[gap_start,gap_end)、`get` は跨ぎ index 写像、`move_to` は `copy_within`(左: pos..gap_start→gap_end−count、右: gap_end..→gap_start)、delete は実削除数を返却。Vec シャドー oracle で to_vec/cursor/before/after/get を全ステップ照合
+- `robin` — Robin Hood 開番地(u64): probe 長強奪 + 後退シフト削除(tombstone 不要)。`contains` は slot.dist<probe_dist で早期終了 — 「運の良い到達者が先に座った」のだからその先に key はあり得ない。負荷 0.75 で slot 順 rehash → 配置は (挿入列,seed) の純関数。BTreeSet オラクルで到達性不変式を全乱択照合
+- `winnow` — winnowing 文書指紋(Schleimer 2003): k-gram ハッシュの各窓 w から rightmost-min を選択・連続重複は dedup。**設計値**: 初期窓の argmin は未走査のため `!0` sentinel が必須 — `r=0` 開始だと「index 0 が最小」を暗に仮定し真の argmin を逃す(basics の単純例では偶然動き oracle_random が捕捉)。保証: 共有 run ≥ k+w−1 バイトは必ず共通指紋ハッシュを出す — shared_run_surfaces で乱択検証
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、mtt、scapegoat、beam、bandit。
+
+## 出典(第47次、search-index 照合)
+
+**論文・仕様**: O'Neill (2009) "The Genuine Sieve of Eratosthenes" + cp-algorithms の linear sieve/segmented sieve 実装形 / Sprague (1935)・Grundy (1939) 不偏ゲームの mex 理論 + Bouton (1901) Nim — subtraction game の周期定理は Berlekamp–Conway–Guy "Winning Ways" §4 / gap buffer: GNU Emacs `insdel.c` の move_gap/insert/delete 規約 + Finlånder "The Craft of Text Editing" §7 / Celis, Larson, Munro (1985) "Robin Hood Hashing" + Appleby Rust hashbrown tombstone-free backward-shift / Schleimer, Wilkerson, Aiken (SIGMOD 2003) "Winnowing: Local Algorithms for Document Fingerprinting" の rightmost-min・窓保証。
+
+**実装物**: cp-algorithms/e-maxx の sieve 実装形、atcoder Library Checker の grundy 問題系、Emacs/XEmacs gap buffer コード、Rust std collections の Robin Hood 系譜(rust-lang/hashbrown の backward-shift)、MOSS・Google schleimer-winnowing 実装 — Qiita/Zenn/海外技術記事の線形篩・Nim 数・gap buffer・Robin Hood・winnowing 解説を参照し全て整数のみで実装。
