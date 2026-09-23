@@ -345,6 +345,11 @@
 - J250 グレイ符号 ✅ `gray`(BRGC rank/unrank + SubsetWalk — 1ビット step の部分集合走査で flip ビットを同報)
 - J251 整数分割 ✅ `partitions`(Euler 五角数漸化式の p(n) を BigInt で — bounded/distinct DP が互いの oracle、distinct=odd の Euler 定理を双方検証)
 - J252 彩色数え上げ ✅ `chrompoly`(削除-縮約 P(G)=P(G−e)−P(G/e) を BigInt で — kⁿ 全列挙 oracle と C₄ 閉形式で照合)
+- J253 Pell 方程式 ✅ `pell`(√d の surd CF + BigInt 収束分数で x²−dy²=±1 を厳密に — Z[√d] 群法則の power、d=61 の巨大基底解も正確)
+- J254 Farey 数列 ✅ `farey`(next-term 漸化式の F_n 生成 + Stern–Brocot 経路 + ACL `floor_sum` 格子計数を u128 で — |F_n|=1+Σφ(k) と隣接行列式 1 を全検証)
+- J255 メビウス反転 ✅ `mobius`(線形篩 μ + Dirichlet 畳込み — `f ∗ μ` が除数和を厳密に反転、coprime_count の包除も照合)
+- J256 Kronecker 記号 ✅ `jacobi`(全整数対の (a|n) を二分互換法で — Euler 判定基準 a^((p−1)/2) と乗法性の4000+3000乱択照合)
+- J257 エジプト分数 ✅ `egypt`(Fibonacci–Sylvester 貪欲で真分数を相異なる単位分数和に — 分子降下不変式が終了性の証明)
 
 
 ## K. 物理・衝突 (Physics / Collision)

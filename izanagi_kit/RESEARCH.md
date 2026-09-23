@@ -1894,3 +1894,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 
 **実装物**: Sage/pari 系 EC API の add/double/mul/on_curve 形状、p-adic リング API(Sage `Zp` の val/lift)、BRGC 教科書 rank/unrank+subset walk、Euler pentagonal+p(n,m) DP 双 oracle、NetworkX 系 chromatic_polynomial 評価 — 整数のみで実装。
 
+
+## 第63次: Pell 方程式・Farey 数列・メビウス反転・Kronecker 記号・エジプト分数
+
+- `pell` — Pell 方程式 `x²−d·y²=±1`: `surd_cf` が √d の `(m,d,a)` CF 漸化式を全整数で計算(周期終端は `a_k=2a₀` の定理)、`solve`/`negative` が `BigInt` 収束分数を走査 — OEIS 基底解(d=2..13)と d=61 の 1766319049/226153980 を照合。`power` は Z[√d] の群法則で k 番目解を生成 — 冪が解に留まることを residue で検証
+- `farey` — Farey 数列: `farey(n)` は next-term 漸化式 `k=⌊(n+b)/d⌋` で1算術ステップ/項を生成 — |F_n|=1+Σφ(k)(sieve の phi で oracle)・隣接項行列式 |ad−bc|=1 を全対で検証。`neighbor` は F_n 内の直前直後、`stern_brocot` は 0/1→1/1 からの L/R mediants 経路を返す(端点は非 mediant なので契約を開区間に限定)。`floor_sum` は ACL primitive `Σ⌊(a·i+b)/m⌋` を u128 Euclidean 漸化式で — 直接和 oracle 3000 乱択
+- `mobius` — 除数格子代数: `mu_sieve` は線形篩(各 n は最小素因子で1回のみ)、`mu` は SPF factor_map で単発、`convolve`/`invert` は Dirichlet 畳込み (f∗g)(n)=Σ_{d|n}f(d)·g(n/d) とその逆(`f ∗ μ` が g(n)=Σf(d) を厳密反転 — 200 往復照合)。`coprime_count` は Σμ(d)⌊n/d⌋ 包除で gcd 直接列挙と照合
+- `jacobi` — Kronecker 記号 (a|n): 奇数素数では Legendre と一致、全整数へ乗法性+拡張規約 ((a|−1)=sign a, (a|0)=[a=±1]) で全域化 — Cohen Alg.1.4.10 の二分互換法。Euler 判定 a^((p−1)/2) mod p との4000乱択照合 + 乗法性 (a|mn)=(a|m)(a|n) 3000 照合
+- `egypt` — エジプト分数: Fibonacci–Sylvester 貪欲 `d=⌈den/num⌉` で真分数を相異なる単位分数和に — 残余分子が単調減少(termination invariant)であることを乱択検証、`verify` は Frac 厳密和+distinct 検査。`i128` 超過は正直に `None`
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
+
+
+## 出典(第63次、search-index 照合)
+
+**論文・仕様**: Hardy & Wright §14.5 (Pell 解は √d の収束分数) / Cohen *CCANT* Alg.1.4.10 の Kronecker 二分互換法 / Hardy & Wright §III Thm.29 (Farey next-term 漸化式) / AtCoder Library `floor_sum` / Fibonacci (1202)–Sylvester (1880) 貪欲エジプト分数 / Dirichlet 畳込み・Möbius 反転 (H&W §16) — Qiita/Zenn/海外技術記事の surd CF・Farey・floor_sum・Kronecker・Egyptian fraction 解説を参照し全て整数のみで実装。
+
+**実装物**: Library-Checker 系 `surd_cf` の (m,d,a) 漸化式、ACL `floor_sum` の Euclidean swap ループ、線形篩の lp 配列、Cohen 本の拡張表 (n∈{−1,0})、SymPy 系 `egyptian_fraction` の greedy API 形状 — 整数のみで実装。
+
