@@ -1681,3 +1681,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Adelson-Velsky & Landis (1962) "An algorithm for the organization of information" AVL 回転不変式 / Auer, Cesa-Bianchi, Fischer (2002) "Finite-time Analysis of the Multiarmed Bandit Problem" UCB1 + Sutton & Barto §2.3 ε-greedy — 整数形は組込 UCB 実装慣行 / Zobrist (1970) "A New Hashing Method with Applications for Game Playing" + transposition-table 慣行 / Rivest, Shamir, Adleman (1978) + PKCS#1 v1.5 教科書形(パディング無し、教育版) + HAC §4 Miller–Rabin 固定証人 / Bray (2017) RFC 8259 JSON grammar + ECMA-404 — 数値の整数部分集合化は crate no-float 規約。
 
 **実装物**: Okasaki の AVL 形、bandit の embedded Q8 形、chess programming wiki の Zobrist/side-key 慣行、HAC・mbedTLS の RSA 骨格、serde_json/rapidjson の strict parse 方針 — Qiita/Zenn/海外技術記事の AVL・バンディット・Zobrist・RSA・JSON パーサ解説を参照し全て整数のみで実装。
+
+## 第50次: 接尾辞木・平衡木・全点対最短路・ランク・オートマトン
+
+- `sufftree` — Ukkonen のオンライン接尾辞木: active point (node,pos,len) + skip/count + suffix link で O(n) 構築。**設計値2件捕捉**: (a) 内部ノードで終わる接尾辞は葉を持たず出現数を過小計上 → 仮想終端 `SENT=u16::MAX` を末尾に付加(エッジキーを u16 化)して全接尾辞が固有の葉を持つ形に確定。(b) skip/count の無い初版は `active_pos` が辺境界を跨いで誤走査 — 降下ループを導入。`contains`/`occurrences`/`count`/`longest_repeat` を naive 全照合(全部分文字列+全出現位置+最長重複の総当り)
+- `redblack` — 赤黒木(CLRS insert/delete-fixup 完全実装): arena `Vec<Node>` で値木、色 bit のみで削除時回転 ≤3。NIL sentinel の fixup は「親+左右」を対で追跡(子 slot が空でも向きが分かる)。BTreeSet シャドー oracle が op 毎に (BST順・赤赤なし・黒高等差・min/max) を照合、昇順/ランダム/敵対的削除順で不変式維持
+- `apsp` — 全点対最短路: Floyd–Warshall O(n³)(i64 加重・i128 内部累積 — 経路総和の overflow を構造的に排除)+ Johnson: `bellman::shortest` の超源点でポテンシャル h[v] 取得、`w'=w+h[u]−h[v]` が非負化の三角不等式(負閉路時は None)。johnson==floyd==per-source-BF 3 者照合
+- `pagerank` — 整数 PageRank: 全質量 Q32(`SCALE=1<<32`)、反復 = 辺配分 `d·mass/outdeg` + teleport `(1−d)·SCALE/n` + dangling 質量の均等配分。除算は全 floor — 質量は微漏洩するが順序に非影響。floor 意味で縮約写像 → 実践的に不動点収束、`converged` フラグで報告(MAX_ITERS=10⁴ 上限)。**テスト側誤りも捕捉**: dangling sink と in-cycle 兄弟は同じ in-edge・同配分で同スコアになる対称性
+- `automaton` — NFA(Thompson 構成)→DFA 部分集合構成 + union/concat/star/plus/optional/complement/intersect/minimize。**実 bug 2件捕捉**: (a) `concat` が `other.eps` を落とし star のループが消失。(b) `complete()` の `row.insert(c, sink)` が既存遷移を sink で破壊(`insert` は常に置換)→ `entry().or_insert` に確定。complement は alphabet を引数化(「alphabet 外の文字を含む語は語でない」— 部分 DFA の暗黙 die は complement で言語が反転する問題を設計上回避)。dfamin::minimize 連携
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種。
+
+## 出典(第50次、search-index 照合)
+
+**論文・仕様**: Ukkonen (1995) "On-line construction of suffix trees" の active point + suffix link 構成と終端文字 `$` の必然性 / CLRS §13 red-black insert/delete-fixup(NIL sentinel の親指針付き fixup 形)/ Floyd (1962)・Johnson (1977) "Efficient algorithms for shortest paths in sparse networks" のポテンシャル再重み付け / Page, Brin, Motwani, Winograd (1999) PageRank の dangling-node 補正形 / Thompson (1968) NFA 構成・Rabin–Scott (1959) 部分集合構成・Hopcroft DFA 最小化(dfamin) — Qiita/Zenn/海外技術記事の suffix tree・赤黒木・Johnson・PageRank・オートマトン解説を参照し全て整数のみで実装。
+
+**実装物**: jogojapan の Ukkonen active-point 形(SENT 終端付き)、cp-algorithms の Johnson/reweight 形、networkx の PageRank power-iteration 形、Thompson 教科書の NFA→DFA — 整数のみで実装。
