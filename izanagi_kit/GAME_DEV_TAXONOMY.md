@@ -222,6 +222,11 @@
 - J135 de Bruijn 列(全 k-mer を一巡する巡回列)✅ `debruijn`(FKM の Lyndon 語連結で B(k,n) を一発生成 + `is_debruijn` 検証器 + `window_hash` 巡回窓指紋)
 - J136 連分数(有理数の正準展開)✅ `cf`(`to_cf`/`from_cf`/`convergents`/`best_approx` — cap 内分母の最良近似は semiconvergent 境界との2候補比較、同距離は小分母優先)
 - J137 Earley 構文認識(任意 CFG — ε規則・混長産出可)✅ `earley`(位置別 queue の predict/scan/complete fixpoint、合成 S'→S で受理判定 — cyk の CNF 制約を解除、メモ化再帰 oracle 全照合)
+- J138 誘導ソート接尾辞配列(線形 SA 構築)✅ `sais`(S/L 型分類→LMS 部分列ソート→簡約文字列再帰、suffix の prefix-doubling とは別系統の O(n) 構築 — naive 全位置照合)
+- J139 HyperLogLog 基数推定(loglog 空間の distinct count)✅ `hll`(p bit レジスタ+max merge、raw αm²/Z を i128 固定小数で評価+小域は Q32 atanh 級数の整数 ln で線形計数補正)
+- J140 算術符号化(区間細分 entropy 符号)✅ `arith`(Subbotin carry-less range coder — キャリー伝搬を range 切詰で回避した byte 出力のストリーミング符号、呼出側周波数モデル・往復完全一致)
+- J141 SwissTable 型制御 byte 表(高密度単一テーブル)✅ `swiss`(16 slot probe group+7bit h2 fingerprint で key 配列非接触の判定多数、tombstone 削除、負荷15/16&墓石閾値で倍長 rehash — cuckoo との設計対極)
+- J142 マジックビットボード(衝突なし掛算索引 attack 表)✅ `magic`(relevant occ = 各 ray 終端のみ除く `ray & opp(ray)`、seeded magic 探索で (occ·m)>>shift 完全ハッシュ、尽きれば dumb7fill oracle に正直 fallback)
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

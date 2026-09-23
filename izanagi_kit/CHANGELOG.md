@@ -56,6 +56,32 @@ oracles:
   promotion on removal, strict `predecessor` / inclusive `successor`
   matching `veb` semantics — BTreeSet oracle over all operations.
 
+### Added — SA-IS, HyperLogLog, range coder, Swiss table, magic bitboards
+
+Linear-time string indexing, log-log-space estimation, interval
+coding, dense-table hashing, and perfect-hashed move generation,
+each in published-work form with an independent oracle:
+
+- **`sais`** — SA-IS induced-sorting suffix array: S/L typing,
+  LMS bucket placement, induced L/S passes, one recursion on the
+  reduced string — `O(n)` where `suffix` uses `O(n log n)`
+  prefix doubling.
+- **`hll`** — HyperLogLog `p`-bit register sketch: elementwise-max
+  merge = union stream sketching, `i128` fixed-point raw estimate,
+  and integer `ln` (Q32 atanh series) for the small-range
+  linear-counting correction — no `f64` anywhere.
+- **`arith`** — Subbotin carry-less range coder: streaming
+  `encode`/`decode` in input order with a caller-supplied
+  frequency model; carry propagation is avoided by truncating
+  `range`, so the wire is a pure function of the input.
+- **`swiss`** — SwissTable-style `u64` set: 16-slot probe groups,
+  7-bit `h2` control fingerprints, tombstone deletion, and a
+  seeded deterministic layout — `cuckoo`'s design opposite.
+- **`magic`** — magic bitboards: per-square `(occ·m)>>shift`
+  perfect hashes for rook/bishop/queen attack sets, with the
+  table scatter written to hashed slots and an honest
+  dumb7fill-oracle fallback.
+
 ### Added — radix sort, rank/select, de Bruijn, continued fractions, Earley
 
 Word-level sorts, dense-index primitives, cyclic sequences, exact
