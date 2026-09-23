@@ -249,6 +249,12 @@
 - J161 segment tree beats(範囲 chmin/chmax/sum)✅ `segbeats`(max/smax/cmax + min/smin/cmin の第二極値帳簿で amortized O(log² n) — push は「親の mx/mn を子へ clamp」のみで明示 lazy タグ不要、読み取り側も stale 子 sum を避けるため push 必須)
 - J162 Euler-tour tree(動的森連結性)✅ `ett`(各頂点の恒常 vertex-node + 有向 half-edge ノードの巡回列 implicit treap — link は代表ノードでの reroot + `U+[uv]+V+[vu]` 連結、cut は `A x B y C` の 4-split、connected は親指針の root 比較 — linkcut と同じ森だが連結のみなので splay expose が一切不要)
 
+- J163 strict DFA UTF-8 codec ✅ `utf8`(Höhrmann 364-state transition table — `validate`/`check`/`decode`/`decode_lossy`/`encode` + streaming `Decoder`; lossy resync は「lead で reject された byte は消費・mid-sequence で reject は再供給」の `e.pos == seq_start` 判定で stray continuation の無限ループを回避)
+- J164 lazy segment tree(range add + range 集約)✅ `lazyseg`(単一加算 lazy タグの正準形 — push は子の実葉数 `len/2` で sum をスケール、`ceil(len/2)` 誤用で add が多めに畳まれる bug を oracle が捕捉)
+- J165 Tonelli–Shanks(素数法平方根)✅ `tonelli`(`p−1 = q·2ˢ` 分解 + 逐次非剰余探索で決定的、`sqrt_mod` は `(lo, p−lo)` 整序対、`p≡3 mod 4` は直接式)
+- J166 baby-step giant-step(離散対数)✅ `bsgs`(baby 表 `g^j→j` + giant 歩行 `h·f^i`、`f = g^{p−1−m}` で逆元ヘルパ不要、最小 x 保証 — `g=0` は `f` が真逆元でないため先に解決)
+- J167 Hopcroft DFA 最小化(分割精細)✅ `dfamin`(splitter worklist で小さい半分のみ再キュー、block id は最小メンバーで正準化 — naive signature-iteration oracle で200乱択全照合)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
