@@ -1713,3 +1713,20 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Andersson (1993) "Balanced search trees made simple" の AA 木2不変式・level=left+1 / LZ4 block format spec(Yann Collet) のシーケンス文法と MFLIMIT/LASTLITERALS 制約 / Christofides (1976) "Worst-case analysis of a new heuristic for the travelling salesman problem" 3/2 界 / FIPS 202 SHA-3 + Keccak リファレンスの θρπχι 写像と pad10*1 / de Berg et al. Computational Geometry の Minkowski 和の角度マージ構成 — Qiita/Zenn/海外技術記事の AA 木・LZ4・Christofides・SHA-3・Minkowski 和解説を参照し全て整数のみで実装。
 
 **実装物**: 教科書形 AA 木の skew/split 骨格、lz4 リファレンスの hash4+greedy parse、競技プログラミング慣行の Christofides パイプライン、tiny_sha3 系のレーン配置、cp-algorithms 系の辺ベクトルマージ — 整数のみで実装。
+
+
+## 第52次: 秘密分散・中国式配点・最小DFA・噴水符号・距離変換
+
+- `shamir` — GF(p) 上の (k,n) しきい値秘密分散: 係数を seeded SplitMix64 で純関数化、株は x=1..n で評価、x=0 の Lagrange 補間で復元。k−1 株では素体上で全秘密候補と整合(情報理論的秘匿) — 「k−1 が誤値を返さない」ことを乱択で統計検証し、外部株混入時の値変化も照合。素数判定は決定的 Miller–Rabin 8 基底
+- `postman` — 中国式配点問題(閉路/開路): 奇数次集合 T の bellman 計量閉包→最小重みマッチング→多重グラフ Euler。**設計値2件捕捉**: (a) matching DP は `solve(mask, free)` に一般化 — free=2 が開路端点選定を O(k²) 列挙なしで一括解く。(b) sentinel は `i128::MAX/4` — 素の `i128::MAX` は `dist+MAX` で debug overflow。(c) 計量閉包は odd-index 空間、元頂点 id で参照すると境界外。全完全マッチング列挙 oracle で optimality 照合、walk 実コスト == total_cost も検証
+- `fst` — 最小無環 DFA 辞書索引: BTreeSet 正準化→全トライ→深さ降順の signature レジスタ(hash-consing)で右言語同値な部分木を全併合 = Myhill–Nerode 一意最小。root を状態 0 へ swap-back(参照全書換え)。**設計値捕捉**: register 順は深さ降順が必須(子の正準 id 確定後でないと親 signature が不確定)。BTreeSet 会員照合 + enumerate 往復 + 到達性/重複 signature ゼロの構造監査
+- `fountain` — Luby 変換噴水符号(GF(2)): 次数・近傍集合とも (k,i,seed) の純関数 — wire は (i,data) のみ。robust-soliton τ(d)=R/(kd)+spike@k/R を u64 重みテーブル(kR 共通分母)で O(k) 逆CDF。**設計値捕捉**: 定数 c=1/10 では小 k(≤~64)で R=isqrt(k)·ln(2k)/10=1 に退化し robust 効果が消失 → c=1/4 で R≥2 確保(理想形のままでは剥離停止が確率的発生 — oracle が観測)。BP 剥離 decode は被覆不足時に正直 None
+- `edt` — Felzenszwalb–Huttenlocher 二乗ユークリッド距離変換: 1-D 放物線下包絡を列・行の2 pass。breakpoint は (num,den) 有理数で交差比較を i128 積に。**設計値捕捉**: −inf sentinel を i128::MAX/4 と置くと `zn·den` が型上限を超過して debug panic — i64::MIN の有界値に確定。BIG=i64::MAX/4 サイトは実サイト存在時に包絡から早期除外可能。全ピクセル brute 最近点 oracle 240 乱数照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種。
+
+## 出典(第52次、search-index 照合)
+
+**論文・仕様**: Shamir (1979) "How to share a secret" の GF(p) 補間構成 / Edmonds & Johnson (1973) + Kwan Mei-Ko (1962) の中国式配点 — Euler 増大の奇数次マッチング形 / Daciuk, Mihov, Watson, Watson (2000) "Incremental construction of minimal acyclic finite-state automata" の register 手法 / Luby (2002) "LT codes" の ideal/robust soliton 分布と BP 剥離 / Felzenszwalb & Huttenlocher (2012) "Distance transforms of sampled functions" の放物線下包絡アルゴリズム — Qiita/Zenn/海外技術記事の秘密分散・中国式配点・FST・fountain code・距離変換解説を参照し全て整数のみで実装。
+
+**実装物**: 教科書形の係数評価/Lagrange、競技プログラミング慣行の配点増大パイプライン、fst ライブラリ形の bottom-up register、LT 実装の robust-soliton 重み表形、F&H の z/v 配列構成 — 整数のみで実装。
