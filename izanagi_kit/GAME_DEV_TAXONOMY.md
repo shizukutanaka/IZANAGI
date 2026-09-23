@@ -289,6 +289,11 @@
 - J195 Christofides TSP(1.5 近似)✅ `christofides`(MST→奇数次集合→部分集合 DP 最小重み完全マッチング(|T|≤20、超過は貪欲)→多重グラフ Euler→shortcut、全 tie-break 正準)
 - J196 Keccak/SHA-3 ✅ `sha3`(Keccak-f[1600] 25 車線 ×24 ラウンド、SHA3-256/512=0x06・SHAKE128/256=0x1F ドメイン、pad10*1、`Digest256` は rate 位置を跨呼出で保持)
 - J197 Minkowski 和差 ✅ `minkowski`(凸ポリゴンの辺ベクトル角度マージ O(n+m)、`diff` が配置空間障害物 — 全ペア和凸包 oracle)
+- J198 Shamir 秘密分散 ✅ `shamir`(GF(p) 係数シード付き評価 + x=0 Lagrange 復元 — k−1 株は情報理論的に秘匿、偽株混入は値変化で検出可能)
+- J199 中国式配点問題 ✅ `postman`(奇数次集合→bellman 計量閉包→free 引数化部分集合 DP マッチング — free=2 が開路端点を一括導出、Euler 増大化、全列挙最適照合)
+- J200 最小無環 DFA 辞書 ✅ `fst`(ソート集合→トライ→下向上ハッシュコンス・レジスタ = Myhill–Nerode 一意最小、root を状態 0 へ swap-back)
+- J201 LT 噴水符号 ✅ `fountain`(robust-soliton 次数 R=√k·ln(2k)/4 — c=1/10 では小 k で R=1 に退化し理想化するため c=1/4。近傍集合は (k,i,seed) の純関数、BP 剥離 decode)
+- J202 Felzenszwalb 二乗距離変換 ✅ `edt`(放物線下包絡の2回1次元 pass、breakpoint は (num,den) 有理数 — −inf sentinel は i128::MAX/4 ではなく i64::MIN、zn·den が i128 溢れ)
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
