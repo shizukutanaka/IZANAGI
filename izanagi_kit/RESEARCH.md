@@ -1912,3 +1912,20 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 
 **実装物**: Library-Checker 系 `surd_cf` の (m,d,a) 漸化式、ACL `floor_sum` の Euclidean swap ループ、線形篩の lp 配列、Cohen 本の拡張表 (n∈{−1,0})、SymPy 系 `egyptian_fraction` の greedy API 形状 — 整数のみで実装。
 
+
+## 第64次: Lucas 数列・Frobenius 数・Josephus・Bernoulli 数・Eulerian 数
+
+- `lucas` — Lucas 数列 Uₖ(P,Q)/Vₖ(P,Q): 厳密版は i128 checked 線形走査、`lucas_mod` は標準 doubling 恒等式 U(2k)=U·V・V(2k)=V²−2Qᵏ・U(2k+1)=(P·U+V)/2・V(2k+1)=(D·U+P·V)/2 で O(log k)。halving は残余 r∈[0,m) の偶奇で行う必要が必須(生の x の偶奇を見ると負数/剰余前で誤反転 — oracle が捕捉)。不変式 V²−D·U²=4Qⁿ を i128 検証、m は奇数限定(/2 が逆元を持つため)
+- `frobenius` — 硬貨問題: `dist[r]=min{ representable ≡ r mod m }`(m=min coin)を Dijkstra で構築し `g = max dist − m`、representable は `dist[x mod m] ≤ x` の判定。2硬貨は Sylvester 閉形式 ab−a−b との300乱択照合、DP oracle 2000乱択、g(6,10,15)=29・McNugget g(6,9,20)=43
+- `josephus` — ヨセフス環状淘汰: `survivor` は O(n) 漸化式 Jₙ=(Jₙ₋₁+k) mod n、`survivor2` は k=2 閉形式 2l (n=2ᵐ+l)。`order` は `ost` の order-statistic treap で select/erase を回す O(n log n) 全淘汰順 — Vec 逐次消去 oracle が order 全体を照合(400乱択)
+- `bernoulli` — 厳密 Bernoulli 数: Akiyama–Tanigawa を `Frac` で全厳密に(B₁=+1/2 規約)。`faulhaber` は Faulhaber 公式 1/(k+1)·Σⱼ C(k+1,j)·Bⱼ·n^{k+1−j} — 直接冪和 oracle 400乱択 + B_{2k+1}=0 定理 + 生成漸化式 ΣC(n+1,j)Bⱼ=n+1 の3系統検証
+- `eulerian` — Eulerian 数 ⟨n k⟩: 漸化式 (n−k)⟨n−1 k−1⟩+(k+1)⟨n−1 k⟩ を `BigInt` で。行和定理 Σ⟨n k⟩=n! と Worpitzky 恒等式 xⁿ=Σ⟨n k⟩C(x+k,n) を両面検証、`permutations` は perm::unrank で descent=k の全置換を列挙(長さ=⟨n k⟩ と一致)
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
+
+
+## 出典(第64次、search-index 照合)
+
+**論文・仕様**: Concrete Mathematics §1.3 (Josephus 漸化式・k=2 閉形式)・§6.2 (Eulerian 数・Worpitzky) / TAOCP §1.2.9 (Bernoulli) / Sylvester (1882) g(a,b)=ab−a−b / Brauer–Davison の residue-Dijkstra Frobenius / Akiyama–Tanigawa (2001) — Qiita/Zenn/海外技術記事の Lucas doubling・硬貨問題・ヨセフス・Faulhaber 解説を参照し全て整数のみで実装。
+
+**実装物**: cp-algorithms/Library-Checker `lucas_number` の doubling 恒等式と odd-mod halving、競技プロ系 min-residue Dijkstra (dist[x mod m] ≤ x 判定)、order-statistic tree による淘汰順シミュレーション、Akiyama–Tanigawa の in-place 三角 — 整数のみで実装。

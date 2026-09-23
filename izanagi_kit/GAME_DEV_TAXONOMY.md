@@ -350,6 +350,11 @@
 - J255 メビウス反転 ✅ `mobius`(線形篩 μ + Dirichlet 畳込み — `f ∗ μ` が除数和を厳密に反転、coprime_count の包除も照合)
 - J256 Kronecker 記号 ✅ `jacobi`(全整数対の (a|n) を二分互換法で — Euler 判定基準 a^((p−1)/2) と乗法性の4000+3000乱択照合)
 - J257 エジプト分数 ✅ `egypt`(Fibonacci–Sylvester 貪欲で真分数を相異なる単位分数和に — 分子降下不変式が終了性の証明)
+- J258 Lucas 数列 ✅ `lucas`(Uₖ/Vₖ の i128 厳密 + doubling mod m — halving は残余の偶奇駆動が必須、V²−D·U²=4Qⁿ 不変式検証)
+- J259 Frobenius 数 ✅ `frobenius`(min-residue Dijkstra の dist[r] — Sylvester 閉形式+DP oracle+McNugget 43)
+- J260 ヨセフス問題 ✅ `josephus`(O(n) 漸化式+k=2 閉形式+ost で O(n log n) 全淘汰順 — Vec oracle 照合)
+- J261 Bernoulli 数 ✅ `bernoulli`(Akiyama–Tanigawa を Frac 厳密で + Faulhaber 冪和 — 直接和 oracle・B_奇=0・生成漸化式の3検証)
+- J262 Eulerian 数 ✅ `eulerian`(BigInt 漸化式+descent=k 置換列挙 — 行和 n!・Worpitzky 恒等式・列挙長=⟨n k⟩ の3定理)
 
 
 ## K. 物理・衝突 (Physics / Collision)
