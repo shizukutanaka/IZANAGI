@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — range-add Fenwicks, geohash, octree, base64, König vertex cover
+
+- `fenwickrange` — `RangePoint` (range-add / point-query difference BIT) and `RangeSum` (two-BIT range-add + range-sum via `P(x)=prefix(B1,x)·x−prefix(B2,x)`), 0-based half-open API over 1-based internals.
+- `geohash` — integer microdegree (`e6`) lat/lon geohash: `encode`/`decode` (returns cell bounds), `cell_span`, 8-neighbor cells clamped to the world — lon-first interleaved 5-bit bisections.
+- `octree` — bucketed 3-D `i64` point index (BUCKET=8, MAX_DEPTH=32): sorted-canonical range queries, best-first `nearest` with `(dist, pt)` tie-break; subdivision stops at unit cells so identical-coordinate stacks never hang.
+- `base64` — RFC 4648 strict codec: `encode`/`decode` plus `encode_url`/`decode_url`; decode rejects bad padding, interior `=`, and non-alphabet bytes.
+- `vertexcover` — König minimum vertex cover on bipartite graphs: maximum matching via `bipartite::hopcroft_karp` + alternating-reachability BFS gives `(L\Z)∪(R∩Z)`.
+
 ### Added — ordered sets, learned indexes, big-integer product, block cipher
 
 - `skiplist` — `SkipList`: deterministic `u64` ordered set — level = `trailing_zeros(hash(key,seed))` (geometric, pure function of key set), `insert`/`remove`/`contains`/`iter`, lane shape insertion-order-independent.

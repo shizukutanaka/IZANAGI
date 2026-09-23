@@ -188,6 +188,12 @@
 - J106 PGM 学習索引(区分線形モデル — 予測位置±ε 局所探索)✅ `pgm`(Ferragina–Vinciguerra の整数版: 固定サイズ区分に有理傾斜 + 構築時の厳密 max deviation ε を保持、predict→[p−ε,p+ε] binary search。全工程整数のみ — `veb`/`roaring` と並ぶ第三の u64 索引戦略で brute-force rank/get oracle 全照合)
 - J107 AES-128 ブロック暗号(FIPS-197 — S-box は gf2 逆元+affine で算出)✅ `aes`(テーブル非格納: `sbox(x)=affine(gf2::inv(x))` を構築時計算、GF(2^8) mix_columns は `gf2::mul` の 9/11/13/14 行列。FIPS-197 §C.1 既知解答 + 全256定数ブロック往復 + 1bit 反転の avalanche ≥8/16 bytes — `chacha`/`sha256`/`poly1305` の暗号家族をブロック暗号で完備)
 
+- J108 区間加算 Fenwick(range-update BIT — 差分配列/二段 BIT)✅ `fenwickrange`(`RangePoint`: 区間加算+点クエリの差分 BIT、`RangeSum`: 区間加算+区間和の二 BIT 構成 `P(x)=prefix(B1,x)·x−prefix(B2,x)`。0 基点半開区間→1 基点内部へ変換 — naive 配列 oracle で全乱択照合)
+- J109 ジオハッシュ(整数 geohash — 緯経度の 5bit 交互 bisect)✅ `geohash`(microdegree e6 整数 lat/lon を lon 先交互 bisect で base32 化、decode が cell 境界を返す。cell_span・8 近傍 clamp — 500 乱択で decode∘encode 包含 + prefix 入れ子性を検証)
+- J110 八分木(bucketed octree — 3-D 点索引)✅ `octree`(BUCKET=8 で leaf→branch 分割、s≤1 で分割停止して同一座標積み上げでも hang しない。ソート正準回答 + best-first nearest — BTreeMap multiset oracle・brute-force 最近傍照合)
+- J111 Base64 符号(RFC 4648 — strict padding 検証)✅ `base64`(std + URL-safe 両 alphabet、decode は pad≤2・末尾のみ・alphabet 外 byte 拒否の厳格検査。RFC §10 既知ベクタ + 全長・全 256 byte 往復 — `wal`/`savefile` の wire 表現層)
+- J112 König 最小頂点被覆(二部マッチング — 交互到達で被覆復元)✅ `vertexcover`(hopcroft_karp のマッチングから自由 L 頂点起点の交互 BFS → (L\Z)∪(R∩Z)。マッチングサイズ=被覆サイズの相互検証 + n,m≤4 全列挙 minimality — `bipartite` の双対定理実装)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

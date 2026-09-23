@@ -1406,3 +1406,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Pugh, "Skip lists: a probabilistic alternative to balanced trees" (1990) / Karatsuba & Ofman (1962) / O'Neil et al., "The log-structured merge-tree" (1996) / Ferragina & Vinciguerra, "The PGM-index" (VLDB 2020) / FIPS-197 (AES)。
 
 **実装物**: deterministic skip list(hash レベル方式、Redis/tantivy 系の seeded 構築)、rust-num/num-bigint の karatsuba 分割境界、RocksDB/LevelDB の run 構造、PGM paper の区分モデル、RustCrypto/aes の S-box 算出(affine(inv)) — Qiita/Zenn の LSM/PGM/AES 解説を参照し整数のみで逐語実装。
+
+
+## 第34次 区間クエリ・空間符号・wire codec・二部被覆(round 34)
+
+**採用モジュール(227→232)**: `fenwickrange` / `geohash` / `octree` / `base64` / `vertexcover`
+
+- `fenwickrange` — Fenwick の差分表現を明示化した range-update 系 2 構造。`RangePoint` は差分 BIT(区間加算 O(log n)・点クエリ O(log n))、`RangeSum` は B1/B2 二 BIT で区間加算+区間和 `P(x)=prefix(B1,x)·x−prefix(B2,x)`。外部 API は 0 基点半開区間、内部は 1 基点 — naive 配列 oracle で加算パターン全乱択照合
+- `geohash` — Gustavo Niemeyer の geohash を microdegree e6 整数 lat/lon へ移植。lon 先交互 bisect → 5bit 単位で base32、decode は cell 境界対を返す(非 base32・空は None)。floor 半分の累積で cell 幅は nominal ±1 — 500 乱択で包含・prefix 入れ子性・8 近傍 clamp を検証
+- `octree` — `quadtree` の 3-D 版。bucked leaf(BUCKET=8)→branch(Box<[Node;8]>)分割、s≤1 で分割停止して同一座標 2000 点積み上げでも退化しない。nearest は box_min_dist2(外部距離は +1 補正 — 内部点の最大座標は hi−1)の best-first、(dist,pt) 正準 tie — BTreeMap multiset oracle・brute-force 最近傍全照合
+- `base64` — RFC 4648 std/base64url の strict codec。decode は len%4・pad≤2・末尾のみ・alphabet 外 byte を全て拒否 — `wal`/`savefile`/`lzss` 系 wire の人間可読表現層。RFC §10 既知ベクタ + 全長・全 256 byte 往復 + 拒否ケース網羅
+- `vertexcover` — Kőnig 定理の構成的版:`bipartite::hopcroft_karp` のマッチングから自由 L 頂点起点の交互 BFS(unmatched 辺 L→R・matched 辺 R→L)で Z を取り、被覆 = (L\Z)∪(R∩Z)。`bipartite` を「最大マッチング」から「最小被覆」の双対側へ拡張 — 被覆サイズ=マッチングの相互検証 + n,m≤4 の 2^(n+m) 全列挙で minimality を確認
+
+**継続延期バックログ**: cuckoo hashing / SwissTable、link-cut、sais、平面性判定、rope、regex、jps、GJK/EPA、TLSF、Chomsky-full expr、edit-distance fuzzy、bitboard/magic、真の 3 段 recursive vEB/y-fast trie、HLL(整数化)、ED25519。理由は前次と同じ(整数化困難・スコープ過大・実用優位が薄い)。
+
+## 出典(第34次、search-index 照合)
+
+**論文・仕様**: Fenwick, "A new data structure for cumulative frequency tables" (1994) + 競技界隈の区間加算 BIT 定式化 / Niemeyer geohash 仕様(Wikipedia/geohash.org) / Finkel & Bentley, "Quad trees" (1974) の 3-D 版 / RFC 4648 / Kőnig (1931) + Hopcroft–Karp (1973)。
+
+**実装物**: AtCoder Library の BIT 区間加算、Rust geo/geohash クレートの interleave 順序、bevy/hecs 系 octree、base64 クレートの strict mode、bipartite matching→cover の教科書構成 — Qiita/Zenn の Fenwick range 拡張・geohash・Kőnig 解説を参照し整数のみで逐語実装。
