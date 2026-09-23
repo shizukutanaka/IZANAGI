@@ -1763,3 +1763,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Atkinson, Sack, Santoro & Strothotte (1986) "Min-max heaps and generalized priority queues" の交互レベル構造 / merge-sort tree の競技プログラミング定石(sorted run ノード) / Bron & Kerbosch (1973) + Tomita ピボットの極大クリーク列挙 / Sakoe & Chiba (1978) の帯制約 DTW / Dilworth の鎖分割 + Fulkerson の二部被覆帰着 — Qiita/Zenn/海外技術記事の min-max heap・mstree・クリーク列挙・DTW・パス被覆解説を参照し全て整数のみで実装。
 
 **実装物**: std::collections 系ヒープの sift 骨格、競技プログラミング慣行の mstree/被覆帰着、networkx 系クリーク列挙のピボット形、dtw 実装の境界 INF 規約、Ford–Fulkerson 系マッチング被覆 — 整数のみで実装。
+
+## 第55次: ジャンプ点探索・GOAP・行動木・Verlet・バリューノイズ
+
+- `jps` — Jump Point Search(8-way 格子): `&[u64]` 行ビットマスク上でジャンプ点だけを展開する一様コスト探索 `(f,g,x,y)` BTreeSet。斜め到達は naturals `{(dx,0),(0,dy),(dx,dy)}` + 壁越し強制近傍、直進到達は継続+斜め強制。**設計値捕捉**: 厳格 no-corner-cut(両サイドセル開放必須)は到達性を変え、JPS が oracle の見つける経路を失う — 論文の角接触規則(斜め step は遷移先のみ開放)が pruning 補題の前提。コストは STRAIGHT=2/DIAG=3 で `DIAG < 2·STRAIGHT` により最適性保存
+- `goap` — Goal-Oriented Action Planning: `Action{name,pre,set,clr,cost}`、pre 充足のビットマスク世界遷移を Dijkstra。`BTreeSet<(cost, seq, state)>` で「同コストはアクション列の辞書順最小」を正準形に — 計画が純関数。深さ≤8 全 DFS oracle で plan ベクタ一致
+- `btree` — 行動木(resume 意味論): arena `Vec<Node>`、Sequence/Selector は Running 子 index を `mem[i]` に保持して次 tick でそこから再開(先頭からの再評価ではない)。Condition の Running は Failure へ写像(葉は Running を返さない規約)。状態なし eager oracle 300 乱択で status+葉訪問数を全照合
+- `verlet` — 整数 Verlet 統合(Q16.16): `x' = x + (x−x_prev)·damping + a` + 距離リンクを iters 回緩和、両端半分の `(len−rest)` 誤差を軸方向へ。**設計値捕捉**: damping=1 は無減衰でエネルギー保存 — リンクが平衡を貫通して持続振動する(両端点が入れ替わる大振動も観測)ため、収束主張には damping < 1 が必須。緩和順は挿入順リストでトレースの一部
+- `vnoise` — 整数バリューノイズ+fBm: SplitMix64 格子ハッシュ(負 index も bit-mix 吸収)→ 上位16bit を Q16.16 へ、smootherstep `u²(3−2u)` 双線形補間、fbm は amp·freq の mul 更新+正規化。**設計値**: セル床は `raw >> 16` 算術シフト(負座標で二の補数 frac が [0,1) へ)、転置補間 oracle は丸め経路違いで±4量子一致
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+
+## 出典(第55次、search-index 照合)
+
+**論文・仕様**: Harabor & Grastien (2011/2014) "Online Graph Pruning for Pathfinding on Grid Maps" の jump point 定義(自然/強制近傍、角接触規則)/ Orkin (2003) "Applying Goal-Oriented Action Planning to Games" の pre/effects 状態遷移 / Colledanchise & Ögren の行動木 Resume 意味論(Running 子の記憶)/ Jakobsen (2001) "Advanced Character Physics" の Verlet+制約緩和 / Perlin (1985) + "Texturing and Modeling" fBm — Qiita/Zenn/海外技術記事の JPS・GOAP・行動木・Verlet・value noise 解説を参照し全て整数のみで実装。
+
+**実装物**: 競技プログラミング/ゲームAI慣行の JPS ジャンプ規則、F.E.A.R./gore 系 GOAP ビットマスク表現、Unreal/Unity 系 BT の Running-resume、Jakobsen/Thomas Jakobsen 系緩和ソルバ、libnoise/stb 系 value noise の格子ハッシュ — 整数のみで実装。
