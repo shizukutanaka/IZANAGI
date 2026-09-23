@@ -325,6 +325,11 @@
 - J230 区間グラフスケジューリング ✅ `intervalgraph`(最早終了貪欲 + 深さ sweep + 加重 DP — 退化区間は全 API で選択不能)
 - J231 スターリング数・ベル数 ✅ `stirling`(signed s1/us1/s2/bell mod p — s2 は閉形式、s1 は順列 cycle 列挙で相互検証)
 - J232 凸包玉ねぎ層 ✅ `onion`(hull 辺上の点は頂点でないため独自レイヤに残存 — hull 契約の正直な帰結)
+- J233 最小平均重みサイクル ✅ `karp`(Karp の max-ratio DP — サイクル抽出は n 辺全 backtrack の初回重複、suffix のみでは不十分)
+- J234 線形空間アライメント ✅ `hirschberg`(中点分割 L+R 復元 — 最小 j tie-break で正準スクリプト、apply 再生で整合)
+- J235 行列連鎖積順序 ✅ `matchain`(O(n³) DP + postorder Step — 左端 argmin が tie を正準化)
+- J236 継目削り ✅ `seamcarve`(二乗勾配エネルギー + 左端 argmin seam DP — 途中打切りパスは seam でない)
+- J237 順序統計木 ✅ `ost`(subtree-size treap — priority=splitmix(seed⊕key) で形状が集合の純関数)
 
 
 ## K. 物理・衝突 (Physics / Collision)
