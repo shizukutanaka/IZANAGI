@@ -1369,3 +1369,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: RFC 8439 "ChaCha20 and Poly1305" / FIPS 180-4 SHA-256 / Ester, Kriegel, Sander & Xu, "A Density-Based Algorithm for Discovering Clusters" (KDD 1996) / Lloyd (1982) k-means + Gonzalez farthest-point seeding / Leutenegger, Edgington & Lopez, "STR: A Simple and Efficient Algorithm for R-Tree Packing" (ICDE 1997)。
 
 **実装物**: ring/rust-crypto 系 ChaCha・SHA-2 定数表、Qiita・Zenn の DBSCAN/k-means/R-tree 解説、scikit-learn・RBush・rtree-rs の梱包設計メモ。
+
+
+# 第32次: 一時認証子・前駆/後継構造・圧縮ビットマップ・文字列正準形・集合格変換
+
+| 採用 | 根拠 / 検証 | 判定 |
+|---|---|---|
+| `poly1305` — Poly1305 MAC | Bernstein (2005) / RFC 8439 §2.5: `r`=clamp 済み 128bit 乗算器、`s`=128bit 加算項、5×26-bit limb で `h=(h+block)·r mod 2^130−5`。partial block の終端 `0x01` は limb 内位置 `8·len` に置くため hibit 無効が正解(本ラウンドの設計ミスをベクタ照合で捕捉)。§2.5.2 `a8061dc1` 一致・分割不変・1bit 反転全差分 — `chacha` と AEAD 対を構成 | 🟢 純粋追加 |
+| `veb` — proto van Emde Boas | van Emde Boas (1977) sqrt 分解を 2 段に固定: hi:lo=16+16、top bitset が非空クラスタ標記。predecessor/successor は自クラスタ内 bit 走査→失敗時に top 走査の定数級手続き。BTreeSet oracle に insert/remove/pred/succ 4000 乱択全照合 + 境界値(0, u32 端) | 🟢 純粋追加 |
+| `roaring` — Roaring bitmap | Chambi, Lemire et al. (2016): 上位 16bit でコンテナ分割、疎=sorted array / 密=1024-word bitset、4096 閾値の双方向変換。集合演算はコンテナ対 wordwise 合成→normalize — 同一集合は構造も同一(挿入順非依存)。BTreeSet oracle で 4 演算全照合、昇順 iter 保証 | 🟢 純粋追加 |
+| `lyndon` — Lyndon 分解 | Duval (1983): `s[i..j)=w^p·w'` で完全コピーのみ emit(本ラウンドの `i≤j−k` 境界 bug を因子全 Lyndon オラクルが捕捉 → `i≤k` に確定)。Booth (1980) 最小回転は doubled-string 走査。`is_lyndon`=全真接尾辞下位を `s < s[k..]` 直接評価 — 全回転枚挙・因子被覆・非増加性を乱択照合 | 🟢 純粋追加 |
+| `sosdp` — 部分集合格変換 | Yates (1937) 系 SOSDP + Walsh–Hadamard: subset/superset zeta↔Möbius 逆対、OR/AND 畳み込み(zeta→点積→Möbius)、xor 畳み込み(FWHT、逆変換は 2^n スケール)。naive O(4^n) 全照合 + zeta 部分和走査一致 + WHT 畳合検証 — `conv`(NTT) と並ぶ bitmask DP 計数の第三基盤 | 🟢 純粋追加 |
+
+見送り(第32次): cuckoo テーブル本体・SwissTable・sais O(n) SA・rope・regex・linkcut・planarity・JPS 拡張・GJK/EPA��TLSF・Chomsky-full expr・edit-distance fuzzy・bitboard/magic(第30–31次見送り継続 — 需要顕在化まで凍結)。真の 3 段再帰 vEB / y-fast trie は proto 版で実務十分なため見送り。
+
+## 出典(第32次、search-index 照合)
+
+**論文・仕様**: RFC 8439 §2.5 (Poly1305) / Bernstein, "The Poly1305-AES message-authentication code" (2005) / van Emde Boas, "Preserving order in a forest in less than logarithmic time" (1977) / Chambi, Lemire, Kaser et al., "Better bitmap performance with Roaring bitmaps" (SPE 2016) / Duval, "Factorizing words over an ordered alphabet" (1983) / Booth, "Lexicographically least circular substrings" (1980) / Yates, "The design and analysis of factorial experiments" (1937, SOS zeta の原型) / Walsh (1923)–Hadamard 変換。
+
+**実装物**: poly1305-donna(26-bit limb 版)・RustCrypto/poly1305 の limb 分割、roaring-rs のコンテナ設計、cp-algorithms の Duval/Booth コード、Qiita・Zenn の SOSDP(高速ゼータ/メビウス)解説 — OR/AND/XOR 畳み込みまでの展開系を踏襲。

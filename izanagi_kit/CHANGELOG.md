@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — one-time MAC, predecessor sets, compressed bitmaps, string canonicalization, lattice transforms
+
+- `poly1305` — `Poly1305` + `poly1305`: RFC 8439 one-time authenticator (5×26-bit DJB limbs, incremental `write`/`finish`, split-invariant; §2.5.2 tag verified).
+- `veb` — `Veb`: proto van Emde Boas `u32` set — `insert`/`remove`/`contains`/`min`/`max`/`predecessor`/`successor` via two-level sqrt bitset layout, BTreeSet-parity iteration.
+- `roaring` — `Roaring`: roaring bitmap over `u32` — array/bitset containers with 4096-entry conversion, ascending `iter`, `union`/`intersect`/`difference`/`symmetric_difference`.
+- `lyndon` — `lyndon_factorize` (Duval, `O(n)`) + `min_rotation` (Booth) + `is_lyndon` — cyclic/canonical forms for necklaces and rotation-symmetric states.
+- `sosdp` — subset/superset zeta–Möbius transforms + `or_convolve`/`and_convolve`/`xor_convolve` (Walsh–Hadamard) — `O(n·2^n)` counting transforms over bitmask tables.
+
 ### Added — stream cipher, cryptographic digest, clustering, static spatial index
 
 - `chacha` — `ChaCha20`: RFC 8439 ChaCha20 keystream — `[SIGMA|key|counter|nonce]` block function, streaming XOR apply

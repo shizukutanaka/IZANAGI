@@ -177,6 +177,12 @@
 - J96 決定的クラスタリング(整数 k-means — seed 不要)✅ `kmeans`(farthest-point 初期化で乱数排除、Lloyd 反復を assignment 不動点まで。argmin 一貫・冪等・inertia 再計算一致を乱択照合 — `dbscan` の k 指定補完、勢力分割・拠点割当)
 - J97 静的矩形索引(STR 梱包 R-tree — 点集合の純関数)✅ `rtree`(sort-tile-recursive 全ソート梱包で挿入順が構造的に漏れない packed R-tree。矩形クエリは昇順正準でブルートフォース全照合、形状は点集合のみの関数 — レベルロード時構築の読み取り専用索引)
 
+- J98 一時認証子(Poly1305 — RFC 8439、chacha の AEAD 対)✅ `poly1305`(5×26-bit DJB limb 設計: r=clamp 済み乗算器 + s=128bit 加算項、ブロック毎 `h=(h+block)·r mod 2^130−5` を桁上げ連鎖で。partial block の `0x01` 終端・h−p 選択・LE pack を全て整数手続きに落とし込み — §2.5.2 既知タグ `a8061dc1` 一致 + 分割不変。replay ワイヤの per-tick 認証)
+- J99 前駆/後継集合(proto van Emde Boas — sqrt 2 段分解)✅ `veb`(u32 を hi:lo=16+16 に分解、top bitset が非空クラスタを標記 — predecessor/successor/min/max が定数級 bitset 走査で応答。BTreeSet oracle 4000 乱択全照合 + クラスタ境界ケース — ソート順で近傍が欲しい entity-id/タイムライン集合)
+- J100 圧縮ビットマップ集合(Roaring — コンテナ分割)✅ `roaring`(上位 16bit でコンテナ分割: 疎=sorted u16 array、密=1024-word bitset、4096 閾値で双方向変換。集合演算はコンテナ対を wordwise 合成 + normalize — (membership) の純関数で挿入順非依存を検証。BTreeSet oracle で union/intersect/difference/sym-diff 全照合 — entity フラグ・rank 索引の常駐表現)
+- J101 Lyndon 分解・最小回転(Duval/Booth — 周期構造の正準形)✅ `lyndon`(Duval `O(n)` 因子分解: `s[i..j)=w^p·w'` で完全コピー `i≤k` 個のみ emit — 周期語混入 bug を因子全 Lyndon オラクルが捕捉。Booth 最小回転 index・`is_lyndon` を全回転枚挙で照合 — 巡回構造(necklace 盤面・回転対称ステート)の正準形化)
+- J102 部分集合格変換(SOS zeta/Möbius + Walsh–Hadamard — 畳み込み基盤)✅ `sosdp`(subset/superset zeta↔Möbius 逆対 `O(n·2^n)`、OR/AND 畳み込み = zeta→点ごと積→Möbius、xor 畳み込み = FWHT 版。naive O(4^n) 全照合 + WHT 畳合 2^n スケール検証 — `conv`/NTT の多項式積と並ぶ bitmask DP の計数基盤)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

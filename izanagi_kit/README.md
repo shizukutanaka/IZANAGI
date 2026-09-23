@@ -268,6 +268,9 @@ The capability map — with per-feature implementation status — lives in
 | `dbscan` | `dbscan` — squared-distance density clustering: canonical index-order expansion, `-1` noise. |
 | `kmeans` | `kmeans` — deterministic integer k-means: farthest-point init + Lloyd iterations to fixpoint. |
 | `rtree` | `Rtree` — STR bulk-loaded static R-tree: pure-function point index, brute-force-equal queries. |
+| `poly1305` / `chacha` | RFC 8439 authenticated-encryption pair — `Poly1305` one-time MAC (5×26-bit DJB limbs, incremental `write`/`finish`) alongside the ChaCha20 keystream module. |
+| `veb` / `roaring` | Ordered integer sets: proto van Emde Boas `u32` predecessor/successor (two-level sqrt bitset) and a roaring bitmap (array/bitset containers, sorted iteration, union/intersect/difference/symmetric-difference). |
+| `lyndon` / `sosdp` | String canonicalization + lattice algebra — Duval Lyndon factorization, Booth least rotation, subset/superset zeta–Möbius, and OR/AND/XOR convolutions over bitmask tables. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
