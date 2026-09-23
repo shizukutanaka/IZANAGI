@@ -277,6 +277,9 @@ The capability map — with per-feature implementation status — lives in
 | `fenwickrange` / `vertexcover` | Range-add Fenwick variants (point query + two-BIT range sum over `i64`) and König bipartite minimum vertex cover via `hopcroft_karp` + alternating reachability. |
 | `geohash` / `octree` | Spatial coding and 3-D indexing: integer microdegree geohash (encode/decode/cell span/neighbors) and a bucketed octree over `i64` points (sorted range queries, best-first nearest). |
 | `base64` | RFC 4648 base64 + base64url strict codec — decode rejects malformed padding and non-alphabet bytes. |
+| `siphash` / `hmac` | Keyed digests: SipHash-2-4 streaming PRF (`SipHash`/`siphash`, paper vectors) and RFC 2104 HMAC-SHA256 (`Hmac`/`hmac_sha256`, RFC 4231 vectors). |
+| `pairingheap` / `bitonic` | Arena pairing heap with O(1) `meld` and `(prio,key)` canonical pop order; Batcher's bitonic sorting network — a fixed comparator sequence per `n` (data-oblivious, lockstep-safe). |
+| `offlinelca` | Tarjan offline LCA — DSU + one DFS answers a whole `(u,v)` query batch in ~`O((n+q)·α)`, matching `lca` semantics including cross-tree/cycle `None`. |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

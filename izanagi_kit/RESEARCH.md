@@ -1425,3 +1425,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Fenwick, "A new data structure for cumulative frequency tables" (1994) + 競技界隈の区間加算 BIT 定式化 / Niemeyer geohash 仕様(Wikipedia/geohash.org) / Finkel & Bentley, "Quad trees" (1974) の 3-D 版 / RFC 4648 / Kőnig (1931) + Hopcroft–Karp (1973)。
 
 **実装物**: AtCoder Library の BIT 区間加算、Rust geo/geohash クレートの interleave 順序、bevy/hecs 系 octree、base64 クレートの strict mode、bipartite matching→cover の教科書構成 — Qiita/Zenn の Fenwick range 拡張・geohash・Kőnig 解説を参照し整数のみで逐語実装。
+
+
+## 第35次 鍵付きハッシュ・MAC・meldable キュー・ソート網・バッチ LCA(round 35)
+
+**採用モジュール(232→237)**: `siphash` / `hmac` / `pairingheap` / `bitonic` / `offlinelca`
+
+- `siphash` — Aumasson–Bernstein SipHash-2-4。u64 add/xor/rot のみ、128bit key を LE 2 語として読む論文仕様。8-byte staging で呼び出し分割に非依存 — `DetHash` が key 無しなのに対し PRF として署名付き状態確認・hashmap DoS 耐性に使える。論文ベクタ 8 件 + 全長 0..64 byte-by-byte ≡ one-shot
+- `hmac` — RFC 2104 HMAC-SHA256。64-byte block 0x36/0x5c パッド、key>block は先ず SHA-256。RFC 4231 TC1/2/4/6 既知解答 + 分割非依存 — `poly1305`(Wequn once)と対になる反復使用可 MAC
+- `pairingheap` — Fredman–Sedgewick pairing heap を Vec arena で。meld O(1)(他ヒープの arena を append して index ずらし、構造もコストも定数)。二段 pairing pass で pop amortized O(log n)。(prio,key) 全対で正準順 — BTreeMap multiset oracle が push/pop/meld 交錯 300 op × 60 seed を全照合
+- `bitonic` — Batcher 網。`network(n)` が入力に関わらず同一 (i,j,asc) 比較列を生成 — replay で全 peer が同じ比較痕を辿る data-oblivious 整列で、lockstep ガジェットやソート検証の対象にできる。非 2 冪は !0 sentinel パディング(実値 !0u64 も最初の n 要素が最小 n 個なので正しい)
+- `offlinelca` — Tarjan offline LCA。黒化頂点 w に lca=ancestor[find(w)]。実装で oracle が捕捉した2点: (a) DSU が root 間共有のため跨木クエリに phantom ancestor — `tree_of` で同一木のみ応答に遮蔽、(b) `parent>=n` を root 扱いすると `lca` の invalid 意味論と乖離 — unreachable 扱いで全クエリ None。binary-lifting オラクル 100 seed × 40 query 一致、5000 深連鎖を iterative で処理
+
+**継続延期バックログ**: cuckoo hashing / SwissTable、link-cut、sais、平面性判定、rope、regex、jps、GJK/EPA、TLSF、Chomsky-full expr、edit-distance fuzzy、bitboard/magic、真の 3 段 recursive vEB/y-fast trie、HLL(整数化)、ED25519。理由は前次と同じ(整数化困難・スコープ過大・実用優位が薄い)。
+
+## 出典(第35次、search-index 照合)
+
+**論文・仕様**: Aumasson & Bernstein, "SipHash: a fast short-input PRF" (2012) + 論文付録ベクタ / RFC 2104 + RFC 4231 / Fredman, Sedgewick, Sleator & Tarjan, "The pairing heap" (1986) / Batcher, "Sorting networks and their applications" (1968) / Tarjan, "Applications of path compression on balanced trees" (1979)。
+
+**実装物**: Rust std `SipHasher13/24` の round 構造、RustCrypto hmac の pad 処理、bcmr/pairing-heap の二段 pass、Wikipedia bitonic 網の (i,j,dir) 生成、cp-algorithms の Tarjan LCA — Qiita/Zenn の SipHash/HMAC/offline LCA 解説を参照し整数のみで逐語実装。
