@@ -1827,3 +1827,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Brent & Kung (1978) "Fast algorithms for manipulating formal power series" (JACM) の Newton 反復構成 / Bentley & Shamos 系 scanline 面積計測 / Gavril (1972) 区間グラフの彩色・最大独立集合の貪欲正当性 / Graham–Knuth–Patashnik "Concrete Mathematics" §6 の Stirling 三角と閉形式 / Chazelle (1985) "On the convex layers of a planar set" の onion 分解 — Qiita/Zenn/海外技術記事の FPS・sweep・区間スケジューリング・Stirling・onion layers 解説を参照し全て整数のみで実装。
 
 **実装物**: Library Checker 系 FPS API 形状(inv/log/exp/pow の次数引数契約)、AOJ/ACL 系矩形和 sweep、教科書系 weighted interval scheduling DP+復元、ConMath の Stirling 双対恒等式、convex_hull 再利用の onion peel — 整数のみで実装。
+
+## 第59次: 最小平均サイクル・線形空間アライメント・行列連鎖・継目削り・順序統計木
+
+- `karp` — Karp の最小平均重みサイクル: `dp[k][v]`=長さ k 歩道の最小重み、`μ=min_v max_k (dp[n][v]−dp[k][v])/(n−k)`。**設計値捕捉**: サイクル抽出は「v* の最適 n 歩道の末尾 n−k* 辺が閉歩道」は偽(末尾 n−k* 辺の始点は任意) — 正しくは n 辺全て backtrack し最初の重複頂点で閉じる(その segment が mean=μ の証明: 切除すると μ 未満の歩道が残る)。初版は suffix-only backtrack で mean 不一致を oracle が捕捉
+- `hirschberg` — Hirschberg 線形空間 Needleman–Wunsch: 中点で a を二分、前向き last-row `L` と逆転後向き `R` の `L[j]+R[n−j]` を最小 j で分割して再帰。スコア +2/−1/−1 固定、ops は `apply` が a→b を厳密再生する整合性を oracle が400乱択で全照合
+- `matchain` — 行列連鎖積の最小スカラー乗算数: `dp[i][j]` 区間 DP + split 表、postorder の `Step` 列で括弧を復元。Catalan 全列挙 oracle で n≤7 全乱択照合
+- `seamcarve` — Avidan–Shamir 継目削り: 二乗勾配エネルギー(境界は片側差分)+ 8-連結 seam DP(左端 argmin)+ `remove_vseam`(不正 seam は None)。**設計値捕捉**: 力任せ oracle の `go()` で「途中打ち切りパス」を `best` の初期値に残すと全 seam 未満のコストを返す — 葉行のみが base case。初版実装は正しかった(536 vs 5 で oracle が自壊を告白)
+- `ost` — 順序統計 treap: `insert`/`erase`/`contains`/`select`/`rank`/`lower_bound`。優先度は `splitmix64(seed ⊕ mix(key))` — 形状がキー集合の純関数で挿入順序非依存。size/heap 不変式を再帰検査 + BTreeSet oracle 60 ラウンド×300 op 全照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+
+## 出典(第59次、search-index 照合)
+
+**論文・仕様**: Karp (1978) "A characterization of the minimum cycle mean in a digraph" / Hirschberg (1975) "A linear space algorithm for computing maximal common subsequences" / Avidan & Shamir (2007) "Seam carving for content-aware image resizing" / Cormen et al. CLRS §15.2 行列連鎖、§15.4 + Knuth の順序統計木 — Qiita/Zenn/海外技術記事の Karp 復元・Hirschberg・seam carving・order-statistics tree 解説を参照し全て整数のみで実装。
+
+**実装物**: Library Checker 系 cycle API 形状、AtCoder/ACL 系 LCS 復元の空間最適化、画像縮退 seam API、GNU pbds tree_order_statistics_node_update 相当の rank/select — 全て整数のみで実装。
