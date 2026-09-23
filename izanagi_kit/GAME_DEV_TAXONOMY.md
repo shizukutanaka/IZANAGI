@@ -212,6 +212,11 @@
 - J126 スロープトリック(凸区分線形関数 — DP 遷移の高速化)✅ `slopetrick`(L=max-heap/R=min-heap の正規4行形: `min_f += max(0,a−topR); pushr(a); pushl(popr)`。slide(a,b) の平行 offset で最小区間が [lo+a,hi+b] に — a>b(空窓)は規約外。密グリッド oracle が境界汚染の罠を検証)
 - J127 Thompson NFA 正規表現(バックトラックなし byte 正規表現)✅ `regex`(再帰降下→命令列コンパイル、ε-closure を `seen` 集合で絞る pike loop。unanchored は各ステップで start を再播種、out ポインタを HOLE=!0 sentinel で後patch。AST レンダ oracle で端位置集合を全照合)
 
+- J128 カッコーハッシュ(2 テーブル開番地 — 削除可能・tombstone 不要)✅ `cuckoo`(h1/h2 の二 home 配置、キック連鎖は交互テーブルで budget 超過時はジャーナル全巻戻し — 既存キー迷子を構造排除。固定容量で rehash 方針の分岐なし)
+- J129 ビットボード(u64 盤面 — 8x8 集合演算)✅ `bitboard`(file mask クランプの8方向シフト + dumb7fill 遮蔽 fill で rook/bishop/queen の ray attack — leaper は単步 oracle で別系統検証)
+- J130 CYK 構文認識(CNF 文法 — 動的計画受理)✅ `cyk`(bin[a][b] を lhs bitset に前計算した O(n³) 三角表。`accepts`/`derive`/`cell` — メモ化再帰 oracle で小規模 CFG を全照合)
+- J131 半平面交差(実行領域の凸多角形 — deque 構築)✅ `halfplane`(方向角を quadrant+cross で整数整列、頂点は全て Frac。閉交点 push・連続重複/共線の正規化・shoelace で CCW 化 — 空/非有界/退化は None で失敗閉鎖)
+- J132 y-fast トライ(rep 層+クラスタ — u32 前駆後継)✅ `yfast`(内容分割 bucket が median で分裂、rep 昇順 Vec。predecessor は strict<、successor は inclusive≥ で veb と意味合わせ — BTreeSet oracle で全演算照合)
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

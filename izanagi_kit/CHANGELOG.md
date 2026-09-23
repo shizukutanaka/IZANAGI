@@ -27,6 +27,35 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and backwards and require identical readback — and reverting the struct to
   `HashMap` fails them.
 
+### Added — cuckoo hashing, bitboards, CYK, half-plane intersection, y-fast trie
+
+Ordered-set structures, board algebra, formal-language recognition, and
+exact convex-region geometry, all in published-work form with independent
+oracles:
+
+- **`cuckoo`** — two-table cuckoo hashing (Pagh & Rodler 2001): at most two
+  probes per lookup, tombstone-free removal, and a journaled displacement
+  chain that rolls back completely when the kick budget is exhausted — a
+  failed insert can never orphan a stored key. Fixed capacity means peers
+  never diverge on a rehash policy.
+- **`bitboard`** — 8x8 `u64` bitboards: file-masked directional shifts and
+  dumb7fill occluded fills for rook/bishop/queen ray attacks, leaper
+  attacks for knight/king/pawn — verified against per-square ray-walk and
+  single-step oracles over all 64 squares plus 4000 random occupations.
+- **`cyk`** — CYK recognizer for Chomsky-normal-form grammars: `bin[a][b]`
+  pre-tabulated as an lhs bitset, O(n³) parse triangle, `accepts`/`derive`/
+  `cell` granularity — oracle-checked against memoized recursive expansion
+  on 150 random grammars.
+- **`halfplane`** — exact `Frac` half-plane intersection: atan2-free
+  direction sort (quadrant + cross product), sign-free tighter-merge,
+  closing-vertex completion, collinear/duplicate vertex canonicalization
+  and CCW normalization — `None` for empty, unbounded, or degenerate
+  regions, oracle-verified against pairwise-intersection enumeration.
+- **`yfast`** — y-fast–style clustered predecessor set: rep-ordered
+  buckets covering `(prev_rep, rep]` that split at their median, rep
+  promotion on removal, strict `predecessor` / inclusive `successor`
+  matching `veb` semantics — BTreeSet oracle over all operations.
+
 ### Added
 - **`tests/no_nondeterminism_in_sim.rs`** — the non-float half of "replay-safe",
   which nothing checked. `no_float_in_sim.rs` rejects `f32`/`f64`; this rejects
