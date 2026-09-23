@@ -280,6 +280,9 @@ The capability map — with per-feature implementation status — lives in
 | `siphash` / `hmac` | Keyed digests: SipHash-2-4 streaming PRF (`SipHash`/`siphash`, paper vectors) and RFC 2104 HMAC-SHA256 (`Hmac`/`hmac_sha256`, RFC 4231 vectors). |
 | `pairingheap` / `bitonic` | Arena pairing heap with O(1) `meld` and `(prio,key)` canonical pop order; Batcher's bitonic sorting network — a fixed comparator sequence per `n` (data-oblivious, lockstep-safe). |
 | `offlinelca` | Tarjan offline LCA — DSU + one DFS answers a whole `(u,v)` query batch in ~`O((n+q)·α)`, matching `lca` semantics including cross-tree/cycle `None`. |
+| `elias` / `patricia` | Ordered integer sets: Elias–Fano succinct monotone sequence (`access`/`rank`/`successor` over a sorted `u64` list, unary-gap + verbatim-low encoding) and a crit-bit PATRICIA tree (insert/contains/floor/ceil with sorted-order iteration). |
+| `blake2s` | BLAKE2s-256 digest (RFC 7693): streaming `Blake2s` state, keyed-MAC mode without the HMAC construction, official unkeyed/keyed vectors. |
+| `rotcal` / `smawk` | Rotating calipers on a convex hull (diameter pair, `Frac` min-width, `Frac` min-area rectangle — no floats) and SMAWK `O(n+m)` row-argmin for totally monotone implicit matrices (Monge-DP machinery). |
 | `voronoi` / `delaunay` | Exact nearest-seed partition (`voronoi_partition`, `voronoi_flood` through passable terrain), `mst_edges` / `mst_edges_over` (Kruskal MST over a complete or restricted graph), and integer-exact Delaunay triangulation (`delaunay`, `delaunay_edges`) — scatter → territory → connectivity. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |

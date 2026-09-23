@@ -200,6 +200,12 @@
 - J116 ビトニックソート網(Batcher 網 — 入力非依存比較列)✅ `bitonic`(`network(n)` が n のみの固定 (i,j,asc) 列を生成 — 全 peer が同一比較痕を replay する data-oblivious 整列、非 pow2 は !0 sentinel パディング。lockstep ガジェット/ソート検証器向け)
 - J117 Tarjan オフライン LCA(DSU + 一 DFS — バッチ祖先クエリ)✅ `offlinelca`(黒化した w に対し lca=ancestor[find(w)]。DSU が root 間で共有されるため tree_of 番号で跨木クエリを None に遮蔽 — binary-lifting `lca` と全乱択一致、5000 深連鎖も iterative で安全)
 
+- J118 Elias–Fano 単調整数列(succinct monotone sequence — unary gap + verbatim low bits)✅ `elias`(Elias 1974/Fano 1971。`access`/`rank`/`successor` が word popcount 走査のみ — `rank` は「h番目のゼロまでの one 数 = hi ≤ h の要素数」の境界ずれを補正して検証。順序集合・インデックスの圧縮層)
+- J119 PATRICIA/crit-bit 木(radix trie over u64 — 高々64段)✅ `patricia`(Bernstein crit-bit 形式の arena 実装。in-order 走査 = 数値昇順。floor/ceil は「未テスト bit で off-branch が bound を潜り得る」性質から単純下降では誤答 — 両側を min/max 刈り付き探索に確定し BTreeSet 全照合)
+- J120 BLAKE2s(RFC 7693 — ChaCha 型 G ミキサの暗号ハッシュ)✅ `blake2s`(IV は SHA-256 継承、param block で digest/key/fanout/depth を注入。keyed-MAC モードは key block を*バッファに留める*設計 — 先に圧縮すると空メッセージで phantom 最終 block になる bug を RFC ベクタが捕捉)
+- J121 回転キャリパ(rotating calipers — 凸包の直径/幅/最小面積外接矩形)✅ `rotcal`(単調 advance の antipodal 走査、全演算 i128 cross product で Frac 面積・Frac 幅。最小矩形の 4 本 caliper は edge-0 で線形初期化が必須 — jl の単調指針が 0 手前の真最小を見落とす bug を brute-force oracle が捕捉)
+- J122 SMAWK(AKMSW 1987 — 全単調暗黙行列の O(n+m) 行 argmin)✅ `smawk`(Reduce が列を stack 刈り → 奇数行に再帰 → 偶数行は境界内走査。Monge-DP/Knuth 最適化の土台 — テスト生成器は積項が anti-Monge になる罠を検証で確定、真 Monge = a+b−wx 昇順ペア)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

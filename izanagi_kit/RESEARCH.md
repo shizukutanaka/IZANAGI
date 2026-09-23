@@ -1444,3 +1444,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Aumasson & Bernstein, "SipHash: a fast short-input PRF" (2012) + 論文付録ベクタ / RFC 2104 + RFC 4231 / Fredman, Sedgewick, Sleator & Tarjan, "The pairing heap" (1986) / Batcher, "Sorting networks and their applications" (1968) / Tarjan, "Applications of path compression on balanced trees" (1979)。
 
 **実装物**: Rust std `SipHasher13/24` の round 構造、RustCrypto hmac の pad 処理、bcmr/pairing-heap の二段 pass、Wikipedia bitonic 網の (i,j,dir) 生成、cp-algorithms の Tarjan LCA — Qiita/Zenn の SipHash/HMAC/offline LCA 解説を参照し整数のみで逐語実装。
+
+
+## 第36次 圧縮順序集合・暗号ハッシュ・凸包キャリパ・単調行列(round 36)
+
+**採用モジュール(237→242)**: `elias` / `patricia` / `blake2s` / `rotcal` / `smawk`
+
+- `elias` — Elias–Fano 単調列。l=⌊log2(u/n)⌋ 低位 verbatim + 高位を unary gap bitmap(n+U bit)で。`rank` は「h番目ゼロまでの one 数が hi ≤ h の要素数」を正しく扱う必要があり、hi < h の境界は h−1 番ゼロ、h==u_hi は末尾 one ランで処理 — 全て BTreeSet 相当の Vec oracle で照合
+- `patricia` — crit-bit radix tree(Bernstein 型、u64 版 Okasaki–Gill)。深さ ≤64、in-order = 昇順。重要な落とし穴: subtree は「テスト済み bit」しか制約しないため、floor/ceil を単純下降すると off-branch の葉が untested bit で bound を潜り越して誤答 — 両側を subtree min/max 刈り付き探索に確定(BTreeSet oracle 150 回 × 30 query)
+- `blake2s` — RFC 7693 BLAKE2s-256。keyed-MAC モードは HMAC 構成なしで key を param に注入。設計値: key block を即座に圧縮すると空メッセージで「真の最終 block が key block 自身である」不変条件を破壊 → buffer に留めて `finish`/`write` が自然に処理する形に確定(公式 unkeyed/keyed ベクタ検証)
+- `rotcal` — 回転キャリパ(Shamos 1978 / Toussaint 1983)。diameter pair、Frac 最小幅、Frac 最小面積外接矩形。最小矩形の 4 本 caliper(jt/jr/jl)は edge-0 で全頂点スキャン初期化が必須 — 単調指針を jl=0 で開始すると index 0 手前にある真最小を永遠に見落とす bug を brute oracle が捕捉
+- `smawk` — SMAWK(AKMSW '87)。Reduce stack 刈り + 奇数行再帰 + 偶数行境界走査。Monge ⇒ totally monotone ⇒ argmin 非減少の連鎖を利用 — Knuth 最適化・Aliens trick・D&C DP の土台。検証で判明した罠: a+b+wx(昇順×昇順)は anti-Monge で argmin が減少方向、真 Monge には −wx が必要
+
+**継続延期バックログ**: cuckoo hashing / SwissTable、link-cut、sais、平面性判定、rope、regex、jps、GJK/EPA、TLSF、Chomsky-full expr、edit-distance fuzzy、bitboard/magic、真の 3 段 recursive vEB/y-fast trie、HLL(整数化)、ED25519、BK-tree(次次回候補)。理由は前次と同じ。
+
+## 出典(第36次、search-index 照合)
+
+**論文・仕様**: Elias, "Efficient storage and retrieval by content and address of static files" (1974) + Fano (1971) + Vigna, "Quasi-succinct indices" (2013) / Morrison, "PATRICIA" (1968) + Bernstein crit-bit trees (2006) + Okasaki & Gill (1998) / RFC 7693 (BLAKE2) / Shamos 1978 + Toussaint, "Solving geometric problems with the rotating calipers" (1983) / Aggarwal, Klawe, Moran, Shor & Wilber, "Geometric applications of a matrix-searching algorithm" (1987)。
+
+**実装物**: sux/sux4j の rank/select、djb critbit.c の split 挿入、RustCrypto blake2 の param 注入と buffer 運用、e-maxx/cp-algorithms の回転キャリパ四指針形、KACTL の SMAWK — Qiita/Zenn の Elias-Fano・crit-bit・SMAWK 解説も参照し整数のみで逐語実装。
