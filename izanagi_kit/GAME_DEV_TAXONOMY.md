@@ -295,6 +295,12 @@
 - J201 LT 噴水符号 ✅ `fountain`(robust-soliton 次数 R=√k·ln(2k)/4 — c=1/10 では小 k で R=1 に退化し理想化するため c=1/4。近傍集合は (k,i,seed) の純関数、BP 剥離 decode)
 - J202 Felzenszwalb 二乗距離変換 ✅ `edt`(放物線下包絡の2回1次元 pass、breakpoint は (num,den) 有理数 — −inf sentinel は i128::MAX/4 ではなく i64::MIN、zn·den が i128 溢れ)
 
+- J203 B+木順序マップ ✅ `bplus`(copy-up 葉 split / move-up 内部 split — separator = 右部分木の最小キー、葉先頭キー削除は fix_sep 祖先 walk で伝播)
+- J204 Bentley–Ottmann 交差列挙 ✅ `bentley`((x,y) BTreeMap イベント列 + (y at x, slope) 再整列 status; 垂直線分は status 不入・x-line 中は全関与 seg と対検査; 共線 overlap は共有端点のみ報告)
+- J205 組合せ rank/unrank ✅ `comb`(choose128 の `acc = C(n−k+i, i)` 不変式で各除算が厳密 — gcd 正規化不要; 辞書順 combinadic)
+- J206 AES-128-GCM AEAD ✅ `gcm`(GF(2^128) GHASH ビットシリアル、`R = 0xE1<<120`; aad→ct の累積器は連鎖必須 — 別計算の XOR 合成は誤り; J0 = IV‖1(12B) else GHASH 導出)
+- J207 Sutherland–Hodgman ポリゴンクリップ ✅ `polyclip`(clipper は shoelace 符号で CCW 正規化、交点 t = cross(cd, a−s)/cross(cd, sd) — 符号反転は空クリップで検出)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
