@@ -295,6 +295,11 @@
 //! - [`tonelli`] — Tonelli–Shanks modular square roots over odd primes, sorted root pairs.
 //! - [`bsgs`] — baby-step giant-step discrete log: least `x` in `O(√p)`, no inverses.
 //! - [`dfamin`] — Hopcroft DFA minimization: splitter worklist + canonical block ids.
+//! - [`bspline`] — integer-exact de Boor B-spline evaluation over [`frac::Frac`] control points.
+//! - [`bmassey`] — Berlekamp–Massey shortest LFSR over GF(p): `massey` + `holds` verifier.
+//! - [`xortrie`] — bitwise trie over u64: max/min-xor queries and max-xor pairs.
+//! - [`orset`] — add-wins observed-remove set CRDT: concurrent adds always survive.
+//! - [`lww`] — LWW-element-set CRDT: `(clock, replica)` stamps pick each element's fate.
 //!
 //! All modules are `std`-only and contain no `unsafe`.
 
@@ -359,7 +364,9 @@ pub mod bktree;
 pub mod blake2s;
 pub mod bloom;
 pub mod blossom;
+pub mod bmassey;
 pub mod bsgs;
+pub mod bspline;
 pub mod buddy;
 pub mod bwt;
 pub mod calendar;
@@ -471,6 +478,7 @@ pub mod lru;
 pub mod lsm;
 pub mod lsystem;
 pub mod lttb;
+pub mod lww;
 pub mod lyndon;
 pub mod lzss;
 pub mod lzw;
@@ -503,6 +511,7 @@ pub mod ntheory;
 pub mod observe;
 pub mod octree;
 pub mod offlinelca;
+pub mod orset;
 pub mod pack;
 pub mod pairingheap;
 pub mod parser;
@@ -614,6 +623,7 @@ pub mod wfc;
 pub mod world_hash;
 pub mod xorbasis;
 pub mod xorfilter;
+pub mod xortrie;
 pub mod yfast;
 pub mod zerobfs;
 pub mod zfunc;

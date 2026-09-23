@@ -255,6 +255,12 @@
 - J166 baby-step giant-step(離散対数)✅ `bsgs`(baby 表 `g^j→j` + giant 歩行 `h·f^i`、`f = g^{p−1−m}` で逆元ヘルパ不要、最小 x 保証 — `g=0` は `f` が真逆元でないため先に解決)
 - J167 Hopcroft DFA 最小化(分割精細)✅ `dfamin`(splitter worklist で小さい半分のみ再キュー、block id は最小メンバーで正準化 — naive signature-iteration oracle で200乱択全照合)
 
+- J168 de Boor B-スプライン評価 ✅ `bspline`(Frac 厳密 — 退化 span は α=0 正規化で `continue` による前段残りを回避、右端は最後の非空 span ≤ n の左連続意味論)
+- J169 Berlekamp–Massey 最短 LFSR ✅ `bmassey`(GF(p) — C[0]=1・C は L+1 長、coef は Fermat 逆元 `d·b^{p−2}`、holds 検証器併設)
+- J170 bitwise xor trie(max/min-xor)✅ `xortrie`(multiplicity cnt、greedy opposite-bit descend、O(n·64) max pair は (lo,hi) 正準 dedup)
+- J171 add-wins OR-Set CRDT ✅ `orset`((replica,ctr) dot、remove は観測済み dot のみ — 並行 add 不滅、merge は両 map union で交換・冪等・結合)
+- J172 LWW-element-set CRDT ✅ `lww`((clock,replica) stamp の勝者側が生死を決定、同時刻タイは remove 勝ち — orset の対極で未観測要素も remove が stamp を書く)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
