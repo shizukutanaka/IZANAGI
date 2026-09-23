@@ -1665,3 +1665,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Galperin & Rivest (SCG 1993) "Scapegoat Trees" の α-weight 再構築・max_size 高水位規約 / Crane (1972) "Linear Lists and Priority Queues as Balanced Binary Trees" の leftist tree = null-path 左右不変式 + Okasaki "Purely Functional Data Structures" 実装形 / Lowerre (1976) HARPY beam search + Bisiani (1987) 幅正準化 / Rosenblatt (1958) パーセプトロン + Novikoff (1962) 収束定理 (R/γ)² + one-vs-rest argmax / Bird & Millward (Oxford) "Saddleback Search" + Martin Gardner 行列探索 puzzle + Bir, Pontus "Pearls of Functional Algorithm Design" の saddleback 章。
 
 **実装物**: Okasaki PFD の leftist 形、cp-algorithms のビーム探索慣行、scikit-learn Perceptron の one-vs-rest 形、Haskell pearls の saddleback — Qiita/Zenn/海外技術記事の scapegoat・leftist heap・beam search・パーセプトロン・鞍背探索解説を参照し全て整数のみで実装。
+
+## 第49次: 平衡木・探索戦略・増分ハッシュ・公開鍵・文書構文
+
+- `avltree` — AVL 高平衡 BST(Adelson-Velsky & Landis 1962): ノード高追跡、`|h(l)−h(r)|≤1` を LL/RR/LR/RL 回転で祖先毎に復元。seed 不要 — 形状は挿入順の純関数。BTreeSet シャドーで op 毎に (BST順・高不変式・昇順列) を照合 — 昇順 1000 挿入でも高 ≤ 11
+- `bandit` — マルチアーム探索: 報酬を SCALE 倍整数で蓄積。設計値: 初版は「平均優先+explore同点ブレーク」の2相近似で良腕独占・他腕枯渇を観測 → 真の UCB1 (mean+bonus 加算) に確定: Q8 `floor(r·256/p)+isqrt(2·log2(t)·SCALE²·256/p)` — 組込系で使われる整数形。ε-greedy は seeded rng で再生可能、ε=0 で greedy 退化を確認
+- `zobrist` — 増分盤面ハッシュ: (piece,square)→u64 鍵を seeded SplitMix64 で表引き、XOR で toggle=厳密 undo。side-to-move 鍵は表鍵の後ろのストリーム位置から派生し衝突不能。每ステップ `hash == rehash(occupancy)` をオラクル照合
+- `rsa` — 教科書 RSA(padding 無し): BigInt に除法が無いため magnitude 演算を自前実装 — **実 bug 捕捉**: `mrem` で bit長一致時 `dr−dm−1` が underflow panic。降順シフトループに確定(各 step で rem < m·2^(sh+1) → 高々1回減算)。二進長除法 rem/商・平方乗 modpow・拡張 Euclid modinv・固定証人(2,3,5,7,11,13) Miller–Rabin — Carmichael 数 561/1105/1729/41041/825265 を全拒否を検証。パディング無しが「決定的暗号文」=本クレートの要件と一致、wire 用途不可を明記
+- `json` — RFC 8259 整数部分集合: 数値は i64 のみ('.','e' 拒否)、`\uXXXX` は surrogate pairing 経由 UTF-8 復号(lone surrogate 拒否)、leading zero・未エスケープ制御文字・末尾ゴミ全拒否。canonical render は BTreeMap ソート鍵+最小エスケープ — `parse(render(x))==x` を乱択300件照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、mtt。bintree/heavy modules消化進行。
+
+## 出典(第49次、search-index 照合)
+
+**論文・仕様**: Adelson-Velsky & Landis (1962) "An algorithm for the organization of information" AVL 回転不変式 / Auer, Cesa-Bianchi, Fischer (2002) "Finite-time Analysis of the Multiarmed Bandit Problem" UCB1 + Sutton & Barto §2.3 ε-greedy — 整数形は組込 UCB 実装慣行 / Zobrist (1970) "A New Hashing Method with Applications for Game Playing" + transposition-table 慣行 / Rivest, Shamir, Adleman (1978) + PKCS#1 v1.5 教科書形(パディング無し、教育版) + HAC §4 Miller–Rabin 固定証人 / Bray (2017) RFC 8259 JSON grammar + ECMA-404 — 数値の整数部分集合化は crate no-float 規約。
+
+**実装物**: Okasaki の AVL 形、bandit の embedded Q8 形、chess programming wiki の Zobrist/side-key 慣行、HAC・mbedTLS の RSA 骨格、serde_json/rapidjson の strict parse 方針 — Qiita/Zenn/海外技術記事の AVL・バンディット・Zobrist・RSA・JSON パーサ解説を参照し全て整数のみで実装。
