@@ -105,6 +105,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - **`gray`** — binary-reflected Gray codes (`to_gray`/`from_gray`/`sequence`, `SubsetWalk` iterator): unit-step subset traversal; `last_flip` reports which bit changed.
 - **`partitions`** — integer partitions (`count`/`count_bounded`/`count_distinct`/`enumerate`): pentagonal `p(n)` over `BigInt`, the `p(n,m)` and distinct-parts DP triangles shadowing each other (`Σ_m p(n,m) = p(n)`, distinct = odd parts by Euler's theorem, both directions checked), descending-lex enumeration.
 - **`chrompoly`** — exact chromatic counting (`count`/`count_poly`/`chromatic`): deletion–contraction `P(G) = P(G−e) − P(G/e)` over `BigInt`, canonical smallest-edge recursion; verified against brute `kⁿ` coloring enumeration (400 random graphs) and the C₄ closed form `k(k−1)(k²−3k+3)`.
+- **`pell`** — Pell equations `x² − d·y² = ±1` (`isqrt`/`surd_cf`/`solve`/`negative`/`power`): exact `(m,d,a)` continued-fraction recurrence for `√d`, `BigInt` convergents; OEIS fundamentals and the d=61 pair (1766319049, 226153980) verified, `Z[√d]` powers stay solutions.
+- **`farey`** — Farey sequence `F_n` + lattice sums (`farey`/`neighbor`/`stern_brocot`/`floor_sum`): one-arithmetic-step next-term recurrence, `|F_n| = 1 + Σφ(k)` oracle, neighbor determinants = 1, ACL `floor_sum` in `u128` checked by direct summation.
+- **`mobius`** — Möbius function + Dirichlet convolution (`mu_sieve`/`mu`/`convolve`/`invert`/`coprime_count`/`sigma_sum`): linear-sieve `μ`, `f ∗ μ` recovers divisor-summed `g` exactly (200 roundtrips), inclusion–exclusion coprime counting vs direct gcd enumeration.
+- **`jacobi`** — Kronecker symbol `(a|n)` for all integers: binary quadratic-reciprocity algorithm, `n ∈ {−1,0,1}` extension conventions; verified against the Euler criterion `a^((p−1)/2) mod p` (4000 cases) and multiplicativity `(a|mn) = (a|m)(a|n)` (3000 cases).
+- **`egypt`** — Egyptian fractions (`decompose`/`expand`/`verify`): Fibonacci–Sylvester greedy `d = ⌈den/num⌉` over `Frac` — distinct unit fractions only, `i128` overflow honestly `None`, numerator-descent invariant verified as the termination proof.
 
 ### Fixed
 - **`SpatialHash` iteration order was nondeterministic** (`spatial_hash.rs`) —
