@@ -305,6 +305,11 @@
 - J210 極大クリーク列挙 ✅ `clique`(Bron–Kerbosch + Tomita ピボット P\N(u) — u64 隣接マスク、出力はソート正準で純関数)
 - J211 動的時間伸縮 ✅ `dtw`(i64 厳密 Σ|差| DP + Sakoe–Chiba 帯 + 経路復元 — 境界セルは INF、枯渇 prefix は整列不能)
 - J212 DAG 最小パス被覆 ✅ `pathcover`(二部 L_u—R_v マッチング帰着で被覆 = n − |matching| — 閉路入力は None、Kahn 最小優先で正準順)
+- J213 Jump Point Search ✅ `jps`(自然+強制近傍のジャンプ点一様コスト探索 — 角接触許容は論文の剪定補題の一部、厳格 no-corner-cut は到達性を変えて最適性を壊す)
+- J214 GOAP プランナ ✅ `goap`(ビットマスク世界の Dijkstra — `(cost, seq, state)` 順序付き BTreeSet で語彙最小正準計画を純関数化)
+- J215 行動木 ✅ `btree`(Sequence/Selector が Running 子を per-node `mem` に記憶して resume — Condition の Running は Failure へ写像)
+- J216 整数 Verlet 統合 ✅ `verlet`(Q16.16 Jakobsen 距離制約緩和 — 無減衰はエネルギー保存で平衡を貫通振動、収束には damping < 1 が必須)
+- J217 整数バリューノイズ+fBm ✅ `vnoise`(SplitMix64 格子ハッシュ + smootherstep 双線形補間 — `raw >> 16` 算術シフトのセル床が負座標安全)
 
 
 ## K. 物理・衝突 (Physics / Collision)
