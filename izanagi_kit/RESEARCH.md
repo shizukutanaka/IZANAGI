@@ -1811,3 +1811,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Fredman & Tarjan (1987) "Fibonacci heaps and their uses in improved network optimization algorithms" (JACM) の lazy binomial forest + cascading cut / Halton (1964) "Algorithm 247: Radical-inverse quasi-random point sequence" (CACM) / 二面体群 D4 の標準表示 ⟨r,s | r⁴=s²=1, srs=r⁻¹⟩ / Skiena, Smith & Lemke (1990) "Reconstructing sets from interpoint distances" (SoCG) の backtracking / Yen (1971) "Finding the k shortest loopless paths in a network" (Management Science) — Qiita/Zenn/海外技術記事の Fibonacci heap・低 discrepancy sequence・ターンパイク・Yen 解説を参照し全て整数のみで実装。
 
 **実装物**: CLRS §19 の cut/cascade 手続きをアリーナ化、libstdc++ の radix-inplace ではなくランダムアクセス版、d4 group の bit-packed 表現、turnpike 教科書版の multiset BTreeMap 化、yen における重複辺 dedup(min weight)の正準化 — 整数のみで実装。
+
+## 第58次: 形式的冪級数・矩形和集合・区間グラフ・スターリング数・玉ねぎ層
+
+- `fps` — GF(998244353) 上の形式的冪級数(FPS): `add`/`sub`/`mul`(conv::convolve 再利用)/`scale`/`trunc`/`derivative`/`integral`/`inv`/`log`/`exp`/`pow`/`divmod`/`eval`。Newton 反復は `inv` が `g←g(2−fg)`、`exp` が `g←g(1+f−log g)` で既知 prefix を倍化。**設計値捕捉**: ループ条件を `g.len() < n` にすると `convolve` 積の末尾がゼロ係数になるケース(`f` の有効次数が m 未満)で `norm` が g を再縮小し無限ループ — 次数は*追跡変数* `m = min(2m, n)` で駆動必須。`exp(log f)=f`・`log(exp g)=g` 双方向 roundtrip、doctest は 1/k! の階乗逆元まで実測値一致
+- `rectunion` — 矩形和集合面積: `(x, [y0,y1], ±1)` イベントを x-sweep、slab 毎に active 区間の union 長を再計算する正直な O(n²)(座標圧縮 segtree 版より単純性優先、n≤10⁴ まで実用)。`i128` 返却、逆順端点・退化スライバーは正規化。格子セル oracle で正負座標500乱択全照合
+- `intervalgraph` — 区間グラフの古典3問: `max_independent_set` は最早終了貪欲の正準 tie-break `(end,start,index)`、`min_rooms` は半開区間の sweep 深度(区間グラフは完全グラフ=彩色数=最大重複)、`weighted_select` は finish ソート+`p[j]` 二分探索の O(n log n) DP で正準 predecessor 復元。退化 `[s,s)` は全 API で選択不能 — n≤8 全部分集合 oracle でサイズ・重み・ disjoint 性を全照合
+- `stirling` — Stirling 数 mod p: 符号付き s1(`s(n,k)=s(n−1,k−1)−(n−1)s(n−1,k)`)、unsigned `us1`(順列の cycle 数 — `perm::unrank`+`cycles` で n≤7 全順列列挙の独立 oracle)、s2(閉形式 `1/k!·Σ(−1)^j C(k,j)(k−j)^n` と三角 DP を相互検証)、`bell`、`falling_coeffs`(降冪 xⁿ̲=Σs(n,k)xᵏ — Horner 評価 vs 直接積で恒等式 oracle)
+- `onion` — 凸包玉ねぎ層分解: `poly::convex_hull` の繰り返し peel。**設計値捕捉**: hull 辺上の共線点は monotone-chain の出力に*含まれない*(strict-corner 契約)ため、その点は peel を生き残り独立した退化レイヤを形成 — 「玉ねぎ深度」の正直な意味論であり、doc で明示。全共線点列は各 peel が両端点2個しか除去しないため ⌈n/2⌉ 層。層数・層集合・union 復元・厳密入れ子を別ループ oracle で全照合
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種、α-hull の垂線中点パラメータ式。
+
+## 出典(第58次、search-index 照合)
+
+**論文・仕様**: Brent & Kung (1978) "Fast algorithms for manipulating formal power series" (JACM) の Newton 反復構成 / Bentley & Shamos 系 scanline 面積計測 / Gavril (1972) 区間グラフの彩色・最大独立集合の貪欲正当性 / Graham–Knuth–Patashnik "Concrete Mathematics" §6 の Stirling 三角と閉形式 / Chazelle (1985) "On the convex layers of a planar set" の onion 分解 — Qiita/Zenn/海外技術記事の FPS・sweep・区間スケジューリング・Stirling・onion layers 解説を参照し全て整数のみで実装。
+
+**実装物**: Library Checker 系 FPS API 形状(inv/log/exp/pow の次数引数契約)、AOJ/ACL 系矩形和 sweep、教科書系 weighted interval scheduling DP+復元、ConMath の Stirling 双対恒等式、convex_hull 再利用の onion peel — 整数のみで実装。
