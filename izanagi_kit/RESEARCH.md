@@ -1697,3 +1697,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Ukkonen (1995) "On-line construction of suffix trees" の active point + suffix link 構成と終端文字 `$` の必然性 / CLRS §13 red-black insert/delete-fixup(NIL sentinel の親指針付き fixup 形)/ Floyd (1962)・Johnson (1977) "Efficient algorithms for shortest paths in sparse networks" のポテンシャル再重み付け / Page, Brin, Motwani, Winograd (1999) PageRank の dangling-node 補正形 / Thompson (1968) NFA 構成・Rabin–Scott (1959) 部分集合構成・Hopcroft DFA 最小化(dfamin) — Qiita/Zenn/海外技術記事の suffix tree・赤黒木・Johnson・PageRank・オートマトン解説を参照し全て整数のみで実装。
 
 **実装物**: jogojapan の Ukkonen active-point 形(SENT 終端付き)、cp-algorithms の Johnson/reweight 形、networkx の PageRank power-iteration 形、Thompson 教科書の NFA→DFA — 整数のみで実装。
+
+## 第51次: AA木・LZ4・計量TSP近似・Keccak・Minkowski和
+
+- `aastree` — AA 木(Andersson の2不変式赤黒簡略版): `level(t) = level(left)+1`・NIL=0 で、左水平辺の skew(右回転)と右右水平の split(左回転+level+)の2操作のみで平衡。削除巻戻は decrease_level(NIL=0 で min+1)→skew×3(t, t.right, t.right.right)→split×2(t, t.right) の固定列。**設計値捕捉**: (a) 真の AA 恒等式は `min(children)+1` でなく `left+1` — 左葉のみ持つ level-2 ノードは合法。(b) 順序監査は pre-order ではなく真の in-order(left→prev→right)が必須 — 初版の事前順報告が大量偽陽性。arena + freelist、BTreeSet シャドー 60×400 op 照合
+- `lz4` — LZ4 ブロック codec(wire 形式): シーケンス = [lit4|match4] トークン + 255 拡張 + u16 LE offset。貪欲 4-byte ハッシュパース、match≥4・offset≥1・末尾リテラル専用・MFLIMIT=12/LASTLITERALS=5。復号は offset>emitted・末尾マッチ・0 offset を全拒否、重複マッチは逐語コピー。**設計値捕捉**: 圧縮側で `table[h]` を先に更新してから参照すると offset が自己参照になる — 観測値 `prev` を別退避。往復 oracle・切詰全拒否・決定出力
+- `christofides` — 計量 TSP 3/2 近似: Prim MST(コスト,頂点)正準選択 → 握手補題で偶数の奇数次集合 T → 完全部グラフ最小重み完全マッチング(部分集合 DP `O(2^|T|·|T|)`、|T|≤20、超過はソート貪欲)→ MST∪matching 多重グラフの Euler 回路(`euler::euler_walk`)→ 初出頂点 shortcut。計量性 ⇒ shortcut が増長しないため MST+matching ≤ opt+opt/2。全 tie-break 正準で行列の純関数、n≤8 総当り `2·cost ≤ 3·opt` oracle
+- `sha3` — Keccak-f[1600] スポンジ(FIPS 202): 25 車線 u64、θ/ρ/π/χ/ι ×24 ラウンド、SHA3=0x06・SHAKE=0x1F ドメイン + pad10*1。`Digest256` インクリメンタル。**設計値捕捉**: 2回目以降の `finalize` squeeze が rate 内位置 0 に戻ると真の XOF 意味でない — `pos` フィールドで rate 内読出位置を跨呼出保持に確定(NIST ベクタ + chunked 不変 + prefix 安定)
+- `minkowski` — 凸 Minkowski 和/差: CCW 正規化(最低 (y,x) 始点)+ 辺ベクトルの角度マージ O(n+m) — cross>0 で a 側前進、平行時は両側合成(合成辺は後で convex_hull が 180° 頂点を除去)。`diff(a,b)=sum(a,−b)` が配置空間障害物で `collide` = 原点の多角形内判定、縮退(<3頂点)は全ペア和→凸包。brute pair-sums→hull oracle 60乱数 + C-obstacle 意味論照合(任意頂点含有∪辺交差)
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、`segbeats` add-lazy 変種。
+
+## 出典(第51次、search-index 照合)
+
+**論文・仕様**: Andersson (1993) "Balanced search trees made simple" の AA 木2不変式・level=left+1 / LZ4 block format spec(Yann Collet) のシーケンス文法と MFLIMIT/LASTLITERALS 制約 / Christofides (1976) "Worst-case analysis of a new heuristic for the travelling salesman problem" 3/2 界 / FIPS 202 SHA-3 + Keccak リファレンスの θρπχι 写像と pad10*1 / de Berg et al. Computational Geometry の Minkowski 和の角度マージ構成 — Qiita/Zenn/海外技術記事の AA 木・LZ4・Christofides・SHA-3・Minkowski 和解説を参照し全て整数のみで実装。
+
+**実装物**: 教科書形 AA 木の skew/split 骨格、lz4 リファレンスの hash4+greedy parse、競技プログラミング慣行の Christofides パイプライン、tiny_sha3 系のレーン配置、cp-algorithms 系の辺ベクトルマージ — 整数のみで実装。

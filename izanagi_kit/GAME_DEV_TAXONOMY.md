@@ -284,6 +284,12 @@
 - J191 PageRank(整数化)✅ `pagerank`(Q32 質量 `SCALE=1<<32`、辺配分+teleport+dangling 均等分、全 floor 意味で縮約収束、`converged` フラグ報告)
 - J192 有限オートマトン(NFA→DFA)✅ `automaton`(Thompson 構成 + 部分集合構成 + `complement(alphabet)`/`intersect`/`minimize` — dfamin 連携、`complete()` の or_insert 化で sink 上書き bug 修正)
 
+- J193 AA 木 ✅ `aastree`(赤黒の2不変式簡略版 — `level = left+1`、NIL=0 計上、削除巻戻は decrease_level→skew×3→split×2、BTreeSet+真中順監査)
+- J194 LZ4 ブロック codec ✅ `lz4`(4-byte ハッシュ貪欲パース、ニブル+255 拡張長、厳格復号 — offset≥1・末尾リテラル・重複マッチ逐語コピー)
+- J195 Christofides TSP(1.5 近似)✅ `christofides`(MST→奇数次集合→部分集合 DP 最小重み完全マッチング(|T|≤20、超過は貪欲)→多重グラフ Euler→shortcut、全 tie-break 正準)
+- J196 Keccak/SHA-3 ✅ `sha3`(Keccak-f[1600] 25 車線 ×24 ラウンド、SHA3-256/512=0x06・SHAKE128/256=0x1F ドメイン、pad10*1、`Digest256` は rate 位置を跨呼出で保持)
+- J197 Minkowski 和差 ✅ `minkowski`(凸ポリゴンの辺ベクトル角度マージ O(n+m)、`diff` が配置空間障害物 — 全ペア和凸包 oracle)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）
