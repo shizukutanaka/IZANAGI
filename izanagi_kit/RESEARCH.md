@@ -1601,3 +1601,19 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Google Protocol Buffers wire format(LEB128 canonical 性の実務規範)+ Fujiwara(2013) "negative literals in Horn clauses" / Dowling & Gallier (1984) "Linear-time algorithms for testing the satisfiability of propositional Horn formulae" / Knuth TAOCP §4.3.3 multi-precision / Okanohara 実践的 beats + jiayiqi's segbeats blog(Zenn/海外解説の second-extremum ledger 形)/ Henzinger & King (1999) + Tarjan (1997) "Dynamic trees as search trees via Euler tours" + competitive-programming ETT の半辺 tour 実装形。
 
 **実装物**: protobuf/libprotobuf-mutator の varint、SAT4j/minisat の Horn-clause watcher、rust-bigint/java BigInteger の limb 形、beet-aizu/library-checker の segment tree beats、e-maxx/cp-algorithms の ET-tree — Qiita/Zenn/海外技術記事の varint・Horn SAT・多倍長・segbeats・ETT 解説を参照し全て整数のみで実装。
+
+## 第45次: strict codec・lazy 集約・素数法・離散対数・最小化
+
+- `utf8` — Höhrmann strict-DFA UTF-8: 364-entry クラス×状態表で overlong・surrogate・`>0x10FFFF` を byte 単位で拒否。`Decoder` は `state/codep/seq_start/pos` を保持し `feed`→`Option<u32>`。**設計値: `decode_lossy` の resync は `e.pos == seq_start` で「lead 拒否は消費・mid-sequence 拒否は再供給」を分岐** — 一律再供給だと stray continuation が ACCEPT でも永遠に拒否され無限ループ、一律消費だと mid-sequence 中断後の回復が欠ける。naive 別系統デコーダ(lead-length+range-check)と600乱 byte soup 照合
+- `lazyseg` — 正準 lazy segtree: range `add` + `sum`/`min`/`max`/`get`/`set`(set は `add(i, i+1, x−get(i))` で単一タグ維持)。**設計値: push で子に畳む sum は子の実葉数 `len/2`(floor)でスケール — 中点 `m=(l+r)/2` は奇数長で左に寄るため `ceil(len/2)` は左子に多めに畳み oracle が捕捉**。`apply` は tag+sum+mn+mx 一括、読み取り側の降下も push 必須
+- `tonelli` — Tonelli–Shanks `sqrt_mod`: `p−1 = q·2ˢ` 分解、`p≡3 (mod 4)` は `a^((p+1)/4)` 直接式、非剰余 z は 2,3,… 逐次探索で決定的。`r=a^((q+1)/2)`/`t=a^q`/`c=z^q` 初期化後、`t` の 2-adic 次数を `c` の自乗で収束 — 返却は `(lo, p−lo)` 整序対で表現一意。p<200 全素数×全剰余の brute oracle + 2^62 級素数での往復(発見側 x を根ペアに含む)照合
+- `bsgs` — baby-step giant-step `discrete_log`: baby 表 `g^j→最小 j`、giant 歩行 `cur = h·f^i` で `f = g^{p−1−m}`(Fermat、逆元補助不要)。初 hit が最小 x — `x = i·m + j` 分解で `i·m` 未満は全棄却済み。**設計値: `g=0` は `f` が真の逆元でないため(`0^m·f=0`)i≥1 で phantom hit — 歩行前に直接解決**。p<200 全素数×g<20×全 h の brute oracle + 部分群外(2 in Z23)の `None` 確認
+- `dfamin` — Hopcroft DFA 最小化: splitter worklist の分割精細、小さい半分のみ再キュー(CLRS 的 n log n 規則)。block id は最小メンバーで正準化 → 言語のみの関数で状態順に依らず、compact 最小機械(`start`/`accept`/`delta`)を付随。**到達性は独立 `reachable`、未到達状態は自分達の中で最小化** — naive signature-iteration oracle(異なる手続き)200乱択全照合 + compact 機械の遷移シミュレーション一致
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御(本物の group 演算)、`segbeats` add-lazy 変種。
+
+## 出典(第45次、search-index 照合)
+
+**論文・仕様**: Höhrmann (2008) "Flexible and Economical UTF-8 Decoder" の DFA 表 + Unicode 準拠 maximal-subpart 置換規範 / atcoder library `lazy_segtree` の (min/max/sum)+add モノイド + cp-algorithms lazy propagation / Tonelli (1891)・Shanks (1973) "Five algorithms for modular square roots" + cp-algorithms / Shanks (1971) baby-step giant-step + Stinson "Cryptography: Theory and Practice" の最小指数規約 / Hopcroft (1971) "An n log n algorithm for minimizing states" + Knuutila (TUCS 2001) の splitter 再調査。
+
+**実装物**: Bjoern Hoehrmann 公開 DFA テーブル、ACL/kactl の lazy segtree 形、e-maxx/cp-algorithms の tonelli・bsgs 実装形、ecma/C# FiniteAutomata の Hopcroft worklist — Qiita/Zenn/海外技術記事の UTF-8 DFA・lazy 伝搬・Tonelli–Shanks・離散対数・DFA 最小化解説を参照し全て整数のみで実装。
