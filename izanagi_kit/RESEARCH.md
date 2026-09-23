@@ -1552,3 +1552,20 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Sleator & Tarjan (1985) "Self-adjusting binary search trees" + (1983) "A data structure for dynamic trees" / Myers (1999) "A fast bit-vector algorithm for approximate string matching based on dynamic programming" + Navarro & Raffinot "Flexible Pattern Matching in Strings" §6 / Gilbert–Johnson–Keerthi (1988) GJK + Gino van den Bergen "Collision Detection in Interactive 3D Environments" / Masmano et al. (2004) TLSF: a new dynamic memory allocator for real-time systems。
 
 **実装物**: competitive-programming の Link–Cut 実装形、sedgewick の bottom-up splay、Myers 論文のビットベクトル疑似コード、dyn4j/bullet の GJK 参照実装、NuttX/rtems の TLSF — Qiita/Zenn の Link–Cut・Myers bitap・GJK・TLSF 解説を参照し全て整数のみで実装。
+
+
+## 第42次: ハッシュ拡張・署名・一般マッチング・侵入深度・形状境界
+
+- `sha512` — FIPS 180-4 SHA-512: 64bit 語×80 段、Σ は ror 14/18/41 と 19/28/39、128bit 長さフィールド。`be_bytes` 系禁止のため手動シフトで BE 語を生成。NIST 全 4 ベクトル+分割不変+境界長(111/112/113/127/128)を照合
+- `ed25519` — RFC 8032 EdDSA: 実装は二系統を分離 — 体は radix-51 の `[u64;5]` GF(p)(radix-64 の `[u64;4]` 版は積の列和が ~2^130 で u128 を溢れ全面書換)、スカラーは `[u64;4]` mod-L bit-fold。加算は EFD add-2008-hwcd-3 の完全式 — **D=2·Z1·Z2 の係数 2 が必須で脱落すると加算全体が壊れる設計値を捕捉**。`norm`(2 回キャリー)と `canon`(条件付き p 減算)を分離し serialize/比較は canon 側。TEST1-3 ベクトル+改竄/非正規拒否
+- `blossom` — Edmonds 一般マッチング: e-maxx 形 BFS で奇閉路を発見したら `lca` 基底へ `base[]` 縮約し p[] を blossom 内逆張りで更新。mate 追跡で増加路復元。n≤9 の全部分集合列挙 oracle + 二重三角形花必須ケース
+- `epa` — GJK 補完の penetrating 版: GJK ループを simplex 保持で走らせ原点包含三角形を seed → CCW 多胞体の最近 edge を外向法線で support 拡張、`dot(w,n) ≤ dot(edge,n)` で厳密収束。brute oracle(全面法線 SAT overlap の最小値)と depth²+軸平行を 400 乱数照合 — **法線符号規約をテスト側が誤読(+n̂ で a→b)した誤期待を捕捉**
+- `alphahull` — α-shape: delaunay 三角形を外接半径² ≤ α² で選別、1 回出現 edge が境界。外心は垂線二等分線の Cramer 解で有理数 — **両軸の分子符号が反転する実装 bug を独立式 abc/(4A) oracle が捕捉**。`α²·d²` は checked_mul で飽和比較
+
+**継続延期バックログ**: 平面性判定、真の 3 段 recursive vEB、SwissTable の SIMD 群制御(本物の group 演算)、edit-distance 本格 fuzzy(64 超 pattern の bitap)。
+
+## 出典(第42次、search-index 照合)
+
+**論文・仕様**: FIPS 180-4 Secure Hash Standard / Bernstein et al. (2011) Ed25519 + RFC 8032 §5,§7.1 公式ベクトル + Hisil et al. EFD add-2008-hwcd-3 / Edmonds (1965) "Paths, trees, and flowers" + e-maxx blossom 実装形 / van den Bergen (2001) EPA + bullet btGjkEpa2 / Edelsbrunner–Kirkpatrick–Seidel (1983) α-shape + CGAL 2D alpha shapes。
+
+**実装物**: donna64/ref10 の radix-51 fe25519、libsodium の mod-L 畳み込み、competitive-programming の blossom、dyn4j/bullet の EPA、CGAL α-shape — Qiita/Zenn/海外技術記事の Ed25519・Edmonds・EPA・α-shape 解説を参照し全て整数のみで実装。
