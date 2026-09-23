@@ -1859,3 +1859,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Karmarkar & Karp (1982) "The Differencing Method of Set Partitioning" / Willard (1983) "Log-Logarithmic Worst-Case Range Queries" の x-fast trie / J. Dai (jiry_2) "Segment Tree Beats" の add 合成形 / Tunstall (1967) "Synthesis of Noiseless Compression Codes" + Savari & Gallager (1997) / Golub & Van Loan *Matrix Computations* §5.2 — Qiita/Zenn/海外技術記事の KK partition・x-fast/y-fast・segbeats lazy add・Tunstall coding・Gram-Schmidt QR 解説を参照し全て整数のみで実装。
 
 **実装物**: Library Checker `range_chmin_chmax_add_range_sum` 準拠の beats+add 形状、Demaine 6.851 講義の x-fast 層テーブル構造、競プロ系 KK 復元の bitmask 追跡、Tunstall 教科書の貪欲葉展開、教科書系 classical Gram-Schmidt(修正版��なく — 厳密算術なら数値誤差を考慮する理由が無い)— 全て整数のみで実装。
+
+## 第61次: 有理ベジェ・軌道数え上げ・最小値キュー・局所アライメント・三分探索
+
+- `ratbezier` — 有理ベジェ(NURBS 式): 制御点を同次 `(w·x, w·y, w)` にリフトし de Casteljau で線形補間、最後に割り戻す — t の全中間値が `Frac` で厳密。`eval_deriv` は次数-1 の差分同次曲線に同じ評価を適用し商の微分 `(X'W − XW')/W²` で射影 — **設計値捕捉**: 差分ベクタの y/w 成分が `h[i] − h[i]` の自分自身差分で恒常 0 になっていたタイポを doctest が捕捉
+- `polya` — Burnside 補題 `#orbits = (1/|G|)·Σk^{cycles(g)}`: `burnside` は群を置換のリストとして受理、`necklaces`/`bracelets` は巡回群 C_n・二面体群 D_n を位置集合上に生成。分子和は `BigInt`、|G| による厳密除算は limbs の上位側からの学校法則 — 除法未実装の bigint に小除数除法を合成。`necklaces(6,2)=14`(初版テストは bracelet 列 13 と混同 — oracle 列挙で捕捉)
+- `minq` — 最小値キュー(MinQueue/MinStack): 各スタック要素が running min を保持し `min` = 両端の top の小さい方。`out` が空なら `in→out` pour で minima を一括再構築 — 各要素は最大1回 pour で償却 O(1)。`slide` の窓 deque と異なり永続 FIFO オブジェクト
+- `ssw` — Smith–Waterman 局所アライメント: `dp[i][j] = max(0, sub, del, ins)` の 0-floor restart、勝者セルは最早 i → 最早 j で正準化、witness 範囲は restart まで traceback。**検証**: score = 全 substring pair の global NW 最大値(brute oracle)、返却範囲が真に score を達成するかを独立 NW で再検証
+- `ternary` — 離散三分探索: **設計値捕捉**: 非厳密単峰(階段降下 `…,11,11,8`)で `f(m1)==f(m2)` の等値 probe は argmin を *どちら側にも* 局所化不能(平坦段の後に降下が続き得る) — 古典ルールは厳密単峰が前提。契約を厳密単峰に限定し、末尾窓を全評価+全体最小スキャンで検証 — 契約外入力は偶然正解 or `None` で、誤 index を黙って返さない
+
+**継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
+
+
+## 出典(第61次、search-index 照合)
+
+**論文・仕様**: Piegl & Tiller "The NURBS Book" §4.1 同次評価、Farin "Curves and Surfaces for CAGD" §13 有理ベジェ / Pólya & Read (1987) *Combinatorial Enumeration* の Burnside/巡回・二面体群 / cp-algorithms "Stack & Queue modification" の min-queue 構成 / Smith & Waterman (1981) JMB 局所アライメント、Gusfield §11 / ternary search folklore + 厳密単峰性の階段反例 — Qiita/Zenn/海外技術記事の有理ベジェ・Burnside・min-queue・SSW・ternary 解説を参照し全て整数のみで実装。
+
+**実装物**: NURBS ライブラリ系の同次 (wx,wy,w) リフト評価、Sage/GAP 系 orbit-count API、cp-alg の two-stack min-queue、BioPython/Edlib 系 local-alignment API 形状、Library Checker 系 argmin インターフェース — 整数のみで実装。
+

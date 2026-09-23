@@ -335,6 +335,11 @@
 - J240 beats+lazy add ✅ `seglazy`(延期バックログ消化 — push は add を*先に*伝搬してから clamp)
 - J241 Tunstall 符号 ✅ `tunstall`(最大確率葉を 2ᵏ まで貪欲展開 — BigInt 交叉積で厳密比較、DFS 順で正準コード)
 - J242 厳密 Gram–Schmidt ✅ `ortho`(Frac 上の非正規化 Q + 単位対角 R — A=Q·R が厳密成立、従属列は零ベクトル)
+- J243 有理ベジェ ✅ `ratbezier`(同次 (w·x,w·y,w) リフトの de Casteljau — NURBS 式評価が全 Frac、導関数は差分曲線+商の微分)
+- J244 Pólya/Burnside 数え上げ ✅ `polya`((1/|G|)·Σk^{cycles(g)} — BigInt 厳密除算、necklaces(4,3)=24/bracelets(6,2)=13)
+- J245 最小値キュー ✅ `minq`(各スタックスロットが running min を保持 — pour 時に一括再構築で償却 O(1))
+- J246 Smith–Waterman ✅ `ssw`(0-floor restart セル + (i,j) 最早勝者セルで正準化 — witness は restart まで traceback)
+- J247 離散三分探索 ✅ `ternary`(契約は*厳密*単峰性 — 階段降下の等値 probe は argmin を局所化不能、末尾窓を全評価+全体最小検証)
 
 
 ## K. 物理・衝突 (Physics / Collision)
