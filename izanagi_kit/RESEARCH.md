@@ -1481,3 +1481,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Boehm, Atkinson & Plass, "Ropes: an Alternative to Strings" (1995) / Burkhard & Keller, "Some approaches to best-match file searching" (1973) / Welzl, "Smallest enclosing disks" (1991) + de Berg et al. Computational Geometry / drken「slope trick」解説 + MtSaka/competitive-library の正規 heap 実装 + maspy slope_trick / Thompson (1968) + Cox, "Regular Expression Matching Can Be Simple And Fast" (2007) pike loop。
 
 **実装物**: rope の weight 再帰 + rebalance 閾値、cp 系の BK-tree edge ラベル索引、KACTL の circumcircle/minEnclosingCircle、slope-trick の L/R heap 規約、russ cox nfa.c の Frag/patch 構造 — Qiita/Zenn のロープ・BK木・slope trick・正規表現エンジン解説を参照し整数のみで逐語実装。
+
+## 第38次 開番地ハッシュ・盤面集合演算・形式言語・実行領域・順序集合(round 38)
+
+**採用モジュール(247→252)**: `cuckoo` / `bitboard` / `cyk` / `halfplane` / `yfast`
+
+- `cuckoo` — Pagh–Rodler cuckoo hashing(2001)。`t1[h1]`/`t2[h2]` の二 home 配置で contains は高々2 probe、削除は tombstone 不要。キック連鎖は交互テーブルで budget 超過時に (table,slot,old) ジャーナルを全巻戻し — 初版は打ち切りで逐出済みキーが迷子になる実 bug を cram テストが捕捉。固定容量で rehash 方針の分岐なし、`!0` は empty sentinel として挿入拒否
+- `bitboard` — 8x8 u64 ビット盤(a1=0)。file mask クランプの8方向シフト + dumb7fill 遮蔽 fill(空升を6反復して最終1shiftが blocker を含む)で rook/bishop/queen の ray attack。leaper(knight/king/pawn)は ray oracle が効かないため単步 oracle を別建て — 両系統で全64升+4000乱択を照合
+- `cyk` — CYK 受理(Cocke–Younger–Kasami)。bin[a][b] を lhs bitset に前計算した O(n³) 三角表、`accepts`/`derive`/`cell` の3粒度。oracle は (nt,i,j) メモ化の直接再帰展開 — 小規模 CFG×40入力×150文法を全照合
+- `halfplane` — sort-and-deque 半平面交差。方向 d=(−b,a) を quadrant+cross で整数整列(atan2 なし)、同方向は c_h·|b_prev|≤c_prev·|b_h| の符号自由比較で tight merge。捕捉した設計値3件: 閉交点 meet(dq.back,dq.front) の push_front 欠落で頂点が1個不足 / 通過のみの境界線が重複・共線頂点を残す / deque の巡回順が入力依存で CW になる — 正規化で CCW 確定。空/非有界/退化/零面積は全て None
+- `yfast` — Willard(1983)の rep 層+クラスタ構造(ハッシュ不要の決定論版)。bucket は (prev_rep,rep] 区間で内容分割、>2·BUCKET で median 分裂、rep 削除時は bucket max が rep 昇格 — (prev,rep] 不変条件を保つ。predecessor strict< / successor inclusive≥ で veb と同規約
+
+**継続延期バックログ**: SwissTable、link-cut、sais、平面性判定、jps(実装済)、GJK/EPA、TLSF、Chomsky-full expr、edit-distance fuzzy、magic bitboard、真の 3 段 recursive vEB、HLL(整数化)、ED25519、alphahull。cuckoo/bitboard/halfplane/yfast/CYK は本ラウンドで消化。
+
+## 出典(第38次、search-index 照合)
+
+**論文・仕様**: Pagh & Rodler, "Cuckoo hashing" (2001) / Chess Programming Wiki(bitboards, dumb7fill) / Cocke–Younger–Kasami + Hopcroft & Ullman (1979) / cp-algorithms half-plane intersection + Preparata & Shamos / Willard, "Log-logarithmic worst-case range queries" (1983)。
+
+**実装物**: Rust std/hashbrown の cuckoo kick 設計、ChessProgramming dumb7fill/occluded fill、教科書 CYK 三角表、cp-algorithms/KACTL の deque HPI 規約、y-fast の rep/bucket 二層 — Qiita/Zenn のカッコーハッシュ・ビットボード・CYK・半平面交差解説を参照し整数のみで逐語実装。
