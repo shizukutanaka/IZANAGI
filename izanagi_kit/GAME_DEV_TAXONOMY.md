@@ -278,6 +278,11 @@
 - J185 Zobrist ハッシュ ✅ `zobrist`((piece,square)→u64 鍵 XOR、toggle=厳密 undo、side-to-move 鍵は表末尾から派生 — transposition table 用増分ハッシュ)
 - J186 教科書 RSA(パディング無し)✅ `rsa`(bigint 上で除法を自前実装: 二進長除法 rem/商、modpow、拡張 Euclid modinv、固定証人 Miller–Rabin — seed 決定的鍵生成、署名/暗号往復)
 - J187 JSON パーサ(整数部分集合)✅ `json`(RFC 8259 − float、厳密拒否: leading zero・lone surrogate・非終端・末尾ゴミ、canonical render は BTreeMap ソート鍵 — `parse(render(x))==x`)
+- J188 接尾辞木(Ukkonen オンライン構築)✅ `sufftree`(仮想終端 `SENT` で全接尾辞が固有葉を保有、active point + suffix link + skip/count 降下、`contains`/`occurrences`/`count`/`longest_repeat` — naive 全照合)
+- J189 赤黒木 ✅ `redblack`(CLRS insert/delete-fixup の arena 実装、NIL sentinel は親+向きで追跡、`check()` が BST順・赤赤なし・黒高等差を監査 — BTreeSet シャドー照合)
+- J190 全点対最短路(Floyd–Warshall + Johnson)✅ `apsp`(i64 辺・i128 内部、Johnson は `bellman::shortest` ポテンシャルで `w'≥0` 化、負閉路検出 — 3 者照合)
+- J191 PageRank(整数化)✅ `pagerank`(Q32 質量 `SCALE=1<<32`、辺配分+teleport+dangling 均等分、全 floor 意味で縮約収束、`converged` フラグ報告)
+- J192 有限オートマトン(NFA→DFA)✅ `automaton`(Thompson 構成 + 部分集合構成 + `complement(alphabet)`/`intersect`/`minimize` — dfamin 連携、`complete()` の or_insert 化で sink 上書き bug 修正)
 
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
