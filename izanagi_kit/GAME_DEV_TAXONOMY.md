@@ -194,6 +194,12 @@
 - J111 Base64 符号(RFC 4648 — strict padding 検証)✅ `base64`(std + URL-safe 両 alphabet、decode は pad≤2・末尾のみ・alphabet 外 byte 拒否の厳格検査。RFC §10 既知ベクタ + 全長・全 256 byte 往復 — `wal`/`savefile` の wire 表現層)
 - J112 König 最小頂点被覆(二部マッチング — 交互到達で被覆復元)✅ `vertexcover`(hopcroft_karp のマッチングから自由 L 頂点起点の交互 BFS → (L\Z)∪(R∩Z)。マッチングサイズ=被覆サイズの相互検証 + n,m≤4 全列挙 minimality — `bipartite` の双対定理実装)
 
+- J113 SipHash 鍵付きハッシュ(Aumasson–Bernstein 2012 — 64bit PRF)✅ `siphash`(SipHash-2-4、u64 add/xor/rot のみ、8-byte staging で分割非依存の streaming。論文ベクタ 8 件検証 — `DetHash` の鍵付き対極で DoS 耐性 hashmap・署名付き seed 表現向け)
+- J114 HMAC-SHA256(RFC 2104 — ipad/opad 二重ハッシュ MAC)✅ `hmac`(64-byte block 0x36/0x5c パッド、長 key は先に SHA-256 — RFC 4231 TC1/2/4/6 既知解答 + 分割非依存。`poly1305` と並ぶ MAC のハッシュ型版)
+- J115 ペアリングヒープ(meldable 優先度キュー — O(1) meld)✅ `pairingheap`(Fredman–Sedgewick の pairing heap を Vec arena で。(prio,key) 全対の正準 pop 順 — 二段 pairing pass で根車線を浅く保つ。BTreeMap oracle で push/pop/meld 全乱択照合)
+- J116 ビトニックソート網(Batcher 網 — 入力非依存比較列)✅ `bitonic`(`network(n)` が n のみの固定 (i,j,asc) 列を生成 — 全 peer が同一比較痕を replay する data-oblivious 整列、非 pow2 は !0 sentinel パディング。lockstep ガジェット/ソート検証器向け)
+- J117 Tarjan オフライン LCA(DSU + 一 DFS — バッチ祖先クエリ)✅ `offlinelca`(黒化した w に対し lca=ancestor[find(w)]。DSU が root 間で共有されるため tree_of 番号で跨木クエリを None に遮蔽 — binary-lifting `lca` と全乱択一致、5000 深連鎖も iterative で安全)
+
 ## K. 物理・衝突 (Physics / Collision)
 - K1 グリッド衝突（passability）✅ `passability` / K2 AABB 重なり ✅ `aabb` / K3 空間ハッシュ broadphase ✅ `spatial_hash`
 - K4 線分述語（掃引衝突・壁判定・LOS 補助）✅ `segment`（`segments_intersect`/`point_on_segment`/`point_segment_dist2`/`segment_dist2` — i128 orientation 厳密判定。距離は `dist²` の ceiling 返却で `==0` ⟺ 幾何学的に接する、を整数のまま保証。端点-on-線分・collinear 退化を全分岐網羅 + 独立式オラクルと乱数検証）

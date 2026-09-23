@@ -433,6 +433,14 @@ connectivity) and the lockstep packet primitive, all in published-work form:
   reachable position, perfect self-play draws, and a win-in-1 plus a
   maximally-delayed loss hit their known ply-discounted values.
 
+### Added — keyed hashes, pairing heap, sorting network, offline LCA
+
+- `siphash` — SipHash-2-4 keyed 64-bit PRF: streaming `SipHash` state (split-independent via an 8-byte staging buffer) + one-shot `siphash`; paper vectors verified.
+- `hmac` — RFC 2104 HMAC-SHA256 over `sha256`: `Hmac`/`hmac_sha256`, keys longer than the 64-byte block hashed first; RFC 4231 test cases verified.
+- `pairingheap` — arena pairing heap: O(1) `meld` (heap arenas appended and indices shifted), canonical `(prio, key)` pop order from a two-pass pairing.
+- `bitonic` — Batcher bitonic sorting network: `network(n)` emits the fixed `(i, j, ascending)` comparator sequence (data-oblivious — identical trace on every peer), `sort` pads non-power-of-two inputs with `!0` sentinels.
+- `offlinelca` — Tarjan offline LCA: one iterative DFS + DSU answers a whole query batch; same-`tree_of` guard shields cross-tree queries (DSU state persists across roots) and invalid/unreachable vertices answer `None`, matching `lca` semantics.
+
 ### Added — range-add Fenwicks, geohash, octree, base64, König vertex cover
 
 - `fenwickrange` — `RangePoint` (range-add / point-query difference BIT) and `RangeSum` (two-BIT range-add + range-sum via `P(x)=prefix(B1,x)·x−prefix(B2,x)`), 0-based half-open API over 1-based internals.
