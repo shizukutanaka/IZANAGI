@@ -219,6 +219,125 @@ fn handbook_quotes_the_real_pinned_hashes() {
 }
 
 #[test]
+fn no_document_quotes_a_stale_pinned_hash() {
+    // The pinned values leak into documents other than the handbook —
+    // RESEARCH.md quotes `PINNED_FINAL_HASH = 0xd1a9_236e_96a2_c802` in three
+    // places, and only the digit grouping differs from the constant. Naming a
+    // constant beside a value is a claim that the two are equal; any markdown
+    // that does it has to agree with the source.
+    let real: Vec<(&str, String)> = [
+        ("izanagi_kit/tests/determinism.rs", "PINNED_FINAL_HASH"),
+        (
+            "izanagi_kit/tests/roguelike_sim.rs",
+            "PINNED_ROGUELIKE_HASH",
+        ),
+    ]
+    .into_iter()
+    .map(|(file, konst)| {
+        let line = read(file)
+            .lines()
+            .find(|l| l.contains(&format!("const {konst}")))
+            .unwrap_or_else(|| panic!("{file} must define {konst}"))
+            .to_string();
+        let value = line
+            .split('=')
+            .nth(1)
+            .and_then(|v| v.split(';').next())
+            .map(str::trim)
+            .unwrap_or_else(|| panic!("cannot parse {konst}"))
+            .replace('_', "");
+        (konst, value)
+    })
+    .collect();
+    let mut stale: Vec<String> = Vec::new();
+    for doc in all_markdown_documents() {
+        let text = fs::read_to_string(&doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
+        for (n, line) in text.lines().enumerate() {
+            for (konst, value) in &real {
+                // A quote looks like `NAME = 0x…` / `NAME=0x…`: the constant
+                // bound to a literal. Other hashes on the same line (e.g. a
+                // changelog saying "PINNED_* are unaffected" beside a golden
+                // hash being updated) are not claims about the constant.
+                let mut search_from = 0;
+                while let Some(at) = line[search_from..].find(konst) {
+                    let start = search_from + at + konst.len();
+                    let tail = &line[start..];
+                    let quoted = tail
+                        .trim_start_matches(|c: char| c == '`' || c.is_whitespace())
+                        .strip_prefix('=')
+                        .map(|t| t.trim_start_matches(|c: char| c == '`' || c.is_whitespace()));
+                    if let Some(rest) = quoted {
+                        let lit: String = rest
+                            .chars()
+                            .take_while(|c| c.is_ascii_hexdigit() || *c == 'x' || *c == '_')
+                            .collect();
+                        let digits = lit.trim_start_matches("0x").replace('_', "");
+                        if lit.starts_with("0x")
+                            && digits.len() >= 8
+                            && digits != value.trim_start_matches("0x")
+                        {
+                            stale.push(format!(
+                                "{}:{}: {konst} quoted as {lit}",
+                                doc.display(),
+                                n + 1
+                            ));
+                        }
+                    }
+                    search_from = start;
+                }
+            }
+        }
+    }
+    assert!(
+        stale.is_empty(),
+        "these documents quote a pinned-hash value that is not the real one: \
+         {stale:#?}\n\nUpdate them in the same commit that changes the constant."
+    );
+}
+
+#[test]
+fn no_document_quotes_a_stale_kit_bridge_hash() {
+    // The kit_bridge integration hash lives in gate.sh as KIT_BRIDGE_HASH and
+    // is grepped out of the example's output on every run — the value is
+    // verified there. But AGENT_INSTRUCTIONS.md quotes the bare
+    // `353498ec4fbcd160` in three places, with no const name binding it, and
+    // nothing checked that the two agreed. Same hole as the pinned hashes.
+    let gate = read("tools/gate.sh");
+    let real = gate
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("KIT_BRIDGE_HASH="))
+        .map(str::trim)
+        .expect("tools/gate.sh must define KIT_BRIDGE_HASH");
+    let mut stale: Vec<String> = Vec::new();
+    for doc in all_markdown_documents() {
+        let text = fs::read_to_string(&doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
+        for (n, line) in text.lines().enumerate() {
+            if !line.contains("kit_bridge") {
+                continue;
+            }
+            for tok in line.split(|c: char| !(c.is_ascii_hexdigit() || c == 'x')) {
+                let digits = tok.trim_start_matches("0x");
+                // Twelve-plus hex digits is a hash-shaped literal, not a flag
+                // value like 0x10 or a version-ish fragment.
+                if digits.len() >= 12
+                    && digits.chars().all(|c| c.is_ascii_hexdigit())
+                    && digits != real
+                {
+                    stale.push(format!("{}:{}: {tok}", doc.display(), n + 1));
+                }
+            }
+        }
+    }
+    assert!(
+        stale.is_empty(),
+        "these documents quote a kit_bridge hash that is not the one gate.sh \
+         pins ({real}): {stale:#?}"
+    );
+}
+
+#[test]
 fn handbook_module_count_matches_reality() {
     // The snapshot table states how many modules each crate has. A number
     // nobody checks is a number that drifts — this one had drifted by twelve
@@ -263,6 +382,27 @@ fn no_document_quotes_a_stale_engine_version() {
              engine declares {real}"
         );
     }
+
+    // The handbook's snapshot table has a version row ("engine 4.1.0 / kit
+    // 0.1.0") that states both versions — and nobody checked it. A bump would
+    // leave it stale in the file reviewers read first. Kit's version is
+    // parsed from its own manifest the same way.
+    let kit_manifest = read("izanagi_kit/Cargo.toml");
+    let kit_real = kit_manifest
+        .lines()
+        .find_map(|l| l.trim().strip_prefix("version = "))
+        .map(|v| v.trim().trim_matches('"').to_string())
+        .expect("the kit manifest must declare a version");
+    let handbook = read("AGENT_INSTRUCTIONS.md");
+    let row = handbook
+        .lines()
+        .find(|l| l.contains("バージョン") && l.contains("engine"))
+        .expect("AGENT_INSTRUCTIONS.md must have a version row naming engine");
+    assert!(
+        row.contains(&format!("engine {real}")) && row.contains(&format!("kit {kit_real}")),
+        "the version row says `{row}`, but the manifests declare engine \
+         {real} / kit {kit_real} — update it in the same commit as the bump"
+    );
 }
 
 /// Every `vX.Y.Z` mentioned in `text`, without pulling in a regex crate.
@@ -387,30 +527,53 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     }
 }
 
+/// Every tracked-looking `*.md` under the repo root. The dead-link check used
+/// to name its documents in a hardcoded array; the list silently excluded
+/// SECURITY.md and izanagi/CHANGELOG.md, and any new document would have
+/// escaped inspection forever. Walking the tree makes the coverage claim true
+/// for documents that do not exist yet.
+fn all_markdown_documents() -> Vec<PathBuf> {
+    let mut docs = Vec::new();
+    fn walk(dir: &Path, docs: &mut Vec<PathBuf>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = entry.file_name();
+            if path.is_dir() {
+                // Build output and VCS metadata are not documentation.
+                if name == "target" || name == ".git" {
+                    continue;
+                }
+                walk(&path, docs);
+            } else if name.to_string_lossy().ends_with(".md") {
+                docs.push(path);
+            }
+        }
+    }
+    walk(&repo_root(), &mut docs);
+    docs.sort();
+    docs
+}
+
 #[test]
 fn no_markdown_document_links_to_a_missing_file() {
     // Deleting the superseded audit documents left eight dead relative links
     // across three files — READMEs pointing readers at files that no longer
     // exist. A link is a claim that a file exists; claims get checked.
-    let docs = [
-        "README.md",
-        "AGENT_INSTRUCTIONS.md",
-        "izanagi/README.md",
-        "izanagi/CLAUDE.md",
-        "izanagi/ARCHITECTURE.md",
-        "izanagi/CONTRIBUTING.md",
-        "izanagi_kit/README.md",
-        "izanagi_kit/RESEARCH.md",
-        "izanagi_kit/SPEC.md",
-        "izanagi_kit/GAME_DEV_TAXONOMY.md",
-        "izanagi_kit/CHANGELOG.md",
-        "docs/ci/README.md",
-    ];
+    let docs = all_markdown_documents();
+    assert!(
+        docs.len() >= 14,
+        "found only {} markdown documents — has the document set shrunk?",
+        docs.len()
+    );
     let mut dead: Vec<String> = Vec::new();
     let mut checked = 0usize;
-    for doc in docs {
-        let dir = Path::new(doc).parent().unwrap_or_else(|| Path::new(""));
-        let text = read(doc);
+    for doc in &docs {
+        let dir = doc.parent().unwrap_or_else(|| Path::new(""));
+        let text = fs::read_to_string(doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
         // Every `](target)` where target is a relative path (no scheme, no
         // pure fragment). Anchors are split off before the existence check.
         let mut rest = text.as_str();
@@ -427,9 +590,8 @@ fn no_markdown_document_links_to_a_missing_file() {
                 continue;
             }
             checked += 1;
-            let resolved = repo_root().join(dir).join(path_part);
-            if !resolved.exists() {
-                dead.push(format!("{doc} -> {target}"));
+            if !dir.join(path_part).exists() {
+                dead.push(format!("{} -> {target}", doc.display()));
             }
         }
     }
@@ -725,20 +887,7 @@ fn no_document_points_at_an_iteration_that_has_ended() {
     // The rule is therefore about tense, not about content: say what is true
     // now, and keep the list of what comes next in one place (RESEARCH.md's
     // candidate table), where being out of date is visible.
-    let docs = [
-        "README.md",
-        "AGENT_INSTRUCTIONS.md",
-        "izanagi/README.md",
-        "izanagi/CLAUDE.md",
-        "izanagi/ARCHITECTURE.md",
-        "izanagi/CONTRIBUTING.md",
-        "izanagi_kit/README.md",
-        "izanagi_kit/RESEARCH.md",
-        "izanagi_kit/SPEC.md",
-        "izanagi_kit/GAME_DEV_TAXONOMY.md",
-        "izanagi_kit/CHANGELOG.md",
-        "docs/ci/README.md",
-    ];
+    let docs = all_markdown_documents();
     // Phrases that name "the iteration being worked on" as if the reader were
     // inside it. Past-tense records ("implemented in 1e45bc4") are fine and
     // deliberately not matched.
@@ -749,12 +898,13 @@ fn no_document_points_at_an_iteration_that_has_ended() {
         "本反復で実装",
     ];
     let mut found: Vec<String> = Vec::new();
-    for doc in docs {
-        let text = read(doc);
+    for doc in &docs {
+        let text = fs::read_to_string(doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
         for (n, line) in text.lines().enumerate() {
             for needle in frozen {
                 if line.contains(needle) {
-                    found.push(format!("{doc}:{}: {}", n + 1, line.trim()));
+                    found.push(format!("{}:{}: {}", doc.display(), n + 1, line.trim()));
                 }
             }
         }
@@ -777,24 +927,12 @@ fn every_fenced_block_declares_its_language() {
     //
     // Tagging every fence costs three characters and means a document can be
     // wired up as a doctest without first auditing it.
-    let docs = [
-        "README.md",
-        "AGENT_INSTRUCTIONS.md",
-        "izanagi/README.md",
-        "izanagi/CLAUDE.md",
-        "izanagi/ARCHITECTURE.md",
-        "izanagi/CONTRIBUTING.md",
-        "izanagi_kit/README.md",
-        "izanagi_kit/RESEARCH.md",
-        "izanagi_kit/SPEC.md",
-        "izanagi_kit/GAME_DEV_TAXONOMY.md",
-        "izanagi_kit/CHANGELOG.md",
-        "docs/ci/README.md",
-    ];
+    let docs = all_markdown_documents();
     let mut untagged: Vec<String> = Vec::new();
     let mut checked = 0usize;
-    for doc in docs {
-        let text = read(doc);
+    for doc in &docs {
+        let text = fs::read_to_string(doc)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", doc.display()));
         let mut inside = false;
         for (n, line) in text.lines().enumerate() {
             if !line.starts_with("```") {
@@ -803,7 +941,7 @@ fn every_fenced_block_declares_its_language() {
             if !inside {
                 checked += 1;
                 if line[3..].trim().is_empty() {
-                    untagged.push(format!("{doc}:{}", n + 1));
+                    untagged.push(format!("{}:{}", doc.display(), n + 1));
                 }
             }
             inside = !inside;
@@ -870,12 +1008,32 @@ fn the_readme_headline_counts_the_interrogation_modules_correctly() {
         .find(|(k, _)| *k == n)
         .map(|(_, w)| *w)
         .unwrap_or_else(|| panic!("{n} interrogation modules — extend NUMERALS"));
-    let readme = read("izanagi_kit/README.md");
-    assert!(
-        readme.contains(&format!("{word} modules do nothing but interrogate")),
-        "there are {n} interrogation modules, so the README's opening sentence \
-         must say \"{word} modules do nothing but interrogate a simulation\""
-    );
+    // The sentence lives in three places with three phrasings: the kit
+    // README's opening paragraph, the crate's lib.rs front page (the first
+    // thing docs.rs renders), and the workspace README's crate table. Checking
+    // only one lets the others drift out of agreement with the family count.
+    for (rel, phrasing) in [
+        (
+            "izanagi_kit/README.md",
+            "{Word} modules do nothing but interrogate",
+        ),
+        (
+            "izanagi_kit/src/lib.rs",
+            "{Word} of these modules do nothing but interrogate",
+        ),
+        (
+            "README.md",
+            "{word} modules do nothing but check that guarantee",
+        ),
+    ] {
+        let wanted = phrasing
+            .replace("{Word}", word)
+            .replace("{word}", &word.to_lowercase());
+        assert!(
+            read(rel).contains(&wanted),
+            "there are {n} interrogation modules, so {rel} must say \"{wanted}\""
+        );
+    }
 
     // Every one must be a real module, and none of them may be `world_hash` —
     // the mistake the handbook made was counting the substrate as a tool.
