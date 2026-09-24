@@ -80,6 +80,24 @@ const CORDIC_ATAN: [i32; 16] = [
     51472, 30386, 16055, 8149, 4091, 2047, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2,
 ];
 
+/// `2^(2⁻ⁱ)` in Q16.16 for i = 1..=16 — the factors [`Fixed::exp2`] multiplies
+/// in for each set fraction bit (bit 15 ↔ `2^0.5` … bit 0 ↔ `2^(1/65536)`).
+/// Integer literals so the bit pattern is identical on every target; deriving
+/// them from `f64` would reintroduce the cross-platform variance this module
+/// exists to avoid.
+const EXP2_FRAC: [u32; 16] = [
+    92682, 77936, 71468, 68438, 66971, 66250, 65892, 65714, 65625, 65580, 65558, 65547, 65542,
+    65539, 65537, 65537,
+];
+
+/// ln 2 in Q16.16 (0.6931472 · 2¹⁶ ≈ 45426) — converts [`Fixed::log2`] to
+/// [`Fixed::ln`].
+const LN2_RAW: i32 = 45426;
+
+/// log₂ e in Q16.16 (1.4426950 · 2¹⁶ ≈ 94548) — converts [`Fixed::exp`] to
+/// [`Fixed::exp2`].
+const LOG2E_RAW: i32 = 94548;
+
 /// Floor of the integer square root of `n`, computed bit-by-bit with only
 /// add/shift/compare. (`u64::isqrt` would be cleaner but stabilised in 1.84,
 /// past this crate's 1.75 MSRV.) Deterministic on every target.
@@ -601,6 +619,107 @@ impl Fixed {
     #[inline]
     pub fn hypot(a: Fixed, b: Fixed) -> Fixed {
         a.mul(a).saturating_add(b.mul(b)).sqrt()
+    }
+
+    /// `2^self`. The exponential family lives on base-2 because binary
+    /// exponents decompose cleanly in fixed point: the integer part is a
+    /// shift, and the 16 fraction bits each pick a factor from `EXP2_FRAC`
+    /// (`2^(2⁻ⁱ)` in Q16.16), so `2^f` is a ≤16-term product — exact powers
+    /// of two come out exact.
+    ///
+    /// Saturating: `x ≥ 15` exceeds `Fixed::MAX`'s value (2¹⁵ = 32768 >
+    /// 32767.99998) and returns `MAX`; `x ≤ -18` underflows the last ulp and
+    /// returns `ZERO`. Error is a few ulps worst-case: every factor multiply
+    /// can drop one bit of tail, plus each table entry's half-ulp rounding.
+    pub fn exp2(self) -> Fixed {
+        let n = self.0 >> FRAC_BITS; // floor(self): arithmetic shift
+        if n >= 15 {
+            return Fixed::MAX;
+        }
+        if n <= -18 {
+            return Fixed::ZERO;
+        }
+        let f = (self.0 & (ONE - 1)) as u32; // fraction ∈ [0, 1), MSB-first
+        let mut frac: u64 = 1 << FRAC_BITS; // running product 2^(f/2¹⁶), Q16.16
+        let mut bits = f;
+        // Truncating multiplies keep `frac` non-decreasing in `f` — rounding
+        // each step creates a sawtooth (verified: 14k monotone violations).
+        for &t in &EXP2_FRAC {
+            if bits & 0x8000 != 0 {
+                frac = (frac * t as u64) >> FRAC_BITS;
+            }
+            bits <<= 1;
+        }
+        // frac ∈ [2¹⁶, 2¹⁷); fold in the integer part as a shift.
+        if n >= 0 {
+            let wide = frac << n;
+            if wide >= i32::MAX as u64 {
+                return Fixed::MAX;
+            }
+            Fixed(wide as i32)
+        } else {
+            let sh = (-n) as u32; // 1..=17; round-half-up the discarded tail
+            Fixed(((frac + (1u64 << (sh - 1))) >> sh) as i32)
+        }
+    }
+
+    /// Binary logarithm `log₂(self)`. `self ≤ 0` saturates to `Fixed::MIN` —
+    /// log is undefined there, and pinning the extreme keeps the contract
+    /// total like `sqrt`'s clamp-to-zero.
+    ///
+    /// Normalises the raw value into a mantissa `m ∈ [1, 2)` tracked in Q16.16,
+    /// then recovers the 16 fraction bits one per squaring: `log₂(m)` gains a
+    /// binary digit each time `m²` crosses 2. Exact for powers of two; a few
+    /// ulps elsewhere.
+    pub fn log2(self) -> Fixed {
+        if self.0 <= 0 {
+            return Fixed::MIN;
+        }
+        let v = self.0 as u64; // ∈ [1, 2³¹)
+        let e = 63 - v.leading_zeros() as i32; // v ∈ [2^e, 2^(e+1))
+                                               // m = v normalised into [2¹⁶, 2¹⁷): log₂(x) = (e − 16) + log₂(m/2¹⁶).
+        let mut m = if e >= FRAC_BITS as i32 {
+            v >> (e - FRAC_BITS as i32)
+        } else {
+            v << (FRAC_BITS as i32 - e)
+        };
+        let mut frac_bits: u32 = 0;
+        for _ in 0..FRAC_BITS {
+            // m ∈ [2¹⁶,2¹⁸) ⇒ m² ≤ 2³⁶, fits u64; round-half-up the tail.
+            m = (m * m + (1 << 15)) >> FRAC_BITS;
+            frac_bits <<= 1;
+            if m >= (2 << FRAC_BITS) {
+                frac_bits |= 1;
+                m >>= 1;
+            }
+        }
+        Fixed(((e - FRAC_BITS as i32) << FRAC_BITS) + frac_bits as i32)
+    }
+
+    /// Natural logarithm `ln(self) = log₂(self) · ln 2`. `self ≤ 0` saturates
+    /// to `Fixed::MIN`, matching [`log2`](Self::log2).
+    #[inline]
+    pub fn ln(self) -> Fixed {
+        self.log2().mul(Fixed(LN2_RAW))
+    }
+
+    /// `e^self`, as `exp2(self · log₂ e)`; see [`exp2`](Self::exp2) for the
+    /// algorithm and saturation contract. `self ≳ 11.09` returns `MAX`;
+    /// `self ≲ −25.5` returns `ZERO`.
+    #[inline]
+    pub fn exp(self) -> Fixed {
+        self.mul(Fixed(LOG2E_RAW)).exp2()
+    }
+
+    /// `self^exp` for `self > 0`: `exp2(exp · log₂ self)`. `self ≤ 0` returns
+    /// `ZERO` — the continuous power is undefined for a non-positive base
+    /// (for integer exponents of any base, use [`pow`](Self::pow)).
+    #[inline]
+    pub fn powf(self, exp: Fixed) -> Fixed {
+        if self.0 <= 0 {
+            return Fixed::ZERO;
+        }
+        self.log2().mul(exp).exp2()
     }
 
     /// Four-quadrant arctangent of `y/x` in radians, via vectoring-mode CORDIC.
@@ -1654,5 +1773,216 @@ mod tests {
             let expect = Fixed::from_wide(product >> FRAC_BITS);
             assert_eq!(Fixed(a).mul(Fixed(b)), expect);
         }
+    }
+
+    // ── exp / log family ───────────────────────────────────────────────────
+
+    #[test]
+    fn test_exp2_integer_exponents_exact() {
+        // Powers of two are the identity the whole table exists to preserve:
+        // 2^k must come out bit-exact.
+        for k in 0..=14 {
+            assert_eq!(
+                Fixed::from_int(k).exp2(),
+                Fixed::from_int(1 << k),
+                "exp2({k})"
+            );
+        }
+        for k in 1..=16 {
+            assert_eq!(
+                Fixed::from_int(-k).exp2(),
+                Fixed::from_ratio(1, 1 << k),
+                "exp2(-{k})"
+            );
+        }
+        assert_eq!(Fixed::ZERO.exp2(), Fixed::ONE);
+    }
+
+    #[test]
+    fn test_exp2_half_is_sqrt2() {
+        // 2^0.5 = √2 ≈ 1.41421356 → raw ≈ 92682.
+        let half = Fixed::from_ratio(1, 2);
+        approx(half.exp2(), Fixed::from_ratio(1_414_214, 1_000_000), 4);
+        // And it squares back to 2 within mul rounding.
+        approx(half.exp2().pow2(), Fixed::from_int(2), 4);
+    }
+
+    #[test]
+    fn test_exp2_saturates() {
+        assert_eq!(Fixed::from_int(15).exp2(), Fixed::MAX);
+        assert_eq!(Fixed::from_int(100).exp2(), Fixed::MAX);
+        assert_eq!(Fixed::MAX.exp2(), Fixed::MAX);
+        assert_eq!(Fixed::from_int(-20).exp2(), Fixed::ZERO);
+        assert_eq!(Fixed::MIN.exp2(), Fixed::ZERO);
+        // exp2(-17) rounds to the last ulp; exp2(-18) underflows to zero.
+        assert_eq!(Fixed::from_int(-17).exp2().raw(), 1);
+        assert_eq!(Fixed::from_int(-18).exp2(), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_exp2_monotone_and_oracle() {
+        // Sweep the interior range against the f64 oracle (tests may use
+        // floats — only library code is integer-pure). The frac-product error
+        // (≤ ~8 ulps of the [1,2) mantissa) is amplified by 2^floor(x) in the
+        // output, so the tolerance is relative, not absolute.
+        let mut rng = crate::rng::SplitMix64::new(0xE9_02);
+        for _ in 0..20_000 {
+            let raw = -(12 << FRAC_BITS) + (rng.below(27u32 << 16) as i32);
+            let got = Fixed(raw).exp2();
+            let want = 2f64.powf(raw as f64 / 65536.0) * 65536.0;
+            let diff = (got.raw() as f64 - want).abs();
+            assert!(
+                diff <= 8.0 + want * 2.5e-4,
+                "exp2({raw}) = {} vs {want} (diff {diff})",
+                got.raw()
+            );
+        }
+        let mut last = Fixed::ZERO;
+        for raw in (-12 << FRAC_BITS)..(15 << FRAC_BITS) {
+            let got = Fixed(raw).exp2();
+            assert!(got >= last, "exp2 must be non-decreasing at raw {raw}");
+            last = got;
+        }
+    }
+
+    #[test]
+    fn test_log2_powers_exact() {
+        assert_eq!(Fixed::ONE.log2(), Fixed::ZERO);
+        for k in 1..=14 {
+            assert_eq!(
+                Fixed::from_int(1 << k).log2(),
+                Fixed::from_int(k),
+                "log2(2^{k})"
+            );
+        }
+        for k in 1..=16 {
+            assert_eq!(
+                Fixed::from_ratio(1, 1 << k).log2(),
+                Fixed::from_int(-k),
+                "log2(2^-{k})"
+            );
+        }
+    }
+
+    #[test]
+    fn test_log2_nonpositive_saturates() {
+        assert_eq!(Fixed::ZERO.log2(), Fixed::MIN);
+        assert_eq!(Fixed::from_int(-3).log2(), Fixed::MIN);
+        assert_eq!(Fixed::MIN.log2(), Fixed::MIN);
+    }
+
+    #[test]
+    fn test_log2_oracle() {
+        // |got − log2(x)| ≤ 4 ulps across the positive range.
+        let mut rng = crate::rng::SplitMix64::new(0x10_62);
+        for _ in 0..20_000 {
+            let raw = 1 + (rng.next_u64() % (i32::MAX as u64 - 1)) as i32;
+            let got = Fixed(raw).log2();
+            let want = (raw as f64 / 65536.0).log2() * 65536.0;
+            assert!(
+                (got.raw() as f64 - want).abs() <= 4.0,
+                "log2({raw}) = {} vs {want}",
+                got.raw()
+            );
+        }
+    }
+
+    #[test]
+    fn test_exp2_log2_roundtrip() {
+        // log2∘exp2 ≈ id, with a scale-aware tolerance: the exp2 output has
+        // granularity 1 raw unit, so |log2(r) − x| can reach ~1/(2r·ln2) in
+        // value — i.e. ~2¹⁶/(2r·ln2) raw — larger for tinier outputs.
+        for raw in (-15 << FRAC_BITS)..(15 << FRAC_BITS) {
+            let mid = Fixed(raw).exp2();
+            if mid == Fixed::ZERO || mid == Fixed::MAX {
+                continue;
+            }
+            let back = mid.log2();
+            let diff = (back.raw() as i64 - raw as i64).abs();
+            // |log2(r) − x| ≤ ~2¹⁶/(2r·ln2) (bucket width) + log2/exp2 ulps
+            // and the round-half-up tail; +8 covers the slack at mid scale.
+            let bound = (131072i64 / mid.raw() as i64).max(2) + 8;
+            assert!(
+                diff <= bound,
+                "log2(exp2({raw})) = {}, off by {diff} (bound {bound})",
+                back.raw()
+            );
+        }
+        let mut rng = crate::rng::SplitMix64::new(0x7E_57);
+        for _ in 0..20_000 {
+            let raw = 1 + (rng.next_u64() % (i32::MAX as u64 - 1)) as i32;
+            let back = Fixed(raw).log2().exp2();
+            let rel = (back.raw() as i64 - raw as i64).unsigned_abs() as f64 / raw as f64;
+            assert!(
+                rel <= 2.0e-4,
+                "exp2(log2({raw})) = {}, rel {rel}",
+                back.raw()
+            );
+        }
+    }
+
+    #[test]
+    fn test_exp_ln_roundtrip_and_values() {
+        // exp(0) = 1; exp(1) ≈ e; ln(e) ≈ 1 through the identity.
+        assert_eq!(Fixed::ZERO.exp(), Fixed::ONE);
+        approx(Fixed::ONE.exp(), Fixed::from_ratio(2_718_282, 1_000_000), 8);
+        approx(Fixed::ONE.ln(), Fixed::ZERO, 4);
+        // ln(2) = 0.6931 ≈ LN2_RAW.
+        approx(Fixed::from_int(2).ln(), Fixed(LN2_RAW), 4);
+        let mut rng = crate::rng::SplitMix64::new(0xAB_E1);
+        for _ in 0..10_000 {
+            let raw = 1 + (rng.next_u64() % (300u64 << 16)) as i32; // x ≤ ~300
+            let back = Fixed(raw).ln().exp();
+            let rel = (back.raw() as i64 - raw as i64).unsigned_abs() as f64 / raw as f64;
+            assert!(rel <= 1.0e-3, "exp(ln({raw})) = {}, rel {rel}", back.raw());
+        }
+    }
+
+    #[test]
+    fn test_exp_extremes_saturate() {
+        // e^11.1 > 32767 ⇒ MAX; e^-18 < ulp ⇒ 0.
+        assert_eq!(Fixed::from_int(12).exp(), Fixed::MAX);
+        assert_eq!(Fixed::from_int(-18).exp(), Fixed::ZERO);
+        assert_eq!(Fixed::MAX.exp(), Fixed::MAX);
+        assert_eq!(Fixed::MIN.exp(), Fixed::ZERO);
+    }
+
+    #[test]
+    fn test_powf_cases() {
+        let two = Fixed::from_int(2);
+        let three = Fixed::from_int(3);
+        // Integer exponents agree with `pow` (±table error for non-power bases).
+        approx(three.powf(two), Fixed::from_int(9), 64);
+        assert_eq!(two.powf(Fixed::from_int(10)), Fixed::from_int(1024));
+        approx(
+            two.powf(Fixed::from_ratio(1, 2)),
+            Fixed::from_int(2).sqrt(),
+            4,
+        );
+        assert_eq!(two.powf(Fixed::ZERO), Fixed::ONE);
+        approx(
+            Fixed::from_int(10).powf(Fixed::ZERO - Fixed::ONE),
+            Fixed::from_ratio(1, 10),
+            4,
+        );
+        // Non-positive base: documented zero, never a panic or a NaN-like.
+        assert_eq!(Fixed::ZERO.powf(two), Fixed::ZERO);
+        assert_eq!((Fixed::ZERO - two).powf(two), Fixed::ZERO);
+        // Overflow saturates through exp2.
+        assert_eq!(Fixed::from_int(5).powf(Fixed::from_int(20)), Fixed::MAX);
+    }
+
+    #[test]
+    fn test_exp_log_deterministic() {
+        // Same input → byte-identical output (integer-only, no global state).
+        let x = Fixed(123_456);
+        assert_eq!(x.exp2(), x.exp2());
+        assert_eq!(x.log2(), x.log2());
+        assert_eq!(x.ln(), x.ln());
+        assert_eq!(x.exp(), x.exp());
+        assert_eq!(
+            x.powf(Fixed::from_ratio(3, 2)),
+            x.powf(Fixed::from_ratio(3, 2))
+        );
     }
 }

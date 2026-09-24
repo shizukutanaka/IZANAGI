@@ -1947,3 +1947,21 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: TAOCP 7.2.1.6 (Catalan/Dyck path 生成)・Concrete Mathematics §2.3 (derangement 漸化式・rencontres) / Zeckendorf (1972) 表現定理 / Brown (1964) 貪欲一意性 / AtCoder EDPC・ACL 系の桁DP (pos-tight-started 3状態) / Lucas (1883) ハノイ塔・Frame–Stewart 系手順解析 (ctz(k+1) 特性は Stockmeyer 等) — Qiita/Zenn/海外技術記事の Catalan・derangement・Zeckendorf・digit-DP・Hanoi 解説を参照し全て整数のみで実装。
 
 **実装物**: SymPy `binomial`/`subfactorial` の API 形状、Library-Checker `zeckendorf` 貪欲+partition_point、cp-algorithms/競プロ典型の digit-DP (pos,tight,started)、典型 k 番目ハノイ手 `move_at` の二分降下 — 整数のみで実装。
+
+
+## 第66次: 監査駆動 — DetHash 標準型完備・Fixed exp/log 基盤・golden 全ピン化
+
+**方法の転換**: 今回は新モジュール追加ではなく、第一原理(第3次の3公理: 決定的状態・決定的入力列・証明器具)とソクラテス問答で「公理上本当に欠けているもの」を列挙。3件の結論:
+
+- `world_hash` — **DetHash の標準型カバーが非完備だった**: `write_i8`/`write_u128`/`write_i128` を Fnv1a に追加し、`i8`/`i16`/`u128`/`i128`/`()`/`(A,B,C,D)`/`[T;N]`/`Box<T>`/`&T`/`VecDeque<T>`/`LinkedList<T>`/`BTreeMap<K,V>`/`BTreeSet<T>` に `DetHash` を実装。問答の産物として**意図的除外をコード内に明文化**: `usize`/`isize`(SPEC G9 の幅依存)、`HashMap`/`HashSet`(プロセス乱択順 — `hash_unordered` が分担)、`BinaryHeap`(iter 順が挿入履歴を encode)。`VecDeque`/`LinkedList`/`BTree*` は全て長さ u32 + 正準順で既存 `[T]` 規約と同一 encod­ing
+- `fixed` — **exp/log 超越関数が不在であり、crate 内で既に重複実装されていた**: `easing.rs` の私有 `exp2_tween` が 0.5% 誤差の3項 Taylor で基盤の欠落を代理証明。`exp2` = 整数部シフト × 16項 `2^(2^-i)` 積テーブル(最終誤差 ≤~8ulp frac — 出力では 2^n 倍され相対 ~2.5e-4)、`log2` = [2¹⁶,2¹⁷) 正規化 + 16回二乗で1bit/反復、`ln`/`exp`/`powf` は ln2/log₂e 定数倍の合成。収縮契約: exp2 `x≥15`→MAX・`x≤−18`→0、log2 `x≤0`→MIN、powf `base≤0`→0。**計測が設計を決めた点**: 積算の round-half-up は単調性を破壊(14057 非単調点を Python で実測)→ 切り捨て採用で全範囲単調 0 違反; `exp2` 最終シフトのみ round-half-up。`exp2_tween` は `Fixed::exp2` に委譲し精度 ~100倍向上(全イージングテストは許容値ベースなので安全)
+- `det_hash_golden` — **宣言済み債務こそ弱点**: `UNPINNED_DET_HASH` の62型を全棚卸しし、公開構築可能な61型全て + 新規 std 型を golden pin(97 ケース)。区別できた2つの仕様差: `Fsm` は遷移表を意図的に除外(設定は状態でない — コメント済)、`Quest::state` は objectives からの導出値でフィールド非存在(折り畳み不要が正しい)。残存宣言は `MonitorState` のみ(private フィールド・`Monitor` 経由生成のため正準フィクスチャ不可)。単バイト判別子 enum は意図的に同一 hash(同バイト列→同 digest は hash の正義)となり得るため、推移カバー(VisibilityMap セル・Objective.state)で担保
+
+**検証**: 冪は exp2/log2 共に厳密、oracle は f64(テスト専用許可)20k sweep、同一入力2回 determinism、ラウンドトリップは出力量子化に応じた scale-aware 束 |Δ|≲2¹⁶/(2r·ln2)。全例・pin hash・パッケージング含む gate 全緑。
+
+
+## 出典(第66次)
+
+**手法**: Elon Musk の第一原理推論(公理まで分解し推論し直す)とソクラテス問答法(仮定を問いで崩す)を監査ツールとして適用 — 「何を足すか」ではなく「公理上何が欠けているか」を列挙する逆方向のラウンド設計。
+
+**実装物**: IEEE 系 round-half-up 出力シフト、binary-decomposition べき乗表(CORDIC/平方分割と同族)、Fnv1a LE-bytes ワイヤ規約の std 型全域化、golden-fixture による wire-format 完全監視 — 全て整数のみで実装。

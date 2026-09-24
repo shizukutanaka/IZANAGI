@@ -328,27 +328,16 @@ pub fn ease_clamp<F: Fn(Fixed) -> Fixed>(t: Fixed, ease_fn: F) -> Fixed {
 
 // ── exponential ─────────────────────────────────────────────────────────────
 //
-// Decomposes 2^x into an integer power-of-two (bit-shift) and a fractional
-// part approximated via a 3-term Taylor series for e^(f·ln2). Max error < 0.5%.
+// `2^(10·(t−1))` via [`Fixed::exp2`] — the substrate primitive replaced the
+// earlier private 3-term Taylor approximation (≈0.5% error) with a table-
+// product accurate to a few ulps.
 
 fn exp2_tween(t: Fixed) -> Fixed {
-    // x = 10·(t−1) ∈ (−10, 0).
-    let x = Fixed::from_int(10).mul(t - Fixed::ONE);
-    let f = x.fract(); // fractional part ∈ [0, 1)
-    let n = x - f; // integer part (Fixed with zero fraction)
-    let n_int = n.raw() >> 16; // ∈ {−10, …, −1}
-                               // 2^n via right-shift: −n_int ∈ [1, 10].
-    let pow_n = Fixed::from_ratio(1, 1i32 << (-n_int) as u32);
-    // 2^f ≈ 1 + f·ln2 + f²·(ln²2/2) + f³·(ln³2/6)  (Horner form).
-    let c1 = Fixed::from_ratio(693147, 1_000_000); // ln 2
-    let c2 = Fixed::from_ratio(240227, 1_000_000); // ln²2 / 2
-    let c3 = Fixed::from_ratio(55504, 1_000_000); // ln³2 / 6
-    let exp_f = Fixed::ONE + f.mul(c1 + f.mul(c2 + f.mul(c3)));
-    pow_n.mul(exp_f)
+    Fixed::from_int(10).mul(t - Fixed::ONE).exp2()
 }
 
 /// Ease-in exponential: `2^(10·(t−1))`. Near-zero start, explosive finish.
-/// Exact `0` at `t=0`, exact `1` at `t=1`. Max approximation error ≈ 0.4%.
+/// Exact `0` at `t=0`, exact `1` at `t=1`. Max approximation error ≈ 0.005%.
 pub fn ease_in_expo(t: Fixed) -> Fixed {
     if t <= Fixed::ZERO {
         return Fixed::ZERO;
