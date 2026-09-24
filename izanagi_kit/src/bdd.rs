@@ -289,11 +289,11 @@ mod tests {
         truth_oracle(
             &mut b,
             g,
-            |a| ((a & 1 == 1) || (a >> 1 & 1 == 1)) && !(a >> 2 & 1 == 1),
+            |a| ((a & 1 == 1) || (a >> 1 & 1 == 1)) && (a >> 2 & 1 != 1),
             3,
         );
         let h = b.apply(Op::Implies, x0, x1);
-        truth_oracle(&mut b, h, |a| !(a & 1 == 1) || (a >> 1 & 1 == 1), 3);
+        truth_oracle(&mut b, h, |a| (a & 1 != 1) || (a >> 1 & 1 == 1), 3);
     }
 
     #[test]
@@ -315,7 +315,10 @@ mod tests {
             g1,
             |a| {
                 let (x0, x1) = (a & 1 == 1, a >> 1 & 1 == 1);
-                (x0 && x1) || !x0
+                // g1 is built as (x0 & x1) | !x0, which reduces to !x0 | x1 —
+                // the very equivalence canonicity asserts, so the oracle states
+                // the reduced form.
+                !x0 || x1
             },
             2,
         );
