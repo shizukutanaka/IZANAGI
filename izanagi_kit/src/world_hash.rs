@@ -38,6 +38,8 @@
 //!
 //! [`savefile`]: crate::savefile
 
+use std::collections::{BTreeMap, BTreeSet, LinkedList, VecDeque};
+
 const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
 const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
@@ -116,6 +118,28 @@ impl Fnv1a {
     /// damage totals, or other wide simulation state fields.
     #[inline]
     pub fn write_i64(&mut self, value: i64) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
+    /// Hash a signed 8-bit integer as a single byte. Completes the 8-bit pair
+    /// alongside `write_u8` — useful for small signed fields (temperature
+    /// deltas, direction offsets) stored as `i8`.
+    #[inline]
+    pub fn write_i8(&mut self, value: i8) {
+        self.write_bytes(&[value as u8]);
+    }
+
+    /// Hash a 128-bit unsigned integer in little-endian byte order. Useful for
+    /// hashing UUID-like identifiers or wide checksums stored as `u128`.
+    #[inline]
+    pub fn write_u128(&mut self, value: u128) {
+        self.write_bytes(&value.to_le_bytes());
+    }
+
+    /// Hash a signed 128-bit integer in little-endian byte order. Completes
+    /// the integer-write family alongside `write_u128`.
+    #[inline]
+    pub fn write_i128(&mut self, value: i128) {
         self.write_bytes(&value.to_le_bytes());
     }
 
@@ -576,6 +600,133 @@ impl<T: DetHash> DetHash for Option<T> {
                 hasher.write_u32(1);
                 v.det_hash(hasher);
             }
+        }
+    }
+}
+
+// ── Std-coverage impls ──────────────────────────────────────────────────────
+//
+// Every std type whose value set has a canonical order folds here, so sim
+// state built on them produces the same bytes on every platform. The
+// deliberate exclusions, and where to go instead:
+//  - `usize`/`isize`: pointer-width dependent (SPEC G9) — store `u32`/`u64`.
+//  - `HashMap`/`HashSet`: iteration order is process-random — use
+//    [`hash_unordered`] (order-insensitive) or switch to `BTreeMap`/`BTreeSet`.
+//  - `BinaryHeap`: iter order encodes insertion history, so two semantically
+//    equal heaps can hash differently — drain and fold a sorted `Vec` instead.
+
+impl DetHash for i8 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i8(*self);
+    }
+}
+
+impl DetHash for i16 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i16(*self);
+    }
+}
+
+impl DetHash for u128 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u128(*self);
+    }
+}
+
+impl DetHash for i128 {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_i128(*self);
+    }
+}
+
+/// `()` folds nothing: it has exactly one value, so it carries no information
+/// and its canonical encoding is zero bytes.
+impl DetHash for () {
+    #[inline]
+    fn det_hash(&self, _hasher: &mut Fnv1a) {}
+}
+
+impl<A: DetHash, B: DetHash, C: DetHash, D: DetHash> DetHash for (A, B, C, D) {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.0.det_hash(hasher);
+        self.1.det_hash(hasher);
+        self.2.det_hash(hasher);
+        self.3.det_hash(hasher);
+    }
+}
+
+/// Delegates to `[T]` so a fixed-size array hashes identically to `Vec<T>`
+/// and `&[T]` with the same contents.
+impl<T: DetHash, const N: usize> DetHash for [T; N] {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        self.as_slice().det_hash(hasher);
+    }
+}
+
+/// Delegates to the pointee so `Box<T>` and `T` produce identical hashes.
+impl<T: DetHash + ?Sized> DetHash for Box<T> {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        (**self).det_hash(hasher);
+    }
+}
+
+/// Delegates to the referent so `&T` and `T` produce identical hashes —
+/// useful when hashing reference-holding fields without copying.
+impl<T: DetHash + ?Sized> DetHash for &T {
+    #[inline]
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        (**self).det_hash(hasher);
+    }
+}
+
+/// Front-to-back with the same len+items encoding as `[T]`, so a `VecDeque`
+/// and a `Vec` with the same contents hash identically.
+impl<T: DetHash> DetHash for VecDeque<T> {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.len() as u32);
+        for item in self {
+            item.det_hash(hasher);
+        }
+    }
+}
+
+/// Front-to-back with the same len+items encoding as `[T]`, so a `LinkedList`
+/// and a `Vec` with the same contents hash identically.
+impl<T: DetHash> DetHash for LinkedList<T> {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.len() as u32);
+        for item in self {
+            item.det_hash(hasher);
+        }
+    }
+}
+
+/// Iterates in ascending key order — already canonical — folding len-prefixed
+/// `(key, value)` pairs exactly like a sorted `Vec<(K, V)>`.
+impl<K: DetHash, V: DetHash> DetHash for BTreeMap<K, V> {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.len() as u32);
+        for (k, v) in self {
+            k.det_hash(hasher);
+            v.det_hash(hasher);
+        }
+    }
+}
+
+/// Iterates in ascending order — already canonical — folding len-prefixed
+/// items exactly like a sorted `Vec<T>`.
+impl<T: DetHash> DetHash for BTreeSet<T> {
+    fn det_hash(&self, hasher: &mut Fnv1a) {
+        hasher.write_u32(self.len() as u32);
+        for item in self {
+            item.det_hash(hasher);
         }
     }
 }
@@ -1316,5 +1467,145 @@ mod tests {
         let run = || hash_covers(&s, |s| s.gold += 7);
         assert_eq!(run(), run());
         assert!(run());
+    }
+
+    // ── std-coverage impls ─────────────────────────────────────────────────
+
+    #[test]
+    fn test_signed_and_128bit_ints_hash() {
+        // Each new integer impl folds distinct values distinctly.
+        assert_ne!(hash_state(&(-1i8)), hash_state(&0i8));
+        assert_ne!(hash_state(&(-1i16)), hash_state(&1i16));
+        assert_ne!(hash_state(&1u128), hash_state(&(1u128 << 64)));
+        assert_ne!(hash_state(&(-1i128)), hash_state(&1i128));
+        // And they encode at their own widths: i8 folds 1 byte where u8 folds
+        // 4 (write_u32), so i8(-1) and u8(0xFF) do not collide.
+        assert_ne!(hash_state(&(-1i8)), hash_state(&0xFFu8));
+    }
+
+    #[test]
+    fn test_i8_writes_one_byte() {
+        // write_i8 is a single-byte write: i8(-2) hashes like write_bytes(&[0xFE]).
+        let mut h = Fnv1a::new();
+        h.write_i8(-2);
+        let mut want = Fnv1a::new();
+        want.write_bytes(&[0xFE]);
+        assert_eq!(h.finish(), want.finish());
+    }
+
+    #[test]
+    fn test_u128_writes_le_bytes() {
+        let mut h = Fnv1a::new();
+        h.write_u128(0x0123_4567_89ab_cdef_fedc_ba98_7654_3210);
+        let mut want = Fnv1a::new();
+        want.write_bytes(&0x0123_4567_89ab_cdef_fedc_ba98_7654_3210u128.to_le_bytes());
+        assert_eq!(h.finish(), want.finish());
+        // i128 folds its own 16 bytes too — the sign is data, not a u64 pair.
+        let mut h = Fnv1a::new();
+        h.write_i128(-1);
+        let mut want = Fnv1a::new();
+        want.write_bytes(&(-1i128).to_le_bytes());
+        assert_eq!(h.finish(), want.finish());
+    }
+
+    #[test]
+    fn test_unit_folds_nothing() {
+        // `()` has one inhabitant — folding it changes nothing.
+        let mut a = Fnv1a::new();
+        ().det_hash(&mut a);
+        assert_eq!(a.finish(), FNV_OFFSET);
+        // And a Vec of units still carries its length.
+        assert_eq!(hash_state(&vec![(), (), ()]), hash_state(&[(), (), ()]));
+    }
+
+    #[test]
+    fn test_tuple4_det_hash_same_as_sequential_writes() {
+        let quad = (1u8, 2u32, 3u64, -4i32);
+        let h_tuple = hash_state(&quad);
+        let mut want = Fnv1a::new();
+        1u8.det_hash(&mut want);
+        2u32.det_hash(&mut want);
+        3u64.det_hash(&mut want);
+        (-4i32).det_hash(&mut want);
+        assert_eq!(h_tuple, want.finish());
+    }
+
+    #[test]
+    fn test_array_matches_vec_and_slice() {
+        let arr = [1u32, 2, 3];
+        assert_eq!(hash_state(&arr), hash_state(&vec![1u32, 2, 3]));
+        assert_eq!(hash_state(&arr), hash_state(&&arr[..]));
+        assert_ne!(hash_state(&arr), hash_state(&[1u32, 2, 3, 4]));
+    }
+
+    #[test]
+    fn test_box_and_ref_delegate() {
+        let v = 42u64;
+        assert_eq!(hash_state(&Box::new(v)), hash_state(&v));
+        assert_eq!(hash_state(&&v), hash_state(&v));
+        let s = "hello".to_string();
+        assert_eq!(hash_state(&&s), hash_state(&s));
+        assert_eq!(hash_state(&Box::new(s.clone())), hash_state(&s));
+    }
+
+    #[test]
+    fn test_vecdeque_and_linkedlist_match_vec() {
+        let items = vec![1u32, 2, 3];
+        let vd: VecDeque<u32> = items.iter().copied().collect();
+        let ll: LinkedList<u32> = items.iter().copied().collect();
+        assert_eq!(hash_state(&vd), hash_state(&items));
+        assert_eq!(hash_state(&ll), hash_state(&items));
+        // A different deque order discriminates.
+        let mut vd2 = vd.clone();
+        let tail = vd2.pop_back().unwrap();
+        vd2.push_front(tail);
+        assert_ne!(hash_state(&vd2), hash_state(&vd));
+    }
+
+    #[test]
+    fn test_btree_containers_fold_in_key_order() {
+        // Insertion order must not matter: BTree* iterates sorted, so two
+        // maps built in opposite orders hash identically.
+        let mut m1 = BTreeMap::new();
+        m1.insert(3u32, "c");
+        m1.insert(1u32, "a");
+        m1.insert(2u32, "b");
+        let mut m2 = BTreeMap::new();
+        m2.insert(1u32, "a");
+        m2.insert(2u32, "b");
+        m2.insert(3u32, "c");
+        assert_eq!(hash_state(&m1), hash_state(&m2));
+        // And the encoding matches a sorted Vec of pairs.
+        let as_vec: Vec<(u32, &str)> = vec![(1, "a"), (2, "b"), (3, "c")];
+        assert_eq!(hash_state(&m1), hash_state(&as_vec));
+
+        let mut s1 = BTreeSet::new();
+        s1.insert(9u16);
+        s1.insert(1u16);
+        let mut s2 = BTreeSet::new();
+        s2.insert(1u16);
+        s2.insert(9u16);
+        assert_eq!(hash_state(&s1), hash_state(&s2));
+        assert_eq!(hash_state(&s1), hash_state(&vec![1u16, 9u16]));
+        assert_ne!(hash_state(&s1), hash_state(&BTreeSet::from([9u16])));
+    }
+
+    #[test]
+    fn test_std_impls_deterministic() {
+        let vd: VecDeque<u8> = VecDeque::from([5, 6]);
+        let m: BTreeMap<u8, u8> = BTreeMap::from([(1, 2)]);
+        let run = || {
+            hash_state(&-7i8)
+                ^ hash_state(&-300i16).rotate_left(1)
+                ^ hash_state(&123u128).rotate_left(2)
+                ^ hash_state(&-99i128).rotate_left(3)
+                ^ hash_state(&()).rotate_left(4)
+                ^ hash_state(&(1u8, 2u8, 3u8, 4u8)).rotate_left(5)
+                ^ hash_state(&[1u8, 2, 3]).rotate_left(6)
+                ^ hash_state(&Box::new(1u8)).rotate_left(7)
+                ^ hash_state(&vd).rotate_left(8)
+                ^ hash_state(&m).rotate_left(9)
+        };
+        assert_eq!(run(), run());
     }
 }
