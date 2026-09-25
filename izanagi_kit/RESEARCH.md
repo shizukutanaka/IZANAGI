@@ -2091,3 +2091,24 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Otsu, *A Threshold Selection Method from Gray-Level Histograms* (IEEE SMC 1979 — between-class variance 最大化) / Crow, *Summed-Area Tables for Texture Mapping* (SIGGRAPH 1984 — SAT 矩形和) / O'Neill, *PCG: A Family of Simple Fast Space-Efficient Statistically Good Algorithms for Random Number Generation* (HMC-CS-2014-0905 + pcg-random.org seed/sequence 規約) / Jaro 1989 + Winkler 1990 接頭辞補正 / RFC 1321 MD5 / Bridson, *Fast Poisson Disk Sampling in Arbitrary Dimensions* (SIGGRAPH 2007 sketch — r/√2 グリッド + k dart) / semver.org 2.0.0 §10–11 — 全て整数のみで実装。
 
 **実装物**: OpenCV `threshold(THRESH_OTSU)` の first-maximizer 規約、Halide/ゲーム界の SAT 局所平均パターン、`rand_pcg` crate の `new_stream(seed, seq)` API 形、Apache commons-text `JaroWinklerSimilarity` の 0.7 ゲート、Go `crypto/md5` 出力形、Red Blob Games poisson-disc 実装形、npm `node-semver` の caret/tilde 意味論 — 全て整数のみで実装。
+
+## 第73次: グラフ核・ワンタイムパス・メタヒューリスティック・音符号・IR順位付け・計画・バイト同期 — kcore・otp・anneal・soundex・bm25・mdp・rsync
+
+**方法**: 文献参照ラウンド継続 — 候補列挙→grep 未収録確認で初回7本中 hilbert(`zorder`内蔵)・crc・base64・huffman・Gale–Shapley(`stable`)・Welford(`stats`) が既収録と判明し差し替え。残グラフ解析・認証・探索・音韻・検索・制御・バイト差分の7本:
+
+- `kcore` — k-core 分解(Batagelj–Zaveršnik): bucket 配列 `vert[]`/`pos[]`/`start[]` で次数ビンの O(1) 移動、剥がし時 `core[v]=deg[v]`、`deg[u]>deg[v]` の隣接のみバブル左移動 — 隣接リスト構築で真の O(n+m)(初版の辺全走査 O(n·m) を差し替え)。`degeneracy` = max coreness。K4/路/二三角・結合例 + 40 ケース seeded k-削除ブルートオラクル一致
+- `otp` — HOTP/TOTP(RFC 4226/6238): `DT(HMAC-SHA1(key, counter_be64)) mod 10^digits` の dynamic truncation(末尾4bitオフセットの31bit抽出)。SHA-1 は公開ベクトルが全て SHA-1 基底のためモジュール内 private 実装(`hmac`/`sha256` は現代側を担う)。RFC 3174 "abc"・Appendix D 全10カウンタ・Appendix B 全6時刻ベクトルでピン化、digits 1–9 clamp・長鍵>64B ハッシュ化・x=0 退行を網羅
+- `anneal` — シミュレーテッドアニーリング(Kirkpatrick 1983): `exp(−ΔE/T)` 受理、温度は `ln t0→ln t1` の `Fixed` 幾何冷却(`t_i = exp(lnt0 + f·Δln)`)、`SplitMix64` の下位16bitを `Fixed` [0,1) に写像して受理判定 — (state, seed, iters, t0, t1) で bit-exact リプレイ。エネルギーは `i64`、Boltzmann 指数は `−Δ·65536/t_raw` の raw スケールで `Fixed::exp` 直接評価。keep-the-best 返却。t0/t1 ≤0 は純貪欲退化
+- `soundex` — refined Soundex(NARA): 子音6群→数字、首文字コードがラン頭(`Pfister`→P236 の根拠)、H/W は透過でランを分断せず(`Ashcraft`→A261)、母音/Y はランリセット。Robert/Rupert→R163・Tymczak→T522・Gutierrez→G362 等発表値でピン化。`jaro`/`editdist` と異なる発音鍵の距離族
+- `bm25` — Okapi BM25(Robertson–Zaragoza): `idf = ln((2N+2)/(2df+1))` の厳密有理数を `Fixed::ln` で評価(±½ が相殺)、`tf·(k1+1)/(tf+k1·(1−b+b·dl/avgdl))` を `Fixed` 飽和+長さ正規化、`k1=1.2`/`b=0.75` 既定・`with_params` で可変、タイは文書番号で決定 — kit 初の IR 順位付け。希少語>一般語・tf 飽和の逓減・長さ正規化・b=0 無効化のタイで特性をピン化
+- `mdp` — 有限 MDP ソルバ(Bellman/Howard): `V(s)←max_a Σ p·(r+γV)` の価値反復と「評価 sweep + greedy 改善」の方策反復、`Fixed` 確率・`i64` 報酬・sweep 回数は公開引数(リプレイ安定 > 適応停止)、確率不足分は零報酬吸収、遷移先範囲外はクランプ、無行動状態は吸収 sink — `hmm`/`kalman` の制御相方。連鎖 MDP・乱択期待値・両ソルバ一致でピン化
+- `rsync` — rsync 型バイト列 delta(Tridgell): 弱摘要 `a=Σx, b=Σ(L+1−i)x (mod 2¹⁶)` を O(1) ロール(`a'=a−x₀+xₙ, b'=b−L·x₀+a'`)、候補は MD5 で確認、`Lit`/`Copy{idx,len}` op 列、末尾短ブロックは `Sig.len` 保持でマッチ可能。同一入力全 Copy・不連続全 Lit・中間挿入・短尾・LCG 乱流の round-trip でピン化 — `delta` の map 型差分とは別層の生バイト同期
+
+**検証**: 新規 34 モジュールテスト全緑。oracle: seeded k-削除ブルート(kcore)、RFC 3174/4226/6238 全公開ベクトル(otp)、貪欲 vs 熱拡散の井戸越え(anneal)、発表 Soundex 値+首文字ラン規則(soundex)、tf 飽和/長正規化/idf 順位特性(bm25)、価値/方策反復一致+閉形解(mdp)、全 Copy/全 Lit/乱流 round-trip(rsync)。API pin 5008、kit 431 モジュール。
+
+
+## 出典(第73次、search-index 照合)
+
+**論文・仕様**: Batagelj & Zaveršnik, *An O(m) Algorithm for Cores Decomposition of Networks* (2003 — bucket 剥がし) / RFC 4226 HOTP・RFC 6238 TOTP・RFC 3174 SHA-1 / Kirkpatrick, Gelatt & Vecchi, *Optimization by Simulated Annealing* (Science 1983) / Russell–Odell Soundex (1918) + NARA refined 規則 / Robertson & Zaragoza, *The Probabilistic Relevance Framework: BM25 and Beyond* (FnTIR 2009) / Bellman 動的計画法 + Howard 方策反復(1960) / Tridgell & Mackerras, *The rsync algorithm* (1996 — 弱/強二重摘要) — 全て整数のみで実装。
+
+**実装物**: NetworkX `core_number` の次数ビン構造、Google Authenticator/oathtool の DT 形、scipy `dual_annealing`/SimulatedAnnealing の受理判定形、Apache commons-codec `Soundex` の NARA 意味論、Lucene `BM25Similarity` の k1/b 既定値、OpenAI gym の離散 MDP 形、librsync `rollsum` の a/b 弱摘要 — 全て整数のみで実装。
