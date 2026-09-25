@@ -2367,3 +2367,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Apple Mach-O Runtime Architecture Reference / Microsoft PE-COFF Specification + IMAGE_FILE_* 定数 / WebAssembly Core Spec §5 Binary Format / ITU-T X.509 + RFC 5280 / RFC 5246(TLS1.2)+RFC 8446(TLS1.3)§5.1 / Microsoft ICO/CUR format 解説 / WebP Container Specification + VP8/VP8L bitstream format — 全て整数のみで実装。
 
 **実装物**: llvm-objdump の Mach-O/FAT 走査、llvm-readobj の COFF/PE、wasm-tools/wasmparser の section walker、python cryptography.x509 の DER 経路、mitmproxy/tlslite の record layer、python PIL/IcoImagePlugin、libwebp/dwebp の RIFF 走査 — 全て整数のみで実装。
+## 第87次: TTF・WOFF・SQLite・protobuf・BSON・FLAC・Ogg — ttf・woff・sqlite・proto・bson・flac・ogg
+
+**方法**: 文献参照ラウンド継続 — フォント/DB/直列化/メディアコンテナの残隙(macho/coff/wasm/x509/tls/ico/webp に続くヘッダ層):
+
+- `ttf` — sfnt/TrueType フォント: offset テーブル(sfnt 4 種受理)+16B ディレクトリ(BE)、`head`/`maxp`/`name` typed 取得 — WOFF の中身の直前行
+- `woff` — Web Open Font Format: `wOFF` + 20B ディレクトリ(tag/offset/compLen/origLen/checksum)、compLen<origLen のみ deflate で `inflate_zlib` 展開、非圧縮はコピー
+- `sqlite` — SQLite3 ファイルヘッダ: `SQLite format 3\0`、page size 1→65536 規則・`usable=size−reserved`・versions 1/2・encoding 1-3・`page1_tree` で b-tree ヘッダ走査(interior 12B/leaf 8B・cell ptr 配列)
+- `proto` — Protocol Buffers wire(RFC ではなく protobuf.dev encoding 仕様): `(num<<3)|wire` tag、wire 0/1/2/5(varint/I64/LEN/I32)、群 wire 3/4 は拒否、emitters 一式。varint は `varint` モジュールの canonical 規則を共有(overlong 拒否)
+- `bson` — BSON(mongodb spec): i32-length prefix 文書、全16要素種、Double/Decimal128 は raw IEEE bits(u64/u128)で保持 — kit の float 型禁止に適合、canonical emit
+- `flac` — FLAC: `fLaC` + メタデータブロック鎖(初手 STREAMINFO 必須・last flag で終端)、STREAMINFO の packed u64(min/max block・min/max frame・rate/channels/bps/total+MD5)、Vorbis コメント走査
+- `ogg` — Ogg コンテナ(Xiph.Org RFC 3533): `OggS` ページ走査・version 0 強制・**非反射 CRC-32**(poly 0x04C11DB7 — `crc` の IEEE 版とは別物・CRC フィールドゼロ化して検証)、255-lacing でページ横断パケット再構築、continued フラグ追跡、`emit_page` は CRC を挿入して発行
+
+**検証**: 新規テスト全緑(25件+7 doctest)。oracle: MongoDB 公式 `{"hello":"world"}` 22B ベクトル、deflate 実績の自己オラクル(WOFF 圧縮テーブル)、emit→parse 往復(proto/bson/ogg)。ラウンド内捕捉: emit_page が num_segments バイトを未出力(CRC 検証で全滅)、ttf `indexToLocFormat` の BE u16 低位バイト誤置、woff fixture が meta/priv 領域 20B 欠落で dir 開始ずれ、sqlite `lib_version` の 16 進定数ミス(0x2DC62E→0x2DC72E)、`varint` 共有規則で proto の overlong 受理テストを拒否側へ反転。
+
+## 出典(第87次、search-index 照合)
+
+**論文・仕様**: Microsoft TrueType/OpenType spec (sfnt directory・head・maxp・name) / W3C WOFF 1.0 spec / sqlite.org "Database File Format" (file format section) / protobuf.dev "Encoding" guide (wire types) / bsonspec.org BSON spec / Xiph.Org FLAC format spec + Vorbis comment spec / RFC 3533 Ogg format + RFC 5334 §B CRC — 全て整数のみで実装。
+
+**実装物**: fonttools/freetype の sfnt・WOFF directory walker、sqlite3shell/btree ヘッダ読取り、protoc/protoscope の wire walker、PyMongo bson codec、brotli/metaflac の metadata walker、ogg-tools/oggz の page lacing と CRC — 全て整数のみで実装。
