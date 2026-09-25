@@ -495,6 +495,36 @@ fn cases() -> Vec<(&'static str, u64)> {
             s.remove(4);
             hash_state(&s)
         }),
+        ("Kalman(x=3,P=2)", {
+            let k = izanagi_kit::kalman::Kalman::new(
+                izanagi_kit::fixed::Fixed::from_int(3),
+                izanagi_kit::fixed::Fixed::from_int(2),
+            );
+            hash_state(&k)
+        }),
+        ("Pid(kp=1,post-update)", {
+            let mut p = izanagi_kit::pid::Pid::new(
+                izanagi_kit::fixed::Fixed::ONE,
+                izanagi_kit::fixed::Fixed::from_ratio(1, 2),
+                izanagi_kit::fixed::Fixed::from_ratio(1, 4),
+                izanagi_kit::fixed::Fixed::from_int(-10),
+                izanagi_kit::fixed::Fixed::from_int(10),
+            );
+            p.update(
+                izanagi_kit::fixed::Fixed::from_int(1),
+                izanagi_kit::fixed::Fixed::from_int(4),
+                izanagi_kit::fixed::Fixed::ONE,
+            );
+            hash_state(&p)
+        }),
+        ("Spring(x=1,ω=2)", {
+            let mut s = izanagi_kit::spring::Spring::new(
+                izanagi_kit::fixed::Fixed::ONE,
+                izanagi_kit::fixed::Fixed::from_int(2),
+            );
+            s.set_target(izanagi_kit::fixed::Fixed::from_int(9));
+            hash_state(&s)
+        }),
     ]
 }
 
@@ -604,6 +634,9 @@ const EXPECTED: &[(&str, u64)] = &[
     ("PNCounter(2r)+2-1", 0x752daa6170feaee6),
     ("GSet<u32>{1,4}", 0xa00940f06ee69992),
     ("TwoPhaseSet<u32>{1,4}-{4}", 0x2db8c5a26b323c37),
+    ("Kalman(x=3,P=2)", 0x85579065160639ac),
+    ("Pid(kp=1,post-update)", 0x6b38307dcd9d8078),
+    ("Spring(x=1,\u{03c9}=2)", 0x7e98ad8506bab7cf),
 ];
 
 #[test]

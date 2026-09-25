@@ -1,6 +1,7 @@
 //! Steering behaviors — Reynolds' locomotion layer for game AI ("Steering
 //! Behaviors for Autonomous Characters", GDC 1999): `seek`, `flee`, `arrive`,
-//! `pursue`, `evade`, `wander`, `separation` over the deterministic
+//! `pursue`, `evade`, `wander`, and the full boid triple
+//! `separation`/`alignment`/`cohesion` over the deterministic
 //! [`Vec2`]/[`Fixed`] pair. Where `behavior`/`goap` decide *what* an agent
 //! wants, this module decides *which force to apply this tick*.
 //!
@@ -200,6 +201,72 @@ pub fn separation(pos: Vec2, neighbors: &[Vec2], radius: Fixed, max_force: Fixed
     )
 }
 
+/// Steer toward the average heading of neighbors inside `radius` — the
+/// second boid rule. `neighbors` are `(pos, vel)` pairs; `vel` is the
+/// caller's current velocity. The desired velocity is the neighborhood's
+/// mean velocity renormalized to `max_speed`, so a lone agent in an
+/// empty neighborhood (or one already on-heading) gets zero force.
+pub fn alignment(
+    pos: Vec2,
+    vel: Vec2,
+    neighbors: &[(Vec2, Vec2)],
+    radius: Fixed,
+    max_speed: Fixed,
+    max_force: Fixed,
+) -> Vec2 {
+    if radius.raw() <= 0 {
+        return Vec2::ZERO;
+    }
+    let mut sum = Vec2::ZERO;
+    let mut count = 0u32;
+    for (np, nv) in neighbors {
+        if pos.distance(*np).raw() > radius.raw() {
+            continue;
+        }
+        sum = sum + *nv;
+        count += 1;
+    }
+    if count == 0 {
+        return Vec2::ZERO;
+    }
+    let avg = sum.scale(Fixed::ONE.div(Fixed::from_int(count as i32)));
+    match avg.normalize() {
+        Some(d) => steer_to(vel, d.scale(max_speed), max_force),
+        // Neighbors' velocities cancel out → no consensus to follow.
+        None => Vec2::ZERO,
+    }
+}
+
+/// Steer toward the centroid of neighbors inside `radius` — the third
+/// boid rule, literally [`seek`] on the local center of mass. Empty
+/// neighborhoods and coincident centroids produce zero force.
+pub fn cohesion(
+    pos: Vec2,
+    vel: Vec2,
+    neighbors: &[Vec2],
+    radius: Fixed,
+    max_speed: Fixed,
+    max_force: Fixed,
+) -> Vec2 {
+    if radius.raw() <= 0 {
+        return Vec2::ZERO;
+    }
+    let mut sum = Vec2::ZERO;
+    let mut count = 0u32;
+    for np in neighbors {
+        if pos.distance(*np).raw() > radius.raw() {
+            continue;
+        }
+        sum = sum + *np;
+        count += 1;
+    }
+    if count == 0 {
+        return Vec2::ZERO;
+    }
+    let center = sum.scale(Fixed::ONE.div(Fixed::from_int(count as i32)));
+    seek(pos, vel, center, max_speed, max_force)
+}
+
 /// Weighted blend of steering forces, then one clamp: `Σ wᵢ·fᵢ` truncated
 /// to `max_force`. Negative weights are honored (they subtract). This is
 /// the standard way to layer behaviors — e.g. `seek` at 1.0 plus
@@ -367,6 +434,100 @@ mod tests {
         // Coincident neighbors are directionless and skipped.
         assert_eq!(
             separation(v(0, 0), &[v(0, 0)], Fixed::from_int(4), Fixed::ONE),
+            Vec2::ZERO
+        );
+    }
+
+    #[test]
+    fn alignment_follows_the_consensus_heading() {
+        // Neighbors all moving +x inside radius → force pushes +x.
+        let nb = [
+            (v(1, 0), v(0, 3)),
+            (v(-1, 0), v(0, 3)),
+            (v(0, 1), v(0, 3)),
+            (v(50, 0), v(9, 9)), // outside radius — ignored
+        ];
+        let f = alignment(
+            v(0, 0),
+            Vec2::ZERO,
+            &nb,
+            Fixed::from_int(4),
+            Fixed::from_int(3),
+            Fixed::from_int(2),
+        );
+        assert!(f.y > Fixed::ZERO);
+        approx(f.y, Fixed::from_int(2), 8);
+        // Agent already on-heading and fast enough: residual is only the
+        // speed difference (3 → 2? no: neighbor speed 3 > max 3).
+        let on_head = alignment(
+            v(0, 0),
+            v(0, 3).scale(Fixed::ONE),
+            &nb,
+            Fixed::from_int(4),
+            Fixed::from_int(3),
+            Fixed::from_int(5),
+        );
+        assert!(on_head.len().raw() < Fixed::from_ratio(1, 2).raw() + 16);
+        // Empty and cancelling neighborhoods give nothing.
+        assert_eq!(
+            alignment(
+                v(0, 0),
+                Vec2::ZERO,
+                &[],
+                Fixed::from_int(4),
+                Fixed::from_int(3),
+                Fixed::ONE,
+            ),
+            Vec2::ZERO
+        );
+        let cancelling = [(v(1, 0), v(1, 0)), (v(-1, 0), v(-1, 0))];
+        assert_eq!(
+            alignment(
+                v(0, 0),
+                Vec2::ZERO,
+                &cancelling,
+                Fixed::from_int(4),
+                Fixed::from_int(3),
+                Fixed::ONE,
+            ),
+            Vec2::ZERO
+        );
+    }
+
+    #[test]
+    fn cohesion_steers_to_the_local_centroid() {
+        // Centroid of {(2,0),(0,2)} = (1,1) → +x+y direction.
+        let f = cohesion(
+            v(0, 0),
+            Vec2::ZERO,
+            &[v(2, 0), v(0, 2)],
+            Fixed::from_int(5),
+            Fixed::from_int(3),
+            Fixed::ONE,
+        );
+        assert!(f.x > Fixed::ZERO && f.y > Fixed::ZERO);
+        // Neighbors beyond the radius don't shift the center.
+        assert_eq!(
+            cohesion(
+                v(0, 0),
+                Vec2::ZERO,
+                &[v(9, 0)],
+                Fixed::from_int(4),
+                Fixed::from_int(3),
+                Fixed::ONE,
+            ),
+            Vec2::ZERO
+        );
+        // Already at the centroid: zero force.
+        assert_eq!(
+            cohesion(
+                v(1, 0),
+                Vec2::ZERO,
+                &[v(0, 0), v(2, 0)],
+                Fixed::from_int(5),
+                Fixed::from_int(3),
+                Fixed::ONE,
+            ),
             Vec2::ZERO
         );
     }
