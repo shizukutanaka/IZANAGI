@@ -2049,3 +2049,24 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Sobol' (1967) 及び Joe & Kuo, *Constructing Sobol Sequences with Better Two-Dimensional Projections* (2008 — dim-2 初期方向数 m = 1,3 と recurrence 係数) / Smith, *The Scientist and Engineer's Guide to DSP* + RBJ Audio-EQ-Cookbook (Robert Bristow-Johnson、low/high/band/notch 係数表 + DF-I) / Rosenfeld & Pfaltz (1966) 2-pass CCL・Suzuki–Abe 系統合(prior work の streaming 形は採用せず全体2パス) / Baraff & Witkin, *Large Steps in Cloth Simulation* SIGGRAPH notes 系 SAP・Tracy–Buss–Woods GPCE sweep 実装 / Fritsch & Carlson, *Monotone Piecewise Cubic Interpolation* (SIAM J. Numer. Anal. 1980 — 調和平均接線と端点 clamp 規則) / Needleman & Wunsch (1970)・Smith & Waterman (1981) 整数 DP + traceback — 全て整数のみで実装。
 
 **実装物**: OpenImageIO/ue4 `FSobolSampler` 系の direction-number テーブル形(2D 固定なので定数 recurrence で生成)、C++ `<dsp>`/JUCE `dsp::IIR` 系 DF-I 状態 API、scipy `ndimage.label` 系ラスタ連番規約、Bullet `btAxisSweep` の active-list 刈り込み、pandas/scipy `PchipInterpolator` の flat 外挿規約、biopython `PairwiseAligner` の `=`/`X`/`I`/`D` op 表現 — 全て整数のみで実装。
+
+## 第71次: 文字列構造・テクスチャ・連続衝突・鍵導出・表データ・識別子・認証暗号 — lcp・worley・swept・kdf・csv・ulid・aead
+
+**方法**: 第70次と同じ文献参照ラウンド — GitHub・論文・Qiita/Zenn・海外技術記事の標準 primitive 候補を列挙し grep で未収録確認(`sais`/`sufftree`/`fmidx` は構築側として既存で LCP は未、`vnoise`/`gnoise`/`noise` は値・勾配ノイズでセルラーは未、`sap` は広相で狭相 CCD は未、`hmac`/`sha256`/`chacha`/`poly1305` は部品として既存で kdf/aead は合成が未、`json` は構造化で CSV は表形式が未)。結果7本:
+
+- `lcp` — Kasai の線形 LCP 配列(`sais` の兄弟部品): rank 配列で `h` を前エントリ値−1 から再開する O(n) 歩行。`longest_repeated`(argmax)、`distinct_substrings`(`n(n+1)/2 − Σlcp` の結合律トリック)、`longest_common`(a+sep+b セパレータ継ぎで「SA 隣接が別列由来」のものだけ最大 — `is_none_or` は MSRV 1.75 超過で `map_or` 採用)
+- `worley` — Worley/セルラーノイズ F1/F2: セルごとに avalanche hash → (0,1)² 乱数 feature point、3×3 近傍スキャンで最近接・次近接のユークリッド距離を `Fixed` で返す。`worley_edge = f2−f1` はリッジ/ボロノイ境界描画の古典。`vnoise`/`gnoise` が連続場を埋めてもセル構造は別 primitive — Lipschitz 連続性と境界最小性をテストで保証
+- `swept` — スイープ AABB 連続衝突(`sap` の狭相反): Minkowski 拡張ターゲットに対するスラブ区間法で x/y それぞれの入出時刻を `Frac` 厳密有理数で保持、`entry < exit ∧ entry < 1 ∧ exit > 0` で採否、開始時既重複は `t=0`。離散重なり検査が原理的に見逃すトンネリング(薄い壁貫通)を捕捉 — 衝突法線は最大入出時刻の軸 −sign(vel)、接触位置は開始側へ切り捨ての `mul_trunc`
+- `kdf` — RFC 2898 PBKDF2-HMAC-SHA256 + RFC 5869 HKDF: PBKDF2 は `Ti = U1⊕⋯⊕Uc` のブロック連結(公開ベクトルでピン化)、HKDF は extract(空 salt→32 ゼロ鍵)+expand(`T(i)=HMAC(PRK,T(i−1)‖info‖i)`、spec 上限 255·32)。既存 `hmac_sha256` からの直接合成 — 部品があっても合成済み API は別の欠落
+- `csv` — RFC 4180 CSV: quoted field(`,`,`\n`,`""` 埋め込み可)、`CRLF`/`LF`/`CR` 全終端受理、末尾改行なし flush、空 field・quoted-empty・lazy-quote 許容(closing `"` 後の junk を delimiter まで verbatim 保持 — 寛容系パーサの規約)。`emit` は「必要時のみ引用・`""` 二重化・CRLF」正規形で `parse∘emit` 完全 round-trip を pin
+- `ulid` — ULID 128bit ソート可能 ID: 48bit ミリ秒 + 80bit 乱数を Crockford Base32 26 文字で MSB-first エンコード(文字列ソート＝時刻順)。`decode` は `i/l→1`・`o→0` 正規化 + 大小文字非依存 + 48bit 溢れ検査。`Ulid` は SplitMix64 シードの単調生成器 — 同一 ms で rand インクリメント(最終バイトから carry)、全 0xFF で時刻を +1 にオーバーフローする spec 標準の解答。小文字 decode が上位化前の `c` で減算していたバグを canonicalization テストが捕捉
+- `aead` — RFC 8439 §2.8 ChaCha20-Poly1305 AEAD: block 0 の先頭 32B を one-time Poly1305 鍵、暗号化は counter 1 から `aad‖pad16‖ct‖pad16‖len64‖len64` 上に MAC。`open` は差分累積比較(early exit なし)で改竄・wrong-context は `None` — 壊れた平文は決して返さない。RFC A.5 ベクトルのタグで合成全体をピン化(nonce ワード反転はベクトル不一致で捕捉)
+
+**検証**: 新規 31 モジュールテスト全緑。oracle: brute LCP 総当り・distinct 列挙(lcp)、f64 最近接距離 ±0.02 + Lipschitz(worley)、dense-step オラクル + exact `Frac` 時刻(swept)、PBKDF2/RFC5869 公開ベクトル(kdf)、round-trip + RFC ケース(csv)、spec ベクトル + 単調性(ulid)、RFC 8439 A.5 タグ + 全位置 tamper(aead)。API pin 4916、kit 417 モジュール。
+
+
+## 出典(第71次、search-index 照合)
+
+**論文・仕様**: Kasai, Lee, Arimura, Arikawa & Park, *Linear-Time Longest-Common-Prefix Computation in Suffix Arrays* (CPM 2001 — rank+i−1 再開歩行) / Worley, *A Cellular Texture Basis Function* (SIGGRAPH 1996 — F1/F2 feature 距離) / Linney, *Swept AABB collision detection using the Minkowski sum* (gamedev.net tutorial — スラブ入出時刻法) / RFC 2898 §5.2 PBKDF2・RFC 5869 HKDF / RFC 4180 CSV / alizain, *ULID spec* (Crockford Base32 + monotonic 規則) / RFC 8439 §2.8 AEAD_CHACHA20_POLY1305 — 全て整数のみで実装。
+
+**実装物**: Go `index/suffixarray` の LCSArray 系コンパニオン形、Blender shader `Voronoi distance to edge` の f2−f1 API 形、Nasser/gamedev swept-AABB 系の normal+t インタフェース、Go `encoding/csv` の LazyQuotes 許容規約、`oklog/ulid` の monotonic インクリメント実装、`ring`/`libsodium` の `seal`/`open` API 形 — 全て整数のみで実装。
