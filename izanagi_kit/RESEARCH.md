@@ -2348,3 +2348,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: RFC 3174 SHA-1 / RFC 2104 HMAC / git object format (git-scm.com book "Git Internals") + pkt-line protocol / TIS ELF 1.2 + System V ABI / RFC 7230 HTTP/1.1 / RFC 2045・2046 MIME + RFC 2045 §6.7 quoted-printable / RFC 4253 SSH §6.6 + OpenSSH authorized_keys 形式 / SUSv4 cpio newc 形式 — 全て整数のみで実装。
 
 **実装物**: git.git の object-file.c/sha1dc、binutils/readelf の phdr/shdr 走査、nginx/curl の HTTP パーサ、python `email` パッケージの multipart/QP、OpenSSH sshkey.c の blob 形式、GNU cpio/pax の newc リーダ — 全て整数のみで実装。
+## 第86次: Mach-O・COFF・WASM・X.509・TLS・ICO・WebP — macho・coff・wasm・x509・tls・ico・webp
+
+**方法**: 文献参照ラウンド継続 — バイナリコンテナ層の残隙(ELF の platform 相方・DER の consumer・RIFF 系):
+
+- `macho` — Mach-O: thin MH_MAGIC/CIGAM×32/64 の endian+bits 解決、cputype/filetype、load-command 走査(cmdsize<8 拒否)、LC_SEGMENT 系 `seg_name`、FAT_MAGIC nfat テーブル — `elf` の Apple 相方
+- `coff` — COFF/PE: 20B COFF ヘッダ(machine/nsects/opt_size)、0x10B/0x20B/0x107 の optional PE 識別、40B section テーブル(Name[8]/vsize/vaddr/raw_size/raw_offset/flags)— `elf` の Windows 相方
+- `wasm` — WebAssembly binary: `\0asm`+version 1 固定、LEB128 section-size 走査(id 0-12 検証)、`section(id)` 検索 — 構造走査のみ、実行器ではない旨 doc 明記
+- `x509` — X.509 証明書: `der::Tlv` 経由で SEQ{tbscertificate, sig_alg, signature}、version [0] 明示化(無ければ v1)、RDNSequence を `/CN=…/O=…` 短縮形に平坦化、UTCTime/GeneralizedTime を `utc_time()` で Unix 秒化、BIT STRING の unused-bits byte スキップ
+- `tls` — TLS 1.x record layer(RFC 5246/8446): 5B ヘッダ walk、type 20-23 検証、len≤16384 上限、record emit、`handshake()` で handshake fragment を `(type,body)` u24-length メッセージ列に分解 — codec であって復号器ではない旨 doc 明記
+- `ico` — ICO/CUR: 6B ディレクトリ(reserved=0・type 1/2・count>0)+16B エントリ、w/h=0→256 規則、CUR は planes/bpp が hotspot、`image(n)` でペイロード切出(PNG/BMP 判別は呼出側)
+- `webp` — WebP RIFF: `RIFF`size`WEBP`、chunk 走査(奇数サイズは 1B pad)、VP8X 24bit canvas-1、VP8L `0x2F`+14bit dims、VP8 `0x9D012A`+14bit dims、画像 dim 不在は拒否
+
+**検証**: 新規テスト全緑。oracle: Mach-O thin64 構築物+fat2arch、COFF PE32+構築物+obj 裸形式、wasm minimal module+全13 section id、手組 X.509(RDN 短縮 `/CN=CA`・UTC/GenTime 両種→Unix 秒)、TLS ClientHello record+handshake 分解+16384 cap、ICO 2 画像+CUR hotspot+payload 範囲外、WebP VP8X/VP8L/VP8 3形式の dim decode+truncated-tail drop。ラウンド内捕捉: `records(&[])` の空ストリーム → Some(vec![]) の意図 vs テスト矛盾を修正。
+
+## 出典(第86次、search-index 照合)
+
+**論文・仕様**: Apple Mach-O Runtime Architecture Reference / Microsoft PE-COFF Specification + IMAGE_FILE_* 定数 / WebAssembly Core Spec §5 Binary Format / ITU-T X.509 + RFC 5280 / RFC 5246(TLS1.2)+RFC 8446(TLS1.3)§5.1 / Microsoft ICO/CUR format 解説 / WebP Container Specification + VP8/VP8L bitstream format — 全て整数のみで実装。
+
+**実装物**: llvm-objdump の Mach-O/FAT 走査、llvm-readobj の COFF/PE、wasm-tools/wasmparser の section walker、python cryptography.x509 の DER 経路、mitmproxy/tlslite の record layer、python PIL/IcoImagePlugin、libwebp/dwebp の RIFF 走査 — 全て整数のみで実装。
