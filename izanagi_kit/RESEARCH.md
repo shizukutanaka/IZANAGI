@@ -2193,3 +2193,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: RFC 1951 DEFLATE + RFC 1950 zlib + RFC 1952 gzip / Matsumoto–Nishimura, *MT19937* (ACM TOMACS 1998) / Cooley–Tukey, *An Algorithm for the Machine Calculation of Complex Fourier Series* (1965) / RFC 3986 URI §5 / Gustavson, *Simplex noise demystified* (2005) / ISO/IEC 18004 QR / Reingold–Dershowitz, *Calendrical Calculations* — 全て整数のみで実装。
 
 **実装物**: python zlib の stored/fixed/dynamic ベクトル、numpy `RandomState` の MT 種値表記、FFTW/numpy fft の bin 規約、Python `urllib.parse`/`urljoin` の dot 除去、gustavson Java/C リファレンスの skew 式、nayuki QR generator の mask/penalty 表、Emacs `calendar.el` の computus — 全て整数のみで実装。
+
+## 第78次: 圧縮器・PNG・ZIP・Murmur・IP・UUIDv7・Base58 — deflate・png・zip・murmur・ip・uuid7・base58
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。r77 の `inflate` が解いた codec 空白の発行側 `deflate`、inflate+crc32 が可能にした実 PNG デコーダ、deflate/inflate+crc32 のコンテナ層 `zip`、fnv/sip/xxhash 系の第4広 avalanche ハッシュ `murmur`、`semver`/`uri` のプロトコル族に IP/CIDR、`uuid`/`ulid`/`snowflake` の第4 ID 形 UUIDv7、`base64` の Base58 相方:
+
+- `deflate` — DEFLATE 圧縮器(RFC 1951/1950/1952): `BitW` LSB-first 書出し + `put_msb` Huffman 要素反転(固定テーブル §3.2.6)、greedy LZ77 は 3 バイト hash → depth-1 単一候補(決定的・依存ゼロ — 密度は zlib 未満だが合法ストリーム)、`deflate_stored` 65535 分割、`adler32`(5552 chunk mod)、zlib `0x78 0x9C`+BE adler、gzip 固定10B ヘッダ+LE crc/isize — `to_be_bytes` 禁止ゆえ BE は shift 書出し
+- `png` — PNG codec(ISO/IEC 15948): sig+chunk 走査、CRC は type+body で検証、bit-depth 8・非インターレースのみで Adam7/16bit は `None` 退化、unfilter は Sub/Up/Avg/Paeth 全実装(bpp 左・上・左上参照)、`encode_*` は filter-0 + `deflate_zlib` で発行 — `inflate`/`deflate`/`crc` の直結層。実 PNG は python3 zlib+手組 chunk で生成してピン化
+- `zip` — ZIP コンテナ(PKWARE APPNOTE): EOCD `PK\x05\x06` を末尾 64KiB+22 内後方走査 → central dir → local header、method 0/8、CRC 検証付き `extract`、暗号/data-descriptor/zip64 は `None`、`ZipWriter` が local+central+EOCD を発行。前付け junk/コメント耐性は EOCD scan の副作用
+- `murmur` — MurmurHash3(Austin Appleby): x86_32 は rotl15/`0xe6546b64` 4 ラウンド+fmix32、x64_128 は k1/k2 交差 rotl31/33+fmix64+相互加算 — 参照実装値ピン化(`hello`→`0x248bfa47`/`0xcbd8a7b3…`)、LE 手動 load で endian 非依存
+- `ip` — IPv4/IPv6/CIDR(RFC 791/4291/5952/4632): v4 は厳格形(先頭零禁止)、v6 は `::` 1 回のみ+埋込 v4 尾対応+hextet 検査、format は最長零ラン圧縮(長さ≥2・先勝ち)、`Cidr::contains_v4/v6` マスク比較、`to_ipv4_mapped`
+- `uuid7` — UUIDv7(RFC 9562): ts(48)|7|rand_a(12)|0b10|rand_b(62)、`Uuid7::next` は ms 非進行時に埋込 ts を+1 仮想進行で厳密単調 — ソート可能 = バイト順 == 時刻順
+- `base58` — Base58(Bitcoin/Flickr alphabet): 入力を BE 整数として divmod 58 反復、先頭零バイト→`1` digits、`encode_check`/`decode_check` は double-SHA256 先頭4B 検査
+
+**検証**: 新規モジュールテスト全緑。oracle: `inflate` が `deflate` の自己オラクル(inflate は python zlib ベクトルで検証済み)、`adler32` は RFC 1950 "Wikipedia" 値、png は python3 zlib 実 PNG ベクトル+自己往復、zip は自己往復(実 unzip/zipfile 互換形)、murmur は参照実装値、ip は RFC 5952 canonical 例、uuid7 は版/変種ビット+単調列、base58 は公開ベクトル+check 往復。kit 466 モジュール。
+
+## 出典(第78次、search-index 照合)
+
+**論文・仕様**: RFC 1951/1950/1952 DEFLATE+zlib+gzip / ISO/IEC 15948 PNG(W3C PNG spec) / PKWARE APPNOTE ZIP / Appleby, *MurmurHash3* (SMHasher) / RFC 791 IPv4 + RFC 4291 IPv6 + RFC 5952 canonical format + RFC 4632 CIDR / RFC 9562 UUIDv6–v8 / Nakamoto Bitcoin Wiki Base58Check — 全て整数のみで実装。
+
+**実装物**: zlib の `deflate` stored/fixed 戦略、python `zlib`/`struct`/`binascii` による PNG chunk 生成、Info-ZIP `unzip` の central-dir-first 読筋、py-mmh3 の x86_32/x64_128 ベクトル、CPython `ipaddress` の厳格形、python-`uuid7` の ms+rand 配置、bitcoin Wiki の Base58Check 手順 — 全て整数のみで実装。
