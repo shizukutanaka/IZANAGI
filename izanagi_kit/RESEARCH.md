@@ -2271,3 +2271,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: TOML v1.0.0 ABNF specification / NMEA 0183 standard sentences (GGA/RMC) / CelesTrak NORAD Two-Line Element Set format definition / Wavefront OBJ file format (Alias|Wavefront) / SubRip `.srt` convention / SGF FF[4] Smart Game Format specification / Google Authenticator Key URI format + RFC 4648 base32 + RFC 4226/6238 — 全て整数のみで実装。
 
 **実装物**: Rust `toml` crate / `tomllib` の grammar、GPSD nmealib の sentence splitter、python-sgp4/tle-tools のカラム分割、tinyobjloader のインデックス規約、FFmpeg subripenc/subripdec、gnugo/gotools の SGF 木構造、oathtool/gauth の URI パーサ — 全て整数のみで実装。
+## 第82次: WAV・WebVTT・SSA/ASS・PGN・STL・INI・unified diff — wav・vtt・ass・pgn・stl・ini・udiff
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。codec/フォーマット層の残隙(音声・字幕・棋譜・メッシュ・設定・パッチ):
+
+- `wav` — RIFF/WAVE PCM codec: `RIFF…WAVE` + `fmt `(PCM tag 1・`0xFFFE` WAVEFORMATEXTENSIBLE は PCM GUID のみ受理・IEEE float tag 3 は float 型不在で拒否)+ `data` チャンク、word 整列スキップ、`samples_i16` 8/16bit→i16 復号、`encode` canonical 44B ヘッダ — bmp/png の音声相方
+- `vtt` — WebVTT(W3C): `WEBVTT` 署名(空白+テキスト許容)、cue 識別子・`HH:MM:SS.mmm`/`MM:SS.mmm`(ドット必須 — srt のカンマと排反)、cue settings verbatim、NOTE/STYLE/REGION ブロック保存、canonical emit 往復 — srt の web 相方
+- `ass` — SSA/ASS: `[Script Info]`・`[V4+ Styles]`・`[Events]`、各行 `Format:` カラム宣言駆動でフィールド解決(末尾 `Text` はカンマ吸収)、`Dialogue:`/`Comment:`、`H:MM:SS.cc` センチ秒、未認識節は `other` verbatim 保存 — srt/vtt の高度相方
+- `pgn` — Portable Game Notation: `[Tag "v"]`(エスケープ対応)+ movetext: `1.`/`...` 手数表記・SAN・`$n` NAG・`{}` コメント・`()` 再帰 RAV variation・`1-0|0-1|1/2-1/2|*` ターミネータ、`1...` 先手黒検出、`emit` は手数再採番 — sgf のチェス相方
+- `stl` — STL mesh: ASCII `solid/facet normal/outer loop/vertex/endloop/endfacet/endsolid` とバイナリ(80B ヘッダ+u32 count+50B/tri)両対応。バイナリ座標は IEEE-754 `f32` bits を**手動デコード→`Fixed`**(inf/nan・範囲外拒否 — float 型不用)、ASCII は十進桁算術、`emit` canonical ASCII、`bbox` — obj の三角形直接形相方
+- `ini` — INI 設定: `[section]`・`k=v`/`k: v`・`;`/`#` コメント・挿入順保存・重複キー最後勝ち・グローバル(無名)節、`get`/`set`/`emit` — toml の祖先形
+- `udiff` — unified diff テキスト: `---/+++` ヘッダ・`@@ -a[,b] +c[,d] @@`(count 省略=1)・` `/`-`/`+` 行・`\ No newline` マーカー、複数ファイル対応、`emit` canonical、`apply` は ctx/del の厳密一致が前提の全域 `Option` 適用器 — `diff` モジュール(アルゴリズム)の wire 形相方
+
+**検証**: 新規モジュールテスト全緑。oracle: ラウンドトリ往復(wav/vtt/ass/pgn/ini/udiff)、奇数サイズ chunk pad+LIST スキップ+全1バイト破壊不パニック(wav)、`WEBVTT - header`/BOM/CRLF/時刻集合(vtt)、Format 駆動列解決+カンマ入り Text+Comment 種別(ass)、variation/NAG/comment/ターミネータ全4種/黒番検出/エスケープタグ(pgn)、f32 0x3F800000→ONE/count 虚偽/NaN・inf 拒否/ASCII+バイナリ自動判別(stl)、重複最後勝ち/新規節 set(ini)、GNU 形 `-0,0` 挿入+ctx 不一致拒否+`-`/`+`/`\` 行集合(udiff)。ラウンド内捕捉: f32 subnormal(指数0)の `>>133` シフト溢れ → `>=127` は 0 退化に修正、STL facet トークン幅ミス、PGN variation 手数再採番の起点誤り。kit 494 モジュール。
+
+## 出典(第82次、search-index 照合)
+
+**論文・仕様**: Microsoft/IBM Multimedia Programming Interface RIFF spec + WAVE `fmt ` chunk (incl. WAVEFORMATEXTENSIBLE) / W3C WebVTT: The Web Video Text Tracks Format / SubStation Alpha v4.00+ script format / Portable Game Notation Specification (Timothy Mann) / STL(STereoLithography) file format specification / INI file convention / POSIX `diff -u` unified output format + `patch` — 全て整数のみで実装。
+
+**実装物**: Rust `hound`/python `wave` の chunk 走査、video.js/webvtt-parser の cue 分解、libass/aegisub の Format 駆動パース、python-chess の PGN reader、numpy-stl のバイナリレイアウト、Python `configparser` の節・コメント規約、GNU diffutils/patch の `@@` 範囲と `apply` 手順 — 全て整数のみで実装。
