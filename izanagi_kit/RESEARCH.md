@@ -2252,3 +2252,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Microsoft Windows Bitmap format / Cohen, *BEP 3: The BitTorrent Protocol Specification* / Mojang NBT format specification / RFC 1035 DNS wire format + RFC 3596 AAAA / ISO/IEC 7812-1 Luhn + ISO 2108 ISBN + GS1 EAN/UPC + ISO 13616 IBAN registry + ISO 3779 VIN + ICAO Doc 9303 MRZ / OGC 06-103r4 Well-Known Text / Pratt, *Top Down Operator Precedence* (1973) — 全て整数のみで実装。
 
 **実装物**: Pillow の BMP リーダ構造、libtorrent bdecode、wiki.vg の NBT レイアウト、knot/dnspython の name decompressor、ibantools の mod-97+国別長、geomet/geopy の WKT 文法、Python `ast`/lark の TDOP 優先度表 — 全て整数のみで実装。
+## 第81次: TOML・NMEA・TLE・OBJ・SRT・SGF・otpauth — toml・nmea・tle・obj・srt・sgf・otpauth
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。codec 層の残る大物フォーマット群: json/cbor/msgpack の設定相方 TOML、geo の産業標準 NMEA、軌道の標準交換形 TLE、3D の古典 OBJ、メディア字幕 SRT、棋譜 SGF、otp+uri の合成 otpauth:
+
+- `toml` — TOML v1 パーサ+emit: `[table]`/`[[array]]` ヘッダ・dotted key・基本/リテラル/3連文字列・int(0x/0o/0b/underscore)/bool/arr/inline なし・float は十進桁算術→`Fixed`(inf/nan/範囲外は拒否)、datetime は `Val::Str` 保持。`encode` は scalar-then-section canonical 形 — json/cbor/msgpack の設定相方
+- `nmea` — NMEA 0183: `$TALKER KIND,fields*CS`、checksum XOR 検証(無ければ寛容受理)、`GGA`/`RMC` の typed デコード、緯度経度は `ddmm.mmmm` の最終2桁を分とみなし `Fixed` 化、S/W は負 — geo のシリアル相方
+- `tle` — Two-Line Element 形式: 69 桁 mod-10 チェックデジット('−'=1)、厳格カラム(epoch YYDDD.FFFFFFFF・mm 第一/第二導関数の implied `±.N`・BSTAR `±NNNNN-N` 科学記法)、`period_seconds` = 86400/平均運動 — ISS 実測値ピン化
+- `obj` — Wavefront OBJ: `v`/`vt`/`vn`/`f` ディレクティブ、負インデックス相対参照、`v/vt/vn` タプル面頂点、`triangles()` ファン分割、`bbox` — mesh 基盤(o/g/s/usemtl/mtllib/l/p はスキップ)
+- `srt` — SubRip 字幕: `idx\nt1 --> t2\ntext` ブロック、`HH:MM:SS[,|.]mmm` 時刻(時間は任意幅)、`\r\n`/`CRLF` 正規化、`emit` は canonical CRLF、`shifted` は ≥0 clamp
+- `sgf` — Smart Game Format FF[4]: `(tree)`/`;node`/`PROP[v]*` 再帰下降、`\]`/`\\` エスケープ、variation 木、`moves`/`coord`(`aa`→(0,0))/`game_info`/`emit` canonical 往復
+- `otpauth` — otpauth:// URI: `totp|hotp` を host 型、`Issuer:account` ラベル+issuer/secret/algorithm/digits/period/counter パラメータ、私有 RFC 4648 base32(大文字正規化・canonical pad 検査)、`Otp::code` は `otp::hotp`/`totp` 直結(SHA1 のみ — 他アルゴは `None`)
+
+**検証**: 新規モジュールテスト全緑。oracle: TOML spec 例+往復 canonical+構文拒否集合(toml)、`$GPGGA,123519,…`/`$GPRMC,225446,…` 実測ベクトル+checksum 改竄拒否(nmea)、ISS TLE 実測(25544・epoch 2008-09-20・mm 15.72125391)+checksum 全列検証(tle)、`f v/vt/vn` +負インデックス+fan+乱れ行拒否(obj)、canonical emit 往復+`-->`構文+ms3桁強制(srt)、KGS 形往復+variation+escape+malformed 集合(sgf)、RFC 4226/6238 ベクトル(755224/287082)+base32 全長ベクトル+canonical pad 拒否(otpauth)。kit 487 モジュール。
+
+## 出典(第81次、search-index 照合)
+
+**論文・仕様**: TOML v1.0.0 ABNF specification / NMEA 0183 standard sentences (GGA/RMC) / CelesTrak NORAD Two-Line Element Set format definition / Wavefront OBJ file format (Alias|Wavefront) / SubRip `.srt` convention / SGF FF[4] Smart Game Format specification / Google Authenticator Key URI format + RFC 4648 base32 + RFC 4226/6238 — 全て整数のみで実装。
+
+**実装物**: Rust `toml` crate / `tomllib` の grammar、GPSD nmealib の sentence splitter、python-sgp4/tle-tools のカラム分割、tinyobjloader のインデックス規約、FFmpeg subripenc/subripdec、gnugo/gotools の SGF 木構造、oathtool/gauth の URI パーサ — 全て整数のみで実装。
