@@ -2213,3 +2213,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: RFC 1951/1950/1952 DEFLATE+zlib+gzip / ISO/IEC 15948 PNG(W3C PNG spec) / PKWARE APPNOTE ZIP / Appleby, *MurmurHash3* (SMHasher) / RFC 791 IPv4 + RFC 4291 IPv6 + RFC 5952 canonical format + RFC 4632 CIDR / RFC 9562 UUIDv6–v8 / Nakamoto Bitcoin Wiki Base58Check — 全て整数のみで実装。
 
 **実装物**: zlib の `deflate` stored/fixed 戦略、python `zlib`/`struct`/`binascii` による PNG chunk 生成、Info-ZIP `unzip` の central-dir-first 読筋、py-mmh3 の x86_32/x64_128 ベクトル、CPython `ipaddress` の厳格形、python-`uuid7` の ms+rand 配置、bitcoin Wiki の Base58Check 手順 — 全て整数のみで実装。
+
+## 第79次: tar・GIF・MIDI・測地・Bech32・Punycode・WebSocket — tar・gif・midi・geo・bech32・punycode・ws
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。r78 で揃った codec/ID 層の延長: `zip` の POSIX 相方 ustar、既存 `lzw` の固定12bit変種とは別物の GIF 固有可変幅 LZW デコーダ、png/gif のメディア族に SMF スコア、`snoise`/`worley` の地理系相方 geodesy、`base58` の segwit 相方 BCH 符号、`uri` の国際化相方 bootstring、プロトコル族に WebSocket フレーム:
+
+- `tar` — POSIX ustar(POSIX.1-1988 pax 前身): 512B ヘッダ(name/mode/uid/gid/octal size+mtime/checksum/typeflag/`ustar\0` magic/prefix)、payload 512 パディング、2 零ブロック終端。checksum は field を空白として和検証、name>100 は prefix 分割、`TarWriter` は mtime=0 決定的発行 — `zip` の相方、`deflate_gzip` 合成で `.tar.gz` 到達
+- `gif` — GIF89a デコーダ(CompuServe): LSD+GCT+image descriptor+extension skip、GIF 固有 LZW は `lzw` の固定12bitと別物(min_code+1 bit から辞書増大で可変幅、clear/EOI in-band、LSB-first packing、KwKwK 経路)、palette-index 出力で `png` と同形状。非インターレースのみ(Adam7 同様に退化)、ベクトルは Python GIF-LZW encoder で生成
+- `midi` — SMF パーサ(MMA): `MThd`/`MTrk`、delta varint(28bit 上限)、running status、meta(0x51 tempo/0x2F EOT 必須)/SysEx、`notes` on/off ペアリング(vel=0 は off 畳込み)、`tempo_map` — `EvKind` 全域分解、不正列は `None`
+- `geo` — 測地(`Fixed` 度、距離は km — meter は Q16 溢れ): haversine 球距離(R_KM=IUGG 6371.0088km)、Lambert–Andoyer 扁平補正(Vincenty の反復を閉形式で置換 — Fixed で反復不要の安全側)、`bearing`/`dest`/`midpoint`/`norm_lon`。asin/acos は atan2 経由
+- `bech32` — Bech32/Bech32m(BIP-173/350): 5 生成多項式 `polymod` BCH、HRP 展開+6文字 checksum、`encode`/`encode_m`/`decode` は variant 報告、`convert` 8↔5 bit 群変換、`encode_segwit`/`decode_segwit` は v0↔bech32・v1+↔bech32m のコンセンサス結合 — `base58` の相方
+- `punycode` — RFC 3492 bootstring: basic コピー+`-`+一般化可変長整数で (n,pos) デルタ符号、`adapt` bias 再計算、u64 checked 算術で退化は `None`。`-` 無しラベルは数字列として解釈される RFC 曖昧性を doc 明記 — `uri` の IDN 相方
+- `ws` — WebSocket フレーム(RFC 6455): FIN/opcode、最短形式強制の 16/64bit 拡張長、client mask XOR、RSV/control 規約違反→`None`、`accept_key` は private SHA-1(otp と同構成)+`base64` で RFC §1.3 ベクトル
+
+**検証**: 新規 30 モジュールテスト全緑。oracle: TarWriter↔list/extract 往復+checksum 破壊検出(tar)、Python GIF-LZW 生成ベクトル+KwKwK 辞書増大列(gif)、hand-built SMF+running status+varint 境界+tempo(midi)、LHR→JFK/Tokyo/赤道四分弧の haversine/lambert/bearing/dest/midpoint(geo)、BIP-173 valid/invalid 一覧+segwit 正規ベクトル+v1 bech32m 結合(bech32)、RFC 3492 §7 全例+IDN 往復(punycode)、RFC accept_key+masked/拡張長往復+RSV/control/最短形違反(ws)。kit 473 モジュール。
+
+## 出典(第79次、search-index 照合)
+
+**論文・仕様**: POSIX.1-1988 ustar / CompuServe GIF89a + Welch LZW (1985) / MMA Standard MIDI Files 1.0 / haversine + Lambert–Andoyer (Survey Review 1942) + Vincenty WGS84 / BIP-173 Bech32 + BIP-350 Bech32m / RFC 3492 Punycode / RFC 6455 WebSocket + RFC 4648 base64 + FIPS 180-1 SHA-1 — 全て整数のみで実装。
+
+**実装物**: GNU tar/BSD pax の ustar レイアウト、PIL/imageio の GIF ブロック列、mido の running-status/varint 規約、geographiclib の Lambert 式、Bitcoin 参照実装の polymod/convertbits、CPython `punycode` codec の §7 例、python `websockets` の frame エンコード/ハンドシェイク — 全て整数のみで実装。
