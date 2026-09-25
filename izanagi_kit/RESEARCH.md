@@ -1987,3 +1987,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Reynolds, *Steering Behaviors for Autonomous Characters* (GDC '99 プロシーディングス、公式解析 seek/arrive/separation/wander) / 全方位木 DP(あれば木DP・rerooting、AtCoder ABC 系解説・Qiita/Zenn 記事) / 並行二分探索(offline parallel binary search、Qiita・Zenn・cp-algorithms 相当の解説群) / Shapiro et al., *Conflict-free Replicated Data Types* (2011) — G/PN Counter、G/2P Set の join-semilattice 仕様 / Hamilton (1844) 四元数・Slicker *Quaternions and Rotation Sequences* の Cayley 回転形・Ken Shoemake slerp/nlerp 文献(acos 不在のため nlerp+半球flipのみ採用) — 全て整数のみで実装。
 
 **実装物**: libgdx/jMonkeyEngine 系 steering の力合成式、AtCoder Library/競プロ典型の reroot 2パス + lift モノイド化、Parallel BS の init/apply/pred 3引数契約、automerge/yjs 系 CRDT の counter/set 結合則、glm/DirectXMath 系 quat の axis-angle/between/nlerp API 形状 — 全て整数のみで実装。
+
+
+## 第68次: 曲線・復号・制御/推定 — catmull・viterbi・spring・pid・kalman・gnoise
+
+**方法**: 第67次と同じ文献参照ラウンド — GitHub・論文・Qiita/Zenn・海外技術記事の「決定性ライブラリ標準 primitive」を列挙し grep で未収録確認後に選定(`crt`/`earcut` は `ntheory::crt2`+`crt`・`poly::ear_clip` が引き受けており近複製回避)。基盤側の証拠も拾った: `easing` の `Fixed::exp`(第66次)があれば Unity 式有理近似ではなく厳密解バネが書ける、が選定理由。結果6本 + steer boids 完成:
+
+- `catmull` — Catmull-Rom / Hermite スプライン: `catmull_rom` は係数 `2p₁, −p₀+p₂, 2p₀−5p₁+4p₂−p₃, −p₀+3p₁−3p₂+p₃` の Horner + 最後に ×½(初版がこの ½ を落としてちょうど2倍の誤差 — endpoints テストが捕捉)、`sample` は端点ミラーの phantom 制御点で区間毎に `t∈[0,1)` + 最終点、`centripetal_sample` は Barry–Goldman 3-Lerp ピラミッドと `t_{i+1}=t_i+√|Δ|` ノット — Yuksel–Schaefer–Keyser の「centripetal は自己交差を作らない」保証のため。chord は i64 脚の二乗和を leg ≤46340 に clamp して `isqrt64` で整数化
+- `viterbi` — 整数コスト加算型 HMM 最尤復号: `viterbi`/`viterbi_cost` で `O(T·S²)` DP、コストは「スケール済み −log p」(呼び出し側が `Fixed::ln` 等で作る)。tie は各セルで小さい predecessor — 全体 lex-min ではないことを doc 明記(brute-force lex-min 列挙テストがその差を実際に捕捉し、検証を「コスト一致」に修正)
+- `spring` — 厳密臨界減衰バネ: 閉形式 `x=(Δ+(v₀+ωΔ)t)e^{−ωt}`、`v=(v₀−ω(v₀+ωΔ)t)e^{−ωt}` を `Fixed::exp` で — GPG4/Unity SmoothDamp の有理近似 `1/(1+x+0.48x²+0.235x³)` ではなく真の指数。状態版 `Spring` は中途リターゲットで速度が連続するよう `v` を持ち越す。`ω≤0`/`dt≤0` は no-op
+- `pid` — Åström–Hägglund 離散 PID: `u=clamp(kp·e + ki·∫e + kd·(−dm/dt))`。微分は measurement 側(セットポイントステップでキックしない)、anti-windup は `ki·∫e` を出力域に割り戻す clamped-integration 形、`ki=0` は積分自体を skip(死に状態を持たない)。`dt≤0` は P のみ clamp 出力で状態不変
+- `kalman` — スカラー Kalman(Welch–Bishop): predict `P+=q`/`predict_with dx`、update `K=P/(P+R)`、`x+=K(z−x)`、`P=(1−K)P`。`r≤0` は無ノイズセンサとして `x:=z,P:=0` 完全信頼。`p0<0`/`q<0` は 0 に clamp(分散は負にならない)。`DetHash` 実装 + golden pin
+- `gnoise` — Perlin 勾配ノイズ: 全整数格子点で厳密 0(勾配ノイズのsignature — 値ノイズ `noise` では埋められなかった連続場ギャップ)、Perlin 2002 quintic `6t⁵−15t⁴+10t³` fade、8方向勾配を SplitMix64 系 corner-hash の下位3bit で選択、双線形 quintic 補間。`fbm2` は周波数倍・振幅半減の正規化済み octaves
+- `steer` — Reynolds boids 完成: `alignment`(近傍平均速度を max_speed に renorm → steer_to、速度相殺近傍は零)と `cohesion`(近傍 centroid への seek)を追加し separation/alignment/cohesion 3則全揃い
+
+**検証**: 新規 33 モジュールテスト + steer 13 全緑。oracle: f64 閉形式(spring/kalman)、brute S^T 列挙(viterbi)、カージナル接線で Hermite ≡ Catmull(catmull)、格子点 0/連続性/有界(gnoise)。API pin 4781、golden 105、kit 398 モジュール。
+
+
+## 出典(第68次、search-index 照合)
+
+**論文・仕様**: Yuksel–Schaefer–Keyser, *On the Parameterization of Catmull-Rom Curves* (centripetal 版が cusp/自己交差を作らない証明 — Barry–Goldman pyramid 形式) / Hermite 基底 h₀₀,h₁₀,h₀₁,h₁₁ (Ferguson 1964 系) / Perlin, *An Image Synthesizer* (SIGGRAPH '85) 及び *Improving Noise* (2002 — quintic fade・8 勾配選択) / Eiserloh, *Game Programming Gems 4* "Interpolating with a Smoothstep Function" + Unity `Vector3.SmoothDamp` 式 (臨界減衰 — 本実装は近似を捨て厳密解へ) / Åström–Hägglund, *PID Controllers: Theory, Design and Tuning* (derivative-on-measurement・clamping anti-windup) / Viterbi (1967)・Forney (1973) MLSE・Rabiner HMM tutorial (復号 DP) / Welch–Bishop, *An Introduction to the Kalman Filter* (スカラー predict/update 式) — 全て整数のみで実装。
+
+**実装物**: Unity `Vector3.SmoothDamp`・Godot `lerp_angle` 系 API 形状(リターゲット連続性のための状態版)、cp-algorithms/競プロ典型の Viterbi DP とコスト化規約、Arduino/PID-library 系の anti-windup・derivative-kick 対策、Ken Perlin 参照実装の permutation→hash 勾配選択を SplitMix64 系 avalanche hash へ置換 — 全て整数のみで実装。
