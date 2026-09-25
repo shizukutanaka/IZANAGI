@@ -2426,3 +2426,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: dBASE III file structure (Borland/dbffile format notes) / ECMA-119 ISO 9660 §6–9 (volume descriptors + directory records + both-endian 733/723) / mapbox vector-tile-spec 2.x (layer/feature/value 番号 + geom command set + zigzag) / RFC 4880 OpenPGP §4.2 packet headers + §6 ASCII armor + CRC-24 / Stanford PLY spec (element/property/list + 3 formats) / NASA IAU FITS 4.x (HDU・card・BITPIX/NAXIS/GCOUNT/PCOUNT) / QEMU qcow2 file format spec v2/v3 — 全て整数のみで実装。
 
 **実装物**: GDAL ogrdbf の固定幅セル参照、xorriso/genisoimage の dir-record walker、tilemaker/mapnik-vector-tile の zigzag geom 復号、gpg/nettle-pgp の packet length 両形式、pandas-polars ply reader、astropy.io.fits の card walker、qemu block/qcow2.c の header+table layout — 全て整数のみで実装。
+
+## 第90次: cab・fat・jpeg・icns・ttc・bdf・pdf — cab・fat・jpeg・icns・ttc・bdf・pdf
+
+**方法**: 文献参照ラウンド継続 — アーカイブ・ファイルシステム・画像・フォント・文書の残りフォーマット層:
+
+- `cab` — Microsoft CABINET(MS-CAB): 36B `MSCF` ヘッダ(cbCabinet@c8・coffFiles@16・cFolders@26・cFiles@28・flags@30・setID@32・iCabinet@34)、flag bit4 で cbCFHeader/cbCFFolder/cbCFData の 3 予約領域が有効(4B 拡張フィールド+ヘッダ/フォルダ/データ各予約)。CFFOLDER 8B(data_area・blocks・comp: 0=stored/1=MSZIP)、CFFILE 16B+NUL 名(iFolder=0xFFFE/0xFFFF は cross-cabinet リンク → `folder_idx` が None)。`folder_bytes` は CFDATA(csum・cbData・cbUncomp)を歩き、MSZIP は `CK` 署名+raw DEFLATE を `inflate` で復号して連結
+- `fat` — FAT12/16/32: BPB(bps@11・spc@13・reserved@14・nfats@16・root_ents@17・tot16/32・fatsz16/32・root_clus@44)、型は cluster 数(<4085=12・<65525=16・else32)。`fat_entry` は FAT12 の 2 エントリ/3B パック(even=low12・odd=high12、`off=n+n/2`)、FAT32 は `&0x0FFFFFFF` マスク、EOC 0xFF8/0xFFF8/0x0FFFFFF8。`dir_slot` は 0x00=end・0xE5=deleted・attr0x0F=LFN・0x08=volume を 3 値で返し、`entries` は root 領域 or cluster chain、`entry_name` は `NAME    .EXT` 形式
+- `jpeg` — ISO/IEC 10918-1/JFIF: SOI(FFD8)必須、standalone marker(0x01・0xD0-D9)は長さ無し、セグメント長 u16BE は自身を含む。SOF=C0-CF から C4(DHT)/C8(JPG)/CC(DAC)を除外して precision/h/w/comps を取得。SOS 後はエントロピー領域: `FF 00` スタッフを飛ばし RSTn はインライン記録して継続、非 RST marker で走査再開。`app` は APPn ペイロードの prefix 選択(JFIF/Exif 等)
+- `icns` — Apple Icon Image: `icns`+BE32 全体長、要素は {tag4・len≥8・data}。ic07-14(PNG)・icp4-6・is32-it32(RGB)・`*8mk`(mask)の 22 タグ表、`is_png`/`is_jp2`/`kind` で内容判定(型チェックなしの素通しコンテナ)
+- `ttc` — TrueType Collection: `ttcf`+version(0x00010000/0x00020000)+numFonts(1..=1024)+offset 表、v2 は DSIG(tag/len/off)が offsets 直後。`fonts` は各 offset から `ttf::parse` で個別フォント化
+- `bdf` — Adobe Glyph Bitmap Distribution Format: ASCII の STARTFONT ヘッダ(FONT/SIZE/FONTBOUNDINGBOX)+STARTPROPERTIES+CHARS。glyph は STARTCHAR/ENCODING/SWIDTH/DWIDTH/BBX/BITMAP/ENDCHAR、BITMAP 行は 16 進 1 行/行・各行 MSB-first で `ceil(w/8)` バイト。`row_at`/`bit`/`render`(#/. 出力)まで
+- `pdf` — ISO 32000 PDF 最小リーダ: `%PDF-x.y` ヘッダ(先頭 1KB 以内)・`startxref`(最終出現=増分更新対応)→ クラシック `xref` 表(20B 固定幅エントリ `nnnnnnnnnn ggggg t`)→ trailer dict。`obj` は `n g obj …` を位置解決、オブジェクト木は Null/Bool/Int/Real(10 進厳密 `mant×10^exp` — float 型不使用)/Name(#xx エスケープ)/Str(escape+入れ子括弧)/Hex/Arr/Dict/Ref(n g R 先読み)。`root`/`pages`/`page_count`/`page_ids` で /Root→/Pages→/Kids//Count 歩行。**xref stream(PDF≥1.5)は範囲外で None**
+
+**検証**: 新規テスト全緑(28件+7 doctest)。oracle: `deflate` 自己オラクル(MSZIP `CK`+deflate 往復)、Python zlib の raw-deflate 実ベクトル、手組 FAT12 イメージ(クラスタ鎖・packed entry・削除/LFN)、PDF 手組 fixture で xref オフセット一致+page walk、BDF `#`/`.` レンダ一致。ラウンド内捕捉: CAB ヘッダフィールドの +2 オフセット誤り(cFolders@26 が正 — fixture が正しい側で parse がずれていた)、BDF glyph が ENDCHAR 無しでも `Some` を返す閉鎖判定欠落、JPEG JFIF/SOF ペイロード長の 1-2B ずれ、FAT fixture が cluster 境界を跨ぐ意図とずれた期待値、PDF xref エントリの手計算ずれ(実オフセットで修正)。
+
+## 出典(第90次、search-index 照合)
+
+**論文・仕様**: Microsoft MS-CAB spec (CFHEADER/CFFOLDER/CFFILE/CFDATA + MSZIP `CK`) / Microsoft FAT spec (BPB・FAT12 packed entries・EOC 値・dir entry) / ITU-T T.81 + JFIF 1.02 (marker segments・entropy stuffing・RSTn) / Apple ICNS format notes / Microsoft TTC spec v1/v2 (DSIG) / Adobe Glyph Bitmap Distribution Format spec / ISO 32000-1 §7.5 file structure + xref table (classic tables のみ) — 全て整数のみで実装。
+
+**実装物**: cabextract/libmspack の folder+MSZIP walk、mtools/dosfstools の FAT12 パック・チェーン歩行、jpeglib/Pillow JpegImagePlugin の marker walker、iconutil/Pillow IcnsImagePlugin の tag 表、fonttools TTCollection、Pillow BdfFontFile、PyPDF2/pdfminer.six の xref+trailer 解決 — 全て整数のみで実装。
