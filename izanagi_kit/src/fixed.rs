@@ -137,6 +137,15 @@ impl Fixed {
     pub const MAX: Fixed = Fixed(i32::MAX);
     /// The smallest (most negative) representable value, `raw() == i32::MIN`.
     pub const MIN: Fixed = Fixed(i32::MIN);
+    /// π in Q16.16 (`raw() == 205887`) — the nearest representable value,
+    /// and the same constant CORDIC uses to range-reduce [`Fixed::sin_cos`].
+    /// Call sites that approximated π (`from_ratio(355, 113)`) get the
+    /// identical raw value.
+    pub const PI: Fixed = Fixed(PI);
+    /// `2·π` — a full turn in radians (`raw() == 411774`).
+    pub const TWO_PI: Fixed = Fixed(TWO_PI);
+    /// `π/2` — a quarter turn (`raw() == 102944`).
+    pub const HALF_PI: Fixed = Fixed(HALF_PI);
 
     /// Saturates rather than wrapping: `from_int(32768)` exceeds the Q16.16
     /// integer range and clamps to the maximum instead of silently flipping
@@ -168,6 +177,17 @@ impl Fixed {
     #[inline]
     pub fn raw(self) -> i32 {
         self.0
+    }
+
+    /// The inverse of [`Fixed::raw`]: wraps an already-scaled Q16.16 integer.
+    /// Construction is the whole story — `raw` is what arithmetic operations
+    /// produce, so `from_raw(x.raw()) == x` for every `x`. Prefer
+    /// [`Fixed::from_int`]/[`Fixed::from_ratio`] at call sites that think in
+    /// values rather than wire encoding; this constructor exists for code
+    /// that already holds raw fixed-point data (hash folds, packed fields).
+    #[inline]
+    pub const fn from_raw(raw: i32) -> Self {
+        Fixed(raw)
     }
 
     /// Convert to the integer part via a bare arithmetic `>> 16`.
