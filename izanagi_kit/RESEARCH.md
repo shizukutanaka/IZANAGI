@@ -1965,3 +1965,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **手法**: Elon Musk の第一原理推論(公理まで分解し推論し直す)とソクラテス問答法(仮定を問いで崩す)を監査ツールとして適用 — 「何を足すか」ではなく「公理上何が欠けているか」を列挙する逆方向のラウンド設計。
 
 **実装物**: IEEE 系 round-half-up 出力シフト、binary-decomposition べき乗表(CORDIC/平方分割と同族)、Fnv1a LE-bytes ワイヤ規約の std 型全域化、golden-fixture による wire-format 完全監視 — 全て整数のみで実装。
+
+
+## 第67次: 文献参照の標準 primitive 補完 — steer・reroot・pbs・crdt・quat
+
+**方法**: GitHub・論文・Qiita/Zenn・海外技術記事から「決定性ライブラリが持つべき標準 primitive」を列挙し、grep で未収録を確かめてから選定(`persistent`/`ntt`/`cordic`/`scc` は既存 `pstree`/`conv`/`Fixed::sin_cos`/`graph::strongly_connected` が引き受けており近複製を回避)。結果5本 + 基盤3件:
+
+- `steer` — Reynolds steering behaviors(GDC '99): `seek`/`flee`/`arrive`/`pursue`/`evade`/`wander`/`separation`/`combine`。一貫形は「desired = dir·max_speed、force = truncate(desired − vel, max_force)」。`arrive` は slow_radius 内で線形減速、`pursue`/`evade` は距離/max_speed tick の線形予測、`wander` は SplitMix64 jitter、`separation` は単位ベクトル×距離反比例の和。`Fixed` のみ、`Option`/空ベクトルで total に
+- `reroot` — 全方位木 DP: DFS 親リンク + 事前順リストの2パスで `down`(部分木集約)→`up`(残り全体集約、prefix/suffix で兄弟 fold)。出力は隣接順序非依存。教訓: **リフトの正しさは集約型に依存** — 距離和は部分木サイズ分増えるため `(sum,count)` 対モノイドで `lift=|(s,c)| (s+c,c)`;「`+1`リフト」は eccentricity 等の max 型に限る。退廃モノイドで書いたテストが即座に食い止めた(BFS oracle)
+- `pbs` — 並行二分探索: n個の適用 op と q 個の単調述語クエリを `O((n+q) log n)` で。ctx を各パス `init()+apply` で再構築するため unapply 不要 — 契約は「pred が t で単調」のみ。発火しないクエリは `t=lo` 最終評価で `None`
+- `crdt` — Shapiro 系統の join-semilattice レプリカ: `GCounter`(レーン別 max)、`PNCounter`(p−n 2つの GCounter — 負値も順序安全)、`TwoPhaseSet`(add/remove 両 union、墓碑が永続的に勝つ — re-add にはタグ付き要素が要るので非提供)、`GSet`(union)。`Vec`/`BTreeSet` は第66次の `DetHash` をそのまま使い全型 golden pin
+- `quat` — `Fixed` 上の四元数: Hamilton 積、共役、norm、Cayley 形 `v + 2·(q⃗×(q⃗×v + w·v))` 回転、`from_axis_angle`、`between`(対蹠付近は最大垂直軸フォールバック)、`nlerp`(半球 flip で短弧を保証、`acos` が基盤に無く真の slerp は不可 — 不可の理由を docs に明記)、`to_axis_angle`/`angle_to` は `Fixed::atan2`
+- `fixed` — **基盤ギャップ**: π が公開定数として存在せず、`easing` が私有 `pi()`(355/113)で代理実装していた → `pub const PI/TWO_PI/HALF_PI` 公開(raw は CORDIC 域内値と同一)。`from_raw` は第66次で追加済
+- 合わせて `reroot` の monoid ドキュメントを「+1 は hop-count/max 系のみ、和系は count を持て」と明示 — README 表にも設計ノートを記録
+
+**検証**: 37 新規テスト全緑。oracle: BFS 距離和/eccentricity(reroot)、brute prefix-sum/membership 走査(pbs)、Join 半束の交換・結合・冪等(crdt)、四元数の逆回転・合成順・半球 flip(quat)、30 例 headless×2、pins 4725/0x3dd8f9a0e44300d9、golden 102。
+
+
+## 出典(第67次、search-index 照合)
+
+**論文・仕様**: Reynolds, *Steering Behaviors for Autonomous Characters* (GDC '99 プロシーディングス、公式解析 seek/arrive/separation/wander) / 全方位木 DP(あれば木DP・rerooting、AtCoder ABC 系解説・Qiita/Zenn 記事) / 並行二分探索(offline parallel binary search、Qiita・Zenn・cp-algorithms 相当の解説群) / Shapiro et al., *Conflict-free Replicated Data Types* (2011) — G/PN Counter、G/2P Set の join-semilattice 仕様 / Hamilton (1844) 四元数・Slicker *Quaternions and Rotation Sequences* の Cayley 回転形・Ken Shoemake slerp/nlerp 文献(acos 不在のため nlerp+半球flipのみ採用) — 全て整数のみで実装。
+
+**実装物**: libgdx/jMonkeyEngine 系 steering の力合成式、AtCoder Library/競プロ典型の reroot 2パス + lift モノイド化、Parallel BS の init/apply/pred 3引数契約、automerge/yjs 系 CRDT の counter/set 結合則、glm/DirectXMath 系 quat の axis-angle/between/nlerp API 形状 — 全て整数のみで実装。

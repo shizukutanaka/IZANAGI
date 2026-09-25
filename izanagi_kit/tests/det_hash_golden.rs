@@ -459,6 +459,42 @@ fn cases() -> Vec<(&'static str, u64)> {
             hash_state(&izanagi_kit::dialogue::Choice::new("go", 1)),
         ),
         ("DialogueNode(1choice)", hash_state(&DialogueNode::new("n"))),
+        (
+            "Quat(z,90°)",
+            hash_state(
+                &izanagi_kit::quat::Quat::from_axis_angle(
+                    Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ONE),
+                    Fixed::HALF_PI,
+                )
+                .unwrap(),
+            ),
+        ),
+        ("GCounter(2r)[3,1]", {
+            let mut g = izanagi_kit::crdt::GCounter::new(2);
+            g.add(0, 3);
+            g.add(1, 1);
+            hash_state(&g)
+        }),
+        ("PNCounter(2r)+2-1", {
+            let mut p = izanagi_kit::crdt::PNCounter::new(2);
+            p.increment(0);
+            p.increment(0);
+            p.decrement(1);
+            hash_state(&p)
+        }),
+        ("GSet<u32>{1,4}", {
+            let mut s = izanagi_kit::crdt::GSet::<u32>::new();
+            s.insert(1);
+            s.insert(4);
+            hash_state(&s)
+        }),
+        ("TwoPhaseSet<u32>{1,4}-{4}", {
+            let mut s = izanagi_kit::crdt::TwoPhaseSet::<u32>::new();
+            s.insert(1);
+            s.insert(4);
+            s.remove(4);
+            hash_state(&s)
+        }),
     ]
 }
 
@@ -563,6 +599,11 @@ const EXPECTED: &[(&str, u64)] = &[
     ("AffixedItem<u32,u8>", 0x27ca16640b9e97f1),
     ("Choice(lbl->1)", 0xf0dcb985e9a6b4aa),
     ("DialogueNode(1choice)", 0xc6b20827bef5b401),
+    ("Quat(z,90°)", 0x086e1ef92e5a3f62),
+    ("GCounter(2r)[3,1]", 0xe4dff8725769fc35),
+    ("PNCounter(2r)+2-1", 0x752daa6170feaee6),
+    ("GSet<u32>{1,4}", 0xa00940f06ee69992),
+    ("TwoPhaseSet<u32>{1,4}-{4}", 0x2db8c5a26b323c37),
 ];
 
 #[test]
