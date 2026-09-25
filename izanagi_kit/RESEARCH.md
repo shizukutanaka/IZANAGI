@@ -2070,3 +2070,24 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Kasai, Lee, Arimura, Arikawa & Park, *Linear-Time Longest-Common-Prefix Computation in Suffix Arrays* (CPM 2001 — rank+i−1 再開歩行) / Worley, *A Cellular Texture Basis Function* (SIGGRAPH 1996 — F1/F2 feature 距離) / Linney, *Swept AABB collision detection using the Minkowski sum* (gamedev.net tutorial — スラブ入出時刻法) / RFC 2898 §5.2 PBKDF2・RFC 5869 HKDF / RFC 4180 CSV / alizain, *ULID spec* (Crockford Base32 + monotonic 規則) / RFC 8439 §2.8 AEAD_CHACHA20_POLY1305 — 全て整数のみで実装。
 
 **実装物**: Go `index/suffixarray` の LCSArray 系コンパニオン形、Blender shader `Voronoi distance to edge` の f2−f1 API 形、Nasser/gamedev swept-AABB 系の normal+t インタフェース、Go `encoding/csv` の LazyQuotes 許容規約、`oklog/ulid` の monotonic インクリメント実装、`ring`/`libsodium` の `seal`/`open` API 形 — 全て整数のみで実装。
+
+## 第72次: 画像解析・準乱数・文字類似度・レガシー摘要・青ノイズ・版数代数 — otsu・integral・pcg・jaro・md5・poisson・semver
+
+**方法**: 第71次と同じ文献参照ラウンド — GitHub・論文・Qiita/Zenn・海外技術記事の標準 primitive 候補を列挙し grep で未収録確認(`ccl`/`worley` の画像・ラスタ族に閾値選択と矩形統計の相方が未、`SplitMix64`/`rng_xoshiro` に並ぶ第三の決定的乱数系が未、`editdist`/`fuzzy` とは別族の Jaro 類似度が未、`sha256`/`sha3`/`blake2s` 系に legacy 互換摘要が未、`sobol` の低食違いとは別要求の最小距離保証配置が未、`varint`/`json` 系プロトコル基盤に版数比較が未)。結果7本:
+
+- `otsu` — 大津の自動2値化閾値: 256-bin ヒストグラム上で between-class variance を厳密有理数で最大化(`d = sum_all·w0 − sum0·total` の i128、score = `d²/(w0·w1)`)。first-maximizer 規約で `pixel > t` が前景 — bimodal/skewed/noise 画像と 50 シード f64 オラクルで規約をピン化
+- `integral` — 積分画像/Summed-area table: `(w+1)×(h+1)` 零縁 SAT で `sum_rect` が O(1)。`u64` セルで引き算順を `A+D−B−C` に固定(`A−B−C+D` は `A−B < C` で underflow する — 解析的導出で捕捉、`A = B+C−D+query` ⟹ `A+D−B−C = query ≥ 0`)。`mean_rect`(床関数)/`box_mean`((2r+1)² clamped 局所平均)/`total`/`dims` — `ccl`/`worley` ラスタ族の統計相方
+- `pcg` — PCG PRNG(O'Neill): LCG `state·6364136223846793005+inc` に XSH-RR 出力変換(`xorshifted = ((old>>18)^old)>>27`、rotate = `old>>59`)。公式 seeding 手順(初期 state で 1 回 discard → +seed → もう1回)をそのまま再現 — Python 独立再導出で seed 42/stream 54 の先頭 `0xa15c02b7` をピン化(記憶値 `0xa15c02b9` は +2 ずれ)。`next_bounded` は Lemire multiply-shift、`next_u64` 連結
+- `jaro` — Jaro-Winkler 文字類似度: 窓 `⌊max/2⌋−1` の貪欲マッチ + 順序スキャン転倒数 `t/2`、score を `m²(la+lb)+(m−t)·la·lb` / `3·la·lb·m` の厳密有理数で `Fixed::from_ratio` 化。Winkler boost は `j > 7/10` 時のみ `+ l/10·(1−j)`(l = 共通接頭辞 ≤4)。MARTHA/MARHTA = 17/18、DIXON/DICKSONX = 23/30(発表値 — `DICKSONX` は8文字、手計算を7文字と誤数して捕捉)、DWAYNE/DUANE = 37/45 + 200 シード f64 オラクル(千分率許容)
+- `md5` — RFC 1321 MD5: LE ワード展開・4ラウンド F/G/H/I・K/s 定数表、padding は `0x80 + 0*(56 mod 64) + bit_len64 LE`。互換摘要(セーブ形式・プロトコル互換)であり暗号用途ではないことを doc 明記。RFC 1321 テストスイート全7ベクトル + padding 境界(55/56/63/64B)でピン化
+- `poisson` — Bridson Poisson-disk 青ノイズ配置: cell `⌈r·7071/10000⌉ ≈ r/√2` グリッド加速の dart-throwing、active list からリング `[r,2r)` に最大 k 候補(`Pcg` 駆動、`Fixed::sin_cos` 整数角度)、近傍 `⌈r/cell⌉+1` セル内で `i64` 二乗距離厳密検査。`sobol` の低食違いが要求しない「全ペア ≥ min_dist」の分散要求 — 全ペア検査・密度下限・seed 決定性でピン化
+- `semver` — SemVer 2.0.0: 厳密 spec パース(数値成分の先頭ゼロ・空識別子・文字集合違反を拒否)、`Ord` は pre-release 規則(release > prerelease、数値 < 英数、短い方 < 同接頭の長い方、build メタは比較無視 — spec §11 の 11 版連鎖をピン化)、npm 系 `satisfies_caret`(0.x 左詰め規則: major>0→同 major、major=0∧minor>0→同 minor、両方0→厳密)/`satisfies_tilde`(同 minor 帯)。`varint`/`json` 系プロトコル基盤の互換性通貨
+
+**検証**: 新�� 29 モジュールテスト全緑。oracle: 50 シード f64 between-class(otsu)、全位置 2D 総当り vs `sum_rect`(integral)、Python 独立再導出の標準ベクトル(pcg)、発表値 3 組 + 200 シード f64 千分率(jaro)、RFC 1321 全ベクトル + 境界 pad(md5)、全ペア距離 + 密度(poisson)、spec §11 連鎖 + 拒否集合(semver)。API pin 4947、kit 424 モジュール。
+
+
+## 出典(第72次、search-index 照合)
+
+**論文・仕様**: Otsu, *A Threshold Selection Method from Gray-Level Histograms* (IEEE SMC 1979 — between-class variance 最大化) / Crow, *Summed-Area Tables for Texture Mapping* (SIGGRAPH 1984 — SAT 矩形和) / O'Neill, *PCG: A Family of Simple Fast Space-Efficient Statistically Good Algorithms for Random Number Generation* (HMC-CS-2014-0905 + pcg-random.org seed/sequence 規約) / Jaro 1989 + Winkler 1990 接頭辞補正 / RFC 1321 MD5 / Bridson, *Fast Poisson Disk Sampling in Arbitrary Dimensions* (SIGGRAPH 2007 sketch — r/√2 グリッド + k dart) / semver.org 2.0.0 §10–11 — 全て整数のみで実装。
+
+**実装物**: OpenCV `threshold(THRESH_OTSU)` の first-maximizer 規約、Halide/ゲーム界の SAT 局所平均パターン、`rand_pcg` crate の `new_stream(seed, seq)` API 形、Apache commons-text `JaroWinklerSimilarity` の 0.7 ゲート、Go `crypto/md5` 出力形、Red Blob Games poisson-disc 実装形、npm `node-semver` の caret/tilde 意味論 — 全て整数のみで実装。
