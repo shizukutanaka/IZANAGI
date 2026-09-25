@@ -22,7 +22,7 @@
 //! | Tier | What it is | Modules |
 //! |---|---|---|
 //! | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. Read these first. | [`fixed`], [`mod@vec`], [`rng`], [`rng_xoshiro`], [`noise`], [`world_hash`], [`replay`], [`rollback`], [`sim`], [`dst`], [`shrink`], [`prop`], [`plan`], [`mod@explore`], [`temporal`], [`recovery`], [`verify`], [`netinput`], [`cmdqueue`], [`bits`], [`savefile`], [`timestep`] |
-//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`chacha`], [`sha256`], [`dbscan`], [`kmeans`], [`rtree`], [`poly1305`], [`veb`], [`roaring`], [`lyndon`], [`sosdp`], [`skiplist`], [`karatsuba`], [`lsm`], [`pgm`], [`aes`], [`fenwickrange`], [`geohash`], [`octree`], [`base64`], [`vertexcover`], [`siphash`], [`hmac`], [`pairingheap`], [`bitonic`], [`offlinelca`], [`elias`], [`patricia`], [`blake2s`], [`rotcal`], [`smawk`], [`rope`], [`bktree`], [`mincircle`], [`slopetrick`], [`regex`], [`cuckoo`], [`bitboard`], [`cyk`], [`halfplane`], [`yfast`], [`radixsort`], [`rankselect`], [`debruijn`], [`cf`], [`earley`], [`sais`], [`hll`], [`arith`], [`swiss`], [`magic`], [`linkcut`], [`splay`], [`editdist`], [`gjk`], [`tlsf`], [`sha512`], [`ed25519`], [`blossom`], [`epa`], [`alphahull`], [`imptreap`], [`meetmid`], [`modlin`], [`veb3`], [`bigedit`], [`varint`], [`hornsat`], [`bigint`], [`segbeats`], [`ett`], [`utf8`], [`lazyseg`], [`tonelli`], [`bsgs`], [`dfamin`], [`bspline`], [`bmassey`], [`xortrie`], [`orset`], [`lww`], [`sieve`], [`grundy`], [`gapbuffer`], [`robin`], [`winnow`], [`scapegoat`], [`leftist`], [`beam`], [`perceptron`], [`saddleback`], [`avltree`], [`bandit`], [`zobrist`], [`rsa`], [`json`], [`sufftree`], [`redblack`], [`apsp`], [`pagerank`], [`automaton`], [`aastree`], [`lz4`], [`christofides`], [`sha3`], [`minkowski`], [`shamir`], [`postman`], [`fst`], [`fountain`], [`edt`], [`bplus`], [`bentley`], [`comb`], [`gcm`], [`polyclip`], [`clique`], [`dtw`], [`mmheap`], [`mstree`], [`pathcover`], [`mod@jps`], [`goap`], [`btree`], [`verlet`], [`vnoise`], [`bdd`], [`simplex`], [`peg`], [`radixheap`], [`life`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`], [`steer`], [`reroot`], [`pbs`], [`crdt`], [`quat`], [`catmull`], [`viterbi`], [`spring`], [`pid`], [`kalman`], [`gnoise`], [`ray`], [`funnel`], [`affine`], [`hmm`], [`roots`], [`glob`], [`sobol`], [`biquad`], [`ccl`], [`sap`], [`pchip`], [`align`], [`lcp`], [`worley`], [`swept`], [`kdf`], [`csv`], [`ulid`], [`aead`], [`otsu`], [`integral`], [`pcg`], [`jaro`], [`md5`], [`poisson`], [`semver`], [`kcore`], [`otp`], [`anneal`], [`soundex`], [`bm25`], [`mdp`], [`rsync`], [`dual`], [`qlearn`], [`porter`], [`dither`], [`goertzel`], [`qoi`], [`civil`], [`jwt`], [`uuid`], [`cbor`], [`xxhash`], [`elo`], [`braille`], [`utility`] |
+//! | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence). These are the vetted versions. | [`pathfinding`], [`fov`], [`geometry`], [`gridcast`], [`graph`], [`pack`], [`zorder`], [`msquares`], [`flow`], [`hungarian`], [`lsystem`], [`poly`], [`rdp`], [`fenwick`], [`ahocor`], [`diff`], [`trie`], [`segtree`], [`bipartite`], [`tsp`], [`rle`], [`segment`], [`euler`], [`rmq`], [`closestpair`], [`interval`], [`cron`], [`fuzzy`], [`stats`], [`markov`], [`lttb`], [`ntheory`], [`lca`], [`huffman`], [`treap`], [`kmp`], [`vclock`], [`merkle`], [`bloom`], [`delta`], [`lzss`], [`rolling`], [`suffix`], [`kdtree`], [`twosat`], [`minimax`], [`perm`], [`conv`], [`manacher`], [`gauss`], [`bezier`], [`kmv`], [`cms`], [`quantile`], [`chash`], [`lzw`], [`minhash`], [`zfunc`], [`bellman`], [`frac`], [`slide`], [`lis`], [`dagsp`], [`bfprt`], [`raster`], [`linrec`], [`mcflow`], [`knapsack`], [`coloring`], [`dsurb`], [`cht`], [`bwt`], [`hld`], [`mincut`], [`miller`], [`wavelet`], [`sam`], [`hamdp`], [`dlx`], [`arborescence`], [`xorbasis`], [`eertree`], [`mo`], [`histrect`], [`stable`], [`wdsu`], [`dominators`], [`fenwick2d`], [`circulation`], [`biconn`], [`simhash`], [`gf2`], [`rsfec`], [`fmidx`], [`zerobfs`], [`dpll`], [`intervaltree`], [`centroid`], [`piecetable`], [`steiner`], [`wal`], [`bitap`], [`flowfield`], [`shunting`], [`sat`], [`buddy`], [`xorfilter`], [`lru`], [`vose`], [`quadtree`], [`cartesian`], [`iheap`], [`pstree`], [`crc`], [`mcts`], [`slotmap`], [`cuckoof`], [`rans`], [`polylabel`], [`mphf`], [`mis`], [`chacha`], [`sha256`], [`dbscan`], [`kmeans`], [`rtree`], [`poly1305`], [`veb`], [`roaring`], [`lyndon`], [`sosdp`], [`skiplist`], [`karatsuba`], [`lsm`], [`pgm`], [`aes`], [`fenwickrange`], [`geohash`], [`octree`], [`base64`], [`vertexcover`], [`siphash`], [`hmac`], [`pairingheap`], [`bitonic`], [`offlinelca`], [`elias`], [`patricia`], [`blake2s`], [`rotcal`], [`smawk`], [`rope`], [`bktree`], [`mincircle`], [`slopetrick`], [`regex`], [`cuckoo`], [`bitboard`], [`cyk`], [`halfplane`], [`yfast`], [`radixsort`], [`rankselect`], [`debruijn`], [`cf`], [`earley`], [`sais`], [`hll`], [`arith`], [`swiss`], [`magic`], [`linkcut`], [`splay`], [`editdist`], [`gjk`], [`tlsf`], [`sha512`], [`ed25519`], [`blossom`], [`epa`], [`alphahull`], [`imptreap`], [`meetmid`], [`modlin`], [`veb3`], [`bigedit`], [`varint`], [`hornsat`], [`bigint`], [`segbeats`], [`ett`], [`utf8`], [`lazyseg`], [`tonelli`], [`bsgs`], [`dfamin`], [`bspline`], [`bmassey`], [`xortrie`], [`orset`], [`lww`], [`sieve`], [`grundy`], [`gapbuffer`], [`robin`], [`winnow`], [`scapegoat`], [`leftist`], [`beam`], [`perceptron`], [`saddleback`], [`avltree`], [`bandit`], [`zobrist`], [`rsa`], [`json`], [`sufftree`], [`redblack`], [`apsp`], [`pagerank`], [`automaton`], [`aastree`], [`lz4`], [`christofides`], [`sha3`], [`minkowski`], [`shamir`], [`postman`], [`fst`], [`fountain`], [`edt`], [`bplus`], [`bentley`], [`comb`], [`gcm`], [`polyclip`], [`clique`], [`dtw`], [`mmheap`], [`mstree`], [`pathcover`], [`mod@jps`], [`goap`], [`btree`], [`verlet`], [`vnoise`], [`bdd`], [`simplex`], [`peg`], [`radixheap`], [`life`], [`mapgen`], [`maze`], [`hexgrid`], [`delaunay`], [`wfc`], [`tilemap`], [`spatial_hash`], [`influence`], [`voronoi`], [`passability`], [`autotile`], [`turn`], [`entity`], [`sparse_set`], [`observe`], [`arch`], [`relations`], [`multimap`], [`steer`], [`reroot`], [`pbs`], [`crdt`], [`quat`], [`catmull`], [`viterbi`], [`spring`], [`pid`], [`kalman`], [`gnoise`], [`ray`], [`funnel`], [`affine`], [`hmm`], [`roots`], [`glob`], [`sobol`], [`biquad`], [`ccl`], [`sap`], [`pchip`], [`align`], [`lcp`], [`worley`], [`swept`], [`kdf`], [`csv`], [`ulid`], [`aead`], [`otsu`], [`integral`], [`pcg`], [`jaro`], [`md5`], [`poisson`], [`semver`], [`kcore`], [`otp`], [`anneal`], [`soundex`], [`bm25`], [`mdp`], [`rsync`], [`dual`], [`qlearn`], [`porter`], [`dither`], [`goertzel`], [`qoi`], [`civil`], [`jwt`], [`uuid`], [`cbor`], [`xxhash`], [`elo`], [`braille`], [`utility`], [`msgpack`], [`snowflake`], [`sdf`], [`ik`], [`tournament`], [`plot`], [`brent`] |
 //! | **3. Content pipeline** | Author game data as text, then prove it is well-formed before it reaches the sim — the verification gate for hand- or LLM-authored content. | [`content`], [`parser`], [`serializer`], [`validator`], [`loader`], [`diag_json`] |
 //! | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…), written so they are hashable and replay-safe. Useful, but nothing in tier 1 depends on them — treat them as worked examples you may freely replace. | everything else |
 //!
@@ -433,6 +433,7 @@ pub mod bm25;
 pub mod bmassey;
 pub mod bplus;
 pub mod braille;
+pub mod brent;
 pub mod bsgs;
 pub mod bspline;
 pub mod btree;
@@ -564,6 +565,7 @@ pub mod huffman;
 pub mod hungarian;
 pub mod identify;
 pub mod iheap;
+pub mod ik;
 pub mod imptreap;
 pub mod influence;
 pub mod inputbuf;
@@ -639,6 +641,7 @@ pub mod mobius;
 pub mod modlin;
 pub mod mphf;
 pub mod msglog;
+pub mod msgpack;
 pub mod msquares;
 pub mod mstree;
 pub mod multimap;
@@ -674,6 +677,7 @@ pub mod pgm;
 pub mod pid;
 pub mod piecetable;
 pub mod plan;
+pub mod plot;
 pub mod poisson;
 pub mod poly;
 pub mod poly1305;
@@ -732,6 +736,7 @@ pub mod sap;
 pub mod sat;
 pub mod savefile;
 pub mod scapegoat;
+pub mod sdf;
 pub mod seamcarve;
 pub mod segbeats;
 pub mod seglazy;
@@ -757,6 +762,7 @@ pub mod slide;
 pub mod slopetrick;
 pub mod slotmap;
 pub mod smawk;
+pub mod snowflake;
 pub mod sobol;
 pub mod sosdp;
 pub mod soundex;
@@ -785,6 +791,7 @@ pub mod timer;
 pub mod timestep;
 pub mod tlsf;
 pub mod tonelli;
+pub mod tournament;
 pub mod treap;
 pub mod trie;
 pub mod trigger;
