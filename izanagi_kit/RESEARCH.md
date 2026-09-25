@@ -2446,3 +2446,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Microsoft MS-CAB spec (CFHEADER/CFFOLDER/CFFILE/CFDATA + MSZIP `CK`) / Microsoft FAT spec (BPB・FAT12 packed entries・EOC 値・dir entry) / ITU-T T.81 + JFIF 1.02 (marker segments・entropy stuffing・RSTn) / Apple ICNS format notes / Microsoft TTC spec v1/v2 (DSIG) / Adobe Glyph Bitmap Distribution Format spec / ISO 32000-1 §7.5 file structure + xref table (classic tables のみ) — 全て整数のみで実装。
 
 **実装物**: cabextract/libmspack の folder+MSZIP walk、mtools/dosfstools の FAT12 パック・チェーン歩行、jpeglib/Pillow JpegImagePlugin の marker walker、iconutil/Pillow IcnsImagePlugin の tag 表、fonttools TTCollection、Pillow BdfFontFile、PyPDF2/pdfminer.six の xref+trailer 解決 — 全て整数のみで実装。
+
+## 第91次: ebml・isobmff・aiff・xpm・gltf・wad・svg — メディア/モデル/ゲームアセット層
+
+**方法**: 文献参照ラウンド継続 — 映像・音声・モデル・ゲームのコンテナ/パス形式の残隙:
+
+- `ebml` — RFC 9559 EBML(Matroska/WebM の母型): VINT は先頭バイトの leading-zero が幅(1..=8)をコード化、値は marker bit を落とした残り。ID は marker 込みの生値で保持(Matroska id はそれ自体が VINT 形)。size の全 bit=1 は unknown-size(ストリーム境界は親まで)。`is_master` は Matroska の master 要素表(EBML/Segment/Info/Tracks/Cluster/Tags/Cues/…)、typed 読みは `uint`/`int`(2の補数)/`text`(ASCII)/`utf8`/`float_bits`(4|8B の raw IEEE bits — float 型不使用)/`date`(ns since 2001-01-01)
+- `isobmff` — ISO 14496-12(`.mp4`/`.mov`/`.heic`): box = size32BE+type4、size==1 は largesize64、size==0 は親末尾まで、`uuid` は 16B 拡張タグ。container 表(moov/trak/mdia/minf/stbl/edts/dinf/udta/moof/traf/mfra/skip/strk/sinf/schi/tref/meta — `meta` は先頭 4B flags を飛ばす)。`find_path` で型パス下降、typed: `major_brand`/`compatible_brands`/`mvhd`(v0/v1 で offset 変化)/`tkhd`/`stts`/`stsz`/`chunk_offsets`(stco/co64)
+- `aiff` — AIFF/AIFC: FORM チャンク表(2B アライン)・`COMM`(channels/frames/bits + **80bit IEEE-754 extended** sample rate を手動デコード → `Fixed` raw: `mant×2^(exp-16383-63+16)`、denormal/inf/nan → None)・`SSND`(offset/blockSize 後のペイロード)。AIFC は rate 後に 4B compression tag
+- `xpm` — XPM3: `"w h ncolors cpp"` 先頭行 + color 行(sym cpp 文字 + `c <color>` key 探索 — g/m/s 先行キー許容)+ pixel 行(各行 w*cpp 文字・全シンボルは表にあること)。`quoted_lines` は各行の `"…"` を `\"`/`\\` エスケープ込みで抽出
+- `gltf` — glTF 2.0 GLB: `glTF` magic + version==2 + total length 一致、length-prefixed chunk 表(JSON 先頭必須・`BIN\0` 任意)。`json` は `crate::json::parse` に委譲
+- `wad` — Doom WAD: `IWAD`/`PWAD` + numlumps + dir offset、各 lump {at,size,8B名}。`find`/`find_name` は NUL パッド+大文字化、`block` はマーカーペア(`F_START`/`F_END` 等)の間の lump 集合(逆順/不在 → None)
+- `svg` — SVG 1.1 §8 path data: `M/L/H/V/C/S/Q/T/A/Z` + 小文字相対形、implicit 繰返し(M→L、m→l、他は同コマンド)。数値は符号/小数/指数を桁算術で `Fixed` raw(65536 分の 1 以下は向零切捨 — float 型不使用)。`S`/`T` は前セグメント ctrl2 の `2p−c` 反射を解決して格納、`H`/`V` は `L` に fold、`Z` は引数なし即発行。終端に引数を待つコマンドは None(切れた `d` 検出)。`bbox` は端点+制御点の保守ボックス(arc は rx/ry の外接矩形)
+
+**検証**: 新規テスト全緑(22件+7 doctest)。oracle: vint の幅/unknown 手計算、80bit extended の `-8000`/`1.5`/`0`/`denormal`/`inf` 分岐、GLB JSON+BIN 往復、SVG S/T 反射の手計算((5,6) の (3,4) 反射→(7,8))。ラウンド内捕捉: EBML fixture が親 size=4 に対し子 id+size+4B=7B を要求(0x84→0x87)、svg `Z` が終端文字として読まれセグメント化されない(letter 読取時即発行に)、svg `A` の flag 後 skip_sep 欠落、xpm `b'\\'` リテラルがゲート lexer を破壊(`\'+quote` を escape 対誤読 → `0x5C` 化)、isobmff `Bx` の clone hack を derive に整理。
+
+## 出典(第91次、search-index 照合)
+
+**論文・仕様**: RFC 9559 EBML + Matroska element registry / ISO/IEC 14496-12 ISOBMFF box structure (mvhd v0/v1・stts/stsz/stco/co64) / AIFF spec + AIFC compression tag + 80bit IEEE-754 extended layout / XPM3 format spec (libXpm `c`/`g`/`m`/`s` keys) / Khronos glTF 2.0 GLB container / id Software WAD directory format / W3C SVG 1.1 §8 path data — 全て整数のみで実装。
+
+**実装物**: ffmpeg matroskadec の VINT 読み、gpac/mp4box の box walker、libsndfile aiff.c の extended-float rate、libXpm パーサ、tinygltf の GLB chunk 表、Chocolate Doom w_wad.c の directory、nanosvg の path tokenizer — 全て整数のみで実装。
