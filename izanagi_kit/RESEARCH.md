@@ -2133,3 +2133,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Wengert, *A Simple Automatic Derivative Evaluation Program* (CACM 1964 — 前進型 AD) / Watkins, *Learning from Delayed Rewards* (PhD 1989 — Q-learning + SARSA) / Porter, *An Algorithm for Suffix Stripping* (Program 1980 + tartarus.org 公式語彙対) / Bayer, *An Optimum Method for Two-Level Rendition* (ICCC 1973) + Floyd–Steinberg (1976) / Goertzel 1958 + DTMF ITU-T Q.23 / QOI spec (phoboslab, 2021) / Hinnant, *chrono-Compatible Low-Level Date Algorithms* (days_from_civil) — 全て整数のみで実装。
 
 **実装物**: JAX/PyTorch autograd の dual-pair 形、OpenAI baselines の ε-greedy 形、Snowball/NLTK `PorterStemmer` の canonical 出力、libdither/stb の Bayer+FS 形、WebRTC/Go `goertzel` 実装の twist 検査、phoboslab `qoi.h` 参照実装の op 構造、Hinnant date_algorithms.html の era 算術 — 全て整数のみで実装。
+
+## 第75次: トークン・識別子・符号・ハッシュ・評価・端末描画・意思決定 — jwt・uuid・cbor・xxhash・elo・braille・utility
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。`aead`/`otp` の認証族にトークン標準が無い、`ulid` に非ソート系 ID が無い、`json` にバイナリ codec 相方が無い、fnv/sip 系に広 avalanche の高速ハッシュが無い、ゲーム評価にレーティング族が無い、terminal 描画にサブセル解像度が無い、`goap`/behavior tree に連続トレードオフ型の意思決定が無い、というギャップ:
+
+- `jwt` — RFC 7519 HS256 JWT: `sign` は固定ヘッダ `{"alg":"HS256","typ":"JWT"}` + b64url nopad + `hmac_sha256` 合成、`verify` はヘッダ等値・MAC 差分累積比較・`exp`/`nbf`/`iat` 数値 claim を `now` で検査(非 JSON payload は MAC のみ) — 認証族のトークン層。改竄 flip・期限・将来発行を reject 集合でピン化
+- `uuid` — RFC 4122 UUID v4: `SplitMix64` 16B 引きに ver4/var1 ビット打刻、`format` は canonical `8-4-4-4-12` 小文字、`parse` はハイフン形/裸32桁・大小混在を受理 — `ulid` の非ソート相方。流れの決定性・version/variant 打刻・NIL/MAX でピン化
+- `cbor` — RFC 7049 deterministic CBOR: uint/nint/bytes/text/array/map/bool/null の `Cbor` enum、canonical は最短形式 + map 鍵 (長さ, bytes) ソート、`decode_prefix` が消費数を返すので trailing は検出可。float/tag/indefinite は `None` — `json` のバイナリ相方。Appendix A 全ベクトル + 非 canonical 受理 + reject 集合
+- `xxhash` — xxHash32/64(Collet r.5): 4 lane 本体 + tail 処理、LE load はバイト手動構成(endian 禁止)。`""`/`"a"`/`"abc"`/quick-brown-fox 公開ベクトル、seed 変化、境界 lane、bit-flip でピン化 — fnv/sip 系の広 avalanche 高速ハッシュ
+- `elo` — Elo + Glicko-1: `expected`/`update`/`update_pair`(厳密ゼロサム交換)。`Glicko` は `decayed`(rd²+c²t、i64 平方和 — `Fixed::mul` は i32 溢れ)+ `update`。**分散分母 ~1e-5 は Q16 分解能以下なので最終部を i64 Q32.32(`mul32`/`div32`/`isqrt`)で計算** — 初版は denominator が raw 2 に量子化され f64 oracle ±2 が捕捉。Elo 400 差 ~0.909・upset 非対称・oracle 一致でピン化
+- `braille` — Unicode ブライユ 2×4-dot canvas: `U+2800+bits` 1cell=2×4px で端末に 2×/4× 解像度(drawille 系)。dot→bit 写像全8ピン化、境界 no-op、`U+28ff` 全点灯、render 行形状でピン化
+- `utility` — Utility AI(Dave Mark): `Curve::{Linear,Quad,Inverse,Logistic,Step}` の `[0,1]→[0,1]` 応答、`score` は product + Mark 補償 `s·(1+m(1-s))`(m=1−1/n — 単因子劣化で全滅しない)、weight は冪として適用、`choose` は最小 index タイの argmax — `goap`/BT に無い連続意思決定層。曲線参照点・積+補償・weight 冪・タイ順でピン化
+
+**検証**: 新規 40 モジュールテスト全緑。oracle: RFC 7519 形+reject 集合(jwt)、ver/var 打刻+大小受理(uuid)、RFC 7049 Appendix A 全ベクトル+canonical 鍵順(cbor)、公開ベクトル+bit-flip(xxhash)、f64 参照式一致+ゼロサム(elo)、全8 dot 写像+`U+28ff`(braille)、曲線参照点+補償値 11/32(utility)。kit 445 モジュール。
+
+## 出典(第75次、search-index 照合)
+
+**論文・仕様**: RFC 7519 JWT・RFC 7515 JWS / RFC 4122 UUID / RFC 7049 CBOR + canonical 形 §4.2 / Collet, *xxHash spec r.5* / Elo, *The Rating of Chessplayers* (1978) + Glickman, *Glicko-1* (1999) / Unicode 14.0 Braille Patterns + drawille / Dave Mark, *Behavioral Mathematics for Game AI* (2009 — 応答カーブ+補償) — 全て整数のみで実装。
+
+**実装物**: jwt.io/Auth0 の compact 形、cpython `uuid` のバイト順、py cbor2/tinycbor の canonical 鍵順、Cyan4973 `xxHash` の lane 構造、lichess/skillcalc の Glicko 式、asciimoo `drawille`・UnicodePlots の dot 写像、utility-ais の consideration 形 — 全て整数のみで実装。
