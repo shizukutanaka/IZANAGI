@@ -2153,3 +2153,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: RFC 7519 JWT・RFC 7515 JWS / RFC 4122 UUID / RFC 7049 CBOR + canonical 形 §4.2 / Collet, *xxHash spec r.5* / Elo, *The Rating of Chessplayers* (1978) + Glickman, *Glicko-1* (1999) / Unicode 14.0 Braille Patterns + drawille / Dave Mark, *Behavioral Mathematics for Game AI* (2009 — 応答カーブ+補償) — 全て整数のみで実装。
 
 **実装物**: jwt.io/Auth0 の compact 形、cpython `uuid` のバイト順、py cbor2/tinycbor の canonical 鍵順、Cyan4973 `xxHash` の lane 構造、lichess/skillcalc の Glicko 式、asciimoo `drawille`・UnicodePlots の dot 写像、utility-ais の consideration 形 — 全て整数のみで実装。
+
+## 第76次: codec・ID・距離場・IK・トーナメント・端末プロット・求根 — msgpack・snowflake・sdf・ik・tournament・plot・brent
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。`cbor`/`json` の codec 族に MessagePack が無い、`ulid`/`uuid` の ID 族に時刻ソート型 64bit 鍵が無い、`geometry` 離散格子に連続形状 SDF が無い、`spring`/`verlet` の kinematics に IK が無い、`elo` に大会組合せが無い、`braille` に古典 ASCII plot 相方が無い、`roots` に Brent が無い、というギャップ:
+
+- `msgpack` — MessagePack codec: `Msg{Nil,Bool,Int,UInt,Bin,Str,Arr,Map}`、正の Int は最小 unsigned 形式に正規化(canonical では非対称になる旨 doc 明記)、str/bin/coll は最短頭。負 fixint の符号拡張は `<<`/`>>` で n-byte 両対応 — `cbor` の非 canonical 相方
+- `snowflake` — Twitter snowflake ID: 41bit ms + 10bit worker + 12bit seq、seq 溢れは **virtual ms** に進めて単調性保持、rollback(ts<last)も同じ seq 継続規則 — `ulid`/`uuid` の第3 ID 形。オーバーフローで next_real_ms が ts+1 に進む、virtual ms より後の wall 時刻呼び出しは rollback として seq 延長、を両方ピン化
+- `sdf` — 2-D 符号付き距離場(IQ 式): `circle`/`rect`/`segment` + `union`/`intersect`/`subtract` + polynomial `smin`、`march` で sphere-tracing(Hit(t)/Miss、step 上限)。`Vec2::scale` で `Fixed` 乗算の i32 溢れを回避 — geometry 族の連続形状側
+- `ik` — 逆運動学: `two_bone` は余弦定理(角度は `atan2(√(1−x²),x)` 型 `acos` — kit 初の acos 需要)、i64 raw 平方和で `Fixed::mul` 溢れを回避、flip は対称解、`ccd` は FABRIK 型反復(各関節を target 方向へ回転、root 固定、骨長厳密保持)— kinematics 相方
+- `tournament` — トーナメント組合せ: `Bracket` single-elim(再帰 canonical seeding `[o_i, 2k−1−o_i, …]` + bye)、`DoubleBracket` は winners/losers **queue**(front 2 が対戦、勝者は後尾に再投入)+ grand final、`Swiss` は点数群ソート貪欲ペアリング + 再戦回避 — `elo` の大会相方。初版は bye 進出者を winner 二重計上で無限ループ、`q_num` 反転��仮想 ms テストが捕捉
+- `plot` — 端末プロット: `sparkline` 8ブロック(`▁`…`█`、全等値は中央 — 平坦性可視)、`Canvas` 底上げ y 座標、`line` バケット平均列プロット、`histogram` 比例バー — `braille` の古典 ASCII 相方
+- `brent` — Brent 求根(Brent 1971): bisection/secant/**inverse quadratic** ハイブリッド、IQI は a,b,c 3点相異時のみで p/q 形、`mid` 内側受容テスト + `min_step` ガード、iters 尽きたら best bound を返す(bracket 外は `None`)— `roots` の第4法。f64 oracle(√2・∛式・π/2)と bisect 比較でピン化
+
+**検証**: 新規 36 モジュールテスト全緑。oracle: 最小形式+非対称明記(msgpack)、仮想 ms + rollback 両方向(snowflake)、IQ 既知形+sphere-trace 収束(sdf)、余弦定理 3-4-5 + 骨長保持(ik)、canonical 8ペア和=7 + queue 型敗者復活 + 再戦回避(tournament)、全ブロック単調+底上げ座標(plot)、√2/∛/cos vs f64 + bisect 比較(brent)。kit 452 モジュール。
+
+## 出典(第76次、search-index 照合)
+
+**論文・仕様**: Furuhashi, *MessagePack format spec* / X(Twitter) snowflake 発表 + Discord/Sony 変種 / Quilez, *2D distance functions* + *raymarching* (iquilezles.org) / CCD IK (Welman 1993 GDC) + FABRIK (Aristidou–Lasenby 2011) / bracket seeding 標準(テニス/チェス 8→4→2) + Swiss 規約(FIDE Dutch) / drawille + UnicodePlots.jl sparkline/histogram / Brent, *Algorithms for Minimization without Derivatives* (1971, ch.4 zbrent) — 全て整数のみで実装。
+
+**実装物**: msgpack-rust の最小 int 形式、bwmarrin/snowflake の epoch+worker+seq、iquilez SDF の op 式、Unity/Unreal two-bone solver の flip 形、Chess.com/lichess Swiss ペアリング、plotille/youplot の 8-block sparkline、CPython `zeros.c`/Boost brent の受容テスト — 全て整数のみで実装。
