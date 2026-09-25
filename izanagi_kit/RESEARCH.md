@@ -2233,3 +2233,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: POSIX.1-1988 ustar / CompuServe GIF89a + Welch LZW (1985) / MMA Standard MIDI Files 1.0 / haversine + Lambert–Andoyer (Survey Review 1942) + Vincenty WGS84 / BIP-173 Bech32 + BIP-350 Bech32m / RFC 3492 Punycode / RFC 6455 WebSocket + RFC 4648 base64 + FIPS 180-1 SHA-1 — 全て整数のみで実装。
 
 **実装物**: GNU tar/BSD pax の ustar レイアウト、PIL/imageio の GIF ブロック列、mido の running-status/varint 規約、geographiclib の Lambert 式、Bitcoin 参照実装の polymod/convertbits、CPython `punycode` codec の §7 例、python `websockets` の frame エンコード/ハンドシェイク — 全て整数のみで実装。
+## 第80次: BMP・Bencode・NBT・DNS・チェックデジット・WKT・式評価 — bmp・bencode・nbt・dns・checkcode・wkt・expr
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。codec/ID 層の残物: png/gif/qoi に並ぶ古典画像 BMP、torrent の bencode、level.dat の NBT、ip のプロトコル相方 DNS wire、bech32/base58check に並ぶ人間向けチェックデジット群、geo の表現相方 WKT、そして scripting 基盤として決定的整数式エバリュエータ(Pratt TDOP):
+
+- `bmp` — BMP codec(BITMAPINFOHEADER): "BM" 署名+54B ヘッダ、24/32bit BI_RGB のみ、行 stride 4B パディング、高さ負で top-down。`encode` は 24bit bottom-up の canonical 形、`decode` は圧縮・ビットフィールド・パレットを全拒否 — png/gif/qoi の古典相方
+- `bencode` — Bencode(BEP 3): `i<int>e`・`<len>:<bytes>`・`l..e`・`d<k><v>..e`。`decode` は全域関数(leading zero/-0/切断列→`None`、dict キー順は寛容受理)、`encode` は canonical(キーを辞書順ソート)で `encode∘decode` が正規化 — torrent の相方
+- `nbt` — Minecraft NBT: 全13タグ(End/Byte/Short/Int/Long/Float/Double/ByteArray/String/List/Compound/IntArray/LongArray)BE 手動読み、Float/Double は生 IEEE bits で保持(`Tag::float/double/as_f64` で変換)。spec 正規ドキュメント `Compound("hello world"){"name"="Bananrama"}` をバイトピン — savefile の外部形
+- `dns` — DNS wire(RFC 1035): ヘッダ flags 分解、ラベル圧縮ポインタ(0xC0)は訪問有界でループ→`None`、A/AAAA/CNAME/NS/PTR/MX/SOA/TXT 型付き rdata。`build_query` は RD=1 の標準クエリ発行、ラベル≤63 強制 — `ip` の相方
+- `checkcode` — チェックデジット識別子: Luhn(ISO 7812)/ISBN-10・13(和 mod 11・GS1 prefix 978/979)/EAN-13・UPC-A(重み 1,3 GS1)/IBAN(ISO 13616 mod-97 + 国別長レジストリ)/VIN(ISO 3779 転写表+重み)/MRZ(ICAO 9303 重み 7-3-1) — bech32/base58check の人間側
+- `wkt` — Well-Known Text(OGC 06-103): POINT/LINESTRING/POLYGON/MULTI*/GEOMETRYCOLLECTION/EMPTY の再帰下降、座標は十進数字からの厳密 `Fixed` 化(float 不使用)、2-D 限定で Z/M 拒否、`write` は最短十進 emit で往復保存
+- `expr` — 整数式エバリュエータ(Pratt/TOP): i64 十進/0x/0b/0o リテラル、unary - + ~ !、C 順優先度の `* / % + - << >> < <= > >= == != & ^ | && ||`、変数解決、min/max/abs/clamp、全て checked_* で overflow/div0/未知変数/構文不良→`None` — scripting 基盤
+
+**検証**: 新規モジュールテスト全緑。oracle: 2×1 canonical バイトベクトル+self往復+32bpp/top-down(bmp)、BEP 3 spec 例+torrent 形往復(bencode)、spec 正規 hello world hex ベクトル+全タグ往復+depth bomb(nbt)、クエリ canonical バイト+0xC00C 圧縮応答+ポインタループ・予約ラベル(dns)、79927398713/GB29 NWBK…/0-306-40615-2/1M8GDM9AXKP042788/4006381333931(checkcode)、OGC 例一式+往復+Z/構文拒否(wkt)、C 優先度表ピン+全域失敗集合(expr)。kit 480 モジュール。
+
+## 出典(第80次、search-index 照合)
+
+**論文・仕様**: Microsoft Windows Bitmap format / Cohen, *BEP 3: The BitTorrent Protocol Specification* / Mojang NBT format specification / RFC 1035 DNS wire format + RFC 3596 AAAA / ISO/IEC 7812-1 Luhn + ISO 2108 ISBN + GS1 EAN/UPC + ISO 13616 IBAN registry + ISO 3779 VIN + ICAO Doc 9303 MRZ / OGC 06-103r4 Well-Known Text / Pratt, *Top Down Operator Precedence* (1973) — 全て整数のみで実装。
+
+**実装物**: Pillow の BMP リーダ構造、libtorrent bdecode、wiki.vg の NBT レイアウト、knot/dnspython の name decompressor、ibantools の mod-97+国別長、geomet/geopy の WKT 文法、Python `ast`/lark の TDOP 優先度表 — 全て整数のみで実装。
