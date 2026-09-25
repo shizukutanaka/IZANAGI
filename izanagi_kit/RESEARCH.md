@@ -2329,3 +2329,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: ITU-T X.690 BER/CER/DER / Microsoft RTF Specification 1.9.1 / JEITA CP-3451 EXIF 2.x + TIFF 6.0 / RSS 2.0 Specification + RFC 4287 Atom / ID3v2.3.0・v2.4.0 + ID3v1 / RFC 8536 TZif / libpcap file format — 全て整数のみで実装。
 
 **実装物**: OpenSSL/asn1crypto の TLV 走査、striprtf/unrtf の destination 集合、piexif/EXIF.py の II/MM 走査、feedparser/rome の RSS+Atom 正規化、mutagen/tinytag の ID3 実装、python `zoneinfo`/tzdata の TZif 読み取り、tcpdump/wireshark libpcap リーダ — 全て整数のみで実装。
+## 第85次: SHA-1・git・ELF・HTTP・MIME・OpenSSH・cpio — sha1・git・elf・http・mime・ssh・cpio
+
+**方法**: 文献参照ラウンド継続 — バイナリ/ワイヤ層の残隙(候補 `lz4` は既収録と判明し差し替え、`sha1`/`base32` 系の私有コピーから公開化の需要を精査):
+
+- `sha1` — RFC 3174 SHA-1: `sha256` と同形の streaming `Sha1`/`sha1`/`sha1_hex`/`hmac_sha1`(RFC 2104)。md5/sha256/sha3/sha512 が公開済みで SHA-1 だけ `otp`/`ws` の私有コピーだった穴を公開化 — git オブジェクト名と TOTP バックエンドの共有素子
+- `git` — git オブジェクトモデル+ワイヤ: `"type N\0body"` の `store`/`parse_obj`/`object_name`(sha1 名 = `git hash-object` とバイト一致)、zlib loose object `open_loose`/`write_loose`(`inflate`/`deflate` 直結)、tree `"mode name\0"+20B` 走査+emit、commit ヘッダ、pkt-line フレーミング(4桁 hex・`0000` flush・65520 上限)
+- `elf` — ELF32/64: e_ident マジック+class/data 解決、LE/BE 両対応、program header(ELF64 は flags 位置が違う型ずれを型で分離)、section header+`shstrtab` 名解決、`section(name)` 生バイト
+- `http` — HTTP/1.1(RFC 7230): request/status line、header(name 検証・obs-fold は deprecated 扱いで拒否)、Content-Length/chunked(拡張子・trailer 対応)ボディ解決、canonical emit(自動 Content-Length)
+- `mime` — RFC 2045/2046: header folding 展開(mail では合法 — `http` との対称差)、`Content-Type` param(quoted value)、`multipart/*` boundary 分割(preamble/epilogue 捨て)、base64/quoted-printable/7bit transfer decode、QP `=HH`+soft break 両方向
+- `ssh` — OpenSSH(RFC 4253 §6.6): u32 長 `string`/`mpint` 走査 `fields`、authorized_keys 行(options 前置スキップ・algo/blob 整合検査)、`SHA256:` unpadded-base64 fingerprint(ssh-keygen -l 形)、emit_line
+- `cpio` — SVR4 newc(`070701`): 110B ASCII-hex ヘッダ 13 フィールド、namesize/filesize の 4B アライン、`TRAILER!!!` 終端、全フィールド hex 検証で壊れレコードは収集打ち切り
+
+**検証**: 新規テスト全緑。oracle: RFC 3174 全4ベクトル+million-'a'+RFC 2202 HMAC 4件(sha1)、`git hash-object` の公開名 `ce0136…`/`e69de2…`/`4b825d…`(git)、ELF64 構築物の phdr/shdr/strtab 走査+ELF32-BE(elf)、chunked 拡張+trailer(http)、multipart boundary+QP 往復全256バイト(mime)、ed25519 blob 整合+options 前置+SHA256: 長さ 43(ssh)、namesize 1..8 全 pad 幅+truncated-data drop(cpio)。ラウンド内捕捉: data_end の usize::MAX sentinel 化防止(禁止項目)、cpio `pad4` デッドコード削除、ssh doctest の `len(), 2 &&` 誤構文。
+
+## 出典(第85次、search-index 照合)
+
+**論文・仕様**: RFC 3174 SHA-1 / RFC 2104 HMAC / git object format (git-scm.com book "Git Internals") + pkt-line protocol / TIS ELF 1.2 + System V ABI / RFC 7230 HTTP/1.1 / RFC 2045・2046 MIME + RFC 2045 §6.7 quoted-printable / RFC 4253 SSH §6.6 + OpenSSH authorized_keys 形式 / SUSv4 cpio newc 形式 — 全て整数のみで実装。
+
+**実装物**: git.git の object-file.c/sha1dc、binutils/readelf の phdr/shdr 走査、nginx/curl の HTTP パーサ、python `email` パッケージの multipart/QP、OpenSSH sshkey.c の blob 形式、GNU cpio/pax の newc リーダ — 全て整数のみで実装。
