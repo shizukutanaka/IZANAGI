@@ -2112,3 +2112,24 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Batagelj & Zaveršnik, *An O(m) Algorithm for Cores Decomposition of Networks* (2003 — bucket 剥がし) / RFC 4226 HOTP・RFC 6238 TOTP・RFC 3174 SHA-1 / Kirkpatrick, Gelatt & Vecchi, *Optimization by Simulated Annealing* (Science 1983) / Russell–Odell Soundex (1918) + NARA refined 規則 / Robertson & Zaragoza, *The Probabilistic Relevance Framework: BM25 and Beyond* (FnTIR 2009) / Bellman 動的計画法 + Howard 方策反復(1960) / Tridgell & Mackerras, *The rsync algorithm* (1996 — 弱/強二重摘要) — 全て整数のみで実装。
 
 **実装物**: NetworkX `core_number` の次数ビン構造、Google Authenticator/oathtool の DT 形、scipy `dual_annealing`/SimulatedAnnealing の受理判定形、Apache commons-codec `Soundex` の NARA 意味論、Lucene `BM25Similarity` の k1/b 既定値、OpenAI gym の離散 MDP 形、librsync `rollsum` の a/b 弱摘要 — 全て整数のみで実装。
+
+## 第74次: 自動微分・強化学習・語幹化・ハーフトーン・トーン検出・画像符号・暦算 — dual・qlearn・porter・dither・goertzel・qoi・civil
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。`roots`/`pid` が手計算の微分を要求する数値基盤の穴、`mdp` に学習側の相方が無い、`soundex`/`jaro` に語幹正規化が無い、`otsu`/`ccl` にハーフトーンが無い、`biquad` に単一周波数検出が無い、codec 系に現代最小仕様の画像形式が無い、`cron` に日付↔通日の変換基盤が無い、というギャップ:
+
+- `dual` — 前進型自動微分(dual number): `Dual{v,d}` の組で連鎖律を機械適用 — `mul` は積則、`div` は商則、`powi`(負冪は `ONE.div` 経由)、`exp`/`ln`/`sqrt`/`sin`/`cos` を `Fixed` 上に構成。`impl Add/Sub/Neg/Mul<Fixed>` 双方向で多項式がそのまま書ける — `roots`/`pid` が手で差分する場面の微分基盤。多項式則・商則・連鎖則・超越関数 f64 オラクル(ε=1/50 — CORDIC の cos'(0)≈−0.00003 を厳密0と誤断言して捕捉)でピン化
+- `qlearn` — 表形式 Q学習+SARSA(Watkins 1989): `Q(s,a) ← (1−α)Q + α(r+γ·boot)` の `Fixed` 補間 — off-policy は `boot = max Q(s',·)`、on-policy `update_sarsa` は実取行動 `a'`。ε-greedy `select` は `SplitMix64` 下位16bitを `Fixed` [0,1) に写像 — `mdp` の計画者に対する学習者、全引数で bit-exact リプレイ。off/on の bootstrap 差(同状態で max=9 vs SARSA=4)・α 補間・ε=0 貪欲/ε=1 探索で特性ピン化
+- `porter` — Porter 1980 語幹化: 5 step 全実装(`m` measure・`*v*`/`*d`/`*o` 条件、`y` の子音扱い規則)。最大の誤り源は「論文の各 step 例示値」= 途中形 — 正規出力は step4/5 が更に刈る(`relational`→`relat`、`feudalism`→`feudal` は `m("feud")=1` で存続)。公開される canonical 出力形 ~60 語で全連鎖をピン化 — `soundex`/`jaro` の文字系に語彙正規化を追加
+- `dither` — Bayer 4×4/8×8 順序ディザ + Floyd–Steinberg 誤差拡散: Bayer は整数閾値比較で `levels` 段階化、FS は右7/16・左下3/16・下5/16・右下1/16。**拡散誤差は clamp 後の表示値で計算** — 生バッファ誤差の拡散は病理場(定数入力で誤差が指数増大)でオーバーフローすることを乱流テストが捕捉。`quantize`/`ordered_n` 併置 — `otsu`/`ccl` ラスタ族の表示側
+- `goertzel` — Goertzel 単一周波数検出 + DTMF: `s=x+c·s₁−s₂`、`power=s₁²+s₂²−c·s₁·s₂` を **i64 raw Q16.16** で再帰(共振で `i32` raw を超える — `Fixed` 直接累算が overflow して初版が捕捉)、係数 `2cos(2πf/fs)` は `Fixed::sin_cos`。`dtmf` は行/列各群の winner>2×runner-up + 両群パワー比≤16 の twist 検査(単音は他群漏洩のみで reject) — 全16キー合成音でピン化
+- `qoi` — QOI 画像コーデック(2021 spec): run/index/diff/luma/literal の5 op、`hash=(3r+5g+7b+11a)&63` の64エントリ索引、run 62 cap、RGB 入力は α=255 扱い。差分の `dr−dg`/`db−dg` は i8 で −255..255 に達し得るため **i16** で比較(`dg` のみ i8 範囲) — 乱流 round-trip・truncate/長過 run/悪 ch の `None`・op タグピン化。現代最小仕様の codec 層
+- `civil` — Hinnant 民用暦算術: `days_from_civil`/`civil_from_days`/`weekday`/`weekday_iso`/`is_leap`/`days_in_month` — era 床除算で負年も厳密(proleptic、year 0 有り、year 1-01-01 = −719162)。−80000..80000 通日の完全 round-trip、2000 leap/1900 非 leap、紀元境界でピン化 — `cron` の日付次元の基盤
+
+**検証**: 新規 39 モジ��ールテスト全緑。oracle: 多項式/商/連鎖則+超越 f64(dual)、off/on bootstrap 差(qlearn)、canonical 出力 ~60 語(porter)、Bayer 参照行列+混合/発散境界(dither)、合成16 DTMF+twist 拒否(goertzel)、乱流/構造 round-trip+`None` 集合(qoi)、通日完全往復+紀元境界(civil)。API pin 5059、kit 438 モジュール。
+
+
+## 出典(第74次、search-index 照合)
+
+**論文・仕様**: Wengert, *A Simple Automatic Derivative Evaluation Program* (CACM 1964 — 前進型 AD) / Watkins, *Learning from Delayed Rewards* (PhD 1989 — Q-learning + SARSA) / Porter, *An Algorithm for Suffix Stripping* (Program 1980 + tartarus.org 公式語彙対) / Bayer, *An Optimum Method for Two-Level Rendition* (ICCC 1973) + Floyd–Steinberg (1976) / Goertzel 1958 + DTMF ITU-T Q.23 / QOI spec (phoboslab, 2021) / Hinnant, *chrono-Compatible Low-Level Date Algorithms* (days_from_civil) — 全て整数のみで実装。
+
+**実装物**: JAX/PyTorch autograd の dual-pair 形、OpenAI baselines の ε-greedy 形、Snowball/NLTK `PorterStemmer` の canonical 出力、libdither/stb の Bayer+FS 形、WebRTC/Go `goertzel` 実装の twist 検査、phoboslab `qoi.h` 参照実装の op 構造、Hinnant date_algorithms.html の era 算術 — 全て整数のみで実装。
