@@ -2009,3 +2009,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Yuksel–Schaefer–Keyser, *On the Parameterization of Catmull-Rom Curves* (centripetal 版が cusp/自己交差を作らない証明 — Barry–Goldman pyramid 形式) / Hermite 基底 h₀₀,h₁₀,h₀₁,h₁₁ (Ferguson 1964 系) / Perlin, *An Image Synthesizer* (SIGGRAPH '85) 及び *Improving Noise* (2002 — quintic fade・8 勾配選択) / Eiserloh, *Game Programming Gems 4* "Interpolating with a Smoothstep Function" + Unity `Vector3.SmoothDamp` 式 (臨界減衰 — 本実装は近似を捨て厳密解へ) / Åström–Hägglund, *PID Controllers: Theory, Design and Tuning* (derivative-on-measurement・clamping anti-windup) / Viterbi (1967)・Forney (1973) MLSE・Rabiner HMM tutorial (復号 DP) / Welch–Bishop, *An Introduction to the Kalman Filter* (スカラー predict/update 式) — 全て整数のみで実装。
 
 **実装物**: Unity `Vector3.SmoothDamp`・Godot `lerp_angle` 系 API 形状(リターゲット連続性のための状態版)、cp-algorithms/競プロ典型の Viterbi DP とコスト化規約、Arduino/PID-library 系の anti-windup・derivative-kick 対策、Ken Perlin 参照実装の permutation→hash 勾配選択を SplitMix64 系 avalanche hash へ置換 — 全て整数のみで実装。
+
+## 第69次: 幾何クエリ・経路平滑・変換・系列推論・数値・照合 — ray・funnel・affine・hmm・roots・glob
+
+**方法**: 第68次と同じ文献参照ラウンド — GitHub・論文・Qiita/Zenn・海外技術記事の標準 primitive 候補を列挙し grep で未収録確認(halton は既存、crt/earcut は ntheory/poly が引き受け、sobol/fft/semver 等は今回スコープ外)。結果6本:
+
+- `ray` — 解析的レイクエリ: `hit_aabb`(スラブ法・軸毎に t 区間を縮め、原点が box 内なら t=0、並行なら同スラブ内判定)、`hit_circle`(半係数二次式 `b=(o−c)·d` で判別式の radicand を縮小 — Q16.16 の乗算桁を節約)、`hit_segment`(2D cross パラメータ `t=(a−o)×e / d×e`, `u=(a−o)×d / d×e`、並行は None)、`hit_polygon`(全辺最小 t)。`geometry` のグリッド DDA とは別物: 連続空間の「最初の交差 t」を返す
+- `funnel` — Mononen のシンプルファネル(Detour/recast・crowd-sim 標準、Lee–Hinckley 系): `(left,right)` ポータル列を apex+左右レイで `O(n)` 走査、左右どちらかが対側レイを越えたらその側の頂点を新 apex にして再開。初版は符号規約が Mononen と逆(彼の portalLeft が CW 側)で誤った頂点を apex にしていた — 非交差オラクル(wall chain との厳密交差検査)が捕捉し、「left=CCW 辺」規約に docs 明記して比較符号を反転。ポータルゲートは自由に跨ぎ、壁(左右チェーン+端点キャップ)は決して跨がない、が正しい妥当性条件。collapse apex が goal 自身の場合は末尾 push を dedupe
+- `affine` — 2D アフィン `[a b c; d e f; 0 0 1]`(PostScript/SVG/Canvas `transform(a,b,c,d,e,f)` 形): `then` 合成は「self 後に other」= `other·self` の積、`apply`/`apply_delta`(並進を除く — 速度・オフセット用)、adjugate `invert`(det 0 → None、`Fixed::div` 切り捨てで往復は数 ulp の誤差)。`rotate_about` は `T(p)·R·T(−p)` の順序ミスがピボット固定点テストで捕捉された
+- `hmm` — Rabiner 1989 §III のスケーリング付き forward–backward: `α_t = c_t·(b⊙Aᵀα_{t−1})` で各ステップを `Σ=1` に再正規化 → 長系列でもアンダーフローしない。`β` は同じ `c_t` を使う `β_T=c_T`・`β_t=c_t·Σ a·b·β` 規約で `γ_t ∝ α_t·β_t` がそのまま事後確率。`log_likelihood = Σ ln(Σα̃)`(初版は `−ln c_t` の符号を逆に書きカジノモデルの大小比較テストが捕捉)。`viterbi` が最尤経路を返すのに対しこちらは周辺確率
+- `roots` — 固定反復回数のスカラー求根: `bisect`(符号跨ぎ必須・収束域保証・tie は左)、`secant`(2点補間・微分不要)、`newton`(微分クロージャ版)。イプシロン停止ではなく反復予算 — リプレイ安定のため `iters` を公開引数に。収束時の ulp 停止は `next == x` で早期打ち切り
+- `glob` — bytewise POSIX fnmatch 風: `*`(パス区切りも跨ぐ — FNM_PATHNAME 無しと明記)、`?`、`[abc]`/`[a-z]`/`[!x]`/`[^x]`、`\` エスケープ、2ポインタ+スターバックトラック(再帰なし)。閉じない `[` はリテラル扱い、`[` 直後の `]` はリテラルメンバー
+
+**検証**: 新規 31 モジュールテスト全緑。oracle: f64 行列積・f64 forward-backward(affine/hmm)、壁非交差+頂点集合(funnel)、√2/立方根の解析解(roots)、端正な手計算例(ray/glob)。API pin 4826、kit 404 モジュール。
+
+
+## 出典(第69次、search-index 照合)
+
+**論文・仕様**: Mononen, *The Simple Stupid Funnel Algorithm* (Digesting Duck、recast/Detour の crowd 引き回し実装 — Lee & Hinckley 系 portal string-pulling) / Rabiner, *A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition* (1989、§III scaling — `c_t=1/Σα̃` 再正規化と `β_T=c_T` 規約) / Press et al., *Numerical Recipes* §9 (bisection・secant・Newton–Raphson の収束・失敗形) / POSIX `fnmatch(3)`・van Rossum fnmatch パターン規則 / PostScript `concat`・W3C SVG `transform(a,b,c,d,e,f)` 行列表記 / akenine-möller ray-box slab 法・Glassner *An Introduction to Ray Tracing* の ray-quadratic — 全て整数のみで実装。
+
+**実装物**: recastnavigation `dtMergeCorridorStartMoved` 系の portal 表現((left,right) 対 + 退化 portal)、GStreamer/OpenHMM 系 scaled forward-backward の c_t 保持実装、cp-algorithms/競プロ典型の roots 反復打ち切り形、BSD `fnmatch`/rust `globset` の `[`..`]` クラス規則、Java2D `AffineTransform`/GLM `mat3` の then/apply/invert API 形状 — 全て整数のみで実装。
