@@ -2029,3 +2029,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Mononen, *The Simple Stupid Funnel Algorithm* (Digesting Duck、recast/Detour の crowd 引き回し実装 — Lee & Hinckley 系 portal string-pulling) / Rabiner, *A Tutorial on Hidden Markov Models and Selected Applications in Speech Recognition* (1989、§III scaling — `c_t=1/Σα̃` 再正規化と `β_T=c_T` 規約) / Press et al., *Numerical Recipes* §9 (bisection・secant・Newton–Raphson の収束・失敗形) / POSIX `fnmatch(3)`・van Rossum fnmatch パターン規則 / PostScript `concat`・W3C SVG `transform(a,b,c,d,e,f)` 行列表記 / akenine-möller ray-box slab 法・Glassner *An Introduction to Ray Tracing* の ray-quadratic — 全て整数のみで実装。
 
 **実装物**: recastnavigation `dtMergeCorridorStartMoved` 系の portal 表現((left,right) 対 + 退化 portal)、GStreamer/OpenHMM 系 scaled forward-backward の c_t 保持実装、cp-algorithms/競プロ典型の roots 反復打ち切り形、BSD `fnmatch`/rust `globset` の `[`..`]` クラス規則、Java2D `AffineTransform`/GLM `mat3` の then/apply/invert API 形状 — 全て整数のみで実装。
+
+## 第70次: 準乱数・フィルタ・画像解析・広相・補間・整列 — sobol・biquad・ccl・sap・pchip・align
+
+**方法**: 第69次と同じ文献参照ラウンド — GitHub・論文・Qiita/Zenn・海外技術記事の標準 primitive 候補を列挙し grep で未収録確認(`halton` は低食違い列として既存、`biconn`/SCC はグラフで CCL は画像解析、spatial_hash/rtree/quadtree は索引で SAP は走査、c spline/bspline は任意曲線で pchip は単調保証、dtw/editdist は距離で NW/SW は整列トレース)。結果6本:
+
+- `sobol` — Sobol' (0,2)-列準乱数: direction number `v₁ = 1<<(31−i)`、2次元目は Joe–Kuo 標準の初期値 `m = 1, 3` から `m[i] = 2m[i−1] ⊕ 4m[i−2] ⊕ m[i−2]`、gray ではなく canonical 直 index XOR 展開。初版が `m = 1, 1` ショートカットを使い (t,m,s)-net 性(4連ブロックの象限層化)を破壊 — 層化テストが捕捉、偶然値検査では見逃す種類の誤り。`sobol2_fixed` は `>>16` で Q16.16 化、`Sobol2` は `wrapping_add` カウンタの反復器
+- `biquad` — RBJ Audio-EQ-Cookbook バイクアッド: `ω₀=2πf/fs`, `α=sin ω₀/2Q`, `a₀=1+α` 正規化で low/high/band/notch の `b`/`a` を合成、DF-I で `y = Σbx − Σay` 状態更新。`Fixed` 制約(Q>8 で a₁ が −2 に近づき切り捨てノイズ増大)は docs 明記。`new` は正規化済み係数の直指定
+- `ccl` — Rosenfeld–Pfaltz 2パス連結成分ラベリング: pass1 でラスタ走査 + 上位/左近傍(8連は斜めも)の union-find 統合、pass2 で root を first-seen 順に連番化。path-halving union、小さいラベル勝ちの規約で決定的。`areas`/`bboxes`/`cells` アクセサ付き — BFS flood ではなく UF なので領域統計まで一体
+- `sap` — Sweep-and-Prune 広相: min-x ソート(index tie は index)で走査、active リストを `max.x ≤ min.x` で刈り残存にだけ y 判定 — Box2D/bullet 的 first pass。交差判定は「両軸で正面積共有」(`max(mins) < min(maxs)`)で統一、接触辺・零面積は対象外(初期版の `>=` retain + y-only 判定は内部零幅を誤検出する可能性があったため統一化)。出力は `(i<j)` ソート
+- `pchip` — Fritsch–Carlson 単調3次補間: 内部接線を加重調和平均 `(w1+w2)/(w1/δ_{i−1}+w2/δ_i)`(w は区間幅の加重)、符号反転で 0、端点は一側三点推定 + FC clamp(符号・3×secant 上限)。評価は Hermite 基底 + 二分探索区間、範囲外は端値に flat 外挿(線形外挿は単調性を外で破壊)。catmull/bspline が埋められなかった「オーバーシュート禁止」の補間ギャップ
+- `align` — NW/SW 系列整列: `(n+1)×(m+1)` i32 DP、NW は端初期化・SW は 0 floor + argmax セルから traceback。op は `=`/`X`/`D`(a 消費・b gap)/`I`(b 消費・a gap)、tie は diag > up > left で doc 明記。`editdist` が Levenshtein 距離を返すのに対しこちらは最適整列そのものを再現可能
+
+**検証**: 新規 28 モジュールテスト全緑。oracle: (0,2)-net 層化 + 4096 distinct(sobol)、f64 インパルス応答 + DC/Nyquist 定常(biquad)、BFS flood 総当り(ccl)、O(n²) 厳密 oracle(sap)、f64 FC 構築 + 密サンプル単調性(pchip)、全整列列挙(brute go)(align)。API pin は実測更新、kit 410 モジュール。
+
+
+## 出典(第70次、search-index 照合)
+
+**論文・仕様**: Sobol' (1967) 及び Joe & Kuo, *Constructing Sobol Sequences with Better Two-Dimensional Projections* (2008 — dim-2 初期方向数 m = 1,3 と recurrence 係数) / Smith, *The Scientist and Engineer's Guide to DSP* + RBJ Audio-EQ-Cookbook (Robert Bristow-Johnson、low/high/band/notch 係数表 + DF-I) / Rosenfeld & Pfaltz (1966) 2-pass CCL・Suzuki–Abe 系統合(prior work の streaming 形は採用せず全体2パス) / Baraff & Witkin, *Large Steps in Cloth Simulation* SIGGRAPH notes 系 SAP・Tracy–Buss–Woods GPCE sweep 実装 / Fritsch & Carlson, *Monotone Piecewise Cubic Interpolation* (SIAM J. Numer. Anal. 1980 — 調和平均接線と端点 clamp 規則) / Needleman & Wunsch (1970)・Smith & Waterman (1981) 整数 DP + traceback — 全て整数のみで実装。
+
+**実装物**: OpenImageIO/ue4 `FSobolSampler` 系の direction-number テーブル形(2D 固定なので定数 recurrence で生成)、C++ `<dsp>`/JUCE `dsp::IIR` 系 DF-I 状態 API、scipy `ndimage.label` 系ラスタ連番規約、Bullet `btAxisSweep` の active-list 刈り込み、pandas/scipy `PchipInterpolator` の flat 外挿規約、biopython `PairwiseAligner` の `=`/`X`/`I`/`D` op 表現 — 全て整数のみで実装。
