@@ -2290,3 +2290,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Microsoft/IBM Multimedia Programming Interface RIFF spec + WAVE `fmt ` chunk (incl. WAVEFORMATEXTENSIBLE) / W3C WebVTT: The Web Video Text Tracks Format / SubStation Alpha v4.00+ script format / Portable Game Notation Specification (Timothy Mann) / STL(STereoLithography) file format specification / INI file convention / POSIX `diff -u` unified output format + `patch` — 全て整数のみで実装。
 
 **実装物**: Rust `hound`/python `wave` の chunk 走査、video.js/webvtt-parser の cue 分解、libass/aegisub の Format 駆動パース、python-chess の PGN reader、numpy-stl のバイナリレイアウト、Python `configparser` の節・コメント規約、GNU diffutils/patch の `@@` 範囲と `apply` 手順 — 全て整数のみで実装。
+## 第83次: iCalendar・vCard・PEM・FEN・GPX・M3U・TGA — ics・vcf・pem・fen・gpx・m3u・tga
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。標準交換フォーマット層の残隙(予定・連絡先・鍵装甲・局面・GPS・プレイリスト・画像):
+
+- `ics` — iCalendar(RFC 5545): `BEGIN:VCALENDAR`/`VEVENT`/`VTODO`、プロパティ折り畳み(space/tab 継続行)、`NAME[;params]:value`、入れ子コンポーネント(VALARM 等)は `X-IC-MARKER` verbatim 保存で往復、`parse_dt`/`emit_dt` は `civil` 直結 — cron/civil の予定系相方
+- `vcf` — vCard 3.0(RFC 2426): `BEGIN:VCARD`…`END:VCARD`、折り畳み、`NAME;PARAMS:value`、`VERSION` 必須、`get`(パラメータ無視)/`get_all` — ics と同構造の連絡先相方
+- `pem` — PEM(RFC 7468): `-----BEGIN L-----`/base64/`-----END L-----`、複数ブロック・ラベル一致検査、canonical 64桁折返し — jwt/uuid の鍵材料層
+- `fen` — FEN チェス局面: 8ランク `/` 区切り+digits 空マス、piece letters(大小=白黒)、`w|b`・`KQkq` 権利・ep ・halfmove・fullmove(≥1)、emit は空マス圧縮再発行 — pgn の局面相方
+- `gpx` — GPX 1.1: タグ走査 XML(`<wpt>`/`<rte>`/`<trk>/<trkseg>` コンテキストスタック)、`lat`/`lon` 属性は十進桁算術→`Fixed`、`<ele>`/`<time>`/`<name>` 子要素、未知タグはスキップ(degrade) — geo/nmea の XML 相方
+- `m3u` — M3U/M3U8: `#EXTM3U`、`#EXTINF:secs,title`、他 `#EXT…` ディレクティブ verbatim、壊れた EXTINF は degrade — wav のプレイリスト相方
+- `tga` — TGA 画像: 18B ヘッダ、type 2(非圧縮)/10(RLE raw+RLE 両パケット)、24/32bpp BGR(A)、origin bit(top/bottom・left/right)を正規化して top-left 出力、canonical type-2 32bpp emit — bmp/png/qoi の古典相方
+
+**検証**: 新規モジュールテスト全緑。oracle: canonical emit 往復(ics/vcf/pem/fen/gpx/m3u/tga)、VALARM verbatim 保存+DTEND;TZID パラメータ解決+日時集合(ics)、折り畳み+複数カード+VERSION 必須(vcf)、64桁折返し+複数ブロック+ラベル不一致拒否(pem)、初期局面+ep 正方形+KQkq+ malformed 集合(fen)、trkseg/rte/wpt コンテキスト+self-closing+非数 attr スキップ(gpx)、破損 EXTINF degrade+plain M3U(m3u)、RLE 両パケット+origin 全4象限+colormap/gray 拒否(tga)。ラウンド内捕捉: fen emit の board/手番間スペース欠落。kit 501 モジュール。
+
+## 出典(第83次、search-index 照合)
+
+**論文・仕様**: RFC 5545 iCalendar / RFC 2426 vCard 3.0 / RFC 7468 PEM text encoding / Forsyth–Edwards Notation (FEN) specification / GPX 1.1 schema documentation / M3U・#EXTINF convention + draft-pantos-http-live-streaming (#EXTM3U) / Truevision TGA File Format Specification — 全て整数のみで実装。
+
+**実装物**: ical4j/python `icalendar` の BEGIN/END スタック、python `vobject` の折り畳み規約、OpenSSL pem 読み取り、python-chess の FEN parser、GPX schema 実装群、mpv/FFmpeg m3u パーサ、SDL_image/stb_image の TGA decoder — 全て整数のみで実装。
+
