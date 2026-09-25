@@ -2173,3 +2173,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Furuhashi, *MessagePack format spec* / X(Twitter) snowflake 発表 + Discord/Sony 変種 / Quilez, *2D distance functions* + *raymarching* (iquilezles.org) / CCD IK (Welman 1993 GDC) + FABRIK (Aristidou–Lasenby 2011) / bracket seeding 標準(テニス/チェス 8→4→2) + Swiss 規約(FIDE Dutch) / drawille + UnicodePlots.jl sparkline/histogram / Brent, *Algorithms for Minimization without Derivatives* (1971, ch.4 zbrent) — 全て整数のみで実装。
 
 **実装物**: msgpack-rust の最小 int 形式、bwmarrin/snowflake の epoch+worker+seq、iquilez SDF の op 式、Unity/Unreal two-bone solver の flip 形、Chess.com/lichess Swiss ペアリング、plotille/youplot の 8-block sparkline、CPython `zeros.c`/Boost brent の受容テスト — 全て整数のみで実装。
+
+## 第77次: 伸長器・MT・FFT・URI・simplex・QR・多暦 — inflate・mt・fft・uri・snoise・qr・calendars
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定。`huffman`/`lzss` 既存ゆえ残る最大 codec 空白が DEFLATE、`SplitMix64`/`Pcg`/`rng_xoshiro` の第4乱数系が MT、`biquad`/`goertzel` に FFT 相方、`glob`/`semver` のプロトコル族に URI、`gnoise` Perlin/`worley` に続く第3の場が simplex、`rsfec` 直結で QR、`civil` の多暦相方:
+
+- `inflate` — DEFLATE 伸長器(RFC 1951/1952): `Bits` は LSB-first、Huffman 要素は MSB-first の混在ビット順、`Huff` canonical テーブル(Kraft 検査 + `first[l]`/`base[l]` — 初版は `count[0]` 不在記号をコード空間歩行に混入し dynamic で全滅、bl_count[0]=0 の RFC §3.2.2 準拠で修正)、stored/fixed/dynamic 3 btype、`inflate_zlib`(CMF/FLG FCHECK + FDICT reject)/`inflate_gzip`(FEXTRA/FNAME/FCOMMENT/FHCRC skip + trailer)。python3 zlib で全ベクトル生成し stored/fixed/dynamic/zlib/gzip 全経路を実符号列でピン化
+- `mt` — MT19937(松本眞–西村): 624 状態 twist + init_genrand/`from_key` init_by_array、`next_u32`/`next_u64`/`next_res53`/`below` — `SplitMix64`/`Pcg`/`xoshiro` の第4 PRNG 系
+- `fft` — 基数2 Cooley–Tukey FFT: `Cx = (Fixed,Fixed)` 固定小数点複素数、`twiddle(θ)=e^{−iθ}` で forward は正角度、bit-reverse 反復 DIT、非2冪は `dft` O(n²) 退化、Parseval は相対誤差検査。twiddle 符号ミスは bin 比較で捕捉(`cx_mul` は i64 raw 中間)
+- `uri` — RFC 3986 URI: `Uri::parse` 全域関数(空 scheme/authority/path/query/fragment で縮退)、`pct_decode`/`pct_encode`、`remove_dot_segments`/`resolve` — `glob`/`semver` のプロトコル族
+- `snoise` — Gustavson simplex ノイズ: skew 係数 `G2`、unskew の `t=(i+j)·G2` は i64 定数(初版の `>>16` 落ちで常 0 → 全頂点が整数格子上に潰れ max slope 41/unit、デバッグダンプで捕捉)、kernel `r²=0.5` 境界、4 寄与点 hash 勾配、`fbm2` 総振幅正規化 — `gnoise`/`worley` の第3場
+- `qr` — QR byte-mode v1–10 自動選択(ISO 18004): 私有 `QrGf`(AES 用 `gf2` は 0x11B、QR は 0x11D のため)、rs_generator 昇冪畳込み→反転、block 分割+parity インタリーブ、function layer(ファインダ/タイミング/アライメント/ダークモジュール/フォーマットBCH+mask)、zigzag 配置、8 mask 全評価で最小 penalty → `ModuleMatrix`/`to_terminal` — `braille`/`plot` の端末表示相方。RS parity は独立 Python 再実装で互換検証済み
+- `calendars` — Reingold–Dershowitz fixed-date: `Rd` 通日で gregorian/julian/islamic/persian/hebrew 相互変換 + `easter`(Anonymous computus)+`weekday` — `civil` の多暦相方
+
+**検証**: 新規 43 モジュールテスト全緑。oracle: python3 zlib 実ベクトル stored/fixed/dynamic/zlib/gzip(inflate)、MT19937 公式 init+twist(mt)、delta/DC/sine-bin/radix2-vs-DFT/Parseval/ifft roundtrip(fft)、RFC 5.4 resolve + pct(uri)、格子点零+slope/kernal 境界+正規化(snoise)、フォーマット BCH ベクトル+RS parity 独立実装+8 mask penalty+QR サイズ表(qr)、RD 既知日付+4暦往復+computus(calendars)。kit 459 モジュール。
+
+## 出典(第77次、search-index 照合)
+
+**論文・仕様**: RFC 1951 DEFLATE + RFC 1950 zlib + RFC 1952 gzip / Matsumoto–Nishimura, *MT19937* (ACM TOMACS 1998) / Cooley–Tukey, *An Algorithm for the Machine Calculation of Complex Fourier Series* (1965) / RFC 3986 URI §5 / Gustavson, *Simplex noise demystified* (2005) / ISO/IEC 18004 QR / Reingold–Dershowitz, *Calendrical Calculations* — 全て整数のみで実装。
+
+**実装物**: python zlib の stored/fixed/dynamic ベクトル、numpy `RandomState` の MT 種値表記、FFTW/numpy fft の bin 規約、Python `urllib.parse`/`urljoin` の dot 除去、gustavson Java/C リファレンスの skew 式、nayuki QR generator の mask/penalty 表、Emacs `calendar.el` の computus — 全て整数のみで実装。
