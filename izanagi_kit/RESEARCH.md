@@ -2310,3 +2310,22 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 
 **実装物**: ical4j/python `icalendar` の BEGIN/END スタック、python `vobject` の折り畳み規約、OpenSSL pem 読み取り、python-chess の FEN parser、GPX schema 実装群、mpv/FFmpeg m3u パーサ、SDL_image/stb_image の TGA decoder — 全て整数のみで実装。
 
+## 第84次: DER・RTF・EXIF・RSS・ID3・TZif・pcap — der・rtf・exif・rss・id3・tzif・pcap
+
+**方法**: 文献参照ラウンド継続 — grep 未収録確認で7本確定(bloom/merkle/roaring は既収録と判明、DER は `derange` に紛らわしいが未収録)。バイナリタグ・文書・メタ・フィード・タイムゾーン・キャプチャ層:
+
+- `der` — ASN.1 DER(X.690): `tag·length·content` TLV 走査、high-tag-number 形式、shortest-length 規則・indefinite 拒否、`children`/`oid`/`integer`(0-pad 正数)/`text`/`utc_time`(UTCTime 13桁 RFC5280 窓・GeneralizedTime 15桁、`civil` 直結) — pem の中身層、X.509 基盤
+- `rtf` — RTF 1.x テキスト抽出: `{\rtf` 必須、制御語 `wordN`、escape `\{\}\\`、`\'hh` 生バイト、`\uN` は Unicode scalar+`\uc` フォールバック文字スキップ(pend カウンタ)、destination グループ(`\fonttbl`/`\colortbl`/`\info`/`\pict`/`\*\…` 等)は出力寄与ゼロ
+- `exif` — EXIF/TIFF: JPEG APP1 `Exif\0\0` 走査(`parse_jpeg`)+`II*\0`/`MM\0` 直接(`parse_tiff`)、IFD0+EXIF(0x8769)+GPS(0x8825) sub-IFD 併合、type×size≤4 は inline、超えれば offset 解決、`get_str`/`get_int`/`get_rational` はファイル endian 尊重
+- `rss` — RSS 2.0+Atom 正規化: `<rss>`/`<feed>` スニッフ、`item`/`entry` body を先に切り出してチャンネル項目と分離、Atom `<link href>`、CDATA unwrap+XML entity 解除、canonical RSS emit 往復
+- `id3` — ID3: v2.3(plain u32 size)/v2.4(synchsafe) ヘッダ+フレーム走査+ext-header スキップ、encoding byte(0 Latin-1/1 UTF-16 BOM/2 UTF-16BE/3 UTF-8)、`TIT2`/`TPE1`/`TALB`/`TDRC`/`TYER`/`TRCK`/`TCON` typed+全 T*** frames、v1 末尾 128B `TAG` 併合(genre 80 id 表)
+- `tzif` — TZif(RFC 8536): `TZif`+ver、v1 32bit ブロック、v2/v3 は 64bit ブロック+`\n POSIX-TZ \n` フッタ、`offset_at`/`type_at`(先頭遷移前は最初の非DST型=RFC の standard-time 規則)
+- `pcap` — libpcap: magic(LE/BE×us/ns 4種)、ver 2.x のみ、record `ts_sec`/`ts_frac`/`incl`/`orig`、末尾 trunc record は fail せず drop、ts を ns 正規化、linktype 露出
+
+**検証**: 新規67テスト全緑。oracle: INTEGER/OID/UTCTime/高タグ/shortest-form DER 往復(der)、destination elision+`\uc` fallback+destined 非テキスト(rtf)、II/MM 両 endian+inline/offset 境界 4B+sub-IFD 併合+JPEG APP1 走査(exif)、channel/item 分離+Atom href+CDATA/entity(rss)、v2.3/4 size 形式+UTF-16 BOM+v1 80 genre(id3)、v1/v2 ブロック選択+先頭遷移前 std 型(tzif)、LE/BE×us/ns+truncated-tail drop(pcap)。ラウンド内捕捉: UTCTime 桁数(13/15)誤判定、EXIF ≤4B inline 規則で offset 解決誤用、`\~` の裸 `~` 取扱、U+23376=子 の期待値。kit 508 モジュール。
+
+## 出典(第84次、search-index 照合)
+
+**論文・仕様**: ITU-T X.690 BER/CER/DER / Microsoft RTF Specification 1.9.1 / JEITA CP-3451 EXIF 2.x + TIFF 6.0 / RSS 2.0 Specification + RFC 4287 Atom / ID3v2.3.0・v2.4.0 + ID3v1 / RFC 8536 TZif / libpcap file format — 全て整数のみで実装。
+
+**実装物**: OpenSSL/asn1crypto の TLV 走査、striprtf/unrtf の destination 集合、piexif/EXIF.py の II/MM 走査、feedparser/rome の RSS+Atom 正規化、mutagen/tinytag の ID3 実装、python `zoneinfo`/tzdata の TZif 読み取り、tcpdump/wireshark libpcap リーダ — 全て整数のみで実装。
