@@ -3336,3 +3336,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: libsndfile au.c/wv.c/dsf.c/rf64.c、WavPack CLI/wvunpack、ttaenc、dsf2flac/dsd ツール群、ffmpeg の mp3 header parser(lame/mpg123 のテーブル参照)、MAC SDK(Monkey's Audio)— 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の au/snd ヘッダ解析・WavPack 可逆圧縮・DSD/DSF ハイレゾ・RF64 長尺収録・MP3 フレーム構造・APE フォーマット解説記事 — 全て整数のみで実装。
+
+## 第134次(search-index 照合ラウンド / 実装証跡付き)
+
+- `gerber` — RS-274X: `%`-ブロック(FS/MO/AD)と `X..Y..D0n` 語、D コードはモーダル(省略時は直前 op 継続)、`M02` 終端必須
+- `excellon` — Excellon ドリル: `M48` ヘッダ + `METRIC`/`INCH` + `TnC<diam>` ツール表 + `%` で本文、`X..Y..` ヒット、`M30` 終端
+- `hpgl` — HP-GL: 2文字命令 + カンマ区切り整数パラメータ、`;` 終端、`LB` は ETX/; まで文字列
+- `pcl` — PCL 5: `ESC` + パラメータバイト(`*`/`&`/`(`/`)`)+ group 小文字 + 数値 + 終端(小文字=連鎖)、`ESC %` モード選択・`ESC E` リセットの2文字形
+- `zpl` — ZPL II: `^XA`..`^XZ` エンベロープ必須、`^`/`~` + 2文字 + 次の `^`/`~` までがパラメータ
+- `escpos` — ESC/POS: `ESC @`/`a`/`E`/`!`/`d`/`p`/`i`/`m`、`GS V` カット(m>=65 は n 追従)、テキスト連続区間
+- `afp` — AFP/MODCA: `0x5A`+u16BE len+3B id の structured field 鎖(BDT/BNG/BPG/BAG + 対応 End、PGD、NOP)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: Gerber の D コードは座標語の末尾ニブルではなく `D`+数字(後ろから数字を剥がして前の文字が `D`)、ZPL は `^FD` データに空白を含み得るためパラメータは `^`/`~` 境界まで、ESC/POS `GS V` は m≥65 のとき追加パラメータ n を読む、PCL の `ESC %` はパラメータ化形に合流しないため先行分岐が必要。
+
+## 出典(第134次、search-index 照合)
+
+**論文・仕様**: Ucamco Gerber Format Specification(RS-274X)、Excellon フォーマット(Excellon Automation)、HP-GL/2 Reference Manual(HP)、PCL 5 Printer Language Technical Reference(HP)、ZPL II Programming Guide(Zebra)、ESC/POS Application Programming Guide(Epson)、AFP Programming Guide IBM S544-3872(MO:DCA)— 全て整数のみで実装。
+
+**実装物**: gerbv/gerber-parser.py、pcb2gcode/Excellon リーダ、GNU plotutils HP-GL/Ghostscript pcl6、qz/tray ZPL ビューア・labelary、python-escpos/receipt-ninja、afp-explorer/afp2pdf — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のガーバーデータ解説・Excellon ドリルファイル・HP-GL プロッター・PCL/ESC-POS レシートプリンタ制御・ZPL ラベル印刷・AFP/MODCA 解説記事 — 全て整数のみで実装。
