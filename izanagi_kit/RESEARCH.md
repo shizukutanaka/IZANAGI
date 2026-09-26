@@ -2994,3 +2994,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: OpenSSL `p12_parse.c`/`pk8_pkey.c`、OpenSSH `sshkey.c`(`openssh-key-v1` 読み込み)/ `hostfile.c`(known_hosts パース)、KeePassXC `KeePass2Reader`、Apache httpd `htpasswd.c`、curl の `.netrc` パーサ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の PKCS#12 証明書形式・PEM ファイル構造・OpenSSH 鍵フォーマット・htpasswd スキーム表記・.netrc 設定解説記事 — 全て整数のみで実装。
+
+## 第118次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 電子書籍・地理文書形式(全7件が既存 725 件と非衝突を確認):
+
+- `epub` — OCF: `mimetype` は必ず ZIP 先頭メンバ・非圧縮(stored)・内容が厳密に `application/epub+zip`。`META-INF/container.xml` の `rootfile@full-path` が OPF を指す
+- `mobi` — PalmDOC: 78B ヘッダ(name@0 32B NUL 終端、num_records u16BE@76)+ record0 先頭 compression u16BE(1=none/2=PalmDOC/17480=HUFF)+ record0+16 の `MOBI` マーカー
+- `azw` — AZW3/KF8: MOBI マーカー必須 + `BOUNDARY` セクションレコードの全走査で KF8 判定(mobi.rs を再利用)
+- `lit` — Microsoft LIT = ITSF コンテナ: `ITSF` + version u32LE + header_len + 2×16B GUID + 宣言サイズ u64
+- `fb2` — FictionBook XML: `<FictionBook>` 直下 `<title-info>` の book-title/author(first-name+last-name)/genre/lang。ネストタグは剥がしてテキスト結合
+- `kml` — `<kml>` → `<Placemark>` 群(name/description/coordinates)。座標は文字列のまま(浮動小数点を導入しない)
+- `osm` — `<osm version>` + `<node|way|relation id>` 要素列挙 + 入れ子 `<tag k v>`。self-closing は空タグ
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: XML 系3件(fb2/kml/osm)は xml モジュールが未マージ PR #109 にのみ存在するため各モジュールに 30 行のタグスキャンを内包し将来の統合余地を残した、LIT は ITSF(=CHM 系)ヘッダを共有するため GUID で LIT と CHM を区別する設計、AZW3 の `BOUNDARY` はオフセット表ではなく「あるレコードの中身が `BOUNDARY` 文字列」なので全体走査が正直な実装。
+
+## 出典(第118次、search-index 照合)
+
+**論文・仕様**: IDPF OCF 3.2 仕様(mimetype 制約・container.xml スキーマ)、MobileRead wiki の PalmDOC/MOBI/AZW3 ヘッダ仕様(compression 値・MOBI marker・KF8 BOUNDARY)、Microsoft ITSF/LIT 形式解説(ITSS 仕様)、FictionBook 2.1 スキーマ(title-info 要素)、OGC KML 2.2(Placemark/coordinates)、OpenStreetMap XML 仕様(osm/node/way/relation + tag) — 全て整数のみで実装(座標・メタは文字列のまま公開)。
+
+**実装物**: calibre `mobi`/`epub`/`lit` リーダ、KindleUnpack(MOBI ヘッダ・KF8 境界)、FBReader FB2 パーサ、libkml、OSM `osm-xml` リーダ群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の EPUB 内部構造(OCF/container.xml)、Kindle 形式(PalmDOC/AZW3)解説、KML/OSM データ解説記事 — 全て整数のみで実装。
