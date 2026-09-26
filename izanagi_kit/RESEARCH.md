@@ -2510,3 +2510,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: nesdev/NesDev 系エミュの NSF ローダ、GbsPlay/ZBearWare GB エミュの GBS ヘッダ処理、sidplayfp/HVSC の PSID パーサ、snesmusic の SPC ダンプ、vgmplay/Chipamp の VGM コマンド走査、kbd-setfont の PSF ローダ、FIGlet/patois 系 figlet 実装 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita の NSF/GBS 自作エミュレータ記事、Zenn のレトロゲーム音楽フォーマット解説、Qiita の PSF フォント・FIGlet 実装記事、ファミコン音源・GB 音源系国内ブログ — 全て整数のみで実装。
+
+## 第94次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レトロ機の ROM/メディアイメージ形式の残隙(全7件が既存 571+7 件と非衝突を確認。`gb`/`gba`/`z64`/`sfc`/`fds`/`tzx`/`d64` いずれも既存名なし):
+
+- `gb` — Game Boy カートリッジ ヘッダ(gbdev Pan Docs): エントリ@0x100、48B Nintendo ロゴ@0x104(`NINTENDO_LOGO` 定数照合)、タイトル@0x134(16B、CGB 旗標は 0x143 と重畳)、ライセンシ@0x144、SGB@0x146、カートリッジ種別@0x147(Rom/Mbc1/2/3/5/6/7/Huc)、ROM サイズ@0x148(32KiB<<n)、RAM サイズ@0x149、地域@0x14A、version@0x14C、ヘッダチェックサム@0x14D(`x=x-b-1` over 0x134..=0x14C)、グローバル u16BE@0x14E(0x14E/0x14F を除く全バイト総和)
+- `gba` — GBA ヘッダ(GBATEK): ARM エントリ@0x00(`entry>>24==0xEA`)、圧縮 Nintendo ロゴ 156B@0x04–0x9F、タイトル@0xA0(12B)、game_code@0xAC、maker@0xB0、固定 0x96@0xB2、unit@0xB3、device@0xB4、version@0xBC、補数チェックサム@0xBD(`chk-=b` over 0xA0..=0xBC、最後に `chk-=0x19`)
+- `z64` — Nintendo 64 ROM 3 エンディアン統一読み(n64dev): magic で判定 — z64 BE `[0x80,0x37,0x12,0x40]` / v64 バイトスワップ `[0x37,0x80,0x40,0x12]` / n64 LE `[0x40,0x12,0x37,0x80]`。`byte_at` が論理→物理変換(v64 `a^1`、n64 `(a&!3)+(3-(a&3))`)、PC@0x08/clock@0x04/CRC1/2@0x10/0x14/name@0x20(20B)/serial@0x3B/version@0x3F。`unswap_v64` で v64→z64 復元
+- `sfc` — SFC/SNES イメージ(SNES dev wiki): `len % 1024 == 512` でコピアヘッダ検出、内部ヘッダ候補 LoROM 0x7FC0 / HiROM 0xFFC0 / ExHiROM 0x40FFC0 を `checksum^complement==0xFFFF` + map mode 既知 + rom_size 妥当 + タイトル可印字のスコアリングで選定。map_mode: 0x20 Lo / 0x21 Hi / 0x23 SA-1 / 0x25,0x35 ExHi / 0x30,0x31 FastROM
+- `fds` — Famicom Disk System(nesdev): `FDS\x1A` fwNES ヘッダ(16B、side 数 + パディング)か `len % 65500 == 0` の raw サイド列。`side(i)` は 65500B サイドを返却、ヘッダ付は sides フィールドと実長の一致を検証
+- `tzx` — ZX Spectrum テープ TZX 1.20: `ZXTape!\x1A` + major/minor ヘッダ(10B)、`blocks` イテレータはブロック id 毎の長さ表(0x10..0x5A: prefix 固定部 + 長さフィールド位置/幅が id 毎に異なる — 0x10 u16@+2、0x11 u24@+15、0x14 u24@+7、0x15 u24@+5、0x18/0x19/0x2B u32、0x26 count×2、0x33 count×3、0x31 u8@+1 等)で extent を走査、未知 id/途中切断で停止
+- `d64` — Commodore 1541 ディスクイメージ: 256B セクタ、track 1-17→21 / 18-24→19 / 25-30→18 / 31-40→17 セクタ、標準 683 セクタ=174848B(+683B エラーマップ、40 トラック 196608B も受理)。BAM@track18 sector0(ディスク名 PETSCII@+0x90、DOS type@+0xA5、トラック毎空き数@+4+4t)、ディレクトリは 18/1 から 8×32B エントリの鎖(filetype 低 3bit=DEL/SEQ/PRG/USR/REL + 0x80=closed、start t/s、name PETSCII 0xA0 パッド、size LE@+30)。`petscii` 変換は 0x41–0x5A 大文字維持・0xC1–0xDA→小文字(`-0x60`)・0xA0/0x00→空白
+
+**検証**: 新規テスト全緑(5,242 lib テスト + 569 doctest)。oracle: GB ヘッダチェックサム `x=x-b-1` とグローバル和の手計算、GBA `-0x19` 補数、z64/v64/n64 三形式の magic・`byte_at` 写像(`v64 a^1`/`n64 word-reverse`)手検証、SFC スコアリングで 0x8000 全ゼロは受理・0x7000 は拒否の境界、TZX 各 id の長さフィールド offset 照合、D64 `free_sectors` が BAM 集計と一致・dir 鎖の PETSCII 名。ラウンド内捕捉: z64/gb/gba のタイトル trim が内部空白で切断していたのを NUL 終端 + trim_end に修正("TEST ROM" ケース)、gb フィクスチャの `copy_from_slice` 範囲過剰(11B→10B スライス)、sfc `data_len` の copier 二重減算、tzx リーダの `d[at]` 直接読みを `d.get` で Option 化、d64 Dir の死コード除去。
+
+## 出典(第94次、search-index 照合)
+
+**論文・仕様**: gbdev Pan Docs のカートリッジヘッダ仕様(0x100–0x14F・ロゴ照合・二種チェックサム)/ GBATEK の GBA ヘッダ(0x96 固定・0xBD 補数和)/ n64dev の z64/v64/n64 バイトオーダ識別とヘッダ layout / SNES dev wiki の内部ヘッダ(LoROM/HiROM/ExHiROM 位置・checksum^complement)/ NESdev FDS(fwNES `FDS\x1A` と 65500B サイド)/ World of Spectrum TZX 1.20 spec のブロック id 別長さ表 / 1541 DOS + D64 フォーマット文書(BAM・dir 鎖・PETSCII)— 全て整数のみで実装。
+
+**実装物**: SameBoy/mGBA のカートリッジヘッダ検証、mGBA の GBA ロゴ照合、cen64/ares の N64 バイトオーダ変換、Mesen-S/bsnes の SNES ヘッダスコアリング、FCEUX の FDS ローダ、Fuse/libspectrum の TZX ブロック walk、VICE の D64 BAM/dir リーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の GB/GBA エミュレータ自作記事(ヘッダ解析・ロゴ照合)、Zenn の N64 ROM 解析メモ、Qiita の SFC ヘッダ・FDS フォーマット解説、レトロPC 系国内ブログの TZX/D64 入門記事 — 全て整数のみで実装。
