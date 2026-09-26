@@ -2642,3 +2642,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: binutils/LLVM の NE・LX リーダ、linux `a.out`/`execve` の歴史的ローダ、Android runtime の `DexFileVerifier`/`libdex`、SeaBIOS/coreboot の option ROM ランナと `cbfstool`、flashrom の descriptor パーサ(ich_descriptors_tool) — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MZ/NE/PE ヘッダ解析記事(「e_lfanew をたどる」系)、a.out→ELF 移行の国内解説、DEX ファイル構造の日本語リバース資料、coreboot/flashrom 導入記事、BIOS ROM・Intel Flash Descriptor の国内検証記事 — 全て整数のみで実装。
+
+## 第101次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 科学・医療・気象・分子データ形式(全7件が既存 613 件と非衝突を確認):
+
+- `dicom` — DICOM Part 10(NEMA PS3.10): 128B preamble + `DICM`。explicit-VR 要素走査 — `(group,element)` u16LE + 2B VR + u16 長(OB/OW/OF/OD/OL/OV/SQ/UC/UR/UN/UT は `00 00` + u32 長)。indefinite-length SQ は `u32::MAX` で識別、`get(group,element)`/`text` でタグ参照
+- `nifti` — NIfTI-1 348B ヘッダ(nifti1.h): `sizeof_hdr`==348 の LE/BE 自動判別。`dim[8]`(dim[0]=次元数)、`datatype`/`bitpix`、pixdim/vox_offset/scl/cal は f32 を **raw u32 ビット保持**(kit は float を解釈しない)、qform/sform code、`n+1`/`ni1` magic で単一 vs .hdr/.img 分割を `Kind` 判別
+- `nrrd` — NRRD(teem `nrrd` 1-5): `NRRD000x` magic + `key: value` 行 + `#` コメント、空行でヘッダ終端→data 開始位置。`get`/`sizes`/`dimension` の型付きビュー
+- `nc` — NetCDF classic(UCAR CDF 仕様): `CDF`+version(1=32bit,2=64bit,5=CDF-5) + `numrecs`、dim_list/gatt_list/var_list は ABSENT(0,0) または NC_* tag+count。名前は u32 長 + 4B パディング、属性は `(name,xtype,count,value)` で値サイズは型幅×count を4B丸め
+- `grib` — WMO FM-92 GRIB: ed1 は 3B 総長 + Indicator Section(table ver/centre/process/GDS-BMS フラグ)、ed2 は discipline + u64 総長 + 番号付き section(len≥5、num 7 で data 端)の鎖走査
+- `pdb` — Protein Data Bank 固定カラム(80 桁カード): ATOM/HETATM の serial/name/residue/chain/resseq、x/y/z は 8.3 固定小数点 → **整数 milliunits**、CRYST1 は cell a/b/c(9.3) + 角度(7.2) + space group
+- `mol2` — Tripos MOL2: `@<TRIPOS>MOLECULE` の name/counts(atoms/bonds/substructures)/mol_type/charge_type、`@<TRIPOS>ATOM` 行の id/name/xyz(固定小数点→milliunits)/type/subst/charge
+
+**検証**: 新規テスト全緑(5,408 lib テスト + 611 doctest)。oracle: DICOM の long-VR u32 長と indefinite-length、NIfTI の sizeof_hdr 両エンディアン判別と `n+1`/`ni1`、NRRD の空行終端と `data_at`、NetCDF の ABSENT list と 4B パディング名前、GRIB ed2 の section 鎖、PDB の固定カラム負座標と CRYST1、MOL2 のセクション横断。ラウンド内捕捉: PDB 行末で field が短くなる行に `get(55..66)` が失敗 → clamp、NRRD の末尾 `\n` は暗黙の空行を生む(未終端テストは `…4` で末尾 newline なしに)、NIfTI BE テストの pixdim index 誤り。
+
+## 出典(第101次、search-index 照合)
+
+**論文・仕様**: NEMA PS3.10 Media Storage & File Format(VR 表・explicit/implicit エンコーディング) / NIfTI-1 `nifti1.h` と NIfTI-1 Data Format spec / teem NRRD format definition / NetCDF classic `file format specification`(B-netcdf) / WMO Manual on Codes FM 92 GRIB edition 1・edition 2 / wwPDB Atomic Coordinate Entry Format v3.3 カラム定義 / Tripos MOL2 File Format — 全て整数のみで実装(float フィールドは raw bits または固定小数点整数)。
+
+**実装物**: pydicom/dcmtk の explicit-VR タグ走査、nibabel の NIfTI ヘッダ、nrrd/teem のヘッダパーサ、netcdf-c の `nc3` ヘッダ読み、ecCodes/wgrib の edition 判別、biopython/PDB-tools の固定カラム抽出、Open Babel/RDKit の MOL2 リーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の DICOM タグ解析記事(プレアンブル+タグ走査系)、NIfTI ヘッダの日本語解説、NetCDF/HDF 形式比較記事、GRIB2 の気象データ解説、PDB/MOL2 の構造データ国内チュートリアル — 全て整数のみで実装。
