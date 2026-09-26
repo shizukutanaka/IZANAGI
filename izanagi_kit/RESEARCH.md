@@ -2406,3 +2406,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: git Documentation "Packfile format" (object header + OFS/REF delta + .idx v2) / JVMS §4 The Class File Format (constant pool tags + 2-slot 規則) / FreeBSD `ar(5)` man page + System V ar format / Apple "Property List Programming Guide" + CFBinaryPList.c bplist00 layout / ESRI Shapefile Technical Description (header/record layout) / pcapng draft spec (SHB/IDB/EPB + BOM endian rule) / POSIX mbox conventions + RFC 4155 — 全て整数のみで実装。
 
 **実装物**: git 本体 pack-objects/index-pack の obj walk、javap/JDK ClassReader の cp walker、binutils ar の長名テーブル、Apple plutil/python plistlib の bplist00 decoder、GDAL/shapelib の shp record walker、wireshark pcapng セクション解決、mutt/python mailbox の From-line splitter — 全て整数のみで実装。
+
+## 第89次: dbf・iso9660・mvt・pgp・ply・fits・qcow2 — dbf・iso9660・mvt・pgp・ply・fits・qcow2
+
+**方法**: 文献参照ラウンド継続 — 地理属性・ファイルシステム・ベクタタイル・暗号パケット・メッシュ・天文・VM ディスクの残りフォーマット層:
+
+- `dbf` — dBASE III `.dbf`: 32B ヘッダ(ver/date/numrec/hdrlen/reclen)+ 32B フィールド記述子列(0x0D 終端)+ フラグ先頭の固定長レコード。`cell` はフラグ込みオフセットで生幅切出し、宣言数と実長の厳密検査、削除フラグ `*`、フィールド名検索
+- `iso9660` — ECMA-119/ISO 9660: セクタ16 の PVD(type1・`CD001`・version1)、system/volume id、両 endian 733/723 フィールド(LE+BE が一致必須 — `both16`/`both32`)、root dir record 34B(両 endian extent/size・7B date・flags・vol seq・name+pad)。`entries` は 0-len byte でパディングをまたぎセクタ単位歩行、`find` は `;version` 手前の名で大文字比較
+- `mvt` — Mapbox Vector Tile 2.x: `proto`/`inflate_gzip` の直結合成(gzip magic 検出で wrapper 解除)。layer(version/name/features/keys/values/extent 既定 4096)、feature(id・packed tags・geom_type・packed geometry)、value 全7型(string・float/double は raw IEEE bits、sint64 は zigzag)。`geom` は MoveTo=1/LineTo=2/ClosePath=7 の command+count ヘッダと zigzag 差分座標を復号
+- `pgp` — RFC 4880 OpenPGP パケット層: new(bit6=1)は tag6 + 1/2/5バイト・partial(`1<<(b&31)` chunk 鎖)、old は tag4+len-type(1/2/4B・不定長は EOF まで)、`Packet.chunks` で partial の非連続 span を保持し `body` が結合。armor は `-----BEGIN PGP` ヘッダ→空行→base64 本体→`=crc` CRC-24(poly 0x1864CFB・init 0xB704CE、`123456789`→`0x21CF02` ベクトル)検証
+- `ply` — Stanford PLY: `ply`/`format ascii|binary_little_endian|binary_big_endian`/`comment`/`obj_info`/`element N`/`property [list ct] ty name`/`end_header` の宣言走査。binary は `cell` が要素・行・プロパティを offset 歩行して I/U/Bits/List で返却(list は count prefix+要素)、ascii は `tokens` で生トークン列を返す(10進→binary32 往復の精度ロスを排する誠実 API)
+- `fits` — FITS 4.x: 80 桁カードを 2880B ブロックで走査、`END` カードでヘッダ終端、値は col10 `= ` の後・クォート外 `/` 手前まで。`data_len` = |BITPIX|/8 × Π NAXISi × GCOUNT + PCOUNT×bpn、NAXIS=0→0、2880 パッド後が次 HDU(SIMPLE/XTENSION 初手必須)
+- `qcow2` — QEMU QCOW2/3: `QFI\xFB` BE ヘッダ(version 2/3・backing off/size・cluster_bits 9..=21・vsize・crypt・l1/refcount/snapshot 表)、v3 は incompat/compat/autoclear・refcount_order・header_len ≥104。`l1_needed` = ceil(vsize/cluster)/l2_entries、backing パスは存在検査つき
+
+**検証**: 新規テスト全緑(27件+7 doctest)。oracle: `proto`+`deflate_gzip` 合成の自己オラクル(MVT gzip 往復)、RFC 4880 `123456789`→`0x21CF02` 公開ベクトル、ISO both-endian 不一致破壊テスト、dBASE 手組 fixture(2フィールド・削除フラグ)、PLY ascii/binary LE/BE 3形式の行復元、FITS multi-HDU + GCOUNT/PCOUNT 係数、QCOW2 v2/v3 ヘッダと l1_needed 手計算一致。ラウンド内捕捉: crc24 の後置シフト判定順序(RFC C コードは crc<<1 後に bit24 を見る — 先判定で値が全滅)、dbf cell がフラグバイトを二重加算(`offset` が既にフラグ込み)、mvt 空タイルは `Some([])` で受理する想定へ修正、ply は当初の Element.offset 方式では list 越え offset が破綻 → `cell`/`tokens` の遅延歩行に整理。
+
+## 出典(第89次、search-index 照合)
+
+**論文・仕様**: dBASE III file structure (Borland/dbffile format notes) / ECMA-119 ISO 9660 §6–9 (volume descriptors + directory records + both-endian 733/723) / mapbox vector-tile-spec 2.x (layer/feature/value 番号 + geom command set + zigzag) / RFC 4880 OpenPGP §4.2 packet headers + §6 ASCII armor + CRC-24 / Stanford PLY spec (element/property/list + 3 formats) / NASA IAU FITS 4.x (HDU・card・BITPIX/NAXIS/GCOUNT/PCOUNT) / QEMU qcow2 file format spec v2/v3 — 全て整数のみで実装。
+
+**実装物**: GDAL ogrdbf の固定幅セル参照、xorriso/genisoimage の dir-record walker、tilemaker/mapnik-vector-tile の zigzag geom 復号、gpg/nettle-pgp の packet length 両形式、pandas-polars ply reader、astropy.io.fits の card walker、qemu block/qcow2.c の header+table layout — 全て整数のみで実装。
