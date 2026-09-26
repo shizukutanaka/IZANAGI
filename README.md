@@ -15,7 +15,7 @@ engine's frame loop cannot change a single bit of the simulation's world-hash
 trace.
 
 ```text
-cargo test --workspace   # 4,700+ tests, 0 clippy warnings, fmt clean
+cargo test --workspace   # 4,800+ tests, 0 clippy warnings, fmt clean
 ```
 
 ---

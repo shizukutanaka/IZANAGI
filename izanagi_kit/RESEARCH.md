@@ -2818,3 +2818,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: apache/thrift の `TBinaryProtocol`・`TFramedTransport` 実装、google/flatbuffers の `GetRoot`/`Table` 参照、capnproto C++ の `serialize.c++` セグメントテーブル、amazon-ion の ion-c、RegRipper/sleuthkit の regf パーサ、python-evtx・libevtx のチャンク走査、Eric Zimmerman PECmd の prefetch 版別レイアウト — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の gRPC/Thrift/FlatBuffers/Cap'n Proto 比較記事・Ion 紹介、Windows フォレンジックの regf/evtx/prefetch 解析記事(DFIR 系)、『Windows Forensic Analysis』系書籍の邦訳知見 — 全て整数のみで実装。
+
+## 第110次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — EDA/半導体設計データ + 光学/仮想ディスクメタデータ(全7件が既存 669 件と非衝突を確認):
+
+- `gds` — GDSII ストリーム(`{reclen:u16 BE incl. 4B 自ヘッダ, tag:u8, dtype:u8}` のレコード走査、`HEADER` の i16 version、tag/dtype 名表)。GDS の実数は IBM excess-64 — 浮動小数点デコードは行わず生バイトのまま
+- `edif` — EDIF (ANSI/EIA-548) ネットリスト: LISP 形式の字句(`;` コメント・文字列保持)、`(edifVersion M m p)` 抽出、`(cell`/`(library` 定義数
+- `lef` — LEF 物理アブストラクト: `VERSION x.y ;`、`UNITS … DATABASE MICRONS n ;`(実構文は UNITS ブロック内行頭 `DATABASE`)、`MACRO name`/`PIN name` … `END` ブロック
+- `def` — DEF 設計ファイル: `VERSION`/`DESIGN`/`COMPONENTS n ;` ヘッダ + `- inst macro …` 行は `COMPONENTS…END COMPONENTS` 内のみ有効(ブロック外の `-` を誤数しない)
+- `liberty` — Liberty `.lib`: `library (name) { … }` グループ、任意深さの `cell (arg)` 引数走査、`key : value ;` 属性
+- `udf` — UDF (OSTA/ECMA-167): セクタ16+ の Volume Recognition Sequence `{type 0, id "BEA01"/"NSR02"/"NSR03"/"TEA01", ver 1}`(1 セクタ 1 記述)、AVDP(tag id 2 @ sector 256)存在確認
+- `vhdx` — Hyper-V VHDX: `vhdxfile` 署名 + 512B UTF-16LE creator、64KiB/128KiB の冗長 `head` ヘッダ(sequence 最大の方が有効、log_version/version/log_offset/length)
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: GDS のレコード長走査(切詰めで停止)、EDIF の括弧/コメント/文字列字句、LEF/DEF のブロック内限定走査(LEF の `UNITS` ブロック構文を doctest が検証 — 行頭 `DATABASE` でないと落ちる)、Liberty のグループ引数 vs 属性値の区別、UDF の VRS 鎖 + TEA01 終端、VHDX の sequence による active ヘッダ選択と二重破壊時 None。ラウンド内捕捉: `d[7]` は reclen 下位バイト(切断するには上位 `d[6]` が必要)、`count.checked_neg` 型の教訓と同系統で「中間オフセットを弄る破壊テストは無効化されうる」ことを確認。
+
+## 出典(第110次、search-index 照合)
+
+**論文・仕様**: Calma/Cadence GDSII Stream Format Manual / GDSIITOOLKIT 準拠の `{reclen, tag, dtype}` レイアウト、ANSI/EIA-548 EDIF 2 0 0 仕様、Cadence LEF/DEF Language Reference(UNITS·MACRO·PIN·COMPONENTS·NETS 文法)、Synopsys Liberty リファレンス(グループ/属性文法)、OSTA Universal Disk Format Specification + ECMA-167(VRS·AVDP)、Microsoft [MS-VHDX] VHDX Format Specification(vhdxfile 署名・冗長 head・sequence)— 全て整数のみで実装。
+
+**実装物**: KLayout/gdstk の GDS レコード走査、qflow/OpenROAD の LEF/DEF パーサ、liberty-parser、pycdlib/libisofs の UDF VRS、qemu の vhdx ドライバ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の半導体設計フロー解説(GDSII・LEF/DEF・Liberty・OpenROAD 記事)、UDF/iso イメージ解析記事、VHDX フォレンジック記事 — 全て整数のみで実装。
