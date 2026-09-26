@@ -2840,3 +2840,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: KLayout/gdstk の GDS レコード走査、qflow/OpenROAD の LEF/DEF パーサ、liberty-parser、pycdlib/libisofs の UDF VRS、qemu の vhdx ドライバ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の半導体設計フロー解説(GDSII・LEF/DEF・Liberty・OpenROAD 記事)、UDF/iso イメージ解析記事、VHDX フォレンジック記事 — 全て整数のみで実装。
+
+## 第111次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 3D/CG 制作パイプライン形式(全7件が既存 676 件と非衝突を確認):
+
+- `blend` — Blender `.blend`: `BLENDER` + ptr-size フラグ(`_`=4/`-`=8)+ endian フラグ(`v`=LE/`V`=BE)+ 3桁バージョン、ブロック `{code:4, size:u32, old_mem_addr:ptr, sdna_index:u32, count:u32}` をヘッダ自身のエンディアンで走査、`ENDB` で終端、`DNA1` ペイロード位置
+- `fbx` — Kaydara FBX バイナリ: `Kaydara FBX Binary  \x00\x1A\x00` + u32 version;version<7500 は32bit `{end_offset, prop_count, prop_bytes}` + u8 名長、7500+ は64bit化;`end_offset==0` のヌルレコードがレベル終端
+- `glb` — glTF バイナリコンテナ: `glTF` + u32 version(2)+ u32 総長、`{u32 len, u32 type}` の `JSON`/`BIN` チャンク鎖(4Bアライン)
+- `abc` — Alembic Ogawa: `\x89Ogawa\x0D\x0A` マジック + u16 frozen + u16 version;グループ = u64 子数 + 子オフセット列、葉は `u64::MAX` マーカー + `(size, offset)`
+- `pmd` — MikuMikuDance PMD: `Pmd` + version(生 u32、1.0=`0x3F80_0000`)+ 20B Shift-JIS 名 + 256B コメント + u32 頂点数
+- `pmx` — PMX: `PMX ` + version(2.0=`0x4000_0000`、2.1=`0x4000_0001`)+ u8 ヘッダサイズ(8)+ 8B 設定ヘッダ(encoding 0=UTF-16/1=UTF-8、index 幅 1/2/4)
+- `bvh` — Biovision BVH モーション: `HIERARCHY`/`ROOT`/`JOINT`/`CHANNELS` の階層 + `MOTION`/`Frames:`/`Frame Time:`(float を排除してミリ単位整数に変換)
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: blend の ptr-size/endian 両軸フィクスチャ、fbx の narrow/wide 両ヘッダ、glb の宣言長照合、abc の葉グループ `u64::MAX` 分岐、pmx の index 幅 1/2/4 検査、bvh の `Frame Time:` 小数→ミリ秒変換(`0.033333`→33、`1.5`→1500)。ラウンド内捕捉: blend のブロックヘッダは `16 + ptr_size` バイト(サイズ2誤算で鎖がずれる)、BVH の `Frame Time:` は空白を含むキーなので単語分割ではなく行頭プレフィックス照合が必要。
+
+## 出典(第111次、search-index 照合)
+
+**論文・仕様**: Blender `.blend` File Structure(SDNA / BLENDER ヘッダ・ENDB 終端)、Kaydara/Autodesk FBX Binary File Format(7500 の 64bit 化・ヌルレコード規則)、Khronos glTF 2.0 §GLB(JSON/BIN チャンク・4B アライン)、Alembic Ogawa 内部フォーマット(マジック・frozen/version・グループ子オフセット列)、PMD/PMX 形式仕様(20B 名・256B コメント・8B 設定ヘッダ)、Biovision BVH 仕様(HIERARCHY/MOTION)— 全て整数のみで実装。
+
+**実装物**: Blender 本体の `BLO_blend_defs.h`/readfile、assimp の FBX パーサ、glTF-Sample-Models/`gltf` crate の GLB ヘッダ、alembic-rs の Ogawa リーダ、MMD 系ローダー(mmd_tools/PmxSharp)、bvh リーダー実装群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の .blend 内部構造・FBX バイナリ解析・GLB コンテナ・Alembic・MMD(PMD/PMX)・BVH モーション解説記事 — 全て整数のみで実装。
