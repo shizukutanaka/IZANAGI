@@ -3192,3 +3192,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: mavlink ジェネレータ/mavros、ubxlib/pyubx2、libSbus、squid-ntpd/chrony パケット処理、python-OBD/ELM327 docs、can-utils、gpsd/aisdecoder — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MAVLink フレーム解析・UBX GPS ロガー・SBUS Arduino 受信・NTP パケット解析・OBD-II ELM327・SocketCAN candump ・AIS デコード記事 — 全て整数のみで実装。
+
+## 第127次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 書誌・引用データ形式(7件、既存 788 件と非衝突を確認。`bibtex` は既存のため除外):
+
+- `ris` — RIS: `XX  - v` タグ行、`TY`/`ER` レコード境界、継続行は先行値へ空白連結
+- `medline` — PubMed MEDLINE flat: `TAG- v` / `TAG - v` 両形、6 桁空白継続行、空行レコード区切り、タグは 2–4 字の大文字英数字
+- `csljson` — CSL-JSON(citeproc 入力): 配列 or 単一オブジェクト、`type`/`id`/`citation-key`/`title`/`author[].family|given|literal`/`issued.date-parts[0][0]`/`container-title`。`crate::json` 再利用
+- `endnote` — EndNote XML: `<records><record>` 走査(`<records` vs `<record` の接頭辞衝突は次バイト検査で分岐)、`ref-type name`/`titles`/`contributors`/`dates`
+- `jats` — JATS `<article-meta>`: `article-id@pub-id-type`、`<article-title>` のインラインマークアップ除去、`<contrib contrib-type="author">` の surname/given
+- `mods` — MODS(LoC): `<titleInfo>`(title+subTitle)、`<name type="personal"><namePart>`、`<identifier type>`、`originInfo/dateIssued`
+- `coins` — COinS(`<span class="Z3988" title="...">`): title 属性または生クエリを `&`/`=` 分割 + `%XX`/`+` デコード、`ctx_ver`/`rft_val_fmt` 必須・任意フィールド
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: MEDLINE はタグの末尾空白を trim しないと `TI  -` が弾かれる、COinS の `title="` は 6 ではなく 7 バイト(オフバイワンで空値に)、JATS `<contrib-group>` は `<contrib` 接頭辞衝突(contrib-type 属性の有無で排除)。
+
+## 出典(第127次、search-index 照合)
+
+**論文・仕様**: RIS Format Specification(Research Information Systems / Clarivate 継承)、NLM MEDLINE/PubMed Data Element Descriptions、CSL-JSON schema(citation-style-language)、EndNote XML DTD、JATS NISO Z39.96(ANSI/NISO 標準)、MODS 3.x(Library of Congress)、OpenURL KEV Z39.88 + COinS 仕様 — 全て整数のみで実装。
+
+**実装物**: citeproc-js/csl-editor の CSL-JSON 取扱、Zotero 翻訳レイヤ(RIS/EndNote/MODS インポータ)、JATS-XML 読み出しツール(medline/pandoc jats reader)、Wikipedia COinS ボット — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の文献管理(EndNote/Zotero)変換・RIS 解析・JATS 前処理・COinS 埋め込みの解説記事 — 全て整数のみで実装。
