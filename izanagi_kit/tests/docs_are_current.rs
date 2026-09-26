@@ -486,7 +486,7 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
 
     for (doc, claim) in [
         ("README.md", "4,700+ tests"),
-        ("README.md", "4,500+ tests"),
+        ("README.md", "4,600+ tests"),
         ("README.md", "**180+ tests**"),
         ("izanagi/README.md", "**180+ tests**"),
         // The handbook snapshot stated an exact 3744 and was wrong two
@@ -509,7 +509,7 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     // actual * 3/4` closes both directions: raising reality past ~133% of a
     // floor fails until the claim is raised in the same commit.
     for (claim, actual) in [
-        ("4,500+ tests", kit),
+        ("4,600+ tests", kit),
         ("**180+ tests**", engine),
         ("4,700+ tests", kit + engine),
         ("**4,700+ passed / 0 failed**", kit + engine),
