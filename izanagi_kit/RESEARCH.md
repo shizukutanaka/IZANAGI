@@ -2906,3 +2906,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: beat/Flips(byuu)の encode/decode、xdelta 参照実装、librsync `prototab.c`、bsdifflib、UniPatcher 各種パッチャーのヘッダ処理 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の ROM パッチ形式(IPS/UPS/BPS)・ランレングス差分・librsync デルタ解説記事 — 全て整数のみで実装。
+
+## 第114次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — バイオインフォマティクス形式(全7件が既存 697 件と非衝突を確認。`vcf`=vCard、`sam`=suffix automaton、`gbk`=GBK encoding は名前衝突のため回避):
+
+- `fasta` — `>` defline(id=先頭トークン、description=残り)+ 折り返しシーケンス行。空白・数字を剥がして IUPAC 文字のみ回収、複数レコードイテレータ
+- `fastq` — `@id` + 複数行シーケンス + `+` 区切り + 品質行(シーケンス長に達するまで連結)。Cock et al. 2009 の NAR 論文仕様。`phred33`/`phred64` 変換は整数のみ(浮動小数点不使用)
+- `gff` — GFF3 9列タブ区切り、`##` プラグマ、`##FASTA` 末尾カットオフ。score/phase はテキスト保持で浮動小数点を排除。`attribute(key)` で `key=value;` 属性引き
+- `bed` — UCSC BED: `chrom start end` 必須3列 + 最大12列までの任意列を verbatim 公開。`track`/`browser`/`#` 行スキップ
+- `genbank` — GenBank フラットファイル: LOCUS ヘッダ(name/length/circular)、継続行対応の ACCESSION/DEFINITION、FEATURES テーブルの key+location ペア、ORIGIN シーケンス
+- `stockholm` — Stockholm 1.0: `# STOCKHOLM 1.0` マジック、`name seq` 行、`#=GC/GS/GR` マークアップ、`//` 終端。インターリーブブロック対応
+- `newick` — Newick 系統樹: ネスト括弧+`name`+`:length`+`;`。再帰なしのスタック解析(深さ 2048 cap)、ノードアリーナ+子 index、枝長はテキスト保持(浮動小数点不使用)+ `length_milli` でミリ単位整数変換(指数表記対応)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内捕捉: FASTA/FASTQ のシーケンスはケースを保持する(doctest が「大文字化される」と誤想定)、phred64('@')=0 が正(ASCII 64 オフセット)、GenBank FEATURES のキー列は col 5(0-indexed)開始、Stockholm `#=GC` のクラス切り出しは先頭4バイト固定(`#=G`+1文字)。ラウンド内補足: fastq の品質収集は「シーケンス長に達するまで」が正しい終端条件(品質行が `@` で始まり得るため行数固定は誤り)。
+
+## 出典(第114次、search-index 照合)
+
+**論文・仕様**: Cock, Fields, Goto, Heuer, Rice「The Sanger FASTQ file format for sequences with quality scores, and the Solexa/Illumina FASTQ variants」(NAR 2010) — 品質行は長さ一致まで連結する規則。Sequence Ontology GFF3 仕様(9 列定義・strand/phase)。UCSC Genome Browser FAQ(BED 必須/任意列、0-based start)。NCBI GenBank Flat File Release Notes(LOCUS 列位置、FEATURES テーブル col 6-21/21+)。Pfam/Rfam Stockholm format 1.0(`#=GC/GS/GR` マークアップ)。Joe Felsenstein の Newick ツリー形式解説(括弧+ラベル+枝長)。NCBI FASTA defline 規則。
+
+**実装物**: Biopython `Bio.SeqIO`(fasta/fastq/genbank/stockholm)、htslib/biojs-io-fastq、UCSC `kent/src/lib` の BED パーサ、ape/ETE の Newick パーサ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のバイオインフォマティクス形式解説(FASTQ の4行構造とマルチライン罠、GFF3 と GTF の差異、GenBank flat file 読み方、SAM/BAM と本ラウンドの差分) — 全て整数のみで実装。
