@@ -2752,3 +2752,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: glibc/libiconv の SHIFT_JIS・EUC-JP・ISO-2022-JP・BIG5・GBK・EUC-KR テーブル、nkf の 2022-JP 状態機械、ICU コンバータの境界挙動、Rust `encoding_rs` のインデックス付け方針 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
+
+## 第107次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — チャンク型マルチメディアコンテナと点群データ(全7件が既存 648 件と非衝突を確認):
+
+- `iff` — EA IFF-85(Electronic Arts のチャンク構造): `FORM`/`LIST`/`CAT ` + BE32 サイズ + 4B 型ワード、チャンク `{id:4, size:BE32, data, 偶数パディング}`、`subform` で入れ子 FORM を再帰解決。Amiga の ILBM/8SVX/AIFF(Mac) の祖先
+- `avi` — RIFF AVI(Microsoft、IFF 派生で LE32): `RIFF <sz> AVI `、`LIST hdrl`/`avih`(56B 固定レイアウト: usec/frame、flags、total frames、streams、幅高さ)、`LIST strl`/`strh`(56B: fccType `vids`/`auds`、handler、scale/rate/length)、`LIST movi` データ位置。RIFF サイズは `RIFF` 語自身と形式ワードを除く
+- `flv` — Flash Video(Adobe FLV spec): `FLV` + version + flags(bit2=audio, bit0=video) + BE32 ヘッダサイズ(9) + PrevTagSize0(0)。タグ `{type:u8, BE24 サイズ, BE24 タイムスタンプ, u8 ts拡張上位, BE24 streamid, data, BE32 prevsize}`、時刻は `BE24 | ext<<24` の 32bit 合成。type 8/9/18 = audio/video/script
+- `caf` — Core Audio Format(Apple、64bit サイズで RIFF の 4GB 限界を突破): `caff` + u16 ver + u16 flags; チャンク `{type:4, size:BE64-as-i64}` — 負サイズは「EOF まで」。`desc` = 32B ASBD 全BE(f64 sample rate は raw u64 bits)、`data` チャンクの先頭 u32 は edit count
+- `voc` — Creative Voice File(Sound Blaster 時代): banner `"Creative Voice File\x1A"`(20B) + u16 データオフセット(≥26) + u16 version + u16 check(`= !version + 0x1234`)。ブロック `{type:u8, size:LE24, data}`、type 0 = 1B 終端、1=サウンド、3=無音、9=新拡張フォーマット
+- `las` — ASPRS LAS 点群(1.0–1.4): `LASF`、version @24,25、header_size u16@94 がレイアウトを決める(227 ≤1.2 / 235 v1.3 +waveform@227 / 375 v1.4 +EVLR@235,count64@247,by_return64@255)。scale/offset/bounds の f64 は raw u64 bits で保持、v1.4 は legacy u32 点数が 0 のとき points64 を使う
+- `woff2` — Web Open Font Format 2(W3C、Brotli 圧縮): 48B BE ヘッダ `wOF2`、flavor@4(`0x00010000`/`true`/`typ1`/`OTTO`/`ttcf`)、reserved@14 は必ず 0、meta(offset,len,origLen)/priv(offset,len) ペア — 長さ非ゼロなら offset 必須
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: IFF の pad-to-even 走査と入れ子 LIST/FORM、AVI の `strh` が `LIST strl` の型ワードであること(chunk id ではない — 実装は `id==LIST && ty==strl` で分岐)、FLV の BE24/32bit 時刻合成、CAF の負サイズ=EOF 規則、VOC の `!version+0x1234` 検算(演算子優先度の落とし穴: `!x.wrapping_add(..)` は `!(x.wrapping_add(..))` と解釈されるため括弧必須)、LAS の version 別最小ヘッダ長、WOFF2 の meta/priv オフセット整合。ラウンド内捕捉: `*b"..."` はパターンとして不許可(matches!→等価比較連鎖へ修正)、AVI `strl` は LIST の型ワード、VOC check の折返し(`wrapping_add` + 16bit マスク)、IFF チャンクの `at` はデータ開始(ヘッダ+8)。
+
+## 出典(第107次、search-index 照合)
+
+**論文・仕様**: EA「IFF: A Standard for Interchange Format Files」(EA IFF 85)/ Microsoft RIFF/AVI 仕様(avifil32・aviriff.h の `strh`/`avih` レイアウト)/ Adobe「Video File Format Specification」(FLV v10.1)/ Apple Core Audio Format Specification(caff チャンク・ASBD)/ Creative Labs「Voice File (.VOC) Technical Specifications」/ ASPRS LASer File Format Exchange Activities(LAS 1.0–1.4 R15)/ W3C Recommendation「WOFF File Format 2.0」§4(File structure)— 全て整数のみで実装。
+
+**実装物**: libsndfile の CAF/VOC/IFF リーダ、FFmpeg の `avidec.c`/`flvdec.c`、lastools/LASlib、fontTools の WOFF2 コンパイラ(w3c-woff2)/ Google woff2 リファレンス実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の RIFF チャンク解析・FLV/RTMP 配信解説・LAS 点群処理記事・WOFF2 フォント圧縮紹介、『ゲームプログラマになるための3Dグラフィックス技術』系の IFF/RIFF 言及 — 全て整数のみで実装。
