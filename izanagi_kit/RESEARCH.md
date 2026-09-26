@@ -3276,3 +3276,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: isc-dhcp・busybox udhcpc、freeradius、FRRouting/GoBGP、lldpd、keepalived、Linux bridge STP、Linux kernel igmp.c — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の DHCP パケット自作・RADIUS 属性表・BGP メッセージ解析・LLDP フレーム観察・VRRP/STP/IGMP 動作解説記事 — 全て整数のみで実装。
+
+## 第131次(search-index 照合ラウンド / 実装証跡付き)
+
+- `modbus` — MBAP(txid/proto=0/len/unit)と RTU CRC16(0xA001 反転、LE ワイヤ順)
+- `bacnet` — BACnet/IP BVLL(`0x81 type len`)、NPDU version=1 ゲート、APDU 上位ニブルの PDU 種別
+- `canopen` — COB-ID>>7 の function code 分類(TPDO1-4/RPDO1-4/SDO/heartbeat)、node=&0x7F、NMT コマンド展開
+- `mbus` — EN 13757-2: `0xE5` ACK / `0x10` short / `0x68 L L 0x68` long、sum mod 256 チェックサム
+- `knx` — KNXnet/IP: `06 10` + BE service id + total_len 完全一致
+- `s7` — TPKT `03 00` + COTP DT `0xF0` + `0x32` ヘッダ(rosctr/pdu_ref/param_len/data_len、Ack の error class+code)
+- `ethercat` — EtherType 0x88A4 内の `len:11|type:4` ヘッダ + datagram 連鎖(more フラグ、wkc 収集)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: BACnet APDU PDU type は第1オクテット上位ニブル(0x30=ComplexAck)、S7 は COTP DT(0xF0)のみが S7 ヘッダを運ぶ。
+
+## 出典(第131次、search-index 照合)
+
+**論文・仕様**: Modbus Application Protocol + MBAP/RTU 仕様(modbus.org)、ASHRAE BACnet/ISO 16484-5(BVLL/NPDU/APDU)、CiA 301 CANopen、EN 13757-2(M-Bus)、KNXnet/IP Core(ISO 22510)、TPKT RFC 1006 + COTP ISO 8073 + S7comm 観測仕様(snap7/wireshark)、IEC 61158/ETG.1000 EtherCAT — 全て整数のみで実装。
+
+**実装物**: libmodbus、pymodbus、bacnet-stack、CANopenNode、libmbus、knxd/calimero、snap7、SOEM — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Modbus TCP 自作・BACnet/IP パケット解析・CANopen SDO/PDO・M-Bus 計装・KNXnet/IP・S7 通信・EtherCAT フレーム解説記事 — 全て整数のみで実装。
