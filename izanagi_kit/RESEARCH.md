@@ -3356,3 +3356,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: gerbv/gerber-parser.py、pcb2gcode/Excellon リーダ、GNU plotutils HP-GL/Ghostscript pcl6、qz/tray ZPL ビューア・labelary、python-escpos/receipt-ninja、afp-explorer/afp2pdf — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn のガーバーデータ解説・Excellon ドリルファイル・HP-GL プロッター・PCL/ESC-POS レシートプリンタ制御・ZPL ラベル印刷・AFP/MODCA 解説記事 — 全て整数のみで実装。
+
+## 第135次(search-index 照合ラウンド / 実装証跡付き)
+
+- `mht` — MHTML(RFC 2557): トップヘッダの `boundary="..."` を拾い `--boundary` で分割、パート毎のヘッダ(Content-Type/Location)+ verbatim ボディ
+- `maildir` — Maildir ファイル名: `cur/` では `unique:2,<flags>`、フラグは `D/F/P/R/S/T` のアルファベット順(非正規順序は拒否)、`new/` は無接尾辞
+- `mailcap` — RFC 1524: `type/sub; command; flag; k=v`、`*`・欠落サブタイプはワイルドカード、`\` 継続行を先行結合
+- `desktop` — freedesktop `.desktop`: `[Group]` + `Key[locale]=Value`、`get_locale` はロケール一致優先・無印へフォールバック
+- `urlencode` — WHATWG `application/x-www-form-urlencoded`: `+`→空白、`%XX`→バイト、不良トリプレットは全体拒否、`&`/`;` 双方を区切りに
+- `htaccess` — Apache `.htaccess`: `Name args`、`#` 行内コメント、`<Section args>`/`</Section>` でコンテナ名付与(先頭語のみ)
+- `webloc` — macOS `.webloc`: `plist` モジュールで XML/binary 両対応 + 旧式 INI `[InternetShortcut] URL=` フォールバック
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: MHTML のパート境界は CRLF をボディ末尾から剥がす必要がある、htaccess のコンテナ名は `<IfModule mod_x>` の「先頭語」(属性ではなくタグ名)、maildir フラグの正規順はアルファベット順で実装上これを検証に使える、`.desktop` の `key[locale]` は末尾 `]` 必須で誤検出を防ぐ。
+
+## 出典(第135次、search-index 照合)
+
+**論文・仕様**: RFC 2557(MHTML aggregation)/RFC 1522(MIME)、RFC 1524(mailcap)、Dan Bernstein maildir プロトコルメモ、freedesktop Desktop Entry Specification 1.5、WHATWG URL Standard §5.1(form-urlencoded)、Apache HTTP Server `.htaccess`/コンテナディレクティブ公式ドキュメント、Apple Internet Location / Classic `URL` 形式ドキュメント — 全て整数のみで実装。
+
+**実装物**: Python `mimetools`/`mailbox.Maildir`、`mailcap` モジュール、xdg `desktop-entry` パーサ(desktop-file-utils)、CPython `urllib.parse.parse_qs`、Apache httpd `mod_core` 設定リーダ、Apple `CFPreferences`/plistutils — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の maildir 構成解説・mailcap/MIME ハンドラ・`.desktop` エントリ作成・URL エンコード仕様・`.htaccess` リダイレクト/認証設定・`.webloc`/plist 解説記事 — 全て整数のみで実装。
