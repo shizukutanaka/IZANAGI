@@ -85,14 +85,60 @@ impl Vtf {
     pub fn version(&self) -> (u32, u32) {
         (self.version_major, self.version_minor)
     }
-    /// Byte offset where image data begins.
+    /// Byte offset right after the header — where the low-res thumbnail
+    /// sits when present, else the full-resolution data.
     pub fn data_at(&self) -> u64 {
         u64::from(self.header_size)
+    }
+    /// Byte size of the low-res thumbnail block, from its format id
+    /// (`None` when the format is unknown; 0 when there is no thumbnail).
+    pub fn low_res_bytes(&self) -> Option<u64> {
+        if !self.has_thumbnail() {
+            return Some(0);
+        }
+        image_bytes(
+            self.low_res_format,
+            u32::from(self.low_res_width),
+            u32::from(self.low_res_height),
+        )
+    }
+    /// Byte offset of the full-resolution image data — past the
+    /// thumbnail block when one exists.
+    pub fn image_at(&self) -> Option<u64> {
+        self.data_at().checked_add(self.low_res_bytes()?)
     }
     /// True when a low-res thumbnail block exists between the
     /// header and image data.
     pub fn has_thumbnail(&self) -> bool {
         self.low_res_format != 0xFFFF_FFFF && self.low_res_width > 0 && self.low_res_height > 0
+    }
+}
+
+/// Uncompressed byte size of `w`×`h` pixels in `IMAGE_FORMAT_*` `fmt`,
+/// honouring the 4×4 block formats. `None` for an unknown format id.
+pub fn image_bytes(fmt: u32, w: u32, h: u32) -> Option<u64> {
+    if fmt == 0xffff_ffff {
+        return Some(0); // IMAGE_FORMAT_NONE
+    }
+    let blocks = |bw: u32, bh: u32, bsz: u64| {
+        u64::from(w.div_ceil(bw))
+            .checked_mul(u64::from(h.div_ceil(bh)))
+            .and_then(|n| n.checked_mul(bsz))
+    };
+    match fmt {
+        // DXT1 / DXT1_ONEBITALPHA: 8 bytes per 4x4 block.
+        13 | 20 => blocks(4, 4, 8),
+        // DXT3 / DXT5: 16 bytes per 4x4 block.
+        14 | 15 => blocks(4, 4, 16),
+        // Per-pixel formats.
+        0 | 1 | 11 | 12 | 16 | 19 | 21 | 23 | 26 => {
+            u64::from(w).checked_mul(u64::from(h)).map(|n| n * 4)
+        }
+        2 | 3 | 9 | 10 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 3),
+        4 | 6 | 17 | 18 | 22 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 2),
+        5 | 7 | 8 => u64::from(w).checked_mul(u64::from(h)),
+        24 | 25 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 8),
+        _ => None,
     }
 }
 
@@ -161,6 +207,18 @@ mod tests {
         d[62] = 16;
         w16(&mut d, 63, 1); // depth
         d
+    }
+
+    #[test]
+    fn thumbnail_offset() {
+        let t = parse(&fixture()).unwrap();
+        assert!(t.has_thumbnail());
+        assert_eq!(t.low_res_bytes(), Some(16 * 16 * 4));
+        assert_eq!(t.image_at(), Some(80 + 16 * 16 * 4));
+        assert_eq!(image_bytes(13, 17, 17), Some(5 * 5 * 8)); // DXT1 blocks
+        assert_eq!(image_bytes(15, 4, 4), Some(16)); // DXT5
+        assert_eq!(image_bytes(0xffff_ffff, 8, 8), Some(0));
+        assert_eq!(image_bytes(99, 8, 8), None);
     }
 
     #[test]

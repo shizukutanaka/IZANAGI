@@ -137,9 +137,11 @@ pub struct Ole {
     pub entries: Vec<DirEntry>,
 }
 
-/// Byte offset of sector `s` (sector ids count from after the header).
-fn sector_at(header: usize, ssz: usize, s: u32) -> Option<usize> {
-    header.checked_add((usize::try_from(s).ok()?).checked_mul(ssz)?)
+/// Byte offset of sector `s`. Sector ids count from after the header,
+/// and the header region is padded to a full sector — so the base is
+/// 512 for major 3 but 4096 for major 4, i.e. `ssz` in both cases.
+fn sector_at(base: usize, ssz: usize, s: u32) -> Option<usize> {
+    base.checked_add((usize::try_from(s).ok()?).checked_mul(ssz)?)
 }
 
 /// Parse a CFB file: header, FAT (from the header DIFAT), then the
@@ -182,7 +184,7 @@ pub fn parse(d: &[u8]) -> Option<Ole> {
     // FAT contents.
     let mut fat = Vec::new();
     for &s in &fat_sectors {
-        let at = sector_at(HEADER, sector_size, s)?;
+        let at = sector_at(sector_size, sector_size, s)?;
         for i in 0..sector_size / 4 {
             fat.push(le32(d, at + i * 4)?);
         }
@@ -196,7 +198,7 @@ pub fn parse(d: &[u8]) -> Option<Ole> {
             return None;
         }
         guard += 1;
-        let at = sector_at(HEADER, sector_size, s)?;
+        let at = sector_at(sector_size, sector_size, s)?;
         for i in 0..sector_size / 128 {
             let e = at + i * 128;
             let name_len = usize::from(le16(d, e + 64).unwrap_or(0));

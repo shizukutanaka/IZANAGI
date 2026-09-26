@@ -18,12 +18,14 @@
 //! assert_eq!(b.lump_name(0), Some("entities"));
 //! ```
 
-/// Quake II (and some derivatives) signature.
-pub const MAGIC_IBSP: u32 = 0x4942_5350; // "IBSP" LE
+/// Quake II / Quake III signature — bytes `IBSP` read little-endian.
+pub const MAGIC_IBSP: u32 = 0x5053_4249;
 /// Quake 1 lump count.
 pub const LUMPS_Q1: usize = 15;
 /// Quake II lump count.
 pub const LUMPS_Q2: usize = 19;
+/// Quake III lump count.
+pub const LUMPS_Q3: usize = 17;
 
 fn le32(d: &[u8], at: usize) -> Option<u32> {
     Some(
@@ -94,6 +96,26 @@ pub const Q2_LUMPS: [&str; LUMPS_Q2] = [
     "areas",
     "areaportals",
 ];
+/// Quake III lump names (version 46 — different order and count).
+pub const Q3_LUMPS: [&str; LUMPS_Q3] = [
+    "entities",
+    "shaders",
+    "planes",
+    "nodes",
+    "leafs",
+    "leaffaces",
+    "leafbrushes",
+    "models",
+    "brushes",
+    "brushsides",
+    "drawverts",
+    "drawindexes",
+    "fogs",
+    "surfaces",
+    "lightmaps",
+    "lightgrid",
+    "visdata",
+];
 
 /// A parsed BSP header.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -112,11 +134,17 @@ impl Bsp {
         let l = self.lumps.get(i)?;
         d.get(l.offset as usize..l.offset as usize + l.length as usize)
     }
-    /// Human-readable lump name (family-aware).
+    /// Human-readable lump name (family- and version-aware).
     pub fn lump_name(&self, i: usize) -> Option<&'static str> {
         match self.kind {
             Kind::Quake1 => Q1_LUMPS.get(i).copied(),
-            Kind::Ibsp => Q2_LUMPS.get(i).copied(),
+            Kind::Ibsp => {
+                if self.version == 46 {
+                    Q3_LUMPS.get(i).copied()
+                } else {
+                    Q2_LUMPS.get(i).copied()
+                }
+            }
             Kind::Other => None,
         }
     }
@@ -126,18 +154,20 @@ impl Bsp {
 /// that overruns the file.
 pub fn parse(d: &[u8]) -> Option<Bsp> {
     let (kind, version, dir_at, count) = if le32(d, 0)? == MAGIC_IBSP {
-        (Kind::Ibsp, le32(d, 4)?, 8usize, LUMPS_Q2)
+        let version = le32(d, 4)?;
+        let count = match version {
+            38 => LUMPS_Q2,
+            46 => LUMPS_Q3,
+            _ => return None,
+        };
+        (Kind::Ibsp, version, 8usize, count)
     } else {
-        (Kind::Quake1, le32(d, 0)?, 4usize, LUMPS_Q1)
+        let version = le32(d, 0)?;
+        if version != 29 {
+            return None;
+        }
+        (Kind::Quake1, version, 4usize, LUMPS_Q1)
     };
-    let ok = match kind {
-        Kind::Quake1 => version == 29,
-        Kind::Ibsp => version == 38 || version == 46,
-        Kind::Other => false,
-    };
-    if !ok {
-        return None;
-    }
     let dir = d.get(dir_at..dir_at + count * 8)?;
     let mut lumps = Vec::with_capacity(count);
     for i in 0..count {
@@ -195,13 +225,22 @@ mod tests {
     #[test]
     fn ibsp_and_rejects() {
         let mut d = vec![0u8; 8 + LUMPS_Q2 * 8];
-        d[..4].copy_from_slice(&MAGIC_IBSP.to_le_bytes());
+        d[..4].copy_from_slice(b"IBSP");
         d[4..8].copy_from_slice(&38u32.to_le_bytes());
         let b = parse(&d).unwrap();
         assert_eq!(b.kind, Kind::Ibsp);
         assert_eq!(b.version, 38);
         assert_eq!(b.lumps.len(), 19);
         assert_eq!(b.lump_name(14), Some("brushes"));
+        // Quake III: same magic, version 46 -> 17 lumps, own name table
+        let mut d3 = vec![0u8; 8 + LUMPS_Q3 * 8];
+        d3[..4].copy_from_slice(b"IBSP");
+        d3[4..8].copy_from_slice(&46u32.to_le_bytes());
+        let b3 = parse(&d3).unwrap();
+        assert_eq!(b3.lumps.len(), 17);
+        assert_eq!(b3.lump_name(1), Some("shaders"));
+        assert_eq!(b3.lump_name(16), Some("visdata"));
+        assert!(b3.lump_name(17).is_none());
         // bad version
         let mut bad = q1();
         bad[0] = 30;

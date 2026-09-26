@@ -104,8 +104,11 @@ impl ExFat {
     /// Byte offset of the root directory cluster.
     pub fn root_cluster_at(&self) -> u64 {
         u64::from(self.cluster_heap_offset)
-            .saturating_add(u64::from(self.first_root_cluster.saturating_sub(2)))
             .saturating_mul(u64::from(self.bytes_per_sector()))
+            .saturating_add(
+                u64::from(self.first_root_cluster.saturating_sub(2))
+                    .saturating_mul(self.cluster_size()),
+            )
     }
     /// Second FAT is active.
     pub fn second_fat_active(&self) -> bool {
@@ -207,7 +210,7 @@ mod tests {
         assert_eq!(x.bytes_per_sector(), 512);
         assert_eq!(x.sectors_per_cluster(), 8);
         assert_eq!(x.cluster_size(), 4096);
-        assert_eq!(x.root_cluster_at(), (128 + 2) * 512);
+        assert_eq!(x.root_cluster_at(), 128 * 512 + 2 * 4096);
         assert_eq!(x.number_of_fats, 1);
         assert_eq!(x.drive_select, 0x80);
         assert_eq!(x.percent_in_use, 37);

@@ -35,7 +35,7 @@ pub const LEAD: usize = 96;
 /// Lead magic.
 pub const LEAD_MAGIC: [u8; 4] = [0xed, 0xab, 0xee, 0xdb];
 /// Header-structure magic (first 3 bytes of an 8-byte prologue).
-pub const HEADER_MAGIC: [u8; 3] = [0x8e, 0xa8, 0xe8];
+pub const HEADER_MAGIC: [u8; 3] = [0x8e, 0xad, 0xe8];
 
 fn be16(d: &[u8], at: usize) -> Option<u16> {
     Some(u16::from(*d.get(at)?) << 8 | u16::from(*d.get(at + 1)?))
