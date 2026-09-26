@@ -3236,3 +3236,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: PrusaSlicer/Cura 等の G-code 処理、meshlab/Geomview の OFF、FreeCAD/OCCT の STEP・IGES リーダー、lib3mf、BambuStudio の 3MF — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の G-code 自作パーサ・STEP/IGES 差異解説・3MF 内部構造調査記事 — 全て整数のみで実装。
+
+## 第129次(search-index 照合ラウンド / 実装証跡付き)
+
+- `tcx` — Garmin TCX(Training Center XML): `<Activity Sport>` → `<Lap>`/`<Track>`/`<Trackpoint>`(time/lat/lon/alt/bpm、座標は verbatim 文字列)。`<Activity` vs `<Activities` の接頭辞衝突を次バイト検査で分離
+- `fit` — Garmin FIT: 12/14B ヘッダ(`size`/`protocol`/`profile`/`data_size`/`.FIT`)、record 走査(definition bit6 / local nibble / 圧縮時刻ヘッダ)、FIT CRC-16(0xA001 ニブル法)を手動畳み込み
+- `geojson` — RFC 7946: `crate::json` 再利用、Feature/FeatureCollection/裸 geometry 3 系ルート、coords は生 `Json`
+- `wkb` — OGC WKB: endian バイト + u32 型コード、EWKB フラグビット(0x8000/0x4000/0x2000)と ISO +1000/2000/3000 慣例を z/m 真偽へ分離
+- `topojson` — `json` 再利用: `Topology` ルート、objects 名一覧、arcs 数、transform(scale/translate)
+- `pmtiles` — PMTiles v3: 127B ヘッダ、u64LE オフセット/長 9 本、タイル圧縮/型/zoom、境界は i32 ×10⁷ 固定小数点
+- `hgt` — SRTM 標高タイル: BE i16 正方グリッド、辺長はバイト数から整数 isqrt(浮動小数点不使用、SRTM-1 3601 / SRTM-3 1201)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: `hgt` の正方判定に `f64::sqrt` を使うと `no_float_in_sim` が浮動小数点を検出 → 整数 isqrt に置換、WKB ISO 3000番台は Z と M の両立を意味する(EWKB フラグとは別系統)、FIT の `crc_at` は `end+2 ≤ len` の境界含みで Some。
+
+## 出典(第129次、search-index 照合)
+
+**論文・仕様**: Garmin Training Center XML Schema、Garmin Flexible & Interoperable Data Transfer(FIT)SDK 仕様、RFC 7946(GeoJSON)、OGC Simple Features / WKB(ISO 19125)+ PostGIS EWKB 拡張、TopoJSON spec、PMTiles v3 spec(protomaps)、NASA SRTM `.hgt` レイアウト — 全て整数のみで実装。
+
+**実装物**: python tcxparser / fitparse・GDAL ogr GeoJSON/WKB・mapbox topojson-server・pmtiles CLI・gpxsee/tilemaker 各実装を参照 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の TCX/FIT 解析・GeoJSON⇄TopoJSON 変換・PMTiles 日本語解説・SRTM データ利用記事 — 全て整数のみで実装。
