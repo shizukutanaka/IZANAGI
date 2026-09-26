@@ -146,7 +146,9 @@ fn sector_at(base: usize, ssz: usize, s: u32) -> Option<usize> {
 
 /// Parse a CFB file: header, FAT (from the header DIFAT), then the
 /// directory chain. Returns `None` on bad magic, odd geometry, or
-/// a truncated chain.
+/// a truncated chain. Directory entries are bounded by input size —
+/// every sector read is bounds-checked, so `entries` can never exceed
+/// `file_len / 128` slots.
 pub fn parse(d: &[u8]) -> Option<Ole> {
     if d.get(..8)? != MAGIC.as_slice() {
         return None;
