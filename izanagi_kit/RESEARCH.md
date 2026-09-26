@@ -2664,3 +2664,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: pydicom/dcmtk の explicit-VR タグ走査、nibabel の NIfTI ヘッダ、nrrd/teem のヘッダパーサ、netcdf-c の `nc3` ヘッダ読み、ecCodes/wgrib の edition 判別、biopython/PDB-tools の固定カラム抽出、Open Babel/RDKit の MOL2 リーダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の DICOM タグ解析記事(プレアンブル+タグ走査系)、NIfTI ヘッダの日本語解説、NetCDF/HDF 形式比較記事、GRIB2 の気象データ解説、PDB/MOL2 の構造データ国内チュートリアル — 全て整数のみで実装。
+
+## 第102次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: パッケージ・アーカイブ・複合ドキュメント系エンベロープ(全7件が既存 620 件と非衝突を確認):
+
+- `deb` — Debian バイナリパッケージ(deb(5)/deb-format): `ar` の第1メンバが `debian-binary`(内容 `"2.0\n"`)、`control.tar.*`/`data.tar.*` を suffix で `Compression` 分類(gz/xz/zst/bz2/none)。`crate::ar` 再利用の薄いラッパ
+- `ole` — OLE2 Compound File Binary(MS-CFB): `D0CF11E0A1B11AE1`、major3=512B/major4=4096B セクタ、109スロット DIFAT → FAT 構築 → `first_dir_sector` から ENDOFCHAIN までディレクトリ鎖歩進、128B エントリの UTF-16 名/FREESECT リンク/ストリーム先頭+サイズ
+- `rar` — RAR(技術ノート note.txt): v4 マーカ `Rar!\x1A\x07\x00` + HEAD_CRC/TYPE/FLAGS/SIZE + `0x8000` で ADD_SIZE。main(0x72)/file(0x73)/service(0x7A)/end(0x7B) の鎖歩進。v5 マーカは `01 00` で `Kind::Rar5` 判別
+- `rpm` — RPM(max-rpm lead/header 仕様): 96B lead(`EDABEEDB` + ver + type + arch + name66B + os + sigtype)、ヘッダ構造 `8EA8E8 01` + nindex/hlen u32BE、signature→8Bアラインで main ヘッダ位置
+- `x7z` — 7z(7zFormat.txt): `377ABCAF271C` + ver(00 04) + start_crc + next_header の (offset,size,crc)。`next_header()` でファイル内位置解決
+- `xar` — XAR(xar-1.x 仕様, `.pkg`/`safariextz`): `xar!` u32BE magic + header_size(28) + version + TOC 圧縮/非圧縮長 u64BE + checksum id(0 none/1 sha1/2 md5/3 sha256)
+- `xz` — XZ ファイル形式(tukaani xz-file-format.txt): `FD 37 7A 58 5A 00` + stream flags(上位4bit 予約0 + check id 下位4bit: 0/1 crc32/4 crc64/10 sha256) + flags CRC32 + ブロックヘッダ `(n+1)*4` B
+
+**検証**: 新規テスト全緑(5,426 lib テスト + 618 doctest)。oracle: OLE の DIFAT→FAT→ディレクトリ鎖と UTF-16 名、RAR4 の ADD_SIZE 鎖と v5 判別、RPM の signature→main アライメント、7z next_header のファイル内位置、XAR checksum 写像、XZ の check nibble とブロックサイズ式、deb の debian-binary 先頭強制。ラウンド内捕捉: OLE セクタオフセット式(ヘッダ後 N×sector_size)、RPM doctest の nindex/hlen オフセット誤り(104/108)、`header().ok()` の Option 二重包み、closure の `&mut d` 競合→`fn` 化、XZ ブロックがバッファを超える例。
+
+## 出典(第102次、search-index 照合)
+
+**論文・仕様**: `deb(5)` マニュアルと Debian `.deb` 形式説明(ar+debian-binary+control/data) / Microsoft `[MS-CFB]` Compound File Binary Format(ヘッダ・DIFAT/FAT・ディレクトリエントリ) / RARLAB「RAR 4.x archive format — technical note」と `RAR 5.0` 形式 / `Maximum RPM` の lead・signature・header structure / 7-zip `7zFormat.txt`(signature header・kEnd・next header) / `xar` フォーマット(ヘッダ・TOC 長・checksum メッセージダイジェスト名) / tukaani `xz-file-format.txt`(stream flags・check 型・block header) — 全て整数のみで実装。
+
+**実装物**: dpkg/ar 実装、python `olefile`/`libarchive` CFB リーダ、unrar/bsdtar の RAR4 ブロック走査、rpm ツールの lead/signature パーサ、7-Zip `7zIn.c`/`p7zip`、libxar、xz utils `stream_flags`/`block_header` デコーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の deb/rpm 内部構造の解析記事、CFB(Office 旧形式)ヘッダ解説、7z/xz 形式の日本語メモ、XAR(.pkg)検証記事 — 全て整数のみで実装。
