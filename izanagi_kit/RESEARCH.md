@@ -2386,3 +2386,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Microsoft TrueType/OpenType spec (sfnt directory・head・maxp・name) / W3C WOFF 1.0 spec / sqlite.org "Database File Format" (file format section) / protobuf.dev "Encoding" guide (wire types) / bsonspec.org BSON spec / Xiph.Org FLAC format spec + Vorbis comment spec / RFC 3533 Ogg format + RFC 5334 §B CRC — 全て整数のみで実装。
 
 **実装物**: fonttools/freetype の sfnt・WOFF directory walker、sqlite3shell/btree ヘッダ読取り、protoc/protoscope の wire walker、PyMongo bson codec、brotli/metaflac の metadata walker、ogg-tools/oggz の page lacing と CRC — 全て整数のみで実装。
+
+## 第88次: git packfile・Java .class・ar・plist・shp・pcapng・mbox — packfile・classfile・ar・plist・shp・pcapng・mbox
+
+**方法**: 文献参照ラウンド継続 — バージョン管理/VM/アーカイブ/設定/地理/キャプチャ/メールの残りコンテナ層:
+
+- `packfile` — git packfile + `.idx` v2: `PACK` ヘッダ(v2/3)、オブジェクト先頭の `(msb|type3|size4)` varint、OFS_DELTA は base-offset varint(`off = ((off+1)<<7)|low7` — git 固有の非単純 LEB128)、REF_DELTA は 20B base sha、zlib メンバは `inflate_zlib_count` で消費バイト数を取得して歩行(新規公開 `inflate`/`inflate_zlib` の count 版)、declared size 不一致・trailer 20B まで厳密。`.idx` v2 は fanout 単調検査 + name/crc32/offset 3 テーブル + MSB 付き large-offset 副表
+- `classfile` — Java `.class`: `CAFEBABE`、cp_count(index 0 は穴)、Long/Double の 2 スロット占有を `Cp::Unknown` プレースホルダで表現、interface/field/method/attribute の各テーブル走査、`utf8`/`class_name` 解決
+- `ar` — Unix ar アーカイブ: `!<arch>\n` + 60B ヘッダ(name16/mtime12/uid6/gid6/mode8 オクタル/size10 + `\x60\n`)、GNU `//` string-table 長名(`/n` 参照)と BSD `#1/n` インライン名の両方言、奇数 member は 2B pad
+- `plist` — Apple plist 両形式: `bplist00` は 32B trailer の offSize/refSize/count/top/offTab を読み object 表をデコード(refs は index のまま → `resolve` が深さ制限付きで `Val` 化、dict キーは string 必須)。XML は `<dict>/<array>/<string>/<integer>/<data base64>` 走査 + `emit_xml` canonical 往復
+- `shp` — ESRI `.shp`: 100B ヘッダは BE(9994/file length in 16bit words)+ LE(version 1000/type/bbox) の混在 endian、record は BE ヘッダ + LE content、**f64 は IEEE bit パターンを i128 演算で `Fixed` 手動デコード**(float 型不使用、subnormal→0、NaN/inf 拒否)
+- `pcapng` — pcapng(RFC ドラフト): block type は section endian だが SHB `0x0A0D0D0A` は両 endian で同一 → BOM `4D3C2B1A`/`1A2B3C4D` で section endian を解決、IDB(linktype/snaplen)・SPB・EPB(iface+ts_hi/lo+caplen≤len) 走査、block 末尾の重複 len 一致検査
+- `mbox` — mbox メールスプール: 列0 `From ` 開始行で分割(後続行の `>From ` は quoted 本文としてそのまま保持)、ヘッダは空行まで、sender を From 行第2語から抽出
+
+**検証**: 新規テスト全緑。oracle: hand-built packfile(blob+2obj walk+idx v2 MSB-large offset)、javac 互換最小 class(Utf8/Class/Long 2slot+members walk)、GNU ar string-table + BSD `#1/`、bplist00 手組 dict + XML plist emit 往復、shapefile Point/複数 endian 併存 fixture、pcapng BE/LE 両 section + EPB、mbox 2 通 + quoted From。ラウンド内捕捉: `Cp` 2slot プレースホルダの push 順序反転、`.idx` fanout の「全要素 ≥ 初名」の誤 fixture(fanout[k] は累積数)、shapefile declared length vs actual の厳密一致テスト、plist binary の Obj/Val 2 段表現への整理。
+
+## 出典(第88次、search-index 照合)
+
+**論文・仕様**: git Documentation "Packfile format" (object header + OFS/REF delta + .idx v2) / JVMS §4 The Class File Format (constant pool tags + 2-slot 規則) / FreeBSD `ar(5)` man page + System V ar format / Apple "Property List Programming Guide" + CFBinaryPList.c bplist00 layout / ESRI Shapefile Technical Description (header/record layout) / pcapng draft spec (SHB/IDB/EPB + BOM endian rule) / POSIX mbox conventions + RFC 4155 — 全て整数のみで実装。
+
+**実装物**: git 本体 pack-objects/index-pack の obj walk、javap/JDK ClassReader の cp walker、binutils ar の長名テーブル、Apple plutil/python plistlib の bplist00 decoder、GDAL/shapelib の shp record walker、wireshark pcapng セクション解決、mutt/python mailbox の From-line splitter — 全て整数のみで実装。
