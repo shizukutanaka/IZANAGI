@@ -2488,3 +2488,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: ephtracy/MagicaVoxel 配布 `.vox` の観測列、Doxygen `ddraw.h` DDSURFACEDESC、GitHub の mod パーサ群(libxmp/openmpt/ptmodule)、Super ZZ Tile/awesome-chiptune のエミュ実装のクイック一覧、Mesen/fceux の iNES/NES2 リーダ、CPAN `TAP::Parser` と any-tap の normative リスト、Lunar IPS の `PATCH/EOF` ワイヤ列挙 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の CHIP-8 自作エミュレータ記事(0x200 起点・8xy6 クイック差分)、Qiita の MagicaVoxel .vox 解析記事、Zenn の DirectDraw/BCn 圧縮メモ、Qiita/Zenn の TAP プロトコル・CHIP-8・IPS パッチ解説 — 全て整数のみで実装。
+
+## 第93次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レトロゲーム音楽ドライバ形式とフォント形式の残隙(全7件が既存 564+7 件と非衝突を確認、`sap` のみ同名既存):
+
+- `nsf` — NSF(NES Sound Format、NESdev): `NESM\x1A` + version/songs/start-song(1-based ≤ songs)/load・init・play(≥0x8000 LE)/3×32B テキスト(title@0x0E・author@0x2E・copyright@0x4E)/NTSC・PAL 速度 μs/8B バンク/region byte/拡張音源 bitmask(VRC6..Sunsoft 5B)。`end` は load+len、`is_banked` は bank 非ゼロ判定
+- `gbs` — GBS(Game Boy Sound System): `GBS` + version + 112B ヘッダ(songs/first_song/load/init/play/sp + TMA・TAC タイマレジスタ + 3×32B テキスト)。`uses_timer` は `tac&0x80`(timer-driven play)、`timer_hz` は `tac&3` → 4096/262144/65536/16384 Hz
+- `psid` — PSID/RSID(C64 SID 音楽、HVSC 仕様): BE ヘッダ v1(0x76B)/v2+(0x7CB、flags+startPage+pageLength+sid2/sid3)。load==0 はデータ先頭の LE u16 が実 load、`flags` bits 4-5/6-7/8-9 で SID モデル(6581/8580)を最大 3 基分デコード、bit2 で C64 BASIC/PSID 専用を分離、RSID は version≥2 + load=init=play=0 必須
+- `spc` — SPC(SNES SPC700 スナップショット、ID666): `SNES-SPC700 Sound File Data v0\x2E30` 33B+`0x1A`。レジスタ PC@0x25/PSW@0x2A/SP@0x2B、RAM@0x100(64KiB)・DSP@0x10100・IPL@0x101C0、タグ byte 0x23(26=有/27=無)、inline tag@0x2E は text 形(date 11B `MM/DD/YYYY`、0xA0/0xA3 の `/` で検出)vs binary 形(u32 YYYYMMDD、artist@0xB0)
+- `vgm` — VGM(Video Game Music、SMS Power): `Vgm ` + eof(len-4)/version BCD/clock・wait・loop/gd3/data 各 offset 群。data_at は version<1.50 なら 0x40、それ以上は `0x34+u32le(0x34)`。コマンドストリーム走査: 0x61 wait n、0x62/0x63 wait 735/882 sample、0x70..0x7F wait n+1、0x80..0x8F YM2612+wait、0x66 終了、0x67 data block(`0x66 type len32`)、GD3 は UTF-16LE NUL 分離タグ
+- `psf` — PSF1/PSF2(PC-AT コンソールフォント): PSF1 `0x36 0x04`+mode(bit0=512 glyphs、bit1=unicode 表)+charsize、PSF2 `0x864AB572` LE+headersize/flags/length/charsize/height/width。`unicode(d,i)` はグリフ毎 0xFFFF 終端・0xFFFE 分離の UTF-16LE 表を走査
+- `figlet` — FIGlet `.flf` フォント(figfont.txt): `flf2a`+hardblank、ヘッダは `height baseline max_len old_layout comment_lines [dir [full_layout [codetag]]]`、コメント行を飛ばし ASCII 32..126 の 95 グリフを `height` 行ずつ、行末 1..2 文字の endmark を剥離して収納。`render` は横連結+hardblank→空白置換
+
+**検証**: 新規テスト全緑(oracle: NSF title は 0x0E 起点 — 初稿 +2 ずれを検出;VGM eof フィールドは len-4 必須 — fixture の `put` が末尾 append になっていたバグを検出;SPC tag byte 26/27 と text 検出 `/`@0xA0/0xA3;PSID v2 は len≥124 で拡張フィールド読取、v1 118B も受理;GBS tac&0x80=timer、FIGlet endmark は 1..2 文字)。
+
+## 出典(第93次、search-index 照合)
+
+**論文・仕様**: NESdev wiki の NSF ヘッダ仕様(load/init/play・拡張音源 bitmask・バンク init)/ gbsvg/GBS 仕様書(TMA/TAC タイマ・112B ヘッダ)/ HVSC 同梱の PSID v2NG & RSID 仕様(flags 三段 SID モデル・embedded load)/ Super Famicom 開発 wiki + spc_file_format.txt の ID666 タグ & レジスタ layout(v0.30 署名・26/27 区別・text vs binary)/ SMS Power! VGM spec(eof/loop/gd3/data offset・コマンド列・BCD version)/ Linux kbd 文書の PSF1/PSF2(0xFFFE/0xFFFF UTF-16LE マッピング)/ figfont.txt の FIGlet フォント規格。
+
+**実装物**: nesdev/NesDev 系エミュの NSF ローダ、GbsPlay/ZBearWare GB エミュの GBS ヘッダ処理、sidplayfp/HVSC の PSID パーサ、snesmusic の SPC ダンプ、vgmplay/Chipamp の VGM コマンド走査、kbd-setfont の PSF ローダ、FIGlet/patois 系 figlet 実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita の NSF/GBS 自作エミュレータ記事、Zenn のレトロゲーム音楽フォーマット解説、Qiita の PSF フォント・FIGlet 実装記事、ファミコン音源・GB 音源系国内ブログ — 全て整数のみで実装。
