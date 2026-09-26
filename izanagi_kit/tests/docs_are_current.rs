@@ -485,15 +485,15 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     let engine = test_attributes("izanagi");
 
     for (doc, claim) in [
-        ("README.md", "4,800+ tests"),
-        ("README.md", "4,600+ tests"),
+        ("README.md", "6,000+ tests"),
+        ("README.md", "5,500+ tests"),
         ("README.md", "**180+ tests**"),
         ("izanagi/README.md", "**180+ tests**"),
         // The handbook snapshot stated an exact 3744 and was wrong two
         // commits later, in the very commit that removed the other exact
         // numbers from it. Last one converted; now nothing in the snapshot
         // carries a count that nobody checks.
-        ("AGENT_INSTRUCTIONS.md", "**4,800+ passed / 0 failed**"),
+        ("AGENT_INSTRUCTIONS.md", "**6,000+ passed / 0 failed**"),
     ] {
         assert!(
             read(doc).contains(claim),
@@ -509,10 +509,10 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     // actual * 3/4` closes both directions: raising reality past ~133% of a
     // floor fails until the claim is raised in the same commit.
     for (claim, actual) in [
-        ("4,600+ tests", kit),
+        ("5,500+ tests", kit),
         ("**180+ tests**", engine),
-        ("4,800+ tests", kit + engine),
-        ("**4,800+ passed / 0 failed**", kit + engine),
+        ("6,000+ tests", kit + engine),
+        ("**6,000+ passed / 0 failed**", kit + engine),
     ] {
         let floor = claimed_floor(claim);
         assert!(
