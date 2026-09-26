@@ -2686,3 +2686,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: dpkg/ar 実装、python `olefile`/`libarchive` CFB リーダ、unrar/bsdtar の RAR4 ブロック走査、rpm ツールの lead/signature パーサ、7-Zip `7zIn.c`/`p7zip`、libxar、xz utils `stream_flags`/`block_header` デコーダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の deb/rpm 内部構造の解析記事、CFB(Office 旧形式)ヘッダ解説、7z/xz 形式の日本語メモ、XAR(.pkg)検証記事 — 全て整数のみで実装。
+
+## 第103次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: ファイルシステムのスーパーブロック/ブート領域(全7件が既存 627 件と非衝突を確認):
+
+- `ext2` — ext2/ext3/ext4 スーパーブロック(linux ext2_fs.h / ext4 wiki): オフセット1024固定。inodes/blocks/free 各カウント、first_data_block、`s_log_block_size`→`1024<<n` ブロックサイズ、blocks/inodes per group(ブロックグループ数は切り上げ除算)、mount/state/errors、feature_compat/incompat/ro_compat(journal/extents/64bit フラグ解読)、rev_level、first_ino、inode_size、UUID+ラベル
+- `ntfs` — NTFS ブートセクタ:Microsoft NTFS BPB レイアウト。`NTFS    ` OEM、bytes/sector×sectors/cluster、total_sectors、`$MFT`/`$MFTMirr` の LCN、file-record/index の**符号付き**クラスタ係数(負なら `2^|n|` バイト、正なら n クラスタ — `expand` でバイト化)、シリアル、`55AA` 確認
+- `hfsplus` — HFS+/HFSX ボリュームヘッダ(Apple TN1150): オフセット1024、`H+`/`HX` 判別、BE カウント類(file/folder/total/free blocks)、block_size、Mac epoch(1904)日時、next_catalog_id、5系 ForkData(alloc/extents/catalog/attributes/startup — 各 論理サイズ+clump+total+先頭 extent ペア)
+- `ufs` — UFS1/UFS2 スーパーブロック(BSD ffs/ufs 8K オフセット): `fs_magic`@+1372 が `0x00011954`(UFS1)/`0x19540119`(UFS2)を分岐。frag/block サイズ、cg 数、fpg/ipg、minfree、UFS2 は size/dsize と cstotal が 64bit 化、fs_fsmnt 52B
+- `minix` — MINIX v1/v2 スーパーブロック(minix fs.h): オフセット1024。magic 4値(`0x137F`/`0x138F`/`0x2468`/`0x2478` = v1/v2 × 14/30文字名)が zones の読み元(16bit nzones vs 32bit s_zones)を決める — `Magic::is_v1`/`name_len`/`zones()` に集約
+- `xfs` — XFS スーパーブロック(xfs_sb.h): AG 先頭、`XFSB` で唯一の BE 系。block_size/dblocks/uuid/logstart/rootino、agblocks/agcount、versionnum 下位4bit が major(4/5)、sectsize/inodesize/inopblock、12B 名、icount/ifree/fdblocks/frextents、features2(v5)
+- `exfat` — exFAT メインブートレコード(MS exFAT spec §3.3): `EXFAT   ` OEM + 53B MustBeZero 厳格チェック(FAT12/16 の誤マウント排除)、partition_offset/volume_length、FAT offset×length、cluster heap offset+count、root 先頭クラスタ、serial、revision、flags(active-FAT/dirty/media-failure)、**シフト表現**の bytes/sector・sectors/cluster(9..12 / 0..25)、`root_cluster_at` が heap+(cluster-2) のバイトオフセット
+
+**検証**: 新規テスト全緑(5,441 lib テスト)。oracle: ext2 の `1024<<n` ブロックサイズとグループ数切り上げ・feature マスク、NTFS の負係数→2^k バイト化(−10→1024)、HFS+ の `H+`/`HX` 判別と catalog fork の first-extent、UFS の magic によるレイアウト分岐と UFS2 の 64bit フィールド、MINIX の magic→zones 読み元分岐、XFS の versionnum 下位4bit と AG ジオメトリ、exFAT の MustBeZero 強制と `heap+(root-2)` オフセット。
+
+## 出典(第103次、search-index 照合)
+
+**論文・仕様**: linux `Documentation/filesystems/ext2.txt`/`ext4` wiki(superblock layout・feature マスク)/ Microsoft NTFS BPB リファレンス(符号付きクラスタ係数)/ Apple TN1150 HFS+ Volume Format(volume header・ForkData・catalog)/ BSD `fs/ufs` 系 superblock(UFS1/2 の fs_magic 分岐・64bit 化)/ MINIX `fs.h` magic 4値 / XFS `xfs_format.h`/`xfs_sb.h`(BE スーパーブロック・AG)/ Microsoft exFAT File System Specification §3(MustBeZero・シフト表現・クラスタヒープ) — 全て整数のみで実装。
+
+**実装物**: e2fsprogs/dumpe2fs のスーパーブロックダンプ、ntfs-3g の BPB リーダ、Apple `hfs` 実装と Linux `hfsplus` ドライバ、FreeBSD `ufs/ffs`、minix-tools、xfsprogs/xfs_db、linux exfat ドライバと `exfatprogs` — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ext2 スーパーブロック解析記事(1024 オフセット・magic 0xEF53 系)、NTFS ブートセクタ解説、HFS+ のディスク検証記事、exFAT フォーマット仕様の日本語抄訳・解析メモ、XFS/UFS ファイルシステム比較記事 — 全て整数のみで実装。
