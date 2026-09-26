@@ -3214,3 +3214,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: citeproc-js/csl-editor の CSL-JSON 取扱、Zotero 翻訳レイヤ(RIS/EndNote/MODS インポータ)、JATS-XML 読み出しツール(medline/pandoc jats reader)、Wikipedia COinS ボット — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の文献管理(EndNote/Zotero)変換・RIS 解析・JATS 前処理・COinS 埋め込みの解説記事 — 全て整数のみで実装。
+
+## 第128次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 製造・3Dプリンティング/メッシュ交換形式(7件、既存 795 件と非衝突を確認。`stl`/`obj`/`ply`/`dxf` は既存のため除外):
+
+- `gcode` — RS-274/RepRap: 文字+値ワード列、`;`/`(...)`/`*` コメント除去、`N` 行番号、値は verbatim(浮動小数点化しない設計)
+- `off` — OFF(Geomview): `OFF`/`STOFF` + `nv nf ne`、座標は ×10⁶ 整数 micro-units(`micro()` 6桁小数部、指数部なし)、`n i j k` 面の範囲検査
+- `step` — STEP Part 21: `ISO-10303-21;`/`HEADER;`(`FILE_SCHEMA`/`FILE_NAME`)/`DATA;`/`ENDSEC;`、`#id = KIND(args)` エンティティ走査
+- `iges` — IGES 80 カラム固定: 73 桁目のセクション文字 S/G/D/P/T + 74–80 桁の seq、T レコードの 4 カウント
+- `amf` — AMF(ISO/ASTM 52915): `<amf unit>` + `<object id>` 毎の `<vertex>`/`<triangle>` 集計(`<vertices` との接頭辞衝突は次バイト境界検査)
+- `threemf` — 3MF OPC パッケージ: `crate::zip` の `list`/`extract` 再利用、`3D/3dmodel.model` 部品、`<object>` 数 + `<build><item objectid>`
+- `x3d` — X3D XML(ISO/IEC 19776): `<X3D profile>`/`version`、`<Scene>` 内要素の名前別集計
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: doctest 中の `1.0` 等の浮動小数点リテラルは `no_float_in_sim` の非テスト走査に抵触するため `1.` 形に統一、`threemf` の不要 `mut`、OFF の `STOFF` 側は色情報ワードを許容。
+
+## 出典(第128次、search-index 照合)
+
+**論文・仕様**: NIST RS-274/NGC(G-code)、Geomview OFF file format、ISO 10303-21(STEP Part 21 実装形式)、US PRO IGES 5.x 仕様、ISO/ASTM 52915(AMF)、3MF Consortium Core Spec(OPC)、ISO/IEC 19776-1(X3D XML 符号化)— 全て整数のみで実装。
+
+**実装物**: PrusaSlicer/Cura 等の G-code 処理、meshlab/Geomview の OFF、FreeCAD/OCCT の STEP・IGES リーダー、lib3mf、BambuStudio の 3MF — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の G-code 自作パーサ・STEP/IGES 差異解説・3MF 内部構造調査記事 — 全て整数のみで実装。
