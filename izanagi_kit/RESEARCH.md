@@ -3016,3 +3016,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: calibre `mobi`/`epub`/`lit` リーダ、KindleUnpack(MOBI ヘッダ・KF8 境界)、FBReader FB2 パーサ、libkml、OSM `osm-xml` リーダ群 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の EPUB 内部構造(OCF/container.xml)、Kindle 形式(PalmDOC/AZW3)解説、KML/OSM データ解説記事 — 全て整数のみで実装。
+
+## 第119次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — Unix システム・管理ファイル(全7件が既存 732 件と非衝突を確認):
+
+- `passwd` — `/etc/passwd`: 厳密7フィールド `name:passwd:uid:gid:gecos:dir:shell`、uid/gid は数値必須(0 許容、非数値は拒否)
+- `shadow` — `/etc/shadow`: 8 または 9 フィールド、aging 系 6 数値フィールドは空=未設定を `Option<u64>` で表現
+- `group` — `/etc/group`: 4 フィールド + カンマ区切りメンバ(空フィールド=空 Vec)
+- `fstab` — `spec file vfstype mntops freq passno` 6 フィールド、`#` は行頭でも行内でもコメント
+- `crontab` — `#` コメント、`NAME=value` 環境設定、`@macro cmd`、5フィールド式+コマンド。`=` は最初の空白の前にある場合のみ env と判定(`0 5 * * * FOO=1 cmd` を env と誤認しない)
+- `utmp` — glibc `struct utmp` 384B 固定長、LE 前提: type@0 pid@4 line[32]@8 id[4]@40 user[32]@44 host[256]@76 session@336 tv@340 addr_v6@348
+- `hosts` — `addr name [alias...]`、アドレスは 16進/`.`/`:` のみの緩い妥当性判定(IPv4/IPv6 両対応)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: crontab の env 判定は「最初の空白より前に `=` があり `*` を含まない」、`@` 行はスケジュールとして先に分岐、passwd/shadow は「空ファイル合法・フィールド数不一致は拒否」の線形スキャン、utmp は `len % 384` でレコード数検査してから chunks_exact で走査、fstab/hosts は `split_whitespace` + インライン `#` 除去が POSIX 実装と一致する近似。
+
+## 出典(第119次、search-index 照合)
+
+**論文・仕様**: POSIX/getpwent(3), passwd(5), shadow(5), group(5), fstab(5), crontab(5), utmp(5)/glibc `utmp.h` 384B レコード定義, hosts(5) — 全て整数/文字列のみで実装。
+
+**実装物**: shadow-utils `pwck`/`grpck` 行パーサ, util-linux `libmount` fstab リーダ, cronie/Vixie cron パーサ, glibc `utmp` 構造体, systemd-tmpfiles hosts — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の /etc/passwd・shadow・crontab・hosts 解説記事、Linux システムファイル入門 — 全て整数のみで実装。
