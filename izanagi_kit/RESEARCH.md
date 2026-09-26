@@ -3082,3 +3082,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: `bibtool`/`biber` のパーサ、docutils rst パーサ、asciidoctor、groff/troff、texinfo `makeinfo`、org-mode パーサ、Pod::Simple — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の BibTeX エントリ書き方・reST メモ・AsciiDoc vs Markdown・man ページの書き方・org-mode 入門・POD ドキュメント記事 — 全て整数のみで実装。
+
+## 第122次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — i18n/l10n ファイル形式(7件、既存 753 件と非衝突を確認。`mo.rs` は Mo's アルゴリズム、`arb`/`strings` は別名空で再利用可能領域を明確化):
+
+- `po` — Gettext PO: `#`/`#,` コメント・フラグ、`msgid`/`msgid_plural`/`msgstr`/`msgstr[n]`/`msgctxt` の C 文字列リテラル、`"..."` 継続行結合、空 `msgid` の先頭エントリをヘッダ分離
+- `ts` — Qt Linguist: `<TS version language>` → `<context>/<name>` → `<message>` 内 `<source>/<translation type>/numerusform`、`type="unfinished"` 検出、未知要素(location/comment 等)は読み飛ばす
+- `xliff` — XLIFF 1.2: `<file source/target-language>` → `<trans-unit id>` 内 `<source>/<target>/<note>`、`<target>` 欠落は合法(未翻訳)
+- `resx` — .NET: `<data name mimetype|type>` → `<value>/<comment>`、自己閉鎖 `<value/>` は `None`
+- `arb` — Flutter ARB: JSON 上で非 `@` キー=メッセージ、`@key`=メタデータ(`description`/`placeholders`)、`@@locale`=ファイルロケール
+- `strings` — Apple .strings(OpenStep plist 構文): `"k" = "v";`、`//`/`/* */` コメント、`\n\t\r\"\\` + `\uXXXX` エスケープ
+- `ftl` — Mozilla Fluent: `id = v` メッセージ、`-id = v` トップレベル・ターム、インデント `.attr = v` 属性、インデント継続行、`#`/`##`/`###` コメント
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが ts の「メッセージ列の終端で `find` が None→全体失敗」、xliff/resx の「任意要素(target/comment)欠落を `?` で全体失敗化」、arb の BTreeMap ソート順仮定、strings の `c as char` による UTF-8 破壊を捕捉。
+
+## 出典(第122次、search-index 照合)
+
+**論文・仕様**: GNU gettext manual §3(PO ファイル形式)、Qt Linguist TS ファイル形式(Qt ドキュメント)、OASIS XLIFF 1.2 仕様、Microsoft resx スキーマ、Flutter gen-l10n/ARB 仕様、Apple `.strings` リソース形式、Project Fluent 構文仕様 — 全て整数/文字列のみで実装。
+
+**実装物**: GNU gettext `msgfmt` パーサ、`lupdate`/`lrelease`、translate-toolkit の xliff/resx ハンドラ、flutter_tools の gen_l10n、Foundation の strings パーサ、projectfluent の fluent-syntax-rs — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の gettext 多言語化・Qt 翻訳フロー・Flutter intl/arb・XLIFF 概要・Fluent 入門記事 — 全て整数のみで実装。
