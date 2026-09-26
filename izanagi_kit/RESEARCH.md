@@ -3038,3 +3038,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: shadow-utils `pwck`/`grpck` 行パーサ, util-linux `libmount` fstab リーダ, cronie/Vixie cron パーサ, glibc `utmp` 構造体, systemd-tmpfiles hosts — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の /etc/passwd・shadow・crontab・hosts 解説記事、Linux システムファイル入門 — 全て整数のみで実装。
+
+## 第120次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 監視・メトリクス系プロトコル(全7件が既存 739 件と非衝突を確認):
+
+- `syslog` — RFC 3164(`<PRI>Mon dd hh:mm:ss host tag: msg`)と RFC 5424(`<PRI>VERSION ts host app pid msgid [sd] msg`)を「`>` 直後の数字+空白」で自動判別。PRI≤191、facility=pri>>3/severity=pri&7
+- `prom` — Prometheus exposition: `# HELP`/`# TYPE` メタと `name{labels} value [ts]` サンプル。ラベル値は `\"` エスケープ対応、値は verbatim(NaN/+Inf 許容のため浮動小数点化しない)
+- `graphite` — `path value timestamp` の3フィールド行、timestamp は数値必須・value は verbatim
+- `influx` — line protocol `measurement,tag=v field=v [ts]`。タグ/フィールドは `\` エスケープ認識のカンマ分割、末尾フィールド群は右端の全数字トークンを timestamp 判定
+- `statsd` — `name:value|type[|@rate][|#k:v,...]`。DogStatsD 拡張(`@`/`#`)以外の `|` セクションは拒否
+- `opentsdb` — telnet `put metric ts value tag=v...`、タグ1つ以上必須、metric/tag は `[A-Za-z0-9._/-]` 限定
+- `journal` — systemd export: `KEY=VALUE` 行と `KEY\n<u64le len><bytes>` バイナリフィールド、空行区切りエントリ、BTreeMap で決定的反復
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが journal のバイナリフィールド直後の `\n` 二重扱い(空行→エントリ分割)を捕捉 — 形式仕様ではデータ直後の改行1つがフィールド終端。syslog 5424 の structured-data は `]` まで読み飛ばす(エスケープ内包は近似)、influx の timestamp 判定は「右端が全数字かつ直前セクションに `=` を含む」の2条件。
+
+## 出典(第120次、search-index 照合)
+
+**論文・仕様**: RFC 3164 / RFC 5424(syslog)、Prometheus exposition format(公式ドキュメント)、Graphite carbon 平文プロトコル、InfluxDB line protocol リファレンス、etsy/DogStatsD StatsD 拡張、OpenTSDB `/api/put` telnet 仕様、systemd.journal-fields / `journalctl -o export` 形式 — 全て整数/文字列のみで実装(値は verbatim 保持)。
+
+**実装物**: rsyslog/syslog-ng パーサ、Prometheus `expfmt`、carbon-cache、influxdb `line-protocol` スキャナ、statsd デーモン、opentsdb `TextImport`、systemd-journal-export — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の syslog 形式解説、Prometheus exporter 自作記事、InfluxDB line protocol メモ、StatsD 計装記事 — 全て整数のみで実装。
