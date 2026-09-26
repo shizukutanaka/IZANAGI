@@ -2620,3 +2620,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: Linux `ether.h`/`if_ether.h`/`ip.h`/`ipv6.h`/`udp.h`/`tcp.h`/`icmp.h`/`if_arp.h`、tcpdump の print-ether/print-ip/print-tcp/print-icmp/print-arp、Scapy の `Ether`/`IP`/`IPv6`/`UDP`/`TCP`/`ICMP`/`ARP` レイヤ定義、Wireshark の packet-eth/packet-ip 系 dissector フィールド表 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn のパケットキャプチャ・ヘッダ解析記事(「Ethernetフレームの構造」「IPv4ヘッダをバイトから読む」「TCPフラグとウィンドウ」「ARPのパケット構造」)、マスタリングTCP/IP(ソフトバンククリエイティブ)の各ヘッダ図、KERI/Interop Tokyo 系の IPv6 拡張ヘッダ連鎖解説 — 全て整数のみで実装。
+
+## 第100次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 節目ラウンド — 実行ファイル・ファームウェア/ブート関連形式(全7件が既存 606 件と非衝突を確認):
+
+- `ne` — Windows 16-bit New Executable(Microsoft `exe_hdr`/`newexe.h`): MZ スタブ経由 `e_lfanew` → 64B NE ヘッダ。リンカver、エントリテーブル、CRC、フラグ(bit15=DLL/ライブラリ、bit1-2=DGROUP モデル)、heap/stack、CS:IP・SS:SP、各テーブルオフセット、対象 OS(1 OS2/2 Win/4 EuroDOS/5 OS2-EE)
+- `le` — OS/2 Linear Executable(`LE`/`LX`、IBM OS/2 の linearexe 仕様・MS `exestruc.h`): byte/word order、format level、cpu(2=i386)/os type、module flags、page size、pages、eip/esp の object+offset ペア、object/pages/iter/resource/resname/entry/directive/fixup 各テーブルオフセット。VxD は LE、OS/2 32bit は LX
+- `aout` — Unix a.out(exec(2)/a.out(5)): 32B ヘッダ、magic u16(OMAGIC 0407/NMAGIC 0410/ZMAGIC 0411/QMAGIC 0314)+ NetBSD は上位16bit に MID をパック。text/data/bss/syms/entry/trsize/drsize。`syms_at` はヘッダ+text+data+relocs の連鎖で導出
+- `dex` — Dalvik Executable(Google dex 形式仕様): `dex\n`+3Bバージョン+NUL、Adler-32、SHA-1 signature、file_size、header_size(0x70)、endian tag、link/map、7種の `(count,offset)` id テーブル + data セクション
+- `optionrom` — PCI Option ROM(PCI Local Bus / PCI Firmware spec §6.3): `55 AA` + 512B 単位サイズ + init entry。`@24` のポインタから `PCIR` 構造体(vendor/device/VPD/len/rev/24bit class code/image len/code type/indicator)を二段解決
+- `cbfs` — coreboot CBFS(coreboot `cbfs_serialized.h`): `LARCHIVE` マジック + BE の len/type/checksum/offset + NUL名、エントリは64Bアライン鎖。type 0x10 stage/0x20 raw/0x30 payload/0x40 optionrom/0x50 bootsplash/0x60 deleted を `Kind` に写像
+- `ifd` — Intel Flash Descriptor(ICH/PCH SPI flash 仕様): `0x0FF0A55A`@0x10、FLMAP0/1 が 16B 単位のベースアドレス(FCBA/FRBA/FMBA/FPSBA)とカウント(NC/NR/NM)をパック、FLREGx は 15bit 4KiB 単位の base/limit で enabled は `limit>=base`
+
+**検証**: 新規テスト全緑(5,386 lib テスト + 604 doctest)。oracle: NE のフラグ分解と CS:IP/SS:SP 対、LE/LX 署名分岐と object テーブルオフセット、a.out の4 magic と `syms_at` 連鎖、DEX の `header_size==0x70` 強制と7テーブル対、PCIR のポインタ二段解決と last-image ビット、CBFS の64Bアライン歩進と削除スロット終端、IFD の FLMAP ビット分解と base/limit enable 判定・frba 超過拒否。ラウンド内捕捉: MSRV 1.75 により `trim_ascii_end`(1.80)不許可 → NUL トリムを `name()` に集約、CBFS while 条件の `?` がチェーン終端を None 化する → `loop`+`match` に、a.out `syms_at` のテスト期待値誤算、PCIR class code のバイト順(iface/sub/base)。
+
+## 出典(第100次、search-index 照合)
+
+**論文・仕様**: Microsoft `newexe.h`/exehdr の NE 定義と IBM/Microsoft「New Executable」仕様 / OS/2 LX・LE の linearexe ヘッダ layout(EDM/2・osFree 資料) / 4.4BSD `a.out(5)` マニュアルと NetBSD `exec.h` の midmag パッキング / Android `DexFile` 形式仕様(map_list・各 *_ids テーブル) / PCI Firmware Specification の option ROM・PCIR 定義 / coreboot の CBFS エントリ構造体とアライメント規則 / Intel ICH9/100 系 SPI flash の descriptor map 資料 — 全て整数のみで実装。
+
+**実装物**: binutils/LLVM の NE・LX リーダ、linux `a.out`/`execve` の歴史的ローダ、Android runtime の `DexFileVerifier`/`libdex`、SeaBIOS/coreboot の option ROM ランナと `cbfstool`、flashrom の descriptor パーサ(ich_descriptors_tool) — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MZ/NE/PE ヘッダ解析記事(「e_lfanew をたどる」系)、a.out→ELF 移行の国内解説、DEX ファイル構造の日本語リバース資料、coreboot/flashrom 導入記事、BIOS ROM・Intel Flash Descriptor の国内検証記事 — 全て整数のみで実装。
