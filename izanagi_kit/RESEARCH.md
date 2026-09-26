@@ -3104,3 +3104,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: GNU gettext `msgfmt` パーサ、`lupdate`/`lrelease`、translate-toolkit の xliff/resx ハンドラ、flutter_tools の gen_l10n、Foundation の strings パーサ、projectfluent の fluent-syntax-rs — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の gettext 多言語化・Qt 翻訳フロー・Flutter intl/arb・XLIFF 概要・Fluent 入門記事 — 全て整数のみで実装。
+
+## 第123次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — コンテンツ配布・メディア副形式(7件、既存 760 件と非衝突を確認。`torrent` は `bencode` モジュールを再利用):
+
+- `torrent` — BitTorrent metainfo(BEP 3): `announce`/`announce-list` 階層平坦化、`info` の `name`/`piece length`/`pieces`(20 バイト×N 厳格)、単一 `length` vs `files[].{length,path}` 分岐
+- `sfv` — Simple File Verify: `;` コメント、`filename CRC32`(空白含む名は末尾トークンで分離、8 桁 hex 厳格)
+- `pls` — PLS プレイリスト: `[playlist]` セクション(大小文字不問)、`FileN`/`TitleN`/`LengthN` の番号ペアリング、`NumberOfEntries`/`Version`
+- `xspf` — XSPF "spiff": `<playlist version>`、`<trackList>` 内 `<track>` の `<location>/<title>/<creator>/<album>`、未知要素読み飛ばし、最小アンエスケープ
+- `lrc` — 同期歌詞: `[mm:ss.xx]`(2/3桁)・`[mm:ss]`(分数なし)複数スタンプ、キー:値 メタ、`[offset:±ms]`、不良行は読み飛ばし
+- `ccd` — CloneCD 制御ファイル: `[Section]` + `Key=Value`(`[CloneCD]`/`[Disc]`/`[Session N]`/`[Track N]`/`[Entry N]`)、空値許容
+- `nrg` — Nero イメージ: 末尾フッタ `NERO`+u32BE(v1)/`NER5`+u64BE(v2) → 先頭ヘッダオフセット、`id4 + u32be size` チャンク鎖を `END!` まで走査
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが torrent の手書き bencode 長接頭辞のズレ(17→18→17、`a.txt`=5、`path` リスト閉鎖不足で files が早期終端)を捕捉 — 生成スクリプトで再構成して修正。LRC は `[mm:ss]` 分数なし形を追加対応。
+
+## 出典(第123次、search-index 照合)
+
+**論文・仕様**: BEP 3(BitTorrent metainfo)、BEP 12(announce-list)、QuickSFV SFV 形式、PLS/SHOUTcast プレイリスト仕様、XSPF 仕様 xspf.org、LRC 簡易形式(Wikipedia: LRC file format)、CloneCD `.ccd` 概要(Elby/dump 仕様)、Nero `.nrg` リバースエンジニアリング文書 — 全て整数/文字列のみで実装。
+
+**実装物**: libtorrent/qBittorrent の metainfo ローダ、QuickSFV/winSFV、`playlist` 系パーサ(VLC/foobar2000)、MiniLyrics 準拠実装、ImgBurn/Alcohol の CCD/NRG ハンドラ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の torrent 構造解析・SFV/CRC 検証・LRC 歌詞同期・m3u/pls/xspf 比較記事 — 全て整数のみで実装。
