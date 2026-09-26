@@ -2796,3 +2796,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: parquet-rs/arrow-rs のフッタ・メッセージ走査、apache/avro の OCF デコーダ、Pillow/libtiff の IFD パーサ(BE インライン値の高ハーフ配置を確認)、Blender/Assimp の 3DS インポータ、`ezdxf` の pair イテレータ、ghostscript の DSC スキャナ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Parquet/Avro/Arrow 比較・Iceberg/Spark 連携記事、TIFF タグ仕様の国内整理、3DS→OBJ 変換記事、DXF を自前で読む記事、PostScript/DSC 解説 — 全て整数のみで実装。
+
+## 第109次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — スキーマ付きシリアライズフレーム + Windows フォレンジックアーティファクト(全7件が既存 662 件と非衝突を確認):
+
+- `thrift` — Apache Thrift TBinaryProtocol: 厳格版は `0x80010000 | type`(BE u32、最上位ビットが厳格印)+ 名前 `string`(i32 BE len)+ i32 seqid;非厳格版は先頭が名前長。TFramedTransport は各メッセージに u32 BE フレーム長を前置。type 1..4 = CALL/REPLY/EXCEPTION/ONEWAY
+- `flatbuf` — FlatBuffers バッファ: `u32 LE` でルートテーブル位置、任意の 4B `file_identifier`、テーブル先頭の i32 は vtable への**逆行き**距離。vtable = `{u16 vtable_len, u16 table_len, u16 field_voffsets[]}`、voffset 0 = フィールド欠落、voffset ≥ table_len は非合法
+- `capnp` — Cap'n Proto ストリームフレーミング: `u32 (segment_count − 1)` + count 個の u32 ワード数、テーブルは偶数 u32 個にパディング。セグメントデータは連続、各セグメントは 8B ワード単位
+- `ion` — Amazon Ion 1.0 バイナリ: `E0 01 00 EA` BVM(型14 ann 長3 の値でもある)+ TLV `{typedesc:u8(hi4=型,lo4=長), [lo==14→varuint len], payload}`、lo=15 は null/終端形。varuint は 7bit 群 + 終端 high bit
+- `regf` — Windows レジストリハイブ: `regf` + 4096B ヘッダ(seq 主/副 @4/@8 一致検査、version、root cell rel @36、size @40)、`0x1000` から 4096 アライン `hbin` ブロック鎖、セルは符号付き i32 サイズ(負=割当済み、8 アライン)
+- `evtx` — Windows イベントログ: `ElfFile\0` + 4096B ヘッダ(最初/最後 chunk no、次 record id、header_size 128、major 3/minor 1、chunk 数、@124 に先頭120B の CRC32)+ `0x1000` 以降 64KiB `ElfChnk\0` チャンク鎖
+- `prefetch` — Windows Prefetch `.pf`: version @0(17/23/26/30/31)+ `SCCA` @4 + filesize @12 + UTF-16LE 名 @16(60B)、hash @76(v17/23)/@80(v26+)、run_count @0x90/@0x98/@0xD0(版別)。Win10+ の `MAM\x04` 圧縮は検出のみ
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: Thrift 厳格/非厳格の同じバッファ二肢、TFramedTransport の枠長照合、FlatBuffers の soffset 逆方向解決と voffset=0 欠落、Cap'n Proto の count−1 格納と偶数パディング、Ion の lo=14 varuint 長/lo=15 null 終端、regf の hbin/負サイズセル、evtx の表なし CRC32 + 64KiB チャンク境界、prefetch の版別 hash/run_count オフセット差。ラウンド内捕捉: FlatBuffers のルートは **vtable ではなくテーブル** を指す(フィクスチャの u32 を 8→14 に修正)、table_len は soffset ワードを含む(f0 voffset 4 は table_len ≥ 8 が必要)。
+
+## 出典(第109次、search-index 照合)
+
+**論文・仕様**: Apache Thrift 仕様(「thrift-spec」`TBinaryProtocol` の `0x80010000|type` 厳格ワード・`TFramedTransport`)/ Google FlatBuffers「Internals of FlatBuffers」(root uoffset・file_identifier・soffset/vtable レイアウト)/ Cap'n Proto Encoding Spec「Serialization over a stream」(segment table·count−1・偶数パディング)/ Amazon Ion 1.0 Specification「Binary Encoding」(BVM・typedesc ニブル・varuint)/ libyal winreg-kb「Windows NT Registry File(REGF)format」/ libyal evtx-kb「Windows XML Event Log(EVTX)format」/ libyal libscca「Windows Prefetch File(PF)format」(版別オフセット表)— 全て整数のみで実装。
+
+**実装物**: apache/thrift の `TBinaryProtocol`・`TFramedTransport` 実装、google/flatbuffers の `GetRoot`/`Table` 参照、capnproto C++ の `serialize.c++` セグメントテーブル、amazon-ion の ion-c、RegRipper/sleuthkit の regf パーサ、python-evtx・libevtx のチャンク走査、Eric Zimmerman PECmd の prefetch 版別レイアウト — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の gRPC/Thrift/FlatBuffers/Cap'n Proto 比較記事・Ion 紹介、Windows フォレンジックの regf/evtx/prefetch 解析記事(DFIR 系)、『Windows Forensic Analysis』系書籍の邦訳知見 — 全て整数のみで実装。
