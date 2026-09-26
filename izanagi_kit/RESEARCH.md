@@ -2386,24 +2386,278 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Microsoft TrueType/OpenType spec (sfnt directory・head・maxp・name) / W3C WOFF 1.0 spec / sqlite.org "Database File Format" (file format section) / protobuf.dev "Encoding" guide (wire types) / bsonspec.org BSON spec / Xiph.Org FLAC format spec + Vorbis comment spec / RFC 3533 Ogg format + RFC 5334 §B CRC — 全て整数のみで実装。
 
 **実装物**: fonttools/freetype の sfnt・WOFF directory walker、sqlite3shell/btree ヘッダ読取り、protoc/protoscope の wire walker、PyMongo bson codec、brotli/metaflac の metadata walker、ogg-tools/oggz の page lacing と CRC — 全て整数のみで実装。
-## 第88次: XML・MP4・HTTP/2・VCDIFF・pcapng・OpenPGP・BDF — xml・mp4・h2・vcdiff・pcapng・pgp・bdf
 
-**方法**: 文献参照ラウンド継続 — ワイヤ/コンテナ/文書層の残隙(json/der/cbor/msgpack/proto/bson に続く文書+直列化、pcap に続くキャプチャ、tls に続くトランスポートフレーム):
+## 第88次: git packfile・Java .class・ar・plist・shp・pcapng・mbox — packfile・classfile・ar・plist・shp・pcapng・mbox
 
-- `xml` — W3C XML 1.0 整形式性パーサ: `parse` → `Ev` ストリーム(Start/End/Text/CData/Comment/Pi/Decl/Doctype)。単一ルート・タグ対応・重複属性・コメント内 `--`・テキスト内 `]]>`・属性値内 `<` を厳格拒否、事前定義5実体+数値参照を `unescape`。DTD 妥当性検査は範囲外と明記
-- `mp4` — ISO/IEC 14496-12 (ISO BMFF) box walker: `size:u32 type:u32`、largesize(64bit)/`size==0`(EOF まで)/`uuid`(+16B)の3特例、`meta`(+4:FullBox)と `stsd`(+8:FullBox+entry_count)を含むコンテナ下降、`mvhd`/`tkhd`/`mdhd` は v0/v1 を正規化、`hdlr`/`stts`/`ftyp` まで型付き
-- `h2` — HTTP/2 フレーム層(RFC 9113 §4): 24B client preface、9B ヘッダ(length24/type/flags/R-bit mask stream)、全10型、PADDED/PRIORITY 除去、`SETTINGS_MAX_FRAME_SIZE` 上限ゲート — HPACK 復号は範囲外
-- `vcdiff` — RFC 3284 delta decoder: `D6C3C4 00` ヘッダ、256エントリ命令表は圧縮記法から生成(code(0)=RUN、1-18=ADD、19-162=COPY 9モード×16幅、163-246=ADD+COPY 複合、247-255=COPY+ADD)、NEAR(4)+SAME(3×256)アドレスキャッシュ、SELF/HERE/TARGET 参照 — HTTP delta encoding と svn/delta の基礎
-- `pcapng` — pcapng(draft-ietf-opsawg-pcapng): 回文型 SHB 0x0A0D0D0A、byte-order magic 0x1A2B3C4D がセクション毎のエンディアンを確定(連結キャプチャで途中反転可)、IDB(LinkType/snaplen/`if_tsresol` — MSB=2^-n)、EPB(u64 タイムスタンプ→ns)、SPB/NRB/ISB/DSB/CUSTOM まで走査 — `pcap` の後継
-- `pgp` — OpenPGP(RFC 9580)パケット: new format(tag+1/2/5B length+partial 0xE0-0xFE 鎖)と legacy format(bit6=0, len-type 0/1/2/不定)、tag 名表(20=AEAD)、ASCII armor(BEGIN/END+base64+`=`CRC-24、poly 0x1864CFB init 0xB704CE)の往復
-- `bdf` — Adobe BDF ビットマップフォント(5005.BDF_Spec): STARTFONT…ENDFONT、FONT/POINT/FONTBOUNDINGBOX/STARTPROPERTIES/CHARS、グリフ毎に ENCODING/SWIDTH/DWIDTH/BBX/MSB-first hex BITMAP、`pixel(x,y)` アクセス — ターミナル表示層 `terminal` のフォント経路素
+**方法**: 文献参照ラウンド継続 — バージョン管理/VM/アーカイブ/設定/地理/キャプチャ/メールの残りコンテナ層:
 
-**検証**: 新規テスト全緑(34件)。oracle: emit→apply 往復(vcdiff/pgp armor)、手組 fixture(mp4 moov{mvhd,trak{tkhd}}・mdia{mdhd,hdlr}+stsd+8B・pcapng SHB+IDB+EPB 両エンディアン・BDF 5×7 'A' グリフ)、RFC 3284 §5.3 の code-table 形状ピン、CRC-24 検査値 `b"123456789"→0x21CF02`。ラウンド内捕捉: vcdiff VCD_TARGET 窓が `out` を借用したまま伸長(コピーで解決)、pcapng 非 SHB の型読取りが LE 固定(BE セクションで誤認)、mp4 `stsd` 子開始オフセット +4→+8、xml DOCTYPE の `[…]` 内部サブセット内 `<` を深さに誤算入+引用符外 `>` 問題、テスト fixture の ADD サイズ/addr セクション長不整合。
+- `packfile` — git packfile + `.idx` v2: `PACK` ヘッダ(v2/3)、オブジェクト先頭の `(msb|type3|size4)` varint、OFS_DELTA は base-offset varint(`off = ((off+1)<<7)|low7` — git 固有の非単純 LEB128)、REF_DELTA は 20B base sha、zlib メンバは `inflate_zlib_count` で消費バイト数を取得して歩行(新規公開 `inflate`/`inflate_zlib` の count 版)、declared size 不一致・trailer 20B まで厳密。`.idx` v2 は fanout 単調検査 + name/crc32/offset 3 テーブル + MSB 付き large-offset 副表
+- `classfile` — Java `.class`: `CAFEBABE`、cp_count(index 0 は穴)、Long/Double の 2 スロット占有を `Cp::Unknown` プレースホルダで表現、interface/field/method/attribute の各テーブル走査、`utf8`/`class_name` 解決
+- `ar` — Unix ar アーカイブ: `!<arch>\n` + 60B ヘッダ(name16/mtime12/uid6/gid6/mode8 オクタル/size10 + `\x60\n`)、GNU `//` string-table 長名(`/n` 参照)と BSD `#1/n` インライン名の両方言、奇数 member は 2B pad
+- `plist` — Apple plist 両形式: `bplist00` は 32B trailer の offSize/refSize/count/top/offTab を読み object 表をデコード(refs は index のまま → `resolve` が深さ制限付きで `Val` 化、dict キーは string 必須)。XML は `<dict>/<array>/<string>/<integer>/<data base64>` 走査 + `emit_xml` canonical 往復
+- `shp` — ESRI `.shp`: 100B ヘッダは BE(9994/file length in 16bit words)+ LE(version 1000/type/bbox) の混在 endian、record は BE ヘッダ + LE content、**f64 は IEEE bit パターンを i128 演算で `Fixed` 手動デコード**(float 型不使用、subnormal→0、NaN/inf 拒否)
+- `pcapng` — pcapng(RFC ドラフト): block type は section endian だが SHB `0x0A0D0D0A` は両 endian で同一 → BOM `4D3C2B1A`/`1A2B3C4D` で section endian を解決、IDB(linktype/snaplen)・SPB・EPB(iface+ts_hi/lo+caplen≤len) 走査、block 末尾の重複 len 一致検査
+- `mbox` — mbox メールスプール: 列0 `From ` 開始行で分割(後続行の `>From ` は quoted 本文としてそのまま保持)、ヘッダは空行まで、sender を From 行第2語から抽出
+
+**検証**: 新規テスト全緑。oracle: hand-built packfile(blob+2obj walk+idx v2 MSB-large offset)、javac 互換最小 class(Utf8/Class/Long 2slot+members walk)、GNU ar string-table + BSD `#1/`、bplist00 手組 dict + XML plist emit 往復、shapefile Point/複数 endian 併存 fixture、pcapng BE/LE 両 section + EPB、mbox 2 通 + quoted From。ラウンド内捕捉: `Cp` 2slot プレースホルダの push 順序反転、`.idx` fanout の「全要素 ≥ 初名」の誤 fixture(fanout[k] は累積数)、shapefile declared length vs actual の厳密一致テスト、plist binary の Obj/Val 2 段表現への整理。
 
 ## 出典(第88次、search-index 照合)
 
-**論文・仕様**: W3C XML 1.0 (5th ed) / ISO/IEC 14496-12:2012 ISO BMFF / RFC 9113 (HTTP/2) §4-6 / RFC 3284 (VCDIFF) + RFC 3229 delta-encoding / draft-ietf-opsawg-pcapng-06 / RFC 9580 (OpenPGP) + RFC 4880 / Adobe Technical Note 5005 "Glyph Bitmap Distribution Format (BDF) Specification" — 全て整数のみで実装。
+**論文・仕様**: git Documentation "Packfile format" (object header + OFS/REF delta + .idx v2) / JVMS §4 The Class File Format (constant pool tags + 2-slot 規則) / FreeBSD `ar(5)` man page + System V ar format / Apple "Property List Programming Guide" + CFBinaryPList.c bplist00 layout / ESRI Shapefile Technical Description (header/record layout) / pcapng draft spec (SHB/IDB/EPB + BOM endian rule) / POSIX mbox conventions + RFC 4155 — 全て整数のみで実装。
 
-**実装物**: python xml.sax/expat のイベント分解、gpac/mp4box・AtomicParsley の box walker、nghttp2 の frame parse/emit(QUIC-HTTP/3 系の派生も同形)、xdelta3/open-vcdiff の code table+addr cache、wireshark pcapng dissector・tcpdump print-pcapng、gnupg/openpgp.js の packet+armor、cairo/X.Org bdftopcf — 全て整数のみで実装。
+**実装物**: git 本体 pack-objects/index-pack の obj walk、javap/JDK ClassReader の cp walker、binutils ar の長名テーブル、Apple plutil/python plistlib の bplist00 decoder、GDAL/shapelib の shp record walker、wireshark pcapng セクション解決、mutt/python mailbox の From-line splitter — 全て整数のみで実装。
 
-**国内技術情報**: Qiita 「HTTP/2 フレームフォーマット入門」系記事(noId 42e5cb75da4bb3b11f05)のフレーム図解で payload 概形を対照確認。
+## 第89次: dbf・iso9660・mvt・pgp・ply・fits・qcow2 — dbf・iso9660・mvt・pgp・ply・fits・qcow2
+
+**方法**: 文献参照ラウンド継続 — 地理属性・ファイルシステム・ベクタタイル・暗号パケット・メッシュ・天文・VM ディスクの残りフォーマット層:
+
+- `dbf` — dBASE III `.dbf`: 32B ヘッダ(ver/date/numrec/hdrlen/reclen)+ 32B フィールド記述子列(0x0D 終端)+ フラグ先頭の固定長レコード。`cell` はフラグ込みオフセットで生幅切出し、宣言数と実長の厳密検査、削除フラグ `*`、フィールド名検索
+- `iso9660` — ECMA-119/ISO 9660: セクタ16 の PVD(type1・`CD001`・version1)、system/volume id、両 endian 733/723 フィールド(LE+BE が一致必須 — `both16`/`both32`)、root dir record 34B(両 endian extent/size・7B date・flags・vol seq・name+pad)。`entries` は 0-len byte でパディングをまたぎセクタ単位歩行、`find` は `;version` 手前の名で大文字比較
+- `mvt` — Mapbox Vector Tile 2.x: `proto`/`inflate_gzip` の直結合成(gzip magic 検出で wrapper 解除)。layer(version/name/features/keys/values/extent 既定 4096)、feature(id・packed tags・geom_type・packed geometry)、value 全7型(string・float/double は raw IEEE bits、sint64 は zigzag)。`geom` は MoveTo=1/LineTo=2/ClosePath=7 の command+count ヘッダと zigzag 差分座標を復号
+- `pgp` — RFC 4880 OpenPGP パケット層: new(bit6=1)は tag6 + 1/2/5バイト・partial(`1<<(b&31)` chunk 鎖)、old は tag4+len-type(1/2/4B・不定長は EOF まで)、`Packet.chunks` で partial の非連続 span を保持し `body` が結合。armor は `-----BEGIN PGP` ヘッダ→空行→base64 本体→`=crc` CRC-24(poly 0x1864CFB・init 0xB704CE、`123456789`→`0x21CF02` ベクトル)検証
+- `ply` — Stanford PLY: `ply`/`format ascii|binary_little_endian|binary_big_endian`/`comment`/`obj_info`/`element N`/`property [list ct] ty name`/`end_header` の宣言走査。binary は `cell` が要素・行・プロパティを offset 歩行して I/U/Bits/List で返却(list は count prefix+要素)、ascii は `tokens` で生トークン列を返す(10進→binary32 往復の精度ロスを排する誠実 API)
+- `fits` — FITS 4.x: 80 桁カードを 2880B ブロックで走査、`END` カードでヘッダ終端、値は col10 `= ` の後・クォート外 `/` 手前まで。`data_len` = |BITPIX|/8 × Π NAXISi × GCOUNT + PCOUNT×bpn、NAXIS=0→0、2880 パッド後が次 HDU(SIMPLE/XTENSION 初手必須)
+- `qcow2` — QEMU QCOW2/3: `QFI\xFB` BE ヘッダ(version 2/3・backing off/size・cluster_bits 9..=21・vsize・crypt・l1/refcount/snapshot 表)、v3 は incompat/compat/autoclear・refcount_order・header_len ≥104。`l1_needed` = ceil(vsize/cluster)/l2_entries、backing パスは存在検査つき
+
+**検証**: 新規テスト全緑(27件+7 doctest)。oracle: `proto`+`deflate_gzip` 合成の自己オラクル(MVT gzip 往復)、RFC 4880 `123456789`→`0x21CF02` 公開ベクトル、ISO both-endian 不一致破壊テスト、dBASE 手組 fixture(2フィールド・削除フラグ)、PLY ascii/binary LE/BE 3形式の行復元、FITS multi-HDU + GCOUNT/PCOUNT 係数、QCOW2 v2/v3 ヘッダと l1_needed 手計算一致。ラウンド内捕捉: crc24 の後置シフト判定順序(RFC C コードは crc<<1 後に bit24 を見る — 先判定で値が全滅)、dbf cell がフラグバイトを二重加算(`offset` が既にフラグ込み)、mvt 空タイルは `Some([])` で受理する想定へ修正、ply は当初の Element.offset 方式では list 越え offset が破綻 → `cell`/`tokens` の遅延歩行に整理。
+
+## 出典(第89次、search-index 照合)
+
+**論文・仕様**: dBASE III file structure (Borland/dbffile format notes) / ECMA-119 ISO 9660 §6–9 (volume descriptors + directory records + both-endian 733/723) / mapbox vector-tile-spec 2.x (layer/feature/value 番号 + geom command set + zigzag) / RFC 4880 OpenPGP §4.2 packet headers + §6 ASCII armor + CRC-24 / Stanford PLY spec (element/property/list + 3 formats) / NASA IAU FITS 4.x (HDU・card・BITPIX/NAXIS/GCOUNT/PCOUNT) / QEMU qcow2 file format spec v2/v3 — 全て整数のみで実装。
+
+**実装物**: GDAL ogrdbf の固定幅セル参照、xorriso/genisoimage の dir-record walker、tilemaker/mapnik-vector-tile の zigzag geom 復号、gpg/nettle-pgp の packet length 両形式、pandas-polars ply reader、astropy.io.fits の card walker、qemu block/qcow2.c の header+table layout — 全て整数のみで実装。
+
+## 第90次: cab・fat・jpeg・icns・ttc・bdf・pdf — cab・fat・jpeg・icns・ttc・bdf・pdf
+
+**方法**: 文献参照ラウンド継続 — アーカイブ・ファイルシステム・画像・フォント・文書の残りフォーマット層:
+
+- `cab` — Microsoft CABINET(MS-CAB): 36B `MSCF` ヘッダ(cbCabinet@c8・coffFiles@16・cFolders@26・cFiles@28・flags@30・setID@32・iCabinet@34)、flag bit4 で cbCFHeader/cbCFFolder/cbCFData の 3 予約領域が有効(4B 拡張フィールド+ヘッダ/フォルダ/データ各予約)。CFFOLDER 8B(data_area・blocks・comp: 0=stored/1=MSZIP)、CFFILE 16B+NUL 名(iFolder=0xFFFE/0xFFFF は cross-cabinet リンク → `folder_idx` が None)。`folder_bytes` は CFDATA(csum・cbData・cbUncomp)を歩き、MSZIP は `CK` 署名+raw DEFLATE を `inflate` で復号して連結
+- `fat` — FAT12/16/32: BPB(bps@11・spc@13・reserved@14・nfats@16・root_ents@17・tot16/32・fatsz16/32・root_clus@44)、型は cluster 数(<4085=12・<65525=16・else32)。`fat_entry` は FAT12 の 2 エントリ/3B パック(even=low12・odd=high12、`off=n+n/2`)、FAT32 は `&0x0FFFFFFF` マスク、EOC 0xFF8/0xFFF8/0x0FFFFFF8。`dir_slot` は 0x00=end・0xE5=deleted・attr0x0F=LFN・0x08=volume を 3 値で返し、`entries` は root 領域 or cluster chain、`entry_name` は `NAME    .EXT` 形式
+- `jpeg` — ISO/IEC 10918-1/JFIF: SOI(FFD8)必須、standalone marker(0x01・0xD0-D9)は長さ無し、セグメント長 u16BE は自身を含む。SOF=C0-CF から C4(DHT)/C8(JPG)/CC(DAC)を除外して precision/h/w/comps を取得。SOS 後はエントロピー領域: `FF 00` スタッフを飛ばし RSTn はインライン記録して継続、非 RST marker で走査再開。`app` は APPn ペイロードの prefix 選択(JFIF/Exif 等)
+- `icns` — Apple Icon Image: `icns`+BE32 全体長、要素は {tag4・len≥8・data}。ic07-14(PNG)・icp4-6・is32-it32(RGB)・`*8mk`(mask)の 22 タグ表、`is_png`/`is_jp2`/`kind` で内容判定(型チェックなしの素通しコンテナ)
+- `ttc` — TrueType Collection: `ttcf`+version(0x00010000/0x00020000)+numFonts(1..=1024)+offset 表、v2 は DSIG(tag/len/off)が offsets 直後。`fonts` は各 offset から `ttf::parse` で個別フォント化
+- `bdf` — Adobe Glyph Bitmap Distribution Format: ASCII の STARTFONT ヘッダ(FONT/SIZE/FONTBOUNDINGBOX)+STARTPROPERTIES+CHARS。glyph は STARTCHAR/ENCODING/SWIDTH/DWIDTH/BBX/BITMAP/ENDCHAR、BITMAP 行は 16 進 1 行/行・各行 MSB-first で `ceil(w/8)` バイト。`row_at`/`bit`/`render`(#/. 出力)まで
+- `pdf` — ISO 32000 PDF 最小リーダ: `%PDF-x.y` ヘッダ(先頭 1KB 以内)・`startxref`(最終出現=増分更新対応)→ クラシック `xref` 表(20B 固定幅エントリ `nnnnnnnnnn ggggg t`)→ trailer dict。`obj` は `n g obj …` を位置解決、オブジェクト木は Null/Bool/Int/Real(10 進厳密 `mant×10^exp` — float 型不使用)/Name(#xx エスケープ)/Str(escape+入れ子括弧)/Hex/Arr/Dict/Ref(n g R 先読み)。`root`/`pages`/`page_count`/`page_ids` で /Root→/Pages→/Kids//Count 歩行。**xref stream(PDF≥1.5)は範囲外で None**
+
+**検証**: 新規テスト全緑(28件+7 doctest)。oracle: `deflate` 自己オラクル(MSZIP `CK`+deflate 往復)、Python zlib の raw-deflate 実ベクトル、手組 FAT12 イメージ(クラスタ鎖・packed entry・削除/LFN)、PDF 手組 fixture で xref オフセット一致+page walk、BDF `#`/`.` レンダ一致。ラウンド内捕捉: CAB ヘッダフィールドの +2 オフセット誤り(cFolders@26 が正 — fixture が正しい側で parse がずれていた)、BDF glyph が ENDCHAR 無しでも `Some` を返す閉鎖判定欠落、JPEG JFIF/SOF ペイロード長の 1-2B ずれ、FAT fixture が cluster 境界を跨ぐ意図とずれた期待値、PDF xref エントリの手計算ずれ(実オフセットで修正)。
+
+## 出典(第90次、search-index 照合)
+
+**論文・仕様**: Microsoft MS-CAB spec (CFHEADER/CFFOLDER/CFFILE/CFDATA + MSZIP `CK`) / Microsoft FAT spec (BPB・FAT12 packed entries・EOC 値・dir entry) / ITU-T T.81 + JFIF 1.02 (marker segments・entropy stuffing・RSTn) / Apple ICNS format notes / Microsoft TTC spec v1/v2 (DSIG) / Adobe Glyph Bitmap Distribution Format spec / ISO 32000-1 §7.5 file structure + xref table (classic tables のみ) — 全て整数のみで実装。
+
+**実装物**: cabextract/libmspack の folder+MSZIP walk、mtools/dosfstools の FAT12 パック・チェーン歩行、jpeglib/Pillow JpegImagePlugin の marker walker、iconutil/Pillow IcnsImagePlugin の tag 表、fonttools TTCollection、Pillow BdfFontFile、PyPDF2/pdfminer.six の xref+trailer 解決 — 全て整数のみで実装。
+
+## 第91次: ebml・isobmff・aiff・xpm・gltf・wad・svg — メディア/モデル/ゲームアセット層
+
+**方法**: 文献参照ラウンド継続 — 映像・音声・モデル・ゲームのコンテナ/パス形式の残隙:
+
+- `ebml` — RFC 9559 EBML(Matroska/WebM の母型): VINT は先頭バイトの leading-zero が幅(1..=8)をコード化、値は marker bit を落とした残り。ID は marker 込みの生値で保持(Matroska id はそれ自体が VINT 形)。size の全 bit=1 は unknown-size(ストリーム境界は親まで)。`is_master` は Matroska の master 要素表(EBML/Segment/Info/Tracks/Cluster/Tags/Cues/…)、typed 読みは `uint`/`int`(2の補数)/`text`(ASCII)/`utf8`/`float_bits`(4|8B の raw IEEE bits — float 型不使用)/`date`(ns since 2001-01-01)
+- `isobmff` — ISO 14496-12(`.mp4`/`.mov`/`.heic`): box = size32BE+type4、size==1 は largesize64、size==0 は親末尾まで、`uuid` は 16B 拡張タグ。container 表(moov/trak/mdia/minf/stbl/edts/dinf/udta/moof/traf/mfra/skip/strk/sinf/schi/tref/meta — `meta` は先頭 4B flags を飛ばす)。`find_path` で型パス下降、typed: `major_brand`/`compatible_brands`/`mvhd`(v0/v1 で offset 変化)/`tkhd`/`stts`/`stsz`/`chunk_offsets`(stco/co64)
+- `aiff` — AIFF/AIFC: FORM チャンク表(2B アライン)・`COMM`(channels/frames/bits + **80bit IEEE-754 extended** sample rate を手動デコード → `Fixed` raw: `mant×2^(exp-16383-63+16)`、denormal/inf/nan → None)・`SSND`(offset/blockSize 後のペイロード)。AIFC は rate 後に 4B compression tag
+- `xpm` — XPM3: `"w h ncolors cpp"` 先頭行 + color 行(sym cpp 文字 + `c <color>` key 探索 — g/m/s 先行キー許容)+ pixel 行(各行 w*cpp 文字・全シンボルは表にあること)。`quoted_lines` は各行の `"…"` を `\"`/`\\` エスケープ込みで抽出
+- `gltf` — glTF 2.0 GLB: `glTF` magic + version==2 + total length 一致、length-prefixed chunk 表(JSON 先頭必須・`BIN\0` 任意)。`json` は `crate::json::parse` に委譲
+- `wad` — Doom WAD: `IWAD`/`PWAD` + numlumps + dir offset、各 lump {at,size,8B名}。`find`/`find_name` は NUL パッド+大文字化、`block` はマーカーペア(`F_START`/`F_END` 等)の間の lump 集合(逆順/不在 → None)
+- `svg` — SVG 1.1 §8 path data: `M/L/H/V/C/S/Q/T/A/Z` + 小文字相対形、implicit 繰返し(M→L、m→l、他は同コマンド)。数値は符号/小数/指数を桁算術で `Fixed` raw(65536 分の 1 以下は向零切捨 — float 型不使用)。`S`/`T` は前セグメント ctrl2 の `2p−c` 反射を解決して格納、`H`/`V` は `L` に fold、`Z` は引数なし即発行。終端に引数を待つコマンドは None(切れた `d` 検出)。`bbox` は端点+制御点の保守ボックス(arc は rx/ry の外接矩形)
+
+**検証**: 新規テスト全緑(22件+7 doctest)。oracle: vint の幅/unknown 手計算、80bit extended の `-8000`/`1.5`/`0`/`denormal`/`inf` 分岐、GLB JSON+BIN 往復、SVG S/T 反射の手計算((5,6) の (3,4) 反射→(7,8))。ラウンド内捕捉: EBML fixture が親 size=4 に対し子 id+size+4B=7B を要求(0x84→0x87)、svg `Z` が終端文字として読まれセグメント化されない(letter 読取時即発行に)、svg `A` の flag 後 skip_sep 欠落、xpm `b'\\'` リテラルがゲート lexer を破壊(`\'+quote` を escape 対誤読 → `0x5C` 化)、isobmff `Bx` の clone hack を derive に整理。
+
+## 出典(第91次、search-index 照合)
+
+**論文・仕様**: RFC 9559 EBML + Matroska element registry / ISO/IEC 14496-12 ISOBMFF box structure (mvhd v0/v1・stts/stsz/stco/co64) / AIFF spec + AIFC compression tag + 80bit IEEE-754 extended layout / XPM3 format spec (libXpm `c`/`g`/`m`/`s` keys) / Khronos glTF 2.0 GLB container / id Software WAD directory format / W3C SVG 1.1 §8 path data — 全て整数のみで実装。
+
+**実装物**: ffmpeg matroskadec の VINT 読み、gpac/mp4box の box walker、libsndfile aiff.c の extended-float rate、libXpm パーサ、tinygltf の GLB chunk 表、Chocolate Doom w_wad.c の directory、nanosvg の path tokenizer — 全て整数のみで実装。
+
+## 第92次: vox・dds・modfile・chip8・ines・tap・ips — レトロゲーム資産・エミュレータ・dev ツール層
+
+**方法**: 文献参照ラウンド継続 — ゲーム資産/エミュレーション/テスト出力/パッチ形式の残隙(`wad` は第91次で同名モジュールとして先行実装済みのため本ラウンドは除外):
+
+- `vox` — MagicaVoxel `.vox`: `VOX` + version、MAIN 直下は `chunk{id|content_len|children_len}` 列(MAIN 自身の content は 0)。`SIZE`(u32×3)+`XYZI`(count+voxel 列)で `Model`、RGBA チャンクは 256 エントリ固定(1024B、末項は未使用)を `palette[1..=255]` へ収納。`DEFAULT_PALETTE` は spec の 0xAABBGGRR(下位バイト=R)語列、欠落時既定
+- `dds` — DirectDraw Surface: `DDS ` + 124B ヘッダ(dwSize==124/height/width/pitch/mipmapCount/`DDPIXELFORMAT` dwSize==32+flags+FourCC/rgbBits、caps/caps2)。`PixelFormat` で `DDPF_FOURCC`(BC1..5/DX10)vs `DDPF_RGB` を分岐、DX10 は追加 20B(`Dx10Header`)、`block`/`top_mip_size` は BC1 系 8B/それ以外 16B ブロック規則、cubemap/volume は caps2 判定
+- `modfile` — ProTracker `.mod`(MOD=Record Order): 31-sample 版は offset 1080 の signature(`M.K.`/`M!K!`/`FLT4`/`FLT8`/`NNCH`/`TDZN`)、15-sample 版は signature 無しで pattern 領域は offset 600。sample 長は BE word ×2 バイト。パターン 4B セルは period=`(b0&0x0f)<<8|b1`、sample=`(b0&0xf0)|(b2>>4)`、effect=`b2&0x0f`、param=`b3`。`amiga_hz_x100` は PAL 7093789.2Hz を×100 整数で返し周期→周波数換算
+- `chip8` — CHIP-8 COSMAC VIP インタプリタ: 4K メモリ(FONT@0x50・ROM@0x200)、16 レジスタ・16 段スタック・60Hz タイマ・64×32 XOR 描画。`0x55`/`0x65` は `I+=x` 前境界、shift は `Quirks::COSMAC`(y 経由)/`MODERN`(x 自身)分岐、jump0/scoll 無しを基本、`Fx0A` は `wait_key` ラッチ→`press` で解除、`Ex9E/A1` の key skip、`Fx1E` overflow→VF=0、`Dxyn` は範囲外 clip+当たり判定は既に 1 の素子を XOR で消す場合のみ VF=1
+- `ines` — iNES/NES 2.0 ヘッダ: `NES\x1A` + PRG/CHR セクタ数(16KiB/8KiB 単位)。f6 下位 nibble: mirroring/battery/trainer/four-screen、mapper は f6 上位+f7 上位、`f7&0x0C==0x08` で NES 2.0 判別→mapper +12bit、submapper、PRG/CHR MSB nibble(`0xF` 時は exponent×2+1 乗算形)、byte10 で volatile/nonvolatile PRG-RAM を `64<<n` 別フィールド化。console(1..=3: VS/Playchoice/Famiclone dec)と Tv(PAL)も抽出
+- `tap` — TAP14(Test Anything Protocol): `TAP version N` 行、計画 `lo..hi`、point `ok|not ok [num] [desc] [# TODO|SKIP ...]`、indent≥2 の YAML `---`..`...` ブロック、`Bail out!`。`Summary` は計画一致・TODO 失敗の失敗免除・skipped 全 skip を判定、word-boundary 確認済み directive
+- `ips` — IPS(International Patching System): `PATCH` + レコード列 `offset u24 | size u16 | bytes`(size==0 は `count u16 | byte u8` の RLE)+ `EOF`、Lunar IPS 拡張は EOF 直後の u24 で truncate。`apply` はゼロ埋め拡張+末尾 truncate、`diff` は同一長/短い b に対し 4B 以上同値ランを RLE・残りを Data・65535 超えは分割する最小パッチ生成(`apply(a, diff(a,b)) == b` を検証)
+
+**検証**: 新規テスト全緑(各モジュールの oracle: COSMAC shift は y の値を x へコピー、MODERN は x 自身 — `8xy6` 分岐;FX55 境界 `at+x<MEM`;CHIP-8 `0x6010` は V1 でなく V0 へ書込(レジスタ上位ニブル)を捕捉;DDS はヘッダ相対 index(h[8..12]=height)でフィクスチャ;INES は nesdev.org で `64<<n` RAM shift と byte10 高低分割を再確認 — 当初 `<<(n-1)` だったのを修正;VOX RGBA は 255 ではなく **256** エントリ;MOD `amiga_hz_x100(428)=828713`;15-sample MOD は sig 無し pattern@600;IPS diff は emit→parse→apply で対象バイト列再現)。
+
+## 出典(第92次、search-index 照合)
+
+**論文・仕様**: MagicaVoxel `.vox` 公式フォーマット文書(ephtracy リポジトリの chunk 構造・既定 0xAABBGGRR 256 色パレット)/ Microsoft DevDocs の DirectDraw `DDS_HEADER`・`DDPIXELFORMAT`(dwSize=124/32・DDPF_FOURCC/RGB・DX10 20B 拡張)/ ProTracker `.mod` モジュールフォーマット文書(eightbitbush 他・PAL 7093789.2Hz・period 表)/ Cowgod's CHIP-8 Technical Reference + Tobias V. Langhoff クイックガイドのクイック差分表/ nesdev.org wiki の INES・NES 2.0 ヘッダ仕様(mapper 拡張・RAM `64<<n`・exponent×2+1 形・console/Vs)/ TAP14(testanything.org)の grammar(plan point・directive・YAML ブロック・Bail out)/ ROMhacking.net の IPS patch specification + Lunar IPS truncation extension。
+
+**実装物**: ephtracy/MagicaVoxel 配布 `.vox` の観測列、Doxygen `ddraw.h` DDSURFACEDESC、GitHub の mod パーサ群(libxmp/openmpt/ptmodule)、Super ZZ Tile/awesome-chiptune のエミュ実装のクイック一覧、Mesen/fceux の iNES/NES2 リーダ、CPAN `TAP::Parser` と any-tap の normative リスト、Lunar IPS の `PATCH/EOF` ワイヤ列挙 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の CHIP-8 自作エミュレータ記事(0x200 起点・8xy6 クイック差分)、Qiita の MagicaVoxel .vox 解析記事、Zenn の DirectDraw/BCn 圧縮メモ、Qiita/Zenn の TAP プロトコル・CHIP-8・IPS パッチ解説 — 全て整数のみで実装。
+
+## 第93次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レトロゲーム音楽ドライバ形式とフォント形式の残隙(全7件が既存 564+7 件と非衝突を確認、`sap` のみ同名既存):
+
+- `nsf` — NSF(NES Sound Format、NESdev): `NESM\x1A` + version/songs/start-song(1-based ≤ songs)/load・init・play(≥0x8000 LE)/3×32B テキスト(title@0x0E・author@0x2E・copyright@0x4E)/NTSC・PAL 速度 μs/8B バンク/region byte/拡張音源 bitmask(VRC6..Sunsoft 5B)。`end` は load+len、`is_banked` は bank 非ゼロ判定
+- `gbs` — GBS(Game Boy Sound System): `GBS` + version + 112B ヘッダ(songs/first_song/load/init/play/sp + TMA・TAC タイマレジスタ + 3×32B テキスト)。`uses_timer` は `tac&0x80`(timer-driven play)、`timer_hz` は `tac&3` → 4096/262144/65536/16384 Hz
+- `psid` — PSID/RSID(C64 SID 音楽、HVSC 仕様): BE ヘッダ v1(0x76B)/v2+(0x7CB、flags+startPage+pageLength+sid2/sid3)。load==0 はデータ先頭の LE u16 が実 load、`flags` bits 4-5/6-7/8-9 で SID モデル(6581/8580)を最大 3 基分デコード、bit2 で C64 BASIC/PSID 専用を分離、RSID は version≥2 + load=init=play=0 必須
+- `spc` — SPC(SNES SPC700 スナップショット、ID666): `SNES-SPC700 Sound File Data v0\x2E30` 33B+`0x1A`。レジスタ PC@0x25/PSW@0x2A/SP@0x2B、RAM@0x100(64KiB)・DSP@0x10100・IPL@0x101C0、タグ byte 0x23(26=有/27=無)、inline tag@0x2E は text 形(date 11B `MM/DD/YYYY`、0xA0/0xA3 の `/` で検出)vs binary 形(u32 YYYYMMDD、artist@0xB0)
+- `vgm` — VGM(Video Game Music、SMS Power): `Vgm ` + eof(len-4)/version BCD/clock・wait・loop/gd3/data 各 offset 群。data_at は version<1.50 なら 0x40、それ以上は `0x34+u32le(0x34)`。コマンドストリーム走査: 0x61 wait n、0x62/0x63 wait 735/882 sample、0x70..0x7F wait n+1、0x80..0x8F YM2612+wait、0x66 終了、0x67 data block(`0x66 type len32`)、GD3 は UTF-16LE NUL 分離タグ
+- `psf` — PSF1/PSF2(PC-AT コンソールフォント): PSF1 `0x36 0x04`+mode(bit0=512 glyphs、bit1=unicode 表)+charsize、PSF2 `0x864AB572` LE+headersize/flags/length/charsize/height/width。`unicode(d,i)` はグリフ毎 0xFFFF 終端・0xFFFE 分離の UTF-16LE 表を走査
+- `figlet` — FIGlet `.flf` フォント(figfont.txt): `flf2a`+hardblank、ヘッダは `height baseline max_len old_layout comment_lines [dir [full_layout [codetag]]]`、コメント行を飛ばし ASCII 32..126 の 95 グリフを `height` 行ずつ、行末 1..2 文字の endmark を剥離して収納。`render` は横連結+hardblank→空白置換
+
+**検証**: 新規テスト全緑(oracle: NSF title は 0x0E 起点 — 初稿 +2 ずれを検出;VGM eof フィールドは len-4 必須 — fixture の `put` が末尾 append になっていたバグを検出;SPC tag byte 26/27 と text 検出 `/`@0xA0/0xA3;PSID v2 は len≥124 で拡張フィールド読取、v1 118B も受理;GBS tac&0x80=timer、FIGlet endmark は 1..2 文字)。
+
+## 出典(第93次、search-index 照合)
+
+**論文・仕様**: NESdev wiki の NSF ヘッダ仕様(load/init/play・拡張音源 bitmask・バンク init)/ gbsvg/GBS 仕様書(TMA/TAC タイマ・112B ヘッダ)/ HVSC 同梱の PSID v2NG & RSID 仕様(flags 三段 SID モデル・embedded load)/ Super Famicom 開発 wiki + spc_file_format.txt の ID666 タグ & レジスタ layout(v0.30 署名・26/27 区別・text vs binary)/ SMS Power! VGM spec(eof/loop/gd3/data offset・コマンド列・BCD version)/ Linux kbd 文書の PSF1/PSF2(0xFFFE/0xFFFF UTF-16LE マッピング)/ figfont.txt の FIGlet フォント規格。
+
+**実装物**: nesdev/NesDev 系エミュの NSF ローダ、GbsPlay/ZBearWare GB エミュの GBS ヘッダ処理、sidplayfp/HVSC の PSID パーサ、snesmusic の SPC ダンプ、vgmplay/Chipamp の VGM コマンド走査、kbd-setfont の PSF ローダ、FIGlet/patois 系 figlet 実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita の NSF/GBS 自作エミュレータ記事、Zenn のレトロゲーム音楽フォーマット解説、Qiita の PSF フォント・FIGlet 実装記事、ファミコン音源・GB 音源系国内ブログ — 全て整数のみで実装。
+
+## 第94次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レトロ機の ROM/メディアイメージ形式の残隙(全7件が既存 571+7 件と非衝突を確認。`gb`/`gba`/`z64`/`sfc`/`fds`/`tzx`/`d64` いずれも既存名なし):
+
+- `gb` — Game Boy カートリッジ ヘッダ(gbdev Pan Docs): エントリ@0x100、48B Nintendo ロゴ@0x104(`NINTENDO_LOGO` 定数照合)、タイトル@0x134(16B、CGB 旗標は 0x143 と重畳)、ライセンシ@0x144、SGB@0x146、カートリッジ種別@0x147(Rom/Mbc1/2/3/5/6/7/Huc)、ROM サイズ@0x148(32KiB<<n)、RAM サイズ@0x149、地域@0x14A、version@0x14C、ヘッダチェックサム@0x14D(`x=x-b-1` over 0x134..=0x14C)、グローバル u16BE@0x14E(0x14E/0x14F を除く全バイト総和)
+- `gba` — GBA ヘッダ(GBATEK): ARM エントリ@0x00(`entry>>24==0xEA`)、圧縮 Nintendo ロゴ 156B@0x04–0x9F、タイトル@0xA0(12B)、game_code@0xAC、maker@0xB0、固定 0x96@0xB2、unit@0xB3、device@0xB4、version@0xBC、補数チェックサム@0xBD(`chk-=b` over 0xA0..=0xBC、最後に `chk-=0x19`)
+- `z64` — Nintendo 64 ROM 3 エンディアン統一読み(n64dev): magic で判定 — z64 BE `[0x80,0x37,0x12,0x40]` / v64 バイトスワップ `[0x37,0x80,0x40,0x12]` / n64 LE `[0x40,0x12,0x37,0x80]`。`byte_at` が論理→物理変換(v64 `a^1`、n64 `(a&!3)+(3-(a&3))`)、PC@0x08/clock@0x04/CRC1/2@0x10/0x14/name@0x20(20B)/serial@0x3B/version@0x3F。`unswap_v64` で v64→z64 復元
+- `sfc` — SFC/SNES イメージ(SNES dev wiki): `len % 1024 == 512` でコピアヘッダ検出、内部ヘッダ候補 LoROM 0x7FC0 / HiROM 0xFFC0 / ExHiROM 0x40FFC0 を `checksum^complement==0xFFFF` + map mode 既知 + rom_size 妥当 + タイトル可印字のスコアリングで選定。map_mode: 0x20 Lo / 0x21 Hi / 0x23 SA-1 / 0x25,0x35 ExHi / 0x30,0x31 FastROM
+- `fds` — Famicom Disk System(nesdev): `FDS\x1A` fwNES ヘッダ(16B、side 数 + パディング)か `len % 65500 == 0` の raw サイド列。`side(i)` は 65500B サイドを返却、ヘッダ付は sides フィールドと実長の一致を検証
+- `tzx` — ZX Spectrum テープ TZX 1.20: `ZXTape!\x1A` + major/minor ヘッダ(10B)、`blocks` イテレータはブロック id 毎の長さ表(0x10..0x5A: prefix 固定部 + 長さフィールド位置/幅が id 毎に異なる — 0x10 u16@+2、0x11 u24@+15、0x14 u24@+7、0x15 u24@+5、0x18/0x19/0x2B u32、0x26 count×2、0x33 count×3、0x31 u8@+1 等)で extent を走査、未知 id/途中切断で停止
+- `d64` — Commodore 1541 ディスクイメージ: 256B セクタ、track 1-17→21 / 18-24→19 / 25-30→18 / 31-40→17 セクタ、標準 683 セクタ=174848B(+683B エラーマップ、40 トラック 196608B も受理)。BAM@track18 sector0(ディスク名 PETSCII@+0x90、DOS type@+0xA5、トラック毎空き数@+4+4t)、ディレクトリは 18/1 から 8×32B エントリの鎖(filetype 低 3bit=DEL/SEQ/PRG/USR/REL + 0x80=closed、start t/s、name PETSCII 0xA0 パッド、size LE@+30)。`petscii` 変換は 0x41–0x5A 大文字維持・0xC1–0xDA→小文字(`-0x60`)・0xA0/0x00→空白
+
+**検証**: 新規テスト全緑(5,242 lib テスト + 569 doctest)。oracle: GB ヘッダチェックサム `x=x-b-1` とグローバル和の手計算、GBA `-0x19` 補数、z64/v64/n64 三形式の magic・`byte_at` 写像(`v64 a^1`/`n64 word-reverse`)手検証、SFC スコアリングで 0x8000 全ゼロは受理・0x7000 は拒否の境界、TZX 各 id の長さフィールド offset 照合、D64 `free_sectors` が BAM 集計と一致・dir 鎖の PETSCII 名。ラウンド内捕捉: z64/gb/gba のタイトル trim が内部空白で切断していたのを NUL 終端 + trim_end に修正("TEST ROM" ケース)、gb フィクスチャの `copy_from_slice` 範囲過剰(11B→10B スライス)、sfc `data_len` の copier 二重減算、tzx リーダの `d[at]` 直接読みを `d.get` で Option 化、d64 Dir の死コード除去。
+
+## 出典(第94次、search-index 照合)
+
+**論文・仕様**: gbdev Pan Docs のカートリッジヘッダ仕様(0x100–0x14F・ロゴ照合・二種チェックサム)/ GBATEK の GBA ヘッダ(0x96 固定・0xBD 補数和)/ n64dev の z64/v64/n64 バイトオーダ識別とヘッダ layout / SNES dev wiki の内部ヘッダ(LoROM/HiROM/ExHiROM 位置・checksum^complement)/ NESdev FDS(fwNES `FDS\x1A` と 65500B サイド)/ World of Spectrum TZX 1.20 spec のブロック id 別長さ表 / 1541 DOS + D64 フォーマット文書(BAM・dir 鎖・PETSCII)— 全て整数のみで実装。
+
+**実装物**: SameBoy/mGBA のカートリッジヘッダ検証、mGBA の GBA ロゴ照合、cen64/ares の N64 バイトオーダ変換、Mesen-S/bsnes の SNES ヘッダスコアリング、FCEUX の FDS ローダ、Fuse/libspectrum の TZX ブロック walk、VICE の D64 BAM/dir リーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の GB/GBA エミュレータ自作記事(ヘッダ解析・ロゴ照合)、Zenn の N64 ROM 解析メモ、Qiita の SFC ヘッダ・FDS フォーマット解説、レトロPC 系国内ブログの TZX/D64 入門記事 — 全て整数のみで実装。
+
+## 第95次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — アーカイブ・ディスクイメージ・トラッカー音楽形式の残隙(全7件が既存 578 件と非衝突を確認。国産形式 `lha`/`d88` を含む):
+
+- `lha` — LHA/LZH アーカイブメンバヘッダ(吉崎栄泰氏の LHa 系仕様 + jLHA リファレンス): レベル0/1 は `[size u8][checksum u8][method5][packed4][orig4][msdos_ts4][attr][level][nlen][name][crc16]`、level は offset 20、チェックサムは `[2..2+size]` の u8 折畳み。レベル2は `[hsize u16][method5][packed4][orig4][unix_ts4][attr][level=2][crc16][osid][ext-chain]`、hsize がサイズ語自身を含む全ヘッダ長。拡張ブロック id2=ファイル名でインライン名を上書き。`entries` は `header+packed` 連鎖を走査
+- `atr` — Atari 8bit ATR(Atari DOS/SIO2PC フォーマット): magic `0x0296` LE、サイズは 16B パラグラフ単位 u16(+上位 u16)、sector_size u16(128/256)、flags@8。先頭3セクタは倍密度でも 128B で格納されるブート quirk を `sector(i)` の offset 式に反映
+- `cue` — CUE シート(CDRWIN 文法): `FILE "n" TYPE`、`TRACK nn MODE`、`INDEX ii mm:ss:ff`、`PREGAP`/`POSTGAP`、`TITLE`/`PERFORMER`/`CATALOG`/`REM`/`FLAGS`。`mmssff` は `(m*60+s)*75+f` の75fps フレーム換算、INDEX 01 が開始 LBA
+- `d88` — NEC PC-88/98 D88 ディスクイメージ: `name[16]|reserved[9]|protect|type|size u32|track u32×164`(688B ヘッダ)。トラック先頭はセクタヘッダ列 `C H R N|count u16|density|deleted|status|reserved[5]|data_size u16` + data。`N` は `128<<N` バイトのサイズクラス
+- `xm` — FastTracker II XM: `"Extended Module: "`17B + name20 + 0x1A + tracker20 + version、header_size は offset 60 の語を含むので `patterns_at = 60+hsize`。パターンは `len u32|packing|rows u16|packed u16`、セルは 0x80 フラグ付きビットマスク(下位5bit が note/inst/vol/fx/param の存在)か verbatim 5B。インストゥルメントは size+name+nsamples+サンプルヘッダ表(40B×n)+サンプルデータ連鎖
+- `it` — Impulse Tracker IT: `IMPM` + name26 + ordnum/ins/smp/pat + cwtv/cmwt/flags/special + gv/mv/is/it + msglen/msgoff + chn_pan64 + chn_vol64 + order 表 + パラポインタ列(IT はパラグラフではなく絶対バイトオフセット)
+- `s3m` — Scream Tracker 3 S3M: name28 + 0x1A + type 0x10 + ordnum/insnum/patnum/flags/cwtv/ffi(=1) + "SCRM" + gv/is/it/mv + チャンネル表32B(16 未満は有効、0xFF は無効) + order 表(0xFE=skip、0xFF=終端) + u16 パラグラフポインタ(×16 がバイトオフセット)
+
+**検証**: 新規テスト全緑(5,272 lib テスト + 576 doctest)。oracle: ATR `pars*16` = データ区画一致 + 先頭3セクタ 128B 分岐、LHA level0 チェックサム折畳みと level2 拡張ブロック名上書き、CUE `00:05:00`→375 フレーム(5 秒)、D88 セクタ列の `data_size`/`128<<N` フォールバック、XM パックドセルの `0x80` ビットマスク展開と verbatim 両形、IT パラポインタ絶対オフセット vs S3M の `<<4` パラグラフの差異。ラウンド内捕捉: LHA level2 の packed/orig/ts/crc が全て +1 ずれ(method 5B は offset 2–6、packed は 7 起点 — fixture の `h[6..10]` が method の `-` を潰していた)、XM instrument 走査のサンプルヘッダ幅は 40 固定でなく `sample_header_size` フィールド、d88 doctest の `d.len()` 借用競合。
+
+## 出典(第95次、search-index 照合)
+
+**論文・仕様**: LHa for UNIX/jLHA の LZH ヘッダレベル0/1/2 定義(拡張ブロック id 体系・hsize 意味)/ SIO2PC/Atari DOS の ATR セクタヘッダ仕様(0x0296・パラグラフ長・ブート128B quirk)/ CDRWIN CUE シートコマンド文法(FILE/TRACK/INDEX/PREGAP/75fps)/ NEC PC-88 エミュ界隈の D88 フォーマット文書(688B ヘッダ・164 トラック・C/H/R/N)/ FastTracker II `xm.txt` の XM フォーマット定義(パックドセル・instrument/sample 連鎖)/ Impulse Tracker `it.txt`(ITTECH)のヘッダ・パラポインタ表定義 / Scream Tracker 3 `s3m.txt` のヘッダ・チャンネル表・パラグラフポインタ仕様 — 全て整数のみで実装。
+
+**実装物**: lhasa/jLHA のメンバ走査、atari800/A8E の ATR セクタアドレッシング、libcue/cdrdao の CUE トークナイザ、X Millennium/QUASI88 の D88 セクタ読み、MilkyTracker/OpenMPT の XM パック展開、Schism Tracker の IT/S3M ローダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の LHA 自作展開・ヘッダ解析記事(lharc 互換・ヘッダレベル差分)、PC-88 エミュレータ系国内ブログの D88 解説(セクタ N 値・トラックテーブル)、Qiita の XM/IT/S3M トラッカー形式解説と自作プレイヤー記事、レトロアーカイブ系国内資料 — 全て整数のみで実装。
+
+## 第97次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レガシーアーカイブと旧世代画像形式の残隙(全7件が既存 585 件と非衝突を確認):
+
+- `arj` — ARJ アーカイブ(Robert Jung 氏の ARJ フォーマット文書 + 技術資料): `60 EA` マーカ + `u16 bsize`(固定部+名\0+コメント\0 を含む)。固定部は30B(first_size/ver/minver/host/flags/method/ftype/reserved/dos_time/packed/orig/crc/filespec/access/host_data/chapter)。基本ヘッダの後に拡張ヘッダ列が `u16 size` 連鎖で続き(size は語自身を含まない、0 が終端)、その後に packed data。`entries` は `header+ext+data` を辿る
+- `pak` — Quake `PACK` アーカイブ(id Software WAD/PAK 資料): `PACK` + `dir_at u32` + `dir_len u32`(必ず64の倍数)。エントリ64B は 56B NUL 詰め名 + `filepos` + `filelen`。`find` は大文字小文字非同一視
+- `pcx` — ZSoft PC Paintbrush PCX(ZSoft テクニカルマニュアル相当の解説): 128B ヘッダ(maker 0x0A/version/encoding=1 で RLE/bpp/ウインドウ x1y1x2y2/hres vres/48B パレット/planes/bytes_per_line/palette_info)。RLE は `b&0xC0==0xC0` が `b&0x3F` 回のラン、0xC0 以上のリテラルは1回ランとして符号化必須。デコード目標は `planes*bytes_per_line*height`
+- `xbm` — X11 XBM(Xlib/Xaw 系資料の `#define width/height`+`bits[]` C 配列形): LSB-first パッキング(`x%8` がバイト内ビット)。`parse` は `0x..`/10進リテラル両対応で、宣言サイズが実データを超えると拒否
+- `pnm` — Netpbm(PBM/PGM/PPM 仕様): `P1`..`P6` マジックで ASCII 3 + raw 3、`#` コメントが任意のトークン間に挿入可。raw は単一空白1バイトで区切り、maxval>255 は u16 BE 試料。PBM raw は8px/Bパック
+- `ras` — Sun Rasterfile(SunOS `rasterfile.h` / file(1) magic 由来): 32B 全BE ヘッダ(magic 0x59A66A95,w,h,depth,length,encoding,map_type,map_length)。encoding 0..4(旧 raw/標準 raw/byte-RLE/RGB 並び/TIFF-IFF 系)。カラーマップは `32..32+map_length`、length=0 は末尾まで
+- `farbfeld` — suckless `ff` 形式(farbfeld.5 マニュアル): "farbfeld"+w u32 BE+h u32 BE の16B ヘッダのみ、ピクセルは RGBA u16 BE×4 で非圧縮。仕様の簡素さをそのまま `parse`/`pixel`/`pixels` に写す
+
+**検証**: 新規テスト全緑(5,309 lib テスト + 583 doctest)。oracle: ARJ `bsize` が固定部30B+名+コメント終端を含むこと・拡張ヘッダ連鎖の `size+2` 歩進、PAK の `dir_len%64` と `dir_at+dir_len` 境界検査、PCX RLE の0xC0タグと1回リテラル逃がし、`planes*bytes_per_line*height` の目標長、XBM LSB ビット写像(`x%8`→`1<<(x%8)`)、PNM の `#` コメント走査と 16bit 試料幅・PBM8パック、RAS BE32 手動 fold とカラーマップ/データ切片、farbfeld の w*h*8 ラスタ照合。ラウンド内捕捉: pak テスト fixture の `e1[..9]` が10B名で切詰めパニック(copy_from_slice 長不一致)、xbm doctest の `0xAA` が bit0=0 で反転した期待値、pnm の `8.saturating_mul` メソッド解釈と `(w+7)/8` 括弧。
+
+## 出典(第97次、search-index 照合)
+
+**論文・仕様**: ARJ フォーマット文書(`60EA`+`bsize`+固定30B+拡張ヘッダ列)/ Quake PACK ディレクトリ64B エントリ定義(56B 名+filepos+filelen)/ ZSoft PCX テクニカルマニュアルの128B ヘッダと RLE 規則 / X11 XBM の `#define`/C 配列表記と LSB-first パッキング / Netpbm `pnm(5)`/`pbm(5)`/`pgm(5)`/`ppm(5)` マニュアルの magic・コメント・maxval・raw 区切り規則 / SunOS `rasterfile.h` の BE ヘッダと encoding 定義 / suckless `farbfeld(5)` フォーマット記述 — 全て整数のみで実装。
+
+**実装物**: UNARJ/7-Zip の ARJ ハンドラ、id の Quake/Quake2 ツールチェーンの PACK リーダ、ImageMagick/Allegro の PCX ローダ、libXpm・xf86 の XBM ライタ読み、netpbm ツール群のヘッダ走査、サン rasterfile 読み書きと ImageMagick SUN ハンドラ、farbfeld の `2ff`/`png2ff` ツール — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ARJ/LZH 系アーカイブ解説、国内レトロ PC 系資料の PCX ヘッダと RLE 詳説、X11 系国内解説の XBM 記法、netpbm 系フォーマットの日本語整理記事、Sun Raster / farbfeld の国内簡潔紹介 — 全て整数のみで実装。
+
+## 第98次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 仮想ディスク・科学データコンテナ形式の残隙(全7件が既存 592 件と非衝突を確認):
+
+- `vhd` — Microsoft VHD フッタ(Virtual Hard Disk Image Format Specification): 末尾512B、`conectix` クッキー、全フィールド BE(features/version/data_offset/timestamp/creator*/orig&cur size/CHS/type/checksum/guid/saved_state)。チェックサムは @64..68 をゼロ化した512B の1の補数。type 2=Fixed/3=Dynamic/4=Differencing
+- `vmdk` — VMware VMDK 記述子(VMware Virtual Disk Format/技術文書): テキスト形式で `#` コメント、`key=value`(前後空白許容)、`ddb.*` プロパティ、extent 行 `RW|RDONLY|NOACCESS <sectors> <TYPE> "<file>" [offset]`。`ZERO` 型はファイル名を持たない。sparse 実体の `KDMV` マジックも定数化
+- `vdi` — VirtualBox VDI 1.1(InnoTek/VBox ヘッダ定義): 64B バナー `<<< Oracle VM VirtualBox Disk Image >>>` + 0xBEDA107F 署名 + version + header_size + type(1=dynamic/2=static) + flags + 256B 説明 + blocks/data オフセット + CHS + sector_size + disk_size + block_size/extra + blocks_in_image/allocated + 4×UUID(全LE)
+- `dmg` — Apple UDIF トレーラ(`koly` 512B、The Mac Hacker's Handbook/newosxbook 系資料): version(4)/header_size(512)/flags/running&data fork offset+len/segment number+count+UUID/checksum type+size+128B/variant(1=UDRW,2=UDCO,4=UDZO,5=lzfse,6=LZMA,8=bzip2)/sector_count
+- `chd` — MAME CHD(MAME `chd.h` 仕様): `MComprHD` + len u32 + version u32、v1/v2 は flags+compression+hunksize+totalhunks(v2 は sha1 追加)、v3/v4 は +CHS+sha1(+parent)、v5 は compressors[4]+logicalbytes+mapoffset+metaoffset+3×sha1 とレイアウトが全く異なるバージョン分岐を `Option` フィールドで吸収
+- `npy` — NumPy `.npy`(numpy `format.py` の NPY v1.0/2.0/3.0 定義): `\x93NUMPY`+major/minor+v1 なら u16、v2/v3 なら u32 LE のヘッダ長、ヘッダは Python dict リテラル(`'descr'`/`'fortran_order'`/`'shape'`)。引用符は単一・二重両対応、shape は `(2, 3)`/`(4,)`/`()` 全て受理
+- `mat` — MATLAB Level-4 `.mat`(The MathWorks MAT-File Format、Level 4 項): グローバルヘッダなし、変数ごとに `mopt u32|mrows|ncols|imagf|namelen` + 名(NUL 込み) + 実部(+虚部)の連鎖。MOPT は `M*1000+P*10+T`(M=endian, P=0..5 精度, T=0 numeric/1 text/2 sparse)
+
+**検証**: 新規テスト全緑(5,342 lib テスト + 590 doctest)。oracle: VHD チェックサムの自己検算と改竄検知、VMDK extent 行の引用符名と `ZERO` 無名型、VDI 4 UUID と banner NUL トリム、DMG variant id と `sector_count*512`、CHD v1/v3/v5 のレイアウト分岐、NPY v1/v2 ヘッダ幅・dict 引用符両形・dtype 桁抽出・shape 積、MAT MOPT 桁分解と imag フラグの2部データ歩進。ラウンド内捕捉: VMDK `ZERO` 型にファイル名が無く extent 行が落ちる、NPY dict が二重引用符キーを取れず全件失敗(`find("descr")` を裸キー検索に変更 + 終端引用符スキップ)、`usize::MAX` 禁止ルールを r97 に続き `u32::MAX as usize` で回避。
+
+## 出典(第98次、search-index 照合)
+
+**論文・仕様**: Microsoft の VHD Image Format Specification(フッタ全フィールド・チェックサム・disk type)/ VMware Virtual Disk Format の記述子文法(extent アクセス詞・型キーワード)/ VirtualBox `VDIChecksum`/`vdi.h` の 1.1 ヘッダ layout(banner・signature・UUID 群)/ UDIF `koly` トレーラのフィールド表(version4・checksum header・variant)/ MAME ソースの `chd.h` コメント(v1–v5 ヘッダ互換表)/ NumPy `lib.format` の NPY spec(マジック・version・ヘッダ長幅・dict フィールド)/ The MathWorks MAT-File Format Level 4(MOPT 桁体系・namelen・データ連鎖)— 全て整数のみで実装。
+
+**実装物**: qemu-img の VHD フッタ読み・チェックサム検算、QEMU/VMDK descriptor パーサと `KDMV` sparse ヘッダ、VirtualBox `VDICore` のヘッダ読み、libdmg-hfsplus/dmg2img の koly 解析、MAME コアの CHD ローダ、numpy/numpyd の NPY ヘッダ読み、Octave/matio の Level-4 変数走査 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の VHD/VDI フォーマット解析・qemu-img 変換記事、VMDK 記述子構造の国内解説、DMG ファイル構造の国内ノウハウ記事、MAME/CHD 系国内エミュ資料、NumPy npy ヘッダの自作ローダ記事、MAT v4 フォーマットの国内整理 — 全て整数のみで実装。
+
+## 第99次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 有線ネットワークのパケットヘッダ群(全7件が既存 599 件と非衝突を確認):
+
+- `ethernet` — Ethernet II / IEEE 802-3 フレーム(IEEE 802.3 §3 + IEEE 802.1Q): dst/src MAC 6B×2 + EtherType u16BE。≤1500 は 802-3 長フィールドとして `is_length` で区別。TPID `0x8100`/`0x88A8`/`0x9100` の VLAN タグは TCI ワードごと内側 EtherType に連鎖、QinQ 2段まで受理
+- `ipv4` — IPv4 データグラム(RFC 791 + RFC 1071): version/IHL ニブル、DSCP+ECN、total_len、id、flags(DF/MF)+fragment_offset(8B 単位)、ttl、proto、ヘッダチェックサム(src/dst/options まで)。`checksum_ok` はチェックサム欄を含む全 u16 語の1の補数和が 0xFFFF になることを検算
+- `ipv6` — IPv6 固定ヘッダ(RFC 8200): 常に 40B、version+traffic_class+20bit flow_label、payload_len、next_header、hop_limit、16B×2 アドレス。拡張ヘッダ番号(0/43/44/50/51/60)を `EXTENSION_HEADERS` で列挙し `is_extension` で判定
+- `udp` — UDP データグラム(RFC 768): 8B 固定。src/dst port、length(ヘッダ含む、最小8)、checksum(IPv4 では 0=未使用可)。`payload` は宣言長をバッファに照合してスライス
+- `tcp` — TCP セグメント(RFC 793 + RFC 3168/3540): ports、seq/ack u32、data_offset ニブル×4 がヘッダ長かつ options 幅、9bit フラグ(NS..FIN、byte12 下1bit が NS)、window、checksum、urgent。`FLAG_*` 定数 + `has()` 判定
+- `icmp` — ICMPv4 メッセージ(RFC 792): type+code+checksum+4B の type 依存 rest フィールド — echo/timestamp は id+seq、redirect はゲートウェイアドレス、エラー系はペイロードに元データグラムの頭64bit を格納。11種の Well-known type を `Kind` に写像
+- `arp` — ARP パケット(RFC 826): htype/ptype/hlen/plen で可変長アドレスを一般化 — sha(hlen)/spa(plen)/tha(hlen)/tpa(plen) を借用スライスで返す。Ethernet+IPv4 (1/0x0800/6/4) に `sender_ipv4`/`target_mac` の型付きビュー
+
+**検証**: 新規テスト全緑(5,367 lib テスト + 597 doctest)。oracle: IPv4 チェックサムの自己計算→検算→改竄検知、VLAN タグ1段・2段の EtherType 連鎖、802-3 長フィールド境界(1500)、TCP options が data_offset 幅まで読めることと NS フラグ、ICMP echo の id/seq 分割と redirect gateway、ARP 可変 hlen/plen のスライス境界と hlen=0xff 宣言時のオーバーフロー拒否。ラウンド内捕捉: `to_be_bytes` 禁止ルールで ICMP gateway を手動シフト展開に、ipv4 の未使用 `be32` ヘルパ除去。
+
+## 出典(第99次、search-index 照合)
+
+**論文・仕様**: IEEE 802.3 MAC フレーム §3 と IEEE 802.1Q VLAN タグ(TPID/TCI/VID)/ RFC 791 IPv4 ヘッダ + RFC 1071 チェックサム手続き + RFC 2474 DS フィールド / RFC 8200 IPv6 固定ヘッダと拡張ヘッダ連鎖 / RFC 768 UDP / RFC 793 TCP + RFC 3168(ECN ビット)+ RFC 3540(NS) / RFC 792 ICMP + RFC 6633(SourceQuench 廃止) / RFC 826 ARP 可変長アドレス — 全て整数のみで実装。
+
+**実装物**: Linux `ether.h`/`if_ether.h`/`ip.h`/`ipv6.h`/`udp.h`/`tcp.h`/`icmp.h`/`if_arp.h`、tcpdump の print-ether/print-ip/print-tcp/print-icmp/print-arp、Scapy の `Ether`/`IP`/`IPv6`/`UDP`/`TCP`/`ICMP`/`ARP` レイヤ定義、Wireshark の packet-eth/packet-ip 系 dissector フィールド表 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のパケットキャプチャ・ヘッダ解析記事(「Ethernetフレームの構造」「IPv4ヘッダをバイトから読む」「TCPフラグとウィンドウ」「ARPのパケット構造」)、マスタリングTCP/IP(ソフトバンククリエイティブ)の各ヘッダ図、KERI/Interop Tokyo 系の IPv6 拡張ヘッダ連鎖解説 — 全て整数のみで実装。
+
+## 第100次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 節目ラウンド — 実行ファイル・ファームウェア/ブート関連形式(全7件が既存 606 件と非衝突を確認):
+
+- `ne` — Windows 16-bit New Executable(Microsoft `exe_hdr`/`newexe.h`): MZ スタブ経由 `e_lfanew` → 64B NE ヘッダ。リンカver、エントリテーブル、CRC、フラグ(bit15=DLL/ライブラリ、bit1-2=DGROUP モデル)、heap/stack、CS:IP・SS:SP、各テーブルオフセット、対象 OS(1 OS2/2 Win/4 EuroDOS/5 OS2-EE)
+- `le` — OS/2 Linear Executable(`LE`/`LX`、IBM OS/2 の linearexe 仕様・MS `exestruc.h`): byte/word order、format level、cpu(2=i386)/os type、module flags、page size、pages、eip/esp の object+offset ペア、object/pages/iter/resource/resname/entry/directive/fixup 各テーブルオフセット。VxD は LE、OS/2 32bit は LX
+- `aout` — Unix a.out(exec(2)/a.out(5)): 32B ヘッダ、magic u16(OMAGIC 0407/NMAGIC 0410/ZMAGIC 0411/QMAGIC 0314)+ NetBSD は上位16bit に MID をパック。text/data/bss/syms/entry/trsize/drsize。`syms_at` はヘッダ+text+data+relocs の連鎖で導出
+- `dex` — Dalvik Executable(Google dex 形式仕様): `dex\n`+3Bバージョン+NUL、Adler-32、SHA-1 signature、file_size、header_size(0x70)、endian tag、link/map、7種の `(count,offset)` id テーブル + data セクション
+- `optionrom` — PCI Option ROM(PCI Local Bus / PCI Firmware spec §6.3): `55 AA` + 512B 単位サイズ + init entry。`@24` のポインタから `PCIR` 構造体(vendor/device/VPD/len/rev/24bit class code/image len/code type/indicator)を二段解決
+- `cbfs` — coreboot CBFS(coreboot `cbfs_serialized.h`): `LARCHIVE` マジック + BE の len/type/checksum/offset + NUL名、エントリは64Bアライン鎖。type 0x10 stage/0x20 raw/0x30 payload/0x40 optionrom/0x50 bootsplash/0x60 deleted を `Kind` に写像
+- `ifd` — Intel Flash Descriptor(ICH/PCH SPI flash 仕様): `0x0FF0A55A`@0x10、FLMAP0/1 が 16B 単位のベースアドレス(FCBA/FRBA/FMBA/FPSBA)とカウント(NC/NR/NM)をパック、FLREGx は 15bit 4KiB 単位の base/limit で enabled は `limit>=base`
+
+**検証**: 新規テスト全緑(5,386 lib テスト + 604 doctest)。oracle: NE のフラグ分解と CS:IP/SS:SP 対、LE/LX 署名分岐と object テーブルオフセット、a.out の4 magic と `syms_at` 連鎖、DEX の `header_size==0x70` 強制と7テーブル対、PCIR のポインタ二段解決と last-image ビット、CBFS の64Bアライン歩進と削除スロット終端、IFD の FLMAP ビット分解と base/limit enable 判定・frba 超過拒否。ラウンド内捕捉: MSRV 1.75 により `trim_ascii_end`(1.80)不許可 → NUL トリムを `name()` に集約、CBFS while 条件の `?` がチェーン終端を None 化する → `loop`+`match` に、a.out `syms_at` のテスト期待値誤算、PCIR class code のバイト順(iface/sub/base)。
+
+## 出典(第100次、search-index 照合)
+
+**論文・仕様**: Microsoft `newexe.h`/exehdr の NE 定義と IBM/Microsoft「New Executable」仕様 / OS/2 LX・LE の linearexe ヘッダ layout(EDM/2・osFree 資料) / 4.4BSD `a.out(5)` マニュアルと NetBSD `exec.h` の midmag パッキング / Android `DexFile` 形式仕様(map_list・各 *_ids テーブル) / PCI Firmware Specification の option ROM・PCIR 定義 / coreboot の CBFS エントリ構造体とアライメント規則 / Intel ICH9/100 系 SPI flash の descriptor map 資料 — 全て整数のみで実装。
+
+**実装物**: binutils/LLVM の NE・LX リーダ、linux `a.out`/`execve` の歴史的ローダ、Android runtime の `DexFileVerifier`/`libdex`、SeaBIOS/coreboot の option ROM ランナと `cbfstool`、flashrom の descriptor パーサ(ich_descriptors_tool) — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MZ/NE/PE ヘッダ解析記事(「e_lfanew をたどる」系)、a.out→ELF 移行の国内解説、DEX ファイル構造の日本語リバース資料、coreboot/flashrom 導入記事、BIOS ROM・Intel Flash Descriptor の国内検証記事 — 全て整数のみで実装。
+
+## 第88次(マージ解消ラウンド / 実装証跡付き)
+
+**方法**: ブランチ `devin/1790401106-r88-*` を最新 main に追随 — 当該ラウンドの `pcapng` / `pgp` / `bdf` は先行して本線にマージ済みのため、本 PR の実差分は残り4件のみ(`xml` / `mp4` / `h2` / `vcdiff`、全て既存 613 件と非衝突を確認):
+
+- `xml` — W3C XML 1.0 整形式イベントパーサ: `parse` で要素/属性/テキスト/CDATA/コメント/PI/XML宣言/DOCTYPE を `Ev` 列に展開、不整形式(タグ不一致・複数ルート・未展開実体・テキスト中の `]]>`・重複属性)を `None` で拒否
+- `mp4` — ISO Base Media File Format(ISO/IEC 14496-12)の box 歩進: `size:u32 type:u32`、`size==1` は 64bit largesize、`size==0` は EOF まで、`uuid` は 16B usertype 付随。`moov`/`trak`/`mdia`/`minf`/`stbl`/`edts`/`dinf`/`udta` をコンテナ判定で潜り、`ftyp`/`mvhd`/`tkhd`/`mdhd`/`hdlr`/`stts` を型付き投影
+- `h2` — HTTP/2 フレーム層(RFC 9113 §4.1): 9 オクテットヘッダ(24bit Length + Type + Flags + R/31bit Stream Identifier)、client preface `PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n`、型レジストリ 0–9。`frames` は max-frame-size 検査付きで歩進、`emit` がワイヤ形式に逆変換
+- `vcdiff` — VCDIFF デルタ復号(RFC 3284): `D6 C3 C4 00` マジック、ヘッダ指示子、ウィンドウごとの ADD/RUN/COPY 命令を固定 256 エントリのコードテーブル + near/same アドレスキャッシュで展開。`apply` がソース + デルタからターゲットを再構成
+
+**検証**: 新規テスト全緑。oracle: XML の整形式/不整形式双方、MP4 box の largesize/uuid/コンテナ潜り、H2 の preface・フラグ・最大長逸脱・emit ラウンドトリップ、VCDIFF の ADD/RUN/COPY 3命令とキャッシュ近/同モード。
+
+## 出典(第88次マージ解消、search-index 照合)
+
+**論文・仕様**: W3C XML 1.0 勧告の整形式制約 / ISO/IEC 14496-12 の box 構造・コンテナ一覧・versioned フルボックス / RFC 9113 HTTP/2 §4.1 フレーム層 + §3.4 preface + §11.2 型レジストリ / RFC 3284 VCDIFF(コードテーブル・アドレスキャッシュ・ウィンドウ構造) — 全て整数のみで実装。
+
+**実装物**: serde-xml/quick-xml のイベント走査、GPAC/Bento4/ffmpeg mov.c の box パース、nghttp2/h2o のフレーム処理、xdelta3/open-vcdiff のデルタインタプリタ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の XML パーサ自作・MP4 box 構造解説・HTTP/2 フレームフォーマット・バイナリ差分(xdelta/VCDIFF)記事 — 全て整数のみで実装。

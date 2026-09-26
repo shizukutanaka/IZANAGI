@@ -250,6 +250,14 @@ fn dynamic_tables(b: &mut Bits) -> Option<(Huff, Huff)> {
 
 /// Inflates a raw RFC 1951 DEFLATE stream. `None` on malformed input.
 pub fn inflate(data: &[u8]) -> Option<Vec<u8>> {
+    Some(inflate_count(data)?.0)
+}
+
+/// Like [`inflate`], but also reports how many input bytes the
+/// deflate stream consumed — for containers that place a compressed
+/// member next to other data (a git packfile's per-object zlib
+/// streams, for instance).
+pub fn inflate_count(data: &[u8]) -> Option<(Vec<u8>, usize)> {
     let mut b = Bits::new(data);
     let mut out = Vec::new();
     loop {
@@ -279,7 +287,7 @@ pub fn inflate(data: &[u8]) -> Option<Vec<u8>> {
             _ => return None,
         }
         if final_ {
-            return Some(out);
+            return Some((out, b.pos.div_ceil(8)));
         }
     }
 }
@@ -300,6 +308,30 @@ pub fn inflate_zlib(data: &[u8]) -> Option<Vec<u8>> {
         return None; // preset dictionary unsupported
     }
     inflate(&data[2..data.len() - 4])
+}
+
+/// Like [`inflate_zlib`], but tolerates trailing bytes and reports
+/// the total zlib member length (header + deflate + Adler-32 trailer)
+/// so callers can step to the next member — e.g. git packfile
+/// objects. The trailer itself is still skipped, not validated.
+pub fn inflate_zlib_count(data: &[u8]) -> Option<(Vec<u8>, usize)> {
+    if data.len() < 6 {
+        return None;
+    }
+    let cmf = data[0];
+    let flg = data[1];
+    if cmf & 0x0F != 8 || (cmf as u32 * 256 + flg as u32) % 31 != 0 {
+        return None;
+    }
+    if flg & 0x20 != 0 {
+        return None; // preset dictionary unsupported
+    }
+    let (out, used) = inflate_count(data.get(2..)?)?;
+    let total = 2usize.checked_add(used)?.checked_add(4)?;
+    if total > data.len() {
+        return None;
+    }
+    Some((out, total))
 }
 
 /// Inflates an RFC 1952 gzip stream (header fields skipped, CRC/ISIZE
@@ -403,6 +435,24 @@ mod tests {
         assert_eq!(inflate_gzip(HELLO_GZIP), Some(b"ABC".to_vec()));
         assert_eq!(inflate_zlib(STORED_ZLIB), Some(b"STOREDBLOCK123".to_vec()));
         assert_eq!(inflate_zlib(&[0x78, 0x9c]), None);
+    }
+
+    #[test]
+    fn count_variants_report_consumed() {
+        // raw deflate member (no zlib header): "hello hello hello"
+        let raw = crate::deflate::deflate(b"hello hello hello");
+        let (out, used) = inflate_count(&raw).unwrap();
+        assert_eq!(out, b"hello hello hello");
+        assert_eq!(used, raw.len());
+        // zlib member + 3 trailing bytes: used must point past the
+        // member so a container can chain the next object.
+        let mut z = crate::deflate::deflate_zlib(b"hi");
+        let zlen = z.len();
+        z.extend_from_slice(&[0xDE, 0xAD, 0xBE]);
+        let (out, used) = inflate_zlib_count(&z).unwrap();
+        assert_eq!(out, b"hi");
+        assert_eq!(used, zlen); // header(2)+member+adler(4), not the tail
+        assert!(inflate_zlib_count(&z[..4]).is_none()); // truncated
     }
 
     #[test]

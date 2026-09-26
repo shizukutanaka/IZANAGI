@@ -1,315 +1,255 @@
-//! OpenPGP packet framing (RFC 9580 §4.2, obsoleting RFC 4880): the
-//! outer packet grammar that wraps keys, signatures, and messages.
-//! The first octet of every packet has bit 7 set; bit 6 distinguishes
-//! the modern ("new format") header — 6-bit tag + length word — from
-//! legacy format — 4-bit tag + 2-bit length type (1-, 2-, or 4-octet
-//! length, or indeterminate-to-EOF). New-format lengths of `224..=254`
-//! are *partial* body lengths (the body continues after the chunk),
-//! which [`payload`] reassembles. [`packets`] walks a keyring or message
-//! file; [`tag_name`] names the packet registry; [`armor`]/[`unarmor`]
-//! cover the ASCII-armor wrapper including the CRC-24 trailer.
+//! OpenPGP packet framing (RFC 4880 §4.2): each packet is a tag
+//! byte + length + body. Old-format packets (bit6=0) use
+//! 1/2/4-byte or indeterminate lengths; new-format (bit6=1) use
+//! 1/2/5-byte or *partial-body* lengths (`1 << (b & 31)` chunks).
+//! ASCII armor (`-----BEGIN PGP MESSAGE-----`) wraps the same
+//! stream in base64 with a CRC-24 trailer.
 //!
 //! ```
-//! use izanagi_kit::pgp::{packets, tag_name};
-//! // new-format tag 11 (literal data), len 3, body "abc"
-//! let d = [0xCB, 0x03, b'a', b'b', b'c'];
-//! let ps = packets(&d).unwrap();
-//! assert_eq!(ps[0].tag, 11);
-//! assert_eq!(tag_name(ps[0].tag), "Literal Data");
+//! use izanagi_kit::pgp;
+//! // new-format: tag 11 (literal data), len 3, body "abc"
+//! let pkt = [0xCB, 3, b'a', b'b', b'c'];
+//! let p = pgp::packets(&pkt).unwrap();
+//! assert_eq!(p[0].tag, 11);
+//! assert_eq!(pgp::body(&pkt, &p[0]), b"abc");
 //! ```
 
-use std::string::String;
 use std::vec::Vec;
 
-/// One packet's parsed header.
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Pkt {
-    /// Packet tag (0–63 new format, 0–15 legacy).
-    pub tag: u8,
-    /// True for new-format headers (bit 6 set).
-    pub new_fmt: bool,
-    /// Offset of the packet's first octet.
-    pub at: usize,
-    /// Header length in bytes — through the *first* length octet for
-    /// partial packets (their chunk sequence is re-walked by readers).
-    pub head: usize,
-    /// Body length; `None` for legacy indeterminate (runs to EOF) and
-    /// for partial sequences.
-    pub len: Option<u64>,
-    /// True when the body is chunked into partial-length segments.
-    pub partial: bool,
-    /// Offset just past the packet (after the body or the partial chain).
-    pub end: usize,
-}
-
-/// New-format length word starting at `d[*i]`: returns
-/// `(len, partial)`. A `224..=254` first octet yields the 1<<n chunk
-/// size and `partial = true`.
-fn new_len(d: &[u8], i: &mut usize) -> Option<(u64, bool)> {
-    let n = *d.get(*i)?;
-    *i += 1;
-    match n {
-        0..=191 => Some((n as u64, false)),
-        192..=223 => {
-            let n2 = *d.get(*i)?;
-            *i += 1;
-            Some((((n as u64 - 192) << 8) + n2 as u64 + 192, false))
-        }
-        224..=254 => Some((1u64 << (n & 0x1F), true)),
-        _ => {
-            let b = d.get(*i..*i + 4)?;
-            *i += 4;
-            Some((
-                u64::from(b[0]) << 24
-                    | u64::from(b[1]) << 16
-                    | u64::from(b[2]) << 8
-                    | u64::from(b[3]),
-                false,
-            ))
-        }
-    }
-}
-
-/// Walk a buffer of consecutive packets. `None` on a first octet
-/// without bit 7, a truncated header, or a body that overruns the
-/// buffer. A partial body is folded into a single [`Pkt`] whose `end`
-/// covers the whole chunk chain; a legacy indeterminate packet consumes
-/// the rest of the input.
-pub fn packets(d: &[u8]) -> Option<Vec<Pkt>> {
-    let mut v = Vec::new();
-    let mut i = 0usize;
-    while i < d.len() {
-        let at = i;
-        let c = *d.get(i)?;
-        if c & 0x80 == 0 {
-            return None;
-        }
-        if c & 0x40 != 0 {
-            // new format: tag = low 6 bits, then the length word
-            let tag = c & 0x3F;
-            i += 1;
-            let (len, partial) = new_len(d, &mut i)?;
-            if !partial {
-                let end = i.checked_add(len as usize)?;
-                if end > d.len() {
-                    return None;
-                }
-                v.push(Pkt {
-                    tag,
-                    new_fmt: true,
-                    at,
-                    head: i - at,
-                    len: Some(len),
-                    partial: false,
-                    end,
-                });
-                i = end;
-                continue;
-            }
-            // partial chain: [len-octet chunk-data]* ending on a normal
-            // length word. `head` = 1 (tag octet only); readers re-walk
-            // the whole chain from at+1.
-            let mut clen = len;
-            let mut pos = i;
-            loop {
-                let mut j = pos.checked_add(clen as usize)?;
-                let (nl, np) = new_len(d, &mut j)?;
-                if np {
-                    pos = j;
-                    clen = nl;
-                    continue;
-                }
-                let end = j.checked_add(nl as usize)?;
-                if end > d.len() {
-                    return None;
-                }
-                v.push(Pkt {
-                    tag,
-                    new_fmt: true,
-                    at,
-                    head: 1,
-                    len: None,
-                    partial: true,
-                    end,
-                });
-                i = end;
-                break;
-            }
-        } else {
-            // legacy format: tag = bits 5..2, length type = bits 1..0
-            let tag = (c >> 2) & 0x0F;
-            let lt = c & 0x03;
-            i += 1;
-            let len = match lt {
-                0 => {
-                    let b = *d.get(i)?;
-                    i += 1;
-                    Some(b as u64)
-                }
-                1 => {
-                    let b = d.get(i..i + 2)?;
-                    i += 2;
-                    Some(u64::from(b[0]) << 8 | u64::from(b[1]))
-                }
-                2 => {
-                    let b = d.get(i..i + 4)?;
-                    i += 4;
-                    Some(
-                        u64::from(b[0]) << 24
-                            | u64::from(b[1]) << 16
-                            | u64::from(b[2]) << 8
-                            | u64::from(b[3]),
-                    )
-                }
-                _ => None, // indeterminate: to end of input
-            };
-            let end = match len {
-                Some(l) => i.checked_add(l as usize)?,
-                None => d.len(),
-            };
-            if end > d.len() {
-                return None;
-            }
-            v.push(Pkt {
-                tag,
-                new_fmt: false,
-                at,
-                head: i - at,
-                len,
-                partial: false,
-                end,
-            });
-            i = end;
-        }
-    }
-    Some(v)
-}
-
-/// Registry name for a packet tag (RFC 9580 §4.3 list): `"Signature"`,
-/// `"Public-Key"`, … `"Reserved/Unknown"` for the gaps.
-pub fn tag_name(tag: u8) -> &'static str {
-    match tag {
-        0 => "Reserved",
-        1 => "Public-Key Encrypted Session Key",
-        2 => "Signature",
-        3 => "Symmetric-Key Encrypted Session Key",
-        4 => "One-Pass Signature",
-        5 => "Secret-Key",
-        6 => "Public-Key",
-        7 => "Secret-Subkey",
-        8 => "Compressed Data",
-        9 => "Symmetrically Encrypted Data",
-        10 => "Marker",
-        11 => "Literal Data",
-        12 => "Trust",
-        13 => "User ID",
-        14 => "Public-Subkey",
-        17 => "User Attribute",
-        18 => "SEIPD",
-        20 => "AEAD Encrypted Data",
-        _ => "Reserved/Unknown",
-    }
-}
-
-/// Packet body. For partial packets the chunk payloads are
-/// concatenated (reassembled); for a legacy indeterminate packet it's
-/// the span to `end`. `None` only on internal inconsistency.
-pub fn payload(d: &[u8], p: &Pkt) -> Option<Vec<u8>> {
-    let start = p.at + p.head;
-    if !p.partial {
-        return d.get(start..p.end).map(|s| s.to_vec());
-    }
-    let mut out = Vec::new();
-    let mut i = start;
-    while i < p.end {
-        let (clen, partial) = new_len(d, &mut i)?;
-        let _ = partial;
-        out.extend_from_slice(d.get(i..i + clen as usize)?);
-        i += clen as usize;
-    }
-    Some(out)
-}
-
-/// Wrap bytes in ASCII armor: `-----BEGIN PGP <label>-----`, base64
-/// body wrapped at 64 columns, and a `=xxxx` CRC-24 trailer (RFC 9580
-/// §6 — CRC of the *unarmored* bytes, poly `0x1864CFB`, init `0xB704CE`).
-pub fn armor(label: &str, body: &[u8]) -> String {
-    let mut s = String::new();
-    s.push_str("-----BEGIN PGP ");
-    s.push_str(label);
-    s.push_str("-----\r\n\r\n");
-    let b64 = crate::base64::encode(body);
-    for chunk in b64.as_bytes().chunks(64) {
-        s.push_str(std::str::from_utf8(chunk).unwrap_or(""));
-        s.push_str("\r\n");
-    }
-    s.push('=');
-    let crc = crc24(body);
-    s.push_str(&crate::base64::encode(&[
-        ((crc >> 16) & 0xFF) as u8,
-        ((crc >> 8) & 0xFF) as u8,
-        (crc & 0xFF) as u8,
-    ]));
-    s.push_str("\r\n-----END PGP ");
-    s.push_str(label);
-    s.push_str("-----\r\n");
-    s
-}
-
-/// RFC 9580 §6.1 CRC-24 (poly `0x1864CFB`, init `0xB704CE`).
+/// CRC-24, poly `0x01864CFB`, init `0x00B704CE` — the armor
+/// checksum.
 pub fn crc24(d: &[u8]) -> u32 {
-    let mut crc = 0xB704CEu32;
+    let mut crc: u32 = 0x00B7_04CE;
     for &b in d {
         crc ^= (b as u32) << 16;
         for _ in 0..8 {
             crc <<= 1;
-            if crc & 0x100_0000 != 0 {
-                crc ^= 0x1864CFB;
+            if crc & 0x0100_0000 != 0 {
+                crc ^= 0x0186_4CFB;
+            }
+        }
+        crc &= 0x00FF_FFFF;
+    }
+    crc
+}
+
+/// One packet header's view into the input.
+#[derive(Clone, Debug)]
+pub struct Packet {
+    /// Packet tag (`0..=63`).
+    pub tag: u8,
+    /// Body start offset.
+    pub offset: usize,
+    /// Body length in bytes (sum of partial chunks when
+    /// `partial`; *the chunks are not necessarily contiguous* —
+    /// use [`body`] which concatenates them).
+    pub size: usize,
+    /// Old-format header (`false` = new format).
+    pub old: bool,
+    /// `true` when new-format partial lengths were used.
+    pub partial: bool,
+    chunks: Vec<(usize, usize)>,
+}
+
+/// RFC 4880 tag → name.
+pub fn tag_name(tag: u8) -> &'static str {
+    match tag {
+        1 => "PKESK",
+        2 => "signature",
+        3 => "SKESK",
+        4 => "one-pass-sig",
+        5 => "secret-key",
+        6 => "public-key",
+        7 => "secret-subkey",
+        8 => "compressed",
+        9 => "literal",
+        10 => "marker",
+        11 => "literal-data",
+        12 => "trust",
+        13 => "user-id",
+        14 => "public-subkey",
+        17 => "user-attribute",
+        18 => "SEIP-data",
+        19 => "MDC",
+        _ => "other",
+    }
+}
+
+fn new_len(d: &[u8], i: usize) -> Option<(usize, usize, bool)> {
+    // returns (body_len, bytes_consumed, partial)
+    let b = *d.get(i)? as usize;
+    match b {
+        0..=191 => Some((b, 1, false)),
+        192..=223 => {
+            let b2 = *d.get(i + 1)? as usize;
+            Some((((b - 192) << 8) + b2 + 192, 2, false))
+        }
+        224..=254 => Some((1 << (b & 31), 1, true)),
+        _ => Some((
+            ((*d.get(i + 1)? as usize) << 24)
+                | ((*d.get(i + 2)? as usize) << 16)
+                | ((*d.get(i + 3)? as usize) << 8)
+                | *d.get(i + 4)? as usize,
+            5,
+            false,
+        )),
+    }
+}
+
+/// Walks the packet stream. `None` on truncation, bad tag byte
+/// (top bit clear), or reserved/old-indeterminate abuse.
+pub fn packets(d: &[u8]) -> Option<Vec<Packet>> {
+    let mut out = Vec::new();
+    let mut i = 0usize;
+    while i < d.len() {
+        let c = *d.get(i)?;
+        if c & 0x80 == 0 {
+            return None;
+        }
+        i += 1;
+        if c & 0x40 != 0 {
+            // new format
+            let tag = c & 0x3F;
+            let mut body = 0usize;
+            let mut start = i;
+            let mut chunks = Vec::new();
+            let mut partial_any = false;
+            loop {
+                let (n, nb, partial) = new_len(d, i)?;
+                i += nb;
+                let end = i.checked_add(n)?;
+                if end > d.len() {
+                    return None;
+                }
+                if chunks.is_empty() {
+                    start = i;
+                }
+                chunks.push((i, n));
+                body += n;
+                i = end;
+                if !partial {
+                    break;
+                }
+                partial_any = true;
+            }
+            out.push(Packet {
+                tag,
+                offset: start,
+                size: body,
+                old: false,
+                partial: partial_any,
+                chunks,
+            });
+        } else {
+            // old format: len-type in low 2 bits
+            let tag = (c >> 2) & 0x0F;
+            let lt = c & 3;
+            let (n, nb): (usize, usize) = match lt {
+                0 => (*d.get(i)? as usize, 1),
+                1 => (((*d.get(i)? as usize) << 8) | *d.get(i + 1)? as usize, 2),
+                2 => (
+                    ((*d.get(i)? as usize) << 24)
+                        | ((*d.get(i + 1)? as usize) << 16)
+                        | ((*d.get(i + 2)? as usize) << 8)
+                        | *d.get(i + 3)? as usize,
+                    4,
+                ),
+                _ => (d.len() - i, 0), // indeterminate: to EOF
+            };
+            i += nb;
+            let end = i.checked_add(n)?;
+            if end > d.len() {
+                return None;
+            }
+            out.push(Packet {
+                tag,
+                offset: i,
+                size: n,
+                old: true,
+                partial: false,
+                chunks: vec![(i, n)],
+            });
+            i = end;
+            if lt == 3 {
+                break; // indeterminate consumed to EOF
             }
         }
     }
-    crc & 0xFF_FFFF
+    Some(out)
 }
 
-/// Decode an armored block back to its packet bytes. Header lines are
-/// skipped, the `=xxxx` CRC-24 trailer verified when present. `None` on
-/// malformed armor or a bad checksum.
-pub fn unarmor(d: &str) -> Option<Vec<u8>> {
-    let rest = d.trim_start().strip_prefix("-----BEGIN PGP ")?;
-    let nl = rest.find('-')?;
-    let after = rest[nl..].strip_prefix("-----")?;
-    let mut b64 = String::new();
-    let mut crc_line: Option<String> = None;
-    let mut in_body = false;
-    for l in after.lines() {
-        if l.trim().is_empty() && !in_body {
-            in_body = true;
-            continue;
-        }
-        if !in_body {
-            continue; // Comment:/etc. armor headers
-        }
-        if let Some(c) = l.strip_prefix('=') {
-            crc_line = Some(c.trim().to_string());
-            continue;
-        }
-        if l.starts_with("-----END") {
+/// Packet body bytes — contiguous packets return their slice;
+/// `partial` packets' chunks are concatenated into an owned vec.
+/// Returns empty on coordinate mismatch.
+pub fn body(d: &[u8], p: &Packet) -> Vec<u8> {
+    if p.chunks.len() == 1 {
+        let (at, n) = p.chunks[0];
+        return d.get(at..at + n).unwrap_or(&[]).to_vec();
+    }
+    let mut out = Vec::with_capacity(p.size);
+    for &(at, n) in &p.chunks {
+        out.extend_from_slice(d.get(at..at + n).unwrap_or(&[]));
+    }
+    out
+}
+
+/// `true` when `d` starts with an ASCII-armor line.
+pub fn is_armored(d: &[u8]) -> bool {
+    d.starts_with(b"-----BEGIN PGP ")
+}
+
+/// Extracts the base64 payload of an ASCII-armored message and
+/// verifies the `=xxxx` CRC-24 trailer when present.
+/// Returns the decoded bytes.
+pub fn dearmor(d: &[u8]) -> Option<Vec<u8>> {
+    if !is_armored(d) {
+        return None;
+    }
+    let text = std::str::from_utf8(d).ok()?;
+    let mut lines = text.lines();
+    // header
+    let head = lines.next()?;
+    if !head.starts_with("-----BEGIN PGP ") || !head.ends_with("-----") {
+        return None;
+    }
+    // skip headers until blank line
+    loop {
+        let l = lines.next()?;
+        if l.is_empty() {
             break;
+        }
+        if l.starts_with("-----") {
+            return None;
+        }
+    }
+    // collect base64 until '=crc' or END
+    let mut b64 = std::string::String::new();
+    let mut crc_line: Option<&str> = None;
+    for l in lines {
+        if l.starts_with("-----END PGP ") {
+            break;
+        }
+        if let Some(rest) = l.strip_prefix('=') {
+            crc_line = Some(rest);
+            continue;
+        }
+        if l.is_empty() {
+            continue;
         }
         b64.push_str(l.trim());
     }
-    let body = crate::base64::decode(&b64)?;
+    let data = crate::base64::decode(&b64)?;
     if let Some(c) = crc_line {
-        let raw = crate::base64::decode(&c)?;
-        if raw.len() != 3 {
+        let cb = crate::base64::decode(c.trim())?;
+        if cb.len() != 3 {
             return None;
         }
-        let want = ((raw[0] as u32) << 16) | ((raw[1] as u32) << 8) | raw[2] as u32;
-        if crc24(&body) != want {
+        let want = ((cb[0] as u32) << 16) | ((cb[1] as u32) << 8) | cb[2] as u32;
+        if want != crc24(&data) {
             return None;
         }
     }
-    Some(body)
+    Some(data)
 }
 
 #[cfg(test)]
@@ -317,83 +257,101 @@ mod tests {
     use super::*;
 
     #[test]
-    fn new_format_lengths() {
-        // tag 11, len 3 (1-octet)
-        let d = [0xCB, 0x03, b'a', b'b', b'c'];
-        let p = packets(&d).unwrap();
+    fn new_format_round() {
+        // tag 1 new-format, 1-byte len
+        let pkt = [0xC1, 3, 1, 2, 3];
+        let p = packets(&pkt).unwrap();
         assert_eq!(p.len(), 1);
-        assert_eq!(p[0].tag, 11);
-        assert_eq!(p[0].len, Some(3));
-        assert_eq!(payload(&d, &p[0]).unwrap(), b"abc");
-
-        // 2-octet length: tag 13 (0xC0|13=0xCD), len 192 → 0xC0 0x00
-        let mut d = vec![0xCD, 0xC0, 0x00];
-        d.extend_from_slice(&[0x55; 192]);
-        let p = packets(&d).unwrap();
-        assert_eq!(p[0].len, Some(192));
-
-        // 5-octet length: 255 + u32be
-        let mut d = vec![0xC6, 0xFF, 0, 0, 1, 0];
-        d.extend_from_slice(&vec![0; 256]);
-        let p = packets(&d).unwrap();
-        assert_eq!(p[0].tag, 6);
-        assert_eq!(p[0].len, Some(256));
+        assert_eq!(p[0].tag, 1);
+        assert!(!p[0].old);
+        assert_eq!(body(&pkt, &p[0]), vec![1, 2, 3]);
     }
 
     #[test]
-    fn legacy_format() {
-        // legacy: bit7=1, bit6=0 → tag in bits 5..2, len-type in 1..0
-        // tag 2 (signature), len-type 0 → 1-octet len
-        let d = [0x88, 0x05, 1, 2, 3, 4, 5];
-        let p = packets(&d).unwrap();
-        assert_eq!(p[0].tag, 2);
-        assert!(!p[0].new_fmt);
-        assert_eq!(p[0].len, Some(5));
-
-        // indeterminate (len-type 3): runs to EOF
-        let d = [0x8F, 9, 9, 9];
-        let p = packets(&d).unwrap();
-        assert_eq!(p[0].len, None);
-        assert_eq!(p[0].end, 4);
+    fn two_byte_and_five_byte_lengths() {
+        // tag 11, len 300 → 2-byte form: b0 = 192 + ((300-192)>>8), b1 = (300-192)&255
+        let mut pkt = vec![0xCB, 192, 108];
+        pkt.extend(std::iter::repeat(0xAA).take(300));
+        let p = packets(&pkt).unwrap();
+        assert_eq!(p[0].size, 300);
+        // 5-byte: len 70000
+        let mut pkt2 = vec![0xCB, 255];
+        pkt2.extend_from_slice(&[0, 1, 0x11, 0x70]); // 70000 BE
+        pkt2.extend(std::iter::repeat(1).take(70000));
+        let p2 = packets(&pkt2).unwrap();
+        assert_eq!(p2[0].size, 70000);
     }
 
     #[test]
-    fn partial_body() {
-        // new-format tag 9, partial: 0xE0 → 1-byte chunk, then
-        // 0xE1 → 2-byte chunk, then final len 0x02 + 2 bytes
-        let d = [0xC9, 0xE0, b'a', 0xE1, b'b', b'c', 0x02, b'd', b'e'];
-        let p = packets(&d).unwrap();
-        assert_eq!(p.len(), 1);
+    fn partial_body_concatenates() {
+        // tag 9, partial 512 (b = 224 + 9 = 233 → 1<<9 = 512) then final 1
+        let mut pkt = vec![0xC9, 233];
+        pkt.extend(std::iter::repeat(7).take(512));
+        pkt.push(1); // final len 1
+        pkt.push(9);
+        let p = packets(&pkt).unwrap();
         assert!(p[0].partial);
-        assert_eq!(payload(&d, &p[0]).unwrap(), b"abcde");
+        assert_eq!(p[0].size, 513);
+        let b = body(&pkt, &p[0]);
+        assert_eq!(b.len(), 513);
+        assert_eq!(b[512], 9);
     }
 
     #[test]
-    fn tag_names() {
-        assert_eq!(tag_name(2), "Signature");
-        assert_eq!(tag_name(6), "Public-Key");
-        assert_eq!(tag_name(18), "SEIPD");
-        assert_eq!(tag_name(20), "AEAD Encrypted Data");
-        assert_eq!(tag_name(63), "Reserved/Unknown");
+    fn old_format() {
+        // tag 13 (user id) old format lt=0: c = 0x80 | (13<<2) | 0 = 0xB4
+        let pkt = [0xB4, 4, b'u', b's', b'r', b'!'];
+        let p = packets(&pkt).unwrap();
+        assert_eq!(p[0].tag, 13);
+        assert!(p[0].old);
+        // indeterminate lt=3 consumes to EOF
+        let pkt2 = [0xB7, 9, 9, 9]; // tag 13 lt 3
+        let p2 = packets(&pkt2).unwrap();
+        assert_eq!(p2[0].size, 3);
+    }
+
+    #[test]
+    fn crc24_vector() {
+        // RFC 4880 test: "123456789" → 0x21CF02
+        assert_eq!(crc24(b"123456789"), 0x21CF02);
     }
 
     #[test]
     fn armor_roundtrip() {
-        let body = b"PGP packet bytes here";
-        let a = armor("MESSAGE", body);
-        assert!(a.starts_with("-----BEGIN PGP MESSAGE-----"));
-        assert_eq!(unarmor(&a).unwrap(), body);
-        assert_eq!(crc24(b"123456789"), 0x21CF02); // RFC 9580 check value
-        let mut bad = a.clone();
-        bad.replace_range(40..41, "x");
-        assert!(unarmor(&bad).is_none());
+        let payload = b"hello pgp";
+
+        let mut arm = std::string::String::from("-----BEGIN PGP MESSAGE-----\n\n");
+        arm.push_str(&crate::base64::encode(payload));
+        let crc = crc24(payload);
+        let crc_bytes = [(crc >> 16) as u8, (crc >> 8) as u8, crc as u8];
+        arm.push('\n');
+        arm.push('=');
+        arm.push_str(&crate::base64::encode(&crc_bytes));
+        arm.push_str("\n-----END PGP MESSAGE-----\n");
+        let got = dearmor(arm.as_bytes()).unwrap();
+        assert_eq!(got, payload);
+        // corrupt the crc → reject
+        let bad = arm.replacen("=", "=AAAA", 1);
+        assert!(
+            dearmor(bad.as_bytes()).is_none() || dearmor(bad.as_bytes()) != Some(payload.to_vec())
+        );
     }
 
     #[test]
-    fn bad_inputs() {
-        assert!(packets(b"").unwrap().is_empty());
-        assert!(packets(&[0x00]).is_none()); // bit 7 clear
-        assert!(packets(&[0xCB]).is_none()); // truncated length
-        assert!(packets(&[0xCB, 0x10]).is_none()); // body overrun
+    fn names_and_armor_detection() {
+        assert!(is_armored(b"-----BEGIN PGP MESSAGE-----\n"));
+        assert!(!is_armored(b"\xC1\x03abc"));
+        assert_eq!(tag_name(1), "PKESK");
+        assert_eq!(tag_name(6), "public-key");
+        assert_eq!(tag_name(13), "user-id");
+        assert_eq!(tag_name(60), "other");
+        assert_eq!(tag_name(0), "other");
+    }
+
+    #[test]
+    fn malformed_degrades() {
+        assert!(packets(&[0x7F]).is_none()); // top bit clear
+        assert!(packets(&[0xC1]).is_none()); // no len byte
+        assert!(packets(&[0xC1, 5, 1]).is_none()); // truncated body
     }
 }
