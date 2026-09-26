@@ -2386,3 +2386,24 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: Microsoft TrueType/OpenType spec (sfnt directory・head・maxp・name) / W3C WOFF 1.0 spec / sqlite.org "Database File Format" (file format section) / protobuf.dev "Encoding" guide (wire types) / bsonspec.org BSON spec / Xiph.Org FLAC format spec + Vorbis comment spec / RFC 3533 Ogg format + RFC 5334 §B CRC — 全て整数のみで実装。
 
 **実装物**: fonttools/freetype の sfnt・WOFF directory walker、sqlite3shell/btree ヘッダ読取り、protoc/protoscope の wire walker、PyMongo bson codec、brotli/metaflac の metadata walker、ogg-tools/oggz の page lacing と CRC — 全て整数のみで実装。
+## 第88次: XML・MP4・HTTP/2・VCDIFF・pcapng・OpenPGP・BDF — xml・mp4・h2・vcdiff・pcapng・pgp・bdf
+
+**方法**: 文献参照ラウンド継続 — ワイヤ/コンテナ/文書層の残隙(json/der/cbor/msgpack/proto/bson に続く文書+直列化、pcap に続くキャプチャ、tls に続くトランスポートフレーム):
+
+- `xml` — W3C XML 1.0 整形式性パーサ: `parse` → `Ev` ストリーム(Start/End/Text/CData/Comment/Pi/Decl/Doctype)。単一ルート・タグ対応・重複属性・コメント内 `--`・テキスト内 `]]>`・属性値内 `<` を厳格拒否、事前定義5実体+数値参照を `unescape`。DTD 妥当性検査は範囲外と明記
+- `mp4` — ISO/IEC 14496-12 (ISO BMFF) box walker: `size:u32 type:u32`、largesize(64bit)/`size==0`(EOF まで)/`uuid`(+16B)の3特例、`meta`(+4:FullBox)と `stsd`(+8:FullBox+entry_count)を含むコンテナ下降、`mvhd`/`tkhd`/`mdhd` は v0/v1 を正規化、`hdlr`/`stts`/`ftyp` まで型付き
+- `h2` — HTTP/2 フレーム層(RFC 9113 §4): 24B client preface、9B ヘッダ(length24/type/flags/R-bit mask stream)、全10型、PADDED/PRIORITY 除去、`SETTINGS_MAX_FRAME_SIZE` 上限ゲート — HPACK 復号は範囲外
+- `vcdiff` — RFC 3284 delta decoder: `D6C3C4 00` ヘッダ、256エントリ命令表は圧縮記法から生成(code(0)=RUN、1-18=ADD、19-162=COPY 9モード×16幅、163-246=ADD+COPY 複合、247-255=COPY+ADD)、NEAR(4)+SAME(3×256)アドレスキャッシュ、SELF/HERE/TARGET 参照 — HTTP delta encoding と svn/delta の基礎
+- `pcapng` — pcapng(draft-ietf-opsawg-pcapng): 回文型 SHB 0x0A0D0D0A、byte-order magic 0x1A2B3C4D がセクション毎のエンディアンを確定(連結キャプチャで途中反転可)、IDB(LinkType/snaplen/`if_tsresol` — MSB=2^-n)、EPB(u64 タイムスタンプ→ns)、SPB/NRB/ISB/DSB/CUSTOM まで走査 — `pcap` の後継
+- `pgp` — OpenPGP(RFC 9580)パケット: new format(tag+1/2/5B length+partial 0xE0-0xFE 鎖)と legacy format(bit6=0, len-type 0/1/2/不定)、tag 名表(20=AEAD)、ASCII armor(BEGIN/END+base64+`=`CRC-24、poly 0x1864CFB init 0xB704CE)の往復
+- `bdf` — Adobe BDF ビットマップフォント(5005.BDF_Spec): STARTFONT…ENDFONT、FONT/POINT/FONTBOUNDINGBOX/STARTPROPERTIES/CHARS、グリフ毎に ENCODING/SWIDTH/DWIDTH/BBX/MSB-first hex BITMAP、`pixel(x,y)` アクセス — ターミナル表示層 `terminal` のフォント経路素
+
+**検証**: 新規テスト全緑(34件)。oracle: emit→apply 往復(vcdiff/pgp armor)、手組 fixture(mp4 moov{mvhd,trak{tkhd}}・mdia{mdhd,hdlr}+stsd+8B・pcapng SHB+IDB+EPB 両エンディアン・BDF 5×7 'A' グリフ)、RFC 3284 §5.3 の code-table 形状ピン、CRC-24 検査値 `b"123456789"→0x21CF02`。ラウンド内捕捉: vcdiff VCD_TARGET 窓が `out` を借用したまま伸長(コピーで解決)、pcapng 非 SHB の型読取りが LE 固定(BE セクションで誤認)、mp4 `stsd` 子開始オフセット +4→+8、xml DOCTYPE の `[…]` 内部サブセット内 `<` を深さに誤算入+引用符外 `>` 問題、テスト fixture の ADD サイズ/addr セクション長不整合。
+
+## 出典(第88次、search-index 照合)
+
+**論文・仕様**: W3C XML 1.0 (5th ed) / ISO/IEC 14496-12:2012 ISO BMFF / RFC 9113 (HTTP/2) §4-6 / RFC 3284 (VCDIFF) + RFC 3229 delta-encoding / draft-ietf-opsawg-pcapng-06 / RFC 9580 (OpenPGP) + RFC 4880 / Adobe Technical Note 5005 "Glyph Bitmap Distribution Format (BDF) Specification" — 全て整数のみで実装。
+
+**実装物**: python xml.sax/expat のイベント分解、gpac/mp4box・AtomicParsley の box walker、nghttp2 の frame parse/emit(QUIC-HTTP/3 系の派生も同形)、xdelta3/open-vcdiff の code table+addr cache、wireshark pcapng dissector・tcpdump print-pcapng、gnupg/openpgp.js の packet+armor、cairo/X.Org bdftopcf — 全て整数のみで実装。
+
+**国内技術情報**: Qiita 「HTTP/2 フレームフォーマット入門」系記事(noId 42e5cb75da4bb3b11f05)のフレーム図解で payload 概形を対照確認。
