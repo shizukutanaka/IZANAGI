@@ -3170,3 +3170,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: lcov/genhtml、JUnit schema(junit5/xunit 出力)、Microsoft SARIF SDK、cobertura/jenkins coverage プラグイン、checkstyle、nunit-console、gcov 本体 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の lcov+genhtml カバレッジ可視化・JUnit XML 連携・SARIF/CodeQL レポート・gcov/gcovr 記事 — 全て整数のみで実装。
+
+## 第126次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 通信・無線・組込みプロトコル(7件、既存 781 件と非衝突を確認。`nmea` は既存のため除外):
+
+- `mavlink` — MAVLink v1(`0xFE` len seq sys comp msgid)/v2(`0xFD` len incompat compat seq sys comp msgid24): ヘッダ+ペイロード境界、`crc_mcrf4xx`(X.25 畳み込み、dialect CRC extra は外部で付与する設計)、v2 の incompat bit0 → 13B 署名長
+- `ubx` — u-blox UBX: `B5 62` 同期、class/id/lenLE、Fletcher-8 2B チェックサム(`checksum`/`checksum_ok` で検算実装)
+- `sbus` — FrSky SBUS: 25B 固定(`0x0F` 開始 + 16ch×11bit LE ビットアンパック + フラグバイト → ch17/18/frame_lost/failsafe)
+- `ntp` — RFC 5905 NTP 48B ヘッダ: LI/VN/Mode 分解、root delay/dispersion は 16.16 固定小数点の生 u32、タイムスタンプは `{seconds,fraction}` 整数対(全整数実装)
+- `obd` — OBD-II ISO-TP 単一フレーム: `[len mode+0x40 pid data]` 肯定応答 vs `7F mode nrc` 否定応答、`0x7DF` 要求/`0x7E8..0x7EF` 応答 ID、mode 01 PID 式テーブル
+- `candump` — can-utils ログ: `(ts) iface id [dlc] data..` と `id#data`/`id#R` コンパクト形、11/29bit ID(hex)
+- `ais` — AIS `!AIVDM`/`!AIVDO`: `*hh` XOR チェックサム検算、6bit ASCII 装甲(`0..W`,`\``..`w`)の MSB ファーストビット抽出(`field(at,bits)`)、先頭 6bit = メッセージ型
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: MCRF4XX の既知ベクトルは `0x6F91`(`0xF0B8` は X.25 誤記)、UBX doctest の手算チェックサム誤り(8,15→8,25)、NTP transmit.fraction は下位バイト配置、AIS doctest の XOR 検算値(0x1B)。
+
+## 出典(第126次、search-index 照合)
+
+**論文・仕様**: MAVLink message framing 仕様(common/mavlink2)、u-blox UBX Interface Description、FrSky SBUS リバース仕様、RFC 5905(NTPv4)/RFC 5906、SAE J1979/ISO 15031-5(OBD-II)、SocketCAN candump 出力形式、ITU-R M.1371-5(AIS)+ NMEA 0183 IEC 61162-1 — 全て整数のみで実装。
+
+**実装物**: mavlink ジェネレータ/mavros、ubxlib/pyubx2、libSbus、squid-ntpd/chrony パケット処理、python-OBD/ELM327 docs、can-utils、gpsd/aisdecoder — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MAVLink フレーム解析・UBX GPS ロガー・SBUS Arduino 受信・NTP パケット解析・OBD-II ELM327・SocketCAN candump ・AIS デコード記事 — 全て整数のみで実装。
