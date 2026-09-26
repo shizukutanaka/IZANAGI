@@ -2576,3 +2576,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: UNARJ/7-Zip の ARJ ハンドラ、id の Quake/Quake2 ツールチェーンの PACK リーダ、ImageMagick/Allegro の PCX ローダ、libXpm・xf86 の XBM ライタ読み、netpbm ツール群のヘッダ走査、サン rasterfile 読み書きと ImageMagick SUN ハンドラ、farbfeld の `2ff`/`png2ff` ツール — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の ARJ/LZH 系アーカイブ解説、国内レトロ PC 系資料の PCX ヘッダと RLE 詳説、X11 系国内解説の XBM 記法、netpbm 系フォーマットの日本語整理記事、Sun Raster / farbfeld の国内簡潔紹介 — 全て整数のみで実装。
+
+## 第98次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 仮想ディスク・科学データコンテナ形式の残隙(全7件が既存 592 件と非衝突を確認):
+
+- `vhd` — Microsoft VHD フッタ(Virtual Hard Disk Image Format Specification): 末尾512B、`conectix` クッキー、全フィールド BE(features/version/data_offset/timestamp/creator*/orig&cur size/CHS/type/checksum/guid/saved_state)。チェックサムは @64..68 をゼロ化した512B の1の補数。type 2=Fixed/3=Dynamic/4=Differencing
+- `vmdk` — VMware VMDK 記述子(VMware Virtual Disk Format/技術文書): テキスト形式で `#` コメント、`key=value`(前後空白許容)、`ddb.*` プロパティ、extent 行 `RW|RDONLY|NOACCESS <sectors> <TYPE> "<file>" [offset]`。`ZERO` 型はファイル名を持たない。sparse 実体の `KDMV` マジックも定数化
+- `vdi` — VirtualBox VDI 1.1(InnoTek/VBox ヘッダ定義): 64B バナー `<<< Oracle VM VirtualBox Disk Image >>>` + 0xBEDA107F 署名 + version + header_size + type(1=dynamic/2=static) + flags + 256B 説明 + blocks/data オフセット + CHS + sector_size + disk_size + block_size/extra + blocks_in_image/allocated + 4×UUID(全LE)
+- `dmg` — Apple UDIF トレーラ(`koly` 512B、The Mac Hacker's Handbook/newosxbook 系資料): version(4)/header_size(512)/flags/running&data fork offset+len/segment number+count+UUID/checksum type+size+128B/variant(1=UDRW,2=UDCO,4=UDZO,5=lzfse,6=LZMA,8=bzip2)/sector_count
+- `chd` — MAME CHD(MAME `chd.h` 仕様): `MComprHD` + len u32 + version u32、v1/v2 は flags+compression+hunksize+totalhunks(v2 は sha1 追加)、v3/v4 は +CHS+sha1(+parent)、v5 は compressors[4]+logicalbytes+mapoffset+metaoffset+3×sha1 とレイアウトが全く異なるバージョン分岐を `Option` フィールドで吸収
+- `npy` — NumPy `.npy`(numpy `format.py` の NPY v1.0/2.0/3.0 定義): `\x93NUMPY`+major/minor+v1 なら u16、v2/v3 なら u32 LE のヘッダ長、ヘッダは Python dict リテラル(`'descr'`/`'fortran_order'`/`'shape'`)。引用符は単一・二重両対応、shape は `(2, 3)`/`(4,)`/`()` 全て受理
+- `mat` — MATLAB Level-4 `.mat`(The MathWorks MAT-File Format、Level 4 項): グローバルヘッダなし、変数ごとに `mopt u32|mrows|ncols|imagf|namelen` + 名(NUL 込み) + 実部(+虚部)の連鎖。MOPT は `M*1000+P*10+T`(M=endian, P=0..5 精度, T=0 numeric/1 text/2 sparse)
+
+**検証**: 新規テスト全緑(5,342 lib テスト + 590 doctest)。oracle: VHD チェックサムの自己検算と改竄検知、VMDK extent 行の引用符名と `ZERO` 無名型、VDI 4 UUID と banner NUL トリム、DMG variant id と `sector_count*512`、CHD v1/v3/v5 のレイアウト分岐、NPY v1/v2 ヘッダ幅・dict 引用符両形・dtype 桁抽出・shape 積、MAT MOPT 桁分解と imag フラグの2部データ歩進。ラウンド内捕捉: VMDK `ZERO` 型にファイル名が無く extent 行が落ちる、NPY dict が二重引用符キーを取れず全件失敗(`find("descr")` を裸キー検索に変更 + 終端引用符スキップ)、`usize::MAX` 禁止ルールを r97 に続き `u32::MAX as usize` で回避。
+
+## 出典(第98次、search-index 照合)
+
+**論文・仕様**: Microsoft の VHD Image Format Specification(フッタ全フィールド・チェックサム・disk type)/ VMware Virtual Disk Format の記述子文法(extent アクセス詞・型キーワード)/ VirtualBox `VDIChecksum`/`vdi.h` の 1.1 ヘッダ layout(banner・signature・UUID 群)/ UDIF `koly` トレーラのフィールド表(version4・checksum header・variant)/ MAME ソースの `chd.h` コメント(v1–v5 ヘッダ互換表)/ NumPy `lib.format` の NPY spec(マジック・version・ヘッダ長幅・dict フィールド)/ The MathWorks MAT-File Format Level 4(MOPT 桁体系・namelen・データ連鎖)— 全て整数のみで実装。
+
+**実装物**: qemu-img の VHD フッタ読み・チェックサム検算、QEMU/VMDK descriptor パーサと `KDMV` sparse ヘッダ、VirtualBox `VDICore` のヘッダ読み、libdmg-hfsplus/dmg2img の koly 解析、MAME コアの CHD ローダ、numpy/numpyd の NPY ヘッダ読み、Octave/matio の Level-4 変数走査 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の VHD/VDI フォーマット解析・qemu-img 変換記事、VMDK 記述子構造の国内解説、DMG ファイル構造の国内ノウハウ記事、MAME/CHD 系国内エミュ資料、NumPy npy ヘッダの自作ローダ記事、MAT v4 フォーマットの国内整理 — 全て整数のみで実装。
