@@ -2554,3 +2554,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: lhasa/jLHA のメンバ走査、atari800/A8E の ATR セクタアドレッシング、libcue/cdrdao の CUE トークナイザ、X Millennium/QUASI88 の D88 セクタ読み、MilkyTracker/OpenMPT の XM パック展開、Schism Tracker の IT/S3M ローダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の LHA 自作展開・ヘッダ解析記事(lharc 互換・ヘッダレベル差分)、PC-88 エミュレータ系国内ブログの D88 解説(セクタ N 値・トラックテーブル)、Qiita の XM/IT/S3M トラッカー形式解説と自作プレイヤー記事、レトロアーカイブ系国内資料 — 全て整数のみで実装。
+
+## 第97次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レガシーアーカイブと旧世代画像形式の残隙(全7件が既存 585 件と非衝突を確認):
+
+- `arj` — ARJ アーカイブ(Robert Jung 氏の ARJ フォーマット文書 + 技術資料): `60 EA` マーカ + `u16 bsize`(固定部+名\0+コメント\0 を含む)。固定部は30B(first_size/ver/minver/host/flags/method/ftype/reserved/dos_time/packed/orig/crc/filespec/access/host_data/chapter)。基本ヘッダの後に拡張ヘッダ列が `u16 size` 連鎖で続き(size は語自身を含まない、0 が終端)、その後に packed data。`entries` は `header+ext+data` を辿る
+- `pak` — Quake `PACK` アーカイブ(id Software WAD/PAK 資料): `PACK` + `dir_at u32` + `dir_len u32`(必ず64の倍数)。エントリ64B は 56B NUL 詰め名 + `filepos` + `filelen`。`find` は大文字小文字非同一視
+- `pcx` — ZSoft PC Paintbrush PCX(ZSoft テクニカルマニュアル相当の解説): 128B ヘッダ(maker 0x0A/version/encoding=1 で RLE/bpp/ウインドウ x1y1x2y2/hres vres/48B パレット/planes/bytes_per_line/palette_info)。RLE は `b&0xC0==0xC0` が `b&0x3F` 回のラン、0xC0 以上のリテラルは1回ランとして符号化必須。デコード目標は `planes*bytes_per_line*height`
+- `xbm` — X11 XBM(Xlib/Xaw 系資料の `#define width/height`+`bits[]` C 配列形): LSB-first パッキング(`x%8` がバイト内ビット)。`parse` は `0x..`/10進リテラル両対応で、宣言サイズが実データを超えると拒否
+- `pnm` — Netpbm(PBM/PGM/PPM 仕様): `P1`..`P6` マジックで ASCII 3 + raw 3、`#` コメントが任意のトークン間に挿入可。raw は単一空白1バイトで区切り、maxval>255 は u16 BE 試料。PBM raw は8px/Bパック
+- `ras` — Sun Rasterfile(SunOS `rasterfile.h` / file(1) magic 由来): 32B 全BE ヘッダ(magic 0x59A66A95,w,h,depth,length,encoding,map_type,map_length)。encoding 0..4(旧 raw/標準 raw/byte-RLE/RGB 並び/TIFF-IFF 系)。カラーマップは `32..32+map_length`、length=0 は末尾まで
+- `farbfeld` — suckless `ff` 形式(farbfeld.5 マニュアル): "farbfeld"+w u32 BE+h u32 BE の16B ヘッダのみ、ピクセルは RGBA u16 BE×4 で非圧縮。仕様の簡素さをそのまま `parse`/`pixel`/`pixels` に写す
+
+**検証**: 新規テスト全緑(5,309 lib テスト + 583 doctest)。oracle: ARJ `bsize` が固定部30B+名+コメント終端を含むこと・拡張ヘッダ連鎖の `size+2` 歩進、PAK の `dir_len%64` と `dir_at+dir_len` 境界検査、PCX RLE の0xC0タグと1回リテラル逃がし、`planes*bytes_per_line*height` の目標長、XBM LSB ビット写像(`x%8`→`1<<(x%8)`)、PNM の `#` コメント走査と 16bit 試料幅・PBM8パック、RAS BE32 手動 fold とカラーマップ/データ切片、farbfeld の w*h*8 ラスタ照合。ラウンド内捕捉: pak テスト fixture の `e1[..9]` が10B名で切詰めパニック(copy_from_slice 長不一致)、xbm doctest の `0xAA` が bit0=0 で反転した期待値、pnm の `8.saturating_mul` メソッド解釈と `(w+7)/8` 括弧。
+
+## 出典(第97次、search-index 照合)
+
+**論文・仕様**: ARJ フォーマット文書(`60EA`+`bsize`+固定30B+拡張ヘッダ列)/ Quake PACK ディレクトリ64B エントリ定義(56B 名+filepos+filelen)/ ZSoft PCX テクニカルマニュアルの128B ヘッダと RLE 規則 / X11 XBM の `#define`/C 配列表記と LSB-first パッキング / Netpbm `pnm(5)`/`pbm(5)`/`pgm(5)`/`ppm(5)` マニュアルの magic・コメント・maxval・raw 区切り規則 / SunOS `rasterfile.h` の BE ヘッダと encoding 定義 / suckless `farbfeld(5)` フォーマット記述 — 全て整数のみで実装。
+
+**実装物**: UNARJ/7-Zip の ARJ ハンドラ、id の Quake/Quake2 ツールチェーンの PACK リーダ、ImageMagick/Allegro の PCX ローダ、libXpm・xf86 の XBM ライタ読み、netpbm ツール群のヘッダ走査、サン rasterfile 読み書きと ImageMagick SUN ハンドラ、farbfeld の `2ff`/`png2ff` ツール — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ARJ/LZH 系アーカイブ解説、国内レトロ PC 系資料の PCX ヘッダと RLE 詳説、X11 系国内解説の XBM 記法、netpbm 系フォーマットの日本語整理記事、Sun Raster / farbfeld の国内簡潔紹介 — 全て整数のみで実装。
