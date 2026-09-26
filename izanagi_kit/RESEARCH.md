@@ -2708,3 +2708,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: e2fsprogs/dumpe2fs のスーパーブロックダンプ、ntfs-3g の BPB リーダ、Apple `hfs` 実装と Linux `hfsplus` ドライバ、FreeBSD `ufs/ffs`、minix-tools、xfsprogs/xfs_db、linux exfat ドライバと `exfatprogs` — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の ext2 スーパーブロック解析記事(1024 オフセット・magic 0xEF53 系)、NTFS ブートセクタ解説、HFS+ のディスク検証記事、exFAT フォーマット仕様の日本語抄訳・解析メモ、XFS/UFS ファイルシステム比較記事 — 全て整数のみで実装。
+
+## 第104次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: ゲームエンジン資産コンテナ(全7件が既存 634 件と非衝突を確認):
+
+- `bsp` — Quake BSP(Quake Wiki BSP 仕様): Q1 はマジックなしの生 version 29 + 15 ランプ `(offset,len)` ディレクトリ、Q2 は `IBSP`+38(III 系は 46)+19 ランプ。全ランプを EOF 境界照合、`Q1_LUMPS`/`Q2_LUMPS` 名表 + `lump()` ビュー
+- `mdl` — Quake MDL(Quake wiki / quake source `mdl.h`): `IDPO`+version 6、84B ヘッダ — scale/translate/eye/radius は f32 の **raw u32 ビット**保持、numskins/skinwh/numverts/numtris/numframes/synctype/flags
+- `md2` — Quake II MD2(megafps/md2 仕様): `IDP2`+version 8、68B ヘッダ — skinwh/framesize/5カウント + 6スロット section offset 表(skins/st/tris/frames/glcmds/end)、`section_at`/`section_name`、全 offset 境界照合
+- `mpq` — Blizzard MPQ(zealdocs MPQ 仕様): `MPQ\x1A` ユーザヘッダマジック、header/archive size、format_version(v0-v3)、`512<<shift` セクタ、hash/block テーブル位置+エントリ数(各16B)、v2 拡張(hi テーブル u64 + hi16 半分)
+- `grp` — Build エンジン GRP(Ken Silverman 形式): `KenSilverman` 12B 署名 + u32 カウント + 連続 `(name12, size)` ディレクトリ → 順次 blob。`file`/`find`(大文字不区別)で参照
+- `vtf` — Valve VTF(Valve Dev Community VTF 仕様): `VTF\0` + (7,0)-(7,5) バージョン対 + 80B ヘッダ: 幅高・flags・frames/first_frame・reflectivity/bump raw bits・image_format・mipmap・低解像度サムネイル・depth(7.2+)
+- `vpk` — Valve VPK(同 VPK 仕様): `0x55AA1234`、v1 は 12B(tree size のみ)、v2 は +16B(file-data/archive-md5/other-md5/signature 各セクション長)。`tree_end`/`signature_at`/`total_len` で配置連鎖
+
+**検証**: 新規テスト全緑(5,456 lib テスト)。oracle: BSP の Q1/Q2 ディレクトリ開始差(Q1 は version 直後=+4、IBSP は +8)と全ランプ EOF 照合、MDL の v6 固定・raw float ビット、MD2 の 6 オフセット表境界、MPQ の `512<<shift` と 16B エントリ範囲・v2 拡張フィールド、GRP の 12.3 名 NUL トリムと blob 連続配置、VTF の `VTF\0`+v7.x とサムネイル存在判定、VPK の v1/v2 セクション連鎖。ラウンド内捕捉: BSP の Q1 ディレクトリ位置(0→4 修正)、GRP フィクスチャの 12.3 名コピー幅不一致、MDL/MD2/VPK doctest のフィールドオフセット誤り。
+
+## 出典(第104次、search-index 照合)
+
+**論文・仕様**: Quake BSP 形式仕様(Quest for the Mersenne Twister / Quake Wiki BSP29・IBSP ドキュメント)/ Quake `mdl.h` 構造体定義 / `MD2` ファイルフォーマット記述(megafps 他) / zealdocs「MPQ File Format」/ Ken Silverman の Build engine GRP 定義 / Valve Developer Community「Valve Texture Format」「VPK File Format」— 全て整数のみで実装(f32 は raw bits)。
+
+**実装物**: Quake/Q2 ソースのモデルローダ、quake-utils/wad3 系ツール、StormLib(ZeL sounding MPQ 実装)、kextract/EDuke32 の GRP リーダ、VTFLib、vpk.exe/ValveResourceFormat — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Quake 資産解析・MOD 作成記事、GoldSrc/Source エンジンの VTF/VPK 解説、MPQ/StormLib 日本語資料、Build エンジン系の国内メモ — 全て整数のみで実装。
