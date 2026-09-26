@@ -2972,3 +2972,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: `safetensors` Rust クレートの構造、llama.cpp `llama-gguf.cpp` の kv 走査、CPython `pickletools.py`、NumPy `libformat.py`/`npzfile.py`、onnx/onnxruntime の ModelProto 読み込み、tflite-rs/flatc の識別子チェック、Weka `ArffLoader` — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SafeTensors・GGUF(llama.cpp 量子化モデル)・ONNX/TFLite 変換・ARFF(Weka 入門)解説記事 — 全て整数のみで実装。
+
+## 第117次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 認証・資格情報ファイル形式(全7件が既存 718 件と非衝突を確認。全て「読み取りのみ・暗号操作なし」の構造パーサとして実装):
+
+- `pkcs12` — PKCS#12 PFX: `PFX ::= SEQUENCE { version INTEGER, authSafe ContentInfo, macData MacData OPTIONAL }`。`crate::der` で SEQ 展開、ContentInfo の contentType OID(通常 `data`)、MacData = DigestInfo{algOID,OCTET} + salt OCTET + iterations INTEGER(DEFAULT 1)
+- `pkcs8` — PKCS#8 PrivateKeyInfo: `SEQ { version INTEGER(0), AlgorithmIdentifier SEQ{oid, params}, privateKey OCTET STRING [, attributes] }`。`from_pem` で `PRIVATE KEY`/`ENCRYPTED PRIVATE KEY` ラベル振分
+- `sshkey` — OpenSSH `openssh-key-v1\0` プリアンブル + BE string 列(ciphername/kdfname/kdfoptions/nkeys+pubkey list)+ 秘密セクション(encrypted 可)。PEM `OPENSSH PRIVATE KEY` ボディ
+- `knownhosts` — `~/.ssh/known_hosts` 行形式: 任意 `@marker` + hosts(カンマ列、`[host]:port`、`|1|salt|hash` ハッシュ形を raw 保持)+ key-type + base64 + コメント
+- `kdbx` — KeePass2 ヘッダ: `0x9AA2D903`/`0xB54BFB65`(KDBX3)/`0xB54BFB66`(pre-1.x)/`0xB54BFB67`(KDBX4)署名ペア + version u32 + `{u8 id, len}` フィールド列(id=0 で終端)。KDBX4 はフィールド長 u32LE(KDBX3 は u16LE)
+- `htpasswd` — `user:hash[:realm]`(htdigest は3項目)。スキーム先読み: `$apr1$`(MD5)/`$2{abcxy}$`(bcrypt)/`$5$`/`$6$`(SHA-256/512 crypt)/`$1$`(MD5 crypt)/`{SHA}`/`{CRYPT}`/プレーン
+- `netrc` — `machine`/`default`/`macdef`/`login`/`password`/`account` トークン列。`macdef` 本体は空行まで行ベース取り込み(先にマクロ領域を切り離してからトークン化)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: `.netrc` の `macdef` はトークン化より先に行ベースで切り出す必要がある(本体は任意テキスト)、`.htpasswd` の realm 分割は「最初の `:` が user/hash 境界、2 番目が realm 開始」の2段、KDBX4 はヘッダ長だけでなく「内部ヘッダが暗号ペイロード側へ移動」するため外部フィールドは KDBX3 と意味が異なる(id 11 = kdf_parameters)。
+
+## 出典(第117次、search-index 照合)
+
+**論文・仕様**: RFC 7292(PKCS#12 — PFX/MacData/DigestInfo ASN.1)、RFC 5208(PKCS#8 PrivateKeyInfo)、OpenSSH `PROTOCOL.key`(openssh-key-v1 文字列列)/ `sshd(8)` known_hosts フォーマット(marker・`|1|` ハッシュ)、KeePass KDBX ヘッダ仕様(署名ペア・フィールド id 表・KDBX4 の u32 長と内部ヘッダ移行)、Apache `htpasswd` ユーティリティ文書(`$apr1$`/bcrypt/`{SHA}`)/ netrc 形式(GNU inetutils / BSD マニュアル、`macdef` 終端規則)— 全て整数のみで実装(暗号フィールドは opaque バイト)。
+
+**実装物**: OpenSSL `p12_parse.c`/`pk8_pkey.c`、OpenSSH `sshkey.c`(`openssh-key-v1` 読み込み)/ `hostfile.c`(known_hosts パース)、KeePassXC `KeePass2Reader`、Apache httpd `htpasswd.c`、curl の `.netrc` パーサ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PKCS#12 証明書形式・PEM ファイル構造・OpenSSH 鍵フォーマット・htpasswd スキーム表記・.netrc 設定解説記事 — 全て整数のみで実装。
