@@ -2862,3 +2862,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: Blender 本体の `BLO_blend_defs.h`/readfile、assimp の FBX パーサ、glTF-Sample-Models/`gltf` crate の GLB ヘッダ、alembic-rs の Ogawa リーダ、MMD 系ローダー(mmd_tools/PmxSharp)、bvh リーダー実装群 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の .blend 内部構造・FBX バイナリ解析・GLB コンテナ・Alembic・MMD(PMD/PMX)・BVH モーション解説記事 — 全て整数のみで実装。
+
+## 第112次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 圧縮コンテナ形式(全7件が既存 683 件と非衝突を確認。`lz4` はブロックコーデックとして既存のためフレーム側は `lz4f`):
+
+- `gzip` — RFC 1952 メンバラッパ: `1F 8B` + CM(8)+ FLG(FTEXT/FHCRC/FEXTRA/FNAME/FCOMMENT)+ MTIME/XFL/OS、フラグ順の可変フィールド(FEXTRA=u16長、FNAME/FCOMMENT=NUL終端、FHCRC=u16)、末尾 `{crc32, isize}`
+- `bzip2` — `BZh` + 数字(1-9 = ブロックサイズ×100KB);ブロック先頭 `0x314159265359`(π)+ u32BE crc + randomised + u24 origPtr;終端 `0x177245385090`(√π)
+- `zstd` — RFC 8878: u32LE `0xFD2FB528`;Frame_Header_Descriptor 1B(bits 7-6 FCS幅、bit5 single_segment=window不要、bit2 checksum、bit1-0 dict-id幅)+ 可変 window/dict-id/FCS;`0x184D2A50..5F` スキップ可能フレーム
+- `lz4f` — LZ4 フレーム: u32LE `0x184D2204` + FLG(version 01・block-independence・checksum 系・content-size・dict-id フラグ)+ BD(4-7 → 64KB..4MB);`{u32 size}` ブロック(bit31=非圧縮)、`0` で終端
+- `snappy` — Snappy フレーム形式: 先頭チャンクは必ず `0xFF, len=6, "sNaPpY"`;`{u8 type, u24LE len}` チャンク(0x00 圧縮/0x01 非圧縮/0x02 パディング/0x80-FE スキップ可)+ マスク済み CRC32C(`ror15 + 0xA282EAD8`)
+- `brotli` — RFC 7932: マジックなし、先頭の LSB-first ビットが WBITS ラダー(`0`→16、`1`+3bit n>0→17+n、n=0 の延長形)
+- `zlib` — RFC 1950 プレリュード: CMF(メソッド8・CINFO≤7 = window `2^(cinfo+8)`)+ FLG(FLEVEL/FDICT/FCHECK — `(CMF*256+FLG)%31==0`);FDICT 時は u32BE 辞書 id、末尾 u32BE Adler32
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: gzip の FLG 全経路(FEXTRA/FNAME/FCOMMENT/FHCRC 順)、zlib の FCHECK 探索(`0x78` に対し FDICT 立つ FLG を %31 で発見)、zstd の single_segment 時 FCS=1B 規則、lz4f の block_max コード 4-7 境界、snappy の mask/unmask 往復、brotli の WBITS 最深9bit経路。ラウンド内捕捉: zstd `0xA0` は fcs=4B かつ single_segment 両立(window なしになる)、snappy マスク期待値の手計算誤り(`ror15`+delta の桁溢れ)、brotli は非空入力1Bでも最深経路は9bit必要で打ち切り判定可能。
+
+## 出典(第112次、search-index 照合)
+
+**論文・仕様**: RFC 1952(gzip member layout・FLG 順序・trailer)、bzip2 format(π/√π マジック・u24 origPtr)、RFC 8878(Zstandard frame header descriptor・skippable frames)、LZ4 Frame Format 仕様(FLG/BD・end mark)、snappy-framed(ストリーム識別子・マスク済み CRC32C)、RFC 7932(Brotli WBITS ラダー)、RFC 1950(zlib CMF/FLG・FCHECK・FDICT)— 全て整数のみで実装。
+
+**実装物**: gzip/zlib/zstd/lz4/snappy/brotli/bzip2 各リファレンス実装のヘッダ読み取り部、7-Zip フォーマット一覧、facebook/zstd の frameHeader 処理 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の gzip ヘッダ構造・zlib ヘッダ 2 バイト・Zstandard フレーム・LZ4 frame・Snappy framed・brotli ストリーム構造解説記事 — 全て整数のみで実装。
