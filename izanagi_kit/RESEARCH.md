@@ -3316,3 +3316,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: ccsds.py/libccsds、ObsPy mseed リーダ・libmseed、segyio、SAC/sac2xy、ecCodes/pybUfr、cwp/su(PDS3 label 検証も NASA ODL 準拠)— 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の CCSDS パケット解析・miniSEED/SEED 地震波形・SEG-Y/SAC/SU 変換記事・BUFR 気象データ・PDS ラベル解説 — 全て整数のみで実装。
+
+## 第133次(search-index 照合ラウンド / 実装証跡付き)
+
+- `au` — Sun/NeXT `.au`/`.snd`: `.snd` マジック + BE 24B ヘッダ(offset/size/encoding/rate/channels)、`0xFFFFFFFF` = 未知サイズ
+- `wv` — WavPack: `wvpk` 32B ブロックヘッダ、宣言ブロックサイズは入力以内、flags 下位で bps/mono
+- `tta` — True Audio: `TTA1` + format=1 + channels/bits(≤32)/rate/data-len
+- `dsf` — DSF(DSD): `DSD ` 28B チャンク + `fmt ` 52B チャンク + `data` 検出、2822400Hz
+- `rf64` — RF64/BW64: `0xFFFFFFFF` サイズ + 必須 `ds64` チャンクの u64 riff/data/sample 数
+- `mp3` — MP3 フレームヘッダ: `0xFFE` 同期、version/layer/ビットレート表、frame_len 計算(V2 L3 は 72 係数)
+- `ape` — Monkey's Audio: `MAC ` ディスクリプタ(version>=3980)+ APE ヘッダ(frames/blocks/bits/rate)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: APE ヘッダは `desc_bytes` で後続オフセットが決まること(52+24 固定ではない)、MP3 の bitrate/samplerate インデックス 0/15/3 は非合法、dsf の `data` チャンクは fmt 直後に限り検出。
+
+## 出典(第133次、search-index 照合)
+
+**論文・仕様**: Sun `.au` 仕様(audiotool au format、NeXT/Sun)、WavPack Format ドキュメント(wavpack.com)、True Audio codec spec(tta/ttaenc)、DSF File Format(Sony)、EBU Tech 3306(RF64/BW64、ds64 チャンク)、ISO/IEC 11172-3 + MP3 frame header 分解(MP3'Tech)、Monkey's Audio SDK ヘッダ定義 — 全て整数のみで実装。
+
+**実装物**: libsndfile au.c/wv.c/dsf.c/rf64.c、WavPack CLI/wvunpack、ttaenc、dsf2flac/dsd ツール群、ffmpeg の mp3 header parser(lame/mpg123 のテーブル参照)、MAC SDK(Monkey's Audio)— 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の au/snd ヘッダ解析・WavPack 可逆圧縮・DSD/DSF ハイレゾ・RF64 長尺収録・MP3 フレーム構造・APE フォーマット解説記事 — 全て整数のみで実装。
