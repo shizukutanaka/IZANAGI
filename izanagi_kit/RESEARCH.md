@@ -2774,3 +2774,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: libsndfile の CAF/VOC/IFF リーダ、FFmpeg の `avidec.c`/`flvdec.c`、lastools/LASlib、fontTools の WOFF2 コンパイラ(w3c-woff2)/ Google woff2 リファレンス実装 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の RIFF チャンク解析・FLV/RTMP 配信解説・LAS 点群処理記事・WOFF2 フォント圧縮紹介、『ゲームプログラマになるための3Dグラフィックス技術』系の IFF/RIFF 言及 — 全て整数のみで実装。
+
+## 第108次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — カラムナリデータ交換・タグディレクトリ・CAD/印刷記述(全7件が既存 655 件と非衝突を確認):
+
+- `parquet` — Apache Parquet ファイルエンベロープ: 先頭 `PAR1` + 末尾 `PAR1`(暗号化フッタ時は `PARE`)、末尾8Bは `u32 LE フッタメタ長 + PAR1`、フッタ本体は `len−8−meta_len` から(Thrift compact — 実装は外郭のみでメタ内容は不透明)
+- `avro` — Apache Avro OCF: `Obj\x01` + zigzag-varint メタデータマップ(`long count`、負数 `-N` は「N エントリ + 前置き byte-size long」のブロック形)+ 16B sync マーカ。データブロックは `{count, size, payload, sync}` を EOF まで反復、各ブロックで sync 照合
+- `arrow` — Apache Arrow IPC ファイル形式: 両端 `ARROW1\0\0`(8B)、`len−12` に i32 フッタ長。メッセージ列は `0xFFFFFFFF` 継続 + i32 メタ長(v1.0+)、レガシーは裸 i32(0=EOS)、メタデータ後のボディは 8B アライン。フラットバッファ内部のボディ長は解かないので走査は body-less メッセージで正確
+- `tiff` — TIFF 6.0 + BigTIFF: `II`(LE)/`MM`(BE) バイトオーダ + マジック 42(クラシック: u32 IFD0@4、u16 カウント + 12B エントリ `{tag,type,count,value}` + u32 next)/ 43(BigTIFF: bytesize u16=8@4、reserved 0@6、u64 IFD0@8、u64 カウント + 20B エントリ)。インライン値は `count*type_size ≤ 4`(クラシック)/ ≤8(BigTIFF)、**BE のインライン SHORT は u32 フィールドの上位ハーフに置かれる**
+- `tds` — 3DS バイナリ(Autodesk 3D Studio): チャンク `{id:u16 LE, len:u32 LE(ヘッダ6B込), data}` の木。`0x4D4D` MAIN → `0x3D3D` EDITOR → `0x4000` OBJECT(先頭 NUL 名 + サブチャンク)→ `0x4100` MESH → `0x4110` VERTICES(u16 数 + 12B/頂点)/ `0x4120` FACES(u16 数 + 8B/面)
+- `dxf` — AutoCAD DXF ASCII 交換: 「整数グループコード行 + 生値行」の交互。`0`=エンティティ区切り、`2`=名前、`999`=コメント、`0`/`SECTION`…`0`/`ENDSEC` がセクション区間、`0`/`EOF` で完結
+- `eps` — EPSF/DSC ヘッダ(Adobe Document Structuring Conventions 3.0): `%!PS-Adobe-x.y`(+` EPSF-x.y`)、`%%Key: value` コメント、`%%BoundingBox:` 4 int、`%%Pages:`、`%%Page:`、`%%EndComments`、`%%EOF`
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: TIFF の両端序(手組み BE フィクスチャ — `to_be_bytes` 禁止のため生バイト配列)と BigTIFF 20B エントリ・BE インライン SHORT の上位ハーフ配置、3DS の OBJECT 名スキップ後のサブチャンク解決、DXF のコード/値行ペアリングと EOF 判定、EPS の BoundingBox int 4 つ組と Pages、Avro の負カウント・ブロック形マップと sync 照合、Parquet の PARE 暗号化フッタ判別、Arrow の continuation エンベロープ。ラウンド内捕捉: Avro `count.checked_neg()` は正数も反転する(2→−2 でエントリループが空に)— `if count < 0` に修正、`usize::MAX as i64` は −1 に折り返るため長さ上限比較が全失敗(`kl as u64 > usize::MAX as u64` へ)、DXF の値行なし終端条件(`val_at >= len`)。
+
+## 出典(第108次、search-index 照合)
+
+**論文・仕様**: Apache Parquet Format(parquet-format の File Format 節 — `PAR1`/`PARE` と 4B フッタ長)/ Apache Avro 1.x Specification「Object Container Files」(zigzag/LEB128・ブロック形マップ・sync)/ Apache Arrow Format「IPC File Format」(continuation・EOS・8B アライン)/ Adobe TIFF Revision 6.0 + BigTIFF ドラフト(IFD レイアウト・インライン値規則)/ Autodesk 3D Studio File Format(MLehnérfeldt 解説・chunk id 表)/ AutoCAD DXF Reference(group code 表)/ Adobe DSC 3.0(仕様番号 5001)+ EPSF 規約 — 全て整数のみで実装。
+
+**実装物**: parquet-rs/arrow-rs のフッタ・メッセージ走査、apache/avro の OCF デコーダ、Pillow/libtiff の IFD パーサ(BE インライン値の高ハーフ配置を確認)、Blender/Assimp の 3DS インポータ、`ezdxf` の pair イテレータ、ghostscript の DSC スキャナ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Parquet/Avro/Arrow 比較・Iceberg/Spark 連携記事、TIFF タグ仕様の国内整理、3DS→OBJ 変換記事、DXF を自前で読む記事、PostScript/DSC 解説 — 全て整数のみで実装。
