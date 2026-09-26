@@ -2598,3 +2598,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: qemu-img の VHD フッタ読み・チェックサム検算、QEMU/VMDK descriptor パーサと `KDMV` sparse ヘッダ、VirtualBox `VDICore` のヘッダ読み、libdmg-hfsplus/dmg2img の koly 解析、MAME コアの CHD ローダ、numpy/numpyd の NPY ヘッダ読み、Octave/matio の Level-4 変数走査 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の VHD/VDI フォーマット解析・qemu-img 変換記事、VMDK 記述子構造の国内解説、DMG ファイル構造の国内ノウハウ記事、MAME/CHD 系国内エミュ資料、NumPy npy ヘッダの自作ローダ記事、MAT v4 フォーマットの国内整理 — 全て整数のみで実装。
+
+## 第99次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 有線ネットワークのパケットヘッダ群(全7件が既存 599 件と非衝突を確認):
+
+- `ethernet` — Ethernet II / IEEE 802-3 フレーム(IEEE 802.3 §3 + IEEE 802.1Q): dst/src MAC 6B×2 + EtherType u16BE。≤1500 は 802-3 長フィールドとして `is_length` で区別。TPID `0x8100`/`0x88A8`/`0x9100` の VLAN タグは TCI ワードごと内側 EtherType に連鎖、QinQ 2段まで受理
+- `ipv4` — IPv4 データグラム(RFC 791 + RFC 1071): version/IHL ニブル、DSCP+ECN、total_len、id、flags(DF/MF)+fragment_offset(8B 単位)、ttl、proto、ヘッダチェックサム(src/dst/options まで)。`checksum_ok` はチェックサム欄を含む全 u16 語の1の補数和が 0xFFFF になることを検算
+- `ipv6` — IPv6 固定ヘッダ(RFC 8200): 常に 40B、version+traffic_class+20bit flow_label、payload_len、next_header、hop_limit、16B×2 アドレス。拡張ヘッダ番号(0/43/44/50/51/60)を `EXTENSION_HEADERS` で列挙し `is_extension` で判定
+- `udp` — UDP データグラム(RFC 768): 8B 固定。src/dst port、length(ヘッダ含む、最小8)、checksum(IPv4 では 0=未使用可)。`payload` は宣言長をバッファに照合してスライス
+- `tcp` — TCP セグメント(RFC 793 + RFC 3168/3540): ports、seq/ack u32、data_offset ニブル×4 がヘッダ長かつ options 幅、9bit フラグ(NS..FIN、byte12 下1bit が NS)、window、checksum、urgent。`FLAG_*` 定数 + `has()` 判定
+- `icmp` — ICMPv4 メッセージ(RFC 792): type+code+checksum+4B の type 依存 rest フィールド — echo/timestamp は id+seq、redirect はゲートウェイアドレス、エラー系はペイロードに元データグラムの頭64bit を格納。11種の Well-known type を `Kind` に写像
+- `arp` — ARP パケット(RFC 826): htype/ptype/hlen/plen で可変長アドレスを一般化 — sha(hlen)/spa(plen)/tha(hlen)/tpa(plen) を借用スライスで返す。Ethernet+IPv4 (1/0x0800/6/4) に `sender_ipv4`/`target_mac` の型付きビュー
+
+**検証**: 新規テスト全緑(5,367 lib テスト + 597 doctest)。oracle: IPv4 チェックサムの自己計算→検算→改竄検知、VLAN タグ1段・2段の EtherType 連鎖、802-3 長フィールド境界(1500)、TCP options が data_offset 幅まで読めることと NS フラグ、ICMP echo の id/seq 分割と redirect gateway、ARP 可変 hlen/plen のスライス境界と hlen=0xff 宣言時のオーバーフロー拒否。ラウンド内捕捉: `to_be_bytes` 禁止ルールで ICMP gateway を手動シフト展開に、ipv4 の未使用 `be32` ヘルパ除去。
+
+## 出典(第99次、search-index 照合)
+
+**論文・仕様**: IEEE 802.3 MAC フレーム §3 と IEEE 802.1Q VLAN タグ(TPID/TCI/VID)/ RFC 791 IPv4 ヘッダ + RFC 1071 チェックサム手続き + RFC 2474 DS フィールド / RFC 8200 IPv6 固定ヘッダと拡張ヘッダ連鎖 / RFC 768 UDP / RFC 793 TCP + RFC 3168(ECN ビット)+ RFC 3540(NS) / RFC 792 ICMP + RFC 6633(SourceQuench 廃止) / RFC 826 ARP 可変長アドレス — 全て整数のみで実装。
+
+**実装物**: Linux `ether.h`/`if_ether.h`/`ip.h`/`ipv6.h`/`udp.h`/`tcp.h`/`icmp.h`/`if_arp.h`、tcpdump の print-ether/print-ip/print-tcp/print-icmp/print-arp、Scapy の `Ether`/`IP`/`IPv6`/`UDP`/`TCP`/`ICMP`/`ARP` レイヤ定義、Wireshark の packet-eth/packet-ip 系 dissector フィールド表 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のパケットキャプチャ・ヘッダ解析記事(「Ethernetフレームの構造」「IPv4ヘッダをバイトから読む」「TCPフラグとウィンドウ」「ARPのパケット構造」)、マスタリングTCP/IP(ソフトバンククリエイティブ)の各ヘッダ図、KERI/Interop Tokyo 系の IPv6 拡張ヘッダ連鎖解説 — 全て整数のみで実装。
