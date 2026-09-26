@@ -2642,3 +2642,47 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: binutils/LLVM の NE・LX リーダ、linux `a.out`/`execve` の歴史的ローダ、Android runtime の `DexFileVerifier`/`libdex`、SeaBIOS/coreboot の option ROM ランナと `cbfstool`、flashrom の descriptor パーサ(ich_descriptors_tool) — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MZ/NE/PE ヘッダ解析記事(「e_lfanew をたどる」系)、a.out→ELF 移行の国内解説、DEX ファイル構造の日本語リバース資料、coreboot/flashrom 導入記事、BIOS ROM・Intel Flash Descriptor の国内検証記事 — 全て整数のみで実装。
+
+## 第101次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 科学・医療・気象・分子データ形式(全7件が既存 613 件と非衝突を確認):
+
+- `dicom` — DICOM Part 10(NEMA PS3.10): 128B preamble + `DICM`。explicit-VR 要素走査 — `(group,element)` u16LE + 2B VR + u16 長(OB/OW/OF/OD/OL/OV/SQ/UC/UR/UN/UT は `00 00` + u32 長)。indefinite-length SQ は `u32::MAX` で識別、`get(group,element)`/`text` でタグ参照
+- `nifti` — NIfTI-1 348B ヘッダ(nifti1.h): `sizeof_hdr`==348 の LE/BE 自動判別。`dim[8]`(dim[0]=次元数)、`datatype`/`bitpix`、pixdim/vox_offset/scl/cal は f32 を **raw u32 ビット保持**(kit は float を解釈しない)、qform/sform code、`n+1`/`ni1` magic で単一 vs .hdr/.img 分割を `Kind` 判別
+- `nrrd` — NRRD(teem `nrrd` 1-5): `NRRD000x` magic + `key: value` 行 + `#` コメント、空行でヘッダ終端→data 開始位置。`get`/`sizes`/`dimension` の型付きビュー
+- `nc` — NetCDF classic(UCAR CDF 仕様): `CDF`+version(1=32bit,2=64bit,5=CDF-5) + `numrecs`、dim_list/gatt_list/var_list は ABSENT(0,0) または NC_* tag+count。名前は u32 長 + 4B パディング、属性は `(name,xtype,count,value)` で値サイズは型幅×count を4B丸め
+- `grib` — WMO FM-92 GRIB: ed1 は 3B 総長 + Indicator Section(table ver/centre/process/GDS-BMS フラグ)、ed2 は discipline + u64 総長 + 番号付き section(len≥5、num 7 で data 端)の鎖走査
+- `pdb` — Protein Data Bank 固定カラム(80 桁カード): ATOM/HETATM の serial/name/residue/chain/resseq、x/y/z は 8.3 固定小数点 → **整数 milliunits**、CRYST1 は cell a/b/c(9.3) + 角度(7.2) + space group
+- `mol2` — Tripos MOL2: `@<TRIPOS>MOLECULE` の name/counts(atoms/bonds/substructures)/mol_type/charge_type、`@<TRIPOS>ATOM` 行の id/name/xyz(固定小数点→milliunits)/type/subst/charge
+
+**検証**: 新規テスト全緑(5,408 lib テスト + 611 doctest)。oracle: DICOM の long-VR u32 長と indefinite-length、NIfTI の sizeof_hdr 両エンディアン判別と `n+1`/`ni1`、NRRD の空行終端と `data_at`、NetCDF の ABSENT list と 4B パディング名前、GRIB ed2 の section 鎖、PDB の固定カラム負座標と CRYST1、MOL2 のセクション横断。ラウンド内捕捉: PDB 行末で field が短くなる行に `get(55..66)` が失敗 → clamp、NRRD の末尾 `\n` は暗黙の空行を生む(未終端テストは `…4` で末尾 newline なしに)、NIfTI BE テストの pixdim index 誤り。
+
+## 出典(第101次、search-index 照合)
+
+**論文・仕様**: NEMA PS3.10 Media Storage & File Format(VR 表・explicit/implicit エンコーディング) / NIfTI-1 `nifti1.h` と NIfTI-1 Data Format spec / teem NRRD format definition / NetCDF classic `file format specification`(B-netcdf) / WMO Manual on Codes FM 92 GRIB edition 1・edition 2 / wwPDB Atomic Coordinate Entry Format v3.3 カラム定義 / Tripos MOL2 File Format — 全て整数のみで実装(float フィールドは raw bits または固定小数点整数)。
+
+**実装物**: pydicom/dcmtk の explicit-VR タグ走査、nibabel の NIfTI ヘッダ、nrrd/teem のヘッダパーサ、netcdf-c の `nc3` ヘッダ読み、ecCodes/wgrib の edition 判別、biopython/PDB-tools の固定カラム抽出、Open Babel/RDKit の MOL2 リーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の DICOM タグ解析記事(プレアンブル+タグ走査系)、NIfTI ヘッダの日本語解説、NetCDF/HDF 形式比較記事、GRIB2 の気象データ解説、PDB/MOL2 の構造データ国内チュートリアル — 全て整数のみで実装。
+
+## 第102次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: パッケージ・アーカイブ・複合ドキュメント系エンベロープ(全7件が既存 620 件と非衝突を確認):
+
+- `deb` — Debian バイナリパッケージ(deb(5)/deb-format): `ar` の第1メンバが `debian-binary`(内容 `"2.0\n"`)、`control.tar.*`/`data.tar.*` を suffix で `Compression` 分類(gz/xz/zst/bz2/none)。`crate::ar` 再利用の薄いラッパ
+- `ole` — OLE2 Compound File Binary(MS-CFB): `D0CF11E0A1B11AE1`、major3=512B/major4=4096B セクタ、109スロット DIFAT → FAT 構築 → `first_dir_sector` から ENDOFCHAIN までディレクトリ鎖歩進、128B エントリの UTF-16 名/FREESECT リンク/ストリーム先頭+サイズ
+- `rar` — RAR(技術ノート note.txt): v4 マーカ `Rar!\x1A\x07\x00` + HEAD_CRC/TYPE/FLAGS/SIZE + `0x8000` で ADD_SIZE。main(0x72)/file(0x73)/service(0x7A)/end(0x7B) の鎖歩進。v5 マーカは `01 00` で `Kind::Rar5` 判別
+- `rpm` — RPM(max-rpm lead/header 仕様): 96B lead(`EDABEEDB` + ver + type + arch + name66B + os + sigtype)、ヘッダ構造 `8EA8E8 01` + nindex/hlen u32BE、signature→8Bアラインで main ヘッダ位置
+- `x7z` — 7z(7zFormat.txt): `377ABCAF271C` + ver(00 04) + start_crc + next_header の (offset,size,crc)。`next_header()` でファイル内位置解決
+- `xar` — XAR(xar-1.x 仕様, `.pkg`/`safariextz`): `xar!` u32BE magic + header_size(28) + version + TOC 圧縮/非圧縮長 u64BE + checksum id(0 none/1 sha1/2 md5/3 sha256)
+- `xz` — XZ ファイル形式(tukaani xz-file-format.txt): `FD 37 7A 58 5A 00` + stream flags(上位4bit 予約0 + check id 下位4bit: 0/1 crc32/4 crc64/10 sha256) + flags CRC32 + ブロックヘッダ `(n+1)*4` B
+
+**検証**: 新規テスト全緑(5,426 lib テスト + 618 doctest)。oracle: OLE の DIFAT→FAT→ディレクトリ鎖と UTF-16 名、RAR4 の ADD_SIZE 鎖と v5 判別、RPM の signature→main アライメント、7z next_header のファイル内位置、XAR checksum 写像、XZ の check nibble とブロックサイズ式、deb の debian-binary 先頭強制。ラウンド内捕捉: OLE セクタオフセット式(ヘッダ後 N×sector_size)、RPM doctest の nindex/hlen オフセット誤り(104/108)、`header().ok()` の Option 二重包み、closure の `&mut d` 競合→`fn` 化、XZ ブロックがバッファを超える例。
+
+## 出典(第102次、search-index 照合)
+
+**論文・仕様**: `deb(5)` マニュアルと Debian `.deb` 形式説明(ar+debian-binary+control/data) / Microsoft `[MS-CFB]` Compound File Binary Format(ヘッダ・DIFAT/FAT・ディレクトリエントリ) / RARLAB「RAR 4.x archive format — technical note」と `RAR 5.0` 形式 / `Maximum RPM` の lead・signature・header structure / 7-zip `7zFormat.txt`(signature header・kEnd・next header) / `xar` フォーマット(ヘッダ・TOC 長・checksum メッセージダイジェスト名) / tukaani `xz-file-format.txt`(stream flags・check 型・block header) — 全て整数のみで実装。
+
+**実装物**: dpkg/ar 実装、python `olefile`/`libarchive` CFB リーダ、unrar/bsdtar の RAR4 ブロック走査、rpm ツールの lead/signature パーサ、7-Zip `7zIn.c`/`p7zip`、libxar、xz utils `stream_flags`/`block_header` デコーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の deb/rpm 内部構造の解析記事、CFB(Office 旧形式)ヘッダ解説、7z/xz 形式の日本語メモ、XAR(.pkg)検証記事 — 全て整数のみで実装。
