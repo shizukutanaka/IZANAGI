@@ -2884,3 +2884,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: gzip/zlib/zstd/lz4/snappy/brotli/bzip2 各リファレンス実装のヘッダ読み取り部、7-Zip フォーマット一覧、facebook/zstd の frameHeader 処理 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の gzip ヘッダ構造・zlib ヘッダ 2 バイト・Zstandard フレーム・LZ4 frame・Snappy framed・brotli ストリーム構造解説記事 — 全て整数のみで実装。
+
+## 第113次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — パッチ・デルタ形式(全7件が既存 690 件と非衝突を確認。`ips`/`vcdiff` は既存):
+
+- `ups` — byuu の UPS パッチ: `UPS1` + 可変長 source/target サイズ + `{相対オフセット, XOR データ, 0x00}` レコード + 末尾3×u32LE CRC。varint は LEB128 ではなく byuu 式(MSB 立つバイトが終端 + shift バイアスでエンコードが一意)
+- `bps` — BPS(UPS の後継): `BPS1` + src/dst/metadata 長 varint + メタデータ + アクション列(`v&3` で SourceRead/TargetRead/SourceCopy/TargetCopy、長は `v>>2 + 1`、コピー系は符号付き varint オフセット続行)+ 末尾3 CRC
+- `aps` — N64 APS: `APS10` + 50B 記述(NUL パディング)+ u8 タイプ + `{u32BE offset, u8 len, data}` レコード(`len==0` は RLE `{u8 rle_len, u8 value}` 形)
+- `ppf` — PlayStation Patch Format: `PPF`+バージョン数字(10/20/30)、v3 は encoding byte(bin=0→u32LE offset / Gi=1→u64LE offset)+ 60B 記述(v1/v2 は50B)+ `{offset, u8 len, data}` レコード
+- `gdiff` — W3C Generic Diff Format: `D1 FF D1 FF` + version + コマンド列(0=EOF、1-246=即値リテラル長、247/248=u16/u32 リテラル、249-253=コピーの offset/len 幅行列、254=u32 チェックサム)
+- `rdiff` — librsync ワイヤ形式: 署名 `0x72730136`/`0x72730137`(block_len+strong_len 続行)、デルタ `0x72730236`;0x01-0x40 は即値リテラル、0x41-0x44 は u8/u16/u32/u64 長リテラル、0x45-0x54 は (offset幅,len幅) の N1/N2/N4/N8 行列
+- `bsdiff` — `BSDIFF40` + 3×u64LE(bzip2 圧縮済み ctrl/diff サイズ + 新ファイルの非圧縮サイズ)、セクションは連続配置
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: byuu varint の MSB-終端+バイアス(`[0x48,0x80]`→200、`[0x01,0x80]`→129)、BPS svarint 符号ビット、gdiff/rdiff のオペランド幅行列全経路、ppf の Gi 64bit オフセット、aps の RLE 分岐。ラウンド内捕捉: 当初実装した標準 LEB128(MSB=継続)は byuu 形式と極性が逆で、さらにエンコード一意化の `data += shift` バイアスが必要 — ups-spec.pdf の擬似コードで正しさを確認して差し替え。
+
+## 出典(第113次、search-index 照合)
+
+**論文・仕様**: ups-spec.pdf(byuu、UPS 構造+エンコード擬似コード)、BPS 形式仕様(byuu、アクション列+符号付き varint)、APS N64 仕様(50B 記述+RLE 形)、PPF3.0 仕様(bin/Gi encoding)、W3C NOTE「Generic Diff Format」コマンド表、librsync page_formats/prototab(デルタマジック+オペランド幅行列)、bsdiff BSDIFF40 ヘッダ — 全て整数のみで実装。
+
+**実装物**: beat/Flips(byuu)の encode/decode、xdelta 参照実装、librsync `prototab.c`、bsdifflib、UniPatcher 各種パッチャーのヘッダ処理 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ROM パッチ形式(IPS/UPS/BPS)・ランレングス差分・librsync デルタ解説記事 — 全て整数のみで実装。
