@@ -3126,3 +3126,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: libtorrent/qBittorrent の metainfo ローダ、QuickSFV/winSFV、`playlist` 系パーサ(VLC/foobar2000)、MiniLyrics 準拠実装、ImgBurn/Alcohol の CCD/NRG ハンドラ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の torrent 構造解析・SFV/CRC 検証・LRC 歌詞同期・m3u/pls/xspf 比較記事 — 全て整数のみで実装。
+
+## 第124次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 科学・医療計測データ形式 その2(7件、既存 767 件と非衝突を確認):
+
+- `mhd` — MetaImage `.mhd`: `key = value` ヘッダテキスト(`#` コメント)、`NDims`/`DimSize` 必須 + 次元数一致、`ElementType`/`ElementSpacing`/`ElementDataFile` 抽出、任意キーは `pairs`/`get`
+- `mrc` — MRC/CCP4 電子顕微鏡マップ: 1024B LE ヘッダ(nx/ny/nz/mode/mx/my/mz/cella/cellb/mapc…), `MAP ` マジック@208、セル寸法・角度は f32 の生 u32 ビット保持(全整数実装維持)、`data_at` = 1024+nsymbt
+- `edf` — EDF バイオシグナル: 256B 固定 ASCII ヘッダ(version/patient/recording/startdate/starttime/header_bytes/num_records/duration/ns)、`ns×16B` ラベル先頭ブロック、`num_records=-1` 合法(継続記録)、数値は全て文字列→整数変換
+- `jdx` — JCAMP-DX 分光データ: `##LABEL=value` レコード、`$$` コメント、継続行は前レコードへ空白連結、ラベルは大文字比較の `get`
+- `mzml` — HUPO-PSI mzML: `<mzML version>`、`<spectrumList count>`、各 `<spectrum index id defaultArrayLength>` と `<binaryDataArrayList count>`、`spectrumList`/`spectrum` の前方一致衝突を明示分岐で解決
+- `vtk` — VTK legacy: `# vtk DataFile Version x.y` バージョンは文字列保持(浮動小数点化しない)、`ASCII`/`BINARY` モード、`DATASET` kind、`DIMENSIONS`/`POINTS`、残りキーワード行を `keywords` に収集
+- `xyz` — XYZ 分子座標: 先頭行=原子数、2行目=コメント、`El x y z` 行。座標は指数非対応の符号+小数を整数 ×10⁶ マイクロ単位へ手動変換(全整数実装維持)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: EDF doctest の 80B フィールドが 79B でヘッダ境界が1バイトずれて `parse` が `None` を返すのを捕捉(スペース1個追加で修正)。
+
+## 出典(第124次、search-index 照合)
+
+**論文・仕様**: ITK MetaImage 形式ドキュメント、`MRC2014`(IUCr J. 2015, MRC/CCP4 マップ仕様)、EDF/EDF+ 仕様(Kemp et al. 1992 + 公式仕様書)、JCAMP-DX v4.24/v5/v6(IUPAC)、HUPO-PSI mzML 1.1.0 仕様、VTK File Formats ガイド legacy 章、XYZ 分子座標(Open Babel/Wikipedia) — 全て整数/文字列のみで実装。
+
+**実装物**: SimpleITK/ITK の MetaIO、EMAN2/Relion の MRC リーダ、EDFbrowser/pyedflib、JSpecView、OpenMS/pyteomics/mzmine の mzML ローダ、vtk ライブラリの legacy リーダ、Open Babel/VMD の XYZ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MetaImage/MRC(電顕像)・EDF 脳波パース・JCAMP-DX IR データ・mzML プロテオミクス・VTK legacy ファイル解説記事 — 全て整数のみで実装。
