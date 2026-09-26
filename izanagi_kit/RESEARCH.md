@@ -3296,3 +3296,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: libmodbus、pymodbus、bacnet-stack、CANopenNode、libmbus、knxd/calimero、snap7、SOEM — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Modbus TCP 自作・BACnet/IP パケット解析・CANopen SDO/PDO・M-Bus 計装・KNXnet/IP・S7 通信・EtherCAT フレーム解説記事 — 全て整数のみで実装。
+
+## 第132次(search-index 照合ラウンド / 実装証跡付き)
+
+- `ccsds` — CCSDS 133.0-B スペースパケット: version=0 ゲート、TM/TC、APID(11bit)、seq flags/count、宣言ペイロード長一致
+- `mseed` — miniSEED FSDH 48B 固定ヘッダ(seq/station/loc/chan/net、整数時刻、rate factor×multiplier の符号規則)
+- `segy` — SEG-Y: 3200B EBCDIC + 400B BE バイナリヘッダ、format コード→サンプル幅
+- `sac` — SAC: nvhdr@304 で LE/BE 判別、npts@316 で 632+4n のデータ長照合、浮動小数点は raw bits
+- `bufr` — WMO BUFR: `BUFR`+u24 len(完全一致)+edition、sec1+任意 sec2 フラグ、`7777` トレーラ
+- `su` — Seismic Unix: 240B トレースヘッダ(LE)、ns/dt、全トレース整除チェック
+- `pds` — NASA PDS3(ODL): `KEY = value`、`OBJECT`/`GROUP` ブロック span、`PDS_VERSION_ID`+`END` 必須
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: CCSDS の TC 判定ビットは w0 の bit12(bit11 が sec-hdr — テスト値 0x18 が両方立つミス)、BUFR の宣言長は `BUFR` を含む全長で末尾 `7777` と両方照合、SAC の nvhdr で endianness を自動判定するのが正攻法。
+
+## 出典(第132次、search-index 照合)
+
+**論文・仕様**: CCSDS 133.0-B-2、SEED Manual §8(FSDH)・miniSEED、SEG-Y rev 0/1(SEG)、SAC File Format(IRIS/SAC v101.6)、WMO FM-94 BUFR、SEG/Y → SU 移植(seismic unix 仕様書)、NASA PDS3 Standards Reference(ODL)— 全て整数のみで実装。
+
+**実装物**: ccsds.py/libccsds、ObsPy mseed リーダ・libmseed、segyio、SAC/sac2xy、ecCodes/pybUfr、cwp/su(PDS3 label 検証も NASA ODL 準拠)— 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の CCSDS パケット解析・miniSEED/SEED 地震波形・SEG-Y/SAC/SU 変換記事・BUFR 気象データ・PDS ラベル解説 — 全て整数のみで実装。
