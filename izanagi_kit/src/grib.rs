@@ -18,10 +18,10 @@
 //! };
 //! // indicator section at 8
 //! d[10] = 80;                     // PDS len 80? keep simple
-//! d[13] = 7;                      // table version
-//! put16(&mut d, 14, 98);          // centre ECMWF
-//! d[17] = 1;                      // process
-//! d[19] = 0b11;                   // GDS+BMS present
+//! d[11] = 7;                      // parameter table version
+//! put16(&mut d, 12, 98);          // centre ECMWF
+//! d[14] = 1;                      // process
+//! d[16] = 0b11;                   // GDS+BMS present
 //! let g = parse(&d).unwrap();
 //! assert_eq!(g.kind, Kind::Edition1);
 //! assert_eq!(g.total_len, 128);
@@ -105,12 +105,12 @@ pub fn parse(d: &[u8]) -> Option<Grib> {
     match edition {
         1 => {
             let total_len = be24(d, 4)?;
-            // indicator section at 8: len u24, table u8, centre u16
+            // PDS at 8: len u24 (8..10), table version u8 (11), centre u16 (12..13)
             Some(Grib {
                 kind: Kind::Edition1,
                 total_len: u64::from(total_len),
-                discipline_or_table: d.get(13).copied()?,
-                centre: be16(d, 14)?,
+                discipline_or_table: d.get(11).copied()?,
+                centre: be16(d, 12)?,
                 sections: Vec::new(),
                 body_at: 8,
             })
@@ -167,9 +167,9 @@ mod tests {
         d[5] = 0;
         d[6] = 96;
         d[7] = 1;
-        d[13] = 128; // table 128
-        d[14] = 0;
-        d[15] = 7; // centre 7
+        d[11] = 128; // table 128
+        d[12] = 0;
+        d[13] = 7; // centre 7
         let g = parse(&d).unwrap();
         assert_eq!(g.kind, Kind::Edition1);
         assert_eq!(g.total_len, 96);

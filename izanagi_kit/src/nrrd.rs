@@ -64,7 +64,21 @@ impl Nrrd {
 /// Parse the header. Returns `None` on a bad magic line, a missing
 /// terminator, or a malformed field.
 pub fn parse(d: &[u8]) -> Option<Nrrd> {
-    let s = core::str::from_utf8(d).ok()?;
+    // The header terminator is a blank line; locate it in the raw bytes
+    // so a binary payload after it (non-UTF-8 for `encoding: raw`) can
+    // never fail the header decode.
+    let mut end = None;
+    let mut at = 0usize;
+    for chunk in d.split(|&b| b == b'\n') {
+        let start = at;
+        at += chunk.len() + 1;
+        if chunk.iter().all(|b| matches!(b, b' ' | b'\t' | b'\r')) {
+            end = Some((start, at.min(d.len())));
+            break;
+        }
+    }
+    let (header_end, data_at) = end?;
+    let s = core::str::from_utf8(d.get(..header_end)?).ok()?;
     let mut it = s.splitn(2, '\n');
     let magic = it.next()?;
     let version = magic.trim_end().strip_prefix("NRRD")?.parse::<u32>().ok()?;
@@ -73,19 +87,9 @@ pub fn parse(d: &[u8]) -> Option<Nrrd> {
     }
     let mut fields = Vec::new();
     let mut dimension = None;
-    let mut pos = magic.len() + 1;
-    for line in it.next()?.split('\n') {
+    for line in it.next().unwrap_or("").split('\n') {
         let t = line.trim();
-        pos += line.len() + 1;
-        if t.is_empty() {
-            return Some(Nrrd {
-                version: version as u8,
-                fields,
-                dimension,
-                data_at: pos.min(d.len()),
-            });
-        }
-        if t.starts_with('#') || t.contains(":=") {
+        if t.is_empty() || t.starts_with('#') || t.contains(":=") {
             continue; // comments and key:=value "fields" skipped
         }
         if let Some((k, v)) = t.split_once(':') {
@@ -97,7 +101,12 @@ pub fn parse(d: &[u8]) -> Option<Nrrd> {
             fields.push(Field { key, value });
         }
     }
-    None
+    Some(Nrrd {
+        version: version as u8,
+        fields,
+        dimension,
+        data_at,
+    })
 }
 
 #[cfg(test)]
@@ -124,6 +133,15 @@ mod tests {
         let n = parse(h.as_bytes()).unwrap();
         assert_eq!(n.sizes(), Some(vec![1]));
         assert_eq!(&h.as_bytes()[n.data_at..], b"xyz");
+    }
+
+    #[test]
+    fn binary_payload_after_raw_header() {
+        let mut h = b"NRRD0005\ntype: uint8\ndimension: 1\nsizes: 1\nencoding: raw\n\n".to_vec();
+        h.push(0xff); // non-UTF-8 raw pixel must not break header parse
+        let n = parse(&h).unwrap();
+        assert_eq!(n.get("encoding"), Some("raw"));
+        assert_eq!(h[n.data_at..], [0xff]);
     }
 
     #[test]

@@ -2686,3 +2686,69 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: dpkg/ar 実装、python `olefile`/`libarchive` CFB リーダ、unrar/bsdtar の RAR4 ブロック走査、rpm ツールの lead/signature パーサ、7-Zip `7zIn.c`/`p7zip`、libxar、xz utils `stream_flags`/`block_header` デコーダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の deb/rpm 内部構造の解析記事、CFB(Office 旧形式)ヘッダ解説、7z/xz 形式の日本語メモ、XAR(.pkg)検証記事 — 全て整数のみで実装。
+
+## 第103次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: ファイルシステムのスーパーブロック/ブート領域(全7件が既存 627 件と非衝突を確認):
+
+- `ext2` — ext2/ext3/ext4 スーパーブロック(linux ext2_fs.h / ext4 wiki): オフセット1024固定。inodes/blocks/free 各カウント、first_data_block、`s_log_block_size`→`1024<<n` ブロックサイズ、blocks/inodes per group(ブロックグループ数は切り上げ除算)、mount/state/errors、feature_compat/incompat/ro_compat(journal/extents/64bit フラグ解読)、rev_level、first_ino、inode_size、UUID+ラベル
+- `ntfs` — NTFS ブートセクタ:Microsoft NTFS BPB レイアウト。`NTFS    ` OEM、bytes/sector×sectors/cluster、total_sectors、`$MFT`/`$MFTMirr` の LCN、file-record/index の**符号付き**クラスタ係数(負なら `2^|n|` バイト、正なら n クラスタ — `expand` でバイト化)、シリアル、`55AA` 確認
+- `hfsplus` — HFS+/HFSX ボリュームヘッダ(Apple TN1150): オフセット1024、`H+`/`HX` 判別、BE カウント類(file/folder/total/free blocks)、block_size、Mac epoch(1904)日時、next_catalog_id、5系 ForkData(alloc/extents/catalog/attributes/startup — 各 論理サイズ+clump+total+先頭 extent ペア)
+- `ufs` — UFS1/UFS2 スーパーブロック(BSD ffs/ufs 8K オフセット): `fs_magic`@+1372 が `0x00011954`(UFS1)/`0x19540119`(UFS2)を分岐。frag/block サイズ、cg 数、fpg/ipg、minfree、UFS2 は size/dsize と cstotal が 64bit 化、fs_fsmnt 52B
+- `minix` — MINIX v1/v2 スーパーブロック(minix fs.h): オフセット1024。magic 4値(`0x137F`/`0x138F`/`0x2468`/`0x2478` = v1/v2 × 14/30文字名)が zones の読み元(16bit nzones vs 32bit s_zones)を決める — `Magic::is_v1`/`name_len`/`zones()` に集約
+- `xfs` — XFS スーパーブロック(xfs_sb.h): AG 先頭、`XFSB` で唯一の BE 系。block_size/dblocks/uuid/logstart/rootino、agblocks/agcount、versionnum 下位4bit が major(4/5)、sectsize/inodesize/inopblock、12B 名、icount/ifree/fdblocks/frextents、features2(v5)
+- `exfat` — exFAT メインブートレコード(MS exFAT spec §3.3): `EXFAT   ` OEM + 53B MustBeZero 厳格チェック(FAT12/16 の誤マウント排除)、partition_offset/volume_length、FAT offset×length、cluster heap offset+count、root 先頭クラスタ、serial、revision、flags(active-FAT/dirty/media-failure)、**シフト表現**の bytes/sector・sectors/cluster(9..12 / 0..25)、`root_cluster_at` が heap+(cluster-2) のバイトオフセット
+
+**検証**: 新規テスト全緑(5,441 lib テスト)。oracle: ext2 の `1024<<n` ブロックサイズとグループ数切り上げ・feature マスク、NTFS の負係数→2^k バイト化(−10→1024)、HFS+ の `H+`/`HX` 判別と catalog fork の first-extent、UFS の magic によるレイアウト分岐と UFS2 の 64bit フィールド、MINIX の magic→zones 読み元分岐、XFS の versionnum 下位4bit と AG ジオメトリ、exFAT の MustBeZero 強制と `heap+(root-2)` オフセット。
+
+## 出典(第103次、search-index 照合)
+
+**論文・仕様**: linux `Documentation/filesystems/ext2.txt`/`ext4` wiki(superblock layout・feature マスク)/ Microsoft NTFS BPB リファレンス(符号付きクラスタ係数)/ Apple TN1150 HFS+ Volume Format(volume header・ForkData・catalog)/ BSD `fs/ufs` 系 superblock(UFS1/2 の fs_magic 分岐・64bit 化)/ MINIX `fs.h` magic 4値 / XFS `xfs_format.h`/`xfs_sb.h`(BE スーパーブロック・AG)/ Microsoft exFAT File System Specification §3(MustBeZero・シフト表現・クラスタヒープ) — 全て整数のみで実装。
+
+**実装物**: e2fsprogs/dumpe2fs のスーパーブロックダンプ、ntfs-3g の BPB リーダ、Apple `hfs` 実装と Linux `hfsplus` ドライバ、FreeBSD `ufs/ffs`、minix-tools、xfsprogs/xfs_db、linux exfat ドライバと `exfatprogs` — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ext2 スーパーブロック解析記事(1024 オフセット・magic 0xEF53 系)、NTFS ブートセクタ解説、HFS+ のディスク検証記事、exFAT フォーマット仕様の日本語抄訳・解析メモ、XFS/UFS ファイルシステム比較記事 — 全て整数のみで実装。
+
+## 第104次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: ゲームエンジン資産コンテナ(全7件が既存 634 件と非衝突を確認):
+
+- `bsp` — Quake BSP(Quake Wiki BSP 仕様): Q1 はマジックなしの生 version 29 + 15 ランプ `(offset,len)` ディレクトリ、Q2 は `IBSP`+38(III 系は 46)+19 ランプ。全ランプを EOF 境界照合、`Q1_LUMPS`/`Q2_LUMPS` 名表 + `lump()` ビュー
+- `mdl` — Quake MDL(Quake wiki / quake source `mdl.h`): `IDPO`+version 6、84B ヘッダ — scale/translate/eye/radius は f32 の **raw u32 ビット**保持、numskins/skinwh/numverts/numtris/numframes/synctype/flags
+- `md2` — Quake II MD2(megafps/md2 仕様): `IDP2`+version 8、68B ヘッダ — skinwh/framesize/5カウント + 6スロット section offset 表(skins/st/tris/frames/glcmds/end)、`section_at`/`section_name`、全 offset 境界照合
+- `mpq` — Blizzard MPQ(zealdocs MPQ 仕様): `MPQ\x1A` ユーザヘッダマジック、header/archive size、format_version(v0-v3)、`512<<shift` セクタ、hash/block テーブル位置+エントリ数(各16B)、v2 拡張(hi テーブル u64 + hi16 半分)
+- `grp` — Build エンジン GRP(Ken Silverman 形式): `KenSilverman` 12B 署名 + u32 カウント + 連続 `(name12, size)` ディレクトリ → 順次 blob。`file`/`find`(大文字不区別)で参照
+- `vtf` — Valve VTF(Valve Dev Community VTF 仕様): `VTF\0` + (7,0)-(7,5) バージョン対 + 80B ヘッダ: 幅高・flags・frames/first_frame・reflectivity/bump raw bits・image_format・mipmap・低解像度サムネイル・depth(7.2+)
+- `vpk` — Valve VPK(同 VPK 仕様): `0x55AA1234`、v1 は 12B(tree size のみ)、v2 は +16B(file-data/archive-md5/other-md5/signature 各セクション長)。`tree_end`/`signature_at`/`total_len` で配置連鎖
+
+**検証**: 新規テスト全緑(5,456 lib テスト)。oracle: BSP の Q1/Q2 ディレクトリ開始差(Q1 は version 直後=+4、IBSP は +8)と全ランプ EOF 照合、MDL の v6 固定・raw float ビット、MD2 の 6 オフセット表境界、MPQ の `512<<shift` と 16B エントリ範囲・v2 拡張フィールド、GRP の 12.3 名 NUL トリムと blob 連続配置、VTF の `VTF\0`+v7.x とサムネイル存在判定、VPK の v1/v2 セクション連鎖。ラウンド内捕捉: BSP の Q1 ディレクトリ位置(0→4 修正)、GRP フィクスチャの 12.3 名コピー幅不一致、MDL/MD2/VPK doctest のフィールドオフセット誤り。
+
+## 出典(第104次、search-index 照合)
+
+**論文・仕様**: Quake BSP 形式仕様(Quest for the Mersenne Twister / Quake Wiki BSP29・IBSP ドキュメント)/ Quake `mdl.h` 構造体定義 / `MD2` ファイルフォーマット記述(megafps 他) / zealdocs「MPQ File Format」/ Ken Silverman の Build engine GRP 定義 / Valve Developer Community「Valve Texture Format」「VPK File Format」— 全て整数のみで実装(f32 は raw bits)。
+
+**実装物**: Quake/Q2 ソースのモデルローダ、quake-utils/wad3 系ツール、StormLib(ZeL sounding MPQ 実装)、kextract/EDuke32 の GRP リーダ、VTFLib、vpk.exe/ValveResourceFormat — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Quake 資産解析・MOD 作成記事、GoldSrc/Source エンジンの VTF/VPK 解説、MPQ/StormLib 日本語資料、Build エンジン系の国内メモ — 全て整数のみで実装。
+
+## 第105次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レガシー CJK エンコーディングと UTF-16(全7件が既存 641 件と非衝突を確認):
+
+- `sjis` — Shift_JIS(WHATWG Encoding の trail 範囲定義): lead `0x81..=0x9F`/`0xE0..=0xFC`、trail `0x40..=0x7E`/`0x80..=0xFC`(`0x7F` 除外)、`0xA1..=0xDF` は半角カタカナ。`to_kuten` は `p = hi*188 + (trail≤0x7e ? trail−0x40 : trail−0x41)`(hi は ≤0x9F で `lead−0x81`、以降 `lead−0xC1`)から `(p/94+1, p%94+1)` の区点へ投影
+- `eucjp` — EUC-JP(JIS X 0208/0212 対応): `0x8E`+1B=半角カタカナ、`0x8F`+2B=JIS X 0212、`0xA1..=0xFE`×2=JIS X 0208 の区点
+- `iso2022` — ISO-2022-JP(RFC 1468 + JIS X 0212 拡張): 状態機械で G0 指定を追跡 — `ESC ( B` ASCII、`ESC ( J` JIS X 0201 roman、`ESC $ B`/`ESC $ @` JIS X 0208(1983/1978)、`ESC $ ( D` JIS X 0212。指定中は `0x21..=0x7E`×2 が区点
+- `big5` — Big5(ETen/CNS 11643 系): lead `0x81..=0xFE` × trail `0x40..=0x7E`|`0xA1..=0xFE`、`point = (lead−0x81)*157 + adj`(adj: trail≤0x7e → −0x40、else −0x62)の線形インデックス
+- `gbk` — GBK(GB 2312 上位互換拡張): lead `0x81..=0xFE` × trail `0x40..=0xFE`(`0x7F` のみ穴)。低位 trail `0x40..=0x7E` は GBK 独自(GB 2312 では違法)。`point = (lead−0x81)*190 + adj`(−0x40/−0x41)
+- `euckr` — EUC-KR(KS X 1001): シフトなしの `0xA1..=0xFE`×2 区点のみ
+- `utf16` — UTF-16(Unicode Core §3.9 D91): BOM `FE FF`/`FF FE` 検出(無 BOM は BE)、`unit` は手動シフトで両端序対応、hi `0xD800..=0xDBFF` + lo `0xDC00..=0xDFFF` → `0x10000+((hi−0xD800)<<10)|(lo−0xDC00)`、孤立サロゲートは `Unpaired`、`encode` は範囲外を `0xFFFD`
+
+**検証**: 新規テスト全緑 + doctest 全緑(639 件)。oracle: SJIS 区点公式の往復(lead/trail 境界 `0x7E`/`0x7F` 判定)、EUC-JP 3 系シフト、ISO-2022-JP の指定→文字→リセット状態遷移、Big5/GBK の `point` 線形式と低位 trail の GBK 独自性、EUC-KR 区点、UTF-16 の BOM・サロゲート対・孤立サロゲート・エンコード逆変換。ラウンド内捕捉: SJIS 区点の +1 二重計上、UTF-16 の奇数バイト末尾を `?` で落とす経路(長さ先検査に変更)、`to_be_bytes` 禁止で `unit` を手動シフト化。
+
+## 出典(第105次、search-index 照合)
+
+**論文・仕様**: WHATWG Encoding Standard(Shift_JIS/EUC-JP/Big5/GBK/EUC-KR の lead-trail テーブルと pointer 式)/ RFC 1468 ISO-2022-JP(escape sequence 指定集)/ JIS X 0208・JIS X 0212・JIS X 0201 / CNS 11643(Big5)/ GB 2312-80・GBK 仕様 / KS X 1001 / Unicode Standard §3.9(D91 UTF-16・サロゲート範囲・BOM)— 全て整数のみで実装。
+
+**実装物**: glibc/libiconv の SHIFT_JIS・EUC-JP・ISO-2022-JP・BIG5・GBK・EUC-KR テーブル、nkf の 2022-JP 状態機械、ICU コンバータの境界挙動、Rust `encoding_rs` のインデックス付け方針 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
