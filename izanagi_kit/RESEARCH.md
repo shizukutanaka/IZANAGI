@@ -2532,3 +2532,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: SameBoy/mGBA のカートリッジヘッダ検証、mGBA の GBA ロゴ照合、cen64/ares の N64 バイトオーダ変換、Mesen-S/bsnes の SNES ヘッダスコアリング、FCEUX の FDS ローダ、Fuse/libspectrum の TZX ブロック walk、VICE の D64 BAM/dir リーダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の GB/GBA エミュレータ自作記事(ヘッダ解析・ロゴ照合)、Zenn の N64 ROM 解析メモ、Qiita の SFC ヘッダ・FDS フォーマット解説、レトロPC 系国内ブログの TZX/D64 入門記事 — 全て整数のみで実装。
+
+## 第96次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — ファームウェア・パーティション・実行形式(全7件が既存 585 件と非衝突を確認):
+
+- `mbr` — PC/BIOS MBR パーティション表(osdev wiki・Wiki「Master boot record」): シグネチャ `55 AA`@510、disk signature u32@440、446 から 16B×4 エントリ(`status`/`chs_first`/`type`/`chs_last`/`lba u32`/`sectors u32`)、0x80=bootable、0xEE=GPT protective
+- `gpt` — UEFI GPT ヘッダ(UEFI Specification §5 GPT): LBA1 の `EFI PART`、revision u32@8、header_size u32@12(92..512)、header CRC32@16(CRC フィールドをゼロ潰しして検算 — `crate::crc` を再利用)、reserved@20、current/backup/first/last usable LBA、disk GUID@56、エントリ配列(lba@72/count@80/entry_size@84 ≥128 かつ 8 の倍数)とエントリ配列 CRC32@88。エントリ = type GUID 16B + unique GUID 16B + first/last LBA + attrs + 72B UTF-16LE 名
+- `pe` — PE/COFF(Microsoft PE Format spec): `MZ` + e_lfanew u32@60 → `PE\0\0` → COFF ヘッダ 20B(machine/n_sections/timestamp/symtab/opt_size/characteristics) → optional magic(0x10B=PE32/0x20B=PE32+)→ 40B セクション表(name8/vsize/vaddr/raw_size/raw_ptr/…/chars@36)。`sections` イテレータ + `Section::data` で実データ切出し
+- `squashfs` — SquashFS v4 スーパーブロック(kernel `squashfs_fs.h`): `hsqs` magic u32 LE、inodes/mkfs_time/block_size/fragments u32、compression u16(1 gzip..6 zstd)、block_log/flags/no_ids u16、major/minor u16、root_inode u64、bytes_used と 6 本のテーブル開始オフセット u64
+- `intelhex` — Intel HEX(Intel HEX32 仕様): `:LLAAAATT DD.. CC`、LL=バイト数、TT=type(00 data/01 EOF/02 ext seg/03 start seg/04 ext lin/05 start lin)、チェックサム = 全バイトの和の二の補数で合計下位1B=0。`address_base` は ext seg `<<4` / ext lin `<<16` を返す
+- `srec` — Motorola S-record(SREC 仕様): `S{0..9}` + count u8(addr+data+cksum をカバー)+ アドレス(S0/S1/S5/S9=2B、S2/S8=3B、S3/S7=4B、BE)+ データ + 1 の補数チェックサム。S5=レコード数、S7/S8/S9=エントリポイント
+- `dtb` — FDT/Devicetree blob(Linux kernel DTB 仕様・U-Boot/OF): 全フィールド big-endian、magic `0xD00DFEED`、totalsize/struct/strings/rsvmap オフセット、version/boot_cpuid/ブロックサイズ。struct ブロックのトークン列(BEGIN_NODE=1 + NUL終端名 4B アライン、END_NODE=2、PROP=3 + len+nameoff+data、NOP=4、END=9)をイテレータで走査、プロパティ名は strings ブロック側オフセット参照
+
+**検証**: 新規テスト全緑(5,280 lib テスト + doctest 群)。oracle: MBR 保護判定(全スロットが空か 0xEE)、GPT ヘッダ CRC32(フィールドゼロ潰しで往復一致)とエントリ配列 CRC32、PE セクション表の `raw_ptr` 実データ切出し、SquashFS フラグビットアクセサ全網羅、Intel HEX/SREC の各行チェックサム検算、FDT トークン列の 4B パディング位置計算。ラウンド内捕捉: GPT フィールドオフセットを全て -4 ずれで読んでいた(magic が 8B あるのに revision を @4 とした — 実 spec は @8/@12/@16/@20reserved)、intelhex データレコードのチェックサムを手計算で 1 ずらして書いていた、SREC レコードの count バイトは addr+data+cksum を含む(3B データなら 6)。
+
+## 出典(第96次、search-index 照合)
+
+**論文・仕様**: UEFI Specification §5.3(GPT ヘッダ・エントリ配列・CRC32 規定)/ osdev wiki と Wiki の MBR/EBR パーティションエントリレイアウト / Microsoft PE Format specification(PE/COFF: e_lfanew、COFF ヘッダ、optional header magic、セクション表 40B)/ Linux kernel `squashfs_fs.h`(v4 スーパーブロック 96B・compression id・flag bits)/ Intel Hexadecimal Object File Format specification(LL/AAAA/TT/チェックサム)/ Motorola S-record(SREC)フォーマット定義(count・BE アドレス幅・1 の補数)/ Devicetree Specification(Flattened Devicetree §5:FDT ヘッダ・トークン列・strings ブロック)— 全て整数のみで実装。
+
+**実装物**: util-linux sfdisk/fdisk の MBR/GPT 処理、llvm-objdump/llvm-readobj の PE セクション走査、mksquashfs のスーパーブロック書出し、GNU binutils `objcopy` の ihex/srec 生成、dtc(device-tree compiler)の FDT デコンパイラ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita の MBR/GPT 構造解説・自作 OS 系記事(シグネチャ 0x55AA・保護 MBR 0xEE)、UEFI/GPT パーティション仕様の国内ブログ訳説、Qiita の PE フォーマット自作ローダー記事、組み込み系技術同人誌・Zenn の device tree (DTB/DTBO) 解説、国内 AVR/組込みコミュニティの Intel HEX・SREC メモ — 全て整数のみで実装。
