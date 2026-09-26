@@ -3256,3 +3256,23 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: python tcxparser / fitparse・GDAL ogr GeoJSON/WKB・mapbox topojson-server・pmtiles CLI・gpxsee/tilemaker 各実装を参照 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の TCX/FIT 解析・GeoJSON⇄TopoJSON 変換・PMTiles 日本語解説・SRTM データ利用記事 — 全て整数のみで実装。
+
+## 第130次(search-index 照合ラウンド / 実装証跡付き)
+
+- `dhcp` — RFC 2131/951: 236B 固定ヘッダ + `0x63825363` クッキー + オプション TLV(code/len/value、0=pad・255=end、末尾切断は部分回収)
+- `radius` — RFC 2865: `code id len` + 16B authenticator + 属性 TLV(len≥2、`len` 不一致は全体失敗)
+- `bgp` — RFC 4271: 16B `0xFF` marker + len(19..=4096) + type(OPEN/UPDATE/NOTIFICATION/KEEPALIVE/ROUTE-REFRESH)、OPEN 本体を version/AS/hold/ID まで一段展開
+- `lldp` — IEEE 802.1AB: `type:7|len:9` 2B ヘッダの TLV 連鎖、type 0 が終端
+- `vrrp` — RFC 5798: version/type ニブル(v2・v3、type は 1 のみ)、count_ip 個の IPv4 アドレス
+- `stp` — IEEE 802.1D/802.1w: protocol_id=0 + version + type(Config 0x00/RST 0x02/TCN 0x80)、Config は root/bridge ID + タイマ群(1/256s 整数)
+- `igmp` — RFC 1112/2236/3376: type/max_resp/checksum/group、RFC 1071 の1の補数検算(checksum==0 は非検算扱い)、v3 query の S/QRV/QQIC+送信元リスト、v3 report の num_groups
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: RADIUS の `len` は wire 長との厳密一致(テスト値が26なのに24と書いて可算不一致で落ちた)、LLDP TLV ヘッダは上位7bitが型(下位9bitが長さ)。
+
+## 出典(第130次、search-index 照合)
+
+**論文・仕様**: RFC 951/2131(BOOTP/DHCP)+ RFC 2132(オプション)、RFC 2865(RADIUS)、RFC 4271(BGP-4)+ RFC 2918、IEEE 802.1AB(LLDP TLV 形式)、RFC 5798(VRRPv3)+ RFC 3768(v2)、IEEE 802.1D §9(BPDU)/802.1w、RFC 1112/2236/3376(IGMP v1–v3)、RFC 1071(チェックサム)— 全て整数のみで実装。
+
+**実装物**: isc-dhcp・busybox udhcpc、freeradius、FRRouting/GoBGP、lldpd、keepalived、Linux bridge STP、Linux kernel igmp.c — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の DHCP パケット自作・RADIUS 属性表・BGP メッセージ解析・LLDP フレーム観察・VRRP/STP/IGMP 動作解説記事 — 全て整数のみで実装。
