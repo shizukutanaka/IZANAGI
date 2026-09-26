@@ -2730,3 +2730,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: Quake/Q2 ソースのモデルローダ、quake-utils/wad3 系ツール、StormLib(ZeL sounding MPQ 実装)、kextract/EDuke32 の GRP リーダ、VTFLib、vpk.exe/ValveResourceFormat — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Quake 資産解析・MOD 作成記事、GoldSrc/Source エンジンの VTF/VPK 解説、MPQ/StormLib 日本語資料、Build エンジン系の国内メモ — 全て整数のみで実装。
+
+## 第105次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — レガシー CJK エンコーディングと UTF-16(全7件が既存 641 件と非衝突を確認):
+
+- `sjis` — Shift_JIS(WHATWG Encoding の trail 範囲定義): lead `0x81..=0x9F`/`0xE0..=0xFC`、trail `0x40..=0x7E`/`0x80..=0xFC`(`0x7F` 除外)、`0xA1..=0xDF` は半角カタカナ。`to_kuten` は `p = hi*188 + (trail≤0x7e ? trail−0x40 : trail−0x41)`(hi は ≤0x9F で `lead−0x81`、以降 `lead−0xC1`)から `(p/94+1, p%94+1)` の区点へ投影
+- `eucjp` — EUC-JP(JIS X 0208/0212 対応): `0x8E`+1B=半角カタカナ、`0x8F`+2B=JIS X 0212、`0xA1..=0xFE`×2=JIS X 0208 の区点
+- `iso2022` — ISO-2022-JP(RFC 1468 + JIS X 0212 拡張): 状態機械で G0 指定を追跡 — `ESC ( B` ASCII、`ESC ( J` JIS X 0201 roman、`ESC $ B`/`ESC $ @` JIS X 0208(1983/1978)、`ESC $ ( D` JIS X 0212。指定中は `0x21..=0x7E`×2 が区点
+- `big5` — Big5(ETen/CNS 11643 系): lead `0x81..=0xFE` × trail `0x40..=0x7E`|`0xA1..=0xFE`、`point = (lead−0x81)*157 + adj`(adj: trail≤0x7e → −0x40、else −0x62)の線形インデックス
+- `gbk` — GBK(GB 2312 上位互換拡張): lead `0x81..=0xFE` × trail `0x40..=0xFE`(`0x7F` のみ穴)。低位 trail `0x40..=0x7E` は GBK 独自(GB 2312 では違法)。`point = (lead−0x81)*190 + adj`(−0x40/−0x41)
+- `euckr` — EUC-KR(KS X 1001): シフトなしの `0xA1..=0xFE`×2 区点のみ
+- `utf16` — UTF-16(Unicode Core §3.9 D91): BOM `FE FF`/`FF FE` 検出(無 BOM は BE)、`unit` は手動シフトで両端序対応、hi `0xD800..=0xDBFF` + lo `0xDC00..=0xDFFF` → `0x10000+((hi−0xD800)<<10)|(lo−0xDC00)`、孤立サロゲートは `Unpaired`、`encode` は範囲外を `0xFFFD`
+
+**検証**: 新規テスト全緑 + doctest 全緑(639 件)。oracle: SJIS 区点公式の往復(lead/trail 境界 `0x7E`/`0x7F` 判定)、EUC-JP 3 系シフト、ISO-2022-JP の指定→文字→リセット状態遷移、Big5/GBK の `point` 線形式と低位 trail の GBK 独自性、EUC-KR 区点、UTF-16 の BOM・サロゲート対・孤立サロゲート・エンコード逆変換。ラウンド内捕捉: SJIS 区点の +1 二重計上、UTF-16 の奇数バイト末尾を `?` で落とす経路(長さ先検査に変更)、`to_be_bytes` 禁止で `unit` を手動シフト化。
+
+## 出典(第105次、search-index 照合)
+
+**論文・仕様**: WHATWG Encoding Standard(Shift_JIS/EUC-JP/Big5/GBK/EUC-KR の lead-trail テーブルと pointer 式)/ RFC 1468 ISO-2022-JP(escape sequence 指定集)/ JIS X 0208・JIS X 0212・JIS X 0201 / CNS 11643(Big5)/ GB 2312-80・GBK 仕様 / KS X 1001 / Unicode Standard §3.9(D91 UTF-16・サロゲート範囲・BOM)— 全て整数のみで実装。
+
+**実装物**: glibc/libiconv の SHIFT_JIS・EUC-JP・ISO-2022-JP・BIG5・GBK・EUC-KR テーブル、nkf の 2022-JP 状態機械、ICU コンバータの境界挙動、Rust `encoding_rs` のインデックス付け方針 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
