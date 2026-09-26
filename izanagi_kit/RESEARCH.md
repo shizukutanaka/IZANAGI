@@ -2950,3 +2950,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: FluidSynth/timidity の SF2/DLS ローダ、MilkyTracker/ft2-clone の XI 読み込み、Schism Tracker/OpenMPT の ITI ヘッダ処理、TiMidity++ GUS パッチ読み込み、AdPlug 系の SBI/OPL パッチ処理、chocolate-doom の GENMIDI 解析 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SoundFont/DLS・トラッカ音源(IT/XM インストゥルメント)・GUS パッチ・FM 音源 OPL レジスタ構成・Doom 音楽データ解説記事 — 全て整数のみで実装。
+
+## 第116次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — ML・モデル形式(全7件が既存 711 件と非衝突を確認。`pmml` は既存 `xml` が未マージ PR #109 のみに存在し衝突するため `arff` に差し替え):
+
+- `safetensors` — HuggingFace SafeTensors: `u64LE ヘッダ長` + JSON ヘッダ + 連続データ。`{dtype, shape, data_offsets}` エントリを `crate::json` で解析、`__metadata__` はメタマップとして分離、テンソル走査はソート済み名順、`data_offsets` は配列内整数ペア(末尾が blob 境界を兼ねる)
+- `gguf` — llama.cpp GGUF: `GGUF` + version u32 + tensor_count u64 + kv_count u64 + `{u64 キー長, キー, u32 型}` の値レコード列。型表: 0-7 スカラ(1-4B)、8=文字列(u64 長)、9=配列(u32 要素型+u64 個数)、10-12=8B。文字列配列のみ要素毎に長さ先読み
+- `pickle` — Python pickle オペコード走査: `\x80` PROTO + バージョン、`\x95` FRAME + u64LE、行終端系(`I` INT/`L` LONG/`S'` STRING/`V` UNICODE/`p` PUT/`g` GET/`c` GLOBAL=mod\nname)、固定長系(`K`1/`M`2/`J`4/`U`+u8/`\x8C`+u32/`\x8B`+u8/`\x8D`+u8/`h`/`q` BINPUT+BINGET)、構造系(MARK/STOP/REDUCE/BUILD/TUPLE1-3/EMPTY_*)、その他は `Other(u8)` で位置保持 — `STOP` で終了
+- `npz` — NumPy NPZ: `crate::zip` エントリ走査 + 末尾 `.npy` のみ `crate::npy` で解析(ベース名ペア)。`array_data` は名前→`.npy` 補完→抽出→npy ヘッダ後のデータ区切り
+- `onnx` — ONNX `ModelProto` は `crate::proto` の汎用ワイヤ走査の薄ラッパ: field1=ir_version、3=producer_name、4=producer_version、7=graph(GraphProto の再帰プロトバフは生バイトを返して呼び出し側が再パース)、2=opset_import 繰返し
+- `tflite` — TF Lite: `crate::flatbuf` ヘッダ + オフセット4 の識別子 `TFL3` 必須チェック。root Model テーブルの vtable/フィールド u32 アクセスを薄公開
+- `arff` — Weka ARFF: `%` コメント、`@relation` 名(引用符剥がし)、`@attribute 名 型`(名前は `'`クォート内スペース可、型は verbatim)、`@data` 以降の行はカンマ区切り(`?`=欠損 verbatim 保持)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: GGUF の `tensor_count` は情報セクション内のデータを持たず kv の後に tensor_info レコードが連なる(本実装は kv 区切りまで読み `tensors_at` を露出)、pickle はプロトコル 0-5 のテキスト/バイナリ混在で「次のバイト列を得る」目的のため `Bytes(at,len)` は元バッファ座標を保持、ARFF の属性名はスペースを含むため `'`クォート判定が必須、ONNX/TF Lite の「ヘッダだけ読む」設計は「全体を展開しない形式スニファ」という本クレートの規約と一致。
+
+## 出典(第116次、search-index 照合)
+
+**論文・仕様**: HuggingFace SafeTensors spec(u64LE ヘッダ長 + JSON + data_offsets、`__metadata__`)、GGUF v3 仕様(llama.cpp `ggml-common.h`/`gguf` ドキュメント — 型表 0-12、キー/値レコード、配列はネストなしの一階層)、Python `pickle` プロトコルドキュメント(`pickletools` オペコード表)、NumPy `npy`/`npz` 形式仕様(zip コンテナに `.npy` メンバ)、ONNX `onnx.proto3` の `ModelProto` フィールド番号、TensorFlow Lite `schema.fbs`(`TFL3` 識別子、Model テーブル)、Weka ARFF 仕様(@relation/@attribute/@data、`?` 欠損)— 全て整数のみで実装(浮動小数点フィールドは raw bits 保持)。
+
+**実装物**: `safetensors` Rust クレートの構造、llama.cpp `llama-gguf.cpp` の kv 走査、CPython `pickletools.py`、NumPy `libformat.py`/`npzfile.py`、onnx/onnxruntime の ModelProto 読み込み、tflite-rs/flatc の識別子チェック、Weka `ArffLoader` — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SafeTensors・GGUF(llama.cpp 量子化モデル)・ONNX/TFLite 変換・ARFF(Weka 入門)解説記事 — 全て整数のみで実装。
