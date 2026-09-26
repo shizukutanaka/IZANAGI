@@ -4,7 +4,8 @@
 //! and an 80-byte header: texture size, flags, frames,
 //! reflectivity (kept as raw u32 bits), bump-map scale, high-res
 //! image format + mipmap count, low-res thumbnail format + size,
-//! and (7.2+) depth. `parse` requires `header_size` ≥ 80.
+//! and (7.2+) depth. `parse` accepts the 64-byte header used by
+//! 7.0/7.1 and the 80-byte header of 7.2+.
 //!
 //! ```
 //! use izanagi_kit::vtf::{parse, MAGIC};
@@ -50,7 +51,7 @@ pub struct Vtf {
     pub version_major: u32,
     /// Minor.
     pub version_minor: u32,
-    /// Declared header size (≥ 80).
+    /// Declared header size (64 for 7.0/7.1, ≥ 80 for 7.2+).
     pub header_size: u32,
     /// Texture width/height.
     pub width: u16,
@@ -76,7 +77,7 @@ pub struct Vtf {
     pub low_res_width: u8,
     /// Low-res height.
     pub low_res_height: u8,
-    /// Texture depth (v7.2+; 0 otherwise).
+    /// Texture depth (v7.2+; 1 for the 2D-only 7.0/7.1 header).
     pub depth: u16,
 }
 
@@ -131,31 +132,38 @@ pub fn image_bytes(fmt: u32, w: u32, h: u32) -> Option<u64> {
         // DXT3 / DXT5: 16 bytes per 4x4 block.
         14 | 15 => blocks(4, 4, 16),
         // Per-pixel formats.
-        0 | 1 | 11 | 12 | 16 | 19 | 21 | 23 | 26 => {
-            u64::from(w).checked_mul(u64::from(h)).map(|n| n * 4)
-        }
+        0 | 1 | 11 | 12 | 16 | 23 | 26 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 4),
         2 | 3 | 9 | 10 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 3),
-        4 | 6 | 17 | 18 | 22 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 2),
+        4 | 6 | 17 | 18 | 19 | 21 | 22 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 2),
         5 | 7 | 8 => u64::from(w).checked_mul(u64::from(h)),
         24 | 25 => u64::from(w).checked_mul(u64::from(h)).map(|n| n * 8),
         _ => None,
     }
 }
 
-/// Parse a VTF header. Returns `None` on bad magic or a header
-/// size below 80.
+/// Parse a VTF header. Versions 7.0/7.1 carry a 64-byte header;
+/// 7.2+ grows it to 80. Returns `None` on bad magic, a declared
+/// size below the version's minimum, or a truncated buffer.
 pub fn parse(d: &[u8]) -> Option<Vtf> {
-    let h = d.get(..HEADER)?;
-    if h.get(..4)? != MAGIC {
+    let prefix = d.get(..64)?;
+    if prefix.get(..4)? != MAGIC {
         return None;
     }
-    let header_size = le32(h, 12)?;
-    if header_size < HEADER as u32 || header_size as usize > d.len() {
+    let version_major = le32(prefix, 4)?;
+    let version_minor = le32(prefix, 8)?;
+    let header_size = le32(prefix, 12)?;
+    let min = if version_major == 7 && version_minor < 2 {
+        64
+    } else {
+        HEADER
+    } as u32;
+    if header_size < min || header_size as usize > d.len() {
         return None;
     }
+    let h = &d[..header_size as usize];
     Some(Vtf {
-        version_major: le32(h, 4)?,
-        version_minor: le32(h, 8)?,
+        version_major,
+        version_minor,
         header_size,
         width: le16(h, 16)?,
         height: le16(h, 18)?,
@@ -169,7 +177,10 @@ pub fn parse(d: &[u8]) -> Option<Vtf> {
         low_res_format: le32(h, 57)?,
         low_res_width: h.get(61).copied()?,
         low_res_height: h.get(62).copied()?,
-        depth: le16(h, 63)?,
+        depth: match h.get(63..65) {
+            Some(b) => u16::from(b[0]) | u16::from(b[1]) << 8,
+            None => 1,
+        },
     })
 }
 
@@ -215,6 +226,18 @@ mod tests {
         assert!(t.has_thumbnail());
         assert_eq!(t.low_res_bytes(), Some(16 * 16 * 4));
         assert_eq!(t.image_at(), Some(80 + 16 * 16 * 4));
+
+        // 7.1 image with the 64-byte header still parses.
+        let mut old = vec![0u8; 64];
+        old[..4].copy_from_slice(&MAGIC);
+        for (o, v) in [(4, 7u32), (8, 1), (12, 64), (52, 1)] {
+            for i in 0..4 {
+                old[o + i] = (v >> (i * 8)) as u8;
+            }
+        }
+        let o = parse(&old).unwrap();
+        assert_eq!(o.depth, 1);
+        assert_eq!(o.version_minor, 1);
         assert_eq!(image_bytes(13, 17, 17), Some(5 * 5 * 8)); // DXT1 blocks
         assert_eq!(image_bytes(15, 4, 4), Some(16)); // DXT5
         assert_eq!(image_bytes(0xffff_ffff, 8, 8), Some(0));

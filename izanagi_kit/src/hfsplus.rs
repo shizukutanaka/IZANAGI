@@ -140,7 +140,7 @@ pub fn parse(d: &[u8]) -> Option<HfsPlus> {
         first_extent_blocks: 0,
     }; 5];
     for (i, f) in forks.iter_mut().enumerate() {
-        *f = fork(s, 80 + i * 80)?;
+        *f = fork(s, 112 + i * 80)?;
     }
     Some(HfsPlus {
         signature,
@@ -197,12 +197,13 @@ mod tests {
         w32(&mut d, 52, 9_999);
         w32(&mut d, 64, 123_456);
         w32(&mut d, 68, 77);
-        // catalog fork at +240: logical size + first extent
-        w64(&mut d, 240, 16_777_216);
-        w32(&mut d, 248, 8_388_608);
-        w32(&mut d, 252, 4096);
-        w32(&mut d, 256, 16);
-        w32(&mut d, 260, 4096);
+        // catalog fork (3rd of 5, after the 112-byte common part):
+        // logical size + clump + total + first extent
+        w64(&mut d, 272, 16_777_216);
+        w32(&mut d, 280, 8_388_608);
+        w32(&mut d, 284, 4096);
+        w32(&mut d, 288, 16);
+        w32(&mut d, 292, 4096);
         d
     }
 

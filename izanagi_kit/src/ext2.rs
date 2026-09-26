@@ -35,8 +35,8 @@ pub const MAGIC: u16 = 0xef53;
 pub const STATE_CLEAN: u16 = 1;
 /// `s_state`: errors detected.
 pub const STATE_ERRORS: u16 = 2;
-/// `incompat`: journaling present (ext3+).
-pub const INCOMPAT_JOURNAL: u32 = 0x0004;
+/// `s_feature_compat` bit: a journal is present (ext3+).
+pub const COMPAT_HAS_JOURNAL: u32 = 0x0004;
 /// `incompat`: extents (ext4).
 pub const INCOMPAT_EXTENTS: u32 = 0x0040;
 /// `incompat`: 64-bit block counts (ext4).
@@ -110,7 +110,7 @@ impl Ext2 {
     }
     /// True when the journal inode feature is present.
     pub fn has_journal(&self) -> bool {
-        self.feature_incompat & INCOMPAT_JOURNAL != 0
+        self.feature_compat & COMPAT_HAS_JOURNAL != 0
     }
     /// True when extents are used (ext4).
     pub fn has_extents(&self) -> bool {
@@ -207,7 +207,8 @@ mod tests {
         w32(&mut d, 76, 1);
         w32(&mut d, 84, 11);
         w16(&mut d, 88, 256);
-        w32(&mut d, 96, INCOMPAT_JOURNAL | INCOMPAT_EXTENTS);
+        w32(&mut d, 92, COMPAT_HAS_JOURNAL);
+        w32(&mut d, 96, INCOMPAT_EXTENTS);
         d[SUPER_AT + 120..SUPER_AT + 125].copy_from_slice(b"rootv");
         d
     }

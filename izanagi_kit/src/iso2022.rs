@@ -110,9 +110,13 @@ impl Decoder {
             (Set::JisX0208_1983, 3)
         } else if rest.starts_with(b"$(D") {
             (Set::JisX0212, 4)
-        } else if rest.is_empty() {
-            return (Out::Truncated, 0);
         } else {
+            // A proper prefix of a supported designation may complete
+            // in a later buffer — report it as truncated, not invalid.
+            let seqs: [&[u8]; 5] = [b"(B", b"(J", b"$@", b"$B", b"$(D"];
+            if rest.is_empty() || seqs.iter().any(|s| s.starts_with(rest)) {
+                return (Out::Truncated, 0);
+            }
             return (Out::Invalid(0x1b), 1);
         };
         self.set = set;
@@ -180,6 +184,10 @@ mod tests {
     fn invalid_and_truncated() {
         let mut dec = Decoder::new();
         assert_eq!(dec.next(b"\x1B", 0), Some((Out::Truncated, 0)));
+        // Incomplete designations are truncations, not errors.
+        assert_eq!(dec.next(b"\x1B$", 0), Some((Out::Truncated, 0)));
+        assert_eq!(dec.next(b"\x1B(", 0), Some((Out::Truncated, 0)));
+        assert_eq!(dec.next(b"\x1B$(", 0), Some((Out::Truncated, 0)));
         assert_eq!(dec.next(b"\x1B(Z", 0), Some((Out::Invalid(0x1b), 1)));
         assert_eq!(dec.next(b"\x80", 0), Some((Out::Invalid(0x80), 1)));
         assert_eq!(dec.next(b"", 0), None);

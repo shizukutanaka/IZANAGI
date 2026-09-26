@@ -81,13 +81,21 @@ impl Mpq {
             .checked_shl(u32::from(self.sector_shift))
             .unwrap_or(0)
     }
+    /// Absolute hash-table offset with the v2 high word folded in.
+    pub fn hash_table_pos_full(&self) -> u64 {
+        u64::from(self.hash_table_pos) | (u64::from(self.hash_table_pos_hi.unwrap_or(0)) << 32)
+    }
+    /// Absolute block-table offset with the v2 high word folded in.
+    pub fn block_table_pos_full(&self) -> u64 {
+        u64::from(self.block_table_pos) | (u64::from(self.block_table_pos_hi.unwrap_or(0)) << 32)
+    }
     /// Byte end of the hash table.
     pub fn hash_table_end(&self) -> u64 {
-        u64::from(self.hash_table_pos) + u64::from(self.hash_table_entries) * 16
+        self.hash_table_pos_full() + u64::from(self.hash_table_entries) * 16
     }
     /// Byte end of the block table.
     pub fn block_table_end(&self) -> u64 {
-        u64::from(self.block_table_pos) + u64::from(self.block_table_entries) * 16
+        self.block_table_pos_full() + u64::from(self.block_table_entries) * 16
     }
 }
 
@@ -162,7 +170,7 @@ mod tests {
             w(&mut d, 36, 0);
             d[40] = 0; // hash hi
             d[41] = 0;
-            d[42] = 1; // block hi
+            d[42] = 0; // block hi
             d[43] = 0;
         }
         d
@@ -187,7 +195,16 @@ mod tests {
         let m = parse(&fixture(2)).unwrap();
         assert_eq!(m.format_version, 2);
         assert_eq!(m.hi_block_table_pos, Some(3072));
-        assert_eq!(m.block_table_pos_hi, Some(1));
+        assert_eq!(m.block_table_pos_hi, Some(0));
+        assert_eq!(m.hash_table_pos_full(), 1024);
+        assert_eq!(m.block_table_pos_full(), 2048);
+        // A nonzero high word must push the table beyond the buffer.
+        let mut v2 = fixture(2);
+        v2[40] = 1; // wHashTablePosHi = 1 -> offset 0x1_0000_0400
+        assert!(parse(&v2).is_none());
+        let mut v2b = fixture(2);
+        v2b[42] = 1; // wBlockTablePosHi = 1
+        assert!(parse(&v2b).is_none());
         // table past EOF
         let mut bad = fixture(0);
         bad[24] = 255; // hash entries 255 * 16 + 1024 > 4096

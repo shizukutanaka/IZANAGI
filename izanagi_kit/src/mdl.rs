@@ -69,9 +69,9 @@ pub struct Mdl {
 }
 
 impl Mdl {
-    /// Vertex section offset (right after the header, before
-    /// frames — callers walk skins first in practice; this is the
-    /// canonical file start for geometry after the header).
+    /// Offset where variable-length model data begins — the skin
+    /// section (`numskins` records of `skinwidth*skinheight` bytes
+    /// plus group data) starts here; vertices follow it.
     pub fn data_at(&self) -> usize {
         HEADER
     }

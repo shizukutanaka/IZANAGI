@@ -102,13 +102,17 @@ pub fn parse_at(d: &[u8], at: usize) -> Option<Ufs> {
         let lo64 = |o: usize| -> Option<u64> {
             Some(u64::from(le32(s, o)?) | u64::from(le32(s, o + 4)?) << 32)
         };
-        (lo64(0x200)?, lo64(0x208)?, lo64(1024)?, lo64(1028)?)
+        // cstotal is 4 x i64 at 0x400: ndir@1024, nbfree@1032,
+        // nifree@1040, nffree@1048.
+        (lo64(0x200)?, lo64(0x208)?, lo64(1032)?, lo64(1040)?)
     } else {
         (
             u64::from(le32(s, 128)?),
             u64::from(le32(s, 132)?),
-            u64::from(le32(s, 1024)?),
-            u64::from(le32(s, 1028)?),
+            // cstotal is 4 x i32 at 552: ndir@552, nbfree@556,
+            // nifree@560, nffree@564.
+            u64::from(le32(s, 556)?),
+            u64::from(le32(s, 560)?),
         )
     };
     let raw = s.get(1096..1148)?;
@@ -159,8 +163,15 @@ mod tests {
         w(&mut d, 56, 5); // minfree
         w(&mut d, 128, 102_400); // size (ufs1)
         w(&mut d, 132, 100_000); // dsize
-        w(&mut d, 1024, 8_000); // cs_nbfree
-        w(&mut d, 1028, 300_000); // cs_nifree
+        if magic == MAGIC_UFS2 {
+            // 64-bit counters: nbfree@1032, nifree@1040
+            w(&mut d, 1032, 8_000);
+            w(&mut d, 1040, 300_000);
+        } else {
+            // 32-bit counters: nbfree@556, nifree@560
+            w(&mut d, 556, 8_000);
+            w(&mut d, 560, 300_000);
+        }
         let m = b"/mnt/ufs";
         d[SB_AT + 1096..SB_AT + 1096 + m.len()].copy_from_slice(m);
         w(&mut d, MAGIC_AT, magic);
@@ -201,6 +212,13 @@ mod tests {
         assert!(u.is_ufs2);
         assert_eq!(u.total_blocks, 999_999);
         assert_eq!(u.data_blocks, 888_888);
+        assert_eq!(u.free_blocks_total, 8_000);
+        assert_eq!(u.free_inodes_total, 300_000);
+        // A large 64-bit inode counter must not bleed into nbfree.
+        w(&mut d, 1040, 0x1_0000_0001);
+        let u = parse(&d).unwrap();
+        assert_eq!(u.free_inodes_total, 0x1_0000_0001);
+        assert_eq!(u.free_blocks_total, 8_000);
         assert!(parse(&fixture(0xDEAD_BEEF)).is_none());
         assert!(parse(&[0u8; 100]).is_none());
         // parse_at honors an explicit offset (e.g. an alternate
