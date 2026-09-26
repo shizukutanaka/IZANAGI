@@ -3148,3 +3148,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: SimpleITK/ITK の MetaIO、EMAN2/Relion の MRC リーダ、EDFbrowser/pyedflib、JSpecView、OpenMS/pyteomics/mzmine の mzML ローダ、vtk ライブラリの legacy リーダ、Open Babel/VMD の XYZ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MetaImage/MRC(電顕像)・EDF 脳波パース・JCAMP-DX IR データ・mzML プロテオミクス・VTK legacy ファイル解説記事 — 全て整数のみで実装。
+
+## 第125次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — テスト・カバレッジ・CI レポート形式(7件、既存 774 件と非衝突を確認。`sarif` は `json` モジュールを再利用):
+
+- `lcov` — LCOV tracefile: `TN:` テスト名、`SF:` レコード開始、`FN:`/`FNDA:` 関数表、`FNF`/`FNH`、`DA:line,hits`、`LF:`/`LH:`、`end_of_record` 区切り(無くても EOF で flush)
+- `junit` — JUnit XML: `<testsuite>`/`<testsuites>` ルート判定(`<testsuites` は `<testsuite` 前方一致衝突を明示除外)、`<testcase classname name time>` + `<failure>/<error>/<skipped>` 子要素で verdict 決定
+- `sarif` — SARIF 2.1.0: `version`/`runs[]`/`tool.driver.name`/`results[]`(ruleId・level・message.text・artifactLocation.uri)
+- `cobertura` — Cobertura XML: `<coverage line-rate>` は文字列保持(浮動小数点化しない)、`<class name filename>` + `<line number hits>` + `<method name>` — `<class` 前方一致は `<classes`/`class-` を除外して判定
+- `checkstyle` — Checkstyle XML: `<checkstyle version>` + `<file name>` 内 `<error line column severity message source/>`
+- `nunit` — NUnit: v2 `<test-results name total errors failures>` と v3 `<test-run total passed failed>` の両ルート、`<test-case name executed success result>`
+- `gcov` — `.gcov` テキスト: `count:line:code` 行、count は `-`(非実行)/`#####`/`=====`/`$$$$$`(未実行)/数値、`0` 行番号は `Source:`/`Graph:`/`Data:` メタ行
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: junit のルート判定で `<testsuites` が `starts_with("<testsuite")` に真となる前方一致衝突(名属性を取りこぼす)を捕捉して除外、gcov doctest の行インデックス(メタ行を含む配列想定→実際は 0 起き)を修正。
+
+## 出典(第125次、search-index 照合)
+
+**論文・仕様**: LTP/ltp `lcov` geninfo 形式、JUnit XML スキーマ(junitparser/共通慣行)、OASIS SARIF 2.1.0 仕様、Cobertura DTD、Checkstyle XML 出力、NUnit 2.x/3.x result schema、GNU gcov `.gcov` intermediate text 形式 — 全て整数/文字列のみで実装。
+
+**実装物**: lcov/genhtml、JUnit schema(junit5/xunit 出力)、Microsoft SARIF SDK、cobertura/jenkins coverage プラグイン、checkstyle、nunit-console、gcov 本体 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の lcov+genhtml カバレッジ可視化・JUnit XML 連携・SARIF/CodeQL レポート・gcov/gcovr 記事 — 全て整数のみで実装。
