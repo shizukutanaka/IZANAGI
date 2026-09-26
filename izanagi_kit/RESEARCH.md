@@ -2466,3 +2466,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **論文・仕様**: RFC 9559 EBML + Matroska element registry / ISO/IEC 14496-12 ISOBMFF box structure (mvhd v0/v1・stts/stsz/stco/co64) / AIFF spec + AIFC compression tag + 80bit IEEE-754 extended layout / XPM3 format spec (libXpm `c`/`g`/`m`/`s` keys) / Khronos glTF 2.0 GLB container / id Software WAD directory format / W3C SVG 1.1 §8 path data — 全て整数のみで実装。
 
 **実装物**: ffmpeg matroskadec の VINT 読み、gpac/mp4box の box walker、libsndfile aiff.c の extended-float rate、libXpm パーサ、tinygltf の GLB chunk 表、Chocolate Doom w_wad.c の directory、nanosvg の path tokenizer — 全て整数のみで実装。
+
+## 第92次: vox・dds・modfile・chip8・ines・tap・ips — レトロゲーム資産・エミュレータ・dev ツール層
+
+**方法**: 文献参照ラウンド継続 — ゲーム資産/エミュレーション/テスト出力/パッチ形式の残隙(`wad` は第91次で同名モジュールとして先行実装済みのため本ラウンドは除外):
+
+- `vox` — MagicaVoxel `.vox`: `VOX` + version、MAIN 直下は `chunk{id|content_len|children_len}` 列(MAIN 自身の content は 0)。`SIZE`(u32×3)+`XYZI`(count+voxel 列)で `Model`、RGBA チャンクは 256 エントリ固定(1024B、末項は未使用)を `palette[1..=255]` へ収納。`DEFAULT_PALETTE` は spec の 0xAABBGGRR(下位バイト=R)語列、欠落時既定
+- `dds` — DirectDraw Surface: `DDS ` + 124B ヘッダ(dwSize==124/height/width/pitch/mipmapCount/`DDPIXELFORMAT` dwSize==32+flags+FourCC/rgbBits、caps/caps2)。`PixelFormat` で `DDPF_FOURCC`(BC1..5/DX10)vs `DDPF_RGB` を分岐、DX10 は追加 20B(`Dx10Header`)、`block`/`top_mip_size` は BC1 系 8B/それ以外 16B ブロック規則、cubemap/volume は caps2 判定
+- `modfile` — ProTracker `.mod`(MOD=Record Order): 31-sample 版は offset 1080 の signature(`M.K.`/`M!K!`/`FLT4`/`FLT8`/`NNCH`/`TDZN`)、15-sample 版は signature 無しで pattern 領域は offset 600。sample 長は BE word ×2 バイト。パターン 4B セルは period=`(b0&0x0f)<<8|b1`、sample=`(b0&0xf0)|(b2>>4)`、effect=`b2&0x0f`、param=`b3`。`amiga_hz_x100` は PAL 7093789.2Hz を×100 整数で返し周期→周波数換算
+- `chip8` — CHIP-8 COSMAC VIP インタプリタ: 4K メモリ(FONT@0x50・ROM@0x200)、16 レジスタ・16 段スタック・60Hz タイマ・64×32 XOR 描画。`0x55`/`0x65` は `I+=x` 前境界、shift は `Quirks::COSMAC`(y 経由)/`MODERN`(x 自身)分岐、jump0/scoll 無しを基本、`Fx0A` は `wait_key` ラッチ→`press` で解除、`Ex9E/A1` の key skip、`Fx1E` overflow→VF=0、`Dxyn` は範囲外 clip+当たり判定は既に 1 の素子を XOR で消す場合のみ VF=1
+- `ines` — iNES/NES 2.0 ヘッダ: `NES\x1A` + PRG/CHR セクタ数(16KiB/8KiB 単位)。f6 下位 nibble: mirroring/battery/trainer/four-screen、mapper は f6 上位+f7 上位、`f7&0x0C==0x08` で NES 2.0 判別→mapper +12bit、submapper、PRG/CHR MSB nibble(`0xF` 時は exponent×2+1 乗算形)、byte10 で volatile/nonvolatile PRG-RAM を `64<<n` 別フィールド化。console(1..=3: VS/Playchoice/Famiclone dec)と Tv(PAL)も抽出
+- `tap` — TAP14(Test Anything Protocol): `TAP version N` 行、計画 `lo..hi`、point `ok|not ok [num] [desc] [# TODO|SKIP ...]`、indent≥2 の YAML `---`..`...` ブロック、`Bail out!`。`Summary` は計画一致・TODO 失敗の失敗免除・skipped 全 skip を判定、word-boundary 確認済み directive
+- `ips` — IPS(International Patching System): `PATCH` + レコード列 `offset u24 | size u16 | bytes`(size==0 は `count u16 | byte u8` の RLE)+ `EOF`、Lunar IPS 拡張は EOF 直後の u24 で truncate。`apply` はゼロ埋め拡張+末尾 truncate、`diff` は同一長/短い b に対し 4B 以上同値ランを RLE・残りを Data・65535 超えは分割する最小パッチ生成(`apply(a, diff(a,b)) == b` を検証)
+
+**検証**: 新規テスト全緑(各モジュールの oracle: COSMAC shift は y の値を x へコピー、MODERN は x 自身 — `8xy6` 分岐;FX55 境界 `at+x<MEM`;CHIP-8 `0x6010` は V1 でなく V0 へ書込(レジスタ上位ニブル)を捕捉;DDS はヘッダ相対 index(h[8..12]=height)でフィクスチャ;INES は nesdev.org で `64<<n` RAM shift と byte10 高低分割を再確認 — 当初 `<<(n-1)` だったのを修正;VOX RGBA は 255 ではなく **256** エントリ;MOD `amiga_hz_x100(428)=828713`;15-sample MOD は sig 無し pattern@600;IPS diff は emit→parse→apply で対象バイト列再現)。
+
+## 出典(第92次、search-index 照合)
+
+**論文・仕様**: MagicaVoxel `.vox` 公式フォーマット文書(ephtracy リポジトリの chunk 構造・既定 0xAABBGGRR 256 色パレット)/ Microsoft DevDocs の DirectDraw `DDS_HEADER`・`DDPIXELFORMAT`(dwSize=124/32・DDPF_FOURCC/RGB・DX10 20B 拡張)/ ProTracker `.mod` モジュールフォーマット文書(eightbitbush 他・PAL 7093789.2Hz・period 表)/ Cowgod's CHIP-8 Technical Reference + Tobias V. Langhoff クイックガイドのクイック差分表/ nesdev.org wiki の INES・NES 2.0 ヘッダ仕様(mapper 拡張・RAM `64<<n`・exponent×2+1 形・console/Vs)/ TAP14(testanything.org)の grammar(plan point・directive・YAML ブロック・Bail out)/ ROMhacking.net の IPS patch specification + Lunar IPS truncation extension。
+
+**実装物**: ephtracy/MagicaVoxel 配布 `.vox` の観測列、Doxygen `ddraw.h` DDSURFACEDESC、GitHub の mod パーサ群(libxmp/openmpt/ptmodule)、Super ZZ Tile/awesome-chiptune のエミュ実装のクイック一覧、Mesen/fceux の iNES/NES2 リーダ、CPAN `TAP::Parser` と any-tap の normative リスト、Lunar IPS の `PATCH/EOF` ワイヤ列挙 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の CHIP-8 自作エミュレータ記事(0x200 起点・8xy6 クイック差分)、Qiita の MagicaVoxel .vox 解析記事、Zenn の DirectDraw/BCn 圧縮メモ、Qiita/Zenn の TAP プロトコル・CHIP-8・IPS パッチ解説 — 全て整数のみで実装。
