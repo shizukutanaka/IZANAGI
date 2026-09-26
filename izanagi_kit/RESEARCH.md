@@ -2532,3 +2532,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: SameBoy/mGBA のカートリッジヘッダ検証、mGBA の GBA ロゴ照合、cen64/ares の N64 バイトオーダ変換、Mesen-S/bsnes の SNES ヘッダスコアリング、FCEUX の FDS ローダ、Fuse/libspectrum の TZX ブロック walk、VICE の D64 BAM/dir リーダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の GB/GBA エミュレータ自作記事(ヘッダ解析・ロゴ照合)、Zenn の N64 ROM 解析メモ、Qiita の SFC ヘッダ・FDS フォーマット解説、レトロPC 系国内ブログの TZX/D64 入門記事 — 全て整数のみで実装。
+
+## 第95次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — アーカイブ・ディスクイメージ・トラッカー音楽形式の残隙(全7件が既存 578 件と非衝突を確認。国産形式 `lha`/`d88` を含む):
+
+- `lha` — LHA/LZH アーカイブメンバヘッダ(吉崎栄泰氏の LHa 系仕様 + jLHA リファレンス): レベル0/1 は `[size u8][checksum u8][method5][packed4][orig4][msdos_ts4][attr][level][nlen][name][crc16]`、level は offset 20、チェックサムは `[2..2+size]` の u8 折畳み。レベル2は `[hsize u16][method5][packed4][orig4][unix_ts4][attr][level=2][crc16][osid][ext-chain]`、hsize がサイズ語自身を含む全ヘッダ長。拡張ブロック id2=ファイル名でインライン名を上書き。`entries` は `header+packed` 連鎖を走査
+- `atr` — Atari 8bit ATR(Atari DOS/SIO2PC フォーマット): magic `0x0296` LE、サイズは 16B パラグラフ単位 u16(+上位 u16)、sector_size u16(128/256)、flags@8。先頭3セクタは倍密度でも 128B で格納されるブート quirk を `sector(i)` の offset 式に反映
+- `cue` — CUE シート(CDRWIN 文法): `FILE "n" TYPE`、`TRACK nn MODE`、`INDEX ii mm:ss:ff`、`PREGAP`/`POSTGAP`、`TITLE`/`PERFORMER`/`CATALOG`/`REM`/`FLAGS`。`mmssff` は `(m*60+s)*75+f` の75fps フレーム換算、INDEX 01 が開始 LBA
+- `d88` — NEC PC-88/98 D88 ディスクイメージ: `name[16]|reserved[9]|protect|type|size u32|track u32×164`(688B ヘッダ)。トラック先頭はセクタヘッダ列 `C H R N|count u16|density|deleted|status|reserved[5]|data_size u16` + data。`N` は `128<<N` バイトのサイズクラス
+- `xm` — FastTracker II XM: `"Extended Module: "`17B + name20 + 0x1A + tracker20 + version、header_size は offset 60 の語を含むので `patterns_at = 60+hsize`。パターンは `len u32|packing|rows u16|packed u16`、セルは 0x80 フラグ付きビットマスク(下位5bit が note/inst/vol/fx/param の存在)か verbatim 5B。インストゥルメントは size+name+nsamples+サンプルヘッダ表(40B×n)+サンプルデータ連鎖
+- `it` — Impulse Tracker IT: `IMPM` + name26 + ordnum/ins/smp/pat + cwtv/cmwt/flags/special + gv/mv/is/it + msglen/msgoff + chn_pan64 + chn_vol64 + order 表 + パラポインタ列(IT はパラグラフではなく絶対バイトオフセット)
+- `s3m` — Scream Tracker 3 S3M: name28 + 0x1A + type 0x10 + ordnum/insnum/patnum/flags/cwtv/ffi(=1) + "SCRM" + gv/is/it/mv + チャンネル表32B(16 未満は有効、0xFF は無効) + order 表(0xFE=skip、0xFF=終端) + u16 パラグラフポインタ(×16 がバイトオフセット)
+
+**検証**: 新規テスト全緑(5,272 lib テスト + 576 doctest)。oracle: ATR `pars*16` = データ区画一致 + 先頭3セクタ 128B 分岐、LHA level0 チェックサム折畳みと level2 拡張ブロック名上書き、CUE `00:05:00`→375 フレーム(5 秒)、D88 セクタ列の `data_size`/`128<<N` フォールバック、XM パックドセルの `0x80` ビットマスク展開と verbatim 両形、IT パラポインタ絶対オフセット vs S3M の `<<4` パラグラフの差異。ラウンド内捕捉: LHA level2 の packed/orig/ts/crc が全て +1 ずれ(method 5B は offset 2–6、packed は 7 起点 — fixture の `h[6..10]` が method の `-` を潰していた)、XM instrument 走査のサンプルヘッダ幅は 40 固定でなく `sample_header_size` フィールド、d88 doctest の `d.len()` 借用競合。
+
+## 出典(第95次、search-index 照合)
+
+**論文・仕様**: LHa for UNIX/jLHA の LZH ヘッダレベル0/1/2 定義(拡張ブロック id 体系・hsize 意味)/ SIO2PC/Atari DOS の ATR セクタヘッダ仕様(0x0296・パラグラフ長・ブート128B quirk)/ CDRWIN CUE シートコマンド文法(FILE/TRACK/INDEX/PREGAP/75fps)/ NEC PC-88 エミュ界隈の D88 フォーマット文書(688B ヘッダ・164 トラック・C/H/R/N)/ FastTracker II `xm.txt` の XM フォーマット定義(パックドセル・instrument/sample 連鎖)/ Impulse Tracker `it.txt`(ITTECH)のヘッダ・パラポインタ表定義 / Scream Tracker 3 `s3m.txt` のヘッダ・チャンネル表・パラグラフポインタ仕様 — 全て整数のみで実装。
+
+**実装物**: lhasa/jLHA のメンバ走査、atari800/A8E の ATR セクタアドレッシング、libcue/cdrdao の CUE トークナイザ、X Millennium/QUASI88 の D88 セクタ読み、MilkyTracker/OpenMPT の XM パック展開、Schism Tracker の IT/S3M ローダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の LHA 自作展開・ヘッダ解析記事(lharc 互換・ヘッダレベル差分)、PC-88 エミュレータ系国内ブログの D88 解説(セクタ N 値・トラックテーブル)、Qiita の XM/IT/S3M トラッカー形式解説と自作プレイヤー記事、レトロアーカイブ系国内資料 — 全て整数のみで実装。
