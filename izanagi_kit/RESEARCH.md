@@ -3060,3 +3060,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: rsyslog/syslog-ng パーサ、Prometheus `expfmt`、carbon-cache、influxdb `line-protocol` スキャナ、statsd デーモン、opentsdb `TextImport`、systemd-journal-export — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の syslog 形式解説、Prometheus exporter 自作記事、InfluxDB line protocol メモ、StatsD 計装記事 — 全て整数のみで実装。
+
+## 第121次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — ドキュメント・マークアップ形式(全7件が既存 746 件と非衝突を確認):
+
+- `bibtex` — `@kind{key, f=v, ...}`: `@string`/`@preamble` は key 位置に value が直置きされるため name 失敗時に value フォールバック、値は `{..}` 平衡括弧 / `".."` / 裸単語の3形、エントリ間テキストは BibTeX コメントとして読み飛ばす
+- `rst` — セクションは「非空行 + 次行が同長以上の同一区切り文字列」、レベルは区切り文字の出現順(docutils 規約)、`.. name:: arg` ディレクティブ
+- `adoc` — `= タイトル`/`==`..`======` セクション(深さ6上限)、`:name: value` 属性
+- `roff` — `.XX args` / `'XX args` 制御行、`."` コメント、マクロ名は英字列
+- `texinfo` — `@node`/`@chapter`/`@top`/`@appendix` + ブロック系(verbatim/example/...)をスタック化し `@end` 対応を検査
+- `org` — `*` レベル見出し(TODO キーワード分離)、`#+KEY: value`、`#+BEGIN_/END_` ブロック対応
+- `pod` — `=head1..4`/`=item`/`=over`/`=back`/`=begin`/`=end`/`=cut`、コマンド名は英数字(`head1` の数字込み)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが bibtex の末尾 `@` 不在を全体失敗にしていた早期 `?` リターンと pod の `head1` を `head`+`1` で誤読する英字のみスキャンを捕捉 — 共に実際のドキュメントで頻出する形。
+
+## 出典(第121次、search-index 照合)
+
+**論文・仕様**: BibTeX ファイル形式(Oren Patashnik「BibTeXing」)、docutils reStructuredText 仕様、AsciiDoc/asciidoctor 構文リファレンス、groff_man(7) / man(7)、GNU Texinfo マニュアル、Org mode マニュアル、perlpod 仕様 — 全て整数/文字列のみで実装。
+
+**実装物**: `bibtool`/`biber` のパーサ、docutils rst パーサ、asciidoctor、groff/troff、texinfo `makeinfo`、org-mode パーサ、Pod::Simple — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の BibTeX エントリ書き方・reST メモ・AsciiDoc vs Markdown・man ページの書き方・org-mode 入門・POD ドキュメント記事 — 全て整数のみで実装。
