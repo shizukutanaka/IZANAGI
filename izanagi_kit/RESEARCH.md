@@ -2928,3 +2928,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: Biopython `Bio.SeqIO`(fasta/fastq/genbank/stockholm)、htslib/biojs-io-fastq、UCSC `kent/src/lib` の BED パーサ、ape/ETE の Newick パーサ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn のバイオインフォマティクス形式解説(FASTQ の4行構造とマルチライン罠、GFF3 と GTF の差異、GenBank flat file 読み方、SAM/BAM と本ラウンドの差分) — 全て整数のみで実装。
+
+## 第115次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 音源・インストゥルメント形式(全7件が既存 704 件と非衝突を確認。`aiff`/`iff`/`midi`/`wav` は既存、`smp` は `op2` に差し替え):
+
+- `sf2` — SoundFont 2: `RIFF`-`sfbk` フォーム + `INFO`/`sdta`/`pdta` 3 LIST。`INFO` は `ifil`(u16 ペア=バージョン)/`INAM`/`ISFT` 等の `fourcc+size` サブチャンク列、`sdta` に `smpl` 波形ブロブ、`pdta` にプリセット/インストゥルメント/ジェネレータ定義群
+- `dls` — DLS Level 1/2: `RIFF`-`DLS ` フォーム(末尾スペース必須)、`vers` u32 ペア、`colh` インストゥルメント数、`wvpl`/`lins` LIST 入れ子
+- `xi` — FastTracker II インストゥルメント: `Extended Instrument: ` 21B + 名前22B + 0x1A + トラッカ名20B + version u16 @0x40 + 96B ノート→サンプルマップ @0x42 + `num_samples` u16 @0x128 + 40B サンプルヘッダ列
+- `iti` — Impulse Instrument: `IMPI` + DOS ファイル名12B + NNA/DCT/DCA + fadeout + pitch-pan separation/center + global volume/default pan + 乱数変動 + tracker version + `nos` + 名前26B @0x20
+- `pat` — GUS パッチ(GF1PATCH110/ID#000002): 60B 記述 + instruments/voices/channels + waveforms u16 + master volume + data size + 36B 予約 = 固定128B ヘッダ
+- `sbi` — Sound Blaster Instrument: `SBI\x1A` + 32B 名 + OPL2 レジスタ 16B(モジュレータ 0-4 / キャリア 5-9 / feedback+connection @10 / waveform select 12,13)
+- `op2` — Doom GENMIDI.OP2: `#O3_II#` + 175 × 36B インストゥルメントレコード(flags/fine tune/fixed note + モジュレータ・キャリア 2オペレータの OPL レジスタセット)+ 175 × 32B NUL パッド名表
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: DLS のフォーム種別は 4 文字目がスペースの `DLS `(`RIFF`/`LIST` の4CC は常に4バイト)、XI の `num_samples` は 0x128 でサンプルヘッダはその直後の 40B 固定幅、SBI は名前が 32B 固定で NUL パッド、OP2 の名前表はファイル末尾に全件連続配置される。
+
+## 出典(第115次、search-index 照合)
+
+**論文・仕様**: SoundFont 2.01/2.04 Technical Specification(EMU Systems/Creative — `sfbk` フォーム、INFO/sdta/pdta の3 LIST 構造)、DLS Level 1/2 仕様(MMA/AMEI、`DLS ` フォーム、`vers`/`colh`/`wvpl`/`lins`)、FT2 xi フォーマット解説(Samplicity xi_specs.txt / milkytracker xm-form.txt — ヘッダ 66B、ノートマップ、num_samples オフセット)、ITTECH.TXT(Impulse Tracker インストゥルメントヘッダ — NNA/DCT/DCA、PPC/PPS)、GUS .PAT フォーマット仕様(GF1PATCH110+ID#000002 ヘッダ)、SBI フォーマット仕様(OPL2 16 レジスタ値)、DMX GENMIDI.OP2 レイアウト(`#O3_II#`、175 レコード+名前表)— 全て整数のみで実装。
+
+**実装物**: FluidSynth/timidity の SF2/DLS ローダ、MilkyTracker/ft2-clone の XI 読み込み、Schism Tracker/OpenMPT の ITI ヘッダ処理、TiMidity++ GUS パッチ読み込み、AdPlug 系の SBI/OPL パッチ処理、chocolate-doom の GENMIDI 解析 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SoundFont/DLS・トラッカ音源(IT/XM インストゥルメント)・GUS パッチ・FM 音源 OPL レジスタ構成・Doom 音楽データ解説記事 — 全て整数のみで実装。
