@@ -2752,3 +2752,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: glibc/libiconv の SHIFT_JIS・EUC-JP・ISO-2022-JP・BIG5・GBK・EUC-KR テーブル、nkf の 2022-JP 状態機械、ICU コンバータの境界挙動、Rust `encoding_rs` のインデックス付け方針 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
+
+## 第106次: 転送エンコーディング・メタデータ・バイトコード(uue / yenc / hqx / sauce / lnk / icc / luac)
+
+**方法**: 文献参照ラウンド継続 — Usenet 転送符号・メタデータトレーラ・ショートカット・プロファイル・バイトコード(全7件が既存 648 件と非衝突を確認):
+
+- `uue` — uuencode(BSD man + POSIX 系仕様): `begin <octal-mode> <name>`/`end` エンベロープ、行長は `' '+n`(`'` で 0 を許容)、ペイロードは 3B→4字の 6bit 群 `c−0x20`、1行最大45B
+- `yenc` — yEnc(yenc-draft-ferguson 系): ペイロードバイトは `(b+42)&0xFF`、必須エスケープ NUL/TAB/LF/CR と `=`、`.`行頭は `=` で +64 回避、`=ybegin line= size= [part=] name=` / `=yend size= crc32=`、CRC は `crate::crc::crc32`
+- `hqx` — BinHex 4.0(Apple 仕様): 64文字 RUNES 表(`!"#$%&'()*+,-012345689@ABCDEFGHIJKLMNPQRSTUVXYZ[`abcdefhijklmpqr`)、6bit 蓄積デコード、CRC-16 は poly `0x1021` init 0 MSB-first(検査値 `0x31C3`)、ヘッダは nlen+name+type/creator/flags/dlen/rlen(BE)+CRC、出力は `(This file must be converted with BinHex 4.0)` バナー + `:` 枠 64 桁行
+- `sauce` — SAUCE(Standard Architecture for Universal Comment Extensions): 末尾128B `SAUCE00` レコード、Title/Author/Group/Date は固定幅、DataType/FileType/TInfoS/L/R + TFlags(`ice_colors` = flag&1)、コメントは `COMNT`+count+64B×行ブロックがレコード直前
+- `lnk` — Windows ショートカット(MS-SHLLINK): 76B ヘッダ、サイズ `0x4C`、CLSID `0114020000000000C000000000000046`、LinkFlags@20(IDList/UNICODE/…)・FileAttributes・3つの FILETIME・FileSize・IconIndex・ShowCommand・HotKey、IDList は `u16 cb + cb` で境界検査し LinkInfo 開始位置を算出
+- `icc` — ICC.1 プロファイル(ICC 仕様): 128B BE ヘッダ(size@0/CMM@4/version BCD@8,9/class@12/colorspace@16/PCS@20/created@24×6u16/`acsp`@36/platform@40/flags@44/manufacturer@48/model@52/attrs@56/intent@64/illuminant@68/creator@80/id@84/reserved)、タグ表は count@128 + 12B×n(sig/offset/size)
+- `luac` — Lua バイナリチャンク(Lua ソース `lundump.c`/`ldump.c`): シグネチャ `\x1BLua`、5.1 は 12B ヘッダ(version@4,format@5,endianness@6,size_int/size_size_t/size_instr/size_lua_Number/size_lua_integral)、5.2+ は `LUAC_DATA \x19\x93\r\n\x1a\n`@6..12 + size 群、5.3 は `LUAC_INT`(LE `0x5678`)@17 と `LUAC_NUM`(8B)@25、5.4 は upvalue バイトで計34B
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: uuencode BSD マンページの `Cat`→`#0V%T` ベクトルと往復、yEnc 全対象バイトのエスケープ往復 + CRC32 照合、BinHex CRC-16 の `"123456789"→0x31C3` 検査値と `5&&B`→`HQX` ルーン、SAUCE フィールド切り出しと COMNT 行数、LNK CLSID/フラグ/id-list 境界、ICC `acsp`・BCD バージョン・タグ境界照合、Lua 5.1–5.4 各ヘッダ幅の受理/拒否。ラウンド内捕捉: uuencode の `` ` ``(0x60)長文字が 64 と誤解される経路、ICC タグ表の先頭4B(count)を飛ばすオフセット、BinHex RUNES 位置と CRC 初期値(init 0 → XMODEM 系 `0x31C3`)、yEnc ヘッダ行解析の `=` プレフィックス除去。
+
+## 出典(第106次、search-index 照合)
+
+**論文・仕様**: uuencode(5) BSD man page / IEEE Std 1003.1 uuencode/uudecode / yEnc draft-ferguson-yenc-00(及び yenc.org 公式仕様)/ BinHex 4.0 Specification(Apple Tech Info)/ SAUCE 00 spec(ACiD)/ MS-SHLLINK(Shell Link binary format)/ ICC.1:2022 プロファイル仕様 / Lua ソース `lundump.c`・`ldump.c` + `luac` ヘッダ定義 — 全て整数のみで実装。
+
+**実装物**: GNU sharutils/uudecode、leafnode/nget 系 yEnc デコーダ、Python `binhex`/`binascii`、SAUCE パーサ実装(ANSILove/sauce.js)、xvolk `liblnk`、LittleCMS の ICC ヘッダ読み、LuaJIT バイトコードダンプ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の「uuencode の仕組み」「yEnc のエスケープ」「ICC プロファイルの構造」「Windows ショートカット解析」系記事、LuaJIT フォーマットの国内解説 — 全て整数のみで実装。
