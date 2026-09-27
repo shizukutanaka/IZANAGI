@@ -3465,3 +3465,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: UnrealPak / uasset リーダー、fsb5 extractor、godot-unpacker、UnityPy/AssetStudio UnityFS リーダー、ffmpeg roq デコーダー、bink-player 解析、xnb-unpacker — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Unity アセットバンドル解析・Godot PCK 構造・UE4 パッケージ解析・Bink/RoQ ゲーム動画フォーマット・XNB 展開記事 — 全て整数のみで実装。
+
+## 第140次(search-index 照合ラウンド / 実装証跡付き)
+
+バージョン管理システム内部形式(Git pack/idx・Mercurial revlog・svnadmin dump・RCS ,v・Fossil artifact・Git bundle)。
+
+- `gitpack` — Git pack ファイル: `PACK` + u32BE version(2/3)+ count、`entry_header` で `{cont:1|type:3|size:4}` + 7bit 継続の可変長ヘッダを解読(データは zlib のため境界は上位へ委譲)
+- `gitidx` — pack idx v2: `\xFFtOc` + version=2 + 256 扇出テーブル(単調非減少を検証)+ count×20B SHA-1 + count×4B CRC + count×4B offset(bit31=large table 索引)+ 40B チェックサム
+- `revlog` — Mercurial revlogNG `.i`: 64B エントリ整列、entry0 の上位ワードが `(flags<<16)|version`(v1/2)、entry 内 link/parent/node_id(20B)抽出
+- `svndump` — svnadmin dump: `SVN-fs-dump-format-version: 2|3` + `UUID:` + `Revision-number`/`Node-path`/`Node-kind`/`Node-action` ブロック + `Content-length` ペイロードスキップ
+- `cvsrcs` — RCS `,v` マスター: 管理セクションの `key value;` 行(head/branch/access/symbols/locks/comment、`@…@` クォート展開)+ 裸の `X.Y` リビジョン行を `desc` まで収集
+- `fossil` — Fossil artifact カード形式: `A`/`B`/`C`/`D`/`F`/`N`/`P`/`Q`/`R`/`T`/`U`/`W`/`Z`、D+U 必須、W は `<size>` バイトのペイロードを消費、Z トレーラ必須
+- `bundle` — Git bundle: `# v2/v3 git bundle` + `-<sha>` prerequisite 行(refs の前のみ合法)+ `<sha> <ref>` 参照 + 空行 + `PACK` オフセット
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — fossil の `W` カードは宣言サイズ分のペイロードが続く(行イテレータからバイトカーソルへ書換え)、bundle の pack_offset 検査、revlog entry0 の version ワード解釈(`flags<<16|version`)。全て整数のみで実装。
+
+## 出典(第140次、search-index 照合)
+
+**論文・仕様**: Git pack-format.txt(git-scm 内部仕様)、Git pack index v2 仕様、Mercurial RevlogNG ファイル形式(hgwiki)、Subversion dump ファイル形式(svnrdump 文書)、RCS ファイル形式(`rcsfile(5)` man)、Fossil Artifact Formats ドキュメント、Git bundle-format.txt — 全て整数のみで実装。
+
+**実装物**: git verify-pack/index-pack、Mercurial `revlog.c`、svnadmin dump リーダー、CVS/RCS `rcs` ツール、Fossil `manifest.c` カードパーサ、git bundle verify — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Git packfile 解析・idx ファンアウト解説・Mercurial 内部構造・svn dump 構造・RCS ファイル読み方・Fossil SCM 内部・git bundle 使い方記事 — 全て整数のみで実装。
