@@ -3575,3 +3575,24 @@ Windows フォレンジック・アーティファクト($MFT・USN ジャーナ
 **実装物**: QuickFIX/QuickFIXn、jPOS/j8583、GnuCash OFX インポータ、Ledger/hledger QIF、mt940-rs/parsers-mt940、moov-io/ach、bots-edi/StAEDI — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の FIX プロトコル・ISO8583 メッセージ構造・OFX/QIF 取込・MT940 明細・NACHA/ACH・EDIFACT 解説記事 — 全て整数のみで実装。
+## 第145次(search-index 照合ラウンド / 実装証跡付き)
+
+画像・ドキュメントコンテナ内部形式(PSD・XCF・DjVu・JPEG XL・ODF・HEIF・Radiance HDR)。
+
+- `psd` — Adobe PSD/PSB: `8BPS` + version(1/2)+ 6B 予約ゼロ + channels/height/width/depth/mode(全BE)
+- `xcf` — GIMP XCF: `gimp xcf ` + NUL 終端バージョン文字列(`file`/`vNNN`)+ w/h/precision BE
+- `djvu` — DjVu IFF85: `FORM <len> AT&T` + `DJVU`/`DJVM`/`DJVI`/`THUM` サブ種別 + `4cc u32BE` チャンク走査(偶数パディング)
+- `jxl` — JPEG XL: `0xFF0A` 生コーデストリーム vs `JXL ` コンテナ + `size==1` 拡長・`size==0` EOF ボックス規則
+- `odf` — OpenDocument: `zip` 流用、先頭メンバが `mimetype`(stored 必須)で `application/vnd.oasis.`/`sun.xml.` 接頭辞 → 文書種別分類
+- `heif` — HEIF/HEIC/AVIF: ISO BMFF `ftyp` のブランドで `heic`/`avif`/`mif1` 系を分類 + compat ブランド列 + 後続ボックス走査
+- `hdr` — Radiance RGBE: `#?RADIANCE`/`#?RGBE` + `FORMAT=32-bit_rle_rgbe` + 空行 + `-Y h +X w` 解像度宣言
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — heif doctest の ftyp box サイズ(宣言 32 に対し実体 28)、未使用 import(String/Vec)。全て整数のみで実装。
+
+## 出典(第145次、search-index 照合)
+
+**論文・仕様**: Adobe Photoshop File Formats Specification、GIMP XCF 仕様(devel-docs)、DjVu v3 仕様(IFF85/AT&T 形式)、ISO/IEC 18181-1/-2(JPEG XL)、OASIS ODF 1.3(OCF パッケージ構造)、ISO/IEC 23008-12(HEIF/ISOBMFF ブランド)、Radiance pic/RGBE 形式(Ward 1991)— 全て整数のみで実装。
+
+**実装物**: psd-tools/psd.rs、libxcf/GIMP tree、DjVuLibre/ddjvu、libjxl/cjxl、Apache ODF Toolkit/odfpy、libheif/nokia-libheif、rgbe-hdr/pfstools — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PSD 内部構造・XCF ファイル解析・DjVu 解説・JPEG XL ブランド識別・ODF/OpenDocument 内部・HEIC/HEIF 形式・Radiance HDR 解説記事 — 全て整数のみで実装。
