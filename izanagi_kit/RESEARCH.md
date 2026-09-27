@@ -3487,3 +3487,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: git verify-pack/index-pack、Mercurial `revlog.c`、svnadmin dump リーダー、CVS/RCS `rcs` ツール、Fossil `manifest.c` カードパーサ、git bundle verify — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Git packfile 解析・idx ファンアウト解説・Mercurial 内部構造・svn dump 構造・RCS ファイル読み方・Fossil SCM 内部・git bundle 使い方記事 — 全て整数のみで実装。
+
+## 第141次(search-index 照合ラウンド / 実装証跡付き)
+
+ゲーム機メモリ・セーブデータ形式(PS1 mcr・GC gci・DC vms・DS dsv・生SRAM srm・N64 eep/fla)。
+
+- `mcr` — PS1 メモリカード: 128KiB 固定、`MC` マジック + ブロック0 フレーム1..15 の128B ディレクトリ(状態バイト + size + next_block + タイトル20B + XOR チェックサム)、0x51 エントリからチェーン追跡
+- `gci` — GameCube `.gci`: 64B ディレクトリエントリ(gamecode/makercode/filename/first_block/block_count BE)+ `block_count`×8KiB ブロックのフィット検査
+- `vms` — Dreamcast VMU `.vms`: 32B ディレクトリエントリ(file_type 0x33 data / 0xCC game + `12345678.SAV` 名前 + file_size 512B ブロック)
+- `dsv` — DeSmuME `.dsv`: 生セーブ + 122B フッタ(`|<--Snip` マーカー + `raw_len` が `len-122` と一致)
+- `srm` — 生 SRAM/Flash ダンプ(`.srm`/`.sav`): サイズ分類(2K/8K/32K/64K/128K/256K/512K/1M)+ `0x00`/`0xFF` 以外の充填率(‰)
+- `eep` — N64 EEPROM `.eep`: 512B(4Kbit)/2048B(16Kbit)判定 + 8B 消去ページ統計
+- `fla` — N64 FlashRAM `.fla`: 128KiB 固定 + オフセット8 の ASCII ゲームコード + 充填率
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — vms の FileType 判定ロジック整理、bundle→gci の dentry フィールドオフセット(fsm 後の 0x36/0x38/0x3C)を GameCube BIOS 仕様に合わせて修正、srm/eep/fla は「マジック無し」形式のためサイズ分類+統計のみの設計に統一(偽陽性を避ける)。全て整数のみで実装。
+
+## 出典(第141次、search-index 照合)
+
+**論文・仕様**: PlayStation メモリカード仕様(Directory Frame / Block 構造)、GameCube メモリカード ディレクトリエントリ仕様(YAGCD/yet another gamecube documentation)、Sega Dreamcast VMU ファイルシステム仕様、DeSmuME セーブフッタ仕様、N64 EEPROM(93C46/66)/FlashRAM データシート — 全て整数のみで実装。
+
+**実装物**: Dolphin `Memcard`/`GCMemcard` ソース、melonDS `DSi_NAND`/デスクラムセーブ管理、DeSmuME `.dsv` 読み書きコード、Mupen64/Libretro セーブ処理、N64 FlashRAM セーブツール — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PS1 メモリカード内部構造・ゲームキューブセーブ解析・VMU セーブ構造・DeSmuME セーブ互換・N64 セーブバックアップ記事 — 全て整数のみで実装。
