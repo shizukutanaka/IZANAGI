@@ -3662,3 +3662,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: rdb-rs/redis-rdb-cli、redis-rs RESP デコーダ、rust-leveldb/rocksdb sstable・log リーダ、lmdb-rs/mdb_reader、gdbmtool、bsddb3/libdb — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Redis RDB/AOF 内部構造・LevelDB SSTable/log 構造・LMDB 設計解説・GDBM/Berkeley DB 概要記事 — 全て整数のみで実装。
+
+## 第149次(search-index 照合ラウンド / 実装証跡付き)
+
+教育・学習・クイズ形式(Aiken / GIFT / QTI / IMSCC / xAPI / OPML / APKG — 7件)。
+
+- `aiken` — Moodle Aiken: 問題文行 + `A.` 選択肢 + `ANSWER: X`(選択肢に存在する文字のみ受理、空行でレコード区切り)
+- `gift` — Moodle GIFT: `//`/`####` コメント、`::title::`、`{=正解 ~不正解}`、`%pct%` 部分点、`#数値:誤差`、`\` エスケープ、TRUE/FALSE
+- `qti` — IMS QTI 2.x:`<assessmentItem>` + `<prompt>` + `<simpleChoice identifier>` + `<correctResponse><value>`
+- `imscc` — IMS Content Packaging/Common Cartridge `imsmanifest.xml`:`<organizations><item>` の深さ付き走査 + `<resources>` の identifier/href
+- `xapi` — xAPI(Tin Can)JSON ステートメント: actor(mbox/account/openid)/verb.id/object.id + `result.score.scaled` を ppm 整数化
+- `opml` — OPML:`<head><title>` + `<outline>` のネスト深さ + text/type/xmlUrl
+- `apkg` — Anki パッケージ: ZIP 内 `collection.anki2`(SQLite マジック確認)+ `media` JSON マップ、crate::zip/json 再利用
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — GIFT の `%`/`#` マーカー分岐、imscc の自己閉鎖タグと title 抽出、xapi の score 文字列→ppm 変換。全て整数のみで実装。
+
+## 出典(第149次、search-index 照合)
+
+**論文・仕様**: Moodle Aiken/GIFT フォーマットドキュメント、IMS QTI 2.2 仕様・Content Packaging 1.2/Common Cartridge 1.3、xAPI 1.0.3 仕様(ADL)、OPML 2.0 仕様、Anki .apkg 構成 — 全て整数のみで実装。
+
+**実装物**: moodle-qformat_aiken/gift、python-qti/lti、rust-imscc 相当、TinCanJS/tincan-rs、opml-rs、genanki/anki-apkg-export — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Moodle 問題インポート・QTI 解説・xAPI/SCORM 概要・OPML フィード一覧・Anki パッケージ解説記事 — 全て整数のみで実装。
