@@ -3398,3 +3398,26 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: X.Org `libXfont` PCF 読み込み、`afmplib`/`fonttools.afmLib`(AFDKO)、FontForge SFD 入出力、FreeType `winfnt`/`psaux`(CFF INDEX 走査)、fontTools `CFFFont`/OTTO 検査、wine `ne` リソース走査 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の X11 ビットマップフォント(pcf/bdf)解説・AFM/PFM メトリクス解説・`.fon` リソースコンテナ解説・OpenType/TrueType ディレクトリ比較・FontForge スクリプト解説記事 — 全て整数のみで実装。
+
+## 第137次(search-index 照合ラウンド / 実装証跡付き)
+
+組込み・ファームウェアイメージ形式(uImage/boot.img/sparse/UBI/JFFS2/TRX/i.MX IVT/cramfs)。`crc::crc32` を U-Boot hcrc・TRX len-CRC・UBI hdr_crc・JFFS2 hdr_crc に共用。
+
+- `uimage` — U-Boot legacy image: `0x27051956` BE 64B ヘッダ、`hcrc` はヘッダの crc フィールドをゼロ化して検算、`size` はペイロード境界チェック
+- `bootimg` — Android boot.img v0 レイアウト: `ANDROID!` + kernel/ramdisk/second size・addr 群、`os_version` を `(a<<25)|(b<<18)|(c<<11)|patch` へ分解
+- `sparse` — Android sparse image: `0xED26FF3A` LE、file/chunk ヘッダサイズ下限、RAW/FILL/DONT_CARE/CRC32 チャンクの `total_sz` が入力をぴったり埋めることを検証
+- `ubi` — UBI EC ヘッダ: `UBI#` BE + version=1 + `hdr_crc`(先頭60B) + vid/data offset、`UBI!` VID ヘッダの有無も判定
+- `jffs2` — JFFS2 ノード鎖: `{magic 0x1985, nodetype, totlen, hdr_crc}` LE、`hdr_crc` = 先頭8B の CRC32、末尾の `0xFF` 消去領域をスキップ
+- `trx` — OpenWrt/Broadcom TRX: `HDR0` + `len` ≤ 入力 + `crc32` は 12..len、`flag_ver` 分解、3 パーティションオフセット(0=なし)
+- `imx` — NXP i.MX IVT: `{tag 0xD1, len u16BE=0x0020, version 0x4x}` + entry/dcd/boot_data/self/csf、boot-data `{start,length,plugin}` デコード
+- `cramfs` — CramFS v2 スーパーブロック: `0x28CD3D45` LE + `"Compressed ROMFS"` 署名 + flags bit16(v2)時は @64 の埋め込み root inode(`mode:16|uid:16`、`size:24|gid:8`、`namelen:6|offset:26`)を展開
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `uimage` のフィールドオフセットを正式 image_header へ(size@12/load@16/name@32..64、初稿は後半にずれていた)、`cramfs` の inode に magic フィールドは存在しない(`cramfs_inode` は 3 ワード packed)、`sparsefs` は PR #114 の squashfs と重複するため cramfs へ差替え。全て整数のみで実装。
+
+## 出典(第137次、search-index 照合)
+
+**論文・仕様**: DENX U-Boot `uImage` フォーマット(image.h)、AOSP `bootimg.h`(boot_img_hdr v0-v2)、`libsparse` sparse_format.h(0xED26FF3A)、Linux MTD/UBI `ubi-media.h`(EC/VID ヘッダ)、JFFS2 `jffs2_fs.h`(ノード型 + hdr_crc)、OpenWrt `trxhdr.h`(`HDR0`、CRC32 over 12..len)、NXP i.MX6/7 RM の IVT 構造、Linux `cramfs_fs.h` — 全て整数のみで実装。
+
+**実装物**: U-Boot mkimage、Android `mkbootimg`/`simg2img`、ubi-utils `ubiformat`、mtd-utils jffs2dump、OpenWrt trx ツール、imx-mkimage、mkfs.cramfs — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の U-Boot uImage 構造解説・boot.img アンパック・Android sparse 変換・UBI/UBIFS 概要・JFFS2 ダンプ・OpenWrt ファームウェア解析・i.MX ブートシーケンス記事 — 全て整数のみで実装。
