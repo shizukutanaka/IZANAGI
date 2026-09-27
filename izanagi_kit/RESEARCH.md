@@ -3706,3 +3706,47 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **国内技術情報**: Qiita/Zenn の OpenWrt ipk パッケージ作成・snap/squashfs 解説・AppImage 配布方法・macOS pkg/pkgbuild 記事・MSI 内部構造・NuGet nuspec 解説・Flatpak 解説記事 — 全て整数のみで実装。
 
+
+## 第151次: オフィス・ZIP コンテナ形式(docx / xlsx / pptx / vsdx / xps / jar / kmz)
+
+**方法**: 文献参照ラウンド継続 — Office Open XML・OpenXPS・Java アーカイブ・Google Earth コンテナ(全7件が既存 958 件と非衝突を確認):
+
+- `docx` — WordprocessingML(ECMA-376 / ISO/IEC 29500): `[Content_Types].xml` + `word/document.xml` 必須、`<w:p` 段落計数、styles/media/core-props、`vbaProject.bin` で .docm 判定、`<dc:title>` 抽出
+- `xlsx` — SpreadsheetML(同規格): `xl/workbook.xml` 必須、`<sheet name="…">` 一覧、sheet/sharedStrings/styles/calcChain パート存在、.xlsm 判定
+- `pptx` — PresentationML(同規格): `ppt/presentation.xml` 必須、slide/master/notes/media 計数、`<p:sldSz cx cy>` の EMU サイズ、.pptm 判定
+- `vsdx` — Visio OOXML(Visio XML Schema): `visio/document.xml` 必須、`visio/pages/` と `visio/masters/` パート計数、`pages.xml` 索引は除く
+- `xps` — OpenXPS(ECMA-388): `FixedDocSeq.fdseq` または `[0].piece` ストリーム + `.fpage` 固定ページ必須、`.xaml`/`DocumentStructure` パート計数
+- `jar` — Java アーカイブ(JAR File Specification): `META-INF/MANIFEST.MF` 必須、72 桁折り返し(継続行は空白開始)を展開して `Key: value` 読取、class/modular/signed/multi-release 判定
+- `kmz` — KMZ(OGC KML 2.x コンテナ): ルート直下の `*.kml` 必須、`<name>`/`<Placemark>` 抽出、`files/` リソース計数
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — jar のマニフェスト継続行は改行+空白を両方消費する必要(`\r\n ` → 値連結)、xlsx の `xl/worksheets/_rels/*.rels` をシート数に混入させない `.xml` 限定、vsdx の `pages.xml` 索引と実ページの区別。全て整数のみで実装。
+
+## 出典(第151次、search-index 照合)
+
+**論文・仕様**: ECMA-376 / ISO/IEC 29500(OOXML: docx/xlsx/pptx パッケージ規約・OPC)、ECMA-388(OpenXPS)、Visio VSDX File Format(MS-VSDX 系文書)、JAR File Specification(java.util.jar.Manifest — 行折り返し 72B/継続行)、OGC KML 2.3 + Google KMZ tutorial(doc.kml 規約) — 全て整数のみで実装。
+
+**実装物**: Open XML SDK(Office)、Apache POI(ooxml パッケージ)、Microsoft XPS 実装、OpenJDK `java.util.jar.Manifest`、libkml / Google Earth — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の docx/xlsx の中身解説(zip 展開・document.xml)・PowerPoint pptx 構造・Visio 新形式・XPS 概要・JAR マニフェスト仕様・KMZ/KML 違いの解説記事 — 全て整数のみで実装。
+
+## 第152次: ネットワークプロトコル第4弾 — トンネリング・ルーティング・ディレクトリ(gre / esp / ospf / rip / pim / smb2 / snmp)
+
+**方法**: 文献参照ラウンド継続 — IP トンネリング・IPsec・IGP/マルチキャストルーティング・ファイル共有・ネットワーク管理(全7件が既存 965 件と非衝突を確認):
+
+- `gre` — GRE(RFC 2784 + RFC 2890 拡張): 16bit `flags|version` + EtherType、C/K/S ビット駆動で checksum+offset→key→seq の順に可変フィールド消費、version≠0(PPTP 拡張)は拒否
+- `esp` — IPsec ESP(RFC 4303): SPI(32b、wire 上 0 禁止)+ 32b シーケンス + 末尾 trailer の `pad_len`/`next_header` 検出(pad がヘッダを飲まないことを検査)
+- `ospf` — OSPF(RFC 2328 v2 / RFC 5340 v3): 16B ヘッダ `version|type|len|router|area|cksum|autype|auth`、type 1–5 限定、LSU の `lsa_count`(off 24)、v2 の `autype ≤ 2`
+- `rip` — RIPv2(RFC 2453): `command|version|zero` + 20B エントリ列(family/tag/addr/mask/nexthop/metric)、`0xFFFF` family は認証エントリ
+- `pim` — PIMv2(RFC 4601): `version:4|type:4` ニブル、version 2 必須、RFC 1071 検算(checksum=0 は受理)、type 0–10 を Kind に分類
+- `smb2` — SMB2(MS-SMB2): `\xFESMB` + `structure_size==64` の 64B ヘッダ、credit/status/command/flags/next_command/msg_id/tree/session/signature、flags bit0 で応答判定
+- `snmp` — SNMP(RFC 1157 v1 / RFC 3416 v2c / RFC 3412 v3 フレーミング): 自前最小 BER TLV(不定長拒否)で `SEQUENCE{INTEGER version, OCTETSTRING community, context-PDU}` を走査、PDU タグ 0xA0–0xA8 分類
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — snmp の BER 読みで version TLV の終端を次 TLV の開始に使うインデックスオフセット、`esp` の SPI=0 拒否。全て整数のみで実装。
+
+## 出典(第152次、search-index 照合)
+
+**論文・仕様**: RFC 2784(Generic Routing Encapsulation)/ RFC 2890(Key and Sequence Number Extensions)/ RFC 4303(IP ESP)/ RFC 2328(OSPFv2)/ RFC 5340(OSPFv3)/ RFC 2453(RIPv2)/ RFC 4601(PIM-SM)/ MS-SMB2 / RFC 1157,3416,3412(SNMP)+ ITU X.690 BER — 全て整数のみで実装。
+
+**実装物**: Linux `net/ipv4/ip_gre.c`・strongSwan/libreswan ESP 処理、Quagga/FRR ospfd・ripd・pimd、Samba SMB2 サーバ、net-snmp — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の GRE トンネル・IPsec ESP・OSPF/RIP ルーティング・PIM マルチキャスト・SMB2/SMB3・SNMP 監視解説記事 — 全て整数のみで実装。
