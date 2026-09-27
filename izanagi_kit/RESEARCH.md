@@ -3596,3 +3596,25 @@ Windows フォレンジック・アーティファクト($MFT・USN ジャーナ
 **実装物**: psd-tools/psd.rs、libxcf/GIMP tree、DjVuLibre/ddjvu、libjxl/cjxl、Apache ODF Toolkit/odfpy、libheif/nokia-libheif、rgbe-hdr/pfstools — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の PSD 内部構造・XCF ファイル解析・DjVu 解説・JPEG XL ブランド識別・ODF/OpenDocument 内部・HEIC/HEIF 形式・Radiance HDR 解説記事 — 全て整数のみで実装。
+## 第146次(search-index 照合ラウンド / 実装証跡付き)
+
+IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd unit・Ninja・Makefile・PKGBUILD・RPM spec・HCL — 8件)。
+
+- `dockerfile` — Dockerfile: `\` 継続行結合 + `#` コメント + `KEYWORD args` 分類(FROM/EXPOSE/ENV/ARG の収集)
+- `procfile` — Heroku Procfile: `name: command`、名は `[a-z][a-z0-9_-]*` 厳格
+- `systemd` — systemd unit: `[Section]`/`Key=Value`、空値はリストリセット、`get()` は最終非空値
+- `ninja` — ninja build: `rule`/`build out: rule ins | impl || oo`/`default`/`include`/`subninja`、`$` 継続
+- `makefile` — Makefile: `=`/`:=`/`?=`/`+=` 代入 + `target: deps` + タブレシピ(継続結合)
+- `pkgbuild` — Arch PKGBUILD: スカラー/`(...)` 複数行配列/`fn() {}` 本体スキップ、pkgname/pkgver/pkgrel 必須
+- `spec` — RPM .spec: preamble `Tag:` + `%prep`/`%build`/`%install`/`%files`/`%description` 節(本体生テキスト)
+- `hcl` — HCL/Terraform 風: `attr = value` + `type "label" { … }` 再帰ブロック(値は verbatim)
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — hcl の `value()` が `{`/`[` 深度中でも改行で打ち切る二重 break、ws() の `#`/`//`/`/* */` 到達不能( match の `_ => break` 先行)、makefile の `?=`/`+=`/`:=` 演算子幅、`pkgbuild` の関数本体内行を `=` 必須にしていた問題(`fn_depth` スキップへ)。全て整数のみで実装。
+
+## 出典(第146次、search-index 照合)
+
+**論文・仕様**: Dockerfile reference(docker docs)、Heroku Procfile 仕様(DevCenter)、systemd.unit(5)/systemd.syntax(7)、Ninja build format manual、GNU make manual(rules/variables)、Arch PKGBUILD(5)/PKGBUILD wiki、RPM spec(RPM packaging guide)、HCL2 native syntax spec — 全て整数のみで実装。
+
+**実装物**: dockerfile-parser、dorny/paths-filter、systemd-analyze verify、ninja-build、remake/makefile2graph、makepkg/pacman、rpmbuild/spectool、hashicorp/hcl — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Dockerfile ベストプラクティス・Procfile 解説・systemd unit 書き方・Ninja ビルド・Makefile 入門・PKGBUILD 作成・spec ファイル・HCL/Terraform 記事 — 全て整数のみで実装。
