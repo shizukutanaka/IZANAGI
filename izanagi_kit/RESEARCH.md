@@ -3421,3 +3421,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: U-Boot mkimage、Android `mkbootimg`/`simg2img`、ubi-utils `ubiformat`、mtd-utils jffs2dump、OpenWrt trx ツール、imx-mkimage、mkfs.cramfs — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の U-Boot uImage 構造解説・boot.img アンパック・Android sparse 変換・UBI/UBIFS 概要・JFFS2 ダンプ・OpenWrt ファームウェア解析・i.MX ブートシーケンス記事 — 全て整数のみで実装。
+
+## 第138次(search-index 照合ラウンド / 実装証跡付き)
+
+ランタイム・ビルドアーティファクト形式(CPython .pyc / LLVM bitcode / Java KeyStore / Android ODEX / Source Map v3 / DWARF ユニットヘッダ / PDB MSF コンテナ)。
+
+- `pyc` — CPython `.pyc`: magic u32LE(下位16bitは `\r\n`=0x0D0A、上位が magic_number)+ `flags` @4(bit0=hash-based) + timestamp@8・size@12 または hash@8(8B)、marshal コードは後続
+- `llvmbc` — LLVM bitcode: 生ストリーム `BC\xC0\xDE` と Apple ラッパー(`0x0B17C0DE` u32LE + version + offset + size + cpuType)を判別、ラッパーでは offset/size が `BC\xC0\xDE` ストリームを指すことを検証
+- `jks` — Java KeyStore: `0xFEEDFEED` BE + version(1/2)+ count、各エントリ `tag u32`(1=private key/2=cert) + alias(u16len+UTF-8) + timestamp u64 + (tag1 のみ key_len+key+chain count) + cert レコード `{type u16len+utf, len u32, data}`、末尾20B SHA-1 ダイジェスト領域を残す
+- `odex` — Android ODEX: `dey\n` + 3桁 version + `\0`、checksum/dex_offset/dex_length/deps/opt 群の u32LE、dex 領域は入力境界内必須
+- `sourcemap` — Source Map v3: `crate::json` で `version`/`sources`/`names`/`mappings` を取得し、`mappings` を base64-VLQ デコード(`;`=行、`,`=セグメント、フィールドは1/4/5個の差分 VLQ、gen_col は行ごとにリセット)
+- `dwarf` — DWARF `.debug_info`: `unit_length`(0xFFFFFFFF+8B=DWARF64) + version + v4 `abbrev_offset`+`address_size` / v5 `unit_type`+`address_size`+`abbrev_offset` のユニットヘッダ連鎖、敷き詰め必須
+- `msf` — PDB MSF 7.00: 32B マジック `Microsoft C/C++ MSF 7.00\r\n\x1aDS\0` + page_size(512/1024/2048/4096) + fpm/page_count/dir_size/block_map_addr、page_count×page_size ≤ 入力
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `pyc` の bit_field オフセット(@8 ではなく @4)、`odex` のヘッダは flags 込み40B(fixture 長を修正)、`sourcemap` VLQ の sign=LSB 評価('C'=+1, 'D'=−1, 'I'=+4)と行頭 gen_col リセット、JKS tag は 1/2 のみ。全て整数のみで実装。
+
+## 出典(第138次、search-index 照合)
+
+**論文・仕様**: CPython import システム(PEP 552 hash-based .pyc)、LLVM Bitcode File Format(LLVM BitcodeFormat.html)、Oracle JKS File Format 仕様(JDK `Jceks`/JKS エンコーディング)、AOSP oat/dex `dey` ヘッダ構造、Source Map Revision 3 Proposal(Mozilla TC39)、DWARF Debugging Information Format v5 §7.5.1、Microsoft PDB/MSF 7.00 非公式形式メモ(llvm-pdbutil) — 全て整数のみで実装。
+
+**実装物**: CPython `marshal`/`importlib`、llvm-bcanalyzer、JDK `java.security.KeyStore` JKS 実装、AOSP dexdump/odex、source-map npm 実装(VLQ)、LLVM DWARF parser、`llvm-pdbutil` MSF reader — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の .pyc 構造解析・LLVM bitcode 解説・JKS vs PKCS12 比較・ODEX/VDEX 解析・Source Map 仕組み解説・DWARF デバッグ情報入門記事 — 全て整数のみで実装。
