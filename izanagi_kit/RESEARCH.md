@@ -3553,3 +3553,25 @@ Windows フォレンジック・アーティファクト($MFT・USN ジャーナ
 **実装物**: mosquitto/paho、libcoap、Eclipse Tornadoto/coturn、PJSIP/pjsip、LIVE555/FFmpeg RTSP、libsrtp/GStreamer RTP、systemd-resolved LLMNR — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MQTT パケット構造・CoAP プロトコル解説・STUN サーバ実装・SIP メッセージ解析・RTSP/RTP ストリーミング・LLMNR 解説記事 — 全て整数のみで実装。
+
+## 第144次(search-index 照合ラウンド / 実装証跡付き)
+
+金融・銀行メッセージ形式(FIX・ISO 8583・OFX・QIF・MT940・ACH・EDIFACT)。
+
+- `fix` — FIX 4.x/5.x: `8=FIX…` 頭出し、`tag=value\x01` フィールド、`10=nnn` は総和 mod 256 の一致検査
+- `iso8583` — ISO 8583: MTI 4桁 + 8B プライマリビットマップ(bit1 で 16B 化)、生/hex 両モード
+- `ofx` — OFX 1.x SGML: `KEY:VALUE` ヘッダ + `<OFX>` 直下の集計タグ走査(2.x XML 識別)
+- `qif` — Quicken QIF: `!Type:`/`!Option:`/`!Account` 指令 + `^` 終端レコード(アルファ1文字タグ)
+- `mt940` — SWIFT MT940: `:NN:`/`:NNL:` タグ走査、`:61:` 明細分離
+- `ach` — NACHA ACH: 94B 固定長、type 1/5/6/7/8/9 + パディング `9…9` 行、ヘッダ tail は `094`/`10`/`1` 厳密
+- `edi` — UN/EDIFACT: `UNA` サービス文字列で区切り変更可能、`?` エスケープ、`UNB` 先頭必須、`UNZ` で閉域
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `trim_ascii` が MSRV 1.75 では未対応(`[u8]::trim_ascii` は 1.80)、UNA 後の改行スキップ、ISO 8583 ビット位置(0x20 → field 3 で byte1 0x08 ではなく 0x20 が field 11)。全て整数のみで実装。
+
+## 出典(第144次、search-index 照合)
+
+**論文・仕様**: FIX Trading Community FIX 4.2/4.4/FIXT、ISO 8583:1987/1993、OFX 1.6/2.x SGML・XML、Intuit QIF、SWIFT MT940 Category 9、NACHA ACH Rules、UN/EDIFACT ISO 9735 — 全て整数のみで実装。
+
+**実装物**: QuickFIX/QuickFIXn、jPOS/j8583、GnuCash OFX インポータ、Ledger/hledger QIF、mt940-rs/parsers-mt940、moov-io/ach、bots-edi/StAEDI — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の FIX プロトコル・ISO8583 メッセージ構造・OFX/QIF 取込・MT940 明細・NACHA/ACH・EDIFACT 解説記事 — 全て整数のみで実装。
