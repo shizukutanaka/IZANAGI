@@ -3509,3 +3509,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: Dolphin `Memcard`/`GCMemcard` ソース、melonDS `DSi_NAND`/デスクラムセーブ管理、DeSmuME `.dsv` 読み書きコード、Mupen64/Libretro セーブ処理、N64 FlashRAM セーブツール — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の PS1 メモリカード内部構造・ゲームキューブセーブ解析・VMU セーブ構造・DeSmuME セーブ互換・N64 セーブバックアップ記事 — 全て整数のみで実装。
+
+## 第142次(search-index 照合ラウンド / 実装証跡付き)
+
+Windows フォレンジック・アーティファクト($MFT・USN ジャーナル・旧 .evt・$Recycle.Bin・ジャンプリスト・hiberfil・クラッシュダンプ)。
+
+- `mft` — NTFS FILE レコード: `FILE` マジック(BAAD 等は拒否)、USA(fixup)ウィンドウ境界、属性鎖 `type u32 + len` を `0xFFFFFFFF` まで走査、`used_size ≤ alloc_size ≤ レコード長`
+- `usnjrnl` — USN Journal v2/v3 レコード: `record_len` + major 分岐(v2=8B refs/v3=16B refs)+ UTF-16 名の `name_offset/name_len` ウィンドウ検査
+- `evt` — 旧イベントログ: `[len][LfLe][body][len]` フレーム(長さ2箇所一致)、48B ヘッダレコード、本体 ≥48B を Event 化、残りはカーソル扱い
+- `recbin` — `$Recycle.Bin\$I*`: v1=544B 固定(Vista/7)/ v2=可変長 u32 長名(Win8+)、FILETIME 削除時刻 + UTF-16 パス
+- `jumplist` — `*.automaticDestinations-ms`: `ole` CFB コンテナ上で `DestList` ストリーム + 8桁16進ストリーム ID を列挙
+- `hiberfil` — hiberfil.sys: `HIBR`/`WAKE`/`RSTR`/`0` 署名で状態分類 + system_time/first_table_page
+- `crashdump` — クラッシュダンプ: `PAGE`+`DU64`/`DUMP` ペア、bugcheck コード・パラメータ、dump_type @0xF98
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `.evt` レコードフレームは `LfLe+size` 前置ではなく `[len][LfLe][body][len]`(body は len-12)、crashdump テストの不正スライス書込み、usnjrnl v3 のオフセットテーブル分岐。全て整数のみで実装。
+
+## 出典(第142次、search-index 照合)
+
+**論文・仕様**: NTFS FILE Record レイアウト(libfsntfs/REFS 対照文献)、USN Journal v2/v3 レコード仕様(MSDN `USN_RECORD_V2`/`V3`)、EVT イベントログ形式(libevt 仕様書)、`$I` ファイル構造、AutomaticDestinations 仕様(libfwsi)、hiberfil.sys 署名仕様(libhibr)、Windows Crash Dump ヘッダ仕様(libfcrash/minidump 文書)— 全て整数のみで実装。
+
+**実装物**: libfsntfs、libevt/libevtx、libesedb、ReCmd/Kroll artifact パーサ、Volatility `hiberfil` プラグイン、Microsoft WER ダンプ閲覧ツール — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MFT エントリ解析・USN Journal 読み取り・イベントログ構造・$Recycle.Bin 復旧・ジャンプリスト解析・hiberfil.sys 調査・クラッシュダンプ解析記事 — 全て整数のみで実装。
