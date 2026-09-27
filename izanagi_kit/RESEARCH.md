@@ -3531,3 +3531,25 @@ Windows フォレンジック・アーティファクト($MFT・USN ジャーナ
 **実装物**: libfsntfs、libevt/libevtx、libesedb、ReCmd/Kroll artifact パーサ、Volatility `hiberfil` プラグイン、Microsoft WER ダンプ閲覧ツール — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MFT エントリ解析・USN Journal 読み取り・イベントログ構造・$Recycle.Bin 復旧・ジャンプリスト解析・hiberfil.sys 調査・クラッシュダンプ解析記事 — 全て整数のみで実装。
+
+## 第143次(search-index 照合ラウンド / 実装証跡付き)
+
+ネットワークプロトコル第3弾 — メッセージング/メディア系(MQTT・CoAP・STUN・SIP・RTSP・RTP・LLMNR)。
+
+- `mqtt` — MQTT 3.1.1/5.0: `type:4|flags:4` + remaining-length varint(4B 上限)+ CONNECT の `MQTT` 名・level/flags/keepalive
+- `coap` — CoAP RFC 7252: `ver:2|type:2|tkl:4` + code/MSGID + トークン + `delta:4|len:4` オプション(13/14 拡張)+ `0xFF` ペイロードマーカー
+- `stun` — STUN RFC 5389: 上位2bit クリアな type + len%4 + `0x2112A442` + method/class ビット分解 + 4B 整列 TLV
+- `sip` — SIP RFC 3261: `METHOD uri SIP/2.0` / `SIP/2.0 code reason` 振分 + ヘッダマップ + Content-Length フィット
+- `rtsp` — RTSP RFC 2326: 同形 + `CSeq` 抽出
+- `rtp` — RTP RFC 3550: v2 固定ヘッダ + CC 個の CSRC + `X` 拡張(profile+len×4B)
+- `llmnr` — LLMNR RFC 4795: `dns` ワイヤフォーマット流用、RD/RA/CD ビットが立つものは DNS とみなし拒否
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — MQTT CONNECT フィクスチャの remaining_len 不一致(可変ヘッダ10B+payload2B=12)、STUN の method/class ビット分岐式、SIP の空行未到達時判定フラグ化。全て整数のみで実装。
+
+## 出典(第143次、search-index 照合)
+
+**論文・仕様**: OASIS MQTT 3.1.1/5.0、RFC 7252(CoAP)、RFC 5389(STUN)、RFC 3261(SIP)、RFC 2326(RTSP)、RFC 3550(RTP)、RFC 4795(LLMNR)— 全て整数のみで実装。
+
+**実装物**: mosquitto/paho、libcoap、Eclipse Tornadoto/coturn、PJSIP/pjsip、LIVE555/FFmpeg RTSP、libsrtp/GStreamer RTP、systemd-resolved LLMNR — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MQTT パケット構造・CoAP プロトコル解説・STUN サーバ実装・SIP メッセージ解析・RTSP/RTP ストリーミング・LLMNR 解説記事 — 全て整数のみで実装。
