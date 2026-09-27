@@ -3443,3 +3443,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: CPython `marshal`/`importlib`、llvm-bcanalyzer、JDK `java.security.KeyStore` JKS 実装、AOSP dexdump/odex、source-map npm 実装(VLQ)、LLVM DWARF parser、`llvm-pdbutil` MSF reader — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の .pyc 構造解析・LLVM bitcode 解説・JKS vs PKCS12 比較・ODEX/VDEX 解析・Source Map 仕組み解説・DWARF デバッグ情報入門記事 — 全て整数のみで実装。
+
+## 第139次(search-index 照合ラウンド / 実装証跡付き)
+
+ゲームエンジン資産形式 第2弾(UE4 uasset / FMOD FSB5 / Godot PCK / UnityFS / id RoQ / RAD Bink / XNA XNB)。
+
+- `uasset` — UE4 `FPackageFileSummary`: タグ `0x9E2A83C1`(LE)+ legacy/file/licensee バージョン i32 + custom_version テーブル(guid16B + i32、20B/件の境界検査)
+- `fsb` — FMOD FSB5: `FSB5` + 60B 固定ヘッダ(version/num_samples/sample_header_size/name_table_size/data_size/mode)、3 領域が入力に収まることを検証
+- `pck` — Godot PCK: `GDPC` u32LE + pack_version + エンジン3桁バージョン + flags + file_base_ofs u64 + 128B 予約 + file_count(ヘッダ総長 164B)
+- `unityfs` — UnityFS: `UnityFS\0` + BE u32 version(6/7 限定)+ unity_version/unity_revision C 文字列 + size u64BE + comp/uncomp ブロックサイズ + flags
+- `roq` — id RoQ: 先頭チャンク `{0x1084, 0xFFFFFFFF, 0}` + `{id u16, size u32, arg u16}` チャンク鎖、`0x1001` の width/height 抽出、size=0xFFFFFFFF で終端
+- `bik` — RAD Bink: `BIK` + バージョン英字 + file_size(先頭8B除く)+ num_frames/largest_frame/width/height/fps_num/fps_denom/video_flags/audio_tracks
+- `xnb` — XNA/MonoGame `.xnb`: `XNB` + platform バイト(`w`/`x`/`m`)+ version + flags(bit7=圧縮)+ size、圧縮時は decompressed size を追読
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `roq` チャンクヘッダのフィールド順(id@0, **size@2**, arg@6 — fixture も逆順に書いていた)、`pck` ヘッダ長(168 ではなく 164B — version 5 フィールドを 6 と数え違え)、`uasset` の `at` 型推論失敗(`usize` 明示)、`fsb` の不要 `use Vec`。全て整数のみで実装。
+
+## 出典(第139次、search-index 照合)
+
+**論文・仕様**: Unreal Engine `FPackageFileSummary`(UE4 シリアライズ仕様)、FMOD FSB5 フォーマット(fsbtool 解析文書)、Godot PCK ファイルフォーマット(Godot docs / PCK 仕様)、Unity UnityFS バンドル(UnityPy / AssetStudio 解説)、id RoQ ムービー形式(Multimedia Wiki)、RAD Bink コンテナ(Multimedia Wiki)、XNB フォーマット(MonoGame/SharpDX.Xnb) — 全て整数のみで実装。
+
+**実装物**: UnrealPak / uasset リーダー、fsb5 extractor、godot-unpacker、UnityPy/AssetStudio UnityFS リーダー、ffmpeg roq デコーダー、bink-player 解析、xnb-unpacker — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Unity アセットバンドル解析・Godot PCK 構造・UE4 パッケージ解析・Bink/RoQ ゲーム動画フォーマット・XNB 展開記事 — 全て整数のみで実装。
