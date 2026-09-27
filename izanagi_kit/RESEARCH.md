@@ -3684,3 +3684,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: moodle-qformat_aiken/gift、python-qti/lti、rust-imscc 相当、TinCanJS/tincan-rs、opml-rs、genanki/anki-apkg-export — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Moodle 問題インポート・QTI 解説・xAPI/SCORM 概要・OPML フィード一覧・Anki パッケージ解説記事 — 全て整数のみで実装。
+## 第150次(search-index 照合ラウンド / 実装証跡付き)
+
+パッケージ配布・コンテナ形式(opkg ipk / snap / AppImage / macOS pkg / MSI / NuGet / Flatpak — 7件)。
+
+- `ipk` — opkg `.ipk`/`.opk`: `ar` コンテナ内 `debian-binary` + `control.tar.*` + `data.tar.*` 必須、`data_compression` 拡張子分離(gz/xz/lz4/zst)
+- `snap` — snapd `.snap`: SquashFS 96B スーパーブロック(`hsqs`)+ version 4.0 + block_size/block_log 整合 + `meta/snap.yaml` マーカー探索で snap 性を推定
+- `appimage` — AppImage: ELF `e_ident[8..11]` の `AI\x02`/`AI\x03` スタンプで type-2/3 判定 + class/machine
+- `pkg` — macOS `.pkg`: `xar` ヘッダ受理後にヒープ内 `PackageInfo` バイト列を要求、`Payload`/`Distribution`/`Scripts` 有無を併記
+- `msi` — Windows Installer: `ole` ディレクトリ内 `_Tables`/`_Columns`/`_StringData`/`_StringPool`/`_Validation` の存在で MSI 判定、`\x05SummaryInformation*`/`\x05DigitalSignature` 集計
+- `nuget` — NuGet `.nupkg`: `zip` で `[Content_Types].xml` + ルート `*.nuspec` 必須、マニフェストから `<id>`/`<version>` 抽出、`lib/`/`tools/`/`content*/`/`build/` ペイロード計数
+- `flatpak` — Flatpak `.flatpakref`/`.flatpakrepo`/bundle: `ini` の `[Flatpak Ref]`/`[Flatpak Bundle]`/`[Flatpak Repo]` セクション判定 + Name/Branch/Url/Title/IsRuntime/RuntimeRepo/GPGKey
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — ipk の ar フィクスチャ手組み(ヘッダ幅 60B/偶数パディング)、snap の block_log⇔block_size 整合検査、msi の CFB 最小ディレクトリ生成。全て整数のみで実装。
+
+## 出典(第150次、search-index 照合)
+
+**論文・仕様**: opkg/ipk 構成(OpenWrt Wiki / deb packages 形式派生)、snapd snap format documentation、AppImage spec(github.com/AppImage/AppImageSpec)、XAR format + flat package(Apple)、Windows Installer CFB 構造(MSDN/[MS-OLEPS]/[MS-CFB])、NuGet nuspec reference、flatpak flatpakref/flatpakrepo format — 全て整数のみで実装。
+
+**実装物**: opkg/opkg-utils、snapd snap パッケージ実装、appimagetool/type2-runtime、xar、bom/msitools(msiinfo)、NuGet.Client、flatpak flatpak-builtins — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の OpenWrt ipk パッケージ作成・snap/squashfs 解説・AppImage 配布方法・macOS pkg/pkgbuild 記事・MSI 内部構造・NuGet nuspec 解説・Flatpak 解説記事 — 全て整数のみで実装。
+
