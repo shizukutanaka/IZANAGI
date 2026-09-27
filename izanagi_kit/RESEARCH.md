@@ -2752,3 +2752,935 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: glibc/libiconv の SHIFT_JIS・EUC-JP・ISO-2022-JP・BIG5・GBK・EUC-KR テーブル、nkf の 2022-JP 状態機械、ICU コンバータの境界挙動、Rust `encoding_rs` のインデックス付け方針 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
+
+## 第107次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — チャンク型マルチメディアコンテナと点群データ(全7件が既存 648 件と非衝突を確認):
+
+- `iff` — EA IFF-85(Electronic Arts のチャンク構造): `FORM`/`LIST`/`CAT ` + BE32 サイズ + 4B 型ワード、チャンク `{id:4, size:BE32, data, 偶数パディング}`、`subform` で入れ子 FORM を再帰解決。Amiga の ILBM/8SVX/AIFF(Mac) の祖先
+- `avi` — RIFF AVI(Microsoft、IFF 派生で LE32): `RIFF <sz> AVI `、`LIST hdrl`/`avih`(56B 固定レイアウト: usec/frame、flags、total frames、streams、幅高さ)、`LIST strl`/`strh`(56B: fccType `vids`/`auds`、handler、scale/rate/length)、`LIST movi` データ位置。RIFF サイズは `RIFF` 語自身と形式ワードを除く
+- `flv` — Flash Video(Adobe FLV spec): `FLV` + version + flags(bit2=audio, bit0=video) + BE32 ヘッダサイズ(9) + PrevTagSize0(0)。タグ `{type:u8, BE24 サイズ, BE24 タイムスタンプ, u8 ts拡張上位, BE24 streamid, data, BE32 prevsize}`、時刻は `BE24 | ext<<24` の 32bit 合成。type 8/9/18 = audio/video/script
+- `caf` — Core Audio Format(Apple、64bit サイズで RIFF の 4GB 限界を突破): `caff` + u16 ver + u16 flags; チャンク `{type:4, size:BE64-as-i64}` — 負サイズは「EOF まで」。`desc` = 32B ASBD 全BE(f64 sample rate は raw u64 bits)、`data` チャンクの先頭 u32 は edit count
+- `voc` — Creative Voice File(Sound Blaster 時代): banner `"Creative Voice File\x1A"`(20B) + u16 データオフセット(≥26) + u16 version + u16 check(`= !version + 0x1234`)。ブロック `{type:u8, size:LE24, data}`、type 0 = 1B 終端、1=サウンド、3=無音、9=新拡張フォーマット
+- `las` — ASPRS LAS 点群(1.0–1.4): `LASF`、version @24,25、header_size u16@94 がレイアウトを決める(227 ≤1.2 / 235 v1.3 +waveform@227 / 375 v1.4 +EVLR@235,count64@247,by_return64@255)。scale/offset/bounds の f64 は raw u64 bits で保持、v1.4 は legacy u32 点数が 0 のとき points64 を使う
+- `woff2` — Web Open Font Format 2(W3C、Brotli 圧縮): 48B BE ヘッダ `wOF2`、flavor@4(`0x00010000`/`true`/`typ1`/`OTTO`/`ttcf`)、reserved@14 は必ず 0、meta(offset,len,origLen)/priv(offset,len) ペア — 長さ非ゼロなら offset 必須
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: IFF の pad-to-even 走査と入れ子 LIST/FORM、AVI の `strh` が `LIST strl` の型ワードであること(chunk id ではない — 実装は `id==LIST && ty==strl` で分岐)、FLV の BE24/32bit 時刻合成、CAF の負サイズ=EOF 規則、VOC の `!version+0x1234` 検算(演算子優先度の落とし穴: `!x.wrapping_add(..)` は `!(x.wrapping_add(..))` と解釈されるため括弧必須)、LAS の version 別最小ヘッダ長、WOFF2 の meta/priv オフセット整合。ラウンド内捕捉: `*b"..."` はパターンとして不許可(matches!→等価比較連鎖へ修正)、AVI `strl` は LIST の型ワード、VOC check の折返し(`wrapping_add` + 16bit マスク)、IFF チャンクの `at` はデータ開始(ヘッダ+8)。
+
+## 出典(第107次、search-index 照合)
+
+**論文・仕様**: EA「IFF: A Standard for Interchange Format Files」(EA IFF 85)/ Microsoft RIFF/AVI 仕様(avifil32・aviriff.h の `strh`/`avih` レイアウト)/ Adobe「Video File Format Specification」(FLV v10.1)/ Apple Core Audio Format Specification(caff チャンク・ASBD)/ Creative Labs「Voice File (.VOC) Technical Specifications」/ ASPRS LASer File Format Exchange Activities(LAS 1.0–1.4 R15)/ W3C Recommendation「WOFF File Format 2.0」§4(File structure)— 全て整数のみで実装。
+
+**実装物**: libsndfile の CAF/VOC/IFF リーダ、FFmpeg の `avidec.c`/`flvdec.c`、lastools/LASlib、fontTools の WOFF2 コンパイラ(w3c-woff2)/ Google woff2 リファレンス実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の RIFF チャンク解析・FLV/RTMP 配信解説・LAS 点群処理記事・WOFF2 フォント圧縮紹介、『ゲームプログラマになるための3Dグラフィックス技術』系の IFF/RIFF 言及 — 全て整数のみで実装。
+
+## 第108次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — カラムナリデータ交換・タグディレクトリ・CAD/印刷記述(全7件が既存 655 件と非衝突を確認):
+
+- `parquet` — Apache Parquet ファイルエンベロープ: 先頭 `PAR1` + 末尾 `PAR1`(暗号化フッタ時は `PARE`)、末尾8Bは `u32 LE フッタメタ長 + PAR1`、フッタ本体は `len−8−meta_len` から(Thrift compact — 実装は外郭のみでメタ内容は不透明)
+- `avro` — Apache Avro OCF: `Obj\x01` + zigzag-varint メタデータマップ(`long count`、負数 `-N` は「N エントリ + 前置き byte-size long」のブロック形)+ 16B sync マーカ。データブロックは `{count, size, payload, sync}` を EOF まで反復、各ブロックで sync 照合
+- `arrow` — Apache Arrow IPC ファイル形式: 両端 `ARROW1\0\0`(8B)、`len−12` に i32 フッタ長。メッセージ列は `0xFFFFFFFF` 継続 + i32 メタ長(v1.0+)、レガシーは裸 i32(0=EOS)、メタデータ後のボディは 8B アライン。フラットバッファ内部のボディ長は解かないので走査は body-less メッセージで正確
+- `tiff` — TIFF 6.0 + BigTIFF: `II`(LE)/`MM`(BE) バイトオーダ + マジック 42(クラシック: u32 IFD0@4、u16 カウント + 12B エントリ `{tag,type,count,value}` + u32 next)/ 43(BigTIFF: bytesize u16=8@4、reserved 0@6、u64 IFD0@8、u64 カウント + 20B エントリ)。インライン値は `count*type_size ≤ 4`(クラシック)/ ≤8(BigTIFF)、**BE のインライン SHORT は u32 フィールドの上位ハーフに置かれる**
+- `tds` — 3DS バイナリ(Autodesk 3D Studio): チャンク `{id:u16 LE, len:u32 LE(ヘッダ6B込), data}` の木。`0x4D4D` MAIN → `0x3D3D` EDITOR → `0x4000` OBJECT(先頭 NUL 名 + サブチャンク)→ `0x4100` MESH → `0x4110` VERTICES(u16 数 + 12B/頂点)/ `0x4120` FACES(u16 数 + 8B/面)
+- `dxf` — AutoCAD DXF ASCII 交換: 「整数グループコード行 + 生値行」の交互。`0`=エンティティ区切り、`2`=名前、`999`=コメント、`0`/`SECTION`…`0`/`ENDSEC` がセクション区間、`0`/`EOF` で完結
+- `eps` — EPSF/DSC ヘッダ(Adobe Document Structuring Conventions 3.0): `%!PS-Adobe-x.y`(+` EPSF-x.y`)、`%%Key: value` コメント、`%%BoundingBox:` 4 int、`%%Pages:`、`%%Page:`、`%%EndComments`、`%%EOF`
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: TIFF の両端序(手組み BE フィクスチャ — `to_be_bytes` 禁止のため生バイト配列)と BigTIFF 20B エントリ・BE インライン SHORT の上位ハーフ配置、3DS の OBJECT 名スキップ後のサブチャンク解決、DXF のコード/値行ペアリングと EOF 判定、EPS の BoundingBox int 4 つ組と Pages、Avro の負カウント・ブロック形マップと sync 照合、Parquet の PARE 暗号化フッタ判別、Arrow の continuation エンベロープ。ラウンド内捕捉: Avro `count.checked_neg()` は正数も反転する(2→−2 でエントリループが空に)— `if count < 0` に修正、`usize::MAX as i64` は −1 に折り返るため長さ上限比較が全失敗(`kl as u64 > usize::MAX as u64` へ)、DXF の値行なし終端条件(`val_at >= len`)。
+
+## 出典(第108次、search-index 照合)
+
+**論文・仕様**: Apache Parquet Format(parquet-format の File Format 節 — `PAR1`/`PARE` と 4B フッタ長)/ Apache Avro 1.x Specification「Object Container Files」(zigzag/LEB128・ブロック形マップ・sync)/ Apache Arrow Format「IPC File Format」(continuation・EOS・8B アライン)/ Adobe TIFF Revision 6.0 + BigTIFF ドラフト(IFD レイアウト・インライン値規則)/ Autodesk 3D Studio File Format(MLehnérfeldt 解説・chunk id 表)/ AutoCAD DXF Reference(group code 表)/ Adobe DSC 3.0(仕様番号 5001)+ EPSF 規約 — 全て整数のみで実装。
+
+**実装物**: parquet-rs/arrow-rs のフッタ・メッセージ走査、apache/avro の OCF デコーダ、Pillow/libtiff の IFD パーサ(BE インライン値の高ハーフ配置を確認)、Blender/Assimp の 3DS インポータ、`ezdxf` の pair イテレータ、ghostscript の DSC スキャナ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Parquet/Avro/Arrow 比較・Iceberg/Spark 連携記事、TIFF タグ仕様の国内整理、3DS→OBJ 変換記事、DXF を自前で読む記事、PostScript/DSC 解説 — 全て整数のみで実装。
+
+## 第109次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — スキーマ付きシリアライズフレーム + Windows フォレンジックアーティファクト(全7件が既存 662 件と非衝突を確認):
+
+- `thrift` — Apache Thrift TBinaryProtocol: 厳格版は `0x80010000 | type`(BE u32、最上位ビットが厳格印)+ 名前 `string`(i32 BE len)+ i32 seqid;非厳格版は先頭が名前長。TFramedTransport は各メッセージに u32 BE フレーム長を前置。type 1..4 = CALL/REPLY/EXCEPTION/ONEWAY
+- `flatbuf` — FlatBuffers バッファ: `u32 LE` でルートテーブル位置、任意の 4B `file_identifier`、テーブル先頭の i32 は vtable への**逆行き**距離。vtable = `{u16 vtable_len, u16 table_len, u16 field_voffsets[]}`、voffset 0 = フィールド欠落、voffset ≥ table_len は非合法
+- `capnp` — Cap'n Proto ストリームフレーミング: `u32 (segment_count − 1)` + count 個の u32 ワード数、テーブルは偶数 u32 個にパディング。セグメントデータは連続、各セグメントは 8B ワード単位
+- `ion` — Amazon Ion 1.0 バイナリ: `E0 01 00 EA` BVM(型14 ann 長3 の値でもある)+ TLV `{typedesc:u8(hi4=型,lo4=長), [lo==14→varuint len], payload}`、lo=15 は null/終端形。varuint は 7bit 群 + 終端 high bit
+- `regf` — Windows レジストリハイブ: `regf` + 4096B ヘッダ(seq 主/副 @4/@8 一致検査、version、root cell rel @36、size @40)、`0x1000` から 4096 アライン `hbin` ブロック鎖、セルは符号付き i32 サイズ(負=割当済み、8 アライン)
+- `evtx` — Windows イベントログ: `ElfFile\0` + 4096B ヘッダ(最初/最後 chunk no、次 record id、header_size 128、major 3/minor 1、chunk 数、@124 に先頭120B の CRC32)+ `0x1000` 以降 64KiB `ElfChnk\0` チャンク鎖
+- `prefetch` — Windows Prefetch `.pf`: version @0(17/23/26/30/31)+ `SCCA` @4 + filesize @12 + UTF-16LE 名 @16(60B)、hash @76(v17/23)/@80(v26+)、run_count @0x90/@0x98/@0xD0(版別)。Win10+ の `MAM\x04` 圧縮は検出のみ
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: Thrift 厳格/非厳格の同じバッファ二肢、TFramedTransport の枠長照合、FlatBuffers の soffset 逆方向解決と voffset=0 欠落、Cap'n Proto の count−1 格納と偶数パディング、Ion の lo=14 varuint 長/lo=15 null 終端、regf の hbin/負サイズセル、evtx の表なし CRC32 + 64KiB チャンク境界、prefetch の版別 hash/run_count オフセット差。ラウンド内捕捉: FlatBuffers のルートは **vtable ではなくテーブル** を指す(フィクスチャの u32 を 8→14 に修正)、table_len は soffset ワードを含む(f0 voffset 4 は table_len ≥ 8 が必要)。
+
+## 出典(第109次、search-index 照合)
+
+**論文・仕様**: Apache Thrift 仕様(「thrift-spec」`TBinaryProtocol` の `0x80010000|type` 厳格ワード・`TFramedTransport`)/ Google FlatBuffers「Internals of FlatBuffers」(root uoffset・file_identifier・soffset/vtable レイアウト)/ Cap'n Proto Encoding Spec「Serialization over a stream」(segment table·count−1・偶数パディング)/ Amazon Ion 1.0 Specification「Binary Encoding」(BVM・typedesc ニブル・varuint)/ libyal winreg-kb「Windows NT Registry File(REGF)format」/ libyal evtx-kb「Windows XML Event Log(EVTX)format」/ libyal libscca「Windows Prefetch File(PF)format」(版別オフセット表)— 全て整数のみで実装。
+
+**実装物**: apache/thrift の `TBinaryProtocol`・`TFramedTransport` 実装、google/flatbuffers の `GetRoot`/`Table` 参照、capnproto C++ の `serialize.c++` セグメントテーブル、amazon-ion の ion-c、RegRipper/sleuthkit の regf パーサ、python-evtx・libevtx のチャンク走査、Eric Zimmerman PECmd の prefetch 版別レイアウト — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の gRPC/Thrift/FlatBuffers/Cap'n Proto 比較記事・Ion 紹介、Windows フォレンジックの regf/evtx/prefetch 解析記事(DFIR 系)、『Windows Forensic Analysis』系書籍の邦訳知見 — 全て整数のみで実装。
+
+## 第110次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — EDA/半導体設計データ + 光学/仮想ディスクメタデータ(全7件が既存 669 件と非衝突を確認):
+
+- `gds` — GDSII ストリーム(`{reclen:u16 BE incl. 4B 自ヘッダ, tag:u8, dtype:u8}` のレコード走査、`HEADER` の i16 version、tag/dtype 名表)。GDS の実数は IBM excess-64 — 浮動小数点デコードは行わず生バイトのまま
+- `edif` — EDIF (ANSI/EIA-548) ネットリスト: LISP 形式の字句(`;` コメント・文字列保持)、`(edifVersion M m p)` 抽出、`(cell`/`(library` 定義数
+- `lef` — LEF 物理アブストラクト: `VERSION x.y ;`、`UNITS … DATABASE MICRONS n ;`(実構文は UNITS ブロック内行頭 `DATABASE`)、`MACRO name`/`PIN name` … `END` ブロック
+- `def` — DEF 設計ファイル: `VERSION`/`DESIGN`/`COMPONENTS n ;` ヘッダ + `- inst macro …` 行は `COMPONENTS…END COMPONENTS` 内のみ有効(ブロック外の `-` を誤数しない)
+- `liberty` — Liberty `.lib`: `library (name) { … }` グループ、任意深さの `cell (arg)` 引数走査、`key : value ;` 属性
+- `udf` — UDF (OSTA/ECMA-167): セクタ16+ の Volume Recognition Sequence `{type 0, id "BEA01"/"NSR02"/"NSR03"/"TEA01", ver 1}`(1 セクタ 1 記述)、AVDP(tag id 2 @ sector 256)存在確認
+- `vhdx` — Hyper-V VHDX: `vhdxfile` 署名 + 512B UTF-16LE creator、64KiB/128KiB の冗長 `head` ヘッダ(sequence 最大の方が有効、log_version/version/log_offset/length)
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: GDS のレコード長走査(切詰めで停止)、EDIF の括弧/コメント/文字列字句、LEF/DEF のブロック内限定走査(LEF の `UNITS` ブロック構文を doctest が検証 — 行頭 `DATABASE` でないと落ちる)、Liberty のグループ引数 vs 属性値の区別、UDF の VRS 鎖 + TEA01 終端、VHDX の sequence による active ヘッダ選択と二重破壊時 None。ラウンド内捕捉: `d[7]` は reclen 下位バイト(切断するには上位 `d[6]` が必要)、`count.checked_neg` 型の教訓と同系統で「中間オフセットを弄る破壊テストは無効化されうる」ことを確認。
+
+## 出典(第110次、search-index 照合)
+
+**論文・仕様**: Calma/Cadence GDSII Stream Format Manual / GDSIITOOLKIT 準拠の `{reclen, tag, dtype}` レイアウト、ANSI/EIA-548 EDIF 2 0 0 仕様、Cadence LEF/DEF Language Reference(UNITS·MACRO·PIN·COMPONENTS·NETS 文法)、Synopsys Liberty リファレンス(グループ/属性文法)、OSTA Universal Disk Format Specification + ECMA-167(VRS·AVDP)、Microsoft [MS-VHDX] VHDX Format Specification(vhdxfile 署名・冗長 head・sequence)— 全て整数のみで実装。
+
+**実装物**: KLayout/gdstk の GDS レコード走査、qflow/OpenROAD の LEF/DEF パーサ、liberty-parser、pycdlib/libisofs の UDF VRS、qemu の vhdx ドライバ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の半導体設計フロー解説(GDSII・LEF/DEF・Liberty・OpenROAD 記事)、UDF/iso イメージ解析記事、VHDX フォレンジック記事 — 全て整数のみで実装。
+
+## 第111次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 3D/CG 制作パイプライン形式(全7件が既存 676 件と非衝突を確認):
+
+- `blend` — Blender `.blend`: `BLENDER` + ptr-size フラグ(`_`=4/`-`=8)+ endian フラグ(`v`=LE/`V`=BE)+ 3桁バージョン、ブロック `{code:4, size:u32, old_mem_addr:ptr, sdna_index:u32, count:u32}` をヘッダ自身のエンディアンで走査、`ENDB` で終端、`DNA1` ペイロード位置
+- `fbx` — Kaydara FBX バイナリ: `Kaydara FBX Binary  \x00\x1A\x00` + u32 version;version<7500 は32bit `{end_offset, prop_count, prop_bytes}` + u8 名長、7500+ は64bit化;`end_offset==0` のヌルレコードがレベル終端
+- `glb` — glTF バイナリコンテナ: `glTF` + u32 version(2)+ u32 総長、`{u32 len, u32 type}` の `JSON`/`BIN` チャンク鎖(4Bアライン)
+- `abc` — Alembic Ogawa: `\x89Ogawa\x0D\x0A` マジック + u16 frozen + u16 version;グループ = u64 子数 + 子オフセット列、葉は `u64::MAX` マーカー + `(size, offset)`
+- `pmd` — MikuMikuDance PMD: `Pmd` + version(生 u32、1.0=`0x3F80_0000`)+ 20B Shift-JIS 名 + 256B コメント + u32 頂点数
+- `pmx` — PMX: `PMX ` + version(2.0=`0x4000_0000`、2.1=`0x4000_0001`)+ u8 ヘッダサイズ(8)+ 8B 設定ヘッダ(encoding 0=UTF-16/1=UTF-8、index 幅 1/2/4)
+- `bvh` — Biovision BVH モーション: `HIERARCHY`/`ROOT`/`JOINT`/`CHANNELS` の階層 + `MOTION`/`Frames:`/`Frame Time:`(float を排除してミリ単位整数に変換)
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: blend の ptr-size/endian 両軸フィクスチャ、fbx の narrow/wide 両ヘッダ、glb の宣言長照合、abc の葉グループ `u64::MAX` 分岐、pmx の index 幅 1/2/4 検査、bvh の `Frame Time:` 小数→ミリ秒変換(`0.033333`→33、`1.5`→1500)。ラウンド内捕捉: blend のブロックヘッダは `16 + ptr_size` バイト(サイズ2誤算で鎖がずれる)、BVH の `Frame Time:` は空白を含むキーなので単語分割ではなく行頭プレフィックス照合が必要。
+
+## 出典(第111次、search-index 照合)
+
+**論文・仕様**: Blender `.blend` File Structure(SDNA / BLENDER ヘッダ・ENDB 終端)、Kaydara/Autodesk FBX Binary File Format(7500 の 64bit 化・ヌルレコード規則)、Khronos glTF 2.0 §GLB(JSON/BIN チャンク・4B アライン)、Alembic Ogawa 内部フォーマット(マジック・frozen/version・グループ子オフセット列)、PMD/PMX 形式仕様(20B 名・256B コメント・8B 設定ヘッダ)、Biovision BVH 仕様(HIERARCHY/MOTION)— 全て整数のみで実装。
+
+**実装物**: Blender 本体の `BLO_blend_defs.h`/readfile、assimp の FBX パーサ、glTF-Sample-Models/`gltf` crate の GLB ヘッダ、alembic-rs の Ogawa リーダ、MMD 系ローダー(mmd_tools/PmxSharp)、bvh リーダー実装群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の .blend 内部構造・FBX バイナリ解析・GLB コンテナ・Alembic・MMD(PMD/PMX)・BVH モーション解説記事 — 全て整数のみで実装。
+
+## 第112次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 圧縮コンテナ形式(全7件が既存 683 件と非衝突を確認。`lz4` はブロックコーデックとして既存のためフレーム側は `lz4f`):
+
+- `gzip` — RFC 1952 メンバラッパ: `1F 8B` + CM(8)+ FLG(FTEXT/FHCRC/FEXTRA/FNAME/FCOMMENT)+ MTIME/XFL/OS、フラグ順の可変フィールド(FEXTRA=u16長、FNAME/FCOMMENT=NUL終端、FHCRC=u16)、末尾 `{crc32, isize}`
+- `bzip2` — `BZh` + 数字(1-9 = ブロックサイズ×100KB);ブロック先頭 `0x314159265359`(π)+ u32BE crc + randomised + u24 origPtr;終端 `0x177245385090`(√π)
+- `zstd` — RFC 8878: u32LE `0xFD2FB528`;Frame_Header_Descriptor 1B(bits 7-6 FCS幅、bit5 single_segment=window不要、bit2 checksum、bit1-0 dict-id幅)+ 可変 window/dict-id/FCS;`0x184D2A50..5F` スキップ可能フレーム
+- `lz4f` — LZ4 フレーム: u32LE `0x184D2204` + FLG(version 01・block-independence・checksum 系・content-size・dict-id フラグ)+ BD(4-7 → 64KB..4MB);`{u32 size}` ブロック(bit31=非圧縮)、`0` で終端
+- `snappy` — Snappy フレーム形式: 先頭チャンクは必ず `0xFF, len=6, "sNaPpY"`;`{u8 type, u24LE len}` チャンク(0x00 圧縮/0x01 非圧縮/0x02 パディング/0x80-FE スキップ可)+ マスク済み CRC32C(`ror15 + 0xA282EAD8`)
+- `brotli` — RFC 7932: マジックなし、先頭の LSB-first ビットが WBITS ラダー(`0`→16、`1`+3bit n>0→17+n、n=0 の延長形)
+- `zlib` — RFC 1950 プレリュード: CMF(メソッド8・CINFO≤7 = window `2^(cinfo+8)`)+ FLG(FLEVEL/FDICT/FCHECK — `(CMF*256+FLG)%31==0`);FDICT 時は u32BE 辞書 id、末尾 u32BE Adler32
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: gzip の FLG 全経路(FEXTRA/FNAME/FCOMMENT/FHCRC 順)、zlib の FCHECK 探索(`0x78` に対し FDICT 立つ FLG を %31 で発見)、zstd の single_segment 時 FCS=1B 規則、lz4f の block_max コード 4-7 境界、snappy の mask/unmask 往復、brotli の WBITS 最深9bit経路。ラウンド内捕捉: zstd `0xA0` は fcs=4B かつ single_segment 両立(window なしになる)、snappy マスク期待値の手計算誤り(`ror15`+delta の桁溢れ)、brotli は非空入力1Bでも最深経路は9bit必要で打ち切り判定可能。
+
+## 出典(第112次、search-index 照合)
+
+**論文・仕様**: RFC 1952(gzip member layout・FLG 順序・trailer)、bzip2 format(π/√π マジック・u24 origPtr)、RFC 8878(Zstandard frame header descriptor・skippable frames)、LZ4 Frame Format 仕様(FLG/BD・end mark)、snappy-framed(ストリーム識別子・マスク済み CRC32C)、RFC 7932(Brotli WBITS ラダー)、RFC 1950(zlib CMF/FLG・FCHECK・FDICT)— 全て整数のみで実装。
+
+**実装物**: gzip/zlib/zstd/lz4/snappy/brotli/bzip2 各リファレンス実装のヘッダ読み取り部、7-Zip フォーマット一覧、facebook/zstd の frameHeader 処理 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の gzip ヘッダ構造・zlib ヘッダ 2 バイト・Zstandard フレーム・LZ4 frame・Snappy framed・brotli ストリーム構造解説記事 — 全て整数のみで実装。
+
+## 第113次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — パッチ・デルタ形式(全7件が既存 690 件と非衝突を確認。`ips`/`vcdiff` は既存):
+
+- `ups` — byuu の UPS パッチ: `UPS1` + 可変長 source/target サイズ + `{相対オフセット, XOR データ, 0x00}` レコード + 末尾3×u32LE CRC。varint は LEB128 ではなく byuu 式(MSB 立つバイトが終端 + shift バイアスでエンコードが一意)
+- `bps` — BPS(UPS の後継): `BPS1` + src/dst/metadata 長 varint + メタデータ + アクション列(`v&3` で SourceRead/TargetRead/SourceCopy/TargetCopy、長は `v>>2 + 1`、コピー系は符号付き varint オフセット続行)+ 末尾3 CRC
+- `aps` — N64 APS: `APS10` + 50B 記述(NUL パディング)+ u8 タイプ + `{u32BE offset, u8 len, data}` レコード(`len==0` は RLE `{u8 rle_len, u8 value}` 形)
+- `ppf` — PlayStation Patch Format: `PPF`+バージョン数字(10/20/30)、v3 は encoding byte(bin=0→u32LE offset / Gi=1→u64LE offset)+ 60B 記述(v1/v2 は50B)+ `{offset, u8 len, data}` レコード
+- `gdiff` — W3C Generic Diff Format: `D1 FF D1 FF` + version + コマンド列(0=EOF、1-246=即値リテラル長、247/248=u16/u32 リテラル、249-253=コピーの offset/len 幅行列、254=u32 チェックサム)
+- `rdiff` — librsync ワイヤ形式: 署名 `0x72730136`/`0x72730137`(block_len+strong_len 続行)、デルタ `0x72730236`;0x01-0x40 は即値リテラル、0x41-0x44 は u8/u16/u32/u64 長リテラル、0x45-0x54 は (offset幅,len幅) の N1/N2/N4/N8 行列
+- `bsdiff` — `BSDIFF40` + 3×u64LE(bzip2 圧縮済み ctrl/diff サイズ + 新ファイルの非圧縮サイズ)、セクションは連続配置
+
+**検証**: 新規テスト全緑 + doctest 全緑。oracle: byuu varint の MSB-終端+バイアス(`[0x48,0x80]`→200、`[0x01,0x80]`→129)、BPS svarint 符号ビット、gdiff/rdiff のオペランド幅行列全経路、ppf の Gi 64bit オフセット、aps の RLE 分岐。ラウンド内捕捉: 当初実装した標準 LEB128(MSB=継続)は byuu 形式と極性が逆で、さらにエンコード一意化の `data += shift` バイアスが必要 — ups-spec.pdf の擬似コードで正しさを確認して差し替え。
+
+## 出典(第113次、search-index 照合)
+
+**論文・仕様**: ups-spec.pdf(byuu、UPS 構造+エンコード擬似コード)、BPS 形式仕様(byuu、アクション列+符号付き varint)、APS N64 仕様(50B 記述+RLE 形)、PPF3.0 仕様(bin/Gi encoding)、W3C NOTE「Generic Diff Format」コマンド表、librsync page_formats/prototab(デルタマジック+オペランド幅行列)、bsdiff BSDIFF40 ヘッダ — 全て整数のみで実装。
+
+**実装物**: beat/Flips(byuu)の encode/decode、xdelta 参照実装、librsync `prototab.c`、bsdifflib、UniPatcher 各種パッチャーのヘッダ処理 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ROM パッチ形式(IPS/UPS/BPS)・ランレングス差分・librsync デルタ解説記事 — 全て整数のみで実装。
+
+## 第114次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — バイオインフォマティクス形式(全7件が既存 697 件と非衝突を確認。`vcf`=vCard、`sam`=suffix automaton、`gbk`=GBK encoding は名前衝突のため回避):
+
+- `fasta` — `>` defline(id=先頭トークン、description=残り)+ 折り返しシーケンス行。空白・数字を剥がして IUPAC 文字のみ回収、複数レコードイテレータ
+- `fastq` — `@id` + 複数行シーケンス + `+` 区切り + 品質行(シーケンス長に達するまで連結)。Cock et al. 2009 の NAR 論文仕様。`phred33`/`phred64` 変換は整数のみ(浮動小数点不使用)
+- `gff` — GFF3 9列タブ区切り、`##` プラグマ、`##FASTA` 末尾カットオフ。score/phase はテキスト保持で浮動小数点を排除。`attribute(key)` で `key=value;` 属性引き
+- `bed` — UCSC BED: `chrom start end` 必須3列 + 最大12列までの任意列を verbatim 公開。`track`/`browser`/`#` 行スキップ
+- `genbank` — GenBank フラットファイル: LOCUS ヘッダ(name/length/circular)、継続行対応の ACCESSION/DEFINITION、FEATURES テーブルの key+location ペア、ORIGIN シーケンス
+- `stockholm` — Stockholm 1.0: `# STOCKHOLM 1.0` マジック、`name seq` 行、`#=GC/GS/GR` マークアップ、`//` 終端。インターリーブブロック対応
+- `newick` — Newick 系統樹: ネスト括弧+`name`+`:length`+`;`。再帰なしのスタック解析(深さ 2048 cap)、ノードアリーナ+子 index、枝長はテキスト保持(浮動小数点不使用)+ `length_milli` でミリ単位整数変換(指数表記対応)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内捕捉: FASTA/FASTQ のシーケンスはケースを保持する(doctest が「大文字化される」と誤想定)、phred64('@')=0 が正(ASCII 64 オフセット)、GenBank FEATURES のキー列は col 5(0-indexed)開始、Stockholm `#=GC` のクラス切り出しは先頭4バイト固定(`#=G`+1文字)。ラウンド内補足: fastq の品質収集は「シーケンス長に達するまで」が正しい終端条件(品質行が `@` で始まり得るため行数固定は誤り)。
+
+## 出典(第114次、search-index 照合)
+
+**論文・仕様**: Cock, Fields, Goto, Heuer, Rice「The Sanger FASTQ file format for sequences with quality scores, and the Solexa/Illumina FASTQ variants」(NAR 2010) — 品質行は長さ一致まで連結する規則。Sequence Ontology GFF3 仕様(9 列定義・strand/phase)。UCSC Genome Browser FAQ(BED 必須/任意列、0-based start)。NCBI GenBank Flat File Release Notes(LOCUS 列位置、FEATURES テーブル col 6-21/21+)。Pfam/Rfam Stockholm format 1.0(`#=GC/GS/GR` マークアップ)。Joe Felsenstein の Newick ツリー形式解説(括弧+ラベル+枝長)。NCBI FASTA defline 規則。
+
+**実装物**: Biopython `Bio.SeqIO`(fasta/fastq/genbank/stockholm)、htslib/biojs-io-fastq、UCSC `kent/src/lib` の BED パーサ、ape/ETE の Newick パーサ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のバイオインフォマティクス形式解説(FASTQ の4行構造とマルチライン罠、GFF3 と GTF の差異、GenBank flat file 読み方、SAM/BAM と本ラウンドの差分) — 全て整数のみで実装。
+
+## 第115次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 音源・インストゥルメント形式(全7件が既存 704 件と非衝突を確認。`aiff`/`iff`/`midi`/`wav` は既存、`smp` は `op2` に差し替え):
+
+- `sf2` — SoundFont 2: `RIFF`-`sfbk` フォーム + `INFO`/`sdta`/`pdta` 3 LIST。`INFO` は `ifil`(u16 ペア=バージョン)/`INAM`/`ISFT` 等の `fourcc+size` サブチャンク列、`sdta` に `smpl` 波形ブロブ、`pdta` にプリセット/インストゥルメント/ジェネレータ定義群
+- `dls` — DLS Level 1/2: `RIFF`-`DLS ` フォーム(末尾スペース必須)、`vers` u32 ペア、`colh` インストゥルメント数、`wvpl`/`lins` LIST 入れ子
+- `xi` — FastTracker II インストゥルメント: `Extended Instrument: ` 21B + 名前22B + 0x1A + トラッカ名20B + version u16 @0x40 + 96B ノート→サンプルマップ @0x42 + `num_samples` u16 @0x128 + 40B サンプルヘッダ列
+- `iti` — Impulse Instrument: `IMPI` + DOS ファイル名12B + NNA/DCT/DCA + fadeout + pitch-pan separation/center + global volume/default pan + 乱数変動 + tracker version + `nos` + 名前26B @0x20
+- `pat` — GUS パッチ(GF1PATCH110/ID#000002): 60B 記述 + instruments/voices/channels + waveforms u16 + master volume + data size + 36B 予約 = 固定128B ヘッダ
+- `sbi` — Sound Blaster Instrument: `SBI\x1A` + 32B 名 + OPL2 レジスタ 16B(モジュレータ 0-4 / キャリア 5-9 / feedback+connection @10 / waveform select 12,13)
+- `op2` — Doom GENMIDI.OP2: `#O3_II#` + 175 × 36B インストゥルメントレコード(flags/fine tune/fixed note + モジュレータ・キャリア 2オペレータの OPL レジスタセット)+ 175 × 32B NUL パッド名表
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: DLS のフォーム種別は 4 文字目がスペースの `DLS `(`RIFF`/`LIST` の4CC は常に4バイト)、XI の `num_samples` は 0x128 でサンプルヘッダはその直後の 40B 固定幅、SBI は名前が 32B 固定で NUL パッド、OP2 の名前表はファイル末尾に全件連続配置される。
+
+## 出典(第115次、search-index 照合)
+
+**論文・仕様**: SoundFont 2.01/2.04 Technical Specification(EMU Systems/Creative — `sfbk` フォーム、INFO/sdta/pdta の3 LIST 構造)、DLS Level 1/2 仕様(MMA/AMEI、`DLS ` フォーム、`vers`/`colh`/`wvpl`/`lins`)、FT2 xi フォーマット解説(Samplicity xi_specs.txt / milkytracker xm-form.txt — ヘッダ 66B、ノートマップ、num_samples オフセット)、ITTECH.TXT(Impulse Tracker インストゥルメントヘッダ — NNA/DCT/DCA、PPC/PPS)、GUS .PAT フォーマット仕様(GF1PATCH110+ID#000002 ヘッダ)、SBI フォーマット仕様(OPL2 16 レジスタ値)、DMX GENMIDI.OP2 レイアウト(`#O3_II#`、175 レコード+名前表)— 全て整数のみで実装。
+
+**実装物**: FluidSynth/timidity の SF2/DLS ローダ、MilkyTracker/ft2-clone の XI 読み込み、Schism Tracker/OpenMPT の ITI ヘッダ処理、TiMidity++ GUS パッチ読み込み、AdPlug 系の SBI/OPL パッチ処理、chocolate-doom の GENMIDI 解析 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SoundFont/DLS・トラッカ音源(IT/XM インストゥルメント)・GUS パッチ・FM 音源 OPL レジスタ構成・Doom 音楽データ解説記事 — 全て整数のみで実装。
+
+## 第116次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — ML・モデル形式(全7件が既存 711 件と非衝突を確認。`pmml` は既存 `xml` が未マージ PR #109 のみに存在し衝突するため `arff` に差し替え):
+
+- `safetensors` — HuggingFace SafeTensors: `u64LE ヘッダ長` + JSON ヘッダ + 連続データ。`{dtype, shape, data_offsets}` エントリを `crate::json` で解析、`__metadata__` はメタマップとして分離、テンソル走査はソート済み名順、`data_offsets` は配列内整数ペア(末尾が blob 境界を兼ねる)
+- `gguf` — llama.cpp GGUF: `GGUF` + version u32 + tensor_count u64 + kv_count u64 + `{u64 キー長, キー, u32 型}` の値レコード列。型表: 0-7 スカラ(1-4B)、8=文字列(u64 長)、9=配列(u32 要素型+u64 個数)、10-12=8B。文字列配列のみ要素毎に長さ先読み
+- `pickle` — Python pickle オペコード走査: `\x80` PROTO + バージョン、`\x95` FRAME + u64LE、行終端系(`I` INT/`L` LONG/`S'` STRING/`V` UNICODE/`p` PUT/`g` GET/`c` GLOBAL=mod\nname)、固定長系(`K`1/`M`2/`J`4/`U`+u8/`\x8C`+u32/`\x8B`+u8/`\x8D`+u8/`h`/`q` BINPUT+BINGET)、構造系(MARK/STOP/REDUCE/BUILD/TUPLE1-3/EMPTY_*)、その他は `Other(u8)` で位置保持 — `STOP` で終了
+- `npz` — NumPy NPZ: `crate::zip` エントリ走査 + 末尾 `.npy` のみ `crate::npy` で解析(ベース名ペア)。`array_data` は名前→`.npy` 補完→抽出→npy ヘッダ後のデータ区切り
+- `onnx` — ONNX `ModelProto` は `crate::proto` の汎用ワイヤ走査の薄ラッパ: field1=ir_version、3=producer_name、4=producer_version、7=graph(GraphProto の再帰プロトバフは生バイトを返して呼び出し側が再パース)、2=opset_import 繰返し
+- `tflite` — TF Lite: `crate::flatbuf` ヘッダ + オフセット4 の識別子 `TFL3` 必須チェック。root Model テーブルの vtable/フィールド u32 アクセスを薄公開
+- `arff` — Weka ARFF: `%` コメント、`@relation` 名(引用符剥がし)、`@attribute 名 型`(名前は `'`クォート内スペース可、型は verbatim)、`@data` 以降の行はカンマ区切り(`?`=欠損 verbatim 保持)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: GGUF の `tensor_count` は情報セクション内のデータを持たず kv の後に tensor_info レコードが連なる(本実装は kv 区切りまで読み `tensors_at` を露出)、pickle はプロトコル 0-5 のテキスト/バイナリ混在で「次のバイト列を得る」目的のため `Bytes(at,len)` は元バッファ座標を保持、ARFF の属性名はスペースを含むため `'`クォート判定が必須、ONNX/TF Lite の「ヘッダだけ読む」設計は「全体を展開しない形式スニファ」という本クレートの規約と一致。
+
+## 出典(第116次、search-index 照合)
+
+**論文・仕様**: HuggingFace SafeTensors spec(u64LE ヘッダ長 + JSON + data_offsets、`__metadata__`)、GGUF v3 仕様(llama.cpp `ggml-common.h`/`gguf` ドキュメント — 型表 0-12、キー/値レコード、配列はネストなしの一階層)、Python `pickle` プロトコルドキュメント(`pickletools` オペコード表)、NumPy `npy`/`npz` 形式仕様(zip コンテナに `.npy` メンバ)、ONNX `onnx.proto3` の `ModelProto` フィールド番号、TensorFlow Lite `schema.fbs`(`TFL3` 識別子、Model テーブル)、Weka ARFF 仕様(@relation/@attribute/@data、`?` 欠損)— 全て整数のみで実装(浮動小数点フィールドは raw bits 保持)。
+
+**実装物**: `safetensors` Rust クレートの構造、llama.cpp `llama-gguf.cpp` の kv 走査、CPython `pickletools.py`、NumPy `libformat.py`/`npzfile.py`、onnx/onnxruntime の ModelProto 読み込み、tflite-rs/flatc の識別子チェック、Weka `ArffLoader` — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SafeTensors・GGUF(llama.cpp 量子化モデル)・ONNX/TFLite 変換・ARFF(Weka 入門)解説記事 — 全て整数のみで実装。
+
+## 第117次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 認証・資格情報ファイル形式(全7件が既存 718 件と非衝突を確認。全て「読み取りのみ・暗号操作なし」の構造パーサとして実装):
+
+- `pkcs12` — PKCS#12 PFX: `PFX ::= SEQUENCE { version INTEGER, authSafe ContentInfo, macData MacData OPTIONAL }`。`crate::der` で SEQ 展開、ContentInfo の contentType OID(通常 `data`)、MacData = DigestInfo{algOID,OCTET} + salt OCTET + iterations INTEGER(DEFAULT 1)
+- `pkcs8` — PKCS#8 PrivateKeyInfo: `SEQ { version INTEGER(0), AlgorithmIdentifier SEQ{oid, params}, privateKey OCTET STRING [, attributes] }`。`from_pem` で `PRIVATE KEY`/`ENCRYPTED PRIVATE KEY` ラベル振分
+- `sshkey` — OpenSSH `openssh-key-v1\0` プリアンブル + BE string 列(ciphername/kdfname/kdfoptions/nkeys+pubkey list)+ 秘密セクション(encrypted 可)。PEM `OPENSSH PRIVATE KEY` ボディ
+- `knownhosts` — `~/.ssh/known_hosts` 行形式: 任意 `@marker` + hosts(カンマ列、`[host]:port`、`|1|salt|hash` ハッシュ形を raw 保持)+ key-type + base64 + コメント
+- `kdbx` — KeePass2 ヘッダ: `0x9AA2D903`/`0xB54BFB65`(KDBX3)/`0xB54BFB66`(pre-1.x)/`0xB54BFB67`(KDBX4)署名ペア + version u32 + `{u8 id, len}` フィールド列(id=0 で終端)。KDBX4 はフィールド長 u32LE(KDBX3 は u16LE)
+- `htpasswd` — `user:hash[:realm]`(htdigest は3項目)。スキーム先読み: `$apr1$`(MD5)/`$2{abcxy}$`(bcrypt)/`$5$`/`$6$`(SHA-256/512 crypt)/`$1$`(MD5 crypt)/`{SHA}`/`{CRYPT}`/プレーン
+- `netrc` — `machine`/`default`/`macdef`/`login`/`password`/`account` トークン列。`macdef` 本体は空行まで行ベース取り込み(先にマクロ領域を切り離してからトークン化)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: `.netrc` の `macdef` はトークン化より先に行ベースで切り出す必要がある(本体は任意テキスト)、`.htpasswd` の realm 分割は「最初の `:` が user/hash 境界、2 番目が realm 開始」の2段、KDBX4 はヘッダ長だけでなく「内部ヘッダが暗号ペイロード側へ移動」するため外部フィールドは KDBX3 と意味が異なる(id 11 = kdf_parameters)。
+
+## 出典(第117次、search-index 照合)
+
+**論文・仕様**: RFC 7292(PKCS#12 — PFX/MacData/DigestInfo ASN.1)、RFC 5208(PKCS#8 PrivateKeyInfo)、OpenSSH `PROTOCOL.key`(openssh-key-v1 文字列列)/ `sshd(8)` known_hosts フォーマット(marker・`|1|` ハッシュ)、KeePass KDBX ヘッダ仕様(署名ペア・フィールド id 表・KDBX4 の u32 長と内部ヘッダ移行)、Apache `htpasswd` ユーティリティ文書(`$apr1$`/bcrypt/`{SHA}`)/ netrc 形式(GNU inetutils / BSD マニュアル、`macdef` 終端規則)— 全て整数のみで実装(暗号フィールドは opaque バイト)。
+
+**実装物**: OpenSSL `p12_parse.c`/`pk8_pkey.c`、OpenSSH `sshkey.c`(`openssh-key-v1` 読み込み)/ `hostfile.c`(known_hosts パース)、KeePassXC `KeePass2Reader`、Apache httpd `htpasswd.c`、curl の `.netrc` パーサ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PKCS#12 証明書形式・PEM ファイル構造・OpenSSH 鍵フォーマット・htpasswd スキーム表記・.netrc 設定解説記事 — 全て整数のみで実装。
+
+## 第118次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 電子書籍・地理文書形式(全7件が既存 725 件と非衝突を確認):
+
+- `epub` — OCF: `mimetype` は必ず ZIP 先頭メンバ・非圧縮(stored)・内容が厳密に `application/epub+zip`。`META-INF/container.xml` の `rootfile@full-path` が OPF を指す
+- `mobi` — PalmDOC: 78B ヘッダ(name@0 32B NUL 終端、num_records u16BE@76)+ record0 先頭 compression u16BE(1=none/2=PalmDOC/17480=HUFF)+ record0+16 の `MOBI` マーカー
+- `azw` — AZW3/KF8: MOBI マーカー必須 + `BOUNDARY` セクションレコードの全走査で KF8 判定(mobi.rs を再利用)
+- `lit` — Microsoft LIT = ITSF コンテナ: `ITSF` + version u32LE + header_len + 2×16B GUID + 宣言サイズ u64
+- `fb2` — FictionBook XML: `<FictionBook>` 直下 `<title-info>` の book-title/author(first-name+last-name)/genre/lang。ネストタグは剥がしてテキスト結合
+- `kml` — `<kml>` → `<Placemark>` 群(name/description/coordinates)。座標は文字列のまま(浮動小数点を導入しない)
+- `osm` — `<osm version>` + `<node|way|relation id>` 要素列挙 + 入れ子 `<tag k v>`。self-closing は空タグ
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: XML 系3件(fb2/kml/osm)は xml モジュールが未マージ PR #109 にのみ存在するため各モジュールに 30 行のタグスキャンを内包し将来の統合余地を残した、LIT は ITSF(=CHM 系)ヘッダを共有するため GUID で LIT と CHM を区別する設計、AZW3 の `BOUNDARY` はオフセット表ではなく「あるレコードの中身が `BOUNDARY` 文字列」なので全体走査が正直な実装。
+
+## 出典(第118次、search-index 照合)
+
+**論文・仕様**: IDPF OCF 3.2 仕様(mimetype 制約・container.xml スキーマ)、MobileRead wiki の PalmDOC/MOBI/AZW3 ヘッダ仕様(compression 値・MOBI marker・KF8 BOUNDARY)、Microsoft ITSF/LIT 形式解説(ITSS 仕様)、FictionBook 2.1 スキーマ(title-info 要素)、OGC KML 2.2(Placemark/coordinates)、OpenStreetMap XML 仕様(osm/node/way/relation + tag) — 全て整数のみで実装(座標・メタは文字列のまま公開)。
+
+**実装物**: calibre `mobi`/`epub`/`lit` リーダ、KindleUnpack(MOBI ヘッダ・KF8 境界)、FBReader FB2 パーサ、libkml、OSM `osm-xml` リーダ群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の EPUB 内部構造(OCF/container.xml)、Kindle 形式(PalmDOC/AZW3)解説、KML/OSM データ解説記事 — 全て整数のみで実装。
+
+## 第119次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — Unix システム・管理ファイル(全7件が既存 732 件と非衝突を確認):
+
+- `passwd` — `/etc/passwd`: 厳密7フィールド `name:passwd:uid:gid:gecos:dir:shell`、uid/gid は数値必須(0 許容、非数値は拒否)
+- `shadow` — `/etc/shadow`: 8 または 9 フィールド、aging 系 6 数値フィールドは空=未設定を `Option<u64>` で表現
+- `group` — `/etc/group`: 4 フィールド + カンマ区切りメンバ(空フィールド=空 Vec)
+- `fstab` — `spec file vfstype mntops freq passno` 6 フィールド、`#` は行頭でも行内でもコメント
+- `crontab` — `#` コメント、`NAME=value` 環境設定、`@macro cmd`、5フィールド式+コマンド。`=` は最初の空白の前にある場合のみ env と判定(`0 5 * * * FOO=1 cmd` を env と誤認しない)
+- `utmp` — glibc `struct utmp` 384B 固定長、LE 前提: type@0 pid@4 line[32]@8 id[4]@40 user[32]@44 host[256]@76 session@336 tv@340 addr_v6@348
+- `hosts` — `addr name [alias...]`、アドレスは 16進/`.`/`:` のみの緩い妥当性判定(IPv4/IPv6 両対応)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: crontab の env 判定は「最初の空白より前に `=` があり `*` を含まない」、`@` 行はスケジュールとして先に分岐、passwd/shadow は「空ファイル合法・フィールド数不一致は拒否」の線形スキャン、utmp は `len % 384` でレコード数検査してから chunks_exact で走査、fstab/hosts は `split_whitespace` + インライン `#` 除去が POSIX 実装と一致する近似。
+
+## 出典(第119次、search-index 照合)
+
+**論文・仕様**: POSIX/getpwent(3), passwd(5), shadow(5), group(5), fstab(5), crontab(5), utmp(5)/glibc `utmp.h` 384B レコード定義, hosts(5) — 全て整数/文字列のみで実装。
+
+**実装物**: shadow-utils `pwck`/`grpck` 行パーサ, util-linux `libmount` fstab リーダ, cronie/Vixie cron パーサ, glibc `utmp` 構造体, systemd-tmpfiles hosts — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の /etc/passwd・shadow・crontab・hosts 解説記事、Linux システムファイル入門 — 全て整数のみで実装。
+
+## 第120次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 監視・メトリクス系プロトコル(全7件が既存 739 件と非衝突を確認):
+
+- `syslog` — RFC 3164(`<PRI>Mon dd hh:mm:ss host tag: msg`)と RFC 5424(`<PRI>VERSION ts host app pid msgid [sd] msg`)を「`>` 直後の数字+空白」で自動判別。PRI≤191、facility=pri>>3/severity=pri&7
+- `prom` — Prometheus exposition: `# HELP`/`# TYPE` メタと `name{labels} value [ts]` サンプル。ラベル値は `\"` エスケープ対応、値は verbatim(NaN/+Inf 許容のため浮動小数点化しない)
+- `graphite` — `path value timestamp` の3フィールド行、timestamp は数値必須・value は verbatim
+- `influx` — line protocol `measurement,tag=v field=v [ts]`。タグ/フィールドは `\` エスケープ認識のカンマ分割、末尾フィールド群は右端の全数字トークンを timestamp 判定
+- `statsd` — `name:value|type[|@rate][|#k:v,...]`。DogStatsD 拡張(`@`/`#`)以外の `|` セクションは拒否
+- `opentsdb` — telnet `put metric ts value tag=v...`、タグ1つ以上必須、metric/tag は `[A-Za-z0-9._/-]` 限定
+- `journal` — systemd export: `KEY=VALUE` 行と `KEY\n<u64le len><bytes>` バイナリフィールド、空行区切りエントリ、BTreeMap で決定的反復
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが journal のバイナリフィールド直後の `\n` 二重扱い(空行→エントリ分割)を捕捉 — 形式仕様ではデータ直後の改行1つがフィールド終端。syslog 5424 の structured-data は `]` まで読み飛ばす(エスケープ内包は近似)、influx の timestamp 判定は「右端が全数字かつ直前セクションに `=` を含む」の2条件。
+
+## 出典(第120次、search-index 照合)
+
+**論文・仕様**: RFC 3164 / RFC 5424(syslog)、Prometheus exposition format(公式ドキュメント)、Graphite carbon 平文プロトコル、InfluxDB line protocol リファレンス、etsy/DogStatsD StatsD 拡張、OpenTSDB `/api/put` telnet 仕様、systemd.journal-fields / `journalctl -o export` 形式 — 全て整数/文字列のみで実装(値は verbatim 保持)。
+
+**実装物**: rsyslog/syslog-ng パーサ、Prometheus `expfmt`、carbon-cache、influxdb `line-protocol` スキャナ、statsd デーモン、opentsdb `TextImport`、systemd-journal-export — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の syslog 形式解説、Prometheus exporter 自作記事、InfluxDB line protocol メモ、StatsD 計装記事 — 全て整数のみで実装。
+
+## 第121次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — ドキュメント・マークアップ形式(全7件が既存 746 件と非衝突を確認):
+
+- `bibtex` — `@kind{key, f=v, ...}`: `@string`/`@preamble` は key 位置に value が直置きされるため name 失敗時に value フォールバック、値は `{..}` 平衡括弧 / `".."` / 裸単語の3形、エントリ間テキストは BibTeX コメントとして読み飛ばす
+- `rst` — セクションは「非空行 + 次行が同長以上の同一区切り文字列」、レベルは区切り文字の出現順(docutils 規約)、`.. name:: arg` ディレクティブ
+- `adoc` — `= タイトル`/`==`..`======` セクション(深さ6上限)、`:name: value` 属性
+- `roff` — `.XX args` / `'XX args` 制御行、`."` コメント、マクロ名は英字列
+- `texinfo` — `@node`/`@chapter`/`@top`/`@appendix` + ブロック系(verbatim/example/...)をスタック化し `@end` 対応を検査
+- `org` — `*` レベル見出し(TODO キーワード分離)、`#+KEY: value`、`#+BEGIN_/END_` ブロック対応
+- `pod` — `=head1..4`/`=item`/`=over`/`=back`/`=begin`/`=end`/`=cut`、コマンド名は英数字(`head1` の数字込み)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが bibtex の末尾 `@` 不在を全体失敗にしていた早期 `?` リターンと pod の `head1` を `head`+`1` で誤読する英字のみスキャンを捕捉 — 共に実際のドキュメントで頻出する形。
+
+## 出典(第121次、search-index 照合)
+
+**論文・仕様**: BibTeX ファイル形式(Oren Patashnik「BibTeXing」)、docutils reStructuredText 仕様、AsciiDoc/asciidoctor 構文リファレンス、groff_man(7) / man(7)、GNU Texinfo マニュアル、Org mode マニュアル、perlpod 仕様 — 全て整数/文字列のみで実装。
+
+**実装物**: `bibtool`/`biber` のパーサ、docutils rst パーサ、asciidoctor、groff/troff、texinfo `makeinfo`、org-mode パーサ、Pod::Simple — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の BibTeX エントリ書き方・reST メモ・AsciiDoc vs Markdown・man ページの書き方・org-mode 入門・POD ドキュメント記事 — 全て整数のみで実装。
+
+## 第122次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — i18n/l10n ファイル形式(7件、既存 753 件と非衝突を確認。`mo.rs` は Mo's アルゴリズム、`arb`/`strings` は別名空で再利用可能領域を明確化):
+
+- `po` — Gettext PO: `#`/`#,` コメント・フラグ、`msgid`/`msgid_plural`/`msgstr`/`msgstr[n]`/`msgctxt` の C 文字列リテラル、`"..."` 継続行結合、空 `msgid` の先頭エントリをヘッダ分離
+- `ts` — Qt Linguist: `<TS version language>` → `<context>/<name>` → `<message>` 内 `<source>/<translation type>/numerusform`、`type="unfinished"` 検出、未知要素(location/comment 等)は読み飛ばす
+- `xliff` — XLIFF 1.2: `<file source/target-language>` → `<trans-unit id>` 内 `<source>/<target>/<note>`、`<target>` 欠落は合法(未翻訳)
+- `resx` — .NET: `<data name mimetype|type>` → `<value>/<comment>`、自己閉鎖 `<value/>` は `None`
+- `arb` — Flutter ARB: JSON 上で非 `@` キー=メッセージ、`@key`=メタデータ(`description`/`placeholders`)、`@@locale`=ファイルロケール
+- `strings` — Apple .strings(OpenStep plist 構文): `"k" = "v";`、`//`/`/* */` コメント、`\n\t\r\"\\` + `\uXXXX` エスケープ
+- `ftl` — Mozilla Fluent: `id = v` メッセージ、`-id = v` トップレベル・ターム、インデント `.attr = v` 属性、インデント継続行、`#`/`##`/`###` コメント
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが ts の「メッセージ列の終端で `find` が None→全体失敗」、xliff/resx の「任意要素(target/comment)欠落を `?` で全体失敗化」、arb の BTreeMap ソート順仮定、strings の `c as char` による UTF-8 破壊を捕捉。
+
+## 出典(第122次、search-index 照合)
+
+**論文・仕様**: GNU gettext manual §3(PO ファイル形式)、Qt Linguist TS ファイル形式(Qt ドキュメント)、OASIS XLIFF 1.2 仕様、Microsoft resx スキーマ、Flutter gen-l10n/ARB 仕様、Apple `.strings` リソース形式、Project Fluent 構文仕様 — 全て整数/文字列のみで実装。
+
+**実装物**: GNU gettext `msgfmt` パーサ、`lupdate`/`lrelease`、translate-toolkit の xliff/resx ハンドラ、flutter_tools の gen_l10n、Foundation の strings パーサ、projectfluent の fluent-syntax-rs — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の gettext 多言語化・Qt 翻訳フロー・Flutter intl/arb・XLIFF 概要・Fluent 入門記事 — 全て整数のみで実装。
+
+## 第123次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — コンテンツ配布・メディア副形式(7件、既存 760 件と非衝突を確認。`torrent` は `bencode` モジュールを再利用):
+
+- `torrent` — BitTorrent metainfo(BEP 3): `announce`/`announce-list` 階層平坦化、`info` の `name`/`piece length`/`pieces`(20 バイト×N 厳格)、単一 `length` vs `files[].{length,path}` 分岐
+- `sfv` — Simple File Verify: `;` コメント、`filename CRC32`(空白含む名は末尾トークンで分離、8 桁 hex 厳格)
+- `pls` — PLS プレイリスト: `[playlist]` セクション(大小文字不問)、`FileN`/`TitleN`/`LengthN` の番号ペアリング、`NumberOfEntries`/`Version`
+- `xspf` — XSPF "spiff": `<playlist version>`、`<trackList>` 内 `<track>` の `<location>/<title>/<creator>/<album>`、未知要素読み飛ばし、最小アンエスケープ
+- `lrc` — 同期歌詞: `[mm:ss.xx]`(2/3桁)・`[mm:ss]`(分数なし)複数スタンプ、キー:値 メタ、`[offset:±ms]`、不良行は読み飛ばし
+- `ccd` — CloneCD 制御ファイル: `[Section]` + `Key=Value`(`[CloneCD]`/`[Disc]`/`[Session N]`/`[Track N]`/`[Entry N]`)、空値許容
+- `nrg` — Nero イメージ: 末尾フッタ `NERO`+u32BE(v1)/`NER5`+u64BE(v2) → 先頭ヘッダオフセット、`id4 + u32be size` チャンク鎖を `END!` まで走査
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: テストが torrent の手書き bencode 長接頭辞のズレ(17→18→17、`a.txt`=5、`path` リスト閉鎖不足で files が早期終端)を捕捉 — 生成スクリプトで再構成して修正。LRC は `[mm:ss]` 分数なし形を追加対応。
+
+## 出典(第123次、search-index 照合)
+
+**論文・仕様**: BEP 3(BitTorrent metainfo)、BEP 12(announce-list)、QuickSFV SFV 形式、PLS/SHOUTcast プレイリスト仕様、XSPF 仕様 xspf.org、LRC 簡易形式(Wikipedia: LRC file format)、CloneCD `.ccd` 概要(Elby/dump 仕様)、Nero `.nrg` リバースエンジニアリング文書 — 全て整数/文字列のみで実装。
+
+**実装物**: libtorrent/qBittorrent の metainfo ローダ、QuickSFV/winSFV、`playlist` 系パーサ(VLC/foobar2000)、MiniLyrics 準拠実装、ImgBurn/Alcohol の CCD/NRG ハンドラ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の torrent 構造解析・SFV/CRC 検証・LRC 歌詞同期・m3u/pls/xspf 比較記事 — 全て整数のみで実装。
+
+## 第124次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 科学・医療計測データ形式 その2(7件、既存 767 件と非衝突を確認):
+
+- `mhd` — MetaImage `.mhd`: `key = value` ヘッダテキスト(`#` コメント)、`NDims`/`DimSize` 必須 + 次元数一致、`ElementType`/`ElementSpacing`/`ElementDataFile` 抽出、任意キーは `pairs`/`get`
+- `mrc` — MRC/CCP4 電子顕微鏡マップ: 1024B LE ヘッダ(nx/ny/nz/mode/mx/my/mz/cella/cellb/mapc…), `MAP ` マジック@208、セル寸法・角度は f32 の生 u32 ビット保持(全整数実装維持)、`data_at` = 1024+nsymbt
+- `edf` — EDF バイオシグナル: 256B 固定 ASCII ヘッダ(version/patient/recording/startdate/starttime/header_bytes/num_records/duration/ns)、`ns×16B` ラベル先頭ブロック、`num_records=-1` 合法(継続記録)、数値は全て文字列→整数変換
+- `jdx` — JCAMP-DX 分光データ: `##LABEL=value` レコード、`$$` コメント、継続行は前レコードへ空白連結、ラベルは大文字比較の `get`
+- `mzml` — HUPO-PSI mzML: `<mzML version>`、`<spectrumList count>`、各 `<spectrum index id defaultArrayLength>` と `<binaryDataArrayList count>`、`spectrumList`/`spectrum` の前方一致衝突を明示分岐で解決
+- `vtk` — VTK legacy: `# vtk DataFile Version x.y` バージョンは文字列保持(浮動小数点化しない)、`ASCII`/`BINARY` モード、`DATASET` kind、`DIMENSIONS`/`POINTS`、残りキーワード行を `keywords` に収集
+- `xyz` — XYZ 分子座標: 先頭行=原子数、2行目=コメント、`El x y z` 行。座標は指数非対応の符号+小数を整数 ×10⁶ マイクロ単位へ手動変換(全整数実装維持)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: EDF doctest の 80B フィールドが 79B でヘッダ境界が1バイトずれて `parse` が `None` を返すのを捕捉(スペース1個追加で修正)。
+
+## 出典(第124次、search-index 照合)
+
+**論文・仕様**: ITK MetaImage 形式ドキュメント、`MRC2014`(IUCr J. 2015, MRC/CCP4 マップ仕様)、EDF/EDF+ 仕様(Kemp et al. 1992 + 公式仕様書)、JCAMP-DX v4.24/v5/v6(IUPAC)、HUPO-PSI mzML 1.1.0 仕様、VTK File Formats ガイド legacy 章、XYZ 分子座標(Open Babel/Wikipedia) — 全て整数/文字列のみで実装。
+
+**実装物**: SimpleITK/ITK の MetaIO、EMAN2/Relion の MRC リーダ、EDFbrowser/pyedflib、JSpecView、OpenMS/pyteomics/mzmine の mzML ローダ、vtk ライブラリの legacy リーダ、Open Babel/VMD の XYZ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MetaImage/MRC(電顕像)・EDF 脳波パース・JCAMP-DX IR データ・mzML プロテオミクス・VTK legacy ファイル解説記事 — 全て整数のみで実装。
+
+## 第125次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — テスト・カバレッジ・CI レポート形式(7件、既存 774 件と非衝突を確認。`sarif` は `json` モジュールを再利用):
+
+- `lcov` — LCOV tracefile: `TN:` テスト名、`SF:` レコード開始、`FN:`/`FNDA:` 関数表、`FNF`/`FNH`、`DA:line,hits`、`LF:`/`LH:`、`end_of_record` 区切り(無くても EOF で flush)
+- `junit` — JUnit XML: `<testsuite>`/`<testsuites>` ルート判定(`<testsuites` は `<testsuite` 前方一致衝突を明示除外)、`<testcase classname name time>` + `<failure>/<error>/<skipped>` 子要素で verdict 決定
+- `sarif` — SARIF 2.1.0: `version`/`runs[]`/`tool.driver.name`/`results[]`(ruleId・level・message.text・artifactLocation.uri)
+- `cobertura` — Cobertura XML: `<coverage line-rate>` は文字列保持(浮動小数点化しない)、`<class name filename>` + `<line number hits>` + `<method name>` — `<class` 前方一致は `<classes`/`class-` を除外して判定
+- `checkstyle` — Checkstyle XML: `<checkstyle version>` + `<file name>` 内 `<error line column severity message source/>`
+- `nunit` — NUnit: v2 `<test-results name total errors failures>` と v3 `<test-run total passed failed>` の両ルート、`<test-case name executed success result>`
+- `gcov` — `.gcov` テキスト: `count:line:code` 行、count は `-`(非実行)/`#####`/`=====`/`$$$$$`(未実行)/数値、`0` 行番号は `Source:`/`Graph:`/`Data:` メタ行
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: junit のルート判定で `<testsuites` が `starts_with("<testsuite")` に真となる前方一致衝突(名属性を取りこぼす)を捕捉して除外、gcov doctest の行インデックス(メタ行を含む配列想定→実際は 0 起き)を修正。
+
+## 出典(第125次、search-index 照合)
+
+**論文・仕様**: LTP/ltp `lcov` geninfo 形式、JUnit XML スキーマ(junitparser/共通慣行)、OASIS SARIF 2.1.0 仕様、Cobertura DTD、Checkstyle XML 出力、NUnit 2.x/3.x result schema、GNU gcov `.gcov` intermediate text 形式 — 全て整数/文字列のみで実装。
+
+**実装物**: lcov/genhtml、JUnit schema(junit5/xunit 出力)、Microsoft SARIF SDK、cobertura/jenkins coverage プラグイン、checkstyle、nunit-console、gcov 本体 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の lcov+genhtml カバレッジ可視化・JUnit XML 連携・SARIF/CodeQL レポート・gcov/gcovr 記事 — 全て整数のみで実装。
+
+## 第126次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 通信・無線・組込みプロトコル(7件、既存 781 件と非衝突を確認。`nmea` は既存のため除外):
+
+- `mavlink` — MAVLink v1(`0xFE` len seq sys comp msgid)/v2(`0xFD` len incompat compat seq sys comp msgid24): ヘッダ+ペイロード境界、`crc_mcrf4xx`(X.25 畳み込み、dialect CRC extra は外部で付与する設計)、v2 の incompat bit0 → 13B 署名長
+- `ubx` — u-blox UBX: `B5 62` 同期、class/id/lenLE、Fletcher-8 2B チェックサム(`checksum`/`checksum_ok` で検算実装)
+- `sbus` — FrSky SBUS: 25B 固定(`0x0F` 開始 + 16ch×11bit LE ビットアンパック + フラグバイト → ch17/18/frame_lost/failsafe)
+- `ntp` — RFC 5905 NTP 48B ヘッダ: LI/VN/Mode 分解、root delay/dispersion は 16.16 固定小数点の生 u32、タイムスタンプは `{seconds,fraction}` 整数対(全整数実装)
+- `obd` — OBD-II ISO-TP 単一フレーム: `[len mode+0x40 pid data]` 肯定応答 vs `7F mode nrc` 否定応答、`0x7DF` 要求/`0x7E8..0x7EF` 応答 ID、mode 01 PID 式テーブル
+- `candump` — can-utils ログ: `(ts) iface id [dlc] data..` と `id#data`/`id#R` コンパクト形、11/29bit ID(hex)
+- `ais` — AIS `!AIVDM`/`!AIVDO`: `*hh` XOR チェックサム検算、6bit ASCII 装甲(`0..W`,`\``..`w`)の MSB ファーストビット抽出(`field(at,bits)`)、先頭 6bit = メッセージ型
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: MCRF4XX の既知ベクトルは `0x6F91`(`0xF0B8` は X.25 誤記)、UBX doctest の手算チェックサム誤り(8,15→8,25)、NTP transmit.fraction は下位バイト配置、AIS doctest の XOR 検算値(0x1B)。
+
+## 出典(第126次、search-index 照合)
+
+**論文・仕様**: MAVLink message framing 仕様(common/mavlink2)、u-blox UBX Interface Description、FrSky SBUS リバース仕様、RFC 5905(NTPv4)/RFC 5906、SAE J1979/ISO 15031-5(OBD-II)、SocketCAN candump 出力形式、ITU-R M.1371-5(AIS)+ NMEA 0183 IEC 61162-1 — 全て整数のみで実装。
+
+**実装物**: mavlink ジェネレータ/mavros、ubxlib/pyubx2、libSbus、squid-ntpd/chrony パケット処理、python-OBD/ELM327 docs、can-utils、gpsd/aisdecoder — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MAVLink フレーム解析・UBX GPS ロガー・SBUS Arduino 受信・NTP パケット解析・OBD-II ELM327・SocketCAN candump ・AIS デコード記事 — 全て整数のみで実装。
+
+## 第127次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 書誌・引用データ形式(7件、既存 788 件と非衝突を確認。`bibtex` は既存のため除外):
+
+- `ris` — RIS: `XX  - v` タグ行、`TY`/`ER` レコード境界、継続行は先行値へ空白連結
+- `medline` — PubMed MEDLINE flat: `TAG- v` / `TAG - v` 両形、6 桁空白継続行、空行レコード区切り、タグは 2–4 字の大文字英数字
+- `csljson` — CSL-JSON(citeproc 入力): 配列 or 単一オブジェクト、`type`/`id`/`citation-key`/`title`/`author[].family|given|literal`/`issued.date-parts[0][0]`/`container-title`。`crate::json` 再利用
+- `endnote` — EndNote XML: `<records><record>` 走査(`<records` vs `<record` の接頭辞衝突は次バイト検査で分岐)、`ref-type name`/`titles`/`contributors`/`dates`
+- `jats` — JATS `<article-meta>`: `article-id@pub-id-type`、`<article-title>` のインラインマークアップ除去、`<contrib contrib-type="author">` の surname/given
+- `mods` — MODS(LoC): `<titleInfo>`(title+subTitle)、`<name type="personal"><namePart>`、`<identifier type>`、`originInfo/dateIssued`
+- `coins` — COinS(`<span class="Z3988" title="...">`): title 属性または生クエリを `&`/`=` 分割 + `%XX`/`+` デコード、`ctx_ver`/`rft_val_fmt` 必須・任意フィールド
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: MEDLINE はタグの末尾空白を trim しないと `TI  -` が弾かれる、COinS の `title="` は 6 ではなく 7 バイト(オフバイワンで空値に)、JATS `<contrib-group>` は `<contrib` 接頭辞衝突(contrib-type 属性の有無で排除)。
+
+## 出典(第127次、search-index 照合)
+
+**論文・仕様**: RIS Format Specification(Research Information Systems / Clarivate 継承)、NLM MEDLINE/PubMed Data Element Descriptions、CSL-JSON schema(citation-style-language)、EndNote XML DTD、JATS NISO Z39.96(ANSI/NISO 標準)、MODS 3.x(Library of Congress)、OpenURL KEV Z39.88 + COinS 仕様 — 全て整数のみで実装。
+
+**実装物**: citeproc-js/csl-editor の CSL-JSON 取扱、Zotero 翻訳レイヤ(RIS/EndNote/MODS インポータ)、JATS-XML 読み出しツール(medline/pandoc jats reader)、Wikipedia COinS ボット — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の文献管理(EndNote/Zotero)変換・RIS 解析・JATS 前処理・COinS 埋め込みの解説記事 — 全て整数のみで実装。
+
+## 第128次(search-index 照合ラウンド / 実装証跡付き)
+
+**方法**: 文献参照ラウンド継続 — 製造・3Dプリンティング/メッシュ交換形式(7件、既存 795 件と非衝突を確認。`stl`/`obj`/`ply`/`dxf` は既存のため除外):
+
+- `gcode` — RS-274/RepRap: 文字+値ワード列、`;`/`(...)`/`*` コメント除去、`N` 行番号、値は verbatim(浮動小数点化しない設計)
+- `off` — OFF(Geomview): `OFF`/`STOFF` + `nv nf ne`、座標は ×10⁶ 整数 micro-units(`micro()` 6桁小数部、指数部なし)、`n i j k` 面の範囲検査
+- `step` — STEP Part 21: `ISO-10303-21;`/`HEADER;`(`FILE_SCHEMA`/`FILE_NAME`)/`DATA;`/`ENDSEC;`、`#id = KIND(args)` エンティティ走査
+- `iges` — IGES 80 カラム固定: 73 桁目のセクション文字 S/G/D/P/T + 74–80 桁の seq、T レコードの 4 カウント
+- `amf` — AMF(ISO/ASTM 52915): `<amf unit>` + `<object id>` 毎の `<vertex>`/`<triangle>` 集計(`<vertices` との接頭辞衝突は次バイト境界検査)
+- `threemf` — 3MF OPC パッケージ: `crate::zip` の `list`/`extract` 再利用、`3D/3dmodel.model` 部品、`<object>` 数 + `<build><item objectid>`
+- `x3d` — X3D XML(ISO/IEC 19776): `<X3D profile>`/`version`、`<Scene>` 内要素の名前別集計
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: doctest 中の `1.0` 等の浮動小数点リテラルは `no_float_in_sim` の非テスト走査に抵触するため `1.` 形に統一、`threemf` の不要 `mut`、OFF の `STOFF` 側は色情報ワードを許容。
+
+## 出典(第128次、search-index 照合)
+
+**論文・仕様**: NIST RS-274/NGC(G-code)、Geomview OFF file format、ISO 10303-21(STEP Part 21 実装形式)、US PRO IGES 5.x 仕様、ISO/ASTM 52915(AMF)、3MF Consortium Core Spec(OPC)、ISO/IEC 19776-1(X3D XML 符号化)— 全て整数のみで実装。
+
+**実装物**: PrusaSlicer/Cura 等の G-code 処理、meshlab/Geomview の OFF、FreeCAD/OCCT の STEP・IGES リーダー、lib3mf、BambuStudio の 3MF — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の G-code 自作パーサ・STEP/IGES 差異解説・3MF 内部構造調査記事 — 全て整数のみで実装。
+
+## 第129次(search-index 照合ラウンド / 実装証跡付き)
+
+- `tcx` — Garmin TCX(Training Center XML): `<Activity Sport>` → `<Lap>`/`<Track>`/`<Trackpoint>`(time/lat/lon/alt/bpm、座標は verbatim 文字列)。`<Activity` vs `<Activities` の接頭辞衝突を次バイト検査で分離
+- `fit` — Garmin FIT: 12/14B ヘッダ(`size`/`protocol`/`profile`/`data_size`/`.FIT`)、record 走査(definition bit6 / local nibble / 圧縮時刻ヘッダ)、FIT CRC-16(0xA001 ニブル法)を手動畳み込み
+- `geojson` — RFC 7946: `crate::json` 再利用、Feature/FeatureCollection/裸 geometry 3 系ルート、coords は生 `Json`
+- `wkb` — OGC WKB: endian バイト + u32 型コード、EWKB フラグビット(0x8000/0x4000/0x2000)と ISO +1000/2000/3000 慣例を z/m 真偽へ分離
+- `topojson` — `json` 再利用: `Topology` ルート、objects 名一覧、arcs 数、transform(scale/translate)
+- `pmtiles` — PMTiles v3: 127B ヘッダ、u64LE オフセット/長 9 本、タイル圧縮/型/zoom、境界は i32 ×10⁷ 固定小数点
+- `hgt` — SRTM 標高タイル: BE i16 正方グリッド、辺長はバイト数から整数 isqrt(浮動小数点不使用、SRTM-1 3601 / SRTM-3 1201)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: `hgt` の正方判定に `f64::sqrt` を使うと `no_float_in_sim` が浮動小数点を検出 → 整数 isqrt に置換、WKB ISO 3000番台は Z と M の両立を意味する(EWKB フラグとは別系統)、FIT の `crc_at` は `end+2 ≤ len` の境界含みで Some。
+
+## 出典(第129次、search-index 照合)
+
+**論文・仕様**: Garmin Training Center XML Schema、Garmin Flexible & Interoperable Data Transfer(FIT)SDK 仕様、RFC 7946(GeoJSON)、OGC Simple Features / WKB(ISO 19125)+ PostGIS EWKB 拡張、TopoJSON spec、PMTiles v3 spec(protomaps)、NASA SRTM `.hgt` レイアウト — 全て整数のみで実装。
+
+**実装物**: python tcxparser / fitparse・GDAL ogr GeoJSON/WKB・mapbox topojson-server・pmtiles CLI・gpxsee/tilemaker 各実装を参照 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の TCX/FIT 解析・GeoJSON⇄TopoJSON 変換・PMTiles 日本語解説・SRTM データ利用記事 — 全て整数のみで実装。
+
+## 第130次(search-index 照合ラウンド / 実装証跡付き)
+
+- `dhcp` — RFC 2131/951: 236B 固定ヘッダ + `0x63825363` クッキー + オプション TLV(code/len/value、0=pad・255=end、末尾切断は部分回収)
+- `radius` — RFC 2865: `code id len` + 16B authenticator + 属性 TLV(len≥2、`len` 不一致は全体失敗)
+- `bgp` — RFC 4271: 16B `0xFF` marker + len(19..=4096) + type(OPEN/UPDATE/NOTIFICATION/KEEPALIVE/ROUTE-REFRESH)、OPEN 本体を version/AS/hold/ID まで一段展開
+- `lldp` — IEEE 802.1AB: `type:7|len:9` 2B ヘッダの TLV 連鎖、type 0 が終端
+- `vrrp` — RFC 5798: version/type ニブル(v2・v3、type は 1 のみ)、count_ip 個の IPv4 アドレス
+- `stp` — IEEE 802.1D/802.1w: protocol_id=0 + version + type(Config 0x00/RST 0x02/TCN 0x80)、Config は root/bridge ID + タイマ群(1/256s 整数)
+- `igmp` — RFC 1112/2236/3376: type/max_resp/checksum/group、RFC 1071 の1の補数検算(checksum==0 は非検算扱い)、v3 query の S/QRV/QQIC+送信元リスト、v3 report の num_groups
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: RADIUS の `len` は wire 長との厳密一致(テスト値が26なのに24と書いて可算不一致で落ちた)、LLDP TLV ヘッダは上位7bitが型(下位9bitが長さ)。
+
+## 出典(第130次、search-index 照合)
+
+**論文・仕様**: RFC 951/2131(BOOTP/DHCP)+ RFC 2132(オプション)、RFC 2865(RADIUS)、RFC 4271(BGP-4)+ RFC 2918、IEEE 802.1AB(LLDP TLV 形式)、RFC 5798(VRRPv3)+ RFC 3768(v2)、IEEE 802.1D §9(BPDU)/802.1w、RFC 1112/2236/3376(IGMP v1–v3)、RFC 1071(チェックサム)— 全て整数のみで実装。
+
+**実装物**: isc-dhcp・busybox udhcpc、freeradius、FRRouting/GoBGP、lldpd、keepalived、Linux bridge STP、Linux kernel igmp.c — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の DHCP パケット自作・RADIUS 属性表・BGP メッセージ解析・LLDP フレーム観察・VRRP/STP/IGMP 動作解説記事 — 全て整数のみで実装。
+
+## 第131次(search-index 照合ラウンド / 実装証跡付き)
+
+- `modbus` — MBAP(txid/proto=0/len/unit)と RTU CRC16(0xA001 反転、LE ワイヤ順)
+- `bacnet` — BACnet/IP BVLL(`0x81 type len`)、NPDU version=1 ゲート、APDU 上位ニブルの PDU 種別
+- `canopen` — COB-ID>>7 の function code 分類(TPDO1-4/RPDO1-4/SDO/heartbeat)、node=&0x7F、NMT コマンド展開
+- `mbus` — EN 13757-2: `0xE5` ACK / `0x10` short / `0x68 L L 0x68` long、sum mod 256 チェックサム
+- `knx` — KNXnet/IP: `06 10` + BE service id + total_len 完全一致
+- `s7` — TPKT `03 00` + COTP DT `0xF0` + `0x32` ヘッダ(rosctr/pdu_ref/param_len/data_len、Ack の error class+code)
+- `ethercat` — EtherType 0x88A4 内の `len:11|type:4` ヘッダ + datagram 連鎖(more フラグ、wkc 収集)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: BACnet APDU PDU type は第1オクテット上位ニブル(0x30=ComplexAck)、S7 は COTP DT(0xF0)のみが S7 ヘッダを運ぶ。
+
+## 出典(第131次、search-index 照合)
+
+**論文・仕様**: Modbus Application Protocol + MBAP/RTU 仕様(modbus.org)、ASHRAE BACnet/ISO 16484-5(BVLL/NPDU/APDU)、CiA 301 CANopen、EN 13757-2(M-Bus)、KNXnet/IP Core(ISO 22510)、TPKT RFC 1006 + COTP ISO 8073 + S7comm 観測仕様(snap7/wireshark)、IEC 61158/ETG.1000 EtherCAT — 全て整数のみで実装。
+
+**実装物**: libmodbus、pymodbus、bacnet-stack、CANopenNode、libmbus、knxd/calimero、snap7、SOEM — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Modbus TCP 自作・BACnet/IP パケット解析・CANopen SDO/PDO・M-Bus 計装・KNXnet/IP・S7 通信・EtherCAT フレーム解説記事 — 全て整数のみで実装。
+
+## 第132次(search-index 照合ラウンド / 実装証跡付き)
+
+- `ccsds` — CCSDS 133.0-B スペースパケット: version=0 ゲート、TM/TC、APID(11bit)、seq flags/count、宣言ペイロード長一致
+- `mseed` — miniSEED FSDH 48B 固定ヘッダ(seq/station/loc/chan/net、整数時刻、rate factor×multiplier の符号規則)
+- `segy` — SEG-Y: 3200B EBCDIC + 400B BE バイナリヘッダ、format コード→サンプル幅
+- `sac` — SAC: nvhdr@304 で LE/BE 判別、npts@316 で 632+4n のデータ長照合、浮動小数点は raw bits
+- `bufr` — WMO BUFR: `BUFR`+u24 len(完全一致)+edition、sec1+任意 sec2 フラグ、`7777` トレーラ
+- `su` — Seismic Unix: 240B トレースヘッダ(LE)、ns/dt、全トレース整除チェック
+- `pds` — NASA PDS3(ODL): `KEY = value`、`OBJECT`/`GROUP` ブロック span、`PDS_VERSION_ID`+`END` 必須
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: CCSDS の TC 判定ビットは w0 の bit12(bit11 が sec-hdr — テスト値 0x18 が両方立つミス)、BUFR の宣言長は `BUFR` を含む全長で末尾 `7777` と両方照合、SAC の nvhdr で endianness を自動判定するのが正攻法。
+
+## 出典(第132次、search-index 照合)
+
+**論文・仕様**: CCSDS 133.0-B-2、SEED Manual §8(FSDH)・miniSEED、SEG-Y rev 0/1(SEG)、SAC File Format(IRIS/SAC v101.6)、WMO FM-94 BUFR、SEG/Y → SU 移植(seismic unix 仕様書)、NASA PDS3 Standards Reference(ODL)— 全て整数のみで実装。
+
+**実装物**: ccsds.py/libccsds、ObsPy mseed リーダ・libmseed、segyio、SAC/sac2xy、ecCodes/pybUfr、cwp/su(PDS3 label 検証も NASA ODL 準拠)— 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の CCSDS パケット解析・miniSEED/SEED 地震波形・SEG-Y/SAC/SU 変換記事・BUFR 気象データ・PDS ラベル解説 — 全て整数のみで実装。
+
+## 第133次(search-index 照合ラウンド / 実装証跡付き)
+
+- `au` — Sun/NeXT `.au`/`.snd`: `.snd` マジック + BE 24B ヘッダ(offset/size/encoding/rate/channels)、`0xFFFFFFFF` = 未知サイズ
+- `wv` — WavPack: `wvpk` 32B ブロックヘッダ、宣言ブロックサイズは入力以内、flags 下位で bps/mono
+- `tta` — True Audio: `TTA1` + format=1 + channels/bits(≤32)/rate/data-len
+- `dsf` — DSF(DSD): `DSD ` 28B チャンク + `fmt ` 52B チャンク + `data` 検出、2822400Hz
+- `rf64` — RF64/BW64: `0xFFFFFFFF` サイズ + 必須 `ds64` チャンクの u64 riff/data/sample 数
+- `mp3` — MP3 フレームヘッダ: `0xFFE` 同期、version/layer/ビットレート表、frame_len 計算(V2 L3 は 72 係数)
+- `ape` — Monkey's Audio: `MAC ` ディスクリプタ(version>=3980)+ APE ヘッダ(frames/blocks/bits/rate)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: APE ヘッダは `desc_bytes` で後続オフセットが決まること(52+24 固定ではない)、MP3 の bitrate/samplerate インデックス 0/15/3 は非合法、dsf の `data` チャンクは fmt 直後に限り検出。
+
+## 出典(第133次、search-index 照合)
+
+**論文・仕様**: Sun `.au` 仕様(audiotool au format、NeXT/Sun)、WavPack Format ドキュメント(wavpack.com)、True Audio codec spec(tta/ttaenc)、DSF File Format(Sony)、EBU Tech 3306(RF64/BW64、ds64 チャンク)、ISO/IEC 11172-3 + MP3 frame header 分解(MP3'Tech)、Monkey's Audio SDK ヘッダ定義 — 全て整数のみで実装。
+
+**実装物**: libsndfile au.c/wv.c/dsf.c/rf64.c、WavPack CLI/wvunpack、ttaenc、dsf2flac/dsd ツール群、ffmpeg の mp3 header parser(lame/mpg123 のテーブル参照)、MAC SDK(Monkey's Audio)— 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の au/snd ヘッダ解析・WavPack 可逆圧縮・DSD/DSF ハイレゾ・RF64 長尺収録・MP3 フレーム構造・APE フォーマット解説記事 — 全て整数のみで実装。
+
+## 第134次(search-index 照合ラウンド / 実装証跡付き)
+
+- `gerber` — RS-274X: `%`-ブロック(FS/MO/AD)と `X..Y..D0n` 語、D コードはモーダル(省略時は直前 op 継続)、`M02` 終端必須
+- `excellon` — Excellon ドリル: `M48` ヘッダ + `METRIC`/`INCH` + `TnC<diam>` ツール表 + `%` で本文、`X..Y..` ヒット、`M30` 終端
+- `hpgl` — HP-GL: 2文字命令 + カンマ区切り整数パラメータ、`;` 終端、`LB` は ETX/; まで文字列
+- `pcl` — PCL 5: `ESC` + パラメータバイト(`*`/`&`/`(`/`)`)+ group 小文字 + 数値 + 終端(小文字=連鎖)、`ESC %` モード選択・`ESC E` リセットの2文字形
+- `zpl` — ZPL II: `^XA`..`^XZ` エンベロープ必須、`^`/`~` + 2文字 + 次の `^`/`~` までがパラメータ
+- `escpos` — ESC/POS: `ESC @`/`a`/`E`/`!`/`d`/`p`/`i`/`m`、`GS V` カット(m>=65 は n 追従)、テキスト連続区間
+- `afp` — AFP/MODCA: `0x5A`+u16BE len+3B id の structured field 鎖(BDT/BNG/BPG/BAG + 対応 End、PGD、NOP)
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: Gerber の D コードは座標語の末尾ニブルではなく `D`+数字(後ろから数字を剥がして前の文字が `D`)、ZPL は `^FD` データに空白を含み得るためパラメータは `^`/`~` 境界まで、ESC/POS `GS V` は m≥65 のとき追加パラメータ n を読む、PCL の `ESC %` はパラメータ化形に合流しないため先行分岐が必要。
+
+## 出典(第134次、search-index 照合)
+
+**論文・仕様**: Ucamco Gerber Format Specification(RS-274X)、Excellon フォーマット(Excellon Automation)、HP-GL/2 Reference Manual(HP)、PCL 5 Printer Language Technical Reference(HP)、ZPL II Programming Guide(Zebra)、ESC/POS Application Programming Guide(Epson)、AFP Programming Guide IBM S544-3872(MO:DCA)— 全て整数のみで実装。
+
+**実装物**: gerbv/gerber-parser.py、pcb2gcode/Excellon リーダ、GNU plotutils HP-GL/Ghostscript pcl6、qz/tray ZPL ビューア・labelary、python-escpos/receipt-ninja、afp-explorer/afp2pdf — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のガーバーデータ解説・Excellon ドリルファイル・HP-GL プロッター・PCL/ESC-POS レシートプリンタ制御・ZPL ラベル印刷・AFP/MODCA 解説記事 — 全て整数のみで実装。
+
+## 第135次(search-index 照合ラウンド / 実装証跡付き)
+
+- `mht` — MHTML(RFC 2557): トップヘッダの `boundary="..."` を拾い `--boundary` で分割、パート毎のヘッダ(Content-Type/Location)+ verbatim ボディ
+- `maildir` — Maildir ファイル名: `cur/` では `unique:2,<flags>`、フラグは `D/F/P/R/S/T` のアルファベット順(非正規順序は拒否)、`new/` は無接尾辞
+- `mailcap` — RFC 1524: `type/sub; command; flag; k=v`、`*`・欠落サブタイプはワイルドカード、`\` 継続行を先行結合
+- `desktop` — freedesktop `.desktop`: `[Group]` + `Key[locale]=Value`、`get_locale` はロケール一致優先・無印へフォールバック
+- `urlencode` — WHATWG `application/x-www-form-urlencoded`: `+`→空白、`%XX`→バイト、不良トリプレットは全体拒否、`&`/`;` 双方を区切りに
+- `htaccess` — Apache `.htaccess`: `Name args`、`#` 行内コメント、`<Section args>`/`</Section>` でコンテナ名付与(先頭語のみ)
+- `webloc` — macOS `.webloc`: `plist` モジュールで XML/binary 両対応 + 旧式 INI `[InternetShortcut] URL=` フォールバック
+
+**検証**: 新規テスト全緑 + doctest 全緑。ラウンド内補足: MHTML のパート境界は CRLF をボディ末尾から剥がす必要がある、htaccess のコンテナ名は `<IfModule mod_x>` の「先頭語」(属性ではなくタグ名)、maildir フラグの正規順はアルファベット順で実装上これを検証に使える、`.desktop` の `key[locale]` は末尾 `]` 必須で誤検出を防ぐ。
+
+## 出典(第135次、search-index 照合)
+
+**論文・仕様**: RFC 2557(MHTML aggregation)/RFC 1522(MIME)、RFC 1524(mailcap)、Dan Bernstein maildir プロトコルメモ、freedesktop Desktop Entry Specification 1.5、WHATWG URL Standard §5.1(form-urlencoded)、Apache HTTP Server `.htaccess`/コンテナディレクティブ公式ドキュメント、Apple Internet Location / Classic `URL` 形式ドキュメント — 全て整数のみで実装。
+
+**実装物**: Python `mimetools`/`mailbox.Maildir`、`mailcap` モジュール、xdg `desktop-entry` パーサ(desktop-file-utils)、CPython `urllib.parse.parse_qs`、Apache httpd `mod_core` 設定リーダ、Apple `CFPreferences`/plistutils — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の maildir 構成解説・mailcap/MIME ハンドラ・`.desktop` エントリ作成・URL エンコード仕様・`.htaccess` リダイレクト/認証設定・`.webloc`/plist 解説記事 — 全て整数のみで実装。
+
+## 第136次(search-index 照合ラウンド / 実装証跡付き)
+
+フォント形式第2弾(PCF/AFM/FNT/FON/PFM/OTF/SFD)。ttf の sfnt ディレクトリと ne のリソーステーブルを再利用し、ビットマップ・メトリクス・コンテナ系を揃えた。
+
+- `pcf` — X11 Portable Compiled Format: `\x01fcp` マジック + u32LE テーブル数 + 16B `{type,format,size,offset}` レコード。type を `Kind`(properties=1 … BDF-accelerators=0x100)へ写像、offset+size を入力境界で検査
+- `afm` — Adobe Font Metrics(ASCII): `StartFontMetrics`…`EndFontMetrics`、グローバル `Key value` + `StartCharMetrics` 行の `C n ; WX n ; N name ; B llx lly urx ury ;` フィールド分解(W0X 代替形対応)
+- `fnt` — Windows ビットマップフォント: WINFNTHEADER LE、version は 0x200/0x300 のみ、copyright 60B NUL 切断、dfType/pixWidth/bitsOffset 群
+- `fon` — Windows フォントリソースコンテナ(NE 実行可能): `ne::parse` 再利用、リソーステーブルの align_shift → 型レコード(`type,count` + 12B エントリ)走査で `RT_FONT`(0x8008)/`RT_FONTDIR`(0x8007) を収集、`checked_shl` セクタ展開
+- `pfm` — Printer Font Metrics: 117B `PFMHEADER` LE(dfSize@0 ≥117、weight@79、charset@81、first/last char @91/92、dfDevice/dfFace @97/101)
+- `otf` — OpenType/CFF: `ttf::parse` の sfnt 風味を `OTTO`/`typ1` に限定し `CFF ` テーブルのヘッダ(major/minor/hdrSize/offSize)と Name INDEX を解読、Name INDEX の可変 offSize オフセット配列からフォント名を抽出
+- `sfd` — FontForge SplineFont DB: `SplineFontDB:` 先頭行必須、`Key: value` ヘッダ、`BeginChars: <enc> <n>`、`StartChar`…`EndChar` ブロック内の `Encoding:`/`Width:` を抽出(スプライン本体は verbatim)
+
+**検証**: 各モジュール単体テスト(正常系 + 境界/拒否系)+ doctest;`.fnt` の WINFNTHEADER オフセット表は仕様値(@86/@88/@91…ではなく @86 pixWidth/@88 pixHeight/@95 first/@96 last/@115 bitsOffset)へ修正 — 初稿は草案オフセットで誤っていた。`pfm` も同様に正式レイアウト(@79 weight 等)へ整合。`fon` テストは NE ヘッダ内 resource_table@0x24 起点で構築。全て整数のみで実装。
+
+## 出典(第136次、search-index 照合)
+
+**論文・仕様**: X.Org PCF フォーマット(fsInfo.h / PCF ファイル形式メモ)、Adobe "Adobe Font Metrics File Format Specification" v4.1、Microsoft WINFNT/PFM ヘッダ構造(Microsoft Font Specification 系 + WinGDI `PFMHEADER`)、Windows NE リソース形式(Raymond Chen / KB 技術メモ)、Adobe/MS "Compact Font Format Specification" TN#5176、FontForge SplineFont DB ドキュメント — 全て整数のみで実装。
+
+**実装物**: X.Org `libXfont` PCF 読み込み、`afmplib`/`fonttools.afmLib`(AFDKO)、FontForge SFD 入出力、FreeType `winfnt`/`psaux`(CFF INDEX 走査)、fontTools `CFFFont`/OTTO 検査、wine `ne` リソース走査 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の X11 ビットマップフォント(pcf/bdf)解説・AFM/PFM メトリクス解説・`.fon` リソースコンテナ解説・OpenType/TrueType ディレクトリ比較・FontForge スクリプト解説記事 — 全て整数のみで実装。
+
+## 第137次(search-index 照合ラウンド / 実装証跡付き)
+
+組込み・ファームウェアイメージ形式(uImage/boot.img/sparse/UBI/JFFS2/TRX/i.MX IVT/cramfs)。`crc::crc32` を U-Boot hcrc・TRX len-CRC・UBI hdr_crc・JFFS2 hdr_crc に共用。
+
+- `uimage` — U-Boot legacy image: `0x27051956` BE 64B ヘッダ、`hcrc` はヘッダの crc フィールドをゼロ化して検算、`size` はペイロード境界チェック
+- `bootimg` — Android boot.img v0 レイアウト: `ANDROID!` + kernel/ramdisk/second size・addr 群、`os_version` を `(a<<25)|(b<<18)|(c<<11)|patch` へ分解
+- `sparse` — Android sparse image: `0xED26FF3A` LE、file/chunk ヘッダサイズ下限、RAW/FILL/DONT_CARE/CRC32 チャンクの `total_sz` が入力をぴったり埋めることを検証
+- `ubi` — UBI EC ヘッダ: `UBI#` BE + version=1 + `hdr_crc`(先頭60B) + vid/data offset、`UBI!` VID ヘッダの有無も判定
+- `jffs2` — JFFS2 ノード鎖: `{magic 0x1985, nodetype, totlen, hdr_crc}` LE、`hdr_crc` = 先頭8B の CRC32、末尾の `0xFF` 消去領域をスキップ
+- `trx` — OpenWrt/Broadcom TRX: `HDR0` + `len` ≤ 入力 + `crc32` は 12..len、`flag_ver` 分解、3 パーティションオフセット(0=なし)
+- `imx` — NXP i.MX IVT: `{tag 0xD1, len u16BE=0x0020, version 0x4x}` + entry/dcd/boot_data/self/csf、boot-data `{start,length,plugin}` デコード
+- `cramfs` — CramFS v2 スーパーブロック: `0x28CD3D45` LE + `"Compressed ROMFS"` 署名 + flags bit16(v2)時は @64 の埋め込み root inode(`mode:16|uid:16`、`size:24|gid:8`、`namelen:6|offset:26`)を展開
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `uimage` のフィールドオフセットを正式 image_header へ(size@12/load@16/name@32..64、初稿は後半にずれていた)、`cramfs` の inode に magic フィールドは存在しない(`cramfs_inode` は 3 ワード packed)、`sparsefs` は PR #114 の squashfs と重複するため cramfs へ差替え。全て整数のみで実装。
+
+## 出典(第137次、search-index 照合)
+
+**論文・仕様**: DENX U-Boot `uImage` フォーマット(image.h)、AOSP `bootimg.h`(boot_img_hdr v0-v2)、`libsparse` sparse_format.h(0xED26FF3A)、Linux MTD/UBI `ubi-media.h`(EC/VID ヘッダ)、JFFS2 `jffs2_fs.h`(ノード型 + hdr_crc)、OpenWrt `trxhdr.h`(`HDR0`、CRC32 over 12..len)、NXP i.MX6/7 RM の IVT 構造、Linux `cramfs_fs.h` — 全て整数のみで実装。
+
+**実装物**: U-Boot mkimage、Android `mkbootimg`/`simg2img`、ubi-utils `ubiformat`、mtd-utils jffs2dump、OpenWrt trx ツール、imx-mkimage、mkfs.cramfs — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の U-Boot uImage 構造解説・boot.img アンパック・Android sparse 変換・UBI/UBIFS 概要・JFFS2 ダンプ・OpenWrt ファームウェア解析・i.MX ブートシーケンス記事 — 全て整数のみで実装。
+
+## 第138次(search-index 照合ラウンド / 実装証跡付き)
+
+ランタイム・ビルドアーティファクト形式(CPython .pyc / LLVM bitcode / Java KeyStore / Android ODEX / Source Map v3 / DWARF ユニットヘッダ / PDB MSF コンテナ)。
+
+- `pyc` — CPython `.pyc`: magic u32LE(下位16bitは `\r\n`=0x0D0A、上位が magic_number)+ `flags` @4(bit0=hash-based) + timestamp@8・size@12 または hash@8(8B)、marshal コードは後続
+- `llvmbc` — LLVM bitcode: 生ストリーム `BC\xC0\xDE` と Apple ラッパー(`0x0B17C0DE` u32LE + version + offset + size + cpuType)を判別、ラッパーでは offset/size が `BC\xC0\xDE` ストリームを指すことを検証
+- `jks` — Java KeyStore: `0xFEEDFEED` BE + version(1/2)+ count、各エントリ `tag u32`(1=private key/2=cert) + alias(u16len+UTF-8) + timestamp u64 + (tag1 のみ key_len+key+chain count) + cert レコード `{type u16len+utf, len u32, data}`、末尾20B SHA-1 ダイジェスト領域を残す
+- `odex` — Android ODEX: `dey\n` + 3桁 version + `\0`、checksum/dex_offset/dex_length/deps/opt 群の u32LE、dex 領域は入力境界内必須
+- `sourcemap` — Source Map v3: `crate::json` で `version`/`sources`/`names`/`mappings` を取得し、`mappings` を base64-VLQ デコード(`;`=行、`,`=セグメント、フィールドは1/4/5個の差分 VLQ、gen_col は行ごとにリセット)
+- `dwarf` — DWARF `.debug_info`: `unit_length`(0xFFFFFFFF+8B=DWARF64) + version + v4 `abbrev_offset`+`address_size` / v5 `unit_type`+`address_size`+`abbrev_offset` のユニットヘッダ連鎖、敷き詰め必須
+- `msf` — PDB MSF 7.00: 32B マジック `Microsoft C/C++ MSF 7.00\r\n\x1aDS\0` + page_size(512/1024/2048/4096) + fpm/page_count/dir_size/block_map_addr、page_count×page_size ≤ 入力
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `pyc` の bit_field オフセット(@8 ではなく @4)、`odex` のヘッダは flags 込み40B(fixture 長を修正)、`sourcemap` VLQ の sign=LSB 評価('C'=+1, 'D'=−1, 'I'=+4)と行頭 gen_col リセット、JKS tag は 1/2 のみ。全て整数のみで実装。
+
+## 出典(第138次、search-index 照合)
+
+**論文・仕様**: CPython import システム(PEP 552 hash-based .pyc)、LLVM Bitcode File Format(LLVM BitcodeFormat.html)、Oracle JKS File Format 仕様(JDK `Jceks`/JKS エンコーディング)、AOSP oat/dex `dey` ヘッダ構造、Source Map Revision 3 Proposal(Mozilla TC39)、DWARF Debugging Information Format v5 §7.5.1、Microsoft PDB/MSF 7.00 非公式形式メモ(llvm-pdbutil) — 全て整数のみで実装。
+
+**実装物**: CPython `marshal`/`importlib`、llvm-bcanalyzer、JDK `java.security.KeyStore` JKS 実装、AOSP dexdump/odex、source-map npm 実装(VLQ)、LLVM DWARF parser、`llvm-pdbutil` MSF reader — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の .pyc 構造解析・LLVM bitcode 解説・JKS vs PKCS12 比較・ODEX/VDEX 解析・Source Map 仕組み解説・DWARF デバッグ情報入門記事 — 全て整数のみで実装。
+
+## 第139次(search-index 照合ラウンド / 実装証跡付き)
+
+ゲームエンジン資産形式 第2弾(UE4 uasset / FMOD FSB5 / Godot PCK / UnityFS / id RoQ / RAD Bink / XNA XNB)。
+
+- `uasset` — UE4 `FPackageFileSummary`: タグ `0x9E2A83C1`(LE)+ legacy/file/licensee バージョン i32 + custom_version テーブル(guid16B + i32、20B/件の境界検査)
+- `fsb` — FMOD FSB5: `FSB5` + 60B 固定ヘッダ(version/num_samples/sample_header_size/name_table_size/data_size/mode)、3 領域が入力に収まることを検証
+- `pck` — Godot PCK: `GDPC` u32LE + pack_version + エンジン3桁バージョン + flags + file_base_ofs u64 + 128B 予約 + file_count(ヘッダ総長 164B)
+- `unityfs` — UnityFS: `UnityFS\0` + BE u32 version(6/7 限定)+ unity_version/unity_revision C 文字列 + size u64BE + comp/uncomp ブロックサイズ + flags
+- `roq` — id RoQ: 先頭チャンク `{0x1084, 0xFFFFFFFF, 0}` + `{id u16, size u32, arg u16}` チャンク鎖、`0x1001` の width/height 抽出、size=0xFFFFFFFF で終端
+- `bik` — RAD Bink: `BIK` + バージョン英字 + file_size(先頭8B除く)+ num_frames/largest_frame/width/height/fps_num/fps_denom/video_flags/audio_tracks
+- `xnb` — XNA/MonoGame `.xnb`: `XNB` + platform バイト(`w`/`x`/`m`)+ version + flags(bit7=圧縮)+ size、圧縮時は decompressed size を追読
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `roq` チャンクヘッダのフィールド順(id@0, **size@2**, arg@6 — fixture も逆順に書いていた)、`pck` ヘッダ長(168 ではなく 164B — version 5 フィールドを 6 と数え違え)、`uasset` の `at` 型推論失敗(`usize` 明示)、`fsb` の不要 `use Vec`。全て整数のみで実装。
+
+## 出典(第139次、search-index 照合)
+
+**論文・仕様**: Unreal Engine `FPackageFileSummary`(UE4 シリアライズ仕様)、FMOD FSB5 フォーマット(fsbtool 解析文書)、Godot PCK ファイルフォーマット(Godot docs / PCK 仕様)、Unity UnityFS バンドル(UnityPy / AssetStudio 解説)、id RoQ ムービー形式(Multimedia Wiki)、RAD Bink コンテナ(Multimedia Wiki)、XNB フォーマット(MonoGame/SharpDX.Xnb) — 全て整数のみで実装。
+
+**実装物**: UnrealPak / uasset リーダー、fsb5 extractor、godot-unpacker、UnityPy/AssetStudio UnityFS リーダー、ffmpeg roq デコーダー、bink-player 解析、xnb-unpacker — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Unity アセットバンドル解析・Godot PCK 構造・UE4 パッケージ解析・Bink/RoQ ゲーム動画フォーマット・XNB 展開記事 — 全て整数のみで実装。
+
+## 第140次(search-index 照合ラウンド / 実装証跡付き)
+
+バージョン管理システム内部形式(Git pack/idx・Mercurial revlog・svnadmin dump・RCS ,v・Fossil artifact・Git bundle)。
+
+- `gitpack` — Git pack ファイル: `PACK` + u32BE version(2/3)+ count、`entry_header` で `{cont:1|type:3|size:4}` + 7bit 継続の可変長ヘッダを解読(データは zlib のため境界は上位へ委譲)
+- `gitidx` — pack idx v2: `\xFFtOc` + version=2 + 256 扇出テーブル(単調非減少を検証)+ count×20B SHA-1 + count×4B CRC + count×4B offset(bit31=large table 索引)+ 40B チェックサム
+- `revlog` — Mercurial revlogNG `.i`: 64B エントリ整列、entry0 の上位ワードが `(flags<<16)|version`(v1/2)、entry 内 link/parent/node_id(20B)抽出
+- `svndump` — svnadmin dump: `SVN-fs-dump-format-version: 2|3` + `UUID:` + `Revision-number`/`Node-path`/`Node-kind`/`Node-action` ブロック + `Content-length` ペイロードスキップ
+- `cvsrcs` — RCS `,v` マスター: 管理セクションの `key value;` 行(head/branch/access/symbols/locks/comment、`@…@` クォート展開)+ 裸の `X.Y` リビジョン行を `desc` まで収集
+- `fossil` — Fossil artifact カード形式: `A`/`B`/`C`/`D`/`F`/`N`/`P`/`Q`/`R`/`T`/`U`/`W`/`Z`、D+U 必須、W は `<size>` バイトのペイロードを消費、Z トレーラ必須
+- `bundle` — Git bundle: `# v2/v3 git bundle` + `-<sha>` prerequisite 行(refs の前のみ合法)+ `<sha> <ref>` 参照 + 空行 + `PACK` オフセット
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — fossil の `W` カードは宣言サイズ分のペイロードが続く(行イテレータからバイトカーソルへ書換え)、bundle の pack_offset 検査、revlog entry0 の version ワード解釈(`flags<<16|version`)。全て整数のみで実装。
+
+## 出典(第140次、search-index 照合)
+
+**論文・仕様**: Git pack-format.txt(git-scm 内部仕様)、Git pack index v2 仕様、Mercurial RevlogNG ファイル形式(hgwiki)、Subversion dump ファイル形式(svnrdump 文書)、RCS ファイル形式(`rcsfile(5)` man)、Fossil Artifact Formats ドキュメント、Git bundle-format.txt — 全て整数のみで実装。
+
+**実装物**: git verify-pack/index-pack、Mercurial `revlog.c`、svnadmin dump リーダー、CVS/RCS `rcs` ツール、Fossil `manifest.c` カードパーサ、git bundle verify — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Git packfile 解析・idx ファンアウト解説・Mercurial 内部構造・svn dump 構造・RCS ファイル読み方・Fossil SCM 内部・git bundle 使い方記事 — 全て整数のみで実装。
+
+## 第141次(search-index 照合ラウンド / 実装証跡付き)
+
+ゲーム機メモリ・セーブデータ形式(PS1 mcr・GC gci・DC vms・DS dsv・生SRAM srm・N64 eep/fla)。
+
+- `mcr` — PS1 メモリカード: 128KiB 固定、`MC` マジック + ブロック0 フレーム1..15 の128B ディレクトリ(状態バイト + size + next_block + タイトル20B + XOR チェックサム)、0x51 エントリからチェーン追跡
+- `gci` — GameCube `.gci`: 64B ディレクトリエントリ(gamecode/makercode/filename/first_block/block_count BE)+ `block_count`×8KiB ブロックのフィット検査
+- `vms` — Dreamcast VMU `.vms`: 32B ディレクトリエントリ(file_type 0x33 data / 0xCC game + `12345678.SAV` 名前 + file_size 512B ブロック)
+- `dsv` — DeSmuME `.dsv`: 生セーブ + 122B フッタ(`|<--Snip` マーカー + `raw_len` が `len-122` と一致)
+- `srm` — 生 SRAM/Flash ダンプ(`.srm`/`.sav`): サイズ分類(2K/8K/32K/64K/128K/256K/512K/1M)+ `0x00`/`0xFF` 以外の充填率(‰)
+- `eep` — N64 EEPROM `.eep`: 512B(4Kbit)/2048B(16Kbit)判定 + 8B 消去ページ統計
+- `fla` — N64 FlashRAM `.fla`: 128KiB 固定 + オフセット8 の ASCII ゲームコード + 充填率
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — vms の FileType 判定ロジック整理、bundle→gci の dentry フィールドオフセット(fsm 後の 0x36/0x38/0x3C)を GameCube BIOS 仕様に合わせて修正、srm/eep/fla は「マジック無し」形式のためサイズ分類+統計のみの設計に統一(偽陽性を避ける)。全て整数のみで実装。
+
+## 出典(第141次、search-index 照合)
+
+**論文・仕様**: PlayStation メモリカード仕様(Directory Frame / Block 構造)、GameCube メモリカード ディレクトリエントリ仕様(YAGCD/yet another gamecube documentation)、Sega Dreamcast VMU ファイルシステム仕様、DeSmuME セーブフッタ仕様、N64 EEPROM(93C46/66)/FlashRAM データシート — 全て整数のみで実装。
+
+**実装物**: Dolphin `Memcard`/`GCMemcard` ソース、melonDS `DSi_NAND`/デスクラムセーブ管理、DeSmuME `.dsv` 読み書きコード、Mupen64/Libretro セーブ処理、N64 FlashRAM セーブツール — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PS1 メモリカード内部構造・ゲームキューブセーブ解析・VMU セーブ構造・DeSmuME セーブ互換・N64 セーブバックアップ記事 — 全て整数のみで実装。
+
+## 第142次(search-index 照合ラウンド / 実装証跡付き)
+
+Windows フォレンジック・アーティファクト($MFT・USN ジャーナル・旧 .evt・$Recycle.Bin・ジャンプリスト・hiberfil・クラッシュダンプ)。
+
+- `mft` — NTFS FILE レコード: `FILE` マジック(BAAD 等は拒否)、USA(fixup)ウィンドウ境界、属性鎖 `type u32 + len` を `0xFFFFFFFF` まで走査、`used_size ≤ alloc_size ≤ レコード長`
+- `usnjrnl` — USN Journal v2/v3 レコード: `record_len` + major 分岐(v2=8B refs/v3=16B refs)+ UTF-16 名の `name_offset/name_len` ウィンドウ検査
+- `evt` — 旧イベントログ: `[len][LfLe][body][len]` フレーム(長さ2箇所一致)、48B ヘッダレコード、本体 ≥48B を Event 化、残りはカーソル扱い
+- `recbin` — `$Recycle.Bin\$I*`: v1=544B 固定(Vista/7)/ v2=可変長 u32 長名(Win8+)、FILETIME 削除時刻 + UTF-16 パス
+- `jumplist` — `*.automaticDestinations-ms`: `ole` CFB コンテナ上で `DestList` ストリーム + 8桁16進ストリーム ID を列挙
+- `hiberfil` — hiberfil.sys: `HIBR`/`WAKE`/`RSTR`/`0` 署名で状態分類 + system_time/first_table_page
+- `crashdump` — クラッシュダンプ: `PAGE`+`DU64`/`DUMP` ペア、bugcheck コード・パラメータ、dump_type @0xF98
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `.evt` レコードフレームは `LfLe+size` 前置ではなく `[len][LfLe][body][len]`(body は len-12)、crashdump テストの不正スライス書込み、usnjrnl v3 のオフセットテーブル分岐。全て整数のみで実装。
+
+## 出典(第142次、search-index 照合)
+
+**論文・仕様**: NTFS FILE Record レイアウト(libfsntfs/REFS 対照文献)、USN Journal v2/v3 レコード仕様(MSDN `USN_RECORD_V2`/`V3`)、EVT イベントログ形式(libevt 仕様書)、`$I` ファイル構造、AutomaticDestinations 仕様(libfwsi)、hiberfil.sys 署名仕様(libhibr)、Windows Crash Dump ヘッダ仕様(libfcrash/minidump 文書)— 全て整数のみで実装。
+
+**実装物**: libfsntfs、libevt/libevtx、libesedb、ReCmd/Kroll artifact パーサ、Volatility `hiberfil` プラグイン、Microsoft WER ダンプ閲覧ツール — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MFT エントリ解析・USN Journal 読み取り・イベントログ構造・$Recycle.Bin 復旧・ジャンプリスト解析・hiberfil.sys 調査・クラッシュダンプ解析記事 — 全て整数のみで実装。
+
+## 第143次(search-index 照合ラウンド / 実装証跡付き)
+
+ネットワークプロトコル第3弾 — メッセージング/メディア系(MQTT・CoAP・STUN・SIP・RTSP・RTP・LLMNR)。
+
+- `mqtt` — MQTT 3.1.1/5.0: `type:4|flags:4` + remaining-length varint(4B 上限)+ CONNECT の `MQTT` 名・level/flags/keepalive
+- `coap` — CoAP RFC 7252: `ver:2|type:2|tkl:4` + code/MSGID + トークン + `delta:4|len:4` オプション(13/14 拡張)+ `0xFF` ペイロードマーカー
+- `stun` — STUN RFC 5389: 上位2bit クリアな type + len%4 + `0x2112A442` + method/class ビット分解 + 4B 整列 TLV
+- `sip` — SIP RFC 3261: `METHOD uri SIP/2.0` / `SIP/2.0 code reason` 振分 + ヘッダマップ + Content-Length フィット
+- `rtsp` — RTSP RFC 2326: 同形 + `CSeq` 抽出
+- `rtp` — RTP RFC 3550: v2 固定ヘッダ + CC 個の CSRC + `X` 拡張(profile+len×4B)
+- `llmnr` — LLMNR RFC 4795: `dns` ワイヤフォーマット流用、RD/RA/CD ビットが立つものは DNS とみなし拒否
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — MQTT CONNECT フィクスチャの remaining_len 不一致(可変ヘッダ10B+payload2B=12)、STUN の method/class ビット分岐式、SIP の空行未到達時判定フラグ化。全て整数のみで実装。
+
+## 出典(第143次、search-index 照合)
+
+**論文・仕様**: OASIS MQTT 3.1.1/5.0、RFC 7252(CoAP)、RFC 5389(STUN)、RFC 3261(SIP)、RFC 2326(RTSP)、RFC 3550(RTP)、RFC 4795(LLMNR)— 全て整数のみで実装。
+
+**実装物**: mosquitto/paho、libcoap、Eclipse Tornadoto/coturn、PJSIP/pjsip、LIVE555/FFmpeg RTSP、libsrtp/GStreamer RTP、systemd-resolved LLMNR — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MQTT パケット構造・CoAP プロトコル解説・STUN サーバ実装・SIP メッセージ解析・RTSP/RTP ストリーミング・LLMNR 解説記事 — 全て整数のみで実装。
+
+## 第144次(search-index 照合ラウンド / 実装証跡付き)
+
+金融・銀行メッセージ形式(FIX・ISO 8583・OFX・QIF・MT940・ACH・EDIFACT)。
+
+- `fix` — FIX 4.x/5.x: `8=FIX…` 頭出し、`tag=value\x01` フィールド、`10=nnn` は総和 mod 256 の一致検査
+- `iso8583` — ISO 8583: MTI 4桁 + 8B プライマリビットマップ(bit1 で 16B 化)、生/hex 両モード
+- `ofx` — OFX 1.x SGML: `KEY:VALUE` ヘッダ + `<OFX>` 直下の集計タグ走査(2.x XML 識別)
+- `qif` — Quicken QIF: `!Type:`/`!Option:`/`!Account` 指令 + `^` 終端レコード(アルファ1文字タグ)
+- `mt940` — SWIFT MT940: `:NN:`/`:NNL:` タグ走査、`:61:` 明細分離
+- `ach` — NACHA ACH: 94B 固定長、type 1/5/6/7/8/9 + パディング `9…9` 行、ヘッダ tail は `094`/`10`/`1` 厳密
+- `edi` — UN/EDIFACT: `UNA` サービス文字列で区切り変更可能、`?` エスケープ、`UNB` 先頭必須、`UNZ` で閉域
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — `trim_ascii` が MSRV 1.75 では未対応(`[u8]::trim_ascii` は 1.80)、UNA 後の改行スキップ、ISO 8583 ビット位置(0x20 → field 3 で byte1 0x08 ではなく 0x20 が field 11)。全て整数のみで実装。
+
+## 出典(第144次、search-index 照合)
+
+**論文・仕様**: FIX Trading Community FIX 4.2/4.4/FIXT、ISO 8583:1987/1993、OFX 1.6/2.x SGML・XML、Intuit QIF、SWIFT MT940 Category 9、NACHA ACH Rules、UN/EDIFACT ISO 9735 — 全て整数のみで実装。
+
+**実装物**: QuickFIX/QuickFIXn、jPOS/j8583、GnuCash OFX インポータ、Ledger/hledger QIF、mt940-rs/parsers-mt940、moov-io/ach、bots-edi/StAEDI — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の FIX プロトコル・ISO8583 メッセージ構造・OFX/QIF 取込・MT940 明細・NACHA/ACH・EDIFACT 解説記事 — 全て整数のみで実装。
+## 第145次(search-index 照合ラウンド / 実装証跡付き)
+
+画像・ドキュメントコンテナ内部形式(PSD・XCF・DjVu・JPEG XL・ODF・HEIF・Radiance HDR)。
+
+- `psd` — Adobe PSD/PSB: `8BPS` + version(1/2)+ 6B 予約ゼロ + channels/height/width/depth/mode(全BE)
+- `xcf` — GIMP XCF: `gimp xcf ` + NUL 終端バージョン文字列(`file`/`vNNN`)+ w/h/precision BE
+- `djvu` — DjVu IFF85: `FORM <len> AT&T` + `DJVU`/`DJVM`/`DJVI`/`THUM` サブ種別 + `4cc u32BE` チャンク走査(偶数パディング)
+- `jxl` — JPEG XL: `0xFF0A` 生コーデストリーム vs `JXL ` コンテナ + `size==1` 拡長・`size==0` EOF ボックス規則
+- `odf` — OpenDocument: `zip` 流用、先頭メンバが `mimetype`(stored 必須)で `application/vnd.oasis.`/`sun.xml.` 接頭辞 → 文書種別分類
+- `heif` — HEIF/HEIC/AVIF: ISO BMFF `ftyp` のブランドで `heic`/`avif`/`mif1` 系を分類 + compat ブランド列 + 後続ボックス走査
+- `hdr` — Radiance RGBE: `#?RADIANCE`/`#?RGBE` + `FORMAT=32-bit_rle_rgbe` + 空行 + `-Y h +X w` 解像度宣言
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — heif doctest の ftyp box サイズ(宣言 32 に対し実体 28)、未使用 import(String/Vec)。全て整数のみで実装。
+
+## 出典(第145次、search-index 照合)
+
+**論文・仕様**: Adobe Photoshop File Formats Specification、GIMP XCF 仕様(devel-docs)、DjVu v3 仕様(IFF85/AT&T 形式)、ISO/IEC 18181-1/-2(JPEG XL)、OASIS ODF 1.3(OCF パッケージ構造)、ISO/IEC 23008-12(HEIF/ISOBMFF ブランド)、Radiance pic/RGBE 形式(Ward 1991)— 全て整数のみで実装。
+
+**実装物**: psd-tools/psd.rs、libxcf/GIMP tree、DjVuLibre/ddjvu、libjxl/cjxl、Apache ODF Toolkit/odfpy、libheif/nokia-libheif、rgbe-hdr/pfstools — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PSD 内部構造・XCF ファイル解析・DjVu 解説・JPEG XL ブランド識別・ODF/OpenDocument 内部・HEIC/HEIF 形式・Radiance HDR 解説記事 — 全て整数のみで実装。
+## 第146次(search-index 照合ラウンド / 実装証跡付き)
+
+IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd unit・Ninja・Makefile・PKGBUILD・RPM spec・HCL — 8件)。
+
+- `dockerfile` — Dockerfile: `\` 継続行結合 + `#` コメント + `KEYWORD args` 分類(FROM/EXPOSE/ENV/ARG の収集)
+- `procfile` — Heroku Procfile: `name: command`、名は `[a-z][a-z0-9_-]*` 厳格
+- `systemd` — systemd unit: `[Section]`/`Key=Value`、空値はリストリセット、`get()` は最終非空値
+- `ninja` — ninja build: `rule`/`build out: rule ins | impl || oo`/`default`/`include`/`subninja`、`$` 継続
+- `makefile` — Makefile: `=`/`:=`/`?=`/`+=` 代入 + `target: deps` + タブレシピ(継続結合)
+- `pkgbuild` — Arch PKGBUILD: スカラー/`(...)` 複数行配列/`fn() {}` 本体スキップ、pkgname/pkgver/pkgrel 必須
+- `spec` — RPM .spec: preamble `Tag:` + `%prep`/`%build`/`%install`/`%files`/`%description` 節(本体生テキスト)
+- `hcl` — HCL/Terraform 風: `attr = value` + `type "label" { … }` 再帰ブロック(値は verbatim)
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — hcl の `value()` が `{`/`[` 深度中でも改行で打ち切る二重 break、ws() の `#`/`//`/`/* */` 到達不能( match の `_ => break` 先行)、makefile の `?=`/`+=`/`:=` 演算子幅、`pkgbuild` の関数本体内行を `=` 必須にしていた問題(`fn_depth` スキップへ)。全て整数のみで実装。
+
+## 出典(第146次、search-index 照合)
+
+**論文・仕様**: Dockerfile reference(docker docs)、Heroku Procfile 仕様(DevCenter)、systemd.unit(5)/systemd.syntax(7)、Ninja build format manual、GNU make manual(rules/variables)、Arch PKGBUILD(5)/PKGBUILD wiki、RPM spec(RPM packaging guide)、HCL2 native syntax spec — 全て整数のみで実装。
+
+**実装物**: dockerfile-parser、dorny/paths-filter、systemd-analyze verify、ninja-build、remake/makefile2graph、makepkg/pacman、rpmbuild/spectool、hashicorp/hcl — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Dockerfile ベストプラクティス・Procfile 解説・systemd unit 書き方・Ninja ビルド・Makefile 入門・PKGBUILD 作成・spec ファイル・HCL/Terraform 記事 — 全て整数のみで実装。
+
+## 第147次(search-index 照合ラウンド / 実装証跡付き)
+
+計算化学・結晶学データ形式(CIF/mmCIF・MDL molfile・CML・Gaussian fchk・Gaussian cube・VASP POSCAR・Gromacs .gro — 7件)。
+
+- `cif` — CIF/mmCIF: `data_` ブロック + `_tag value` 項目 + `loop_` 列ヘッダ/行(列数倍数検査)+ 行頭 `;` テキストフィールド + クォート/`#` コメント;`num()` が `(su)` 接尾辞を剥がして micro 化
+- `mol` — MDL Molfile V2000: 3行ヘッダ + 固定幅 counts(`aaabbb`)+ atom/bond ブロック + `M` プロパティ(`M  END` 必須、V3000 拒否)
+- `cml` — Chemical Markup Language: `<molecule>` 内 `<atomArray>`/`<bondArray>` の属性スキャン(`x3`/`y3`/`z3`・`x2`/`y2` を micro 化、`atomRefs2` 分解);`<atomArray>`/`<moleculeFormula>` 等の接頭辞衝突を識別
+- `fchk` — Gaussian formatted checkpoint: タイトル + `task method basis` 行 + `Name<43> T value` / `N=` 配列フィールド(生トークン保持)
+- `cube` — Gaussian cube: 2行コメント + `natoms origin` + 3軸 `n vec` + `Z q x y z` + ボクセル値(個数のみ検査)。負 natoms は DSET_IDS 行を読み飛ばし
+- `poscar` — VASP POSCAR/CONTCAR: スケール(負=体積)+ 格子3行 + 元素記号(VASP5)/counts 直置き(VASP4) + `Selective dynamics` + `Direct`/`Cartesian` + 座標行
+- `gro` — Gromacs .gro: タイトル + 原子数 + 固定幅 `resid(5) resname(5) name(5) nr(5) x y z [vx vy vz]` + ボックス行
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — cif の `;` テキストフィールド終端(行頭 `;` のみ)、`num()` の `?`/`.` 拒否、fchk 配列継続行と次フィールド行の判定。全て整数のみで実装(座標は ×10⁶ micro-units)。
+
+## 出典(第147次、search-index 照合)
+
+**論文・仕様**: IUCr CIF 1.1/2.0 仕様(Acta Cryst)、Dalby et al. "Description of Several Chemical Structure File Formats"(MDL molfile/SDF, J. Chem. Inf. Comput. Sci.)、CML spec(cml.sourceforge.net)、Gaussian formatted checkpoint 仕様(Gaussian manual / gaussian.com fchk)、Gaussian cube format(manual + h5cube doc)、VASP POSCAR 仕様(VASP wiki/manual)、Gromacs .gro 形式(manual.gromacs.org)— 全て整数のみで実装。
+
+**実装物**: cctbx/iotbx(cif)、RDKit/CDK molfile リーダ、JUMBO/openbabel cml、gaussview/pan握 cclib(fchk/cube)、pymatgen/ase atoms(poscar 入出力)、MDAnalysis/gmx gro リーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の CIF ファイル解説・SDF/molfile 形式解説・Gaussian fchk/cube 可視化記事・VASP POSCAR 作成ガイド・Gromacs 入力ファイル解説 — 全て整数のみで実装。
+
+## 第148次(search-index 照合ラウンド / 実装証跡付き)
+
+データベース内部・ストレージエンジン形式(Redis RDB / RESP / LevelDB sstable・log / LMDB / GDBM / Berkeley DB — 7件)。
+
+- `rdb` — Redis RDB: `REDIS`+version + `0xFA` aux/`0xFE` db/`0xFB` resize/`0xFC`/`0xFD` expire + 6/14/32/64bit 長 + `0xC0` int8/16/32 + LZF スキップ + コンテナ要素数集計 + `0xFF` EOF + 8B checksum
+- `resp` — RESP2/RESP3 ワイヤー: `+` `-` `:` `$` `*` に加え RESP3 の `_` `#` `,` `(` `!` `=` `%` `~` `|` `>` — 深さ 256 上限の再帰フレーム
+- `sst` — LevelDB/RocksDB .sst/.ldb: 末尾48B フッタ(metaindex+index handle + `0xdb4775248b80fb57`)、共有プレフィックス + restart 配列の index ブロック走査
+- `ldblog` — LevelDB/RocksDB .log/MANIFEST: 32KiB ブロック + `{crc,len,type}` + FULL/FIRST/MIDDLE/LAST 再構成(型系列厳格検査、crc は構造のみ)
+- `mdb` — LMDB data.mdb: meta page 0/1 の `0xBEEFC0DE` + version/mapsize/psize/flags + free/main MDB_db + last_pg + txnid(新しい方を active)
+- `gdbm` — GDBM: `0x13579ACE`/`0x13579ACF`(LE/BE 両判定)+ block_size/dir/bucket/next_block
+- `bdb` — Berkeley DB メタページ: LSN + `0x00053162` + version + pagesize(2の冪)+ type byte(Btree/Hash/Queue/Recno)+ free + 20B uid
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — rdb `0x81` 64bit 長が string() で誤解釈、ldblog の空ファイル受理、mdb の meta オフセット(mm_psize/mm_flags 含有版)。全て整数のみで実装。
+
+## 出典(第148次、search-index 照合)
+
+**論文・仕様**: Redis RDB file format(redis-rdb-tools / rdb.c)、RESP3 protocol spec(github.com/redis/redis-specifications)、LevelDB log/table format(doc/impl/format.md, table_format.md)、LMDB mdb.c/lmdb.h 構造体、GDBM ヘッダ(gdbm source / dos3db)、Berkeley DB dbinc meta ページ(BDB Programmer's Reference) — 全て整数のみで実装。
+
+**実装物**: rdb-rs/redis-rdb-cli、redis-rs RESP デコーダ、rust-leveldb/rocksdb sstable・log リーダ、lmdb-rs/mdb_reader、gdbmtool、bsddb3/libdb — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Redis RDB/AOF 内部構造・LevelDB SSTable/log 構造・LMDB 設計解説・GDBM/Berkeley DB 概要記事 — 全て整数のみで実装。
+
+## 第149次(search-index 照合ラウンド / 実装証跡付き)
+
+教育・学習・クイズ形式(Aiken / GIFT / QTI / IMSCC / xAPI / OPML / APKG — 7件)。
+
+- `aiken` — Moodle Aiken: 問題文行 + `A.` 選択肢 + `ANSWER: X`(選択肢に存在する文字のみ受理、空行でレコード区切り)
+- `gift` — Moodle GIFT: `//`/`####` コメント、`::title::`、`{=正解 ~不正解}`、`%pct%` 部分点、`#数値:誤差`、`\` エスケープ、TRUE/FALSE
+- `qti` — IMS QTI 2.x:`<assessmentItem>` + `<prompt>` + `<simpleChoice identifier>` + `<correctResponse><value>`
+- `imscc` — IMS Content Packaging/Common Cartridge `imsmanifest.xml`:`<organizations><item>` の深さ付き走査 + `<resources>` の identifier/href
+- `xapi` — xAPI(Tin Can)JSON ステートメント: actor(mbox/account/openid)/verb.id/object.id + `result.score.scaled` を ppm 整数化
+- `opml` — OPML:`<head><title>` + `<outline>` のネスト深さ + text/type/xmlUrl
+- `apkg` — Anki パッケージ: ZIP 内 `collection.anki2`(SQLite マジック確認)+ `media` JSON マップ、crate::zip/json 再利用
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — GIFT の `%`/`#` マーカー分岐、imscc の自己閉鎖タグと title 抽出、xapi の score 文字列→ppm 変換。全て整数のみで実装。
+
+## 出典(第149次、search-index 照合)
+
+**論文・仕様**: Moodle Aiken/GIFT フォーマットドキュメント、IMS QTI 2.2 仕様・Content Packaging 1.2/Common Cartridge 1.3、xAPI 1.0.3 仕様(ADL)、OPML 2.0 仕様、Anki .apkg 構成 — 全て整数のみで実装。
+
+**実装物**: moodle-qformat_aiken/gift、python-qti/lti、rust-imscc 相当、TinCanJS/tincan-rs、opml-rs、genanki/anki-apkg-export — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Moodle 問題インポート・QTI 解説・xAPI/SCORM 概要・OPML フィード一覧・Anki パッケージ解説記事 — 全て整数のみで実装。
