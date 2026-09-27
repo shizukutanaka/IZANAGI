@@ -3376,3 +3376,25 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 **実装物**: Python `mimetools`/`mailbox.Maildir`、`mailcap` モジュール、xdg `desktop-entry` パーサ(desktop-file-utils)、CPython `urllib.parse.parse_qs`、Apache httpd `mod_core` 設定リーダ、Apple `CFPreferences`/plistutils — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の maildir 構成解説・mailcap/MIME ハンドラ・`.desktop` エントリ作成・URL エンコード仕様・`.htaccess` リダイレクト/認証設定・`.webloc`/plist 解説記事 — 全て整数のみで実装。
+
+## 第136次(search-index 照合ラウンド / 実装証跡付き)
+
+フォント形式第2弾(PCF/AFM/FNT/FON/PFM/OTF/SFD)。ttf の sfnt ディレクトリと ne のリソーステーブルを再利用し、ビットマップ・メトリクス・コンテナ系を揃えた。
+
+- `pcf` — X11 Portable Compiled Format: `\x01fcp` マジック + u32LE テーブル数 + 16B `{type,format,size,offset}` レコード。type を `Kind`(properties=1 … BDF-accelerators=0x100)へ写像、offset+size を入力境界で検査
+- `afm` — Adobe Font Metrics(ASCII): `StartFontMetrics`…`EndFontMetrics`、グローバル `Key value` + `StartCharMetrics` 行の `C n ; WX n ; N name ; B llx lly urx ury ;` フィールド分解(W0X 代替形対応)
+- `fnt` — Windows ビットマップフォント: WINFNTHEADER LE、version は 0x200/0x300 のみ、copyright 60B NUL 切断、dfType/pixWidth/bitsOffset 群
+- `fon` — Windows フォントリソースコンテナ(NE 実行可能): `ne::parse` 再利用、リソーステーブルの align_shift → 型レコード(`type,count` + 12B エントリ)走査で `RT_FONT`(0x8008)/`RT_FONTDIR`(0x8007) を収集、`checked_shl` セクタ展開
+- `pfm` — Printer Font Metrics: 117B `PFMHEADER` LE(dfSize@0 ≥117、weight@79、charset@81、first/last char @91/92、dfDevice/dfFace @97/101)
+- `otf` — OpenType/CFF: `ttf::parse` の sfnt 風味を `OTTO`/`typ1` に限定し `CFF ` テーブルのヘッダ(major/minor/hdrSize/offSize)と Name INDEX を解読、Name INDEX の可変 offSize オフセット配列からフォント名を抽出
+- `sfd` — FontForge SplineFont DB: `SplineFontDB:` 先頭行必須、`Key: value` ヘッダ、`BeginChars: <enc> <n>`、`StartChar`…`EndChar` ブロック内の `Encoding:`/`Width:` を抽出(スプライン本体は verbatim)
+
+**検証**: 各モジュール単体テスト(正常系 + 境界/拒否系)+ doctest;`.fnt` の WINFNTHEADER オフセット表は仕様値(@86/@88/@91…ではなく @86 pixWidth/@88 pixHeight/@95 first/@96 last/@115 bitsOffset)へ修正 — 初稿は草案オフセットで誤っていた。`pfm` も同様に正式レイアウト(@79 weight 等)へ整合。`fon` テストは NE ヘッダ内 resource_table@0x24 起点で構築。全て整数のみで実装。
+
+## 出典(第136次、search-index 照合)
+
+**論文・仕様**: X.Org PCF フォーマット(fsInfo.h / PCF ファイル形式メモ)、Adobe "Adobe Font Metrics File Format Specification" v4.1、Microsoft WINFNT/PFM ヘッダ構造(Microsoft Font Specification 系 + WinGDI `PFMHEADER`)、Windows NE リソース形式(Raymond Chen / KB 技術メモ)、Adobe/MS "Compact Font Format Specification" TN#5176、FontForge SplineFont DB ドキュメント — 全て整数のみで実装。
+
+**実装物**: X.Org `libXfont` PCF 読み込み、`afmplib`/`fonttools.afmLib`(AFDKO)、FontForge SFD 入出力、FreeType `winfnt`/`psaux`(CFF INDEX 走査)、fontTools `CFFFont`/OTTO 検査、wine `ne` リソース走査 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の X11 ビットマップフォント(pcf/bdf)解説・AFM/PFM メトリクス解説・`.fon` リソースコンテナ解説・OpenType/TrueType ディレクトリ比較・FontForge スクリプト解説記事 — 全て整数のみで実装。
