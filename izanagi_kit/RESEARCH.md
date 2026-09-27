@@ -3640,3 +3640,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: cctbx/iotbx(cif)、RDKit/CDK molfile リーダ、JUMBO/openbabel cml、gaussview/pan握 cclib(fchk/cube)、pymatgen/ase atoms(poscar 入出力)、MDAnalysis/gmx gro リーダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の CIF ファイル解説・SDF/molfile 形式解説・Gaussian fchk/cube 可視化記事・VASP POSCAR 作成ガイド・Gromacs 入力ファイル解説 — 全て整数のみで実装。
+
+## 第148次(search-index 照合ラウンド / 実装証跡付き)
+
+データベース内部・ストレージエンジン形式(Redis RDB / RESP / LevelDB sstable・log / LMDB / GDBM / Berkeley DB — 7件)。
+
+- `rdb` — Redis RDB: `REDIS`+version + `0xFA` aux/`0xFE` db/`0xFB` resize/`0xFC`/`0xFD` expire + 6/14/32/64bit 長 + `0xC0` int8/16/32 + LZF スキップ + コンテナ要素数集計 + `0xFF` EOF + 8B checksum
+- `resp` — RESP2/RESP3 ワイヤー: `+` `-` `:` `$` `*` に加え RESP3 の `_` `#` `,` `(` `!` `=` `%` `~` `|` `>` — 深さ 256 上限の再帰フレーム
+- `sst` — LevelDB/RocksDB .sst/.ldb: 末尾48B フッタ(metaindex+index handle + `0xdb4775248b80fb57`)、共有プレフィックス + restart 配列の index ブロック走査
+- `ldblog` — LevelDB/RocksDB .log/MANIFEST: 32KiB ブロック + `{crc,len,type}` + FULL/FIRST/MIDDLE/LAST 再構成(型系列厳格検査、crc は構造のみ)
+- `mdb` — LMDB data.mdb: meta page 0/1 の `0xBEEFC0DE` + version/mapsize/psize/flags + free/main MDB_db + last_pg + txnid(新しい方を active)
+- `gdbm` — GDBM: `0x13579ACE`/`0x13579ACF`(LE/BE 両判定)+ block_size/dir/bucket/next_block
+- `bdb` — Berkeley DB メタページ: LSN + `0x00053162` + version + pagesize(2の冪)+ type byte(Btree/Hash/Queue/Recno)+ free + 20B uid
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — rdb `0x81` 64bit 長が string() で誤解釈、ldblog の空ファイル受理、mdb の meta オフセット(mm_psize/mm_flags 含有版)。全て整数のみで実装。
+
+## 出典(第148次、search-index 照合)
+
+**論文・仕様**: Redis RDB file format(redis-rdb-tools / rdb.c)、RESP3 protocol spec(github.com/redis/redis-specifications)、LevelDB log/table format(doc/impl/format.md, table_format.md)、LMDB mdb.c/lmdb.h 構造体、GDBM ヘッダ(gdbm source / dos3db)、Berkeley DB dbinc meta ページ(BDB Programmer's Reference) — 全て整数のみで実装。
+
+**実装物**: rdb-rs/redis-rdb-cli、redis-rs RESP デコーダ、rust-leveldb/rocksdb sstable・log リーダ、lmdb-rs/mdb_reader、gdbmtool、bsddb3/libdb — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Redis RDB/AOF 内部構造・LevelDB SSTable/log 構造・LMDB 設計解説・GDBM/Berkeley DB 概要記事 — 全て整数のみで実装。
