@@ -3618,3 +3618,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: dockerfile-parser、dorny/paths-filter、systemd-analyze verify、ninja-build、remake/makefile2graph、makepkg/pacman、rpmbuild/spectool、hashicorp/hcl — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Dockerfile ベストプラクティス・Procfile 解説・systemd unit 書き方・Ninja ビルド・Makefile 入門・PKGBUILD 作成・spec ファイル・HCL/Terraform 記事 — 全て整数のみで実装。
+
+## 第147次(search-index 照合ラウンド / 実装証跡付き)
+
+計算化学・結晶学データ形式(CIF/mmCIF・MDL molfile・CML・Gaussian fchk・Gaussian cube・VASP POSCAR・Gromacs .gro — 7件)。
+
+- `cif` — CIF/mmCIF: `data_` ブロック + `_tag value` 項目 + `loop_` 列ヘッダ/行(列数倍数検査)+ 行頭 `;` テキストフィールド + クォート/`#` コメント;`num()` が `(su)` 接尾辞を剥がして micro 化
+- `mol` — MDL Molfile V2000: 3行ヘッダ + 固定幅 counts(`aaabbb`)+ atom/bond ブロック + `M` プロパティ(`M  END` 必須、V3000 拒否)
+- `cml` — Chemical Markup Language: `<molecule>` 内 `<atomArray>`/`<bondArray>` の属性スキャン(`x3`/`y3`/`z3`・`x2`/`y2` を micro 化、`atomRefs2` 分解);`<atomArray>`/`<moleculeFormula>` 等の接頭辞衝突を識別
+- `fchk` — Gaussian formatted checkpoint: タイトル + `task method basis` 行 + `Name<43> T value` / `N=` 配列フィールド(生トークン保持)
+- `cube` — Gaussian cube: 2行コメント + `natoms origin` + 3軸 `n vec` + `Z q x y z` + ボクセル値(個数のみ検査)。負 natoms は DSET_IDS 行を読み飛ばし
+- `poscar` — VASP POSCAR/CONTCAR: スケール(負=体積)+ 格子3行 + 元素記号(VASP5)/counts 直置き(VASP4) + `Selective dynamics` + `Direct`/`Cartesian` + 座標行
+- `gro` — Gromacs .gro: タイトル + 原子数 + 固定幅 `resid(5) resname(5) name(5) nr(5) x y z [vx vy vz]` + ボックス行
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — cif の `;` テキストフィールド終端(行頭 `;` のみ)、`num()` の `?`/`.` 拒否、fchk 配列継続行と次フィールド行の判定。全て整数のみで実装(座標は ×10⁶ micro-units)。
+
+## 出典(第147次、search-index 照合)
+
+**論文・仕様**: IUCr CIF 1.1/2.0 仕様(Acta Cryst)、Dalby et al. "Description of Several Chemical Structure File Formats"(MDL molfile/SDF, J. Chem. Inf. Comput. Sci.)、CML spec(cml.sourceforge.net)、Gaussian formatted checkpoint 仕様(Gaussian manual / gaussian.com fchk)、Gaussian cube format(manual + h5cube doc)、VASP POSCAR 仕様(VASP wiki/manual)、Gromacs .gro 形式(manual.gromacs.org)— 全て整数のみで実装。
+
+**実装物**: cctbx/iotbx(cif)、RDKit/CDK molfile リーダ、JUMBO/openbabel cml、gaussview/pan握 cclib(fchk/cube)、pymatgen/ase atoms(poscar 入出力)、MDAnalysis/gmx gro リーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の CIF ファイル解説・SDF/molfile 形式解説・Gaussian fchk/cube 可視化記事・VASP POSCAR 作成ガイド・Gromacs 入力ファイル解説 — 全て整数のみで実装。
