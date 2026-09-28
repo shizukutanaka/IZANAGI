@@ -4036,3 +4036,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: FFmpeg(mpl2dec/pjsdec 等)、Subtitle Edit、YouTube SBV アップローダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の字幕形式変換・SAMI/SCC 解説記事 — 全て整数のみで実装。
+
+## 第166次: CAD・設計データ形式 第2弾(ifc / dgn / dwg / skp / rfa / dsn / e00)
+
+**方法**: 文献参照ラウンド継続 — 建築 BIM・CAD 図面・PCB 配線設計の交換形式(step/dxf/iges/stl は既存のため除外)、全7件が非衝突を確認:
+
+- `ifc` — Industry Foundation Classes: ISO-10303-21 プロローグ + `FILE_SCHEMA(('IFC…'))` + `#id=ENTITY` インスタンス計数
+- `dgn` — MicroStation DGN: `09 08` エレメントプロローグ + 先頭エレメントの型/ワード長
+- `dwg` — AutoCAD DWG: `AC1NNN` バージョンスタンプ→リリース年マップ(`year_class`)
+- `skp` — SketchUp: `SketchUp Model` バナー + バージョン dword
+- `rfa` — Revit ファミリ: `ole` CFB + `Family`/`PartAtom` マーカー走査
+- `dsn` — SPECCTRA: `(pcb` S式ルート + `(layer`/`(net`/`(wiring`/`(placement` 計数
+- `e00` — ArcInfo エクスポート: `EXP` プロローグ + セクションラベル + SINGLE/DOUBLE PRECISION
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第166次、search-index 照合)
+
+**論文・仕様**: ISO 10303-21(STEP 物理ファイル)/IFC2x3・IFC4 スキーマ(buildingSMART)・MicroStation ISFF/DGN V8 仕様・Open Design Alliance DWG ヘッダ仕様(AC1009–AC1032)・Revit RFA ファミリ構造・SPECCTRA DSN 文法・ArcInfo E00 生成仕様 — 全て整数のみで実装。
+
+**実装物**: IfcOpenShell・LibreDWG・ezdxf・KiCad/specctra インポータ・GDAL/OGR E00 ドライバ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の IFC/BIM・DWG バージョン判別・E00 インポート解説記事 — 全て整数のみで実装。
