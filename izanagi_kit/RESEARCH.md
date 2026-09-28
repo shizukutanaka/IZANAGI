@@ -3904,3 +3904,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: libembroidery(C 実装)、Embroidermodder、threedub/pyembroidery 系 Python 実装、Ink/Stitch エクスポータ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の刺繍データ(PES/JEF)構造解説、ブラザー刺繍機フォーマット解析記事、カッティングマシン(STUDIO3)関連記事 — 全て整数のみで実装。
+
+## 第160次: CAE メッシュ・数値流体力学形式(msh / unv / neu / vtu / grd / nas / su2)
+
+**方法**: 文献参照ラウンド継続 — 有限要素・CFD・格子データ交換。全7件が既存 1021 件と非衝突を確認:
+
+- `msh` — Gmsh: `$MeshFormat` + `version filetype datasize`、セクション名列挙
+- `unv` — I-DEAS Universal File: `    -1` デリミタ + データセット ID(2411 節点/2412 要素/55/58)
+- `neu` — Gambit Neutral: `CONTROL INFO`/`GAMBIT NEUTRAL FILE` プロローグ + 6 整数サマリ(NUMNP/NELEM/…)+ `ENDOFSECTION` ブロック
+- `vtu` — VTK XML: `<VTKFile type>` で UnstructuredGrid/ImageData/PolyData/Rectilinear/Structured を分類
+- `grd` — Surfer グリッド: ASCII `DSAA` + dims + x/y/z range(値は文字列のまま)/ バイナリ `DSRB`
+- `nas` — NASTRAN bulk data: `BEGIN BULK`..`ENDDATA` カード列挙 + `$` コメント
+- `su2` — SU2 CFD: `NDIME`/`NELEM`/`NPOIN`/`NMARK`+`MARKER_TAG`/`MARKER_ELEMS`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(座標・レンジは文字列のまま保持)。
+
+## 出典(第160次、search-index 照合)
+
+**論文・仕様**: Gmsh MSH 4.1/2.2 specification、I-DEAS Universal File dataset カタログ(2411/2412/2414/…)、Gambit Neutral File Format、VTK XML File Formats(Kitware)、Surfer 6 ASCII/Binary Grid(Golden Software)、MSC NASTRAN Quick Reference(bulk data)、SU2 mesh format docs — 全て整数のみで実装。
+
+**実装物**: Gmsh・IDEAS/NX・ANSYS Fluent・ParaView(vtkIOXML)・SU2 本体リーダ、meshio・pyvista の参照実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Gmsh・NASTRAN・SU2・VTK メッシュフォーマット解説、Surfer グリッド仕様の翻訳記事 — 全て整数のみで実装。
