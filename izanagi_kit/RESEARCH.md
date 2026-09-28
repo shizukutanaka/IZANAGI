@@ -3948,3 +3948,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: ROS/ROS 2 rosbag2・foxglove mcap-cli・Point Cloud Library・pye57・ezc3d の参照リーダ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の URDF/xacro・rosbag・MCAP・PCD・C3D 解説記事 — 全て整数のみで実装。
+
+## 第162次: ネットワークプロトコル第5弾 — 認証・ディレクトリ・トンネリング(ldap / diameter / eap / tacacs / isakmp / l2tp / socks)
+
+**方法**: 文献参照ラウンド継続 — AAA・ディレクトリ・VPN/プロキシ制御プレーン。全7件が既存 1035 件と非衝突を確認:
+
+- `ldap` — RFC 4511: DER `SEQUENCE { msgID, protocolOp [APPLICATION n], controls [0] }`、`der` モジュール上に構築
+- `diameter` — RFC 6733: v1 ヘッダ + R/P/E/T フラグ + 24bit コマンド + AVP(`u32 code|u8 flags|u24 len`,32bit パディング)走査
+- `eap` — RFC 3748: code(1..=4)/id/len、Request/Response の type バイト
+- `tacacs` — TACACS+(RFC 8907 ドラフト系): `0xC0|0xC1` バージョン + type 1..=3 + seq≠0 + BE session/len
+- `isakmp` — RFC 2408/7296: 28B IKE ヘッダ、cookie2つ + version ニブル(1.x ISAKMP / 2.x IKEv2)+ BE len
+- `l2tp` — RFC 2661: `u16 flags|ver==2`、T/L/S/O/P ビット駆動の可変フィールド、ペイロードオフセット算出
+- `socks` — RFC 1928 SOCKS5: greeting(05 nmethods)/request・reply(05 cmd 00 atyp…)/SOCKS4 `04 cmd port ip user\0`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第162次、search-index 照合)
+
+**論文・仕様**: RFC 4511(LDAP)、RFC 6733(Diameter)、RFC 3748(EAP)、draft-ietf-opsawg-tacacs / RFC 8907、RFC 2408/7296(ISAKMP/IKEv2)、RFC 2661(L2TP)、RFC 1928/1929(SOCKS5)— 全て整数のみで実装。
+
+**実装物**: OpenLDAP・freeDiameter・hostapd/wpa_supplicant・tac_plus(tacacs+)・strongSwan・xl2tpd・dante/ssh -D の参照パーサ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の LDAP・Diameter・EAP/802.1X・TACACS+・IKE・L2TP・SOCKS 解説 — 全て整数のみで実装。
