@@ -3992,3 +3992,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: GDAL/OGR・QGIS・osmium(libosmium)・flatgeobuf lib・libbsb・dted 読み取り各種 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の GeoPackage・MBTiles・OSM PBF・DTED・KAP(海図)・prj(WKT)記事 — 全て整数のみで実装。
+
+## 第164次: 統計・レガシー表計算データ交換形式(dif / sylk / dta / sav / xpt / sas7bdat / rdata)
+
+**方法**: 文献参照ラウンド継続 — VisiCalc/SYLK 系データ交換と統計パッケージのバイナリ/カード像形式。全7件が既存 1049 件と非衝突を確認:
+
+- `dif` — Data Interchange Format: `TABLE`/`VECTORS`/`TUPLES`/`DATA` ヘッダ + `BOT`/`EOD` マーカー
+- `sylk` — SYLK: `ID;P` プロデューサ + `C;Xx;Yy` セル/`F` 書式/`E` 終端
+- `dta` — Stata .dta: ds_format 104–118 + byteorder LSF/MSF + nvar/nobs(LE/BE)、および `<stata_dta>` XML(117+)
+- `sav` — SPSS .sav: `$FL2` + 60B product + layout/ncases/bias(raw bits)
+- `xpt` — SAS XPORT v5/v8: 80B カード像、`LIBRARY HEADER RECORD` + `MEMBER/DSCPTOR` 計数
+- `sas7bdat` — SAS データセット: 32B ゼロプロローグ + a8 マジック + encoding タグ(parso オフセット)
+- `rdata` — R .rds/.RData: `RDX2..4` + `A`/`B`/`X` 形式、gzip/xz/zstd ラッパ判定
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第164次、search-index 照合)
+
+**論文・仕様**: DIF 仕様(VisiCalc/Multiplan)・SYLK(Symbolic Link)・Stata dta 形式文書・PSPP sav 仕様・SAS XPORT 5/8 技術メモ・parso sas7bdat オフセット表・R Internals(serialization)— 全て整数のみで実装。
+
+**実装物**: LibreOffice/Excel DIF・SYLK インポータ、haven/readstat・pyreadstat・parso・R serialize.c — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Stata/SPSS/SAS データ読み書き・RData・SYLK 解説 — 全て整数のみで実装。
