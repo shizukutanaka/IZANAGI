@@ -3970,3 +3970,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: OpenLDAP・freeDiameter・hostapd/wpa_supplicant・tac_plus(tacacs+)・strongSwan・xl2tpd・dante/ssh -D の参照パーサ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の LDAP・Diameter・EAP/802.1X・TACACS+・IKE・L2TP・SOCKS 解説 — 全て整数のみで実装。
+
+## 第163次: ジオ空間データ形式 第2弾 — オフライン地図・ラスタ海図(prj / gpkg / mbtiles / osmpbf / fgb / dted / kap)
+
+**方法**: 文献参照ラウンド継続 — オフライン地図コンテナ・投影記述・標高セル・ラスタ海図。`sqlite`/`wkt` 系との重複は `sqlite` 再利用で回避。shp/dbf/qcow2/geojson/wkb/topojson/pmtiles/hgt/mvt/osm は既存のため除外。全7件が既存 1042 件と非衝突を確認:
+
+- `prj` — Esri .prj: WKT1 `PROJCS`/`GEOGCS` または WKT2 `PROJCRS`/`GEODCRS` ルート、name/`AUTHORITY["EPSG","…"]`/PARAMETER・AXIS・UNIT 集計
+- `gpkg` — OGC GeoPackage: `sqlite` ヘッダ + application_id `GPKG`(後継)/`GP10`/`GP11`(レガシー)判定
+- `mbtiles` — Mapbox MBTiles: `sqlite` + `metadata`・`tiles`・`grids`/`grid_data` テーブル名走査
+- `osmpbf` — OSM PBF: `u32 be len | BlobHeader protobuf | Blob`、第1ブロック `type=OSMHeader` 必須、varint datasize
+- `fgb` — FlatGeobuf: 8B マジック `fgb\x03 fgb\x00` + u32 LE ヘッダテーブル長
+- `dted` — DTED(MIL-PRF-89020): `UHL` 80B ラベル、`DDDMMSSH`/`DDMMSSH` 経緯度
+- `kap` — BSB/KAP ラスタ海図: `!` コメント + `BSB/NA,NU,RA,DU` + `VER/` + KNP/CED セクション列挙
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第163次、search-index 照合)
+
+**論文・仕様**: OGC GeoPackage 12-128・MBTiles 仕様(Mapbox)・OSM PBF 形式(OSM wiki)・FlatGeobuf spec・MIL-PRF-89020B(DTED)・BSB/KAP ヘッダ仕様(libbsb 文書)・OGC WKT1/WKT2(ISO 19162)— 全て整数のみで実装。
+
+**実装物**: GDAL/OGR・QGIS・osmium(libosmium)・flatgeobuf lib・libbsb・dted 読み取り各種 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の GeoPackage・MBTiles・OSM PBF・DTED・KAP(海図)・prj(WKT)記事 — 全て整数のみで実装。
