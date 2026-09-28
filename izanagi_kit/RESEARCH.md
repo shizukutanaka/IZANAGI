@@ -3750,3 +3750,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Linux `net/ipv4/ip_gre.c`・strongSwan/libreswan ESP 処理、Quagga/FRR ospfd・ripd・pimd、Samba SMB2 サーバ、net-snmp — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の GRE トンネル・IPsec ESP・OSPF/RIP ルーティング・PIM マルチキャスト・SMB2/SMB3・SNMP 監視解説記事 — 全て整数のみで実装。
+
+## 第153次: PKI・署名・メール認証(crl / csr / p7b / ocsp / spf / dkim / dmarc)
+
+**方法**: 文献参照ラウンド継続 — X.509/PKCS 証明書関連とメール送信者認証(DNS TXT)系(全7件が既存 972 件と非衝突を確認、DER 系は `der` モジュール再利用):
+
+- `crl` — X.509 CRL(RFC 5280): `SEQUENCE{tbsCertList,sigAlg,sig}`、tbs の version/issuer/thisUpdate/nextUpdate/revokedCertificates、serial 列抽出
+- `csr` — PKCS#10(RFC 2986): `SEQUENCE{cri,sigAlg,sig}`、version(0=v1.7)+subject+spki+`[0]` 属性検出+署名アルゴリズム OID
+- `p7b` — CMS ContentInfo(RFC 5652): `SEQ{OID,[0]content}`、signedData/envelopedData 等7種 OID 分類(.p7b は degenerate signedData)
+- `ocsp` — OCSPResponse(RFC 6960): ENUMERATED status(0–6)+`[0]` ResponseBytes の OID で basic 判定
+- `spf` — SPF TXT(RFC 7208): `v=spf1` 厳格接頭辞 + qualifier(`+-~?`)+mechanism(`:`/`=` 引数)項列 + trailing `all`
+- `dkim` — DKIM(RFC 6376): `;` 区切り `tag=value` リスト、`parse_key_record` で `v=DKIM1`+`p=` 必須化(空 p= は revoked)
+- `dmarc` — DMARC(RFC 7489): `v=DMARC1` 先頭タグ必須 + `p=`(none/quarantine/reject)+`pct` 0–100 境界
+
+**検証**: 各モジュール単体テスト + doctest;`der::encode` でフィクスチャ生成して往復検証。全て整数のみで実装。
+
+## 出典(第153次、search-index 照合)
+
+**論文・仕様**: RFC 5280(X.509 CRL)/ RFC 2986(PKCS#10)/ RFC 5652(CMS)/ RFC 6960(OCSP)/ RFC 7208(SPF)/ RFC 6376(DKIM)/ RFC 7489(DMARC)+ ITU X.690 DER — 全て整数のみで実装。
+
+**実装物**: OpenSSL `crypto/x509`・`crypto/cms`・ocsp、opendkim/opendmarc、pyspf/SPF 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の X.509 CRL・CSR・OCSP 解説、SPF/DKIM/DMARC 導入記事 — 全て整数のみで実装。
