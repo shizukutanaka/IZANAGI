@@ -4251,3 +4251,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: RTKLIB・GPSTk(RINEX/SP3)・Septentrio sbf2asc・OREKIT(OEM/OMM/TDM パーサ)・igs20.atx ANTEX ファイル・ESA navipedia — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の RINEX 解析・SP3 精密軌道・CCSDS KVN・TLE/OMM・ANTEX アンテナ補正解説記事 — 全て整数のみで実装。
+## 第176次: 画像形式 第3弾(exr / sgi / jp2 / jxr / flif / jbig2 / dpx)
+
+**方法**: 文献参照ラウンド継続 — 業務用・科学用ビットマップ形式のヘッダ構造走査。`tga`/`icns`/`webp`/`bmp`/`png`/`tiff`/`dds`/`qoi`/`hdr`/`jxl`/`heif`/`psd`/`xcf`/`djvu`/`pcx`/`xbm`/`xpm`/`ras`/`gif`/`ico`/`farbfeld`/`pnm`/`iff`/`eps` は既存のため除外。全7件が既存 1133 件と非衝突を確認:
+
+- `exr` — OpenEXR: LE マジック `0x01312F76` + version/flags ワード(bit9 tiled / bit10 long-names / bit11 non-image / bit12 multipart)+ `name\0type\0size value` 属性列を NUL 終端まで走査
+- `sgi` — SGI RGB/.rgb/.bw: `0x01DA` + 512B BE ヘッダ(storage 0/1、bpc 1–2、dimension 1–3、xsize/ysize/zsize、pixmin/pixmax、80B 名前、colormap)
+- `jp2` — JPEG 2000 Part 1 コンテナ: 12B シグネチャボックス + `u32be length`+`4cc` ボックス鎖(len==1 で 64bit 拡長、==0 で EOF まで)+ `ftyp` ブランド + `jp2h`/`jp2c` 判定
+- `jxr` — JPEG XR (HD Photo): `II\xBC\x01` + LE u32 IFD オフセット + u16 タグ数の TIFF 型ディレクトリ
+- `flif` — Free Lossless Image Format: `FLIF` + 上位ニブル=interlace(1/2)・下位=channels(1–4) の記述子バイト + アニメーション桁
+- `jbig2` — JBIG2: `97 4A 42 32 0D 0A 1A 0A` + flags(sequential/unknown-pages)+ BE u32 ページ数
+- `dpx` — SMPTE DPX: `SDPX`(BE)/`XPDS`(LE) マジックがエンディアンを内蔵 + image_offset + `V2.x` バージョン文字列 + file_size + header サイズ群
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第176次、search-index 照合)
+
+**論文・仕様**: OpenEXR ファイルレイアウト(Academy Software Foundation/ILM)・SGI 画像フォーマット仕様(SGI developer toolbox)・ISO/IEC 15444-1 Annex I(JP2)・ITU-T T.832(JPEG XR)・FLIF 仕様(flif.info)・ITU-T T.88/ISO 14492(JBIG2 Annex D)・SMPTE ST 268(DPX) — 全て整数のみで実装。
+
+**実装物**: AcademySoftwareFoundation/openexr・image-rs(image-tga/image-sgi 等)・jasper(JPEG 2000)・jxrlib・FLIF-hub/FLIF・agl/jbig2dec・dpkt 系 DPX 実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の OpenEXR・JPEG 2000/JP2・JPEG XR・FLIF・JBIG2・DPX 解説記事 — 全て整数のみで実装。
