@@ -4314,3 +4314,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: gtkwave/vcd パーサ・OpenSTA/OpenROAD・OpenRCX・kactus2/ipyxact・iverilog/yosys — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の VCD・SDC・SPEF・UPF・IP-XACT・Verilog 解説記事 — 全て整数のみで実装。
+## 第179次: オーディオ・音声音楽形式 第3弾(amr / qcp / w64 / ircam / rx2 / nist / maud)
+
+**方法**: 文献参照ラウンド継続 — 音声・ループ素材のコンテナ/ヘッダ形式。`au`/`wav`/`aiff`/`caf`/`voc`/`wv`/`tta`/`dsf`/`rf64`/`mp3`/`ape`/`flac`/`ogg`/`midi`/`xi`/`iti`/`pat`/`sbi`/`sf2`/`dls` は既存のため除外。全7件が既存 1154 件と非衝突を確認:
+
+- `amr` — AMR-NB/WB(RFC 4867): `#!AMR`/`#!AMR-WB` マジック + FT フレームサイズ表走査 + 20ms×フレーム数
+- `qcp` — Qualcomm QCP: `RIFF`+`QLCM` + `fmt `/`vndr`/`labl`/`offs`/`data` 偶数パディングチャンク走査
+- `w64` — Sony Wave64: `riff`/`wave`/`fmt `/`data` 128bit GUID + `u64le` チャンク長 + WAVEFORMAT デコード
+- `ircam` — IRCAM/BICSF: `0x0001a364` 両エンディアン + rate 生ビット + channels
+- `rx2` — Propellerhead REX/REX2: `FORM`+`REX `/`REX2` + `HEAD`/`SLIC` チャンク列挙
+- `nist` — NIST SPHERE: `NIST_1A` + `key -i value`/`key -sN value` ヘッダ + `end_head`
+- `maud` — Commodore Amiga IFF `MAUD`: `MHDR` レート + `ANNO`/`AUTH`/`MDAT` センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第179次、search-index 照合)
+
+**論文・仕様**: RFC 4867(AMR)・Qualcomm QCP・Sony Wave64・BICSF/IRCAM・REX2 SDK・NIST SPHERE・EA IFF85 MAUD — 全て整数のみで実装。
+
+**実装物**: ffmpeg/libavformat(amr/qcp/w64/ircam/nist/maud/rex2 demuxer)・libsndfile・SoX — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の AMR・QCP・Wave64・REX2・NIST SPHERE・IFF/MAUD 解説記事 — 全て整数のみで実装。
