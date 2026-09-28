@@ -4188,3 +4188,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: pandoc・python-docutils系/RedCloth・phpBB・MediaWiki パーサ・txt2tags 実装 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の DocBook/DITA・Textile・WikiCreole・BBCode・txt2tags・MediaWiki 記法解説記事 — 全て整数のみで実装。
+## 第173次: GUI フォーム・リソース記述形式(rc / res / glade / qtui / xib / nib / fxml)
+
+**方法**: 文献参照ラウンド継続 — リソース記述言語と UI 定義 XML の構造マーカー走査。resx/xml/plist は既存のため除外。全7件が既存 1112 件と非衝突を確認:
+
+- `rc` — Windows .rc リソーススクリプト: `#include`/`LANGUAGE` ディレクティブ + `NAME TYPE` 二語形式と裸キーワード先頭形式の両対応 + `BEGIN`/`END`/`{}` ブロック計数。既知リソース型(DIALOG/MENU/VERSIONINFO/STRINGTABLE/ICON/CURSOR/BITMAP/ACCELERATORS/…)集合で誤検出抑制
+- `res` — コンパイル済み .res: 32B プロローグ(`0`=DataSize、`0x20`=HeaderSize、`0xFFFF`=type/name 序数マーカー)+ 8B ストライドの 0xFFFF 計数
+- `glade` — GtkBuilder .glade: `<glade-interface>`(レガシー)/`<interface>`(新)両対応 + `<requires lib="gtk+" version="N">` + `<object>`/`<signal>`/`<property>` 計数
+- `qtui` — Qt Designer .ui: `<ui version="N">` + `<class>` + `<widget>`/`<layout>`/`<property>`/`<connection>` 計数
+- `xib` — Apple Interface Builder .xib: `com.apple.InterfaceBuilder3.CocoaTouch.XIB`/`Cocoa.XIB` ドキュメント型 → iOS/macOS 判定 + `<objects>` 内要素 + `<connections>`/`<outlet>`/`<action>` 計数
+- `nib` — コンパイル済み .nib: `bplist00` バイナリ plist または XML plist + `$archiver`/`NSKeyedArchiver` マーカー必須(NSKeyedArchiver アーカイブ形)
+- `fxml` — JavaFX FXML: `<?import …?>` PI 必須 + 先頭非 PI 要素をルートコントローラ型名として取得 + `xmlns:fx` 名前空間
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第173次、search-index 照合)
+
+**論文・仕様**: Microsoft Learn "Resource-Definition Statements"(.rc 文法)・"RESOURCEHEADER" 構造(.res 32B プロローグ)・GTK/GtkBuilder XML ドキュメント形式(gtk.org)・Qt Designer UI File Format(.ui、`<ui version>`)・Apple "Building an Interface in Interface Builder"/NSKeyedArchiver アーカイブ形式・JavaFX FXML リファレンス(`<?import` PI 規則) — 全て整数のみで実装。
+
+**実装物**: LLVM llvm-rc/GNU windres(.rc パーサ)・GTK gtk-builder-tool・Qt uic コンパイラ・Xcode ibtool/IBCocoaTouchToolFoundation・openjfx-fxml — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の .rc リソーススクリプト・GtkBuilder・Qt Designer .ui・XIB/NIB・JavaFX FXML 解説記事 — 全て整数のみで実装。
