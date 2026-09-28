@@ -4230,3 +4230,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: VirusTotal/yara・SigmaHQ/sigma(pySigma)・oasis-open/cti-python-stix2・CVEProject/cve-schema・MISP/MISP core・mandiant/OpenIOC_1.1_Cheat_Sheet・Snort3・OISF/suricata — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の YARA ルール記述・Sigma 検知ルール・STIX/TAXII・CVE JSON 5・MISP・OpenIOC・Snort/Suricata ルール解説記事 — 全て整数のみで実装。
+## 第175次: 天文・衛星軌道データ形式(rinex / sp3 / sbf / omm / oem / tdm / antex)
+
+**方法**: 文献参照ラウンド継続 — GNSS 観測・精密軌道・宇宙機管制メッセージの構造走査。`tle` は既存のため除外。全7件が既存 1126 件と非衝突を確認:
+
+- `rinex` — RINEX 観測/航法: 80 桁カード、先頭カード `RINEX VERSION / TYPE` ラベル + 1–20 桁 version・21–40 桁 type・41–60 桁衛星システム + 61–80 桁ラベル計数 + `END OF HEADER` 終端
+- `sp3` — IGS SP3 精密軌道: `#xP`/`#xV` 先頭行(版文字 a–d + position/velocity フラグ)+ `##` aux 行必須 + `* ` エポック・`P`/`V` レコード計数 + `EOF` 終端
+- `sbf` — Septentrio Binary Format: `$@`(0x24 0x40)同期 + CRC-16 + LE block id(`0x1FFF`=メッセージ番号・上位=rev)+ 4 倍数長のブロック鎖、途中切れ検出
+- `omm` — CCSDS OMM(軌道平均要素): `CCSDS_OMM_VERS` 必須 + `META_START`/`STOP` + `OBJECT_NAME`/`OBJECT_ID`/`CENTER_NAME`/`MEAN_ELEMENT_THEORY`/`EPOCH` KVN
+- `oem` — CCSDS OEM(軌道暦): `CCSDS_OEM_VERS` 必須 + `REF_FRAME`/`TIME_SYSTEM`/`START_TIME`/`STOP_TIME` + `YYYY-MM-DDTHH:MM:SS + 7 フィールド` 状態ベクトル行計数
+- `tdm` — CCSDS TDM(追尾データ): `CCSDS_TDM_VERS` 必須 + `DATA_START`/`DATA_STOP` ブロック内観測行計数 + `TRACK_ID`/`PARTICIPANT_1`
+- `antex` — ANTEX アンテナ補正: `ANTEX VERSION / SYST` 先頭カードラベル + `START OF ANTENNA`/`END OF ANTENNA`/`START OF FREQUENCY`/`TYPE / SERIAL NO` セクション計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第175次、search-index 照合)
+
+**論文・仕様**: RINEX 2/3/4 仕様(IGS/RTCM)・SP3-c/d "The Standard Product Format"(IGS/NGA)・Septentrio SBF Reference Guide・CCSDS 502.0-B Orbit Data Messages(OMM/OEM)・CCSDS 503.0-B Tracking Data Message(TDM)・ANTEX format specification(IGS) — 全て整数のみで実装。
+
+**実装物**: RTKLIB・GPSTk(RINEX/SP3)・Septentrio sbf2asc・OREKIT(OEM/OMM/TDM パーサ)・igs20.atx ANTEX ファイル・ESA navipedia — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の RINEX 解析・SP3 精密軌道・CCSDS KVN・TLE/OMM・ANTEX アンテナ補正解説記事 — 全て整数のみで実装。
