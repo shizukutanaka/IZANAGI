@@ -4102,3 +4102,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: pppd・Wireshark ディセクタ(ethertype/IS-IS)・OpenGGSN/open5gs・Linux `vxlan` ドライバ・FRRouting isisd — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の PPP/HDLC・TFTP・RTCP・GTP・VXLAN・IS-IS 解説記事 — 全て整数のみで実装。
+
+## 第169次: レトロゲーム音楽・チップチューン形式 第2弾(hes / kss / gym / ay / sndh / s98 / dro)
+
+**方法**: 文献参照ラウンド継続 — レジスタダンプ系サウンドフォーマット。`sap`(Atari SAP)は既存のため除外。全7件が既存 1084 件と非衝突を確認:
+
+- `hes` — PC Engine HES: `HESM` + version/first_song/init_addr + MPR bank map + `DATA`/`ATAD` チャンク鎖
+- `kss` — MSX KSS: `KSCC`/`KSSX` + load/init/play アドレス、KSSX は曲番・音量フィールド付き
+- `gym` — Genesis GYMX: `GYMX` + 32B×4 メタ文字列(song/game/publisher/emulator)
+- `ay` — ZX Spectrum AY: `ZXAYEMUL` + 20B ヘッダ(version/pointer table、ポインタは BE)
+- `sndh` — Atari ST SNDH: `SNDH` マーカー + `TITL`/`COMM`/`RIPP`/`CONV`/`YEAR`/`##NN`/`!#NN`/`HDNS` タグ列
+- `s98` — PC-98 S98: `S98`+バージョン数字 + 32B LE ヘッダ(timer 分数・tag/dump/loop オフセット)
+- `dro` — DOSBox Raw OPL: `DBRAWOPL` + v1(28B)/v2(codemap 付き)レイアウト振分け
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第169次、search-index 照合)
+
+**論文・仕様**: HES 仕様書(hoot/PCE サウンドドライバ)・KSS/KSSX 仕様・GYMX フォーマット文書・AY Emulator プロジェクト仕様(ZXAYEMUL)・SNDH フォーマット仕様・S98 v1/v2/v3 仕様・DOSBox DRO フォーマット — 全て整数のみで実装。
+
+**実装物**: Audio Overload/Chipamp プラグイン・Hoot・NEZplug++・DOSBox-X dro 記録・zxtune — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn・個人 wiki の PCE/MSX/PC-98/Atari ST サウンド形式・S98 ログ解析記事 — 全て整数のみで実装。
