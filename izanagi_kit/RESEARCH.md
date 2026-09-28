@@ -4058,3 +4058,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: IfcOpenShell・LibreDWG・ezdxf・KiCad/specctra インポータ・GDAL/OGR E00 ドライバ — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の IFC/BIM・DWG バージョン判別・E00 インポート解説記事 — 全て整数のみで実装。
+
+## 第167次: 科学計算・シミュレーション形式 第2弾(inp / k / frd / dcd / wfn / dx / ccx)
+
+**方法**: 文献参照ラウンド継続 — 構造解析・分子動力学・可視化向けテキスト/バイナリ形式。全7件が既存 1070 件と非衝突を確認:
+
+- `inp` — Abaqus インプットデッキ: `*KEYWORD` 行 + `*NODE`/`*ELEMENT`/`*MATERIAL` + `*Heading`
+- `k` — LS-DYNA keyword: `*KEYWORD` 開始 + `*END` 終端 + `*MAT_`/`*PART`/`*ELEMENT_` 族
+- `frd` — CalculiX 結果: `    1` ブロックヘッダ + `-1`/`-2`/`-3` レコード + `9999` 終端
+- `dcd` — NAMD/CHARMM 軌跡: Fortran レコード 84B `CORD`/`VELD` + NSET + NTITLE + 原子数
+- `wfn` — Gaussian wavefunction: `GAUSSIAN <nmo> MOL ORBITALS <nprim> PRIMITIVES <natoms> NUCLEI`
+- `dx` — OpenDX: `object n class …` + `data`/`field` センサス
+- `ccx` — CalculiX デッキ: `*NODE`/`*ELEMENT` + `*STEP` 必須(inp と棲み分け)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第167次、search-index 照合)
+
+**論文・仕様**: Abaqus Keywords Reference・LS-DYNA Keyword User's Manual・CalculiX CrunchiX ユーザマニュアル(.frd/.inp)・CHARMM/NAMD DCD Fortran レコード仕様・Gaussian .wfn AIM 形式・IBM OpenDX Data Model — 全て整数のみで実装。
+
+**実装物**: PrePoMax/cgx・LS-PrePost・MDAnalysis DCD リーダ・PyVista OpenDX — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Abaqus inp 書き方・CalculiX 入門・DCD 解析記事 — 全て整数のみで実装。
