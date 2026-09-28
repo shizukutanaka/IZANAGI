@@ -4399,3 +4399,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Kitware/CMake・mesonbuild/meson・bazelbuild/bazel・NixOS/nix・GN・facebook/buck2・pantsbuild/pants — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の CMake・Meson・Bazel・Nix・GN・Buck2・Pants 解説記事 — 全て整数のみで実装。
+## 第183次: シンセサイザー・サウンドデザイン形式(syx / osc / csd / mml / scl / kbm / fxp)
+
+**方法**: 文献参照ラウンド継続 — シンセ制御・楽器定義・マイクロトーニング。全7件が既存 1183 件と非衝突を確認:
+
+- `syx` — MIDI System Exclusive(RP-001): `F0` 開始 + メーカーID(1B/3B)+ `F7` 終端、複数ダンプ連結
+- `osc` — Open Sound Control 1.0/1.1: `#bundle\0`+timetag+要素走査、`/addr\0`+`,typetags` 4B アライン
+- `csd` — Csound Unified File Format: `<CsoundSynthesizer>` + CsOptions/CsInstruments/CsScore セクション
+- `mml` — Music Macro Language(MSX BASIC PLAY 系): `t`/`o`/`l`/`v` 命令 + `cdefgab`/`r`/`>`/`<`/`[]`
+- `scl` — Scala scale: `!` コメント + 説明行 + 度数 + `num/den` 比 または cents 行
+- `kbm` — Scala keyboard mapping: マップサイズ + ノート範囲 + 基準ノート/周波数 + キー再割当行
+- `fxp` — Steinberg VST2 `.fxp`/`.fxb`: `CcnK` マジック + `FxCk`/`FxBk`/`FxCB`/`FxBB` + BE ヘッダ + 28B 名
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第183次、search-index 照合)
+
+**論文・仕様**: MMA RP-001(SysEx)・OSC 1.0 spec(CNMAT Wright/Freed)・Csound Unified File Format manual・MSX BASIC PLAY MML 文法・Scala scl/kbm 仕様(Manuel Op de Coul)・VST2 fxp/fxb チャンク定義(VST3 SDK 派生資料) — 全て整数のみで実装。
+
+**実装物**: libremidi・oscpack/Rust rosc・csound/csound・ppmck/3MLE・Scala/Alt-tuner・steinbergmedia/vst3sdk・VeeSeeVSTRack — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SysEx ダンプ・OSC・Csound・MML(ppmck・mck)・Scala マイクロトーン・VST プリセット解説記事 — 全て整数のみで実装。
