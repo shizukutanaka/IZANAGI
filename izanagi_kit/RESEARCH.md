@@ -3838,3 +3838,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: tcpdump/wireshark の snoop・ERF・NetFlow・IPFIX・sFlow 解析、Android btsnoop_hci.log、GENIVI dlt-daemon — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の NetFlow/IPFIX・sFlow・Wireshark HCI スヌープ・DLT 解説記事 — 全て整数のみで実装。
+
+## 第157次: メッセージング・メール・チャットプロトコル(smtp / pop3 / imap / irc / nntp / amqp / xmpp)
+
+**方法**: 文献参照ラウンド継続 — メール転送/受信、チャット、ニュース、メッセージキュー、IM スタンザ。全7件が既存 1000 件と非衝突を確認:
+
+- `smtp` — RFC 5321: `VERB args` コマンド vs `NNN[- ]text` 応答の分類、`MAIL FROM:<>`/`RCPT TO:<>` のアドレス抽出
+- `pop3` — RFC 1939: `+OK`/`-ERR` ステータス + `.` 終端マルチライン応答の dot 除去(1バイトだけ)
+- `imap` — RFC 3501: `tag CMD` / `* resp` / `+ cont` の3系統行分類
+- `irc` — RFC 1459/2812: `[:prefix] CMD params [:trailing]`、最終パラメータの `:` 開始規則
+- `nntp` — RFC 3977: 応答 `NNN text`(100..600 のみ)+ `.` 終端マルチライン
+- `amqp` — AMQP 0-9-1: `AMQP\x00\x00\x09\x01` ヘッダ + `[type][ch][size][payload][0xCE]` フレーム、method の class_id/method_id
+- `xmpp` — RFC 6120: `<message>/<presence>/<iq>` スタンザ、to/from/id/type + `<body>` 抽出、self-closing 許容
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第157次、search-index 照合)
+
+**論文・仕様**: RFC 5321(SMTP)/ RFC 1939(POP3)/ RFC 3501(IMAP4rev1)/ RFC 1459・2812(IRC)/ RFC 3977(NNTP)/ OASIS AMQP 0-9-1/ RFC 6120(XMPP Core) — 全て整数のみで実装。
+
+**実装物**: Postfix・Dovecot・ngircd・RabbitMQ・Prosody 等の wire 実装、telnet セッション例 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SMTP/POP3/IMAP・IRC・NNTP・AMQP・XMPP 解説記事 — 全て整数のみで実装。
