@@ -4335,3 +4335,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: ffmpeg/libavformat(amr/qcp/w64/ircam/nist/maud/rex2 demuxer)・libsndfile・SoX — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の AMR・QCP・Wave64・REX2・NIST SPHERE・IFF/MAUD 解説記事 — 全て整数のみで実装。
+## 第180次: ネットワークプロトコル第7弾 — ストレージ・リモートアクセス(iscsi / fcoe / aoe / nbd / telnet / rfb / sftp)
+
+**方法**: 文献参照ラウンド継続 — ブロックストレージ・リモート端末・画面共有プロトコル。全7件が既存 1161 件と非衝突を確認(`rdp` は既存のため除外):
+
+- `iscsi` — RFC 7143: 48B Basic Header、initiator(0x00–)/target(0x20–) opcode 表、Immediate/F ビット
+- `fcoe` — RFC 5120: ethertype `0x8906`、version ニブル、SOF/EOF コード名
+- `aoe` — ATA over Ethernet 0x88a2: v1 フラグ+command(Issue/QueryConfig/Mask/Reserve)+shelf/slot/tag
+- `nbd` — NBD: `NBDMAGIC`+`IHAVEOPT` handshake、`0x25609513`/`0x67446698` transmission、READ/WRITE/DISC/FLUSH/TRIM
+- `telnet` — RFC 854: IAC WILL/WONT/DO/DONT、SB…SE サブネゴ、`IAC IAC` エスケープ
+- `rfb` — RFC 6143/VNC: `RFB NNN.NNN` バナー + security types + 失敗理由文字列
+- `sftp` — draft-ietf-secsh-filexfer: `u32be` len + type + request-id パケット走査、INIT/VERSION 判定
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第180次、search-index 照合)
+
+**論文・仕様**: RFC 7143(iSCSI)・RFC 5120(FCoE)・AoE 11.10/CoRID・NBD proto 文書・RFC 854(Telnet)・RFC 6143(RFB)・draft-ietf-secsh-filexfer-02(SFTP) — 全て整数のみで実装。
+
+**実装物**: open-iscsi/targetcli・aoetools・qemu-nbd/nbdkit・telnetd/in.telnetd・TigerVNC/libvncserver・OpenSSH sftp-server — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の iSCSI・AoE・NBD・Telnet IAC・VNC/RFB・SFTP 解説記事 — 全て整数のみで実装。
