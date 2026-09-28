@@ -54,6 +54,9 @@ pub enum Pdu {
     TrapV2,
     /// `0xA8` — Report
     Report,
+    /// SNMPv3 `encryptedPDU` — the scoped PDU is ciphertext and the
+    /// data PDU inside cannot be decoded.
+    EncryptedScoped,
     /// Any other PDU tag.
     Other(u8),
 }
@@ -141,16 +144,60 @@ pub fn parse(d: &[u8]) -> Option<Snmp> {
         3 => Version::V3,
         other => Version::Other(other),
     };
-    // next field: community (v1/v2c) or globalData seq (v3)
+    if version == Version::V3 {
+        // RFC 3412: SEQUENCE{ msgGlobalData HeaderData,
+        // msgSecurityParameters OCTET STRING, msgData ScopedPduData }
+        let (t2, _, _, after_hdr) = tlv(body, off2)?;
+        if t2 != 0x30 {
+            return None; // headerData must be a SEQUENCE
+        }
+        let (t3, _, _, after_sec) = tlv(body, after_hdr)?;
+        if t3 != 0x04 {
+            return None; // securityParameters must be an OCTET STRING
+        }
+        let (t4, s4, l4, _) = tlv(body, after_sec)?;
+        return if t4 == 0x30 {
+            // plaintext scopedPDU: { contextEngineID, contextName, data }
+            let scoped = body.get(s4..s4 + l4)?;
+            let (e0, _, _, off_e) = tlv(scoped, 0)?;
+            if e0 != 0x04 {
+                return None; // contextEngineID
+            }
+            let (e1, _, _, off_n) = tlv(scoped, off_e)?;
+            if e1 != 0x04 {
+                return None; // contextName
+            }
+            let (pt, ps, pl, _) = tlv(scoped, off_n)?;
+            if pt & 0xc0 != 0x80 {
+                return None;
+            }
+            Some(Snmp {
+                version,
+                community: None,
+                pdu: Pdu::from_u8(pt),
+                seq_len: len,
+                pdu_body: (start + s4 + ps, pl),
+            })
+        } else if t4 == 0x04 {
+            Some(Snmp {
+                version,
+                community: None,
+                pdu: Pdu::EncryptedScoped,
+                seq_len: len,
+                pdu_body: (start + s4, l4),
+            })
+        } else {
+            None
+        };
+    }
+    // v1/v2c: OCTET STRING community, then context PDU
     let (t2, cs, cl, after2) = tlv(body, off2)?;
-    let community = if t2 == 0x04 {
-        Some(String::from(
-            std::str::from_utf8(body.get(cs..cs + cl)?).ok()?,
-        ))
-    } else {
-        None
-    };
-    // PDU
+    if t2 != 0x04 {
+        return None;
+    }
+    let community = Some(String::from(
+        std::str::from_utf8(body.get(cs..cs + cl)?).ok()?,
+    ));
     let (pt, ps, pl, _) = tlv(body, after2)?;
     if pt & 0xc0 != 0x80 {
         return None; // context-specific class
@@ -201,6 +248,38 @@ mod tests {
         assert_eq!(s.pdu, Pdu::Trap);
     }
 
+    fn v3(scoped: &[u8]) -> Vec<u8> {
+        // SEQUENCE{ INTEGER 3, headerData SEQ, securityParams OCTET,
+        //           msgData }
+        let mut inner: Vec<u8> = Vec::new();
+        inner.extend_from_slice(&[0x02, 0x01, 0x03]);
+        inner.extend_from_slice(&[0x30, 0x00]); // empty headerData
+        inner.extend_from_slice(&[0x04, 0x02, b'x', b'x']); // secparams
+        inner.extend_from_slice(scoped);
+        let mut d = vec![0x30u8, inner.len() as u8];
+        d.extend_from_slice(&inner);
+        d
+    }
+
+    #[test]
+    fn v3_plaintext_scoped_pdu() {
+        // scopedPDU = SEQUENCE{ ctxEngine, ctxName, GetRequest }
+        let mut scoped = vec![0x30u8];
+        let body = [0x04, 0x00, 0x04, 0x00, 0xa0, 0x00];
+        scoped.push(body.len() as u8);
+        scoped.extend_from_slice(&body);
+        let s = parse(&v3(&scoped)).unwrap();
+        assert_eq!(s.version, Version::V3);
+        assert_eq!(s.community, None);
+        assert_eq!(s.pdu, Pdu::GetRequest);
+    }
+
+    #[test]
+    fn v3_encrypted_scoped_pdu() {
+        let s = parse(&v3(&[0x04, 0x02, 0xaa, 0xbb])).unwrap();
+        assert_eq!(s.pdu, Pdu::EncryptedScoped);
+    }
+
     #[test]
     fn rejects() {
         assert!(parse(&[]).is_none());
@@ -209,6 +288,14 @@ mod tests {
         assert!(parse(&[0x04u8, 0x01, 0x00]).is_none());
         // sequence containing non-INTEGER
         assert!(parse(&[0x30, 0x03, 0x04, 0x01, 0x00]).is_none());
+        // v3 with a community where headerData belongs
+        let mut inner: Vec<u8> = Vec::new();
+        inner.extend_from_slice(&[0x02, 0x01, 0x03]);
+        inner.extend_from_slice(&[0x04, 0x04, b't', b'e', b's', b't']);
+        inner.extend_from_slice(&[0x04, 0x02, b'x', b'x']);
+        let mut d = vec![0x30u8, inner.len() as u8];
+        d.extend_from_slice(&inner);
+        assert!(parse(&d).is_none());
         assert_eq!(Pdu::from_u8(0xa5), Pdu::GetBulk);
         assert_eq!(Pdu::from_u8(0xff), Pdu::Other(0xff));
     }

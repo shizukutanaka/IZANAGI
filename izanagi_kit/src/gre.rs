@@ -40,9 +40,11 @@ pub struct Gre {
 
 /// Parse a GRE header: requires 4 bytes, `version == 0`, and enough
 /// room for each flag-enabled optional field (checksum, key, seq).
-/// Routing/ack fields (`R`, `A`) are out of scope for plain GRE — if
-/// `R` or reserved high bits `0x80`/`0x40` are set we still parse but
-/// expose them via `flags`.
+/// Packets with the routing-present bit (`R`, 0x4000) are rejected:
+/// their variable-length source-route entries precede the payload and
+/// we cannot compute a trustworthy `payload_offset` for them (RFC 2784
+/// deprecates routing anyway). The PPTP-only `A` (ack, 0x0080) bit is
+/// likewise rejected.
 pub fn parse(d: &[u8]) -> Option<Gre> {
     if d.len() < 4 {
         return None;
@@ -51,6 +53,9 @@ pub fn parse(d: &[u8]) -> Option<Gre> {
     let version = (flags & 7) as u8;
     if version != 0 {
         return None; // version 0 = RFC 2784 GRE; 1 is PPTP-enhanced
+    }
+    if flags & 0x4080 != 0 {
+        return None; // R (routing) / A (ack) extensions unsupported
     }
     let protocol = (u16::from(*d.get(2)?) << 8) | u16::from(*d.get(3)?);
     let mut off = 4usize;
@@ -126,6 +131,8 @@ mod tests {
     fn rejects() {
         assert!(parse(&[]).is_none());
         assert!(parse(&[0, 1, 0, 0]).is_none()); // version 1 = PPTP, not GRE
+        assert!(parse(&[0x40, 0, 0x08, 0]).is_none()); // R flag
+        assert!(parse(&[0, 0x80, 0x08, 0]).is_none()); // A flag
         let mut d = vec![0x20, 0x00, 0x08, 0x00];
         assert!(parse(&d).is_none()); // K flag but no room for key
         d.extend_from_slice(&[0, 0, 0, 1]);

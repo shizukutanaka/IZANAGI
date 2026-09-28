@@ -58,15 +58,18 @@ pub struct Ospf {
     pub router_id: [u8; 4],
     /// Area ID.
     pub area_id: [u8; 4],
-    /// Auth type: 0 none, 1 simple, 2 cryptographic.
+    /// Auth type (v2 only): 0 none, 1 simple, 2 cryptographic. For v3
+    /// this word is `instance_id << 8 | reserved`.
     pub autype: u16,
     /// Number of LSAs an LSU declares (0 for other types).
     pub lsa_count: u32,
 }
 
-/// Parse an OSPF packet: header 16 bytes (v2) or v3, declared `len`
-/// must fit the buffer, `autype` ≤ 2 for v2 (v3 uses `instance_id`).
-/// For LSU (`type` 4) the `lsa_count` word is read at offset 24.
+/// Parse an OSPF packet: header is 24 bytes for v2 (16 + 8-byte auth
+/// field) and 16 bytes for v3; the declared `len` must cover that
+/// minimum and fit the buffer, `autype` ≤ 2 for v2 (v3 uses
+/// `instance_id`). For LSU (`type` 4) the `lsa_count` word is read at
+/// offset 24 (v2) or 16 (v3) and the declared length must cover it.
 pub fn parse(d: &[u8]) -> Option<Ospf> {
     if d.len() < 16 {
         return None;
@@ -77,7 +80,8 @@ pub fn parse(d: &[u8]) -> Option<Ospf> {
     }
     let kind = Kind::from_u8(*d.get(1)?)?;
     let len = (u16::from(*d.get(2)?) << 8) | u16::from(*d.get(3)?);
-    if usize::from(len) > d.len() || len < 16 {
+    let hdr_len: usize = if version == 2 { 24 } else { 16 };
+    if usize::from(len) > d.len() || usize::from(len) < hdr_len {
         return None;
     }
     let router_id = [*d.get(4)?, *d.get(5)?, *d.get(6)?, *d.get(7)?];
@@ -86,11 +90,17 @@ pub fn parse(d: &[u8]) -> Option<Ospf> {
     if version == 2 && autype > 2 {
         return None;
     }
-    let lsa_count = if kind == Kind::LsUpdate && d.len() >= 24 {
-        (u32::from(*d.get(20)?) << 24)
-            | (u32::from(*d.get(21)?) << 16)
-            | (u32::from(*d.get(22)?) << 8)
-            | u32::from(*d.get(23)?)
+    // LSU carries the LSA count as a u32 right after the header:
+    // offset 24 for v2, 16 for v3.
+    let lsa_off = hdr_len;
+    let lsa_count = if kind == Kind::LsUpdate {
+        if usize::from(len) < lsa_off + 4 {
+            return None;
+        }
+        (u32::from(*d.get(lsa_off)?) << 24)
+            | (u32::from(*d.get(lsa_off + 1)?) << 16)
+            | (u32::from(*d.get(lsa_off + 2)?) << 8)
+            | u32::from(*d.get(lsa_off + 3)?)
     } else {
         0
     };
@@ -110,7 +120,7 @@ mod tests {
     use super::*;
 
     fn hdr(ty: u8, len: u16) -> Vec<u8> {
-        let mut d = vec![0u8; usize::from(len).max(16)];
+        let mut d = vec![0u8; usize::from(len).max(24)];
         d[0] = 2;
         d[1] = ty;
         d[2] = (len >> 8) as u8;
@@ -132,24 +142,41 @@ mod tests {
     #[test]
     fn lsu_count() {
         let mut d = hdr(4, 28);
-        d[20] = 0;
-        d[21] = 0;
-        d[22] = 0;
-        d[23] = 5;
+        d[24] = 0;
+        d[25] = 0;
+        d[26] = 0;
+        d[27] = 5;
         let o = parse(&d).unwrap();
         assert_eq!(o.kind, Kind::LsUpdate);
         assert_eq!(o.lsa_count, 5);
     }
 
     #[test]
+    fn lsu_count_v3() {
+        // v3 header is 16 bytes; count sits at offset 16.
+        let mut d = vec![0u8; 20];
+        d[0] = 3;
+        d[1] = 4;
+        d[3] = 20;
+        d[19] = 9;
+        let o = parse(&d).unwrap();
+        assert_eq!(o.version, 3);
+        assert_eq!(o.lsa_count, 9);
+    }
+
+    #[test]
     fn rejects() {
         assert!(parse(&[]).is_none());
         assert!(parse(&[4u8; 16]).is_none()); // version 4
-        let mut bad = hdr(9, 16);
-        assert!(parse(&bad).is_none()); // type 9 unknown
-        bad[1] = 1;
-        bad[2] = 0;
-        bad[3] = 99; // len 99 > buffer 16
+                                              // v2 minimum header is 24 bytes: a 16-byte declared length fails
+        let mut bad = hdr(1, 16);
+        assert!(parse(&bad).is_none());
+        // v2 LSU whose declared length cannot hold the count word
+        let mut bad2 = hdr(4, 24);
+        assert!(parse(&bad2).is_none());
+        bad2[3] = 99; // len 99 > buffer
+        assert!(parse(&bad2).is_none());
+        bad = hdr(9, 24); // type 9 unknown
         assert!(parse(&bad).is_none());
         assert_eq!(Kind::from_u8(0), None);
         assert_eq!(Kind::from_u8(5), Some(Kind::LsAck));
