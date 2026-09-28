@@ -4293,3 +4293,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Khronos collada-dom / assimp・NewTek LightWave SDK / Blender io_import_lwo・FreeWRL / OpenVRML・Coin3D SoDB・ioquake3・Blender io_scene_ac3d — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の COLLADA・VRML・Inventor・MD3・LWO 解説記事 — 全て整数のみで実装。
+## 第178次: EDA・HDL・タイミング形式 第2弾(vcd / sdc / spef / saif / upf / ipxact / verilog)
+
+**方法**: 文献参照ラウンド継続 — EDA 設計フローの標準テキスト形式。`gds`/`edif`/`lef`/`def`/`liberty`/`fst` は既存のため除外。全7件が既存 1147 件と非衝突を確認:
+
+- `vcd` — IEEE 1364 Value Change Dump: `$timescale`/`$scope`/`$var`/`$enddefinitions` + `#t` タイムスタンプ + 値変化行
+- `sdc` — Synopsys Design Constraints: Tcl 動詞センサス(`create_clock`/`set_*_delay`/`set_false_path`/`set_clock_groups`/…)、`\` 継続行対応
+- `spef` — IEEE 1481 SPEF: `*SPEF`/`DESIGN_NAME`/`UNIT` ヘッダ + `*PORTS`/`*D_NET`/`*CONN`/`*CAP`/`*RES`/`*INDUC` センサス
+- `saif` — Switching Activity Interchange Format: `(SAIFILE` S式 + `(INSTANCE`/`(PORT`/`(T0`/`(T1`/`(TC`/`(TX` 整数持続時間合計
+- `upf` — IEEE 1801 UPF: `create_power_domain`/`supply_net`/`power_switch`/`isolation`/`retention`/`level_shifter`/PST 動詞センサス
+- `ipxact` — IEEE 1685 IP-XACT: `ipxact:`/`spirit:` 名前空間のルート要素(component/design/catalog 等)+ VLNV + busInterface/memoryMap/port/file 集計
+- `verilog` — IEEE 1364 ソース: コメント/文字列除去 + `module`/`endmodule` + `input`/`wire`/`reg`/`always`/`assign` センサス(複数ステートメント同一行対応)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第178次、search-index 照合)
+
+**論文・仕様**: IEEE 1364(Verilog LRM/VCD)・Synopsys SDC・IEEE 1481(SPEF)・SAIF 2.0・IEEE 1801(UPF)・IEEE 1685(IP-XACT/Accellera) — 全て整数のみで実装。
+
+**実装物**: gtkwave/vcd パーサ・OpenSTA/OpenROAD・OpenRCX・kactus2/ipyxact・iverilog/yosys — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の VCD・SDC・SPEF・UPF・IP-XACT・Verilog 解説記事 — 全て整数のみで実装。
