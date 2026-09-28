@@ -4378,3 +4378,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: musescore/MuseScore・music-encoding・rism-digital/verovio・humdrum-tools・lilypond/lilypond・NoteWorthy・capella-software・Guitar Pro 互換 (TuxGuitar/AlphaTab) — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MusicXML・MEI・Humdrum kern・LilyPond・NoteWorthy・Capella・GP 解説記事 — 全て整数のみで実装。
+## 第182次: ビルドシステム・パッケージ定義形式 第2弾(cmake / meson / bazel / nix / gn / buck / pants)
+
+**方法**: 文献参照ラウンド継続 — ビルド定義 DSL。全7件が既存 1176 件と非衝突を確認(`makefile`/`ninja`/`hcl`/`spec`/`pkgbuild`/`dockerfile`/`procfile` は既存のため除外):
+
+- `cmake` — CMake `CMakeLists.txt`: `cmake_minimum_required(VERSION x)` + `project()` + `add_executable`/`add_library`/`find_package`/`install` 命令センサス(大文字小文字不問・`endif` 誤認防止)
+- `meson` — Meson `meson.build`: `project()`/`version:` kwarg + `executable`/`library`/`dependency`/`subdir`/`test` センサス + `=` 代入
+- `bazel` — Bazel `BUILD`: `load("@…//…")` + ルール呼出し + `name`/`srcs`/`deps`/`visibility`/`glob`
+- `nix` — Nix 式: `let…in`/`rec`/`with`/`inherit`/`builtins.` + `mkDerivation`/`fetchurl` + lambda `{a,b}:` 判定
+- `gn` — Chromium GN `BUILD.gn`: `group`/`executable`/`source_set`/`config`/`action` + `deps`/`sources`/`configs` リスト + `if`/`foreach`
+- `buck` — Buck/Buck2 `BUCK`/`TARGETS`: `load("@…")` + `cxx_binary`/`rust_library`/`python_test`/`export_file` 系 + `deps`/`visibility`
+- `pants` — Pants `BUILD`: `python_sources`/`pex_binary`/`shell_command`/`archive`/`docker_image` ファミリ + `dependencies`/`entry_point`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第182次、search-index 照合)
+
+**論文・仕様**: CMake Reference(kitware.com/cmake)・Meson Build Manual・Bazel BUILD Reference・Nix Expression Language リファレンス・GN Reference(gn.googlesource.com)・Buck2 BUILD リファレンス・Pants BUILD ドキュメント — 全て整数のみで実装。
+
+**実装物**: Kitware/CMake・mesonbuild/meson・bazelbuild/bazel・NixOS/nix・GN・facebook/buck2・pantsbuild/pants — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の CMake・Meson・Bazel・Nix・GN・Buck2・Pants 解説記事 — 全て整数のみで実装。
