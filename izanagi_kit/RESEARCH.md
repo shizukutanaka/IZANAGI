@@ -4420,3 +4420,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: libremidi・oscpack/Rust rosc・csound/csound・ppmck/3MLE・Scala/Alt-tuner・steinbergmedia/vst3sdk・VeeSeeVSTRack — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SysEx ダンプ・OSC・Csound・MML(ppmck・mck)・Scala マイクロトーン・VST プリセット解説記事 — 全て整数のみで実装。
+## 第184次: 金融・企業間データ交換形式 第2弾(swiftmt / bai2 / xbrl / fpml / fixml / camt / pain)
+
+**方法**: 文献参照ラウンド継続 — 銀行間・企業間メッセージ交換。全7件が既存 1190 件と非衝突を確認(既存 `mt` は Mersenne Twister のため `swiftmt` に改名):
+
+- `swiftmt` — SWIFT FIN MT 汎用: `{1:}` 基本 + `{2:}` アプリ(I/O+型) + `{4:}` `:TAG:VALUE` + `{5:}` トレイラ
+- `bai2` — BAI2: `01`/`02`/`03`/`16`/`88`/`49`/`98`/`99` レコード + 制御合計
+- `xbrl` — XBRL 2.1 インスタンス: 名前空間接頭辞非依存の `context`/`unit`/`contextRef=` センサス
+- `fpml` — FpML: `<FpML version type>` + trade/party/product 集計
+- `fixml` — FIXML: `<FIXML v r s>` + 深さ1メッセージ列挙 + `<Batch>`
+- `camt` — ISO 20022 `camt.05x`: `BkToCstmr*` + `Ntry`/`Ccy`/`IBAN`
+- `pain` — ISO 20022 `pain.00x`: `Cstmr*Initn` + `PmtInf`/`CdtTrfTxInf` + `NbOfTxs` 照合
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第184次、search-index 照合)
+
+**論文・仕様**: SWIFT MT Category 1 標準・BAI2(BAI/Accredited Standards Committee)・XBRL 2.1 Recommendation・FpML 5.x・FIXML (FIX Trading Community)・ISO 20022 camt.052/053/054・pain.001/002/008 スキーマ — 全て整数のみで実装。
+
+**実装物**: ProwideCore/wife・jhulten/BAI2・Arelle・fpml-toolkit・QuickFIX・Iso20022 ツール群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SWIFT MT103・ISO20022 camt/pain 移行・XBRL 電子開示(EDINET/TDnet)・BAI2 会計連携の解説記事 — 全て整数のみで実装。
