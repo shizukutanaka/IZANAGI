@@ -4014,3 +4014,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: LibreOffice/Excel DIF・SYLK インポータ、haven/readstat・pyreadstat・parso・R serialize.c — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Stata/SPSS/SAS データ読み書き・RData・SYLK 解説 — 全て整数のみで実装。
+
+## 第165次: 字幕・キャプション形式(ttml / scc / sbv / usf / smi / mpl2 / pjs)
+
+**方法**: 文献参照ラウンド継続 — 放送・配信向けの字幕テキスト形式。srt/ass/vtt/stl/lrc は既存のため除外し、残り7件が非衝突を確認:
+
+- `ttml` — W3C TTML/DFXP: `<tt` ルート + `xmlns` に "ttml" 必須、`<p>` cue・`<style>`・`ttp:`/`tts:` 属性計数
+- `scc` — Scenarist Closed Caption: `Scenarist_SCC` バナー + `HH:MM:SS:FF`/`;FF` ドロップフレーム行
+- `sbv` — YouTube SubViewer: `H:MM:SS.mmm,H:MM:SS.mmm` cue、ミリ秒タイミング
+- `usf` — Universal Subtitle Format: `<USFSubtitles` + `version=` + `<subtitle>`/`<text>`
+- `smi` — Microsoft SAMI: 大文字化して `<SAMI` + `<SYNC Start=ms>` + `<P>`
+- `mpl2` — MPL2: 全行 `[ds][ds]text` デシ秒ペア
+- `pjs` — Phoenix Japanimation: `H:MM:SS:FF, H:MM:SS:FF, "text"`(25fps換算)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第165次、search-index 照合)
+
+**論文・仕様**: W3C TTML1/2 仕様(ttp: 名前空間)・SMPTE ST 2052・Scenarist SCC フィールド定義・USF/SAMI 形式文書・MicroDVD 系 MPL2/PJS コミュニティ仕様 — 全て整数のみで実装。
+
+**実装物**: FFmpeg(mpl2dec/pjsdec 等)、Subtitle Edit、YouTube SBV アップローダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の字幕形式変換・SAMI/SCC 解説記事 — 全て整数のみで実装。
