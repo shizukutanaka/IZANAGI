@@ -4483,3 +4483,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: FFmpeg(asfdec/mxfdec/mpegts/swfdec)・GPAC・MediaInfo・x264/mjpegtools(y4m)・libvpx ivfenc/ivfdec・ヘッダ GUID/UL 表 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の WMV/ASF・RealMedia・MXF 運用・TS パケット解析・IVF/VP9・y4m・SWF 解説記事 — 全て整数のみで実装。
+
+## 第187次: 図書館・アーカイブ・OCR 情報形式(marc / mets / ead / oai / alto / hocr / scandata)
+
+**方法**: 文献参照ラウンド継続 — 図書館目録・デジタルアーカイブ・OCR 出力系。全7件が既存 1211 件と非衝突を確認(mods/ris/medline/jats/csljson は既存のため除外):
+
+- `marc` — MARC21/ISO 2709: 24B リーダー(`NNNNN`+`4500`)+ 12B ディレクトリ走査 + 001-009 制御フィールド/データフィールド分類
+- `mets` — METS(LC): `<mets`+`/METS/` xmlns、`mets:` 接頭辞許容の `metsHdr`/`dmdSec`/`amdSec`/`fileSec`/`file`/`FLocat`/`structMap`/`structLink` 計数
+- `ead` — EAD(EAD 2002/EAD3): `eadheader`/`archdesc` + `<c>`/`<cNN>` コンポーネント階層 + `level=` 値列挙 + `did`/`unittitle`/`unitid`
+- `oai` — OAI-PMH 2.0: `verb`/`request`/`responseDate` + record/header/identifier/setSpec/resumptionToken + error code
+- `alto` — ALTO(LC OCR XML): Page/PrintSpace/TextBlock/TextLine/String/SP/HYP 階層 + ページ寸法
+- `hocr` — hOCR: HTML 内 `ocr_page`/`ocr_carea`/`ocr_par`/`ocr_line`/`ocrx_word` クラス + `bbox`/`x_wconf` 計数
+- `scandata` — Internet Archive scandata: `<page leafNum>` 列挙 + `pageType`/`addToAccessFormats`/broken・delete フラグ
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第187次、search-index 照合)
+
+**論文・仕様**: ISO 2709(書誌レコード交換)+ LC MARC21 リーダー/ディレクトリ定義・LC METS Schema 仕様・EAD 2002/EAD3 スキーマ・OAI-PMH 2.0 プロトコル仕様・LC ALTO Schema(Analyzed Layout and Text Object)・hOCR 仕様(Brezuel ら)・Internet Archive scandata.xml 仕様 — 全て整数のみで実装。
+
+**実装物**: pymarc/yaz・LoC METS 実装例・ArchivesSpace(EAD 出力)・pyoai/oaiharvest・OCR-D alto2hocr・tesseract hOCR 出力・archive.org bookreader scandata — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MARC21・NDL メタデータ・OAI-PMH 収集・ALTO/hOCR OCR パイプライン・全文 OCR 解説記事 — 全て整数のみで実装。
