@@ -4441,3 +4441,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: ProwideCore/wife・jhulten/BAI2・Arelle・fpml-toolkit・QuickFIX・Iso20022 ツール群 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SWIFT MT103・ISO20022 camt/pain 移行・XBRL 電子開示(EDINET/TDnet)・BAI2 会計連携の解説記事 — 全て整数のみで実装。
+## 第185次: API・IDL・スキーマ記述形式(openapi / graphql / idl / asn1 / wsdl / fidl / smithy)
+
+**方法**: 文献参照ラウンド継続 — API 記述とインターフェース定義言語。全7件が既存 1197 件と非衝突を確認:
+
+- `openapi` — OpenAPI 3.x / Swagger 2.0: `openapi:`/`swagger:` バージョン + paths センサス + operationId/components/$ref(YAML & JSON 両対応)
+- `graphql` — GraphQL SDL: `type`/`enum`/`input`/`interface`/`union`/`scalar`/`directive @`/`extend` 行頭宣言 + `@dir` 適用(定義サイト除外)
+- `idl` — OMG IDL: `module`/`interface`/`struct`/`exception` + `};` 終端 + `in`/`out`/`inout` + `sequence<`
+- `asn1` — X.680: `DEFINITIONS [IMPLICIT TAGS] ::= BEGIN` + `::=` 産出 + `IMPORTS` + `[n]` タグ + ビルトイン型参照
+- `wsdl` — WSDL 1.1(`<wsdl:definitions`)/2.0(`/ns/wsdl`)+ service/portType/interface/operation/message/binding センサス + soap 検出
+- `fidl` — Fuchsia IDL: `library a.b;` + `using` + `protocol`/`type`/`struct`… 行頭宣言 + メソッド/`->`/endpoint
+- `smithy` — AWS Smithy: `$version:`/`namespace` + shape 宣言センサス + `@trait`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第185次、search-index 照合)
+
+**論文・仕様**: OpenAPI Specification 3.x・GraphQL Spec(June2018+)・OMG IDL 4.2/IDL4 PSM・ITU-T X.680/X.681・WSDL 1.1/2.0 W3C・FIDL Language Specification・Smithy 2.0 spec — 全て整数のみで実装。
+
+**実装物**: swagger-parser・graphql-js・tao-idl/omniidl・asn1c・apache-cxf wsdl4j・fuchsia fidl compiler・smithy-lang/smithy — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の OpenAPI 設計・GraphQL スキーマ・CORBA IDL・ASN.1・WSDL/SOAP・FIDL・Smithy 解説記事 — 全て整数のみで実装。
