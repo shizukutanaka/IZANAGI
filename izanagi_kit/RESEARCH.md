@@ -4505,3 +4505,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: pymarc/yaz・LoC METS 実装例・ArchivesSpace(EAD 出力)・pyoai/oaiharvest・OCR-D alto2hocr・tesseract hOCR 出力・archive.org bookreader scandata — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の MARC21・NDL メタデータ・OAI-PMH 収集・ALTO/hOCR OCR パイプライン・全文 OCR 解説記事 — 全て整数のみで実装。
+
+## 第188次: 最適化・数値計算モデル形式(mps / lp / dimacs / opb / mtx / hb / ampl)
+
+**方法**: 文献参照ラウンド継続 — 数理計画ソルバー・数値線形代数のモデル/行列交換系。全7件が既存 1218 件と非衝突を確認(sat は既存だがアルゴリズムであり形式ではないため dimacs と併存):
+
+- `mps` — MPS(LP/MIP 固定形式): `NAME`+`ROWS`/`COLUMNS`/`RHS`/`RANGES`/`BOUNDS`/`ENDATA` カード + N/L/G/E 行分類 + `INTORG`/`INTEND` 整数マーカー + bound kind
+- `lp` — CPLEX LP(可変形式): `maximize|minimize` + `subject to`/`bounds`/`general`/`binaries`/`end` セクション + `\` コメント + `<`/`=`/`>` 制約 + `free`/`inf` 境界
+- `dimacs` — DIMACS チャレンジ形式(CNF/graph/maxflow): `p <kind> <v> <e>` + `c` コメント + `e`/`a`/`n`/`d` レコード + CNF `0` 終端節
+- `opb` — OPB 擬似ブール(PB コンペ 2.1.2): `#variable=`/`#constraint=` ヘッダ + `min:`/`max:` + `>=`/`<=`/`=` 制約 + soft `\:` 重み
+- `mtx` — MatrixMarket(.mtx): `%%MatrixMarket` バナー + object/format/field/symmetry + `%` コメント + サイズ行
+- `hb` — Harwell-Boeing/Rutherford-Boeing(.rua/.rra 等): 80col カード + `i5` カーディナリティ + `mxkey`(rua/rra/rre/csa…)+ `nnz`/`neltvl` + `rhs` ブロック
+- `ampl` — AMPL .mod: `set`/`param`/`var`/`minimize`/`maximize`/`subject to` 宣言 + `sum`/`forall`/`exists` + `:=`/`option`/`solve`/`display` + `#` コメント
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第188次、search-index 照合)
+
+**論文・仕様**: IBM CPLEX MPS/LP 形式ドキュメント・Gurobi/HiGHS MPS リファレンス・DIMACS Implementation Challenges 形式(センター定義)・PBSPEC/PB competition OPB 仕様 v2.1.2(Roussel/Manzinho)・NIST MatrixMarket 仕様(Boisvert/Pozo/Remington)・Duff/Grimes/Lewis の Harwell-Boeing 及び Rutherford-Boeing 形式論文(ACM TOMS)・Fourer/Gay/Kernighan AMPL book — 全て整数のみで実装。
+
+**実装物**: HiGHS/CBC/Clp の MPS リーダー・Gurobi LP reader・SATLIB/minisat DIMACS パーサ・PBLib opb パーサ・SciPy/SSget(mmread)の MatrixMarket リーダー・SuiteSparse HB リーダー・AMPL/Gurobi .mod 処理系 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PuLP/OR-Tools MPS・数理最適化モデリング・SAT ソルバー入門・疎行列交換・AMPL 記法解説記事 — 全て整数のみで実装。
