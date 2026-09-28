@@ -6,7 +6,7 @@
 //! ```
 //! use izanagi_kit::y4m::{detect, parse};
 //!
-//! let d = b"YUV4MPEG2 W4 H2 F30000:1001 Ip A1:1 C420jpeg\nFRAME\n****";
+//! let d = b"YUV4MPEG2 W4 H2 F30000:1001 Ip A1:1 C420jpeg\nFRAME\n************";
 //! assert!(detect(d));
 //! let y = parse(d).unwrap();
 //! assert_eq!(y.width, 4);
@@ -52,15 +52,42 @@ fn tag_num(t: &str) -> u32 {
     t[1..].parse().unwrap_or(0)
 }
 
-/// Parses the header line + counts `FRAME` lines; `None` on bad magic.
+/// Pixel bytes per frame from `C`/`XYSCSS` + `W`/`H`; `None` when the
+/// chroma layout is unknown (frames then fall back to marker count).
+fn frame_bytes(w: u32, h: u32, c: Option<&str>) -> Option<usize> {
+    let luma = u64::from(w) * u64::from(h);
+    let cl = c?.to_ascii_lowercase();
+    // units of half-luma: mono=2, 4:2:0/4:1:1=3, 4:2:2=4, 4:4:4=6, 4:4:4:4=8
+    let ratio2: u64 = if cl.starts_with("mono") {
+        2
+    } else if cl.starts_with("411") || cl.starts_with("420") {
+        3
+    } else if cl.starts_with("422") {
+        4
+    } else if cl.starts_with("4444") || cl.contains("alpha") {
+        8
+    } else if cl.starts_with("444") {
+        6
+    } else {
+        return None;
+    };
+    let wide = cl.contains("p10")
+        || cl.contains("p12")
+        || cl.contains("p14")
+        || cl.contains("p16")
+        || cl.ends_with("-16");
+    usize::try_from(luma * ratio2 / 2 * if wide { 2 } else { 1 }).ok()
+}
+
+/// Parses the header line + walks `FRAME` records; `None` on bad magic.
+/// Frame payloads are raw bytes — only the header must be UTF-8.
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Y4m> {
     if !detect(b) {
         return None;
     }
-    let s = core::str::from_utf8(b).ok()?;
-    let mut lines = s.lines();
-    let header = lines.next()?;
+    let eol = b.iter().position(|&c| c == b'\n')?;
+    let header = core::str::from_utf8(&b[..eol]).ok()?;
     let mut y = Y4m {
         width: 0,
         height: 0,
@@ -95,9 +122,31 @@ pub fn parse(b: &[u8]) -> Option<Y4m> {
             _ => {}
         }
     }
-    for line in lines {
-        if line.starts_with("FRAME") {
-            y.frames += 1;
+    let rest = &b[eol + 1..];
+    let cs = y.xyscss.as_deref().or(y.colorspace.as_deref());
+    match frame_bytes(y.width, y.height, cs) {
+        Some(sz) => {
+            // skip each frame's pixel payload so `FRAME`-looking bytes
+            // inside the image data cannot invent frames
+            let mut pos = 0usize;
+            while rest[pos..].starts_with(b"FRAME") {
+                y.frames += 1;
+                let nl = rest[pos..]
+                    .iter()
+                    .position(|&c| c == b'\n')
+                    .map_or(rest.len(), |e| pos + e + 1);
+                pos = nl.saturating_add(sz);
+                if pos > rest.len() {
+                    break;
+                }
+            }
+        }
+        None => {
+            y.frames = u32::try_from(
+                rest.starts_with(b"FRAME") as usize
+                    + rest.windows(6).filter(|w| *w == b"\nFRAME").count(),
+            )
+            .unwrap_or(u32::MAX);
         }
     }
     Some(y)
@@ -107,7 +156,9 @@ pub fn parse(b: &[u8]) -> Option<Y4m> {
 mod tests {
     use super::*;
 
-    const D: &[u8] = b"YUV4MPEG2 W4 H2 F30000:1001 Ip A1:1 C420jpeg Xfoo\nFRAME\n****\nFRAME\n****";
+    // W4 H2 C420 → 12 pixel bytes per frame; the first carries 0xFF
+    // (non-UTF-8) and `\nFRAME` decoy bytes to prove payload skipping.
+    const D: &[u8] = b"YUV4MPEG2 W4 H2 F30000:1001 Ip A1:1 C420jpeg Xfoo\nFRAME\n************FRAME\n\xff\xfe\nFRAME\n********";
 
     #[test]
     fn detect_works() {

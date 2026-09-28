@@ -84,7 +84,7 @@ pub fn parse(b: &[u8]) -> Option<Rm> {
         max_bit_rate: None,
     };
     let mut off = hdr_size;
-    while off + 6 <= b.len() {
+    while off + 8 <= b.len() {
         let id = &b[off..off + 4];
         let size = usize::try_from(be32(&b[off + 4..off + 8])).unwrap_or(0);
         if size < 10 || off + size > b.len() {

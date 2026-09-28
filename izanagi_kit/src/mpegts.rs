@@ -88,8 +88,10 @@ pub fn parse(b: &[u8]) -> Option<MpegTs> {
     };
     let mut pids = BTreeSet::new();
     let mut pos = off;
-    while pos + stride <= b.len() {
-        let p = &b[pos..pos + stride];
+    // the packet is always 188 bytes at the sync point; the stride
+    // carries any record prefix (192) or FEC trailer (204)
+    while pos + 188 <= b.len() {
+        let p = &b[pos..pos + 188];
         if p[0] != 0x47 {
             t.desyncs += 1;
             pos += 1;
@@ -118,7 +120,7 @@ pub fn parse(b: &[u8]) -> Option<MpegTs> {
         pos += stride;
     }
     t.pids = u32::try_from(pids.len()).unwrap_or(u32::MAX);
-    t.remainder = u32::try_from(b.len() - pos).unwrap_or(u32::MAX);
+    t.remainder = u32::try_from(b.len().saturating_sub(pos)).unwrap_or(u32::MAX);
     Some(t)
 }
 

@@ -130,6 +130,9 @@ pub fn parse(b: &[u8]) -> Option<Mxf> {
             }
         }
         let next = pos.checked_add(16 + used)?.checked_add(len)?;
+        if next > b.len() {
+            break;
+        }
         pos = next;
     }
     m.trailing = u32::try_from(b.len() - pos).unwrap_or(u32::MAX);
