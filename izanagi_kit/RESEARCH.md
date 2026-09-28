@@ -4356,3 +4356,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: open-iscsi/targetcli・aoetools・qemu-nbd/nbdkit・telnetd/in.telnetd・TigerVNC/libvncserver・OpenSSH sftp-server — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の iSCSI・AoE・NBD・Telnet IAC・VNC/RFB・SFTP 解説記事 — 全て整数のみで実装。
+## 第181次: 楽譜・記譜形式(musicxml / mscx / mei / kern / ly / nwc / capx / gp)
+
+**方法**: 文献参照ラウンド継続 — 楽譜交換・記譜言語。全8件が既存 1168 件と非衝突を確認(`abc`/`midi`/`mei`-adjacent 既存モジュールは除外):
+
+- `musicxml` — W3C MusicXML 4.x: `score-partwise`/`timewise`/`opus` ルート + part-list/measure/note 集計
+- `mscx` — MuseScore Studio XML: `<museScore version>` + Staff/Measure/Chord/Dynamic/Slur/Tuplet
+- `mei` — MEI Guidelines: `<mei>` + `music-encoding.org` NS + meiversion + mdiv/measure/app-rdg-lem
+- `kern` — Humdrum Toolkit `**kern`: `**` 排他解釈・`*` タンデム・`=` 小節・`!`/`!!!` コメント・`4c`/`4r` トークン
+- `ly` — GNU LilyPond: `\version`/`\header`/`\score`/`\book`/`\paper`/`\relative`/`\key`/`\time`/`\clef` + 音名走査
+- `nwc` — NoteWorthy Composer `.nwctxt`: `!NoteWorthyComposer(v)` + `|Type|Key:Val` 行
+- `capx` — Capella `.capx` XML: `<capella>` + `<info>`/`<system>`/`<voices>`/`<head>`/`<barline>`
+- `gp` — Guitar Pro: `FICHIER GUITAR PRO v…` バナー(v3–v5)+ GP7 `BCFZ` コンテナ
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第181次、search-index 照合)
+
+**論文・仕様**: W3C MusicXML 4.0・MuseScore mscx schema・MEI Guidelines v5・Humdrum `**kern` Representation(Good/Huron 系)・GNU LilyPond NR/LSR・NoteWorthy Composer nwctxt・Capella XML capx・Guitar Pro file format リバースエンジニア資料 — 全て整数のみで実装。
+
+**実装物**: musescore/MuseScore・music-encoding・rism-digital/verovio・humdrum-tools・lilypond/lilypond・NoteWorthy・capella-software・Guitar Pro 互換 (TuxGuitar/AlphaTab) — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MusicXML・MEI・Humdrum kern・LilyPond・NoteWorthy・Capella・GP 解説記事 — 全て整数のみで実装。
