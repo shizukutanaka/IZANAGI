@@ -4272,3 +4272,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: AcademySoftwareFoundation/openexr・image-rs(image-tga/image-sgi 等)・jasper(JPEG 2000)・jxrlib・FLIF-hub/FLIF・agl/jbig2dec・dpkt 系 DPX 実装 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の OpenEXR・JPEG 2000/JP2・JPEG XR・FLIF・JBIG2・DPX 解説記事 — 全て整数のみで実装。
+## 第177次: 3D アセット・モデル形式 第2弾(dae / lwo / wrl / iv / md3 / cob / ac)
+
+**方法**: 文献参照ラウンド継続 — レガシー/標準 3D モデル交換形式のヘッダ・ノード構造走査。`ply`/`stl`/`obj`/`fbx`/`glb`/`blend`/`abc`/`pmd`/`pmx`/`bvh`/`x3d`/`amf`/`threemf`/`off`/`step`/`iges`/`ifc`/`skp`/`dgn`/`dwg`/`dxf`/`mdl`/`md2`/`uasset` 等は既存のため除外。全7件が既存 1140 件と非衝突を確認:
+
+- `dae` — COLLADA (ISO/PAS 17506): `<COLLADA>` ルート + `version` 属性 + `library_*` コレクション列挙 + `up_axis`
+- `lwo` — LightWave Object: IFF `FORM` + `LWO2`/`LWOB`/`LWLO` フォーム型 + 偶数パディングのチャンク鎖(`LAYR`/`PNTS`/`POLS`/`SURF`/`TAGS`/`BBOX`)
+- `wrl` — VRML 1.0/VRML97 (ISO/IEC 14772-1): `#VRML V` ヘッダ + `DEF`/`USE` + 文字列・コメント認識のノードセンサス
+- `iv` — Open Inventor: `#Inventor V2.x ascii` ヘッダ + `Separator`/シェイプノードセンサス(VRML の先祖)
+- `md3` — Quake III Arena メッシュ: `IDP3`+version 15+108B LE ヘッダ(name/flags/各種カウント/セクションオフセット)
+- `cob` — Caligari trueSpace: `Caligari VNN.NN`+`A`/`B` モード接尾辞 + `Obj1`/`PolH`/`Grp `/`Mat1`/`NAME`/`Came`/`Lght` チャンク走査
+- `ac` — AC3D: `AC3D`+バージョン文字 + `OBJECT world|poly|group|light`/`MATERIAL`/`SURF`/`numvert`/`texture` 行センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第177次、search-index 照合)
+
+**論文・仕様**: ISO/PAS 17506 COLLADA・ISO/IEC 14772-1 VRML97・VRML 1.0 仕様・NewTek LWO2 フォーマット仕様・id Tech 3 MD3 フォーマット解説・Caligari COB フォーマットノート・AC3D ファイルフォーマット文書 — 全て整数のみで実装。
+
+**実装物**: Khronos collada-dom / assimp・NewTek LightWave SDK / Blender io_import_lwo・FreeWRL / OpenVRML・Coin3D SoDB・ioquake3・Blender io_scene_ac3d — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の COLLADA・VRML・Inventor・MD3・LWO 解説記事 — 全て整数のみで実装。
