@@ -3926,3 +3926,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Gmsh・IDEAS/NX・ANSYS Fluent・ParaView(vtkIOXML)・SU2 本体リーダ、meshio・pyvista の参照実装 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Gmsh・NASTRAN・SU2・VTK メッシュフォーマット解説、Surfer グリッド仕様の翻訳記事 — 全て整数のみで実装。
+
+## 第161次: ロボット工学・点群・動作捕捉形式(urdf / xacro / rosbag / mcap / pcd / e57 / c3d)
+
+**方法**: 文献参照ラウンド継続 — ROS エコシステムと計測フォーマット。全7件が既存 1028 件と非衝突を確認:
+
+- `urdf` — Unified Robot Description Format: `<robot name>` ルート + `<link>`/`<joint type>` センサス + `<gazebo>` 拡張
+- `xacro` — ROS XML マクロ: `xmlns:xacro` 必須 + `<xacro:macro|property|include>` + `${}` 置換式
+- `rosbag` — ROS bag v1.2/v2.0: `#ROSBAG V` + `u32 len` ヘッダフィールド(`key=value`, `op=\xNN`)+ `u32 data_len` レコード走査
+- `mcap` — Foxglove MCAP: `\x89MCAP0\r\n` 両端マジック + `u8 op | u64 len` レコード(Header/Schema/Channel/Message)
+- `pcd` — PCL PCD: `FIELDS`/`WIDTH`/`HEIGHT`/`POINTS`/`DATA ascii|binary|binary_compressed` ヘッダ
+- `e57` — ASTM E2807 E57: `ASTM-E57` + 48B LE ヘッダ(major/minor/file_length/xml_offset/page_size)
+- `c3d` — C3D モーションキャプチャ: byte1==0x50 (Intel) + LE u16 points/analog/frames + f32 scale(raw bits 保持、負⇒整数データ)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(scale factor は raw bits、座標は保持しない)。
+
+## 出典(第161次、search-index 照合)
+
+**論文・仕様**: URDF XML spec(ROS wiki)、xacro spec(ROS 2 docs)、rosbag 2.0 spec(ros-infrastructure)、MCAP spec(mcap.dev)、PCL PCD file format v0.7、ASTM E2807-11(E57)、C3D technical user guide(c3d.org)— 全て整数のみで実装。
+
+**実装物**: ROS/ROS 2 rosbag2・foxglove mcap-cli・Point Cloud Library・pye57・ezc3d の参照リーダ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の URDF/xacro・rosbag・MCAP・PCD・C3D 解説記事 — 全て整数のみで実装。
