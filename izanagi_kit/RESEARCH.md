@@ -4209,3 +4209,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: LLVM llvm-rc/GNU windres(.rc パーサ)・GTK gtk-builder-tool・Qt uic コンパイラ・Xcode ibtool/IBCocoaTouchToolFoundation・openjfx-fxml — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の .rc リソーススクリプト・GtkBuilder・Qt Designer .ui・XIB/NIB・JavaFX FXML 解説記事 — 全て整数のみで実装。
+## 第174次: セキュリティ脅威インテリジェンス・検知ルール形式(yara / sigma / stix / cve / misp / ioc / snort)
+
+**方法**: 文献参照ラウンド継続 — 検知ルール言語と脅威インテリジェンス JSON/XML の構造走査。全7件が既存 1119 件と非衝突を確認:
+
+- `yara` — YARA ルール: `import`/`include` ディレクティブ + `rule name [: tags] { meta:/strings:/condition: }` ブロック。文字列(`"` エスケープ対応)・`//`・`/* */` コメントを読み飛ばす波括弧マッチングで `{`/`}` 混入に耐性。`$name =` 定義計数
+- `sigma` — Sigma 汎用検知ルール(YAML): トップレベル `title:`/`id:`/`status:`/`level:`/`author:` キー + `logsource:` + `detection:` 必須判定 + `tags:` リスト計数
+- `stix` — STIX 2.x バンドル(JSON): `type=="bundle"` + `spec_version` 2\x2e0/2\x2e1 + `objects[]` の `type` センサス(`count(type)` で種別集計)
+- `cve` — CVE JSON 5 レコード: `dataType=="CVE_RECORD"` + `dataVersion` 5.x + `cveMetadata`(cveId/state/assignerOrgId)+ `containers`(cna はオブジェクト、adp は配列 — 両対応)の descriptions/references/affected 集計
+- `misp` — MISP イベント(JSON): `{"Event":{…}}` または裸イベント + `uuid`/`info`/`date`/`threat_level_id` + `Attribute`/`Object`/`Galaxy`/`Tag` 計数 + `Orgc.name`
+- `ioc` — OpenIOC 1.1 XML: `<ioc id>` ルート(`<ioccer` 誤認防止)+ `<Indicator>`/`<IndicatorItem>` 計数 + `Context document=`/`condition=` の distinct 集合
+- `snort` — Snort/Suricata ルール: `ACTION PROTO SRC SPORT DIR DST DPORT (options)` ヘッダ(action 集合: alert/drop/pass/log/reject/sdrop/activate/dynamic/rejectsrc/rejectdst/rejectboth)+ `msg:`/`sid:`/`rev:`/`classtype:`/`gid:` オプション抽出 + `#` コメント行計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第174次、search-index 照合)
+
+**論文・仕様**: YARA 公式ドキュメント "Writing rules"・Sigma 仕様(sigmahq.io)・OASIS STIX 2\x2e0/2\x2e1 仕様・CVE Record Format 5.x(cve-services)・MISP core format JSON スキーマ(misp-standard.org)・OpenIOC 1\x2e1 スキーマ・Snort Users Manual "Rules"・Suricata ルール形式ドキュメント — 全て整数のみで実装。
+
+**実装物**: VirusTotal/yara・SigmaHQ/sigma(pySigma)・oasis-open/cti-python-stix2・CVEProject/cve-schema・MISP/MISP core・mandiant/OpenIOC_1.1_Cheat_Sheet・Snort3・OISF/suricata — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の YARA ルール記述・Sigma 検知ルール・STIX/TAXII・CVE JSON 5・MISP・OpenIOC・Snort/Suricata ルール解説記事 — 全て整数のみで実装。
