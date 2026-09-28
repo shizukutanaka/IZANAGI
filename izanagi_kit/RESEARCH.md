@@ -4167,3 +4167,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: OpenMPT(libopenmpt fmt ローダー stm/mtm/ult/far/ptm/dbm)・Schism Tracker・libxmp・MilkyTracker・UADE/MED ローダー — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn・個人 wiki のトラッカー形式(MOD 派生・STM/MTM/ULT/FAR/PTM 解説)記事 — 全て整数のみで実装。
+## 第172次: マークアップ・軽量文書形式 第2弾(docbook / dita / textile / creole / bbcode / txt2tags / mediawiki)
+
+**方法**: 文献参照ラウンド継続 — XML 文書型のルート要素/名前空間識別と、軽量マークアップのブロック/インラインマーカー走査。rst/adoc/roff/texinfo/org/pod/markdown/jats/mods は既存のため除外。全7件が既存 1105 件と非衝突を確認:
+
+- `docbook` — DocBook XML: `book`/`article`/`chapter`/`section`/`set`/`part`/`appendix`/`preface`/`reference`/`sect1`/`simplesect` ルート集合 + DocBook5 `xmlns` 判定 + `version` 属性 + `<title>` 抽出
+- `dita` — DITA XML: `//OASIS//`+`DITA` DOCTYPE または `topic`/`concept`/`task`/`reference`/`map`/`bookmap`/`glossentry`/`ditaval`/`subjectScheme` 等の既知ルート + `DITAArchVersion`
+- `textile` — Textile: `h1.`–`h6.`/`p.`/`bq.`/`bc.`/`pre.` ブロックシグネチャ + `|…|` テーブル行 + `*…*`/`_…_` インライン対計数
+- `creole` — WikiCreole 1.x: `=`…`======` 見出し(先頭 `=` 数=レベル)+ `*`/`#` リスト + `----` 罫線 + `**…**`/`//…//`/`[[…]]`/`{{…}}` 対
+- `bbcode` — BBCode: `[tag]…[/tag]` 対 + `[tag=attr]` 属性形 + 既知タグ集合(b/i/u/s/url/img/quote/code/list/size/color/…)+ unclosed 計数
+- `txt2tags` — txt2tags: `%!key:` 設定行 + `=…===` 両端見出し + `- `/`+ ` リスト + `|…|` 行 + `**…**`/`//…//` 対
+- `mediawiki` — MediaWiki wikitext: `== H ==` 両端 `=` 数一致見出し + `'''`/`''`(`'''` 領域を剥がして `''` 計数)+ `[[…]]`/`{{…}}`/`[http…]` + Category/File 分類
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第172次、search-index 照合)
+
+**論文・仕様**: OASIS DocBook 5.x TDG・OASIS DITA 1.x 仕様(DITAArchVersion)・Textile 言語リファレンス(textile-lang.com/RedCloth)・WikiCreole 1\x2e0 仕様(wikicreole.org)・phpBB BBcode ドキュメント・txt2tags ユーザガイド(txt2tags.org)・MediaWiki Wikitext 仕様 — 全て整数のみで実装。
+
+**実装物**: pandoc・python-docutils系/RedCloth・phpBB・MediaWiki パーサ・txt2tags 実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の DocBook/DITA・Textile・WikiCreole・BBCode・txt2tags・MediaWiki 記法解説記事 — 全て整数のみで実装。
