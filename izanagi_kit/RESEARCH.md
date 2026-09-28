@@ -4462,3 +4462,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: swagger-parser・graphql-js・tao-idl/omniidl・asn1c・apache-cxf wsdl4j・fuchsia fidl compiler・smithy-lang/smithy — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の OpenAPI 設計・GraphQL スキーマ・CORBA IDL・ASN.1・WSDL/SOAP・FIDL・Smithy 解説記事 — 全て整数のみで実装。
+## 第186次: 動画・メディアコンテナ形式 第2弾(asf / rm / mxf / mpegts / ivf / y4m / swf)
+
+**方法**: 文献参照ラウンド継続 — 放送・制作・ストリーミング系コンテナ。全7件が既存 1204 件と非衝突を確認(ebml/matroska・isobmff/mp4/mov・flv・ts(Qt Linguist)は既存のため除外):
+
+- `asf` — ASF(WMV/WMA): LE GUID オブジェクト鎖、Header/File Properties/Stream Properties + audio/video stream-type GUID 分類
+- `rm` — RealMedia: `.RMF` ヘッダ + `PROP`/`MDPR`/`CONT`/`DATA`/`INDX` チャンク走査
+- `mxf` — MXF(SMPTE ST 377): KLV `[16B UL][BER len][value]`、partition-pack プレフィックス + kind バイト(header/body/footer)
+- `mpegts` — MPEG-TS(ISO/IEC 13818-1): `0x47` 同期 188/192/204 stride 検出 + PID/PUSI/PAT/適応フィールド/スクランブル計数
+- `ivf` — IVF(libvpx): `DKIF` 32B LE ヘッダ + `VP80`/`VP90`/`AV01` fourcc + フレーム走査
+- `y4m` — YUV4MPEG2: `YUV4MPEG2 ` タグ行(`W`/`H`/`F`/`I`/`A`/`C`/`XYSCSS`)+ `FRAME` 計数
+- `swf` — SWF: `FWS`/`CWS`/`ZWS` 圧縮種別 + バージョン + 宣言長
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第186次、search-index 照合)
+
+**論文・仕様**: Microsoft ASF Specification・RealNetworks RealMedia File Format・SMPTE ST 377-1(MXF)+ ST 382・ISO/IEC 13818-1(MPEG-TS)・libvpx IVF ファイル定義・mjpegtools YUV4MPEG2・Adobe SWF File Format Specification — 全て整数のみで実装。
+
+**実装物**: FFmpeg(asfdec/mxfdec/mpegts/swfdec)・GPAC・MediaInfo・x264/mjpegtools(y4m)・libvpx ivfenc/ivfdec・ヘッダ GUID/UL 表 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の WMV/ASF・RealMedia・MXF 運用・TS パケット解析・IVF/VP9・y4m・SWF 解説記事 — 全て整数のみで実装。
