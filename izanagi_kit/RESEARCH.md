@@ -3794,3 +3794,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: spdx-tools・CycloneDX/cyclonedx-rust・swid-generator・osv.dev スキーマ実装・in-toto/in-toto-rs・csaf-rs・slsa-github-generator — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SPDX・CycloneDX・SBOM 導入・SLSA 解説記事 — 全て整数のみで実装。
+
+## 第155次: セキュリティ・well-known・HTTP ポリシー(securitytxt / adstxt / hostmeta / webfinger / assetlinks / csp / permissions)
+
+**方法**: 文献参照ラウンド継続 — `/.well-known/` 系メタデータと HTTP セキュリティポリシー。全7件が既存 986 件と非衝突を確認、JSON 系は `json` モジュール再利用:
+
+- `securitytxt` — RFC 9116: `Field: value` + 継続行、`Contact`(反復)+`Expires` 必須、署名/コメント行除外
+- `adstxt` — IAB ads.txt v1.x: `domain,publisher,DIRECT|RESELLER[,certId]` レコード + `KEY=VALUE` 変数 + 行内 `#` コメント
+- `hostmeta` — RFC 6415 XRD: `<XRD xmlns=…/xrd-1.0>` + Host/Link(rel,href,template)、NS 接頭辞許容
+- `webfinger` — RFC 7033 JRD: `subject` か `links` のどちらか必須、titles/properties マップ保持
+- `assetlinks` — Digital Asset Links: ステートメント配列、`relation`+`target.namespace` 必須、android_app の package/fingerprint
+- `csp` — CSP Level 3: `;` 区切りディレクティブ、fetch/navigation 系分類、default-src 欠落検出
+- `permissions` — Permissions-Policy: `f=()`/`f=(*)`/`f=(self "…")` + レガシー bare 名 = `*`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第155次、search-index 照合)
+
+**論文・仕様**: RFC 9116(security.txt)/ IAB ads.txt v1.1 / RFC 6415(host-meta, XRD 1.0)/ RFC 7033(WebFinger/JRD)/ Digital Asset Links 仕様/ W3C CSP Level 3/ W3C Permissions-Policy — 全て整数のみで実装。
+
+**実装物**: Mozilla CSP Analyzer、securitytxt.org リファレンス、Google assetlinks ツール、各社 well-known 実装 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の security.txt・ads.txt・WebFinger・CSP 解説記事 — 全て整数のみで実装。
