@@ -3772,3 +3772,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: OpenSSL `crypto/x509`・`crypto/cms`・ocsp、opendkim/opendmarc、pyspf/SPF 実装群 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の X.509 CRL・CSR・OCSP 解説、SPF/DKIM/DMARC 導入記事 — 全て整数のみで実装。
+
+## 第154次: SBOM・サプライチェーン・脆弱性情報(spdx / cyclonedx / swid / osv / intoto / csaf / slsa)
+
+**方法**: 文献参照ラウンド継続 — SBOM 三大形式(SPDX tag-value・CycloneDX・SWID)と脆弱性/認証メタデータ(OSV・in-toto・CSAF・SLSA provenance)。全7件が既存 979 件と非衝突を確認、JSON 系は `json` モジュール再利用:
+
+- `spdx` — SPDX tag-value(ISO/IEC 5962): 先頭 `SPDXVersion: SPDX-x.y` 厳格、`DataLicense`/`SPDXID: SPDXRef-DOCUMENT`/`DocumentName`/`DocumentNamespace` 必須、`PackageName`/`Relationship`/`Creator` 収集
+- `cyclonedx` — CycloneDX(Ecma-424): JSON `bomFormat: CycloneDX` + `specVersion` 必須、components を `name@version` 化;XML は `<bom xmlns="http://cyclonedx.org/schema/bom/1.x">` ルートでバージョン抽出
+- `swid` — SWID タグ(ISO/IEC 19770-2): `<SoftwareIdentity name tagId version>` + Entity/Link 走査、NS 接頭辞・`<?xml?>` プロローグ許容
+- `osv` — OSV スキーマ: `id` 必須、`affected[].package.ecosystem` 一意収集、aliases/references 計数
+- `intoto` — in-toto Attestation: `_type` が `…/Statement-vN` or `…/Link` or legacy `statement`/`link`、Statement は subject 必須
+- `csaf` — CSAF 2.0: `document.category` の `csaf_` 接頭辞 + `document.tracking.id` 必須、vulnerabilities/product_tree 計数
+- `slsa` — SLSA provenance: in-toto `Statement-vN` + `predicateType=https://slsa.dev/provenance/v*`、v1 `buildDefinition.buildType` と v0.x フラット形の両対応
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第154次、search-index 照合)
+
+**論文・仕様**: ISO/IEC 5962(SPDX)/ Ecma-424(CycloneDX)/ ISO/IEC 19770-2(SWID)/ OSV Schema/ in-toto Attestation Framework/ OASIS CSAF 2.0/ SLSA v1.0 provenance — 全て整数のみで実装。
+
+**実装物**: spdx-tools・CycloneDX/cyclonedx-rust・swid-generator・osv.dev スキーマ実装・in-toto/in-toto-rs・csaf-rs・slsa-github-generator — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SPDX・CycloneDX・SBOM 導入・SLSA 解説記事 — 全て整数のみで実装。
