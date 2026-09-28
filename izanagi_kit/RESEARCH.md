@@ -4080,3 +4080,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: PrePoMax/cgx・LS-PrePost・MDAnalysis DCD リーダ・PyVista OpenDX — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Abaqus inp 書き方・CalculiX 入門・DCD 解析記事 — 全て整数のみで実装。
+
+## 第168次: ネットワークプロトコル第6弾 — WAN カプセル化・トンネル制御(ppp / hdlc / tftp / rtcp / gtp / vxlan / isis)
+
+**方法**: 文献参照ラウンド継続 — ワイヤフォーマット系 RFC/仕様に基づくヘッダパーサ。全7件が既存 1077 件と非衝突を確認:
+
+- `ppp` — RFC 1661: `[FF 03]? proto:u16be info* [fcs]`、プロトコル識別子の先頭オクテット LSB=0・末尾 LSB=1 規則
+- `hdlc` — Cisco HDLC(`0x0F`/`0x8F` + ctrl + ethertype)と ISO 3309 `0x7E` フラグフレームの両対応
+- `tftp` — RFC 1350(+2347 オプション): RRQ/WRQ `file\0mode\0`、DATA/ACK ブロック番号、ERROR、OACK
+- `rtcp` — RFC 3550: `[v2|p|rc][pt][len:words]` コンパウンドパケット鎖、SR/RR 先頭規則
+- `gtp` — 3GPP TS 29.060 v1(PT+TEID+E/S/PN 拡張)と 29.274 v2(T ビット + u24 長)の振分け
+- `vxlan` — RFC 7348: 8B ヘッダ I フラグ + VNI + 内部 Ethernet MAC
+- `isis` — ISO/IEC 10589: `FE FE 03` LLC プレフィックス省略可、`0x83` discriminator + 5bit PDU type
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第168次、search-index 照合)
+
+**論文・仕様**: RFC 1661(PPP)/RFC 1332・ISO 3309 HDLC・RFC 1350/2347(TFTP)・RFC 3550(RTCP)・3GPP TS 29.060/29.274(GTP)・RFC 7348(VXLAN)・ISO/IEC 10589 + RFC 3719(IS-IS) — 全て整数のみで実装。
+
+**実装物**: pppd・Wireshark ディセクタ(ethertype/IS-IS)・OpenGGSN/open5gs・Linux `vxlan` ドライバ・FRRouting isisd — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PPP/HDLC・TFTP・RTCP・GTP・VXLAN・IS-IS 解説記事 — 全て整数のみで実装。
