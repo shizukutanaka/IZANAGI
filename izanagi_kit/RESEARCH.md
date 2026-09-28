@@ -3882,3 +3882,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: nibabel(nibabel.analyze/parrec/ecat/minc 参照実装)、ImageJ・AFNI・FSL の読み込みコード、hyperspy DigitalMicrograph パーサ、Gemcom/Oasis montaj GXF — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Analyze・NIfTI・MINC ヘッダ解説、DigitalMicrograph ファイル解析記事、医用画像 DICOM 周辺フォーマット解説 — 全て整数のみで実装。
+
+## 第159次: 刺繍・カッティング機形式(pes / pec / vp3 / jef / hus / vip / studio3)
+
+**方法**: 文献参照ラウンド継続 — ミシン刺繍・カッティングプロッタの実機フォーマット(Tajima `dst` は既存)。全7件が既存 1014 件と非衝突を確認:
+
+- `pes` — Brother/Babylock PES: `#PES` + 4桁バージョン、埋め込み PEC ブロックのオフセット走査
+- `pec` — Brother PEC ブロック: `#PEC0001` + `LA:` + 16B 空白パッド名 + `\xFF\x00` 縫い目区切り
+- `vp3` — Pfaff/Viking VP3: `%vsm%` シグネチャ + BE バージョン + `%header%`/`%comments%` 系セクション検出
+- `jef` — Janome JEF: マジック無し — LE u32 ステッチオフセット妥当性 + `yyyy:mm:dd hh:mm:ss` タイムスタンプ形状ヒューリスティック
+- `hus` — Husqvarna HUS: VSM 系シグネチャ `5D FC C8 37` + バージョン
+- `vip` — Viking VIP: `0x80` 前置の同系シグネチャ(HUS と 0x80 の有無で区別)
+- `studio3` — Silhouette Studio3: ASCII `studio3` + BE version + prolog 長
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第159次、search-index 照合)
+
+**論文・仕様**: Embroidermodder/libembroidery のフォーマット文書(PES/PEC/JEF/HUS/VIP/VP3)/ PES Format Document(Rudy's Code HQ)/ Silhouette Studio3 ファイル解析 — 全て整数のみで実装。
+
+**実装物**: libembroidery(C 実装)、Embroidermodder、threedub/pyembroidery 系 Python 実装、Ink/Stitch エクスポータ — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の刺繍データ(PES/JEF)構造解説、ブラザー刺繍機フォーマット解析記事、カッティングマシン(STUDIO3)関連記事 — 全て整数のみで実装。
