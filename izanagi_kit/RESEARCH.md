@@ -4146,3 +4146,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: btrfs-progs・OpenZFS・f2fs-tools・Linux fs/{jfs,sysv,reiserfs,hfs}・file(1) マジックデータベース — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Btrfs・ZFS・F2FS・ReiserFS 内部構造・mkfs/fsck 解説記事 — 全て整数のみで実装。
+## 第171次: トラッカー音楽形式 第3弾(stm / mtm / ult / far / ptm / med / dbm)
+
+**方法**: 文献参照ラウンド継続 — 90 年代 DOS/Amiga 系トラッカーのモジュールヘッダ検出・主要フィールド抽出。mod/it/xm/s3m/sap/hes/kss/gym/ay/sndh/s98/dro/vgm/psid/spc/gbs/nsf/psf/figlet は既存のため除外。okt(Oktalyzer)はチャンク仕様の確証が取れず `med`、gdm はヘッダ記述の異説が多く `dbm` に差替え。全7件が既存 1098 件と非衝突を確認:
+
+- `stm` — Scream Tracker 2: `!Scream!`/`BMOD2STM` @20 + `0x1A` + file_type(1/2) + version/tempo/patterns/global_volume
+- `mtm` — MultiTracker: `MTM` + version(1.x 系)+ song_name[20] + tracks/last_pattern/last_order/comments/samples + channels 1..=32
+- `ult` — UltraTracker: `MAS_UTrack_V00` + version digit `'1'`..`'4'` + song_name[32]
+- `far` — Farandole Composer: `FAR\xFE` + 40B 曲名(空白・NUL 埋め)+ text_len u16 @0x2C
+- `ptm` — Poly Tracker: `PTMF` + version byte + name[28] + `0x1A` + file_version + orders/patterns/channels/samples/flags + songinfo_len
+- `med` — MED/OctaMED: `MMD0`..`MMD3` → version + BE `song_offset` u32
+- `dbm` — DigiBooster Pro: `DBM0` + BE version/instruments/samples/songs/patterns/channels(1..=32)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第171次、search-index 照合)
+
+**論文・仕様**: stformat.txt(Scream Tracker 2)・mtm-form.txt(MultiTracker)・ULTFORM.TXT(UltraTracker)・far-form.doc(Farandole Composer)・ptm-form.txt(Poly Tracker)・med-form.doc/MMD 仕様(OctaMED)・DigiBooster Pro dbpro フォーマット — 全て整数のみで実装。
+
+**実装物**: OpenMPT(libopenmpt fmt ローダー stm/mtm/ult/far/ptm/dbm)・Schism Tracker・libxmp・MilkyTracker・UADE/MED ローダー — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn・個人 wiki のトラッカー形式(MOD 派生・STM/MTM/ULT/FAR/PTM 解説)記事 — 全て整数のみで実装。
