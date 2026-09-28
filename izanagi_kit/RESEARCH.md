@@ -4124,3 +4124,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Audio Overload/Chipamp プラグイン・Hoot・NEZplug++・DOSBox-X dro 記録・zxtune — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn・個人 wiki の PCE/MSX/PC-98/Atari ST サウンド形式・S98 ログ解析記事 — 全て整数のみで実装。
+
+## 第170次: ファイルシステム・ボリューム形式 第2弾(btrfs / zfs / f2fs / hfs / sysv / jfs / reiserfs)
+
+**方法**: 文献参照ラウンド継続 — スーパーブロック/メタ構造の検出・主要フィールド抽出。ext2/ntfs/hfsplus/ufs/minix/xfs/exfat/jffs2/cramfs/ubi/iso9660/udf は既存のため除外。全7件が既存 1091 件と非衝突を確認:
+
+- `btrfs` — `_BHRfS_M` @64 KiB: fsid/generation/num_devices/sectorsize・nodesize・leafsize・stripesize。sector size は 2 べき乗検査
+- `zfs` — uberblock 配列 @128 KiB(128 スロット上限走査): `0x00BAB10C` を LE/BE 両対応で検出、最大 txg を返す。version==0 / txg==0 は棄却
+- `f2fs` — `0xF2F52010` @0x400: log_sector/block_size 範囲検査(9..=16, 10..=16)、block_count + segment_count_{ckpt,sit,nat,ssa,main} + cp_blkaddr + root/node ino
+- `hfs` — クラシック HFS MDB `0x4244` @0x400: BE フィールド群、Pascal 文字列 drVN(≤27B)、drAlBlkSiz/drFilCnt/drDirCnt 等
+- `sysv` — SysV4/Xenix: `s_magic` @SB+0x1F8 = `0xFD187E20`/`0x2B5544` で endian 検出、SysV は `s_type` 一致必須、`s_fname`+`s_fpack` 12B ラベル
+- `jfs` — `JFS1` @32 KiB: s_bsize/s_l2bsize/s_pbsize の整合検査、s_uuid/s_label 抽出、state/flags/agsize
+- `reiserfs` — `ReIsErFs`/`ReIsEr2Fs`/`ReIsEr3Fs` @64 KiB+52: format 1/2/3 分類、bsize 512..=8192 の 2 べき乗、free≤total
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第170次、search-index 照合)
+
+**論文・仕様**: btrfs.readthedocs.io オンディスク形式・OpenZFS uberblock(UBERBLOCK_MAGIC 0x00bab10c)・Linux f2fs_fs.h・Inside Macintosh: Files(HFS MDB)・Linux sysv.h/xenix.h・Linux jfs_superblock.h(JFS1 @32KiB)・reiserfs_fs_sb.h(64KiB+magic@52) — 全て整数のみで実装。
+
+**実装物**: btrfs-progs・OpenZFS・f2fs-tools・Linux fs/{jfs,sysv,reiserfs,hfs}・file(1) マジックデータベース — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Btrfs・ZFS・F2FS・ReiserFS 内部構造・mkfs/fsck 解説記事 — 全て整数のみで実装。
