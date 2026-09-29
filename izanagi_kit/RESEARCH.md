@@ -5227,3 +5227,15 @@ DNS ゾーンファイル・BIND named.conf・resolv.conf・nsswitch.conf・dnsm
 **実装物**: moby/moby・hashicorp/packer・libvirt/libvirt・openstack/nova(ovf 扱い)・microsoft/WSL・lima-vm/lima・canonical/cloud-init — 全て整数のみで実装。
 
 **国内技術情報**: .dockerignore・Packer・libvirt XML・OVF・wsl.conf・Lima・cloud-init 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
+
+## 第237次:ビルド・パッケージメタデータ形式
+
+pom.xml・Gradle .module・ivy.xml・go.mod・go.sum・vcpkg.json・conanfile.txt の7形式を追加。GAV+dependency/plugin/module/profile(pom)・formatVersion+attributes ブロック規則からの variant 計数+org.gradle.*(gradlemod)・`<ivy-module>`+conf/dependency/override(ivy)・module/go/toolchain+require ブロック+`// indirect`(gomod)・`path ver h1:`+`/go.mod`+distinct module(gosum)・深さ追跡の依存配列+overrides/features/v 系キー(vcpkg)・INI セクション+`@u/c`+`[>=]`レンジ(conanfile)で、パッケージメタデータを整数計数する。
+
+## 出典(第237次、search-index 照合)
+
+**論文・仕様**: Maven POM reference(maven.apache.org)・Gradle Module Metadata spec(docs.gradle.org)・Ivy terminology/settings(ant.apache.org/ivy)・go.mod reference(go.dev/doc/modules)・go.sum format(go.dev/ref/mod)・vcpkg.json manifest reference(learn.microsoft.com/vcpkg)・conanfile.txt reference(docs.conan.io)— 全て整数のみで実装。
+
+**実装物**: apache/maven・gradle/gradle・apache/ant-ivy・golang/go・vcpkg/vcpkg・conan-io/conan — 全て整数のみで実装。
+
+**国内技術情報**: pom.xml・Gradle module metadata・ivy.xml・go.mod/go.sum・vcpkg.json・conanfile 解説記事(Qiita・Zenn・ビルド系技術ブログ等)— 全て整数のみで実装。
