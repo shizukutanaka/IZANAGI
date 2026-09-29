@@ -4963,3 +4963,15 @@ CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・H
 **実装物**: gitlab-org/gitlab・jenkinsci/jenkins・circleci・microsoft/azure-pipelines-yaml・harness/drone・concourse/concourse・bitrise-io/bitrise — 全て整数のみで実装。
 
 **国内技術情報**: GitLab CI/Jenkins/CircleCI/Azure Pipelines/Drone/Concourse/Bitrise 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第215次:API テスト・HTTP クライアント・サービス定義形式
+
+HTTP Archive(.har)・Hoppscotch collection・Bruno .bru・REST Client .http/.rest・Insomnia エクスポート・RAML・API Blueprint の7形式を追加。JSON キー走査(har/hoppscotch)・`name {`ブロック走査(bru)・行状態機械(httpfile/insomnia)・`#%RAML`+最小インデント子キー(raml)・Markdown 見出し/`+`マーカ走査(apib)で、リクエスト・ヘッダ・リソース・型宣言等を整数計数する。
+
+## 出典(第215次、search-index 照合)
+
+**論文・仕様**: W3C HAR 1.2 spec(github.com/ahmadnassri/har-spec)・Hoppscotch collection schema(github.com/hoppscotch)・Bruno markup language(docs.usebruno.com/bru-lang)・VS Code REST Client .http grammar(github.com/Huachao/vscode-restclient)・Insomnia export format(docs.insomnia.rest)・RAML 0.8/1.0 spec(raml.org)・API Blueprint spec(apiblueprint.org)— 全て整数のみで実装。
+
+**実装物**: ahadith/har-schema・hoppscotch/hoppscotch・usebruno/bruno・Huachao/vscode-restclient・Kong/insomnia・raml-org/raml-spec・apiaryio/api-blueprint — 全て整数のみで実装。
+
+**国内技術情報**: HAR/Hoppscotch/Bruno/REST Client/Insomnia/RAML/API Blueprint 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
