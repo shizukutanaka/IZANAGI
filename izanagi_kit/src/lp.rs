@@ -49,11 +49,20 @@ pub fn detect(b: &[u8]) -> bool {
         Err(_) => return false,
     };
     let low = s.to_ascii_lowercase();
-    (low.contains("maximize") || low.contains("minimize") || low.contains("\nmax "))
-        && (low.contains("subject to")
-            || low.contains("such that")
-            || low.contains("\nst\n")
-            || low.contains("\nst "))
+    let mut dir = false;
+    let mut st = false;
+    for line in low.lines() {
+        let t = line.trim_start();
+        if t.is_empty() || t.starts_with('\\') {
+            continue;
+        }
+        match t.split_whitespace().next().unwrap_or("") {
+            "max" | "min" | "maximize" | "minimize" => dir = true,
+            "subject" | "such" | "st" => st = true,
+            _ => {}
+        }
+    }
+    dir && st
 }
 
 /// Census; `None` without an LP skeleton.
@@ -77,17 +86,6 @@ pub fn parse(b: &[u8]) -> Option<Lp> {
         has_end: false,
         comments: 0,
     };
-    for (dir, key) in [
-        ("maximize", "maximize"),
-        ("minimize", "minimize"),
-        ("max", "\nmax"),
-        ("min", "\nmin"),
-    ] {
-        if low.contains(key) {
-            l.direction = Some(dir.to_string());
-            break;
-        }
-    }
     let mut section = "";
     for line in low.lines() {
         let t = line.trim();
@@ -97,17 +95,16 @@ pub fn parse(b: &[u8]) -> Option<Lp> {
         }
         let head = t.split_whitespace().next().unwrap_or("");
         match head {
-            "maximize" | "minimize" | "max" | "min" => section = "obj",
+            "maximize" | "minimize" | "max" | "min" => {
+                section = "obj";
+                if l.direction.is_none() {
+                    l.direction = Some(head.to_string());
+                }
+            }
             "subject" | "such" | "st" => section = "st",
             "bounds" => section = "bounds",
-            "general" | "generals" | "gen" => {
-                section = "gen";
-                l.general_lines += 1;
-            }
-            "binaries" | "binary" => {
-                section = "bin";
-                l.binary_lines += 1;
-            }
+            "general" | "generals" | "gen" => section = "gen",
+            "binaries" | "binary" => section = "bin",
             "end" => {
                 l.has_end = true;
                 section = "";
@@ -160,8 +157,8 @@ mod tests {
         assert_eq!(l.ge, 1);
         assert_eq!(l.bound_lines, 2);
         assert_eq!(l.free_bounds, 1);
-        assert_eq!(l.general_lines, 2);
-        assert_eq!(l.binary_lines, 2);
+        assert_eq!(l.general_lines, 1);
+        assert_eq!(l.binary_lines, 1);
         assert!(l.has_end);
         assert_eq!(l.comments, 1);
     }
@@ -169,5 +166,13 @@ mod tests {
     #[test]
     fn rejects() {
         assert!(parse(b"plain").is_none());
+    }
+
+    #[test]
+    fn shorthand_first_line() {
+        let l = parse(b"Max\n obj: x\nSubject To\n c: x <= 2\nEnd\n").unwrap();
+        assert_eq!(l.direction.as_deref(), Some("max"));
+        let l = parse(b"Min\n obj: x\nSubject To\n c: x <= 2\nEnd\n").unwrap();
+        assert_eq!(l.direction.as_deref(), Some("min"));
     }
 }

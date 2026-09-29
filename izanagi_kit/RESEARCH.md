@@ -4527,3 +4527,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: HiGHS/CBC/Clp の MPS リーダー・Gurobi LP reader・SATLIB/minisat DIMACS パーサ・PBLib opb パーサ・SciPy/SSget(mmread)の MatrixMarket リーダー・SuiteSparse HB リーダー・AMPL/Gurobi .mod 処理系 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の PuLP/OR-Tools MPS・数理最適化モデリング・SAT ソルバー入門・疎行列交換・AMPL 記法解説記事 — 全て整数のみで実装。
+
+## 第189次: 辞書・レファレンスデータ形式(stardict / mdx / dsl / epwing / slob / dictzip / dictd)
+
+**方法**: 文献参照ラウンド継続 — 電子辞書・レファレンス交換系。全7件が既存 1225 件と非衝突を確認(bgl は Babylon ヘッダ仕様の確証が取れず dictd に差替え; gzip は既存だが dictzip は RA 拡張の個別形式):
+
+- `stardict` — StarDict `.ifo`: `StarDict's dict ifo file` + `key=value` ヘッダ(bookname/version/wordcount/idxfilesize/synwordcount/idxoffsetbits/sametypesequence/author)
+- `mdx` — MDict `.mdx`: `u32` ヘッダ長 + `key="value"` 属性ヘッダ(v2 UTF-16LE / v3 UTF-8 自動判別)+ Title/Encoding/Format/CreatedByVersion
+- `dsl` — ABBYY Lingvo `.dsl`: `#NAME`/`#INDEX_LANGUAGE`/`#CONTENTS_LANGUAGE`/`#INCLUDE`/`#ABBREVIATE` 指示 + 行頭 headword vs 字下げ本文 + `[s]`/`<<>>` 参照
+- `epwing` — EPWING `CATALOGS`: `\x00`+ディスクコード(EBXA/EBXA-C/S-EBXA/EPWING)+ `u16be` ブック数 + 80B エントリ走査 + タイトル
+- `slob` — Aard2 `.slob`: `!-2\x02\x02SLOB\x1F` マジック + `u16be` 計数の encodings/tags/content-types + `u32be` blob 数 + `u64be` ストアオフセット
+- `dictzip` — dictzip `.dict.dz`: gzip FEXTRA 内 `RA` サブフィールド(chunk_size/chunk_count u16le)+ 他サブフィールド ID
+- `dictd` — dict.org `dictd` `.index`: `headword TAB b64offset TAB b64len` 行 + クォート headword + 不良行計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第189次、search-index 照合)
+
+**論文・仕様**: StarDict ifo/idx/syn 形式ドキュメント(huzheng)・MDict MDX/MDD 形式解析(wiki mdx-analysis・Xwang196 仕様メモ)・ABBYY Lingvo DSL 言語リファレンス・EPWING 規格/EB ライブラリ catalog 構造・Aard2 slob 形式(itkach)・dictzip RA 拡張仕様(dictd ソース)+ dictd DICTFILE/DICTINDEX 形式 — 全て整数のみで実装。
+
+**実装物**: stardict-3/pyglossary・mdict-utils/readmdict・GoldenDict の dsl/epwing/bgl リーダー・slob.py/Aard2 リーダー・dictd/dictzip(dict-1.13)・EBライブラリ/ebview — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の StarDict 辞書作成・GoldenDict 活用・EPWING 電子辞書・dictd 構築・MDict 利用解説記事 — 全て整数のみで実装。

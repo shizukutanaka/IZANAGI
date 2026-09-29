@@ -112,8 +112,16 @@ pub fn parse(b: &[u8]) -> Option<Mps> {
                     m.nonzeros += it.by_ref().count() as u32 / 2;
                 }
             }
-            "RHS" => m.rhs += 1,
-            "RANGES" => m.ranges += 1,
+            "RHS" => {
+                if it.next().is_some() {
+                    m.rhs += it.by_ref().count() as u32 / 2;
+                }
+            }
+            "RANGES" => {
+                if it.next().is_some() {
+                    m.ranges += it.by_ref().count() as u32 / 2;
+                }
+            }
             "BOUNDS" => {
                 if let Some(k) = it.next() {
                     m.bounds += 1;

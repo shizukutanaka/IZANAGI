@@ -90,10 +90,9 @@ pub fn parse(b: &[u8]) -> Option<Opb> {
             o.soft += 1;
         }
         for tok in t.split_whitespace() {
-            if let Some(v) = tok
-                .strip_prefix('x')
-                .or_else(|| tok.rsplit('*').next().and_then(|p| p.strip_prefix('x')))
-            {
+            let p = tok.rsplit('*').next().unwrap_or(tok);
+            let p = p.strip_prefix('~').unwrap_or(p);
+            if let Some(v) = p.strip_prefix('x') {
                 if let Ok(n) = v.trim_end_matches(';').parse::<u32>() {
                     o.max_var = o.max_var.max(n);
                 }
@@ -147,5 +146,11 @@ min: +1*x1 +2*x2 ;\n+1*x1 +1*x2 >= 1 ;\n-1*x3 <= 0 ;\n+1*x1 = 1 ;\n";
     #[test]
     fn rejects() {
         assert!(parse(b"plain").is_none());
+    }
+
+    #[test]
+    fn negated_vars() {
+        let o = parse(b"* #variable= 4 #constraint= 1\n+1*~x4 >= 1 ;\n").unwrap();
+        assert_eq!(o.max_var, 4);
     }
 }
