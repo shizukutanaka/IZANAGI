@@ -4855,3 +4855,15 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Vivado/iMPACT BitGen・GALasm/PALASM JEDEC ツール・OpenOCD SVF player・xsvf_player 参考実装・Xilinx iMPACT・Lattice Diamond — 全て整数のみで実装。
 
 **国内技術情報**: FPGA ビットストリーム/JTAG/SVF/XDC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第206次:言語別パッケージ定義ファイル形式
+
+Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks `.rockspec`・Perl `cpanfile`・OCaml `.opam`・Nim `.nimble` の7形式を追加。全て YAML/DSL のテキスト形式で、署名の強いキー(`environment:` `sdk:`/`crystal:`/`cabal-version:`/`rockspec_format`/`opam-version:`/`srcDir`/`requires`)で検出し、セクション・スタンザ・テーブルを字下げ/括弧深さ歩行でセンサス。
+
+## 出典(第206次、search-index 照合)
+
+**論文・仕様**: Dart pub.dev pubspec documentation・Crystal shards shard.yml spec・Haskell Cabal user guide(.cabal format)・LuaRocks rockspec format documentation・Perl cpanfile spec(Menlo/CPAN)・opam manual(opam-format OCaml)・Nim nimble package docs — 全て整数のみで実装。
+
+**実装物**: Dart pub・Crystal shards・Cabal/cabal-install・LuaRocks・cpanm/carton・opam・nimble — 全て整数のみで実装。
+
+**国内技術情報**: pubspec.yaml/shard.yml/cabal/rockspec/cpanfile/opam/nimble 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
