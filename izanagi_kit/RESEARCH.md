@@ -4823,3 +4823,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: SPIRV-Tools・dxvk/dxbc-spv・naga(wgsl)・glslang・DXC(DirectXShaderCompiler)・LLVM Metal backend — 全て整数のみで実装。
 
 **国内技術情報**: SPIR-V/WGSL/HLSL 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第204次:圧縮・アーカイブ形式パーサ 第3弾(7 モジュール)
+
+`wim`(Microsoft Windows Imaging:`MSWIM\0\0\0`/`MSWIMOLD`+u32le ヘッダサイズ・バージョン・フラグ+圧縮列挙(None/XPRESS/LZX/LZMS/solid 変種)+`reshdr`(8B オフセット+7B サイズ+1B フラグ)オフセットテーブル/XML/ブート/整合性区画センサス+パーツ番号/イメージ数)/ `zpaq`(Matt Mahoney:`zPQ`+level 1/2+メモリバイト、`h` ブロック開始・`d` データ・`i` ブロック終端マーカ走査+HCOMP ヘッダ(hh hm ph pn n+comp n バイト+END)集計)/ `lzfse`(Apple 圧縮:`bvx1` 非圧縮/`bvx2` v2/`bvxn` 非圧縮終端/`bvx-` raw/`bvx$` EOS ブロックマジック歩行+raw/payload バイト集計)/ `ace`(`**ACE**` シグネチャ+head crc/size/type/flags/version/host_os+型付きサブヘッダ entry(1=file,2=recovery,3=AV,4=comment)歩行)/ `alz`(ALZip:`ALZ\x01` マジック+`F` 型付きエントリレコード走査+末尾 u32le ファイル数との整合+EOF トレーラ検出)/ `zoo`(Rahul Dhesi:`FD C4 A7 DC` アーカイブマジック@20+テキスト導入部+ディレクトリエントリ `next` オフセット鎖歩行+type(1=file,2=sub)/method ビット集合+orig/packed サイズ集計)/ `lzip`(LZMA 単一/複数メンバ:`LZIP`+version 1+coded dict サイズ(上位3bit 指数)+20B メンバトレーラ crc32/data_size/member_size 整合走査)。`cab`/`cpio`/`ar`/`tar`/`lzw`/`gzip`/`bzip2`/`zstd`/`lz4`/`xz`/`zip`/`rar`/`x7z`/`squashfs` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WIM reshdr 表・ZPAQ マーカ+HCOMP、LZFSE ブロック列・ACE サブヘッダ列・ALZ F レコード・ZOO エントリ鎖・lzip トレーラ)。
+
+## 出典(第204次、search-index 照合)
+
+**論文・仕様**: Microsoft WIM file format documentation・ZPAQ spec(zpaq.org)・LZFSE open-source implementation format docs(apple/lzfse)・ACE format AppNote・ALZip format notes(ESTsoft)・ZOO archive format docs・lzip format manual(lzip manual, nongnu.org) — 全て整数のみで実装。
+
+**実装物**: imagex/wimlib・zpaq reference・apple/lzfse・unace/ace unarchiver・ALZip・zoo 2.10・lzip reference — 全て整数のみで実装。
+
+**国内技術情報**: WIM/ZPAQ/LZFSE/lzip 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
