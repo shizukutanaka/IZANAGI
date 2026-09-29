@@ -5203,3 +5203,15 @@ DNS ゾーンファイル・BIND named.conf・resolv.conf・nsswitch.conf・dnsm
 **実装物**: isc-projects/bind9・NLnetLabs/unbound・imp/dnsmasq・coredns/coredns・glibc nss・systemd-resolved docs — 全て整数のみで実装。
 
 **国内技術情報**: DNS zone ファイル/named.conf/resolv.conf/nsswitch/dnsmasq/unbound/Corefile 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
+
+## 第235次:認証・CLIツール設定ファイル形式
+
+.env・ssh_config・kubeconfig・.gitconfig・AWS credentials/config・openssl.cnf・.pgpass の7形式を追加。`KEY=value`+export/quoted/bare(dotenv)・`Host`/`Match`+4 キーワードクラス(sshconf)・`kind: Config`+clusters/users/contexts スコープ追跡(kubeconfig)・`[sec "sub"]`+includeIf/url 分類(gitconfig)・`[profile]`+aws_*/sso_*/assume-role キー(awscredentials)・`[ section ]`+`${VAR}`/`.include`+oid/link(openssl)・`host:port:db:user:pass`+`\` エスケープ+`*` ワイルドカード(pgpass)で、CLI ツール設定を整数計数する。
+
+## 出典(第235次、search-index 照合)
+
+**論文・仕様**: dotenv spec(motdotla/dotenv README)・ssh_config(5)/sshd_config(5) man pages・kubeconfig docs(kubernetes.io/docs)・git-config(1) man page・AWS CLI config/credentials docs(docs.aws.amazon.com)・openssl.cnf(5) man page・libpq .pgpass(postgresql.org/docs)— 全て整数のみで実装。
+
+**実装物**: bkeepers/dotenv・openssh/openssh-portable・kubernetes/kubernetes・git/git・aws/aws-cli・openssl/openssl・postgres/postgres — 全て整数のみで実装。
+
+**国内技術情報**: .env/ssh_config/kubeconfig/.gitconfig/aws credentials/openssl.cnf/.pgpass 解説記事(Qiita・Zenn・クラウド系技術ブログ等)— 全て整数のみで実装。
