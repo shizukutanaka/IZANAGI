@@ -95,7 +95,20 @@ fn child_items(t: &str, key: &str) -> usize {
 fn dash_items(t: &str, key: &str) -> usize {
     blocks(t, key)
         .iter()
-        .map(|b| b.iter().filter(|l| l.trim_start().starts_with('-')).count())
+        .map(|b| {
+            let at = b
+                .iter()
+                .filter(|l| !l.trim().is_empty())
+                .map(|l| l.len() - l.trim_start().len())
+                .min()
+                .unwrap_or(0);
+            b.iter()
+                .filter(|l| {
+                    let tr = l.trim_start();
+                    l.len() - tr.len() == at && tr.starts_with('-')
+                })
+                .count()
+        })
         .sum()
 }
 

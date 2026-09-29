@@ -4951,3 +4951,15 @@ CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・H
 **実装物**: aws-cloudformation・Azure/bicep・serverless/serverless・compose-spec・hashicorp/vagrant・helm/helm・pulumi/pulumi — 全て整数のみで実装。
 
 **国内技術情報**: CloudFormation/Bicep/Serverless/Compose/Vagrant/Helm/Pulumi 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第214次:CI/CD パイプライン定義ファイル形式
+
+.gitlab-ci.yml・Jenkinsfile・.circleci/config.yml・azure-pipelines.yml・.drone.yml・Concourse pipeline.yml・bitrise.yml の7形式を追加。`stages`/`pipeline {`/`jobs+workflows`/`trigger+pool`/`kind: pipeline`/`resource_types`/`- get:`/`format_version` 等の形式固有シグネチャで検出し、ジョブ・ステップ・トリガ・イメージ・変数エントリを整数計数する。YAML 系はブロック内最小インデントの `- ` 項目のみ計数し、workflow 内 `jobs:` やサービス内 `volumes:` の同名ネスト混入を抑止する(第213次で導入した手法を踏襲)。
+
+## 出典(第214次、search-index 照合)
+
+**論文・仕様**: GitLab CI YAML reference(docs.gitlab.com)・Jenkins Pipeline syntax(jenkins.io/doc/book/pipeline)・CircleCI config reference(circleci.com/docs)・Azure Pipelines YAML schema(learn.microsoft.com/azure/devops/pipelines/yaml-schema)・Drone YAML spec(docs.drone.io)・Concourse pipeline schema(concourse-ci.org)・bitrise.yml reference(bitrise.io)— 全て整数のみで実装。
+
+**実装物**: gitlab-org/gitlab・jenkinsci/jenkins・circleci・microsoft/azure-pipelines-yaml・harness/drone・concourse/concourse・bitrise-io/bitrise — 全て整数のみで実装。
+
+**国内技術情報**: GitLab CI/Jenkins/CircleCI/Azure Pipelines/Drone/Concourse/Bitrise 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
