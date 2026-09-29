@@ -4727,3 +4727,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Apache Jena/RDF4J・Neo4j Cypher・libxml2 xpath・Jayway JsonPath・Apache Lucene・stedolan/jq・Azure Data Explorer — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SPARQL 入門・Cypher チートシート・XPath 書き方・JSONPath 仕様・Lucene クエリ文法・jq 使い方・KQL 入門記事 — 全て整数のみで実装。
+
+## 第198次:分散識別子・名前付け形式パーサ(7 モジュール)
+
+`nanoid`(NanoID:`A–Za–z0–9_-` 64 文字 URL-safe、既定 21 文字、numeric/hex/lower 部分集合判別)/ `cuid`(CUID v2:小文字先頭+base36、legacy `c…` 判別、密度指数)/ `xid`(XID:12 バイトを base32hex 小文字 20 文字に、timestamp/machine/pid/counter 復元)/ `typeid`(TypeID:`prefix_`+26 文字 base32 suffix → UUIDv7 version/variant 検証)/ `did`(W3C DID:`did:method:msid` + `:`subid + `%xx` + `;`/`?`/`#`/`/` サフィックス + 既知 method 集合)/ `base32`(RFC 4648:`A–Z2–7`+合法パディング 0/1/3/4/6 + base32hex 変種判別)/ `crockford`(Crockford Base32:`-` 区切り + `I/L/O` エイリアス + `*~$=U` チェックシンボル mod-37 検証)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在 ID フィクスチャ・既知チェックディジット対)。
+
+## 出典(第198次、search-index 照合)
+
+**論文・仕様**: NanoID spec・CUID v2 spec・rs/xid リファレンス・TypeID spec(typeid 0.2)・W3C DID Core 1.0・RFC 4648 (Base32/Base32hex)・Crockford Base32 spec — 全て整数のみで実装。
+
+**実装物**: ai/nanoid・paralleldrive/cuid2・rs-xid・jetpack-io/typeid 系実装 — 全て整数のみで実装。
+
+**国内技術情報**: ULID/UUIDv7 系識別子比較記事(Qiita 等)— 全て整数のみで実装。
