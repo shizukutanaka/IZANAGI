@@ -5095,3 +5095,15 @@ Kong 宣言的設定・Istio CRD・Envoy static config・Traefik static/dynamic�
 **実装物**: kong/deck+Kong/kong・istio/istio・envoyproxy/envoy・traefik/traefik・linkerd/linkerd2・hashicorp/consul・nginx/nginx — 全て整数のみで実装。
 
 **国内技術情報**: Kong/Istio/Envoy/Traefik/Linkerd/Consul/NGINX 解説記事(Qiita・Zenn・SRE/プラットフォーム系技術ブログ等)— 全て整数のみで実装。
+
+## 第226次:メッセージブローカー・キュー設定形式
+
+Kafka server.properties・RabbitMQ sysctl conf・NATS server conf・mosquitto.conf・Pulsar broker/bookkeeper・EMQX HOCON・redis.conf の7形式を追加。`broker.id`+`log.*`/`ssl.*`/`sasl.*` キークラス(kafka)・`listeners.*`+`cluster_formation`+vm_memory/disk_free_limit(rabbitmq)・cluster/jetstream/accounts/gateway/websocket `{` ブロック+`key:`/`key=` kv(nats)・空白区切り `option value`+listener/auth/persistence/`connection` ブリッジ(mosquitto)・brokerServicePort/zookeeperServers/clusterName camelCase+managedLedger+bookiePort/journal*/ledger*(pulsar)・listeners.tcp/ssl + node.*/cluster.* + mqtt セッション制限+authentication/dashboard ブロック(emqx)・bind/save/appendonly/replicaof/maxmemory 指令クラス(redisconf)で、ブローカー・リスナー・永続化・レプリケーション・セキュリティ構成を整数計数する。
+
+## 出典(第226次、search-index 照合)
+
+**論文・仕様**: Apache Kafka broker configs(kafka.apache.org/documentation)・RabbitMQ configuration file(rabbitmq.com/docs/configure)・NATS server configuration(docs.nats.io/running-a-nats-service/configuration)・mosquitto.conf man page(mosquitto.org/man/mosquitto-conf-5)・Apache Pulsar broker+bookie config(pulsar.apache.org/reference)・EMQX configuration manual(emqx.io/docs)・Redis configuration example+docs(redis.io/docs)— 全て整数のみで実装。
+
+**実装物**: apache/kafka・rabbitmq/rabbitmq-server・nats-io/nats-server・eclipse/mosquitto・apache/pulsar・emqx/emqx・redis/redis — 全て整数のみで実装。
+
+**国内技術情報**: Kafka/RabbitMQ/NATS/Mosquitto/Pulsar/EMQX/Redis 設定ファイル解説(Qiita・Zenn・クラウドベンダー技術ブログ等)— 全て整数のみで実装。
