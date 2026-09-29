@@ -5131,3 +5131,15 @@ postgresql.conf・my.cnf・mongod.conf・cassandra.yaml・etcd.conf.yaml・MinIO
 **実装物**: postgres/postgres(config.sample+initdb 既定)・mysql/mysql-server(my.cnf 例)・mongodb/mongo(mongod.conf 例)・apache/cassandra(conf/cassandra.yaml)・etcd-io/etcd(etcd.conf.yml.sample)・minio/minio(config docs+env list)・ClickHouse/ClickHouse(programs/server/config.xml)— 全て整数のみで実装。
 
 **国内技術情報**: PostgreSQL/MySQL/MongoDB/Cassandra/etcd/MinIO/ClickHouse 設定ファイル解説記事(Qiita・Zenn・クラウドベンダー技術ブログ等)— 全て整数のみで実装。
+
+## 第229次:プロファイラ・トレース・パフォーマンス解析形式
+
+Go pprof テキストプロファイル・Chrome Trace Event JSON・perf script 出力・Valgrind callgrind 出力・Java Flight Recorder チャンク・Paraver `.prv`・speedscope JSON の7形式を追加。`heap/goroutine/… profile:` ヘッダ+`N: M [A: B] @` サンプル+`#` フレーム+folded スタック(pprof)・`"ph"` フェーズ文字 B/E/X/i/C/M/…+`"pid"`/`"cat"` キャリア(chrometrace)・`comm pid [cpu] ts: event:` 行+トレースポイント `x:y` イベント+cpu/comm 別カウント(perflog)・`events:`/`fl=`/`fn=`/`cfl=`/`cfn=`/`calls=` キー行+コスト行(callgrind)・`FLR\0`+68B ビッグエンディアン チャンクヘッダ(jfr)・`#Paraver (date):duration:` ヘッダ+`1:`/`2:`/`3:`/`4:` レコード型(paraver)・`shared.frames`+`profiles` の `sampled`/`evented`/`list`+samples/weights(speedscope)で、プロファイル・トレース内容を整数計数する。
+
+## 出典(第229次、search-index 照合)
+
+**論文・仕様**: pprof protocol buffer format+legacy text(github.com/google/pprof)・Trace Event Format spec(docs.google.com/chromium/trace-event-format)・perf script man page+`perf script` format(man7.org/perf-script)・Callgrind format specification(valgrind.org/docs/manual/cl-format-spec.html)・JFR chunk file format+JFR docs(openjdk.org/jeps/328,Oracle JFR guide)・Paraver trace format `.prv` reference(tools.bsc.es/paraver)・speedscope file format schema(github.com/jlfwong/speedscope)— 全て整数のみで実装。
+
+**実装物**: google/pprof・catapult(tracing パーサ)・torvalds/linux tools/perf・valgrind callgrind・openjdk/jdk JFR・bsc-performance-tools/paraver-kernel・jlfwong/speedscope — 全て整数のみで実装。
+
+**国内技術情報**: pprof/Chrome Tracing/perf/Callgrind/JFR/Paraver/speedscope 解説記事(Qiita・Zenn・パフォーマンス系技術ブログ等)— 全て整数のみで実装。
