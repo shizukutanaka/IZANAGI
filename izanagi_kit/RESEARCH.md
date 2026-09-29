@@ -4891,3 +4891,15 @@ GML・GraphML・GEXF・Pajek .net・GUESS GDF・LEDA .gw・Tulip .tlp の7形式
 **実装物**: yEd/GML tools・graphml-java・Gephi・Pajek/Pajek-XXL・GUESS・LEDA library・Tulip — 全て整数のみで実装。
 
 **国内技術情報**: GraphML/GEXF/Pajek/グラフファイル形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第209次:量子計算・量子回路記述形式
+
+OpenQASM 2/3・Rigetti Quil・IBM Qobj・Amazon Braket IR・Xanadu Blackbird・Q#・OpenPulse の7形式を追加。`qir` は LLVM bitcode 系で `llvmbc` と兼任のため除外。QASM 系はステートメント単位、JSON 系はキー走査、Blackbird はヘッダ+パイプ記法、Q# はキーワード単位、OpenPulse は行頭キーワード計数で検出・集計する。
+
+## 出典(第209次、search-index 照合)
+
+**論文・仕様**: OpenQASM 2.0 paper (arXiv:1707.03429)・OpenQASM 3 spec / OpenPulse grammar (openqasm.com)・Quil language spec (Rigetti, arXiv:1608.03355)・IBM Qobj schema (qiskit-ibm-runtime docs)・Amazon Braket IR (braket-ir schemas, github.com/amazon-braket)・Blackbird photonic quantum language (Xanadu/Strawberry Fields)・Q# language reference (Microsoft Learn) — 全て整数のみで実装。
+
+**実装物**: qiskit・pyQuil・braket-ir-python・Strawberry Fields・qsharp-compiler・openqasm reference parser — 全て整数のみで実装。
+
+**国内技術情報**: OpenQASM/Quil/Q#/量子プログラミング言語解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
