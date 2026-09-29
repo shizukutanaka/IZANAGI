@@ -5,8 +5,8 @@
 //! let d = b"name: demo\nversion: 0\x2e1\x2e0\nauthors:\n  - Jane <j@example\x2ecom>\ncrystal: '>= 1\x2e0\x2e0'\ntargets:\n  demo:\n    main: src/demo\x2ecr\nexecutables:\n  - demo\ndependencies:\n  kemal:\n    github: kemalcr/kemal\ndevelopment_dependencies:\n  spec-kemal:\n    github: kemalcr/spec-kemal\nlicense: MIT\n";
 //! let s = izanagi_kit::shard::parse(d).unwrap();
 //! assert_eq!(s.name, "demo");
-//! assert_eq!(s.targets, 2);
-//! assert_eq!(s.dependencies, 2);
+//! assert_eq!(s.targets, 1);
+//! assert_eq!(s.dependencies, 1);
 //! assert!(izanagi_kit::shard::detect(d));
 //! ```
 
@@ -59,15 +59,26 @@ fn has_key(t: &str, key: &str) -> bool {
 fn section_entries(t: &str, section: &str) -> usize {
     let mut n = 0;
     let mut in_sec = false;
+    let mut child_indent = None;
     for line in t.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
         if line.starts_with(char::is_whitespace) {
             let l = line.trim_start();
             if in_sec && !l.starts_with('#') && (l.contains(':') || l.starts_with('-')) {
-                n += 1;
+                let indent = line.len() - l.len();
+                if child_indent.is_none() {
+                    child_indent = Some(indent);
+                }
+                if child_indent == Some(indent) {
+                    n += 1;
+                }
             }
             continue;
         }
         in_sec = line.trim_end() == section;
+        child_indent = None;
     }
     n
 }
@@ -77,6 +88,9 @@ fn dash_entries(t: &str, section: &str) -> usize {
     let mut n = 0;
     let mut in_sec = false;
     for line in t.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
         if line.starts_with(char::is_whitespace) {
             if in_sec && line.trim_start().starts_with('-') {
                 n += 1;
@@ -143,10 +157,10 @@ mod tests {
         assert!(s.crystal.contains("1\x2e0"));
         assert_eq!(s.license, "MIT");
         assert_eq!(s.authors, 2);
-        assert_eq!(s.targets, 2); // `demo:` + `main:` children
+        assert_eq!(s.targets, 1); // only `demo:`; `main:` is a grandchild
         assert_eq!(s.executables, 1);
-        assert_eq!(s.dependencies, 3); // kemal + github + version children
-        assert_eq!(s.dev_dependencies, 2);
+        assert_eq!(s.dependencies, 1); // `kemal:`; github/version are options
+        assert_eq!(s.dev_dependencies, 1);
         assert_eq!(s.metadata_keys, 1);
     }
 

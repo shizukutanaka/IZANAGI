@@ -73,22 +73,40 @@ fn has_key(t: &str, key: &str) -> bool {
     })
 }
 
-/// Count comma-separated atoms across all `field:` lines at any depth.
+/// Count comma-separated atoms across all `field:` lines at any depth,
+/// including deeper-indented continuation lines that carry more atoms.
 fn field_atoms(t: &str, field: &str) -> usize {
-    let mut n = 0;
-    for line in t.lines() {
-        let l = line.trim();
-        if let Some(rest) = l.strip_prefix(field) {
-            if let Some(v) = rest.strip_prefix(':') {
-                for atom in v.split(',') {
-                    let a = atom.trim();
-                    if !a.is_empty() && a.chars().next().is_some_and(|c| c.is_ascii_alphanumeric())
-                    {
-                        n += 1;
-                    }
-                }
+    fn count_atoms(v: &str, n: &mut usize) {
+        for atom in v.split(',') {
+            let a = atom.trim();
+            if !a.is_empty() && a.chars().next().is_some_and(|c| c.is_ascii_alphanumeric()) {
+                *n += 1;
             }
         }
+    }
+    let mut n = 0;
+    let mut cont_indent: Option<usize> = None;
+    for line in t.lines() {
+        let l = line.trim();
+        if l.is_empty() {
+            continue;
+        }
+        let indent = line.len() - line.trim_start().len();
+        if let Some(rest) = l.strip_prefix(field) {
+            if let Some(v) = rest.trim_start().strip_prefix(':') {
+                count_atoms(v, &mut n);
+                cont_indent = Some(indent);
+                continue;
+            }
+        }
+        if let Some(base) = cont_indent {
+            // More-indented, colon-free lines continue the atom list.
+            if indent > base && !l.contains(':') {
+                count_atoms(l, &mut n);
+                continue;
+            }
+        }
+        cont_indent = None;
     }
     n
 }

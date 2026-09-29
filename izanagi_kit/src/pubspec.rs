@@ -66,6 +66,9 @@ fn section_entries(t: &str, section: &str) -> usize {
     let mut in_sec = false;
     let mut child_indent = None;
     for line in t.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
         if line.starts_with(char::is_whitespace) {
             if in_sec && !line.trim_start().starts_with('#') {
                 let indent = line.len() - line.trim_start().len();
@@ -90,6 +93,9 @@ fn section_entries(t: &str, section: &str) -> usize {
 fn section_value<'a>(t: &'a str, section: &str, child: &str) -> Option<&'a str> {
     let mut in_sec = false;
     for line in t.lines() {
+        if line.trim().is_empty() {
+            continue;
+        }
         if line.starts_with(char::is_whitespace) {
             if in_sec {
                 let l = line.trim();
