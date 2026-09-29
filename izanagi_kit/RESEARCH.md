@@ -4903,3 +4903,15 @@ OpenQASM 2/3・Rigetti Quil・IBM Qobj・Amazon Braket IR・Xanadu Blackbird・Q
 **実装物**: qiskit・pyQuil・braket-ir-python・Strawberry Fields・qsharp-compiler・openqasm reference parser — 全て整数のみで実装。
 
 **国内技術情報**: OpenQASM/Quil/Q#/量子プログラミング言語解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第210次:ゲームエンジン・エディタプロジェクト形式
+
+Unreal `.uproject`/`.uplugin`・Godot `project.godot`/`.tscn`・Twee 3・Ren'Py `.rpy`・RPG Maker `.rxdata`/`.rvdata2` の7形式を追加。JSON 系はキー走査、INI/セクション系はヘッダ走査、Twee/Ren'Py は行頭キーワード計数、rvdata は Marshal 4.8 トークンの再帰走査で検出・集計する。
+
+## 出典(第210次、search-index 照合)
+
+**論文・仕様**: Unreal Engine .uproject/.uplugin file reference (Epic docs)・Godot project.godot / TSCN file format (Godot docs, docs.godotengine.org)・Twee 3 specification (Twine/Tweego)・Ren'Py script documentation (renpy.org)・Ruby Marshal format 4.8 (ruby-lang docs)・RPG Maker data file format — 全て整数のみで実装。
+
+**実装物**: Unreal Engine editor・Godot Engine・Tweego/Twine・Ren'Py SDK・RPG Maker VX Ace/MV・Ruby marshal.c — 全て整数のみで実装。
+
+**国内技術情報**: Unreal プロジェクトファイル/Godot シーン形式/Twee/Ren'Py/RPGツクールデータ形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
