@@ -5239,3 +5239,15 @@ pom.xml・Gradle .module・ivy.xml・go.mod・go.sum・vcpkg.json・conanfile.tx
 **実装物**: apache/maven・gradle/gradle・apache/ant-ivy・golang/go・vcpkg/vcpkg・conan-io/conan — 全て整数のみで実装。
 
 **国内技術情報**: pom.xml・Gradle module metadata・ivy.xml・go.mod/go.sum・vcpkg.json・conanfile 解説記事(Qiita・Zenn・ビルド系技術ブログ等)— 全て整数のみで実装。
+
+## 第238次:テストレポート・QA 結果形式
+
+Allure result/container JSON・CTRF・xUnit.net XML・Maven Surefire TXT・JMeter JTL・k6 JSON summary・Mocha JSON reporter の7形式を追加。uuid/status/steps+container fixture キー(allure)・`results`/`summary`+status 別センサス(ctrf)・`<assemblies>`/`<collection>`+`result=`(xunit)・`Tests run:` 行の数値集計(surefire)・CSV/XML 両系統の sample/label/thread 収計(jtl)・`metrics` の型別収計+thresholds(k6)・`stats`+top-level 結果配列(mochajson)で、QA 結果を整数計数する。
+
+## 出典(第238次、search-index 照合)
+
+**論文・仕様**: Allure report schema(allurereport.org docs)・CTRF specification(ctrf.io)・xUnit.net XML schema(xunit.net docs)・Surefire report format(maven.apache.org/surefire)・JMeter JTL save service(jmeter.apache.org)・k6 --summary-export JSON schema(grafana.com/k6 docs)・Mocha JSON reporter(mochajs.org)— 全て整数のみで実装。
+
+**実装物**: allure-framework/allure2・ctrf-io/common-test-report-format・xunit/xunit・apache/maven-surefire-plugin・apache/jmeter・grafana/k6・mochajs/mocha — 全て整数のみで実装。
+
+**国内技術情報**: Allure レポート・CTRF・xUnit.net・Surefire・JMeter JTL・k6 サマリ・Mocha JSON レポーター解説記事(Qiita・Zenn・テスト自動化系技術ブログ等)— 全て整数のみで実装。
