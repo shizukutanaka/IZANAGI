@@ -4593,3 +4593,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Vampire/E prover の TPTP パーサ・z3/cvc5 の SMT-LIB フロントエンド・aiger ツール群/abc・YosysHQ sby・Isabelle2024・coqc/rocq・lean4/elan — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SMT ソルバ入門・Isabelle/HOL チュートリアル・Coq 入門・Lean 4/Mathlib 解説・記号実行・形式検証記事 — 全て整数のみで実装。
+## 第192次: 端末・BBS アート形式(ansi / sixel / iterm / kittyimg / terminfo / asciicast / ttyrec)
+
+**方法**: 文献参照ラウンド継続 — テキスト端末の描画・記録形式。`sauce` は既存のため除外、予告の `nfo` は汎用テキストで検出署名が弱いため除外:
+
+- `ansi` — ANSI アート(`.ans`): CSI 計数 + SGR(`m`)/カーソル移動(`H`–`u`)/消去(`J`/`K`) final 分類 + OSC + CP437 ハイバイト計数
+- `sixel` — DEC Sixel: `ESC P` パラメータ + `q` + `#` 色レジスタ/`!` RLE/`"` ラスタ/`-` 改行/`$` 復帰計数 + `ESC \` 終端
+- `iterm` — iTerm2 インライン画像: `ESC ] 1337 ; File =` k=v ペア + `:` base64 ペイロード + BEL/ST 終端
+- `kittyimg` — Kitty graphics protocol: `ESC _ G` カンマ k=v 制御(`a`/`f`/`t`/`m`) + `;` ペイロード + ST 終端
+- `terminfo` — コンパイル済み terminfo: `0x011A`/`0x021E`(拡張)マジック + u16×5 セクションサイズ
+- `asciicast` — asciinema `.cast`: `{"version":1|2}` ヘッダ + `o`/`i`/`m` イベント行計数(v1 は `"stdout"` 内蔵)
+- `ttyrec` — ttyrec: `u32le sec,usec,len` フレーム鎖 + ファイル長完全消費検証
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第192次、search-index 照合)
+
+**論文・仕様**: ECMA-48/ANSI X3.64 制御関数・DEC Sixel グラフィックス仕様(VT340)・ncurses terminfo 形式(man term(5))・iTerm2 Escape Codes ドキュメント・kitty graphics protocol 仕様 — 全て整数のみで実装。
+
+**実装物**: iTerm2 shell_integration/imgcat・kitty +kitten icat・asciinema cast v2 spec(github asciinema)・ttyrec/ttyplay(mgair)・ncurses tic/infocmp — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のエスケープシーケンス解説・Sixel 対応端末記事・asciinema 入門・terminfo/termcap 解説・BBS/ANSI アート回顧記事 — 全て整数のみで実装。
