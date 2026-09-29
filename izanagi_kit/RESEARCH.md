@@ -4839,3 +4839,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: imagex/wimlib・zpaq reference・apple/lzfse・unace/ace unarchiver・ALZip・zoo 2.10・lzip reference — 全て整数のみで実装。
 
 **国内技術情報**: WIM/ZPAQ/LZFSE/lzip 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第205次:FPGA ビットストリーム・プログラミング形式パーサ(7 モジュール)
+
+`bit`(Xilinx BitGen BIT:`00 09 0F F0 0F F0 0F F0 0F F0 00 01 00` プリアンブル+`a`/`b`/`c`/`d` u16be タグレコード(design/part/date/time)+`e` u32be データ長+ペイロード+`AA 99 55 66` 同期ワード検出)/ `jed`(JEDEC JESD3-C ヒューズマップ:`*`-終端レコード `QF` ヒューズ数・`F0`/`F1` デフォルト・`L<addr> <bits>` ヒューズ転写・`C` 16bit チェックサム・`G` セキュリティ・`N`/`D`/`E` 注記、STX/ETX フレーミング、set/clear ビット集計)/ `svf`(Serial Vector Format IEEE 1149.1:`HIR`/`TIR`/`HDR`/`TDR`/`SIR`/`SDR`/`RUNTEST`/`STATE`/`ENDIR`/`ENDDR`/`TRST`/`FREQUENCY` 文センサス+`TDO(`/`MASK(` ベクトル数、`;` 文分割、`//` コメント)/ `xsvf`(Xilinx XSVF バイナリ:XSDRSIZE オペコード 8+サイズ、オペコード歩行 `XCOMPLETE`/`XTDOMASK`/`XSIR`/`XSDR`/`XRUNTEST`/`XREPEAT`/`XSDRSIZE`/`XSTATE`/`XENDIR`/`XENDDR`/`XSIR2`/`XCOMMENT`/`XWAIT`、sdr_bytes=(bits+7)/8、truncated フラグ)/ `isc`(Xilinx ISC IEEE 1532:`ISC_*` コマンドセンサス `SIR`/`SDR`/`PROGRAM`/`ERASE`/`VERIFY`/`READ`/`BLANK`/`RUNTEST`/`ENABLE`/`DISABLE`+`TDO(` ベクトル+非 ISC 文 stray_text)/ `xdc`(Xilinx Design Constraints Tcl:`set_property`+`PACKAGE_PIN`/`IOSTANDARD`+`create_clock`/`create_generated_clock`+`set_input_delay`/`set_output_delay`/`set_false_path`/`set_multicycle_path`/`set_max_delay`/`set_clock_groups` タイミング例外+`get_ports`/`get_pins`/`get_cells`/`get_clocks`/`get_nets` オブジェクト参照+括弧深度バランス)/ `lpf`(Lattice LPF:`LOCATE`/`FREQUENCY`/`PERIOD`/`IOBUF`/`SYSCONFIG`/`BLOCK`/`UNBLOCK`/`PREFER`/`PROHIBIT`/`TIMESPEC`/`SLICE`/`UGROUP` 文センサス+`SITE` 参照数+MHz/KHz トークン+未知大文字コマンド unterminated)。予告の `rbf`/`sof` は署名のない生バイナリで detect()/parse() 契約を満たせず `xdc`/`lpf` に差替え。`sdc`/`pcf`/`ttf`/`soc`/`pal`/`gpl`/`ust` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BIT タグレコード列・JEDEC `*`-レコード+STX/ETX、SVF `;` 文・XSVF オペコード列・ISC `ISC_` 文・XDC Tcl 行・LPF 文)。
+
+## 出典(第205次、search-index 照合)
+
+**論文・仕様**: Xilinx Configuration File(.bit)format documentation・JEDEC JESD3-C standard・SVF Serial Vector Format spec(ASSET/AM-SVF-001)・IEEE 1149.1 JTAG・Xilinx XSVF spec(xapp058)・Xilinx ISC IEEE 1532 spec・Xilinx Vivado XDC constraints guide(UG903)・Lattice Diamond LPF constraints guide — 全て整数のみで実装。
+
+**実装物**: Vivado/iMPACT BitGen・GALasm/PALASM JEDEC ツール・OpenOCD SVF player・xsvf_player 参考実装・Xilinx iMPACT・Lattice Diamond — 全て整数のみで実装。
+
+**国内技術情報**: FPGA ビットストリーム/JTAG/SVF/XDC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
