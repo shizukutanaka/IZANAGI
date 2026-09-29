@@ -4743,3 +4743,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: ai/nanoid・paralleldrive/cuid2・rs-xid・jetpack-io/typeid 系実装 — 全て整数のみで実装。
 
 **国内技術情報**: ULID/UUIDv7 系識別子比較記事(Qiita 等)— 全て整数のみで実装。
+
+## 第199次:セマンティック Web・連絡先・メタデータ交換形式パーサ(7 モジュール)
+
+`vcard`(vCard RFC 6350:BEGIN/END ブロック+VERSION 判別+プロパティ/FN・N・EMAIL・TEL 等センサス+folded)/ `ical`(iCalendar RFC 5545:VCALENDAR+VEVENT/VTODO/VJOURNAL/VFREEBUSY/VTIMEZONE/VALARM+DTSTART/RRULE+BEGIN/END 整合)/ `ldif`(LDIF RFC 2849:`dn:` エントリ+`attr:`/`::`base64/`<`url+changetype 系+distinct 属性名)/ `xmp`(Adobe XMP:xpacket PI+xmpmeta+rdf:Description/Seq/Bag/Alt/li+名前空間集合)/ `iptc`(IPTC-IIM:`0x1C` マーカー+record/dataset/長さ歩行+2:05/2:25/2:55/2:80/2:120 判別)/ `atom`(Atom RFC 4287:feed+2005/Atom+entry/title/link rel= センサス)/ `dsig`(XMLDSIG RFC 3275:Signature+xmldsig#+SignedInfo/SignatureValue/KeyInfo/Object+Reference URI/Transform/DigestMethod)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:VCARD カード・VCALENDAR・LDIF エントリ・XMP パケット・IPTC レコード・Atom フィード・XMLDSIG 署名)。
+
+## 出典(第199次、search-index 照合)
+
+**論文・仕様**: RFC 6350 (vCard)・RFC 5545 (iCalendar)・RFC 2849 (LDIF)・Adobe XMP specification・IPTC-IIM standard・RFC 4287 (Atom)・XML Signature Syntax and Processing (W3C) — 全て整数のみで実装。
+
+**実装物**: libical・python-ldap ldif・ExifTool IPTC リファレンス・Atom 系各実装 — 全て整数のみで実装。
+
+**国内技術情報**: vCard/iCal/LDIF 解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
