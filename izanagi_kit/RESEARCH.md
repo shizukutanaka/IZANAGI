@@ -4614,3 +4614,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: iTerm2 shell_integration/imgcat・kitty +kitten icat・asciinema cast v2 spec(github asciinema)・ttyrec/ttyplay(mgair)・ncurses tic/infocmp — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn のエスケープシーケンス解説・Sixel 対応端末記事・asciinema 入門・terminfo/termcap 解説・BBS/ANSI アート回顧記事 — 全て整数のみで実装。
+## 第193次: ゲームレベル・タイルマップ形式(tmx / tsx / ldtk / ogmo / t3d / smd / qmap)
+
+**方法**: 文献参照ラウンド継続 — 2D タイルエディタ・レベルエディタ・DCC 中間形式。全7件が既存 1253 件と非衝突を確認(`map` は `qmap` と命名して汎用名との混同を回避):
+
+- `tmx` — Tiled TMX: `<map>` geometry(orientation/width/tilewidth)+`<tileset>`/`<layer>`/`<objectgroup>`/`<imagelayer>`/`<group>` 計数 + `data encoding` 分類(csv/base64)
+- `tsx` — Tiled TSX タイルセット: `name`/`tilewidth`/`tilecount`/`columns` + `<image>`/`<tile>`/`<tileoffset>`/`<wangset>`/`<animation>`/`<frame>` 計数
+- `ldtk` — LDtk JSON: `__header`/`fileType` + `layerInstances`/`entityInstances`/`tileInstances`/`intGridValues`/`autoLayerTiles`/`gridSize`
+- `ogmo` — Ogmo Editor 3: `ogmoVersion` + `layers` の name/entity/grid/tile/decal/point 種別計数
+- `t3d` — Unreal テキストエクスポート: `Begin Map`/`Object`/`Actor`/`Brush`/`Surface` ブロック + `Class`/`Name`/`Archetype`/`Group` 代入計数
+- `smd` — Studiomdl Data: `version` + `nodes`/`skeleton`/`triangles` セクション走査 + フレーム/頂点計数
+- `qmap` — Quake `.map`: エンティティ/ブラシ `{` ブロック深さ + `( x y z )³` 面行 + `classname`/`worldspawn`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第193次、search-index 照合)
+
+**論文・仕様**: Tiled Map Editor TMX/TSX フォーマットリファレンス(mapeditor.org)・LDtk JSON schema(deepnight)・Ogmo Editor 3 docs・Unreal Engine .t3d テキスト形式(UnrealWiki/UDN)・Studiomdl SMD 仕様(Valve Developer Community)・Quake .map 形式(id Tech / QuakeWiki) — 全て整数のみで実装。
+
+**実装物**: Tiled(mapeditor/tiled)・LDtk Haxe 実装・Ogmo Editor C#・UnrealEd・studiomdl/Half-Life SDK・TrenchBroom/qbsp — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Tiled 導入記事・LDtk 入門・インディーゲームレベル制作記事・Source エンジン SMD モデル制作・TrenchBroom 日本語解説 — 全て整数のみで実装。
