@@ -5035,3 +5035,15 @@ Logstash・Fluentd・Filebeat・Telegraf・Vector・Grok・syslog-ng OSE の7形
 **実装物**: Logstash・Fluentd/fluent-bit・Filebeat・Telegraf・Vector(timberio/vector)・Grok 実装群・syslog-ng OSE — 全て整数のみで実装。
 
 **国内技術情報**: Logstash/Fluentd/Filebeat/Telegraf/Vector/Grok/syslog-ng 解説記事(Qiita・Zenn・インフラ技術ブログ等)— 全て整数のみで実装。
+
+## 第221次:エディタ・IDE・開発環境設定形式
+
+.editorconfig・devcontainer.json・devfile.yaml・Sublime project/settings・tmux.conf・kitty.conf・alacritty.toml/yml の7形式を追加。INI+`[glob]` セクション(editorconfig)・JSONC キーセンサス+lifecycle hook(devcontainer)・YAML ブロック歩行(devfile)・JSON セクション走査(sublime)・`set`/`bind`/`@plugin` コマンド文(tmuxconf)・`key value`+`map`/`symbol_map`(kittyconf)・TOML/YAML セクション+key_bindings(alacritty)で、エディタ/コンテナ/端末の構成を整数計数する。
+
+## 出典(第221次、search-index 照合)
+
+**論文・仕様**: EditorConfig specification(editorconfig.org)・devcontainer.json reference(containers.dev/implementors/json_reference)・Devfile schema(devfile.io/docs)・Sublime Text project/settings docs(sublimetext.com/docs)・tmux.conf man page(openbsd/tmux)・kitty.conf reference(sw.kovidgoyal.net/kitty/conf)・Alacritty TOML config docs(alacritty.org)— 全て整数のみで実装。
+
+**実装物**: editorconfig-core・devcontainers/cli・odo/devfile registry・Sublime Text・tmux・kitty・alacritty — 全て整数のみで実装。
+
+**国内技術情報**: EditorConfig/devcontainer/devfile/Sublime/tmux/kitty/alacritty 解説記事(Qiita・Zenn・開発環境ブログ等)— 全て整数のみで実装。
