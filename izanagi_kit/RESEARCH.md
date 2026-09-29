@@ -4704,3 +4704,26 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: auth0/jose・paseto-implementations・OneLogin python-saml・curl/libcurl cookie エンジン・MIT Kerberos krb5 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の JWT/JWK/JWE 解説・SAML SSO 入門・PASETO vs JWT 比較・Macaroon 認証解説記事 — 全て整数のみで実装。
+## 第197次: クエリ・検索言語形式(sparql / cypher / xpath / jsonpath / lucene / jq / kql)
+
+**方法**: 文献参照ラウンド継続 — クエリ言語の構文センサス。全7件非衝突(gremlin/promql は予備):
+
+- `sparql` — SPARQL 1.1(PREFIX/BASE/SELECT/ASK/CONSTRUCT/DESCRIBE + WHERE/OPTIONAL/FILTER/UNION/ORDER/LIMIT/OFFSET/BIND/VALUES/MINUS/SERVICE/GRAPH)
+- `cypher` — Neo4j Cypher(MATCH/OPTIONAL MATCH/WHERE/RETURN/CREATE/MERGE/SET/DELETE/WITH/UNWIND/CALL/UNION + `(n)-[:R]->(m)` パターン)
+- `xpath` — XPath 1.0/2.0(`/`/`//`/`@`/`[pred]`/`axis::`/`|` + 33 関数 + eq/lt/gt/mod/div)
+- `jsonpath` — JSONPath(RFC 9535 + Goessner、`$`/`..`/`[n]`/`[*]`/`[a:b:c]`/`[?()]`/`[()]`/`@`/`length()`)
+- `lucene` — Lucene 構文(field:term/+/-/NOT/AND/OR/&&/||||~fuzzy/^boost/"phrase"/[a TO b]/wildcards/groups)
+- `jq` — jq フィルタ(`.x`/`.[]`/`|`/`..`/`//`/`?`/def/as/reduce/if-elif-else-end/try/68 builtins)
+- `kql` — Kusto KQL(`| where|project|extend|summarize|sort|take|join|union|render` + let/datatable/by/ago/==/~=/in/between/has/contains)
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在クエリフィクスチャ)。
+
+## 出典(第197次、search-index 照合)
+
+**論文・仕様**: W3C SPARQL 1.1 Query Language・openCypher/Cypher リファレンス・W3C XPath 1.0/2.0/3.1・RFC 9535 (JSONPath)・Apache Lucene query parser syntax・stedolan jq manual・Microsoft KQL reference — 全て整数のみで実装。
+
+**実装物**: Apache Jena/RDF4J・Neo4j Cypher・libxml2 xpath・Jayway JsonPath・Apache Lucene・stedolan/jq・Azure Data Explorer — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SPARQL 入門・Cypher チートシート・XPath 書き方・JSONPath 仕様・Lucene クエリ文法・jq 使い方・KQL 入門記事 — 全て整数のみで実装。
