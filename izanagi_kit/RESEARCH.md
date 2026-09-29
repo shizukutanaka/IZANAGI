@@ -4635,3 +4635,26 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Tiled(mapeditor/tiled)・LDtk Haxe 実装・Ogmo Editor C#・UnrealEd・studiomdl/Half-Life SDK・TrenchBroom/qbsp — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Tiled 導入記事・LDtk 入門・インディーゲームレベル制作記事・Source エンジン SMD モデル制作・TrenchBroom 日本語解説 — 全て整数のみで実装。
+## 第194次: XML スキーマ・変換・クエリ形式(xsd / relaxng / sch / xslt / dtd / xlink / xq)
+
+**方法**: 文献参照ラウンド継続 — W3C XML 技術群のスキーマ言語・変換・リンク・クエリ。予告の `xi` は既存モジュールと衝突のため `xq`(XQuery)に差替え、7 件全て非衝突を確認:
+
+- `xsd` — XML Schema Definition: `<*:schema` + element/complexType/simpleType/attribute/compositor/facet/import/include 計数 + `targetNamespace`
+- `relaxng` — RELAX NG XML 構文: structure 名前空間 `<grammar>` + 全パターン素子計数
+- `sch` — Schematron: namespace/rule/assert/report/context/phase/diagnostics
+- `xslt` — XSLT: stylesheet/transform ルート + 20 命令センサス
+- `dtd` — DTD: `<!ELEMENT`/`<!ATTLIST`/`<!ENTITY`/`%pe;`/`<!NOTATION`/条件セクション + 外部 ID/属性キーワード
+- `xlink` — XLink: `xlink:href` + `type` 6 種 + 振る舞い属性
+- `xq` — XQuery: `xquery version` + prolog/FLWOR/`fn:`/`$var` 計数
+
+共通: `count_tag` は `</` 終了タグを除外する境界付き素名検索、属性値はクォート両対応で抽出。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(合計 21 + 8)。
+
+## 出典(第194次、search-index 照合)
+
+**論文・仕様**: W3C XML Schema 1.1 Part 1/2・RELAX NG(ISO/IEC 19757-2)・Schematron(ISO/IEC 19757-3)・XSLT 1.0/2.0/3.0・XML 1.0 DTD・XLink 1.0/1.1・XQuery 3.1 — 全て整数のみで実装。
+
+**実装物**: xmllint/libxml2・Jing・Saxon/Xalan・BaseX・W3C テストスイート — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の XML Schema 入門・RELAX NG 解説・Schematron 導入記事・XSLT 変換・XQuery 基礎記事 — 全て整数のみで実装。
