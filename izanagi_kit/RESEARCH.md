@@ -4681,3 +4681,26 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: isbnlib/python-stdnum・GS1 check digit calculator・ORCID API docs・Apache Commons Validator — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の ISBN・JAN コード・Luhn チェックデジット解説記事 — 全て整数のみで実装。
+## 第196次: トークン・認証資格形式(jwk / jwe / saml / paseto / macaroon / cookiejar / keytab)
+
+**方法**: 文献参照ラウンド継続 — 認証・認可系トークン/資格ファイルの構造検証。`jwt` は既存のため除外、全7件非衝突:
+
+- `jwk` — RFC 7517 JSON Web Key(`"kty"`/`"keys"`/`"n"`/`"e"`/`"x"`/`"y"`/`"crv"`/`"kid"`/`"alg"`/`"use"`/`"key_ops"`/`"x5c"` クレーム集合 + 秘密鍵パラメータ)
+- `jwe` — RFC 7516 コンパクトシリアライズ(5 base64url セグメント + ヘッダデコードで alg/enc/kid/zip/crit/epk)
+- `saml` — SAML 2.0(`samlp:Response`/`AuthnRequest`/`saml:Assertion` + Issuer/Subject/NameID/Conditions/AuthnStatement/Attribute/Signature/EncryptedAssertion/InResponseTo)
+- `paseto` — PASETO(`v1`..`v4` + `local`/`public` + base64url payload + 任意 footer)
+- `macaroon` — Macaroon(v2 JSON `{"v":2,"l","i","c","s64"}` / レガシー packet + cid/vid caveat + signature)
+- `cookiejar` — Netscape `cookies.txt`(7 カラム TAB 区切り + `#HttpOnly_` + banner + expires/session)
+- `keytab` — Kerberos keytab(`0x0502`/`0x0501` + u32be 長 prefix エントリ鎖 + プリンシパル/enctype 走査)
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在形式フィクスチャ、JWE は base64url デコード実装検証)。
+
+## 出典(第196次、search-index 照合)
+
+**論文・仕様**: RFC 7517 (JWK)・RFC 7516 (JWE)・OASIS SAML 2.0 Core・PASETO spec (v1-v4)・Macaroons 論文(Birgisson et al.)・Netscape cookies.txt・MIT Kerberos keytab バイナリ — 全て整数のみで実装。
+
+**実装物**: auth0/jose・paseto-implementations・OneLogin python-saml・curl/libcurl cookie エンジン・MIT Kerberos krb5 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の JWT/JWK/JWE 解説・SAML SSO 入門・PASETO vs JWT 比較・Macaroon 認証解説記事 — 全て整数のみで実装。
