@@ -5107,3 +5107,15 @@ Kafka server.properties・RabbitMQ sysctl conf・NATS server conf・mosquitto.co
 **実装物**: apache/kafka・rabbitmq/rabbitmq-server・nats-io/nats-server・eclipse/mosquitto・apache/pulsar・emqx/emqx・redis/redis — 全て整数のみで実装。
 
 **国内技術情報**: Kafka/RabbitMQ/NATS/Mosquitto/Pulsar/EMQX/Redis 設定ファイル解説(Qiita・Zenn・クラウドベンダー技術ブログ等)— 全て整数のみで実装。
+
+## 第227次:Linter・フロントエンドツールチェーン設定形式
+
+.eslintrc・.prettierrc・.stylelintrc・biome.json・.golangci.yml・browserslist・jest.config の7形式を追加。env/extends/plugins/rules/parserOptions/overrides セクション+severity(error/warn/off/0/1/2)ルールエントリ(eslintrc)・~31 オプション名+overrides ブロック(prettier)・extends/plugins 参照+`rules:` ブロック行判定(stylelint)・$schema/biomejs.dev+organizeImports/assist/linter/formatter+`no*`/`use*` ルールグループ(biome)・linters/linters-settings/run/issues+enable/disable `- ` 項目(golangci)・`last N versions`/`> N%`/`not dead` クエリ構文+`[env]` セクション(browserslist)・testEnvironment/testMatch/collectCoverage*/transform*/moduleName* キークラス+`<rootDir>`(jest)で、各ツールチェーン構成を整数計数する。
+
+## 出典(第227次、search-index 照合)
+
+**論文・仕様**: ESLint configuration files(eslint.org/docs/latest/use/configure)・Prettier options(prettier.io/docs/options)・Stylelint configuration(stylelint.io/user-guide/configure)・Biome configuration(biomejs.dev/reference/configuration)・golangci-lint configuration(golangci-lint.run/welcome/configuration)・Browserslist query spec(github.com/browserslist/browserslist)・Jest configuration(jestjs.io/docs/configuration)— 全て整数のみで実装。
+
+**実装物**: eslint/eslint・prettier/prettier・stylelint/stylelint・biomejs/biome・golangci/golangci-lint・browserslist/browserslist・jestjs/jest — 全て整数のみで実装。
+
+**国内技術情報**: ESLint/Prettier/Stylelint/Biome/golangci-lint/Browserslist/Jest 設定解説記事(Qiita・Zenn・フロントエンド系技術ブログ等)— 全て整数のみで実装。
