@@ -5047,3 +5047,15 @@ Logstash・Fluentd・Filebeat・Telegraf・Vector・Grok・syslog-ng OSE の7形
 **実装物**: editorconfig-core・devcontainers/cli・odo/devfile registry・Sublime Text・tmux・kitty・alacritty — 全て整数のみで実装。
 
 **国内技術情報**: EditorConfig/devcontainer/devfile/Sublime/tmux/kitty/alacritty 解説記事(Qiita・Zenn・開発環境ブログ等)— 全て整数のみで実装。
+
+## 第222次:監視・オブザーバビリティ設定形式
+
+prometheus.yml・alertmanager.yml・Grafana provisioning/dashboard・OpenTelemetry Collector・nagios.cfg+objects・icinga2.conf・zabbix_agentd.conf の7形式を追加。YAML トップレベルセクション+`job_name`/`static_configs`/`*_sd_configs`/`relabel_configs`(prometheus)・`route:`/`receivers:`/`inhibit_rules:`+`*_configs` 連携(alertmanager)・apiVersion+providers/datasources+JSON キーセンサス(grafana)・receivers/processors/exporters/extensions/connectors+service.pipelines 配線(otelcol)・`define host|service|command`+`key value` フィールド+cfg_file 経路指令(nagios)・`object <Type> "name" { }`+`vars.*`/`key = value`(icinga)・`Server=`/`UserParameter=`/`Include=` キー分類(zabbix)で、監視構成・通知配線・パイプライン構成を整数計数する。
+
+## 出典(第222次、search-index 照合)
+
+**論文・仕様**: Prometheus configuration docs(prometheus.io/docs)・Alertmanager configuration(prometheus.io/docs/alerting)・Grafana provisioning reference(grafana.com/docs)・OpenTelemetry Collector configuration(opentelemetry.io/docs/collector)・Nagios Core object definitions+main config(assets.nagios.com/docs)・Icinga 2 configuration reference(icinga.com/docs)・Zabbix agent configuration parameters(zabbix.com/documentation)— 全て整数のみで実装。
+
+**実装物**: prometheus/prometheus・prometheus/alertmanager・grafana/grafana・open-telemetry/opentelemetry-collector・NagiosEnterprises/nagioscore・Icinga/icinga2・zabbix/zabbix — 全て整数のみで実装。
+
+**国内技術情報**: Prometheus/Alertmanager/Grafana/OTel Collector/Nagios/Icinga/Zabbix 解説記事(Qiita・Zenn・監視・SRE 系技術ブログ等)— 全て整数のみで実装。
