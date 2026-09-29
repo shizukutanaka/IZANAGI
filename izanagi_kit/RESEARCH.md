@@ -4867,3 +4867,15 @@ Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks 
 **実装物**: Dart pub・Crystal shards・Cabal/cabal-install・LuaRocks・cpanm/carton・opam・nimble — 全て整数のみで実装。
 
 **国内技術情報**: pubspec.yaml/shard.yml/cabal/rockspec/cpanfile/opam/nimble 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第207次:ボードゲーム・パズル形式
+
+チェス EPD・将棋 CSA 棋譜・KIF 棋譜・象棋 XQF・USI プロトコル・AcrossLite .puz・数独テキストの7形式を追加。pgn/fen/gtp/sgf は既存モジュールのため除外。テキスト系は行/フィールド走査、バイナリ系はマジック+レコード歩行で検出・集計する。
+
+## 出典(第207次、search-index 照合)
+
+**論文・仕様**: EPD spec (Tim Mann/ChessX)・CSA 棋譜フォーマット標準仕様・KIF ファイルフォーマット・XQF spec (XQBase)・USI プロトコル (Tord Romstad 準拠)・Across Lite PUZ format documentation・数独テキスト表現(Norvig 表記)— 全て整数のみで実装。
+
+**実装物**: Crafty/XBoard・CSA for Windows・ShogiGUI/将棋所・XQWizard・USI エンジン群・Across Lite/Shortyz・ sudoku solver 参考実装 — 全て整数のみで実装。
+
+**国内技術情報**: CSA 棋譜・KIF・USI ・数独パーサ解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
