@@ -4987,3 +4987,15 @@ yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock�
 **実装物**: yarnpkg/yarn・npm/cli・pnpm/pnpm・rust-lang/cargo・rubygems/bundler・python-poetry/poetry・composer/composer — 全て整数のみで実装。
 
 **国内技術情報**: yarn.lock/package-lock/pnpm-lock/Cargo.lock/Gemfile.lock/poetry.lock/composer.lock 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第217次:歌声合成・ボーカルシーケンス形式
+
+UTAU .ust・OpenUtau .ustx・VOCALOID3/4 .vsqx・VOCALOID5 .vpr・Synthesizer V .svp・CeVIO .ccs・HTS/UTAU .lab の7形式を追加。INI セクション走査(ust)・YAML ブロック走査(ustx)・XML タグ/属性センサス(vsqx/ccs)・JSON キーセンサス(vpr/svp)・`start end phone` 行検証(lab)で、ノート数・歌詞・音素・ピッチ・パラメータ曲線等を整数計数する。
+
+## 出典(第217次、search-index 照合)
+
+**論文・仕様**: UTAU .ust format(utau2008/utautech)・OpenUtau .ustx schema(github.com/stakira/OpenUtau)・VSQX format(utaformatix ドキュメント/VOCALOID3/4 出力)・VOCALOID5 .vpr JSON・Synthesizer V .svp(Dreamtonics)・CeVIO .ccs XML schema・HTS label format(monophone + full-context)— 全て整数のみで実装。
+
+**実装物**: UTAU・stakira/OpenUtau・YAMAHA VOCALOID3/4/5・Dreamtonics Synthesizer V・CeVIO Creative Studio/AI・HTS 系アライメントツール群 — 全て整数のみで実装。
+
+**国内技術情報**: UTAU 譜面/ustx/vsqx/vpr/svp/ccs/lab 解説記事(Qiita・Zenn・技術ブログ・utaformatix 等)— 全て整数のみで実装。
