@@ -5215,3 +5215,15 @@ DNS ゾーンファイル・BIND named.conf・resolv.conf・nsswitch.conf・dnsm
 **実装物**: bkeepers/dotenv・openssh/openssh-portable・kubernetes/kubernetes・git/git・aws/aws-cli・openssl/openssl・postgres/postgres — 全て整数のみで実装。
 
 **国内技術情報**: .env/ssh_config/kubeconfig/.gitconfig/aws credentials/openssl.cnf/.pgpass 解説記事(Qiita・Zenn・クラウド系技術ブログ等)— 全て整数のみで実装。
+
+## 第236次:仮想マシン・OCI・仮想化定義形式
+
+.dockerignore・Packer(JSON/HCL)・libvirt domain XML・OVF・wsl.conf・lima.yaml・cloud-config の7形式を追加。glob+`!`例外+`**`/`*`/`?`(dockerignore)・`"builders"`/`source`/`build {}` JSON/HCL 両対応(packer)・`<domain>`+デバイス/features センサス(virtxml)・`<Envelope>`+`<Item>`/セクション(ovf)・INI セクション+真偽値(wslconf)・スコープ追跡 `- ` 項目+トップレベルキー(lima)・`#cloud-config`+モジュールキー(cloudinit)で、VM/コンテナ定義を整数計数する。
+
+## 出典(第236次、search-index 照合)
+
+**論文・仕様**: .dockerignore spec(docs.docker.com)・Packer HCL2/legacy JSON docs(developer.hashicorp.com)・libvirt domain XML format(libvirt.org/formatdomain.html)・OVF spec DMTF DSP0243・WSL config settings(learn.microsoft.com)・lima.yaml reference(github.com/lima-vm/lima)・cloud-init module docs(cloudinit.readthedocs.io)— 全て整数のみで実装。
+
+**実装物**: moby/moby・hashicorp/packer・libvirt/libvirt・openstack/nova(ovf 扱い)・microsoft/WSL・lima-vm/lima・canonical/cloud-init — 全て整数のみで実装。
+
+**国内技術情報**: .dockerignore・Packer・libvirt XML・OVF・wsl.conf・Lima・cloud-init 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
