@@ -4939,3 +4939,15 @@ Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`p
 **実装物**: solidity・vyper・aptos-core/move・starkware cairo・stacks-blockchain clarity・tact-lang/tact・ton-blockchain func — 全て整数のみで実装。
 
 **国内技術情報**: Solidity/Vyper/Move/Cairo/Clarity/Tact/FunC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第213次:IaC・デプロイ定義ファイル形式
+
+CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・Helm Chart.yaml・Pulumi.yaml の7形式を追加。`AWSTemplateFormatVersion`/`targetScope`/`service+provider`/`services:`/`Vagrant.configure`/`apiVersion+type`/`name+runtime` 等の形式固有シグネチャで検出し、宣言・ブロック内エントリ・組込み関数使用数・コメントを整数計数する。YAML 系はインデント追跡のブロック抽出で同名キーのネスト混入(サービス内 `volumes:`、テンプレ内 `config:`)を抑制する。
+
+## 出典(第213次、search-index 照合)
+
+**論文・仕様**: AWS CloudFormation User Guide(docs.aws.amazon.com)・Bicep language docs(learn.microsoft.com/azure/azure-resource-manager/bicep)・Serverless Framework docs(serverless.com)・Compose Specification(compose-spec.io)・Vagrantfile docs(developer.hashicorp.com/vagrant)・Helm Chart.yaml guide(helm.sh)・Pulumi YAML reference(pulumi.com)— 全て整数のみで実装。
+
+**実装物**: aws-cloudformation・Azure/bicep・serverless/serverless・compose-spec・hashicorp/vagrant・helm/helm・pulumi/pulumi — 全て整数のみで実装。
+
+**国内技術情報**: CloudFormation/Bicep/Serverless/Compose/Vagrant/Helm/Pulumi 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
