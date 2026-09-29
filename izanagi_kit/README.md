@@ -613,3 +613,4 @@ see `tests/docs_are_current.rs`.)
 
 Dual-licensed under either of [MIT](LICENSE-MIT) or
 [Apache-2.0](LICENSE-APACHE) at your option.
+| `cr2` / `nef` / `arw` / `dng` / `orf` / `rw2` / `raf` | Camera RAW image formats: Canon CR2 (`parse`/`Cr2` — `II*\x00`+`CR\x02NN` dual sig + `u32le` JPEG-preview offset + IFD0 census), Nikon NEF (`parse`/`Nef` — TIFF `II`/`MM` + `NIKON` banner + `Make`/`MakerNote` tag census), Sony ARW (`parse`/`Arw` — `II*\x00` + `SONY` banner + `Make`/`Model`/`ExifIFD`/`MakerNote` tags), Adobe DNG (`parse`/`Dng` — TIFF + `DNGVersion` 0xC612 tag + `[major,minor]` + `UniqueCameraModel` + 0xC000-range tag count), Olympus ORF (`parse`/`Orf` — `II*\x00`+`IIRO`/`IIRS` at offset 8 + IFD0 at 16), Panasonic RW2 (`parse`/`Rw2` — `IIU\x00` magic-85 + `Panasonic` banner + tag census), Fuji RAF (`parse`/`Raf` — `FUJIFILMCCD-RAW ` banner + `0201`/`0202` version + BE JPEG/CFA offset-length table). |

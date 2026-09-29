@@ -4549,3 +4549,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: stardict-3/pyglossary・mdict-utils/readmdict・GoldenDict の dsl/epwing/bgl リーダー・slob.py/Aard2 リーダー・dictd/dictzip(dict-1.13)・EBライブラリ/ebview — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の StarDict 辞書作成・GoldenDict 活用・EPWING 電子辞書・dictd 構築・MDict 利用解説記事 — 全て整数のみで実装。
+
+## 第190次: カメラ RAW 画像形式(cr2 / nef / arw / dng / orf / rw2 / raf)
+
+**方法**: 文献参照ラウンド継続 — デジタルカメラ RAW 系。全7件が既存 1232 件と非衝突を確認(`tiff`/`heif` は既存のため TIFF/ISOBMFF 派生として個別シグネチャで棲み分け; Canon CR3 は ISOBMFF 系で `heif` 判別に吸収されるため除外):
+
+- `cr2` — Canon CR2: `II*\x00`+IFD0@16 + `CR\x02\xNN` 二重シグネチャ + `u32le` JPEG プレビューオフセット
+- `nef` — Nikon NEF: TIFF `II`/`MM` + `NIKON` ブランド + `Make`/`MakerNote` タグ
+- `arw` — Sony ARW: `II*\x00` + `SONY` ブランド + `Make`/`Model`/`ExifIFD`/`MakerNote` タグ
+- `dng` — Adobe DNG: TIFF + `DNGVersion`(0xC612) タグ + `[major,minor]` + `UniqueCameraModel` + 0xC000 系 DNG 拡張タグ計数
+- `orf` — Olympus ORF: `II*\x00`+`IIRO`/`IIRS`@8 + IFD0@16
+- `rw2` — Panasonic RW2: `IIU\x00`(magic 85)+ `Panasonic` ブランド + タグ計数
+- `raf` — Fuji RAF: `FUJIFILMCCD-RAW ` バナー + `0201`/`0202` バージョン + BE JPEG/CFA ポインタ表
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第190次、search-index 照合)
+
+**論文・仕様**: Adobe DNG Specification 1.4–1.7(tag 0xC612/0xC614 定義)・Canon CR2 形式解析(lclevy/cr2-inverse 資料)・TIFF/EP(ISO 12234-2)・ExifTool TagNames(OLYMPUS/Panasonic/Sony/FujiRaw)・libraw RAF/RW2 リーダー — 全て整数のみで実装。
+
+**実装物**: libraw/dcraw・darktable/RawTherapee の各メーカー RAW ローダー・ExifTool・exiv2・pyrawimage/rawpy — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の RAW 現像・DNG 変換・ExifTool 活用・Python rawpy 解説記事 — 全て整数のみで実装。
