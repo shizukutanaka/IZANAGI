@@ -4807,3 +4807,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Applesauce floppy controller・HxCFloppyEmulator・SuperCard Pro ソフトウェア・ImageDisk・SamDisk/SIMH dsk 実装 — 全て整数のみで実装。
 
 **国内技術情報**: フロッピーイメージ保存・WOZ/A2R/HxC 解説記事(Qiita・Zenn・個人技術ブログ等)— 全て整数のみで実装。
+
+## 第203次:GPU シェーダ・中間言語形式パーサ(7 モジュール)
+
+`spv`(SPIR-V:`0x07230203` マジック+version/generator/bound/reserved+`wc u16 | opcode u16` 命令歩行で `OpEntryPoint`/`OpName`/`OpCapability`/`OpExtension` センサス)/ `dxbc`(DirectX Bytecode:`DXBC`+16B ハッシュ+u32le 版/総サイズ/チャンク数+オフセット表→`SHDR`/`SHEX`/`DXIL`/`ISGN`/`OSGN`/`RDEF`/`STAT`/`PSV0` FOURCC 分類)/ `metallib`(Apple Metal:`MTLB`+ヘッダ語+`TARG`/`TYPE`/`NAME`/`FNMD`/`HASH`/`MDCL`/`ENDT`/`BITC` タグ歩行+LLVM bitcode 検出)/ `ptx`(NVIDIA PTX:`.version M.m`+`.target sm_NN`+`.address_size`+`.entry`/`.func`/`.visible`/`.reg`/`.global` 等ディレクティブ走査)/ `glsl`(`#version NNN`+`es`/`core`/`compatibility` プロファイル+`#extension`+uniform/in/out/varying/layout/sampler/`gl_`/`void main` 集計)/ `hlsl`(`cbuffer`/`tbuffer`+`register(N)`/`packoffset`+`SV_*` セマンティクス+`Texture*`/`SamplerState`/`RWStructuredBuffer`+`floatN`/`matrix`+`[numthreads]` 属性+technique)/ `wgsl`(`@vertex`/`@fragment`/`@compute`+`@group`/`@binding`/`@builtin`/`@location`/`@workgroup_size`+`fn`/`struct`/`var<`/`let`/`const`/`override`+`vecNf`/`matNxMf` 型)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:SPIR-V ヘッダ+命令語、DXBC チャンク表、MTLB タグ列、PTX ディレクティブ、GLSL `#version`+宣言、HLSL cbuffer/register、WGSL `@vertex`/`@group` 属性)。
+
+## 出典(第203次、search-index 照合)
+
+**論文・仕様**: SPIR-V Specification(Khronos)・D3D bytecode/DXBC container(Windows SDK/wine dxbc 解析)・Metal shader library format(Apple Developer)・PTX ISA(NVIDIA CUDA docs)・OpenGL Shading Language spec・HLSL Shader Model 6 docs(Microsoft Learn)・WGSL spec(W3C GPU for the Web) — 全て整数のみで実装。
+
+**実装物**: SPIRV-Tools・dxvk/dxbc-spv・naga(wgsl)・glslang・DXC(DirectXShaderCompiler)・LLVM Metal backend — 全て整数のみで実装。
+
+**国内技術情報**: SPIR-V/WGSL/HLSL 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
