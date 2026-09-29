@@ -5011,3 +5011,15 @@ IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン�
 **実装物**: astropy・asdf-format・IRSA/IPAC ツール・ds9・minorplanetcenter 観測報告・TAP/ADQL 実装群 — 全て整数のみで実装。
 
 **国内技術情報**: VOTable/ASDF/IPAC/ECSV/DS9 リージョン/MPC フォーマット/ADQL 解説記事(Qiita・Zenn・天文関連技術ブログ等)— 全て整数のみで実装。
+
+## 第219次:医療・生体信号データ形式
+
+HL7 v2・FHIR JSON・BrainVision .vhdr/.vmrk・XDF・WFDB .hea・NCPDP SCRIPT の7形式を追加。パイプ区切りセグメント走査(hl7)・JSON キーセンサス(fhir)・INI セクション+`MkN=` カンマフィールド(vmrk/vhdr)・`XDF:` +length-prefixed chunk 歩行(xdf)・`name/N fs N` レコード行+`fmtXgain`(wfdb)・XML タグセンサス(ncpdp)で、メッセージ構造・チャネル/マーカー・信号仕様を整数計数する。
+
+## 出典(第219次、search-index 照合)
+
+**論文・仕様**: HL7 v2.x messaging standard(hl7.org)・FHIR R4/R5 JSON spec(hl7.org/fhir)・BrainVision Core Data Format spec(brainproducts)・XDF spec(github.com/sccn/xdf)・WFDB header format(physionet.org)・NCPDP SCRIPT standard(ncpdp.org)— 全て整数のみで実装。
+
+**実装物**: HAPI FHIR・BrainVision Analyzer/recorder・sccn/xdf LabRecorder・physionet WFDB tools・NCPDP SCRIPT 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: HL7/FHIR/BrainVision/XDF/WFDB/NCPDP 解説記事(Qiita・Zenn・医療情報技術ブログ等)— 全て整数のみで実装。
