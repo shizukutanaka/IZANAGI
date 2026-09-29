@@ -4775,3 +4775,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: samtools/htslib・minimap2・BioPython AlignIO・pysam — 全て整数のみで実装。
 
 **国内技術情報**: SAM/BAM・VCF 解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
+
+## 第201次:TeX バイナリ・フォントメトリクス形式パーサ(7 モジュール)
+
+`dvi`(DVI/XDV:`0xF7`+version id 2/3/7(DVI/pTeX/XDV)+`num`/`den`/`mag`+`k` コメント+末尾 `0xF9` `post_post` の `q` 指す `0xF8` `post` で `l`/`u`/`s`/`t` 取得)/ `tfm`(TeX Font Metric:`lf lh bc ec`+`nw nh nd ni nl nk ne np` で `lf = 6+lh+chars+Σtables`・`len = 4*lf` 整合+`check_sum`/`design_size` ヘッダ)/ `jfm`(pTeX JFM:`id` 9(横)/11(縦)+`nt` char_type+`lf = 7+lh+nt+chars+Σ` 拡張式、`exten`→`glue` 差異)/ `gf`(Metafont Generic Font:`0xF7 131`+`k` コメント+`post` の `ds cs hppp vppp min_m..max_n` バウンディングボックス)/ `pk`(Packed:`0xF7 89`+`k` コメント+`ds cs hppp vppp`+`245 pk_post`/`246 pk_nop` パディング)/ `vf`(Virtual Font:`0xF7 202`+`cs`/`ds`+`flag<242` 短・`242` 長 char パケット+`243–246` `fnt_def` 歩行+`248 post`)/ `pl`(property list(tftopl/pltotf):`(FAMILY|CODINGSCHEME|DESIGNSIZE|CHECKSUM|FONTDIMEN|LIGTABLE|CHARACTER|…)` フォーム走査+`R D O H C F` radix タグ計数+`CHARWD`/`CHARHT`/`CHARIC`/`KRN`/`LIG`/`LABEL`/`STOP` 内訳)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:DVI post_post・TFM lf 式・JFM 縦組・GF post・PK postamble・VF fnt_def/char パケット・PL フォーム)。
+
+## 出典(第201次、search-index 照合)
+
+**論文・仕様**: TeX82 DVItype 文献(DVI format、`pre`/`post`/`post_post` 構造)・TFM format spec(TUG、lf 式・7 テーブル)・Omega OFM/JFM(pTeX id 9/11)・GF/PK/VF format docs(gftype/pktype/vftovp web2c 系)・property list format(pltotf/tftopl 出力) — 全て整数のみで実装。
+
+**実装物**: TeX Live/web2c(dvitype・tftopl・pltotf・gftopk・vftovp)・dvisvgm・XDV 仕様 — 全て整数のみで実装。
+
+**国内技術情報**: TeX フォントメトリクス(TFM/JFM)・DVI 構造の解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
