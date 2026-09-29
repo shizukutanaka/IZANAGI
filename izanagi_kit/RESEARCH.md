@@ -5071,3 +5071,15 @@ Solr schema.xml・solrconfig.xml・Elasticsearch mappings・Elasticsearch settin
 **実装物**: apache/solr・elastic/elasticsearch・meilisearch/meilisearch・typesense/typesense・algolia(algoliasearch)— 全て整数のみで実装。
 
 **国内技術情報**: Solr/Elasticsearch/Meilisearch/Typesense/Algolia 解説記事(Qiita・Zenn・検索基盤系技術ブログ等)— 全て整数のみで実装。
+
+## 第224次:データパイプライン・ワークフロー定義形式
+
+Airflow DAG・dbt_project.yml・prefect.yaml・dagster.yaml/workspace.yaml・Argo Workflows・ArgoCD Application/AppProject/ApplicationSet・Kubeflow Pipelines の7形式を追加。`from airflow`/`import airflow`+`dag_id`+`@task` デコレータ+`>>`/`<<` 依存演算子(airflow)・`model-paths:`/`require-dbt-version:`+`models:`/`seeds:` ブロック+`+materialized` 等の `+` 設定キー(dbt)・`prefect-version:`+`deployments:` の `- name:` エントリ+`entrypoint:`/`work_pool:`+`cron:`/`rrule:` スケジュールキー(prefect)・`run_launcher:`/`run_storage:`/`event_log_storage:`+`load_from:` の `python_file:`/`grpc_server:` ロケーション(dagster)・`argoproj.io`+`kind: Workflow|CronWorkflow`+`entrypoint:`/`templates:`+`container:`/`dag:`/`steps:`(argowf)・`kind: Application|AppProject|ApplicationSet`+`source:`/`destination:`/`syncPolicy:`+`repoURL:`/`targetRevision:`/`automated:`/`prune:`/`selfHeal:`(argocd)・`tekton.dev`+`kind: PipelineRun`+`pipelines.kubeflow.org` アノテーション+IR `components:`/`deploymentSpec:`/`schemaVersion:`/`sdkVersion:`+`taskSpec:`/`runAfter:`/`when:`(kubeflow)で、DAG 依存・モデル構成・デプロイメント・ロケーション・ワークフローテンプレート・同期ポリシ・パイプライン IR を整数計数する。
+
+## 出典(第224次、search-index 照合)
+
+**論文・仕様**: Apache Airflow DAG reference+TaskFlow API(airflow.apache.org/docs)・dbt project.yml reference+configs(docs.getdbt.com)・Prefect deployments+prefect.yaml schema(docs.prefect.io)・Dagster instance configuration+workspace file reference(docs.dagster.io)・Argo Workflows fields spec+CRD(argo-workflows.readthedocs.io)・ArgoCD Application+AppProject+ApplicationSet specs(argo-cd.readthedocs.io)・Kubeflow Pipelines IR+Tekton PipelineRun spec(pipelines.kubeflow.org/docs・tekton.dev/docs)— 全て整数のみで実装。
+
+**実装物**: apache/airflow・dbt-labs/dbt-core・PrefectHQ/prefect・dagster-io/dagster・argoproj/argo-workflows・argoproj/argo-cd・kubeflow/pipelines+tektoncd/pipeline — 全て整数のみで実装。
+
+**国内技術情報**: Airflow/dbt/Prefect/Dagster/Argo Workflows/ArgoCD/Kubeflow 解説記事(Qiita・Zenn・データ基盤・MLOps 系技術ブログ等)— 全て整数のみで実装。
