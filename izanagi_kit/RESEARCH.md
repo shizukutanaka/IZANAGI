@@ -5179,3 +5179,15 @@ MLflow MLmodel・DVC dvc.yaml/lock・W&B metadata/config・BentoML bentofile/ben
 **実装物**: mlflow/mlflow・iterative/dvc・wandb/wandb・bentoml/BentoML・jpmml/jpmml-model・tensorflow/tensorflow・apache/mxnet/dmlc-core — 全て整数のみで実装。
 
 **国内技術情報**: MLflow/DVC/W&B/BentoML/PMML/TFRecord/RecordIO 解説記事(Qiita・Zenn・MLOps 系技術ブログ等)— 全て整数のみで実装。
+
+## 第233次:図・ダイアグラム記述形式
+
+Graphviz DOT・Mermaid・PlantUML・Excalidraw JSON・drawio/diagrams.net XML・Visual Studio DGML・Trivial Graph Format の7形式を追加。`digraph`/`strict`/`subgraph`+`->`/`--` 演算子(dot)・21 種図型ステートメント+演算子正規化辺(mermaid)・`@start*`/`@end*`+矢印演算子+宣言キーワード(plantuml)・`elements` 型センサス+`boundElements` 参照除外+appState/files(excalidraw)・`<diagram>`/`<mxCell>` vertex/edge+圧縮ペイロード検出(drawio)・`<Node>`/`<Link>`/`<Category>` 要素センサス(dgml)・ノード行+`#` セパレータ+辺行(tgf)で、テキスト図定義を整数計数する。
+
+## 出典(第233次、search-index 照合)
+
+**論文・仕様**: DOT language spec(graphviz.org/doc/info/lang)・Mermaid syntax(mermaid.js.org docs)・PlantUML language reference(plantuml.com)・Excalidraw data format(docs.excalidraw.com)・mxGraph/drawio file format(jgraph.github.io/mxgraph+drawio docs)・DGML reference(Microsoft docs)・Trivial Graph Format(yWorks docs)— 全て整数のみで実装。
+
+**実装物**: ellson/graphviz・mermaid-js/mermaid・plantuml/plantuml・excalidraw/excalidraw・jgraph/drawio・jgraph/mxgraph — 全て整数のみで実装。
+
+**国内技術情報**: DOT/Mermaid/PlantUML/Excalidraw/drawio/DGML/TGF 解説記事(Qiita・Zenn・VS 系技術ブログ等)— 全て整数のみで実装。
