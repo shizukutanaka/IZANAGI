@@ -4915,3 +4915,15 @@ Unreal `.uproject`/`.uplugin`・Godot `project.godot`/`.tscn`・Twee 3・Ren'Py 
 **実装物**: Unreal Engine editor・Godot Engine・Tweego/Twine・Ren'Py SDK・RPG Maker VX Ace/MV・Ruby marshal.c — 全て整数のみで実装。
 
 **国内技術情報**: Unreal プロジェクトファイル/Godot シーン形式/Twee/Ren'Py/RPGツクールデータ形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第211次:構成・データ記述言語(DSL)形式
+
+Dhall・Jsonnet・Nickel・KCL・Apple Pkl・Clojure EDN・Zig ZON の7形式を追加。いずれも `let`/`in`・`self.`・`schema`・`amends`・`:keyword`・`.{` 等の言語固有シグネチャで検出し、バインディング・契約注釈・インポート・コメントを整数計数する。
+
+## 出典(第211次、search-index 照合)
+
+**論文・仕様**: Dhall language standard(dhall-lang.org)・Jsonnet language spec(jsonnet.org)・Nickel language(nickel-lang.org)・KCL spec(kcl-lang.io)・Pkl language reference(pkl-lang.org)・EDN format spec(github.com/edn-format/edn)・Zig ZON(ziglang.org)— 全て整数のみで実装。
+
+**実装物**: dhall-haskell・google/go-jsonnet・tweag/nickel・KusionStack KCL・apple/pkl・Clojure reader・Zig compiler ZON parser — 全て整数のみで実装。
+
+**国内技術情報**: Dhall/Jsonnet/Nickel/KCL/Pkl/EDN/ZON 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
