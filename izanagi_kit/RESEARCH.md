@@ -5059,3 +5059,15 @@ prometheus.yml・alertmanager.yml・Grafana provisioning/dashboard・OpenTelemet
 **実装物**: prometheus/prometheus・prometheus/alertmanager・grafana/grafana・open-telemetry/opentelemetry-collector・NagiosEnterprises/nagioscore・Icinga/icinga2・zabbix/zabbix — 全て整数のみで実装。
 
 **国内技術情報**: Prometheus/Alertmanager/Grafana/OTel Collector/Nagios/Icinga/Zabbix 解説記事(Qiita・Zenn・監視・SRE 系技術ブログ等)— 全て整数のみで実装。
+
+## 第223次:検索エンジン・情報検索設定形式
+
+Solr schema.xml・solrconfig.xml・Elasticsearch mappings・Elasticsearch settings・Meilisearch settings・Typesense schema・Algolia index settings の7形式を追加。`<field>`/`<fieldType>`/`<copyField>`+`solr.*` クラス(solrschema)・requestHandler/cache/updateLog+`<lst>`/`<str>` 型付き要素(solrconfig)・`"properties"`/`"type":"text|keyword|…"` フィールド型(esmapping)・number_of_shards+analysis named objects(essettings)・rankingRules+`*Attributes`+typoTolerance(meili)・`{"name","type"}` フィールド配列+facet/default_sorting_field(typesense)・searchableAttributes+attributesForFaceting+customRanking+`ALGOLIA_*`(algolia)で、スキーマ・分析器・ランキング・クエリ構成を整数計数する。
+
+## 出典(第223次、search-index 照合)
+
+**論文・仕様**: Apache Solr Reference Guide(schema.xml/solrconfig.xml)・Elasticsearch mapping params+index modules(elastic.co/guide)・Meilisearch settings API(docs.meilisearch.com)・Typesense collection schema+search parameters(typesense.org/docs)・Algolia index settings API(algolia.com/doc/api-reference/settings-api-parameters)— 全て整数のみで実装。
+
+**実装物**: apache/solr・elastic/elasticsearch・meilisearch/meilisearch・typesense/typesense・algolia(algoliasearch)— 全て整数のみで実装。
+
+**国内技術情報**: Solr/Elasticsearch/Meilisearch/Typesense/Algolia 解説記事(Qiita・Zenn・検索基盤系技術ブログ等)— 全て整数のみで実装。
