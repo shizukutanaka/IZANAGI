@@ -4927,3 +4927,15 @@ Dhall・Jsonnet・Nickel・KCL・Apple Pkl・Clojure EDN・Zig ZON の7形式を
 **実装物**: dhall-haskell・google/go-jsonnet・tweag/nickel・KusionStack KCL・apple/pkl・Clojure reader・Zig compiler ZON parser — 全て整数のみで実装。
 
 **国内技術情報**: Dhall/Jsonnet/Nickel/KCL/Pkl/EDN/ZON 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第212次:スマートコントラクト・ブロックチェーン言語形式
+
+Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`pragma solidity`/`# @version`/`module addr::name`/`#[starknet::contract]`/`(define-*`/`contract+receive`/`recv_internal` 等の言語固有シグネチャで検出し、宣言・デコレータ/属性・外部呼出・コメントを整数計数する。
+
+## 出典(第212次、search-index 照合)
+
+**論文・仕様**: Solidity docs(docs.soliditylang.org)・Vyper docs(docs.vyperlang.org)・Move language reference(aptos.dev / sui.io)・Cairo language docs(cairo-lang.org / StarkNet docs)・Clarity language reference(docs.stacks.co)・Tact language docs(docs.tact-lang.org)・FunC docs(docs.ton.org)— 全て整数のみで実装。
+
+**実装物**: solidity・vyper・aptos-core/move・starkware cairo・stacks-blockchain clarity・tact-lang/tact・ton-blockchain func — 全て整数のみで実装。
+
+**国内技術情報**: Solidity/Vyper/Move/Cairo/Clarity/Tact/FunC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
