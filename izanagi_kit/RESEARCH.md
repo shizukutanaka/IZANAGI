@@ -4571,3 +4571,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: libraw/dcraw・darktable/RawTherapee の各メーカー RAW ローダー・ExifTool・exiv2・pyrawimage/rawpy — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の RAW 現像・DNG 変換・ExifTool 活用・Python rawpy 解説記事 — 全て整数のみで実装。
+
+## 第191次: 形式手法・定理証明・検証形式(tptp / smt2 / aiger / sby / isabelle / coq / lean)
+
+**方法**: 文献参照ラウンド継続 — 自動定理証明・モデル検査・対話的証明系。全7件が既存 1239 件と非衝突を確認(`sat` はアルゴリズムで形式ではないため併存):
+
+- `tptp` — TPTP 問題記述: `cnf`/`fof`/`tff`/`thf`/`tfa`/`tpi`/`ddt` kind 計数 + axiom/type vs conjecture/lemma ロール分類 + `include`
+- `smt2` — SMT-LIB v2: `set-logic`/`declare-fun`/`declare-sort`/`define-*`/`assert`/`check-sat`/`get-*`/`push`/`pop`/`set-option`/`exit` コマンド計数
+- `aiger` — AIGER 回路交換: `aag`/`aig` ヘッダ `M I L O A` + 拡張 `B C J F` + ASCII 行計数
+- `sby` — SymbiYosys: `[tasks]`/`[options]`/`[engines]`/`[script]`/`[files]` セクション + `mode`/`depth` + 行計数
+- `isabelle` — Isabelle/Isar `.thy`: `theory`/`imports`/`begin`/`end` 骨格 + lemma/definition/datatype/locale/tactic/hole キーワード計数(`(* *)` コメント除去)
+- `coq` — Coq/Rocq `.v`: vernacular コマンド計数(lemmas/Proof/Qed/Admitted/Definition/Inductive/Fixpoint/Module/Require)
+- `lean` — Lean 4: `import` ドット名/`theorem`/`def`/`inductive`/`instance`/`example`/`namespace`/`#check` 系 + `by`/`sorry` 計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第191次、search-index 照合)
+
+**論文・仕様**: TPTP language spec(Sutcliffe, TPTP World)・SMT-LIB v2.6 standard(Barrett/Fontaine/Tinelli)・AIGER format spec(Biere, FMV)・SymbiYosys sby リファレンス(YosysHQ)・Isabelle/Isar reference manual(Wenzel)・Coq Reference Manual/Rocq docs・Lean 4 theorem proving docs — 全て整数のみで実装。
+
+**実装物**: Vampire/E prover の TPTP パーサ・z3/cvc5 の SMT-LIB フロントエンド・aiger ツール群/abc・YosysHQ sby・Isabelle2024・coqc/rocq・lean4/elan — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SMT ソルバ入門・Isabelle/HOL チュートリアル・Coq 入門・Lean 4/Mathlib 解説・記号実行・形式検証記事 — 全て整数のみで実装。
