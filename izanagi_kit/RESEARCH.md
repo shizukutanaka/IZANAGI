@@ -5167,3 +5167,15 @@ Trivy JSON・Anchore Grype JSON・Snyk JSON・Semgrep JSON・SonarQube issues JS
 **実装物**: aquasecurity/trivy・anchore/grype・snyk/cli・semgrep/semgrep・SonarSource/sonarqube・spotbugs/spotbugs・bridgecrewio/checkov — 全て整数のみで実装。
 
 **国内技術情報**: Trivy/Grype/Snyk/Semgrep/SonarQube/SpotBugs/Checkov 解説記事(Qiita・Zenn・クラウドセキュリティ系技術ブログ等)— 全て整数のみで実装。
+
+## 第232次:機械学習・MLOps メタデータ形式
+
+MLflow MLmodel・DVC dvc.yaml/lock・W&B metadata/config・BentoML bentofile/bento.yaml・PMML XML・TFRecord バイナリ・RecordIO チャンクの7形式を追加。`flavors:`+loader/signature/metadata キー(mlflow)・`stages:`+cmd/deps/outs/metrics/params+md5+frozen/foreach(dvcfile)・wandb-metadata.json キー集合+`wandb_version:`+desc エントリ+sweep(wandb)・`service:`+include/exclude/models/runners/apis+python/docker/conda セクション(bentoml)・`<DataField>`/`<MiningField>`+16 種モデル要素+`<Segment>`(pmml)・len+CRC レコード歩行(tfrecord)・`kMagic`+4B アライン パディング チャンク歩行(recordio)で、MLOps 定義を整数計数する。
+
+## 出典(第232次、search-index 照合)
+
+**論文・仕様**: MLflow MLmodel format(mlflow.org/docs)・DVC pipeline spec dvc.yaml/dvc.lock(dvc.org/doc)・W&B files/config.yaml(wandb.ai docs)・BentoML bentofile/bento.yaml(docs.bentoml.com)・PMML 4.4 spec(dmg.org/pmml)・TFRecord format(tensorflow.org)+TFRecord guide・RecordIO chunk format MXNet/dmlc(github.com/dmlc/dmlc-core)— 全て整数のみで実装。
+
+**実装物**: mlflow/mlflow・iterative/dvc・wandb/wandb・bentoml/BentoML・jpmml/jpmml-model・tensorflow/tensorflow・apache/mxnet/dmlc-core — 全て整数のみで実装。
+
+**国内技術情報**: MLflow/DVC/W&B/BentoML/PMML/TFRecord/RecordIO 解説記事(Qiita・Zenn・MLOps 系技術ブログ等)— 全て整数のみで実装。
