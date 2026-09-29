@@ -4759,3 +4759,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: libical・python-ldap ldif・ExifTool IPTC リファレンス・Atom 系各実装 — 全て整数のみで実装。
 
 **国内技術情報**: vCard/iCal/LDIF 解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
+
+## 第200次:配列アライメント・系統解析形式パーサ(7 モジュール)
+
+`bam`(BAM hts-specs:`BAM\x01`+`l_text` i32le SAM ヘッダ+`n_ref`/`l_name`/`name`/`l_ref` 辞書+`block_size` i32le アライメントレコード鎖歩行+切詰検出)/ `aln`(Clustal W/X/Omega:`CLUSTAL`|`MUSCLE` バナー+空行ブロック+`name seq` 行+`*:.` コンセンサス行)/ `maf`(UCSC MAF:`##maf key=value` ヘッダ+`a score=` ブロック+`s` src/start/size/strand/srcSize/seq+`i`/`e`/`q`/`p`/`c` 補助行)/ `paf`(minimap2 PAF:12 必須タブ列 qname/qlen/qstart/qend/strand/tname/tlen/tstart/tend/nmatch/alen/mapq+`tag:type:value` オプション列)/ `pileup`(SAMtools mpileup:`seq pos ref depth bases quals`+`.,ACGTNacgtn*^$+-[]` マーカー+indel/deletion/ref-only 計数)/ `nexus`(NEXUS:`#NEXUS`+`begin/end` ブロック+`dimensions ntax/nchar`+`tree`/`utree`/`matrix`/`translate`/`taxlabels`)/ `phylip`(PHYLIP:`<ntax> <nchar>` 先頭+`name seq` 行+sequential/interleaved レイアウト判別)。`vcf`/`sam` は既存モジュール(vCard/サフィックスオートマトン)のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BAM バイナリ・Clustal ブロック・MAF ブロック・PAF 行・mpileup 行・NEXUS ツリー・PHYLIP 行列)。
+
+## 出典(第200次、search-index 照合)
+
+**論文・仕様**: SAMv1/BAM spec(htmlpub hts-specs)・ClustalW 出力形式・UCSC MAF format spec・minimap2 PAF.md・samtools mpileup man・NEXUS standard(Maddison et al. 1997 Syst. Biol.)・PHYLIP sequence format doc — 全て整数のみで実装。
+
+**実装物**: samtools/htslib・minimap2・BioPython AlignIO・pysam — 全て整数のみで実装。
+
+**国内技術情報**: SAM/BAM・VCF 解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
