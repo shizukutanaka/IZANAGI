@@ -4791,3 +4791,19 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: TeX Live/web2c(dvitype・tftopl・pltotf・gftopk・vftovp)・dvisvgm・XDV 仕様 — 全て整数のみで実装。
 
 **国内技術情報**: TeX フォントメトリクス(TFM/JFM)・DVI 構造の解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
+
+## 第202次:フロッピー・ディスクイメージ形式パーサ 第2弾(7 モジュール)
+
+`woz`(Apple II WOZ:`WOZ1`/`WOZ2`+`0xFF 0x0A 0x0D 0x0A` 整合バイト+`ID u32le` チャンク歩行で `INFO`/`TMAP`/`TRKS`/`META`/`FLUX`/`WRIT` センサス)/ `a2r`(Applesauce A2R:`A2R2`/`A2R3` 同系シグネチャ+`INFO`/`STRM`/`META`/`RWCP`/`SLVD`/`SELV`、STRM type で flux/nibble/bitstream 分類)/ `hfe`(HxC Floppy Emulator:`HXCPICFE`+rev 0+tracks/sides/encoding+bitrate/rpm u16le+interface mode+512B 単位 LUT 歩行)/ `scp`(SuperCard Pro:`SCP`+BCD version+disk type+revolutions+start/end track+flags/cell_size/heads/resolution+u32le checksum+168 エントリ u32le オフセット表)/ `imd`(ImageDisk:`IMD ` ASCII ヘッダ+`0x1A` 終端+mode/cyl/head(bit6 シリンダマップ/bit5 ヘッドマップ)/nsec/ssize `128<<n`+セクタデータ type `0..=8` 歩行)/ `td0`(TeleDisk:`TD`/`td`+sequence+check-sig+version/data_rate/drive_type/stepping/dos/sides+header CRC16+任意コメントブロック crc+len+日時)/ `edsk`(Amstrad CPC:`MV - CPCEMU Disk-File`/`EXTENDED CPC DSK File`+tracks/sides/track_size or サイズテーブル+`Track-Info` ブロック走査+セクタ情報リスト計数)。`nib`/`po`/`d64`/`d88` は既存モジュールのため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WOZ チャンク・A2R STRM・HFE LUT・SCP オフセット表・IMD トラックレコード・TD0 コメントブロック・EDSK Track-Info)。
+
+## 出典(第202次、search-index 照合)
+
+**論文・仕様**: WOZ file format spec(Apple II 保存プロジェクト)・Applesauce A2R v2/v3 spec(applesaucefdc)・HxC HFE file format documentation・SuperCard Pro image format spec(CBM stuff)・ImageDisk IMD file format(Dunfield)・TeleDisk TD0 format(teledisk documentation)・CPC DSK/EDSK format(CPCEMU/WinAPE docs) — 全て整数のみで実装。
+
+**実装物**: Applesauce floppy controller・HxCFloppyEmulator・SuperCard Pro ソフトウェア・ImageDisk・SamDisk/SIMH dsk 実装 — 全て整数のみで実装。
+
+**国内技術情報**: フロッピーイメージ保存・WOZ/A2R/HxC 解説記事(Qiita・Zenn・個人技術ブログ等)— 全て整数のみで実装。
