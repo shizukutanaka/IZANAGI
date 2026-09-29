@@ -5191,3 +5191,15 @@ Graphviz DOT・Mermaid・PlantUML・Excalidraw JSON・drawio/diagrams.net XML・
 **実装物**: ellson/graphviz・mermaid-js/mermaid・plantuml/plantuml・excalidraw/excalidraw・jgraph/drawio・jgraph/mxgraph — 全て整数のみで実装。
 
 **国内技術情報**: DOT/Mermaid/PlantUML/Excalidraw/drawio/DGML/TGF 解説記事(Qiita・Zenn・VS 系技術ブログ等)— 全て整数のみで実装。
+
+## 第234次:DNS・名前解決設定形式
+
+DNS ゾーンファイル・BIND named.conf・resolv.conf・nsswitch.conf・dnsmasq.conf・Unbound unbound.conf・CoreDNS Corefile の7形式を追加。`$` 指令+RR 型センサス(DNSSEC 含む、型トークンは先頭名スキップ前方スキャンで RRSIG rdata 内 `A` 誤爆を回避)(zone)・`options`/`zone`/logging/acl/view ブロック+zone type(namedconf)・nameserver/search/options サブオプション(resolv)・`db: source` 行+`[ACTION=]` 上書き(nsswitch)・裸フラグ+`key=value`+dhcp 分類(dnsmasq)・`server:`/`forward-zone:` セクション(unbound)・`zones {}` ブロック+プラグイン指令(corefile)で、名前解決設定を整数計数する。
+
+## 出典(第234次、search-index 照合)
+
+**論文・仕様**: RFC 1035 master file format・BIND9 named.conf ARM(ISC docs)・resolv.conf(5) man page・nsswitch.conf(5) man page・dnsmasq(8) man page・unbound.conf(5) man page・CoreDNS manual(coredns.io/manual)— 全て整数のみで実装。
+
+**実装物**: isc-projects/bind9・NLnetLabs/unbound・imp/dnsmasq・coredns/coredns・glibc nss・systemd-resolved docs — 全て整数のみで実装。
+
+**国内技術情報**: DNS zone ファイル/named.conf/resolv.conf/nsswitch/dnsmasq/unbound/Corefile 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
