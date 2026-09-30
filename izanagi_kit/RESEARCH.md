@@ -4807,3 +4807,63 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Applesauce floppy controller・HxCFloppyEmulator・SuperCard Pro ソフトウェア・ImageDisk・SamDisk/SIMH dsk 実装 — 全て整数のみで実装。
 
 **国内技術情報**: フロッピーイメージ保存・WOZ/A2R/HxC 解説記事(Qiita・Zenn・個人技術ブログ等)— 全て整数のみで実装。
+
+## 第203次:GPU シェーダ・中間言語形式パーサ(7 モジュール)
+
+`spv`(SPIR-V:`0x07230203` マジック+version/generator/bound/reserved+`wc u16 | opcode u16` 命令歩行で `OpEntryPoint`/`OpName`/`OpCapability`/`OpExtension` センサス)/ `dxbc`(DirectX Bytecode:`DXBC`+16B ハッシュ+u32le 版/総サイズ/チャンク数+オフセット表→`SHDR`/`SHEX`/`DXIL`/`ISGN`/`OSGN`/`RDEF`/`STAT`/`PSV0` FOURCC 分類)/ `metallib`(Apple Metal:`MTLB`+ヘッダ語+`TARG`/`TYPE`/`NAME`/`FNMD`/`HASH`/`MDCL`/`ENDT`/`BITC` タグ歩行+LLVM bitcode 検出)/ `ptx`(NVIDIA PTX:`.version M.m`+`.target sm_NN`+`.address_size`+`.entry`/`.func`/`.visible`/`.reg`/`.global` 等ディレクティブ走査)/ `glsl`(`#version NNN`+`es`/`core`/`compatibility` プロファイル+`#extension`+uniform/in/out/varying/layout/sampler/`gl_`/`void main` 集計)/ `hlsl`(`cbuffer`/`tbuffer`+`register(N)`/`packoffset`+`SV_*` セマンティクス+`Texture*`/`SamplerState`/`RWStructuredBuffer`+`floatN`/`matrix`+`[numthreads]` 属性+technique)/ `wgsl`(`@vertex`/`@fragment`/`@compute`+`@group`/`@binding`/`@builtin`/`@location`/`@workgroup_size`+`fn`/`struct`/`var<`/`let`/`const`/`override`+`vecNf`/`matNxMf` 型)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:SPIR-V ヘッダ+命令語、DXBC チャンク表、MTLB タグ列、PTX ディレクティブ、GLSL `#version`+宣言、HLSL cbuffer/register、WGSL `@vertex`/`@group` 属性)。
+
+## 出典(第203次、search-index 照合)
+
+**論文・仕様**: SPIR-V Specification(Khronos)・D3D bytecode/DXBC container(Windows SDK/wine dxbc 解析)・Metal shader library format(Apple Developer)・PTX ISA(NVIDIA CUDA docs)・OpenGL Shading Language spec・HLSL Shader Model 6 docs(Microsoft Learn)・WGSL spec(W3C GPU for the Web) — 全て整数のみで実装。
+
+**実装物**: SPIRV-Tools・dxvk/dxbc-spv・naga(wgsl)・glslang・DXC(DirectXShaderCompiler)・LLVM Metal backend — 全て整数のみで実装。
+
+**国内技術情報**: SPIR-V/WGSL/HLSL 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第204次:圧縮・アーカイブ形式パーサ 第3弾(7 モジュール)
+
+`wim`(Microsoft Windows Imaging:`MSWIM\0\0\0`/`MSWIMOLD`+u32le ヘッダサイズ・バージョン・フラグ+圧縮列挙(None/XPRESS/LZX/LZMS/solid 変種)+`reshdr`(8B オフセット+7B サイズ+1B フラグ)オフセットテーブル/XML/ブート/整合性区画センサス+パーツ番号/イメージ数)/ `zpaq`(Matt Mahoney:`zPQ`+level 1/2+メモリバイト、`h` ブロック開始・`d` データ・`i` ブロック終端マーカ走査+HCOMP ヘッダ(hh hm ph pn n+comp n バイト+END)集計)/ `lzfse`(Apple 圧縮:`bvx1` 非圧縮/`bvx2` v2/`bvxn` 非圧縮終端/`bvx-` raw/`bvx$` EOS ブロックマジック歩行+raw/payload バイト集計)/ `ace`(`**ACE**` シグネチャ+head crc/size/type/flags/version/host_os+型付きサブヘッダ entry(1=file,2=recovery,3=AV,4=comment)歩行)/ `alz`(ALZip:`ALZ\x01` マジック+`F` 型付きエントリレコード走査+末尾 u32le ファイル数との整合+EOF トレーラ検出)/ `zoo`(Rahul Dhesi:`FD C4 A7 DC` アーカイブマジック@20+テキスト導入部+ディレクトリエントリ `next` オフセット鎖歩行+type(1=file,2=sub)/method ビット集合+orig/packed サイズ集計)/ `lzip`(LZMA 単一/複数メンバ:`LZIP`+version 1+coded dict サイズ(上位3bit 指数)+20B メンバトレーラ crc32/data_size/member_size 整合走査)。`cab`/`cpio`/`ar`/`tar`/`lzw`/`gzip`/`bzip2`/`zstd`/`lz4`/`xz`/`zip`/`rar`/`x7z`/`squashfs` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WIM reshdr 表・ZPAQ マーカ+HCOMP、LZFSE ブロック列・ACE サブヘッダ列・ALZ F レコード・ZOO エントリ鎖・lzip トレーラ)。
+
+## 出典(第204次、search-index 照合)
+
+**論文・仕様**: Microsoft WIM file format documentation・ZPAQ spec(zpaq.org)・LZFSE open-source implementation format docs(apple/lzfse)・ACE format AppNote・ALZip format notes(ESTsoft)・ZOO archive format docs・lzip format manual(lzip manual, nongnu.org) — 全て整数のみで実装。
+
+**実装物**: imagex/wimlib・zpaq reference・apple/lzfse・unace/ace unarchiver・ALZip・zoo 2.10・lzip reference — 全て整数のみで実装。
+
+**国内技術情報**: WIM/ZPAQ/LZFSE/lzip 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第205次:FPGA ビットストリーム・プログラミング形式パーサ(7 モジュール)
+
+`bit`(Xilinx BitGen BIT:`00 09 0F F0 0F F0 0F F0 0F F0 00 01 00` プリアンブル+`a`/`b`/`c`/`d` u16be タグレコード(design/part/date/time)+`e` u32be データ長+ペイロード+`AA 99 55 66` 同期ワード検出)/ `jed`(JEDEC JESD3-C ヒューズマップ:`*`-終端レコード `QF` ヒューズ数・`F0`/`F1` デフォルト・`L<addr> <bits>` ヒューズ転写・`C` 16bit チェックサム・`G` セキュリティ・`N`/`D`/`E` 注記、STX/ETX フレーミング、set/clear ビット集計)/ `svf`(Serial Vector Format IEEE 1149.1:`HIR`/`TIR`/`HDR`/`TDR`/`SIR`/`SDR`/`RUNTEST`/`STATE`/`ENDIR`/`ENDDR`/`TRST`/`FREQUENCY` 文センサス+`TDO(`/`MASK(` ベクトル数、`;` 文分割、`//` コメント)/ `xsvf`(Xilinx XSVF バイナリ:XSDRSIZE オペコード 8+サイズ、オペコード歩行 `XCOMPLETE`/`XTDOMASK`/`XSIR`/`XSDR`/`XRUNTEST`/`XREPEAT`/`XSDRSIZE`/`XSTATE`/`XENDIR`/`XENDDR`/`XSIR2`/`XCOMMENT`/`XWAIT`、sdr_bytes=(bits+7)/8、truncated フラグ)/ `isc`(Xilinx ISC IEEE 1532:`ISC_*` コマンドセンサス `SIR`/`SDR`/`PROGRAM`/`ERASE`/`VERIFY`/`READ`/`BLANK`/`RUNTEST`/`ENABLE`/`DISABLE`+`TDO(` ベクトル+非 ISC 文 stray_text)/ `xdc`(Xilinx Design Constraints Tcl:`set_property`+`PACKAGE_PIN`/`IOSTANDARD`+`create_clock`/`create_generated_clock`+`set_input_delay`/`set_output_delay`/`set_false_path`/`set_multicycle_path`/`set_max_delay`/`set_clock_groups` タイミング例外+`get_ports`/`get_pins`/`get_cells`/`get_clocks`/`get_nets` オブジェクト参照+括弧深度バランス)/ `lpf`(Lattice LPF:`LOCATE`/`FREQUENCY`/`PERIOD`/`IOBUF`/`SYSCONFIG`/`BLOCK`/`UNBLOCK`/`PREFER`/`PROHIBIT`/`TIMESPEC`/`SLICE`/`UGROUP` 文センサス+`SITE` 参照数+MHz/KHz トークン+未知大文字コマンド unterminated)。予告の `rbf`/`sof` は署名のない生バイナリで detect()/parse() 契約を満たせず `xdc`/`lpf` に差替え。`sdc`/`pcf`/`ttf`/`soc`/`pal`/`gpl`/`ust` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BIT タグレコード列・JEDEC `*`-レコード+STX/ETX、SVF `;` 文・XSVF オペコード列・ISC `ISC_` 文・XDC Tcl 行・LPF 文)。
+
+## 出典(第205次、search-index 照合)
+
+**論文・仕様**: Xilinx Configuration File(.bit)format documentation・JEDEC JESD3-C standard・SVF Serial Vector Format spec(ASSET/AM-SVF-001)・IEEE 1149.1 JTAG・Xilinx XSVF spec(xapp058)・Xilinx ISC IEEE 1532 spec・Xilinx Vivado XDC constraints guide(UG903)・Lattice Diamond LPF constraints guide — 全て整数のみで実装。
+
+**実装物**: Vivado/iMPACT BitGen・GALasm/PALASM JEDEC ツール・OpenOCD SVF player・xsvf_player 参考実装・Xilinx iMPACT・Lattice Diamond — 全て整数のみで実装。
+
+**国内技術情報**: FPGA ビットストリーム/JTAG/SVF/XDC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第206次:言語別パッケージ定義ファイル形式
+
+Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks `.rockspec`・Perl `cpanfile`・OCaml `.opam`・Nim `.nimble` の7形式を追加。全て YAML/DSL のテキスト形式で、署名の強いキー(`environment:` `sdk:`/`crystal:`/`cabal-version:`/`rockspec_format`/`opam-version:`/`srcDir`/`requires`)で検出し、セクション・スタンザ・テーブルを字下げ/括弧深さ歩行でセンサス。
+
+## 出典(第206次、search-index 照合)
+
+**論文・仕様**: Dart pub.dev pubspec documentation・Crystal shards shard.yml spec・Haskell Cabal user guide(.cabal format)・LuaRocks rockspec format documentation・Perl cpanfile spec(Menlo/CPAN)・opam manual(opam-format OCaml)・Nim nimble package docs — 全て整数のみで実装。
+
+**実装物**: Dart pub・Crystal shards・Cabal/cabal-install・LuaRocks・cpanm/carton・opam・nimble — 全て整数のみで実装。
+
+**国内技術情報**: pubspec.yaml/shard.yml/cabal/rockspec/cpanfile/opam/nimble 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
