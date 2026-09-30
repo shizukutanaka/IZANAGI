@@ -274,6 +274,13 @@ fixed version has no such state at all.
 | `lego` | lego env/ini (`LEGO_*` + provider credential サフィックス) |
 | `minica` | minica.conf (CA/DN/extensions/crl/ocsp セクション) |
 | `stepca` | step-ca ca.json (provisioners/claims/dnsNames) |
+| `apacheconf` | Apache `httpd.conf`: `<VirtualHost>`/`<Directory>` コンテナ、`LoadModule`/`DocumentRoot` ディレクティブ、`<IfModule>` 分類、`#` コメントのセンサス。 |
+| `caddyfile` | Caddyfile: サイトブロック(`host {`)、`reverse_proxy`/`file_server`/`php_fastcgi` 等ディレクティブ、`@name`/`(name)` マッチャ、`#` コメントのセンサス。 |
+| `cherokee` | Cherokee `cherokee.conf`: `vserver!N!key`/`source!N!key`/`icons!key`/`rule!N!key`/`mime!`/`config!`/`admin!` 名前空間 vs 素の `key = value`、`#`/`;` コメントのセンサス。 |
+| `h2oconf` | H2O `h2o.conf`: `listen:`/`hosts:`/`paths:`/`ssl:`/`access-log:` 系キー、`"/path":` パススコープ、`- ` リスト項目のセンサス。 |
+| `hiawatha` | Hiawatha `hiawatha.conf`: `VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック vs `key = value` 設定のセンサス。 |
+| `lighttpd` | lighttpd.conf: `=`/`+=` 代入、`$HTTP["host"]`/`else` 条件ブロック、`include`/`include_shell`、`#` コメントのセンサス。 |
+| `unitconf` | NGINX Unit `conf.json`: `listeners`/`routes`/`applications`/`upstreams`/`certificates`/`settings`/`access_log` セクション、`match`/`action`/`pass`/`share`/`proxy`/`processes` 制御キー、`"key":` 全数のセンサス。 |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -577,13 +584,6 @@ The capability map — with per-feature implementation status — lives in
 | `rego` | OPA Rego (`package`/`import`/rule head/`if`/`some`/`every`) |
 | `sentinel` | HashiCorp Sentinel (`import`/`param`/`const`/`main = rule`/`when`) |
 | `xacml` | XACML XML (`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`) |
-| `apacheconf` | Apache `httpd.conf`: `<VirtualHost>`/`<Directory>` コンテナ、`LoadModule`/`DocumentRoot` ディレクティブ、`<IfModule>` 分類、`#` コメントのセンサス。 |
-| `caddyfile` | Caddyfile: サイトブロック(`host {`)、`reverse_proxy`/`file_server`/`php_fastcgi` 等ディレクティブ、`@name`/`(name)` マッチャ、`#` コメントのセンサス。 |
-| `cherokee` | Cherokee `cherokee.conf`: `vserver!N!key`/`source!N!key`/`icons!key`/`rule!N!key`/`mime!`/`config!`/`admin!` 名前空間 vs 素の `key = value`、`#`/`;` コメントのセンサス。 |
-| `h2oconf` | H2O `h2o.conf`: `listen:`/`hosts:`/`paths:`/`ssl:`/`access-log:` 系キー、`"/path":` パススコープ、`- ` リスト項目のセンサス。 |
-| `hiawatha` | Hiawatha `hiawatha.conf`: `VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック vs `key = value` 設定のセンサス。 |
-| `lighttpd` | lighttpd.conf: `=`/`+=` 代入、`$HTTP["host"]`/`else` 条件ブロック、`include`/`include_shell`、`#` コメントのセンサス。 |
-| `unitconf` | NGINX Unit `conf.json`: `listeners`/`routes`/`applications`/`upstreams`/`certificates`/`settings`/`access_log` セクション、`match`/`action`/`pass`/`share`/`proxy`/`processes` 制御キー、`"key":` 全数のセンサス。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

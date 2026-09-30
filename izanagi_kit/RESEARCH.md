@@ -3977,9 +3977,3 @@ DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTO
 - h2oconf.rs: H2O h2o.conf(YAML 風)。`listen:`/`hosts:`/`paths:`/`ssl:`/`access-log:`/`error-log:`/`user:`/`pid-file:` 構造キー、`"/path":` パススコープ分類、`- ` リスト項目。
 - hiawatha.rs: Hiawatha hiawatha.conf。`VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック、`key = value` 設定。
 - cherokee.rs: Cherokee cherokee.conf。`vserver!`/`source!`/`rule!`/`icons!`/`mime!`/`config!`/`admin!` 名前空間 `key = value` vs 素の設定、`#`/`;` コメント。
-
-## 出典
-
-- Caddyfile 概念・ディレクティブ / Apache Core Features・LoadModule / lighttpd ConfigurationFileSyntax / NGINX Unit Configuration / H2O Configure Directives / Hiawatha WebServer manual / Cherokee Cookbook & config スキーマ、および GitHub 上の公開 Caddyfile/httpd.conf/lighttpd.conf/conf.json/h2o.conf/hiawatha.conf/cherokee.conf 実例。
-
-— 全て整数のみで実装。
