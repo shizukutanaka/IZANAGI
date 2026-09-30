@@ -22,10 +22,10 @@
 
 | 指標 | 値 |
 |---|---|
-| workspace テスト | **6,000+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
+| workspace テスト | **8,000+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-| kit モジュール数 | **1211**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+| kit モジュール数 | **1463**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
 | engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
@@ -445,7 +445,7 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
   環境読取 needle 群を追加(temp_dir は免除 — パスは違うが検査は同じ)。
   4変異(dead_code/unused_mut/env::var/subdir)全発火確認。
 - ~~テスト数フロアは「下回らない」だけで十分と思われていた~~ → 下限のみの
-  検査では実数が 6,000 に育っても「3,400+」は真のまま腐る。帯域
+  検査では実数が 8,000 に育っても「6,000+」は真のまま腐る。帯域
   `actual >= claim >= actual*3/4` で陳腐化を強制検出し、`#[test]` の
   数え方も substring(コメント/文字列で水増し可・実在 phantom 10件)から
   行頭アンカーに修正。3変異で双方向の発火を確認。
