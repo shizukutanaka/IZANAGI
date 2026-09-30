@@ -3816,3 +3816,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Mozilla CSP Analyzer、securitytxt.org リファレンス、Google assetlinks ツール、各社 well-known 実装 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の security.txt・ads.txt・WebFinger・CSP 解説記事 — 全て整数のみで実装。
+
+## 第156次: ネットワークキャプチャ・フロー・HCI ログ形式(snoop / erf / netflow / ipfix / sflow / btsnoop / dlt)
+
+**方法**: 文献参照ラウンド継続 — パケットキャプチャ、フロー計測、HCI/車載ログ。全7件が既存 993 件と非衝突を確認:
+
+- `snoop` — RFC 1761: `"snoop\0\0\0"` + version=2 + datalink、24B レコードヘッダ(orig/cap/rec_len + drops + sec/usec)、`rec_len == 24 + pad4(cap_len)` の敷き詰め厳密検査
+- `erf` — Endace ERF: マジック無しの16B ヘッダ(ts u64 BE 固定小数点、type ≤ 0x1F、rlen ≥ 16、wlen ≤ rlen−16 の妥当性走査)
+- `netflow` — Cisco NetFlow v5(24B ヘッダ + 48B フローレコードの src/dst/port/proto/octets)+ v9 ヘッダ認識(20B、FlowSet は後続)
+- `ipfix` — RFC 7011: version=10 + length 全体包含、Set `[id][len]` で Template=2/Options=3/Reserved/Data≥256 分類
+- `sflow` — RFC 3176 v5: version=5 + agent IPv4/IPv6 + seq/uptime + `num_samples` 件の `[format][len]` 4B 整列サンプル
+- `btsnoop` — BTSnoop: `"btsnoop\0"` + v1 + datalink 1001-1004/2001、24B レコード(flags 方向/データ種別 + 0紀元 µs タイムスタンプ、Unix 変換 `unix_us`)
+- `dlt` — AUTOSAR DLT: htyp ビット(UEH/MSBF/WEID/WSID/WTMS + version=1)駆動のオプションフィールド + 10B 拡張ヘッダ(msin verbose + apid/ctid)、`len` はメッセージ全体を包含
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第156次、search-index 照合)
+
+**論文・仕様**: RFC 1761(snoop v2)/ Endace ERF 形式仕様(libtrace 文書)/ RFC 3954(NetFlow v9)+ Cisco NetFlow v5 文書/ RFC 7011(IPFIX)/ RFC 3176(sFlow v5)/ BTSnoop 形式(Bluetooth HCI snoop)/ AUTOSAR PRS_DltProtocol — 全て整数のみで実装。
+
+**実装物**: tcpdump/wireshark の snoop・ERF・NetFlow・IPFIX・sFlow 解析、Android btsnoop_hci.log、GENIVI dlt-daemon — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の NetFlow/IPFIX・sFlow・Wireshark HCI スヌープ・DLT 解説記事 — 全て整数のみで実装。
