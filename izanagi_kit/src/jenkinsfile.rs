@@ -58,23 +58,24 @@ fn env_entries(t: &str) -> usize {
     let mut brace_depth = 0usize;
     for l in t.lines() {
         let tr = l.trim();
+        let opens = tr.matches('{').count();
+        let closes = tr.matches('}').count();
         if tr.contains("environment") && tr.contains('{') && depth.is_none() {
-            depth = Some(brace_depth + tr.matches('{').count() - tr.matches('}').count());
-            brace_depth += tr.matches('{').count() - tr.matches('}').count();
+            brace_depth = (brace_depth + opens).saturating_sub(closes);
+            depth = Some(brace_depth);
             continue;
         }
         if let Some(d) = depth {
-            brace_depth += tr.matches('{').count();
+            brace_depth += opens;
             if tr.contains('=') && !tr.starts_with("//") {
                 n += 1;
             }
-            brace_depth -= tr.matches('}').count();
+            brace_depth = brace_depth.saturating_sub(closes);
             if brace_depth < d {
                 depth = None;
             }
         } else {
-            brace_depth += tr.matches('{').count();
-            brace_depth -= tr.matches('}').count();
+            brace_depth = (brace_depth + opens).saturating_sub(closes);
         }
     }
     n
@@ -215,6 +216,12 @@ pipeline {
         assert_eq!(j.sh_calls, 2);
         assert_eq!(j.echoes, 2);
         assert_eq!(j.comments, 1);
+    }
+
+    #[test]
+    fn unbalanced_braces_do_not_panic() {
+        let src = b"pipeline {\n}}\n}\nenvironment {}}}\nA = 1\n}";
+        assert!(Jenkinsfile::parse(src).is_some());
     }
 
     #[test]
