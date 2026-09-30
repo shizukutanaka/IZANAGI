@@ -25,7 +25,79 @@
 | workspace テスト | **6,000+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-| kit モジュール数 | **1077**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 06eb56a
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 532dad7
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 889f2b7
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 1b7929c
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| b1dcbfe
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| e1fc180
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 2926df7
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| d848dda
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| bdd60e8
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 9fd5bf5
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 74980e0
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+<<<<<<< HEAD
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 1aef45a
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+=======
+| kit モジュール数 | **1105**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+>>>>>>> origin/devin/1790674886-round245
+>>>>>>> origin/devin/1790786187-round246
+>>>>>>> origin/devin/1790786880-round247
+>>>>>>> origin/devin/1790787458-round248
+>>>>>>> origin/devin/1790788240-round249
+>>>>>>> origin/devin/1790789318-round250
+>>>>>>> origin/devin/1790790435-round251
+>>>>>>> origin/devin/1790792388-round252
+>>>>>>> origin/devin/1790793172-round253
+>>>>>>> origin/devin/1790793733-round254
+>>>>>>> origin/devin/1790795086-round255
+>>>>>>> origin/devin/1790795930-round256
 | engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
