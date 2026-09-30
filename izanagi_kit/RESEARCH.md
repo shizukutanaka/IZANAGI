@@ -5155,3 +5155,15 @@ Google Benchmark JSON・hyperfine JSON・Go benchstat/benchfmt テキスト・JM
 **実装物**: google/benchmark・sharkdp/hyperfine・golang/perf benchfmt/benchstat・openjdk/jmh・bheisler/criterion.rs・airspeed-velocity/asv・ionelmc/pytest-benchmark — 全て整数のみで実装。
 
 **国内技術情報**: Google Benchmark/hyperfine/benchstat/JMH/Criterion/asv/pytest-benchmark 解説記事(Qiita・Zenn・ベンチマーク系技術ブログ等)— 全て整数のみで実装。
+
+## 第231次:セキュリティスキャナ・静的解析レポート形式
+
+Trivy JSON・Anchore Grype JSON・Snyk JSON・Semgrep JSON・SonarQube issues JSON・SpotBugs XML・Checkov JSON の7形式を追加。`Results`/`Target`+`VulnerabilityID`+5段severity+Misconfigurations/Secrets/Licenses(trivy)・`matches`+`vulnerability`+`artifact.type` 別+fix/ignoredMatches(grype)・`SNYK-*`/`CVE-*` id+severity+upgradePath/patches/isIgnored+dependencyCount(snyk)・`check_id`+ERROR/WARNING/INFO+distinct path+errors ブロック(semgrep)・`issues`+5 severity+BUG/VULNERABILITY/CODE_SMELL(sonar)・`<BugInstance>`+priority 1-4+distinct type/category+`<Class>`(spotbugs)・passed/failed/skipped/parsing_errors+`CKV_*`+check_type(checkov)で、スキャンレポート内容を整数計数する。
+
+## 出典(第231次、search-index 照合)
+
+**論文・仕様**: Trivy JSON output(aquasecurity.github.io/trivy)・Grype JSON output(github.com/anchore/grype)・Snyk CLI JSON output(docs.snyk.io)・Semgrep JSON output(semgrep.dev/docs)・SonarQube issues report/REST API(docs.sonarqube.org)・FindBugs/SpotBugs XML format(spotbugs.readthedocs.io)・Checkov JSON output(www.checkov.io)— 全て整数のみで実装。
+
+**実装物**: aquasecurity/trivy・anchore/grype・snyk/cli・semgrep/semgrep・SonarSource/sonarqube・spotbugs/spotbugs・bridgecrewio/checkov — 全て整数のみで実装。
+
+**国内技術情報**: Trivy/Grype/Snyk/Semgrep/SonarQube/SpotBugs/Checkov 解説記事(Qiita・Zenn・クラウドセキュリティ系技術ブログ等)— 全て整数のみで実装。
