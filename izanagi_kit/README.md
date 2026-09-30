@@ -106,6 +106,55 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
+| `adstxt` | ads.txt record census |
+| `assetlinks` | Digital Asset Links JSON census |
+| `btsnoop` | BTSnoop HCI log census |
+| `csaf` | CSAF 2.0 document census |
+| `csp` | Content-Security-Policy census |
+| `cyclonedx` | CycloneDX SBOM census |
+| `dlt` | AUTOSAR DLT log census |
+| `erf` | pcap-ng/ERF record census |
+| `hostmeta` | host-meta XRD census |
+| `intoto` | in-toto link/layout census |
+| `ipfix` | IPFIX message census |
+| `netflow` | NetFlow v5/v9 census |
+| `osv` | OSV advisory JSON census |
+| `permissions` | Permissions-Policy census |
+| `securitytxt` | security.txt census |
+| `sflow` | sFlow datagram census |
+| `slsa` | SLSA provenance census |
+| `snoop` | RFC 1761 snoop capture census |
+| `spdx` | SPDX SBOM census |
+| `swid` | SWID tag census |
+| `webfinger` | WebFinger JRD census |
+| `amqp` | AMQP frame census |
+| `analyze` | Analyze 7.5 image census |
+| `dm3` | Gatan DM3 image census |
+| `ecat` | ECAT7 image census |
+| `gxf` | GXF grid census |
+| `imap` | IMAP response census |
+| `interfile` | Interfile header census |
+| `irc` | IRC message census |
+| `minc` | MINC image census |
+| `nntp` | NNTP response census |
+| `parrec` | Philips PAR/REC census |
+| `pop3` | POP3 response census |
+| `smtp` | SMTP transcript census |
+| `xmpp` | XMPP stanza census |
+| `grd` | GMT/netCDF grid census |
+| `hus` | Husqvarna HUS embroidery census |
+| `jef` | Janome JEF embroidery census |
+| `msh` | Gmsh .msh census |
+| `nas` | Nastran .nas/.bdf census |
+| `neu` | Femap neutral census |
+| `pec` | Brother PEC embroidery census |
+| `pes` | Brother PES embroidery census |
+| `studio3` | Silhouette Studio3 census |
+| `su2` | SU2 mesh census |
+| `unv` | I-DEAS UNV census |
+| `vip` | Pfaff VIP embroidery census |
+| `vp3` | Husqvarna VP3 embroidery census |
+| `vtu` | VTK XML unstructured census |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -402,16 +451,6 @@ The capability map — with per-feature implementation status — lives in
 | `docx` / `xlsx` / `pptx` / `vsdx` / `xps` / `jar` / `kmz` | Office & ZIP-based document packages: WordprocessingML `.docx`/`.docm` (`parse`/`Docx` — `word/document.xml` required, `<w:p` count, styles/media/core-props, `vbaProject.bin` macro flag, `dc:title`), SpreadsheetML `.xlsx` (`parse`/`Xlsx` — `xl/workbook.xml` + `<sheet name>` list, sheet/sharedStrings/styles/calcChain parts, macro flag), PresentationML `.pptx` (`parse`/`Pptx` — `ppt/presentation.xml`, slide/master/notes counts, `<p:sldSz>` EMU size), Visio `.vsdx` (`parse`/`Vsdx` — `visio/document.xml`, page/master counts), OpenXPS `.xps`/`.oxps` (`parse`/`Xps` — `FixedDocSeq.fdseq` or `[0].piece` + `.fpage` count), Java `.jar` (`parse`/`Jar` — `META-INF/MANIFEST.MF` required, RFC-style folded manifest `Main-Class`/`Automatic-Module-Name`, class/signed/multi-release/modular flags), and Google Earth `.kmz` (`parse`/`Kmz` — root `*.kml` member, `<name>`/`<Placemark>` counts, `files/` resources). |
 | `gre` / `esp` / `ospf` / `rip` / `pim` / `smb2` / `snmp` | Network protocols vol.4 (tunneling/routing/directory): GRE (RFC 2784/2890 — `parse`/`Gre` — flag-driven C/K/S optional fields + payload offset), IPsec ESP (RFC 4303 — `parse`/`Esp` — SPI + seq + trailer pad/next-header detection), OSPFv2/v3 (RFC 2328/5340 — `parse`/`Ospf`/`Kind` — len-fits-buffer, LSU `lsa_count`), RIPv2 (RFC 2453 — `parse`/`Rip`/`Route`/`Command` — 20-byte entries, metric, auth family 0xFFFF), PIMv2 (RFC 4601 — `parse`/`Pim`/`Kind` — version-2 nibble + RFC 1071 checksum check), SMB2 (MS-SMB2 — `parse`/`Smb2`/`Command` — `\xFESMB` + structure_size 64 + flags/msg/session IDs), and SNMP (RFC 1157/3416/3412 — `parse`/`Snmp`/`Pdu`/`Version` — minimal BER TLV walk: SEQUENCE → version → community → PDU tag). |
 | `crl` / `csr` / `p7b` / `ocsp` / `spf` / `dkim` / `dmarc` | PKI, signatures & email auth: X.509 CRL (RFC 5280 — `parse`/`Crl` — tbsCertList fields + revoked serial list), PKCS#10 CSR (RFC 2986 — `parse`/`Csr` — cri + signature alg OID + attributes flag), PKCS#7/CMS ContentInfo (RFC 5652 — `parse`/`P7b`/`Kind` — content-type OID classification), OCSP response envelope (RFC 6960 — `parse`/`Ocsp`/`Status` — ENUMERATED status + BasicOCSPResponse detection), SPF TXT (RFC 7208 — `parse`/`Spf`/`Term`/`Qualifier`/`Mechanism` — qualifier+mechanism terms, trailing `all`), DKIM key records & `DKIM-Signature:` (RFC 6376 — `parse`/`parse_key_record`/`Dkim` — `tag=value` lists, `p=` pubkey), DMARC (RFC 7489 — `parse`/`Dmarc`/`Policy` — `v=DMARC1` first-tag rule, `p=` policy, `pct` bounds). |
-| `spdx` / `cyclonedx` / `swid` / `osv` / `intoto` / `csaf` / `slsa` | SBOM, supply-chain & vuln formats: SPDX tag-value (ISO/IEC 5962 — `parse`/`Spdx` — SPDXVersion first-tag + required doc fields + package list), CycloneDX JSON & XML-root (Ecma-424 — `parse`/`CycloneDx` — bomFormat gate + component list), SWID tags (ISO/IEC 19770-2 — `parse`/`Swid` — SoftwareIdentity attrs + entities/links), OSV records (`parse`/`Osv` — id + ecosystems + aliases), in-toto envelopes (`parse`/`InToto`/`Kind` — Statement/Link `_type` + subjects + predicateType), CSAF (`parse`/`Csaf` — `csaf_*` category + tracking.id), SLSA provenance (`parse`/`Slsa` — Statement + provenance/vN predicateType, v1 buildDefinition & v0.x flat shapes). |
-| `securitytxt` / `adstxt` / `hostmeta` / `webfinger` / `assetlinks` / `csp` / `permissions` | Security & well-known web files / HTTP policies: security.txt (RFC 9116 — `parse`/`SecurityTxt` — required Contact+Expires, folded lines), ads.txt (IAB — `parse`/`AdsTxt`/`Record`/`Relation` — DIRECT/RESELLER records + `KEY=VALUE` variables), host-meta XRD (RFC 6415 — `parse`/`Hostmeta`/`Link` — ns-tolerant, rel/href/template), WebFinger JRD (RFC 7033 — `parse`/`Webfinger` — subject/aliases/links), Digital Asset Links (`parse`/`Assetlinks`/`Entry` — android_app/web targets + sha256 fingerprints), Content-Security-Policy (`parse`/`Csp`/`directive_kind` — directives+sources, missing-default check), Permissions-Policy (`parse`/`Permissions` — `f=(…)` allowlists, legacy bare names). |
-| `snoop` / `erf` / `netflow` / `ipfix` / `sflow` / `btsnoop` / `dlt` | Capture / flow / HCI log formats: snoop (RFC 1761 — `parse`/`Snoop`/`SnoopPkt` — `rec_len` tiling check), Endace ERF (`parse`/`Erf`/`ErfRecord` — 16B headers, no magic, plausibility scan), NetFlow v5+v9 (`parse`/`Netflow`/`Flow` — 48B v5 records, src/dst/proto/ports), IPFIX (RFC 7011 — `parse`/`Ipfix`/`SetKind` — template/options/data set walk), sFlow v5 (`parse`/`Sflow`/`Sample` — agent addr + padded sample records), Bluetooth BTSnoop (`parse`/`Btsnoop`/`unix_us` — 0-A.D.-epoch µs timestamps, direction flags), AUTOSAR DLT (`parse`/`Dlt` + `HTYP_*` bits — optional ECU/session/timestamp fields + verbose extended header). |
-| `smtp` / `pop3` / `imap` / `irc` / `nntp` / `amqp` / `xmpp` | Mail / chat / news / queue protocols: SMTP (RFC 5321 — `parse_line`/`parse`/`Msg`/`addr_arg` — `VERB args` vs `NNN[- ]text`), POP3 (RFC 1939 — `parse_line`/`parse_multiline`/`Status` — `+OK`/`-ERR`, `.` terminator, single-dot unstuffing), IMAP (RFC 3501 — `parse_line`/`Line`/`Kind` — tagged/untagged/continuation lines), IRC (RFC 1459 — `parse_line`/`Irc` — `:prefix CMD params :trailing`), NNTP (RFC 3977 — `parse_line`/`Msg` — `NNN text` 100–599 classes + multiline bodies), AMQP 0-9-1 (`parse`/`Amqp`/`Frame`/`Kind` — `AMQP\x00\x00\x09\x01` header + `type/ch/size/payload/0xCE` frames, method class+method IDs), XMPP stanzas (RFC 6120 — `parse`/`Xmpp`/`Kind` — message/presence/iq with to/from/id/type + body). |
-| `analyze` / `minc` / `ecat` / `interfile` / `parrec` / `dm3` / `gxf` | Medical & scientific imaging, round 2: Analyze 7.5 `.hdr` (`parse`/`Analyze`/`Endian` — 348B header, byte-order sniffing, f32 fields kept as raw bits), MINC (`parse`/`Minc`/`Variant` — NetCDF `CDF` v1 vs HDF5 v2 sniff + MINC marker scan), Siemens ECAT 7 (`parse`/`Ecat` — `MATRIX` 512B BE header), Interfile 3.3 (`parse`/`Interfile`/`Entry`/`get` — `key := value` until `END OF INTERFILE`), Philips PAR/REC (`parse`/`ParRec`/`get` — `# ===` sections + `.` param lines + image rows), Gatan DM3/DM4 (`parse`/`Dm` — u32 version, v3 u32/v4 u64 length, root tag group), GXF grids (`parse`/`Gxf` — `#GRID` + `KEY value` until `#` sentinel). |
-| `pes` / `pec` / `vp3` / `jef` / `hus` / `vip` / `studio3` | Embroidery & cutting-machine formats: Brother PES (`parse`/`Pes` — `#PES`+4-digit version + embedded PEC offset), Brother PEC block (`parse`/`Pec` — `#PEC0001`+`LA:` label + `FF 00` stitch marker), Pfaff/Viking VP3 (`parse`/`Vp3` — `%vsm%` + BE version + `%section%` markers), Janome JEF (`parse`/`Jef` — LE stitch-offset + `yyyy:mm:dd hh:mm:ss` timestamp heuristic), Husqvarna HUS (`parse`/`Hus` — `5D FC C8 37` VSM signature), Viking VIP (`parse`/`Vip` — `80 5D FC C8 37`), Silhouette Studio3 (`parse`/`Studio3` — `studio3` + BE version/prolog). |
-| `msh` / `unv` / `neu` / `vtu` / `grd` / `nas` / `su2` | CAE mesh / CFD formats: Gmsh MSH (`parse`/`Msh` — `$MeshFormat` version/filetype/datasize + `$Section` names), I-DEAS Universal (`parse`/`Unv` — `-1` dataset delimiters, ids 2411/2412/55/58), Gambit NEU (`parse`/`Neu` — `CONTROL INFO`/`GAMBIT NEUTRAL FILE` prolog + `NUMNP NELEM …` summary + `ENDOFSECTION` blocks), VTK XML (`parse`/`Vtu`/`Kind` — `<VTKFile type>` → vtu/vti/vtp/vtr/vts), Surfer GRD (`parse`/`Grd`/`Kind` — `DSAA` ASCII or `DSRB` binary), NASTRAN bulk (`parse`/`Nas` — `BEGIN BULK`/`ENDDATA` card scan), SU2 mesh (`parse`/`Su2` — `NDIME`/`NELEM`/`NPOIN`/`MARKER_*`). |
-| `urdf` / `xacro` / `rosbag` / `mcap` / `pcd` / `e57` / `c3d` | Robotics / point-cloud / mocap formats: URDF robot XML (`parse`/`Urdf` — link/joint census + joint types), xacro (`parse`/`Xacro` — `xmlns:xacro` + macro/property/include), ROS bag v1/v2 (`parse`/`Rosbag` — `#ROSBAG V` + length-prefixed header fields, `op=`/`conn_count`/`chunk_count`), MCAP (`parse`/`Mcap`/`MAGIC` — `\x89MCAP0` magic + `op|u64` records, profile/schema/channel/message counts), PCD v0.7 (`parse`/`Pcd`/`Data` — FIELDS/WIDTH/POINTS/`DATA ascii|binary|binary_compressed`), E57 (`parse`/`E57` — `ASTM-E57` 48B LE header), C3D mocap (`parse`/`C3d` — `byte1 == 0x50`, LE u16 point/frame fields, f32 scale kept as raw bits). |
-| `ldap` / `diameter` / `eap` / `tacacs` / `isakmp` / `l2tp` / `socks` | Network protocols V — auth, directory, tunnelling: LDAP (RFC 4511, `parse`/`Ldap`/`op_name` — DER `SEQUENCE{msgID, [APPLICATION n]}` op tag census + controls detection), Diameter (RFC 6733, `parse`/`Diameter` — v1 header, flags, 24-bit command, AVP code walk), EAP (RFC 3748, `parse`/`Eap`/`Code` — Request/Response/Success/Failure + method type), TACACS+ (RFC 8907, `parse`/`Tacacs`/`Kind` — v12 12B header, auth/authz/acct, encrypted flag), ISAKMP/IKE (RFC 2408/7296, `parse`/`Isakmp` — 28B header, cookies, version nibble 1.x/2.x), L2TPv2 (RFC 2661, `parse`/`L2tp` — flag-driven optional len/Ns/Nr/offset fields), SOCKS5 (RFC 1928, `parse`/`Socks`/`Kind` — greeting vs request/reply, atyp IPv4/domain/IPv6, v4 request). |
-| `prj` / `gpkg` / `mbtiles` / `osmpbf` / `fgb` / `dted` / `kap` | Geospatial formats II — offline maps & raster charts: Esri .prj (WKT1 `PROJCS`/`GEOGCS` + WKT2 `PROJCRS`/`GEODCRS` roots, name/EPSG/PARAMETER/AXIS/UNIT census), GeoPackage (`sqlite` reuse + `GPKG`/`GP10`/`GP11` app-id), MBTiles (`sqlite` + `metadata`/`tiles`/`grids` schema scan), OSM PBF (`parse`/`OsmPbf` — `u32` blobheader len + protobuf type/datasize varint, `OSMHeader` gate), FlatGeobuf (`parse`/`Fgb`/`MAGIC` — `fgb\x03` magic + u32-LE header len), DTED (`parse`/`Dted` — `UHL` label, `DDDMMSSH` lon/lat), BSB/KAP (`parse`/`Kap` — `BSB/NA,NU,RA,DU` + `VER/` + section census). |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
