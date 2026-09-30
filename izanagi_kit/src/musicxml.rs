@@ -52,7 +52,9 @@ fn count_tag(text: &str, open: &str) -> usize {
     let mut off = 0;
     while let Some(i) = text[off..].find(open) {
         let j = off + i + open.len();
-        let c = text.as_bytes()[j];
+        let Some(&c) = text.as_bytes().get(j) else {
+            break;
+        };
         if c == b'>' || c == b' ' || c == b'/' || c == b'\t' || c == b'\n' || c == b'\r' {
             n += 1;
         }
@@ -102,6 +104,13 @@ pub fn parse(b: &[u8]) -> Option<MusicXml> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tag_at_end_of_input_does_not_panic() {
+        let src = b"<score-partwise version=\"4\"><measure";
+        assert!(detect(src));
+        let _ = parse(src);
+    }
 
     const DOC: &[u8] = concat!(
         r#"<?xml version="1"#,

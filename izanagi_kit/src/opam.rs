@@ -87,7 +87,7 @@ fn field_body(t: &str, key: &str) -> String {
         };
         if starts_key(l) {
             in_field = true;
-            out.push_str(&l[key.len() + 1..]);
+            out.push_str(&l[key.len()..].trim_start()[1..]);
             out.push('\n');
             continue;
         }
@@ -169,6 +169,12 @@ pub fn parse(b: &[u8]) -> Option<Opam> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unicode_space_before_colon_does_not_panic() {
+        let src = "opam-version: \"2.0\"\ndepends\u{3000}: [ \"a\" ]\n";
+        assert!(parse(src.as_bytes()).is_some());
+    }
 
     const D: &[u8] = b"opam-version: \"2\x2e0\"\nname: \"demo\"\nversion: \"0\x2e1\"\nsynopsis: \"demo package\"\nmaintainer: \"j@example\x2ecom\"\nauthors: \"Jane\"\nlicense: \"MIT\"\nhomepage: \"https://example\x2ecom\"\nbuild: [\n  [\"dune\" \"build\" \"-p\" name]\n]\nrun-test: [\n  [\"dune\" \"runtest\"]\n]\ndepends: [\n  \"ocaml\" {>= \"4\x2e08\"}\n  \"dune\" {>= \"2\x2e0\"}\n  \"lwt\"\n  \"cmdliner\"\n]\ndepopts: [\"odoc\"]\nconflicts: [\"old-demo\"]\nurl { src: \"https://example\x2ecom/demo\x2etar\x2egz\" }\n";
 

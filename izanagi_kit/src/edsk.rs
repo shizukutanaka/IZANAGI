@@ -56,7 +56,7 @@ const TIB: &[u8] = b"Track-Info\r\n";
 /// `true` on a CPC signature with sane geometry.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
-    b.len() >= 50
+    b.len() >= 52
         && (b.starts_with(STD) || b.starts_with(EXT))
         && b[48] >= 1
         && b[48] <= 99

@@ -66,7 +66,7 @@ pub fn parse(b: &[u8]) -> Option<Zoo> {
     }
     let text_end = b[..20].iter().position(|c| *c == 0x1A).unwrap_or(20);
     let mut z = Zoo {
-        version: le16(b, 24),
+        version: if b.len() >= 26 { le16(b, 24) } else { 0 },
         text_end,
         entries: 0,
         file_entries: 0,
