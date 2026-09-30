@@ -197,6 +197,27 @@ fixed version has no such state at all.
 | `ncmpcpp` | ncmpcpp config(`mpd_*`/`ncmpcpp_directory`/`visualizer_*`/`*_color` キー)+ bindings ファイル(`def_key`)の設定・バインド計数。 |
 | `cmus` | cmus autosave/rc(`set key=val`/`bind common`/`colorscheme`/`view`/`add`/`fset`/`factivate` コマンドファイル)のコマンド計数。 |
 | `snapcast` | snapserver.conf(`[server]`/`[stream]`/`[http]`/`[tcp]` + `stream = pipe:///`/`codec`/`sampleformat`/`chunk_ms`)のINI計数。 |
+| `sops` | `.sops.yaml`(`creation_rules:` `- path_regex:` + `kms:`/`age:`/`pgp:`/`azure_kv:`/`gcp_kms:`/`hc_vault:` キー発生源)のルール・キー計数。 |
+| `gitleaks` | `gitleaks.toml`(`[[rules]]` + `id`/`regex`/`secretGroup`/`keywords`/`entropy` + `[extend]`/`[whitelist]`)のルール・検出子計数。 |
+| `secretsbaseline` | detect-secrets `.secrets.baseline`(`plugins_used`/`filters_used`/`results` + `hashed_secret`/`is_verified`)の検出・検証済み計数。 |
+| `talisman` | `.talismanrc`(`fileignoreconfig:` `- filename:`/`checksum:`/`allowed_patterns`/`threshold`/`scope:`)の無視・パターン計数。 |
+| `gitsecret` | `.gitsecret`(gitignore 風の秘匿対象パス一覧、`!` 否定行)のパターン計数。 |
+| `vaultagent` | Vault Agent `.hcl`(`auto_auth`/`method`/`sink`/`template`/`listener`/`exit_after_auth`)のブロック・代入計数。 |
+| `keepassxc` | KeePassXC `keepassxc.ini`(`[General]`/`[GUI]`/`[Browser]` + `SingleInstance`/`AutoType*`/`BrowserIntegration_*`)の設定計数。 |
+| `bootini` | Windows boot.ini census |
+| `cmdbat` | Windows .bat/.cmd batch census |
+| `dossys` | DOS CONFIG.SYS/AUTOEXEC census |
+| `inffile` | Windows driver .inf census |
+| `regfile` | Windows .reg registry census |
+| `unattend` | unattend.xml answer-file census |
+| `winini` | Windows 3.x win.ini census |
+| `fossilconf` | Fossil SCM settings census |
+| `gitattributes` | .gitattributes census |
+| `gitignore` | .gitignore patterns census |
+| `gitmodules` | .gitmodules census |
+| `hgignore` | .hgignore patterns census |
+| `hgrc` | Mercurial hgrc census |
+| `svnconf` | Subversion config/servers census |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
