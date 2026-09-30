@@ -4153,3 +4153,63 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `ac` — AC3D: `AC3D`+バージョン文字 + `OBJECT world|poly|group|light`/`MATERIAL`/`SURF`/`numvert`/`texture` 行センサス
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第178次: EDA・HDL・タイミング形式 第2弾(vcd / sdc / spef / saif / upf / ipxact / verilog)
+
+**方法**: 文献参照ラウンド継続 — EDA 設計フローの標準テキスト形式。`gds`/`edif`/`lef`/`def`/`liberty`/`fst` は既存のため除外。全7件が既存 1147 件と非衝突を確認:
+
+- `vcd` — IEEE 1364 Value Change Dump: `$timescale`/`$scope`/`$var`/`$enddefinitions` + `#t` タイムスタンプ + 値変化行
+- `sdc` — Synopsys Design Constraints: Tcl 動詞センサス(`create_clock`/`set_*_delay`/`set_false_path`/`set_clock_groups`/…)、`\` 継続行対応
+- `spef` — IEEE 1481 SPEF: `*SPEF`/`DESIGN_NAME`/`UNIT` ヘッダ + `*PORTS`/`*D_NET`/`*CONN`/`*CAP`/`*RES`/`*INDUC` センサス
+- `saif` — Switching Activity Interchange Format: `(SAIFILE` S式 + `(INSTANCE`/`(PORT`/`(T0`/`(T1`/`(TC`/`(TX` 整数持続時間合計
+- `upf` — IEEE 1801 UPF: `create_power_domain`/`supply_net`/`power_switch`/`isolation`/`retention`/`level_shifter`/PST 動詞センサス
+- `ipxact` — IEEE 1685 IP-XACT: `ipxact:`/`spirit:` 名前空間のルート要素(component/design/catalog 等)+ VLNV + busInterface/memoryMap/port/file 集計
+- `verilog` — IEEE 1364 ソース: コメント/文字列除去 + `module`/`endmodule` + `input`/`wire`/`reg`/`always`/`assign` センサス(複数ステートメント同一行対応)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第179次: オーディオ・音声音楽形式 第3弾(amr / qcp / w64 / ircam / rx2 / nist / maud)
+
+**方法**: 文献参照ラウンド継続 — 音声・ループ素材のコンテナ/ヘッダ形式。`au`/`wav`/`aiff`/`caf`/`voc`/`wv`/`tta`/`dsf`/`rf64`/`mp3`/`ape`/`flac`/`ogg`/`midi`/`xi`/`iti`/`pat`/`sbi`/`sf2`/`dls` は既存のため除外。全7件が既存 1154 件と非衝突を確認:
+
+- `amr` — AMR-NB/WB(RFC 4867): `#!AMR`/`#!AMR-WB` マジック + FT フレームサイズ表走査 + 20ms×フレーム数
+- `qcp` — Qualcomm QCP: `RIFF`+`QLCM` + `fmt `/`vndr`/`labl`/`offs`/`data` 偶数パディングチャンク走査
+- `w64` — Sony Wave64: `riff`/`wave`/`fmt `/`data` 128bit GUID + `u64le` チャンク長 + WAVEFORMAT デコード
+- `ircam` — IRCAM/BICSF: `0x0001a364` 両エンディアン + rate 生ビット + channels
+- `rx2` — Propellerhead REX/REX2: `FORM`+`REX `/`REX2` + `HEAD`/`SLIC` チャンク列挙
+- `nist` — NIST SPHERE: `NIST_1A` + `key -i value`/`key -sN value` ヘッダ + `end_head`
+- `maud` — Commodore Amiga IFF `MAUD`: `MHDR` レート + `ANNO`/`AUTH`/`MDAT` センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第180次: ネットワークプロトコル第7弾 — ストレージ・リモートアクセス(iscsi / fcoe / aoe / nbd / telnet / rfb / sftp)
+
+**方法**: 文献参照ラウンド継続 — ブロックストレージ・リモート端末・画面共有プロトコル。全7件が既存 1161 件と非衝突を確認(`rdp` は既存のため除外):
+
+- `iscsi` — RFC 7143: 48B Basic Header、initiator(0x00–)/target(0x20–) opcode 表、Immediate/F ビット
+- `fcoe` — RFC 5120: ethertype `0x8906`、version ニブル、SOF/EOF コード名
+- `aoe` — ATA over Ethernet 0x88a2: v1 フラグ+command(Issue/QueryConfig/Mask/Reserve)+shelf/slot/tag
+- `nbd` — NBD: `NBDMAGIC`+`IHAVEOPT` handshake、`0x25609513`/`0x67446698` transmission、READ/WRITE/DISC/FLUSH/TRIM
+- `telnet` — RFC 854: IAC WILL/WONT/DO/DONT、SB…SE サブネゴ、`IAC IAC` エスケープ
+- `rfb` — RFC 6143/VNC: `RFB NNN.NNN` バナー + security types + 失敗理由文字列
+- `sftp` — draft-ietf-secsh-filexfer: `u32be` len + type + request-id パケット走査、INIT/VERSION 判定
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第181次: 楽譜・記譜形式(musicxml / mscx / mei / kern / ly / nwc / capx / gp)
+
+**方法**: 文献参照ラウンド継続 — 楽譜交換・記譜言語。全8件が既存 1168 件と非衝突を確認(`abc`/`midi`/`mei`-adjacent 既存モジュールは除外):
+
+- `musicxml` — W3C MusicXML 4.x: `score-partwise`/`timewise`/`opus` ルート + part-list/measure/note 集計
+- `mscx` — MuseScore Studio XML: `<museScore version>` + Staff/Measure/Chord/Dynamic/Slur/Tuplet
+- `mei` — MEI Guidelines: `<mei>` + `music-encoding.org` NS + meiversion + mdiv/measure/app-rdg-lem
+- `kern` — Humdrum Toolkit `**kern`: `**` 排他解釈・`*` タンデム・`=` 小節・`!`/`!!!` コメント・`4c`/`4r` トークン
+- `ly` — GNU LilyPond: `\version`/`\header`/`\score`/`\book`/`\paper`/`\relative`/`\key`/`\time`/`\clef` + 音名走査
+- `nwc` — NoteWorthy Composer `.nwctxt`: `!NoteWorthyComposer(v)` + `|Type|Key:Val` 行
+- `capx` — Capella `.capx` XML: `<capella>` + `<info>`/`<system>`/`<voices>`/`<head>`/`<barline>`
+- `gp` — Guitar Pro: `FICHIER GUITAR PRO v…` バナー(v3–v5)+ GP7 `BCFZ` コンテナ
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
