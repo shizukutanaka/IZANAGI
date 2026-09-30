@@ -64,7 +64,7 @@ fn text_between<'a>(s: &'a str, open: &str, close: &str) -> Option<&'a str> {
 pub fn parse(d: &[u8]) -> Option<Xmpp> {
     let s = std::str::from_utf8(d).ok()?.trim();
     let lt = s.find('<')?;
-    let gt = s.find('>')?;
+    let gt = s[lt..].find('>')? + lt;
     let head = &s[lt + 1..gt];
     let head = head.trim_start_matches('/'); // never a close tag
     let name_end = head
@@ -129,5 +129,11 @@ mod tests {
         assert!(parse(b"<stream:stream>").is_none());
         assert!(parse(b"<message>").is_none()); // unclosed
         assert!(parse(b"plain text").is_none());
+    }
+
+    #[test]
+    fn rejects_misordered_tag_delimiters() {
+        assert!(parse(b"><").is_none());
+        assert!(parse(b"x><message>").is_none());
     }
 }
