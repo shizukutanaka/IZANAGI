@@ -127,6 +127,56 @@ fixed version has no such state at all.
 | `promela` | Promela/SPIN model census |
 | `tlaplus` | TLA+ spec census |
 | `whyml` | Why3/WhyML program census |
+| `adstxt` | ads.txt record census |
+| `assetlinks` | Digital Asset Links JSON census |
+| `btsnoop` | BTSnoop HCI log census |
+| `csaf` | CSAF 2.0 document census |
+| `csp` | Content-Security-Policy census |
+| `cyclonedx` | CycloneDX SBOM census |
+| `dlt` | AUTOSAR DLT log census |
+| `erf` | pcap-ng/ERF record census |
+| `hostmeta` | host-meta XRD census |
+| `intoto` | in-toto link/layout census |
+| `ipfix` | IPFIX message census |
+| `netflow` | NetFlow v5/v9 census |
+| `osv` | OSV advisory JSON census |
+| `permissions` | Permissions-Policy census |
+| `securitytxt` | security.txt census |
+| `sflow` | sFlow datagram census |
+| `slsa` | SLSA provenance census |
+| `snoop` | RFC 1761 snoop capture census |
+| `spdx` | SPDX SBOM census |
+| `swid` | SWID tag census |
+| `webfinger` | WebFinger JRD census |
+| `amqp` | AMQP frame census |
+| `analyze` | Analyze 7.5 image census |
+| `dm3` | Gatan DM3 image census |
+| `ecat` | ECAT7 image census |
+| `gxf` | GXF grid census |
+| `imap` | IMAP response census |
+| `interfile` | Interfile header census |
+| `irc` | IRC message census |
+| `minc` | MINC image census |
+| `nntp` | NNTP response census |
+| `parrec` | Philips PAR/REC census |
+| `pop3` | POP3 response census |
+| `smtp` | SMTP transcript census |
+| `xmpp` | XMPP stanza census |
+| `grd` | GMT/netCDF grid census |
+| `hus` | Husqvarna HUS embroidery census |
+| `jef` | Janome JEF embroidery census |
+| `msh` | Gmsh .msh census |
+| `nas` | Nastran .nas/.bdf census |
+| `neu` | Femap neutral census |
+| `pec` | Brother PEC embroidery census |
+| `pes` | Brother PES embroidery census |
+| `studio3` | Silhouette Studio3 census |
+| `su2` | SU2 mesh census |
+| `unv` | I-DEAS UNV census |
+| `vip` | Pfaff VIP embroidery census |
+| `vp3` | Husqvarna VP3 embroidery census |
+| `vtu` | VTK XML unstructured census |
+| `gp` | Guitar Pro score (`parse`/`Gp` — `FICHIER GUITAR PRO v…` banner → version/major + u8-length title, GP7 `BCFZ` compressed form). |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
