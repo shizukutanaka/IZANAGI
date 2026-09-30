@@ -3786,3 +3786,14 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - 論文・仕様: Minecraft Wiki 「server.properties」「ops.json」「whitelist.json」「banned-ips.json」「eula.txt」(Server operating 文書群) — キー一覧と入稿制約。Bukkit/Spigot 既定 `bukkit.yml`/`spigot.yml` コメント付きテンプレート — 全て整数のみで実装。
 - 実装物: PaperMC docs 「Bukkit/Spigot Configuration」、BukkitWiki 「Bukkit.yml」「spigot.yml」、MohistMC/magma 設定記事。`bukkit.yml` の `spawn-limits`/`chunk-gc`/`ticks-per` セクション、Spigot の `timeout-time`/`netty-threads`/`bungeecord`/`world-settings:` 階層を区別計数 — 全て整数のみで実装。
 - 国内技術情報: Qiita「Minecraft サーバ構築」記事群、Zenn マイクラ鯖設定ガイド — `eula=true` 運用・`banned-ips.json` の `expires: "forever"`、`ops.json` の `level`/`bypassesPlayerLimit` フィールドを確認 — 全て整数のみで実装。
+
+
+## 第248次(search-index 照合ラウンド / 実装証跡付き)
+
+認証・IAM・SSO サーバ設定形式。対象: `keycloak`(realm export JSON), `authelia`(configuration.yml), `dexidp`(Dex config.yaml), `hydra`(Ory Hydra), `kratos`(Ory Kratos), `oathkeeper`(Ory Oathkeeper), `shibconf`(Shibboleth XML)。`detect` でモチーフキー照合、`parse` で セクション/設定/ハンドラ/ルール等の整数センサスを返す。
+
+## 出典(第248次、search-index 照合)
+
+- 論文・仕様: Keycloak Server Administration「Exporting/Importing a Realm」(realm JSON: `realm`/`clients`/`users`/`identityProviders`/`authenticationFlows`)、Dex upstream `Documentation/config/dex-config`(`issuer`/`storage`/`connectors`/`staticClients`/`expiry`)、Shibboleth IdP v4「AttributeFilterConfiguration」「AttributeResolverConfiguration」「RelyingPartyConfiguration」 — 全て整数のみで実装。
+- 実装物: Authelia documentation「Configuration Prologue」(server/session/storage/notifier/access_control/identity_providers)、Ory docs「Hydra configuration reference」(serve/urls/dsn/secrets/oauth2/ttl/oidc)、「Kratos configuration」(identity/selfservice.flows/methods/courier)、「Oathkeeper configuration」(serve/access_rules/authenticators/authorizers/mutators/errors) — 全て整数のみで実装。
+- 国内技術情報: Qiita「Keycloak レルムエクスポート」「Authelia で SSO」「Ory Kratos セルフサービスフロー」、Zenn Dex/OAuth2 Proxy 連携記事 — `staticClients`/`connectors` 配列、`access_control.rules` の `- domain:` エントリを確認 — 全て整数のみで実装。
