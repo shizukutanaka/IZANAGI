@@ -3685,6 +3685,95 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: moodle-qformat_aiken/gift、python-qti/lti、rust-imscc 相当、TinCanJS/tincan-rs、opml-rs、genanki/anki-apkg-export — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Moodle 問題インポート・QTI 解説・xAPI/SCORM 概要・OPML フィード一覧・Anki パッケージ解説記事 — 全て整数のみで実装。
+## 第150次(search-index 照合ラウンド / 実装証跡付き)
+
+パッケージ配布・コンテナ形式(opkg ipk / snap / AppImage / macOS pkg / MSI / NuGet / Flatpak — 7件)。
+
+- `ipk` — opkg `.ipk`/`.opk`: `ar` コンテナ内 `debian-binary` + `control.tar.*` + `data.tar.*` 必須、`data_compression` 拡張子分離(gz/xz/lz4/zst)
+- `snap` — snapd `.snap`: SquashFS 96B スーパーブロック(`hsqs`)+ version 4.0 + block_size/block_log 整合 + `meta/snap.yaml` マーカー探索で snap 性を推定
+- `appimage` — AppImage: ELF `e_ident[8..11]` の `AI\x02`/`AI\x03` スタンプで type-2/3 判定 + class/machine
+- `pkg` — macOS `.pkg`: `xar` ヘッダ受理後にヒープ内 `PackageInfo` バイト列を要求、`Payload`/`Distribution`/`Scripts` 有無を併記
+- `msi` — Windows Installer: `ole` ディレクトリ内 `_Tables`/`_Columns`/`_StringData`/`_StringPool`/`_Validation` の存在で MSI 判定、`\x05SummaryInformation*`/`\x05DigitalSignature` 集計
+- `nuget` — NuGet `.nupkg`: `zip` で `[Content_Types].xml` + ルート `*.nuspec` 必須、マニフェストから `<id>`/`<version>` 抽出、`lib/`/`tools/`/`content*/`/`build/` ペイロード計数
+- `flatpak` — Flatpak `.flatpakref`/`.flatpakrepo`/bundle: `ini` の `[Flatpak Ref]`/`[Flatpak Bundle]`/`[Flatpak Repo]` セクション判定 + Name/Branch/Url/Title/IsRuntime/RuntimeRepo/GPGKey
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — ipk の ar フィクスチャ手組み(ヘッダ幅 60B/偶数パディング)、snap の block_log⇔block_size 整合検査、msi の CFB 最小ディレクトリ生成。全て整数のみで実装。
+
+## 出典(第150次、search-index 照合)
+
+**論文・仕様**: opkg/ipk 構成(OpenWrt Wiki / deb packages 形式派生)、snapd snap format documentation、AppImage spec(github.com/AppImage/AppImageSpec)、XAR format + flat package(Apple)、Windows Installer CFB 構造(MSDN/[MS-OLEPS]/[MS-CFB])、NuGet nuspec reference、flatpak flatpakref/flatpakrepo format — 全て整数のみで実装。
+
+**実装物**: opkg/opkg-utils、snapd snap パッケージ実装、appimagetool/type2-runtime、xar、bom/msitools(msiinfo)、NuGet.Client、flatpak flatpak-builtins — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の OpenWrt ipk パッケージ作成・snap/squashfs 解説・AppImage 配布方法・macOS pkg/pkgbuild 記事・MSI 内部構造・NuGet nuspec 解説・Flatpak 解説記事 — 全て整数のみで実装。
+
+
+## 第151次: オフィス・ZIP コンテナ形式(docx / xlsx / pptx / vsdx / xps / jar / kmz)
+
+**方法**: 文献参照ラウンド継続 — Office Open XML・OpenXPS・Java アーカイブ・Google Earth コンテナ(全7件が既存 958 件と非衝突を確認):
+
+- `docx` — WordprocessingML(ECMA-376 / ISO/IEC 29500): `[Content_Types].xml` + `word/document.xml` 必須、`<w:p` 段落計数、styles/media/core-props、`vbaProject.bin` で .docm 判定、`<dc:title>` 抽出
+- `xlsx` — SpreadsheetML(同規格): `xl/workbook.xml` 必須、`<sheet name="…">` 一覧、sheet/sharedStrings/styles/calcChain パート存在、.xlsm 判定
+- `pptx` — PresentationML(同規格): `ppt/presentation.xml` 必須、slide/master/notes/media 計数、`<p:sldSz cx cy>` の EMU サイズ、.pptm 判定
+- `vsdx` — Visio OOXML(Visio XML Schema): `visio/document.xml` 必須、`visio/pages/` と `visio/masters/` パート計数、`pages.xml` 索引は除く
+- `xps` — OpenXPS(ECMA-388): `FixedDocSeq.fdseq` または `[0].piece` ストリーム + `.fpage` 固定ページ必須、`.xaml`/`DocumentStructure` パート計数
+- `jar` — Java アーカイブ(JAR File Specification): `META-INF/MANIFEST.MF` 必須、72 桁折り返し(継続行は空白開始)を展開して `Key: value` 読取、class/modular/signed/multi-release 判定
+- `kmz` — KMZ(OGC KML 2.x コンテナ): ルート直下の `*.kml` 必須、`<name>`/`<Placemark>` 抽出、`files/` リソース計数
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — jar のマニフェスト継続行は改行+空白を両方消費する必要(`\r\n ` → 値連結)、xlsx の `xl/worksheets/_rels/*.rels` をシート数に混入させない `.xml` 限定、vsdx の `pages.xml` 索引と実ページの区別。全て整数のみで実装。
+
+## 出典(第151次、search-index 照合)
+
+**論文・仕様**: ECMA-376 / ISO/IEC 29500(OOXML: docx/xlsx/pptx パッケージ規約・OPC)、ECMA-388(OpenXPS)、Visio VSDX File Format(MS-VSDX 系文書)、JAR File Specification(java.util.jar.Manifest — 行折り返し 72B/継続行)、OGC KML 2.3 + Google KMZ tutorial(doc.kml 規約) — 全て整数のみで実装。
+
+**実装物**: Open XML SDK(Office)、Apache POI(ooxml パッケージ)、Microsoft XPS 実装、OpenJDK `java.util.jar.Manifest`、libkml / Google Earth — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の docx/xlsx の中身解説(zip 展開・document.xml)・PowerPoint pptx 構造・Visio 新形式・XPS 概要・JAR マニフェスト仕様・KMZ/KML 違いの解説記事 — 全て整数のみで実装。
+
+## 第152次: ネットワークプロトコル第4弾 — トンネリング・ルーティング・ディレクトリ(gre / esp / ospf / rip / pim / smb2 / snmp)
+
+**方法**: 文献参照ラウンド継続 — IP トンネリング・IPsec・IGP/マルチキャストルーティング・ファイル共有・ネットワーク管理(全7件が既存 965 件と非衝突を確認):
+
+- `gre` — GRE(RFC 2784 + RFC 2890 拡張): 16bit `flags|version` + EtherType、C/K/S ビット駆動で checksum+offset→key→seq の順に可変フィールド消費、version≠0(PPTP 拡張)は拒否
+- `esp` — IPsec ESP(RFC 4303): SPI(32b、wire 上 0 禁止)+ 32b シーケンス + 末尾 trailer の `pad_len`/`next_header` 検出(pad がヘッダを飲まないことを検査)
+- `ospf` — OSPF(RFC 2328 v2 / RFC 5340 v3): 16B ヘッダ `version|type|len|router|area|cksum|autype|auth`、type 1–5 限定、LSU の `lsa_count`(off 24)、v2 の `autype ≤ 2`
+- `rip` — RIPv2(RFC 2453): `command|version|zero` + 20B エントリ列(family/tag/addr/mask/nexthop/metric)、`0xFFFF` family は認証エントリ
+- `pim` — PIMv2(RFC 4601): `version:4|type:4` ニブル、version 2 必須、RFC 1071 検算(checksum=0 は受理)、type 0–10 を Kind に分類
+- `smb2` — SMB2(MS-SMB2): `\xFESMB` + `structure_size==64` の 64B ヘッダ、credit/status/command/flags/next_command/msg_id/tree/session/signature、flags bit0 で応答判定
+- `snmp` — SNMP(RFC 1157 v1 / RFC 3416 v2c / RFC 3412 v3 フレーミング): 自前最小 BER TLV(不定長拒否)で `SEQUENCE{INTEGER version, OCTETSTRING community, context-PDU}` を走査、PDU タグ 0xA0–0xA8 分類
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — snmp の BER 読みで version TLV の終端を次 TLV の開始に使うインデックスオフセット、`esp` の SPI=0 拒否。全て整数のみで実装。
+
+## 出典(第152次、search-index 照合)
+
+**論文・仕様**: RFC 2784(Generic Routing Encapsulation)/ RFC 2890(Key and Sequence Number Extensions)/ RFC 4303(IP ESP)/ RFC 2328(OSPFv2)/ RFC 5340(OSPFv3)/ RFC 2453(RIPv2)/ RFC 4601(PIM-SM)/ MS-SMB2 / RFC 1157,3416,3412(SNMP)+ ITU X.690 BER — 全て整数のみで実装。
+
+**実装物**: Linux `net/ipv4/ip_gre.c`・strongSwan/libreswan ESP 処理、Quagga/FRR ospfd・ripd・pimd、Samba SMB2 サーバ、net-snmp — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の GRE トンネル・IPsec ESP・OSPF/RIP ルーティング・PIM マルチキャスト・SMB2/SMB3・SNMP 監視解説記事 — 全て整数のみで実装。
+
+## 第153次: PKI・署名・メール認証(crl / csr / p7b / ocsp / spf / dkim / dmarc)
+
+**方法**: 文献参照ラウンド継続 — X.509/PKCS 証明書関連とメール送信者認証(DNS TXT)系(全7件が既存 972 件と非衝突を確認、DER 系は `der` モジュール再利用):
+
+- `crl` — X.509 CRL(RFC 5280): `SEQUENCE{tbsCertList,sigAlg,sig}`、tbs の version/issuer/thisUpdate/nextUpdate/revokedCertificates、serial 列抽出
+- `csr` — PKCS#10(RFC 2986): `SEQUENCE{cri,sigAlg,sig}`、version(0=v1.7)+subject+spki+`[0]` 属性検出+署名アルゴリズム OID
+- `p7b` — CMS ContentInfo(RFC 5652): `SEQ{OID,[0]content}`、signedData/envelopedData 等7種 OID 分類(.p7b は degenerate signedData)
+- `ocsp` — OCSPResponse(RFC 6960): ENUMERATED status(0–6)+`[0]` ResponseBytes の OID で basic 判定
+- `spf` — SPF TXT(RFC 7208): `v=spf1` 厳格接頭辞 + qualifier(`+-~?`)+mechanism(`:`/`=` 引数)項列 + trailing `all`
+- `dkim` — DKIM(RFC 6376): `;` 区切り `tag=value` リスト、`parse_key_record` で `v=DKIM1`+`p=` 必須化(空 p= は revoked)
+- `dmarc` — DMARC(RFC 7489): `v=DMARC1` 先頭タグ必須 + `p=`(none/quarantine/reject)+`pct` 0–100 境界
+
+**検証**: 各モジュール単体テスト + doctest;`der::encode` でフィクスチャ生成して往復検証。全て整数のみで実装。
+
+## 出典(第153次、search-index 照合)
+
+**論文・仕様**: RFC 5280(X.509 CRL)/ RFC 2986(PKCS#10)/ RFC 5652(CMS)/ RFC 6960(OCSP)/ RFC 7208(SPF)/ RFC 6376(DKIM)/ RFC 7489(DMARC)+ ITU X.690 DER — 全て整数のみで実装。
+
+**実装物**: OpenSSL `crypto/x509`・`crypto/cms`・ocsp、opendkim/opendmarc、pyspf/SPF 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の X.509 CRL・CSR・OCSP 解説、SPF/DKIM/DMARC 導入記事 — 全て整数のみで実装。
+
 ## 第241次(search-index 照合ラウンド / 実装証跡付き)
 
 ネットワークデーモン・ルーティング設定形式(FRRouting / BIRD / OpenBGPD / keepalived / HAProxy / Squid / Varnish VCL — 7件)。
@@ -3699,13 +3788,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest;捕捉した修正 — frr の `ip prefix-list`/`ipv6 prefix-list` が `ip ` 経路に誤算、bird の `reject;` が route に誤算・`define` が代入+指令の二重計上、openbgpd の `announce`/`descr`/`remote-as` が neighbor 系に合算、keepalived の IPv6 `fd00::1` が IP 判定落ち・`TCP_CHECK` 大小写・オプション/ブロック混同、 haproxy の `daemon`/`stats` が directive/option 未分類、squid の `access_log`/`coredump_dir` キャッシュ系登録。全て整数のみで実装。
 
-## 出典(第241次、search-index 照合)
-
-**論文・仕様**: FRRouting ドキュメント(zebra.conf/frr.conf 形式、RFC 順ルーティングデーモン構造)、BIRD 1.6/2.x 設定リファレンス(protocol/filter/function 文法)、OpenBSD bgpd.conf(5) マニュアル、keepalived.conf(5) マニュアル(VRRP/healthcheck 構成)、HAProxy configuration manual(section/directive 体系)、Squid 公式 squid.conf 文書、Varnish VCL リファレンス(vcl 4.x 構文・vcl_* フック) — 全て整数のみで実装。
-
-**実装物**: FRRouting/frr、BIRD/bird、OpenBSD/src usr.sbin/bgpd、acassen/keepalived、haproxy/haproxy、squid-cache/squid、varnishcache/varnish-cache の各リポジトリ・配布設定例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の FRRouting BGP/OSPF 構築記事・BIRD ルートサーバ解説・OpenBGPD 設定例・keepalived VRRP 冗長化・HAProxy フロント/バックエンド設定・Squid プロキシ構築・Varnish VCL 解説記事 — 全て整数のみで実装。
 ## 第242次(search-index 照合ラウンド / 実装証跡付き)
 
 ホームオートメーション・IoT 設定形式(Home Assistant / ESPHome / Zigbee2MQTT / Frigate / Node-RED / openHAB / AppDaemon — 7件)。
@@ -3720,222 +3802,85 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest;捕捉した修正 — zigbee2mqtt の devices/groups エントリがネスト判定で未計上(インデントレベル記録で修正)、appdaemon の `MQTT:`/`log:`/`type:` 分類と apps.yaml detect(`module:`+`class:` のみで受理へ)、frigate の `roles:` 重複・detectors セクション名計上・`- ` 一般項目が inputs に誤算、homeassistant のインデント付き `customize:` 未計上、nodered の `mqtt-broker`/`debug` 分類。全て整数のみで実装。
 
-## 出典(第242次、search-index 照合)
-
-**論文・仕様**: Home Assistant 公式コンフィギュレーション文書・automation YAML 文法、ESPHome ドキュメント(components/platforms)、Zigbee2MQTT configuration.yaml リファレンス、Frigate config reference、Node-RED flows.json 仕様(flow format)、openHAB items/things/rules/sitemap ドキュメント、AppDaemon 設定リファレンス — 全て整数のみで実装。
-
-**実装物**: home-assistant/core、esphome/esphome、Koenkk/zigbee2mqtt、blakeblackshear/frigate、node-red/node-red、openhab/openhab-core、AppDaemon/appdaemon の各リポジトリ・配布設定例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Home Assistant 構築・automation 作成・ESPHome センサー化・Zigbee2MQTT デバイス登録・Frigate NVR 導入・Node-RED フロー・openHAB 設定・AppDaemon 解説記事 — 全て整数のみで実装。
-
 ## 第243次(search-index 照合ラウンド / 実装証跡付き)
 
 `izanagi_kit` に形式手法・モデル検査記述形式7件を追加した(972→979)。`tlaplus`(TLA+ モジュール: `---- MODULE`/`====`・`EXTENDS`/`INSTANCE`・`CONSTANT`/`VARIABLE`・`==` 定義・Init/Next/Spec/Inv 標準形・`THEOREM`/`PROOF`/`BY`/`QED` 証明・`[]`/`<>`/`~>` 時相・`/\`/`\/`/`\in`/`/=` 論理)、`alloy`(Alloy `.als`: `module`/`open`/`private`/`as`・`sig`/`abstract`/`lone`/`one`/`enum`/`var`/`some sig`・`fact`/`pred`/`fun`/`assert`/`check`/`run`/`expect`/`inst`/`idiv`・`extends`/`in`/`partof`/`subset`/`subsetof`・`let`/`=>`/`iff`/`implies`/`and`/`or`/`not`/`else`/`if`/`then`/`for`・`all`/`some`/`no`/`lone`/`one`/`set`/`seq`/`disj` 限定・`->`/` *`/` ^`/` ~` 関係演算子)、`promela`(Promela `.pml`: `proctype`/`init`/`active`/`never`/`trace`/`notrace`/`d_step`/`atomic`/`inline`/`ltl`・`chan`/`mtype`/`typedef`/`hidden`/`show`/`xr`/`xs`/スカラ型・`do`/`od`/`if`/`fi`/`::` ガード・`->`/`goto`/`break`/`skip`/`else`/`unless`・`!`/`?` 通信・`assert`/`printf`/`print`・`c_code`/`c_decl`/`c_state`/`c_expr`/`c_track`/`c_var` 組込 C)、`dafny`(Dafny `.dfy`: `module`/`import`/`include`/`export`/`opened`/`refines`・`method`/`constructor`/`function`/`predicate`/`copredicate`/`lemma`/`colemma`/`twostate`/`inductive`/`opaque`/`least`/`greatest`/`axiom`・`datatype`/`codatatype`/`class`/`trait`/`type`/`newtype`/`iterator`/`const`/`var`/`ghost`/`static`/`subset`・`requires`/`ensures`/`invariant`/`decreases`/`reads`/`modifies`/`frame`/`calc`/`forall`/`exists`・`assert`/`assume`/`expect`/`print`/`label`・`if`/`else`/`while`/`for`/`match`/`case`/`return`/`yield`/`break`/`continue`/`then`/`by`・`old`/`fresh`/`allocated`/`unchanged`/`in`/`as`/`is`/`null`/`this`/`true`/`false`/`abstemious`)、`mch`(B/Event-B `.mch`/`.ref`/`.imp`: `MACHINE`/`REFINEMENT`/`IMPLEMENTATION`/`MODEL`/`SYSTEM`・`SEES`/`USES`/`INCLUDES`/`EXTENDS`/`PROMOTES`/`REFINES`/`IMPORTS`/`VALUES`・`CONSTRAINTS`/`SETS`/`CONSTANTS`/`PROPERTIES`/`VARIABLES`/`INVARIANT`/`ASSERTIONS`/`DEFINITIONS`/`INITIALISATION`/`OPERATIONS`/`EVENTS`/`VARIANT`/`END`・`PRE`/`THEN`/`WHEN`/`WHERE`/`ANY`/`SELECT`/`CHOICE`/`IF`/`CASE`/`OR`/`LET`/`BE`/`BEGIN`/`ELSIF`/`ELSE`/`WHILE`/`MODIFIES`/`IN`/`ASSERT`/`NOT`/`EITHER` 代入・`:=`/`||`/`<|`・` : `/`<=`/`=>`/`<=>`/`/=`/`/\`/`\/`/`not`/`NAT`/`INT`/`BOOL`/`POW`/`SEQ`/`NATURAL`/`INTEGER`/`STRING`/`FIN`/`INTER`/`UNION`/`SIGMA`/`PI` 論理)、`lf`(Lingua Franca `.lf`: `target`/`import`/`preamble`/`reactor`/`instantiation`/`main`/`federated`/`realtime`/`interface`・`input`/`output`/`state`/`timer`/`action`/`parameter`/`method`/`local`/`prelude`/`initial`/`reset`/`shutdown`/`startup`・`reaction`/`mutation`・`->`/`after`/`physical`/`logical`/`STP`/`deadline`/`policy`/`STAA`/`{=`/`=}`・`width`/`bank`/`bank_index`/`runtime`/`authentication`/`tracing`/`logging`/`workers`/`timeout`/`keepalive`/`fast`/`threads`/`coordination`/`scheduler`/`files`/`clock-sync`/`fed-setup`/`cmake-include`/`build`/`external-runtime-path`/`no-compile`/`verify`/`federated`/`single-threaded`/`worker-thread-count`/`multiport`/`enclave`/`serializer`/`platform`/`threading`/`cargo-dependencies`)、`whyml`(WhyML/Why3 `.mlw`/`.why`: `module`/`use`/`clone`/`import`/`export`/`include`/`scope`/`namespace`/`theory`/`meta`/`declarations`・`let`/`val`/`predicate`/`function`/`type`/`inductive`/`coinductive`/`constant`/`exception`/`rec`/`fun`/`abstract`/`ghost`/`pure`/`mutable`/`private`・`requires`/`ensures`/`invariant`/`variant`/`writes`/`reads`/`raises`/`alias`/`diverges`/`partial`・`axiom`/`lemma`/`goal`/`prop`/`assert`/`assume`/`check`/`absurd`/`by`/`so`/`epsilon`/`any`・`if`/`else`/`while`/`for`/`match`/`with`/`try`/`begin`/`end`/`in`/`of`/`as`/`not`/`and`/`or`/`loop`/`break`/`continue`/`return`/`case`・`==>`/`<->`/`\/`/`/\`/`forall`/`exists`)。
-
-## 出典(第243次、search-index 照合)
-
-**論文・仕様**: TLA+ Specification Language(Lamport, "Specifying Systems" + tlaps TLA+ Proof System 文法)、Alloy 6 reference guide(Jackson)、SPIN/Promela reference(Holzmann, spinroot.com grammar)、Dafny reference manual(Leino/Microsoft, dafny-lang docs)、B-Book(Abrial) + Event-B modelling language/Rodin User guide、Lingua Franca documentation(Lohstroh et al., "The Lingua Franca Coordination Language")、Why3/WhyML reference manual(Filliâtre/Paskevich)— 全て整数のみで実装。
-
-**実装物**: tlaplus/tlapm、AlloyTools/org.alloytools.alloy、Spin Source(spinroot/Spin)、dafny-lang/dafny、rodin-b-sharp、lf-lang/lingua-franca、eclipse/why3 の各リポジトリ・配布例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の TLA+ 入門・Alloy 検証・SPIN/Promela モデル検査・Dafny 検証プログラミング・B法/Event-B・WhyML 検証・形式手法概説記事 — 全て整数のみで実装。
 
 ## 第244次(search-index 照合ラウンド / 実装証跡付き)
 
 `izanagi_kit` にデスクトップ・ウィンドウマネージャ設定形式7件を追加した(979→986)。`i3conf`(i3 `set $`/`set_from_resource`・`bindsym`/`bindcode`/`--release`/`--whole-window`/`--border`/`--whole-window`・`exec`/`exec_always`・`bar`/`colors`/`mode` `{` ブロック・`status_command`/`position`/`tray_output`/`binding_mode_indicator`/`workspace_buttons`/`strip_workspace_numbers`/`separator_symbol`/`icon_theme`/`verbose`/`i3bar_command`/`id`/`socket_path`/`modifier`・`font`/`mode`/`for_window`/`assign`/`floating_*`/`workspace`/`gaps`/`include`/`client.*` 指令)、`sway`(Sway `set`/`bindsym`/`bindcode`/`bindgesture`/`bindswitch`・`exec`/`exec_always`・`mode`/`bar`/`colors`/`input`/`output`/`seat`/`idle`/`workspace`/`gaps`/`default_dim_inactive` `{` ブロック・`xkb_*`/`tap`/`natural_scroll`/`dwt`/`pointer_accel`/`accel_profile`/`repeat_rate`/`repeat_delay`/`scroll_method`/`events`/`click_method`/`middle_emulation`/`left_handed`/`map_to_*`・`resolution`/`position`/`scale`/`transform`/`background`/`disable`/`adaptive_sync`/`subpixel`/`dpms`/`hdr`/`render_bit_depth`/`power`/`hotplug`・`swaybar_command`/`swaynag_command`/`icon_theme`/`status_command`/`position`/`tray_*`/`binding_mode_indicator`/`workspace_buttons`/`strip_workspace_*`/`separator_symbol`/`pango_markup`・`unbind*`/`mark`/`opacity`/`inhibit_idle`/`urgent`/`shortcuts_inhibitor`/`include`/`corner_radius`/`shadow`/`blur`/`xwayland`/`gesture`/`primary_selection`/`client.*`)、`hyprland`(Hyprland `general`/`decoration`/`animations`/`input`/`gestures`/`group`/`misc`/`binds`/`xwayland`/`cursor`/`debug`/`render`/`opengl`/`dwindle`/`master`/`plugin`/`device`/`touchdevice`/`tablet`/`keyboard`/`autoscale`/`ecosystem`/`experimental`/`snap`/`overview`/`hypervnc`/`shadow`/`blur`/`submap` セクション・`monitor`/`workspace`/`windowrule`/`windowrulev2`/`layerrule`/`permission`/`bezier`/`animation`/`blurls`/`source`/`env`/`exec`/`exec-once`/`execr`/`unbind`/`plugin`/`submap`・`bind`/`bindm`/`bindr`/`bindl`/`binde`/`bindd`/`bindc`/`bindi`/`bindt`/`bindn`・任意 `key = value`)、`waybar`(Waybar `layer`/`position`/`height`/`width`/`margin`/`spacing`/`mode`/`name`/`output`/`include`/`ipc`/`start_hidden`/`passthrough`/`exclusive`/`gtk-layer-shell`/`reload_style_on_change`/`fixed-center`/`separate-outputs` トップキー・`modules-left`/`modules-center`/`modules-right`+`"{mod}"/"{mod}#name"` モジュールオブジェクト+`format*`/`interval`/`tooltip`/`exec`/`on-*`/`return-type`/`rotate`/`states`/`icons`/`rewrite`/`expand`/`scroll-step`/`smooth-*`/`reverse-scrolling`/`transition-*`/`bat`/`adapter`/`on-update`/`signal`/`exec-if`/`hide*`/`show*`/`min-length`/`max-length`/`align`/`justify`/`escape`/`markup`/`wrap`/`device`/`click-through`・`#waybar`/`.modules-*`/`#*` セレクタ+`@import`/`@define-color`+CSS プロパティ)、`polybar`(Polybar `[bar/*]`/`[module/*]`/`[settings]`/`[colors]`/`[global/*]` セクション・module スコープ内 `type`/`exec`/`interval`/`tail`/`exec-if`/`format*`/`label*`/`ramp*`/`bar-*`/`animation-*`/`internal/*`/`menu-*`/`hook-*`/`initial`/`mount-*`/`warn-*`/`ws-icon-*`/`rotate`/`cycle`/`fuzzymatch`/`disable-scroll`/`smooth-scrolling` キー・bar スコープ `monitor`/`width`/`height`/`radius`/`fixed-center`/`background`/`foreground`/`line-*`/`border-*`/`padding-*`/`module-*`/`font-*`/`separator`/`wm-restack`/`override-redirect`/`cursor-*`/`scroll-*`/`enable-ipc`/`tray-*`/`offset-*`/`dpi`/`pseudo-transparency`/`struts`/`include-*`/`compositing-*`/`screenchange-*`/`dim-value`/`throttle-*`・`${xrdb:`/`${env:`/`${file:`/`${colors.*}`/`${bar.*}`/`${root.*}`/`${self.*}` 参照)、`rofi`(Rofi `.rasi`/`configuration {`/`window {`/`mainbox {`/`inputbar {`/`entry {`/`listview {`/`element* {`/`mode-switcher {`/`message {`/`textbox* {`/`button {`/`iconbox {`/`case-indicator {`/`prompt {`/`error-message {`/`sidebar {`/`dummy {`/`split {`/`stack {`/`box {`/`overlay {`/`child {`/`enabled {`/`horizontal {`/`num-* {`/`alternate {`/`urgent {`/`active {`/`selected {`/`normal {`/`hovered {`/`border* {`/`scrollbar {`/`handle {`/`filter {`/`scroll {`/`* {` ブロック・`key: value;` プロパティ+`rofi.`/`!` 旧形式・`@theme`/`@import`/`@media`/`@property`/`@default`/`@include`/`theme:`・`calc(`/`var(`/`env(`/`rgba(`/`hsla(`/`hsl(`/`lighten(`/`darken(`/`url(`/`linear-gradient(`/`argb:`/`#` カラー/関数)、`dunst`(Dunst `[global]`/`[experimental]`/`[shortcuts]`/`[urgency_*]`/ルール `[*]` スコープ追跡・global/urgency/rule 別 `key = value` 計数)。
 
-## 出典(第244次、search-index 照合)
-
-**論文・仕様**: i3 User's Guide(i3wm.org docs、config directives/bindings/bar)、Sway wiki + `sway(5)`/`sway-input(5)`/`sway-output(5)`/`sway-bar(5)`/`swaynag(5)` man pages、Hyprland Wiki(Configuring/Monitors/Window-Rules/Binds/Dispatchers/Variables)、Waybar モジュール別 man(`waybar-*(5)`)+`waybar(5)`/style docs、Polybar wiki(config)、Rofi `rofi(1)`/`rofi-theme(5)`/`rofi-dmenu(5)` man + rasi format、Dunst `dunst(5)` man page — 全て整数のみで実装。
-
-**実装物**: i3/i3、swaywm/sway、hyprwm/Hyprland、Alexays/Waybar、polybar/polybar、davatorium/rofi、dunst-project/dunst の各リポジトリ・配布設定例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の i3/sway 導入・Hyprland 設定・Waybar カスタマイズ・polybar 構成・rofi ランチャ/テーマ・dunst 通知設定の解説記事 — 全て整数のみで実装。
-
 ## 第245次(search-index 照合ラウンド / 実装証跡付き)
 
 `izanagi_kit` にパッケージマネージャ設定形式7件を追加した(986→993)。`apt`(APT `deb`/`deb-src` 1行形式+`[opt=v]`・deb822 `.sources` スタンザ `Types`/`URIs`/`Suites`/`Components`/`Architectures`/`Signed-By`/`Enabled`/`X-*`/`Check-*`/`Valid-*`/`Snapshots`/`PDiffs`/`InRelease-Path`/`Filename`/`Description`/`Source`/`Key`/`Link`/`Standards-Version`・`Acquire::`/`APT::`/`Dir::`/`DPkg::`/`Unattended-Upgrade::`/`netrc`/`machine`/`login`/`password`)、`pacman`(pacman.conf `[options]`+repo `[core]`/`[extra]`/`[custom]`・`RootDir`/`DBPath`/`CacheDir`/`HookDir`/`GPGDir`/`LogFile`/`XferCommand`/`UseSyslog`/`Color`/`NoProgressBar`/`VerbosePkgLists`/`ParallelDownloads`/`CheckSpace`/`TotalDownload`/`DisableDownloadTimeout`/`DisableSandbox`/`IgnorePkg`/`IgnoreGroup`/`NoUpgrade`/`NoExtract`/`CleanMethod`/`SigLevel`/`LocalFileSigLevel`/`RemoteFileSigLevel`/`HoldPkg`/`Include`/`Architecture`/`UseDelta`・`Server`/`Usage`/`CacheServer`/`Priority`・値なしフラグ)、`dnfconf`(DNF/YUM `[main]`+repo スコープ・`baseurl`/`metalink`/`mirrorlist`/`enabled`/`gpgcheck`/`repo_gpgcheck`/`gpgkey`/`localpkg_gpgcheck`/`cost`/`priority`/`skip_if_unavailable`/`exclude*`/`includepkgs`/`module_hotfixes`/`countme`/`fastestmirror`/`deltarpm`/`type`/`mediaid`/`metadata_expire`/`mirrorlist_expire`/`proxy`/`ssl*`/`username`/`password`/`throttle`/`bandwidth`/`minrate`/`timeout`/`retries`/`installroot`/`cachedir`/`persistdir`/`keepcache`/`debuglevel`/`errorlevel`/`logfile`/`exactarch`/`obsoletes`/`plugins`/`pluginpath`/`pluginconfpath`/`reposdir`/`distroverpkg`/`system_cachedir`/`releasever`/`assumeyes`/`alwaysprompt`/`history_*`/`installonlypkgs`/`installonly_limit`/`kernelpkgnames`/`multilib_policy`/`best`/`clean_*`/`disable_excludes`/`diskspacecheck`/`downloaddir`/`exit_on_lock`/`group_*`/`install_weak_deps`/`ip_resolve`/`keep_exit_code`/`load_*`/`logdir`/`max_parallel_downloads`/`metadata_timer_sync`/`module_platform_id`/`optional_metadata_types`/`package_strict`/`protected_*`/`rpmverbosity`/`showdupesfromrepos`/`skip_broken`/`strict`/`tsflags`/`tolerant`/`upgrade_group_objects_upgrade`/`user_agent`/`varsdir`/`zchunk`・`$releasever`/`$basearch`/`$release_major`/`$release_minor`/`$arch`/`$uuid`/`$disttag`/`${}` 参照)、`zypper`(Zypper `[main]`/solver/colors 系 vs `[repo-*]` リポジトリスコープ・`enabled`/`autorefresh`/`baseurl`/`mirrorlist`/`metalink`/`path`/`type`/`alias`/`name`/`keeppackages`/`priority`/`gpgcheck`/`repo_gpgcheck`/`pkg_gpgcheck`/`gpgautoimportkeys`/`gpgkey`/`pubkey`/`contentdir`/`service`/`raw` 等キー計数)、`apk`(apk `/repositories` 行(`http*`/`ftp`/`file:`/`/`/`@tag`)、`/world` パッケージ指定(`name`/`name<op>v`/`!name`/`+name@tag`/`name@tag`)、apk.conf `key = value`)、`portage`(Gentoo `make.conf` `VAR=` 代入+`USE`/`ACCEPT_*`/`FEATURES`/`EMERGE_DEFAULT_OPTS`/`PORTAGE_*`/`SYNC`/`GENTOO_MIRRORS`/`CONFIG_PROTECT*`/`MAKEOPTS`/`CFLAGS`/`CHOST`/`VIDEO_CARDS`/`INPUT_DEVICES`/`LINGUAS`/`L10N`/`CPU_FLAGS*`/`*_TARGETS`/`*_MODULES`/`*_PLUGINS`/`*_FEATURES`/`*_CARDS`/`*_DEVICES`/`*_FLAGS` 命名認識・`package.use`/`package.accept_keywords` アトム行 `cat/pkg`/`>=x`/`=x*`/`~x`/`cat/pkg:slot`)、`nixconf`(nix.conf `key = value`・`substituters`/`trusted-public-keys`/`extra-*`/`experimental-features`/`access-tokens`/`secret-key-files`/`builders`/`netrc-file`/`trusted-*`/`connect-timeout`/`stalled-download-timeout`/`narinfo-cache-*`/`hashed-mirrors`/`max-jobs`/`cores`/`auto-optimise-store`/`keep-*`/`gc-*`/`build-*`/`eval-*`/`http-*`/`log-*`/`sandbox*`/`pure-*`/`impure-*`/`allow-*`/`warn-*`/`flake-*`/`tarball-ttl`/`accept-flake-config`/`commit-lockfile-summary`/`eval-cache`/`filter-syscalls`/`restrict-eval`/`use-xdg-base-directories`/`plugin-files`/`ssl-cert-file`/`system`/`system-features`/`extra-platforms`/`require-sigs`/`nar-buffer-size`/`offline`/`fallback`/`repeat`/`enforce-determinism`/`check-sigs`/`use-sqlite-wal`/`sync-before-registering`/`upgrade-nix`/`post-build-hook`/`pre-build-hook`/`build-poll-interval`/`min-free`/`max-free`/`gc-reserved`/`ignored-*`/`log-compression`/`log-format`/`log-lines`/`fsync-metadata`/`download-*`/`http2`/`proxy`/`ping`/`debugger-*`/`show-trace`/`use-case-hack`/`filter-paths`/`print-*`/`verbose`/`quiet`/`bash-prompt*`/`error-*`/`debug-*`/`tty`/`output*`/`timeout`/`max-silent-time`/`store`/`pure-eval`/`include`・空白区切り多値検出)。
-
-## 出典(第245次、search-index 照合)
-
-**論文・仕様**: `sources.list(5)`/`apt.conf(5)`/deb822 format(Debian Policy Manual §4.4 + repolib 仕様)、`pacman.conf(5)` man page、`dnf.conf(5)`/`yum.conf(5)` man pages、`zypper.conf(5)`/`zypp.conf` + `.repo` format(openSUSE wiki)、apk world/repositories format(alpine wiki + apk-tools docs)、`make.conf(5)`/`portage(5)` man + Gentoo handbook、`nix.conf(5)` man page + Nix manual(settings) — 全て整数のみで実装。
-
-**実装物**: Debian apt、archlinux/pacman、rpm-software-management/dnf、openSUSE/zypper+libzypp、alpinelinux/apk-tools、gentoo/portage、NixOS/nix の各リポジトリ・デフォルト設定 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の apt ソース追加・pacman.conf・DNF リポジトリ設定・zypper リポジトリ・apk パッケージ管理・Gentoo make.conf・nix.conf flakes 有効化の解説記事 — 全て整数のみで実装。
 
 ## 第246次(search-index 照合ラウンド / 実装証跡付き)
 
 `izanagi_kit` にデータベースクライアント接続設定形式7件を追加した(993→1000)。`tnsnames`(Oracle `NAME = (DESCRIPTION = …)` ネスト記法・エイリアスカンマ列挙・`(ADDRESS =` カウント・`IFILE` include・記述子キー除外によるエイリアス誤認防止)、`sqlnet`(sqlnet.ora フラット `KEY = value`+`NAMES.DIRECTORY_PATH`/`SQLNET.*`/`TCP.*`/`SSL_*`/`WALLET_LOCATION`・ドットキー・`(SOURCE`/`(METHOD =` 記述子・`(` 分割内側パラメータ計数)、`pgservice`(pg_service.conf `[service]` セクション+libpq `host`/`port`/`dbname`/`user`/`sslmode`/`target_session_attrs`/`load_balance_hosts`/`channel_binding`/`gssencmode` 等キー認識)、`freetds`(freetds.conf `[global]` vs サーバセクション・`tds version`/`instance`/`encryption`/`use ntlmv2`/`client charset`/`packet size` 等空白含みキー)、`ldapconf`(ldap.conf `KEY value` 空白区切り・`URI`/`BASE`/`BINDDN`/`SIZELIMIT`/`TLS_*`/`SASL_*`/`GSSAPI_*`/`KRB5_*`/`WHEN_*` 名前空間キー)、`odbcini`(odbc.ini `[ODBC Data Sources]` DSN→ドライバ写像+`[DSN]` Driver/Server/Database・odbcinst.ini `[ODBC Drivers]` UsageCount/Threading・スコープ内エントリ別カウント)、`db2cli`(db2cli.ini `[dbname]`/`[COMMON]` セクション+`Hostname`/`Port`/`Protocol`/`CurrentSchema`/`TraceComm`/`QueryTimeout` 等 CLI キーワード大小文字不変認識)。
 
-## 出典(第246次、search-index 照合)
-
-**論文・仕様**: Oracle Net Services Reference(tnsnames.ora/sqlnet.ora パラメータ)、PostgreSQL libpq `pg_service.conf`(Connection Service File ドキュメント)、FreeTDS freetds.conf リファレンス、OpenLDAP `ldap.conf(5)` man page、Microsoft/unixODBC `odbc.ini`/`odbcinst.ini` 仕様、IBM Db2 `db2cli.ini` 初期化キーワード文書 — 全て整数のみで実装。
-
-**実装物**: Oracle Instant Client、postgresql/libpq、FreeTDS/freetds、openldap/openldap、unixODBC、IBM DB2 CLI driver のデフォルト設定例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の tnsnames.ora 接続記述・pg_service.conf サービス登録・FreeTDS+unixODBC で SQL Server 接続・ldap.conf TLS 設定・odbc.ini DSN 定義・db2cli.ini 設定手順の解説記事 — 全て整数のみで実装。
-
-
 ## 第247次(search-index 照合ラウンド / 実装証跡付き)
 
 サーバ運用系設定ファイル形式。対象: `serverprop`(server.properties), `eula`(eula.txt), `opsjson`(ops.json), `whitelist`(whitelist.json), `bannedips`(banned-ips.json), `bukkit`(bukkit.yml), `spigot`(spigot.yml)。`detect` でモチーフキー照合、`parse` で セクション/設定/名前付き/コメントの整数センサスを返す。
-
-## 出典(第247次、search-index 照合)
-
-- 論文・仕様: Minecraft Wiki 「server.properties」「ops.json」「whitelist.json」「banned-ips.json」「eula.txt」(Server operating 文書群) — キー一覧と入稿制約。Bukkit/Spigot 既定 `bukkit.yml`/`spigot.yml` コメント付きテンプレート — 全て整数のみで実装。
-- 実装物: PaperMC docs 「Bukkit/Spigot Configuration」、BukkitWiki 「Bukkit.yml」「spigot.yml」、MohistMC/magma 設定記事。`bukkit.yml` の `spawn-limits`/`chunk-gc`/`ticks-per` セクション、Spigot の `timeout-time`/`netty-threads`/`bungeecord`/`world-settings:` 階層を区別計数 — 全て整数のみで実装。
-- 国内技術情報: Qiita「Minecraft サーバ構築」記事群、Zenn マイクラ鯖設定ガイド — `eula=true` 運用・`banned-ips.json` の `expires: "forever"`、`ops.json` の `level`/`bypassesPlayerLimit` フィールドを確認 — 全て整数のみで実装。
-
 
 ## 第248次(search-index 照合ラウンド / 実装証跡付き)
 
 認証・IAM・SSO サーバ設定形式。対象: `keycloak`(realm export JSON), `authelia`(configuration.yml), `dexidp`(Dex config.yaml), `hydra`(Ory Hydra), `kratos`(Ory Kratos), `oathkeeper`(Ory Oathkeeper), `shibconf`(Shibboleth XML)。`detect` でモチーフキー照合、`parse` で セクション/設定/ハンドラ/ルール等の整数センサスを返す。
 
-## 出典(第248次、search-index 照合)
-
-- 論文・仕様: Keycloak Server Administration「Exporting/Importing a Realm」(realm JSON: `realm`/`clients`/`users`/`identityProviders`/`authenticationFlows`)、Dex upstream `Documentation/config/dex-config`(`issuer`/`storage`/`connectors`/`staticClients`/`expiry`)、Shibboleth IdP v4「AttributeFilterConfiguration」「AttributeResolverConfiguration」「RelyingPartyConfiguration」 — 全て整数のみで実装。
-- 実装物: Authelia documentation「Configuration Prologue」(server/session/storage/notifier/access_control/identity_providers)、Ory docs「Hydra configuration reference」(serve/urls/dsn/secrets/oauth2/ttl/oidc)、「Kratos configuration」(identity/selfservice.flows/methods/courier)、「Oathkeeper configuration」(serve/access_rules/authenticators/authorizers/mutators/errors) — 全て整数のみで実装。
-- 国内技術情報: Qiita「Keycloak レルムエクスポート」「Authelia で SSO」「Ory Kratos セルフサービスフロー」、Zenn Dex/OAuth2 Proxy 連携記事 — `staticClients`/`connectors` 配列、`access_control.rules` の `- domain:` エントリを確認 — 全て整数のみで実装。
-
 ## 第249次(search-index 照合ラウンド / 実装証跡付き)
 
 Python ツールチェーン・依存定義形式。対象: `requirements`(requirements.txt), `pipfile`(Pipfile), `setupcfg`(setup.cfg), `toxini`(tox.ini), `condarc`(.condarc), `condaenv`(environment.yml), `pylintrc`(.pylintrc)。`detect` でモチーフキー照合、`parse` で 指定/セクション/設定/項目等の整数センサスを返す。
-
-## 出典(第249次、search-index 照合)
-
-- 論文・仕様: pip documentation「Requirements File Format」(`-r`/`-c`/`--requirement`/`--constraint`/extras `[extra]`/環境マーカー `;`/`--index-url`/`--hash`/`--find-links`/`--no-binary`/`--only-binary`/`--pre`/`--trusted-host`/`--extra-index-url`/`--config-settings`/`--global-option`/`--compile-option`/`--install-option`/`-e`)、pipenv docs「Pipfile spec」(`[[source]]`/`[packages]`/`[dev-packages]`/`[requires]`/`[pipenv]`/テーブル値)、setuptools「setup.cfg metadata/options」(`[metadata]`/`[options]`/`[options.entry_points]`/`[options.extras_require]`/`[options.package_data]`/`[options.packages.find]`/`[bdist_wheel]`/`[sdist]`/`[egg_info]`/`[coverage:*]`/`[flake8]`/`[aliases]`)、tox docs「tox configuration」(`[tox]`/`[testenv]`/`[testenv:NAME]`/`[gh]`/`[pkgenv]`/`[base]`、`envlist`/`deps`/`commands*`/`setenv`/`passenv`/`labels`/`minversion`/`requires`/`isolated_build`/`skip_install`/`changedir`)、conda docs「condarc」(`channels`/`default_channels`/`channel_priority`/`envs_dirs`/`pkgs_dirs`/`proxy_servers`/`ssl_verify`/`repodata_fns`/`create_default_packages`/`pinned_packages`/`track_features`/`local_repodata_ttl`/`remote_connect_timeout_secs`/`remote_max_retries`)、「environment.yml」(name/channels/dependencies/pip:/variables/prefix)、pylint docs「Pylint configuration file」(MAIN/MESSAGES CONTROL/REPORTS/FORMAT/BASIC/DESIGN/TYPECHECK/SIMILARITIES/MISCELLANEOUS/IMPORTS/STRING/VARIABLES/LOGGING/SPELLING、`disable=`/`enable=`/`load-plugins`/`confidence`/`good-names`/`min-similarity-lines`) — 全て整数のみで実装。
-- 実装物: pypa/pip・pypa/pipenv・pypa/setuptools・tox-dev/tox・conda/conda・pylint-dev/pylint の各リポジトリ・既定設定例。`click>=8` 等 `=` 含有継続値の設定側計数、`[testenv:` 別環境、`channels:`/`dependencies:`/`variables:` 文脈追跡、`- pip:` ブロック内インデント依存判定 — 全て整数のみで実装。
-- 国内技術情報: Qiita「requirements.txt 書き方」「Pipenv/Pipfile 使い方」「setup.cfg でパッケージング」「tox.ini の書き方」「.condarc 設定」「environment.yml 共有」「.pylintrc 設定」記事群、Zenn 依存管理ガイド — extras/マーカー/`[testenv:lint]` 分離・channels+dependencies 構造を確認 — 全て整数のみで実装。
 
 ## 第250次(search-index 照合ラウンド / 実装証跡付き)
 
 メールサーバ・MTA・認証系設定ファイル形式。対象: `postfix`(main.cf/master.cf), `dovecot`(dovecot.conf), `exim`(exim4 configure), `sendmail`(sendmail.cf), `spamassassin`(local.cf), `opendkim`(opendkim.conf), `opendmarc`(opendmarc.conf)。`detect` でモチーフキー照合、`parse` で 設定/セクション/ルール等の整数センサスを返す。`dkim`/`dmarc`/`spf` は DNS TXT レコード形式として既存のため、今回は設定ファイル側を別名で採用。
 
-## 出典(第250次、search-index 照合)
-
-- 論文・仕様: Postfix BASIC_CONFIGURATION_README + `postconf(5)` パラメータ一覧 + `master(5)` サービス定義、Dovecot wiki「Configuring Dovecot」(`protocol`/`service`/`mailbox`/`namespace`/`passdb`/`userdb` ブロック、`mail_location`/`ssl_*`/`auth_*` 設定)、Exim Specification「The Exim Configuration File」(`begin` セクション構成、`domainlist`/`hostlist`/`addresslist` 命名リスト、ACL 動詞)、Sendmail cf README(`V`/`O`/`K`/`M`/`R`/`S`/`D`/`C`/`F`/`T`/`H`/`P` コマンド)、SpamAssassin `Mail::SpamAssassin::Conf` POD(`score`/`header`/`body`/`uri`/`meta`/`whitelist_*`/`blacklist_*`/`bayes_*`/`use_*`/`loadplugin`)、OpenDKIM `opendkim.conf(5)`、OpenDMARC `opendmarc.conf(5)` — 全て整数のみで実装。
-- 実装物: postfix/postfix、dovecot/core、Exim/exim、sendmail(sendmail.cf m4 生成物)、apache/spamassassin、trusteddomainproject/opendkim+opendmarc の既定設定例 — `domainlist X =` 形式の先頭トークンをディレクティブとして計数、`K` 行の空白無しマップ宣言、`begin <sec>` セクション走査 — 全て整数のみで実装。
-- 国内技術情報: Qiita「Postfix+Dovecot メールサーバ構築」「Exim4 設定」「SpamAssassin local.cf」「DKIM/DMARC 導入」記事群、Zenn メール認証ガイド — `smtpd_*_restrictions`、`mail_location`、`required_score`、`Selector`/`Socket` 設定を確認 — 全て整数のみで実装。
-
 ## 第251次(search-index 照合ラウンド / 実装証跡付き)
 
 VPN・トンネル設定ファイル形式。対象: `wireguard`(wg.conf/wg-quick.conf), `openvpn`(.ovpn), `swanctl`(strongSwan swanctl.conf), `xl2tpd`(xl2tpd.conf), `pptpd`(pptpd.conf/options.pptpd), `zerotier`(local.conf), `tailscale`(acl.hujson)。`detect` でモチーフキー照合、`parse` で セクション/設定/ディレクティブ等の整数センサスを返す。
-
-## 出典(第251次、search-index 照合)
-
-- 論文・仕様: WireGuard wg-quick(8)(`[Interface]`/`[Peer]`、`PrivateKey`/`Address`/`AllowedIPs`/`Endpoint`/`PersistentKeepalive`)、OpenVPN Reference Manual(`remote`/`ca`/`cert`/`key`/`tls-auth`/`cipher` ディレクティブ、`<ca>`/`<key>` インラインブロック)、strongSwan swanctl.conf(5)(`connections`/`local`/`remote`/`children`/`pools`/`secrets`/`authorities`)、xl2tpd.conf(5)(`[global]`/`[lns]`/`[lac]`)、pptpd.conf(5)+pppd options、ZeroTier local.conf settings、Tailscale ACL policy docs — 全て整数のみで実装。
-- 実装物: WireGuard/wg-quick、OpenVPN/openvpn、strongswan/strongswan、xelerance/xl2tpd、pptpclient/pptpd、zerotier/ZeroTierOne、tailscale/tailscale の既定設定例 — インラインブロック内ペイロードのディレクティブ除外、`<conn> { local { auth = … } children { … } }` ネスト、`[lns name]` セクション — 全て整数のみで実装。
-- 国内技術情報: Qiita「WireGuard 構築」「OpenVPN 設定ファイル」「strongSwan IKEv2」「ZeroTier 導入」「Tailscale ACL」記事群、Zenn VPN 構築ガイド — AllowedIPs 経路制御、`comp-lzo`/`compress` 非推奨移行、`auth = pubkey`/`psk` を確認 — 全て整数のみで実装。
 
 ## 第252次(search-index 照合ラウンド / 実装証跡付き)
 
 コンテナオーケストレーション周辺設定形式。kustomization.yaml(Kustomize)、helmfile.yaml、skaffold.yaml、kind クラスタ設定、k3d クラスタ設定、Tiltfile(Starlark)、containerd config.toml。いずれも本家ドキュメントと GitHub リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
 
-## 出典(第252次、search-index 照合)
-
-論文・仕様: Kustomize(kustomize.config.k8s.io/v1beta1)・Helmfile helmfile.yaml スキーマ・Skaffold config v4beta・kind.x-k8s.io/v1alpha4 Cluster・k3d.io/v1alpha5 Simple・Tilt Tiltfile API リファレンス・containerd config.toml リファレンス(io.containerd.* プラグインツリー)。
-実装物: kubernetes-sigs/kustomize・helmfile/helmfile・GoogleContainerTools/skaffold・kubernetes-sigs/kind・k3d-io/k3d・tilt-dev/tilt・containerd/containerd 各 OSS。
-国内技術情報: Qiita・Zenn の Kustomize/Helmfile/Skaffold/kind 解説・Tiltfile 入門記事・containerd 設定 note の実例記述。
-— 全て整数のみで実装。
-
 ## 第253次(search-index 照合ラウンド / 実装証跡付き)
 
 エディタ・IDE 設定ファイル形式。.vimrc/init.vim(Vimscript)、VS Code settings.json(JSONC)、Helix config.toml/languages.toml、Zed settings.json、init.el/.spacemacs(Emacs Lisp)、.ideavimrc(IdeaVim)、.nanorc(GNU nano)。いずれも本家ドキュメントと GitHub リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
-
-## 出典(第253次、search-index 照合)
-
-論文・仕様: Vim documentation(vimscript/set/map/autocmd)、VS Code Settings リファレンス、Helix book(configuration/keys/languages)、Zed Configuring Zed、Emacs Lisp Manual(init file/use-package/defcustom)、IdeaVim README(.ideavimrc/sethandler/Action)、GNU nano manual(nanorc/syntax)。
-実装物: vim/vim・neovim/neovim・microsoft/vscode・helix-editor/helix・zed-industries/zed・emacs-mirror/emacs・syl20bnr/spacemacs・JetBrains/ideavim・nano ソースツリー。
-国内技術情報: Qiita・Zenn の vimrc/VS Code settings/Helix/Zed/init.el/IdeaVim/nanorc 解説・設定晒し記事の実例記述。
-— 全て整数のみで実装。
 
 ## 第254次(search-index 照合ラウンド / 実装証跡付き)
 
 シェル・プロンプト・ターミナル設定形式。starship.toml、fish config.fish、Nushell config.nu/env.nu、.inputrc(Readline)、direnv .envrc、.zshrc、.bashrc/.profile。いずれも本家ドキュメントと GitHub リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
 
-## 出典(第254次、search-index 照合)
-
-論文・仕様: Starship 設定リファレンス(format/module tables)、fish 4.x ドキュメント(set/abbr/function/bind)、Nushell book(config.nu/env.nu/$env.config)、GNU Readline init file syntax(set/conditional/key binding)、direnv stdlib(stdlib.sh)、zsh オプション群、Bash Reference Manual(shopt/PS1/PROMPT_COMMAND/HIST*)。
-実装物: starship/starship・fish-shell/fish-shell・nushell/nushell・direnv/direnv・zsh-users/oh-my-zsh・git.gnu.org bash/readline ソースツリー。
-国内技術情報: Qiita・Zenn の starship/fish/nushell/inputrc/envrc/zshrc/bashrc 解説・設定晒し記事の実例記述。
-— 全て整数のみで実装。
-
 ## 第255次(search-index 照合ラウンド / 実装証跡付き)
 
 多言語リンター・フォーマッタ設定形式。.clang-format、.clang-tidy、CPPLINT.cfg、detekt.yml、ktlint .editorconfig プロパティ、.swiftlint.yml、.rubocop.yml。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
-
-## 出典(第255次、search-index 照合)
-
-論文・仕様: ClangFormat Style Options 公式リファレンス、clang-tidy チェック一覧・.clang-tidy 形式ドキュメント、google/styleguide cpplint 設定仕様、detekt 設定ドキュメント(default-detekt-config.yml)、ktlint .editorconfig プロパティ表、SwiftLint ルールディレクトリ、RuboCop Config ファイル形式。
-実装物: llvm/llvm-project(clang/tools・clang-tools-extra)、google/styleguide(cppguide/cpplint)、detekt/detekt、 pinterest/ktlint、realm/SwiftLint、rubocop/rubocop の各リポジトリ記述。
-国内技術情報: Qiita・Zenn の clang-format/clang-tidy/detekt/ktlint/SwiftLint/RuboCop 設定記事の実例記述。
-— 全て整数のみで実装。
 
 ## 第256次(search-index 照合ラウンド / 実装証跡付き)
 
 JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、bunfig.toml、angular.json、turbo.json、nx.json、lerna.json。各ツールのスキーマ・ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
 
-## 出典(第256次、search-index 照合)
-
-論文・仕様: TypeScript tsconfig リファレンス(compilerOptions ~150 キー)、Deno 設定リファレンス(deno.json)、Bun bunfig.toml ドキュメント、Angular workspace スキーマ(@angular/cli)、Turborepo turbo.json スキーマ、Nx nx.json リファレンス、Lerna lerna.json スキーマ。
-実装物: microsoft/TypeScript・denoland/deno・oven-sh/bun・angular/angular-cli・vercel/turborepo・nrwl/nx・lerna/lerna の各リポジトリ記述。
-国内技術情報: Qiita・Zenn の tsconfig/deno/bun/Angular/turbo/nx/lerna 設定記事の実例記述。
-— 全て整数のみで実装。
 ## 第257次(search-index 照合ラウンド / 実装証跡付き)
 
 メディア・ホームサーバ設定形式。Sonarr/Radarr/Lidarr/Prowlarr 各 config.xml(*arr 系 .NET 設定 XML)、Jellyfin system.xml、Plex Preferences.xml、Kodi advancedsettings.xml。各アプリのドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
 
-## 出典(第257次、search-index 照合)
-
-論文・仕様: Sonarr Wiki Settings・Radarr Settings・Lidarr Settings・Prowlarr Settings(config.xml スキーマ/ポート規約 8989/7878/8686/9696)、Jellyfin 公式 config ドキュメント(ServerConfiguration 要素)、Plex Media Server 設定(Preferences.xml 高度設定・属性一覧)、Kodi Wiki advancedsettings.xml リファレンス。
-実装物: Sonarr/Sonarr・Radarr/Radarr・lidarr/Lidarr・Prowlarr/Prowlarr・jellyfin/jellyfin・plexinc/pms-docker・xbmc/xbmc の各リポジトリ記述。
-国内技術情報: Qiita・Zenn の Sonarr/Radarr/Prowlarr/Jellyfin/Plex/Kodi 設定・構築記事の実例記述。
-— 全て整数のみで実装。
 ## 第258次(search-index 照合ラウンド / 実装証跡付き)
 
 音楽プレイヤー・オーディオサーバ設定形式。mpd.conf、Mopidy mopidy.conf、beets config.yaml、MusicBrainz Picard Picard.ini、ncmpcpp config/bindings、cmus autosave/rc、Snapcast snapserver.conf。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
 
-## 出典(第258次、search-index 照合)
-
-論文・仕様: MPD 設定リファレンス(mpd.conf パラメータ/audio_output ブロック)、Mopidy 設定ドキュメント(ext/セクション一覧)、beets 設定ガイド(plugins/トップレベルキー表)、Picard オプションリファレンス、ncmpcpp man ページ(config/bindings)、cmus コマンドリファレンス(autosave/rc)、Snapcast ドキュメント(snapserver.conf)。
-実装物: MusicPlayerDaemon/MPD、mopidy/mopidy、beetbox/beets、metabrainz/picard、ncmpcpp/ncmpcpp、cmus/cmus、badaix/snapcast の各リポジトリ記述。
-国内技術情報: Qiita・Zenn の mpd/mopidy/beets/picard/ncmpcpp/cmus/snapcast 設定・構築記事の実例記述。
-— 全て整数のみで実装。
 ## 第259次(search-index 照合ラウンド / 実装証跡付き)
 
 シークレット管理・漏洩検査ツール設定形式。.sops.yaml(SOPS creation_rules)、gitleaks.toml、detect-secrets .secrets.baseline、Talisman .talismanrc、git-secret .gitsecret、Vault Agent .hcl、KeePassXC keepassxc.ini。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
-
-## 出典(第259次、search-index 照合)
-
-論文・仕様: SOPS 設定ドキュメント(creation_rules/key sources)、gitleaks 設定リファレンス(gitleaks.toml)、detect-secrets baseline スキーマ、Talisman 設定ドキュメント、git-secret man ページ、HashiCorp Vault Agent 設定リファレンス、KeePassXC 設定ドキュメント。
-実装物: getsops/sops、gitleaks/gitleaks、Yelp/detect-secrets、thoughtworks/talisman、sobolevn/git-secret、hashicorp/vault、keepassxreboot/keepassxc の各リポジトリ記述。
-国内技術情報: Qiita・Zenn の sops/gitleaks/detect-secrets/Talisman/git-secret/Vault Agent/KeePassXC 導入・設定記事の実例記述。
-— 全て整数のみで実装。
 
 ## 第260次
 
 DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTOEXEC.BAT/MSDOS.SYS)・bootini(boot.ini ARC パス+スイッチ)・regfile(REGEDIT4/WRE 5.00 .reg、hex/dword 型)・winini(win.ini/system.ini セクション集合)・unattend(unattend.xml/autounattend.xml、settings pass/component)・inffile(ドライバ .inf、[Version]/[Manufacturer]/HKR・HKLM 系)・cmdbat(.bat/.cmd、set/if/for/goto/label/リダイレクト)。
 
-## 出典
-
-Microsoft Learn(CONFIG.SYS/boot.ini/.reg レジストリインポート/アンサーファイル OOBE pass・setupact.inf ドライバ INF 構造・Windows コマンドリファレンス)・SS64 コマンドリファレンス・Ralf Brown interrupt list・Zenn/Qiita「bat で自動化」「 unattend.xml 作り方」・Reddit r/sysadmin・Windows IT Pro Blog・Petri IT Knowledgebase。 — 全て整数のみで実装。
-
 ## 第261次
 
 バージョン管理・リポジトリ設定形式:hgrc(Mercurial、[ui]/[paths]/[auth]/[hooks]/[merge-tools] + ~70 セクション)・svnconf(config/servers、[general]/[helpers]/[miscellany]/[auto-props] スコープ + [groups] ホスト glob)・gitignore(glob/`!`/`/`/`**` + dir_only/anchored 分類)・gitattributes(pattern + `attr`/`-attr`/`attr=val` 3形態 + linguist-* 属性)・gitmodules([submodule "name"] + path/url/branch/update/ignore)・fossilconf(.fossil-settings/`fossil settings` 出力、~90 キー + *-glob)・hgignore(syntax: glob/regexp + glob:/re:/path:/rootglob:/listfile: 系 prefix)。
 
-## 出典
-
-Mercurial 公式リファレンス(hgrc/.hgignore 構文)・Subversion Red Book(Runtime Configuration Area)・git-scm ドキュメント(gitignore/gitattributes/gitmodules)・Fossil SCM 公式(settings/versionable settings)・Qiita/Zenn「gitignore の書き方」「.gitattributes で LF 統一」・Reddit r/git・Stack Overflow Mercurial config 系記事。 — 全て整数のみで実装。
-
 ## 第262次
 
 静的サイトジェネレータ・ドキュメントサイト設定形式:hugoconf(Hugo config.toml/yaml、baseURL+[taxonomies]/[params]/[[menu.*]])・jekyll(_config.yml、theme/plugins/exclude/collections キーセット)・mkdocs(mkdocs.yml、site_name+nav/theme/plugins/markdown_extensions)・docusaurus(docusaurus.config.js、module.exports+themeConfig スコープ+navbar/footer/prism)・hexo(Hexo _config.yml、permalink+*_generator/skip_render/deploy)・zola(config.toml、base_url+compile_sass/build_search_index/highlight_code+[markdown]/[extra])・docsify(index.html window.$docsify、search/plugins/alias ブロック)。
-
-## 出典
-
-Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの configuration リファレンス・Qiita「Hugo でブログ」「mkdocs-material 設定まとめ」・Zenn「Docusaurus v3 移行」・Reddit r/selfhosted・r/staticblok 系記事。 — 全て整数のみで実装。
 
 ## 第263次 — メディアプレイヤー・録画・ストリーミング設定形式
 
@@ -3947,18 +3892,6 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - `icecast`: Icecast `icecast.xml`(`<icecast>` ルート、`<listen-socket>`/`<mount>`/`<relay>` ブロック計数)
 - `mediamtx`: MediaMTX `mediamtx.yml`(プロトコル別 Address キー+`paths:` エントリ追跡)
 
-## 出典
-
-- mpv — mpv manual / `--list-options`(github.com/mpv-player/mpv)
-- VLC — vlcrc 生成コメント / modules list(videolan.org)
-- MPlayer — man page / example config(mplayerhq.hu)
-- OBS Studio — Profiles `basic.ini` 仕様(obsproject.com)
-- Motion — motion.conf 設定ガイド(motion-project.github.io)
-- Icecast — icecast.xml config reference(icecast.org)
-- MediaMTX — mediamtx.yml リファレンス(github.com/bluenviron/mediamtx)
-
-— 全て整数のみで実装。
-
 ## 第264次 — ジョブスケジューラ・プロセス監視・ワーカー設定形式
 
 - `slurm`: Slurm `slurm.conf`(`Key=Value`+`NodeName=`/`PartitionName=` 別計数、~100 キー)
@@ -3968,18 +3901,6 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - `pm2`: PM2 ecosystem(`module.exports`/`apps:` + `name`/`script`/`exec_mode`/`env_*`)
 - `sidekiq`: sidekiq.yml(`:concurrency:`/`:queues:` 重み付きリスト/`:schedule:` cron)
 - `quartz`: Quartz quartz.properties(`org.quartz.*` 名前空間、threadPool/jobStore/plugin/dataSource スコープ)
-
-## 出典
-
-- Slurm — slurm.conf(5) man page(schedmd.com)
-- LSF — lsb.queues/lsb.params リファレンス(IBM Docs)
-- Supervisor — supervisord.conf 設定リファレンス(supervisord.org)
-- Monit — monitrc 文法(mmonit.com)
-- PM2 — ecosystem.config.js リファレンス(pm2.keymetrics.io)
-- Sidekiq — Advanced Options wiki(github.com/sidekiq/sidekiq)
-- Quartz — quartz.properties 設定ガイド(quartz-scheduler.org)
-
-— 全て整数のみで実装。
 
 ## 第265次 — コンテナランタイム・サンドボックス設定形式
 
@@ -3991,16 +3912,6 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - `seccomp`: seccomp プロファイル(`defaultAction`+`syscalls[].names`+SCMP_ACT/ARCH)
 - `apparmor`: AppArmor プロファイル(`profile {`+`capability`/`network`/ファイル規則+`deny`/`@{}`)
 
-## 出典
-
-- Podman — containers.conf(5)/registries.conf(5)/storage.conf(5) man pages(github.com/containers)
-- sigstore — containers-policy.json(5)(github.com/containers/image)
-- Docker — daemon.json 設定リファレンス(docs.docker.com)
-- libseccomp — seccomp-bpf フィルタ&Docker デフォルトプロファイル(docs.docker.com/engine/security/seccomp)
-- AppArmor — AppArmor プロファイル文法(gitlab.com/apparmor/apparmor)
-
-— 全て整数のみで実装。
-
 ## 第266次 — init・サービス管理・デーモン制御形式
 
 - `inittab`: sysvinit/busybox `/etc/inittab`(`id:runlevels:action:process`、sysinit/bootwait/respawn/initdefault/power 系別計数)
@@ -4010,18 +3921,6 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - `dinit`: Dinit サービス(`type =`/`command`/`depends-on`/`depends-ms`/`waits-for`)
 - `upstart`: Upstart `.conf`(`start on`/`stop on`/`script`…`end script`/`exec`/`respawn`/`expect`)
 - `procd`: OpenWrt procd(`rc.common`+`procd_*` 呼出+`START`/`STOP`/`USE_PROCD`)
-
-## 出典
-
-- sysvinit — inittab(5) man page
-- OpenRC — openrc-run(8)/User Guide(gentoo wiki)
-- runit — runsv/svscan(8)(smarden.org/runit)
-- s6-rc — execline リファレンス(skarnet.org)
-- Dinit — dinit-service(5)(github.com/davmac314/dinit)
-- Upstart — init(5)/cookbook(upstart.ubuntu.com)
-- OpenWrt — procd init scripts ドキュメント(openwrt.org)
-
-— 全て整数のみで実装。
 
 ## 第267次 — 機械学習・データサイエンスツール設定形式
 
@@ -4033,18 +3932,6 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - greatexp: great_expectations.yml(stores/data_docs_sites/class_name フィールド)
 - metaflow: Metaflow config.json(`METAFLOW_*` キーを BATCH/KUBERNETES/SERVICE/DATASTORE 別集計)
 
-## 出典
-
-- Jupyter Server/Lab ドキュメントの config ファイル形式と traitlets 構文
-- IPython 公式ドキュメント ipython_config.py
-- Kedro ドキュメント Data Catalog/Settings リファレンス
-- Hydra 公式ドキュメント Configuring Hydra/defaults list
-- Feast 公式ドキュメント feature_store.yaml リファレンス
-- Great Expectations Data Context ドキュメント great_expectations.yml
-- Metaflow 公式ドキュメント metaflowconfig 環境変数
-
-— 全て整数のみで実装。
-
 ## 第268次 — バックアップ・同期ツール設定形式
 
 - rsnapshot: rsnapshot.conf(`retain`/`backup`/`cmd_*`/`include|exclude` のタブ区切り分類)
@@ -4055,17 +3942,6 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - rcloneconf: rclone.conf(`[remote]` スタンザ + `type =` backend + 認証キー)
 - duplicacy: .duplicacy/preferences(JSON 配列の storage オブジェクト、encrypted/no_* フラグ)
 
-## 出典
-
-- rsnapshot/btrbk man ページと upstream 設定ファイル例
-- resticprofile 公式ドキュメント profiles リファレンス
-- Syncthing 公式ドキュメント config.xml スキーマ
-- Unison ユーザマニュアル profile 構文
-- rclone 公式ドキュメント backend 別設定キー
-- Duplicacy フォーラム/wiki preferences 形式
-
-— 全て整数のみで実装。
-
 ## 第269次 — TLS・証明書管理ツール設定形式
 
 - certbot: cli.ini/renewal conf(`pre_hook`/`post_hook`/`deploy_hook`/`renew_hook`、authenticator/installer、`dns-*` 系)
@@ -4075,13 +3951,3 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - minica: minica.conf 系 INI([ca]/[dn]/[extensions]/[crl]/[ocsp]、DN フィールドと URL/path キー)
 - dehydrated: config(`CA`/`CHALLENGETYPE`/`WELLKNOWN`/`HOOK` 系 + domains.txt 項目)
 - lego: env/ini(`LEGO_*` + `*_API_KEY`/`*_PROPAGATION_TIMEOUT` 系プロバイダ接尾辞)
-
-## 出典
-
-- certbot/EFF 公式ドキュメント(cli.ini, renewal conf)
-- smallstep certificates ドキュメント(step-ca ca.json, provisioners)
-- Cloudflare CFSSL 公式ドキュメント(signing profiles, usages)
-- Easy-RSA 3 ドキュメント(vars.example)
-- minica/dehydrated/lego upstream README・サンプル設定
-
-— 全て整数のみで実装。
