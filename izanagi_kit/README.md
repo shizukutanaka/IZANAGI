@@ -427,6 +427,13 @@ The capability map — with per-feature implementation status — lives in
 | `pptpd` | Poptop `pptpd.conf`/`options.pptpd` — `localip`/`remoteip`/`require-mppe-128`/`ms-dns` 等 |
 | `zerotier` | ZeroTier `local.conf` JSON — `settings`(port/update/relay/multipath)/`virtual`/`physical` |
 | `tailscale` | Tailscale `acl.hujson` — `acls`/`tagOwners`/`groups`/`hosts`/`tests`/`ssh`/`grants` セクション |
+| `kustomize` | Kustomize `kustomization.yaml` census: `kind: Kustomization` + resources/bases/components/crds + images/patches/replacements + `*Generator` entries |
+| `helmfile` | Helmfile `helmfile.yaml` census: `releases:`/`repositories:`/`environments:`/`helmfiles:`/`helmDefaults:` sections + release entries |
+| `skaffold` | Skaffold `skaffold.yaml` census: `apiVersion: skaffold/v*` + build/test/deploy/profiles sections + `- image:` artifacts |
+| `kindconf` | kind cluster config census: `kind: Cluster` + `nodes:` `- role:` entries + networking + kubeadm/containerd patches + featureGates |
+| `k3d` | k3d cluster config census: `apiVersion: k3d.io/v1alpha*` + servers/agents/ports/volumes/env/registries/options |
+| `tiltfile` | Tiltfile (Starlark) census: `k8s_yaml`/`docker_build`/`k8s_resource`/`local_resource`/`helm`/`load`/`config.*` call sites + resource deps |
+| `containerd` | containerd `config.toml` census: `[plugins."io.containerd.*"]` subtrees + grpc/cni/metrics/debug/timeouts sections |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
