@@ -162,6 +162,62 @@ fixed version has no such state at all.
 | `emacs` | `init.el`/`.emacs`/`.spacemacs` census: `(setq*`/`(use-package`/`(require`/`(add-hook`/key バインド/`(defun`/`(custom-set-*` |
 | `ideavim` | `.ideavimrc` census: vim 系 `set`/`*map` + IdeaVim 拡張 `<Action>(…)`/`sethandler`/`let g:ideavim*` |
 | `nanorc` | GNU nano `.nanorc` census: `set`/`unset`/`bind`/`include`/`syntax`/`color`/`linter`/`formatter` |
+| `starship` | Starship `starship.toml` census: `format`/`add_newline` トップキー + `[module]`/`[palettes.*]`/`[custom.*]`/`[env_var.*]` テーブル |
+| `fishconf` | fish `config.fish` census: `set`/`abbr`/`alias`/`function`/`source`/`bind` + `if`/`for`/`switch`/`end` 等 |
+| `nuconf` | Nushell `config.nu`/`env.nu` census: `$env.*`/`$env.config` + `def`/`alias`/`let`/`use`/`source`/`overlay` |
+| `inputrc` | Readline `.inputrc` census: `set var val` + `$if`/`$else`/`$endif`/`$include` + `"seq": func` キーバインド |
+| `envrc` | direnv `.envrc` census: `export` + `use`/`layout`/`dotenv`/`source_*`/`watch*`/`PATH_add` 等ヘルパー |
+| `zshrc` | `.zshrc` census: `export`/`setopt`/`alias`/`zstyle`/`bindkey`/`autoload`/`function`/`add-zsh-hook`/`eval` |
+| `bashrc` | `.bashrc` census: `export`/`alias`/`shopt`/`source`/`bind`/`function` + `PS1`/`HIST*`/`PROMPT_COMMAND` 代入 |
+| `clangformat` | `.clang-format` census: `BasedOnStyle`/`IndentWidth`/`ColumnLimit`/`UseTab` 等 + `IncludeCategories` `- ` 項目 |
+| `clangtidy` | `.clang-tidy` census: `Checks:`/`WarningsAsErrors:` の `+`/`-` glob + `CheckOptions:` `- key:`/`value:` |
+| `cpplint` | `CPPLINT.cfg` census: `linelength`/`root`/`headers`/`exclude_files` + `filter=` の `+`/`-` トークン |
+| `detekt` | `detekt.yml` census: `build`/`style`/`complexity` 等セクション + ルールブロック/`active:`/`excludes:` |
+| `ktlint` | ktlint `.editorconfig` census: `[*.{kt,kts}]` + `ktlint_*`/`ij_kotlin_*`/`ij_kt_*` プロパティ分類 |
+| `rubocop` | `.rubocop.yml` census: `AllCops`/`Dept/Cop:` ブロック + `require`/`inherit_*`/`Exclude:` スコープ追跡 |
+| `swiftlint` | `.swiftlint.yml` census: `disabled/opt_in/only/analyzer_rules` + `custom_rules:` + ルール別設定 |
+| `tsconfig` | `tsconfig.json`/JSONC census: `compilerOptions`/`extends`/`include`/`references`/`watchOptions` 全 `"key":` + bool/配列/コメント |
+| `denoconf` | `deno.json(c)` census: `tasks`/`imports`/`lint`/`fmt`/`compilerOptions`/`workspace`/`unstable` 等全 `"key":` + bool/配列 |
+| `bunfig` | `bunfig.toml` census: `[install]`/`[run]`/`[test]`/`[serve]`/`[smol]`/`[telemetry]` 等セクション + `key = value` |
+| `angularconf` | `angular.json` census: `projects` 内プロジェクト名 + `architect`/`targets` ブロック + `builder`/`executor` |
+| `turboconf` | `turbo.json` census: `pipeline`/`tasks` 内タスク名キー + `dependsOn`/`outputs`/`env`/`globalEnv` |
+| `nxconf` | `nx.json` census: `targetDefaults` ターゲット + `namedInputs` + `generators`/`tasksRunnerOptions`/`workspaceLayout` |
+| `lerna` | `lerna.json` census: `version`/`packages`/`npmClient` + `command.*` サブコマンド設定キー |
+| `sonarr` | Sonarr `config.xml` (`<InstanceName>Sonarr`, `<Port>8989`, `<ApiKey>`, `<AuthenticationMethod>`) の設定・真偽値・コメント計数。 |
+| `radarr` | Radarr `config.xml` (`<InstanceName>Radarr`, `<Port>7878`, `<RecycleBin>`, `<Theme>`) の設定・真偽値計数。 |
+| `lidarr` | Lidarr `config.xml` (`<InstanceName>Lidarr`, `<Port>8686`, `<Branch>`) の設定・真偽値計数。 |
+| `prowlarr` | Prowlarr `config.xml` (`<InstanceName>Prowlarr`, `<Port>9696`, `<HistoryCleanupDays>`) の設定・真偽値計数。 |
+| `jellyfin` | Jellyfin `system.xml`/`options.xml`(`<ServerConfiguration>` + `<VirtualFolder>`/`<ImageOptions>`/`<LibraryOptions>`/`<CachePath>`)の入れ子・設定・真偽値計数。 |
+| `plexconf` | Plex `Preferences.xml`(`<Preferences MachineIdentifier=`/`ProcessedMachineIdentifier=`/`AcceptedEULA=`/`FSEventLibraryUpdatesEnabled=` 属性列挙)の属性・真偽値計数。 |
+| `kodiadv` | Kodi `advancedsettings.xml`(`<advancedsettings>` + `<video>`/`<network>`/`<videolibrary>`/`<samba>`/`<buffermode>`)のセクション・設定計数。 |
+| `mpd` | mpd.conf(`key "value"` + `audio_output {`/`playlist_plugin {`/`decoder {`/`resampler {` ブロック)の設定・ブロック計数。 |
+| `mopidy` | mopidy.conf(`[core]`/`[audio]`/`[http]`/`[mpd]`/`[local]`/`[spotify]` 等セクション + `key = value` + `enabled =`)のINI計数。 |
+| `beets` | beets config.yaml(`directory:`/`library:`/`plugins:`/`import:`/`match:`/`paths:` + プラグインセクション)のトップキー・リスト・ネスト計数。 |
+| `picard` | MusicBrainz Picard `Picard.ini`(`[application]`/`[setting]`/`[plugins]` + `server_host`/`save_images_*`/`enabled_plugins`)の設定計数。 |
+| `ncmpcpp` | ncmpcpp config(`mpd_*`/`ncmpcpp_directory`/`visualizer_*`/`*_color` キー)+ bindings ファイル(`def_key`)の設定・バインド計数。 |
+| `cmus` | cmus autosave/rc(`set key=val`/`bind common`/`colorscheme`/`view`/`add`/`fset`/`factivate` コマンドファイル)のコマンド計数。 |
+| `snapcast` | snapserver.conf(`[server]`/`[stream]`/`[http]`/`[tcp]` + `stream = pipe:///`/`codec`/`sampleformat`/`chunk_ms`)のINI計数。 |
+| `sops` | `.sops.yaml`(`creation_rules:` `- path_regex:` + `kms:`/`age:`/`pgp:`/`azure_kv:`/`gcp_kms:`/`hc_vault:` キー発生源)のルール・キー計数。 |
+| `gitleaks` | `gitleaks.toml`(`[[rules]]` + `id`/`regex`/`secretGroup`/`keywords`/`entropy` + `[extend]`/`[whitelist]`)のルール・検出子計数。 |
+| `secretsbaseline` | detect-secrets `.secrets.baseline`(`plugins_used`/`filters_used`/`results` + `hashed_secret`/`is_verified`)の検出・検証済み計数。 |
+| `talisman` | `.talismanrc`(`fileignoreconfig:` `- filename:`/`checksum:`/`allowed_patterns`/`threshold`/`scope:`)の無視・パターン計数。 |
+| `gitsecret` | `.gitsecret`(gitignore 風の秘匿対象パス一覧、`!` 否定行)のパターン計数。 |
+| `vaultagent` | Vault Agent `.hcl`(`auto_auth`/`method`/`sink`/`template`/`listener`/`exit_after_auth`)のブロック・代入計数。 |
+| `keepassxc` | KeePassXC `keepassxc.ini`(`[General]`/`[GUI]`/`[Browser]` + `SingleInstance`/`AutoType*`/`BrowserIntegration_*`)の設定計数。 |
+| `bootini` | Windows boot.ini census |
+| `cmdbat` | Windows .bat/.cmd batch census |
+| `dossys` | DOS CONFIG.SYS/AUTOEXEC census |
+| `inffile` | Windows driver .inf census |
+| `regfile` | Windows .reg registry census |
+| `unattend` | unattend.xml answer-file census |
+| `winini` | Windows 3.x win.ini census |
+| `fossilconf` | Fossil SCM settings census |
+| `gitattributes` | .gitattributes census |
+| `gitignore` | .gitignore patterns census |
+| `gitmodules` | .gitmodules census |
+| `hgignore` | .hgignore patterns census |
+| `hgrc` | Mercurial hgrc census |
+| `svnconf` | Subversion config/servers census |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
