@@ -5251,3 +5251,27 @@ Allure result/container JSON・CTRF・xUnit.net XML・Maven Surefire TXT・JMete
 **実装物**: allure-framework/allure2・ctrf-io/common-test-report-format・xunit/xunit・apache/maven-surefire-plugin・apache/jmeter・grafana/k6・mochajs/mocha — 全て整数のみで実装。
 
 **国内技術情報**: Allure レポート・CTRF・xUnit.net・Surefire・JMeter JTL・k6 サマリ・Mocha JSON レポーター解説記事(Qiita・Zenn・テスト自動化系技術ブログ等)— 全て整数のみで実装。
+
+## 第239次:ネットワーク機器・OS ネットワーク設定形式
+
+RouterOS export・Junos 設定・Cisco IOS running-config・OpenWrt UCI・Netplan YAML・ifupdown interfaces・firewalld zone XML の7形式を追加。`/` セクション+add/set 動詞+key=value(routeros)・`set`+トップ階層集合+ブレース形(junos)・`!`+interface/router ブロック+機能分類(iosconf)・`config`+option/list(uci)・network ルート+装置グループ+装置ID(netplan)・auto/iface スタンザ+メソッド分類(interfaces)・zone 内要素センサス(firewalld)で、ネットワーク機器設定を整数計数する。
+
+## 出典(第239次、search-index 照合)
+
+**論文・仕様**: RouterOS scripting/export(help.mikrotik.com)・Junos CLI 設定フォーマット(juniper.net docs)・Cisco IOS configuration fundamentals(cisco.com)・OpenWrt UCI(openwrt.org)・Netplan reference(netplan.readthedocs.io)・ifupdown interfaces(5) man page(debian.org)・firewalld.zone(5)(firewalld.org)— 全て整数のみで実装。
+
+**実装物**: MikroTik RouterOS・Juniper Junos OS・Cisco IOS・openwrt/openwrt・canonical/netplan・ifupdown・firewalld/firewalld — 全て整数のみで実装。
+
+**国内技術情報**: RouterOS・Junos set コマンド・Cisco IOS・OpenWrt UCI・netplan・interfaces ファイル・firewalld 解説記事(Qiita・Zenn・ネットワーク系技術ブログ等)— 全て整数のみで実装。
+
+## 第240次:構成管理・ジョブ定義形式
+
+Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェスト・Nomad ジョブ HCL・Rundeck ジョブ YAML・borgmatic 設定の7形式を追加。plays/hosts+scope 追跡のタスク・モジュール呼出(ansible)・`key:`+`- `+`family.func`(salt)・resource+` do`+action/notifies/`node[`(chef)・class/node/define+`{ '':`+`=>`+`Type[`(puppet)・job/group/task/service/port+constraint/resources(nomad)・`- name:`+commands+schedule+nodefilters(rundeck)・source_directories/repositories+keep_*/hooks(borgmatic)で、構成管理・ジョブ定義を整数計数する。
+
+## 出典(第240次、search-index 照合)
+
+**論文・仕様**: Ansible playbook syntax(docs.ansible.com)・Salt SLS states reference(docs.saltproject.io)・Chef recipe/metadata.rb reference(docs.chef.io)・Puppet language reference(puppet.com docs)・Nomad job specification(developer.hashicorp.com/nomad)・Rundeck job YAML reference(docs.rundeck.com)・borgmatic configuration reference(torsion.org/borgmatic)— 全て整数のみで実装。
+
+**実装物**: ansible/ansible・saltstack/salt・chef/chef・puppetlabs/puppet・hashicorp/nomad・rundeck/rundeck・borgmatic-collective/borgmatic — 全て整数のみで実装。
+
+**国内技術情報**: Ansible playbook・Salt・Chef・Puppet・Nomad・Rundeck・borgmatic 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
