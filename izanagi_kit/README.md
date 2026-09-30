@@ -476,6 +476,13 @@ The capability map — with per-feature implementation status — lives in
 | `ncmpcpp` | ncmpcpp config(`mpd_*`/`ncmpcpp_directory`/`visualizer_*`/`*_color` キー)+ bindings ファイル(`def_key`)の設定・バインド計数。 |
 | `cmus` | cmus autosave/rc(`set key=val`/`bind common`/`colorscheme`/`view`/`add`/`fset`/`factivate` コマンドファイル)のコマンド計数。 |
 | `snapcast` | snapserver.conf(`[server]`/`[stream]`/`[http]`/`[tcp]` + `stream = pipe:///`/`codec`/`sampleformat`/`chunk_ms`)のINI計数。 |
+| `sops` | `.sops.yaml`(`creation_rules:` `- path_regex:` + `kms:`/`age:`/`pgp:`/`azure_kv:`/`gcp_kms:`/`hc_vault:` キー発生源)のルール・キー計数。 |
+| `gitleaks` | `gitleaks.toml`(`[[rules]]` + `id`/`regex`/`secretGroup`/`keywords`/`entropy` + `[extend]`/`[whitelist]`)のルール・検出子計数。 |
+| `secretsbaseline` | detect-secrets `.secrets.baseline`(`plugins_used`/`filters_used`/`results` + `hashed_secret`/`is_verified`)の検出・検証済み計数。 |
+| `talisman` | `.talismanrc`(`fileignoreconfig:` `- filename:`/`checksum:`/`allowed_patterns`/`threshold`/`scope:`)の無視・パターン計数。 |
+| `gitsecret` | `.gitsecret`(gitignore 風の秘匿対象パス一覧、`!` 否定行)のパターン計数。 |
+| `vaultagent` | Vault Agent `.hcl`(`auto_auth`/`method`/`sink`/`template`/`listener`/`exit_after_auth`)のブロック・代入計数。 |
+| `keepassxc` | KeePassXC `keepassxc.ini`(`[General]`/`[GUI]`/`[Browser]` + `SingleInstance`/`AutoType*`/`BrowserIntegration_*`)の設定計数。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

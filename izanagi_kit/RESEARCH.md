@@ -3902,3 +3902,13 @@ JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、
 実装物: MusicPlayerDaemon/MPD、mopidy/mopidy、beetbox/beets、metabrainz/picard、ncmpcpp/ncmpcpp、cmus/cmus、badaix/snapcast の各リポジトリ記述。
 国内技術情報: Qiita・Zenn の mpd/mopidy/beets/picard/ncmpcpp/cmus/snapcast 設定・構築記事の実例記述。
 — 全て整数のみで実装。
+## 第259次(search-index 照合ラウンド / 実装証跡付き)
+
+シークレット管理・漏洩検査ツール設定形式。.sops.yaml(SOPS creation_rules)、gitleaks.toml、detect-secrets .secrets.baseline、Talisman .talismanrc、git-secret .gitsecret、Vault Agent .hcl、KeePassXC keepassxc.ini。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 出典(第259次、search-index 照合)
+
+論文・仕様: SOPS 設定ドキュメント(creation_rules/key sources)、gitleaks 設定リファレンス(gitleaks.toml)、detect-secrets baseline スキーマ、Talisman 設定ドキュメント、git-secret man ページ、HashiCorp Vault Agent 設定リファレンス、KeePassXC 設定ドキュメント。
+実装物: getsops/sops、gitleaks/gitleaks、Yelp/detect-secrets、thoughtworks/talisman、sobolevn/git-secret、hashicorp/vault、keepassxreboot/keepassxc の各リポジトリ記述。
+国内技術情報: Qiita・Zenn の sops/gitleaks/detect-secrets/Talisman/git-secret/Vault Agent/KeePassXC 導入・設定記事の実例記述。
+— 全て整数のみで実装。
