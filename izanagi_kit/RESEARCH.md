@@ -3892,3 +3892,13 @@ JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、
 実装物: Sonarr/Sonarr・Radarr/Radarr・lidarr/Lidarr・Prowlarr/Prowlarr・jellyfin/jellyfin・plexinc/pms-docker・xbmc/xbmc の各リポジトリ記述。
 国内技術情報: Qiita・Zenn の Sonarr/Radarr/Prowlarr/Jellyfin/Plex/Kodi 設定・構築記事の実例記述。
 — 全て整数のみで実装。
+## 第258次(search-index 照合ラウンド / 実装証跡付き)
+
+音楽プレイヤー・オーディオサーバ設定形式。mpd.conf、Mopidy mopidy.conf、beets config.yaml、MusicBrainz Picard Picard.ini、ncmpcpp config/bindings、cmus autosave/rc、Snapcast snapserver.conf。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 出典(第258次、search-index 照合)
+
+論文・仕様: MPD 設定リファレンス(mpd.conf パラメータ/audio_output ブロック)、Mopidy 設定ドキュメント(ext/セクション一覧)、beets 設定ガイド(plugins/トップレベルキー表)、Picard オプションリファレンス、ncmpcpp man ページ(config/bindings)、cmus コマンドリファレンス(autosave/rc)、Snapcast ドキュメント(snapserver.conf)。
+実装物: MusicPlayerDaemon/MPD、mopidy/mopidy、beetbox/beets、metabrainz/picard、ncmpcpp/ncmpcpp、cmus/cmus、badaix/snapcast の各リポジトリ記述。
+国内技術情報: Qiita・Zenn の mpd/mopidy/beets/picard/ncmpcpp/cmus/snapcast 設定・構築記事の実例記述。
+— 全て整数のみで実装。

@@ -469,6 +469,13 @@ The capability map — with per-feature implementation status — lives in
 | `jellyfin` | Jellyfin `system.xml`/`options.xml`(`<ServerConfiguration>` + `<VirtualFolder>`/`<ImageOptions>`/`<LibraryOptions>`/`<CachePath>`)の入れ子・設定・真偽値計数。 |
 | `plexconf` | Plex `Preferences.xml`(`<Preferences MachineIdentifier=`/`ProcessedMachineIdentifier=`/`AcceptedEULA=`/`FSEventLibraryUpdatesEnabled=` 属性列挙)の属性・真偽値計数。 |
 | `kodiadv` | Kodi `advancedsettings.xml`(`<advancedsettings>` + `<video>`/`<network>`/`<videolibrary>`/`<samba>`/`<buffermode>`)のセクション・設定計数。 |
+| `mpd` | mpd.conf(`key "value"` + `audio_output {`/`playlist_plugin {`/`decoder {`/`resampler {` ブロック)の設定・ブロック計数。 |
+| `mopidy` | mopidy.conf(`[core]`/`[audio]`/`[http]`/`[mpd]`/`[local]`/`[spotify]` 等セクション + `key = value` + `enabled =`)のINI計数。 |
+| `beets` | beets config.yaml(`directory:`/`library:`/`plugins:`/`import:`/`match:`/`paths:` + プラグインセクション)のトップキー・リスト・ネスト計数。 |
+| `picard` | MusicBrainz Picard `Picard.ini`(`[application]`/`[setting]`/`[plugins]` + `server_host`/`save_images_*`/`enabled_plugins`)の設定計数。 |
+| `ncmpcpp` | ncmpcpp config(`mpd_*`/`ncmpcpp_directory`/`visualizer_*`/`*_color` キー)+ bindings ファイル(`def_key`)の設定・バインド計数。 |
+| `cmus` | cmus autosave/rc(`set key=val`/`bind common`/`colorscheme`/`view`/`add`/`fset`/`factivate` コマンドファイル)のコマンド計数。 |
+| `snapcast` | snapserver.conf(`[server]`/`[stream]`/`[http]`/`[tcp]` + `stream = pipe:///`/`codec`/`sampleformat`/`chunk_ms`)のINI計数。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
