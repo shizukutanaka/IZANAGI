@@ -24,13 +24,14 @@ pub struct Dimacs {
     pub declared_edges: Option<u32>,
     /// `c` comment lines.
     pub comments: u32,
-    /// Data lines (clauses for cnf, `e`/`a`/`n`/`d` records otherwise).
+    /// Data records (clauses for cnf — clauses may wrap lines and end at a
+    /// standalone `0` token — `e`/`a`/`n`/`d`/digit lines otherwise).
     pub lines: u32,
     /// `e` edge records (graph problems).
     pub e_edges: u32,
     /// `a` arc records (directed problems).
     pub a_arcs: u32,
-    /// Clause lines ending with `0` (cnf termination), cnf only.
+    /// Standalone `0` clause terminators (cnf/sat/pbs only).
     pub terminated: u32,
 }
 
@@ -67,6 +68,8 @@ pub fn parse(b: &[u8]) -> Option<Dimacs> {
         a_arcs: 0,
         terminated: 0,
     };
+    let mut last_zero = true;
+    let mut saw_lit = false;
     for line in s.lines() {
         let t = line.trim();
         if t.is_empty() {
@@ -99,13 +102,29 @@ pub fn parse(b: &[u8]) -> Option<Dimacs> {
                 if t.chars()
                     .all(|c| c.is_ascii_digit() || c == '-' || c == ' ' || c == '+')
                 {
-                    d.lines += 1;
-                    if t.ends_with('0') {
-                        d.terminated += 1;
+                    if matches!(
+                        d.problem.as_deref(),
+                        Some("cnf") | Some("sat") | Some("pbs")
+                    ) {
+                        for tok in t.split_whitespace() {
+                            if tok == "0" {
+                                d.terminated += 1;
+                            }
+                            last_zero = tok == "0";
+                            saw_lit = true;
+                        }
+                    } else {
+                        d.lines += 1;
                     }
                 }
             }
         }
+    }
+    if matches!(
+        d.problem.as_deref(),
+        Some("cnf") | Some("sat") | Some("pbs")
+    ) {
+        d.lines = d.terminated + u32::from(saw_lit && !last_zero);
     }
     Some(d)
 }
@@ -133,6 +152,10 @@ mod tests {
         assert_eq!(d.comments, 1);
         assert_eq!(d.lines, 2);
         assert_eq!(d.terminated, 2);
+        // a clause may wrap physical lines: count `0` terminators, not lines
+        let d = parse(b"p cnf 2 1\n1\n-2 0\n").unwrap();
+        assert_eq!(d.lines, 1);
+        assert_eq!(d.terminated, 1);
     }
 
     #[test]
