@@ -44,7 +44,7 @@ pub fn parse_line(line: &[u8]) -> Option<Msg> {
     if s.is_empty() {
         return None;
     }
-    if s.len() >= 3 && s[..3].bytes().all(|b| b.is_ascii_digit()) {
+    if s.len() >= 3 && s.as_bytes()[..3].iter().all(u8::is_ascii_digit) {
         let code: u16 = s[..3].parse().ok()?;
         if !(100..600).contains(&code) {
             return None;
@@ -161,5 +161,11 @@ mod tests {
         assert!(parse_multiline(b"no end\n").is_none());
         let t = parse(b"200 hi\r\nLIST\r\n215 list follows\r\n").unwrap();
         assert_eq!(t.len(), 3);
+    }
+
+    #[test]
+    fn handles_multibyte_lines() {
+        let _ = parse_line("\u{1d11e}".as_bytes());
+        let _ = parse("\u{1d11e}".as_bytes());
     }
 }

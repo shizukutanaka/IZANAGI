@@ -66,7 +66,7 @@ pub fn parse(d: &[u8]) -> Option<Dro> {
             })
         }
         2 => {
-            if d.len() < 20 {
+            if d.len() < 21 {
                 return None;
             }
             // v2: u32 data_len then u8 hw u8 fmt u8 cmpr u8 short u8 long
@@ -110,5 +110,8 @@ mod tests {
         f.extend_from_slice(&[9, 0, 0, 0]);
         f.resize(28, 0);
         assert!(parse(&f).is_none()); // unknown major
+        let mut v2 = b"DBRAWOPL\x02\x00\x00\x00".to_vec();
+        v2.resize(20, 0);
+        assert!(parse(&v2).is_none()); // v2 hardware byte missing
     }
 }
