@@ -3685,6 +3685,95 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: moodle-qformat_aiken/gift、python-qti/lti、rust-imscc 相当、TinCanJS/tincan-rs、opml-rs、genanki/anki-apkg-export — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Moodle 問題インポート・QTI 解説・xAPI/SCORM 概要・OPML フィード一覧・Anki パッケージ解説記事 — 全て整数のみで実装。
+## 第150次(search-index 照合ラウンド / 実装証跡付き)
+
+パッケージ配布・コンテナ形式(opkg ipk / snap / AppImage / macOS pkg / MSI / NuGet / Flatpak — 7件)。
+
+- `ipk` — opkg `.ipk`/`.opk`: `ar` コンテナ内 `debian-binary` + `control.tar.*` + `data.tar.*` 必須、`data_compression` 拡張子分離(gz/xz/lz4/zst)
+- `snap` — snapd `.snap`: SquashFS 96B スーパーブロック(`hsqs`)+ version 4.0 + block_size/block_log 整合 + `meta/snap.yaml` マーカー探索で snap 性を推定
+- `appimage` — AppImage: ELF `e_ident[8..11]` の `AI\x02`/`AI\x03` スタンプで type-2/3 判定 + class/machine
+- `pkg` — macOS `.pkg`: `xar` ヘッダ受理後にヒープ内 `PackageInfo` バイト列を要求、`Payload`/`Distribution`/`Scripts` 有無を併記
+- `msi` — Windows Installer: `ole` ディレクトリ内 `_Tables`/`_Columns`/`_StringData`/`_StringPool`/`_Validation` の存在で MSI 判定、`\x05SummaryInformation*`/`\x05DigitalSignature` 集計
+- `nuget` — NuGet `.nupkg`: `zip` で `[Content_Types].xml` + ルート `*.nuspec` 必須、マニフェストから `<id>`/`<version>` 抽出、`lib/`/`tools/`/`content*/`/`build/` ペイロード計数
+- `flatpak` — Flatpak `.flatpakref`/`.flatpakrepo`/bundle: `ini` の `[Flatpak Ref]`/`[Flatpak Bundle]`/`[Flatpak Repo]` セクション判定 + Name/Branch/Url/Title/IsRuntime/RuntimeRepo/GPGKey
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — ipk の ar フィクスチャ手組み(ヘッダ幅 60B/偶数パディング)、snap の block_log⇔block_size 整合検査、msi の CFB 最小ディレクトリ生成。全て整数のみで実装。
+
+## 出典(第150次、search-index 照合)
+
+**論文・仕様**: opkg/ipk 構成(OpenWrt Wiki / deb packages 形式派生)、snapd snap format documentation、AppImage spec(github.com/AppImage/AppImageSpec)、XAR format + flat package(Apple)、Windows Installer CFB 構造(MSDN/[MS-OLEPS]/[MS-CFB])、NuGet nuspec reference、flatpak flatpakref/flatpakrepo format — 全て整数のみで実装。
+
+**実装物**: opkg/opkg-utils、snapd snap パッケージ実装、appimagetool/type2-runtime、xar、bom/msitools(msiinfo)、NuGet.Client、flatpak flatpak-builtins — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の OpenWrt ipk パッケージ作成・snap/squashfs 解説・AppImage 配布方法・macOS pkg/pkgbuild 記事・MSI 内部構造・NuGet nuspec 解説・Flatpak 解説記事 — 全て整数のみで実装。
+
+
+## 第151次: オフィス・ZIP コンテナ形式(docx / xlsx / pptx / vsdx / xps / jar / kmz)
+
+**方法**: 文献参照ラウンド継続 — Office Open XML・OpenXPS・Java アーカイブ・Google Earth コンテナ(全7件が既存 958 件と非衝突を確認):
+
+- `docx` — WordprocessingML(ECMA-376 / ISO/IEC 29500): `[Content_Types].xml` + `word/document.xml` 必須、`<w:p` 段落計数、styles/media/core-props、`vbaProject.bin` で .docm 判定、`<dc:title>` 抽出
+- `xlsx` — SpreadsheetML(同規格): `xl/workbook.xml` 必須、`<sheet name="…">` 一覧、sheet/sharedStrings/styles/calcChain パート存在、.xlsm 判定
+- `pptx` — PresentationML(同規格): `ppt/presentation.xml` 必須、slide/master/notes/media 計数、`<p:sldSz cx cy>` の EMU サイズ、.pptm 判定
+- `vsdx` — Visio OOXML(Visio XML Schema): `visio/document.xml` 必須、`visio/pages/` と `visio/masters/` パート計数、`pages.xml` 索引は除く
+- `xps` — OpenXPS(ECMA-388): `FixedDocSeq.fdseq` または `[0].piece` ストリーム + `.fpage` 固定ページ必須、`.xaml`/`DocumentStructure` パート計数
+- `jar` — Java アーカイブ(JAR File Specification): `META-INF/MANIFEST.MF` 必須、72 桁折り返し(継続行は空白開始)を展開して `Key: value` 読取、class/modular/signed/multi-release 判定
+- `kmz` — KMZ(OGC KML 2.x コンテナ): ルート直下の `*.kml` 必須、`<name>`/`<Placemark>` 抽出、`files/` リソース計数
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — jar のマニフェスト継続行は改行+空白を両方消費する必要(`\r\n ` → 値連結)、xlsx の `xl/worksheets/_rels/*.rels` をシート数に混入させない `.xml` 限定、vsdx の `pages.xml` 索引と実ページの区別。全て整数のみで実装。
+
+## 出典(第151次、search-index 照合)
+
+**論文・仕様**: ECMA-376 / ISO/IEC 29500(OOXML: docx/xlsx/pptx パッケージ規約・OPC)、ECMA-388(OpenXPS)、Visio VSDX File Format(MS-VSDX 系文書)、JAR File Specification(java.util.jar.Manifest — 行折り返し 72B/継続行)、OGC KML 2.3 + Google KMZ tutorial(doc.kml 規約) — 全て整数のみで実装。
+
+**実装物**: Open XML SDK(Office)、Apache POI(ooxml パッケージ)、Microsoft XPS 実装、OpenJDK `java.util.jar.Manifest`、libkml / Google Earth — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の docx/xlsx の中身解説(zip 展開・document.xml)・PowerPoint pptx 構造・Visio 新形式・XPS 概要・JAR マニフェスト仕様・KMZ/KML 違いの解説記事 — 全て整数のみで実装。
+
+## 第152次: ネットワークプロトコル第4弾 — トンネリング・ルーティング・ディレクトリ(gre / esp / ospf / rip / pim / smb2 / snmp)
+
+**方法**: 文献参照ラウンド継続 — IP トンネリング・IPsec・IGP/マルチキャストルーティング・ファイル共有・ネットワーク管理(全7件が既存 965 件と非衝突を確認):
+
+- `gre` — GRE(RFC 2784 + RFC 2890 拡張): 16bit `flags|version` + EtherType、C/K/S ビット駆動で checksum+offset→key→seq の順に可変フィールド消費、version≠0(PPTP 拡張)は拒否
+- `esp` — IPsec ESP(RFC 4303): SPI(32b、wire 上 0 禁止)+ 32b シーケンス + 末尾 trailer の `pad_len`/`next_header` 検出(pad がヘッダを飲まないことを検査)
+- `ospf` — OSPF(RFC 2328 v2 / RFC 5340 v3): 16B ヘッダ `version|type|len|router|area|cksum|autype|auth`、type 1–5 限定、LSU の `lsa_count`(off 24)、v2 の `autype ≤ 2`
+- `rip` — RIPv2(RFC 2453): `command|version|zero` + 20B エントリ列(family/tag/addr/mask/nexthop/metric)、`0xFFFF` family は認証エントリ
+- `pim` — PIMv2(RFC 4601): `version:4|type:4` ニブル、version 2 必須、RFC 1071 検算(checksum=0 は受理)、type 0–10 を Kind に分類
+- `smb2` — SMB2(MS-SMB2): `\xFESMB` + `structure_size==64` の 64B ヘッダ、credit/status/command/flags/next_command/msg_id/tree/session/signature、flags bit0 で応答判定
+- `snmp` — SNMP(RFC 1157 v1 / RFC 3416 v2c / RFC 3412 v3 フレーミング): 自前最小 BER TLV(不定長拒否)で `SEQUENCE{INTEGER version, OCTETSTRING community, context-PDU}` を走査、PDU タグ 0xA0–0xA8 分類
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — snmp の BER 読みで version TLV の終端を次 TLV の開始に使うインデックスオフセット、`esp` の SPI=0 拒否。全て整数のみで実装。
+
+## 出典(第152次、search-index 照合)
+
+**論文・仕様**: RFC 2784(Generic Routing Encapsulation)/ RFC 2890(Key and Sequence Number Extensions)/ RFC 4303(IP ESP)/ RFC 2328(OSPFv2)/ RFC 5340(OSPFv3)/ RFC 2453(RIPv2)/ RFC 4601(PIM-SM)/ MS-SMB2 / RFC 1157,3416,3412(SNMP)+ ITU X.690 BER — 全て整数のみで実装。
+
+**実装物**: Linux `net/ipv4/ip_gre.c`・strongSwan/libreswan ESP 処理、Quagga/FRR ospfd・ripd・pimd、Samba SMB2 サーバ、net-snmp — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の GRE トンネル・IPsec ESP・OSPF/RIP ルーティング・PIM マルチキャスト・SMB2/SMB3・SNMP 監視解説記事 — 全て整数のみで実装。
+
+## 第153次: PKI・署名・メール認証(crl / csr / p7b / ocsp / spf / dkim / dmarc)
+
+**方法**: 文献参照ラウンド継続 — X.509/PKCS 証明書関連とメール送信者認証(DNS TXT)系(全7件が既存 972 件と非衝突を確認、DER 系は `der` モジュール再利用):
+
+- `crl` — X.509 CRL(RFC 5280): `SEQUENCE{tbsCertList,sigAlg,sig}`、tbs の version/issuer/thisUpdate/nextUpdate/revokedCertificates、serial 列抽出
+- `csr` — PKCS#10(RFC 2986): `SEQUENCE{cri,sigAlg,sig}`、version(0=v1.7)+subject+spki+`[0]` 属性検出+署名アルゴリズム OID
+- `p7b` — CMS ContentInfo(RFC 5652): `SEQ{OID,[0]content}`、signedData/envelopedData 等7種 OID 分類(.p7b は degenerate signedData)
+- `ocsp` — OCSPResponse(RFC 6960): ENUMERATED status(0–6)+`[0]` ResponseBytes の OID で basic 判定
+- `spf` — SPF TXT(RFC 7208): `v=spf1` 厳格接頭辞 + qualifier(`+-~?`)+mechanism(`:`/`=` 引数)項列 + trailing `all`
+- `dkim` — DKIM(RFC 6376): `;` 区切り `tag=value` リスト、`parse_key_record` で `v=DKIM1`+`p=` 必須化(空 p= は revoked)
+- `dmarc` — DMARC(RFC 7489): `v=DMARC1` 先頭タグ必須 + `p=`(none/quarantine/reject)+`pct` 0–100 境界
+
+**検証**: 各モジュール単体テスト + doctest;`der::encode` でフィクスチャ生成して往復検証。全て整数のみで実装。
+
+## 出典(第153次、search-index 照合)
+
+**論文・仕様**: RFC 5280(X.509 CRL)/ RFC 2986(PKCS#10)/ RFC 5652(CMS)/ RFC 6960(OCSP)/ RFC 7208(SPF)/ RFC 6376(DKIM)/ RFC 7489(DMARC)+ ITU X.690 DER — 全て整数のみで実装。
+
+**実装物**: OpenSSL `crypto/x509`・`crypto/cms`・ocsp、opendkim/opendmarc、pyspf/SPF 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の X.509 CRL・CSR・OCSP 解説、SPF/DKIM/DMARC 導入記事 — 全て整数のみで実装。
+
 ## 第241次(search-index 照合ラウンド / 実装証跡付き)
 
 ネットワークデーモン・ルーティング設定形式(FRRouting / BIRD / OpenBGPD / keepalived / HAProxy / Squid / Varnish VCL — 7件)。
@@ -3699,13 +3788,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest;捕捉した修正 — frr の `ip prefix-list`/`ipv6 prefix-list` が `ip ` 経路に誤算、bird の `reject;` が route に誤算・`define` が代入+指令の二重計上、openbgpd の `announce`/`descr`/`remote-as` が neighbor 系に合算、keepalived の IPv6 `fd00::1` が IP 判定落ち・`TCP_CHECK` 大小写・オプション/ブロック混同、 haproxy の `daemon`/`stats` が directive/option 未分類、squid の `access_log`/`coredump_dir` キャッシュ系登録。全て整数のみで実装。
 
-## 出典(第241次、search-index 照合)
-
-**論文・仕様**: FRRouting ドキュメント(zebra.conf/frr.conf 形式、RFC 順ルーティングデーモン構造)、BIRD 1.6/2.x 設定リファレンス(protocol/filter/function 文法)、OpenBSD bgpd.conf(5) マニュアル、keepalived.conf(5) マニュアル(VRRP/healthcheck 構成)、HAProxy configuration manual(section/directive 体系)、Squid 公式 squid.conf 文書、Varnish VCL リファレンス(vcl 4.x 構文・vcl_* フック) — 全て整数のみで実装。
-
-**実装物**: FRRouting/frr、BIRD/bird、OpenBSD/src usr.sbin/bgpd、acassen/keepalived、haproxy/haproxy、squid-cache/squid、varnishcache/varnish-cache の各リポジトリ・配布設定例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の FRRouting BGP/OSPF 構築記事・BIRD ルートサーバ解説・OpenBGPD 設定例・keepalived VRRP 冗長化・HAProxy フロント/バックエンド設定・Squid プロキシ構築・Varnish VCL 解説記事 — 全て整数のみで実装。
 ## 第242次(search-index 照合ラウンド / 実装証跡付き)
 
 ホームオートメーション・IoT 設定形式(Home Assistant / ESPHome / Zigbee2MQTT / Frigate / Node-RED / openHAB / AppDaemon — 7件)。
@@ -3720,22 +3802,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest;捕捉した修正 — zigbee2mqtt の devices/groups エントリがネスト判定で未計上(インデントレベル記録で修正)、appdaemon の `MQTT:`/`log:`/`type:` 分類と apps.yaml detect(`module:`+`class:` のみで受理へ)、frigate の `roles:` 重複・detectors セクション名計上・`- ` 一般項目が inputs に誤算、homeassistant のインデント付き `customize:` 未計上、nodered の `mqtt-broker`/`debug` 分類。全て整数のみで実装。
 
-## 出典(第242次、search-index 照合)
-
-**論文・仕様**: Home Assistant 公式コンフィギュレーション文書・automation YAML 文法、ESPHome ドキュメント(components/platforms)、Zigbee2MQTT configuration.yaml リファレンス、Frigate config reference、Node-RED flows.json 仕様(flow format)、openHAB items/things/rules/sitemap ドキュメント、AppDaemon 設定リファレンス — 全て整数のみで実装。
-
-**実装物**: home-assistant/core、esphome/esphome、Koenkk/zigbee2mqtt、blakeblackshear/frigate、node-red/node-red、openhab/openhab-core、AppDaemon/appdaemon の各リポジトリ・配布設定例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Home Assistant 構築・automation 作成・ESPHome センサー化・Zigbee2MQTT デバイス登録・Frigate NVR 導入・Node-RED フロー・openHAB 設定・AppDaemon 解説記事 — 全て整数のみで実装。
-
 ## 第243次(search-index 照合ラウンド / 実装証跡付き)
 
 `izanagi_kit` に形式手法・モデル検査記述形式7件を追加した(972→979)。`tlaplus`(TLA+ モジュール: `---- MODULE`/`====`・`EXTENDS`/`INSTANCE`・`CONSTANT`/`VARIABLE`・`==` 定義・Init/Next/Spec/Inv 標準形・`THEOREM`/`PROOF`/`BY`/`QED` 証明・`[]`/`<>`/`~>` 時相・`/\`/`\/`/`\in`/`/=` 論理)、`alloy`(Alloy `.als`: `module`/`open`/`private`/`as`・`sig`/`abstract`/`lone`/`one`/`enum`/`var`/`some sig`・`fact`/`pred`/`fun`/`assert`/`check`/`run`/`expect`/`inst`/`idiv`・`extends`/`in`/`partof`/`subset`/`subsetof`・`let`/`=>`/`iff`/`implies`/`and`/`or`/`not`/`else`/`if`/`then`/`for`・`all`/`some`/`no`/`lone`/`one`/`set`/`seq`/`disj` 限定・`->`/` *`/` ^`/` ~` 関係演算子)、`promela`(Promela `.pml`: `proctype`/`init`/`active`/`never`/`trace`/`notrace`/`d_step`/`atomic`/`inline`/`ltl`・`chan`/`mtype`/`typedef`/`hidden`/`show`/`xr`/`xs`/スカラ型・`do`/`od`/`if`/`fi`/`::` ガード・`->`/`goto`/`break`/`skip`/`else`/`unless`・`!`/`?` 通信・`assert`/`printf`/`print`・`c_code`/`c_decl`/`c_state`/`c_expr`/`c_track`/`c_var` 組込 C)、`dafny`(Dafny `.dfy`: `module`/`import`/`include`/`export`/`opened`/`refines`・`method`/`constructor`/`function`/`predicate`/`copredicate`/`lemma`/`colemma`/`twostate`/`inductive`/`opaque`/`least`/`greatest`/`axiom`・`datatype`/`codatatype`/`class`/`trait`/`type`/`newtype`/`iterator`/`const`/`var`/`ghost`/`static`/`subset`・`requires`/`ensures`/`invariant`/`decreases`/`reads`/`modifies`/`frame`/`calc`/`forall`/`exists`・`assert`/`assume`/`expect`/`print`/`label`・`if`/`else`/`while`/`for`/`match`/`case`/`return`/`yield`/`break`/`continue`/`then`/`by`・`old`/`fresh`/`allocated`/`unchanged`/`in`/`as`/`is`/`null`/`this`/`true`/`false`/`abstemious`)、`mch`(B/Event-B `.mch`/`.ref`/`.imp`: `MACHINE`/`REFINEMENT`/`IMPLEMENTATION`/`MODEL`/`SYSTEM`・`SEES`/`USES`/`INCLUDES`/`EXTENDS`/`PROMOTES`/`REFINES`/`IMPORTS`/`VALUES`・`CONSTRAINTS`/`SETS`/`CONSTANTS`/`PROPERTIES`/`VARIABLES`/`INVARIANT`/`ASSERTIONS`/`DEFINITIONS`/`INITIALISATION`/`OPERATIONS`/`EVENTS`/`VARIANT`/`END`・`PRE`/`THEN`/`WHEN`/`WHERE`/`ANY`/`SELECT`/`CHOICE`/`IF`/`CASE`/`OR`/`LET`/`BE`/`BEGIN`/`ELSIF`/`ELSE`/`WHILE`/`MODIFIES`/`IN`/`ASSERT`/`NOT`/`EITHER` 代入・`:=`/`||`/`<|`・` : `/`<=`/`=>`/`<=>`/`/=`/`/\`/`\/`/`not`/`NAT`/`INT`/`BOOL`/`POW`/`SEQ`/`NATURAL`/`INTEGER`/`STRING`/`FIN`/`INTER`/`UNION`/`SIGMA`/`PI` 論理)、`lf`(Lingua Franca `.lf`: `target`/`import`/`preamble`/`reactor`/`instantiation`/`main`/`federated`/`realtime`/`interface`・`input`/`output`/`state`/`timer`/`action`/`parameter`/`method`/`local`/`prelude`/`initial`/`reset`/`shutdown`/`startup`・`reaction`/`mutation`・`->`/`after`/`physical`/`logical`/`STP`/`deadline`/`policy`/`STAA`/`{=`/`=}`・`width`/`bank`/`bank_index`/`runtime`/`authentication`/`tracing`/`logging`/`workers`/`timeout`/`keepalive`/`fast`/`threads`/`coordination`/`scheduler`/`files`/`clock-sync`/`fed-setup`/`cmake-include`/`build`/`external-runtime-path`/`no-compile`/`verify`/`federated`/`single-threaded`/`worker-thread-count`/`multiport`/`enclave`/`serializer`/`platform`/`threading`/`cargo-dependencies`)、`whyml`(WhyML/Why3 `.mlw`/`.why`: `module`/`use`/`clone`/`import`/`export`/`include`/`scope`/`namespace`/`theory`/`meta`/`declarations`・`let`/`val`/`predicate`/`function`/`type`/`inductive`/`coinductive`/`constant`/`exception`/`rec`/`fun`/`abstract`/`ghost`/`pure`/`mutable`/`private`・`requires`/`ensures`/`invariant`/`variant`/`writes`/`reads`/`raises`/`alias`/`diverges`/`partial`・`axiom`/`lemma`/`goal`/`prop`/`assert`/`assume`/`check`/`absurd`/`by`/`so`/`epsilon`/`any`・`if`/`else`/`while`/`for`/`match`/`with`/`try`/`begin`/`end`/`in`/`of`/`as`/`not`/`and`/`or`/`loop`/`break`/`continue`/`return`/`case`・`==>`/`<->`/`\/`/`/\`/`forall`/`exists`)。
-
-## 出典(第243次、search-index 照合)
-
-**論文・仕様**: TLA+ Specification Language(Lamport, "Specifying Systems" + tlaps TLA+ Proof System 文法)、Alloy 6 reference guide(Jackson)、SPIN/Promela reference(Holzmann, spinroot.com grammar)、Dafny reference manual(Leino/Microsoft, dafny-lang docs)、B-Book(Abrial) + Event-B modelling language/Rodin User guide、Lingua Franca documentation(Lohstroh et al., "The Lingua Franca Coordination Language")、Why3/WhyML reference manual(Filliâtre/Paskevich)— 全て整数のみで実装。
-
-**実装物**: tlaplus/tlapm、AlloyTools/org.alloytools.alloy、Spin Source(spinroot/Spin)、dafny-lang/dafny、rodin-b-sharp、lf-lang/lingua-franca、eclipse/why3 の各リポジトリ・配布例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の TLA+ 入門・Alloy 検証・SPIN/Promela モデル検査・Dafny 検証プログラミング・B法/Event-B・WhyML 検証・形式手法概説記事 — 全て整数のみで実装。
