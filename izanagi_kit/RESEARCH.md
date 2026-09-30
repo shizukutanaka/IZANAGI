@@ -4243,6 +4243,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
 
+
 ## 第184次: 金融・企業間データ交換形式 第2弾(swiftmt / bai2 / xbrl / fpml / fixml / camt / pain)
 
 **方法**: 文献参照ラウンド継続 — 銀行間・企業間メッセージ交換。全7件が既存 1190 件と非衝突を確認(既存 `mt` は Mersenne Twister のため `swiftmt` に改名):
@@ -4256,6 +4257,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `pain` — ISO 20022 `pain.00x`: `Cstmr*Initn` + `PmtInf`/`CdtTrfTxInf` + `NbOfTxs` 照合
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
 
 
 ## 第185次: API・IDL・スキーマ記述形式(openapi / graphql / idl / asn1 / wsdl / fidl / smithy)
@@ -4273,6 +4275,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
 
+
 ## 第186次: 動画・メディアコンテナ形式 第2弾(asf / rm / mxf / mpegts / ivf / y4m / swf)
 
 **方法**: 文献参照ラウンド継続 — 放送・制作・ストリーミング系コンテナ。全7件が既存 1204 件と非衝突を確認(ebml/matroska・isobmff/mp4/mov・flv・ts(Qt Linguist)は既存のため除外):
@@ -4286,6 +4289,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `swf` — SWF: `FWS`/`CWS`/`ZWS` 圧縮種別 + バージョン + 宣言長
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
 
 
 ## 第187次: 図書館・アーカイブ・OCR 情報形式(marc / mets / ead / oai / alto / hocr / scandata)
@@ -4303,6 +4307,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
 
+
 ## 第188次: 最適化・数値計算モデル形式(mps / lp / dimacs / opb / mtx / hb / ampl)
 
 **方法**: 文献参照ラウンド継続 — 数理計画ソルバー・数値線形代数のモデル/行列交換系。全7件が既存 1218 件と非衝突を確認(sat は既存だがアルゴリズムであり形式ではないため dimacs と併存):
@@ -4316,6 +4321,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `ampl` — AMPL .mod: `set`/`param`/`var`/`minimize`/`maximize`/`subject to` 宣言 + `sum`/`forall`/`exists` + `:=`/`option`/`solve`/`display` + `#` コメント
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
 
 
 ## 第189次: 辞書・レファレンスデータ形式(stardict / mdx / dsl / epwing / slob / dictzip / dictd)
@@ -4333,6 +4339,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
 
+
 ## 第190次: カメラ RAW 画像形式(cr2 / nef / arw / dng / orf / rw2 / raf)
 
 **方法**: 文献参照ラウンド継続 — デジタルカメラ RAW 系。全7件が既存 1232 件と非衝突を確認(`tiff`/`heif` は既存のため TIFF/ISOBMFF 派生として個別シグネチャで棲み分け; Canon CR3 は ISOBMFF 系で `heif` 判別に吸収されるため除外):
@@ -4346,6 +4353,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `raf` — Fuji RAF: `FUJIFILMCCD-RAW ` バナー + `0201`/`0202` バージョン + BE JPEG/CFA ポインタ表
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
 
 
 ## 第191次: 形式手法・定理証明・検証形式(tptp / smt2 / aiger / sby / isabelle / coq / lean)
@@ -4363,6 +4371,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
 
+
 ## 第192次: 端末・BBS アート形式(ansi / sixel / iterm / kittyimg / terminfo / asciicast / ttyrec)
 
 **方法**: 文献参照ラウンド継続 — テキスト端末の描画・記録形式。`sauce` は既存のため除外、予告の `nfo` は汎用テキストで検出署名が弱いため除外:
@@ -4378,6 +4387,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
 
+
 ## 第193次: ゲームレベル・タイルマップ形式(tmx / tsx / ldtk / ogmo / t3d / smd / qmap)
 
 **方法**: 文献参照ラウンド継続 — 2D タイルエディタ・レベルエディタ・DCC 中間形式。全7件が既存 1253 件と非衝突を確認(`map` は `qmap` と命名して汎用名との混同を回避):
@@ -4391,6 +4401,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `qmap` — Quake `.map`: エンティティ/ブラシ `{` ブロック深さ + `( x y z )³` 面行 + `classname`/`worldspawn`
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
 
 
 ## 第194次: XML スキーマ・変換・クエリ形式(xsd / relaxng / sch / xslt / dtd / xlink / xq)
@@ -4410,6 +4421,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest(合計 21 + 8)。
 
 
+
 ## 第195次: 識別子・チェックデジット形式(isbn / issn / ean / upc / ismn / orcid / luhn)
 
 **方法**: 文献参照ラウンド継続 — 標準識別子のチェックデジット検証器。全7件非衝突(`doi` は構造検証が弱く候補外):
@@ -4425,6 +4437,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
 
 **検証**: 各モジュール単体テスト + doctest(実在識別子フィクスチャ)。
+
 
 
 ## 第196次: トークン・認証資格形式(jwk / jwe / saml / paseto / macaroon / cookiejar / keytab)
@@ -4444,6 +4457,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest(実在形式フィクスチャ、JWE は base64url デコード実装検証)。
 
 
+
 ## 第197次: クエリ・検索言語形式(sparql / cypher / xpath / jsonpath / lucene / jq / kql)
 
 **方法**: 文献参照ラウンド継続 — クエリ言語の構文センサス。全7件非衝突(gremlin/promql は予備):
@@ -4461,6 +4475,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest(実在クエリフィクスチャ)。
 
 
+
 ## 第198次:分散識別子・名前付け形式パーサ(7 モジュール)
 
 `nanoid`(NanoID:`A–Za–z0–9_-` 64 文字 URL-safe、既定 21 文字、numeric/hex/lower 部分集合判別)/ `cuid`(CUID v2:小文字先頭+base36、legacy `c…` 判別、密度指数)/ `xid`(XID:12 バイトを base32hex 小文字 20 文字に、timestamp/machine/pid/counter 復元)/ `typeid`(TypeID:`prefix_`+26 文字 base32 suffix → UUIDv7 version/variant 検証)/ `did`(W3C DID:`did:method:msid` + `:`subid + `%xx` + `;`/`?`/`#`/`/` サフィックス + 既知 method 集合)/ `base32`(RFC 4648:`A–Z2–7`+合法パディング 0/1/3/4/6 + base32hex 変種判別)/ `crockford`(Crockford Base32:`-` 区切り + `I/L/O` エイリアス + `*~$=U` チェックシンボル mod-37 検証)。
@@ -4468,6 +4483,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
 
 **検証**: 各モジュール単体テスト + doctest(実在 ID フィクスチャ・既知チェックディジット対)。
+
 
 
 ## 第199次:セマンティック Web・連絡先・メタデータ交換形式パーサ(7 モジュール)
@@ -4479,6 +4495,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:VCARD カード・VCALENDAR・LDIF エントリ・XMP パケット・IPTC レコード・Atom フィード・XMLDSIG 署名)。
 
 
+
 ## 第200次:配列アライメント・系統解析形式パーサ(7 モジュール)
 
 `bam`(BAM hts-specs:`BAM\x01`+`l_text` i32le SAM ヘッダ+`n_ref`/`l_name`/`name`/`l_ref` 辞書+`block_size` i32le アライメントレコード鎖歩行+切詰検出)/ `aln`(Clustal W/X/Omega:`CLUSTAL`|`MUSCLE` バナー+空行ブロック+`name seq` 行+`*:.` コンセンサス行)/ `maf`(UCSC MAF:`##maf key=value` ヘッダ+`a score=` ブロック+`s` src/start/size/strand/srcSize/seq+`i`/`e`/`q`/`p`/`c` 補助行)/ `paf`(minimap2 PAF:12 必須タブ列 qname/qlen/qstart/qend/strand/tname/tlen/tstart/tend/nmatch/alen/mapq+`tag:type:value` オプション列)/ `pileup`(SAMtools mpileup:`seq pos ref depth bases quals`+`.,ACGTNacgtn*^$+-[]` マーカー+indel/deletion/ref-only 計数)/ `nexus`(NEXUS:`#NEXUS`+`begin/end` ブロック+`dimensions ntax/nchar`+`tree`/`utree`/`matrix`/`translate`/`taxlabels`)/ `phylip`(PHYLIP:`<ntax> <nchar>` 先頭+`name seq` 行+sequential/interleaved レイアウト判別)。`vcf`/`sam` は既存モジュール(vCard/サフィックスオートマトン)のため除外。
@@ -4486,6 +4503,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
 
 **検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BAM バイナリ・Clustal ブロック・MAF ブロック・PAF 行・mpileup 行・NEXUS ツリー・PHYLIP 行列)。
+
 
 
 ## 第201次:TeX バイナリ・フォントメトリクス形式パーサ(7 モジュール)
@@ -4497,6 +4515,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:DVI post_post・TFM lf 式・JFM 縦組・GF post・PK postamble・VF fnt_def/char パケット・PL フォーム)。
 
 
+
 ## 第202次:フロッピー・ディスクイメージ形式パーサ 第2弾(7 モジュール)
 
 `woz`(Apple II WOZ:`WOZ1`/`WOZ2`+`0xFF 0x0A 0x0D 0x0A` 整合バイト+`ID u32le` チャンク歩行で `INFO`/`TMAP`/`TRKS`/`META`/`FLUX`/`WRIT` センサス)/ `a2r`(Applesauce A2R:`A2R2`/`A2R3` 同系シグネチャ+`INFO`/`STRM`/`META`/`RWCP`/`SLVD`/`SELV`、STRM type で flux/nibble/bitstream 分類)/ `hfe`(HxC Floppy Emulator:`HXCPICFE`+rev 0+tracks/sides/encoding+bitrate/rpm u16le+interface mode+512B 単位 LUT 歩行)/ `scp`(SuperCard Pro:`SCP`+BCD version+disk type+revolutions+start/end track+flags/cell_size/heads/resolution+u32le checksum+168 エントリ u32le オフセット表)/ `imd`(ImageDisk:`IMD ` ASCII ヘッダ+`0x1A` 終端+mode/cyl/head(bit6 シリンダマップ/bit5 ヘッドマップ)/nsec/ssize `128<<n`+セクタデータ type `0..=8` 歩行)/ `td0`(TeleDisk:`TD`/`td`+sequence+check-sig+version/data_rate/drive_type/stepping/dos/sides+header CRC16+任意コメントブロック crc+len+日時)/ `edsk`(Amstrad CPC:`MV - CPCEMU Disk-File`/`EXTENDED CPC DSK File`+tracks/sides/track_size or サイズテーブル+`Track-Info` ブロック走査+セクタ情報リスト計数)。`nib`/`po`/`d64`/`d88` は既存モジュールのため除外。
@@ -4504,6 +4523,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
 
 **検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WOZ チャンク・A2R STRM・HFE LUT・SCP オフセット表・IMD トラックレコード・TD0 コメントブロック・EDSK Track-Info)。
+
 
 
 ## 第203次:GPU シェーダ・中間言語形式パーサ(7 モジュール)
@@ -4515,6 +4535,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:SPIR-V ヘッダ+命令語、DXBC チャンク表、MTLB タグ列、PTX ディレクティブ、GLSL `#version`+宣言、HLSL cbuffer/register、WGSL `@vertex`/`@group` 属性)。
 
 
+
 ## 第204次:圧縮・アーカイブ形式パーサ 第3弾(7 モジュール)
 
 `wim`(Microsoft Windows Imaging:`MSWIM\0\0\0`/`MSWIMOLD`+u32le ヘッダサイズ・バージョン・フラグ+圧縮列挙(None/XPRESS/LZX/LZMS/solid 変種)+`reshdr`(8B オフセット+7B サイズ+1B フラグ)オフセットテーブル/XML/ブート/整合性区画センサス+パーツ番号/イメージ数)/ `zpaq`(Matt Mahoney:`zPQ`+level 1/2+メモリバイト、`h` ブロック開始・`d` データ・`i` ブロック終端マーカ走査+HCOMP ヘッダ(hh hm ph pn n+comp n バイト+END)集計)/ `lzfse`(Apple 圧縮:`bvx1` 非圧縮/`bvx2` v2/`bvxn` 非圧縮終端/`bvx-` raw/`bvx$` EOS ブロックマジック歩行+raw/payload バイト集計)/ `ace`(`**ACE**` シグネチャ+head crc/size/type/flags/version/host_os+型付きサブヘッダ entry(1=file,2=recovery,3=AV,4=comment)歩行)/ `alz`(ALZip:`ALZ\x01` マジック+`F` 型付きエントリレコード走査+末尾 u32le ファイル数との整合+EOF トレーラ検出)/ `zoo`(Rahul Dhesi:`FD C4 A7 DC` アーカイブマジック@20+テキスト導入部+ディレクトリエントリ `next` オフセット鎖歩行+type(1=file,2=sub)/method ビット集合+orig/packed サイズ集計)/ `lzip`(LZMA 単一/複数メンバ:`LZIP`+version 1+coded dict サイズ(上位3bit 指数)+20B メンバトレーラ crc32/data_size/member_size 整合走査)。`cab`/`cpio`/`ar`/`tar`/`lzw`/`gzip`/`bzip2`/`zstd`/`lz4`/`xz`/`zip`/`rar`/`x7z`/`squashfs` は既存のため除外。
@@ -4522,6 +4543,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
 
 **検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WIM reshdr 表・ZPAQ マーカ+HCOMP、LZFSE ブロック列・ACE サブヘッダ列・ALZ F レコード・ZOO エントリ鎖・lzip トレーラ)。
+
 
 
 ## 第205次:FPGA ビットストリーム・プログラミング形式パーサ(7 モジュール)
@@ -4533,9 +4555,11 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BIT タグレコード列・JEDEC `*`-レコード+STX/ETX、SVF `;` 文・XSVF オペコード列・ISC `ISC_` 文・XDC Tcl 行・LPF 文)。
 
 
+
 ## 第206次:言語別パッケージ定義ファイル形式
 
 Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks `.rockspec`・Perl `cpanfile`・OCaml `.opam`・Nim `.nimble` の7形式を追加。全て YAML/DSL のテキスト形式で、署名の強いキー(`environment:` `sdk:`/`crystal:`/`cabal-version:`/`rockspec_format`/`opam-version:`/`srcDir`/`requires`)で検出し、セクション・スタンザ・テーブルを字下げ/括弧深さ歩行でセンサス。
+
 
 
 ## 第207次:ボードゲーム・パズル形式
@@ -4543,9 +4567,11 @@ Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks 
 チェス EPD・将棋 CSA 棋譜・KIF 棋譜・象棋 XQF・USI プロトコル・AcrossLite .puz・数独テキストの7形式を追加。pgn/fen/gtp/sgf は既存モジュールのため除外。テキスト系は行/フィールド走査、バイナリ系はマジック+レコード歩行で検出・集計する。
 
 
+
 ## 第208次:グラフ・ネットワーク解析形式
 
 GML・GraphML・GEXF・Pajek .net・GUESS GDF・LEDA .gw・Tulip .tlp の7形式を追加。graph/dimacs/mtx/sparql は既存モジュールのため除外。XML 系は境界付きタグ走査、テキスト系はセクション/レコード走査で検出・集計する。
+
 
 
 ## 第209次:量子計算・量子回路記述形式
@@ -4553,9 +4579,11 @@ GML・GraphML・GEXF・Pajek .net・GUESS GDF・LEDA .gw・Tulip .tlp の7形式
 OpenQASM 2/3・Rigetti Quil・IBM Qobj・Amazon Braket IR・Xanadu Blackbird・Q#・OpenPulse の7形式を追加。`qir` は LLVM bitcode 系で `llvmbc` と兼任のため除外。QASM 系はステートメント単位、JSON 系はキー走査、Blackbird はヘッダ+パイプ記法、Q# はキーワード単位、OpenPulse は行頭キーワード計数で検出・集計する。
 
 
+
 ## 第210次:ゲームエンジン・エディタプロジェクト形式
 
 Unreal `.uproject`/`.uplugin`・Godot `project.godot`/`.tscn`・Twee 3・Ren'Py `.rpy`・RPG Maker `.rxdata`/`.rvdata2` の7形式を追加。JSON 系はキー走査、INI/セクション系はヘッダ走査、Twee/Ren'Py は行頭キーワード計数、rvdata は Marshal 4.8 トークンの再帰走査で検出・集計する。
+
 
 
 ## 第211次:構成・データ記述言語(DSL)形式
@@ -4563,9 +4591,11 @@ Unreal `.uproject`/`.uplugin`・Godot `project.godot`/`.tscn`・Twee 3・Ren'Py 
 Dhall・Jsonnet・Nickel・KCL・Apple Pkl・Clojure EDN・Zig ZON の7形式を追加。いずれも `let`/`in`・`self.`・`schema`・`amends`・`:keyword`・`.{` 等の言語固有シグネチャで検出し、バインディング・契約注釈・インポート・コメントを整数計数する。
 
 
+
 ## 第212次:スマートコントラクト・ブロックチェーン言語形式
 
 Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`pragma solidity`/`# @version`/`module addr::name`/`#[starknet::contract]`/`(define-*`/`contract+receive`/`recv_internal` 等の言語固有シグネチャで検出し、宣言・デコレータ/属性・外部呼出・コメントを整数計数する。
+
 
 
 ## 第213次:IaC・デプロイ定義ファイル形式
@@ -4573,9 +4603,11 @@ Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`p
 CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・Helm Chart.yaml・Pulumi.yaml の7形式を追加。`AWSTemplateFormatVersion`/`targetScope`/`service+provider`/`services:`/`Vagrant.configure`/`apiVersion+type`/`name+runtime` 等の形式固有シグネチャで検出し、宣言・ブロック内エントリ・組込み関数使用数・コメントを整数計数する。YAML 系はインデント追跡のブロック抽出で同名キーのネスト混入(サービス内 `volumes:`、テンプレ内 `config:`)を抑制する。
 
 
+
 ## 第214次:CI/CD パイプライン定義ファイル形式
 
 .gitlab-ci.yml・Jenkinsfile・.circleci/config.yml・azure-pipelines.yml・.drone.yml・Concourse pipeline.yml・bitrise.yml の7形式を追加。`stages`/`pipeline {`/`jobs+workflows`/`trigger+pool`/`kind: pipeline`/`resource_types`/`- get:`/`format_version` 等の形式固有シグネチャで検出し、ジョブ・ステップ・トリガ・イメージ・変数エントリを整数計数する。YAML 系はブロック内最小インデントの `- ` 項目のみ計数し、workflow 内 `jobs:` やサービス内 `volumes:` の同名ネスト混入を抑止する(第213次で導入した手法を踏襲)。
+
 
 
 ## 第215次:API テスト・HTTP クライアント・サービス定義形式
@@ -4583,14 +4615,17 @@ CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・H
 HTTP Archive(.har)・Hoppscotch collection・Bruno .bru・REST Client .http/.rest・Insomnia エクスポート・RAML・API Blueprint の7形式を追加。JSON キー走査(har/hoppscotch)・`name {`ブロック走査(bru)・行状態機械(httpfile/insomnia)・`#%RAML`+最小インデント子キー(raml)・Markdown 見出し/`+`マーカ走査(apib)で、リクエスト・ヘッダ・リソース・型宣言等を整数計数する。
 
 
+
 ## 第216次:パッケージマネージャ・ロックファイル形式
 
 yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock・poetry.lock・composer.lock の7形式を追加。エントリヘッダ(yarn)・JSON キーセンサス(npm/composer)・YAML ブロック走査(pnpm)・TOML テーブル(cargo/poetry)・セクション+インデント分類(gem)で、パッケージ数・解決 URL・整合性ハッシュ・依存ブロック等を整数計数する。
 
 
+
 ## 第217次:歌声合成・ボーカルシーケンス形式
 
 UTAU .ust・OpenUtau .ustx・VOCALOID3/4 .vsqx・VOCALOID5 .vpr・Synthesizer V .svp・CeVIO .ccs・HTS/UTAU .lab の7形式を追加。INI セクション走査(ust)・YAML ブロック走査(ustx)・XML タグ/属性センサス(vsqx/ccs)・JSON キーセンサス(vpr/svp)・`start end phone` 行検証(lab)で、ノート数・歌詞・音素・ピッチ・パラメータ曲線等を整数計数する。
+
 
 
 ## 第218次:天文・天体観測データ形式
