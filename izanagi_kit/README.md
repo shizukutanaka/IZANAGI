@@ -532,6 +532,13 @@ The capability map — with per-feature implementation status — lives in
 | `runit` | runit `run` スクリプト |
 | `s6rc` | s6-rc execline スクリプト |
 | `upstart` | Upstart `.conf` ジョブ |
+| `feast` | Feast feature_store.yaml (project/provider/stores) |
+| `greatexp` | great_expectations.yml (stores/data_docs_sites/datasources) |
+| `hydraml` | Hydra conf/config.yaml (defaults/_target_/補間) |
+| `ipythonconf` | ipython_config.py (traitlets c.* 代入/namespace) |
+| `jupyterconf` | jupyter_notebook_config.py (traitlets c.* 代入) |
+| `kedro` | Kedro catalog/settings/parameters.yml (dataset 型定義) |
+| `metaflow` | Metaflow config.json (METAFLOW_* キー) |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

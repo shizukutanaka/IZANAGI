@@ -4022,3 +4022,25 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - OpenWrt — procd init scripts ドキュメント(openwrt.org)
 
 — 全て整数のみで実装。
+
+## 第267次 — 機械学習・データサイエンスツール設定形式
+
+- jupyterconf: Jupyter Notebook/Server/Lab traitlets 設定(`c.<Ns>.<key> =` 代入、namespace 集計)
+- ipythonconf: IPython traitlets 設定(exec_lines/extensions 別計数)
+- kedro: Kedro catalog/settings/parameters(catalog エントリ/dataset type/filepath)
+- hydraml: Hydra conf/config.yaml(defaults リスト/_target_/`${…}` 補間/hydra セクション)
+- feast: Feast feature_store.yaml(online/offline store ブロック)
+- greatexp: great_expectations.yml(stores/data_docs_sites/class_name フィールド)
+- metaflow: Metaflow config.json(`METAFLOW_*` キーを BATCH/KUBERNETES/SERVICE/DATASTORE 別集計)
+
+## 出典
+
+- Jupyter Server/Lab ドキュメントの config ファイル形式と traitlets 構文
+- IPython 公式ドキュメント ipython_config.py
+- Kedro ドキュメント Data Catalog/Settings リファレンス
+- Hydra 公式ドキュメント Configuring Hydra/defaults list
+- Feast 公式ドキュメント feature_store.yaml リファレンス
+- Great Expectations Data Context ドキュメント great_expectations.yml
+- Metaflow 公式ドキュメント metaflowconfig 環境変数
+
+— 全て整数のみで実装。
