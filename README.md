@@ -159,7 +159,7 @@ on every OS and CPU**, pinned by regression tests
 (`PINNED_FINAL_HASH`/`PINNED_ROGUELIKE_HASH`) rather than merely asserted.
 
 ```text
-cargo test -p izanagi_kit   # 5,500+ tests, 0 clippy warnings, fmt clean
+cargo test -p izanagi_kit   # 7,000+ tests, 0 clippy warnings, fmt clean
 ```
 
 ---
