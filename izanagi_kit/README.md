@@ -106,6 +106,27 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
+| `appdaemon` | AppDaemon apps.yaml census |
+| `bird` | BIRD routing daemon config census |
+| `esphome` | ESPHome device yaml census |
+| `frigate` | Frigate NVR config census |
+| `frr` | FRRouting frr.conf census |
+| `haproxy` | HAProxy haproxy.cfg census |
+| `homeassistant` | Home Assistant configuration.yaml census |
+| `keepalived` | keepalived.conf census |
+| `nodered` | Node-RED flows.json census |
+| `openbgpd` | OpenBGPD bgpd.conf census |
+| `openhab` | openHAB items/things/rules census |
+| `squid` | squid.conf census |
+| `vcl` | Varnish VCL census |
+| `zigbee2mqtt` | zigbee2mqtt configuration.yaml census |
+| `alloy` | Alloy model census |
+| `dafny` | Dafny program census |
+| `lf` | Lingua Franca .lf census |
+| `mch` | B/Event-B .mch census |
+| `promela` | Promela/SPIN model census |
+| `tlaplus` | TLA+ spec census |
+| `whyml` | Why3/WhyML program census |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
