@@ -5016,46 +5016,15 @@ IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン�
 
 HL7 v2・FHIR JSON・BrainVision .vhdr/.vmrk・XDF・WFDB .hea・NCPDP SCRIPT の7形式を追加。パイプ区切りセグメント走査(hl7)・JSON キーセンサス(fhir)・INI セクション+`MkN=` カンマフィールド(vmrk/vhdr)・`XDF:` +length-prefixed chunk 歩行(xdf)・`name/N fs N` レコード行+`fmtXgain`(wfdb)・XML タグセンサス(ncpdp)で、メッセージ構造・チャネル/マーカー・信号仕様を整数計数する。
 
-## 出典(第219次、search-index 照合)
-
-**論文・仕様**: HL7 v2.x messaging standard(hl7.org)・FHIR R4/R5 JSON spec(hl7.org/fhir)・BrainVision Core Data Format spec(brainproducts)・XDF spec(github.com/sccn/xdf)・WFDB header format(physionet.org)・NCPDP SCRIPT standard(ncpdp.org)— 全て整数のみで実装。
-
-**実装物**: HAPI FHIR・BrainVision Analyzer/recorder・sccn/xdf LabRecorder・physionet WFDB tools・NCPDP SCRIPT 実装群 — 全て整数のみで実装。
-
-**国内技術情報**: HL7/FHIR/BrainVision/XDF/WFDB/NCPDP 解説記事(Qiita・Zenn・医療情報技術ブログ等)— 全て整数のみで実装。
-
 ## 第220次:ログ収集・データパイプライン設定形式
 
 Logstash・Fluentd・Filebeat・Telegraf・Vector・Grok・syslog-ng OSE の7形式を追加。`input/filter/output` セクション+プラグインブロック(logstash)・`<source>`/`<match>`+`@type` パラメータ(fluentd)・`filebeat.inputs` YAML 歩行(filebeat)・`[[inputs.*]]`/`[agent]` TOML センサス(telegraf)・`[sources/transforms/sinks]`+`inputs=` 配線(vector)・`NAME regex`+`%{REF:field:type}`(grok)・`@version`+source/destination/log 文(syslogng)で、パイプライン構成・プラグイン・配線を整数計数する。
-
-## 出典(第220次、search-index 照合)
-
-**論文・仕様**: Logstash pipeline configuration(elastic.co/guide)・Fluentd config file syntax(docs.fluentd.org)・Filebeat inputs/output reference(elastic.co/guide)・Telegraf configuration(docs.influxdata.com)・Vector TOML/YAML reference(vector.dev/docs)・Grok patterns(logstash-patterns-core)・syslog-ng OSE admin guide(syslog-ng.github.io)— 全て整数のみで実装。
-
-**実装物**: Logstash・Fluentd/fluent-bit・Filebeat・Telegraf・Vector(timberio/vector)・Grok 実装群・syslog-ng OSE — 全て整数のみで実装。
-
-**国内技術情報**: Logstash/Fluentd/Filebeat/Telegraf/Vector/Grok/syslog-ng 解説記事(Qiita・Zenn・インフラ技術ブログ等)— 全て整数のみで実装。
 
 ## 第221次:エディタ・IDE・開発環境設定形式
 
 .editorconfig・devcontainer.json・devfile.yaml・Sublime project/settings・tmux.conf・kitty.conf・alacritty.toml/yml の7形式を追加。INI+`[glob]` セクション(editorconfig)・JSONC キーセンサス+lifecycle hook(devcontainer)・YAML ブロック歩行(devfile)・JSON セクション走査(sublime)・`set`/`bind`/`@plugin` コマンド文(tmuxconf)・`key value`+`map`/`symbol_map`(kittyconf)・TOML/YAML セクション+key_bindings(alacritty)で、エディタ/コンテナ/端末の構成を整数計数する。
 
-## 出典(第221次、search-index 照合)
-
-**論文・仕様**: EditorConfig specification(editorconfig.org)・devcontainer.json reference(containers.dev/implementors/json_reference)・Devfile schema(devfile.io/docs)・Sublime Text project/settings docs(sublimetext.com/docs)・tmux.conf man page(openbsd/tmux)・kitty.conf reference(sw.kovidgoyal.net/kitty/conf)・Alacritty TOML config docs(alacritty.org)— 全て整数のみで実装。
-
-**実装物**: editorconfig-core・devcontainers/cli・odo/devfile registry・Sublime Text・tmux・kitty・alacritty — 全て整数のみで実装。
-
-**国内技術情報**: EditorConfig/devcontainer/devfile/Sublime/tmux/kitty/alacritty 解説記事(Qiita・Zenn・開発環境ブログ等)— 全て整数のみで実装。
 
 ## 第222次:監視・オブザーバビリティ設定形式
 
 prometheus.yml・alertmanager.yml・Grafana provisioning/dashboard・OpenTelemetry Collector・nagios.cfg+objects・icinga2.conf・zabbix_agentd.conf の7形式を追加。YAML トップレベルセクション+`job_name`/`static_configs`/`*_sd_configs`/`relabel_configs`(prometheus)・`route:`/`receivers:`/`inhibit_rules:`+`*_configs` 連携(alertmanager)・apiVersion+providers/datasources+JSON キーセンサス(grafana)・receivers/processors/exporters/extensions/connectors+service.pipelines 配線(otelcol)・`define host|service|command`+`key value` フィールド+cfg_file 経路指令(nagios)・`object <Type> "name" { }`+`vars.*`/`key = value`(icinga)・`Server=`/`UserParameter=`/`Include=` キー分類(zabbix)で、監視構成・通知配線・パイプライン構成を整数計数する。
-
-## 出典(第222次、search-index 照合)
-
-**論文・仕様**: Prometheus configuration docs(prometheus.io/docs)・Alertmanager configuration(prometheus.io/docs/alerting)・Grafana provisioning reference(grafana.com/docs)・OpenTelemetry Collector configuration(opentelemetry.io/docs/collector)・Nagios Core object definitions+main config(assets.nagios.com/docs)・Icinga 2 configuration reference(icinga.com/docs)・Zabbix agent configuration parameters(zabbix.com/documentation)— 全て整数のみで実装。
-
-**実装物**: prometheus/prometheus・prometheus/alertmanager・grafana/grafana・open-telemetry/opentelemetry-collector・NagiosEnterprises/nagioscore・Icinga/icinga2・zabbix/zabbix — 全て整数のみで実装。
-
-**国内技術情報**: Prometheus/Alertmanager/Grafana/OTel Collector/Nagios/Icinga/Zabbix 解説記事(Qiita・Zenn・監視・SRE 系技術ブログ等)— 全て整数のみで実装。
