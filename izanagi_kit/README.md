@@ -448,6 +448,13 @@ The capability map — with per-feature implementation status — lives in
 | `envrc` | direnv `.envrc` census: `export` + `use`/`layout`/`dotenv`/`source_*`/`watch*`/`PATH_add` 等ヘルパー |
 | `zshrc` | `.zshrc` census: `export`/`setopt`/`alias`/`zstyle`/`bindkey`/`autoload`/`function`/`add-zsh-hook`/`eval` |
 | `bashrc` | `.bashrc` census: `export`/`alias`/`shopt`/`source`/`bind`/`function` + `PS1`/`HIST*`/`PROMPT_COMMAND` 代入 |
+| `clangformat` | `.clang-format` census: `BasedOnStyle`/`IndentWidth`/`ColumnLimit`/`UseTab` 等 + `IncludeCategories` `- ` 項目 |
+| `clangtidy` | `.clang-tidy` census: `Checks:`/`WarningsAsErrors:` の `+`/`-` glob + `CheckOptions:` `- key:`/`value:` |
+| `cpplint` | `CPPLINT.cfg` census: `linelength`/`root`/`headers`/`exclude_files` + `filter=` の `+`/`-` トークン |
+| `detekt` | `detekt.yml` census: `build`/`style`/`complexity` 等セクション + ルールブロック/`active:`/`excludes:` |
+| `ktlint` | ktlint `.editorconfig` census: `[*.{kt,kts}]` + `ktlint_*`/`ij_kotlin_*`/`ij_kt_*` プロパティ分類 |
+| `rubocop` | `.rubocop.yml` census: `AllCops`/`Dept/Cop:` ブロック + `require`/`inherit_*`/`Exclude:` スコープ追跡 |
+| `swiftlint` | `.swiftlint.yml` census: `disabled/opt_in/only/analyzer_rules` + `custom_rules:` + ルール別設定 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

@@ -3860,3 +3860,14 @@ VPN・トンネル設定ファイル形式。対象: `wireguard`(wg.conf/wg-quic
 実装物: starship/starship・fish-shell/fish-shell・nushell/nushell・direnv/direnv・zsh-users/oh-my-zsh・git.gnu.org bash/readline ソースツリー。
 国内技術情報: Qiita・Zenn の starship/fish/nushell/inputrc/envrc/zshrc/bashrc 解説・設定晒し記事の実例記述。
 — 全て整数のみで実装。
+
+## 第255次(search-index 照合ラウンド / 実装証跡付き)
+
+多言語リンター・フォーマッタ設定形式。.clang-format、.clang-tidy、CPPLINT.cfg、detekt.yml、ktlint .editorconfig プロパティ、.swiftlint.yml、.rubocop.yml。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 出典(第255次、search-index 照合)
+
+論文・仕様: ClangFormat Style Options 公式リファレンス、clang-tidy チェック一覧・.clang-tidy 形式ドキュメント、google/styleguide cpplint 設定仕様、detekt 設定ドキュメント(default-detekt-config.yml)、ktlint .editorconfig プロパティ表、SwiftLint ルールディレクトリ、RuboCop Config ファイル形式。
+実装物: llvm/llvm-project(clang/tools・clang-tools-extra)、google/styleguide(cppguide/cpplint)、detekt/detekt、 pinterest/ktlint、realm/SwiftLint、rubocop/rubocop の各リポジトリ記述。
+国内技術情報: Qiita・Zenn の clang-format/clang-tidy/detekt/ktlint/SwiftLint/RuboCop 設定記事の実例記述。
+— 全て整数のみで実装。
