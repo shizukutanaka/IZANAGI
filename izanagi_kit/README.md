@@ -268,6 +268,62 @@ fixed version has no such state at all.
 | `hgignore` | .hgignore patterns census |
 | `hgrc` | Mercurial hgrc census |
 | `svnconf` | Subversion config/servers census |
+| `docsify` | Docsify $docsify config census |
+| `docusaurus` | docusaurus.config.js census |
+| `hexo` | Hexo _config.yml census |
+| `hugoconf` | Hugo site config census |
+| `jekyll` | Jekyll _config.yml census |
+| `mkdocs` | mkdocs.yml census |
+| `zola` | Zola config.toml census |
+| `icecast` | Icecast `icecast.xml` |
+| `mediamtx` | MediaMTX `mediamtx.yml` |
+| `motionconf` | Motion `motion.conf` |
+| `mplayerconf` | MPlayer `config` |
+| `mpv` | mpv `mpv.conf` |
+| `obsconf` | OBS Studio `global.ini`/`basic.ini` |
+| `vlcrc` | VLC `vlcrc` |
+| `lsf` | IBM LSF `lsb.*` |
+| `monit` | Monit `monitrc` |
+| `pm2` | PM2 `ecosystem.config.js` |
+| `quartz` | Quartz `quartz.properties` |
+| `sidekiq` | Sidekiq `sidekiq.yml` |
+| `slurm` | Slurm `slurm.conf` |
+| `supervisor` | Supervisor `supervisord.conf` |
+| `apparmor` | AppArmor プロファイル |
+| `containersconf` | Podman `containers.conf` |
+| `dockerdaemon` | Docker `daemon.json` |
+| `policyjson` | sigstore `policy.json` |
+| `registriesconf` | containers `registries.conf` |
+| `seccomp` | seccomp-bpf プロファイル JSON |
+| `storageconf` | containers `storage.conf` |
+| `dinit` | Dinit サービスファイル |
+| `inittab` | sysvinit `/etc/inittab` |
+| `openrc` | OpenRC runscript |
+| `procd` | OpenWrt procd init |
+| `runit` | runit `run` スクリプト |
+| `s6rc` | s6-rc execline スクリプト |
+| `upstart` | Upstart `.conf` ジョブ |
+| `feast` | Feast feature_store.yaml (project/provider/stores) |
+| `greatexp` | great_expectations.yml (stores/data_docs_sites/datasources) |
+| `hydraml` | Hydra conf/config.yaml (defaults/_target_/補間) |
+| `ipythonconf` | ipython_config.py (traitlets c.* 代入/namespace) |
+| `jupyterconf` | jupyter_notebook_config.py (traitlets c.* 代入) |
+| `kedro` | Kedro catalog/settings/parameters.yml (dataset 型定義) |
+| `metaflow` | Metaflow config.json (METAFLOW_* キー) |
+| `btrbk` | btrbk.conf (volume/subvolume/target 階層) |
+| `duplicacy` | Duplicacy .duplicacy/preferences (storage エントリ) |
+| `rcloneconf` | rclone.conf ([remote] スタンザ/backend 型) |
+| `resticprofile` | resticprofile profiles.yaml (profile/schedule) |
+| `rsnapshot` | rsnapshot.conf (retain/backup/cmd_* タブ区切り) |
+| `syncthingconf` | Syncthing config.xml (folder/device/gui/options) |
+| `unison` | Unison .prf (root/path/ignore 行) |
+| `certbot` | certbot cli.ini/renewal conf (hook/authenticator/installer) |
+| `cfssl` | CFSSL config.json (signing profiles/usages/auth_keys) |
+| `dehydrated` | dehydrated config (`CA`/`CHALLENGETYPE`/`WELLKNOWN`) |
+| `easyrsa` | EasyRSA vars (`set_var EASYRSA_*`/`export KEY_*`) |
+| `lego` | lego env/ini (`LEGO_*` + provider credential サフィックス) |
+| `minica` | minica.conf (CA/DN/extensions/crl/ocsp セクション) |
+| `stepca` | step-ca ca.json (provisioners/claims/dnsNames) |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -564,6 +620,13 @@ The capability map — with per-feature implementation status — lives in
 | `docx` / `xlsx` / `pptx` / `vsdx` / `xps` / `jar` / `kmz` | Office & ZIP-based document packages: WordprocessingML `.docx`/`.docm` (`parse`/`Docx` — `word/document.xml` required, `<w:p` count, styles/media/core-props, `vbaProject.bin` macro flag, `dc:title`), SpreadsheetML `.xlsx` (`parse`/`Xlsx` — `xl/workbook.xml` + `<sheet name>` list, sheet/sharedStrings/styles/calcChain parts, macro flag), PresentationML `.pptx` (`parse`/`Pptx` — `ppt/presentation.xml`, slide/master/notes counts, `<p:sldSz>` EMU size), Visio `.vsdx` (`parse`/`Vsdx` — `visio/document.xml`, page/master counts), OpenXPS `.xps`/`.oxps` (`parse`/`Xps` — `FixedDocSeq.fdseq` or `[0].piece` + `.fpage` count), Java `.jar` (`parse`/`Jar` — `META-INF/MANIFEST.MF` required, RFC-style folded manifest `Main-Class`/`Automatic-Module-Name`, class/signed/multi-release/modular flags), and Google Earth `.kmz` (`parse`/`Kmz` — root `*.kml` member, `<name>`/`<Placemark>` counts, `files/` resources). |
 | `gre` / `esp` / `ospf` / `rip` / `pim` / `smb2` / `snmp` | Network protocols vol.4 (tunneling/routing/directory): GRE (RFC 2784/2890 — `parse`/`Gre` — flag-driven C/K/S optional fields + payload offset), IPsec ESP (RFC 4303 — `parse`/`Esp` — SPI + seq + trailer pad/next-header detection), OSPFv2/v3 (RFC 2328/5340 — `parse`/`Ospf`/`Kind` — len-fits-buffer, LSU `lsa_count`), RIPv2 (RFC 2453 — `parse`/`Rip`/`Route`/`Command` — 20-byte entries, metric, auth family 0xFFFF), PIMv2 (RFC 4601 — `parse`/`Pim`/`Kind` — version-2 nibble + RFC 1071 checksum check), SMB2 (MS-SMB2 — `parse`/`Smb2`/`Command` — `\xFESMB` + structure_size 64 + flags/msg/session IDs), and SNMP (RFC 1157/3416/3412 — `parse`/`Snmp`/`Pdu`/`Version` — minimal BER TLV walk: SEQUENCE → version → community → PDU tag). |
 | `crl` / `csr` / `p7b` / `ocsp` / `spf` / `dkim` / `dmarc` | PKI, signatures & email auth: X.509 CRL (RFC 5280 — `parse`/`Crl` — tbsCertList fields + revoked serial list), PKCS#10 CSR (RFC 2986 — `parse`/`Csr` — cri + signature alg OID + attributes flag), PKCS#7/CMS ContentInfo (RFC 5652 — `parse`/`P7b`/`Kind` — content-type OID classification), OCSP response envelope (RFC 6960 — `parse`/`Ocsp`/`Status` — ENUMERATED status + BasicOCSPResponse detection), SPF TXT (RFC 7208 — `parse`/`Spf`/`Term`/`Qualifier`/`Mechanism` — qualifier+mechanism terms, trailing `all`), DKIM key records & `DKIM-Signature:` (RFC 6376 — `parse`/`parse_key_record`/`Dkim` — `tag=value` lists, `p=` pubkey), DMARC (RFC 7489 — `parse`/`Dmarc`/`Policy` — `v=DMARC1` first-tag rule, `p=` policy, `pct` bounds). |
+| `casbin` | Casbin model.conf/policy.csv (`[request_definition]`/`r,p,e,m` 定義行、`p,g` CSV 行) |
+| `cedar` | AWS Cedar policy (`permit`/`forbid`+`principal`/`action`/`resource` scope+`when`/`unless`) |
+| `cloudcustodian` | Cloud Custodian policies.yaml (`policies:` + `- name:`/`resource:`/`filters:`/`actions:`) |
+| `openfga` | OpenFGA DSL (`schema 1.1`/`type`/`relations`/`define`/`condition`) |
+| `rego` | OPA Rego (`package`/`import`/rule head/`if`/`some`/`every`) |
+| `sentinel` | HashiCorp Sentinel (`import`/`param`/`const`/`main = rule`/`when`) |
+| `xacml` | XACML XML (`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`) |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
