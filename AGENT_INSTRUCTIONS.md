@@ -25,7 +25,35 @@
 | workspace テスト | **6,000+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-| kit モジュール数 | **1133**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+| kit モジュール数 | **1330**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| bdd60e8
+||||||| 9fd5bf5
+||||||| 74980e0
+||||||| 1aef45a
+>>>>>>> origin/devin/1790786880-round247
+>>>>>>> origin/devin/1790787458-round248
+>>>>>>> origin/devin/1790788240-round249
+>>>>>>> origin/devin/1790789318-round250
+=======
+||||||| bdd60e8
+||||||| 2e22ee9
+||||||| 9fd5bf5
+||||||| 229d57a
+||||||| 74980e0
+||||||| 2e22ee9
+||||||| c1293aa
+||||||| 1aef45a
+||||||| 712fe61
+=======
+>>>>>>> origin/devin/1790674886-round245
+=======
+>>>>>>> origin/devin/1790787458-round248
+>>>>>>> origin/devin/1790786187-round246
+>>>>>>> origin/devin/1790786880-round247
+>>>>>>> origin/devin/1790787458-round248
+>>>>>>> origin/devin/1790788240-round249
+>>>>>>> origin/devin/1790789318-round250
+>>>>>>> origin/devin/1790790435-round251
 | engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
