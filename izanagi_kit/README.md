@@ -413,6 +413,13 @@ The capability map — with per-feature implementation status — lives in
 | `condarc` | .condarc(channels/リスト文脈/scalar 設定) |
 | `condaenv` | environment.yml(channels/dependencies/pip/variables) |
 | `pylintrc` | .pylintrc(セクション/disable・enable 件数/キー) |
+| `postfix` | Postfix main.cf/master.cf(`key = value`+サービス行+継続行) |
+| `dovecot` | Dovecot dovecot.conf(protocol/service/mailbox ブロック+`!include`) |
+| `exim` | Exim4 configure(`begin <sec>`+driver/オプション+`${}` 展開) |
+| `sendmail` | sendmail.cf(O/K/M/R/S/D/C/T/H/V コマンド行) |
+| `spamassassin` | SpamAssassin cf(header/body/uri/meta ルール+score+whitelist) |
+| `opendkim` | opendkim.conf(`Key value` DKIM milter 設定) |
+| `opendmarc` | opendmarc.conf(`Key value` DMARC milter 設定) |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
