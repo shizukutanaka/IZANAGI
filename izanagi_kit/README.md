@@ -546,6 +546,13 @@ The capability map — with per-feature implementation status — lives in
 | `rsnapshot` | rsnapshot.conf (retain/backup/cmd_* タブ区切り) |
 | `syncthingconf` | Syncthing config.xml (folder/device/gui/options) |
 | `unison` | Unison .prf (root/path/ignore 行) |
+| `certbot` | certbot cli.ini/renewal conf (hook/authenticator/installer) |
+| `cfssl` | CFSSL config.json (signing profiles/usages/auth_keys) |
+| `dehydrated` | dehydrated config (`CA`/`CHALLENGETYPE`/`WELLKNOWN`) |
+| `easyrsa` | EasyRSA vars (`set_var EASYRSA_*`/`export KEY_*`) |
+| `lego` | lego env/ini (`LEGO_*` + provider credential サフィックス) |
+| `minica` | minica.conf (CA/DN/extensions/crl/ocsp セクション) |
+| `stepca` | step-ca ca.json (provisioners/claims/dnsNames) |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

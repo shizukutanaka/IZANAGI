@@ -4065,3 +4065,23 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - Duplicacy フォーラム/wiki preferences 形式
 
 — 全て整数のみで実装。
+
+## 第269次 — TLS・証明書管理ツール設定形式
+
+- certbot: cli.ini/renewal conf(`pre_hook`/`post_hook`/`deploy_hook`/`renew_hook`、authenticator/installer、`dns-*` 系)
+- stepca: step-ca ca.json(`"provisioners"` 配列、`"claims"`、`"dnsNames"`、`"root"`/`"crt"`/`"key"`)
+- cfssl: config.json(`"signing"`/`"profiles"`/`"usages"`/`"auth_keys"`/`"remotes"` の深度-1 名付きオブジェクト計数)
+- easyrsa: vars(`set_var EASYRSA_*`/`export KEY_*`/`PKCS11_*`、`EASYRSA_REQ_*` DN フィールド)
+- minica: minica.conf 系 INI([ca]/[dn]/[extensions]/[crl]/[ocsp]、DN フィールドと URL/path キー)
+- dehydrated: config(`CA`/`CHALLENGETYPE`/`WELLKNOWN`/`HOOK` 系 + domains.txt 項目)
+- lego: env/ini(`LEGO_*` + `*_API_KEY`/`*_PROPAGATION_TIMEOUT` 系プロバイダ接尾辞)
+
+## 出典
+
+- certbot/EFF 公式ドキュメント(cli.ini, renewal conf)
+- smallstep certificates ドキュメント(step-ca ca.json, provisioners)
+- Cloudflare CFSSL 公式ドキュメント(signing profiles, usages)
+- Easy-RSA 3 ドキュメント(vars.example)
+- minica/dehydrated/lego upstream README・サンプル設定
+
+— 全て整数のみで実装。
