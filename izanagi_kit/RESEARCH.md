@@ -5064,34 +5064,10 @@ prometheus.yml・alertmanager.yml・Grafana provisioning/dashboard・OpenTelemet
 
 Solr schema.xml・solrconfig.xml・Elasticsearch mappings・Elasticsearch settings・Meilisearch settings・Typesense schema・Algolia index settings の7形式を追加。`<field>`/`<fieldType>`/`<copyField>`+`solr.*` クラス(solrschema)・requestHandler/cache/updateLog+`<lst>`/`<str>` 型付き要素(solrconfig)・`"properties"`/`"type":"text|keyword|…"` フィールド型(esmapping)・number_of_shards+analysis named objects(essettings)・rankingRules+`*Attributes`+typoTolerance(meili)・`{"name","type"}` フィールド配列+facet/default_sorting_field(typesense)・searchableAttributes+attributesForFaceting+customRanking+`ALGOLIA_*`(algolia)で、スキーマ・分析器・ランキング・クエリ構成を整数計数する。
 
-## 出典(第223次、search-index 照合)
-
-**論文・仕様**: Apache Solr Reference Guide(schema.xml/solrconfig.xml)・Elasticsearch mapping params+index modules(elastic.co/guide)・Meilisearch settings API(docs.meilisearch.com)・Typesense collection schema+search parameters(typesense.org/docs)・Algolia index settings API(algolia.com/doc/api-reference/settings-api-parameters)— 全て整数のみで実装。
-
-**実装物**: apache/solr・elastic/elasticsearch・meilisearch/meilisearch・typesense/typesense・algolia(algoliasearch)— 全て整数のみで実装。
-
-**国内技術情報**: Solr/Elasticsearch/Meilisearch/Typesense/Algolia 解説記事(Qiita・Zenn・検索基盤系技術ブログ等)— 全て整数のみで実装。
-
 ## 第224次:データパイプライン・ワークフロー定義形式
 
 Airflow DAG・dbt_project.yml・prefect.yaml・dagster.yaml/workspace.yaml・Argo Workflows・ArgoCD Application/AppProject/ApplicationSet・Kubeflow Pipelines の7形式を追加。`from airflow`/`import airflow`+`dag_id`+`@task` デコレータ+`>>`/`<<` 依存演算子(airflow)・`model-paths:`/`require-dbt-version:`+`models:`/`seeds:` ブロック+`+materialized` 等の `+` 設定キー(dbt)・`prefect-version:`+`deployments:` の `- name:` エントリ+`entrypoint:`/`work_pool:`+`cron:`/`rrule:` スケジュールキー(prefect)・`run_launcher:`/`run_storage:`/`event_log_storage:`+`load_from:` の `python_file:`/`grpc_server:` ロケーション(dagster)・`argoproj.io`+`kind: Workflow|CronWorkflow`+`entrypoint:`/`templates:`+`container:`/`dag:`/`steps:`(argowf)・`kind: Application|AppProject|ApplicationSet`+`source:`/`destination:`/`syncPolicy:`+`repoURL:`/`targetRevision:`/`automated:`/`prune:`/`selfHeal:`(argocd)・`tekton.dev`+`kind: PipelineRun`+`pipelines.kubeflow.org` アノテーション+IR `components:`/`deploymentSpec:`/`schemaVersion:`/`sdkVersion:`+`taskSpec:`/`runAfter:`/`when:`(kubeflow)で、DAG 依存・モデル構成・デプロイメント・ロケーション・ワークフローテンプレート・同期ポリシ・パイプライン IR を整数計数する。
 
-## 出典(第224次、search-index 照合)
-
-**論文・仕様**: Apache Airflow DAG reference+TaskFlow API(airflow.apache.org/docs)・dbt project.yml reference+configs(docs.getdbt.com)・Prefect deployments+prefect.yaml schema(docs.prefect.io)・Dagster instance configuration+workspace file reference(docs.dagster.io)・Argo Workflows fields spec+CRD(argo-workflows.readthedocs.io)・ArgoCD Application+AppProject+ApplicationSet specs(argo-cd.readthedocs.io)・Kubeflow Pipelines IR+Tekton PipelineRun spec(pipelines.kubeflow.org/docs・tekton.dev/docs)— 全て整数のみで実装。
-
-**実装物**: apache/airflow・dbt-labs/dbt-core・PrefectHQ/prefect・dagster-io/dagster・argoproj/argo-workflows・argoproj/argo-cd・kubeflow/pipelines+tektoncd/pipeline — 全て整数のみで実装。
-
-**国内技術情報**: Airflow/dbt/Prefect/Dagster/Argo Workflows/ArgoCD/Kubeflow 解説記事(Qiita・Zenn・データ基盤・MLOps 系技術ブログ等)— 全て整数のみで実装。
-
 ## 第225次:API ゲートウェイ・サービスメッシュ・プロキシ設定形式
 
 Kong 宣言的設定・Istio CRD・Envoy static config・Traefik static/dynamic・Linkerd policy CRD・アノテーション・Consul agent/service・nginx.conf の7形式を追加。`_format_version:`+services/routes/consumers/plugins/upstreams セクション(kong)・`networking.istio.io`+VirtualService/DestinationRule/Gateway/AuthorizationPolicy kind+route/destination/subset トラフィック+principals/action ポリシ+mtls/credentialName TLS(istio)・static_resources/dynamic_resources+listeners/clusters+lb_policy/circuit_breakers/envoy.filters(envoy)・entryPoints/providers+routers/services/middlewares 動的設定(traefik)・policy.linkerd.io+AuthorizationPolicy/HTTPRoute/Server/MeshTLSAuthentication+targetRef+linkerd.io/inject(linkerd)・datacenter/data_dir+service/check/acl/connect ブロック+`key = value` HCL(consul)・events/http/server/location/upstream コンテキスト+ssl_*/proxy_*/fastcgi_* 指令クラス(nginx)で、ルーティング・ロードバランシング・ポリシ・TLS 構成を整数計数する。
-
-## 出典(第225次、search-index 照合)
-
-**論文・仕様**: Kong decK+declarative config reference(docs.konghq.com/deck)・Istio API reference(networking/security/telemetry.istio.io,istio.io/docs)・Envoy configuration overview+API v3(envoyproxy.io/docs)・Traefik static/dynamic config reference(doc.traefik.io)・Linkerd policy CRDs+proxy annotations(linkerd.io/reference)・Consul agent config+service definition reference(developer.hashicorp.com/consul)・NGINX core module+http/stream module directives(nginx.org/en/docs)— 全て整数のみで実装。
-
-**実装物**: kong/deck+Kong/kong・istio/istio・envoyproxy/envoy・traefik/traefik・linkerd/linkerd2・hashicorp/consul・nginx/nginx — 全て整数のみで実装。
-
-**国内技術情報**: Kong/Istio/Envoy/Traefik/Linkerd/Consul/NGINX 解説記事(Qiita・Zenn・SRE/プラットフォーム系技術ブログ等)— 全て整数のみで実装。
