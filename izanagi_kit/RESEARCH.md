@@ -4879,3 +4879,15 @@ Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks 
 **実装物**: Crafty/XBoard・CSA for Windows・ShogiGUI/将棋所・XQWizard・USI エンジン群・Across Lite/Shortyz・ sudoku solver 参考実装 — 全て整数のみで実装。
 
 **国内技術情報**: CSA 棋譜・KIF・USI ・数独パーサ解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第208次:グラフ・ネットワーク解析形式
+
+GML・GraphML・GEXF・Pajek .net・GUESS GDF・LEDA .gw・Tulip .tlp の7形式を追加。graph/dimacs/mtx/sparql は既存モジュールのため除外。XML 系は境界付きタグ走査、テキスト系はセクション/レコード走査で検出・集計する。
+
+## 出典(第208次、search-index 照合)
+
+**論文・仕様**: GML technical report (Himsolt, Gdansk)・GraphML specification (graphml.graphdrawing.org)・GEXF 1.2/1.3 draft format (gexf.net)・Pajek NET format (Batagelj & Mrvar)・GDF file format (GUESS/Adar)・LEDA graph I/O format (leda/graph .gw)・Tulip TLP format documentation — 全て整数のみで実装。
+
+**実装物**: yEd/GML tools・graphml-java・Gephi・Pajek/Pajek-XXL・GUESS・LEDA library・Tulip — 全て整数のみで実装。
+
+**国内技術情報**: GraphML/GEXF/Pajek/グラフファイル形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。

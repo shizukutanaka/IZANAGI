@@ -56,11 +56,21 @@ fn scalar<'a>(t: &'a str, key: &str) -> Option<&'a str> {
 }
 
 /// Contents of a `key = { … }` block (may span lines until matching `}`).
+/// The key must sit on a word boundary and be followed directly by `=`.
 fn table_block<'a>(t: &'a str, key: &str) -> Option<&'a str> {
-    let start = t.find(key)?;
-    let after = &t[start + key.len()..];
-    let eq = after.find('=')?;
-    let rest = &after[eq + 1..];
+    let mut off = 0usize;
+    let rest;
+    loop {
+        let p = off + t[off..].find(key)?;
+        let left_ok =
+            p == 0 || !(t.as_bytes()[p - 1].is_ascii_alphanumeric() || t.as_bytes()[p - 1] == b'_');
+        let after = t[p + key.len()..].trim_start();
+        if left_ok && after.starts_with('=') {
+            rest = &after[1..];
+            break;
+        }
+        off = p + key.len();
+    }
     let brace = rest.find('{')?;
     let inner = &rest[brace + 1..];
     let mut depth = 1usize;
@@ -103,18 +113,30 @@ fn quoted_entries(s: &str) -> usize {
     n
 }
 
-/// Count `word =` assignments inside a table body.
+/// Count `word = …` assignments inside a table body; multiple assignments
+/// may share one line and comparison operators are not assignments.
 fn assign_entries(s: &str) -> usize {
-    s.lines()
-        .map(str::trim)
-        .map(|l| l.trim_end_matches(','))
-        .filter(|l| {
-            l.split('=')
-                .next()
-                .is_some_and(|k| !k.trim().is_empty() && !k.trim().starts_with('{'))
-                && l.contains('=')
-        })
-        .count()
+    let b = s.as_bytes();
+    let mut n = 0;
+    for (i, &byte) in b.iter().enumerate() {
+        if byte != b'=' {
+            continue;
+        }
+        // `==`, `>=`, `<=`, `~=` and the like are not assignments.
+        if b.get(i + 1) == Some(&b'=') {
+            continue;
+        }
+        let mut j = i;
+        while j > 0 && b[j - 1].is_ascii_whitespace() {
+            j -= 1;
+        }
+        let prev_ok = j > 0
+            && (b[j - 1].is_ascii_alphanumeric() || matches!(b[j - 1], b'_' | b'"' | b'\'' | b'}'));
+        if prev_ok {
+            n += 1;
+        }
+    }
+    n
 }
 
 fn has_word(t: &str, w: &str) -> bool {
@@ -185,7 +207,8 @@ pub fn parse(b: &[u8]) -> Option<Rockspec> {
         dependencies: quoted_entries(deps),
         test_dependencies: quoted_entries(tdeps),
         build_type: scalar(build, "type").unwrap_or("").to_string(),
-        build_entries: assign_entries(build).saturating_sub(1), // minus `type`
+        build_entries: assign_entries(build)
+            .saturating_sub(usize::from(scalar(build, "type").is_some())),
         supported_platforms: table_block(t, "supported_platforms")
             .map(quoted_entries)
             .unwrap_or(0),
