@@ -78,7 +78,7 @@ fn word_u64(t: &[u8], i: &mut usize) -> u64 {
         *i += 1;
     }
     while *i < t.len() && t[*i].is_ascii_digit() {
-        v = v.saturating_mul(10) + (t[*i] - b'0') as u64;
+        v = v.saturating_mul(10).saturating_add((t[*i] - b'0') as u64);
         *i += 1;
     }
     v
@@ -139,7 +139,7 @@ pub fn parse(b: &[u8]) -> Option<Isc> {
                 match name {
                     b"SIR" | b"SDR" => {
                         let bits = word_u64(t, &mut i);
-                        s.scan_bits += bits;
+                        s.scan_bits = s.scan_bits.saturating_add(bits);
                         if name == b"SIR" {
                             s.sir_commands += 1;
                         } else {
@@ -150,7 +150,7 @@ pub fn parse(b: &[u8]) -> Option<Isc> {
                     b"ERASE" | b"VERIFY" | b"READ" | b"BLANK" => s.verify_commands += 1,
                     b"RUNTEST" => {
                         s.runtest_commands += 1;
-                        s.runtest_cycles += word_u64(t, &mut i);
+                        s.runtest_cycles = s.runtest_cycles.saturating_add(word_u64(t, &mut i));
                     }
                     b"ENABLE" | b"DISABLE" => s.enable_commands += 1,
                     _ => {}
@@ -167,6 +167,12 @@ pub fn parse(b: &[u8]) -> Option<Isc> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn huge_counts_saturate() {
+        let s = parse(b"ISC_SIR 18446744073709551615;ISC_SIR 99999999999999999999999;\n").unwrap();
+        assert_eq!(s.scan_bits, u64::MAX);
+    }
 
     fn fixture() -> Vec<u8> {
         b"// config\r\nISC_INITIALIZE();\r\nISC_ENABLE();\r\nISC_SIR 8 TDI (8A);\r\nISC_SDR 32 TDI (DEADBEEF) TDO (00000000) MASK (FF);\r\nISC_PROGRAM SECURITY;\r\nISC_RUNTEST 2000;\r\nISC_DISABLE();\r\n"
