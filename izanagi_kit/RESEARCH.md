@@ -3860,3 +3860,25 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Postfix・Dovecot・ngircd・RabbitMQ・Prosody 等の wire 実装、telnet セッション例 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の SMTP/POP3/IMAP・IRC・NNTP・AMQP・XMPP 解説記事 — 全て整数のみで実装。
+
+## 第158次: 医療・科学画像形式 第2弾(analyze / minc / ecat / interfile / parrec / dm3 / gxf)
+
+**方法**: 文献参照ラウンド継続 — DICOM/NIfTI/NRRD(r101,124)に続く医療・科学画像の残り主要形式。全7件が既存 1007 件と非衝突を確認:
+
+- `analyze` — Analyze 7.5 `.hdr`(Mayo AVW): 348B 固定ヘッダ、`sizeof_hdr` 両端読みでバイトオーダ判定、f32 フィールドは raw bits のまま(crate の no-float 規則準拠)
+- `minc` — MINC(McGill): v1=NetCDF classic `CDF\x01/\x02/\x05`、v2=HDF5 `\x89HDF` のコンテナ判定 + `minc`/`MI` マーカー走査で汎 NetCDF/HDF5 と区別
+- `ecat` — Siemens ECAT 7: `MATRIX` シグネチャ + 512B ビッグエンディアン main header(sw_version/system_type/file_type/isotope)
+- `interfile` — Interfile 3.3: `!INTERFILE` 開始、`key := value`、`END OF INTERFILE` 終端
+- `parrec` — Philips PAR/REC: `# === SECTION ===` セクション + `.   KEY : VALUE` パラメータ + 画像情報テーブル行
+- `dm3` — Gatan DigitalMicrograph 3/4: version u32 BE + length(v3 u32/v4 u64)+ little_endian + root tag group
+- `gxf` — GXF(Geosoft 系グリッド交換): `#GRID` + `KEY value` ヘッダ + `#` センチネル → バイナリ列
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(f32 値は bits のみ保持)。
+
+## 出典(第158次、search-index 照合)
+
+**論文・仕様**: Analyze 7.5 File Format(Mayo Biomedical Imaging Resource)/ MINC 1.0 & 2.0 仕様(BIC)/ ECAT 7.x File Format(Siemens/CTI)/ Interfile 3.3/ Philips PAR/REC ノート/ Gatan DM3 Tag Format(hyperspy)/ GXF Specification(Geosoft) — 全て整数のみで実装。
+
+**実装物**: nibabel(nibabel.analyze/parrec/ecat/minc 参照実装)、ImageJ・AFNI・FSL の読み込みコード、hyperspy DigitalMicrograph パーサ、Gemcom/Oasis montaj GXF — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Analyze・NIfTI・MINC ヘッダ解説、DigitalMicrograph ファイル解析記事、医用画像 DICOM 周辺フォーマット解説 — 全て整数のみで実装。
