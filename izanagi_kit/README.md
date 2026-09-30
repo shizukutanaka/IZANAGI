@@ -441,6 +441,13 @@ The capability map — with per-feature implementation status — lives in
 | `emacs` | `init.el`/`.emacs`/`.spacemacs` census: `(setq*`/`(use-package`/`(require`/`(add-hook`/key バインド/`(defun`/`(custom-set-*` |
 | `ideavim` | `.ideavimrc` census: vim 系 `set`/`*map` + IdeaVim 拡張 `<Action>(…)`/`sethandler`/`let g:ideavim*` |
 | `nanorc` | GNU nano `.nanorc` census: `set`/`unset`/`bind`/`include`/`syntax`/`color`/`linter`/`formatter` |
+| `starship` | Starship `starship.toml` census: `format`/`add_newline` トップキー + `[module]`/`[palettes.*]`/`[custom.*]`/`[env_var.*]` テーブル |
+| `fishconf` | fish `config.fish` census: `set`/`abbr`/`alias`/`function`/`source`/`bind` + `if`/`for`/`switch`/`end` 等 |
+| `nuconf` | Nushell `config.nu`/`env.nu` census: `$env.*`/`$env.config` + `def`/`alias`/`let`/`use`/`source`/`overlay` |
+| `inputrc` | Readline `.inputrc` census: `set var val` + `$if`/`$else`/`$endif`/`$include` + `"seq": func` キーバインド |
+| `envrc` | direnv `.envrc` census: `export` + `use`/`layout`/`dotenv`/`source_*`/`watch*`/`PATH_add` 等ヘルパー |
+| `zshrc` | `.zshrc` census: `export`/`setopt`/`alias`/`zstyle`/`bindkey`/`autoload`/`function`/`add-zsh-hook`/`eval` |
+| `bashrc` | `.bashrc` census: `export`/`alias`/`shopt`/`source`/`bind`/`function` + `PS1`/`HIST*`/`PROMPT_COMMAND` 代入 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

@@ -3849,3 +3849,14 @@ VPN・トンネル設定ファイル形式。対象: `wireguard`(wg.conf/wg-quic
 実装物: vim/vim・neovim/neovim・microsoft/vscode・helix-editor/helix・zed-industries/zed・emacs-mirror/emacs・syl20bnr/spacemacs・JetBrains/ideavim・nano ソースツリー。
 国内技術情報: Qiita・Zenn の vimrc/VS Code settings/Helix/Zed/init.el/IdeaVim/nanorc 解説・設定晒し記事の実例記述。
 — 全て整数のみで実装。
+
+## 第254次(search-index 照合ラウンド / 実装証跡付き)
+
+シェル・プロンプト・ターミナル設定形式。starship.toml、fish config.fish、Nushell config.nu/env.nu、.inputrc(Readline)、direnv .envrc、.zshrc、.bashrc/.profile。いずれも本家ドキュメントと GitHub リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 出典(第254次、search-index 照合)
+
+論文・仕様: Starship 設定リファレンス(format/module tables)、fish 4.x ドキュメント(set/abbr/function/bind)、Nushell book(config.nu/env.nu/$env.config)、GNU Readline init file syntax(set/conditional/key binding)、direnv stdlib(stdlib.sh)、zsh オプション群、Bash Reference Manual(shopt/PS1/PROMPT_COMMAND/HIST*)。
+実装物: starship/starship・fish-shell/fish-shell・nushell/nushell・direnv/direnv・zsh-users/oh-my-zsh・git.gnu.org bash/readline ソースツリー。
+国内技術情報: Qiita・Zenn の starship/fish/nushell/inputrc/envrc/zshrc/bashrc 解説・設定晒し記事の実例記述。
+— 全て整数のみで実装。
