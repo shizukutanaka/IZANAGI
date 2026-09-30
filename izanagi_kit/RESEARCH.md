@@ -4000,3 +4000,25 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - AppArmor — AppArmor プロファイル文法(gitlab.com/apparmor/apparmor)
 
 — 全て整数のみで実装。
+
+## 第266次 — init・サービス管理・デーモン制御形式
+
+- `inittab`: sysvinit/busybox `/etc/inittab`(`id:runlevels:action:process`、sysinit/bootwait/respawn/initdefault/power 系別計数)
+- `openrc`: OpenRC runscript(`depend()` の need/use/want/before/after、`ebegin`/`eend` 呼出)
+- `runit`: runit `run` スクリプト(`exec`+`chpst`/`setuidgid`/`svlogd`/`[ -e ]` ガード)
+- `s6rc`: s6-rc execline(`if {}`/`foreground {}`/`importas`/`s6-*` ヘルパ)
+- `dinit`: Dinit サービス(`type =`/`command`/`depends-on`/`depends-ms`/`waits-for`)
+- `upstart`: Upstart `.conf`(`start on`/`stop on`/`script`…`end script`/`exec`/`respawn`/`expect`)
+- `procd`: OpenWrt procd(`rc.common`+`procd_*` 呼出+`START`/`STOP`/`USE_PROCD`)
+
+## 出典
+
+- sysvinit — inittab(5) man page
+- OpenRC — openrc-run(8)/User Guide(gentoo wiki)
+- runit — runsv/svscan(8)(smarden.org/runit)
+- s6-rc — execline リファレンス(skarnet.org)
+- Dinit — dinit-service(5)(github.com/davmac314/dinit)
+- Upstart — init(5)/cookbook(upstart.ubuntu.com)
+- OpenWrt — procd init scripts ドキュメント(openwrt.org)
+
+— 全て整数のみで実装。
