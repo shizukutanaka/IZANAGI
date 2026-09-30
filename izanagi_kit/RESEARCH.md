@@ -3685,3 +3685,24 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: moodle-qformat_aiken/gift、python-qti/lti、rust-imscc 相当、TinCanJS/tincan-rs、opml-rs、genanki/anki-apkg-export — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Moodle 問題インポート・QTI 解説・xAPI/SCORM 概要・OPML フィード一覧・Anki パッケージ解説記事 — 全て整数のみで実装。
+## 第241次(search-index 照合ラウンド / 実装証跡付き)
+
+ネットワークデーモン・ルーティング設定形式(FRRouting / BIRD / OpenBGPD / keepalived / HAProxy / Squid / Varnish VCL — 7件)。
+
+- `frr` — FRRouting `frr.conf`/`zebra.conf` 系: `!` 区切り、`frr version`/`hostname`/`log` グローバル、`interface <name>`、`router <proto>`(PROTO 一覧+文字先頭)、`ip/ipv6` 経路(prefix-list 除外)、`neighbor`/`network`/`area`/`redistribute`、`access-list`/`route-map`/`community-list`/`match`/`set` フィルタ、`address-family`/`line`/`end`/`no` 補助行
+- `bird` — BIRD 1.6/2.x `bird.conf`: `protocol`/`template` ブロック、`filter`/`function`、`router id`/`log`/`listen`/`timeformat` グローバル、`route`/`route6`/`reject`/`unreachable`、`neighbor`/`local`/`remote`/`as`/`next hop`、`area`/`interface`/`channel`/`ipv4`/`table` ブロック、`import`/`export`/`preference`/`scan time`/`check link` オプション、`include`/`define`/`eval` 指令、`=` 代入
+- `openbgpd` — OpenBGPD `bgpd.conf`: `AS`/`router-id`/`fib-update`/`include` グローバル、`network <prefix>`、`group "name" {`、`neighbor <ip>`/`remote-as`/`descr`/`announce`/`depend on`、`allow`/`deny`/`match`/`quick` フィルタ行(行内 from/to/prefixlen/community/set アトム走査)
+- `keepalived` — keepalived.conf: `global_defs`/`vrrp_instance`/`vrrp_script`/`virtual_server`/`real_server`/`track_*`/`static_*`/`snmp`/`notification_*`/`*_check` 約35ブロック(`{` 必須・大小写不問)+ `state`/`interface`/`priority`/`virtual_ipaddress`/`weight`/`connect_timeout`/`lb_algo`/`delay_loop`/`auth_type`/`SMTP`/`MISC_CHECK` 等オプション。IP 値は「hex+区切り文字」で検出
+- `haproxy` — `haproxy.cfg`: `global`/`defaults`/`frontend`/`backend`/`listen`/`resolvers`/`peers`/`mailers`/`userlist`/`program`/`ring` セクション(≤3語・`=` なしで識別)+ `bind`/`acl`/`server`/`use_backend`/`default_backend`/`option`/`timeout`/`mode`/`balance`/`log`/`stats`/`http-request`/`tcp-request`/`stick`/`monitor`/`error*`/`unique-id*` 指令群
+- `squid` — `squid.conf`: `acl <name> <type>`、`*_access allow|deny`(+`!` 否定)、`http_port`/`icp_port`/`snmp_port`/`ssl_bump`、`cache_mem`/`cache_dir`/`access_log`/`coredump_dir`/`visible_hostname`/`dns_*`/`request_header_*` キャッシュ・ログ系、`refresh_pattern`、`hierarchy_stoplist`/`icap_*`/`adaptation_*`/`delay_*`/`snmp_*` 拡張
+- `vcl` — Varnish VCL: `vcl 4.x;` 版宣言、`backend`/`acl`/`probe`/`sub vcl_*`、`import`/`include`/`director`/`new`、`set`/`unset`/`synthetic`/`call`/`std.*`、`if/elsif/else`、`return`/`ban`/`hash_data`/`rollback`、`.field =` メンバ代入
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — frr の `ip prefix-list`/`ipv6 prefix-list` が `ip ` 経路に誤算、bird の `reject;` が route に誤算・`define` が代入+指令の二重計上、openbgpd の `announce`/`descr`/`remote-as` が neighbor 系に合算、keepalived の IPv6 `fd00::1` が IP 判定落ち・`TCP_CHECK` 大小写・オプション/ブロック混同、 haproxy の `daemon`/`stats` が directive/option 未分類、squid の `access_log`/`coredump_dir` キャッシュ系登録。全て整数のみで実装。
+
+## 出典(第241次、search-index 照合)
+
+**論文・仕様**: FRRouting ドキュメント(zebra.conf/frr.conf 形式、RFC 順ルーティングデーモン構造)、BIRD 1.6/2.x 設定リファレンス(protocol/filter/function 文法)、OpenBSD bgpd.conf(5) マニュアル、keepalived.conf(5) マニュアル(VRRP/healthcheck 構成)、HAProxy configuration manual(section/directive 体系)、Squid 公式 squid.conf 文書、Varnish VCL リファレンス(vcl 4.x 構文・vcl_* フック) — 全て整数のみで実装。
+
+**実装物**: FRRouting/frr、BIRD/bird、OpenBSD/src usr.sbin/bgpd、acassen/keepalived、haproxy/haproxy、squid-cache/squid、varnishcache/varnish-cache の各リポジトリ・配布設定例 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の FRRouting BGP/OSPF 構築記事・BIRD ルートサーバ解説・OpenBGPD 設定例・keepalived VRRP 冗長化・HAProxy フロント/バックエンド設定・Squid プロキシ構築・Varnish VCL 解説記事 — 全て整数のみで実装。
