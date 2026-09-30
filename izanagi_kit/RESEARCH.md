@@ -4939,3 +4939,75 @@ Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`p
 **実装物**: solidity・vyper・aptos-core/move・starkware cairo・stacks-blockchain clarity・tact-lang/tact・ton-blockchain func — 全て整数のみで実装。
 
 **国内技術情報**: Solidity/Vyper/Move/Cairo/Clarity/Tact/FunC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第213次:IaC・デプロイ定義ファイル形式
+
+CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・Helm Chart.yaml・Pulumi.yaml の7形式を追加。`AWSTemplateFormatVersion`/`targetScope`/`service+provider`/`services:`/`Vagrant.configure`/`apiVersion+type`/`name+runtime` 等の形式固有シグネチャで検出し、宣言・ブロック内エントリ・組込み関数使用数・コメントを整数計数する。YAML 系はインデント追跡のブロック抽出で同名キーのネスト混入(サービス内 `volumes:`、テンプレ内 `config:`)を抑制する。
+
+## 出典(第213次、search-index 照合)
+
+**論文・仕様**: AWS CloudFormation User Guide(docs.aws.amazon.com)・Bicep language docs(learn.microsoft.com/azure/azure-resource-manager/bicep)・Serverless Framework docs(serverless.com)・Compose Specification(compose-spec.io)・Vagrantfile docs(developer.hashicorp.com/vagrant)・Helm Chart.yaml guide(helm.sh)・Pulumi YAML reference(pulumi.com)— 全て整数のみで実装。
+
+**実装物**: aws-cloudformation・Azure/bicep・serverless/serverless・compose-spec・hashicorp/vagrant・helm/helm・pulumi/pulumi — 全て整数のみで実装。
+
+**国内技術情報**: CloudFormation/Bicep/Serverless/Compose/Vagrant/Helm/Pulumi 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第214次:CI/CD パイプライン定義ファイル形式
+
+.gitlab-ci.yml・Jenkinsfile・.circleci/config.yml・azure-pipelines.yml・.drone.yml・Concourse pipeline.yml・bitrise.yml の7形式を追加。`stages`/`pipeline {`/`jobs+workflows`/`trigger+pool`/`kind: pipeline`/`resource_types`/`- get:`/`format_version` 等の形式固有シグネチャで検出し、ジョブ・ステップ・トリガ・イメージ・変数エントリを整数計数する。YAML 系はブロック内最小インデントの `- ` 項目のみ計数し、workflow 内 `jobs:` やサービス内 `volumes:` の同名ネスト混入を抑止する(第213次で導入した手法を踏襲)。
+
+## 出典(第214次、search-index 照合)
+
+**論文・仕様**: GitLab CI YAML reference(docs.gitlab.com)・Jenkins Pipeline syntax(jenkins.io/doc/book/pipeline)・CircleCI config reference(circleci.com/docs)・Azure Pipelines YAML schema(learn.microsoft.com/azure/devops/pipelines/yaml-schema)・Drone YAML spec(docs.drone.io)・Concourse pipeline schema(concourse-ci.org)・bitrise.yml reference(bitrise.io)— 全て整数のみで実装。
+
+**実装物**: gitlab-org/gitlab・jenkinsci/jenkins・circleci・microsoft/azure-pipelines-yaml・harness/drone・concourse/concourse・bitrise-io/bitrise — 全て整数のみで実装。
+
+**国内技術情報**: GitLab CI/Jenkins/CircleCI/Azure Pipelines/Drone/Concourse/Bitrise 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第215次:API テスト・HTTP クライアント・サービス定義形式
+
+HTTP Archive(.har)・Hoppscotch collection・Bruno .bru・REST Client .http/.rest・Insomnia エクスポート・RAML・API Blueprint の7形式を追加。JSON キー走査(har/hoppscotch)・`name {`ブロック走査(bru)・行状態機械(httpfile/insomnia)・`#%RAML`+最小インデント子キー(raml)・Markdown 見出し/`+`マーカ走査(apib)で、リクエスト・ヘッダ・リソース・型宣言等を整数計数する。
+
+## 出典(第215次、search-index 照合)
+
+**論文・仕様**: W3C HAR 1.2 spec(github.com/ahmadnassri/har-spec)・Hoppscotch collection schema(github.com/hoppscotch)・Bruno markup language(docs.usebruno.com/bru-lang)・VS Code REST Client .http grammar(github.com/Huachao/vscode-restclient)・Insomnia export format(docs.insomnia.rest)・RAML 0.8/1.0 spec(raml.org)・API Blueprint spec(apiblueprint.org)— 全て整数のみで実装。
+
+**実装物**: ahadith/har-schema・hoppscotch/hoppscotch・usebruno/bruno・Huachao/vscode-restclient・Kong/insomnia・raml-org/raml-spec・apiaryio/api-blueprint — 全て整数のみで実装。
+
+**国内技術情報**: HAR/Hoppscotch/Bruno/REST Client/Insomnia/RAML/API Blueprint 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第216次:パッケージマネージャ・ロックファイル形式
+
+yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock・poetry.lock・composer.lock の7形式を追加。エントリヘッダ(yarn)・JSON キーセンサス(npm/composer)・YAML ブロック走査(pnpm)・TOML テーブル(cargo/poetry)・セクション+インデント分類(gem)で、パッケージ数・解決 URL・整合性ハッシュ・依存ブロック等を整数計数する。
+
+## 出典(第216次、search-index 照合)
+
+**論文・仕様**: Yarn v1 lockfile format(classic.yarnpkg.com)・package-lock.json spec(docs.npmjs.com)・pnpm-lock.yaml format(pnpm.io/git/lockfiles)・Cargo.lock format(doc.rust-lang.org/cargo)・Gemfile.lock format(bundler.io/guides)・poetry.lock format(python-poetry.org)・composer.lock schema(getcomposer.org/doc)— 全て整数のみで実装。
+
+**実装物**: yarnpkg/yarn・npm/cli・pnpm/pnpm・rust-lang/cargo・rubygems/bundler・python-poetry/poetry・composer/composer — 全て整数のみで実装。
+
+**国内技術情報**: yarn.lock/package-lock/pnpm-lock/Cargo.lock/Gemfile.lock/poetry.lock/composer.lock 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第217次:歌声合成・ボーカルシーケンス形式
+
+UTAU .ust・OpenUtau .ustx・VOCALOID3/4 .vsqx・VOCALOID5 .vpr・Synthesizer V .svp・CeVIO .ccs・HTS/UTAU .lab の7形式を追加。INI セクション走査(ust)・YAML ブロック走査(ustx)・XML タグ/属性センサス(vsqx/ccs)・JSON キーセンサス(vpr/svp)・`start end phone` 行検証(lab)で、ノート数・歌詞・音素・ピッチ・パラメータ曲線等を整数計数する。
+
+## 出典(第217次、search-index 照合)
+
+**論文・仕様**: UTAU .ust format(utau2008/utautech)・OpenUtau .ustx schema(github.com/stakira/OpenUtau)・VSQX format(utaformatix ドキュメント/VOCALOID3/4 出力)・VOCALOID5 .vpr JSON・Synthesizer V .svp(Dreamtonics)・CeVIO .ccs XML schema・HTS label format(monophone + full-context)— 全て整数のみで実装。
+
+**実装物**: UTAU・stakira/OpenUtau・YAMAHA VOCALOID3/4/5・Dreamtonics Synthesizer V・CeVIO Creative Studio/AI・HTS 系アライメントツール群 — 全て整数のみで実装。
+
+**国内技術情報**: UTAU 譜面/ustx/vsqx/vpr/svp/ccs/lab 解説記事(Qiita・Zenn・技術ブログ・utaformatix 等)— 全て整数のみで実装。
+
+## 第218次:天文・天体観測データ形式
+
+IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン・MPC 80桁観測フォーマット・IVOA ADQL の7形式を追加。XML タグ/属性センサス(votable)・`#ASDF`+YAML ツリー走査(asdf)・`|` ヘッダ行分類(ipac)・コメント YAML+CSV(ecsv)・座標系+shape(args) 行(ds9reg)・80桁固定カラム走査(mpc)・大文字キーワードセンサス(adql)で、テーブル構造・列型・座標系・観測レコード・幾何クエリを整数計数する。
+
+## 出典(第218次、search-index 照合)
+
+**論文・仕様**: IVOA VOTable spec(ivoa.net/documents/VOTable)・ASDF standard(asdf-standard.readthedocs.io)・IPAC Table Format(IRSA/Caltech)・Astropy ECSV spec(docs.astropy.org)・SAOImage DS9 Region File Format(ds9.si.edu/doc/ref/region.html)・MPC 80-column observation format(minorplanetcenter.net)・IVOA ADQL 2.x spec — 全て整数のみで実装。
+
+**実装物**: astropy・asdf-format・IRSA/IPAC ツール・ds9・minorplanetcenter 観測報告・TAP/ADQL 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: VOTable/ASDF/IPAC/ECSV/DS9 リージョン/MPC フォーマット/ADQL 解説記事(Qiita・Zenn・天文関連技術ブログ等)— 全て整数のみで実装。
