@@ -539,6 +539,13 @@ The capability map — with per-feature implementation status — lives in
 | `jupyterconf` | jupyter_notebook_config.py (traitlets c.* 代入) |
 | `kedro` | Kedro catalog/settings/parameters.yml (dataset 型定義) |
 | `metaflow` | Metaflow config.json (METAFLOW_* キー) |
+| `btrbk` | btrbk.conf (volume/subvolume/target 階層) |
+| `duplicacy` | Duplicacy .duplicacy/preferences (storage エントリ) |
+| `rcloneconf` | rclone.conf ([remote] スタンザ/backend 型) |
+| `resticprofile` | resticprofile profiles.yaml (profile/schedule) |
+| `rsnapshot` | rsnapshot.conf (retain/backup/cmd_* タブ区切り) |
+| `syncthingconf` | Syncthing config.xml (folder/device/gui/options) |
+| `unison` | Unison .prf (root/path/ignore 行) |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

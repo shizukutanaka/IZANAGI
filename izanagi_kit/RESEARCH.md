@@ -4044,3 +4044,24 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - Metaflow 公式ドキュメント metaflowconfig 環境変数
 
 — 全て整数のみで実装。
+
+## 第268次 — バックアップ・同期ツール設定形式
+
+- rsnapshot: rsnapshot.conf(`retain`/`backup`/`cmd_*`/`include|exclude` のタブ区切り分類)
+- btrbk: btrbk.conf(volume>subvolume>target 階層、`*_preserve*`/stream 系)
+- resticprofile: profiles.yaml(named profile + コマンドセクション + `schedule:`)
+- syncthingconf: config.xml(`<folder id>`/`<device id>`/options リーフ/`<!-- -->`)
+- unison: .prf(`root`/`path`/`ignore|follow`/prefer/backup 系の `key = value`)
+- rcloneconf: rclone.conf(`[remote]` スタンザ + `type =` backend + 認証キー)
+- duplicacy: .duplicacy/preferences(JSON 配列の storage オブジェクト、encrypted/no_* フラグ)
+
+## 出典
+
+- rsnapshot/btrbk man ページと upstream 設定ファイル例
+- resticprofile 公式ドキュメント profiles リファレンス
+- Syncthing 公式ドキュメント config.xml スキーマ
+- Unison ユーザマニュアル profile 構文
+- rclone 公式ドキュメント backend 別設定キー
+- Duplicacy フォーラム/wiki preferences 形式
+
+— 全て整数のみで実装。
