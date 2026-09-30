@@ -1,0 +1,161 @@
+//! GNU Readline `.inputrc` census.
+//!
+//! `set var val` (`editing-mode`, `keymap`, `bell-style`,
+//! `show-all-if-ambiguous`, `completion-ignore-case`,
+//! `colored-stats`, `colored-completion-prefix`,
+//! `menu-complete-display-prefix`, `mark-symlinked-directories`,
+//! `visible-stats`, `page-completions`, `completion-query-items`,
+//! `history-size`, `echo-control-characters`,
+//! `enable-keypad`, `expand-tilde`, `convert-meta`,
+//! `input-meta`, `output-meta`, `horizontal-scroll-mode`,
+//! `mark-modified-lines`, `prefer-visible-bell`,
+//! `print-completions-horizontally`, `show-all-if-unmodified`,
+//! `skip-completed-text`, `completion-map-case`,
+//! `enable-active-region`, `blink-matching-paren`),
+//! `$if`/`$else`/`$endif`/`$include` conditionals
+//! (`$if mode=vi`, `$if Bash`, `$if term=xterm`), and
+//! `"keyseq": function` bindings (`"\e[A":
+//! history-search-backward`, `"\C-l": clear-screen`,
+//! `TAB: menu-complete`, `Control-x: "…"` macros).
+//!
+//! ```rust
+//! let i = "set editing-mode vi\nset completion-ignore-case on\n\"\\e[A\": history-search-backward\n";
+//! let c = izanagi_kit::inputrc::Inputrc::parse(i.as_bytes()).unwrap();
+//! assert_eq!(c.sets, 2);
+//! ```
+
+/// inputrc census.
+#[derive(Debug, Clone)]
+pub struct Inputrc {
+    /// `set` statements.
+    pub sets: usize,
+    /// `$if`/`$else`/`$endif` conditionals.
+    pub ifs: usize,
+    /// `"seq": func` / `key: func` bindings.
+    pub bindings: usize,
+    /// `$include` lines.
+    pub includes: usize,
+    /// `#` comment lines.
+    pub comments: usize,
+}
+
+/// Detect inputrc content.
+#[must_use]
+pub fn detect(b: &[u8]) -> bool {
+    let t = match std::str::from_utf8(b) {
+        Ok(t) => t,
+        Err(_) => return false,
+    };
+    let mut hits = 0usize;
+    for line in t.lines() {
+        let s = line.trim();
+        if s.starts_with("set ")
+            || s.starts_with('$')
+            || (s.starts_with('"') && s.contains("\": "))
+            || s.contains("\": ")
+        {
+            hits += 1;
+        }
+    }
+    hits >= 2
+}
+
+impl Inputrc {
+    /// Census an inputrc buffer.
+    #[must_use]
+    pub fn parse(b: &[u8]) -> Option<Self> {
+        if !detect(b) {
+            return None;
+        }
+        let t = std::str::from_utf8(b).ok()?;
+        let mut c = Self {
+            sets: 0,
+            ifs: 0,
+            bindings: 0,
+            includes: 0,
+            comments: 0,
+        };
+        for line in t.lines() {
+            let s = line.trim();
+            if s.is_empty() {
+                continue;
+            }
+            if s.starts_with('#') {
+                c.comments += 1;
+                continue;
+            }
+            if s.starts_with("set ") {
+                c.sets += 1;
+                continue;
+            }
+            if s.starts_with("$if") || s.starts_with("$else") || s.starts_with("$endif") {
+                c.ifs += 1;
+                continue;
+            }
+            if s.starts_with("$include") {
+                c.includes += 1;
+                continue;
+            }
+            if s.contains(": ") && (s.starts_with('"') || s.contains(':')) {
+                c.bindings += 1;
+            }
+        }
+        Some(c)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_inputrc() {
+        let b = b"set editing-mode vi\nset completion-ignore-case on\n";
+        assert!(detect(b));
+    }
+
+    #[test]
+    fn rejects_other() {
+        assert!(!detect(b"[x]\ny=1\n"));
+        assert!(!detect(b""));
+    }
+
+    #[test]
+    fn parses_inputrc() {
+        let b = concat!(
+            "# inputrc\n",
+            "set editing-mode vi\n",
+            "set keymap vi\n",
+            "set bell-style none\n",
+            "set completion-ignore-case on\n",
+            "set show-all-if-ambiguous on\n",
+            "set colored-stats on\n",
+            "set colored-completion-prefix on\n",
+            "set mark-symlinked-directories on\n",
+            "set page-completions off\n",
+            "set completion-query-items 350\n",
+            "set enable-active-region on\n",
+            "set blink-matching-paren on\n",
+            "$if mode=vi\n",
+            "  \"\\e[A\": history-search-backward\n",
+            "  \"\\e[B\": history-search-forward\n",
+            "  \"\\C-l\": clear-screen\n",
+            "$else\n",
+            "  TAB: menu-complete\n",
+            "  \"\\e[Z\": menu-complete-backward\n",
+            "  Shift-Tab: \"\\e[Z~\"\n",
+            "  Control-x: \"bash -c 'x'\\e\\C-e\\C-m\\C-m\"\n",
+            "$endif\n",
+            "$if Bash\n",
+            "  Space: magic-space\n",
+            "$endif\n",
+            "$include ~/.inputrc.local\n",
+        );
+        let c = Inputrc::parse(b.as_bytes()).unwrap();
+        assert_eq!(c.sets, 12);
+        assert_eq!(c.ifs, 5);
+        assert_eq!(c.bindings, 8);
+        assert_eq!(c.includes, 1);
+        assert_eq!(c.comments, 1);
+    }
+}
