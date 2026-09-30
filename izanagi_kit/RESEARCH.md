@@ -5083,3 +5083,15 @@ Airflow DAG・dbt_project.yml・prefect.yaml・dagster.yaml/workspace.yaml・Arg
 **実装物**: apache/airflow・dbt-labs/dbt-core・PrefectHQ/prefect・dagster-io/dagster・argoproj/argo-workflows・argoproj/argo-cd・kubeflow/pipelines+tektoncd/pipeline — 全て整数のみで実装。
 
 **国内技術情報**: Airflow/dbt/Prefect/Dagster/Argo Workflows/ArgoCD/Kubeflow 解説記事(Qiita・Zenn・データ基盤・MLOps 系技術ブログ等)— 全て整数のみで実装。
+
+## 第225次:API ゲートウェイ・サービスメッシュ・プロキシ設定形式
+
+Kong 宣言的設定・Istio CRD・Envoy static config・Traefik static/dynamic・Linkerd policy CRD・アノテーション・Consul agent/service・nginx.conf の7形式を追加。`_format_version:`+services/routes/consumers/plugins/upstreams セクション(kong)・`networking.istio.io`+VirtualService/DestinationRule/Gateway/AuthorizationPolicy kind+route/destination/subset トラフィック+principals/action ポリシ+mtls/credentialName TLS(istio)・static_resources/dynamic_resources+listeners/clusters+lb_policy/circuit_breakers/envoy.filters(envoy)・entryPoints/providers+routers/services/middlewares 動的設定(traefik)・policy.linkerd.io+AuthorizationPolicy/HTTPRoute/Server/MeshTLSAuthentication+targetRef+linkerd.io/inject(linkerd)・datacenter/data_dir+service/check/acl/connect ブロック+`key = value` HCL(consul)・events/http/server/location/upstream コンテキスト+ssl_*/proxy_*/fastcgi_* 指令クラス(nginx)で、ルーティング・ロードバランシング・ポリシ・TLS 構成を整数計数する。
+
+## 出典(第225次、search-index 照合)
+
+**論文・仕様**: Kong decK+declarative config reference(docs.konghq.com/deck)・Istio API reference(networking/security/telemetry.istio.io,istio.io/docs)・Envoy configuration overview+API v3(envoyproxy.io/docs)・Traefik static/dynamic config reference(doc.traefik.io)・Linkerd policy CRDs+proxy annotations(linkerd.io/reference)・Consul agent config+service definition reference(developer.hashicorp.com/consul)・NGINX core module+http/stream module directives(nginx.org/en/docs)— 全て整数のみで実装。
+
+**実装物**: kong/deck+Kong/kong・istio/istio・envoyproxy/envoy・traefik/traefik・linkerd/linkerd2・hashicorp/consul・nginx/nginx — 全て整数のみで実装。
+
+**国内技術情報**: Kong/Istio/Envoy/Traefik/Linkerd/Consul/NGINX 解説記事(Qiita・Zenn・SRE/プラットフォーム系技術ブログ等)— 全て整数のみで実装。
