@@ -106,6 +106,111 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
+| `appdaemon` | AppDaemon apps.yaml census |
+| `bird` | BIRD routing daemon config census |
+| `esphome` | ESPHome device yaml census |
+| `frigate` | Frigate NVR config census |
+| `frr` | FRRouting frr.conf census |
+| `haproxy` | HAProxy haproxy.cfg census |
+| `homeassistant` | Home Assistant configuration.yaml census |
+| `keepalived` | keepalived.conf census |
+| `nodered` | Node-RED flows.json census |
+| `openbgpd` | OpenBGPD bgpd.conf census |
+| `openhab` | openHAB items/things/rules census |
+| `squid` | squid.conf census |
+| `vcl` | Varnish VCL census |
+| `zigbee2mqtt` | zigbee2mqtt configuration.yaml census |
+| `alloy` | Alloy model census |
+| `dafny` | Dafny program census |
+| `lf` | Lingua Franca .lf census |
+| `mch` | B/Event-B .mch census |
+| `promela` | Promela/SPIN model census |
+| `tlaplus` | TLA+ spec census |
+| `whyml` | Why3/WhyML program census |
+| `requirements` | `requirements.txt` pip 依存定義(指定/ピン/範囲/include/オプション/extras/マーカー) |
+| `pipfile` | Pipfile(TOML、source/依存/テーブル参照) |
+| `setupcfg` | setup.cfg(metadata/options/entry_points セクション) |
+| `toxini` | tox.ini(セクション/testenv:NAME/設定/継続項目) |
+| `condarc` | .condarc(channels/リスト文脈/scalar 設定) |
+| `condaenv` | environment.yml(channels/dependencies/pip/variables) |
+| `pylintrc` | .pylintrc(セクション/disable・enable 件数/キー) |
+| `postfix` | Postfix main.cf/master.cf(`key = value`+サービス行+継続行) |
+| `dovecot` | Dovecot dovecot.conf(protocol/service/mailbox ブロック+`!include`) |
+| `exim` | Exim4 configure(`begin <sec>`+driver/オプション+`${}` 展開) |
+| `sendmail` | sendmail.cf(O/K/M/R/S/D/C/T/H/V コマンド行) |
+| `spamassassin` | SpamAssassin cf(header/body/uri/meta ルール+score+whitelist) |
+| `opendkim` | opendkim.conf(`Key value` DKIM milter 設定) |
+| `opendmarc` | opendmarc.conf(`Key value` DMARC milter 設定) |
+| `wireguard` | WireGuard `wg.conf`/`wg-quick.conf` — `[Interface]`/`[Peer]` セクション、`PrivateKey`/`Address`/`AllowedIPs`/`Endpoint` 等 |
+| `openvpn` | OpenVPN `.ovpn` — `remote`/`ca`/`tls-auth`/`cipher` 等のディレクティブと `<ca>`/`<key>` インラインブロック |
+| `swanctl` | strongSwan `swanctl.conf` — `connections`/`pools`/`secrets`/`authorities` グループ、IKE/ESP プロポーザル |
+| `xl2tpd` | xl2tpd `xl2tpd.conf` — `[global]`/`[lns]`/`[lac]` セクション、`ip range`/`pppoptfile` 等オプション |
+| `pptpd` | Poptop `pptpd.conf`/`options.pptpd` — `localip`/`remoteip`/`require-mppe-128`/`ms-dns` 等 |
+| `zerotier` | ZeroTier `local.conf` JSON — `settings`(port/update/relay/multipath)/`virtual`/`physical` |
+| `tailscale` | Tailscale `acl.hujson` — `acls`/`tagOwners`/`groups`/`hosts`/`tests`/`ssh`/`grants` セクション |
+| `kustomize` | Kustomize `kustomization.yaml` census: `kind: Kustomization` + resources/bases/components/crds + images/patches/replacements + `*Generator` entries |
+| `helmfile` | Helmfile `helmfile.yaml` census: `releases:`/`repositories:`/`environments:`/`helmfiles:`/`helmDefaults:` sections + release entries |
+| `skaffold` | Skaffold `skaffold.yaml` census: `apiVersion: skaffold/v*` + build/test/deploy/profiles sections + `- image:` artifacts |
+| `kindconf` | kind cluster config census: `kind: Cluster` + `nodes:` `- role:` entries + networking + kubeadm/containerd patches + featureGates |
+| `k3d` | k3d cluster config census: `apiVersion: k3d.io/v1alpha*` + servers/agents/ports/volumes/env/registries/options |
+| `tiltfile` | Tiltfile (Starlark) census: `k8s_yaml`/`docker_build`/`k8s_resource`/`local_resource`/`helm`/`load`/`config.*` call sites + resource deps |
+| `containerd` | containerd `config.toml` census: `[plugins."io.containerd.*"]` subtrees + grpc/cni/metrics/debug/timeouts sections |
+| `vimrc` | `.vimrc`/`init.vim` census: `set`/`let`/`*noremap`/`autocmd`/`function`/`command`/`Plug` ステートメント |
+| `vscodeconf` | VS Code `settings.json` (JSONC) census: `editor.*`/`workbench.*`/`files.*`/`terminal.*` 名前空間 + `[lang]` 上書きセクション |
+| `helix` | Helix `config.toml`/`languages.toml` census: `[editor.*]`/`[keys.*]` テーブル + `[[language]]`/`[[language-server]]` エントリ |
+| `zedconf` | Zed `settings.json` census: `theme`/`buffer_font*`/`vim_mode`/`base_keymap`/`lsp`/`project_panel` 等 ~110 キー |
+| `emacs` | `init.el`/`.emacs`/`.spacemacs` census: `(setq*`/`(use-package`/`(require`/`(add-hook`/key バインド/`(defun`/`(custom-set-*` |
+| `ideavim` | `.ideavimrc` census: vim 系 `set`/`*map` + IdeaVim 拡張 `<Action>(…)`/`sethandler`/`let g:ideavim*` |
+| `nanorc` | GNU nano `.nanorc` census: `set`/`unset`/`bind`/`include`/`syntax`/`color`/`linter`/`formatter` |
+| `starship` | Starship `starship.toml` census: `format`/`add_newline` トップキー + `[module]`/`[palettes.*]`/`[custom.*]`/`[env_var.*]` テーブル |
+| `fishconf` | fish `config.fish` census: `set`/`abbr`/`alias`/`function`/`source`/`bind` + `if`/`for`/`switch`/`end` 等 |
+| `nuconf` | Nushell `config.nu`/`env.nu` census: `$env.*`/`$env.config` + `def`/`alias`/`let`/`use`/`source`/`overlay` |
+| `inputrc` | Readline `.inputrc` census: `set var val` + `$if`/`$else`/`$endif`/`$include` + `"seq": func` キーバインド |
+| `envrc` | direnv `.envrc` census: `export` + `use`/`layout`/`dotenv`/`source_*`/`watch*`/`PATH_add` 等ヘルパー |
+| `zshrc` | `.zshrc` census: `export`/`setopt`/`alias`/`zstyle`/`bindkey`/`autoload`/`function`/`add-zsh-hook`/`eval` |
+| `bashrc` | `.bashrc` census: `export`/`alias`/`shopt`/`source`/`bind`/`function` + `PS1`/`HIST*`/`PROMPT_COMMAND` 代入 |
+| `clangformat` | `.clang-format` census: `BasedOnStyle`/`IndentWidth`/`ColumnLimit`/`UseTab` 等 + `IncludeCategories` `- ` 項目 |
+| `clangtidy` | `.clang-tidy` census: `Checks:`/`WarningsAsErrors:` の `+`/`-` glob + `CheckOptions:` `- key:`/`value:` |
+| `cpplint` | `CPPLINT.cfg` census: `linelength`/`root`/`headers`/`exclude_files` + `filter=` の `+`/`-` トークン |
+| `detekt` | `detekt.yml` census: `build`/`style`/`complexity` 等セクション + ルールブロック/`active:`/`excludes:` |
+| `ktlint` | ktlint `.editorconfig` census: `[*.{kt,kts}]` + `ktlint_*`/`ij_kotlin_*`/`ij_kt_*` プロパティ分類 |
+| `rubocop` | `.rubocop.yml` census: `AllCops`/`Dept/Cop:` ブロック + `require`/`inherit_*`/`Exclude:` スコープ追跡 |
+| `swiftlint` | `.swiftlint.yml` census: `disabled/opt_in/only/analyzer_rules` + `custom_rules:` + ルール別設定 |
+| `tsconfig` | `tsconfig.json`/JSONC census: `compilerOptions`/`extends`/`include`/`references`/`watchOptions` 全 `"key":` + bool/配列/コメント |
+| `denoconf` | `deno.json(c)` census: `tasks`/`imports`/`lint`/`fmt`/`compilerOptions`/`workspace`/`unstable` 等全 `"key":` + bool/配列 |
+| `bunfig` | `bunfig.toml` census: `[install]`/`[run]`/`[test]`/`[serve]`/`[smol]`/`[telemetry]` 等セクション + `key = value` |
+| `angularconf` | `angular.json` census: `projects` 内プロジェクト名 + `architect`/`targets` ブロック + `builder`/`executor` |
+| `turboconf` | `turbo.json` census: `pipeline`/`tasks` 内タスク名キー + `dependsOn`/`outputs`/`env`/`globalEnv` |
+| `nxconf` | `nx.json` census: `targetDefaults` ターゲット + `namedInputs` + `generators`/`tasksRunnerOptions`/`workspaceLayout` |
+| `lerna` | `lerna.json` census: `version`/`packages`/`npmClient` + `command.*` サブコマンド設定キー |
+| `sonarr` | Sonarr `config.xml` (`<InstanceName>Sonarr`, `<Port>8989`, `<ApiKey>`, `<AuthenticationMethod>`) の設定・真偽値・コメント計数。 |
+| `radarr` | Radarr `config.xml` (`<InstanceName>Radarr`, `<Port>7878`, `<RecycleBin>`, `<Theme>`) の設定・真偽値計数。 |
+| `lidarr` | Lidarr `config.xml` (`<InstanceName>Lidarr`, `<Port>8686`, `<Branch>`) の設定・真偽値計数。 |
+| `prowlarr` | Prowlarr `config.xml` (`<InstanceName>Prowlarr`, `<Port>9696`, `<HistoryCleanupDays>`) の設定・真偽値計数。 |
+| `jellyfin` | Jellyfin `system.xml`/`options.xml`(`<ServerConfiguration>` + `<VirtualFolder>`/`<ImageOptions>`/`<LibraryOptions>`/`<CachePath>`)の入れ子・設定・真偽値計数。 |
+| `plexconf` | Plex `Preferences.xml`(`<Preferences MachineIdentifier=`/`ProcessedMachineIdentifier=`/`AcceptedEULA=`/`FSEventLibraryUpdatesEnabled=` 属性列挙)の属性・真偽値計数。 |
+| `kodiadv` | Kodi `advancedsettings.xml`(`<advancedsettings>` + `<video>`/`<network>`/`<videolibrary>`/`<samba>`/`<buffermode>`)のセクション・設定計数。 |
+| `mpd` | mpd.conf(`key "value"` + `audio_output {`/`playlist_plugin {`/`decoder {`/`resampler {` ブロック)の設定・ブロック計数。 |
+| `mopidy` | mopidy.conf(`[core]`/`[audio]`/`[http]`/`[mpd]`/`[local]`/`[spotify]` 等セクション + `key = value` + `enabled =`)のINI計数。 |
+| `beets` | beets config.yaml(`directory:`/`library:`/`plugins:`/`import:`/`match:`/`paths:` + プラグインセクション)のトップキー・リスト・ネスト計数。 |
+| `picard` | MusicBrainz Picard `Picard.ini`(`[application]`/`[setting]`/`[plugins]` + `server_host`/`save_images_*`/`enabled_plugins`)の設定計数。 |
+| `ncmpcpp` | ncmpcpp config(`mpd_*`/`ncmpcpp_directory`/`visualizer_*`/`*_color` キー)+ bindings ファイル(`def_key`)の設定・バインド計数。 |
+| `cmus` | cmus autosave/rc(`set key=val`/`bind common`/`colorscheme`/`view`/`add`/`fset`/`factivate` コマンドファイル)のコマンド計数。 |
+| `snapcast` | snapserver.conf(`[server]`/`[stream]`/`[http]`/`[tcp]` + `stream = pipe:///`/`codec`/`sampleformat`/`chunk_ms`)のINI計数。 |
+| `sops` | `.sops.yaml`(`creation_rules:` `- path_regex:` + `kms:`/`age:`/`pgp:`/`azure_kv:`/`gcp_kms:`/`hc_vault:` キー発生源)のルール・キー計数。 |
+| `gitleaks` | `gitleaks.toml`(`[[rules]]` + `id`/`regex`/`secretGroup`/`keywords`/`entropy` + `[extend]`/`[whitelist]`)のルール・検出子計数。 |
+| `secretsbaseline` | detect-secrets `.secrets.baseline`(`plugins_used`/`filters_used`/`results` + `hashed_secret`/`is_verified`)の検出・検証済み計数。 |
+| `talisman` | `.talismanrc`(`fileignoreconfig:` `- filename:`/`checksum:`/`allowed_patterns`/`threshold`/`scope:`)の無視・パターン計数。 |
+| `gitsecret` | `.gitsecret`(gitignore 風の秘匿対象パス一覧、`!` 否定行)のパターン計数。 |
+| `vaultagent` | Vault Agent `.hcl`(`auto_auth`/`method`/`sink`/`template`/`listener`/`exit_after_auth`)のブロック・代入計数。 |
+| `keepassxc` | KeePassXC `keepassxc.ini`(`[General]`/`[GUI]`/`[Browser]` + `SingleInstance`/`AutoType*`/`BrowserIntegration_*`)の設定計数。 |
+| `bootini` | Windows boot.ini census |
+| `cmdbat` | Windows .bat/.cmd batch census |
+| `dossys` | DOS CONFIG.SYS/AUTOEXEC census |
+| `inffile` | Windows driver .inf census |
+| `regfile` | Windows .reg registry census |
+| `unattend` | unattend.xml answer-file census |
+| `winini` | Windows 3.x win.ini census |
 | `fossilconf` | Fossil SCM settings census |
 | `gitattributes` | .gitattributes census |
 | `gitignore` | .gitignore patterns census |
@@ -120,6 +225,41 @@ fixed version has no such state at all.
 | `jekyll` | Jekyll _config.yml census |
 | `mkdocs` | mkdocs.yml census |
 | `zola` | Zola config.toml census |
+| `icecast` | Icecast `icecast.xml` |
+| `mediamtx` | MediaMTX `mediamtx.yml` |
+| `motionconf` | Motion `motion.conf` |
+| `mplayerconf` | MPlayer `config` |
+| `mpv` | mpv `mpv.conf` |
+| `obsconf` | OBS Studio `global.ini`/`basic.ini` |
+| `vlcrc` | VLC `vlcrc` |
+| `lsf` | IBM LSF `lsb.*` |
+| `monit` | Monit `monitrc` |
+| `pm2` | PM2 `ecosystem.config.js` |
+| `quartz` | Quartz `quartz.properties` |
+| `sidekiq` | Sidekiq `sidekiq.yml` |
+| `slurm` | Slurm `slurm.conf` |
+| `supervisor` | Supervisor `supervisord.conf` |
+| `apparmor` | AppArmor プロファイル |
+| `containersconf` | Podman `containers.conf` |
+| `dockerdaemon` | Docker `daemon.json` |
+| `policyjson` | sigstore `policy.json` |
+| `registriesconf` | containers `registries.conf` |
+| `seccomp` | seccomp-bpf プロファイル JSON |
+| `storageconf` | containers `storage.conf` |
+| `dinit` | Dinit サービスファイル |
+| `inittab` | sysvinit `/etc/inittab` |
+| `openrc` | OpenRC runscript |
+| `procd` | OpenWrt procd init |
+| `runit` | runit `run` スクリプト |
+| `s6rc` | s6-rc execline スクリプト |
+| `upstart` | Upstart `.conf` ジョブ |
+| `feast` | Feast feature_store.yaml (project/provider/stores) |
+| `greatexp` | great_expectations.yml (stores/data_docs_sites/datasources) |
+| `hydraml` | Hydra conf/config.yaml (defaults/_target_/補間) |
+| `ipythonconf` | ipython_config.py (traitlets c.* 代入/namespace) |
+| `jupyterconf` | jupyter_notebook_config.py (traitlets c.* 代入) |
+| `kedro` | Kedro catalog/settings/parameters.yml (dataset 型定義) |
+| `metaflow` | Metaflow config.json (METAFLOW_* キー) |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -412,133 +552,10 @@ The capability map — with per-feature implementation status — lives in
 | `cif` / `mol` / `cml` / `fchk` / `cube` / `poscar` / `gro` | Computational chemistry & crystallography formats: CIF/mmCIF (`parse`/`Cif`/`Block`/`Loop`/`num` — `data_` blocks, `loop_` columns, `;` text fields, `(su)`-stripping `num`), MDL Molfile V2000 (`parse`/`Mol`/`Atom`/`Bond` — fixed-width counts/atom/bond blocks + `M`-properties), CML (`parse`/`Cml`/`Molecule` — `<atomArray>`/`<bondArray>` attributes, x2/y2/x3/y3/z3 micro-coords), Gaussian fchk (`parse`/`Fchk`/`Field`/`int` — `task method basis` header + `N=` array fields), Gaussian cube (`parse`/`Cube` — comments + natoms + axis vectors + atoms + voxel count, exponent literals OK), VASP POSCAR (`parse`/`Poscar` — scale + lattice + symbols/counts (VASP4/5) + selective + Direct/Cartesian positions), Gromacs .gro (`parse`/`Gro`/`Atom` — fixed-width `resid resname name nr x y z [v]` + box line). |
 | `rdb` / `resp` / `sst` / `ldblog` / `mdb` / `gdbm` / `bdb` | Database & storage-engine internals: Redis RDB (`parse`/`Rdb`/`Db`/`Entry` — `REDISnn` + aux/selectdb/resize/expire opcodes + 6/14/32/64-bit + int/LZF string lengths, container element counts), RESP2/RESP3 wire (`parse`/`V` — all 13 type bytes incl. verbatim/blob-error/map/set/push, depth-capped), LevelDB sstable (`parse`/`Sst`/`Handle` — `0xdb4775248b80fb57` footer + block-handle index walk), LevelDB/RocksDB log (`parse`/`Log` — 32KiB blocks + FULL/FIRST/MIDDLE/LAST reassembly), LMDB meta pages (`parse`/`Mdb`/`Meta`/`DbInfo` — `0xBEEFC0DE`, newest-txnid selection), GDBM (`parse`/`Gdbm` — `0x13579ACE/CF` both endians + header geometry), Berkeley DB meta (`parse`/`Bdb`/`Kind` — `0x00053162` + pagesize/type/free/uid). |
 | `aiken` / `gift` / `qti` / `imscc` / `xapi` / `opml` / `apkg` | Education & quiz formats: Moodle Aiken (`parse` — stem/`A.`/`ANSWER:` blocks), Moodle GIFT (`parse` — `::title::`/`{= ~}`/`%pct%`/`#numeric`/escapes), IMS QTI (`parse` — assessmentItem + simpleChoice + correctResponse), IMS Common Cartridge manifest (`parse` — item tree depth + resource table), xAPI (`parse` — actor/verb/object + score.scaled → ppm integers), OPML (`parse` — nested outline depth + rss xmlUrl), Anki `.apkg` (`parse` — zip member + collection.anki2 + media JSON map). |
-| `frr` / `bird` / `openbgpd` / `keepalived` / `haproxy` / `squid` / `vcl` | Network daemon & routing config formats: FRRouting `frr.conf` (`parse`/`Frr` — `!` separators + interface/router blocks + neighbor/network/access-list/route-map), BIRD `bird.conf` (`parse`/`Bird` — protocol/template/filter/function blocks + route/neighbor/options + `define`/`include`), OpenBGPD `bgpd.conf` (`parse`/`Openbgpd` — AS/router-id globals + group/neighbor/descr/announce + allow/deny filter atoms), keepalived (`parse`/`Keepalived` — global_defs/vrrp_instance/virtual_server/real_server blocks + IP-ish values), HAProxy `haproxy.cfg` (`parse`/`Haproxy` — global/defaults/frontend/backend/listen sections + bind/acl/server/option/timeout directives), Squid `squid.conf` (`parse`/`Squid` — acl defs + http_access allow/deny + *_port + cache_*/refresh_pattern), Varnish VCL (`parse`/`Vcl` — `vcl 4.x;` + backend/acl/probe/sub vcl_* + set/if/return statements). |
-| `homeassistant` / `esphome` / `zigbee2mqtt` / `frigate` / `nodered` / `openhab` / `appdaemon` | Home-automation & IoT config formats: Home Assistant configuration.yaml (`parse`/`Homeassistant` — component sections + automation trigger/condition/action + `!include`/`!secret`), ESPHome (`parse`/`Esphome` — esphome:/esp32:/wifi:/sensor: sections + `- platform:` + `on_*:` lambdas + `!secret`/`${}`), Zigbee2MQTT (`parse`/`Zigbee2mqtt` — mqtt/serial/advanced sections + devices/groups IEEE-address entries + friendly_name/retain/qos options), Frigate (`parse`/`Frigate` — cameras entries + ffmpeg inputs/roles + detect/record/objects/zones + detectors), Node-RED flows.json (`parse`/`Nodered` — id/type/wires nodes split into container/core/io/ui/data classes), openHAB (`parse`/`Openhab` — Items/Things/rules/sitemap + channel bindings + scripting), AppDaemon (`parse`/`Appdaemon` — appdaemon:/hadashboard:/plugins: blocks + module/class + constrain_*). |
-| `tlaplus`, `alloy`, `promela`, `dafny`, `mch`, `lf`, `whyml` | 形式手法・モデル検査記述形式 — TLA+ モジュール・Alloy モデル・Promela/SPIN・Dafny・B/Event-B machine・Lingua Franca・WhyML/Why3 の検出と構造カウント。 |
-| `i3conf`, `sway`, `hyprland`, `waybar`, `polybar`, `rofi`, `dunst` | デスクトップ・ウィンドウマネージャ設定形式 — i3 config・Sway config・Hyprland hyprland.conf・Waybar config/style・Polybar INI・Rofi .rasi/config・Dunst dunstrc の検出と構造カウント。 |
-| `apt`, `pacman`, `dnfconf`, `zypper`, `apk`, `portage`, `nixconf` | パッケージマネージャ設定形式 — APT sources.list/deb822・pacman.conf・DNF/YUM conf+repo・Zypper conf/repo・apk repositories/world・Gentoo make.conf/package.use・nix.conf の検出と構造カウント。 |
-| `tnsnames`, `sqlnet`, `pgservice`, `freetds`, `ldapconf`, `odbcini`, `db2cli` | データベースクライアント接続設定形式 — Oracle tnsnames.ora/sqlnet.ora・PostgreSQL pg_service.conf・FreeTDS freetds.conf・OpenLDAP ldap.conf・ODBC odbc.ini/odbcinst.ini・DB2 db2cli.ini の検出と構造カウント。 |
-| `bannedips`, `bukkit`, `eula`, `opsjson`, `serverprop`, `spigot`, `whitelist` | Minecraft server.properties / eula.txt / ops.json / whitelist.json / banned-ips.json / Bukkit bukkit.yml / Spigot spigot.yml | JSON entry census (`uuid`/`level`/`expires`) + `key=value`/section settings, named-key census |
-| `authelia`, `dexidp`, `hydra`, `keycloak`, `kratos`, `oathkeeper`, `shibconf` | Keycloak realm export JSON / Authelia configuration.yml / Dex config.yaml / Ory Hydra・Kratos・Oathkeeper YAML / Shibboleth attribute-filter・resolver・relying-party XML | section/setting census + handler・flow・connector・rule counts, named-key census |
-| `requirements` | `requirements.txt` pip 依存定義(指定/ピン/範囲/include/オプション/extras/マーカー) |
-| `pipfile` | Pipfile(TOML、source/依存/テーブル参照) |
-| `setupcfg` | setup.cfg(metadata/options/entry_points セクション) |
-| `toxini` | tox.ini(セクション/testenv:NAME/設定/継続項目) |
-| `condarc` | .condarc(channels/リスト文脈/scalar 設定) |
-| `condaenv` | environment.yml(channels/dependencies/pip/variables) |
-| `pylintrc` | .pylintrc(セクション/disable・enable 件数/キー) |
-| `postfix` | Postfix main.cf/master.cf(`key = value`+サービス行+継続行) |
-| `dovecot` | Dovecot dovecot.conf(protocol/service/mailbox ブロック+`!include`) |
-| `exim` | Exim4 configure(`begin <sec>`+driver/オプション+`${}` 展開) |
-| `sendmail` | sendmail.cf(O/K/M/R/S/D/C/T/H/V コマンド行) |
-| `spamassassin` | SpamAssassin cf(header/body/uri/meta ルール+score+whitelist) |
-| `opendkim` | opendkim.conf(`Key value` DKIM milter 設定) |
-| `opendmarc` | opendmarc.conf(`Key value` DMARC milter 設定) |
-| `wireguard` | WireGuard `wg.conf`/`wg-quick.conf` — `[Interface]`/`[Peer]` セクション、`PrivateKey`/`Address`/`AllowedIPs`/`Endpoint` 等 |
-| `openvpn` | OpenVPN `.ovpn` — `remote`/`ca`/`tls-auth`/`cipher` 等のディレクティブと `<ca>`/`<key>` インラインブロック |
-| `swanctl` | strongSwan `swanctl.conf` — `connections`/`pools`/`secrets`/`authorities` グループ、IKE/ESP プロポーザル |
-| `xl2tpd` | xl2tpd `xl2tpd.conf` — `[global]`/`[lns]`/`[lac]` セクション、`ip range`/`pppoptfile` 等オプション |
-| `pptpd` | Poptop `pptpd.conf`/`options.pptpd` — `localip`/`remoteip`/`require-mppe-128`/`ms-dns` 等 |
-| `zerotier` | ZeroTier `local.conf` JSON — `settings`(port/update/relay/multipath)/`virtual`/`physical` |
-| `tailscale` | Tailscale `acl.hujson` — `acls`/`tagOwners`/`groups`/`hosts`/`tests`/`ssh`/`grants` セクション |
-| `kustomize` | Kustomize `kustomization.yaml` census: `kind: Kustomization` + resources/bases/components/crds + images/patches/replacements + `*Generator` entries |
-| `helmfile` | Helmfile `helmfile.yaml` census: `releases:`/`repositories:`/`environments:`/`helmfiles:`/`helmDefaults:` sections + release entries |
-| `skaffold` | Skaffold `skaffold.yaml` census: `apiVersion: skaffold/v*` + build/test/deploy/profiles sections + `- image:` artifacts |
-| `kindconf` | kind cluster config census: `kind: Cluster` + `nodes:` `- role:` entries + networking + kubeadm/containerd patches + featureGates |
-| `k3d` | k3d cluster config census: `apiVersion: k3d.io/v1alpha*` + servers/agents/ports/volumes/env/registries/options |
-| `tiltfile` | Tiltfile (Starlark) census: `k8s_yaml`/`docker_build`/`k8s_resource`/`local_resource`/`helm`/`load`/`config.*` call sites + resource deps |
-| `containerd` | containerd `config.toml` census: `[plugins."io.containerd.*"]` subtrees + grpc/cni/metrics/debug/timeouts sections |
-| `vimrc` | `.vimrc`/`init.vim` census: `set`/`let`/`*noremap`/`autocmd`/`function`/`command`/`Plug` ステートメント |
-| `vscodeconf` | VS Code `settings.json` (JSONC) census: `editor.*`/`workbench.*`/`files.*`/`terminal.*` 名前空間 + `[lang]` 上書きセクション |
-| `helix` | Helix `config.toml`/`languages.toml` census: `[editor.*]`/`[keys.*]` テーブル + `[[language]]`/`[[language-server]]` エントリ |
-| `zedconf` | Zed `settings.json` census: `theme`/`buffer_font*`/`vim_mode`/`base_keymap`/`lsp`/`project_panel` 等 ~110 キー |
-| `emacs` | `init.el`/`.emacs`/`.spacemacs` census: `(setq*`/`(use-package`/`(require`/`(add-hook`/key バインド/`(defun`/`(custom-set-*` |
-| `ideavim` | `.ideavimrc` census: vim 系 `set`/`*map` + IdeaVim 拡張 `<Action>(…)`/`sethandler`/`let g:ideavim*` |
-| `nanorc` | GNU nano `.nanorc` census: `set`/`unset`/`bind`/`include`/`syntax`/`color`/`linter`/`formatter` |
-| `starship` | Starship `starship.toml` census: `format`/`add_newline` トップキー + `[module]`/`[palettes.*]`/`[custom.*]`/`[env_var.*]` テーブル |
-| `fishconf` | fish `config.fish` census: `set`/`abbr`/`alias`/`function`/`source`/`bind` + `if`/`for`/`switch`/`end` 等 |
-| `nuconf` | Nushell `config.nu`/`env.nu` census: `$env.*`/`$env.config` + `def`/`alias`/`let`/`use`/`source`/`overlay` |
-| `inputrc` | Readline `.inputrc` census: `set var val` + `$if`/`$else`/`$endif`/`$include` + `"seq": func` キーバインド |
-| `envrc` | direnv `.envrc` census: `export` + `use`/`layout`/`dotenv`/`source_*`/`watch*`/`PATH_add` 等ヘルパー |
-| `zshrc` | `.zshrc` census: `export`/`setopt`/`alias`/`zstyle`/`bindkey`/`autoload`/`function`/`add-zsh-hook`/`eval` |
-| `bashrc` | `.bashrc` census: `export`/`alias`/`shopt`/`source`/`bind`/`function` + `PS1`/`HIST*`/`PROMPT_COMMAND` 代入 |
-| `clangformat` | `.clang-format` census: `BasedOnStyle`/`IndentWidth`/`ColumnLimit`/`UseTab` 等 + `IncludeCategories` `- ` 項目 |
-| `clangtidy` | `.clang-tidy` census: `Checks:`/`WarningsAsErrors:` の `+`/`-` glob + `CheckOptions:` `- key:`/`value:` |
-| `cpplint` | `CPPLINT.cfg` census: `linelength`/`root`/`headers`/`exclude_files` + `filter=` の `+`/`-` トークン |
-| `detekt` | `detekt.yml` census: `build`/`style`/`complexity` 等セクション + ルールブロック/`active:`/`excludes:` |
-| `ktlint` | ktlint `.editorconfig` census: `[*.{kt,kts}]` + `ktlint_*`/`ij_kotlin_*`/`ij_kt_*` プロパティ分類 |
-| `rubocop` | `.rubocop.yml` census: `AllCops`/`Dept/Cop:` ブロック + `require`/`inherit_*`/`Exclude:` スコープ追跡 |
-| `swiftlint` | `.swiftlint.yml` census: `disabled/opt_in/only/analyzer_rules` + `custom_rules:` + ルール別設定 |
-| `tsconfig` | `tsconfig.json`/JSONC census: `compilerOptions`/`extends`/`include`/`references`/`watchOptions` 全 `"key":` + bool/配列/コメント |
-| `denoconf` | `deno.json(c)` census: `tasks`/`imports`/`lint`/`fmt`/`compilerOptions`/`workspace`/`unstable` 等全 `"key":` + bool/配列 |
-| `bunfig` | `bunfig.toml` census: `[install]`/`[run]`/`[test]`/`[serve]`/`[smol]`/`[telemetry]` 等セクション + `key = value` |
-| `angularconf` | `angular.json` census: `projects` 内プロジェクト名 + `architect`/`targets` ブロック + `builder`/`executor` |
-| `turboconf` | `turbo.json` census: `pipeline`/`tasks` 内タスク名キー + `dependsOn`/`outputs`/`env`/`globalEnv` |
-| `nxconf` | `nx.json` census: `targetDefaults` ターゲット + `namedInputs` + `generators`/`tasksRunnerOptions`/`workspaceLayout` |
-| `lerna` | `lerna.json` census: `version`/`packages`/`npmClient` + `command.*` サブコマンド設定キー |
-| `sonarr` | Sonarr `config.xml` (`<InstanceName>Sonarr`, `<Port>8989`, `<ApiKey>`, `<AuthenticationMethod>`) の設定・真偽値・コメント計数。 |
-| `radarr` | Radarr `config.xml` (`<InstanceName>Radarr`, `<Port>7878`, `<RecycleBin>`, `<Theme>`) の設定・真偽値計数。 |
-| `lidarr` | Lidarr `config.xml` (`<InstanceName>Lidarr`, `<Port>8686`, `<Branch>`) の設定・真偽値計数。 |
-| `prowlarr` | Prowlarr `config.xml` (`<InstanceName>Prowlarr`, `<Port>9696`, `<HistoryCleanupDays>`) の設定・真偽値計数。 |
-| `jellyfin` | Jellyfin `system.xml`/`options.xml`(`<ServerConfiguration>` + `<VirtualFolder>`/`<ImageOptions>`/`<LibraryOptions>`/`<CachePath>`)の入れ子・設定・真偽値計数。 |
-| `plexconf` | Plex `Preferences.xml`(`<Preferences MachineIdentifier=`/`ProcessedMachineIdentifier=`/`AcceptedEULA=`/`FSEventLibraryUpdatesEnabled=` 属性列挙)の属性・真偽値計数。 |
-| `kodiadv` | Kodi `advancedsettings.xml`(`<advancedsettings>` + `<video>`/`<network>`/`<videolibrary>`/`<samba>`/`<buffermode>`)のセクション・設定計数。 |
-| `mpd` | mpd.conf(`key "value"` + `audio_output {`/`playlist_plugin {`/`decoder {`/`resampler {` ブロック)の設定・ブロック計数。 |
-| `mopidy` | mopidy.conf(`[core]`/`[audio]`/`[http]`/`[mpd]`/`[local]`/`[spotify]` 等セクション + `key = value` + `enabled =`)のINI計数。 |
-| `beets` | beets config.yaml(`directory:`/`library:`/`plugins:`/`import:`/`match:`/`paths:` + プラグインセクション)のトップキー・リスト・ネスト計数。 |
-| `picard` | MusicBrainz Picard `Picard.ini`(`[application]`/`[setting]`/`[plugins]` + `server_host`/`save_images_*`/`enabled_plugins`)の設定計数。 |
-| `ncmpcpp` | ncmpcpp config(`mpd_*`/`ncmpcpp_directory`/`visualizer_*`/`*_color` キー)+ bindings ファイル(`def_key`)の設定・バインド計数。 |
-| `cmus` | cmus autosave/rc(`set key=val`/`bind common`/`colorscheme`/`view`/`add`/`fset`/`factivate` コマンドファイル)のコマンド計数。 |
-| `snapcast` | snapserver.conf(`[server]`/`[stream]`/`[http]`/`[tcp]` + `stream = pipe:///`/`codec`/`sampleformat`/`chunk_ms`)のINI計数。 |
-| `sops` | `.sops.yaml`(`creation_rules:` `- path_regex:` + `kms:`/`age:`/`pgp:`/`azure_kv:`/`gcp_kms:`/`hc_vault:` キー発生源)のルール・キー計数。 |
-| `gitleaks` | `gitleaks.toml`(`[[rules]]` + `id`/`regex`/`secretGroup`/`keywords`/`entropy` + `[extend]`/`[whitelist]`)のルール・検出子計数。 |
-| `secretsbaseline` | detect-secrets `.secrets.baseline`(`plugins_used`/`filters_used`/`results` + `hashed_secret`/`is_verified`)の検出・検証済み計数。 |
-| `talisman` | `.talismanrc`(`fileignoreconfig:` `- filename:`/`checksum:`/`allowed_patterns`/`threshold`/`scope:`)の無視・パターン計数。 |
-| `gitsecret` | `.gitsecret`(gitignore 風の秘匿対象パス一覧、`!` 否定行)のパターン計数。 |
-| `vaultagent` | Vault Agent `.hcl`(`auto_auth`/`method`/`sink`/`template`/`listener`/`exit_after_auth`)のブロック・代入計数。 |
-| `keepassxc` | KeePassXC `keepassxc.ini`(`[General]`/`[GUI]`/`[Browser]` + `SingleInstance`/`AutoType*`/`BrowserIntegration_*`)の設定計数。 |
-| `bootini` | Windows boot.ini census |
-| `cmdbat` | Windows .bat/.cmd batch census |
-| `dossys` | DOS CONFIG.SYS/AUTOEXEC census |
-| `inffile` | Windows driver .inf census |
-| `regfile` | Windows .reg registry census |
-| `unattend` | unattend.xml answer-file census |
-| `winini` | Windows 3.x win.ini census |
-| `icecast` | Icecast `icecast.xml` |
-| `mediamtx` | MediaMTX `mediamtx.yml` |
-| `motionconf` | Motion `motion.conf` |
-| `mplayerconf` | MPlayer `config` |
-| `mpv` | mpv `mpv.conf` |
-| `obsconf` | OBS Studio `global.ini`/`basic.ini` |
-| `vlcrc` | VLC `vlcrc` |
-| `lsf` | IBM LSF `lsb.*` |
-| `monit` | Monit `monitrc` |
-| `pm2` | PM2 `ecosystem.config.js` |
-| `quartz` | Quartz `quartz.properties` |
-| `sidekiq` | Sidekiq `sidekiq.yml` |
-| `slurm` | Slurm `slurm.conf` |
-| `supervisor` | Supervisor `supervisord.conf` |
-| `apparmor` | AppArmor プロファイル |
-| `containersconf` | Podman `containers.conf` |
-| `dockerdaemon` | Docker `daemon.json` |
-| `policyjson` | sigstore `policy.json` |
-| `registriesconf` | containers `registries.conf` |
-| `seccomp` | seccomp-bpf プロファイル JSON |
-| `storageconf` | containers `storage.conf` |
-| `dinit` | Dinit サービスファイル |
-| `inittab` | sysvinit `/etc/inittab` |
-| `openrc` | OpenRC runscript |
-| `procd` | OpenWrt procd init |
-| `runit` | runit `run` スクリプト |
-| `s6rc` | s6-rc execline スクリプト |
-| `upstart` | Upstart `.conf` ジョブ |
-| `feast` | Feast feature_store.yaml (project/provider/stores) |
-| `greatexp` | great_expectations.yml (stores/data_docs_sites/datasources) |
-| `hydraml` | Hydra conf/config.yaml (defaults/_target_/補間) |
-| `ipythonconf` | ipython_config.py (traitlets c.* 代入/namespace) |
-| `jupyterconf` | jupyter_notebook_config.py (traitlets c.* 代入) |
-| `kedro` | Kedro catalog/settings/parameters.yml (dataset 型定義) |
-| `metaflow` | Metaflow config.json (METAFLOW_* キー) |
+| `ipk` / `snap` / `appimage` / `pkg` / `msi` / `nuget` / `flatpak` | Package distribution formats: opkg `.ipk` (`parse`/`Ipk` — `ar` members `debian-binary`+`control.tar.*`+`data.tar.*` + compression suffix), snap (`parse`/`Snap`/`Compression` — SquashFS `hsqs` superblock + `meta/snap.yaml` heuristic), AppImage (`parse`/`AppImage`/`Kind` — ELF + `AI\x02`/`\x03` stamp at `e_ident[8..11]`), macOS `.pkg` (`parse`/`Pkg` — `xar` heap `PackageInfo`/`Payload`/`Distribution` detection), Windows `.msi` (`parse`/`Msi` — `ole` directory `_Tables`/`_StringPool`/`SummaryInformation` streams), NuGet `.nupkg` (`parse`/`Nuget` — `zip` `[Content_Types].xml` + root `.nuspec` `<id>`/`<version>`), Flatpak refs (`parse`/`Flatpak`/`Kind` — `ini` `[Flatpak Ref]`/`[Flatpak Bundle]`/`[Flatpak Repo]` + Name/Branch/Url/GPGKey). |
+| `docx` / `xlsx` / `pptx` / `vsdx` / `xps` / `jar` / `kmz` | Office & ZIP-based document packages: WordprocessingML `.docx`/`.docm` (`parse`/`Docx` — `word/document.xml` required, `<w:p` count, styles/media/core-props, `vbaProject.bin` macro flag, `dc:title`), SpreadsheetML `.xlsx` (`parse`/`Xlsx` — `xl/workbook.xml` + `<sheet name>` list, sheet/sharedStrings/styles/calcChain parts, macro flag), PresentationML `.pptx` (`parse`/`Pptx` — `ppt/presentation.xml`, slide/master/notes counts, `<p:sldSz>` EMU size), Visio `.vsdx` (`parse`/`Vsdx` — `visio/document.xml`, page/master counts), OpenXPS `.xps`/`.oxps` (`parse`/`Xps` — `FixedDocSeq.fdseq` or `[0].piece` + `.fpage` count), Java `.jar` (`parse`/`Jar` — `META-INF/MANIFEST.MF` required, RFC-style folded manifest `Main-Class`/`Automatic-Module-Name`, class/signed/multi-release/modular flags), and Google Earth `.kmz` (`parse`/`Kmz` — root `*.kml` member, `<name>`/`<Placemark>` counts, `files/` resources). |
+| `gre` / `esp` / `ospf` / `rip` / `pim` / `smb2` / `snmp` | Network protocols vol.4 (tunneling/routing/directory): GRE (RFC 2784/2890 — `parse`/`Gre` — flag-driven C/K/S optional fields + payload offset), IPsec ESP (RFC 4303 — `parse`/`Esp` — SPI + seq + trailer pad/next-header detection), OSPFv2/v3 (RFC 2328/5340 — `parse`/`Ospf`/`Kind` — len-fits-buffer, LSU `lsa_count`), RIPv2 (RFC 2453 — `parse`/`Rip`/`Route`/`Command` — 20-byte entries, metric, auth family 0xFFFF), PIMv2 (RFC 4601 — `parse`/`Pim`/`Kind` — version-2 nibble + RFC 1071 checksum check), SMB2 (MS-SMB2 — `parse`/`Smb2`/`Command` — `\xFESMB` + structure_size 64 + flags/msg/session IDs), and SNMP (RFC 1157/3416/3412 — `parse`/`Snmp`/`Pdu`/`Version` — minimal BER TLV walk: SEQUENCE → version → community → PDU tag). |
+| `crl` / `csr` / `p7b` / `ocsp` / `spf` / `dkim` / `dmarc` | PKI, signatures & email auth: X.509 CRL (RFC 5280 — `parse`/`Crl` — tbsCertList fields + revoked serial list), PKCS#10 CSR (RFC 2986 — `parse`/`Csr` — cri + signature alg OID + attributes flag), PKCS#7/CMS ContentInfo (RFC 5652 — `parse`/`P7b`/`Kind` — content-type OID classification), OCSP response envelope (RFC 6960 — `parse`/`Ocsp`/`Status` — ENUMERATED status + BasicOCSPResponse detection), SPF TXT (RFC 7208 — `parse`/`Spf`/`Term`/`Qualifier`/`Mechanism` — qualifier+mechanism terms, trailing `all`), DKIM key records & `DKIM-Signature:` (RFC 6376 — `parse`/`parse_key_record`/`Dkim` — `tag=value` lists, `p=` pubkey), DMARC (RFC 7489 — `parse`/`Dmarc`/`Policy` — `v=DMARC1` first-tag rule, `p=` policy, `pct` bounds). |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
