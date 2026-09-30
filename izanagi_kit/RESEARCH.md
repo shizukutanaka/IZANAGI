@@ -3774,6 +3774,38 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **国内技術情報**: Qiita/Zenn の X.509 CRL・CSR・OCSP 解説、SPF/DKIM/DMARC 導入記事 — 全て整数のみで実装。
 
+## 第241次(search-index 照合ラウンド / 実装証跡付き)
+
+ネットワークデーモン・ルーティング設定形式(FRRouting / BIRD / OpenBGPD / keepalived / HAProxy / Squid / Varnish VCL — 7件)。
+
+- `frr` — FRRouting `frr.conf`/`zebra.conf` 系: `!` 区切り、`frr version`/`hostname`/`log` グローバル、`interface <name>`、`router <proto>`(PROTO 一覧+文字先頭)、`ip/ipv6` 経路(prefix-list 除外)、`neighbor`/`network`/`area`/`redistribute`、`access-list`/`route-map`/`community-list`/`match`/`set` フィルタ、`address-family`/`line`/`end`/`no` 補助行
+- `bird` — BIRD 1.6/2.x `bird.conf`: `protocol`/`template` ブロック、`filter`/`function`、`router id`/`log`/`listen`/`timeformat` グローバル、`route`/`route6`/`reject`/`unreachable`、`neighbor`/`local`/`remote`/`as`/`next hop`、`area`/`interface`/`channel`/`ipv4`/`table` ブロック、`import`/`export`/`preference`/`scan time`/`check link` オプション、`include`/`define`/`eval` 指令、`=` 代入
+- `openbgpd` — OpenBGPD `bgpd.conf`: `AS`/`router-id`/`fib-update`/`include` グローバル、`network <prefix>`、`group "name" {`、`neighbor <ip>`/`remote-as`/`descr`/`announce`/`depend on`、`allow`/`deny`/`match`/`quick` フィルタ行(行内 from/to/prefixlen/community/set アトム走査)
+- `keepalived` — keepalived.conf: `global_defs`/`vrrp_instance`/`vrrp_script`/`virtual_server`/`real_server`/`track_*`/`static_*`/`snmp`/`notification_*`/`*_check` 約35ブロック(`{` 必須・大小写不問)+ `state`/`interface`/`priority`/`virtual_ipaddress`/`weight`/`connect_timeout`/`lb_algo`/`delay_loop`/`auth_type`/`SMTP`/`MISC_CHECK` 等オプション。IP 値は「hex+区切り文字」で検出
+- `haproxy` — `haproxy.cfg`: `global`/`defaults`/`frontend`/`backend`/`listen`/`resolvers`/`peers`/`mailers`/`userlist`/`program`/`ring` セクション(≤3語・`=` なしで識別)+ `bind`/`acl`/`server`/`use_backend`/`default_backend`/`option`/`timeout`/`mode`/`balance`/`log`/`stats`/`http-request`/`tcp-request`/`stick`/`monitor`/`error*`/`unique-id*` 指令群
+- `squid` — `squid.conf`: `acl <name> <type>`、`*_access allow|deny`(+`!` 否定)、`http_port`/`icp_port`/`snmp_port`/`ssl_bump`、`cache_mem`/`cache_dir`/`access_log`/`coredump_dir`/`visible_hostname`/`dns_*`/`request_header_*` キャッシュ・ログ系、`refresh_pattern`、`hierarchy_stoplist`/`icap_*`/`adaptation_*`/`delay_*`/`snmp_*` 拡張
+- `vcl` — Varnish VCL: `vcl 4.x;` 版宣言、`backend`/`acl`/`probe`/`sub vcl_*`、`import`/`include`/`director`/`new`、`set`/`unset`/`synthetic`/`call`/`std.*`、`if/elsif/else`、`return`/`ban`/`hash_data`/`rollback`、`.field =` メンバ代入
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — frr の `ip prefix-list`/`ipv6 prefix-list` が `ip ` 経路に誤算、bird の `reject;` が route に誤算・`define` が代入+指令の二重計上、openbgpd の `announce`/`descr`/`remote-as` が neighbor 系に合算、keepalived の IPv6 `fd00::1` が IP 判定落ち・`TCP_CHECK` 大小写・オプション/ブロック混同、 haproxy の `daemon`/`stats` が directive/option 未分類、squid の `access_log`/`coredump_dir` キャッシュ系登録。全て整数のみで実装。
+
+## 第242次(search-index 照合ラウンド / 実装証跡付き)
+
+ホームオートメーション・IoT 設定形式(Home Assistant / ESPHome / Zigbee2MQTT / Frigate / Node-RED / openHAB / AppDaemon — 7件)。
+
+- `homeassistant` — configuration.yaml: ~150 コンポーネントの col-0 セクション(`homeassistant:`/`automation:`/`mqtt:`/`default_config:`…)、`- alias:`/`- platform:`/`- service:` 項目、`trigger:`/`condition:`/`action:`/`choose:`/`mode:` フロー、`platform:`/`entity_id:`/`target:`、`!include*`/`!secret`/`!env_var`/`!input` タグ、`customize:`/`packages:`
+- `esphome` — ESPHome YAML: `esphome:`+`esp32:`/`esp8266:`/`rp2040:`/`bk72xx:`/`rtl87xx:`/`host:` プラットフォーム、バス/ドメイン約200セクション、`- platform:`/`platform:`、`name:`/`id:`、`pin:`/`address:`/`update_interval:`/`i2c_id:`/`spi_id:`/`uart_id:` 参照、`on_*:`/`then:`/`lambda:`/`script.execute` オートメーション、`!secret`/`!include`/`!lambda`/`${subst}`
+- `zigbee2mqtt` — configuration.yaml: `homeassistant:`/`permit_join:`/`mqtt:`/`serial:`/`frontend:`/`advanced:`/`devices:`/`groups:`/`ota:`/`availability:`/`experimental:` 他、`devices:`/`groups:` 下の `0x…` IEEE アドレス/番号エントリ(インデント追跡)+ `friendly_name:`/`retain:`/`qos:`/`debounce`/`optimistic:`/`disabled:`/`filtered_*:` オプション
+- `frigate` — config.yml: `mqtt:`/`cameras:`/`detectors:`/`go2rtc:`/`birdseye:`/`live:`/`ui:`/`auth:`/`tls:`/`telemetry:`、`cameras:` 内カメラエントリ(インデント追跡)、`- path:`/`rtsp://` 入力、`roles:`(`detect`/`record`/`audio`/`restream`)、`detect:`/`record:`/`objects:`/`zones:`/`motion:`/`review:`/`audio:` フィーチャ、detector `type:`/`device:`、`hwaccel_args`/`input_args`/`output_args`/`global_args`/`ffmpeg:`
+- `nodered` — flows.json: `"id"` ノード総数、`tab`/`subflow`/`group` コンテナ、`inject`/`debug`/`function`/`switch`/`change`/`trigger`/`delay`/`junction`/`catch`/`status`/`link *` コア、`http*`/`mqtt*`/`tcp*`/`udp*`/`websocket*`/`serial*`/`webhook` I/O、`ui_*`/`site` ダッシュボード、`csv`/`xml`/`yaml`/`json`/`template`/`exec`/`file`/`watch`/`moment`/`base64`/`split`/`join`/`rbe` データ、`"wires"` 配線、`"env"`/`"config"`/`"credentials"`/`"outputs"`/`"props"`
+- `openhab` — .items/.things/.rules/.sitemap: Switch/Dimmer/Color/Contact/DateTime/Number/Rollershutter/String/Group/Image/Location/Player/Call アイテム、`Thing`/`Bridge`/`Channels`、`(group)`/`["tag"]`/`<icon>` 参照、`{channel=`/`{ga=`/`{alexa=`/`{homekit=`/`{expire=`/`{autoupdate=`/`{mqtt=`/`{http=`/`{knx=` バインディング、`rule "…" when … then … end`/`Item … changed`/`Time cron`/`Channel triggered`、`Frame`/`Text`/`Slider`/`Selection`/`Chart`/`Mapview` サイトマップ要素、`sendCommand`/`postUpdate`/`createTimer`/`val`/`var`/`import` スクリプト
+- `appdaemon` — appdaemon.yaml/apps.yaml: `appdaemon:`/`hadashboard:`/`plugins:`/`HASS:`/`MQTT:`/`logs:`/`namespaces:`/`admin:`/`apps:`/`Global:`/`global:`/`dependencies:` ブロック、`latitude:`/`time_zone:`/`app_dir:`/`threads:`/`pin_apps:`/`cert_verify:`/`production_mode:`/`timewarp:`/`accurate_timestamps:` 等、`module:`/`class:`/`type:`、`constrain_*:`/`run_daily:`/`sunrise:`/`listen_log` 制約、`host:`/`port:`/`token:`/`ha_url:`/`ha_key:`/`client_id:`/`namespace:`/`persistent:`/`daemon_sleep_time:`/`birth_msg:`/`will_msg:` プラグインキー
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — zigbee2mqtt の devices/groups エントリがネスト判定で未計上(インデントレベル記録で修正)、appdaemon の `MQTT:`/`log:`/`type:` 分類と apps.yaml detect(`module:`+`class:` のみで受理へ)、frigate の `roles:` 重複・detectors セクション名計上・`- ` 一般項目が inputs に誤算、homeassistant のインデント付き `customize:` 未計上、nodered の `mqtt-broker`/`debug` 分類。全て整数のみで実装。
+
+## 第243次(search-index 照合ラウンド / 実装証跡付き)
+
+`izanagi_kit` に形式手法・モデル検査記述形式7件を追加した(972→979)。`tlaplus`(TLA+ モジュール: `---- MODULE`/`====`・`EXTENDS`/`INSTANCE`・`CONSTANT`/`VARIABLE`・`==` 定義・Init/Next/Spec/Inv 標準形・`THEOREM`/`PROOF`/`BY`/`QED` 証明・`[]`/`<>`/`~>` 時相・`/\`/`\/`/`\in`/`/=` 論理)、`alloy`(Alloy `.als`: `module`/`open`/`private`/`as`・`sig`/`abstract`/`lone`/`one`/`enum`/`var`/`some sig`・`fact`/`pred`/`fun`/`assert`/`check`/`run`/`expect`/`inst`/`idiv`・`extends`/`in`/`partof`/`subset`/`subsetof`・`let`/`=>`/`iff`/`implies`/`and`/`or`/`not`/`else`/`if`/`then`/`for`・`all`/`some`/`no`/`lone`/`one`/`set`/`seq`/`disj` 限定・`->`/` *`/` ^`/` ~` 関係演算子)、`promela`(Promela `.pml`: `proctype`/`init`/`active`/`never`/`trace`/`notrace`/`d_step`/`atomic`/`inline`/`ltl`・`chan`/`mtype`/`typedef`/`hidden`/`show`/`xr`/`xs`/スカラ型・`do`/`od`/`if`/`fi`/`::` ガード・`->`/`goto`/`break`/`skip`/`else`/`unless`・`!`/`?` 通信・`assert`/`printf`/`print`・`c_code`/`c_decl`/`c_state`/`c_expr`/`c_track`/`c_var` 組込 C)、`dafny`(Dafny `.dfy`: `module`/`import`/`include`/`export`/`opened`/`refines`・`method`/`constructor`/`function`/`predicate`/`copredicate`/`lemma`/`colemma`/`twostate`/`inductive`/`opaque`/`least`/`greatest`/`axiom`・`datatype`/`codatatype`/`class`/`trait`/`type`/`newtype`/`iterator`/`const`/`var`/`ghost`/`static`/`subset`・`requires`/`ensures`/`invariant`/`decreases`/`reads`/`modifies`/`frame`/`calc`/`forall`/`exists`・`assert`/`assume`/`expect`/`print`/`label`・`if`/`else`/`while`/`for`/`match`/`case`/`return`/`yield`/`break`/`continue`/`then`/`by`・`old`/`fresh`/`allocated`/`unchanged`/`in`/`as`/`is`/`null`/`this`/`true`/`false`/`abstemious`)、`mch`(B/Event-B `.mch`/`.ref`/`.imp`: `MACHINE`/`REFINEMENT`/`IMPLEMENTATION`/`MODEL`/`SYSTEM`・`SEES`/`USES`/`INCLUDES`/`EXTENDS`/`PROMOTES`/`REFINES`/`IMPORTS`/`VALUES`・`CONSTRAINTS`/`SETS`/`CONSTANTS`/`PROPERTIES`/`VARIABLES`/`INVARIANT`/`ASSERTIONS`/`DEFINITIONS`/`INITIALISATION`/`OPERATIONS`/`EVENTS`/`VARIANT`/`END`・`PRE`/`THEN`/`WHEN`/`WHERE`/`ANY`/`SELECT`/`CHOICE`/`IF`/`CASE`/`OR`/`LET`/`BE`/`BEGIN`/`ELSIF`/`ELSE`/`WHILE`/`MODIFIES`/`IN`/`ASSERT`/`NOT`/`EITHER` 代入・`:=`/`||`/`<|`・` : `/`<=`/`=>`/`<=>`/`/=`/`/\`/`\/`/`not`/`NAT`/`INT`/`BOOL`/`POW`/`SEQ`/`NATURAL`/`INTEGER`/`STRING`/`FIN`/`INTER`/`UNION`/`SIGMA`/`PI` 論理)、`lf`(Lingua Franca `.lf`: `target`/`import`/`preamble`/`reactor`/`instantiation`/`main`/`federated`/`realtime`/`interface`・`input`/`output`/`state`/`timer`/`action`/`parameter`/`method`/`local`/`prelude`/`initial`/`reset`/`shutdown`/`startup`・`reaction`/`mutation`・`->`/`after`/`physical`/`logical`/`STP`/`deadline`/`policy`/`STAA`/`{=`/`=}`・`width`/`bank`/`bank_index`/`runtime`/`authentication`/`tracing`/`logging`/`workers`/`timeout`/`keepalive`/`fast`/`threads`/`coordination`/`scheduler`/`files`/`clock-sync`/`fed-setup`/`cmake-include`/`build`/`external-runtime-path`/`no-compile`/`verify`/`federated`/`single-threaded`/`worker-thread-count`/`multiport`/`enclave`/`serializer`/`platform`/`threading`/`cargo-dependencies`)、`whyml`(WhyML/Why3 `.mlw`/`.why`: `module`/`use`/`clone`/`import`/`export`/`include`/`scope`/`namespace`/`theory`/`meta`/`declarations`・`let`/`val`/`predicate`/`function`/`type`/`inductive`/`coinductive`/`constant`/`exception`/`rec`/`fun`/`abstract`/`ghost`/`pure`/`mutable`/`private`・`requires`/`ensures`/`invariant`/`variant`/`writes`/`reads`/`raises`/`alias`/`diverges`/`partial`・`axiom`/`lemma`/`goal`/`prop`/`assert`/`assume`/`check`/`absurd`/`by`/`so`/`epsilon`/`any`・`if`/`else`/`while`/`for`/`match`/`with`/`try`/`begin`/`end`/`in`/`of`/`as`/`not`/`and`/`or`/`loop`/`break`/`continue`/`return`/`case`・`==>`/`<->`/`\/`/`/\`/`forall`/`exists`)。
+
 ## 第154次: SBOM・サプライチェーン・脆弱性情報(spdx / cyclonedx / swid / osv / intoto / csaf / slsa)
 
 **方法**: 文献参照ラウンド継続 — SBOM 三大形式(SPDX tag-value・CycloneDX・SWID)と脆弱性/認証メタデータ(OSV・in-toto・CSAF・SLSA provenance)。全7件が既存 979 件と非衝突を確認、JSON 系は `json` モジュール再利用:
@@ -3788,6 +3820,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
+
 ## 第155次: セキュリティ・well-known・HTTP ポリシー(securitytxt / adstxt / hostmeta / webfinger / assetlinks / csp / permissions)
 
 **方法**: 文献参照ラウンド継続 — `/.well-known/` 系メタデータと HTTP セキュリティポリシー。全7件が既存 986 件と非衝突を確認、JSON 系は `json` モジュール再利用:
@@ -3801,6 +3834,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `permissions` — Permissions-Policy: `f=()`/`f=(*)`/`f=(self "…")` + レガシー bare 名 = `*`
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
 
 ## 第156次: ネットワークキャプチャ・フロー・HCI ログ形式(snoop / erf / netflow / ipfix / sflow / btsnoop / dlt)
 
@@ -3858,6 +3892,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
+
 ## 第160次: CAE メッシュ・数値流体力学形式(msh / unv / neu / vtu / grd / nas / su2)
 
 **方法**: 文献参照ラウンド継続 — 有限要素・CFD・格子データ交換。全7件が既存 1021 件と非衝突を確認:
@@ -3885,6 +3920,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `c3d` — C3D モーションキャプチャ: byte1==0x50 (Intel) + LE u16 points/analog/frames + f32 scale(raw bits 保持、負⇒整数データ)
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(scale factor は raw bits、座標は保持しない)。
+
 
 
 ## 第162次: ネットワークプロトコル第5弾 — 認証・ディレクトリ・トンネリング(ldap / diameter / eap / tacacs / isakmp / l2tp / socks)
@@ -3943,14 +3979,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第165次、search-index 照合)
-
-**論文・仕様**: W3C TTML1/2 仕様(ttp: 名前空間)・SMPTE ST 2052・Scenarist SCC フィールド定義・USF/SAMI 形式文書・MicroDVD 系 MPL2/PJS コミュニティ仕様 — 全て整数のみで実装。
-
-**実装物**: FFmpeg(mpl2dec/pjsdec 等)、Subtitle Edit、YouTube SBV アップローダ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の字幕形式変換・SAMI/SCC 解説記事 — 全て整数のみで実装。
-
 ## 第166次: CAD・設計データ形式 第2弾(ifc / dgn / dwg / skp / rfa / dsn / e00)
 
 **方法**: 文献参照ラウンド継続 — 建築 BIM・CAD 図面・PCB 配線設計の交換形式(step/dxf/iges/stl は既存のため除外)、全7件が非衝突を確認:
@@ -3965,13 +3993,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第166次、search-index 照合)
-
-**論文・仕様**: ISO 10303-21(STEP 物理ファイル)/IFC2x3・IFC4 スキーマ(buildingSMART)・MicroStation ISFF/DGN V8 仕様・Open Design Alliance DWG ヘッダ仕様(AC1009–AC1032)・Revit RFA ファミリ構造・SPECCTRA DSN 文法・ArcInfo E00 生成仕様 — 全て整数のみで実装。
-
-**実装物**: IfcOpenShell・LibreDWG・ezdxf・KiCad/specctra インポータ・GDAL/OGR E00 ドライバ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の IFC/BIM・DWG バージョン判別・E00 インポート解説記事 — 全て整数のみで実装。
 
 ## 第167次: 科学計算・シミュレーション形式 第2弾(inp / k / frd / dcd / wfn / dx / ccx)
 
@@ -3987,13 +4008,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第167次、search-index 照合)
-
-**論文・仕様**: Abaqus Keywords Reference・LS-DYNA Keyword User's Manual・CalculiX CrunchiX ユーザマニュアル(.frd/.inp)・CHARMM/NAMD DCD Fortran レコード仕様・Gaussian .wfn AIM 形式・IBM OpenDX Data Model — 全て整数のみで実装。
-
-**実装物**: PrePoMax/cgx・LS-PrePost・MDAnalysis DCD リーダ・PyVista OpenDX — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Abaqus inp 書き方・CalculiX 入門・DCD 解析記事 — 全て整数のみで実装。
 
 ## 第168次: ネットワークプロトコル第6弾 — WAN カプセル化・トンネル制御(ppp / hdlc / tftp / rtcp / gtp / vxlan / isis)
 
@@ -4009,13 +4023,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第168次、search-index 照合)
-
-**論文・仕様**: RFC 1661(PPP)/RFC 1332・ISO 3309 HDLC・RFC 1350/2347(TFTP)・RFC 3550(RTCP)・3GPP TS 29.060/29.274(GTP)・RFC 7348(VXLAN)・ISO/IEC 10589 + RFC 3719(IS-IS) — 全て整数のみで実装。
-
-**実装物**: pppd・Wireshark ディセクタ(ethertype/IS-IS)・OpenGGSN/open5gs・Linux `vxlan` ドライバ・FRRouting isisd — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の PPP/HDLC・TFTP・RTCP・GTP・VXLAN・IS-IS 解説記事 — 全て整数のみで実装。
 
 ## 第169次: レトロゲーム音楽・チップチューン形式 第2弾(hes / kss / gym / ay / sndh / s98 / dro)
 
@@ -4031,13 +4038,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第169次、search-index 照合)
-
-**論文・仕様**: HES 仕様書(hoot/PCE サウンドドライバ)・KSS/KSSX 仕様・GYMX フォーマット文書・AY Emulator プロジェクト仕様(ZXAYEMUL)・SNDH フォーマット仕様・S98 v1/v2/v3 仕様・DOSBox DRO フォーマット — 全て整数のみで実装。
-
-**実装物**: Audio Overload/Chipamp プラグイン・Hoot・NEZplug++・DOSBox-X dro 記録・zxtune — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn・個人 wiki の PCE/MSX/PC-98/Atari ST サウンド形式・S98 ログ解析記事 — 全て整数のみで実装。
 
 ## 第170次: ファイルシステム・ボリューム形式 第2弾(btrfs / zfs / f2fs / hfs / sysv / jfs / reiserfs)
 
@@ -4053,13 +4053,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第170次、search-index 照合)
 
-**論文・仕様**: btrfs.readthedocs.io オンディスク形式・OpenZFS uberblock(UBERBLOCK_MAGIC 0x00bab10c)・Linux f2fs_fs.h・Inside Macintosh: Files(HFS MDB)・Linux sysv.h/xenix.h・Linux jfs_superblock.h(JFS1 @32KiB)・reiserfs_fs_sb.h(64KiB+magic@52) — 全て整数のみで実装。
-
-**実装物**: btrfs-progs・OpenZFS・f2fs-tools・Linux fs/{jfs,sysv,reiserfs,hfs}・file(1) マジックデータベース — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Btrfs・ZFS・F2FS・ReiserFS 内部構造・mkfs/fsck 解説記事 — 全て整数のみで実装。
 ## 第171次: トラッカー音楽形式 第3弾(stm / mtm / ult / far / ptm / med / dbm)
 
 **方法**: 文献参照ラウンド継続 — 90 年代 DOS/Amiga 系トラッカーのモジュールヘッダ検出・主要フィールド抽出。mod/it/xm/s3m/sap/hes/kss/gym/ay/sndh/s98/dro/vgm/psid/spc/gbs/nsf/psf/figlet は既存のため除外。okt(Oktalyzer)はチャンク仕様の確証が取れず `med`、gdm はヘッダ記述の異説が多く `dbm` に差替え。全7件が既存 1098 件と非衝突を確認:
@@ -4073,11 +4067,3 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `dbm` — DigiBooster Pro: `DBM0` + BE version/instruments/samples/songs/patterns/channels(1..=32)
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第171次、search-index 照合)
-
-**論文・仕様**: stformat.txt(Scream Tracker 2)・mtm-form.txt(MultiTracker)・ULTFORM.TXT(UltraTracker)・far-form.doc(Farandole Composer)・ptm-form.txt(Poly Tracker)・med-form.doc/MMD 仕様(OctaMED)・DigiBooster Pro dbpro フォーマット — 全て整数のみで実装。
-
-**実装物**: OpenMPT(libopenmpt fmt ローダー stm/mtm/ult/far/ptm/dbm)・Schism Tracker・libxmp・MilkyTracker・UADE/MED ローダー — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn・個人 wiki のトラッカー形式(MOD 派生・STM/MTM/ULT/FAR/PTM 解説)記事 — 全て整数のみで実装。
