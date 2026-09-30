@@ -3912,3 +3912,11 @@ JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、
 実装物: getsops/sops、gitleaks/gitleaks、Yelp/detect-secrets、thoughtworks/talisman、sobolevn/git-secret、hashicorp/vault、keepassxreboot/keepassxc の各リポジトリ記述。
 国内技術情報: Qiita・Zenn の sops/gitleaks/detect-secrets/Talisman/git-secret/Vault Agent/KeePassXC 導入・設定記事の実例記述。
 — 全て整数のみで実装。
+
+## 第260次
+
+DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTOEXEC.BAT/MSDOS.SYS)・bootini(boot.ini ARC パス+スイッチ)・regfile(REGEDIT4/WRE 5.00 .reg、hex/dword 型)・winini(win.ini/system.ini セクション集合)・unattend(unattend.xml/autounattend.xml、settings pass/component)・inffile(ドライバ .inf、[Version]/[Manufacturer]/HKR・HKLM 系)・cmdbat(.bat/.cmd、set/if/for/goto/label/リダイレクト)。
+
+## 出典
+
+Microsoft Learn(CONFIG.SYS/boot.ini/.reg レジストリインポート/アンサーファイル OOBE pass・setupact.inf ドライバ INF 構造・Windows コマンドリファレンス)・SS64 コマンドリファレンス・Ralf Brown interrupt list・Zenn/Qiita「bat で自動化」「 unattend.xml 作り方」・Reddit r/sysadmin・Windows IT Pro Blog・Petri IT Knowledgebase。 — 全て整数のみで実装。

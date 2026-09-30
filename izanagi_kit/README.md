@@ -483,6 +483,13 @@ The capability map — with per-feature implementation status — lives in
 | `gitsecret` | `.gitsecret`(gitignore 風の秘匿対象パス一覧、`!` 否定行)のパターン計数。 |
 | `vaultagent` | Vault Agent `.hcl`(`auto_auth`/`method`/`sink`/`template`/`listener`/`exit_after_auth`)のブロック・代入計数。 |
 | `keepassxc` | KeePassXC `keepassxc.ini`(`[General]`/`[GUI]`/`[Browser]` + `SingleInstance`/`AutoType*`/`BrowserIntegration_*`)の設定計数。 |
+| `bootini` | Windows boot.ini census |
+| `cmdbat` | Windows .bat/.cmd batch census |
+| `dossys` | DOS CONFIG.SYS/AUTOEXEC census |
+| `inffile` | Windows driver .inf census |
+| `regfile` | Windows .reg registry census |
+| `unattend` | unattend.xml answer-file census |
+| `winini` | Windows 3.x win.ini census |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
