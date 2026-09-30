@@ -88,28 +88,28 @@ pub fn parse(b: &[u8]) -> Option<Lzfse> {
             b"bvx1" => {
                 z.v1_blocks += 1;
                 if i + 12 <= b.len() {
-                    z.raw_bytes_total += le32(b, i + 4);
-                    z.payload_bytes_total += le32(b, i + 8);
+                    z.raw_bytes_total = z.raw_bytes_total.saturating_add(le32(b, i + 4));
+                    z.payload_bytes_total = z.payload_bytes_total.saturating_add(le32(b, i + 8));
                 }
             }
             b"bvx2" => {
                 z.v2_blocks += 1;
                 if i + 12 <= b.len() {
-                    z.raw_bytes_total += le32(b, i + 4);
-                    z.payload_bytes_total += le32(b, i + 8);
+                    z.raw_bytes_total = z.raw_bytes_total.saturating_add(le32(b, i + 4));
+                    z.payload_bytes_total = z.payload_bytes_total.saturating_add(le32(b, i + 8));
                 }
             }
             b"bvxn" => {
                 z.vn_blocks += 1;
                 if i + 12 <= b.len() {
-                    z.raw_bytes_total += le32(b, i + 4);
-                    z.payload_bytes_total += le32(b, i + 8);
+                    z.raw_bytes_total = z.raw_bytes_total.saturating_add(le32(b, i + 4));
+                    z.payload_bytes_total = z.payload_bytes_total.saturating_add(le32(b, i + 8));
                 }
             }
             b"bvx-" => {
                 z.raw_blocks += 1;
                 if i + 8 <= b.len() {
-                    z.raw_bytes_total += le32(b, i + 4);
+                    z.raw_bytes_total = z.raw_bytes_total.saturating_add(le32(b, i + 4));
                 }
             }
             b"bvx$" => {
@@ -133,6 +133,12 @@ pub fn parse(b: &[u8]) -> Option<Lzfse> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn huge_sizes_saturate() {
+        let z = parse(b"bvx-\xff\xff\xff\xffbvx-\xff\xff\xff\xff").unwrap();
+        assert_eq!(z.raw_bytes_total, u32::MAX);
+    }
 
     fn fixture() -> Vec<u8> {
         let mut d = b"bvx-".to_vec();
