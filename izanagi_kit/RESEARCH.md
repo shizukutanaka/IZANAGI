@@ -3958,3 +3958,25 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - MediaMTX — mediamtx.yml リファレンス(github.com/bluenviron/mediamtx)
 
 — 全て整数のみで実装。
+
+## 第264次 — ジョブスケジューラ・プロセス監視・ワーカー設定形式
+
+- `slurm`: Slurm `slurm.conf`(`Key=Value`+`NodeName=`/`PartitionName=` 別計数、~100 キー)
+- `lsf`: IBM LSF `lsb.*`(`Begin Queue`/`Begin Host`/`Begin Parameter` ブロック+`QUEUE_NAME`/`MXJ`/`PRIORITY`)
+- `supervisor`: supervisord.conf(`[program:*]`/`[group:*]`/`[eventlistener:*]`/`[fcgi-program:*]`/`[rpcinterface:*]`)
+- `monit`: Monit monitrc(`check <type>`/`if`/`set`/`start program`/conditions)
+- `pm2`: PM2 ecosystem(`module.exports`/`apps:` + `name`/`script`/`exec_mode`/`env_*`)
+- `sidekiq`: sidekiq.yml(`:concurrency:`/`:queues:` 重み付きリスト/`:schedule:` cron)
+- `quartz`: Quartz quartz.properties(`org.quartz.*` 名前空間、threadPool/jobStore/plugin/dataSource スコープ)
+
+## 出典
+
+- Slurm — slurm.conf(5) man page(schedmd.com)
+- LSF — lsb.queues/lsb.params リファレンス(IBM Docs)
+- Supervisor — supervisord.conf 設定リファレンス(supervisord.org)
+- Monit — monitrc 文法(mmonit.com)
+- PM2 — ecosystem.config.js リファレンス(pm2.keymetrics.io)
+- Sidekiq — Advanced Options wiki(github.com/sidekiq/sidekiq)
+- Quartz — quartz.properties 設定ガイド(quartz-scheduler.org)
+
+— 全て整数のみで実装。
