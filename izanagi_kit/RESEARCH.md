@@ -5016,22 +5016,6 @@ IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン�
 
 HL7 v2・FHIR JSON・BrainVision .vhdr/.vmrk・XDF・WFDB .hea・NCPDP SCRIPT の7形式を追加。パイプ区切りセグメント走査(hl7)・JSON キーセンサス(fhir)・INI セクション+`MkN=` カンマフィールド(vmrk/vhdr)・`XDF:` +length-prefixed chunk 歩行(xdf)・`name/N fs N` レコード行+`fmtXgain`(wfdb)・XML タグセンサス(ncpdp)で、メッセージ構造・チャネル/マーカー・信号仕様を整数計数する。
 
-## 出典(第219次、search-index 照合)
-
-**論文・仕様**: HL7 v2.x messaging standard(hl7.org)・FHIR R4/R5 JSON spec(hl7.org/fhir)・BrainVision Core Data Format spec(brainproducts)・XDF spec(github.com/sccn/xdf)・WFDB header format(physionet.org)・NCPDP SCRIPT standard(ncpdp.org)— 全て整数のみで実装。
-
-**実装物**: HAPI FHIR・BrainVision Analyzer/recorder・sccn/xdf LabRecorder・physionet WFDB tools・NCPDP SCRIPT 実装群 — 全て整数のみで実装。
-
-**国内技術情報**: HL7/FHIR/BrainVision/XDF/WFDB/NCPDP 解説記事(Qiita・Zenn・医療情報技術ブログ等)— 全て整数のみで実装。
-
 ## 第220次:ログ収集・データパイプライン設定形式
 
 Logstash・Fluentd・Filebeat・Telegraf・Vector・Grok・syslog-ng OSE の7形式を追加。`input/filter/output` セクション+プラグインブロック(logstash)・`<source>`/`<match>`+`@type` パラメータ(fluentd)・`filebeat.inputs` YAML 歩行(filebeat)・`[[inputs.*]]`/`[agent]` TOML センサス(telegraf)・`[sources/transforms/sinks]`+`inputs=` 配線(vector)・`NAME regex`+`%{REF:field:type}`(grok)・`@version`+source/destination/log 文(syslogng)で、パイプライン構成・プラグイン・配線を整数計数する。
-
-## 出典(第220次、search-index 照合)
-
-**論文・仕様**: Logstash pipeline configuration(elastic.co/guide)・Fluentd config file syntax(docs.fluentd.org)・Filebeat inputs/output reference(elastic.co/guide)・Telegraf configuration(docs.influxdata.com)・Vector TOML/YAML reference(vector.dev/docs)・Grok patterns(logstash-patterns-core)・syslog-ng OSE admin guide(syslog-ng.github.io)— 全て整数のみで実装。
-
-**実装物**: Logstash・Fluentd/fluent-bit・Filebeat・Telegraf・Vector(timberio/vector)・Grok 実装群・syslog-ng OSE — 全て整数のみで実装。
-
-**国内技術情報**: Logstash/Fluentd/Filebeat/Telegraf/Vector/Grok/syslog-ng 解説記事(Qiita・Zenn・インフラ技術ブログ等)— 全て整数のみで実装。
