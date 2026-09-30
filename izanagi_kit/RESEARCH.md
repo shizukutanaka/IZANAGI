@@ -4658,3 +4658,26 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: xmllint/libxml2・Jing・Saxon/Xalan・BaseX・W3C テストスイート — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の XML Schema 入門・RELAX NG 解説・Schematron 導入記事・XSLT 変換・XQuery 基礎記事 — 全て整数のみで実装。
+## 第195次: 識別子・チェックデジット形式(isbn / issn / ean / upc / ismn / orcid / luhn)
+
+**方法**: 文献参照ラウンド継続 — 標準識別子のチェックデジット検証器。全7件非衝突(`doi` は構造検証が弱く候補外):
+
+- `isbn` — ISBN-10(加重 i mod 11、`X`=10)/ISBN-13(978/979 EAN mod-10)
+- `issn` — ISSN(降順加重 8..1 mod 11、`X`)
+- `ean` — EAN-13(1,3 交互 mod-10 + GS1 prefix)
+- `upc` — UPC-A(3,1 交互 mod-10 + ナンバーシステム)
+- `ismn` — ISMN(979-0 mod-10 / レガシー `M-`:M=3 重み3 + A=10..Z=35)
+- `orcid` — ORCID(ISO 7064、逐次 `×2` mod 11、`X`)
+- `luhn` — Luhn mod-10(右から 2 倍 -9)+ `check_digit` 補助関数
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在識別子フィクスチャ)。
+
+## 出典(第195次、search-index 照合)
+
+**論文・仕様**: ISO 2108 (ISBN)・ISO 3297 (ISSN)・ISO/IEC 15420 (EAN/UPC)・ISO 10957 (ISMN)・ORCID iD 仕様・ISO/IEC 7812-1 (Luhn)・ISO 7064 — 全て整数のみで実装。
+
+**実装物**: isbnlib/python-stdnum・GS1 check digit calculator・ORCID API docs・Apache Commons Validator — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ISBN・JAN コード・Luhn チェックデジット解説記事 — 全て整数のみで実装。
