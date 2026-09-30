@@ -4975,3 +4975,15 @@ HTTP Archive(.har)・Hoppscotch collection・Bruno .bru・REST Client .http/.res
 **実装物**: ahadith/har-schema・hoppscotch/hoppscotch・usebruno/bruno・Huachao/vscode-restclient・Kong/insomnia・raml-org/raml-spec・apiaryio/api-blueprint — 全て整数のみで実装。
 
 **国内技術情報**: HAR/Hoppscotch/Bruno/REST Client/Insomnia/RAML/API Blueprint 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第216次:パッケージマネージャ・ロックファイル形式
+
+yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock・poetry.lock・composer.lock の7形式を追加。エントリヘッダ(yarn)・JSON キーセンサス(npm/composer)・YAML ブロック走査(pnpm)・TOML テーブル(cargo/poetry)・セクション+インデント分類(gem)で、パッケージ数・解決 URL・整合性ハッシュ・依存ブロック等を整数計数する。
+
+## 出典(第216次、search-index 照合)
+
+**論文・仕様**: Yarn v1 lockfile format(classic.yarnpkg.com)・package-lock.json spec(docs.npmjs.com)・pnpm-lock.yaml format(pnpm.io/git/lockfiles)・Cargo.lock format(doc.rust-lang.org/cargo)・Gemfile.lock format(bundler.io/guides)・poetry.lock format(python-poetry.org)・composer.lock schema(getcomposer.org/doc)— 全て整数のみで実装。
+
+**実装物**: yarnpkg/yarn・npm/cli・pnpm/pnpm・rust-lang/cargo・rubygems/bundler・python-poetry/poetry・composer/composer — 全て整数のみで実装。
+
+**国内技術情報**: yarn.lock/package-lock/pnpm-lock/Cargo.lock/Gemfile.lock/poetry.lock/composer.lock 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
