@@ -4314,3 +4314,67 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: gtkwave/vcd パーサ・OpenSTA/OpenROAD・OpenRCX・kactus2/ipyxact・iverilog/yosys — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の VCD・SDC・SPEF・UPF・IP-XACT・Verilog 解説記事 — 全て整数のみで実装。
+## 第179次: オーディオ・音声音楽形式 第3弾(amr / qcp / w64 / ircam / rx2 / nist / maud)
+
+**方法**: 文献参照ラウンド継続 — 音声・ループ素材のコンテナ/ヘッダ形式。`au`/`wav`/`aiff`/`caf`/`voc`/`wv`/`tta`/`dsf`/`rf64`/`mp3`/`ape`/`flac`/`ogg`/`midi`/`xi`/`iti`/`pat`/`sbi`/`sf2`/`dls` は既存のため除外。全7件が既存 1154 件と非衝突を確認:
+
+- `amr` — AMR-NB/WB(RFC 4867): `#!AMR`/`#!AMR-WB` マジック + FT フレームサイズ表走査 + 20ms×フレーム数
+- `qcp` — Qualcomm QCP: `RIFF`+`QLCM` + `fmt `/`vndr`/`labl`/`offs`/`data` 偶数パディングチャンク走査
+- `w64` — Sony Wave64: `riff`/`wave`/`fmt `/`data` 128bit GUID + `u64le` チャンク長 + WAVEFORMAT デコード
+- `ircam` — IRCAM/BICSF: `0x0001a364` 両エンディアン + rate 生ビット + channels
+- `rx2` — Propellerhead REX/REX2: `FORM`+`REX `/`REX2` + `HEAD`/`SLIC` チャンク列挙
+- `nist` — NIST SPHERE: `NIST_1A` + `key -i value`/`key -sN value` ヘッダ + `end_head`
+- `maud` — Commodore Amiga IFF `MAUD`: `MHDR` レート + `ANNO`/`AUTH`/`MDAT` センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第179次、search-index 照合)
+
+**論文・仕様**: RFC 4867(AMR)・Qualcomm QCP・Sony Wave64・BICSF/IRCAM・REX2 SDK・NIST SPHERE・EA IFF85 MAUD — 全て整数のみで実装。
+
+**実装物**: ffmpeg/libavformat(amr/qcp/w64/ircam/nist/maud/rex2 demuxer)・libsndfile・SoX — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の AMR・QCP・Wave64・REX2・NIST SPHERE・IFF/MAUD 解説記事 — 全て整数のみで実装。
+## 第180次: ネットワークプロトコル第7弾 — ストレージ・リモートアクセス(iscsi / fcoe / aoe / nbd / telnet / rfb / sftp)
+
+**方法**: 文献参照ラウンド継続 — ブロックストレージ・リモート端末・画面共有プロトコル。全7件が既存 1161 件と非衝突を確認(`rdp` は既存のため除外):
+
+- `iscsi` — RFC 7143: 48B Basic Header、initiator(0x00–)/target(0x20–) opcode 表、Immediate/F ビット
+- `fcoe` — RFC 5120: ethertype `0x8906`、version ニブル、SOF/EOF コード名
+- `aoe` — ATA over Ethernet 0x88a2: v1 フラグ+command(Issue/QueryConfig/Mask/Reserve)+shelf/slot/tag
+- `nbd` — NBD: `NBDMAGIC`+`IHAVEOPT` handshake、`0x25609513`/`0x67446698` transmission、READ/WRITE/DISC/FLUSH/TRIM
+- `telnet` — RFC 854: IAC WILL/WONT/DO/DONT、SB…SE サブネゴ、`IAC IAC` エスケープ
+- `rfb` — RFC 6143/VNC: `RFB NNN.NNN` バナー + security types + 失敗理由文字列
+- `sftp` — draft-ietf-secsh-filexfer: `u32be` len + type + request-id パケット走査、INIT/VERSION 判定
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第180次、search-index 照合)
+
+**論文・仕様**: RFC 7143(iSCSI)・RFC 5120(FCoE)・AoE 11.10/CoRID・NBD proto 文書・RFC 854(Telnet)・RFC 6143(RFB)・draft-ietf-secsh-filexfer-02(SFTP) — 全て整数のみで実装。
+
+**実装物**: open-iscsi/targetcli・aoetools・qemu-nbd/nbdkit・telnetd/in.telnetd・TigerVNC/libvncserver・OpenSSH sftp-server — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の iSCSI・AoE・NBD・Telnet IAC・VNC/RFB・SFTP 解説記事 — 全て整数のみで実装。
+## 第181次: 楽譜・記譜形式(musicxml / mscx / mei / kern / ly / nwc / capx / gp)
+
+**方法**: 文献参照ラウンド継続 — 楽譜交換・記譜言語。全8件が既存 1168 件と非衝突を確認(`abc`/`midi`/`mei`-adjacent 既存モジュールは除外):
+
+- `musicxml` — W3C MusicXML 4.x: `score-partwise`/`timewise`/`opus` ルート + part-list/measure/note 集計
+- `mscx` — MuseScore Studio XML: `<museScore version>` + Staff/Measure/Chord/Dynamic/Slur/Tuplet
+- `mei` — MEI Guidelines: `<mei>` + `music-encoding.org` NS + meiversion + mdiv/measure/app-rdg-lem
+- `kern` — Humdrum Toolkit `**kern`: `**` 排他解釈・`*` タンデム・`=` 小節・`!`/`!!!` コメント・`4c`/`4r` トークン
+- `ly` — GNU LilyPond: `\version`/`\header`/`\score`/`\book`/`\paper`/`\relative`/`\key`/`\time`/`\clef` + 音名走査
+- `nwc` — NoteWorthy Composer `.nwctxt`: `!NoteWorthyComposer(v)` + `|Type|Key:Val` 行
+- `capx` — Capella `.capx` XML: `<capella>` + `<info>`/`<system>`/`<voices>`/`<head>`/`<barline>`
+- `gp` — Guitar Pro: `FICHIER GUITAR PRO v…` バナー(v3–v5)+ GP7 `BCFZ` コンテナ
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第181次、search-index 照合)
+
+**論文・仕様**: W3C MusicXML 4.0・MuseScore mscx schema・MEI Guidelines v5・Humdrum `**kern` Representation(Good/Huron 系)・GNU LilyPond NR/LSR・NoteWorthy Composer nwctxt・Capella XML capx・Guitar Pro file format リバースエンジニア資料 — 全て整数のみで実装。
+
+**実装物**: musescore/MuseScore・music-encoding・rism-digital/verovio・humdrum-tools・lilypond/lilypond・NoteWorthy・capella-software・Guitar Pro 互換 (TuxGuitar/AlphaTab) — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の MusicXML・MEI・Humdrum kern・LilyPond・NoteWorthy・Capella・GP 解説記事 — 全て整数のみで実装。
