@@ -406,6 +406,13 @@ The capability map — with per-feature implementation status — lives in
 | `tnsnames`, `sqlnet`, `pgservice`, `freetds`, `ldapconf`, `odbcini`, `db2cli` | データベースクライアント接続設定形式 — Oracle tnsnames.ora/sqlnet.ora・PostgreSQL pg_service.conf・FreeTDS freetds.conf・OpenLDAP ldap.conf・ODBC odbc.ini/odbcinst.ini・DB2 db2cli.ini の検出と構造カウント。 |
 | `bannedips`, `bukkit`, `eula`, `opsjson`, `serverprop`, `spigot`, `whitelist` | Minecraft server.properties / eula.txt / ops.json / whitelist.json / banned-ips.json / Bukkit bukkit.yml / Spigot spigot.yml | JSON entry census (`uuid`/`level`/`expires`) + `key=value`/section settings, named-key census |
 | `authelia`, `dexidp`, `hydra`, `keycloak`, `kratos`, `oathkeeper`, `shibconf` | Keycloak realm export JSON / Authelia configuration.yml / Dex config.yaml / Ory Hydra・Kratos・Oathkeeper YAML / Shibboleth attribute-filter・resolver・relying-party XML | section/setting census + handler・flow・connector・rule counts, named-key census |
+| `requirements` | `requirements.txt` pip 依存定義(指定/ピン/範囲/include/オプション/extras/マーカー) |
+| `pipfile` | Pipfile(TOML、source/依存/テーブル参照) |
+| `setupcfg` | setup.cfg(metadata/options/entry_points セクション) |
+| `toxini` | tox.ini(セクション/testenv:NAME/設定/継続項目) |
+| `condarc` | .condarc(channels/リスト文脈/scalar 設定) |
+| `condaenv` | environment.yml(channels/dependencies/pip/variables) |
+| `pylintrc` | .pylintrc(セクション/disable・enable 件数/キー) |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
