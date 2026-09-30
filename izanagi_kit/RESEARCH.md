@@ -5263,3 +5263,15 @@ RouterOS export・Junos 設定・Cisco IOS running-config・OpenWrt UCI・Netpla
 **実装物**: MikroTik RouterOS・Juniper Junos OS・Cisco IOS・openwrt/openwrt・canonical/netplan・ifupdown・firewalld/firewalld — 全て整数のみで実装。
 
 **国内技術情報**: RouterOS・Junos set コマンド・Cisco IOS・OpenWrt UCI・netplan・interfaces ファイル・firewalld 解説記事(Qiita・Zenn・ネットワーク系技術ブログ等)— 全て整数のみで実装。
+
+## 第240次:構成管理・ジョブ定義形式
+
+Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェスト・Nomad ジョブ HCL・Rundeck ジョブ YAML・borgmatic 設定の7形式を追加。plays/hosts+scope 追跡のタスク・モジュール呼出(ansible)・`key:`+`- `+`family.func`(salt)・resource+` do`+action/notifies/`node[`(chef)・class/node/define+`{ '':`+`=>`+`Type[`(puppet)・job/group/task/service/port+constraint/resources(nomad)・`- name:`+commands+schedule+nodefilters(rundeck)・source_directories/repositories+keep_*/hooks(borgmatic)で、構成管理・ジョブ定義を整数計数する。
+
+## 出典(第240次、search-index 照合)
+
+**論文・仕様**: Ansible playbook syntax(docs.ansible.com)・Salt SLS states reference(docs.saltproject.io)・Chef recipe/metadata.rb reference(docs.chef.io)・Puppet language reference(puppet.com docs)・Nomad job specification(developer.hashicorp.com/nomad)・Rundeck job YAML reference(docs.rundeck.com)・borgmatic configuration reference(torsion.org/borgmatic)— 全て整数のみで実装。
+
+**実装物**: ansible/ansible・saltstack/salt・chef/chef・puppetlabs/puppet・hashicorp/nomad・rundeck/rundeck・borgmatic-collective/borgmatic — 全て整数のみで実装。
+
+**国内技術情報**: Ansible playbook・Salt・Chef・Puppet・Nomad・Rundeck・borgmatic 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
