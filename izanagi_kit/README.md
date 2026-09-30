@@ -434,6 +434,13 @@ The capability map — with per-feature implementation status — lives in
 | `k3d` | k3d cluster config census: `apiVersion: k3d.io/v1alpha*` + servers/agents/ports/volumes/env/registries/options |
 | `tiltfile` | Tiltfile (Starlark) census: `k8s_yaml`/`docker_build`/`k8s_resource`/`local_resource`/`helm`/`load`/`config.*` call sites + resource deps |
 | `containerd` | containerd `config.toml` census: `[plugins."io.containerd.*"]` subtrees + grpc/cni/metrics/debug/timeouts sections |
+| `vimrc` | `.vimrc`/`init.vim` census: `set`/`let`/`*noremap`/`autocmd`/`function`/`command`/`Plug` ステートメント |
+| `vscodeconf` | VS Code `settings.json` (JSONC) census: `editor.*`/`workbench.*`/`files.*`/`terminal.*` 名前空間 + `[lang]` 上書きセクション |
+| `helix` | Helix `config.toml`/`languages.toml` census: `[editor.*]`/`[keys.*]` テーブル + `[[language]]`/`[[language-server]]` エントリ |
+| `zedconf` | Zed `settings.json` census: `theme`/`buffer_font*`/`vim_mode`/`base_keymap`/`lsp`/`project_panel` 等 ~110 キー |
+| `emacs` | `init.el`/`.emacs`/`.spacemacs` census: `(setq*`/`(use-package`/`(require`/`(add-hook`/key バインド/`(defun`/`(custom-set-*` |
+| `ideavim` | `.ideavimrc` census: vim 系 `set`/`*map` + IdeaVim 拡張 `<Action>(…)`/`sethandler`/`let g:ideavim*` |
+| `nanorc` | GNU nano `.nanorc` census: `set`/`unset`/`bind`/`include`/`syntax`/`color`/`linter`/`formatter` |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
