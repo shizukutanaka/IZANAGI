@@ -4867,3 +4867,147 @@ Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks 
 **実装物**: Dart pub・Crystal shards・Cabal/cabal-install・LuaRocks・cpanm/carton・opam・nimble — 全て整数のみで実装。
 
 **国内技術情報**: pubspec.yaml/shard.yml/cabal/rockspec/cpanfile/opam/nimble 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第207次:ボードゲーム・パズル形式
+
+チェス EPD・将棋 CSA 棋譜・KIF 棋譜・象棋 XQF・USI プロトコル・AcrossLite .puz・数独テキストの7形式を追加。pgn/fen/gtp/sgf は既存モジュールのため除外。テキスト系は行/フィールド走査、バイナリ系はマジック+レコード歩行で検出・集計する。
+
+## 出典(第207次、search-index 照合)
+
+**論文・仕様**: EPD spec (Tim Mann/ChessX)・CSA 棋譜フォーマット標準仕様・KIF ファイルフォーマット・XQF spec (XQBase)・USI プロトコル (Tord Romstad 準拠)・Across Lite PUZ format documentation・数独テキスト表現(Norvig 表記)— 全て整数のみで実装。
+
+**実装物**: Crafty/XBoard・CSA for Windows・ShogiGUI/将棋所・XQWizard・USI エンジン群・Across Lite/Shortyz・ sudoku solver 参考実装 — 全て整数のみで実装。
+
+**国内技術情報**: CSA 棋譜・KIF・USI ・数独パーサ解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第208次:グラフ・ネットワーク解析形式
+
+GML・GraphML・GEXF・Pajek .net・GUESS GDF・LEDA .gw・Tulip .tlp の7形式を追加。graph/dimacs/mtx/sparql は既存モジュールのため除外。XML 系は境界付きタグ走査、テキスト系はセクション/レコード走査で検出・集計する。
+
+## 出典(第208次、search-index 照合)
+
+**論文・仕様**: GML technical report (Himsolt, Gdansk)・GraphML specification (graphml.graphdrawing.org)・GEXF 1.2/1.3 draft format (gexf.net)・Pajek NET format (Batagelj & Mrvar)・GDF file format (GUESS/Adar)・LEDA graph I/O format (leda/graph .gw)・Tulip TLP format documentation — 全て整数のみで実装。
+
+**実装物**: yEd/GML tools・graphml-java・Gephi・Pajek/Pajek-XXL・GUESS・LEDA library・Tulip — 全て整数のみで実装。
+
+**国内技術情報**: GraphML/GEXF/Pajek/グラフファイル形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第209次:量子計算・量子回路記述形式
+
+OpenQASM 2/3・Rigetti Quil・IBM Qobj・Amazon Braket IR・Xanadu Blackbird・Q#・OpenPulse の7形式を追加。`qir` は LLVM bitcode 系で `llvmbc` と兼任のため除外。QASM 系はステートメント単位、JSON 系はキー走査、Blackbird はヘッダ+パイプ記法、Q# はキーワード単位、OpenPulse は行頭キーワード計数で検出・集計する。
+
+## 出典(第209次、search-index 照合)
+
+**論文・仕様**: OpenQASM 2.0 paper (arXiv:1707.03429)・OpenQASM 3 spec / OpenPulse grammar (openqasm.com)・Quil language spec (Rigetti, arXiv:1608.03355)・IBM Qobj schema (qiskit-ibm-runtime docs)・Amazon Braket IR (braket-ir schemas, github.com/amazon-braket)・Blackbird photonic quantum language (Xanadu/Strawberry Fields)・Q# language reference (Microsoft Learn) — 全て整数のみで実装。
+
+**実装物**: qiskit・pyQuil・braket-ir-python・Strawberry Fields・qsharp-compiler・openqasm reference parser — 全て整数のみで実装。
+
+**国内技術情報**: OpenQASM/Quil/Q#/量子プログラミング言語解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第210次:ゲームエンジン・エディタプロジェクト形式
+
+Unreal `.uproject`/`.uplugin`・Godot `project.godot`/`.tscn`・Twee 3・Ren'Py `.rpy`・RPG Maker `.rxdata`/`.rvdata2` の7形式を追加。JSON 系はキー走査、INI/セクション系はヘッダ走査、Twee/Ren'Py は行頭キーワード計数、rvdata は Marshal 4.8 トークンの再帰走査で検出・集計する。
+
+## 出典(第210次、search-index 照合)
+
+**論文・仕様**: Unreal Engine .uproject/.uplugin file reference (Epic docs)・Godot project.godot / TSCN file format (Godot docs, docs.godotengine.org)・Twee 3 specification (Twine/Tweego)・Ren'Py script documentation (renpy.org)・Ruby Marshal format 4.8 (ruby-lang docs)・RPG Maker data file format — 全て整数のみで実装。
+
+**実装物**: Unreal Engine editor・Godot Engine・Tweego/Twine・Ren'Py SDK・RPG Maker VX Ace/MV・Ruby marshal.c — 全て整数のみで実装。
+
+**国内技術情報**: Unreal プロジェクトファイル/Godot シーン形式/Twee/Ren'Py/RPGツクールデータ形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第211次:構成・データ記述言語(DSL)形式
+
+Dhall・Jsonnet・Nickel・KCL・Apple Pkl・Clojure EDN・Zig ZON の7形式を追加。いずれも `let`/`in`・`self.`・`schema`・`amends`・`:keyword`・`.{` 等の言語固有シグネチャで検出し、バインディング・契約注釈・インポート・コメントを整数計数する。
+
+## 出典(第211次、search-index 照合)
+
+**論文・仕様**: Dhall language standard(dhall-lang.org)・Jsonnet language spec(jsonnet.org)・Nickel language(nickel-lang.org)・KCL spec(kcl-lang.io)・Pkl language reference(pkl-lang.org)・EDN format spec(github.com/edn-format/edn)・Zig ZON(ziglang.org)— 全て整数のみで実装。
+
+**実装物**: dhall-haskell・google/go-jsonnet・tweag/nickel・KusionStack KCL・apple/pkl・Clojure reader・Zig compiler ZON parser — 全て整数のみで実装。
+
+**国内技術情報**: Dhall/Jsonnet/Nickel/KCL/Pkl/EDN/ZON 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第212次:スマートコントラクト・ブロックチェーン言語形式
+
+Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`pragma solidity`/`# @version`/`module addr::name`/`#[starknet::contract]`/`(define-*`/`contract+receive`/`recv_internal` 等の言語固有シグネチャで検出し、宣言・デコレータ/属性・外部呼出・コメントを整数計数する。
+
+## 出典(第212次、search-index 照合)
+
+**論文・仕様**: Solidity docs(docs.soliditylang.org)・Vyper docs(docs.vyperlang.org)・Move language reference(aptos.dev / sui.io)・Cairo language docs(cairo-lang.org / StarkNet docs)・Clarity language reference(docs.stacks.co)・Tact language docs(docs.tact-lang.org)・FunC docs(docs.ton.org)— 全て整数のみで実装。
+
+**実装物**: solidity・vyper・aptos-core/move・starkware cairo・stacks-blockchain clarity・tact-lang/tact・ton-blockchain func — 全て整数のみで実装。
+
+**国内技術情報**: Solidity/Vyper/Move/Cairo/Clarity/Tact/FunC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第213次:IaC・デプロイ定義ファイル形式
+
+CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・Helm Chart.yaml・Pulumi.yaml の7形式を追加。`AWSTemplateFormatVersion`/`targetScope`/`service+provider`/`services:`/`Vagrant.configure`/`apiVersion+type`/`name+runtime` 等の形式固有シグネチャで検出し、宣言・ブロック内エントリ・組込み関数使用数・コメントを整数計数する。YAML 系はインデント追跡のブロック抽出で同名キーのネスト混入(サービス内 `volumes:`、テンプレ内 `config:`)を抑制する。
+
+## 出典(第213次、search-index 照合)
+
+**論文・仕様**: AWS CloudFormation User Guide(docs.aws.amazon.com)・Bicep language docs(learn.microsoft.com/azure/azure-resource-manager/bicep)・Serverless Framework docs(serverless.com)・Compose Specification(compose-spec.io)・Vagrantfile docs(developer.hashicorp.com/vagrant)・Helm Chart.yaml guide(helm.sh)・Pulumi YAML reference(pulumi.com)— 全て整数のみで実装。
+
+**実装物**: aws-cloudformation・Azure/bicep・serverless/serverless・compose-spec・hashicorp/vagrant・helm/helm・pulumi/pulumi — 全て整数のみで実装。
+
+**国内技術情報**: CloudFormation/Bicep/Serverless/Compose/Vagrant/Helm/Pulumi 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第214次:CI/CD パイプライン定義ファイル形式
+
+.gitlab-ci.yml・Jenkinsfile・.circleci/config.yml・azure-pipelines.yml・.drone.yml・Concourse pipeline.yml・bitrise.yml の7形式を追加。`stages`/`pipeline {`/`jobs+workflows`/`trigger+pool`/`kind: pipeline`/`resource_types`/`- get:`/`format_version` 等の形式固有シグネチャで検出し、ジョブ・ステップ・トリガ・イメージ・変数エントリを整数計数する。YAML 系はブロック内最小インデントの `- ` 項目のみ計数し、workflow 内 `jobs:` やサービス内 `volumes:` の同名ネスト混入を抑止する(第213次で導入した手法を踏襲)。
+
+## 出典(第214次、search-index 照合)
+
+**論文・仕様**: GitLab CI YAML reference(docs.gitlab.com)・Jenkins Pipeline syntax(jenkins.io/doc/book/pipeline)・CircleCI config reference(circleci.com/docs)・Azure Pipelines YAML schema(learn.microsoft.com/azure/devops/pipelines/yaml-schema)・Drone YAML spec(docs.drone.io)・Concourse pipeline schema(concourse-ci.org)・bitrise.yml reference(bitrise.io)— 全て整数のみで実装。
+
+**実装物**: gitlab-org/gitlab・jenkinsci/jenkins・circleci・microsoft/azure-pipelines-yaml・harness/drone・concourse/concourse・bitrise-io/bitrise — 全て整数のみで実装。
+
+**国内技術情報**: GitLab CI/Jenkins/CircleCI/Azure Pipelines/Drone/Concourse/Bitrise 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第215次:API テスト・HTTP クライアント・サービス定義形式
+
+HTTP Archive(.har)・Hoppscotch collection・Bruno .bru・REST Client .http/.rest・Insomnia エクスポート・RAML・API Blueprint の7形式を追加。JSON キー走査(har/hoppscotch)・`name {`ブロック走査(bru)・行状態機械(httpfile/insomnia)・`#%RAML`+最小インデント子キー(raml)・Markdown 見出し/`+`マーカ走査(apib)で、リクエスト・ヘッダ・リソース・型宣言等を整数計数する。
+
+## 出典(第215次、search-index 照合)
+
+**論文・仕様**: W3C HAR 1.2 spec(github.com/ahmadnassri/har-spec)・Hoppscotch collection schema(github.com/hoppscotch)・Bruno markup language(docs.usebruno.com/bru-lang)・VS Code REST Client .http grammar(github.com/Huachao/vscode-restclient)・Insomnia export format(docs.insomnia.rest)・RAML 0.8/1.0 spec(raml.org)・API Blueprint spec(apiblueprint.org)— 全て整数のみで実装。
+
+**実装物**: ahadith/har-schema・hoppscotch/hoppscotch・usebruno/bruno・Huachao/vscode-restclient・Kong/insomnia・raml-org/raml-spec・apiaryio/api-blueprint — 全て整数のみで実装。
+
+**国内技術情報**: HAR/Hoppscotch/Bruno/REST Client/Insomnia/RAML/API Blueprint 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第216次:パッケージマネージャ・ロックファイル形式
+
+yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock・poetry.lock・composer.lock の7形式を追加。エントリヘッダ(yarn)・JSON キーセンサス(npm/composer)・YAML ブロック走査(pnpm)・TOML テーブル(cargo/poetry)・セクション+インデント分類(gem)で、パッケージ数・解決 URL・整合性ハッシュ・依存ブロック等を整数計数する。
+
+## 出典(第216次、search-index 照合)
+
+**論文・仕様**: Yarn v1 lockfile format(classic.yarnpkg.com)・package-lock.json spec(docs.npmjs.com)・pnpm-lock.yaml format(pnpm.io/git/lockfiles)・Cargo.lock format(doc.rust-lang.org/cargo)・Gemfile.lock format(bundler.io/guides)・poetry.lock format(python-poetry.org)・composer.lock schema(getcomposer.org/doc)— 全て整数のみで実装。
+
+**実装物**: yarnpkg/yarn・npm/cli・pnpm/pnpm・rust-lang/cargo・rubygems/bundler・python-poetry/poetry・composer/composer — 全て整数のみで実装。
+
+**国内技術情報**: yarn.lock/package-lock/pnpm-lock/Cargo.lock/Gemfile.lock/poetry.lock/composer.lock 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第217次:歌声合成・ボーカルシーケンス形式
+
+UTAU .ust・OpenUtau .ustx・VOCALOID3/4 .vsqx・VOCALOID5 .vpr・Synthesizer V .svp・CeVIO .ccs・HTS/UTAU .lab の7形式を追加。INI セクション走査(ust)・YAML ブロック走査(ustx)・XML タグ/属性センサス(vsqx/ccs)・JSON キーセンサス(vpr/svp)・`start end phone` 行検証(lab)で、ノート数・歌詞・音素・ピッチ・パラメータ曲線等を整数計数する。
+
+## 出典(第217次、search-index 照合)
+
+**論文・仕様**: UTAU .ust format(utau2008/utautech)・OpenUtau .ustx schema(github.com/stakira/OpenUtau)・VSQX format(utaformatix ドキュメント/VOCALOID3/4 出力)・VOCALOID5 .vpr JSON・Synthesizer V .svp(Dreamtonics)・CeVIO .ccs XML schema・HTS label format(monophone + full-context)— 全て整数のみで実装。
+
+**実装物**: UTAU・stakira/OpenUtau・YAMAHA VOCALOID3/4/5・Dreamtonics Synthesizer V・CeVIO Creative Studio/AI・HTS 系アライメントツール群 — 全て整数のみで実装。
+
+**国内技術情報**: UTAU 譜面/ustx/vsqx/vpr/svp/ccs/lab 解説記事(Qiita・Zenn・技術ブログ・utaformatix 等)— 全て整数のみで実装。
+
+## 第218次:天文・天体観測データ形式
+
+IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン・MPC 80桁観測フォーマット・IVOA ADQL の7形式を追加。XML タグ/属性センサス(votable)・`#ASDF`+YAML ツリー走査(asdf)・`|` ヘッダ行分類(ipac)・コメント YAML+CSV(ecsv)・座標系+shape(args) 行(ds9reg)・80桁固定カラム走査(mpc)・大文字キーワードセンサス(adql)で、テーブル構造・列型・座標系・観測レコード・幾何クエリを整数計数する。
+
+## 出典(第218次、search-index 照合)
+
+**論文・仕様**: IVOA VOTable spec(ivoa.net/documents/VOTable)・ASDF standard(asdf-standard.readthedocs.io)・IPAC Table Format(IRSA/Caltech)・Astropy ECSV spec(docs.astropy.org)・SAOImage DS9 Region File Format(ds9.si.edu/doc/ref/region.html)・MPC 80-column observation format(minorplanetcenter.net)・IVOA ADQL 2.x spec — 全て整数のみで実装。
+
+**実装物**: astropy・asdf-format・IRSA/IPAC ツール・ds9・minorplanetcenter 観測報告・TAP/ADQL 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: VOTable/ASDF/IPAC/ECSV/DS9 リージョン/MPC フォーマット/ADQL 解説記事(Qiita・Zenn・天文関連技術ブログ等)— 全て整数のみで実装。
