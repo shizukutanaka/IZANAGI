@@ -3928,3 +3928,11 @@ Microsoft Learn(CONFIG.SYS/boot.ini/.reg レジストリインポート/アン�
 ## 出典
 
 Mercurial 公式リファレンス(hgrc/.hgignore 構文)・Subversion Red Book(Runtime Configuration Area)・git-scm ドキュメント(gitignore/gitattributes/gitmodules)・Fossil SCM 公式(settings/versionable settings)・Qiita/Zenn「gitignore の書き方」「.gitattributes で LF 統一」・Reddit r/git・Stack Overflow Mercurial config 系記事。 — 全て整数のみで実装。
+
+## 第262次
+
+静的サイトジェネレータ・ドキュメントサイト設定形式:hugoconf(Hugo config.toml/yaml、baseURL+[taxonomies]/[params]/[[menu.*]])・jekyll(_config.yml、theme/plugins/exclude/collections キーセット)・mkdocs(mkdocs.yml、site_name+nav/theme/plugins/markdown_extensions)・docusaurus(docusaurus.config.js、module.exports+themeConfig スコープ+navbar/footer/prism)・hexo(Hexo _config.yml、permalink+*_generator/skip_render/deploy)・zola(config.toml、base_url+compile_sass/build_search_index/highlight_code+[markdown]/[extra])・docsify(index.html window.$docsify、search/plugins/alias ブロック)。
+
+## 出典
+
+Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの configuration リファレンス・Qiita「Hugo でブログ」「mkdocs-material 設定まとめ」・Zenn「Docusaurus v3 移行」・Reddit r/selfhosted・r/staticblok 系記事。 — 全て整数のみで実装。
