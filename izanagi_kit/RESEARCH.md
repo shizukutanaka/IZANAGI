@@ -5143,3 +5143,15 @@ Go pprof テキストプロファイル・Chrome Trace Event JSON・perf script 
 **実装物**: google/pprof・catapult(tracing パーサ)・torvalds/linux tools/perf・valgrind callgrind・openjdk/jdk JFR・bsc-performance-tools/paraver-kernel・jlfwong/speedscope — 全て整数のみで実装。
 
 **国内技術情報**: pprof/Chrome Tracing/perf/Callgrind/JFR/Paraver/speedscope 解説記事(Qiita・Zenn・パフォーマンス系技術ブログ等)— 全て整数のみで実装。
+
+## 第230次:ベンチマーク・計測結果形式
+
+Google Benchmark JSON・hyperfine JSON・Go benchstat/benchfmt テキスト・JMH JSON・Criterion.rs 結果 JSON・airspeed velocity 結果 JSON・pytest-benchmark JSON の7形式を追加。`"benchmarks"`+`"run_type"` iteration/aggregate+`"time_unit"`+per-second カウンタ(gbench)・`"command"`+`"times"`+`"exit_codes"`+parameters/warmup(hyperfine)・`BenchmarkName-N` レコード+distinct 名/単位+`key: value` メタデータ(benchstat)・`"primaryMetric"`+`"scoreUnit"`+mode 別+rawData/scoreCI/secondaryMetrics(jmh)・estimates.json の統計ブロック+point_estimate/confidence_interval+sample.json iters/times+benchmark.json メタデータ(criterion)・`"results"`+`"benchmark_version"`+`"started_at"`+result/code/param_names(asv)・`"machine_info"`+`"benchmarks"`+`"stats"`+rounds/iterations/ops 合計(pytestbench)で、ベンチマーク計測結果を整数計数する。
+
+## 出典(第230次、search-index 照合)
+
+**論文・仕様**: Google Benchmark User Guide JSON output(github.com/google/benchmark)・hyperfine `--export-json` schema(github.com/sharkdp/hyperfine)・benchfmt format spec(golang.org/x/perf/benchfmt)+benchstat(golang.org/x/perf)・JMH JSON output format(openjdk.java.net/projects/code-tools/jmh)・Criterion.rs output layout(estimates.json/sample.json/benchmark.json、github.com/bheisler/criterion.rs)・asv results format(asv.readthedocs.io)・pytest-benchmark JSON format(pytest-benchmark.readthedocs.io)— 全て整数のみで実装。
+
+**実装物**: google/benchmark・sharkdp/hyperfine・golang/perf benchfmt/benchstat・openjdk/jmh・bheisler/criterion.rs・airspeed-velocity/asv・ionelmc/pytest-benchmark — 全て整数のみで実装。
+
+**国内技術情報**: Google Benchmark/hyperfine/benchstat/JMH/Criterion/asv/pytest-benchmark 解説記事(Qiita・Zenn・ベンチマーク系技術ブログ等)— 全て整数のみで実装。
