@@ -3871,3 +3871,14 @@ VPN・トンネル設定ファイル形式。対象: `wireguard`(wg.conf/wg-quic
 実装物: llvm/llvm-project(clang/tools・clang-tools-extra)、google/styleguide(cppguide/cpplint)、detekt/detekt、 pinterest/ktlint、realm/SwiftLint、rubocop/rubocop の各リポジトリ記述。
 国内技術情報: Qiita・Zenn の clang-format/clang-tidy/detekt/ktlint/SwiftLint/RuboCop 設定記事の実例記述。
 — 全て整数のみで実装。
+
+## 第256次(search-index 照合ラウンド / 実装証跡付き)
+
+JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、bunfig.toml、angular.json、turbo.json、nx.json、lerna.json。各ツールのスキーマ・ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 出典(第256次、search-index 照合)
+
+論文・仕様: TypeScript tsconfig リファレンス(compilerOptions ~150 キー)、Deno 設定リファレンス(deno.json)、Bun bunfig.toml ドキュメント、Angular workspace スキーマ(@angular/cli)、Turborepo turbo.json スキーマ、Nx nx.json リファレンス、Lerna lerna.json スキーマ。
+実装物: microsoft/TypeScript・denoland/deno・oven-sh/bun・angular/angular-cli・vercel/turborepo・nrwl/nx・lerna/lerna の各リポジトリ記述。
+国内技術情報: Qiita・Zenn の tsconfig/deno/bun/Angular/turbo/nx/lerna 設定記事の実例記述。
+— 全て整数のみで実装。

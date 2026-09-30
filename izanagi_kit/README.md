@@ -455,6 +455,13 @@ The capability map — with per-feature implementation status — lives in
 | `ktlint` | ktlint `.editorconfig` census: `[*.{kt,kts}]` + `ktlint_*`/`ij_kotlin_*`/`ij_kt_*` プロパティ分類 |
 | `rubocop` | `.rubocop.yml` census: `AllCops`/`Dept/Cop:` ブロック + `require`/`inherit_*`/`Exclude:` スコープ追跡 |
 | `swiftlint` | `.swiftlint.yml` census: `disabled/opt_in/only/analyzer_rules` + `custom_rules:` + ルール別設定 |
+| `tsconfig` | `tsconfig.json`/JSONC census: `compilerOptions`/`extends`/`include`/`references`/`watchOptions` 全 `"key":` + bool/配列/コメント |
+| `denoconf` | `deno.json(c)` census: `tasks`/`imports`/`lint`/`fmt`/`compilerOptions`/`workspace`/`unstable` 等全 `"key":` + bool/配列 |
+| `bunfig` | `bunfig.toml` census: `[install]`/`[run]`/`[test]`/`[serve]`/`[smol]`/`[telemetry]` 等セクション + `key = value` |
+| `angularconf` | `angular.json` census: `projects` 内プロジェクト名 + `architect`/`targets` ブロック + `builder`/`executor` |
+| `turboconf` | `turbo.json` census: `pipeline`/`tasks` 内タスク名キー + `dependsOn`/`outputs`/`env`/`globalEnv` |
+| `nxconf` | `nx.json` census: `targetDefaults` ターゲット + `namedInputs` + `generators`/`tasksRunnerOptions`/`workspaceLayout` |
+| `lerna` | `lerna.json` census: `version`/`packages`/`npmClient` + `command.*` サブコマンド設定キー |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
