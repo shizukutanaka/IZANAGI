@@ -53,7 +53,7 @@ fn currency(s: &str) -> Option<String> {
 
 fn ns_code(s: &str) -> Option<String> {
     let i = s.find("camt.")? + 5;
-    if s[i..].len() >= 3 && s[i..i + 3].bytes().all(|c| c.is_ascii_digit()) {
+    if s[i..].len() >= 3 && s.as_bytes()[i..i + 3].iter().all(u8::is_ascii_digit) {
         Some(s[i..i + 3].to_string())
     } else {
         None
@@ -114,5 +114,10 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"camt 053 report").is_none());
+    }
+
+    #[test]
+    fn handles_multibyte_namespace_code() {
+        let _ = parse("camt.\u{1d11e}".as_bytes());
     }
 }

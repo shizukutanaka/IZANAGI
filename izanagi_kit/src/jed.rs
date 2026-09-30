@@ -94,7 +94,7 @@ pub fn parse(b: &[u8]) -> Option<Jed> {
             b'Q' if head.len() > 2 && head[1] == b'F' => {
                 j.qf = atoi(&head[2..]);
             }
-            b'F' if head.len() == 2 => {
+            b'F' if head.len() == 2 && head[1].is_ascii_digit() => {
                 j.default_state = Some(head[1] - b'0');
             }
             b'L' if head.len() > 1 && head[1].is_ascii_digit() => {
@@ -157,6 +157,12 @@ fn hexval(d: &[u8]) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn non_digit_default_state_does_not_panic() {
+        let j = parse(b"QF12*L0 1*F!*\n").unwrap();
+        assert_eq!(j.default_state, None);
+    }
 
     fn fixture() -> Vec<u8> {
         b"\x02QF64*\r\nF0*\r\nL0000 111100001111*\r\nL0012 00001111*\r\nC0FF*\r\nN PART-16V8*\r\n\x03"

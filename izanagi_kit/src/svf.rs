@@ -81,7 +81,7 @@ fn word_u64(r: &[u8], i: &mut usize) -> u64 {
         *i += 1;
     }
     while *i < r.len() && r[*i].is_ascii_digit() {
-        v = v.saturating_mul(10) + (r[*i] - b'0') as u64;
+        v = v.saturating_mul(10).saturating_add((r[*i] - b'0') as u64);
         *i += 1;
     }
     v
@@ -168,7 +168,7 @@ pub fn parse(b: &[u8]) -> Option<Svf> {
                 b"HIR" | b"TIR" | b"HDR" | b"TDR" => s.pad_commands += 1,
                 b"SIR" | b"SDR" => {
                     let bits = word_u64(t, &mut i);
-                    s.scanned_bits += bits;
+                    s.scanned_bits = s.scanned_bits.saturating_add(bits);
                     if cmd == b"SIR" {
                         s.sir_commands += 1;
                     } else {
@@ -177,7 +177,7 @@ pub fn parse(b: &[u8]) -> Option<Svf> {
                 }
                 b"RUNTEST" => {
                     s.runtest_commands += 1;
-                    s.runtest_cycles += word_u64(t, &mut i);
+                    s.runtest_cycles = s.runtest_cycles.saturating_add(word_u64(t, &mut i));
                 }
                 b"STATE" => s.state_commands += 1,
                 b"ENDIR" | b"ENDDR" => s.end_commands += 1,
@@ -198,6 +198,12 @@ pub fn parse(b: &[u8]) -> Option<Svf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn huge_counts_saturate() {
+        let s = parse(b"SIR 18446744073709551615;\nSIR 99999999999999999999999;\n").unwrap();
+        assert_eq!(s.scanned_bits, u64::MAX);
+    }
 
     fn fixture() -> Vec<u8> {
         b"// test\r\nHIR 4 TDI (0) SMASK (F);\r\nSIR 10 TDI (355) TDO (0) MASK (3FF);\r\nSDR 24 TDI (A5A5A5);\r\nRUNTEST 250 TCK;\r\nSTATE RESET;\r\nENDDR IDLE;\r\n"

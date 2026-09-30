@@ -62,7 +62,7 @@ fn dec(b: &[u8]) -> u32 {
 /// `true` when the 24-byte leader and a plausible directory follow.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
-    b.len() >= 25 && digits(&b[..5]) && &b[20..24] == b"4500" && digits(&b[24..27])
+    b.len() >= 27 && digits(&b[..5]) && &b[20..24] == b"4500" && digits(&b[24..27])
 }
 
 /// Parses the leader + directory; `None` without a valid leader.
@@ -76,8 +76,8 @@ pub fn parse(b: &[u8]) -> Option<Marc> {
         status: b[5] as char,
         record_type: b[6] as char,
         bib_level: b[7] as char,
-        indicator_count: b[10] - b'0',
-        subfield_count: b[11] - b'0',
+        indicator_count: b[10].wrapping_sub(b'0'),
+        subfield_count: b[11].wrapping_sub(b'0'),
         fields: 0,
         control_fields: 0,
         data_fields: 0,
