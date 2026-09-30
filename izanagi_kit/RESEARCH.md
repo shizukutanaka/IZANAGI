@@ -3877,3 +3877,339 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `gxf` — GXF(Geosoft 系グリッド交換): `#GRID` + `KEY value` ヘッダ + `#` センチネル → バイナリ列
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(f32 値は bits のみ保持)。
+
+## 第159次: 刺繍・カッティング機形式(pes / pec / vp3 / jef / hus / vip / studio3)
+
+**方法**: 文献参照ラウンド継続 — ミシン刺繍・カッティングプロッタの実機フォーマット(Tajima `dst` は既存)。全7件が既存 1014 件と非衝突を確認:
+
+- `pes` — Brother/Babylock PES: `#PES` + 4桁バージョン、埋め込み PEC ブロックのオフセット走査
+- `pec` — Brother PEC ブロック: `#PEC0001` + `LA:` + 16B 空白パッド名 + `\xFF\x00` 縫い目区切り
+- `vp3` — Pfaff/Viking VP3: `%vsm%` シグネチャ + BE バージョン + `%header%`/`%comments%` 系セクション検出
+- `jef` — Janome JEF: マジック無し — LE u32 ステッチオフセット妥当性 + `yyyy:mm:dd hh:mm:ss` タイムスタンプ形状ヒューリスティック
+- `hus` — Husqvarna HUS: VSM 系シグネチャ `5D FC C8 37` + バージョン
+- `vip` — Viking VIP: `0x80` 前置の同系シグネチャ(HUS と 0x80 の有無で区別)
+- `studio3` — Silhouette Studio3: ASCII `studio3` + BE version + prolog 長
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第160次: CAE メッシュ・数値流体力学形式(msh / unv / neu / vtu / grd / nas / su2)
+
+**方法**: 文献参照ラウンド継続 — 有限要素・CFD・格子データ交換。全7件が既存 1021 件と非衝突を確認:
+
+- `msh` — Gmsh: `$MeshFormat` + `version filetype datasize`、セクション名列挙
+- `unv` — I-DEAS Universal File: `    -1` デリミタ + データセット ID(2411 節点/2412 要素/55/58)
+- `neu` — Gambit Neutral: `CONTROL INFO`/`GAMBIT NEUTRAL FILE` プロローグ + 6 整数サマリ(NUMNP/NELEM/…)+ `ENDOFSECTION` ブロック
+- `vtu` — VTK XML: `<VTKFile type>` で UnstructuredGrid/ImageData/PolyData/Rectilinear/Structured を分類
+- `grd` — Surfer グリッド: ASCII `DSAA` + dims + x/y/z range(値は文字列のまま)/ バイナリ `DSRB`
+- `nas` — NASTRAN bulk data: `BEGIN BULK`..`ENDDATA` カード列挙 + `$` コメント
+- `su2` — SU2 CFD: `NDIME`/`NELEM`/`NPOIN`/`NMARK`+`MARKER_TAG`/`MARKER_ELEMS`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(座標・レンジは文字列のまま保持)。
+
+## 第161次: ロボット工学・点群・動作捕捉形式(urdf / xacro / rosbag / mcap / pcd / e57 / c3d)
+
+**方法**: 文献参照ラウンド継続 — ROS エコシステムと計測フォーマット。全7件が既存 1028 件と非衝突を確認:
+
+- `urdf` — Unified Robot Description Format: `<robot name>` ルート + `<link>`/`<joint type>` センサス + `<gazebo>` 拡張
+- `xacro` — ROS XML マクロ: `xmlns:xacro` 必須 + `<xacro:macro|property|include>` + `${}` 置換式
+- `rosbag` — ROS bag v1.2/v2.0: `#ROSBAG V` + `u32 len` ヘッダフィールド(`key=value`, `op=\xNN`)+ `u32 data_len` レコード走査
+- `mcap` — Foxglove MCAP: `\x89MCAP0\r\n` 両端マジック + `u8 op | u64 len` レコード(Header/Schema/Channel/Message)
+- `pcd` — PCL PCD: `FIELDS`/`WIDTH`/`HEIGHT`/`POINTS`/`DATA ascii|binary|binary_compressed` ヘッダ
+- `e57` — ASTM E2807 E57: `ASTM-E57` + 48B LE ヘッダ(major/minor/file_length/xml_offset/page_size)
+- `c3d` — C3D モーションキャプチャ: byte1==0x50 (Intel) + LE u16 points/analog/frames + f32 scale(raw bits 保持、負⇒整数データ)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(scale factor は raw bits、座標は保持しない)。
+
+
+
+## 第162次: ネットワークプロトコル第5弾 — 認証・ディレクトリ・トンネリング(ldap / diameter / eap / tacacs / isakmp / l2tp / socks)
+
+**方法**: 文献参照ラウンド継続 — AAA・ディレクトリ・VPN/プロキシ制御プレーン。全7件が既存 1035 件と非衝突を確認:
+
+- `ldap` — RFC 4511: DER `SEQUENCE { msgID, protocolOp [APPLICATION n], controls [0] }`、`der` モジュール上に構築
+- `diameter` — RFC 6733: v1 ヘッダ + R/P/E/T フラグ + 24bit コマンド + AVP(`u32 code|u8 flags|u24 len`,32bit パディング)走査
+- `eap` — RFC 3748: code(1..=4)/id/len、Request/Response の type バイト
+- `tacacs` — TACACS+(RFC 8907 ドラフト系): `0xC0|0xC1` バージョン + type 1..=3 + seq≠0 + BE session/len
+- `isakmp` — RFC 2408/7296: 28B IKE ヘッダ、cookie2つ + version ニブル(1.x ISAKMP / 2.x IKEv2)+ BE len
+- `l2tp` — RFC 2661: `u16 flags|ver==2`、T/L/S/O/P ビット駆動の可変フィールド、ペイロードオフセット算出
+- `socks` — RFC 1928 SOCKS5: greeting(05 nmethods)/request・reply(05 cmd 00 atyp…)/SOCKS4 `04 cmd port ip user\0`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第163次: ジオ空間データ形式 第2弾 — オフライン地図・ラスタ海図(prj / gpkg / mbtiles / osmpbf / fgb / dted / kap)
+
+**方法**: 文献参照ラウンド継続 — オフライン地図コンテナ・投影記述・標高セル・ラスタ海図。`sqlite`/`wkt` 系との重複は `sqlite` 再利用で回避。shp/dbf/qcow2/geojson/wkb/topojson/pmtiles/hgt/mvt/osm は既存のため除外。全7件が既存 1042 件と非衝突を確認:
+
+- `prj` — Esri .prj: WKT1 `PROJCS`/`GEOGCS` または WKT2 `PROJCRS`/`GEODCRS` ルート、name/`AUTHORITY["EPSG","…"]`/PARAMETER・AXIS・UNIT 集計
+- `gpkg` — OGC GeoPackage: `sqlite` ヘッダ + application_id `GPKG`(後継)/`GP10`/`GP11`(レガシー)判定
+- `mbtiles` — Mapbox MBTiles: `sqlite` + `metadata`・`tiles`・`grids`/`grid_data` テーブル名走査
+- `osmpbf` — OSM PBF: `u32 be len | BlobHeader protobuf | Blob`、第1ブロック `type=OSMHeader` 必須、varint datasize
+- `fgb` — FlatGeobuf: 8B マジック `fgb\x03 fgb\x00` + u32 LE ヘッダテーブル長
+- `dted` — DTED(MIL-PRF-89020): `UHL` 80B ラベル、`DDDMMSSH`/`DDMMSSH` 経緯度
+- `kap` — BSB/KAP ラスタ海図: `!` コメント + `BSB/NA,NU,RA,DU` + `VER/` + KNP/CED セクション列挙
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第164次: 統計・レガシー表計算データ交換形式(dif / sylk / dta / sav / xpt / sas7bdat / rdata)
+
+**方法**: 文献参照ラウンド継続 — VisiCalc/SYLK 系データ交換と統計パッケージのバイナリ/カード像形式。全7件が既存 1049 件と非衝突を確認:
+
+- `dif` — Data Interchange Format: `TABLE`/`VECTORS`/`TUPLES`/`DATA` ヘッダ + `BOT`/`EOD` マーカー
+- `sylk` — SYLK: `ID;P` プロデューサ + `C;Xx;Yy` セル/`F` 書式/`E` 終端
+- `dta` — Stata .dta: ds_format 104–118 + byteorder LSF/MSF + nvar/nobs(LE/BE)、および `<stata_dta>` XML(117+)
+- `sav` — SPSS .sav: `$FL2` + 60B product + layout/ncases/bias(raw bits)
+- `xpt` — SAS XPORT v5/v8: 80B カード像、`LIBRARY HEADER RECORD` + `MEMBER/DSCPTOR` 計数
+- `sas7bdat` — SAS データセット: 32B ゼロプロローグ + a8 マジック + encoding タグ(parso オフセット)
+- `rdata` — R .rds/.RData: `RDX2..4` + `A`/`B`/`X` 形式、gzip/xz/zstd ラッパ判定
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第165次: 字幕・キャプション形式(ttml / scc / sbv / usf / smi / mpl2 / pjs)
+
+**方法**: 文献参照ラウンド継続 — 放送・配信向けの字幕テキスト形式。srt/ass/vtt/stl/lrc は既存のため除外し、残り7件が非衝突を確認:
+
+- `ttml` — W3C TTML/DFXP: `<tt` ルート + `xmlns` に "ttml" 必須、`<p>` cue・`<style>`・`ttp:`/`tts:` 属性計数
+- `scc` — Scenarist Closed Caption: `Scenarist_SCC` バナー + `HH:MM:SS:FF`/`;FF` ドロップフレーム行
+- `sbv` — YouTube SubViewer: `H:MM:SS.mmm,H:MM:SS.mmm` cue、ミリ秒タイミング
+- `usf` — Universal Subtitle Format: `<USFSubtitles` + `version=` + `<subtitle>`/`<text>`
+- `smi` — Microsoft SAMI: 大文字化して `<SAMI` + `<SYNC Start=ms>` + `<P>`
+- `mpl2` — MPL2: 全行 `[ds][ds]text` デシ秒ペア
+- `pjs` — Phoenix Japanimation: `H:MM:SS:FF, H:MM:SS:FF, "text"`(25fps換算)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第166次: CAD・設計データ形式 第2弾(ifc / dgn / dwg / skp / rfa / dsn / e00)
+
+**方法**: 文献参照ラウンド継続 — 建築 BIM・CAD 図面・PCB 配線設計の交換形式(step/dxf/iges/stl は既存のため除外)、全7件が非衝突を確認:
+
+- `ifc` — Industry Foundation Classes: ISO-10303-21 プロローグ + `FILE_SCHEMA(('IFC…'))` + `#id=ENTITY` インスタンス計数
+- `dgn` — MicroStation DGN: `09 08` エレメントプロローグ + 先頭エレメントの型/ワード長
+- `dwg` — AutoCAD DWG: `AC1NNN` バージョンスタンプ→リリース年マップ(`year_class`)
+- `skp` — SketchUp: `SketchUp Model` バナー + バージョン dword
+- `rfa` — Revit ファミリ: `ole` CFB + `Family`/`PartAtom` マーカー走査
+- `dsn` — SPECCTRA: `(pcb` S式ルート + `(layer`/`(net`/`(wiring`/`(placement` 計数
+- `e00` — ArcInfo エクスポート: `EXP` プロローグ + セクションラベル + SINGLE/DOUBLE PRECISION
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第167次: 科学計算・シミュレーション形式 第2弾(inp / k / frd / dcd / wfn / dx / ccx)
+
+**方法**: 文献参照ラウンド継続 — 構造解析・分子動力学・可視化向けテキスト/バイナリ形式。全7件が既存 1070 件と非衝突を確認:
+
+- `inp` — Abaqus インプットデッキ: `*KEYWORD` 行 + `*NODE`/`*ELEMENT`/`*MATERIAL` + `*Heading`
+- `k` — LS-DYNA keyword: `*KEYWORD` 開始 + `*END` 終端 + `*MAT_`/`*PART`/`*ELEMENT_` 族
+- `frd` — CalculiX 結果: `    1` ブロックヘッダ + `-1`/`-2`/`-3` レコード + `9999` 終端
+- `dcd` — NAMD/CHARMM 軌跡: Fortran レコード 84B `CORD`/`VELD` + NSET + NTITLE + 原子数
+- `wfn` — Gaussian wavefunction: `GAUSSIAN <nmo> MOL ORBITALS <nprim> PRIMITIVES <natoms> NUCLEI`
+- `dx` — OpenDX: `object n class …` + `data`/`field` センサス
+- `ccx` — CalculiX デッキ: `*NODE`/`*ELEMENT` + `*STEP` 必須(inp と棲み分け)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第168次: ネットワークプロトコル第6弾 — WAN カプセル化・トンネル制御(ppp / hdlc / tftp / rtcp / gtp / vxlan / isis)
+
+**方法**: 文献参照ラウンド継続 — ワイヤフォーマット系 RFC/仕様に基づくヘッダパーサ。全7件が既存 1077 件と非衝突を確認:
+
+- `ppp` — RFC 1661: `[FF 03]? proto:u16be info* [fcs]`、プロトコル識別子の先頭オクテット LSB=0・末尾 LSB=1 規則
+- `hdlc` — Cisco HDLC(`0x0F`/`0x8F` + ctrl + ethertype)と ISO 3309 `0x7E` フラグフレームの両対応
+- `tftp` — RFC 1350(+2347 オプション): RRQ/WRQ `file\0mode\0`、DATA/ACK ブロック番号、ERROR、OACK
+- `rtcp` — RFC 3550: `[v2|p|rc][pt][len:words]` コンパウンドパケット鎖、SR/RR 先頭規則
+- `gtp` — 3GPP TS 29.060 v1(PT+TEID+E/S/PN 拡張)と 29.274 v2(T ビット + u24 長)の振分け
+- `vxlan` — RFC 7348: 8B ヘッダ I フラグ + VNI + 内部 Ethernet MAC
+- `isis` — ISO/IEC 10589: `FE FE 03` LLC プレフィックス省略可、`0x83` discriminator + 5bit PDU type
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第169次: レトロゲーム音楽・チップチューン形式 第2弾(hes / kss / gym / ay / sndh / s98 / dro)
+
+**方法**: 文献参照ラウンド継続 — レジスタダンプ系サウンドフォーマット。`sap`(Atari SAP)は既存のため除外。全7件が既存 1084 件と非衝突を確認:
+
+- `hes` — PC Engine HES: `HESM` + version/first_song/init_addr + MPR bank map + `DATA`/`ATAD` チャンク鎖
+- `kss` — MSX KSS: `KSCC`/`KSSX` + load/init/play アドレス、KSSX は曲番・音量フィールド付き
+- `gym` — Genesis GYMX: `GYMX` + 32B×4 メタ文字列(song/game/publisher/emulator)
+- `ay` — ZX Spectrum AY: `ZXAYEMUL` + 20B ヘッダ(version/pointer table、ポインタは BE)
+- `sndh` — Atari ST SNDH: `SNDH` マーカー + `TITL`/`COMM`/`RIPP`/`CONV`/`YEAR`/`##NN`/`!#NN`/`HDNS` タグ列
+- `s98` — PC-98 S98: `S98`+バージョン数字 + 32B LE ヘッダ(timer 分数・tag/dump/loop オフセット)
+- `dro` — DOSBox Raw OPL: `DBRAWOPL` + v1(28B)/v2(codemap 付き)レイアウト振分け
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第170次: ファイルシステム・ボリューム形式 第2弾(btrfs / zfs / f2fs / hfs / sysv / jfs / reiserfs)
+
+**方法**: 文献参照ラウンド継続 — スーパーブロック/メタ構造の検出・主要フィールド抽出。ext2/ntfs/hfsplus/ufs/minix/xfs/exfat/jffs2/cramfs/ubi/iso9660/udf は既存のため除外。全7件が既存 1091 件と非衝突を確認:
+
+- `btrfs` — `_BHRfS_M` @64 KiB: fsid/generation/num_devices/sectorsize・nodesize・leafsize・stripesize。sector size は 2 べき乗検査
+- `zfs` — uberblock 配列 @128 KiB(128 スロット上限走査): `0x00BAB10C` を LE/BE 両対応で検出、最大 txg を返す。version==0 / txg==0 は棄却
+- `f2fs` — `0xF2F52010` @0x400: log_sector/block_size 範囲検査(9..=16, 10..=16)、block_count + segment_count_{ckpt,sit,nat,ssa,main} + cp_blkaddr + root/node ino
+- `hfs` — クラシック HFS MDB `0x4244` @0x400: BE フィールド群、Pascal 文字列 drVN(≤27B)、drAlBlkSiz/drFilCnt/drDirCnt 等
+- `sysv` — SysV4/Xenix: `s_magic` @SB+0x1F8 = `0xFD187E20`/`0x2B5544` で endian 検出、SysV は `s_type` 一致必須、`s_fname`+`s_fpack` 12B ラベル
+- `jfs` — `JFS1` @32 KiB: s_bsize/s_l2bsize/s_pbsize の整合検査、s_uuid/s_label 抽出、state/flags/agsize
+- `reiserfs` — `ReIsErFs`/`ReIsEr2Fs`/`ReIsEr3Fs` @64 KiB+52: format 1/2/3 分類、bsize 512..=8192 の 2 べき乗、free≤total
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第171次: トラッカー音楽形式 第3弾(stm / mtm / ult / far / ptm / med / dbm)
+
+**方法**: 文献参照ラウンド継続 — 90 年代 DOS/Amiga 系トラッカーのモジュールヘッダ検出・主要フィールド抽出。mod/it/xm/s3m/sap/hes/kss/gym/ay/sndh/s98/dro/vgm/psid/spc/gbs/nsf/psf/figlet は既存のため除外。okt(Oktalyzer)はチャンク仕様の確証が取れず `med`、gdm はヘッダ記述の異説が多く `dbm` に差替え。全7件が既存 1098 件と非衝突を確認:
+
+- `stm` — Scream Tracker 2: `!Scream!`/`BMOD2STM` @20 + `0x1A` + file_type(1/2) + version/tempo/patterns/global_volume
+- `mtm` — MultiTracker: `MTM` + version(1.x 系)+ song_name[20] + tracks/last_pattern/last_order/comments/samples + channels 1..=32
+- `ult` — UltraTracker: `MAS_UTrack_V00` + version digit `'1'`..`'4'` + song_name[32]
+- `far` — Farandole Composer: `FAR\xFE` + 40B 曲名(空白・NUL 埋め)+ text_len u16 @0x2C
+- `ptm` — Poly Tracker: `PTMF` + version byte + name[28] + `0x1A` + file_version + orders/patterns/channels/samples/flags + songinfo_len
+- `med` — MED/OctaMED: `MMD0`..`MMD3` → version + BE `song_offset` u32
+- `dbm` — DigiBooster Pro: `DBM0` + BE version/instruments/samples/songs/patterns/channels(1..=32)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第172次: マークアップ・軽量文書形式 第2弾(docbook / dita / textile / creole / bbcode / txt2tags / mediawiki)
+
+**方法**: 文献参照ラウンド継続 — XML 文書型のルート要素/名前空間識別と、軽量マークアップのブロック/インラインマーカー走査。rst/adoc/roff/texinfo/org/pod/markdown/jats/mods は既存のため除外。全7件が既存 1105 件と非衝突を確認:
+
+- `docbook` — DocBook XML: `book`/`article`/`chapter`/`section`/`set`/`part`/`appendix`/`preface`/`reference`/`sect1`/`simplesect` ルート集合 + DocBook5 `xmlns` 判定 + `version` 属性 + `<title>` 抽出
+- `dita` — DITA XML: `//OASIS//`+`DITA` DOCTYPE または `topic`/`concept`/`task`/`reference`/`map`/`bookmap`/`glossentry`/`ditaval`/`subjectScheme` 等の既知ルート + `DITAArchVersion`
+- `textile` — Textile: `h1.`–`h6.`/`p.`/`bq.`/`bc.`/`pre.` ブロックシグネチャ + `|…|` テーブル行 + `*…*`/`_…_` インライン対計数
+- `creole` — WikiCreole 1.x: `=`…`======` 見出し(先頭 `=` 数=レベル)+ `*`/`#` リスト + `----` 罫線 + `**…**`/`//…//`/`[[…]]`/`{{…}}` 対
+- `bbcode` — BBCode: `[tag]…[/tag]` 対 + `[tag=attr]` 属性形 + 既知タグ集合(b/i/u/s/url/img/quote/code/list/size/color/…)+ unclosed 計数
+- `txt2tags` — txt2tags: `%!key:` 設定行 + `=…===` 両端見出し + `- `/`+ ` リスト + `|…|` 行 + `**…**`/`//…//` 対
+- `mediawiki` — MediaWiki wikitext: `== H ==` 両端 `=` 数一致見出し + `'''`/`''`(`'''` 領域を剥がして `''` 計数)+ `[[…]]`/`{{…}}`/`[http…]` + Category/File 分類
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第173次: GUI フォーム・リソース記述形式(rc / res / glade / qtui / xib / nib / fxml)
+
+**方法**: 文献参照ラウンド継続 — リソース記述言語と UI 定義 XML の構造マーカー走査。resx/xml/plist は既存のため除外。全7件が既存 1112 件と非衝突を確認:
+
+- `rc` — Windows .rc リソーススクリプト: `#include`/`LANGUAGE` ディレクティブ + `NAME TYPE` 二語形式と裸キーワード先頭形式の両対応 + `BEGIN`/`END`/`{}` ブロック計数。既知リソース型(DIALOG/MENU/VERSIONINFO/STRINGTABLE/ICON/CURSOR/BITMAP/ACCELERATORS/…)集合で誤検出抑制
+- `res` — コンパイル済み .res: 32B プロローグ(`0`=DataSize、`0x20`=HeaderSize、`0xFFFF`=type/name 序数マーカー)+ 8B ストライドの 0xFFFF 計数
+- `glade` — GtkBuilder .glade: `<glade-interface>`(レガシー)/`<interface>`(新)両対応 + `<requires lib="gtk+" version="N">` + `<object>`/`<signal>`/`<property>` 計数
+- `qtui` — Qt Designer .ui: `<ui version="N">` + `<class>` + `<widget>`/`<layout>`/`<property>`/`<connection>` 計数
+- `xib` — Apple Interface Builder .xib: `com.apple.InterfaceBuilder3.CocoaTouch.XIB`/`Cocoa.XIB` ドキュメント型 → iOS/macOS 判定 + `<objects>` 内要素 + `<connections>`/`<outlet>`/`<action>` 計数
+- `nib` — コンパイル済み .nib: `bplist00` バイナリ plist または XML plist + `$archiver`/`NSKeyedArchiver` マーカー必須(NSKeyedArchiver アーカイブ形)
+- `fxml` — JavaFX FXML: `<?import …?>` PI 必須 + 先頭非 PI 要素をルートコントローラ型名として取得 + `xmlns:fx` 名前空間
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第174次: セキュリティ脅威インテリジェンス・検知ルール形式(yara / sigma / stix / cve / misp / ioc / snort)
+
+**方法**: 文献参照ラウンド継続 — 検知ルール言語と脅威インテリジェンス JSON/XML の構造走査。全7件が既存 1119 件と非衝突を確認:
+
+- `yara` — YARA ルール: `import`/`include` ディレクティブ + `rule name [: tags] { meta:/strings:/condition: }` ブロック。文字列(`"` エスケープ対応)・`//`・`/* */` コメントを読み飛ばす波括弧マッチングで `{`/`}` 混入に耐性。`$name =` 定義計数
+- `sigma` — Sigma 汎用検知ルール(YAML): トップレベル `title:`/`id:`/`status:`/`level:`/`author:` キー + `logsource:` + `detection:` 必須判定 + `tags:` リスト計数
+- `stix` — STIX 2.x バンドル(JSON): `type=="bundle"` + `spec_version` 2\x2e0/2\x2e1 + `objects[]` の `type` センサス(`count(type)` で種別集計)
+- `cve` — CVE JSON 5 レコード: `dataType=="CVE_RECORD"` + `dataVersion` 5.x + `cveMetadata`(cveId/state/assignerOrgId)+ `containers`(cna はオブジェクト、adp は配列 — 両対応)の descriptions/references/affected 集計
+- `misp` — MISP イベント(JSON): `{"Event":{…}}` または裸イベント + `uuid`/`info`/`date`/`threat_level_id` + `Attribute`/`Object`/`Galaxy`/`Tag` 計数 + `Orgc.name`
+- `ioc` — OpenIOC 1.1 XML: `<ioc id>` ルート(`<ioccer` 誤認防止)+ `<Indicator>`/`<IndicatorItem>` 計数 + `Context document=`/`condition=` の distinct 集合
+- `snort` — Snort/Suricata ルール: `ACTION PROTO SRC SPORT DIR DST DPORT (options)` ヘッダ(action 集合: alert/drop/pass/log/reject/sdrop/activate/dynamic/rejectsrc/rejectdst/rejectboth)+ `msg:`/`sid:`/`rev:`/`classtype:`/`gid:` オプション抽出 + `#` コメント行計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第175次: 天文・衛星軌道データ形式(rinex / sp3 / sbf / omm / oem / tdm / antex)
+
+**方法**: 文献参照ラウンド継続 — GNSS 観測・精密軌道・宇宙機管制メッセージの構造走査。`tle` は既存のため除外。全7件が既存 1126 件と非衝突を確認:
+
+- `rinex` — RINEX 観測/航法: 80 桁カード、先頭カード `RINEX VERSION / TYPE` ラベル + 1–20 桁 version・21–40 桁 type・41–60 桁衛星システム + 61–80 桁ラベル計数 + `END OF HEADER` 終端
+- `sp3` — IGS SP3 精密軌道: `#xP`/`#xV` 先頭行(版文字 a–d + position/velocity フラグ)+ `##` aux 行必須 + `* ` エポック・`P`/`V` レコード計数 + `EOF` 終端
+- `sbf` — Septentrio Binary Format: `$@`(0x24 0x40)同期 + CRC-16 + LE block id(`0x1FFF`=メッセージ番号・上位=rev)+ 4 倍数長のブロック鎖、途中切れ検出
+- `omm` — CCSDS OMM(軌道平均要素): `CCSDS_OMM_VERS` 必須 + `META_START`/`STOP` + `OBJECT_NAME`/`OBJECT_ID`/`CENTER_NAME`/`MEAN_ELEMENT_THEORY`/`EPOCH` KVN
+- `oem` — CCSDS OEM(軌道暦): `CCSDS_OEM_VERS` 必須 + `REF_FRAME`/`TIME_SYSTEM`/`START_TIME`/`STOP_TIME` + `YYYY-MM-DDTHH:MM:SS + 7 フィールド` 状態ベクトル行計数
+- `tdm` — CCSDS TDM(追尾データ): `CCSDS_TDM_VERS` 必須 + `DATA_START`/`DATA_STOP` ブロック内観測行計数 + `TRACK_ID`/`PARTICIPANT_1`
+- `antex` — ANTEX アンテナ補正: `ANTEX VERSION / SYST` 先頭カードラベル + `START OF ANTENNA`/`END OF ANTENNA`/`START OF FREQUENCY`/`TYPE / SERIAL NO` セクション計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第176次: 画像形式 第3弾(exr / sgi / jp2 / jxr / flif / jbig2 / dpx)
+
+**方法**: 文献参照ラウンド継続 — 業務用・科学用ビットマップ形式のヘッダ構造走査。`tga`/`icns`/`webp`/`bmp`/`png`/`tiff`/`dds`/`qoi`/`hdr`/`jxl`/`heif`/`psd`/`xcf`/`djvu`/`pcx`/`xbm`/`xpm`/`ras`/`gif`/`ico`/`farbfeld`/`pnm`/`iff`/`eps` は既存のため除外。全7件が既存 1133 件と非衝突を確認:
+
+- `exr` — OpenEXR: LE マジック `0x01312F76` + version/flags ワード(bit9 tiled / bit10 long-names / bit11 non-image / bit12 multipart)+ `name\0type\0size value` 属性列を NUL 終端まで走査
+- `sgi` — SGI RGB/.rgb/.bw: `0x01DA` + 512B BE ヘッダ(storage 0/1、bpc 1–2、dimension 1–3、xsize/ysize/zsize、pixmin/pixmax、80B 名前、colormap)
+- `jp2` — JPEG 2000 Part 1 コンテナ: 12B シグネチャボックス + `u32be length`+`4cc` ボックス鎖(len==1 で 64bit 拡長、==0 で EOF まで)+ `ftyp` ブランド + `jp2h`/`jp2c` 判定
+- `jxr` — JPEG XR (HD Photo): `II\xBC\x01` + LE u32 IFD オフセット + u16 タグ数の TIFF 型ディレクトリ
+- `flif` — Free Lossless Image Format: `FLIF` + 上位ニブル=interlace(1/2)・下位=channels(1–4) の記述子バイト + アニメーション桁
+- `jbig2` — JBIG2: `97 4A 42 32 0D 0A 1A 0A` + flags(sequential/unknown-pages)+ BE u32 ページ数
+- `dpx` — SMPTE DPX: `SDPX`(BE)/`XPDS`(LE) マジックがエンディアンを内蔵 + image_offset + `V2.x` バージョン文字列 + file_size + header サイズ群
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第177次: 3D アセット・モデル形式 第2弾(dae / lwo / wrl / iv / md3 / cob / ac)
+
+**方法**: 文献参照ラウンド継続 — レガシー/標準 3D モデル交換形式のヘッダ・ノード構造走査。`ply`/`stl`/`obj`/`fbx`/`glb`/`blend`/`abc`/`pmd`/`pmx`/`bvh`/`x3d`/`amf`/`threemf`/`off`/`step`/`iges`/`ifc`/`skp`/`dgn`/`dwg`/`dxf`/`mdl`/`md2`/`uasset` 等は既存のため除外。全7件が既存 1140 件と非衝突を確認:
+
+- `dae` — COLLADA (ISO/PAS 17506): `<COLLADA>` ルート + `version` 属性 + `library_*` コレクション列挙 + `up_axis`
+- `lwo` — LightWave Object: IFF `FORM` + `LWO2`/`LWOB`/`LWLO` フォーム型 + 偶数パディングのチャンク鎖(`LAYR`/`PNTS`/`POLS`/`SURF`/`TAGS`/`BBOX`)
+- `wrl` — VRML 1.0/VRML97 (ISO/IEC 14772-1): `#VRML V` ヘッダ + `DEF`/`USE` + 文字列・コメント認識のノードセンサス
+- `iv` — Open Inventor: `#Inventor V2.x ascii` ヘッダ + `Separator`/シェイプノードセンサス(VRML の先祖)
+- `md3` — Quake III Arena メッシュ: `IDP3`+version 15+108B LE ヘッダ(name/flags/各種カウント/セクションオフセット)
+- `cob` — Caligari trueSpace: `Caligari VNN.NN`+`A`/`B` モード接尾辞 + `Obj1`/`PolH`/`Grp `/`Mat1`/`NAME`/`Came`/`Lght` チャンク走査
+- `ac` — AC3D: `AC3D`+バージョン文字 + `OBJECT world|poly|group|light`/`MATERIAL`/`SURF`/`numvert`/`texture` 行センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第178次: EDA・HDL・タイミング形式 第2弾(vcd / sdc / spef / saif / upf / ipxact / verilog)
+
+**方法**: 文献参照ラウンド継続 — EDA 設計フローの標準テキスト形式。`gds`/`edif`/`lef`/`def`/`liberty`/`fst` は既存のため除外。全7件が既存 1147 件と非衝突を確認:
+
+- `vcd` — IEEE 1364 Value Change Dump: `$timescale`/`$scope`/`$var`/`$enddefinitions` + `#t` タイムスタンプ + 値変化行
+- `sdc` — Synopsys Design Constraints: Tcl 動詞センサス(`create_clock`/`set_*_delay`/`set_false_path`/`set_clock_groups`/…)、`\` 継続行対応
+- `spef` — IEEE 1481 SPEF: `*SPEF`/`DESIGN_NAME`/`UNIT` ヘッダ + `*PORTS`/`*D_NET`/`*CONN`/`*CAP`/`*RES`/`*INDUC` センサス
+- `saif` — Switching Activity Interchange Format: `(SAIFILE` S式 + `(INSTANCE`/`(PORT`/`(T0`/`(T1`/`(TC`/`(TX` 整数持続時間合計
+- `upf` — IEEE 1801 UPF: `create_power_domain`/`supply_net`/`power_switch`/`isolation`/`retention`/`level_shifter`/PST 動詞センサス
+- `ipxact` — IEEE 1685 IP-XACT: `ipxact:`/`spirit:` 名前空間のルート要素(component/design/catalog 等)+ VLNV + busInterface/memoryMap/port/file 集計
+- `verilog` — IEEE 1364 ソース: コメント/文字列除去 + `module`/`endmodule` + `input`/`wire`/`reg`/`always`/`assign` センサス(複数ステートメント同一行対応)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第179次: オーディオ・音声音楽形式 第3弾(amr / qcp / w64 / ircam / rx2 / nist / maud)
+
+**方法**: 文献参照ラウンド継続 — 音声・ループ素材のコンテナ/ヘッダ形式。`au`/`wav`/`aiff`/`caf`/`voc`/`wv`/`tta`/`dsf`/`rf64`/`mp3`/`ape`/`flac`/`ogg`/`midi`/`xi`/`iti`/`pat`/`sbi`/`sf2`/`dls` は既存のため除外。全7件が既存 1154 件と非衝突を確認:
+
+- `amr` — AMR-NB/WB(RFC 4867): `#!AMR`/`#!AMR-WB` マジック + FT フレームサイズ表走査 + 20ms×フレーム数
+- `qcp` — Qualcomm QCP: `RIFF`+`QLCM` + `fmt `/`vndr`/`labl`/`offs`/`data` 偶数パディングチャンク走査
+- `w64` — Sony Wave64: `riff`/`wave`/`fmt `/`data` 128bit GUID + `u64le` チャンク長 + WAVEFORMAT デコード
+- `ircam` — IRCAM/BICSF: `0x0001a364` 両エンディアン + rate 生ビット + channels
+- `rx2` — Propellerhead REX/REX2: `FORM`+`REX `/`REX2` + `HEAD`/`SLIC` チャンク列挙
+- `nist` — NIST SPHERE: `NIST_1A` + `key -i value`/`key -sN value` ヘッダ + `end_head`
+- `maud` — Commodore Amiga IFF `MAUD`: `MHDR` レート + `ANNO`/`AUTH`/`MDAT` センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第180次: ネットワークプロトコル第7弾 — ストレージ・リモートアクセス(iscsi / fcoe / aoe / nbd / telnet / rfb / sftp)
+
+**方法**: 文献参照ラウンド継続 — ブロックストレージ・リモート端末・画面共有プロトコル。全7件が既存 1161 件と非衝突を確認(`rdp` は既存のため除外):
+
+- `iscsi` — RFC 7143: 48B Basic Header、initiator(0x00–)/target(0x20–) opcode 表、Immediate/F ビット
+- `fcoe` — RFC 5120: ethertype `0x8906`、version ニブル、SOF/EOF コード名
+- `aoe` — ATA over Ethernet 0x88a2: v1 フラグ+command(Issue/QueryConfig/Mask/Reserve)+shelf/slot/tag
+- `nbd` — NBD: `NBDMAGIC`+`IHAVEOPT` handshake、`0x25609513`/`0x67446698` transmission、READ/WRITE/DISC/FLUSH/TRIM
+- `telnet` — RFC 854: IAC WILL/WONT/DO/DONT、SB…SE サブネゴ、`IAC IAC` エスケープ
+- `rfb` — RFC 6143/VNC: `RFB NNN.NNN` バナー + security types + 失敗理由文字列
+- `sftp` — draft-ietf-secsh-filexfer: `u32be` len + type + request-id パケット走査、INIT/VERSION 判定
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第181次: 楽譜・記譜形式(musicxml / mscx / mei / kern / ly / nwc / capx / gp)
+
+**方法**: 文献参照ラウンド継続 — 楽譜交換・記譜言語。全8件が既存 1168 件と非衝突を確認(`abc`/`midi`/`mei`-adjacent 既存モジュールは除外):
+
+- `musicxml` — W3C MusicXML 4.x: `score-partwise`/`timewise`/`opus` ルート + part-list/measure/note 集計
+- `mscx` — MuseScore Studio XML: `<museScore version>` + Staff/Measure/Chord/Dynamic/Slur/Tuplet
+- `mei` — MEI Guidelines: `<mei>` + `music-encoding.org` NS + meiversion + mdiv/measure/app-rdg-lem
+- `kern` — Humdrum Toolkit `**kern`: `**` 排他解釈・`*` タンデム・`=` 小節・`!`/`!!!` コメント・`4c`/`4r` トークン
+- `ly` — GNU LilyPond: `\version`/`\header`/`\score`/`\book`/`\paper`/`\relative`/`\key`/`\time`/`\clef` + 音名走査
+- `nwc` — NoteWorthy Composer `.nwctxt`: `!NoteWorthyComposer(v)` + `|Type|Key:Val` 行
+- `capx` — Capella `.capx` XML: `<capella>` + `<info>`/`<system>`/`<voices>`/`<head>`/`<barline>`
+- `gp` — Guitar Pro: `FICHIER GUITAR PRO v…` バナー(v3–v5)+ GP7 `BCFZ` コンテナ
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
