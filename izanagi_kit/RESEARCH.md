@@ -3882,3 +3882,13 @@ JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、
 実装物: microsoft/TypeScript・denoland/deno・oven-sh/bun・angular/angular-cli・vercel/turborepo・nrwl/nx・lerna/lerna の各リポジトリ記述。
 国内技術情報: Qiita・Zenn の tsconfig/deno/bun/Angular/turbo/nx/lerna 設定記事の実例記述。
 — 全て整数のみで実装。
+## 第257次(search-index 照合ラウンド / 実装証跡付き)
+
+メディア・ホームサーバ設定形式。Sonarr/Radarr/Lidarr/Prowlarr 各 config.xml(*arr 系 .NET 設定 XML)、Jellyfin system.xml、Plex Preferences.xml、Kodi advancedsettings.xml。各アプリのドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 出典(第257次、search-index 照合)
+
+論文・仕様: Sonarr Wiki Settings・Radarr Settings・Lidarr Settings・Prowlarr Settings(config.xml スキーマ/ポート規約 8989/7878/8686/9696)、Jellyfin 公式 config ドキュメント(ServerConfiguration 要素)、Plex Media Server 設定(Preferences.xml 高度設定・属性一覧)、Kodi Wiki advancedsettings.xml リファレンス。
+実装物: Sonarr/Sonarr・Radarr/Radarr・lidarr/Lidarr・Prowlarr/Prowlarr・jellyfin/jellyfin・plexinc/pms-docker・xbmc/xbmc の各リポジトリ記述。
+国内技術情報: Qiita・Zenn の Sonarr/Radarr/Prowlarr/Jellyfin/Plex/Kodi 設定・構築記事の実例記述。
+— 全て整数のみで実装。

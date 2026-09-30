@@ -462,6 +462,13 @@ The capability map — with per-feature implementation status — lives in
 | `turboconf` | `turbo.json` census: `pipeline`/`tasks` 内タスク名キー + `dependsOn`/`outputs`/`env`/`globalEnv` |
 | `nxconf` | `nx.json` census: `targetDefaults` ターゲット + `namedInputs` + `generators`/`tasksRunnerOptions`/`workspaceLayout` |
 | `lerna` | `lerna.json` census: `version`/`packages`/`npmClient` + `command.*` サブコマンド設定キー |
+| `sonarr` | Sonarr `config.xml` (`<InstanceName>Sonarr`, `<Port>8989`, `<ApiKey>`, `<AuthenticationMethod>`) の設定・真偽値・コメント計数。 |
+| `radarr` | Radarr `config.xml` (`<InstanceName>Radarr`, `<Port>7878`, `<RecycleBin>`, `<Theme>`) の設定・真偽値計数。 |
+| `lidarr` | Lidarr `config.xml` (`<InstanceName>Lidarr`, `<Port>8686`, `<Branch>`) の設定・真偽値計数。 |
+| `prowlarr` | Prowlarr `config.xml` (`<InstanceName>Prowlarr`, `<Port>9696`, `<HistoryCleanupDays>`) の設定・真偽値計数。 |
+| `jellyfin` | Jellyfin `system.xml`/`options.xml`(`<ServerConfiguration>` + `<VirtualFolder>`/`<ImageOptions>`/`<LibraryOptions>`/`<CachePath>`)の入れ子・設定・真偽値計数。 |
+| `plexconf` | Plex `Preferences.xml`(`<Preferences MachineIdentifier=`/`ProcessedMachineIdentifier=`/`AcceptedEULA=`/`FSEventLibraryUpdatesEnabled=` 属性列挙)の属性・真偽値計数。 |
+| `kodiadv` | Kodi `advancedsettings.xml`(`<advancedsettings>` + `<video>`/`<network>`/`<videolibrary>`/`<samba>`/`<buffermode>`)のセクション・設定計数。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
