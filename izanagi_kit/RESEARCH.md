@@ -2753,6 +2753,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 
 **国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
 
+
 ## 第107次(search-index 照合ラウンド / 実装証跡付き)
 
 **方法**: 文献参照ラウンド継続 — チャンク型マルチメディアコンテナと点群データ(全7件が既存 648 件と非衝突を確認):
@@ -3787,14 +3788,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第154次、search-index 照合)
-
-**論文・仕様**: ISO/IEC 5962(SPDX)/ Ecma-424(CycloneDX)/ ISO/IEC 19770-2(SWID)/ OSV Schema/ in-toto Attestation Framework/ OASIS CSAF 2.0/ SLSA v1.0 provenance — 全て整数のみで実装。
-
-**実装物**: spdx-tools・CycloneDX/cyclonedx-rust・swid-generator・osv.dev スキーマ実装・in-toto/in-toto-rs・csaf-rs・slsa-github-generator — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の SPDX・CycloneDX・SBOM 導入・SLSA 解説記事 — 全て整数のみで実装。
-
 ## 第155次: セキュリティ・well-known・HTTP ポリシー(securitytxt / adstxt / hostmeta / webfinger / assetlinks / csp / permissions)
 
 **方法**: 文献参照ラウンド継続 — `/.well-known/` 系メタデータと HTTP セキュリティポリシー。全7件が既存 986 件と非衝突を確認、JSON 系は `json` モジュール再利用:
@@ -3808,14 +3801,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `permissions` — Permissions-Policy: `f=()`/`f=(*)`/`f=(self "…")` + レガシー bare 名 = `*`
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第155次、search-index 照合)
-
-**論文・仕様**: RFC 9116(security.txt)/ IAB ads.txt v1.1 / RFC 6415(host-meta, XRD 1.0)/ RFC 7033(WebFinger/JRD)/ Digital Asset Links 仕様/ W3C CSP Level 3/ W3C Permissions-Policy — 全て整数のみで実装。
-
-**実装物**: Mozilla CSP Analyzer、securitytxt.org リファレンス、Google assetlinks ツール、各社 well-known 実装 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の security.txt・ads.txt・WebFinger・CSP 解説記事 — 全て整数のみで実装。
 
 ## 第156次: ネットワークキャプチャ・フロー・HCI ログ形式(snoop / erf / netflow / ipfix / sflow / btsnoop / dlt)
 
@@ -3831,14 +3816,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第156次、search-index 照合)
-
-**論文・仕様**: RFC 1761(snoop v2)/ Endace ERF 形式仕様(libtrace 文書)/ RFC 3954(NetFlow v9)+ Cisco NetFlow v5 文書/ RFC 7011(IPFIX)/ RFC 3176(sFlow v5)/ BTSnoop 形式(Bluetooth HCI snoop)/ AUTOSAR PRS_DltProtocol — 全て整数のみで実装。
-
-**実装物**: tcpdump/wireshark の snoop・ERF・NetFlow・IPFIX・sFlow 解析、Android btsnoop_hci.log、GENIVI dlt-daemon — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の NetFlow/IPFIX・sFlow・Wireshark HCI スヌープ・DLT 解説記事 — 全て整数のみで実装。
-
 ## 第157次: メッセージング・メール・チャットプロトコル(smtp / pop3 / imap / irc / nntp / amqp / xmpp)
 
 **方法**: 文献参照ラウンド継続 — メール転送/受信、チャット、ニュース、メッセージキュー、IM スタンザ。全7件が既存 1000 件と非衝突を確認:
@@ -3853,14 +3830,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第157次、search-index 照合)
-
-**論文・仕様**: RFC 5321(SMTP)/ RFC 1939(POP3)/ RFC 3501(IMAP4rev1)/ RFC 1459・2812(IRC)/ RFC 3977(NNTP)/ OASIS AMQP 0-9-1/ RFC 6120(XMPP Core) — 全て整数のみで実装。
-
-**実装物**: Postfix・Dovecot・ngircd・RabbitMQ・Prosody 等の wire 実装、telnet セッション例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の SMTP/POP3/IMAP・IRC・NNTP・AMQP・XMPP 解説記事 — 全て整数のみで実装。
-
 ## 第158次: 医療・科学画像形式 第2弾(analyze / minc / ecat / interfile / parrec / dm3 / gxf)
 
 **方法**: 文献参照ラウンド継続 — DICOM/NIfTI/NRRD(r101,124)に続く医療・科学画像の残り主要形式。全7件が既存 1007 件と非衝突を確認:
@@ -3874,11 +3843,3 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `gxf` — GXF(Geosoft 系グリッド交換): `#GRID` + `KEY value` ヘッダ + `#` センチネル → バイナリ列
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(f32 値は bits のみ保持)。
-
-## 出典(第158次、search-index 照合)
-
-**論文・仕様**: Analyze 7.5 File Format(Mayo Biomedical Imaging Resource)/ MINC 1.0 & 2.0 仕様(BIC)/ ECAT 7.x File Format(Siemens/CTI)/ Interfile 3.3/ Philips PAR/REC ノート/ Gatan DM3 Tag Format(hyperspy)/ GXF Specification(Geosoft) — 全て整数のみで実装。
-
-**実装物**: nibabel(nibabel.analyze/parrec/ecat/minc 参照実装)、ImageJ・AFNI・FSL の読み込みコード、hyperspy DigitalMicrograph パーサ、Gemcom/Oasis montaj GXF — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Analyze・NIfTI・MINC ヘッダ解説、DigitalMicrograph ファイル解析記事、医用画像 DICOM 周辺フォーマット解説 — 全て整数のみで実装。
