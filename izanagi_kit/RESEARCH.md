@@ -4987,3 +4987,27 @@ yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock�
 **実装物**: yarnpkg/yarn・npm/cli・pnpm/pnpm・rust-lang/cargo・rubygems/bundler・python-poetry/poetry・composer/composer — 全て整数のみで実装。
 
 **国内技術情報**: yarn.lock/package-lock/pnpm-lock/Cargo.lock/Gemfile.lock/poetry.lock/composer.lock 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第217次:歌声合成・ボーカルシーケンス形式
+
+UTAU .ust・OpenUtau .ustx・VOCALOID3/4 .vsqx・VOCALOID5 .vpr・Synthesizer V .svp・CeVIO .ccs・HTS/UTAU .lab の7形式を追加。INI セクション走査(ust)・YAML ブロック走査(ustx)・XML タグ/属性センサス(vsqx/ccs)・JSON キーセンサス(vpr/svp)・`start end phone` 行検証(lab)で、ノート数・歌詞・音素・ピッチ・パラメータ曲線等を整数計数する。
+
+## 出典(第217次、search-index 照合)
+
+**論文・仕様**: UTAU .ust format(utau2008/utautech)・OpenUtau .ustx schema(github.com/stakira/OpenUtau)・VSQX format(utaformatix ドキュメント/VOCALOID3/4 出力)・VOCALOID5 .vpr JSON・Synthesizer V .svp(Dreamtonics)・CeVIO .ccs XML schema・HTS label format(monophone + full-context)— 全て整数のみで実装。
+
+**実装物**: UTAU・stakira/OpenUtau・YAMAHA VOCALOID3/4/5・Dreamtonics Synthesizer V・CeVIO Creative Studio/AI・HTS 系アライメントツール群 — 全て整数のみで実装。
+
+**国内技術情報**: UTAU 譜面/ustx/vsqx/vpr/svp/ccs/lab 解説記事(Qiita・Zenn・技術ブログ・utaformatix 等)— 全て整数のみで実装。
+
+## 第218次:天文・天体観測データ形式
+
+IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン・MPC 80桁観測フォーマット・IVOA ADQL の7形式を追加。XML タグ/属性センサス(votable)・`#ASDF`+YAML ツリー走査(asdf)・`|` ヘッダ行分類(ipac)・コメント YAML+CSV(ecsv)・座標系+shape(args) 行(ds9reg)・80桁固定カラム走査(mpc)・大文字キーワードセンサス(adql)で、テーブル構造・列型・座標系・観測レコード・幾何クエリを整数計数する。
+
+## 出典(第218次、search-index 照合)
+
+**論文・仕様**: IVOA VOTable spec(ivoa.net/documents/VOTable)・ASDF standard(asdf-standard.readthedocs.io)・IPAC Table Format(IRSA/Caltech)・Astropy ECSV spec(docs.astropy.org)・SAOImage DS9 Region File Format(ds9.si.edu/doc/ref/region.html)・MPC 80-column observation format(minorplanetcenter.net)・IVOA ADQL 2.x spec — 全て整数のみで実装。
+
+**実装物**: astropy・asdf-format・IRSA/IPAC ツール・ds9・minorplanetcenter 観測報告・TAP/ADQL 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: VOTable/ASDF/IPAC/ECSV/DS9 リージョン/MPC フォーマット/ADQL 解説記事(Qiita・Zenn・天文関連技術ブログ等)— 全て整数のみで実装。
