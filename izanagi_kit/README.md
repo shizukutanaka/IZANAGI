@@ -106,6 +106,27 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
+| `appdaemon` | AppDaemon apps.yaml census |
+| `bird` | BIRD routing daemon config census |
+| `esphome` | ESPHome device yaml census |
+| `frigate` | Frigate NVR config census |
+| `frr` | FRRouting frr.conf census |
+| `haproxy` | HAProxy haproxy.cfg census |
+| `homeassistant` | Home Assistant configuration.yaml census |
+| `keepalived` | keepalived.conf census |
+| `nodered` | Node-RED flows.json census |
+| `openbgpd` | OpenBGPD bgpd.conf census |
+| `openhab` | openHAB items/things/rules census |
+| `squid` | squid.conf census |
+| `vcl` | Varnish VCL census |
+| `zigbee2mqtt` | zigbee2mqtt configuration.yaml census |
+| `alloy` | Alloy model census |
+| `dafny` | Dafny program census |
+| `lf` | Lingua Franca .lf census |
+| `mch` | B/Event-B .mch census |
+| `promela` | Promela/SPIN model census |
+| `tlaplus` | TLA+ spec census |
+| `whyml` | Why3/WhyML program census |
 | `adstxt` | ads.txt record census |
 | `assetlinks` | Digital Asset Links JSON census |
 | `btsnoop` | BTSnoop HCI log census |
