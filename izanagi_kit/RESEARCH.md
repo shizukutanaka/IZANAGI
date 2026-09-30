@@ -4080,3 +4080,90 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: PrePoMax/cgx・LS-PrePost・MDAnalysis DCD リーダ・PyVista OpenDX — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の Abaqus inp 書き方・CalculiX 入門・DCD 解析記事 — 全て整数のみで実装。
+
+## 第168次: ネットワークプロトコル第6弾 — WAN カプセル化・トンネル制御(ppp / hdlc / tftp / rtcp / gtp / vxlan / isis)
+
+**方法**: 文献参照ラウンド継続 — ワイヤフォーマット系 RFC/仕様に基づくヘッダパーサ。全7件が既存 1077 件と非衝突を確認:
+
+- `ppp` — RFC 1661: `[FF 03]? proto:u16be info* [fcs]`、プロトコル識別子の先頭オクテット LSB=0・末尾 LSB=1 規則
+- `hdlc` — Cisco HDLC(`0x0F`/`0x8F` + ctrl + ethertype)と ISO 3309 `0x7E` フラグフレームの両対応
+- `tftp` — RFC 1350(+2347 オプション): RRQ/WRQ `file\0mode\0`、DATA/ACK ブロック番号、ERROR、OACK
+- `rtcp` — RFC 3550: `[v2|p|rc][pt][len:words]` コンパウンドパケット鎖、SR/RR 先頭規則
+- `gtp` — 3GPP TS 29.060 v1(PT+TEID+E/S/PN 拡張)と 29.274 v2(T ビット + u24 長)の振分け
+- `vxlan` — RFC 7348: 8B ヘッダ I フラグ + VNI + 内部 Ethernet MAC
+- `isis` — ISO/IEC 10589: `FE FE 03` LLC プレフィックス省略可、`0x83` discriminator + 5bit PDU type
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第168次、search-index 照合)
+
+**論文・仕様**: RFC 1661(PPP)/RFC 1332・ISO 3309 HDLC・RFC 1350/2347(TFTP)・RFC 3550(RTCP)・3GPP TS 29.060/29.274(GTP)・RFC 7348(VXLAN)・ISO/IEC 10589 + RFC 3719(IS-IS) — 全て整数のみで実装。
+
+**実装物**: pppd・Wireshark ディセクタ(ethertype/IS-IS)・OpenGGSN/open5gs・Linux `vxlan` ドライバ・FRRouting isisd — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の PPP/HDLC・TFTP・RTCP・GTP・VXLAN・IS-IS 解説記事 — 全て整数のみで実装。
+
+## 第169次: レトロゲーム音楽・チップチューン形式 第2弾(hes / kss / gym / ay / sndh / s98 / dro)
+
+**方法**: 文献参照ラウンド継続 — レジスタダンプ系サウンドフォーマット。`sap`(Atari SAP)は既存のため除外。全7件が既存 1084 件と非衝突を確認:
+
+- `hes` — PC Engine HES: `HESM` + version/first_song/init_addr + MPR bank map + `DATA`/`ATAD` チャンク鎖
+- `kss` — MSX KSS: `KSCC`/`KSSX` + load/init/play アドレス、KSSX は曲番・音量フィールド付き
+- `gym` — Genesis GYMX: `GYMX` + 32B×4 メタ文字列(song/game/publisher/emulator)
+- `ay` — ZX Spectrum AY: `ZXAYEMUL` + 20B ヘッダ(version/pointer table、ポインタは BE)
+- `sndh` — Atari ST SNDH: `SNDH` マーカー + `TITL`/`COMM`/`RIPP`/`CONV`/`YEAR`/`##NN`/`!#NN`/`HDNS` タグ列
+- `s98` — PC-98 S98: `S98`+バージョン数字 + 32B LE ヘッダ(timer 分数・tag/dump/loop オフセット)
+- `dro` — DOSBox Raw OPL: `DBRAWOPL` + v1(28B)/v2(codemap 付き)レイアウト振分け
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第169次、search-index 照合)
+
+**論文・仕様**: HES 仕様書(hoot/PCE サウンドドライバ)・KSS/KSSX 仕様・GYMX フォーマット文書・AY Emulator プロジェクト仕様(ZXAYEMUL)・SNDH フォーマット仕様・S98 v1/v2/v3 仕様・DOSBox DRO フォーマット — 全て整数のみで実装。
+
+**実装物**: Audio Overload/Chipamp プラグイン・Hoot・NEZplug++・DOSBox-X dro 記録・zxtune — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn・個人 wiki の PCE/MSX/PC-98/Atari ST サウンド形式・S98 ログ解析記事 — 全て整数のみで実装。
+
+## 第170次: ファイルシステム・ボリューム形式 第2弾(btrfs / zfs / f2fs / hfs / sysv / jfs / reiserfs)
+
+**方法**: 文献参照ラウンド継続 — スーパーブロック/メタ構造の検出・主要フィールド抽出。ext2/ntfs/hfsplus/ufs/minix/xfs/exfat/jffs2/cramfs/ubi/iso9660/udf は既存のため除外。全7件が既存 1091 件と非衝突を確認:
+
+- `btrfs` — `_BHRfS_M` @64 KiB: fsid/generation/num_devices/sectorsize・nodesize・leafsize・stripesize。sector size は 2 べき乗検査
+- `zfs` — uberblock 配列 @128 KiB(128 スロット上限走査): `0x00BAB10C` を LE/BE 両対応で検出、最大 txg を返す。version==0 / txg==0 は棄却
+- `f2fs` — `0xF2F52010` @0x400: log_sector/block_size 範囲検査(9..=16, 10..=16)、block_count + segment_count_{ckpt,sit,nat,ssa,main} + cp_blkaddr + root/node ino
+- `hfs` — クラシック HFS MDB `0x4244` @0x400: BE フィールド群、Pascal 文字列 drVN(≤27B)、drAlBlkSiz/drFilCnt/drDirCnt 等
+- `sysv` — SysV4/Xenix: `s_magic` @SB+0x1F8 = `0xFD187E20`/`0x2B5544` で endian 検出、SysV は `s_type` 一致必須、`s_fname`+`s_fpack` 12B ラベル
+- `jfs` — `JFS1` @32 KiB: s_bsize/s_l2bsize/s_pbsize の整合検査、s_uuid/s_label 抽出、state/flags/agsize
+- `reiserfs` — `ReIsErFs`/`ReIsEr2Fs`/`ReIsEr3Fs` @64 KiB+52: format 1/2/3 分類、bsize 512..=8192 の 2 べき乗、free≤total
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第170次、search-index 照合)
+
+**論文・仕様**: btrfs.readthedocs.io オンディスク形式・OpenZFS uberblock(UBERBLOCK_MAGIC 0x00bab10c)・Linux f2fs_fs.h・Inside Macintosh: Files(HFS MDB)・Linux sysv.h/xenix.h・Linux jfs_superblock.h(JFS1 @32KiB)・reiserfs_fs_sb.h(64KiB+magic@52) — 全て整数のみで実装。
+
+**実装物**: btrfs-progs・OpenZFS・f2fs-tools・Linux fs/{jfs,sysv,reiserfs,hfs}・file(1) マジックデータベース — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Btrfs・ZFS・F2FS・ReiserFS 内部構造・mkfs/fsck 解説記事 — 全て整数のみで実装。
+## 第171次: トラッカー音楽形式 第3弾(stm / mtm / ult / far / ptm / med / dbm)
+
+**方法**: 文献参照ラウンド継続 — 90 年代 DOS/Amiga 系トラッカーのモジュールヘッダ検出・主要フィールド抽出。mod/it/xm/s3m/sap/hes/kss/gym/ay/sndh/s98/dro/vgm/psid/spc/gbs/nsf/psf/figlet は既存のため除外。okt(Oktalyzer)はチャンク仕様の確証が取れず `med`、gdm はヘッダ記述の異説が多く `dbm` に差替え。全7件が既存 1098 件と非衝突を確認:
+
+- `stm` — Scream Tracker 2: `!Scream!`/`BMOD2STM` @20 + `0x1A` + file_type(1/2) + version/tempo/patterns/global_volume
+- `mtm` — MultiTracker: `MTM` + version(1.x 系)+ song_name[20] + tracks/last_pattern/last_order/comments/samples + channels 1..=32
+- `ult` — UltraTracker: `MAS_UTrack_V00` + version digit `'1'`..`'4'` + song_name[32]
+- `far` — Farandole Composer: `FAR\xFE` + 40B 曲名(空白・NUL 埋め)+ text_len u16 @0x2C
+- `ptm` — Poly Tracker: `PTMF` + version byte + name[28] + `0x1A` + file_version + orders/patterns/channels/samples/flags + songinfo_len
+- `med` — MED/OctaMED: `MMD0`..`MMD3` → version + BE `song_offset` u32
+- `dbm` — DigiBooster Pro: `DBM0` + BE version/instruments/samples/songs/patterns/channels(1..=32)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第171次、search-index 照合)
+
+**論文・仕様**: stformat.txt(Scream Tracker 2)・mtm-form.txt(MultiTracker)・ULTFORM.TXT(UltraTracker)・far-form.doc(Farandole Composer)・ptm-form.txt(Poly Tracker)・med-form.doc/MMD 仕様(OctaMED)・DigiBooster Pro dbpro フォーマット — 全て整数のみで実装。
+
+**実装物**: OpenMPT(libopenmpt fmt ローダー stm/mtm/ult/far/ptm/dbm)・Schism Tracker・libxmp・MilkyTracker・UADE/MED ローダー — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn・個人 wiki のトラッカー形式(MOD 派生・STM/MTM/ULT/FAR/PTM 解説)記事 — 全て整数のみで実装。
