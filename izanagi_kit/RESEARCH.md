@@ -2753,6 +2753,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 
 **国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
 
+
 ## 第107次(search-index 照合ラウンド / 実装証跡付き)
 
 **方法**: 文献参照ラウンド継続 — チャンク型マルチメディアコンテナと点群データ(全7件が既存 648 件と非衝突を確認):
@@ -3773,6 +3774,38 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **国内技術情報**: Qiita/Zenn の X.509 CRL・CSR・OCSP 解説、SPF/DKIM/DMARC 導入記事 — 全て整数のみで実装。
 
+## 第241次(search-index 照合ラウンド / 実装証跡付き)
+
+ネットワークデーモン・ルーティング設定形式(FRRouting / BIRD / OpenBGPD / keepalived / HAProxy / Squid / Varnish VCL — 7件)。
+
+- `frr` — FRRouting `frr.conf`/`zebra.conf` 系: `!` 区切り、`frr version`/`hostname`/`log` グローバル、`interface <name>`、`router <proto>`(PROTO 一覧+文字先頭)、`ip/ipv6` 経路(prefix-list 除外)、`neighbor`/`network`/`area`/`redistribute`、`access-list`/`route-map`/`community-list`/`match`/`set` フィルタ、`address-family`/`line`/`end`/`no` 補助行
+- `bird` — BIRD 1.6/2.x `bird.conf`: `protocol`/`template` ブロック、`filter`/`function`、`router id`/`log`/`listen`/`timeformat` グローバル、`route`/`route6`/`reject`/`unreachable`、`neighbor`/`local`/`remote`/`as`/`next hop`、`area`/`interface`/`channel`/`ipv4`/`table` ブロック、`import`/`export`/`preference`/`scan time`/`check link` オプション、`include`/`define`/`eval` 指令、`=` 代入
+- `openbgpd` — OpenBGPD `bgpd.conf`: `AS`/`router-id`/`fib-update`/`include` グローバル、`network <prefix>`、`group "name" {`、`neighbor <ip>`/`remote-as`/`descr`/`announce`/`depend on`、`allow`/`deny`/`match`/`quick` フィルタ行(行内 from/to/prefixlen/community/set アトム走査)
+- `keepalived` — keepalived.conf: `global_defs`/`vrrp_instance`/`vrrp_script`/`virtual_server`/`real_server`/`track_*`/`static_*`/`snmp`/`notification_*`/`*_check` 約35ブロック(`{` 必須・大小写不問)+ `state`/`interface`/`priority`/`virtual_ipaddress`/`weight`/`connect_timeout`/`lb_algo`/`delay_loop`/`auth_type`/`SMTP`/`MISC_CHECK` 等オプション。IP 値は「hex+区切り文字」で検出
+- `haproxy` — `haproxy.cfg`: `global`/`defaults`/`frontend`/`backend`/`listen`/`resolvers`/`peers`/`mailers`/`userlist`/`program`/`ring` セクション(≤3語・`=` なしで識別)+ `bind`/`acl`/`server`/`use_backend`/`default_backend`/`option`/`timeout`/`mode`/`balance`/`log`/`stats`/`http-request`/`tcp-request`/`stick`/`monitor`/`error*`/`unique-id*` 指令群
+- `squid` — `squid.conf`: `acl <name> <type>`、`*_access allow|deny`(+`!` 否定)、`http_port`/`icp_port`/`snmp_port`/`ssl_bump`、`cache_mem`/`cache_dir`/`access_log`/`coredump_dir`/`visible_hostname`/`dns_*`/`request_header_*` キャッシュ・ログ系、`refresh_pattern`、`hierarchy_stoplist`/`icap_*`/`adaptation_*`/`delay_*`/`snmp_*` 拡張
+- `vcl` — Varnish VCL: `vcl 4.x;` 版宣言、`backend`/`acl`/`probe`/`sub vcl_*`、`import`/`include`/`director`/`new`、`set`/`unset`/`synthetic`/`call`/`std.*`、`if/elsif/else`、`return`/`ban`/`hash_data`/`rollback`、`.field =` メンバ代入
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — frr の `ip prefix-list`/`ipv6 prefix-list` が `ip ` 経路に誤算、bird の `reject;` が route に誤算・`define` が代入+指令の二重計上、openbgpd の `announce`/`descr`/`remote-as` が neighbor 系に合算、keepalived の IPv6 `fd00::1` が IP 判定落ち・`TCP_CHECK` 大小写・オプション/ブロック混同、 haproxy の `daemon`/`stats` が directive/option 未分類、squid の `access_log`/`coredump_dir` キャッシュ系登録。全て整数のみで実装。
+
+## 第242次(search-index 照合ラウンド / 実装証跡付き)
+
+ホームオートメーション・IoT 設定形式(Home Assistant / ESPHome / Zigbee2MQTT / Frigate / Node-RED / openHAB / AppDaemon — 7件)。
+
+- `homeassistant` — configuration.yaml: ~150 コンポーネントの col-0 セクション(`homeassistant:`/`automation:`/`mqtt:`/`default_config:`…)、`- alias:`/`- platform:`/`- service:` 項目、`trigger:`/`condition:`/`action:`/`choose:`/`mode:` フロー、`platform:`/`entity_id:`/`target:`、`!include*`/`!secret`/`!env_var`/`!input` タグ、`customize:`/`packages:`
+- `esphome` — ESPHome YAML: `esphome:`+`esp32:`/`esp8266:`/`rp2040:`/`bk72xx:`/`rtl87xx:`/`host:` プラットフォーム、バス/ドメイン約200セクション、`- platform:`/`platform:`、`name:`/`id:`、`pin:`/`address:`/`update_interval:`/`i2c_id:`/`spi_id:`/`uart_id:` 参照、`on_*:`/`then:`/`lambda:`/`script.execute` オートメーション、`!secret`/`!include`/`!lambda`/`${subst}`
+- `zigbee2mqtt` — configuration.yaml: `homeassistant:`/`permit_join:`/`mqtt:`/`serial:`/`frontend:`/`advanced:`/`devices:`/`groups:`/`ota:`/`availability:`/`experimental:` 他、`devices:`/`groups:` 下の `0x…` IEEE アドレス/番号エントリ(インデント追跡)+ `friendly_name:`/`retain:`/`qos:`/`debounce`/`optimistic:`/`disabled:`/`filtered_*:` オプション
+- `frigate` — config.yml: `mqtt:`/`cameras:`/`detectors:`/`go2rtc:`/`birdseye:`/`live:`/`ui:`/`auth:`/`tls:`/`telemetry:`、`cameras:` 内カメラエントリ(インデント追跡)、`- path:`/`rtsp://` 入力、`roles:`(`detect`/`record`/`audio`/`restream`)、`detect:`/`record:`/`objects:`/`zones:`/`motion:`/`review:`/`audio:` フィーチャ、detector `type:`/`device:`、`hwaccel_args`/`input_args`/`output_args`/`global_args`/`ffmpeg:`
+- `nodered` — flows.json: `"id"` ノード総数、`tab`/`subflow`/`group` コンテナ、`inject`/`debug`/`function`/`switch`/`change`/`trigger`/`delay`/`junction`/`catch`/`status`/`link *` コア、`http*`/`mqtt*`/`tcp*`/`udp*`/`websocket*`/`serial*`/`webhook` I/O、`ui_*`/`site` ダッシュボード、`csv`/`xml`/`yaml`/`json`/`template`/`exec`/`file`/`watch`/`moment`/`base64`/`split`/`join`/`rbe` データ、`"wires"` 配線、`"env"`/`"config"`/`"credentials"`/`"outputs"`/`"props"`
+- `openhab` — .items/.things/.rules/.sitemap: Switch/Dimmer/Color/Contact/DateTime/Number/Rollershutter/String/Group/Image/Location/Player/Call アイテム、`Thing`/`Bridge`/`Channels`、`(group)`/`["tag"]`/`<icon>` 参照、`{channel=`/`{ga=`/`{alexa=`/`{homekit=`/`{expire=`/`{autoupdate=`/`{mqtt=`/`{http=`/`{knx=` バインディング、`rule "…" when … then … end`/`Item … changed`/`Time cron`/`Channel triggered`、`Frame`/`Text`/`Slider`/`Selection`/`Chart`/`Mapview` サイトマップ要素、`sendCommand`/`postUpdate`/`createTimer`/`val`/`var`/`import` スクリプト
+- `appdaemon` — appdaemon.yaml/apps.yaml: `appdaemon:`/`hadashboard:`/`plugins:`/`HASS:`/`MQTT:`/`logs:`/`namespaces:`/`admin:`/`apps:`/`Global:`/`global:`/`dependencies:` ブロック、`latitude:`/`time_zone:`/`app_dir:`/`threads:`/`pin_apps:`/`cert_verify:`/`production_mode:`/`timewarp:`/`accurate_timestamps:` 等、`module:`/`class:`/`type:`、`constrain_*:`/`run_daily:`/`sunrise:`/`listen_log` 制約、`host:`/`port:`/`token:`/`ha_url:`/`ha_key:`/`client_id:`/`namespace:`/`persistent:`/`daemon_sleep_time:`/`birth_msg:`/`will_msg:` プラグインキー
+
+**検証**: 各モジュール単体テスト + doctest;捕捉した修正 — zigbee2mqtt の devices/groups エントリがネスト判定で未計上(インデントレベル記録で修正)、appdaemon の `MQTT:`/`log:`/`type:` 分類と apps.yaml detect(`module:`+`class:` のみで受理へ)、frigate の `roles:` 重複・detectors セクション名計上・`- ` 一般項目が inputs に誤算、homeassistant のインデント付き `customize:` 未計上、nodered の `mqtt-broker`/`debug` 分類。全て整数のみで実装。
+
+## 第243次(search-index 照合ラウンド / 実装証跡付き)
+
+`izanagi_kit` に形式手法・モデル検査記述形式7件を追加した(972→979)。`tlaplus`(TLA+ モジュール: `---- MODULE`/`====`・`EXTENDS`/`INSTANCE`・`CONSTANT`/`VARIABLE`・`==` 定義・Init/Next/Spec/Inv 標準形・`THEOREM`/`PROOF`/`BY`/`QED` 証明・`[]`/`<>`/`~>` 時相・`/\`/`\/`/`\in`/`/=` 論理)、`alloy`(Alloy `.als`: `module`/`open`/`private`/`as`・`sig`/`abstract`/`lone`/`one`/`enum`/`var`/`some sig`・`fact`/`pred`/`fun`/`assert`/`check`/`run`/`expect`/`inst`/`idiv`・`extends`/`in`/`partof`/`subset`/`subsetof`・`let`/`=>`/`iff`/`implies`/`and`/`or`/`not`/`else`/`if`/`then`/`for`・`all`/`some`/`no`/`lone`/`one`/`set`/`seq`/`disj` 限定・`->`/` *`/` ^`/` ~` 関係演算子)、`promela`(Promela `.pml`: `proctype`/`init`/`active`/`never`/`trace`/`notrace`/`d_step`/`atomic`/`inline`/`ltl`・`chan`/`mtype`/`typedef`/`hidden`/`show`/`xr`/`xs`/スカラ型・`do`/`od`/`if`/`fi`/`::` ガード・`->`/`goto`/`break`/`skip`/`else`/`unless`・`!`/`?` 通信・`assert`/`printf`/`print`・`c_code`/`c_decl`/`c_state`/`c_expr`/`c_track`/`c_var` 組込 C)、`dafny`(Dafny `.dfy`: `module`/`import`/`include`/`export`/`opened`/`refines`・`method`/`constructor`/`function`/`predicate`/`copredicate`/`lemma`/`colemma`/`twostate`/`inductive`/`opaque`/`least`/`greatest`/`axiom`・`datatype`/`codatatype`/`class`/`trait`/`type`/`newtype`/`iterator`/`const`/`var`/`ghost`/`static`/`subset`・`requires`/`ensures`/`invariant`/`decreases`/`reads`/`modifies`/`frame`/`calc`/`forall`/`exists`・`assert`/`assume`/`expect`/`print`/`label`・`if`/`else`/`while`/`for`/`match`/`case`/`return`/`yield`/`break`/`continue`/`then`/`by`・`old`/`fresh`/`allocated`/`unchanged`/`in`/`as`/`is`/`null`/`this`/`true`/`false`/`abstemious`)、`mch`(B/Event-B `.mch`/`.ref`/`.imp`: `MACHINE`/`REFINEMENT`/`IMPLEMENTATION`/`MODEL`/`SYSTEM`・`SEES`/`USES`/`INCLUDES`/`EXTENDS`/`PROMOTES`/`REFINES`/`IMPORTS`/`VALUES`・`CONSTRAINTS`/`SETS`/`CONSTANTS`/`PROPERTIES`/`VARIABLES`/`INVARIANT`/`ASSERTIONS`/`DEFINITIONS`/`INITIALISATION`/`OPERATIONS`/`EVENTS`/`VARIANT`/`END`・`PRE`/`THEN`/`WHEN`/`WHERE`/`ANY`/`SELECT`/`CHOICE`/`IF`/`CASE`/`OR`/`LET`/`BE`/`BEGIN`/`ELSIF`/`ELSE`/`WHILE`/`MODIFIES`/`IN`/`ASSERT`/`NOT`/`EITHER` 代入・`:=`/`||`/`<|`・` : `/`<=`/`=>`/`<=>`/`/=`/`/\`/`\/`/`not`/`NAT`/`INT`/`BOOL`/`POW`/`SEQ`/`NATURAL`/`INTEGER`/`STRING`/`FIN`/`INTER`/`UNION`/`SIGMA`/`PI` 論理)、`lf`(Lingua Franca `.lf`: `target`/`import`/`preamble`/`reactor`/`instantiation`/`main`/`federated`/`realtime`/`interface`・`input`/`output`/`state`/`timer`/`action`/`parameter`/`method`/`local`/`prelude`/`initial`/`reset`/`shutdown`/`startup`・`reaction`/`mutation`・`->`/`after`/`physical`/`logical`/`STP`/`deadline`/`policy`/`STAA`/`{=`/`=}`・`width`/`bank`/`bank_index`/`runtime`/`authentication`/`tracing`/`logging`/`workers`/`timeout`/`keepalive`/`fast`/`threads`/`coordination`/`scheduler`/`files`/`clock-sync`/`fed-setup`/`cmake-include`/`build`/`external-runtime-path`/`no-compile`/`verify`/`federated`/`single-threaded`/`worker-thread-count`/`multiport`/`enclave`/`serializer`/`platform`/`threading`/`cargo-dependencies`)、`whyml`(WhyML/Why3 `.mlw`/`.why`: `module`/`use`/`clone`/`import`/`export`/`include`/`scope`/`namespace`/`theory`/`meta`/`declarations`・`let`/`val`/`predicate`/`function`/`type`/`inductive`/`coinductive`/`constant`/`exception`/`rec`/`fun`/`abstract`/`ghost`/`pure`/`mutable`/`private`・`requires`/`ensures`/`invariant`/`variant`/`writes`/`reads`/`raises`/`alias`/`diverges`/`partial`・`axiom`/`lemma`/`goal`/`prop`/`assert`/`assume`/`check`/`absurd`/`by`/`so`/`epsilon`/`any`・`if`/`else`/`while`/`for`/`match`/`with`/`try`/`begin`/`end`/`in`/`of`/`as`/`not`/`and`/`or`/`loop`/`break`/`continue`/`return`/`case`・`==>`/`<->`/`\/`/`/\`/`forall`/`exists`)。
+
 ## 第154次: SBOM・サプライチェーン・脆弱性情報(spdx / cyclonedx / swid / osv / intoto / csaf / slsa)
 
 **方法**: 文献参照ラウンド継続 — SBOM 三大形式(SPDX tag-value・CycloneDX・SWID)と脆弱性/認証メタデータ(OSV・in-toto・CSAF・SLSA provenance)。全7件が既存 979 件と非衝突を確認、JSON 系は `json` モジュール再利用:
@@ -3787,13 +3820,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第154次、search-index 照合)
-
-**論文・仕様**: ISO/IEC 5962(SPDX)/ Ecma-424(CycloneDX)/ ISO/IEC 19770-2(SWID)/ OSV Schema/ in-toto Attestation Framework/ OASIS CSAF 2.0/ SLSA v1.0 provenance — 全て整数のみで実装。
-
-**実装物**: spdx-tools・CycloneDX/cyclonedx-rust・swid-generator・osv.dev スキーマ実装・in-toto/in-toto-rs・csaf-rs・slsa-github-generator — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の SPDX・CycloneDX・SBOM 導入・SLSA 解説記事 — 全て整数のみで実装。
 
 ## 第155次: セキュリティ・well-known・HTTP ポリシー(securitytxt / adstxt / hostmeta / webfinger / assetlinks / csp / permissions)
 
@@ -3809,13 +3835,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第155次、search-index 照合)
-
-**論文・仕様**: RFC 9116(security.txt)/ IAB ads.txt v1.1 / RFC 6415(host-meta, XRD 1.0)/ RFC 7033(WebFinger/JRD)/ Digital Asset Links 仕様/ W3C CSP Level 3/ W3C Permissions-Policy — 全て整数のみで実装。
-
-**実装物**: Mozilla CSP Analyzer、securitytxt.org リファレンス、Google assetlinks ツール、各社 well-known 実装 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の security.txt・ads.txt・WebFinger・CSP 解説記事 — 全て整数のみで実装。
 
 ## 第156次: ネットワークキャプチャ・フロー・HCI ログ形式(snoop / erf / netflow / ipfix / sflow / btsnoop / dlt)
 
@@ -3831,14 +3850,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第156次、search-index 照合)
-
-**論文・仕様**: RFC 1761(snoop v2)/ Endace ERF 形式仕様(libtrace 文書)/ RFC 3954(NetFlow v9)+ Cisco NetFlow v5 文書/ RFC 7011(IPFIX)/ RFC 3176(sFlow v5)/ BTSnoop 形式(Bluetooth HCI snoop)/ AUTOSAR PRS_DltProtocol — 全て整数のみで実装。
-
-**実装物**: tcpdump/wireshark の snoop・ERF・NetFlow・IPFIX・sFlow 解析、Android btsnoop_hci.log、GENIVI dlt-daemon — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の NetFlow/IPFIX・sFlow・Wireshark HCI スヌープ・DLT 解説記事 — 全て整数のみで実装。
-
 ## 第157次: メッセージング・メール・チャットプロトコル(smtp / pop3 / imap / irc / nntp / amqp / xmpp)
 
 **方法**: 文献参照ラウンド継続 — メール転送/受信、チャット、ニュース、メッセージキュー、IM スタンザ。全7件が既存 1000 件と非衝突を確認:
@@ -3852,14 +3863,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `xmpp` — RFC 6120: `<message>/<presence>/<iq>` スタンザ、to/from/id/type + `<body>` 抽出、self-closing 許容
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第157次、search-index 照合)
-
-**論文・仕様**: RFC 5321(SMTP)/ RFC 1939(POP3)/ RFC 3501(IMAP4rev1)/ RFC 1459・2812(IRC)/ RFC 3977(NNTP)/ OASIS AMQP 0-9-1/ RFC 6120(XMPP Core) — 全て整数のみで実装。
-
-**実装物**: Postfix・Dovecot・ngircd・RabbitMQ・Prosody 等の wire 実装、telnet セッション例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の SMTP/POP3/IMAP・IRC・NNTP・AMQP・XMPP 解説記事 — 全て整数のみで実装。
 
 ## 第158次: 医療・科学画像形式 第2弾(analyze / minc / ecat / interfile / parrec / dm3 / gxf)
 
@@ -3875,14 +3878,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(f32 値は bits のみ保持)。
 
-## 出典(第158次、search-index 照合)
-
-**論文・仕様**: Analyze 7.5 File Format(Mayo Biomedical Imaging Resource)/ MINC 1.0 & 2.0 仕様(BIC)/ ECAT 7.x File Format(Siemens/CTI)/ Interfile 3.3/ Philips PAR/REC ノート/ Gatan DM3 Tag Format(hyperspy)/ GXF Specification(Geosoft) — 全て整数のみで実装。
-
-**実装物**: nibabel(nibabel.analyze/parrec/ecat/minc 参照実装)、ImageJ・AFNI・FSL の読み込みコード、hyperspy DigitalMicrograph パーサ、Gemcom/Oasis montaj GXF — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Analyze・NIfTI・MINC ヘッダ解説、DigitalMicrograph ファイル解析記事、医用画像 DICOM 周辺フォーマット解説 — 全て整数のみで実装。
-
 ## 第159次: 刺繍・カッティング機形式(pes / pec / vp3 / jef / hus / vip / studio3)
 
 **方法**: 文献参照ラウンド継続 — ミシン刺繍・カッティングプロッタの実機フォーマット(Tajima `dst` は既存)。全7件が既存 1014 件と非衝突を確認:
@@ -3897,13 +3892,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第159次、search-index 照合)
-
-**論文・仕様**: Embroidermodder/libembroidery のフォーマット文書(PES/PEC/JEF/HUS/VIP/VP3)/ PES Format Document(Rudy's Code HQ)/ Silhouette Studio3 ファイル解析 — 全て整数のみで実装。
-
-**実装物**: libembroidery(C 実装)、Embroidermodder、threedub/pyembroidery 系 Python 実装、Ink/Stitch エクスポータ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の刺繍データ(PES/JEF)構造解説、ブラザー刺繍機フォーマット解析記事、カッティングマシン(STUDIO3)関連記事 — 全て整数のみで実装。
 
 ## 第160次: CAE メッシュ・数値流体力学形式(msh / unv / neu / vtu / grd / nas / su2)
 
@@ -3919,14 +3907,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(座標・レンジは文字列のまま保持)。
 
-## 出典(第160次、search-index 照合)
-
-**論文・仕様**: Gmsh MSH 4.1/2.2 specification、I-DEAS Universal File dataset カタログ(2411/2412/2414/…)、Gambit Neutral File Format、VTK XML File Formats(Kitware)、Surfer 6 ASCII/Binary Grid(Golden Software)、MSC NASTRAN Quick Reference(bulk data)、SU2 mesh format docs — 全て整数のみで実装。
-
-**実装物**: Gmsh・IDEAS/NX・ANSYS Fluent・ParaView(vtkIOXML)・SU2 本体リーダ、meshio・pyvista の参照実装 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Gmsh・NASTRAN・SU2・VTK メッシュフォーマット解説、Surfer グリッド仕様の翻訳記事 — 全て整数のみで実装。
-
 ## 第161次: ロボット工学・点群・動作捕捉形式(urdf / xacro / rosbag / mcap / pcd / e57 / c3d)
 
 **方法**: 文献参照ラウンド継続 — ROS エコシステムと計測フォーマット。全7件が既存 1028 件と非衝突を確認:
@@ -3941,13 +3921,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(scale factor は raw bits、座標は保持しない)。
 
-## 出典(第161次、search-index 照合)
 
-**論文・仕様**: URDF XML spec(ROS wiki)、xacro spec(ROS 2 docs)、rosbag 2.0 spec(ros-infrastructure)、MCAP spec(mcap.dev)、PCL PCD file format v0.7、ASTM E2807-11(E57)、C3D technical user guide(c3d.org)— 全て整数のみで実装。
-
-**実装物**: ROS/ROS 2 rosbag2・foxglove mcap-cli・Point Cloud Library・pye57・ezc3d の参照リーダ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の URDF/xacro・rosbag・MCAP・PCD・C3D 解説記事 — 全て整数のみで実装。
 
 ## 第162次: ネットワークプロトコル第5弾 — 認証・ディレクトリ・トンネリング(ldap / diameter / eap / tacacs / isakmp / l2tp / socks)
 
@@ -3963,14 +3937,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第162次、search-index 照合)
-
-**論文・仕様**: RFC 4511(LDAP)、RFC 6733(Diameter)、RFC 3748(EAP)、draft-ietf-opsawg-tacacs / RFC 8907、RFC 2408/7296(ISAKMP/IKEv2)、RFC 2661(L2TP)、RFC 1928/1929(SOCKS5)— 全て整数のみで実装。
-
-**実装物**: OpenLDAP・freeDiameter・hostapd/wpa_supplicant・tac_plus(tacacs+)・strongSwan・xl2tpd・dante/ssh -D の参照パーサ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の LDAP・Diameter・EAP/802.1X・TACACS+・IKE・L2TP・SOCKS 解説 — 全て整数のみで実装。
-
 ## 第163次: ジオ空間データ形式 第2弾 — オフライン地図・ラスタ海図(prj / gpkg / mbtiles / osmpbf / fgb / dted / kap)
 
 **方法**: 文献参照ラウンド継続 — オフライン地図コンテナ・投影記述・標高セル・ラスタ海図。`sqlite`/`wkt` 系との重複は `sqlite` 再利用で回避。shp/dbf/qcow2/geojson/wkb/topojson/pmtiles/hgt/mvt/osm は既存のため除外。全7件が既存 1042 件と非衝突を確認:
@@ -3984,14 +3950,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `kap` — BSB/KAP ラスタ海図: `!` コメント + `BSB/NA,NU,RA,DU` + `VER/` + KNP/CED セクション列挙
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第163次、search-index 照合)
-
-**論文・仕様**: OGC GeoPackage 12-128・MBTiles 仕様(Mapbox)・OSM PBF 形式(OSM wiki)・FlatGeobuf spec・MIL-PRF-89020B(DTED)・BSB/KAP ヘッダ仕様(libbsb 文書)・OGC WKT1/WKT2(ISO 19162)— 全て整数のみで実装。
-
-**実装物**: GDAL/OGR・QGIS・osmium(libosmium)・flatgeobuf lib・libbsb・dted 読み取り各種 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の GeoPackage・MBTiles・OSM PBF・DTED・KAP(海図)・prj(WKT)記事 — 全て整数のみで実装。
 
 ## 第164次: 統計・レガシー表計算データ交換形式(dif / sylk / dta / sav / xpt / sas7bdat / rdata)
 
@@ -4007,14 +3965,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第164次、search-index 照合)
-
-**論文・仕様**: DIF 仕様(VisiCalc/Multiplan)・SYLK(Symbolic Link)・Stata dta 形式文書・PSPP sav 仕様・SAS XPORT 5/8 技術メモ・parso sas7bdat オフセット表・R Internals(serialization)— 全て整数のみで実装。
-
-**実装物**: LibreOffice/Excel DIF・SYLK インポータ、haven/readstat・pyreadstat・parso・R serialize.c — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Stata/SPSS/SAS データ読み書き・RData・SYLK 解説 — 全て整数のみで実装。
-
 ## 第165次: 字幕・キャプション形式(ttml / scc / sbv / usf / smi / mpl2 / pjs)
 
 **方法**: 文献参照ラウンド継続 — 放送・配信向けの字幕テキスト形式。srt/ass/vtt/stl/lrc は既存のため除外し、残り7件が非衝突を確認:
@@ -4028,14 +3978,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `pjs` — Phoenix Japanimation: `H:MM:SS:FF, H:MM:SS:FF, "text"`(25fps換算)
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第165次、search-index 照合)
-
-**論文・仕様**: W3C TTML1/2 仕様(ttp: 名前空間)・SMPTE ST 2052・Scenarist SCC フィールド定義・USF/SAMI 形式文書・MicroDVD 系 MPL2/PJS コミュニティ仕様 — 全て整数のみで実装。
-
-**実装物**: FFmpeg(mpl2dec/pjsdec 等)、Subtitle Edit、YouTube SBV アップローダ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の字幕形式変換・SAMI/SCC 解説記事 — 全て整数のみで実装。
 
 ## 第166次: CAD・設計データ形式 第2弾(ifc / dgn / dwg / skp / rfa / dsn / e00)
 
@@ -4051,13 +3993,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第166次、search-index 照合)
-
-**論文・仕様**: ISO 10303-21(STEP 物理ファイル)/IFC2x3・IFC4 スキーマ(buildingSMART)・MicroStation ISFF/DGN V8 仕様・Open Design Alliance DWG ヘッダ仕様(AC1009–AC1032)・Revit RFA ファミリ構造・SPECCTRA DSN 文法・ArcInfo E00 生成仕様 — 全て整数のみで実装。
-
-**実装物**: IfcOpenShell・LibreDWG・ezdxf・KiCad/specctra インポータ・GDAL/OGR E00 ドライバ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の IFC/BIM・DWG バージョン判別・E00 インポート解説記事 — 全て整数のみで実装。
 
 ## 第167次: 科学計算・シミュレーション形式 第2弾(inp / k / frd / dcd / wfn / dx / ccx)
 
@@ -4073,13 +4008,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第167次、search-index 照合)
-
-**論文・仕様**: Abaqus Keywords Reference・LS-DYNA Keyword User's Manual・CalculiX CrunchiX ユーザマニュアル(.frd/.inp)・CHARMM/NAMD DCD Fortran レコード仕様・Gaussian .wfn AIM 形式・IBM OpenDX Data Model — 全て整数のみで実装。
-
-**実装物**: PrePoMax/cgx・LS-PrePost・MDAnalysis DCD リーダ・PyVista OpenDX — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Abaqus inp 書き方・CalculiX 入門・DCD 解析記事 — 全て整数のみで実装。
 
 ## 第168次: ネットワークプロトコル第6弾 — WAN カプセル化・トンネル制御(ppp / hdlc / tftp / rtcp / gtp / vxlan / isis)
 
@@ -4095,13 +4023,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第168次、search-index 照合)
-
-**論文・仕様**: RFC 1661(PPP)/RFC 1332・ISO 3309 HDLC・RFC 1350/2347(TFTP)・RFC 3550(RTCP)・3GPP TS 29.060/29.274(GTP)・RFC 7348(VXLAN)・ISO/IEC 10589 + RFC 3719(IS-IS) — 全て整数のみで実装。
-
-**実装物**: pppd・Wireshark ディセクタ(ethertype/IS-IS)・OpenGGSN/open5gs・Linux `vxlan` ドライバ・FRRouting isisd — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の PPP/HDLC・TFTP・RTCP・GTP・VXLAN・IS-IS 解説記事 — 全て整数のみで実装。
 
 ## 第169次: レトロゲーム音楽・チップチューン形式 第2弾(hes / kss / gym / ay / sndh / s98 / dro)
 
@@ -4117,13 +4038,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第169次、search-index 照合)
-
-**論文・仕様**: HES 仕様書(hoot/PCE サウンドドライバ)・KSS/KSSX 仕様・GYMX フォーマット文書・AY Emulator プロジェクト仕様(ZXAYEMUL)・SNDH フォーマット仕様・S98 v1/v2/v3 仕様・DOSBox DRO フォーマット — 全て整数のみで実装。
-
-**実装物**: Audio Overload/Chipamp プラグイン・Hoot・NEZplug++・DOSBox-X dro 記録・zxtune — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn・個人 wiki の PCE/MSX/PC-98/Atari ST サウンド形式・S98 ログ解析記事 — 全て整数のみで実装。
 
 ## 第170次: ファイルシステム・ボリューム形式 第2弾(btrfs / zfs / f2fs / hfs / sysv / jfs / reiserfs)
 
@@ -4139,13 +4053,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第170次、search-index 照合)
 
-**論文・仕様**: btrfs.readthedocs.io オンディスク形式・OpenZFS uberblock(UBERBLOCK_MAGIC 0x00bab10c)・Linux f2fs_fs.h・Inside Macintosh: Files(HFS MDB)・Linux sysv.h/xenix.h・Linux jfs_superblock.h(JFS1 @32KiB)・reiserfs_fs_sb.h(64KiB+magic@52) — 全て整数のみで実装。
-
-**実装物**: btrfs-progs・OpenZFS・f2fs-tools・Linux fs/{jfs,sysv,reiserfs,hfs}・file(1) マジックデータベース — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Btrfs・ZFS・F2FS・ReiserFS 内部構造・mkfs/fsck 解説記事 — 全て整数のみで実装。
 ## 第171次: トラッカー音楽形式 第3弾(stm / mtm / ult / far / ptm / med / dbm)
 
 **方法**: 文献参照ラウンド継続 — 90 年代 DOS/Amiga 系トラッカーのモジュールヘッダ検出・主要フィールド抽出。mod/it/xm/s3m/sap/hes/kss/gym/ay/sndh/s98/dro/vgm/psid/spc/gbs/nsf/psf/figlet は既存のため除外。okt(Oktalyzer)はチャンク仕様の確証が取れず `med`、gdm はヘッダ記述の異説が多く `dbm` に差替え。全7件が既存 1098 件と非衝突を確認:
@@ -4160,13 +4068,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第171次、search-index 照合)
-
-**論文・仕様**: stformat.txt(Scream Tracker 2)・mtm-form.txt(MultiTracker)・ULTFORM.TXT(UltraTracker)・far-form.doc(Farandole Composer)・ptm-form.txt(Poly Tracker)・med-form.doc/MMD 仕様(OctaMED)・DigiBooster Pro dbpro フォーマット — 全て整数のみで実装。
-
-**実装物**: OpenMPT(libopenmpt fmt ローダー stm/mtm/ult/far/ptm/dbm)・Schism Tracker・libxmp・MilkyTracker・UADE/MED ローダー — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn・個人 wiki のトラッカー形式(MOD 派生・STM/MTM/ULT/FAR/PTM 解説)記事 — 全て整数のみで実装。
 ## 第172次: マークアップ・軽量文書形式 第2弾(docbook / dita / textile / creole / bbcode / txt2tags / mediawiki)
 
 **方法**: 文献参照ラウンド継続 — XML 文書型のルート要素/名前空間識別と、軽量マークアップのブロック/インラインマーカー走査。rst/adoc/roff/texinfo/org/pod/markdown/jats/mods は既存のため除外。全7件が既存 1105 件と非衝突を確認:
@@ -4181,13 +4082,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第172次、search-index 照合)
-
-**論文・仕様**: OASIS DocBook 5.x TDG・OASIS DITA 1.x 仕様(DITAArchVersion)・Textile 言語リファレンス(textile-lang.com/RedCloth)・WikiCreole 1\x2e0 仕様(wikicreole.org)・phpBB BBcode ドキュメント・txt2tags ユーザガイド(txt2tags.org)・MediaWiki Wikitext 仕様 — 全て整数のみで実装。
-
-**実装物**: pandoc・python-docutils系/RedCloth・phpBB・MediaWiki パーサ・txt2tags 実装 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の DocBook/DITA・Textile・WikiCreole・BBCode・txt2tags・MediaWiki 記法解説記事 — 全て整数のみで実装。
 ## 第173次: GUI フォーム・リソース記述形式(rc / res / glade / qtui / xib / nib / fxml)
 
 **方法**: 文献参照ラウンド継続 — リソース記述言語と UI 定義 XML の構造マーカー走査。resx/xml/plist は既存のため除外。全7件が既存 1112 件と非衝突を確認:
@@ -4202,13 +4096,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第173次、search-index 照合)
-
-**論文・仕様**: Microsoft Learn "Resource-Definition Statements"(.rc 文法)・"RESOURCEHEADER" 構造(.res 32B プロローグ)・GTK/GtkBuilder XML ドキュメント形式(gtk.org)・Qt Designer UI File Format(.ui、`<ui version>`)・Apple "Building an Interface in Interface Builder"/NSKeyedArchiver アーカイブ形式・JavaFX FXML リファレンス(`<?import` PI 規則) — 全て整数のみで実装。
-
-**実装物**: LLVM llvm-rc/GNU windres(.rc パーサ)・GTK gtk-builder-tool・Qt uic コンパイラ・Xcode ibtool/IBCocoaTouchToolFoundation・openjfx-fxml — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の .rc リソーススクリプト・GtkBuilder・Qt Designer .ui・XIB/NIB・JavaFX FXML 解説記事 — 全て整数のみで実装。
 ## 第174次: セキュリティ脅威インテリジェンス・検知ルール形式(yara / sigma / stix / cve / misp / ioc / snort)
 
 **方法**: 文献参照ラウンド継続 — 検知ルール言語と脅威インテリジェンス JSON/XML の構造走査。全7件が既存 1119 件と非衝突を確認:
@@ -4223,13 +4110,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第174次、search-index 照合)
-
-**論文・仕様**: YARA 公式ドキュメント "Writing rules"・Sigma 仕様(sigmahq.io)・OASIS STIX 2\x2e0/2\x2e1 仕様・CVE Record Format 5.x(cve-services)・MISP core format JSON スキーマ(misp-standard.org)・OpenIOC 1\x2e1 スキーマ・Snort Users Manual "Rules"・Suricata ルール形式ドキュメント — 全て整数のみで実装。
-
-**実装物**: VirusTotal/yara・SigmaHQ/sigma(pySigma)・oasis-open/cti-python-stix2・CVEProject/cve-schema・MISP/MISP core・mandiant/OpenIOC_1.1_Cheat_Sheet・Snort3・OISF/suricata — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の YARA ルール記述・Sigma 検知ルール・STIX/TAXII・CVE JSON 5・MISP・OpenIOC・Snort/Suricata ルール解説記事 — 全て整数のみで実装。
 ## 第175次: 天文・衛星軌道データ形式(rinex / sp3 / sbf / omm / oem / tdm / antex)
 
 **方法**: 文献参照ラウンド継続 — GNSS 観測・精密軌道・宇宙機管制メッセージの構造走査。`tle` は既存のため除外。全7件が既存 1126 件と非衝突を確認:
@@ -4244,13 +4124,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第175次、search-index 照合)
 
-**論文・仕様**: RINEX 2/3/4 仕様(IGS/RTCM)・SP3-c/d "The Standard Product Format"(IGS/NGA)・Septentrio SBF Reference Guide・CCSDS 502.0-B Orbit Data Messages(OMM/OEM)・CCSDS 503.0-B Tracking Data Message(TDM)・ANTEX format specification(IGS) — 全て整数のみで実装。
-
-**実装物**: RTKLIB・GPSTk(RINEX/SP3)・Septentrio sbf2asc・OREKIT(OEM/OMM/TDM パーサ)・igs20.atx ANTEX ファイル・ESA navipedia — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の RINEX 解析・SP3 精密軌道・CCSDS KVN・TLE/OMM・ANTEX アンテナ補正解説記事 — 全て整数のみで実装。
 ## 第176次: 画像形式 第3弾(exr / sgi / jp2 / jxr / flif / jbig2 / dpx)
 
 **方法**: 文献参照ラウンド継続 — 業務用・科学用ビットマップ形式のヘッダ構造走査。`tga`/`icns`/`webp`/`bmp`/`png`/`tiff`/`dds`/`qoi`/`hdr`/`jxl`/`heif`/`psd`/`xcf`/`djvu`/`pcx`/`xbm`/`xpm`/`ras`/`gif`/`ico`/`farbfeld`/`pnm`/`iff`/`eps` は既存のため除外。全7件が既存 1133 件と非衝突を確認:
@@ -4265,13 +4139,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第176次、search-index 照合)
 
-**論文・仕様**: OpenEXR ファイルレイアウト(Academy Software Foundation/ILM)・SGI 画像フォーマット仕様(SGI developer toolbox)・ISO/IEC 15444-1 Annex I(JP2)・ITU-T T.832(JPEG XR)・FLIF 仕様(flif.info)・ITU-T T.88/ISO 14492(JBIG2 Annex D)・SMPTE ST 268(DPX) — 全て整数のみで実装。
-
-**実装物**: AcademySoftwareFoundation/openexr・image-rs(image-tga/image-sgi 等)・jasper(JPEG 2000)・jxrlib・FLIF-hub/FLIF・agl/jbig2dec・dpkt 系 DPX 実装 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の OpenEXR・JPEG 2000/JP2・JPEG XR・FLIF・JBIG2・DPX 解説記事 — 全て整数のみで実装。
 ## 第177次: 3D アセット・モデル形式 第2弾(dae / lwo / wrl / iv / md3 / cob / ac)
 
 **方法**: 文献参照ラウンド継続 — レガシー/標準 3D モデル交換形式のヘッダ・ノード構造走査。`ply`/`stl`/`obj`/`fbx`/`glb`/`blend`/`abc`/`pmd`/`pmx`/`bvh`/`x3d`/`amf`/`threemf`/`off`/`step`/`iges`/`ifc`/`skp`/`dgn`/`dwg`/`dxf`/`mdl`/`md2`/`uasset` 等は既存のため除外。全7件が既存 1140 件と非衝突を確認:
@@ -4285,11 +4153,3 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `ac` — AC3D: `AC3D`+バージョン文字 + `OBJECT world|poly|group|light`/`MATERIAL`/`SURF`/`numvert`/`texture` 行センサス
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第177次、search-index 照合)
-
-**論文・仕様**: ISO/PAS 17506 COLLADA・ISO/IEC 14772-1 VRML97・VRML 1.0 仕様・NewTek LWO2 フォーマット仕様・id Tech 3 MD3 フォーマット解説・Caligari COB フォーマットノート・AC3D ファイルフォーマット文書 — 全て整数のみで実装。
-
-**実装物**: Khronos collada-dom / assimp・NewTek LightWave SDK / Blender io_import_lwo・FreeWRL / OpenVRML・Coin3D SoDB・ioquake3・Blender io_scene_ac3d — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の COLLADA・VRML・Inventor・MD3・LWO 解説記事 — 全て整数のみで実装。
