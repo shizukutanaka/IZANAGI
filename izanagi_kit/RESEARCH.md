@@ -3853,3 +3853,27 @@ VPN・トンネル設定ファイル形式。対象: `wireguard`(wg.conf/wg-quic
 ## 第255次(search-index 照合ラウンド / 実装証跡付き)
 
 多言語リンター・フォーマッタ設定形式。.clang-format、.clang-tidy、CPPLINT.cfg、detekt.yml、ktlint .editorconfig プロパティ、.swiftlint.yml、.rubocop.yml。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第256次(search-index 照合ラウンド / 実装証跡付き)
+
+JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、bunfig.toml、angular.json、turbo.json、nx.json、lerna.json。各ツールのスキーマ・ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第257次(search-index 照合ラウンド / 実装証跡付き)
+
+メディア・ホームサーバ設定形式。Sonarr/Radarr/Lidarr/Prowlarr 各 config.xml(*arr 系 .NET 設定 XML)、Jellyfin system.xml、Plex Preferences.xml、Kodi advancedsettings.xml。各アプリのドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第258次(search-index 照合ラウンド / 実装証跡付き)
+
+音楽プレイヤー・オーディオサーバ設定形式。mpd.conf、Mopidy mopidy.conf、beets config.yaml、MusicBrainz Picard Picard.ini、ncmpcpp config/bindings、cmus autosave/rc、Snapcast snapserver.conf。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第259次(search-index 照合ラウンド / 実装証跡付き)
+
+シークレット管理・漏洩検査ツール設定形式。.sops.yaml(SOPS creation_rules)、gitleaks.toml、detect-secrets .secrets.baseline、Talisman .talismanrc、git-secret .gitsecret、Vault Agent .hcl、KeePassXC keepassxc.ini。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第260次
+
+DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTOEXEC.BAT/MSDOS.SYS)・bootini(boot.ini ARC パス+スイッチ)・regfile(REGEDIT4/WRE 5.00 .reg、hex/dword 型)・winini(win.ini/system.ini セクション集合)・unattend(unattend.xml/autounattend.xml、settings pass/component)・inffile(ドライバ .inf、[Version]/[Manufacturer]/HKR・HKLM 系)・cmdbat(.bat/.cmd、set/if/for/goto/label/リダイレクト)。
+
+## 第261次
+
+バージョン管理・リポジトリ設定形式:hgrc(Mercurial、[ui]/[paths]/[auth]/[hooks]/[merge-tools] + ~70 セクション)・svnconf(config/servers、[general]/[helpers]/[miscellany]/[auto-props] スコープ + [groups] ホスト glob)・gitignore(glob/`!`/`/`/`**` + dir_only/anchored 分類)・gitattributes(pattern + `attr`/`-attr`/`attr=val` 3形態 + linguist-* 属性)・gitmodules([submodule "name"] + path/url/branch/update/ignore)・fossilconf(.fossil-settings/`fossil settings` 出力、~90 キー + *-glob)・hgignore(syntax: glob/regexp + glob:/re:/path:/rootglob:/listfile: 系 prefix)。
