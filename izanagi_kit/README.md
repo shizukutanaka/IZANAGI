@@ -420,6 +420,13 @@ The capability map — with per-feature implementation status — lives in
 | `spamassassin` | SpamAssassin cf(header/body/uri/meta ルール+score+whitelist) |
 | `opendkim` | opendkim.conf(`Key value` DKIM milter 設定) |
 | `opendmarc` | opendmarc.conf(`Key value` DMARC milter 設定) |
+| `wireguard` | WireGuard `wg.conf`/`wg-quick.conf` — `[Interface]`/`[Peer]` セクション、`PrivateKey`/`Address`/`AllowedIPs`/`Endpoint` 等 |
+| `openvpn` | OpenVPN `.ovpn` — `remote`/`ca`/`tls-auth`/`cipher` 等のディレクティブと `<ca>`/`<key>` インラインブロック |
+| `swanctl` | strongSwan `swanctl.conf` — `connections`/`pools`/`secrets`/`authorities` グループ、IKE/ESP プロポーザル |
+| `xl2tpd` | xl2tpd `xl2tpd.conf` — `[global]`/`[lns]`/`[lac]` セクション、`ip range`/`pppoptfile` 等オプション |
+| `pptpd` | Poptop `pptpd.conf`/`options.pptpd` — `localip`/`remoteip`/`require-mppe-128`/`ms-dns` 等 |
+| `zerotier` | ZeroTier `local.conf` JSON — `settings`(port/update/relay/multipath)/`virtual`/`physical` |
+| `tailscale` | Tailscale `acl.hujson` — `acls`/`tagOwners`/`groups`/`hosts`/`tests`/`ssh`/`grants` セクション |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

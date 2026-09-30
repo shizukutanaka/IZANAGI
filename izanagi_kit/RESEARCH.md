@@ -3817,3 +3817,13 @@ Python ツールチェーン・依存定義形式。対象: `requirements`(requi
 - 論文・仕様: Postfix BASIC_CONFIGURATION_README + `postconf(5)` パラメータ一覧 + `master(5)` サービス定義、Dovecot wiki「Configuring Dovecot」(`protocol`/`service`/`mailbox`/`namespace`/`passdb`/`userdb` ブロック、`mail_location`/`ssl_*`/`auth_*` 設定)、Exim Specification「The Exim Configuration File」(`begin` セクション構成、`domainlist`/`hostlist`/`addresslist` 命名リスト、ACL 動詞)、Sendmail cf README(`V`/`O`/`K`/`M`/`R`/`S`/`D`/`C`/`F`/`T`/`H`/`P` コマンド)、SpamAssassin `Mail::SpamAssassin::Conf` POD(`score`/`header`/`body`/`uri`/`meta`/`whitelist_*`/`blacklist_*`/`bayes_*`/`use_*`/`loadplugin`)、OpenDKIM `opendkim.conf(5)`、OpenDMARC `opendmarc.conf(5)` — 全て整数のみで実装。
 - 実装物: postfix/postfix、dovecot/core、Exim/exim、sendmail(sendmail.cf m4 生成物)、apache/spamassassin、trusteddomainproject/opendkim+opendmarc の既定設定例 — `domainlist X =` 形式の先頭トークンをディレクティブとして計数、`K` 行の空白無しマップ宣言、`begin <sec>` セクション走査 — 全て整数のみで実装。
 - 国内技術情報: Qiita「Postfix+Dovecot メールサーバ構築」「Exim4 設定」「SpamAssassin local.cf」「DKIM/DMARC 導入」記事群、Zenn メール認証ガイド — `smtpd_*_restrictions`、`mail_location`、`required_score`、`Selector`/`Socket` 設定を確認 — 全て整数のみで実装。
+
+## 第251次(search-index 照合ラウンド / 実装証跡付き)
+
+VPN・トンネル設定ファイル形式。対象: `wireguard`(wg.conf/wg-quick.conf), `openvpn`(.ovpn), `swanctl`(strongSwan swanctl.conf), `xl2tpd`(xl2tpd.conf), `pptpd`(pptpd.conf/options.pptpd), `zerotier`(local.conf), `tailscale`(acl.hujson)。`detect` でモチーフキー照合、`parse` で セクション/設定/ディレクティブ等の整数センサスを返す。
+
+## 出典(第251次、search-index 照合)
+
+- 論文・仕様: WireGuard wg-quick(8)(`[Interface]`/`[Peer]`、`PrivateKey`/`Address`/`AllowedIPs`/`Endpoint`/`PersistentKeepalive`)、OpenVPN Reference Manual(`remote`/`ca`/`cert`/`key`/`tls-auth`/`cipher` ディレクティブ、`<ca>`/`<key>` インラインブロック)、strongSwan swanctl.conf(5)(`connections`/`local`/`remote`/`children`/`pools`/`secrets`/`authorities`)、xl2tpd.conf(5)(`[global]`/`[lns]`/`[lac]`)、pptpd.conf(5)+pppd options、ZeroTier local.conf settings、Tailscale ACL policy docs — 全て整数のみで実装。
+- 実装物: WireGuard/wg-quick、OpenVPN/openvpn、strongswan/strongswan、xelerance/xl2tpd、pptpclient/pptpd、zerotier/ZeroTierOne、tailscale/tailscale の既定設定例 — インラインブロック内ペイロードのディレクティブ除外、`<conn> { local { auth = … } children { … } }` ネスト、`[lns name]` セクション — 全て整数のみで実装。
+- 国内技術情報: Qiita「WireGuard 構築」「OpenVPN 設定ファイル」「strongSwan IKEv2」「ZeroTier 導入」「Tailscale ACL」記事群、Zenn VPN 構築ガイド — AllowedIPs 経路制御、`comp-lzo`/`compress` 非推奨移行、`auth = pubkey`/`psk` を確認 — 全て整数のみで実装。
