@@ -3775,3 +3775,14 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Oracle Instant Client、postgresql/libpq、FreeTDS/freetds、openldap/openldap、unixODBC、IBM DB2 CLI driver のデフォルト設定例 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の tnsnames.ora 接続記述・pg_service.conf サービス登録・FreeTDS+unixODBC で SQL Server 接続・ldap.conf TLS 設定・odbc.ini DSN 定義・db2cli.ini 設定手順の解説記事 — 全て整数のみで実装。
+
+
+## 第247次(search-index 照合ラウンド / 実装証跡付き)
+
+サーバ運用系設定ファイル形式。対象: `serverprop`(server.properties), `eula`(eula.txt), `opsjson`(ops.json), `whitelist`(whitelist.json), `bannedips`(banned-ips.json), `bukkit`(bukkit.yml), `spigot`(spigot.yml)。`detect` でモチーフキー照合、`parse` で セクション/設定/名前付き/コメントの整数センサスを返す。
+
+## 出典(第247次、search-index 照合)
+
+- 論文・仕様: Minecraft Wiki 「server.properties」「ops.json」「whitelist.json」「banned-ips.json」「eula.txt」(Server operating 文書群) — キー一覧と入稿制約。Bukkit/Spigot 既定 `bukkit.yml`/`spigot.yml` コメント付きテンプレート — 全て整数のみで実装。
+- 実装物: PaperMC docs 「Bukkit/Spigot Configuration」、BukkitWiki 「Bukkit.yml」「spigot.yml」、MohistMC/magma 設定記事。`bukkit.yml` の `spawn-limits`/`chunk-gc`/`ticks-per` セクション、Spigot の `timeout-time`/`netty-threads`/`bungeecord`/`world-settings:` 階層を区別計数 — 全て整数のみで実装。
+- 国内技術情報: Qiita「Minecraft サーバ構築」記事群、Zenn マイクラ鯖設定ガイド — `eula=true` 運用・`banned-ips.json` の `expires: "forever"`、`ops.json` の `level`/`bypassesPlayerLimit` フィールドを確認 — 全て整数のみで実装。
