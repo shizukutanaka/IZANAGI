@@ -45,7 +45,7 @@ pub fn parse_line(line: &[u8]) -> Option<Msg> {
         return None;
     }
     // Reply: exactly three ASCII digits then ' ', '-', or end.
-    if s.len() >= 3 && s[..3].bytes().all(|b| b.is_ascii_digit()) {
+    if s.len() >= 3 && s.as_bytes()[..3].iter().all(u8::is_ascii_digit) {
         let code = s[..3].parse().ok()?;
         let (more, text) = match s.as_bytes().get(3) {
             None => (false, ""),
@@ -183,5 +183,11 @@ mod tests {
         assert!(addr_arg("FROM:").is_none());
         assert!(addr_arg("FROM:<>").is_none());
         assert!(parse(b"").is_none());
+    }
+
+    #[test]
+    fn handles_multibyte_lines() {
+        let _ = parse_line("\u{1d11e}".as_bytes());
+        let _ = parse("\u{1d11e}".as_bytes());
     }
 }

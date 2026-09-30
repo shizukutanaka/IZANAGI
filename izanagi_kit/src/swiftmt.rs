@@ -68,14 +68,17 @@ pub fn parse(b: &[u8]) -> Option<SwiftMt> {
     let s = core::str::from_utf8(b).ok()?;
     let basic = block(s, "{1:", "}")?;
     // F01 + 12-char LT + 4 session + 6 sequence
-    let sender_lt = (basic.len() >= 15).then(|| basic[3..15].to_string());
+    let sender_lt = basic.get(3..15).map(str::to_string);
     let app = block(s, "{2:", "}")?;
     let direction = app.chars().next().filter(|c| matches!(c, 'I' | 'O'));
-    if app.len() < 4 || !app[1..4].bytes().all(|c| c.is_ascii_digit()) {
+    if app.len() < 4 || !app.as_bytes()[1..4].iter().all(u8::is_ascii_digit) {
         return None;
     }
     let msg_type = app[1..4].to_string();
-    let receiver_addr = (app.len() >= 16 && direction == Some('I')).then(|| app[4..16].to_string());
+    let receiver_addr = app
+        .get(4..16)
+        .filter(|_| direction == Some('I'))
+        .map(str::to_string);
     let text = block(s, "{4:", "-}")?;
     let mut fields: Vec<(String, String)> = Vec::new();
     for line in text.lines() {
@@ -154,5 +157,11 @@ mod tests {
         assert!(parse(b"").is_none());
         assert!(parse(b"{4::20:X-}").is_none());
         assert!(parse(b"{1:X}{2:Y}{4::-}").is_none());
+    }
+
+    #[test]
+    fn handles_multibyte_fixed_offsets() {
+        let _ = parse("{1:\u{1d11e}F0000000000}".as_bytes());
+        let _ = parse("{1:FFééééééé}{2:I103BANKDEFFXXXXN}{4:\r\n:20:X\r\n-}".as_bytes());
     }
 }
