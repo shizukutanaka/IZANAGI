@@ -127,6 +127,56 @@ fixed version has no such state at all.
 | `promela` | Promela/SPIN model census |
 | `tlaplus` | TLA+ spec census |
 | `whyml` | Why3/WhyML program census |
+| `adstxt` | ads.txt record census |
+| `assetlinks` | Digital Asset Links JSON census |
+| `btsnoop` | BTSnoop HCI log census |
+| `csaf` | CSAF 2.0 document census |
+| `csp` | Content-Security-Policy census |
+| `cyclonedx` | CycloneDX SBOM census |
+| `dlt` | AUTOSAR DLT log census |
+| `erf` | pcap-ng/ERF record census |
+| `hostmeta` | host-meta XRD census |
+| `intoto` | in-toto link/layout census |
+| `ipfix` | IPFIX message census |
+| `netflow` | NetFlow v5/v9 census |
+| `osv` | OSV advisory JSON census |
+| `permissions` | Permissions-Policy census |
+| `securitytxt` | security.txt census |
+| `sflow` | sFlow datagram census |
+| `slsa` | SLSA provenance census |
+| `snoop` | RFC 1761 snoop capture census |
+| `spdx` | SPDX SBOM census |
+| `swid` | SWID tag census |
+| `webfinger` | WebFinger JRD census |
+| `amqp` | AMQP frame census |
+| `analyze` | Analyze 7.5 image census |
+| `dm3` | Gatan DM3 image census |
+| `ecat` | ECAT7 image census |
+| `gxf` | GXF grid census |
+| `imap` | IMAP response census |
+| `interfile` | Interfile header census |
+| `irc` | IRC message census |
+| `minc` | MINC image census |
+| `nntp` | NNTP response census |
+| `parrec` | Philips PAR/REC census |
+| `pop3` | POP3 response census |
+| `smtp` | SMTP transcript census |
+| `xmpp` | XMPP stanza census |
+| `grd` | GMT/netCDF grid census |
+| `hus` | Husqvarna HUS embroidery census |
+| `jef` | Janome JEF embroidery census |
+| `msh` | Gmsh .msh census |
+| `nas` | Nastran .nas/.bdf census |
+| `neu` | Femap neutral census |
+| `pec` | Brother PEC embroidery census |
+| `pes` | Brother PES embroidery census |
+| `studio3` | Silhouette Studio3 census |
+| `su2` | SU2 mesh census |
+| `unv` | I-DEAS UNV census |
+| `vip` | Pfaff VIP embroidery census |
+| `vp3` | Husqvarna VP3 embroidery census |
+| `vtu` | VTK XML unstructured census |
+| `gp` | Guitar Pro score (`parse`/`Gp` — `FICHIER GUITAR PRO v…` banner → version/major + u8-length title, GP7 `BCFZ` compressed form). |
 | `requirements` | `requirements.txt` pip 依存定義(指定/ピン/範囲/include/オプション/extras/マーカー) |
 | `pipfile` | Pipfile(TOML、source/依存/テーブル参照) |
 | `setupcfg` | setup.cfg(metadata/options/entry_points セクション) |

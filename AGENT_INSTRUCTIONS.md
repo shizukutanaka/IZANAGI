@@ -25,38 +25,20 @@
 | workspace テスト | **6,000+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-<<<<<<< HEAD
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-||||||| 2926df7
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-=======
-<<<<<<< HEAD
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-||||||| d848dda
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-=======
-<<<<<<< HEAD
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+| kit モジュール数 | **1260**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
 ||||||| bdd60e8
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-=======
-<<<<<<< HEAD
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 2e22ee9
 ||||||| 9fd5bf5
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-=======
-<<<<<<< HEAD
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 229d57a
 ||||||| 74980e0
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-=======
-<<<<<<< HEAD
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 2e22ee9
+||||||| c1293aa
 ||||||| 1aef45a
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+||||||| 712fe61
 =======
-| kit モジュール数 | **1063**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
 >>>>>>> origin/devin/1790674886-round245
+=======
+>>>>>>> origin/devin/1790787458-round248
 >>>>>>> origin/devin/1790786187-round246
 >>>>>>> origin/devin/1790786880-round247
 >>>>>>> origin/devin/1790787458-round248
