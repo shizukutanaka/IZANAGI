@@ -5167,3 +5167,111 @@ Trivy JSON・Anchore Grype JSON・Snyk JSON・Semgrep JSON・SonarQube issues JS
 **実装物**: aquasecurity/trivy・anchore/grype・snyk/cli・semgrep/semgrep・SonarSource/sonarqube・spotbugs/spotbugs・bridgecrewio/checkov — 全て整数のみで実装。
 
 **国内技術情報**: Trivy/Grype/Snyk/Semgrep/SonarQube/SpotBugs/Checkov 解説記事(Qiita・Zenn・クラウドセキュリティ系技術ブログ等)— 全て整数のみで実装。
+
+## 第232次:機械学習・MLOps メタデータ形式
+
+MLflow MLmodel・DVC dvc.yaml/lock・W&B metadata/config・BentoML bentofile/bento.yaml・PMML XML・TFRecord バイナリ・RecordIO チャンクの7形式を追加。`flavors:`+loader/signature/metadata キー(mlflow)・`stages:`+cmd/deps/outs/metrics/params+md5+frozen/foreach(dvcfile)・wandb-metadata.json キー集合+`wandb_version:`+desc エントリ+sweep(wandb)・`service:`+include/exclude/models/runners/apis+python/docker/conda セクション(bentoml)・`<DataField>`/`<MiningField>`+16 種モデル要素+`<Segment>`(pmml)・len+CRC レコード歩行(tfrecord)・`kMagic`+4B アライン パディング チャンク歩行(recordio)で、MLOps 定義を整数計数する。
+
+## 出典(第232次、search-index 照合)
+
+**論文・仕様**: MLflow MLmodel format(mlflow.org/docs)・DVC pipeline spec dvc.yaml/dvc.lock(dvc.org/doc)・W&B files/config.yaml(wandb.ai docs)・BentoML bentofile/bento.yaml(docs.bentoml.com)・PMML 4.4 spec(dmg.org/pmml)・TFRecord format(tensorflow.org)+TFRecord guide・RecordIO chunk format MXNet/dmlc(github.com/dmlc/dmlc-core)— 全て整数のみで実装。
+
+**実装物**: mlflow/mlflow・iterative/dvc・wandb/wandb・bentoml/BentoML・jpmml/jpmml-model・tensorflow/tensorflow・apache/mxnet/dmlc-core — 全て整数のみで実装。
+
+**国内技術情報**: MLflow/DVC/W&B/BentoML/PMML/TFRecord/RecordIO 解説記事(Qiita・Zenn・MLOps 系技術ブログ等)— 全て整数のみで実装。
+
+## 第233次:図・ダイアグラム記述形式
+
+Graphviz DOT・Mermaid・PlantUML・Excalidraw JSON・drawio/diagrams.net XML・Visual Studio DGML・Trivial Graph Format の7形式を追加。`digraph`/`strict`/`subgraph`+`->`/`--` 演算子(dot)・21 種図型ステートメント+演算子正規化辺(mermaid)・`@start*`/`@end*`+矢印演算子+宣言キーワード(plantuml)・`elements` 型センサス+`boundElements` 参照除外+appState/files(excalidraw)・`<diagram>`/`<mxCell>` vertex/edge+圧縮ペイロード検出(drawio)・`<Node>`/`<Link>`/`<Category>` 要素センサス(dgml)・ノード行+`#` セパレータ+辺行(tgf)で、テキスト図定義を整数計数する。
+
+## 出典(第233次、search-index 照合)
+
+**論文・仕様**: DOT language spec(graphviz.org/doc/info/lang)・Mermaid syntax(mermaid.js.org docs)・PlantUML language reference(plantuml.com)・Excalidraw data format(docs.excalidraw.com)・mxGraph/drawio file format(jgraph.github.io/mxgraph+drawio docs)・DGML reference(Microsoft docs)・Trivial Graph Format(yWorks docs)— 全て整数のみで実装。
+
+**実装物**: ellson/graphviz・mermaid-js/mermaid・plantuml/plantuml・excalidraw/excalidraw・jgraph/drawio・jgraph/mxgraph — 全て整数のみで実装。
+
+**国内技術情報**: DOT/Mermaid/PlantUML/Excalidraw/drawio/DGML/TGF 解説記事(Qiita・Zenn・VS 系技術ブログ等)— 全て整数のみで実装。
+
+## 第234次:DNS・名前解決設定形式
+
+DNS ゾーンファイル・BIND named.conf・resolv.conf・nsswitch.conf・dnsmasq.conf・Unbound unbound.conf・CoreDNS Corefile の7形式を追加。`$` 指令+RR 型センサス(DNSSEC 含む、型トークンは先頭名スキップ前方スキャンで RRSIG rdata 内 `A` 誤爆を回避)(zone)・`options`/`zone`/logging/acl/view ブロック+zone type(namedconf)・nameserver/search/options サブオプション(resolv)・`db: source` 行+`[ACTION=]` 上書き(nsswitch)・裸フラグ+`key=value`+dhcp 分類(dnsmasq)・`server:`/`forward-zone:` セクション(unbound)・`zones {}` ブロック+プラグイン指令(corefile)で、名前解決設定を整数計数する。
+
+## 出典(第234次、search-index 照合)
+
+**論文・仕様**: RFC 1035 master file format・BIND9 named.conf ARM(ISC docs)・resolv.conf(5) man page・nsswitch.conf(5) man page・dnsmasq(8) man page・unbound.conf(5) man page・CoreDNS manual(coredns.io/manual)— 全て整数のみで実装。
+
+**実装物**: isc-projects/bind9・NLnetLabs/unbound・imp/dnsmasq・coredns/coredns・glibc nss・systemd-resolved docs — 全て整数のみで実装。
+
+**国内技術情報**: DNS zone ファイル/named.conf/resolv.conf/nsswitch/dnsmasq/unbound/Corefile 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
+
+## 第235次:認証・CLIツール設定ファイル形式
+
+.env・ssh_config・kubeconfig・.gitconfig・AWS credentials/config・openssl.cnf・.pgpass の7形式を追加。`KEY=value`+export/quoted/bare(dotenv)・`Host`/`Match`+4 キーワードクラス(sshconf)・`kind: Config`+clusters/users/contexts スコープ追跡(kubeconfig)・`[sec "sub"]`+includeIf/url 分類(gitconfig)・`[profile]`+aws_*/sso_*/assume-role キー(awscredentials)・`[ section ]`+`${VAR}`/`.include`+oid/link(openssl)・`host:port:db:user:pass`+`\` エスケープ+`*` ワイルドカード(pgpass)で、CLI ツール設定を整数計数する。
+
+## 出典(第235次、search-index 照合)
+
+**論文・仕様**: dotenv spec(motdotla/dotenv README)・ssh_config(5)/sshd_config(5) man pages・kubeconfig docs(kubernetes.io/docs)・git-config(1) man page・AWS CLI config/credentials docs(docs.aws.amazon.com)・openssl.cnf(5) man page・libpq .pgpass(postgresql.org/docs)— 全て整数のみで実装。
+
+**実装物**: bkeepers/dotenv・openssh/openssh-portable・kubernetes/kubernetes・git/git・aws/aws-cli・openssl/openssl・postgres/postgres — 全て整数のみで実装。
+
+**国内技術情報**: .env/ssh_config/kubeconfig/.gitconfig/aws credentials/openssl.cnf/.pgpass 解説記事(Qiita・Zenn・クラウド系技術ブログ等)— 全て整数のみで実装。
+
+## 第236次:仮想マシン・OCI・仮想化定義形式
+
+.dockerignore・Packer(JSON/HCL)・libvirt domain XML・OVF・wsl.conf・lima.yaml・cloud-config の7形式を追加。glob+`!`例外+`**`/`*`/`?`(dockerignore)・`"builders"`/`source`/`build {}` JSON/HCL 両対応(packer)・`<domain>`+デバイス/features センサス(virtxml)・`<Envelope>`+`<Item>`/セクション(ovf)・INI セクション+真偽値(wslconf)・スコープ追跡 `- ` 項目+トップレベルキー(lima)・`#cloud-config`+モジュールキー(cloudinit)で、VM/コンテナ定義を整数計数する。
+
+## 出典(第236次、search-index 照合)
+
+**論文・仕様**: .dockerignore spec(docs.docker.com)・Packer HCL2/legacy JSON docs(developer.hashicorp.com)・libvirt domain XML format(libvirt.org/formatdomain.html)・OVF spec DMTF DSP0243・WSL config settings(learn.microsoft.com)・lima.yaml reference(github.com/lima-vm/lima)・cloud-init module docs(cloudinit.readthedocs.io)— 全て整数のみで実装。
+
+**実装物**: moby/moby・hashicorp/packer・libvirt/libvirt・openstack/nova(ovf 扱い)・microsoft/WSL・lima-vm/lima・canonical/cloud-init — 全て整数のみで実装。
+
+**国内技術情報**: .dockerignore・Packer・libvirt XML・OVF・wsl.conf・Lima・cloud-init 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
+
+## 第237次:ビルド・パッケージメタデータ形式
+
+pom.xml・Gradle .module・ivy.xml・go.mod・go.sum・vcpkg.json・conanfile.txt の7形式を追加。GAV+dependency/plugin/module/profile(pom)・formatVersion+attributes ブロック規則からの variant 計数+org.gradle.*(gradlemod)・`<ivy-module>`+conf/dependency/override(ivy)・module/go/toolchain+require ブロック+`// indirect`(gomod)・`path ver h1:`+`/go.mod`+distinct module(gosum)・深さ追跡の依存配列+overrides/features/v 系キー(vcpkg)・INI セクション+`@u/c`+`[>=]`レンジ(conanfile)で、パッケージメタデータを整数計数する。
+
+## 出典(第237次、search-index 照合)
+
+**論文・仕様**: Maven POM reference(maven.apache.org)・Gradle Module Metadata spec(docs.gradle.org)・Ivy terminology/settings(ant.apache.org/ivy)・go.mod reference(go.dev/doc/modules)・go.sum format(go.dev/ref/mod)・vcpkg.json manifest reference(learn.microsoft.com/vcpkg)・conanfile.txt reference(docs.conan.io)— 全て整数のみで実装。
+
+**実装物**: apache/maven・gradle/gradle・apache/ant-ivy・golang/go・vcpkg/vcpkg・conan-io/conan — 全て整数のみで実装。
+
+**国内技術情報**: pom.xml・Gradle module metadata・ivy.xml・go.mod/go.sum・vcpkg.json・conanfile 解説記事(Qiita・Zenn・ビルド系技術ブログ等)— 全て整数のみで実装。
+
+## 第238次:テストレポート・QA 結果形式
+
+Allure result/container JSON・CTRF・xUnit.net XML・Maven Surefire TXT・JMeter JTL・k6 JSON summary・Mocha JSON reporter の7形式を追加。uuid/status/steps+container fixture キー(allure)・`results`/`summary`+status 別センサス(ctrf)・`<assemblies>`/`<collection>`+`result=`(xunit)・`Tests run:` 行の数値集計(surefire)・CSV/XML 両系統の sample/label/thread 収計(jtl)・`metrics` の型別収計+thresholds(k6)・`stats`+top-level 結果配列(mochajson)で、QA 結果を整数計数する。
+
+## 出典(第238次、search-index 照合)
+
+**論文・仕様**: Allure report schema(allurereport.org docs)・CTRF specification(ctrf.io)・xUnit.net XML schema(xunit.net docs)・Surefire report format(maven.apache.org/surefire)・JMeter JTL save service(jmeter.apache.org)・k6 --summary-export JSON schema(grafana.com/k6 docs)・Mocha JSON reporter(mochajs.org)— 全て整数のみで実装。
+
+**実装物**: allure-framework/allure2・ctrf-io/common-test-report-format・xunit/xunit・apache/maven-surefire-plugin・apache/jmeter・grafana/k6・mochajs/mocha — 全て整数のみで実装。
+
+**国内技術情報**: Allure レポート・CTRF・xUnit.net・Surefire・JMeter JTL・k6 サマリ・Mocha JSON レポーター解説記事(Qiita・Zenn・テスト自動化系技術ブログ等)— 全て整数のみで実装。
+
+## 第239次:ネットワーク機器・OS ネットワーク設定形式
+
+RouterOS export・Junos 設定・Cisco IOS running-config・OpenWrt UCI・Netplan YAML・ifupdown interfaces・firewalld zone XML の7形式を追加。`/` セクション+add/set 動詞+key=value(routeros)・`set`+トップ階層集合+ブレース形(junos)・`!`+interface/router ブロック+機能分類(iosconf)・`config`+option/list(uci)・network ルート+装置グループ+装置ID(netplan)・auto/iface スタンザ+メソッド分類(interfaces)・zone 内要素センサス(firewalld)で、ネットワーク機器設定を整数計数する。
+
+## 出典(第239次、search-index 照合)
+
+**論文・仕様**: RouterOS scripting/export(help.mikrotik.com)・Junos CLI 設定フォーマット(juniper.net docs)・Cisco IOS configuration fundamentals(cisco.com)・OpenWrt UCI(openwrt.org)・Netplan reference(netplan.readthedocs.io)・ifupdown interfaces(5) man page(debian.org)・firewalld.zone(5)(firewalld.org)— 全て整数のみで実装。
+
+**実装物**: MikroTik RouterOS・Juniper Junos OS・Cisco IOS・openwrt/openwrt・canonical/netplan・ifupdown・firewalld/firewalld — 全て整数のみで実装。
+
+**国内技術情報**: RouterOS・Junos set コマンド・Cisco IOS・OpenWrt UCI・netplan・interfaces ファイル・firewalld 解説記事(Qiita・Zenn・ネットワーク系技術ブログ等)— 全て整数のみで実装。
+
+## 第240次:構成管理・ジョブ定義形式
+
+Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェスト・Nomad ジョブ HCL・Rundeck ジョブ YAML・borgmatic 設定の7形式を追加。plays/hosts+scope 追跡のタスク・モジュール呼出(ansible)・`key:`+`- `+`family.func`(salt)・resource+` do`+action/notifies/`node[`(chef)・class/node/define+`{ '':`+`=>`+`Type[`(puppet)・job/group/task/service/port+constraint/resources(nomad)・`- name:`+commands+schedule+nodefilters(rundeck)・source_directories/repositories+keep_*/hooks(borgmatic)で、構成管理・ジョブ定義を整数計数する。
+
+## 出典(第240次、search-index 照合)
+
+**論文・仕様**: Ansible playbook syntax(docs.ansible.com)・Salt SLS states reference(docs.saltproject.io)・Chef recipe/metadata.rb reference(docs.chef.io)・Puppet language reference(puppet.com docs)・Nomad job specification(developer.hashicorp.com/nomad)・Rundeck job YAML reference(docs.rundeck.com)・borgmatic configuration reference(torsion.org/borgmatic)— 全て整数のみで実装。
+
+**実装物**: ansible/ansible・saltstack/salt・chef/chef・puppetlabs/puppet・hashicorp/nomad・rundeck/rundeck・borgmatic-collective/borgmatic — 全て整数のみで実装。
+
+**国内技術情報**: Ansible playbook・Salt・Chef・Puppet・Nomad・Rundeck・borgmatic 解説記事(Qiita・Zenn・インフラ系技術ブログ等)— 全て整数のみで実装。
