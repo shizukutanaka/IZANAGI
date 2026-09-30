@@ -2753,6 +2753,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 
 **国内技術情報**: Qiita/Zenn の文字コード解説記事(「Shift_JIS のバイト範囲」「EUC-JP と ISO-2022-JP の違い」「サロゲートペアの仕組み」系)、JIS 区点表の国内整理、nkf 派生記事 — 全て整数のみで実装。
 
+
 ## 第107次(search-index 照合ラウンド / 実装証跡付き)
 
 **方法**: 文献参照ラウンド継続 — チャンク型マルチメディアコンテナと点群データ(全7件が既存 648 件と非衝突を確認):
@@ -3787,14 +3788,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第154次、search-index 照合)
-
-**論文・仕様**: ISO/IEC 5962(SPDX)/ Ecma-424(CycloneDX)/ ISO/IEC 19770-2(SWID)/ OSV Schema/ in-toto Attestation Framework/ OASIS CSAF 2.0/ SLSA v1.0 provenance — 全て整数のみで実装。
-
-**実装物**: spdx-tools・CycloneDX/cyclonedx-rust・swid-generator・osv.dev スキーマ実装・in-toto/in-toto-rs・csaf-rs・slsa-github-generator — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の SPDX・CycloneDX・SBOM 導入・SLSA 解説記事 — 全て整数のみで実装。
-
 ## 第155次: セキュリティ・well-known・HTTP ポリシー(securitytxt / adstxt / hostmeta / webfinger / assetlinks / csp / permissions)
 
 **方法**: 文献参照ラウンド継続 — `/.well-known/` 系メタデータと HTTP セキュリティポリシー。全7件が既存 986 件と非衝突を確認、JSON 系は `json` モジュール再利用:
@@ -3808,14 +3801,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `permissions` — Permissions-Policy: `f=()`/`f=(*)`/`f=(self "…")` + レガシー bare 名 = `*`
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第155次、search-index 照合)
-
-**論文・仕様**: RFC 9116(security.txt)/ IAB ads.txt v1.1 / RFC 6415(host-meta, XRD 1.0)/ RFC 7033(WebFinger/JRD)/ Digital Asset Links 仕様/ W3C CSP Level 3/ W3C Permissions-Policy — 全て整数のみで実装。
-
-**実装物**: Mozilla CSP Analyzer、securitytxt.org リファレンス、Google assetlinks ツール、各社 well-known 実装 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の security.txt・ads.txt・WebFinger・CSP 解説記事 — 全て整数のみで実装。
 
 ## 第156次: ネットワークキャプチャ・フロー・HCI ログ形式(snoop / erf / netflow / ipfix / sflow / btsnoop / dlt)
 
@@ -3831,14 +3816,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第156次、search-index 照合)
-
-**論文・仕様**: RFC 1761(snoop v2)/ Endace ERF 形式仕様(libtrace 文書)/ RFC 3954(NetFlow v9)+ Cisco NetFlow v5 文書/ RFC 7011(IPFIX)/ RFC 3176(sFlow v5)/ BTSnoop 形式(Bluetooth HCI snoop)/ AUTOSAR PRS_DltProtocol — 全て整数のみで実装。
-
-**実装物**: tcpdump/wireshark の snoop・ERF・NetFlow・IPFIX・sFlow 解析、Android btsnoop_hci.log、GENIVI dlt-daemon — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の NetFlow/IPFIX・sFlow・Wireshark HCI スヌープ・DLT 解説記事 — 全て整数のみで実装。
-
 ## 第157次: メッセージング・メール・チャットプロトコル(smtp / pop3 / imap / irc / nntp / amqp / xmpp)
 
 **方法**: 文献参照ラウンド継続 — メール転送/受信、チャット、ニュース、メッセージキュー、IM スタンザ。全7件が既存 1000 件と非衝突を確認:
@@ -3852,14 +3829,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `xmpp` — RFC 6120: `<message>/<presence>/<iq>` スタンザ、to/from/id/type + `<body>` 抽出、self-closing 許容
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第157次、search-index 照合)
-
-**論文・仕様**: RFC 5321(SMTP)/ RFC 1939(POP3)/ RFC 3501(IMAP4rev1)/ RFC 1459・2812(IRC)/ RFC 3977(NNTP)/ OASIS AMQP 0-9-1/ RFC 6120(XMPP Core) — 全て整数のみで実装。
-
-**実装物**: Postfix・Dovecot・ngircd・RabbitMQ・Prosody 等の wire 実装、telnet セッション例 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の SMTP/POP3/IMAP・IRC・NNTP・AMQP・XMPP 解説記事 — 全て整数のみで実装。
 
 ## 第158次: 医療・科学画像形式 第2弾(analyze / minc / ecat / interfile / parrec / dm3 / gxf)
 
@@ -3875,14 +3844,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(f32 値は bits のみ保持)。
 
-## 出典(第158次、search-index 照合)
-
-**論文・仕様**: Analyze 7.5 File Format(Mayo Biomedical Imaging Resource)/ MINC 1.0 & 2.0 仕様(BIC)/ ECAT 7.x File Format(Siemens/CTI)/ Interfile 3.3/ Philips PAR/REC ノート/ Gatan DM3 Tag Format(hyperspy)/ GXF Specification(Geosoft) — 全て整数のみで実装。
-
-**実装物**: nibabel(nibabel.analyze/parrec/ecat/minc 参照実装)、ImageJ・AFNI・FSL の読み込みコード、hyperspy DigitalMicrograph パーサ、Gemcom/Oasis montaj GXF — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Analyze・NIfTI・MINC ヘッダ解説、DigitalMicrograph ファイル解析記事、医用画像 DICOM 周辺フォーマット解説 — 全て整数のみで実装。
-
 ## 第159次: 刺繍・カッティング機形式(pes / pec / vp3 / jef / hus / vip / studio3)
 
 **方法**: 文献参照ラウンド継続 — ミシン刺繍・カッティングプロッタの実機フォーマット(Tajima `dst` は既存)。全7件が既存 1014 件と非衝突を確認:
@@ -3896,14 +3857,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `studio3` — Silhouette Studio3: ASCII `studio3` + BE version + prolog 長
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第159次、search-index 照合)
-
-**論文・仕様**: Embroidermodder/libembroidery のフォーマット文書(PES/PEC/JEF/HUS/VIP/VP3)/ PES Format Document(Rudy's Code HQ)/ Silhouette Studio3 ファイル解析 — 全て整数のみで実装。
-
-**実装物**: libembroidery(C 実装)、Embroidermodder、threedub/pyembroidery 系 Python 実装、Ink/Stitch エクスポータ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の刺繍データ(PES/JEF)構造解説、ブラザー刺繍機フォーマット解析記事、カッティングマシン(STUDIO3)関連記事 — 全て整数のみで実装。
 
 ## 第160次: CAE メッシュ・数値流体力学形式(msh / unv / neu / vtu / grd / nas / su2)
 
@@ -3919,14 +3872,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(座標・レンジは文字列のまま保持)。
 
-## 出典(第160次、search-index 照合)
-
-**論文・仕様**: Gmsh MSH 4.1/2.2 specification、I-DEAS Universal File dataset カタログ(2411/2412/2414/…)、Gambit Neutral File Format、VTK XML File Formats(Kitware)、Surfer 6 ASCII/Binary Grid(Golden Software)、MSC NASTRAN Quick Reference(bulk data)、SU2 mesh format docs — 全て整数のみで実装。
-
-**実装物**: Gmsh・IDEAS/NX・ANSYS Fluent・ParaView(vtkIOXML)・SU2 本体リーダ、meshio・pyvista の参照実装 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Gmsh・NASTRAN・SU2・VTK メッシュフォーマット解説、Surfer グリッド仕様の翻訳記事 — 全て整数のみで実装。
-
 ## 第161次: ロボット工学・点群・動作捕捉形式(urdf / xacro / rosbag / mcap / pcd / e57 / c3d)
 
 **方法**: 文献参照ラウンド継続 — ROS エコシステムと計測フォーマット。全7件が既存 1028 件と非衝突を確認:
@@ -3941,13 +3886,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装(scale factor は raw bits、座標は保持しない)。
 
-## 出典(第161次、search-index 照合)
-
-**論文・仕様**: URDF XML spec(ROS wiki)、xacro spec(ROS 2 docs)、rosbag 2.0 spec(ros-infrastructure)、MCAP spec(mcap.dev)、PCL PCD file format v0.7、ASTM E2807-11(E57)、C3D technical user guide(c3d.org)— 全て整数のみで実装。
-
-**実装物**: ROS/ROS 2 rosbag2・foxglove mcap-cli・Point Cloud Library・pye57・ezc3d の参照リーダ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の URDF/xacro・rosbag・MCAP・PCD・C3D 解説記事 — 全て整数のみで実装。
 
 ## 第162次: ネットワークプロトコル第5弾 — 認証・ディレクトリ・トンネリング(ldap / diameter / eap / tacacs / isakmp / l2tp / socks)
 
@@ -3963,14 +3901,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第162次、search-index 照合)
-
-**論文・仕様**: RFC 4511(LDAP)、RFC 6733(Diameter)、RFC 3748(EAP)、draft-ietf-opsawg-tacacs / RFC 8907、RFC 2408/7296(ISAKMP/IKEv2)、RFC 2661(L2TP)、RFC 1928/1929(SOCKS5)— 全て整数のみで実装。
-
-**実装物**: OpenLDAP・freeDiameter・hostapd/wpa_supplicant・tac_plus(tacacs+)・strongSwan・xl2tpd・dante/ssh -D の参照パーサ — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の LDAP・Diameter・EAP/802.1X・TACACS+・IKE・L2TP・SOCKS 解説 — 全て整数のみで実装。
-
 ## 第163次: ジオ空間データ形式 第2弾 — オフライン地図・ラスタ海図(prj / gpkg / mbtiles / osmpbf / fgb / dted / kap)
 
 **方法**: 文献参照ラウンド継続 — オフライン地図コンテナ・投影記述・標高セル・ラスタ海図。`sqlite`/`wkt` 系との重複は `sqlite` 再利用で回避。shp/dbf/qcow2/geojson/wkb/topojson/pmtiles/hgt/mvt/osm は既存のため除外。全7件が既存 1042 件と非衝突を確認:
@@ -3985,14 +3915,6 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
-## 出典(第163次、search-index 照合)
-
-**論文・仕様**: OGC GeoPackage 12-128・MBTiles 仕様(Mapbox)・OSM PBF 形式(OSM wiki)・FlatGeobuf spec・MIL-PRF-89020B(DTED)・BSB/KAP ヘッダ仕様(libbsb 文書)・OGC WKT1/WKT2(ISO 19162)— 全て整数のみで実装。
-
-**実装物**: GDAL/OGR・QGIS・osmium(libosmium)・flatgeobuf lib・libbsb・dted 読み取り各種 — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の GeoPackage・MBTiles・OSM PBF・DTED・KAP(海図)・prj(WKT)記事 — 全て整数のみで実装。
-
 ## 第164次: 統計・レガシー表計算データ交換形式(dif / sylk / dta / sav / xpt / sas7bdat / rdata)
 
 **方法**: 文献参照ラウンド継続 — VisiCalc/SYLK 系データ交換と統計パッケージのバイナリ/カード像形式。全7件が既存 1049 件と非衝突を確認:
@@ -4006,11 +3928,3 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `rdata` — R .rds/.RData: `RDX2..4` + `A`/`B`/`X` 形式、gzip/xz/zstd ラッパ判定
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
-
-## 出典(第164次、search-index 照合)
-
-**論文・仕様**: DIF 仕様(VisiCalc/Multiplan)・SYLK(Symbolic Link)・Stata dta 形式文書・PSPP sav 仕様・SAS XPORT 5/8 技術メモ・parso sas7bdat オフセット表・R Internals(serialization)— 全て整数のみで実装。
-
-**実装物**: LibreOffice/Excel DIF・SYLK インポータ、haven/readstat・pyreadstat・parso・R serialize.c — 全て整数のみで実装。
-
-**国内技術情報**: Qiita/Zenn の Stata/SPSS/SAS データ読み書き・RData・SYLK 解説 — 全て整数のみで実装。
