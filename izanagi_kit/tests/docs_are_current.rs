@@ -487,7 +487,6 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     for (doc, claim) in [
         ("README.md", "8,000+ tests"),
         ("README.md", "7,000+ tests"),
-        ("README.md", "6,000+ tests"),
         ("README.md", "**180+ tests**"),
         ("izanagi/README.md", "**180+ tests**"),
         // The handbook snapshot stated an exact 3744 and was wrong two
