@@ -3980,3 +3980,23 @@ Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの c
 - Quartz — quartz.properties 設定ガイド(quartz-scheduler.org)
 
 — 全て整数のみで実装。
+
+## 第265次 — コンテナランタイム・サンドボックス設定形式
+
+- `containersconf`: Podman `containers.conf`(INI `[engine]`/`[containers]`/`[network]`/`[machine]` 系)
+- `registriesconf`: containers `registries.conf`(`[[registry]]`/`[[registry.mirror]]`+unqualified-search-registries)
+- `storageconf`: containers `storage.conf`(`[storage]`+`[storage.options.<driver>]` サブテーブル)
+- `policyjson`: sigstore `policy.json`(`default`+`transports` スコープ別 `{"type":…}` 要求)
+- `dockerdaemon`: dockerd `daemon.json`(~60 既知キー+配列値/オブジェクト値別計数)
+- `seccomp`: seccomp プロファイル(`defaultAction`+`syscalls[].names`+SCMP_ACT/ARCH)
+- `apparmor`: AppArmor プロファイル(`profile {`+`capability`/`network`/ファイル規則+`deny`/`@{}`)
+
+## 出典
+
+- Podman — containers.conf(5)/registries.conf(5)/storage.conf(5) man pages(github.com/containers)
+- sigstore — containers-policy.json(5)(github.com/containers/image)
+- Docker — daemon.json 設定リファレンス(docs.docker.com)
+- libseccomp — seccomp-bpf フィルタ&Docker デフォルトプロファイル(docs.docker.com/engine/security/seccomp)
+- AppArmor — AppArmor プロファイル文法(gitlab.com/apparmor/apparmor)
+
+— 全て整数のみで実装。
