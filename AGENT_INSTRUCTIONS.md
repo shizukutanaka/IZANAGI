@@ -25,19 +25,7 @@
 | workspace テスト | **6,000+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-| kit モジュール数 | **1147**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
-||||||| d848dda
-||||||| bdd60e8
-||||||| 9fd5bf5
-||||||| 74980e0
-||||||| 1aef45a
->>>>>>> origin/devin/1790787458-round248
->>>>>>> origin/devin/1790788240-round249
->>>>>>> origin/devin/1790789318-round250
->>>>>>> origin/devin/1790790435-round251
-=======
->>>>>>> origin/devin/1790792388-round252
->>>>>>> origin/devin/1790802700-round262
+| kit モジュール数 | **1196**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
 | engine モジュール数 | **25**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
