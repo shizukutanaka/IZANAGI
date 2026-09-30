@@ -4571,3 +4571,443 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: libraw/dcraw・darktable/RawTherapee の各メーカー RAW ローダー・ExifTool・exiv2・pyrawimage/rawpy — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の RAW 現像・DNG 変換・ExifTool 活用・Python rawpy 解説記事 — 全て整数のみで実装。
+
+## 第191次: 形式手法・定理証明・検証形式(tptp / smt2 / aiger / sby / isabelle / coq / lean)
+
+**方法**: 文献参照ラウンド継続 — 自動定理証明・モデル検査・対話的証明系。全7件が既存 1239 件と非衝突を確認(`sat` はアルゴリズムで形式ではないため併存):
+
+- `tptp` — TPTP 問題記述: `cnf`/`fof`/`tff`/`thf`/`tfa`/`tpi`/`ddt` kind 計数 + axiom/type vs conjecture/lemma ロール分類 + `include`
+- `smt2` — SMT-LIB v2: `set-logic`/`declare-fun`/`declare-sort`/`define-*`/`assert`/`check-sat`/`get-*`/`push`/`pop`/`set-option`/`exit` コマンド計数
+- `aiger` — AIGER 回路交換: `aag`/`aig` ヘッダ `M I L O A` + 拡張 `B C J F` + ASCII 行計数
+- `sby` — SymbiYosys: `[tasks]`/`[options]`/`[engines]`/`[script]`/`[files]` セクション + `mode`/`depth` + 行計数
+- `isabelle` — Isabelle/Isar `.thy`: `theory`/`imports`/`begin`/`end` 骨格 + lemma/definition/datatype/locale/tactic/hole キーワード計数(`(* *)` コメント除去)
+- `coq` — Coq/Rocq `.v`: vernacular コマンド計数(lemmas/Proof/Qed/Admitted/Definition/Inductive/Fixpoint/Module/Require)
+- `lean` — Lean 4: `import` ドット名/`theorem`/`def`/`inductive`/`instance`/`example`/`namespace`/`#check` 系 + `by`/`sorry` 計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第191次、search-index 照合)
+
+**論文・仕様**: TPTP language spec(Sutcliffe, TPTP World)・SMT-LIB v2.6 standard(Barrett/Fontaine/Tinelli)・AIGER format spec(Biere, FMV)・SymbiYosys sby リファレンス(YosysHQ)・Isabelle/Isar reference manual(Wenzel)・Coq Reference Manual/Rocq docs・Lean 4 theorem proving docs — 全て整数のみで実装。
+
+**実装物**: Vampire/E prover の TPTP パーサ・z3/cvc5 の SMT-LIB フロントエンド・aiger ツール群/abc・YosysHQ sby・Isabelle2024・coqc/rocq・lean4/elan — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SMT ソルバ入門・Isabelle/HOL チュートリアル・Coq 入門・Lean 4/Mathlib 解説・記号実行・形式検証記事 — 全て整数のみで実装。
+## 第192次: 端末・BBS アート形式(ansi / sixel / iterm / kittyimg / terminfo / asciicast / ttyrec)
+
+**方法**: 文献参照ラウンド継続 — テキスト端末の描画・記録形式。`sauce` は既存のため除外、予告の `nfo` は汎用テキストで検出署名が弱いため除外:
+
+- `ansi` — ANSI アート(`.ans`): CSI 計数 + SGR(`m`)/カーソル移動(`H`–`u`)/消去(`J`/`K`) final 分類 + OSC + CP437 ハイバイト計数
+- `sixel` — DEC Sixel: `ESC P` パラメータ + `q` + `#` 色レジスタ/`!` RLE/`"` ラスタ/`-` 改行/`$` 復帰計数 + `ESC \` 終端
+- `iterm` — iTerm2 インライン画像: `ESC ] 1337 ; File =` k=v ペア + `:` base64 ペイロード + BEL/ST 終端
+- `kittyimg` — Kitty graphics protocol: `ESC _ G` カンマ k=v 制御(`a`/`f`/`t`/`m`) + `;` ペイロード + ST 終端
+- `terminfo` — コンパイル済み terminfo: `0x011A`/`0x021E`(拡張)マジック + u16×5 セクションサイズ
+- `asciicast` — asciinema `.cast`: `{"version":1|2}` ヘッダ + `o`/`i`/`m` イベント行計数(v1 は `"stdout"` 内蔵)
+- `ttyrec` — ttyrec: `u32le sec,usec,len` フレーム鎖 + ファイル長完全消費検証
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第192次、search-index 照合)
+
+**論文・仕様**: ECMA-48/ANSI X3.64 制御関数・DEC Sixel グラフィックス仕様(VT340)・ncurses terminfo 形式(man term(5))・iTerm2 Escape Codes ドキュメント・kitty graphics protocol 仕様 — 全て整数のみで実装。
+
+**実装物**: iTerm2 shell_integration/imgcat・kitty +kitten icat・asciinema cast v2 spec(github asciinema)・ttyrec/ttyplay(mgair)・ncurses tic/infocmp — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn のエスケープシーケンス解説・Sixel 対応端末記事・asciinema 入門・terminfo/termcap 解説・BBS/ANSI アート回顧記事 — 全て整数のみで実装。
+## 第193次: ゲームレベル・タイルマップ形式(tmx / tsx / ldtk / ogmo / t3d / smd / qmap)
+
+**方法**: 文献参照ラウンド継続 — 2D タイルエディタ・レベルエディタ・DCC 中間形式。全7件が既存 1253 件と非衝突を確認(`map` は `qmap` と命名して汎用名との混同を回避):
+
+- `tmx` — Tiled TMX: `<map>` geometry(orientation/width/tilewidth)+`<tileset>`/`<layer>`/`<objectgroup>`/`<imagelayer>`/`<group>` 計数 + `data encoding` 分類(csv/base64)
+- `tsx` — Tiled TSX タイルセット: `name`/`tilewidth`/`tilecount`/`columns` + `<image>`/`<tile>`/`<tileoffset>`/`<wangset>`/`<animation>`/`<frame>` 計数
+- `ldtk` — LDtk JSON: `__header`/`fileType` + `layerInstances`/`entityInstances`/`tileInstances`/`intGridValues`/`autoLayerTiles`/`gridSize`
+- `ogmo` — Ogmo Editor 3: `ogmoVersion` + `layers` の name/entity/grid/tile/decal/point 種別計数
+- `t3d` — Unreal テキストエクスポート: `Begin Map`/`Object`/`Actor`/`Brush`/`Surface` ブロック + `Class`/`Name`/`Archetype`/`Group` 代入計数
+- `smd` — Studiomdl Data: `version` + `nodes`/`skeleton`/`triangles` セクション走査 + フレーム/頂点計数
+- `qmap` — Quake `.map`: エンティティ/ブラシ `{` ブロック深さ + `( x y z )³` 面行 + `classname`/`worldspawn`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 出典(第193次、search-index 照合)
+
+**論文・仕様**: Tiled Map Editor TMX/TSX フォーマットリファレンス(mapeditor.org)・LDtk JSON schema(deepnight)・Ogmo Editor 3 docs・Unreal Engine .t3d テキスト形式(UnrealWiki/UDN)・Studiomdl SMD 仕様(Valve Developer Community)・Quake .map 形式(id Tech / QuakeWiki) — 全て整数のみで実装。
+
+**実装物**: Tiled(mapeditor/tiled)・LDtk Haxe 実装・Ogmo Editor C#・UnrealEd・studiomdl/Half-Life SDK・TrenchBroom/qbsp — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の Tiled 導入記事・LDtk 入門・インディーゲームレベル制作記事・Source エンジン SMD モデル制作・TrenchBroom 日本語解説 — 全て整数のみで実装。
+## 第194次: XML スキーマ・変換・クエリ形式(xsd / relaxng / sch / xslt / dtd / xlink / xq)
+
+**方法**: 文献参照ラウンド継続 — W3C XML 技術群のスキーマ言語・変換・リンク・クエリ。予告の `xi` は既存モジュールと衝突のため `xq`(XQuery)に差替え、7 件全て非衝突を確認:
+
+- `xsd` — XML Schema Definition: `<*:schema` + element/complexType/simpleType/attribute/compositor/facet/import/include 計数 + `targetNamespace`
+- `relaxng` — RELAX NG XML 構文: structure 名前空間 `<grammar>` + 全パターン素子計数
+- `sch` — Schematron: namespace/rule/assert/report/context/phase/diagnostics
+- `xslt` — XSLT: stylesheet/transform ルート + 20 命令センサス
+- `dtd` — DTD: `<!ELEMENT`/`<!ATTLIST`/`<!ENTITY`/`%pe;`/`<!NOTATION`/条件セクション + 外部 ID/属性キーワード
+- `xlink` — XLink: `xlink:href` + `type` 6 種 + 振る舞い属性
+- `xq` — XQuery: `xquery version` + prolog/FLWOR/`fn:`/`$var` 計数
+
+共通: `count_tag` は `</` 終了タグを除外する境界付き素名検索、属性値はクォート両対応で抽出。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(合計 21 + 8)。
+
+## 出典(第194次、search-index 照合)
+
+**論文・仕様**: W3C XML Schema 1.1 Part 1/2・RELAX NG(ISO/IEC 19757-2)・Schematron(ISO/IEC 19757-3)・XSLT 1.0/2.0/3.0・XML 1.0 DTD・XLink 1.0/1.1・XQuery 3.1 — 全て整数のみで実装。
+
+**実装物**: xmllint/libxml2・Jing・Saxon/Xalan・BaseX・W3C テストスイート — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の XML Schema 入門・RELAX NG 解説・Schematron 導入記事・XSLT 変換・XQuery 基礎記事 — 全て整数のみで実装。
+## 第195次: 識別子・チェックデジット形式(isbn / issn / ean / upc / ismn / orcid / luhn)
+
+**方法**: 文献参照ラウンド継続 — 標準識別子のチェックデジット検証器。全7件非衝突(`doi` は構造検証が弱く候補外):
+
+- `isbn` — ISBN-10(加重 i mod 11、`X`=10)/ISBN-13(978/979 EAN mod-10)
+- `issn` — ISSN(降順加重 8..1 mod 11、`X`)
+- `ean` — EAN-13(1,3 交互 mod-10 + GS1 prefix)
+- `upc` — UPC-A(3,1 交互 mod-10 + ナンバーシステム)
+- `ismn` — ISMN(979-0 mod-10 / レガシー `M-`:M=3 重み3 + A=10..Z=35)
+- `orcid` — ORCID(ISO 7064、逐次 `×2` mod 11、`X`)
+- `luhn` — Luhn mod-10(右から 2 倍 -9)+ `check_digit` 補助関数
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在識別子フィクスチャ)。
+
+## 出典(第195次、search-index 照合)
+
+**論文・仕様**: ISO 2108 (ISBN)・ISO 3297 (ISSN)・ISO/IEC 15420 (EAN/UPC)・ISO 10957 (ISMN)・ORCID iD 仕様・ISO/IEC 7812-1 (Luhn)・ISO 7064 — 全て整数のみで実装。
+
+**実装物**: isbnlib/python-stdnum・GS1 check digit calculator・ORCID API docs・Apache Commons Validator — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の ISBN・JAN コード・Luhn チェックデジット解説記事 — 全て整数のみで実装。
+## 第196次: トークン・認証資格形式(jwk / jwe / saml / paseto / macaroon / cookiejar / keytab)
+
+**方法**: 文献参照ラウンド継続 — 認証・認可系トークン/資格ファイルの構造検証。`jwt` は既存のため除外、全7件非衝突:
+
+- `jwk` — RFC 7517 JSON Web Key(`"kty"`/`"keys"`/`"n"`/`"e"`/`"x"`/`"y"`/`"crv"`/`"kid"`/`"alg"`/`"use"`/`"key_ops"`/`"x5c"` クレーム集合 + 秘密鍵パラメータ)
+- `jwe` — RFC 7516 コンパクトシリアライズ(5 base64url セグメント + ヘッダデコードで alg/enc/kid/zip/crit/epk)
+- `saml` — SAML 2.0(`samlp:Response`/`AuthnRequest`/`saml:Assertion` + Issuer/Subject/NameID/Conditions/AuthnStatement/Attribute/Signature/EncryptedAssertion/InResponseTo)
+- `paseto` — PASETO(`v1`..`v4` + `local`/`public` + base64url payload + 任意 footer)
+- `macaroon` — Macaroon(v2 JSON `{"v":2,"l","i","c","s64"}` / レガシー packet + cid/vid caveat + signature)
+- `cookiejar` — Netscape `cookies.txt`(7 カラム TAB 区切り + `#HttpOnly_` + banner + expires/session)
+- `keytab` — Kerberos keytab(`0x0502`/`0x0501` + u32be 長 prefix エントリ鎖 + プリンシパル/enctype 走査)
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在形式フィクスチャ、JWE は base64url デコード実装検証)。
+
+## 出典(第196次、search-index 照合)
+
+**論文・仕様**: RFC 7517 (JWK)・RFC 7516 (JWE)・OASIS SAML 2.0 Core・PASETO spec (v1-v4)・Macaroons 論文(Birgisson et al.)・Netscape cookies.txt・MIT Kerberos keytab バイナリ — 全て整数のみで実装。
+
+**実装物**: auth0/jose・paseto-implementations・OneLogin python-saml・curl/libcurl cookie エンジン・MIT Kerberos krb5 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の JWT/JWK/JWE 解説・SAML SSO 入門・PASETO vs JWT 比較・Macaroon 認証解説記事 — 全て整数のみで実装。
+## 第197次: クエリ・検索言語形式(sparql / cypher / xpath / jsonpath / lucene / jq / kql)
+
+**方法**: 文献参照ラウンド継続 — クエリ言語の構文センサス。全7件非衝突(gremlin/promql は予備):
+
+- `sparql` — SPARQL 1.1(PREFIX/BASE/SELECT/ASK/CONSTRUCT/DESCRIBE + WHERE/OPTIONAL/FILTER/UNION/ORDER/LIMIT/OFFSET/BIND/VALUES/MINUS/SERVICE/GRAPH)
+- `cypher` — Neo4j Cypher(MATCH/OPTIONAL MATCH/WHERE/RETURN/CREATE/MERGE/SET/DELETE/WITH/UNWIND/CALL/UNION + `(n)-[:R]->(m)` パターン)
+- `xpath` — XPath 1.0/2.0(`/`/`//`/`@`/`[pred]`/`axis::`/`|` + 33 関数 + eq/lt/gt/mod/div)
+- `jsonpath` — JSONPath(RFC 9535 + Goessner、`$`/`..`/`[n]`/`[*]`/`[a:b:c]`/`[?()]`/`[()]`/`@`/`length()`)
+- `lucene` — Lucene 構文(field:term/+/-/NOT/AND/OR/&&/||||~fuzzy/^boost/"phrase"/[a TO b]/wildcards/groups)
+- `jq` — jq フィルタ(`.x`/`.[]`/`|`/`..`/`//`/`?`/def/as/reduce/if-elif-else-end/try/68 builtins)
+- `kql` — Kusto KQL(`| where|project|extend|summarize|sort|take|join|union|render` + let/datatable/by/ago/==/~=/in/between/has/contains)
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在クエリフィクスチャ)。
+
+## 出典(第197次、search-index 照合)
+
+**論文・仕様**: W3C SPARQL 1.1 Query Language・openCypher/Cypher リファレンス・W3C XPath 1.0/2.0/3.1・RFC 9535 (JSONPath)・Apache Lucene query parser syntax・stedolan jq manual・Microsoft KQL reference — 全て整数のみで実装。
+
+**実装物**: Apache Jena/RDF4J・Neo4j Cypher・libxml2 xpath・Jayway JsonPath・Apache Lucene・stedolan/jq・Azure Data Explorer — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の SPARQL 入門・Cypher チートシート・XPath 書き方・JSONPath 仕様・Lucene クエリ文法・jq 使い方・KQL 入門記事 — 全て整数のみで実装。
+
+## 第198次:分散識別子・名前付け形式パーサ(7 モジュール)
+
+`nanoid`(NanoID:`A–Za–z0–9_-` 64 文字 URL-safe、既定 21 文字、numeric/hex/lower 部分集合判別)/ `cuid`(CUID v2:小文字先頭+base36、legacy `c…` 判別、密度指数)/ `xid`(XID:12 バイトを base32hex 小文字 20 文字に、timestamp/machine/pid/counter 復元)/ `typeid`(TypeID:`prefix_`+26 文字 base32 suffix → UUIDv7 version/variant 検証)/ `did`(W3C DID:`did:method:msid` + `:`subid + `%xx` + `;`/`?`/`#`/`/` サフィックス + 既知 method 集合)/ `base32`(RFC 4648:`A–Z2–7`+合法パディング 0/1/3/4/6 + base32hex 変種判別)/ `crockford`(Crockford Base32:`-` 区切り + `I/L/O` エイリアス + `*~$=U` チェックシンボル mod-37 検証)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在 ID フィクスチャ・既知チェックディジット対)。
+
+## 出典(第198次、search-index 照合)
+
+**論文・仕様**: NanoID spec・CUID v2 spec・rs/xid リファレンス・TypeID spec(typeid 0.2)・W3C DID Core 1.0・RFC 4648 (Base32/Base32hex)・Crockford Base32 spec — 全て整数のみで実装。
+
+**実装物**: ai/nanoid・paralleldrive/cuid2・rs-xid・jetpack-io/typeid 系実装 — 全て整数のみで実装。
+
+**国内技術情報**: ULID/UUIDv7 系識別子比較記事(Qiita 等)— 全て整数のみで実装。
+
+## 第199次:セマンティック Web・連絡先・メタデータ交換形式パーサ(7 モジュール)
+
+`vcard`(vCard RFC 6350:BEGIN/END ブロック+VERSION 判別+プロパティ/FN・N・EMAIL・TEL 等センサス+folded)/ `ical`(iCalendar RFC 5545:VCALENDAR+VEVENT/VTODO/VJOURNAL/VFREEBUSY/VTIMEZONE/VALARM+DTSTART/RRULE+BEGIN/END 整合)/ `ldif`(LDIF RFC 2849:`dn:` エントリ+`attr:`/`::`base64/`<`url+changetype 系+distinct 属性名)/ `xmp`(Adobe XMP:xpacket PI+xmpmeta+rdf:Description/Seq/Bag/Alt/li+名前空間集合)/ `iptc`(IPTC-IIM:`0x1C` マーカー+record/dataset/長さ歩行+2:05/2:25/2:55/2:80/2:120 判別)/ `atom`(Atom RFC 4287:feed+2005/Atom+entry/title/link rel= センサス)/ `dsig`(XMLDSIG RFC 3275:Signature+xmldsig#+SignedInfo/SignatureValue/KeyInfo/Object+Reference URI/Transform/DigestMethod)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:VCARD カード・VCALENDAR・LDIF エントリ・XMP パケット・IPTC レコード・Atom フィード・XMLDSIG 署名)。
+
+## 出典(第199次、search-index 照合)
+
+**論文・仕様**: RFC 6350 (vCard)・RFC 5545 (iCalendar)・RFC 2849 (LDIF)・Adobe XMP specification・IPTC-IIM standard・RFC 4287 (Atom)・XML Signature Syntax and Processing (W3C) — 全て整数のみで実装。
+
+**実装物**: libical・python-ldap ldif・ExifTool IPTC リファレンス・Atom 系各実装 — 全て整数のみで実装。
+
+**国内技術情報**: vCard/iCal/LDIF 解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
+
+## 第200次:配列アライメント・系統解析形式パーサ(7 モジュール)
+
+`bam`(BAM hts-specs:`BAM\x01`+`l_text` i32le SAM ヘッダ+`n_ref`/`l_name`/`name`/`l_ref` 辞書+`block_size` i32le アライメントレコード鎖歩行+切詰検出)/ `aln`(Clustal W/X/Omega:`CLUSTAL`|`MUSCLE` バナー+空行ブロック+`name seq` 行+`*:.` コンセンサス行)/ `maf`(UCSC MAF:`##maf key=value` ヘッダ+`a score=` ブロック+`s` src/start/size/strand/srcSize/seq+`i`/`e`/`q`/`p`/`c` 補助行)/ `paf`(minimap2 PAF:12 必須タブ列 qname/qlen/qstart/qend/strand/tname/tlen/tstart/tend/nmatch/alen/mapq+`tag:type:value` オプション列)/ `pileup`(SAMtools mpileup:`seq pos ref depth bases quals`+`.,ACGTNacgtn*^$+-[]` マーカー+indel/deletion/ref-only 計数)/ `nexus`(NEXUS:`#NEXUS`+`begin/end` ブロック+`dimensions ntax/nchar`+`tree`/`utree`/`matrix`/`translate`/`taxlabels`)/ `phylip`(PHYLIP:`<ntax> <nchar>` 先頭+`name seq` 行+sequential/interleaved レイアウト判別)。`vcf`/`sam` は既存モジュール(vCard/サフィックスオートマトン)のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BAM バイナリ・Clustal ブロック・MAF ブロック・PAF 行・mpileup 行・NEXUS ツリー・PHYLIP 行列)。
+
+## 出典(第200次、search-index 照合)
+
+**論文・仕様**: SAMv1/BAM spec(htmlpub hts-specs)・ClustalW 出力形式・UCSC MAF format spec・minimap2 PAF.md・samtools mpileup man・NEXUS standard(Maddison et al. 1997 Syst. Biol.)・PHYLIP sequence format doc — 全て整数のみで実装。
+
+**実装物**: samtools/htslib・minimap2・BioPython AlignIO・pysam — 全て整数のみで実装。
+
+**国内技術情報**: SAM/BAM・VCF 解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
+
+## 第201次:TeX バイナリ・フォントメトリクス形式パーサ(7 モジュール)
+
+`dvi`(DVI/XDV:`0xF7`+version id 2/3/7(DVI/pTeX/XDV)+`num`/`den`/`mag`+`k` コメント+末尾 `0xF9` `post_post` の `q` 指す `0xF8` `post` で `l`/`u`/`s`/`t` 取得)/ `tfm`(TeX Font Metric:`lf lh bc ec`+`nw nh nd ni nl nk ne np` で `lf = 6+lh+chars+Σtables`・`len = 4*lf` 整合+`check_sum`/`design_size` ヘッダ)/ `jfm`(pTeX JFM:`id` 9(横)/11(縦)+`nt` char_type+`lf = 7+lh+nt+chars+Σ` 拡張式、`exten`→`glue` 差異)/ `gf`(Metafont Generic Font:`0xF7 131`+`k` コメント+`post` の `ds cs hppp vppp min_m..max_n` バウンディングボックス)/ `pk`(Packed:`0xF7 89`+`k` コメント+`ds cs hppp vppp`+`245 pk_post`/`246 pk_nop` パディング)/ `vf`(Virtual Font:`0xF7 202`+`cs`/`ds`+`flag<242` 短・`242` 長 char パケット+`243–246` `fnt_def` 歩行+`248 post`)/ `pl`(property list(tftopl/pltotf):`(FAMILY|CODINGSCHEME|DESIGNSIZE|CHECKSUM|FONTDIMEN|LIGTABLE|CHARACTER|…)` フォーム走査+`R D O H C F` radix タグ計数+`CHARWD`/`CHARHT`/`CHARIC`/`KRN`/`LIG`/`LABEL`/`STOP` 内訳)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:DVI post_post・TFM lf 式・JFM 縦組・GF post・PK postamble・VF fnt_def/char パケット・PL フォーム)。
+
+## 出典(第201次、search-index 照合)
+
+**論文・仕様**: TeX82 DVItype 文献(DVI format、`pre`/`post`/`post_post` 構造)・TFM format spec(TUG、lf 式・7 テーブル)・Omega OFM/JFM(pTeX id 9/11)・GF/PK/VF format docs(gftype/pktype/vftovp web2c 系)・property list format(pltotf/tftopl 出力) — 全て整数のみで実装。
+
+**実装物**: TeX Live/web2c(dvitype・tftopl・pltotf・gftopk・vftovp)・dvisvgm・XDV 仕様 — 全て整数のみで実装。
+
+**国内技術情報**: TeX フォントメトリクス(TFM/JFM)・DVI 構造の解説記事(Qiita・Zenn 等)— 全て整数のみで実装。
+
+## 第202次:フロッピー・ディスクイメージ形式パーサ 第2弾(7 モジュール)
+
+`woz`(Apple II WOZ:`WOZ1`/`WOZ2`+`0xFF 0x0A 0x0D 0x0A` 整合バイト+`ID u32le` チャンク歩行で `INFO`/`TMAP`/`TRKS`/`META`/`FLUX`/`WRIT` センサス)/ `a2r`(Applesauce A2R:`A2R2`/`A2R3` 同系シグネチャ+`INFO`/`STRM`/`META`/`RWCP`/`SLVD`/`SELV`、STRM type で flux/nibble/bitstream 分類)/ `hfe`(HxC Floppy Emulator:`HXCPICFE`+rev 0+tracks/sides/encoding+bitrate/rpm u16le+interface mode+512B 単位 LUT 歩行)/ `scp`(SuperCard Pro:`SCP`+BCD version+disk type+revolutions+start/end track+flags/cell_size/heads/resolution+u32le checksum+168 エントリ u32le オフセット表)/ `imd`(ImageDisk:`IMD ` ASCII ヘッダ+`0x1A` 終端+mode/cyl/head(bit6 シリンダマップ/bit5 ヘッドマップ)/nsec/ssize `128<<n`+セクタデータ type `0..=8` 歩行)/ `td0`(TeleDisk:`TD`/`td`+sequence+check-sig+version/data_rate/drive_type/stepping/dos/sides+header CRC16+任意コメントブロック crc+len+日時)/ `edsk`(Amstrad CPC:`MV - CPCEMU Disk-File`/`EXTENDED CPC DSK File`+tracks/sides/track_size or サイズテーブル+`Track-Info` ブロック走査+セクタ情報リスト計数)。`nib`/`po`/`d64`/`d88` は既存モジュールのため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WOZ チャンク・A2R STRM・HFE LUT・SCP オフセット表・IMD トラックレコード・TD0 コメントブロック・EDSK Track-Info)。
+
+## 出典(第202次、search-index 照合)
+
+**論文・仕様**: WOZ file format spec(Apple II 保存プロジェクト)・Applesauce A2R v2/v3 spec(applesaucefdc)・HxC HFE file format documentation・SuperCard Pro image format spec(CBM stuff)・ImageDisk IMD file format(Dunfield)・TeleDisk TD0 format(teledisk documentation)・CPC DSK/EDSK format(CPCEMU/WinAPE docs) — 全て整数のみで実装。
+
+**実装物**: Applesauce floppy controller・HxCFloppyEmulator・SuperCard Pro ソフトウェア・ImageDisk・SamDisk/SIMH dsk 実装 — 全て整数のみで実装。
+
+**国内技術情報**: フロッピーイメージ保存・WOZ/A2R/HxC 解説記事(Qiita・Zenn・個人技術ブログ等)— 全て整数のみで実装。
+
+## 第203次:GPU シェーダ・中間言語形式パーサ(7 モジュール)
+
+`spv`(SPIR-V:`0x07230203` マジック+version/generator/bound/reserved+`wc u16 | opcode u16` 命令歩行で `OpEntryPoint`/`OpName`/`OpCapability`/`OpExtension` センサス)/ `dxbc`(DirectX Bytecode:`DXBC`+16B ハッシュ+u32le 版/総サイズ/チャンク数+オフセット表→`SHDR`/`SHEX`/`DXIL`/`ISGN`/`OSGN`/`RDEF`/`STAT`/`PSV0` FOURCC 分類)/ `metallib`(Apple Metal:`MTLB`+ヘッダ語+`TARG`/`TYPE`/`NAME`/`FNMD`/`HASH`/`MDCL`/`ENDT`/`BITC` タグ歩行+LLVM bitcode 検出)/ `ptx`(NVIDIA PTX:`.version M.m`+`.target sm_NN`+`.address_size`+`.entry`/`.func`/`.visible`/`.reg`/`.global` 等ディレクティブ走査)/ `glsl`(`#version NNN`+`es`/`core`/`compatibility` プロファイル+`#extension`+uniform/in/out/varying/layout/sampler/`gl_`/`void main` 集計)/ `hlsl`(`cbuffer`/`tbuffer`+`register(N)`/`packoffset`+`SV_*` セマンティクス+`Texture*`/`SamplerState`/`RWStructuredBuffer`+`floatN`/`matrix`+`[numthreads]` 属性+technique)/ `wgsl`(`@vertex`/`@fragment`/`@compute`+`@group`/`@binding`/`@builtin`/`@location`/`@workgroup_size`+`fn`/`struct`/`var<`/`let`/`const`/`override`+`vecNf`/`matNxMf` 型)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:SPIR-V ヘッダ+命令語、DXBC チャンク表、MTLB タグ列、PTX ディレクティブ、GLSL `#version`+宣言、HLSL cbuffer/register、WGSL `@vertex`/`@group` 属性)。
+
+## 出典(第203次、search-index 照合)
+
+**論文・仕様**: SPIR-V Specification(Khronos)・D3D bytecode/DXBC container(Windows SDK/wine dxbc 解析)・Metal shader library format(Apple Developer)・PTX ISA(NVIDIA CUDA docs)・OpenGL Shading Language spec・HLSL Shader Model 6 docs(Microsoft Learn)・WGSL spec(W3C GPU for the Web) — 全て整数のみで実装。
+
+**実装物**: SPIRV-Tools・dxvk/dxbc-spv・naga(wgsl)・glslang・DXC(DirectXShaderCompiler)・LLVM Metal backend — 全て整数のみで実装。
+
+**国内技術情報**: SPIR-V/WGSL/HLSL 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第204次:圧縮・アーカイブ形式パーサ 第3弾(7 モジュール)
+
+`wim`(Microsoft Windows Imaging:`MSWIM\0\0\0`/`MSWIMOLD`+u32le ヘッダサイズ・バージョン・フラグ+圧縮列挙(None/XPRESS/LZX/LZMS/solid 変種)+`reshdr`(8B オフセット+7B サイズ+1B フラグ)オフセットテーブル/XML/ブート/整合性区画センサス+パーツ番号/イメージ数)/ `zpaq`(Matt Mahoney:`zPQ`+level 1/2+メモリバイト、`h` ブロック開始・`d` データ・`i` ブロック終端マーカ走査+HCOMP ヘッダ(hh hm ph pn n+comp n バイト+END)集計)/ `lzfse`(Apple 圧縮:`bvx1` 非圧縮/`bvx2` v2/`bvxn` 非圧縮終端/`bvx-` raw/`bvx$` EOS ブロックマジック歩行+raw/payload バイト集計)/ `ace`(`**ACE**` シグネチャ+head crc/size/type/flags/version/host_os+型付きサブヘッダ entry(1=file,2=recovery,3=AV,4=comment)歩行)/ `alz`(ALZip:`ALZ\x01` マジック+`F` 型付きエントリレコード走査+末尾 u32le ファイル数との整合+EOF トレーラ検出)/ `zoo`(Rahul Dhesi:`FD C4 A7 DC` アーカイブマジック@20+テキスト導入部+ディレクトリエントリ `next` オフセット鎖歩行+type(1=file,2=sub)/method ビット集合+orig/packed サイズ集計)/ `lzip`(LZMA 単一/複数メンバ:`LZIP`+version 1+coded dict サイズ(上位3bit 指数)+20B メンバトレーラ crc32/data_size/member_size 整合走査)。`cab`/`cpio`/`ar`/`tar`/`lzw`/`gzip`/`bzip2`/`zstd`/`lz4`/`xz`/`zip`/`rar`/`x7z`/`squashfs` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WIM reshdr 表・ZPAQ マーカ+HCOMP、LZFSE ブロック列・ACE サブヘッダ列・ALZ F レコード・ZOO エントリ鎖・lzip トレーラ)。
+
+## 出典(第204次、search-index 照合)
+
+**論文・仕様**: Microsoft WIM file format documentation・ZPAQ spec(zpaq.org)・LZFSE open-source implementation format docs(apple/lzfse)・ACE format AppNote・ALZip format notes(ESTsoft)・ZOO archive format docs・lzip format manual(lzip manual, nongnu.org) — 全て整数のみで実装。
+
+**実装物**: imagex/wimlib・zpaq reference・apple/lzfse・unace/ace unarchiver・ALZip・zoo 2.10・lzip reference — 全て整数のみで実装。
+
+**国内技術情報**: WIM/ZPAQ/LZFSE/lzip 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第205次:FPGA ビットストリーム・プログラミング形式パーサ(7 モジュール)
+
+`bit`(Xilinx BitGen BIT:`00 09 0F F0 0F F0 0F F0 0F F0 00 01 00` プリアンブル+`a`/`b`/`c`/`d` u16be タグレコード(design/part/date/time)+`e` u32be データ長+ペイロード+`AA 99 55 66` 同期ワード検出)/ `jed`(JEDEC JESD3-C ヒューズマップ:`*`-終端レコード `QF` ヒューズ数・`F0`/`F1` デフォルト・`L<addr> <bits>` ヒューズ転写・`C` 16bit チェックサム・`G` セキュリティ・`N`/`D`/`E` 注記、STX/ETX フレーミング、set/clear ビット集計)/ `svf`(Serial Vector Format IEEE 1149.1:`HIR`/`TIR`/`HDR`/`TDR`/`SIR`/`SDR`/`RUNTEST`/`STATE`/`ENDIR`/`ENDDR`/`TRST`/`FREQUENCY` 文センサス+`TDO(`/`MASK(` ベクトル数、`;` 文分割、`//` コメント)/ `xsvf`(Xilinx XSVF バイナリ:XSDRSIZE オペコード 8+サイズ、オペコード歩行 `XCOMPLETE`/`XTDOMASK`/`XSIR`/`XSDR`/`XRUNTEST`/`XREPEAT`/`XSDRSIZE`/`XSTATE`/`XENDIR`/`XENDDR`/`XSIR2`/`XCOMMENT`/`XWAIT`、sdr_bytes=(bits+7)/8、truncated フラグ)/ `isc`(Xilinx ISC IEEE 1532:`ISC_*` コマンドセンサス `SIR`/`SDR`/`PROGRAM`/`ERASE`/`VERIFY`/`READ`/`BLANK`/`RUNTEST`/`ENABLE`/`DISABLE`+`TDO(` ベクトル+非 ISC 文 stray_text)/ `xdc`(Xilinx Design Constraints Tcl:`set_property`+`PACKAGE_PIN`/`IOSTANDARD`+`create_clock`/`create_generated_clock`+`set_input_delay`/`set_output_delay`/`set_false_path`/`set_multicycle_path`/`set_max_delay`/`set_clock_groups` タイミング例外+`get_ports`/`get_pins`/`get_cells`/`get_clocks`/`get_nets` オブジェクト参照+括弧深度バランス)/ `lpf`(Lattice LPF:`LOCATE`/`FREQUENCY`/`PERIOD`/`IOBUF`/`SYSCONFIG`/`BLOCK`/`UNBLOCK`/`PREFER`/`PROHIBIT`/`TIMESPEC`/`SLICE`/`UGROUP` 文センサス+`SITE` 参照数+MHz/KHz トークン+未知大文字コマンド unterminated)。予告の `rbf`/`sof` は署名のない生バイナリで detect()/parse() 契約を満たせず `xdc`/`lpf` に差替え。`sdc`/`pcf`/`ttf`/`soc`/`pal`/`gpl`/`ust` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BIT タグレコード列・JEDEC `*`-レコード+STX/ETX、SVF `;` 文・XSVF オペコード列・ISC `ISC_` 文・XDC Tcl 行・LPF 文)。
+
+## 出典(第205次、search-index 照合)
+
+**論文・仕様**: Xilinx Configuration File(.bit)format documentation・JEDEC JESD3-C standard・SVF Serial Vector Format spec(ASSET/AM-SVF-001)・IEEE 1149.1 JTAG・Xilinx XSVF spec(xapp058)・Xilinx ISC IEEE 1532 spec・Xilinx Vivado XDC constraints guide(UG903)・Lattice Diamond LPF constraints guide — 全て整数のみで実装。
+
+**実装物**: Vivado/iMPACT BitGen・GALasm/PALASM JEDEC ツール・OpenOCD SVF player・xsvf_player 参考実装・Xilinx iMPACT・Lattice Diamond — 全て整数のみで実装。
+
+**国内技術情報**: FPGA ビットストリーム/JTAG/SVF/XDC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第206次:言語別パッケージ定義ファイル形式
+
+Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks `.rockspec`・Perl `cpanfile`・OCaml `.opam`・Nim `.nimble` の7形式を追加。全て YAML/DSL のテキスト形式で、署名の強いキー(`environment:` `sdk:`/`crystal:`/`cabal-version:`/`rockspec_format`/`opam-version:`/`srcDir`/`requires`)で検出し、セクション・スタンザ・テーブルを字下げ/括弧深さ歩行でセンサス。
+
+## 出典(第206次、search-index 照合)
+
+**論文・仕様**: Dart pub.dev pubspec documentation・Crystal shards shard.yml spec・Haskell Cabal user guide(.cabal format)・LuaRocks rockspec format documentation・Perl cpanfile spec(Menlo/CPAN)・opam manual(opam-format OCaml)・Nim nimble package docs — 全て整数のみで実装。
+
+**実装物**: Dart pub・Crystal shards・Cabal/cabal-install・LuaRocks・cpanm/carton・opam・nimble — 全て整数のみで実装。
+
+**国内技術情報**: pubspec.yaml/shard.yml/cabal/rockspec/cpanfile/opam/nimble 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第207次:ボードゲーム・パズル形式
+
+チェス EPD・将棋 CSA 棋譜・KIF 棋譜・象棋 XQF・USI プロトコル・AcrossLite .puz・数独テキストの7形式を追加。pgn/fen/gtp/sgf は既存モジュールのため除外。テキスト系は行/フィールド走査、バイナリ系はマジック+レコード歩行で検出・集計する。
+
+## 出典(第207次、search-index 照合)
+
+**論文・仕様**: EPD spec (Tim Mann/ChessX)・CSA 棋譜フォーマット標準仕様・KIF ファイルフォーマット・XQF spec (XQBase)・USI プロトコル (Tord Romstad 準拠)・Across Lite PUZ format documentation・数独テキスト表現(Norvig 表記)— 全て整数のみで実装。
+
+**実装物**: Crafty/XBoard・CSA for Windows・ShogiGUI/将棋所・XQWizard・USI エンジン群・Across Lite/Shortyz・ sudoku solver 参考実装 — 全て整数のみで実装。
+
+**国内技術情報**: CSA 棋譜・KIF・USI ・数独パーサ解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第208次:グラフ・ネットワーク解析形式
+
+GML・GraphML・GEXF・Pajek .net・GUESS GDF・LEDA .gw・Tulip .tlp の7形式を追加。graph/dimacs/mtx/sparql は既存モジュールのため除外。XML 系は境界付きタグ走査、テキスト系はセクション/レコード走査で検出・集計する。
+
+## 出典(第208次、search-index 照合)
+
+**論文・仕様**: GML technical report (Himsolt, Gdansk)・GraphML specification (graphml.graphdrawing.org)・GEXF 1.2/1.3 draft format (gexf.net)・Pajek NET format (Batagelj & Mrvar)・GDF file format (GUESS/Adar)・LEDA graph I/O format (leda/graph .gw)・Tulip TLP format documentation — 全て整数のみで実装。
+
+**実装物**: yEd/GML tools・graphml-java・Gephi・Pajek/Pajek-XXL・GUESS・LEDA library・Tulip — 全て整数のみで実装。
+
+**国内技術情報**: GraphML/GEXF/Pajek/グラフファイル形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第209次:量子計算・量子回路記述形式
+
+OpenQASM 2/3・Rigetti Quil・IBM Qobj・Amazon Braket IR・Xanadu Blackbird・Q#・OpenPulse の7形式を追加。`qir` は LLVM bitcode 系で `llvmbc` と兼任のため除外。QASM 系はステートメント単位、JSON 系はキー走査、Blackbird はヘッダ+パイプ記法、Q# はキーワード単位、OpenPulse は行頭キーワード計数で検出・集計する。
+
+## 出典(第209次、search-index 照合)
+
+**論文・仕様**: OpenQASM 2.0 paper (arXiv:1707.03429)・OpenQASM 3 spec / OpenPulse grammar (openqasm.com)・Quil language spec (Rigetti, arXiv:1608.03355)・IBM Qobj schema (qiskit-ibm-runtime docs)・Amazon Braket IR (braket-ir schemas, github.com/amazon-braket)・Blackbird photonic quantum language (Xanadu/Strawberry Fields)・Q# language reference (Microsoft Learn) — 全て整数のみで実装。
+
+**実装物**: qiskit・pyQuil・braket-ir-python・Strawberry Fields・qsharp-compiler・openqasm reference parser — 全て整数のみで実装。
+
+**国内技術情報**: OpenQASM/Quil/Q#/量子プログラミング言語解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第210次:ゲームエンジン・エディタプロジェクト形式
+
+Unreal `.uproject`/`.uplugin`・Godot `project.godot`/`.tscn`・Twee 3・Ren'Py `.rpy`・RPG Maker `.rxdata`/`.rvdata2` の7形式を追加。JSON 系はキー走査、INI/セクション系はヘッダ走査、Twee/Ren'Py は行頭キーワード計数、rvdata は Marshal 4.8 トークンの再帰走査で検出・集計する。
+
+## 出典(第210次、search-index 照合)
+
+**論文・仕様**: Unreal Engine .uproject/.uplugin file reference (Epic docs)・Godot project.godot / TSCN file format (Godot docs, docs.godotengine.org)・Twee 3 specification (Twine/Tweego)・Ren'Py script documentation (renpy.org)・Ruby Marshal format 4.8 (ruby-lang docs)・RPG Maker data file format — 全て整数のみで実装。
+
+**実装物**: Unreal Engine editor・Godot Engine・Tweego/Twine・Ren'Py SDK・RPG Maker VX Ace/MV・Ruby marshal.c — 全て整数のみで実装。
+
+**国内技術情報**: Unreal プロジェクトファイル/Godot シーン形式/Twee/Ren'Py/RPGツクールデータ形式解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第211次:構成・データ記述言語(DSL)形式
+
+Dhall・Jsonnet・Nickel・KCL・Apple Pkl・Clojure EDN・Zig ZON の7形式を追加。いずれも `let`/`in`・`self.`・`schema`・`amends`・`:keyword`・`.{` 等の言語固有シグネチャで検出し、バインディング・契約注釈・インポート・コメントを整数計数する。
+
+## 出典(第211次、search-index 照合)
+
+**論文・仕様**: Dhall language standard(dhall-lang.org)・Jsonnet language spec(jsonnet.org)・Nickel language(nickel-lang.org)・KCL spec(kcl-lang.io)・Pkl language reference(pkl-lang.org)・EDN format spec(github.com/edn-format/edn)・Zig ZON(ziglang.org)— 全て整数のみで実装。
+
+**実装物**: dhall-haskell・google/go-jsonnet・tweag/nickel・KusionStack KCL・apple/pkl・Clojure reader・Zig compiler ZON parser — 全て整数のみで実装。
+
+**国内技術情報**: Dhall/Jsonnet/Nickel/KCL/Pkl/EDN/ZON 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第212次:スマートコントラクト・ブロックチェーン言語形式
+
+Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`pragma solidity`/`# @version`/`module addr::name`/`#[starknet::contract]`/`(define-*`/`contract+receive`/`recv_internal` 等の言語固有シグネチャで検出し、宣言・デコレータ/属性・外部呼出・コメントを整数計数する。
+
+## 出典(第212次、search-index 照合)
+
+**論文・仕様**: Solidity docs(docs.soliditylang.org)・Vyper docs(docs.vyperlang.org)・Move language reference(aptos.dev / sui.io)・Cairo language docs(cairo-lang.org / StarkNet docs)・Clarity language reference(docs.stacks.co)・Tact language docs(docs.tact-lang.org)・FunC docs(docs.ton.org)— 全て整数のみで実装。
+
+**実装物**: solidity・vyper・aptos-core/move・starkware cairo・stacks-blockchain clarity・tact-lang/tact・ton-blockchain func — 全て整数のみで実装。
+
+**国内技術情報**: Solidity/Vyper/Move/Cairo/Clarity/Tact/FunC 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第213次:IaC・デプロイ定義ファイル形式
+
+CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・Helm Chart.yaml・Pulumi.yaml の7形式を追加。`AWSTemplateFormatVersion`/`targetScope`/`service+provider`/`services:`/`Vagrant.configure`/`apiVersion+type`/`name+runtime` 等の形式固有シグネチャで検出し、宣言・ブロック内エントリ・組込み関数使用数・コメントを整数計数する。YAML 系はインデント追跡のブロック抽出で同名キーのネスト混入(サービス内 `volumes:`、テンプレ内 `config:`)を抑制する。
+
+## 出典(第213次、search-index 照合)
+
+**論文・仕様**: AWS CloudFormation User Guide(docs.aws.amazon.com)・Bicep language docs(learn.microsoft.com/azure/azure-resource-manager/bicep)・Serverless Framework docs(serverless.com)・Compose Specification(compose-spec.io)・Vagrantfile docs(developer.hashicorp.com/vagrant)・Helm Chart.yaml guide(helm.sh)・Pulumi YAML reference(pulumi.com)— 全て整数のみで実装。
+
+**実装物**: aws-cloudformation・Azure/bicep・serverless/serverless・compose-spec・hashicorp/vagrant・helm/helm・pulumi/pulumi — 全て整数のみで実装。
+
+**国内技術情報**: CloudFormation/Bicep/Serverless/Compose/Vagrant/Helm/Pulumi 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第214次:CI/CD パイプライン定義ファイル形式
+
+.gitlab-ci.yml・Jenkinsfile・.circleci/config.yml・azure-pipelines.yml・.drone.yml・Concourse pipeline.yml・bitrise.yml の7形式を追加。`stages`/`pipeline {`/`jobs+workflows`/`trigger+pool`/`kind: pipeline`/`resource_types`/`- get:`/`format_version` 等の形式固有シグネチャで検出し、ジョブ・ステップ・トリガ・イメージ・変数エントリを整数計数する。YAML 系はブロック内最小インデントの `- ` 項目のみ計数し、workflow 内 `jobs:` やサービス内 `volumes:` の同名ネスト混入を抑止する(第213次で導入した手法を踏襲)。
+
+## 出典(第214次、search-index 照合)
+
+**論文・仕様**: GitLab CI YAML reference(docs.gitlab.com)・Jenkins Pipeline syntax(jenkins.io/doc/book/pipeline)・CircleCI config reference(circleci.com/docs)・Azure Pipelines YAML schema(learn.microsoft.com/azure/devops/pipelines/yaml-schema)・Drone YAML spec(docs.drone.io)・Concourse pipeline schema(concourse-ci.org)・bitrise.yml reference(bitrise.io)— 全て整数のみで実装。
+
+**実装物**: gitlab-org/gitlab・jenkinsci/jenkins・circleci・microsoft/azure-pipelines-yaml・harness/drone・concourse/concourse・bitrise-io/bitrise — 全て整数のみで実装。
+
+**国内技術情報**: GitLab CI/Jenkins/CircleCI/Azure Pipelines/Drone/Concourse/Bitrise 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第215次:API テスト・HTTP クライアント・サービス定義形式
+
+HTTP Archive(.har)・Hoppscotch collection・Bruno .bru・REST Client .http/.rest・Insomnia エクスポート・RAML・API Blueprint の7形式を追加。JSON キー走査(har/hoppscotch)・`name {`ブロック走査(bru)・行状態機械(httpfile/insomnia)・`#%RAML`+最小インデント子キー(raml)・Markdown 見出し/`+`マーカ走査(apib)で、リクエスト・ヘッダ・リソース・型宣言等を整数計数する。
+
+## 出典(第215次、search-index 照合)
+
+**論文・仕様**: W3C HAR 1.2 spec(github.com/ahmadnassri/har-spec)・Hoppscotch collection schema(github.com/hoppscotch)・Bruno markup language(docs.usebruno.com/bru-lang)・VS Code REST Client .http grammar(github.com/Huachao/vscode-restclient)・Insomnia export format(docs.insomnia.rest)・RAML 0.8/1.0 spec(raml.org)・API Blueprint spec(apiblueprint.org)— 全て整数のみで実装。
+
+**実装物**: ahadith/har-schema・hoppscotch/hoppscotch・usebruno/bruno・Huachao/vscode-restclient・Kong/insomnia・raml-org/raml-spec・apiaryio/api-blueprint — 全て整数のみで実装。
+
+**国内技術情報**: HAR/Hoppscotch/Bruno/REST Client/Insomnia/RAML/API Blueprint 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第216次:パッケージマネージャ・ロックファイル形式
+
+yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock・poetry.lock・composer.lock の7形式を追加。エントリヘッダ(yarn)・JSON キーセンサス(npm/composer)・YAML ブロック走査(pnpm)・TOML テーブル(cargo/poetry)・セクション+インデント分類(gem)で、パッケージ数・解決 URL・整合性ハッシュ・依存ブロック等を整数計数する。
+
+## 出典(第216次、search-index 照合)
+
+**論文・仕様**: Yarn v1 lockfile format(classic.yarnpkg.com)・package-lock.json spec(docs.npmjs.com)・pnpm-lock.yaml format(pnpm.io/git/lockfiles)・Cargo.lock format(doc.rust-lang.org/cargo)・Gemfile.lock format(bundler.io/guides)・poetry.lock format(python-poetry.org)・composer.lock schema(getcomposer.org/doc)— 全て整数のみで実装。
+
+**実装物**: yarnpkg/yarn・npm/cli・pnpm/pnpm・rust-lang/cargo・rubygems/bundler・python-poetry/poetry・composer/composer — 全て整数のみで実装。
+
+**国内技術情報**: yarn.lock/package-lock/pnpm-lock/Cargo.lock/Gemfile.lock/poetry.lock/composer.lock 解説記事(Qiita・Zenn・技術ブログ等)— 全て整数のみで実装。
+
+## 第217次:歌声合成・ボーカルシーケンス形式
+
+UTAU .ust・OpenUtau .ustx・VOCALOID3/4 .vsqx・VOCALOID5 .vpr・Synthesizer V .svp・CeVIO .ccs・HTS/UTAU .lab の7形式を追加。INI セクション走査(ust)・YAML ブロック走査(ustx)・XML タグ/属性センサス(vsqx/ccs)・JSON キーセンサス(vpr/svp)・`start end phone` 行検証(lab)で、ノート数・歌詞・音素・ピッチ・パラメータ曲線等を整数計数する。
+
+## 出典(第217次、search-index 照合)
+
+**論文・仕様**: UTAU .ust format(utau2008/utautech)・OpenUtau .ustx schema(github.com/stakira/OpenUtau)・VSQX format(utaformatix ドキュメント/VOCALOID3/4 出力)・VOCALOID5 .vpr JSON・Synthesizer V .svp(Dreamtonics)・CeVIO .ccs XML schema・HTS label format(monophone + full-context)— 全て整数のみで実装。
+
+**実装物**: UTAU・stakira/OpenUtau・YAMAHA VOCALOID3/4/5・Dreamtonics Synthesizer V・CeVIO Creative Studio/AI・HTS 系アライメントツール群 — 全て整数のみで実装。
+
+**国内技術情報**: UTAU 譜面/ustx/vsqx/vpr/svp/ccs/lab 解説記事(Qiita・Zenn・技術ブログ・utaformatix 等)— 全て整数のみで実装。
+
+## 第218次:天文・天体観測データ形式
+
+IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン・MPC 80桁観測フォーマット・IVOA ADQL の7形式を追加。XML タグ/属性センサス(votable)・`#ASDF`+YAML ツリー走査(asdf)・`|` ヘッダ行分類(ipac)・コメント YAML+CSV(ecsv)・座標系+shape(args) 行(ds9reg)・80桁固定カラム走査(mpc)・大文字キーワードセンサス(adql)で、テーブル構造・列型・座標系・観測レコード・幾何クエリを整数計数する。
+
+## 出典(第218次、search-index 照合)
+
+**論文・仕様**: IVOA VOTable spec(ivoa.net/documents/VOTable)・ASDF standard(asdf-standard.readthedocs.io)・IPAC Table Format(IRSA/Caltech)・Astropy ECSV spec(docs.astropy.org)・SAOImage DS9 Region File Format(ds9.si.edu/doc/ref/region.html)・MPC 80-column observation format(minorplanetcenter.net)・IVOA ADQL 2.x spec — 全て整数のみで実装。
+
+**実装物**: astropy・asdf-format・IRSA/IPAC ツール・ds9・minorplanetcenter 観測報告・TAP/ADQL 実装群 — 全て整数のみで実装。
+
+**国内技術情報**: VOTable/ASDF/IPAC/ECSV/DS9 リージョン/MPC フォーマット/ADQL 解説記事(Qiita・Zenn・天文関連技術ブログ等)— 全て整数のみで実装。
