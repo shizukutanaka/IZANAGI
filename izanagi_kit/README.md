@@ -504,6 +504,13 @@ The capability map — with per-feature implementation status — lives in
 | `regfile` | Windows .reg registry census |
 | `unattend` | unattend.xml answer-file census |
 | `winini` | Windows 3.x win.ini census |
+| `icecast` | Icecast `icecast.xml` |
+| `mediamtx` | MediaMTX `mediamtx.yml` |
+| `motionconf` | Motion `motion.conf` |
+| `mplayerconf` | MPlayer `config` |
+| `mpv` | mpv `mpv.conf` |
+| `obsconf` | OBS Studio `global.ini`/`basic.ini` |
+| `vlcrc` | VLC `vlcrc` |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

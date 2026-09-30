@@ -3936,3 +3936,25 @@ Mercurial 公式リファレンス(hgrc/.hgignore 構文)・Subversion Red Book(
 ## 出典
 
 Hugo/Jekyll/MkDocs/Docusaurus/Hexo/Zola/Docsify 各公式ドキュメントの configuration リファレンス・Qiita「Hugo でブログ」「mkdocs-material 設定まとめ」・Zenn「Docusaurus v3 移行」・Reddit r/selfhosted・r/staticblok 系記事。 — 全て整数のみで実装。
+
+## 第263次 — メディアプレイヤー・録画・ストリーミング設定形式
+
+- `mpv`: mpv `mpv.conf`(`key=value`+`[name]` プロファイル、~70 オプション)
+- `vlcrc`: VLC `vlcrc`(全オプションが `#` コメント+有効行の2重構造、`documented` 別計数)
+- `mplayerconf`: MPlayer `config`(`vo=`/`ao=`/`[proto.*]` プロファイル)
+- `obsconf`: OBS `global.ini`/`basic.ini`(`[Video]`/`[Output]`/`[SimpleOutput]`/`[AdvOut]`/`[Stream*]` ストリーム系スコープ計数)
+- `motionconf`: Motion `motion.conf`(空白区切り `key value`、`thread` include、`netcam_*`/`stream_*`/`on_*`/`sql_*`/`track_*` 群)
+- `icecast`: Icecast `icecast.xml`(`<icecast>` ルート、`<listen-socket>`/`<mount>`/`<relay>` ブロック計数)
+- `mediamtx`: MediaMTX `mediamtx.yml`(プロトコル別 Address キー+`paths:` エントリ追跡)
+
+## 出典
+
+- mpv — mpv manual / `--list-options`(github.com/mpv-player/mpv)
+- VLC — vlcrc 生成コメント / modules list(videolan.org)
+- MPlayer — man page / example config(mplayerhq.hu)
+- OBS Studio — Profiles `basic.ini` 仕様(obsproject.com)
+- Motion — motion.conf 設定ガイド(motion-project.github.io)
+- Icecast — icecast.xml config reference(icecast.org)
+- MediaMTX — mediamtx.yml リファレンス(github.com/bluenviron/mediamtx)
+
+— 全て整数のみで実装。
