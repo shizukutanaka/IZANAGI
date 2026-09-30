@@ -4109,3 +4109,107 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `snort` — Snort/Suricata ルール: `ACTION PROTO SRC SPORT DIR DST DPORT (options)` ヘッダ(action 集合: alert/drop/pass/log/reject/sdrop/activate/dynamic/rejectsrc/rejectdst/rejectboth)+ `msg:`/`sid:`/`rev:`/`classtype:`/`gid:` オプション抽出 + `#` コメント行計数
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第175次: 天文・衛星軌道データ形式(rinex / sp3 / sbf / omm / oem / tdm / antex)
+
+**方法**: 文献参照ラウンド継続 — GNSS 観測・精密軌道・宇宙機管制メッセージの構造走査。`tle` は既存のため除外。全7件が既存 1126 件と非衝突を確認:
+
+- `rinex` — RINEX 観測/航法: 80 桁カード、先頭カード `RINEX VERSION / TYPE` ラベル + 1–20 桁 version・21–40 桁 type・41–60 桁衛星システム + 61–80 桁ラベル計数 + `END OF HEADER` 終端
+- `sp3` — IGS SP3 精密軌道: `#xP`/`#xV` 先頭行(版文字 a–d + position/velocity フラグ)+ `##` aux 行必須 + `* ` エポック・`P`/`V` レコード計数 + `EOF` 終端
+- `sbf` — Septentrio Binary Format: `$@`(0x24 0x40)同期 + CRC-16 + LE block id(`0x1FFF`=メッセージ番号・上位=rev)+ 4 倍数長のブロック鎖、途中切れ検出
+- `omm` — CCSDS OMM(軌道平均要素): `CCSDS_OMM_VERS` 必須 + `META_START`/`STOP` + `OBJECT_NAME`/`OBJECT_ID`/`CENTER_NAME`/`MEAN_ELEMENT_THEORY`/`EPOCH` KVN
+- `oem` — CCSDS OEM(軌道暦): `CCSDS_OEM_VERS` 必須 + `REF_FRAME`/`TIME_SYSTEM`/`START_TIME`/`STOP_TIME` + `YYYY-MM-DDTHH:MM:SS + 7 フィールド` 状態ベクトル行計数
+- `tdm` — CCSDS TDM(追尾データ): `CCSDS_TDM_VERS` 必須 + `DATA_START`/`DATA_STOP` ブロック内観測行計数 + `TRACK_ID`/`PARTICIPANT_1`
+- `antex` — ANTEX アンテナ補正: `ANTEX VERSION / SYST` 先頭カードラベル + `START OF ANTENNA`/`END OF ANTENNA`/`START OF FREQUENCY`/`TYPE / SERIAL NO` セクション計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第176次: 画像形式 第3弾(exr / sgi / jp2 / jxr / flif / jbig2 / dpx)
+
+**方法**: 文献参照ラウンド継続 — 業務用・科学用ビットマップ形式のヘッダ構造走査。`tga`/`icns`/`webp`/`bmp`/`png`/`tiff`/`dds`/`qoi`/`hdr`/`jxl`/`heif`/`psd`/`xcf`/`djvu`/`pcx`/`xbm`/`xpm`/`ras`/`gif`/`ico`/`farbfeld`/`pnm`/`iff`/`eps` は既存のため除外。全7件が既存 1133 件と非衝突を確認:
+
+- `exr` — OpenEXR: LE マジック `0x01312F76` + version/flags ワード(bit9 tiled / bit10 long-names / bit11 non-image / bit12 multipart)+ `name\0type\0size value` 属性列を NUL 終端まで走査
+- `sgi` — SGI RGB/.rgb/.bw: `0x01DA` + 512B BE ヘッダ(storage 0/1、bpc 1–2、dimension 1–3、xsize/ysize/zsize、pixmin/pixmax、80B 名前、colormap)
+- `jp2` — JPEG 2000 Part 1 コンテナ: 12B シグネチャボックス + `u32be length`+`4cc` ボックス鎖(len==1 で 64bit 拡長、==0 で EOF まで)+ `ftyp` ブランド + `jp2h`/`jp2c` 判定
+- `jxr` — JPEG XR (HD Photo): `II\xBC\x01` + LE u32 IFD オフセット + u16 タグ数の TIFF 型ディレクトリ
+- `flif` — Free Lossless Image Format: `FLIF` + 上位ニブル=interlace(1/2)・下位=channels(1–4) の記述子バイト + アニメーション桁
+- `jbig2` — JBIG2: `97 4A 42 32 0D 0A 1A 0A` + flags(sequential/unknown-pages)+ BE u32 ページ数
+- `dpx` — SMPTE DPX: `SDPX`(BE)/`XPDS`(LE) マジックがエンディアンを内蔵 + image_offset + `V2.x` バージョン文字列 + file_size + header サイズ群
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第177次: 3D アセット・モデル形式 第2弾(dae / lwo / wrl / iv / md3 / cob / ac)
+
+**方法**: 文献参照ラウンド継続 — レガシー/標準 3D モデル交換形式のヘッダ・ノード構造走査。`ply`/`stl`/`obj`/`fbx`/`glb`/`blend`/`abc`/`pmd`/`pmx`/`bvh`/`x3d`/`amf`/`threemf`/`off`/`step`/`iges`/`ifc`/`skp`/`dgn`/`dwg`/`dxf`/`mdl`/`md2`/`uasset` 等は既存のため除外。全7件が既存 1140 件と非衝突を確認:
+
+- `dae` — COLLADA (ISO/PAS 17506): `<COLLADA>` ルート + `version` 属性 + `library_*` コレクション列挙 + `up_axis`
+- `lwo` — LightWave Object: IFF `FORM` + `LWO2`/`LWOB`/`LWLO` フォーム型 + 偶数パディングのチャンク鎖(`LAYR`/`PNTS`/`POLS`/`SURF`/`TAGS`/`BBOX`)
+- `wrl` — VRML 1.0/VRML97 (ISO/IEC 14772-1): `#VRML V` ヘッダ + `DEF`/`USE` + 文字列・コメント認識のノードセンサス
+- `iv` — Open Inventor: `#Inventor V2.x ascii` ヘッダ + `Separator`/シェイプノードセンサス(VRML の先祖)
+- `md3` — Quake III Arena メッシュ: `IDP3`+version 15+108B LE ヘッダ(name/flags/各種カウント/セクションオフセット)
+- `cob` — Caligari trueSpace: `Caligari VNN.NN`+`A`/`B` モード接尾辞 + `Obj1`/`PolH`/`Grp `/`Mat1`/`NAME`/`Came`/`Lght` チャンク走査
+- `ac` — AC3D: `AC3D`+バージョン文字 + `OBJECT world|poly|group|light`/`MATERIAL`/`SURF`/`numvert`/`texture` 行センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+## 第178次: EDA・HDL・タイミング形式 第2弾(vcd / sdc / spef / saif / upf / ipxact / verilog)
+
+**方法**: 文献参照ラウンド継続 — EDA 設計フローの標準テキスト形式。`gds`/`edif`/`lef`/`def`/`liberty`/`fst` は既存のため除外。全7件が既存 1147 件と非衝突を確認:
+
+- `vcd` — IEEE 1364 Value Change Dump: `$timescale`/`$scope`/`$var`/`$enddefinitions` + `#t` タイムスタンプ + 値変化行
+- `sdc` — Synopsys Design Constraints: Tcl 動詞センサス(`create_clock`/`set_*_delay`/`set_false_path`/`set_clock_groups`/…)、`\` 継続行対応
+- `spef` — IEEE 1481 SPEF: `*SPEF`/`DESIGN_NAME`/`UNIT` ヘッダ + `*PORTS`/`*D_NET`/`*CONN`/`*CAP`/`*RES`/`*INDUC` センサス
+- `saif` — Switching Activity Interchange Format: `(SAIFILE` S式 + `(INSTANCE`/`(PORT`/`(T0`/`(T1`/`(TC`/`(TX` 整数持続時間合計
+- `upf` — IEEE 1801 UPF: `create_power_domain`/`supply_net`/`power_switch`/`isolation`/`retention`/`level_shifter`/PST 動詞センサス
+- `ipxact` — IEEE 1685 IP-XACT: `ipxact:`/`spirit:` 名前空間のルート要素(component/design/catalog 等)+ VLNV + busInterface/memoryMap/port/file 集計
+- `verilog` — IEEE 1364 ソース: コメント/文字列除去 + `module`/`endmodule` + `input`/`wire`/`reg`/`always`/`assign` センサス(複数ステートメント同一行対応)
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第179次: オーディオ・音声音楽形式 第3弾(amr / qcp / w64 / ircam / rx2 / nist / maud)
+
+**方法**: 文献参照ラウンド継続 — 音声・ループ素材のコンテナ/ヘッダ形式。`au`/`wav`/`aiff`/`caf`/`voc`/`wv`/`tta`/`dsf`/`rf64`/`mp3`/`ape`/`flac`/`ogg`/`midi`/`xi`/`iti`/`pat`/`sbi`/`sf2`/`dls` は既存のため除外。全7件が既存 1154 件と非衝突を確認:
+
+- `amr` — AMR-NB/WB(RFC 4867): `#!AMR`/`#!AMR-WB` マジック + FT フレームサイズ表走査 + 20ms×フレーム数
+- `qcp` — Qualcomm QCP: `RIFF`+`QLCM` + `fmt `/`vndr`/`labl`/`offs`/`data` 偶数パディングチャンク走査
+- `w64` — Sony Wave64: `riff`/`wave`/`fmt `/`data` 128bit GUID + `u64le` チャンク長 + WAVEFORMAT デコード
+- `ircam` — IRCAM/BICSF: `0x0001a364` 両エンディアン + rate 生ビット + channels
+- `rx2` — Propellerhead REX/REX2: `FORM`+`REX `/`REX2` + `HEAD`/`SLIC` チャンク列挙
+- `nist` — NIST SPHERE: `NIST_1A` + `key -i value`/`key -sN value` ヘッダ + `end_head`
+- `maud` — Commodore Amiga IFF `MAUD`: `MHDR` レート + `ANNO`/`AUTH`/`MDAT` センサス
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第180次: ネットワークプロトコル第7弾 — ストレージ・リモートアクセス(iscsi / fcoe / aoe / nbd / telnet / rfb / sftp)
+
+**方法**: 文献参照ラウンド継続 — ブロックストレージ・リモート端末・画面共有プロトコル。全7件が既存 1161 件と非衝突を確認(`rdp` は既存のため除外):
+
+- `iscsi` — RFC 7143: 48B Basic Header、initiator(0x00–)/target(0x20–) opcode 表、Immediate/F ビット
+- `fcoe` — RFC 5120: ethertype `0x8906`、version ニブル、SOF/EOF コード名
+- `aoe` — ATA over Ethernet 0x88a2: v1 フラグ+command(Issue/QueryConfig/Mask/Reserve)+shelf/slot/tag
+- `nbd` — NBD: `NBDMAGIC`+`IHAVEOPT` handshake、`0x25609513`/`0x67446698` transmission、READ/WRITE/DISC/FLUSH/TRIM
+- `telnet` — RFC 854: IAC WILL/WONT/DO/DONT、SB…SE サブネゴ、`IAC IAC` エスケープ
+- `rfb` — RFC 6143/VNC: `RFB NNN.NNN` バナー + security types + 失敗理由文字列
+- `sftp` — draft-ietf-secsh-filexfer: `u32be` len + type + request-id パケット走査、INIT/VERSION 判定
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第181次: 楽譜・記譜形式(musicxml / mscx / mei / kern / ly / nwc / capx / gp)
+
+**方法**: 文献参照ラウンド継続 — 楽譜交換・記譜言語。全8件が既存 1168 件と非衝突を確認(`abc`/`midi`/`mei`-adjacent 既存モジュールは除外):
+
+- `musicxml` — W3C MusicXML 4.x: `score-partwise`/`timewise`/`opus` ルート + part-list/measure/note 集計
+- `mscx` — MuseScore Studio XML: `<museScore version>` + Staff/Measure/Chord/Dynamic/Slur/Tuplet
+- `mei` — MEI Guidelines: `<mei>` + `music-encoding.org` NS + meiversion + mdiv/measure/app-rdg-lem
+- `kern` — Humdrum Toolkit `**kern`: `**` 排他解釈・`*` タンデム・`=` 小節・`!`/`!!!` コメント・`4c`/`4r` トークン
+- `ly` — GNU LilyPond: `\version`/`\header`/`\score`/`\book`/`\paper`/`\relative`/`\key`/`\time`/`\clef` + 音名走査
+- `nwc` — NoteWorthy Composer `.nwctxt`: `!NoteWorthyComposer(v)` + `|Type|Key:Val` 行
+- `capx` — Capella `.capx` XML: `<capella>` + `<info>`/`<system>`/`<voices>`/`<head>`/`<barline>`
+- `gp` — Guitar Pro: `FICHIER GUITAR PRO v…` バナー(v3–v5)+ GP7 `BCFZ` コンテナ
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
