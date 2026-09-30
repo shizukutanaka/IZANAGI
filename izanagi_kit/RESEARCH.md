@@ -3763,3 +3763,15 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 **実装物**: Debian apt、archlinux/pacman、rpm-software-management/dnf、openSUSE/zypper+libzypp、alpinelinux/apk-tools、gentoo/portage、NixOS/nix の各リポジトリ・デフォルト設定 — 全て整数のみで実装。
 
 **国内技術情報**: Qiita/Zenn の apt ソース追加・pacman.conf・DNF リポジトリ設定・zypper リポジトリ・apk パッケージ管理・Gentoo make.conf・nix.conf flakes 有効化の解説記事 — 全て整数のみで実装。
+
+## 第246次(search-index 照合ラウンド / 実装証跡付き)
+
+`izanagi_kit` にデータベースクライアント接続設定形式7件を追加した(993→1000)。`tnsnames`(Oracle `NAME = (DESCRIPTION = …)` ネスト記法・エイリアスカンマ列挙・`(ADDRESS =` カウント・`IFILE` include・記述子キー除外によるエイリアス誤認防止)、`sqlnet`(sqlnet.ora フラット `KEY = value`+`NAMES.DIRECTORY_PATH`/`SQLNET.*`/`TCP.*`/`SSL_*`/`WALLET_LOCATION`・ドットキー・`(SOURCE`/`(METHOD =` 記述子・`(` 分割内側パラメータ計数)、`pgservice`(pg_service.conf `[service]` セクション+libpq `host`/`port`/`dbname`/`user`/`sslmode`/`target_session_attrs`/`load_balance_hosts`/`channel_binding`/`gssencmode` 等キー認識)、`freetds`(freetds.conf `[global]` vs サーバセクション・`tds version`/`instance`/`encryption`/`use ntlmv2`/`client charset`/`packet size` 等空白含みキー)、`ldapconf`(ldap.conf `KEY value` 空白区切り・`URI`/`BASE`/`BINDDN`/`SIZELIMIT`/`TLS_*`/`SASL_*`/`GSSAPI_*`/`KRB5_*`/`WHEN_*` 名前空間キー)、`odbcini`(odbc.ini `[ODBC Data Sources]` DSN→ドライバ写像+`[DSN]` Driver/Server/Database・odbcinst.ini `[ODBC Drivers]` UsageCount/Threading・スコープ内エントリ別カウント)、`db2cli`(db2cli.ini `[dbname]`/`[COMMON]` セクション+`Hostname`/`Port`/`Protocol`/`CurrentSchema`/`TraceComm`/`QueryTimeout` 等 CLI キーワード大小文字不変認識)。
+
+## 出典(第246次、search-index 照合)
+
+**論文・仕様**: Oracle Net Services Reference(tnsnames.ora/sqlnet.ora パラメータ)、PostgreSQL libpq `pg_service.conf`(Connection Service File ドキュメント)、FreeTDS freetds.conf リファレンス、OpenLDAP `ldap.conf(5)` man page、Microsoft/unixODBC `odbc.ini`/`odbcinst.ini` 仕様、IBM Db2 `db2cli.ini` 初期化キーワード文書 — 全て整数のみで実装。
+
+**実装物**: Oracle Instant Client、postgresql/libpq、FreeTDS/freetds、openldap/openldap、unixODBC、IBM DB2 CLI driver のデフォルト設定例 — 全て整数のみで実装。
+
+**国内技術情報**: Qiita/Zenn の tnsnames.ora 接続記述・pg_service.conf サービス登録・FreeTDS+unixODBC で SQL Server 接続・ldap.conf TLS 設定・odbc.ini DSN 定義・db2cli.ini 設定手順の解説記事 — 全て整数のみで実装。

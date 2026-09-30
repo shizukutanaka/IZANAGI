@@ -403,6 +403,7 @@ The capability map — with per-feature implementation status — lives in
 | `tlaplus`, `alloy`, `promela`, `dafny`, `mch`, `lf`, `whyml` | 形式手法・モデル検査記述形式 — TLA+ モジュール・Alloy モデル・Promela/SPIN・Dafny・B/Event-B machine・Lingua Franca・WhyML/Why3 の検出と構造カウント。 |
 | `i3conf`, `sway`, `hyprland`, `waybar`, `polybar`, `rofi`, `dunst` | デスクトップ・ウィンドウマネージャ設定形式 — i3 config・Sway config・Hyprland hyprland.conf・Waybar config/style・Polybar INI・Rofi .rasi/config・Dunst dunstrc の検出と構造カウント。 |
 | `apt`, `pacman`, `dnfconf`, `zypper`, `apk`, `portage`, `nixconf` | パッケージマネージャ設定形式 — APT sources.list/deb822・pacman.conf・DNF/YUM conf+repo・Zypper conf/repo・apk repositories/world・Gentoo make.conf/package.use・nix.conf の検出と構造カウント。 |
+| `tnsnames`, `sqlnet`, `pgservice`, `freetds`, `ldapconf`, `odbcini`, `db2cli` | データベースクライアント接続設定形式 — Oracle tnsnames.ora/sqlnet.ora・PostgreSQL pg_service.conf・FreeTDS freetds.conf・OpenLDAP ldap.conf・ODBC odbc.ini/odbcinst.ini・DB2 db2cli.ini の検出と構造カウント。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
