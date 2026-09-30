@@ -3951,3 +3951,19 @@ DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTO
 - minica: minica.conf 系 INI([ca]/[dn]/[extensions]/[crl]/[ocsp]、DN フィールドと URL/path キー)
 - dehydrated: config(`CA`/`CHALLENGETYPE`/`WELLKNOWN`/`HOOK` 系 + domains.txt 項目)
 - lego: env/ini(`LEGO_*` + `*_API_KEY`/`*_PROPAGATION_TIMEOUT` 系プロバイダ接尾辞)
+
+## 第270次 — ポリシー・アクセス制御言語・定義形式
+
+- rego.rs: OPA Rego。`package`/`import`/rule head(`:=`/`if`/`{}`)/キーワード(`if`/`some`/`every`/`contains`/`in`/`with`/`not`)/`#` コメント。
+- sentinel.rs: HashiCorp Sentinel。`import`/`param`/`const`/`var`/`main = rule`/`func`/`policy`/制御キーワード(`when`/`all`/`any`/`for`/`map`/`filter`/`else`/`if`/`return`)。
+- cedar.rs: AWS Cedar。`permit(`/`forbid(`/`when`/`unless`/scope(`principal`/`action`/`resource`/`context`)/`::` エンティティ参照数。
+- openfga.rs: OpenFGA DSL。`model`/`schema`/`type`/`relations`/`define`/`condition`/`extend`/`module`。
+- casbin.rs: Casbin。`[section]`(request/policy_definition/policy_effect/matchers/role_definition)/`r,p,e,m,g` 定義行/`p,g` CSV ポリシー行。
+- xacml.rs: XACML XML。`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`/`<AttributeValue>`/`<Apply>`/`<Match>`/`<Obligation*>`/`Reference`/`VariableDefinition`/`Description`/`<!--` コメント。
+- cloudcustodian.rs: Cloud Custodian policies.yaml。`policies:`/`- name:`/`resource:`/`filters:`/`actions:`/`mode:`/`- type:`/`- key:`/`region:`。
+
+## 出典
+
+- OPA Rego Reference / HashiCorp Sentinel Language Spec / AWS Cedar Policy Language Reference / OpenFGA Modeling Language / Casbin Model & Policy 構文 / OASIS XACML 3.0 / Cloud Custodian Policies YAML reference、および GitHub 上の公開 .rego/.sentinel/.cedar/.fga/model.conf/xacml.xml/policies.yaml 実例。
+
+— 全て整数のみで実装。
