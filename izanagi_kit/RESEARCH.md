@@ -3920,3 +3920,11 @@ DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTO
 ## 出典
 
 Microsoft Learn(CONFIG.SYS/boot.ini/.reg レジストリインポート/アンサーファイル OOBE pass・setupact.inf ドライバ INF 構造・Windows コマンドリファレンス)・SS64 コマンドリファレンス・Ralf Brown interrupt list・Zenn/Qiita「bat で自動化」「 unattend.xml 作り方」・Reddit r/sysadmin・Windows IT Pro Blog・Petri IT Knowledgebase。 — 全て整数のみで実装。
+
+## 第261次
+
+バージョン管理・リポジトリ設定形式:hgrc(Mercurial、[ui]/[paths]/[auth]/[hooks]/[merge-tools] + ~70 セクション)・svnconf(config/servers、[general]/[helpers]/[miscellany]/[auto-props] スコープ + [groups] ホスト glob)・gitignore(glob/`!`/`/`/`**` + dir_only/anchored 分類)・gitattributes(pattern + `attr`/`-attr`/`attr=val` 3形態 + linguist-* 属性)・gitmodules([submodule "name"] + path/url/branch/update/ignore)・fossilconf(.fossil-settings/`fossil settings` 出力、~90 キー + *-glob)・hgignore(syntax: glob/regexp + glob:/re:/path:/rootglob:/listfile: 系 prefix)。
+
+## 出典
+
+Mercurial 公式リファレンス(hgrc/.hgignore 構文)・Subversion Red Book(Runtime Configuration Area)・git-scm ドキュメント(gitignore/gitattributes/gitmodules)・Fossil SCM 公式(settings/versionable settings)・Qiita/Zenn「gitignore の書き方」「.gitattributes で LF 統一」・Reddit r/git・Stack Overflow Mercurial config 系記事。 — 全て整数のみで実装。
