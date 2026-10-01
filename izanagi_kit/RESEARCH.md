@@ -5231,3 +5231,68 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Weston `weston.ini` マニュアル (man weston.ini, wayland.freedesktop.org)
 
 — 全て整数のみで実装。
+
+## 第285次 — ネットワーク監視・IDS/NSM 設定形式
+
+- `suricata` — Suricata `suricata.yaml`: `%YAML 1.1`/`---` マーカと `vars:`/`af-packet:`/`outputs:`/`default-rule-path:`/`app-layer:`/`detect-engine:`/`logging:`/`stream:`/`detect:` 等 ~50 既知トップキー。
+- `zeekctl` — ZeekControl `node.cfg`/`zeekctl.cfg`/`control.cfg`: `[manager]`/`[proxy-*]`/`[logger]`/`[worker-*]`/`[standalone]` セクションと `type`/`host`/`interface`/`lb_method`/`pin_cpus` ノードキー + `LogDir`/`SpoolDir`/`MailTo`/`LogRotationInterval` 等 zeekctl キー。
+- `zeekscript` — Zeek `local.zeek`/`*.zeek`/`*.bro` スクリプト: `@load`/`@load-sigs`/`@if`/`@ifdef`/`@endif` ディレクティブと `module`/`export`/`redef`/`event`/`hook`/`function` 宣言。
+- `arkimeconf` — Arkime (旧 Moloch) `config.ini`: `[default]`/`[cache]`/`[overrides.<host>]` セクションと `elasticsearch`/`interface`/`pcapDir`/`passwordSecret`/`geoLite2*`/`rotateIndex`/`parsersDir` 等 ~50 キー。
+- `pmacctconf` — pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf`/`pmtelemetryd.conf`: `key: value` コロン形式と `daemonize`/`syslog`/`interface`/`plugins`/`aggregate`/`nfacctd_*`/`sql_*`/`kafka_*`/`rabbitmq_*`/`mongo_*`/`tee_*`/`imt_*` 等 ~100 キー。
+- `argusconf` — Argus `argus.conf`/`ra.conf`/`rarc`: `ARGUS_*`/`RA_*` 接頭辞の `KEY=value` 代入 (daemon/interface/filter/output/time-format/sort)。
+- `wiresharkpref` — Wireshark `preferences`/`enabled_protos`/`disabled_protos`: `pref.name: value` 行と `gui.`/`qt.`/`nameres.`/`tcp.`/`wlan.`/`uat.`/`extcap.`/`stats.`/`transum.` 等 ~100 プロトコル接頭辞 (`uat:file:section` 二重コロン形式対応)。
+
+## 出典
+
+- Suricata `suricata.yaml` サンプルと設定リファレンス (github.com/OISF/suricata, suricata.readthedocs.io)
+- ZeekControl `node.cfg`/`zeekctl.cfg` (github.com/zeek/zeekctl), Zeek スクリプト言語リファレンス (docs.zeek.org)
+- Arkime `config.ini` リファレンス (arkime.com/settings, github.com/arkime/arkime)
+- pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf` 設定ガイド (github.com/pmacct/pmacct)
+- Argus `argus.conf`/`ra.conf` マニュアル (qosient.com/argus, man argus.conf(5))
+- Wireshark `preferences` ファイル構造 (wiki.wireshark.org/Preferences)
+
+— 全て整数のみで実装。
+
+## 第286次 — 分散ストレージ・ファイル共有デーモン設定形式
+
+- `samba` — Samba `smb.conf`: `[global]`/`[homes]`/`[printers]`/`[netlogon]`/`[sysvol]`/`[profiles]`/`[ipc$]`/`[print$]` セクションと `workgroup`/`security`/`map to guest`/`vfs objects`/`valid users`/`read only`/`browseable`/`guest ok` 等 ~60 キー (空白含みキー許容)。
+- `nfsexports` — NFS `/etc/exports`: `/path host(opts)` エントリ、`rw`/`ro`/`sync`/`no_subtree_check`/`root_squash`/`all_squash`/`fsid`/`anonuid`/`sec=` 等 ~30 オプション、CIDR/`*`/`@group` ホスト指定。
+- `cephconf` — Ceph `ceph.conf`: `[global]`/`[mon]`/`[osd]`/`[mds]`/`[mgr]`/`[client]`/`[osd.0]`/`[mon.a]` daemon セクションと `fsid`/`mon_initial_members`/`mon_host`/`public_network`/`cluster_network`/`osd_pool_default_*`/`auth_*`/`bluestore_*`/`rgw_*`/`debug_*` 等 ~45 キー。
+- `drbdconf` — DRBD `drbd.conf`/`*.res`: `global`/`common`/`resource`/`on <host>`/`net`/`connection` ブロックと `device`/`disk`/`address`/`meta-disk`/`protocol`/`cram-hmac-alg`/`shared-secret`/`rate`/`al-extents`/`fencing` 等 ~50 キーワード。
+- `glusterfs` — GlusterFS volfile (`*.vol`): `volume <name>`/`type <translator>`/`option <k> <v>`/`subvolumes <list>`/`end-volume` の5構文のみで構成される形式。
+- `lvmconf` — LVM `lvm.conf`: `devices {}`/`global {}`/`activation {}`/`backup {}`/`log {}`/`allocation {}` 等 ~18 既知ブロックと `filter`/`global_filter`/`use_devicesfile`/`use_lvmetad`/`udev_sync`/`locking_type`/`mirror_region_size`/`thin_*_executable` 等 ~50 キー。
+- `hadoopconf` — Hadoop `core-site.xml`/`hdfs-site.xml`/`mapred-site.xml`/`yarn-site.xml`: `<property>`/`<name>`/`<value>` 構造と `fs.default`/`dfs.*`/`mapreduce.*`/`yarn.*`/`hadoop.*`/`ha.zookeeper.*`/`fs.s3*`/`fs.azure` 等既知接頭辞。
+
+## 出典
+
+- Samba `smb.conf` マニュアル (man smb.conf(5), samba.org)
+- NFS exports(5) マニュアル、`/etc/exports` 例 (linux-nfs.org, man exports(5))
+- Ceph `ceph.conf` 設定リファレンス (docs.ceph.com/en/latest/rados/configuration/ceph-conf)
+- DRBD 9.x `drbd.conf` ユーザガイド (linbit.com/drbd-user-guide)
+- GlusterFS volume file フォーマット (docs.gluster.org, `*.vol` 生成物)
+- LVM `lvm.conf(5)` マニュアル (man lvm.conf, sourceware.org/lvm2)
+- Hadoop `*-site.xml` デフォルト設定 (core-default.xml/hdfs-default.xml/yarn-default.xml, hadoop.apache.org)
+
+— 全て整数のみで実装。
+
+## 第287次 — ターミナルエミュレータ設定形式 (第2弾)
+
+- `footconf` — foot (Wayland ネイティブ) `foot.ini`: `[main]`/`[scrollback]`/`[url]`/`[cursor]`/`[mouse]`/`[colors]`/`[csd]`/`[bell]`/`[tweak]`/`[key-bindings]`/`[search-bindings]`/`[url-bindings]`/`[text-bindings]`/`[mouse-bindings]` セクションと `font`/`shell`/`term`/`alpha`/`regular0-7`/`bright0-7`/`style`/`blink`/`scrollback` 等 ~100 キー。
+- `weztermconf` — WezTerm `wezterm.lua`: `local wezterm = require 'wezterm'` ヘッダ、`config.<opt> =` 代入、`wezterm.font()`/`wezterm.config_builder()` 呼出、`return config`。
+- `ghosttyconf` — Ghostty `config`: 平坦 `key = value` と `font-family`/`font-size`/`theme`/`window-padding-x`/`cursor-style`/`keybind`/`background-opacity`/`macos-*`/`gtk-*`/`linux-cgroup-*` 等 ~80 キー。
+- `contourconf` — Contour `contour.yml`: `profiles:`/`color_schemes:`/`word_delimiters`/`spawn_new_process`/`bypass_mouse_protocol_modifier`/`renderer`/`text_shaper`/`font_locator`/`input_mapping` 等 ~30 既知トップキー。
+- `windowsterminal` — Windows Terminal `settings.json`: `profiles`(list/defaults)/`schemes`/`actions`/`keybindings`/`themes`/`globals` セクションと `guid`/`commandline`/`colorScheme`/`fontFace`/`useAcrylic` 等 ~80 キー (1行複数キー対応)。
+- `tabbyconf` — Tabby (旧 Terminus) `config.yaml`: `hotkeys:`/`terminal:`/`profiles:`/`profileDefaults:`/`appearance:`/`vault:`/`configSync:`/`ssh:`/`clickableLinks:` 等 ~30 既知トップキー。
+- `itermdyn` — iTerm2 Dynamic Profiles JSON: `"Profiles"` 配列と `"Guid"`/`"Dynamic Profile"`/`"Custom Command"`/`"Badge Text"`/`"Ansi * Color"`/`"HotKey *"` 等 PascalCase キー (1行複数キー対応)。
+
+## 出典
+
+- foot `foot.ini(5)` マニュアル (codeberg.org/dnkl/foot, man foot.ini)
+- WezTerm `wezterm.lua` 設定リファレンス (wezfurlong.org/wezterm/config)
+- Ghostty config リファレンス (ghostty.org/docs/config, ~400 オプション)
+- Contour `contour.yml` (github.com/contour-terminal/contour, examples/contour.yml)
+- Windows Terminal `settings.json` スキーマ (learn.microsoft.com/windows-terminal, aka.ms/terminal-profiles-schema)
+- Tabby `config.yaml` デフォルト設定 (github.com/Eugeny/tabby)
+- iTerm2 Dynamic Profiles JSON スキーマ (iterm2.com/documentation-dynamic-profiles)
+
+— 全て整数のみで実装。
