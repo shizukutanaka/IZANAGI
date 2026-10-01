@@ -5318,3 +5318,64 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Remmina `*.remmina`/`remmina.pref` (gitlab.com/Remmina/Remmina)
 
 — 全て整数のみで実装。
+
+## 第289次 — ログ管理・監査・侵入検知設定形式
+
+- `logrotate` — logrotate `logrotate.conf`/`logrotate.d/*`: `path {` ブロック、`daily`/`weekly`/`rotate`/`size`/`missingok`/`create`/`compress`/`sharedscripts`/`prerotate`/`postrotate`/`endscript` ディレクティブ、スクリプトブロック判定。
+- `auditdconf` — Linux audit `auditd.conf`: `log_file`/`log_format`/`flush`/`freq`/`num_logs`/`max_log_file_action`/`space_left_action`/`disk_full_action`/`use_libwrap`/`tcp_listen_*`/`qos_*` 等既知キー + 値種別分類。
+- `auditrule` — Linux audit `audit.rules`/`auditctl`: `-w <path>` watch、`/path` 直接指定、`-a list,action` syscall ルール、`-S`/`-F`/`-k`、`-D`/`-b`/`-e`/`-f`/`-i`/`-l`/`-r`/`-s`/`-v` 制御。
+- `journaldconf` — systemd-journald `journald.conf`/`journald.conf.d`: `[Journal]`/`[Upload]`、`Storage`/`Compress`/`RateLimitInterval*`/`SystemMaxUse`/`RuntimeMaxUse`/`ForwardTo*`/`MaxLevel*`/`URL`/`ServerKeyFile` 等。
+- `newsyslog` — BSD `newsyslog.conf`: `<file> [owner:group] <mode> <count> <size> <when> <flags>` 7〜8欄、`Z`/`J`/`Y`/`X`/`T` 圧縮フラグ、`B`/`U`/`N` 等、その他欄 (`pidfile`/`signal`)。
+- `rsyslogd` — rsyslog `rsyslog.conf`/`rsyslog.d`: レガシーセレクタ (`auth,authpriv.*`)、`$ModLoad`/`$IncludeConfig`/`$WorkDirectory`/`$ActionQueue*` 等 `$` ディレクティブ、`module(`/`template(`/`input(`/`action(`/`global(`/`main_queue(`/`ruleset(`/`lookup_table(`/`parser(` RAInerscript オブジェクト、`@@`/`@` 転送、`if … then`。
+- `fail2ban` — Fail2ban `jail.conf`/`jail.d`/`fail2ban.conf`/`filter.d`/`action.d`: `[DEFAULT]`+jail セクション、`enabled`/`port`/`logpath`/`maxretry`/`findtime`/`bantime`/`ignoreip`/`action`/`banaction`/`filter`/`failregex`/`ignoreregex`/`datepattern`/`backend`/`usedns`/`action*`/`actionban`/`dbfile`/`loglevel`/`socket` 等既知キー。
+
+## 出典
+
+- `logrotate.conf(5)` マニュアル (github.com/logrotate/logrotate)
+- `auditd.conf(5)`/`audit.rules(7)`/`auditctl(8)` (linux-audit project)
+- `journald.conf(5)`/`journald.conf.d` (systemd, freedesktop.org)
+- `newsyslog.conf(5)` FreeBSD (freebsd.org/cgi/man.cgi?newsyslog.conf)
+- rsyslog `rsyslog.conf` 文書 (rsyslog.com doc v8 公式)
+- Fail2ban `jail.conf`/`man jail.conf` (github.com/fail2ban/fail2ban)
+
+— 全て整数のみで実装。
+## 第290次 — ファイアウォール・パケットフィルタ設定形式
+
+- `nftconf` — nftables `nftables.conf`/`nft -f` スクリプト: `table <family>`(ip/ip6/inet/arp/bridge/netdev)、`chain`/`type … hook`/`policy`、`set`/`map`/`flowtable`/`counter`/`quota`/`ct helper`/`secmark` named object、`elements`、verdict (accept/drop/reject/return/queue/continue/jump/goto 等)。
+- `iptablessave` — `iptables-save`/`ip6tables-save`: `*filter`/`*nat`/`*mangle`/`*raw`/`*security` テーブル、`:<chain> <policy>` 宣言、`-N` ユーザーチェーン、`-A` ルール、`-j`/`-g` ジャンプ、`-m` マッチモジュール、`COMMIT`。
+- `ipset` — `ipset save`/`ipset restore`: `create <name> <type>`、`add`/`del`/`test`/`destroy`/`rename`/`swap`/`flush`/`save`/`restore`/`list`/`help`/`version`/`quit` コマンド、14 種型 (`hash:ip` 等)、IPv6 メンバー判定、`timeout`/`comment`/`skbinfo` オプション。
+- `pfconf` — OpenBSD `pf.conf`: マクロ (`key = value`)、`set` オプション、`table` 定義、`pass`/`block` フィルタ、`nat`/`rdr`/`binat`/`no nat`/`nat-to`/`rdr-to`、`match`、`queue`/`altq`/`scheduler`/`dummynet`、`anchor`/`load anchor`、`antispoof`/`scrub`/`include`/`rdom`/`keepcounters`、`\` 継続行。
+- `shorewall` — Shorewall `rules`/`zones`/`policy`/`interfaces`/`masq`/`nat`/`tunnels`/`routestopped`: ~55 アクション (ACCEPT/DROP/REJECT/DNAT/REDIRECT/MASQUERADE/SNAT 等)、`action:target` 形、小文字ゾーン/ポリシー行 (`fw`/`net`/`loc`/`dmz`/`vpn`/`all`)。
+- `ufwrules` — UFW `user.rules`/`user6.rules`/`before.rules`/`after.rules`: iptables-save 方言 + `### tuple ###`/`### RULES ###`/`### END RULES ###`/`### LOGGING ###`/`### RATE LIMITING ###`/`### PORT ###` マーカー、`-A ufw-*`/`ufw-before-*`/`ufw-user-*`/`ufw-logging-*` チェーン。
+- `ferm` — ferm `ferm.conf`/`ferm.d`: `@def`/`@include`/`@hook`/`@resolve`/`@if`/`@else`/`@end`/`@subchain`/`@ipfilter`/`@eq`/`@not` 等 `@` ディレクティブ、`domain (ip ip6)`/`table <name>`/`chain <name>` ブロック、`policy`、`proto`/`saddr`/`daddr`/`mod`/`state`/`interface`/`outerface` 等のルール文。
+
+## 出典
+
+- `nftables.conf(5)`/`nft(8)` wiki (wiki.nftables.org)
+- `iptables-save(8)`/`iptables-restore(8)` (netfilter.org)
+- `ipset(8)` (ipset.netfilter.org)
+- `pf.conf(5)` OpenBSD (man.openbsd.org)
+- Shorewall man pages (shorewall.org/manpages)
+- UFW `user.rules` ジェネレータ (launchpad.net/ufw)
+- `ferm(1)`/`ferm.conf(5)` (ferm.foo-projects.org)
+
+— 全て整数のみで実装。
+## 第291次 — クラスタ・HA・フェイルオーバー設定形式
+
+- `corosync` — Corosync `corosync.conf`/`corosync.conf.d`: `totem`/`nodelist`/`node`/`logging`/`quorum`/`resources`/`event`/`qb`/`amf`/`knet`/`interface`/`member` 中括弧ブロック、`key: value` 行、`ring*_addr`/`nodeid`/`name`。
+- `cibxml` — Pacemaker CIB XML: `<cib>`/`<configuration>`、`<primitive>`/`<group>`/`<clone>`/`<master>`/`<bundle>` リソース、`<rsc_location>`/`<rsc_colocation>`/`<rsc_order>`/`<rsc_ticket>` 制約、`<nvpair>`/`<op>`/`<meta_attributes>`/`<instance_attributes>`。
+- `crmconf` — crmsh `crm`/`crm configure` スクリプト: `configure <文>` 第2語再ディスパッチ、`primitive`/`group`/`clone`/`ms`/`master`/`rsc_template`/`bundle`、`location`/`colocation`/`order`/`rsc_ticket`、`property`/`rsc_defaults`/`op_defaults`/`fencing_topology`/`acl*`、`op` 句。
+- `hacf` — Linux-HA Heartbeat `ha.cf`: `logfile`/`keepalive`/`deadtime`/`warntime`/`initdead`/`udpport`/`bcast`/`mcast`/`ucast`/`serial`/`baud`/`ping`/`ping_group`/`auto_failback`/`node`/`respawn`/`apiauth`/`crm`/`stonith`/`watchdog`/`hbaping`/`ipfail`/`compression` 等既知キー。
+- `haresources` — Heartbeat `haresources`: `<primary-node> <resource…>` 行、`Agent::arg1::arg2` 形式、IP 系 (`IPaddr`/`IPaddr2`/`IPsrcaddr`/`SendArp`)・ストレージ系 (`Filesystem`/`drbddisk`/`LVM`/`RAID1`)・通知系 (`mailTo`/`VirtualDomain`/`WinPopup`) 分類、`\` 継続行。
+- `ldirectord` — Linux Virtual Server `ldirectord.cf`: グローバル `key=value` + `virtual=` セクション、`real=<ip>:<port> gate|masq|ipip <weight>`、`fallback`/`service`/`scheduler`/`protocol`/`checktype`/`checkport`/`request`/`receive`/`httpmethod`/`persistent`/`emailalert*` 既知キー。
+- `clusterconf` — RHEL Cluster Suite `cluster.conf` XML: `<cluster name config_version>`、`<clusternode>` (nodeid/votes/fence method)、`<fencedevice>`、`<cman>`、`<failoverdomain>`/`<failoverdomainnode>`、`<resources>` (`<ip>`/`<fs>`/`<netfs>`/`<nfs*>`/`<clusterfs>`/`<script>`/`<smb>`/`<mount>`)、`<service>`/`<apache>`/`<mysql>` 等。
+
+## 出典
+
+- `corosync.conf(5)` (corosync.github.io man pages)
+- Pacemaker CIB/`crm configure` (clusterlabs.org Pacemaker Explained)
+- `ha.cf`/`haresources` (linux-ha.org Heartbeat 文書)
+- `ldirectord(8)` (Linux Virtual Server, kb.linuxvirtualserver.org)
+- `cluster.conf(5)` (RHEL Cluster Administration, access.redhat.com)
+
+— 全て整数のみで実装。
