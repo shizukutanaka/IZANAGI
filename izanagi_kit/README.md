@@ -676,6 +676,13 @@ The capability map — with per-feature implementation status — lives in
 | `platformio` | PlatformIO `platformio.ini` — `[env:*]`/`[platformio]`/`[common]`/`[user]` sections, `key = value` assigns, indented continuations, `board`/`platform`/`framework`/`lib_deps` option keys. |
 | `sdkconfig` | ESP-IDF `sdkconfig` — `CONFIG_X=y/n/m/"…"/number`, `# CONFIG_X is not set`, `CONFIG_<FAMILY>_` family dedup, header banner. |
 | `westconf` | Zephyr `west.yml` west manifest — `manifest:`/`defaults:`/`remotes:`(`- name:`/`url-base:`)/`projects:`(`- name:`/`remote:`/`repo-path:`/`import:`)/`self:` scopes. |
+| `logindefs` | `/etc/login.defs` — `KEY VALUE` whitespace settings, `MAIL`/`PASS`/`UID`/`SYS_*`/`GID`/`ENCRYPT`/`SHA_CRYPT`/`UMASK`/`USERGROUPS`/`CREATE`/`LOGIN` family dedup, `yes`/`no`/path/number value split. |
+| `modprobeconf` | `modprobe.d/*.conf`/`modprobe.conf` — `alias`/`options`(per-line `k=v` count)/`blacklist`/`install`/`remove`/`softdep`/`use`/`include`/`depmod`/`prune`/`forbid` directives, `\` continuations. |
+| `networkd` | systemd-networkd `.network`/`.netdev`/`.link` — `[Match]`/`[Link]`/`[Network]`/`[Address]`/`[Route]`/`[DHCPv4]`/`[NetDev]`/`[VLAN]`/`[WireGuard]` sections, match/route key scope split, CIDR value count. |
+| `pamstack` | PAM `/etc/pam.conf`/`/etc/pam.d/*` — `type control module-path args` lines, `required`/`requisite`/`sufficient`/`optional` vs `[value=action]` controls, `include`/`substack`/`@include`, `pam_*.so` modules, `-`/`!` flags. |
+| `sysctlconf` | `sysctl.conf`/`sysctl.d/*.conf` — `key = value` assigns, dotted top-group dedup, `*`/`[]` wildcards, numeric/`0`/`1` value split. |
+| `tmpfilesd` | systemd `tmpfiles.d/*.conf` — type chars `d D e v q Q f F w W L C p m c b z Z t T h H a A r R x X`, `!+-=~` modifier prefix strip, mode/age/arg column buckets. |
+| `udevrules` | udev `.rules` — `KEY op "value"` comma-split pairs, `==`/`!=` match vs `=`/`:=`/`+=`/`-=` assign ops, `ATTR{}`/`ATTRS{}`/`ENV{}`/`SYSCTL{}`/`TEST{}`/`IMPORT{}` refs, `RUN`/`PROGRAM`/`GOTO`/`LABEL`/`IMPORT` flow keys. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
