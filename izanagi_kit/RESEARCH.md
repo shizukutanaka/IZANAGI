@@ -5032,3 +5032,26 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Zephyr DeviceTree/Kconfig tooling notes, Qiita/Zenn embedded articles
 
 — 全て整数のみで実装。
+
+## 第276次 — Linux システム管理・低レベル設定形式
+
+- `sysctlconf` — `sysctl.conf`/`sysctl.d/*.conf`:`key = value` 代入、ドット区切りトップグループの重複排除、`*`/`[...]` ワイルドカード、数値/`0`/`1` 値分類。
+- `udevrules` — udev `.rules`: カンマ分割 `KEY op "value"` ペア、`==`/`!=` マッチ vs `=`/`:=`/`+=`/`-=` 代入演算、`ATTR{}`/`ATTRS{}`/`ENV{}`/`SYSCTL{}`/`TEST{}`/`IMPORT{}` 参照、`RUN`/`PROGRAM`/`GOTO`/`LABEL`/`IMPORT` フローキー。
+- `tmpfilesd` — systemd `tmpfiles.d/*.conf`: 型文字 `d D e v q Q f F w W L C p m c b z Z t T h H a A r R x X`、`!+-=~` 修飾子プレフィックス、mode/age/arg カラム位置別バケット。
+- `modprobeconf` — `modprobe.d/*.conf`/`modprobe.conf`: `alias`/`options`(行内 `k=v` 総数)/`blacklist`/`install`/`remove`/`softdep`/`use`/`include`/`depmod`/`prune`/`forbid` ディレクティブ、`\` 継続行。
+- `logindefs` — `/etc/login.defs`: `KEY VALUE` 空白区切り設定、`MAIL`/`PASS`/`UID`/`SYS_*`/`GID`/`ENCRYPT`/`SHA_CRYPT`/`UMASK`/`USERGROUPS`/`CREATE`/`LOGIN` ファミリ重複排除、`yes`/`no`/パス/数値 値分類。
+- `networkd` — systemd-networkd `.network`/`.netdev`/`.link`: `[Match]`/`[Link]`/`[Network]`/`[Address]`/`[Route]`/`[DHCPv4]`/`[NetDev]`/`[VLAN]`/`[WireGuard]` 等セクション、Match/Route 系キーのスコープ別計数、CIDR 値。
+- `pamstack` — PAM `/etc/pam.conf`/`/etc/pam.d/*`: `type control module-path args` 行、`required`/`requisite`/`sufficient`/`optional`/`binding` 単純制御 vs `[value=action]` 複雑制御、`include`/`substack`/`@include`、`pam_*.so` モジュール、`-`/`!` 行頭フラグ、pam.conf 5欄形式。
+
+## 出典
+
+- sysctl.conf(5) / sysctl.d(5) man pages (man7.org)
+- udev(7) rules syntax — systemd.source / freedesktop udev docs
+- tmpfiles.d(5) man page (freedesktop.org/software/systemd)
+- modprobe.d(5) / modprobe.conf(5) man pages (man7.org)
+- login.defs(5) man page — shadow-utils (github.com/shadow-maint)
+- systemd.network(5) / systemd.netdev(5) / systemd.link(5) man pages
+- pam.conf(5) / pam.d(5) man pages — Linux-PAM (linux-pam.org)
+- Arch Linux Wiki: udev/sysctl/PAM, Qiita/Zenn Linux 管理記事
+
+— 全て整数のみで実装。
