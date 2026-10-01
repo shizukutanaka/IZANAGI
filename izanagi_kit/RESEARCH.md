@@ -5318,3 +5318,24 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Remmina `*.remmina`/`remmina.pref` (gitlab.com/Remmina/Remmina)
 
 — 全て整数のみで実装。
+
+## 第289次 — ログ管理・監査・侵入検知設定形式
+
+- `logrotate` — logrotate `logrotate.conf`/`logrotate.d/*`: `path {` ブロック、`daily`/`weekly`/`rotate`/`size`/`missingok`/`create`/`compress`/`sharedscripts`/`prerotate`/`postrotate`/`endscript` ディレクティブ、スクリプトブロック判定。
+- `auditdconf` — Linux audit `auditd.conf`: `log_file`/`log_format`/`flush`/`freq`/`num_logs`/`max_log_file_action`/`space_left_action`/`disk_full_action`/`use_libwrap`/`tcp_listen_*`/`qos_*` 等既知キー + 値種別分類。
+- `auditrule` — Linux audit `audit.rules`/`auditctl`: `-w <path>` watch、`/path` 直接指定、`-a list,action` syscall ルール、`-S`/`-F`/`-k`、`-D`/`-b`/`-e`/`-f`/`-i`/`-l`/`-r`/`-s`/`-v` 制御。
+- `journaldconf` — systemd-journald `journald.conf`/`journald.conf.d`: `[Journal]`/`[Upload]`、`Storage`/`Compress`/`RateLimitInterval*`/`SystemMaxUse`/`RuntimeMaxUse`/`ForwardTo*`/`MaxLevel*`/`URL`/`ServerKeyFile` 等。
+- `newsyslog` — BSD `newsyslog.conf`: `<file> [owner:group] <mode> <count> <size> <when> <flags>` 7〜8欄、`Z`/`J`/`Y`/`X`/`T` 圧縮フラグ、`B`/`U`/`N` 等、その他欄 (`pidfile`/`signal`)。
+- `rsyslogd` — rsyslog `rsyslog.conf`/`rsyslog.d`: レガシーセレクタ (`auth,authpriv.*`)、`$ModLoad`/`$IncludeConfig`/`$WorkDirectory`/`$ActionQueue*` 等 `$` ディレクティブ、`module(`/`template(`/`input(`/`action(`/`global(`/`main_queue(`/`ruleset(`/`lookup_table(`/`parser(` RAInerscript オブジェクト、`@@`/`@` 転送、`if … then`。
+- `fail2ban` — Fail2ban `jail.conf`/`jail.d`/`fail2ban.conf`/`filter.d`/`action.d`: `[DEFAULT]`+jail セクション、`enabled`/`port`/`logpath`/`maxretry`/`findtime`/`bantime`/`ignoreip`/`action`/`banaction`/`filter`/`failregex`/`ignoreregex`/`datepattern`/`backend`/`usedns`/`action*`/`actionban`/`dbfile`/`loglevel`/`socket` 等既知キー。
+
+## 出典
+
+- `logrotate.conf(5)` マニュアル (github.com/logrotate/logrotate)
+- `auditd.conf(5)`/`audit.rules(7)`/`auditctl(8)` (linux-audit project)
+- `journald.conf(5)`/`journald.conf.d` (systemd, freedesktop.org)
+- `newsyslog.conf(5)` FreeBSD (freebsd.org/cgi/man.cgi?newsyslog.conf)
+- rsyslog `rsyslog.conf` 文書 (rsyslog.com doc v8 公式)
+- Fail2ban `jail.conf`/`man jail.conf` (github.com/fail2ban/fail2ban)
+
+— 全て整数のみで実装。

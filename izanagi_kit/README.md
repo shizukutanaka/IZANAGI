@@ -767,6 +767,13 @@ The capability map — with per-feature implementation status — lives in
 | `remminaconf` | Remmina `remmina.pref`/`*.remmina` — `[remmina]`/`[remmina_pref]` セクション、`name`/`protocol`/`server`/`colourdepth`/`ssh_*`/`gateway_*` キー。 |
 | `sssdconf` | SSSD `sssd.conf` — `[sssd]`/`[nss]`/`[pam]`/`[domain/<名>]` セクション、`services`/`domains`/`id_provider`/`ldap_*`/`krb5_*`/`ad_*` キー。 |
 | `xrdpconf` | xrdp `xrdp.ini`/`sesman.ini` — `[Globals]`/`[Logging]`/`[Channels]`/`[Xorg]`/`[Xvnc]`/`[X11rdp]`/`[SessionTypes]` セクション、`port`/`crypt_level`/`bitmap_cache`/`security_layer`/`param` キー。 |
+| `auditdconf` | Linux auditd `auditd.conf` — `log_file`/`num_logs`/`flush`/`space_left_action`/`*_action` 既知キー + 値種別分類。 |
+| `auditrule` | Linux audit `audit.rules` — `-w` watch/`-a` syscall/`-S`/`-F`/`-k` ルール + `-D`/`-b`/`-e`/`-f` 制御フラグ分類。 |
+| `fail2ban` | Fail2ban `jail.conf`/`filter.d`/`action.d` — `[DEFAULT]`+jail セクション、`enabled`/`maxretry`/`bantime`/`failregex`/`action*` 既知キー。 |
+| `journaldconf` | systemd-journald `journald.conf`/`journald.conf.d` — `[Journal]`/`[Upload]`、`Storage`/`SystemMaxUse`/`ForwardTo*`/`MaxLevel*` 既知キー。 |
+| `logrotate` | logrotate `logrotate.conf`/`logrotate.d` — `path {` ブロック、`rotate`/`daily`/`size`/`prerotate`/`postrotate`/`endscript` ディレクティブ。 |
+| `newsyslog` | BSD `newsyslog.conf` — `<file> [owner:group] <mode> <count> <size> <when> <flags>` 7欄、`Z`/`J`/`B`/`T` 圧縮フラグ。 |
+| `rsyslogd` | rsyslog `rsyslog.conf`/`rsyslog.d` — レガシーセレクタ、`$ModLoad`/`$IncludeConfig` `$` ディレクティブ、`module(`/`template(`/`input(`/`action(`/`ruleset(` RAInerscript。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
