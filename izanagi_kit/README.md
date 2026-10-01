@@ -802,6 +802,13 @@ The capability map — with per-feature implementation status — lives in
 | `sequelizerc` | `.sequelizerc`/sequelize config census: `'config'`/`'*-path'` パス解決 + `development|test|production` × DB キー + `dialect` 値。 |
 | `sqitchconf` | Sqitch `sqitch.conf` census: `[core]`/`[engine "pg"]`/`[target]`/`[deploy]` git-config 風セクション + dir/engine/user/var キー分類。 |
 | `typeormconf` | TypeORM `data-source.ts`/`ormconfig.json`/`ormconfig.env` census: `TYPEORM_*` env・type/host/db キー・synchronize/entities/migrations/subscribers/cli 系。 |
+| `dhcpcdconf` | dhcpcd `dhcpcd.conf` census: `interface`/`profile`/`static <opt>=<val>`/`option`/`nohook`/`slaac`/`duid` 等を scope/DHCP/IPv4-6/ルート/フラグ別に分類。 |
+| `dhclientconf` | ISC `dhclient.conf` census: `request`/`require`/`send`/`option`/`supersede`/`prepend`/`interface`/`lease`/`timeout`/`retry` ステートメント分類。 |
+| `hostapd` | hostapd `hostapd.conf` census: iface/radio/security(WPA/802.1X)/RADIUS/BSS/WPS/接頭辞系キー別計数。 |
+| `iwdconf` | iwd `main.conf`・`<net>.psk`/`.8021x` census: `[General]`/`[Network]`/`[Scan]`/`[IPv4]`/`[Security]`/`[Settings]` セクション別計数。 |
+| `nmconnection` | NetworkManager `.nmconnection` keyfile census: `[connection]`/`[ipv4]`/`[ipv6]`/`[wifi]`/`[wifi-security]`/`[802-1x]`/`[wireguard-peer.*]` 分類。 |
+| `pppdconf` | pppd `options`/`pap-secrets`/`chap-secrets` census: 裸フラグ/`key value`/`key=value` + 4 欄 secrets + `no*`/`require-*`/`lcp-*`/`ipcp-*` 分類。 |
+| `wpasupplicant` | wpa_supplicant `wpa_supplicant.conf` census: グローバル `key=value` + `network={}` ブロック内 ssid/psk/key_mgmt/eap/identity 等を分類。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

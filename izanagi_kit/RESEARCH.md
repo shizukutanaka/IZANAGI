@@ -5423,3 +5423,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - TypeORM Data Source Options (typeorm.io)
 
 — 全て整数のみで実装。
+
+## 第294次 — ネットワーク接続・無線LAN・PPP 設定形式
+
+- **hostapd**: hostapd.conf — `key=value` フラット。iface/radio/security/RADIUS/BSS/WPS/`hs20*`/`anqp_*` 接頭辞系を別計数する構成。
+- **wpasupplicant**: wpa_supplicant.conf — グローバル `key=value` と `network={}` ブロックの 2 層構造。ブロック内は ssid/psk/key_mgmt/eap/identity/phase* を識別。
+- **dhcpcdconf**: dhcpcd.conf — `interface`/`profile`/`ssid` 選択、`static <opt>=<val>`、`option`/`nooption`/`require`、`slaac`/`duid`/`clientid`、IPv4/IPv6 系、`metric`/`defaultroute`。
+- **dhclientconf**: ISC dhclient.conf — `;` 終端ステートメント。request/require/send/option、supersede/prepend/append/default、interface/lease/alias ブロック、timeout/retry/backoff-cutoff/initial-interval/reboot/select-timeout。
+- **nmconnection**: NetworkManager keyfile — `[connection]` 必須セクション + `[ipv4]`/`[ipv6]`/`[wifi]`/`[wifi-security]`/`[802-1x]`/`[proxy]`/`[wireguard-peer.<pk>]`。
+- **iwdconf**: iwd — `[General]`/`[Network]`/`[Scan]`/`[IPv4]`/`[IPv6]`/`[Security]`/`[Settings]` セクションと CamelCase キー。
+- **pppdconf**: pppd options + pap-secrets/chap-secrets — 裸フラグ/`key value`/`key=value` + 4 欄 secrets、`no*`/`refuse-*`/`require-*`、`lcp-*`/`ipcp-*`/`ccp-*`/`ipv6cp-*` プレフィックス。
+
+## 出典
+
+- hostapd.conf(5) (w1.fi/hostapd)
+- wpa_supplicant.conf(5) (w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf)
+- dhcpcd.conf(5) (roy.marples.name/projects/dhcpcd)
+- dhclient.conf(5) (ISC dhcp, kb.isc.org)
+- NetworkManager keyfile / nm-settings-keyfile (networkmanager.dev)
+- iwd main.conf / network-provisioning (iwd.wiki.kernel.org)
+- pppd(8) / options / pap-secrets (ppp.samba.org/pppd)
+
+— 全て整数のみで実装。
