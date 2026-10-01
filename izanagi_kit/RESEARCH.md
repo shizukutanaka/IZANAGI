@@ -5423,3 +5423,46 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - TypeORM Data Source Options (typeorm.io)
 
 — 全て整数のみで実装。
+
+## 第294次 — ネットワーク接続・無線LAN・PPP 設定形式
+
+- **hostapd**: hostapd.conf — `key=value` フラット。iface/radio/security/RADIUS/BSS/WPS/`hs20*`/`anqp_*` 接頭辞系を別計数する構成。
+- **wpasupplicant**: wpa_supplicant.conf — グローバル `key=value` と `network={}` ブロックの 2 層構造。ブロック内は ssid/psk/key_mgmt/eap/identity/phase* を識別。
+- **dhcpcdconf**: dhcpcd.conf — `interface`/`profile`/`ssid` 選択、`static <opt>=<val>`、`option`/`nooption`/`require`、`slaac`/`duid`/`clientid`、IPv4/IPv6 系、`metric`/`defaultroute`。
+- **dhclientconf**: ISC dhclient.conf — `;` 終端ステートメント。request/require/send/option、supersede/prepend/append/default、interface/lease/alias ブロック、timeout/retry/backoff-cutoff/initial-interval/reboot/select-timeout。
+- **nmconnection**: NetworkManager keyfile — `[connection]` 必須セクション + `[ipv4]`/`[ipv6]`/`[wifi]`/`[wifi-security]`/`[802-1x]`/`[proxy]`/`[wireguard-peer.<pk>]`。
+- **iwdconf**: iwd — `[General]`/`[Network]`/`[Scan]`/`[IPv4]`/`[IPv6]`/`[Security]`/`[Settings]` セクションと CamelCase キー。
+- **pppdconf**: pppd options + pap-secrets/chap-secrets — 裸フラグ/`key value`/`key=value` + 4 欄 secrets、`no*`/`refuse-*`/`require-*`、`lcp-*`/`ipcp-*`/`ccp-*`/`ipv6cp-*` プレフィックス。
+
+## 出典
+
+- hostapd.conf(5) (w1.fi/hostapd)
+- wpa_supplicant.conf(5) (w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf)
+- dhcpcd.conf(5) (roy.marples.name/projects/dhcpcd)
+- dhclient.conf(5) (ISC dhcp, kb.isc.org)
+- NetworkManager keyfile / nm-settings-keyfile (networkmanager.dev)
+- iwd main.conf / network-provisioning (iwd.wiki.kernel.org)
+- pppd(8) / options / pap-secrets (ppp.samba.org/pppd)
+
+— 全て整数のみで実装。
+## 第295次 — 時刻同期・NTP/PTP デーモン設定形式
+
+- **chronyconf**: chrony.conf — `server`/`pool`/`peer`/`refclock`/`broadcast` ソース + `allow`/`deny`/`local`/`cmdallow`/`cmddeny`/`initstepslew`/`auth*`/`nts*`/`bindaddress` 等、行頭キー + ソース行内オプション (iburst/prefer/minpoll/maxpoll) を別計数。
+- **gpsd**: /etc/default/gpsd — `KEY="value"`。DEVICES/GPSD_DEVICES/SERIAL_DEVICES/BAUDRATE → デバイス、GPSD_OPTIONS/GPSD_ARGS/OPTIONS/GPSD_DEBUG → オプション、USBAUTO/START_DAEMON/GPSD_ENABLE → トグル、GPSD_SOCKET/CONTROL_SOCKET/NTPD_SHM → ソケット、GPSD_GROUP/GPSD_USER/GPSD_HOME → 環境。
+- **ntpconf**: ntp.conf — `server`/`pool`/`peer`/`broadcast*`/`multicastclient`/`manycast*` ソース、`restrict`/`interface`/`discard`/`mru*` 制限、`keys`/`trustedkey`/`crypto`/`cert`/`leapfile` 認証、`driftfile`/`statistics`/`filegen`/`logconfig`/`includefile` ファイル、`tos`/`tinker`/`enable`/`disable`/`rlimit`/`orphan`/`automax` チューニング。ソース内 `iburst`/`prefer`/`minpoll`/`maxpoll`、restrict 内 `kod`/`limited`/`nomodify`/`nopeer`/`noquery` フラグを別計数。
+- **ntpsec**: NTPsec ntp.conf — クラシック ntp.conf に加え `refclock <shm|local|nmea|oncore|…> [unit N] [refid S] [flagN V]`、`nts <enable|ca|cert|key|cookie|mintls|maxtls|aead|…>`、`leapsmearinterval`/`mspps`/`mintc`/`maxclock` 拡張を識別。
+- **openntpd**: ntpd.conf — `listen on <addr> [port N]`、`server`/`servers`/`pool` + `weight`/`trusted`/`query`、`sensor <dev> [correction N] [weight N] [refid S] [stratum N]`、`constraint(s) from <url>`。
+- **ptp4l**: linuxptp ptp4l.cfg — INI 的 `[global]` + `[eth*]`/`[unicast_master_table]`。時計属性 (domainNumber/priority1/2/clockClass/clockAccuracy/offsetScaledLogVariance/slaveOnly/twoStepFlag/clock_servo/pi_*/kernel_leap/sanity_freq_limit)、ポート・ネットワーク (time_stamping/delay_mechanism/network_transport/ptp_dst_mac/udp_ttl/logMin*/logAnnounce*/announceReceiptTimeout)、UCM テーブルを分類。
+- **timesyncd**: systemd-timesyncd.conf — `[Time]` のみ。`NTP`/`FallbackNTP`/`Trusted`/`NTPTrusted` → サーバ、`RootDistanceMaxSec`/`PollIntervalMinSec`/`PollIntervalMaxSec`/`ConnectionRetrySec`/`SaveIntervalSec`/`SampleTimeoutSec`/`Boltar*` → 間隔・閾値。
+
+## 出典
+
+- chrony.conf(5) (chrony-project.org/doc/4.6/chrony.conf.html)
+- ntp.conf(5) (ntp.org/documentation — classic ntpd)
+- timesyncd.conf(5) (systemd.io)
+- ptp4l(8) + linuxptp documentation (linuxptp.sf.net)
+- ntpd.conf(5) OpenBSD (man.openbsd.org)
+- NTPsec ntp.conf documentation (docs.ntpsec.org)
+- gpsd(8) + gpsd packaging defaults (gpsd.io)
+
+— 全て整数のみで実装。
