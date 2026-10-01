@@ -5296,3 +5296,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - iTerm2 Dynamic Profiles JSON スキーマ (iterm2.com/documentation-dynamic-profiles)
 
 — 全て整数のみで実装。
+
+## 第288次 — ディレクトリ認証・リモートアクセス設定形式
+
+- `krb5conf` — MIT Kerberos `krb5.conf`: `[libdefaults]`/`[realms]`/`[domain_realm]`/`[kdc]`/`[kdcdefaults]`/`[logging]`/`[appdefaults]`/`[dbmodules]`/`[capaths]`/`[otp]`/`[plugins]` セクション、`default_realm`/`kdc`/`admin_server`/`default_ccache_name`/`default_tkt_enctypes`/`permitted_enctypes`/`supported_enctypes`/`acl_file`/`dict_file`/`iprop_enable` 等 ~60 キー、`REALM = {` ネストブロック。
+- `sssdconf` — SSSD `sssd.conf`: `[sssd]`/`[nss]`/`[pam]`/`[sudo]`/`[ssh]`/`[pac]`/`[ifp]`/`[secrets]`/`[kcm]`/`[domain/<名>]` セクション、`services`/`domains`/`id_provider`/`auth_provider`/`access_provider`/`ldap_uri`/`ldap_search_base`/`ldap_tls_*`/`ad_*`/`ipa_*`/`krb5_*`/`cache_credentials`/`enum_cache_timeout` 等 ~200 キー。
+- `nslcdconf` — nss-pam-ldapd `nslcd.conf`: 平坦 `key value`、`uid`/`gid`/`uri`/`base`/`scope`/`binddn`/`bindpw`/`ssl`/`tls_*`/`sasl_*`/`krb5_ccname`/`map`/`filter`/`pagesize`/`nss_*`/`pam_*`/`validnames`/`ignorecase` 等 ~50 キー。
+- `autofs` — autofs `auto.master`/`auto.*`: `<mount-point> <map> [options]`/`<key> [-options] <location>`、`file:`/`program:`/`exec:`/`yp:`/`nisplus:`/`ldap:`/`ldaps:`/`sss:`/`multi:` maptype、`+mapname`/`/-`/`/net`、`-hosts`。
+- `xrdpconf` — xrdp `xrdp.ini`/`sesman.ini`: `[Globals]`/`[Logging]`/`[Channels]`/`[SessionTypes]`/`[Xorg]`/`[Xvnc]`/`[X11rdp]`/`[xrdpN]` セクション、`port`/`crypt_level`/`bitmap_cache`/`security_layer`/`fork`/`name`/`param`/`lib`/`username`/`password`/`ip` 等 ~90 キー。
+- `rdpfile` — Windows `.rdp` (Remote Desktop Connection): `name:type:value` (`s:`/`i:`/`b:` 型接尾辞必須)、`full address`/`screen mode id`/`desktopwidth`/`session bpp`/`username`/`audiomode`/`redirect*`/`gateway*`/`remoteapplication*` 等 ~80 キー。
+- `remminaconf` — Remmina `remmina.pref`/`*.remmina`: `[remmina]`/`[remmina_pref]`/`[remmina_exec]` セクション、`name`/`protocol`/`server`/`username`/`domain`/`colourdepth`/`resolution`/`keymap`/`ssh_*`/`gateway_*`/`viewmode`/`screenshot_path` 等 ~90 キー。
+
+## 出典
+
+- MIT Kerberos `krb5.conf(5)` (web.mit.edu/kerberos/krb5-latest/doc/admin/conf_files/krb5_conf.html)
+- SSSD `sssd.conf(5)` マニュアル (man sssd.conf, sssd.io)
+- nss-pam-ldapd `nslcd.conf(5)` (arthurdejong.org/nss-pam-ldapd/nslcd.conf.5)
+- autofs `auto.master(5)`/`autofs(5)` (man auto.master)
+- xrdp `xrdp.ini(5)`/`sesman.ini(5)` (github.com/neutrinolabs/xrdp)
+- RDP `.rdp` ファイル設定キー (learn.microsoft.com/windows-server/remote/remote-desktop-services/clients/rdp-files)
+- Remmina `*.remmina`/`remmina.pref` (gitlab.com/Remmina/Remmina)
+
+— 全て整数のみで実装。

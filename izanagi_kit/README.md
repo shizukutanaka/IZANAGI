@@ -760,6 +760,13 @@ The capability map — with per-feature implementation status — lives in
 | `tabbyconf` | Tabby `config.yaml` — `hotkeys:`/`terminal:`/`profiles:`/`profileDefaults:`/`appearance:`/`ssh:` 既知トップキー。 |
 | `weztermconf` | WezTerm `wezterm.lua` — `local wezterm = require`/`config.<opt> =`/`wezterm.<fn>(`/`return config`。 |
 | `windowsterminal` | Windows Terminal `settings.json` — `profiles`/`schemes`/`actions`/`keybindings`/`themes` セクションと `guid`/`commandline`/`colorScheme` キー。 |
+| `autofs` | autofs `auto.master`/`auto.*` — `<mount> <map> [opts]` エントリ、`file:`/`program:`/`yp:`/`ldap:`/`sss:` maptype、`-` オプション、`+map` 包含。 |
+| `krb5conf` | MIT Kerberos `krb5.conf` — `[libdefaults]`/`[realms]`/`[domain_realm]`/`[kdc]`/`[logging]` セクション、`default_realm`/`kdc`/`admin_server`/`realm = {` ブロック。 |
+| `nslcdconf` | nslcd (nss-pam-ldapd) `nslcd.conf` — 平坦 `key value`、`uid`/`gid`/`uri`/`base`/`binddn`/`tls_*`/`sasl_*`/`map`/`filter` キー。 |
+| `rdpfile` | Windows `.rdp` — `name:type:value` (`s:`/`i:`/`b:`)、`full address`/`screen mode id`/`desktopwidth`/`audiomode`/`redirect*`/`gateway*` キー。 |
+| `remminaconf` | Remmina `remmina.pref`/`*.remmina` — `[remmina]`/`[remmina_pref]` セクション、`name`/`protocol`/`server`/`colourdepth`/`ssh_*`/`gateway_*` キー。 |
+| `sssdconf` | SSSD `sssd.conf` — `[sssd]`/`[nss]`/`[pam]`/`[domain/<名>]` セクション、`services`/`domains`/`id_provider`/`ldap_*`/`krb5_*`/`ad_*` キー。 |
+| `xrdpconf` | xrdp `xrdp.ini`/`sesman.ini` — `[Globals]`/`[Logging]`/`[Channels]`/`[Xorg]`/`[Xvnc]`/`[X11rdp]`/`[SessionTypes]` セクション、`port`/`crypt_level`/`bitmap_cache`/`security_layer`/`param` キー。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
