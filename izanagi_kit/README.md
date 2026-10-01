@@ -795,6 +795,13 @@ The capability map — with per-feature implementation status — lives in
 | `serilog` | Serilog `appsettings.json` `"Serilog"` セクション census: `Using`/`MinimumLevel`(Default/Override)/`WriteTo`/`Enrich`/`Properties`、Args 既知キー (path/rollingInterval/outputTemplate/…)。 |
 | `winstonconf` | Winston `winston.createLogger({…})` census: `winston.transports.*`/`format.*`/`npm|syslog.levels`/level/silent/exitOnError/exceptionHandlers/defaultMeta。 |
 | `zapconf` | Zap `zap.config`/`zap.yaml` census: `level`/`encoding`/`encoderConfig`(messageKey/levelKey/*Encoder)/`sampling`/`outputPaths`/`errorOutputPaths`。 |
+| `alembic` | Alembic `alembic.ini` census: `[alembic]` (script_location/sqlalchemy.url/version_locations) + logging.configparser セクション (`[logger_*]`/`[handler_*]`/`[formatter_*]`) 分類。 |
+| `flyway` | Flyway `flyway.conf` census: `flyway.<cat>.<key>` を接続/ロケーション/挙動/命名/プレースホルダ/出力/`flyway.<db>.*` ベンダ別に分類。 |
+| `knexfile` | Knex `knexfile.js` census: `<env>: { client: '<dialect>', connection/pool/migrations/seeds/useNullAsDefault/searchPath }` キー種別集計。 |
+| `liquibase` | Liquibase `liquibase.properties` census: `key: value`/`=`、changelog/DB 接続/出力/hub.*/parameter.*/`liquibase.command.*` 分類。 |
+| `sequelizerc` | `.sequelizerc`/sequelize config census: `'config'`/`'*-path'` パス解決 + `development|test|production` × DB キー + `dialect` 値。 |
+| `sqitchconf` | Sqitch `sqitch.conf` census: `[core]`/`[engine "pg"]`/`[target]`/`[deploy]` git-config 風セクション + dir/engine/user/var キー分類。 |
+| `typeormconf` | TypeORM `data-source.ts`/`ormconfig.json`/`ormconfig.env` census: `TYPEORM_*` env・type/host/db キー・synchronize/entities/migrations/subscribers/cli 系。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

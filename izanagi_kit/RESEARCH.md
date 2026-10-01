@@ -5401,3 +5401,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Winston Transports/Formats (github.com/winstonjs/winston)
 
 — 全て整数のみで実装。
+
+## 第293次 — データベースマイグレーション・ORM 設定形式
+
+- `flyway` — Flyway `flyway.conf`: `flyway.url`/`user`/`password`/`driver`/`connectRetries`/`initSql` 接続系、`locations`/`schemas`/`defaultSchema`/`createSchemas`/`failOnMissingLocations` ロケーション系、`table`/`baseline*`/`cleanDisabled`/`outOfOrder`/`validateOnMigrate`/`mixed`/`group`/`batch`/`stream`/`target`/`cherryPick`/`skipExecutingMigrations`/`ignore*` 挙動系、`sqlMigrationPrefix`/`undo*`/`repeatable*`/`sqlMigrationSuffixes`/`scriptFileExtensions` 命名系、`placeholders.*`/`placeholder*`/`encoding`/`resourceProvider` 系、`outputQueryResults`/`outputType`/`dryRunOutput`/`progress`/`loggers`/`licenseKey` 出力系、`flyway.<vendor>.*` (oracle/postgresql/sqlserver/mysql/db2/snowflake/spanner/bigquery/cockroachdb/tidb/clickhouse/…) ベンダネスト系。
+- `liquibase` — `liquibase.properties`: `changeLogFile`/`changeSetDirectory`/`contexts`/`labels`/`runOnChange`/`includeAllFilesWithId`/`searchPath`/`databaseChangeLog*TableName` 変更ログ系、`url`/`username`/`password`/`driver`/`defaultSchemaName`/`defaultCatalogName`/`reference*`/`liquibase*Name` DB 系、`logLevel`/`logFile`/`outputFile*`/`monitorPerformance`/`showBanner`/`secureParsing`/`liquibaseProLicenseKey` 出力系、`hub.*`/`hubApiKey`/`hubMode` Hub 系、`parameter.*`/`variable.*` 定義、`liquibase.command.<cmd>.*` コマンド別オプション。
+- `alembic` — `alembic.ini`: `[alembic]` の `script_location`/`prepend_sys_path`/`path_separator`/`file_template`/`version_locations`/`recursive_version_locations`/`sourceless` レイアウト系と `sqlalchemy.url`/`transaction_per_migration`/`compare_type`/`render_as_batch`/`revision_environment`/`truncate_slug_length` 実行系 + logging.configparser の `[loggers]`/`[handlers]`/`[formatters]`/`[logger_*]`/`[handler_*]`/`[formatter_*]`。
+- `sqitchconf` — `sqitch.conf`: `[core]`/`[core "<engine>"]`/`[engine "<name>"]`/`[target "<name>"]`/`[deploy]`/`[revert]`/`[verify]`/`[rework]`/`[add]`/`[plan]`/`[tag]`/`[checkout]`/`[init]`/`[status]`/`[log]`/`[bundle]`/`[rebase]`/`[config]`/`[show]`/`[upgrade]` セクション + `deploy_dir`/`revert_dir`/`verify_dir`/`reworked_*`/`top_dir`/`extension`/`plan_file`/`template_dir` ディレクトリ系、`engine`/`target`/`uri`/`registry`/`client`/`db_name`/`host`/`port`/`username`/`password`/`driver` エンジン系、`set`/`variables`/`verify`/`mode`/`log_only` 制御系、`user.*` (name/email/accept)。
+- `sequelizerc` — `.sequelizerc`/sequelize config: `'config'`/`'models-path'`/`'seeders-path'`/`'migrations-path'`/`'migration-storage-path'`/`'url'` パス解決、`development`/`test`/`production`/`staging`/`local`/`ci` 環境セクション、`username`/`password`/`database`/`host`/`port`/`dialect`/`storage`/`use_env_variable`/`dialectModule*`/`socketPath` DB キー、`logging`/`pool`/`dialectOptions`/`define`/`timezone`/`retry`/`seederStorage*`/`migrationStorage*`/`operatorsAliases`/`typeValidation`/`minifyAliases` オプション、`mysql|postgres|sqlite|mariadb|mssql|db2|oracle|snowflake` dialect 値。
+- `knexfile` — `knexfile.js`/`knexfile.ts`: `client:` + `connection:` (filename/host/port/user/password/database/charset/ssl/instanceName/connectionString*)、`pool:` (min/max/acquireTimeoutMillis/idleTimeoutMillis/afterCreate/beforeDestroy/propagateCreateError 等 tarn 系)、`migrations:`/`seeds:` (tableName/schemaName/directory/extension/stub/loadExtensions/disableTransactions/validateChecksums/sortDirsSeparately)、`useNullAsDefault`/`searchPath`/`acquireConnectionTimeout`/`wrapIdentifier`/`postProcessResponse`/`asyncStackTraces`/`compileSqlOnError`/`queryBuilder` Knex 固有キー。
+- `typeormconf` — `data-source.ts`/`ormconfig.json`/`ormconfig.env`/`ormconfig.yml`: `TYPEORM_*` 環境変数行、`new DataSource`/`module.exports`/`createConnection` コンストラクタ、`type`/`host`/`port`/`username`/`password`/`database`/`url`/`sid`/`serviceName`/`schema`/`extra`/`socketPath` DB キー、`synchronize`/`dropSchema`/`migrationsRun`/`logging`/`logger`/`cache`/`namingStrategy`/`entityPrefix`/`relationLoadStrategy`/`metadataTableName`/`poolSize` ORM キー、`entities`/`migrations`/`subscribers`/`factories`/`seeds`/`cli`/`entitiesDir`/`migrationsDir`/`subscribersDir`/`migrationsTableName` パス系、`mysql`〜`spanner` dialect 値。
+
+## 出典
+
+- Flyway Configuration (documentation.red-gate.com/fd)
+- Liquibase Parameters (docs.liquibase.com)
+- Alembic Configuration (alembic.sqlalchemy.org)
+- Sqitch Configuration (sqitch.org/docs/manual/sqitch-configuration)
+- Sequelize CLI / sequelizerc (sequelize.org/docs)
+- Knexfile / knex configuration (knexjs.org/guide)
+- TypeORM Data Source Options (typeorm.io)
+
+— 全て整数のみで実装。
