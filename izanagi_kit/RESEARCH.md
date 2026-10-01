@@ -5144,3 +5144,24 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Marlin `Configuration.h`/`Configuration_adv.h` オプション名 (github.com/MarlinFirmware/Marlin, marlinfw.org/docs/configuration)
 
 — 全て整数のみで実装。
+
+## 第281次 — メールクライアント・取得/転送ツール設定形式
+
+- `muttrc` — Mutt `.muttrc`: `set`/`unset`/`reset`/`toggle`/`bind`/`macro`/`color`/`uncolor`/`mono`/`mailboxes`/`my_hdr`/`alias`/`alternates`/`source`/`exec`/`push`/`score`/`spam`/`group`/`lists`/`ignore` 等コマンド行と `account-hook`/`folder-hook`/`send-hook`/`reply-hook`/`mbox-hook` 等 `*-hook` 接尾辞系の別計数。
+- `neomuttconf` — NeoMutt `.neomuttrc`: mutt 構文互換だが `sidebar_*`/`nm_*` (notmuch) /`ts_*` (status) 変数と `virtual-mailboxes`/`named-mailboxes`/`lua`/`sidebar_pin`/`sidebar_whitelist`/`tag-formats` 等 NeoMutt 固有コマンドを必須条件として mutt と区別。
+- `aercconf` — aerc `aerc.conf`/`binds.conf`/`accounts.conf`: `[general]`/`[ui]`/`[viewer]`/`[composer]`/`[filters]`/`[triggers]`/`[statusline]`/`[templates]`/`[linter]`/`[binds]` セクションと `[ui:account=…]`/`[ui:folder=…]` コンテキスト付きサブセクション、`key=value`。
+- `mbsyncrc` — isync/mbsync `.mbsyncrc`: `IMAPAccount`/`IMAPStore`/`MaildirStore`/`Channel`/`Group` オブジェクトブロック宣言、`Host`/`Port`/`User`/`UserCmd`/`Pass`/`PassCmd`/`SSLType`/`SSLVersions`/`CertificateFile`/`Pipelinedepth`/`Trash`/`SubFolders`/`Inbox`/`Far`/`Near`/`Patterns`/`Sync`/`Expunge`/`Create`/`Remove`/`SyncState`/`MaxMessages`/`MaxSize`/`ExpireUnread`/`CopyArrivalDate`/`Filter` キー。
+- `msmtprc` — msmtp `.msmtprc`: `defaults`/`account name`/`account default : name` ブロック、`host`/`port`/`from`/`user`/`password`/`passwordeval`/`auth`/`tls`/`tls_*`/`logfile`/`sendmail`/`aliases`/`syslog`/`proxy_*`/`dsn_*`/`eval` キー、TLS・認証系の別計数。
+- `fetchmailconf` — fetchmail `.fetchmailrc`: `poll`/`server`/`skip`/`defaults`/`set`/`via`/`aka`/`localdomains` 先頭語と `proto`/`user`/`password`/`is`/`here`/`ssl`/`sslproto`/`sslfingerprint`/`uidl`/`keep`/`flush`/`fetchall`/`mda`/`smtphost`/`antispam`/`envelope`/`qvirtual`/`tracepolls`/`no rewrite` オプション語。
+- `offlineimap` — OfflineIMAP `.offlineimaprc`: `[general]`/`[Account name]`/`[Repository name]`/`[mbnames]`/`[ui.<name>]`/`[python]` セクション、`accounts`/`pythonfile`/`localrepository`/`remoterepository`/`type`(Maildir/IMAP/Gmail/Local)/`remotehost`/`remoteuser`/`remotepasseval`/`sslcacertfile`/`cert_fingerprint`/`folderfilter`/`nametrans`/`folderincludes`/`holdconnectionopen`/`keepalive`/`synclabels`/`oauth2_*`/`realdelete`/`maildir-windows-compatible` キー。
+
+## 出典
+
+- Mutt/NeoMutt `init.h` コマンド表と manual (mutt.org, neomutt.org/guide)
+- aerc `config/aerc.conf` 既定設定 (git.sr.ht/~rjarry/aerc, aerc-mail.org)
+- isync/mbsync `.mbsyncrc` フォーマット (isync.sourceforge.net, man mbsync)
+- msmtp `.msmtprc` 設定キー (marlam.de/msmtp/msmtp.html)
+- fetchmail `.fetchmailrc` keyword (fetchmail.info, man fetchmail)
+- OfflineIMAP `offlineimap.conf` サンプル (github.com/OfflineIMAP/offlineimap, offlineimap.org)
+
+— 全て整数のみで実装。
