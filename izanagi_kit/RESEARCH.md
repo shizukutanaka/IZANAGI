@@ -5486,3 +5486,18 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - iPXE Scripting Reference (ipxe.org/scripting)
 
 — 全て整数のみで実装。
+
+## 第297次 — EDA・回路設計ファイル形式
+
+- `eaglexml`: Autodesk EAGLE `.sch`/`.brd` (XML)。`<eagle>` ルート、`<layer>`/`<part>`/`<element>`/`<signal>`/`<net>`/`<wire>`/`<junction>`/`<pad>`/`<smd>`/`<via>`/`<hole>`/`<package>`/`<library>` を分類。
+- `gedasch`: gEDA gschem `.sch`。`v` バージョン行 + `C`/`N`/`U`/`P`/`B`/`V`/`A`/`T`/`M`/`G` オブジェクト + `{`〜`}` 属性ブロック。
+- `kicadpcb`: KiCad `.kicad_pcb` (S式)。`footprint`/`module`、`pad`、`segment`/`via`/`arc`、`zone`、`net`/`net_class`、`gr_*`/`fp_*`/`dimension`/`target` を分類。
+- `kicadpro`: KiCad `.kicad_pro` (JSON)。`board`/`pcbnew`/`schematic`/`sheets`/`cvpcb`/`libraries`/`text_variables`/`meta` 等のキーを board/schematic/libraries/meta 系に分類。
+- `kicadsch`: KiCad `.kicad_sch` (S式)。`symbol`/`power`/`hierarchical_sheet`、`wire`/`bus`/`bus_entry`、`label`/`global_label`/`hierarchical_label`、`junction`/`no_connect`、`property`/`pin`/`uuid` を分類。
+- `ltsconf`: LTspice `.asc`。`SHEET`/`WIRE`/`SYMBOL`/`SYMATTR`/`WINDOW`/`FLAG`/`IOPIN`/`TEXT`/`LINE`/`RECTANGLE`/`CIRCLE`/`ARC`/`NORMAL`/`ROTATED` 行指向コマンドを分類。
+- `spicenet`: SPICE/ngspice ネットリスト。タイトル行、`*` コメント、`+` 継続、`R`/`C`/`L`/`V`/`I`/`D`/`Q`/`M`/`X`/`E`/`F`/`G`/`H`/`B`/`J`/`Z` 素子、`.subckt`/`.model`/`.tran`/`.param` 等ディレクティブを分類。
+
+## 出典
+KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、Autodesk EAGLE XML format & DTD、gEDA gschem file format、LTspice .asc file format、SPICE3/ngspice input syntax。
+
+— 全て整数のみで実装。

@@ -823,6 +823,13 @@ The capability map — with per-feature implementation status — lives in
 | `refind` | rEFInd `refind.conf` census: `menuentry`/`submenuentry` ブロック + `scanfor`/`dont_scan_*`/`also_scan_*` スキャン制御 + `timeout`/`hideui`/`showtools`/`resolution`/`default_selection` グローバル分類。 |
 | `systemdboot` | systemd-boot `loader.conf` + `entries/*.conf` (BLS Type #1) census: `title`/`version`/`sort-key`/`linux`/`efi`/`initrd`/`devicetree`/`options`/`default`/`timeout`/`auto-*` 分類。 |
 | `ubootenv` | U-Boot 環境 (`fw_printenv`/`uEnv.txt`/`boot.scr`) census: `key=value` 代入 + `bootcmd`/`bootargs`/`ethaddr`/`loadaddr` 既知変数 + `setenv`/`run`/`tftpboot`/`bootm`/`if`/`for`/`mmc`/`sf`/`nand` コマンド分類。 |
+| `eaglexml` | Autodesk EAGLE `.sch`/`.brd` XML。layer/part/signal/wire/pad/library 分類。 |
+| `gedasch` | gEDA gschem `.sch`。`C`/`N`/`U`/`P`/`B`/`T`/`M`/`G` + `{}` 属性ブロック。 |
+| `kicadpcb` | KiCad `.kicad_pcb` S式。footprint/pad/segment/via/zone/net/gr_* 分類。 |
+| `kicadpro` | KiCad `.kicad_pro` JSON。board/schematic/libraries/meta キー分類。 |
+| `kicadsch` | KiCad `.kicad_sch` S式。symbol/wire/bus/label/junction/property/pin 分類。 |
+| `ltsconf` | LTspice `.asc`。SHEET/WIRE/SYMBOL/SYMATTR/FLAG/TEXT/RECTANGLE 分類。 |
+| `spicenet` | SPICE ネットリスト。要素行/.subckt/.model/.tran/.param/継続行 分類。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
