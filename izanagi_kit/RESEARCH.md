@@ -5360,3 +5360,22 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - `ferm(1)`/`ferm.conf(5)` (ferm.foo-projects.org)
 
 — 全て整数のみで実装。
+## 第291次 — クラスタ・HA・フェイルオーバー設定形式
+
+- `corosync` — Corosync `corosync.conf`/`corosync.conf.d`: `totem`/`nodelist`/`node`/`logging`/`quorum`/`resources`/`event`/`qb`/`amf`/`knet`/`interface`/`member` 中括弧ブロック、`key: value` 行、`ring*_addr`/`nodeid`/`name`。
+- `cibxml` — Pacemaker CIB XML: `<cib>`/`<configuration>`、`<primitive>`/`<group>`/`<clone>`/`<master>`/`<bundle>` リソース、`<rsc_location>`/`<rsc_colocation>`/`<rsc_order>`/`<rsc_ticket>` 制約、`<nvpair>`/`<op>`/`<meta_attributes>`/`<instance_attributes>`。
+- `crmconf` — crmsh `crm`/`crm configure` スクリプト: `configure <文>` 第2語再ディスパッチ、`primitive`/`group`/`clone`/`ms`/`master`/`rsc_template`/`bundle`、`location`/`colocation`/`order`/`rsc_ticket`、`property`/`rsc_defaults`/`op_defaults`/`fencing_topology`/`acl*`、`op` 句。
+- `hacf` — Linux-HA Heartbeat `ha.cf`: `logfile`/`keepalive`/`deadtime`/`warntime`/`initdead`/`udpport`/`bcast`/`mcast`/`ucast`/`serial`/`baud`/`ping`/`ping_group`/`auto_failback`/`node`/`respawn`/`apiauth`/`crm`/`stonith`/`watchdog`/`hbaping`/`ipfail`/`compression` 等既知キー。
+- `haresources` — Heartbeat `haresources`: `<primary-node> <resource…>` 行、`Agent::arg1::arg2` 形式、IP 系 (`IPaddr`/`IPaddr2`/`IPsrcaddr`/`SendArp`)・ストレージ系 (`Filesystem`/`drbddisk`/`LVM`/`RAID1`)・通知系 (`mailTo`/`VirtualDomain`/`WinPopup`) 分類、`\` 継続行。
+- `ldirectord` — Linux Virtual Server `ldirectord.cf`: グローバル `key=value` + `virtual=` セクション、`real=<ip>:<port> gate|masq|ipip <weight>`、`fallback`/`service`/`scheduler`/`protocol`/`checktype`/`checkport`/`request`/`receive`/`httpmethod`/`persistent`/`emailalert*` 既知キー。
+- `clusterconf` — RHEL Cluster Suite `cluster.conf` XML: `<cluster name config_version>`、`<clusternode>` (nodeid/votes/fence method)、`<fencedevice>`、`<cman>`、`<failoverdomain>`/`<failoverdomainnode>`、`<resources>` (`<ip>`/`<fs>`/`<netfs>`/`<nfs*>`/`<clusterfs>`/`<script>`/`<smb>`/`<mount>`)、`<service>`/`<apache>`/`<mysql>` 等。
+
+## 出典
+
+- `corosync.conf(5)` (corosync.github.io man pages)
+- Pacemaker CIB/`crm configure` (clusterlabs.org Pacemaker Explained)
+- `ha.cf`/`haresources` (linux-ha.org Heartbeat 文書)
+- `ldirectord(8)` (Linux Virtual Server, kb.linuxvirtualserver.org)
+- `cluster.conf(5)` (RHEL Cluster Administration, access.redhat.com)
+
+— 全て整数のみで実装。
