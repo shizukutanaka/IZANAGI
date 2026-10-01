@@ -5165,3 +5165,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - OfflineIMAP `offlineimap.conf` サンプル (github.com/OfflineIMAP/offlineimap, offlineimap.org)
 
 — 全て整数のみで実装。
+
+## 第282次 — IRC・メッセージングクライアント/ブリッジ設定形式
+
+- `irssi` — Irssi `~/.irssi/config`: 列0 の `servers = (`/`chatnets = {`/`settings = {`/`hilights = (` 等トップブロック、`key = value;` 代入、`Libera = { type = "IRC"; };` 風の `Name = { }` 辞書エントリ、`;` 終端行の別計数。
+- `weechat` — WeeChat `*.conf`: `[look]`/`[network]`/`[server]`/`[ctcp]` 等セクションと `key = value`、`server.<name>.<opt>` ドット階層キー、`on`/`off` ブール値。
+- `hexchat` — HexChat `hexchat.conf`: セクションを持たない平坦な `key = value`、`version`/`auto_connect` + `irc_*`/`gui_*`/`dcc_*`/`completion_*`/`nick_*`/`proxy_*`/`text_*` プレフィックス系。
+- `znc` — ZNC `znc.conf`: `<User name>`/`<Listener l0>`/`<Network net>`/`<Chan #c>`/`<Pass password>` の位置引数付き開始タグ (属性 `=` を含まない点で XML と区別) と `Key = Value`。
+- `matterbridge` — Matterbridge `matterbridge.toml`: `[irc.x]`/`[discord.x]`/`[slack.x]`/`[matrix.x]`/`[xmpp.x]` 等 ~20 プロトコル接頭辞テーブルと `[[gateway]]`/`[[gateway.inout]]`/`[[gateway.in]]`/`[[gateway.out]]` ゲートウェイ配列。
+- `unrealircd` — UnrealIRCd `unrealircd.conf`: `me { }`/`admin { }`/`class x { }`/`oper x { }`/`listen { }`/`link x { }`/`allow { }`/`ban x { }`/`set { }`/`spamfilter x { }` 等 ~35 ブロック名と `stmt;` 終端、`include "…";`。
+- `pidginconf` — Pidgin/libpurple `prefs.xml`・`accounts.xml`: `<purple version='1.0'>`/`<account version='1.0'>` ルート、`<pref name type value/>`・`<setting name type>` 要素、`prpl-irc`/`prpl-xmpp` 等プロトコル識別子。
+
+## 出典
+
+- Irssi `config` 既定ファイルと settings ドキュメント (irssi.org/documentation/settings, github.com/irssi/irssi)
+- WeeChat `weechat.conf`/`irc.conf` リファレンス (weechat.org/files/doc)
+- HexChat `hexchat.conf` キー一覧 (hexchat.github.io, hexchat docs)
+- ZNC `znc.conf` ブロック構造 (wiki.znc.in/Configuration)
+- Matterbridge `matterbridge.toml.sample` (github.com/42wim/matterbridge)
+- UnrealIRCd `unrealircd.conf` ブロックリファレンス (unrealircd.org/docs)
+- Pidgin `prefs.xml`/`accounts.xml` (developer.pidgin.im, libpurple docs)
+
+— 全て整数のみで実装。
