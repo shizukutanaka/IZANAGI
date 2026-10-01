@@ -4214,6 +4214,167 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
 
+## 第244次(search-index 照合ラウンド / 実装証跡付き)
+
+`izanagi_kit` にデスクトップ・ウィンドウマネージャ設定形式7件を追加した(979→986)。`i3conf`(i3 `set $`/`set_from_resource`・`bindsym`/`bindcode`/`--release`/`--whole-window`/`--border`/`--whole-window`・`exec`/`exec_always`・`bar`/`colors`/`mode` `{` ブロック・`status_command`/`position`/`tray_output`/`binding_mode_indicator`/`workspace_buttons`/`strip_workspace_numbers`/`separator_symbol`/`icon_theme`/`verbose`/`i3bar_command`/`id`/`socket_path`/`modifier`・`font`/`mode`/`for_window`/`assign`/`floating_*`/`workspace`/`gaps`/`include`/`client.*` 指令)、`sway`(Sway `set`/`bindsym`/`bindcode`/`bindgesture`/`bindswitch`・`exec`/`exec_always`・`mode`/`bar`/`colors`/`input`/`output`/`seat`/`idle`/`workspace`/`gaps`/`default_dim_inactive` `{` ブロック・`xkb_*`/`tap`/`natural_scroll`/`dwt`/`pointer_accel`/`accel_profile`/`repeat_rate`/`repeat_delay`/`scroll_method`/`events`/`click_method`/`middle_emulation`/`left_handed`/`map_to_*`・`resolution`/`position`/`scale`/`transform`/`background`/`disable`/`adaptive_sync`/`subpixel`/`dpms`/`hdr`/`render_bit_depth`/`power`/`hotplug`・`swaybar_command`/`swaynag_command`/`icon_theme`/`status_command`/`position`/`tray_*`/`binding_mode_indicator`/`workspace_buttons`/`strip_workspace_*`/`separator_symbol`/`pango_markup`・`unbind*`/`mark`/`opacity`/`inhibit_idle`/`urgent`/`shortcuts_inhibitor`/`include`/`corner_radius`/`shadow`/`blur`/`xwayland`/`gesture`/`primary_selection`/`client.*`)、`hyprland`(Hyprland `general`/`decoration`/`animations`/`input`/`gestures`/`group`/`misc`/`binds`/`xwayland`/`cursor`/`debug`/`render`/`opengl`/`dwindle`/`master`/`plugin`/`device`/`touchdevice`/`tablet`/`keyboard`/`autoscale`/`ecosystem`/`experimental`/`snap`/`overview`/`hypervnc`/`shadow`/`blur`/`submap` セクション・`monitor`/`workspace`/`windowrule`/`windowrulev2`/`layerrule`/`permission`/`bezier`/`animation`/`blurls`/`source`/`env`/`exec`/`exec-once`/`execr`/`unbind`/`plugin`/`submap`・`bind`/`bindm`/`bindr`/`bindl`/`binde`/`bindd`/`bindc`/`bindi`/`bindt`/`bindn`・任意 `key = value`)、`waybar`(Waybar `layer`/`position`/`height`/`width`/`margin`/`spacing`/`mode`/`name`/`output`/`include`/`ipc`/`start_hidden`/`passthrough`/`exclusive`/`gtk-layer-shell`/`reload_style_on_change`/`fixed-center`/`separate-outputs` トップキー・`modules-left`/`modules-center`/`modules-right`+`"{mod}"/"{mod}#name"` モジュールオブジェクト+`format*`/`interval`/`tooltip`/`exec`/`on-*`/`return-type`/`rotate`/`states`/`icons`/`rewrite`/`expand`/`scroll-step`/`smooth-*`/`reverse-scrolling`/`transition-*`/`bat`/`adapter`/`on-update`/`signal`/`exec-if`/`hide*`/`show*`/`min-length`/`max-length`/`align`/`justify`/`escape`/`markup`/`wrap`/`device`/`click-through`・`#waybar`/`.modules-*`/`#*` セレクタ+`@import`/`@define-color`+CSS プロパティ)、`polybar`(Polybar `[bar/*]`/`[module/*]`/`[settings]`/`[colors]`/`[global/*]` セクション・module スコープ内 `type`/`exec`/`interval`/`tail`/`exec-if`/`format*`/`label*`/`ramp*`/`bar-*`/`animation-*`/`internal/*`/`menu-*`/`hook-*`/`initial`/`mount-*`/`warn-*`/`ws-icon-*`/`rotate`/`cycle`/`fuzzymatch`/`disable-scroll`/`smooth-scrolling` キー・bar スコープ `monitor`/`width`/`height`/`radius`/`fixed-center`/`background`/`foreground`/`line-*`/`border-*`/`padding-*`/`module-*`/`font-*`/`separator`/`wm-restack`/`override-redirect`/`cursor-*`/`scroll-*`/`enable-ipc`/`tray-*`/`offset-*`/`dpi`/`pseudo-transparency`/`struts`/`include-*`/`compositing-*`/`screenchange-*`/`dim-value`/`throttle-*`・`${xrdb:`/`${env:`/`${file:`/`${colors.*}`/`${bar.*}`/`${root.*}`/`${self.*}` 参照)、`rofi`(Rofi `.rasi`/`configuration {`/`window {`/`mainbox {`/`inputbar {`/`entry {`/`listview {`/`element* {`/`mode-switcher {`/`message {`/`textbox* {`/`button {`/`iconbox {`/`case-indicator {`/`prompt {`/`error-message {`/`sidebar {`/`dummy {`/`split {`/`stack {`/`box {`/`overlay {`/`child {`/`enabled {`/`horizontal {`/`num-* {`/`alternate {`/`urgent {`/`active {`/`selected {`/`normal {`/`hovered {`/`border* {`/`scrollbar {`/`handle {`/`filter {`/`scroll {`/`* {` ブロック・`key: value;` プロパティ+`rofi.`/`!` 旧形式・`@theme`/`@import`/`@media`/`@property`/`@default`/`@include`/`theme:`・`calc(`/`var(`/`env(`/`rgba(`/`hsla(`/`hsl(`/`lighten(`/`darken(`/`url(`/`linear-gradient(`/`argb:`/`#` カラー/関数)、`dunst`(Dunst `[global]`/`[experimental]`/`[shortcuts]`/`[urgency_*]`/ルール `[*]` スコープ追跡・global/urgency/rule 別 `key = value` 計数)。
+
+## 第245次(search-index 照合ラウンド / 実装証跡付き)
+
+`izanagi_kit` にパッケージマネージャ設定形式7件を追加した(986→993)。`apt`(APT `deb`/`deb-src` 1行形式+`[opt=v]`・deb822 `.sources` スタンザ `Types`/`URIs`/`Suites`/`Components`/`Architectures`/`Signed-By`/`Enabled`/`X-*`/`Check-*`/`Valid-*`/`Snapshots`/`PDiffs`/`InRelease-Path`/`Filename`/`Description`/`Source`/`Key`/`Link`/`Standards-Version`・`Acquire::`/`APT::`/`Dir::`/`DPkg::`/`Unattended-Upgrade::`/`netrc`/`machine`/`login`/`password`)、`pacman`(pacman.conf `[options]`+repo `[core]`/`[extra]`/`[custom]`・`RootDir`/`DBPath`/`CacheDir`/`HookDir`/`GPGDir`/`LogFile`/`XferCommand`/`UseSyslog`/`Color`/`NoProgressBar`/`VerbosePkgLists`/`ParallelDownloads`/`CheckSpace`/`TotalDownload`/`DisableDownloadTimeout`/`DisableSandbox`/`IgnorePkg`/`IgnoreGroup`/`NoUpgrade`/`NoExtract`/`CleanMethod`/`SigLevel`/`LocalFileSigLevel`/`RemoteFileSigLevel`/`HoldPkg`/`Include`/`Architecture`/`UseDelta`・`Server`/`Usage`/`CacheServer`/`Priority`・値なしフラグ)、`dnfconf`(DNF/YUM `[main]`+repo スコープ・`baseurl`/`metalink`/`mirrorlist`/`enabled`/`gpgcheck`/`repo_gpgcheck`/`gpgkey`/`localpkg_gpgcheck`/`cost`/`priority`/`skip_if_unavailable`/`exclude*`/`includepkgs`/`module_hotfixes`/`countme`/`fastestmirror`/`deltarpm`/`type`/`mediaid`/`metadata_expire`/`mirrorlist_expire`/`proxy`/`ssl*`/`username`/`password`/`throttle`/`bandwidth`/`minrate`/`timeout`/`retries`/`installroot`/`cachedir`/`persistdir`/`keepcache`/`debuglevel`/`errorlevel`/`logfile`/`exactarch`/`obsoletes`/`plugins`/`pluginpath`/`pluginconfpath`/`reposdir`/`distroverpkg`/`system_cachedir`/`releasever`/`assumeyes`/`alwaysprompt`/`history_*`/`installonlypkgs`/`installonly_limit`/`kernelpkgnames`/`multilib_policy`/`best`/`clean_*`/`disable_excludes`/`diskspacecheck`/`downloaddir`/`exit_on_lock`/`group_*`/`install_weak_deps`/`ip_resolve`/`keep_exit_code`/`load_*`/`logdir`/`max_parallel_downloads`/`metadata_timer_sync`/`module_platform_id`/`optional_metadata_types`/`package_strict`/`protected_*`/`rpmverbosity`/`showdupesfromrepos`/`skip_broken`/`strict`/`tsflags`/`tolerant`/`upgrade_group_objects_upgrade`/`user_agent`/`varsdir`/`zchunk`・`$releasever`/`$basearch`/`$release_major`/`$release_minor`/`$arch`/`$uuid`/`$disttag`/`${}` 参照)、`zypper`(Zypper `[main]`/solver/colors 系 vs `[repo-*]` リポジトリスコープ・`enabled`/`autorefresh`/`baseurl`/`mirrorlist`/`metalink`/`path`/`type`/`alias`/`name`/`keeppackages`/`priority`/`gpgcheck`/`repo_gpgcheck`/`pkg_gpgcheck`/`gpgautoimportkeys`/`gpgkey`/`pubkey`/`contentdir`/`service`/`raw` 等キー計数)、`apk`(apk `/repositories` 行(`http*`/`ftp`/`file:`/`/`/`@tag`)、`/world` パッケージ指定(`name`/`name<op>v`/`!name`/`+name@tag`/`name@tag`)、apk.conf `key = value`)、`portage`(Gentoo `make.conf` `VAR=` 代入+`USE`/`ACCEPT_*`/`FEATURES`/`EMERGE_DEFAULT_OPTS`/`PORTAGE_*`/`SYNC`/`GENTOO_MIRRORS`/`CONFIG_PROTECT*`/`MAKEOPTS`/`CFLAGS`/`CHOST`/`VIDEO_CARDS`/`INPUT_DEVICES`/`LINGUAS`/`L10N`/`CPU_FLAGS*`/`*_TARGETS`/`*_MODULES`/`*_PLUGINS`/`*_FEATURES`/`*_CARDS`/`*_DEVICES`/`*_FLAGS` 命名認識・`package.use`/`package.accept_keywords` アトム行 `cat/pkg`/`>=x`/`=x*`/`~x`/`cat/pkg:slot`)、`nixconf`(nix.conf `key = value`・`substituters`/`trusted-public-keys`/`extra-*`/`experimental-features`/`access-tokens`/`secret-key-files`/`builders`/`netrc-file`/`trusted-*`/`connect-timeout`/`stalled-download-timeout`/`narinfo-cache-*`/`hashed-mirrors`/`max-jobs`/`cores`/`auto-optimise-store`/`keep-*`/`gc-*`/`build-*`/`eval-*`/`http-*`/`log-*`/`sandbox*`/`pure-*`/`impure-*`/`allow-*`/`warn-*`/`flake-*`/`tarball-ttl`/`accept-flake-config`/`commit-lockfile-summary`/`eval-cache`/`filter-syscalls`/`restrict-eval`/`use-xdg-base-directories`/`plugin-files`/`ssl-cert-file`/`system`/`system-features`/`extra-platforms`/`require-sigs`/`nar-buffer-size`/`offline`/`fallback`/`repeat`/`enforce-determinism`/`check-sigs`/`use-sqlite-wal`/`sync-before-registering`/`upgrade-nix`/`post-build-hook`/`pre-build-hook`/`build-poll-interval`/`min-free`/`max-free`/`gc-reserved`/`ignored-*`/`log-compression`/`log-format`/`log-lines`/`fsync-metadata`/`download-*`/`http2`/`proxy`/`ping`/`debugger-*`/`show-trace`/`use-case-hack`/`filter-paths`/`print-*`/`verbose`/`quiet`/`bash-prompt*`/`error-*`/`debug-*`/`tty`/`output*`/`timeout`/`max-silent-time`/`store`/`pure-eval`/`include`・空白区切り多値検出)。
+
+## 第246次(search-index 照合ラウンド / 実装証跡付き)
+
+`izanagi_kit` にデータベースクライアント接続設定形式7件を追加した(993→1000)。`tnsnames`(Oracle `NAME = (DESCRIPTION = …)` ネスト記法・エイリアスカンマ列挙・`(ADDRESS =` カウント・`IFILE` include・記述子キー除外によるエイリアス誤認防止)、`sqlnet`(sqlnet.ora フラット `KEY = value`+`NAMES.DIRECTORY_PATH`/`SQLNET.*`/`TCP.*`/`SSL_*`/`WALLET_LOCATION`・ドットキー・`(SOURCE`/`(METHOD =` 記述子・`(` 分割内側パラメータ計数)、`pgservice`(pg_service.conf `[service]` セクション+libpq `host`/`port`/`dbname`/`user`/`sslmode`/`target_session_attrs`/`load_balance_hosts`/`channel_binding`/`gssencmode` 等キー認識)、`freetds`(freetds.conf `[global]` vs サーバセクション・`tds version`/`instance`/`encryption`/`use ntlmv2`/`client charset`/`packet size` 等空白含みキー)、`ldapconf`(ldap.conf `KEY value` 空白区切り・`URI`/`BASE`/`BINDDN`/`SIZELIMIT`/`TLS_*`/`SASL_*`/`GSSAPI_*`/`KRB5_*`/`WHEN_*` 名前空間キー)、`odbcini`(odbc.ini `[ODBC Data Sources]` DSN→ドライバ写像+`[DSN]` Driver/Server/Database・odbcinst.ini `[ODBC Drivers]` UsageCount/Threading・スコープ内エントリ別カウント)、`db2cli`(db2cli.ini `[dbname]`/`[COMMON]` セクション+`Hostname`/`Port`/`Protocol`/`CurrentSchema`/`TraceComm`/`QueryTimeout` 等 CLI キーワード大小文字不変認識)。
+
+## 第247次(search-index 照合ラウンド / 実装証跡付き)
+
+サーバ運用系設定ファイル形式。対象: `serverprop`(server.properties), `eula`(eula.txt), `opsjson`(ops.json), `whitelist`(whitelist.json), `bannedips`(banned-ips.json), `bukkit`(bukkit.yml), `spigot`(spigot.yml)。`detect` でモチーフキー照合、`parse` で セクション/設定/名前付き/コメントの整数センサスを返す。
+
+## 第248次(search-index 照合ラウンド / 実装証跡付き)
+
+認証・IAM・SSO サーバ設定形式。対象: `keycloak`(realm export JSON), `authelia`(configuration.yml), `dexidp`(Dex config.yaml), `hydra`(Ory Hydra), `kratos`(Ory Kratos), `oathkeeper`(Ory Oathkeeper), `shibconf`(Shibboleth XML)。`detect` でモチーフキー照合、`parse` で セクション/設定/ハンドラ/ルール等の整数センサスを返す。
+
+## 第249次(search-index 照合ラウンド / 実装証跡付き)
+
+Python ツールチェーン・依存定義形式。対象: `requirements`(requirements.txt), `pipfile`(Pipfile), `setupcfg`(setup.cfg), `toxini`(tox.ini), `condarc`(.condarc), `condaenv`(environment.yml), `pylintrc`(.pylintrc)。`detect` でモチーフキー照合、`parse` で 指定/セクション/設定/項目等の整数センサスを返す。
+
+## 第250次(search-index 照合ラウンド / 実装証跡付き)
+
+メールサーバ・MTA・認証系設定ファイル形式。対象: `postfix`(main.cf/master.cf), `dovecot`(dovecot.conf), `exim`(exim4 configure), `sendmail`(sendmail.cf), `spamassassin`(local.cf), `opendkim`(opendkim.conf), `opendmarc`(opendmarc.conf)。`detect` でモチーフキー照合、`parse` で 設定/セクション/ルール等の整数センサスを返す。`dkim`/`dmarc`/`spf` は DNS TXT レコード形式として既存のため、今回は設定ファイル側を別名で採用。
+
+## 第251次(search-index 照合ラウンド / 実装証跡付き)
+
+VPN・トンネル設定ファイル形式。対象: `wireguard`(wg.conf/wg-quick.conf), `openvpn`(.ovpn), `swanctl`(strongSwan swanctl.conf), `xl2tpd`(xl2tpd.conf), `pptpd`(pptpd.conf/options.pptpd), `zerotier`(local.conf), `tailscale`(acl.hujson)。`detect` でモチーフキー照合、`parse` で セクション/設定/ディレクティブ等の整数センサスを返す。
+
+## 第252次(search-index 照合ラウンド / 実装証跡付き)
+
+コンテナオーケストレーション周辺設定形式。kustomization.yaml(Kustomize)、helmfile.yaml、skaffold.yaml、kind クラスタ設定、k3d クラスタ設定、Tiltfile(Starlark)、containerd config.toml。いずれも本家ドキュメントと GitHub リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第253次(search-index 照合ラウンド / 実装証跡付き)
+
+エディタ・IDE 設定ファイル形式。.vimrc/init.vim(Vimscript)、VS Code settings.json(JSONC)、Helix config.toml/languages.toml、Zed settings.json、init.el/.spacemacs(Emacs Lisp)、.ideavimrc(IdeaVim)、.nanorc(GNU nano)。いずれも本家ドキュメントと GitHub リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第254次(search-index 照合ラウンド / 実装証跡付き)
+
+シェル・プロンプト・ターミナル設定形式。starship.toml、fish config.fish、Nushell config.nu/env.nu、.inputrc(Readline)、direnv .envrc、.zshrc、.bashrc/.profile。いずれも本家ドキュメントと GitHub リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第255次(search-index 照合ラウンド / 実装証跡付き)
+
+多言語リンター・フォーマッタ設定形式。.clang-format、.clang-tidy、CPPLINT.cfg、detekt.yml、ktlint .editorconfig プロパティ、.swiftlint.yml、.rubocop.yml。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第256次(search-index 照合ラウンド / 実装証跡付き)
+
+JS/TS ツールチェーン設定形式。tsconfig.json(JSONC)、deno.json(c)、bunfig.toml、angular.json、turbo.json、nx.json、lerna.json。各ツールのスキーマ・ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第257次(search-index 照合ラウンド / 実装証跡付き)
+
+メディア・ホームサーバ設定形式。Sonarr/Radarr/Lidarr/Prowlarr 各 config.xml(*arr 系 .NET 設定 XML)、Jellyfin system.xml、Plex Preferences.xml、Kodi advancedsettings.xml。各アプリのドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第258次(search-index 照合ラウンド / 実装証跡付き)
+
+音楽プレイヤー・オーディオサーバ設定形式。mpd.conf、Mopidy mopidy.conf、beets config.yaml、MusicBrainz Picard Picard.ini、ncmpcpp config/bindings、cmus autosave/rc、Snapcast snapserver.conf。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第259次(search-index 照合ラウンド / 実装証跡付き)
+
+シークレット管理・漏洩検査ツール設定形式。.sops.yaml(SOPS creation_rules)、gitleaks.toml、detect-secrets .secrets.baseline、Talisman .talismanrc、git-secret .gitsecret、Vault Agent .hcl、KeePassXC keepassxc.ini。各ツールの公式ドキュメントと実装リポジトリ記述に基づく census 構成 — 全て整数のみで実装。
+
+## 第260次
+
+DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTOEXEC.BAT/MSDOS.SYS)・bootini(boot.ini ARC パス+スイッチ)・regfile(REGEDIT4/WRE 5.00 .reg、hex/dword 型)・winini(win.ini/system.ini セクション集合)・unattend(unattend.xml/autounattend.xml、settings pass/component)・inffile(ドライバ .inf、[Version]/[Manufacturer]/HKR・HKLM 系)・cmdbat(.bat/.cmd、set/if/for/goto/label/リダイレクト)。
+
+## 第261次
+
+バージョン管理・リポジトリ設定形式:hgrc(Mercurial、[ui]/[paths]/[auth]/[hooks]/[merge-tools] + ~70 セクション)・svnconf(config/servers、[general]/[helpers]/[miscellany]/[auto-props] スコープ + [groups] ホスト glob)・gitignore(glob/`!`/`/`/`**` + dir_only/anchored 分類)・gitattributes(pattern + `attr`/`-attr`/`attr=val` 3形態 + linguist-* 属性)・gitmodules([submodule "name"] + path/url/branch/update/ignore)・fossilconf(.fossil-settings/`fossil settings` 出力、~90 キー + *-glob)・hgignore(syntax: glob/regexp + glob:/re:/path:/rootglob:/listfile: 系 prefix)。
+
+## 第262次
+
+静的サイトジェネレータ・ドキュメントサイト設定形式:hugoconf(Hugo config.toml/yaml、baseURL+[taxonomies]/[params]/[[menu.*]])・jekyll(_config.yml、theme/plugins/exclude/collections キーセット)・mkdocs(mkdocs.yml、site_name+nav/theme/plugins/markdown_extensions)・docusaurus(docusaurus.config.js、module.exports+themeConfig スコープ+navbar/footer/prism)・hexo(Hexo _config.yml、permalink+*_generator/skip_render/deploy)・zola(config.toml、base_url+compile_sass/build_search_index/highlight_code+[markdown]/[extra])・docsify(index.html window.$docsify、search/plugins/alias ブロック)。
+
+## 第263次 — メディアプレイヤー・録画・ストリーミング設定形式
+
+- `mpv`: mpv `mpv.conf`(`key=value`+`[name]` プロファイル、~70 オプション)
+- `vlcrc`: VLC `vlcrc`(全オプションが `#` コメント+有効行の2重構造、`documented` 別計数)
+- `mplayerconf`: MPlayer `config`(`vo=`/`ao=`/`[proto.*]` プロファイル)
+- `obsconf`: OBS `global.ini`/`basic.ini`(`[Video]`/`[Output]`/`[SimpleOutput]`/`[AdvOut]`/`[Stream*]` ストリーム系スコープ計数)
+- `motionconf`: Motion `motion.conf`(空白区切り `key value`、`thread` include、`netcam_*`/`stream_*`/`on_*`/`sql_*`/`track_*` 群)
+- `icecast`: Icecast `icecast.xml`(`<icecast>` ルート、`<listen-socket>`/`<mount>`/`<relay>` ブロック計数)
+- `mediamtx`: MediaMTX `mediamtx.yml`(プロトコル別 Address キー+`paths:` エントリ追跡)
+
+## 第264次 — ジョブスケジューラ・プロセス監視・ワーカー設定形式
+
+- `slurm`: Slurm `slurm.conf`(`Key=Value`+`NodeName=`/`PartitionName=` 別計数、~100 キー)
+- `lsf`: IBM LSF `lsb.*`(`Begin Queue`/`Begin Host`/`Begin Parameter` ブロック+`QUEUE_NAME`/`MXJ`/`PRIORITY`)
+- `supervisor`: supervisord.conf(`[program:*]`/`[group:*]`/`[eventlistener:*]`/`[fcgi-program:*]`/`[rpcinterface:*]`)
+- `monit`: Monit monitrc(`check <type>`/`if`/`set`/`start program`/conditions)
+- `pm2`: PM2 ecosystem(`module.exports`/`apps:` + `name`/`script`/`exec_mode`/`env_*`)
+- `sidekiq`: sidekiq.yml(`:concurrency:`/`:queues:` 重み付きリスト/`:schedule:` cron)
+- `quartz`: Quartz quartz.properties(`org.quartz.*` 名前空間、threadPool/jobStore/plugin/dataSource スコープ)
+
+## 第265次 — コンテナランタイム・サンドボックス設定形式
+
+- `containersconf`: Podman `containers.conf`(INI `[engine]`/`[containers]`/`[network]`/`[machine]` 系)
+- `registriesconf`: containers `registries.conf`(`[[registry]]`/`[[registry.mirror]]`+unqualified-search-registries)
+- `storageconf`: containers `storage.conf`(`[storage]`+`[storage.options.<driver>]` サブテーブル)
+- `policyjson`: sigstore `policy.json`(`default`+`transports` スコープ別 `{"type":…}` 要求)
+- `dockerdaemon`: dockerd `daemon.json`(~60 既知キー+配列値/オブジェクト値別計数)
+- `seccomp`: seccomp プロファイル(`defaultAction`+`syscalls[].names`+SCMP_ACT/ARCH)
+- `apparmor`: AppArmor プロファイル(`profile {`+`capability`/`network`/ファイル規則+`deny`/`@{}`)
+
+## 第266次 — init・サービス管理・デーモン制御形式
+
+- `inittab`: sysvinit/busybox `/etc/inittab`(`id:runlevels:action:process`、sysinit/bootwait/respawn/initdefault/power 系別計数)
+- `openrc`: OpenRC runscript(`depend()` の need/use/want/before/after、`ebegin`/`eend` 呼出)
+- `runit`: runit `run` スクリプト(`exec`+`chpst`/`setuidgid`/`svlogd`/`[ -e ]` ガード)
+- `s6rc`: s6-rc execline(`if {}`/`foreground {}`/`importas`/`s6-*` ヘルパ)
+- `dinit`: Dinit サービス(`type =`/`command`/`depends-on`/`depends-ms`/`waits-for`)
+- `upstart`: Upstart `.conf`(`start on`/`stop on`/`script`…`end script`/`exec`/`respawn`/`expect`)
+- `procd`: OpenWrt procd(`rc.common`+`procd_*` 呼出+`START`/`STOP`/`USE_PROCD`)
+
+## 第267次 — 機械学習・データサイエンスツール設定形式
+
+- jupyterconf: Jupyter Notebook/Server/Lab traitlets 設定(`c.<Ns>.<key> =` 代入、namespace 集計)
+- ipythonconf: IPython traitlets 設定(exec_lines/extensions 別計数)
+- kedro: Kedro catalog/settings/parameters(catalog エントリ/dataset type/filepath)
+- hydraml: Hydra conf/config.yaml(defaults リスト/_target_/`${…}` 補間/hydra セクション)
+- feast: Feast feature_store.yaml(online/offline store ブロック)
+- greatexp: great_expectations.yml(stores/data_docs_sites/class_name フィールド)
+- metaflow: Metaflow config.json(`METAFLOW_*` キーを BATCH/KUBERNETES/SERVICE/DATASTORE 別集計)
+
+## 第268次 — バックアップ・同期ツール設定形式
+
+- rsnapshot: rsnapshot.conf(`retain`/`backup`/`cmd_*`/`include|exclude` のタブ区切り分類)
+- btrbk: btrbk.conf(volume>subvolume>target 階層、`*_preserve*`/stream 系)
+- resticprofile: profiles.yaml(named profile + コマンドセクション + `schedule:`)
+- syncthingconf: config.xml(`<folder id>`/`<device id>`/options リーフ/`<!-- -->`)
+- unison: .prf(`root`/`path`/`ignore|follow`/prefer/backup 系の `key = value`)
+- rcloneconf: rclone.conf(`[remote]` スタンザ + `type =` backend + 認証キー)
+- duplicacy: .duplicacy/preferences(JSON 配列の storage オブジェクト、encrypted/no_* フラグ)
+
+## 第269次 — TLS・証明書管理ツール設定形式
+
+- certbot: cli.ini/renewal conf(`pre_hook`/`post_hook`/`deploy_hook`/`renew_hook`、authenticator/installer、`dns-*` 系)
+- stepca: step-ca ca.json(`"provisioners"` 配列、`"claims"`、`"dnsNames"`、`"root"`/`"crt"`/`"key"`)
+- cfssl: config.json(`"signing"`/`"profiles"`/`"usages"`/`"auth_keys"`/`"remotes"` の深度-1 名付きオブジェクト計数)
+- easyrsa: vars(`set_var EASYRSA_*`/`export KEY_*`/`PKCS11_*`、`EASYRSA_REQ_*` DN フィールド)
+- minica: minica.conf 系 INI([ca]/[dn]/[extensions]/[crl]/[ocsp]、DN フィールドと URL/path キー)
+- dehydrated: config(`CA`/`CHALLENGETYPE`/`WELLKNOWN`/`HOOK` 系 + domains.txt 項目)
+- lego: env/ini(`LEGO_*` + `*_API_KEY`/`*_PROPAGATION_TIMEOUT` 系プロバイダ接尾辞)
+
+## 第270次 — ポリシー・アクセス制御言語・定義形式
+
+- rego.rs: OPA Rego。`package`/`import`/rule head(`:=`/`if`/`{}`)/キーワード(`if`/`some`/`every`/`contains`/`in`/`with`/`not`)/`#` コメント。
+- sentinel.rs: HashiCorp Sentinel。`import`/`param`/`const`/`var`/`main = rule`/`func`/`policy`/制御キーワード(`when`/`all`/`any`/`for`/`map`/`filter`/`else`/`if`/`return`)。
+- cedar.rs: AWS Cedar。`permit(`/`forbid(`/`when`/`unless`/scope(`principal`/`action`/`resource`/`context`)/`::` エンティティ参照数。
+- openfga.rs: OpenFGA DSL。`model`/`schema`/`type`/`relations`/`define`/`condition`/`extend`/`module`。
+- casbin.rs: Casbin。`[section]`(request/policy_definition/policy_effect/matchers/role_definition)/`r,p,e,m,g` 定義行/`p,g` CSV ポリシー行。
+- xacml.rs: XACML XML。`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`/`<AttributeValue>`/`<Apply>`/`<Match>`/`<Obligation*>`/`Reference`/`VariableDefinition`/`Description`/`<!--` コメント。
+- cloudcustodian.rs: Cloud Custodian policies.yaml。`policies:`/`- name:`/`resource:`/`filters:`/`actions:`/`mode:`/`- type:`/`- key:`/`region:`。
+
+## 出典
+
+- OPA Rego Reference / HashiCorp Sentinel Language Spec / AWS Cedar Policy Language Reference / OpenFGA Modeling Language / Casbin Model & Policy 構文 / OASIS XACML 3.0 / Cloud Custodian Policies YAML reference、および GitHub 上の公開 .rego/.sentinel/.cedar/.fga/model.conf/xacml.xml/policies.yaml 実例。
+
+— 全て整数のみで実装。
 ## 第182次: ビルドシステム・パッケージ定義形式 第2弾(cmake / meson / bazel / nix / gn / buck / pants)
 
 **方法**: 文献参照ラウンド継続 — ビルド定義 DSL。全7件が既存 1176 件と非衝突を確認(`makefile`/`ninja`/`hcl`/`spec`/`pkgbuild`/`dockerfile`/`procfile` は既存のため除外):
@@ -4671,3 +4832,121 @@ IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン�
 ## 第219次:医療・生体信号データ形式
 
 HL7 v2・FHIR JSON・BrainVision .vhdr/.vmrk・XDF・WFDB .hea・NCPDP SCRIPT の7形式を追加。パイプ区切りセグメント走査(hl7)・JSON キーセンサス(fhir)・INI セクション+`MkN=` カンマフィールド(vmrk/vhdr)・`XDF:` +length-prefixed chunk 歩行(xdf)・`name/N fs N` レコード行+`fmtXgain`(wfdb)・XML タグセンサス(ncpdp)で、メッセージ構造・チャネル/マーカー・信号仕様を整数計数する。
+
+## 第220次:ログ収集・データパイプライン設定形式
+
+Logstash・Fluentd・Filebeat・Telegraf・Vector・Grok・syslog-ng OSE の7形式を追加。`input/filter/output` セクション+プラグインブロック(logstash)・`<source>`/`<match>`+`@type` パラメータ(fluentd)・`filebeat.inputs` YAML 歩行(filebeat)・`[[inputs.*]]`/`[agent]` TOML センサス(telegraf)・`[sources/transforms/sinks]`+`inputs=` 配線(vector)・`NAME regex`+`%{REF:field:type}`(grok)・`@version`+source/destination/log 文(syslogng)で、パイプライン構成・プラグイン・配線を整数計数する。
+
+## 第221次:エディタ・IDE・開発環境設定形式
+
+.editorconfig・devcontainer.json・devfile.yaml・Sublime project/settings・tmux.conf・kitty.conf・alacritty.toml/yml の7形式を追加。INI+`[glob]` セクション(editorconfig)・JSONC キーセンサス+lifecycle hook(devcontainer)・YAML ブロック歩行(devfile)・JSON セクション走査(sublime)・`set`/`bind`/`@plugin` コマンド文(tmuxconf)・`key value`+`map`/`symbol_map`(kittyconf)・TOML/YAML セクション+key_bindings(alacritty)で、エディタ/コンテナ/端末の構成を整数計数する。
+
+
+
+## 第222次:監視・オブザーバビリティ設定形式
+
+prometheus.yml・alertmanager.yml・Grafana provisioning/dashboard・OpenTelemetry Collector・nagios.cfg+objects・icinga2.conf・zabbix_agentd.conf の7形式を追加。YAML トップレベルセクション+`job_name`/`static_configs`/`*_sd_configs`/`relabel_configs`(prometheus)・`route:`/`receivers:`/`inhibit_rules:`+`*_configs` 連携(alertmanager)・apiVersion+providers/datasources+JSON キーセンサス(grafana)・receivers/processors/exporters/extensions/connectors+service.pipelines 配線(otelcol)・`define host|service|command`+`key value` フィールド+cfg_file 経路指令(nagios)・`object <Type> "name" { }`+`vars.*`/`key = value`(icinga)・`Server=`/`UserParameter=`/`Include=` キー分類(zabbix)で、監視構成・通知配線・パイプライン構成を整数計数する。
+
+## 第223次:検索エンジン・情報検索設定形式
+
+Solr schema.xml・solrconfig.xml・Elasticsearch mappings・Elasticsearch settings・Meilisearch settings・Typesense schema・Algolia index settings の7形式を追加。`<field>`/`<fieldType>`/`<copyField>`+`solr.*` クラス(solrschema)・requestHandler/cache/updateLog+`<lst>`/`<str>` 型付き要素(solrconfig)・`"properties"`/`"type":"text|keyword|…"` フィールド型(esmapping)・number_of_shards+analysis named objects(essettings)・rankingRules+`*Attributes`+typoTolerance(meili)・`{"name","type"}` フィールド配列+facet/default_sorting_field(typesense)・searchableAttributes+attributesForFaceting+customRanking+`ALGOLIA_*`(algolia)で、スキーマ・分析器・ランキング・クエリ構成を整数計数する。
+
+
+
+## 第224次:データパイプライン・ワークフロー定義形式
+
+Airflow DAG・dbt_project.yml・prefect.yaml・dagster.yaml/workspace.yaml・Argo Workflows・ArgoCD Application/AppProject/ApplicationSet・Kubeflow Pipelines の7形式を追加。`from airflow`/`import airflow`+`dag_id`+`@task` デコレータ+`>>`/`<<` 依存演算子(airflow)・`model-paths:`/`require-dbt-version:`+`models:`/`seeds:` ブロック+`+materialized` 等の `+` 設定キー(dbt)・`prefect-version:`+`deployments:` の `- name:` エントリ+`entrypoint:`/`work_pool:`+`cron:`/`rrule:` スケジュールキー(prefect)・`run_launcher:`/`run_storage:`/`event_log_storage:`+`load_from:` の `python_file:`/`grpc_server:` ロケーション(dagster)・`argoproj.io`+`kind: Workflow|CronWorkflow`+`entrypoint:`/`templates:`+`container:`/`dag:`/`steps:`(argowf)・`kind: Application|AppProject|ApplicationSet`+`source:`/`destination:`/`syncPolicy:`+`repoURL:`/`targetRevision:`/`automated:`/`prune:`/`selfHeal:`(argocd)・`tekton.dev`+`kind: PipelineRun`+`pipelines.kubeflow.org` アノテーション+IR `components:`/`deploymentSpec:`/`schemaVersion:`/`sdkVersion:`+`taskSpec:`/`runAfter:`/`when:`(kubeflow)で、DAG 依存・モデル構成・デプロイメント・ロケーション・ワークフローテンプレート・同期ポリシ・パイプライン IR を整数計数する。
+
+
+
+## 第225次:API ゲートウェイ・サービスメッシュ・プロキシ設定形式
+
+Kong 宣言的設定・Istio CRD・Envoy static config・Traefik static/dynamic・Linkerd policy CRD・アノテーション・Consul agent/service・nginx.conf の7形式を追加。`_format_version:`+services/routes/consumers/plugins/upstreams セクション(kong)・`networking.istio.io`+VirtualService/DestinationRule/Gateway/AuthorizationPolicy kind+route/destination/subset トラフィック+principals/action ポリシ+mtls/credentialName TLS(istio)・static_resources/dynamic_resources+listeners/clusters+lb_policy/circuit_breakers/envoy.filters(envoy)・entryPoints/providers+routers/services/middlewares 動的設定(traefik)・policy.linkerd.io+AuthorizationPolicy/HTTPRoute/Server/MeshTLSAuthentication+targetRef+linkerd.io/inject(linkerd)・datacenter/data_dir+service/check/acl/connect ブロック+`key = value` HCL(consul)・events/http/server/location/upstream コンテキスト+ssl_*/proxy_*/fastcgi_* 指令クラス(nginx)で、ルーティング・ロードバランシング・ポリシ・TLS 構成を整数計数する。
+
+## 第226次:メッセージブローカー・キュー設定形式
+
+Kafka server.properties・RabbitMQ sysctl conf・NATS server conf・mosquitto.conf・Pulsar broker/bookkeeper・EMQX HOCON・redis.conf の7形式を追加。`broker.id`+`log.*`/`ssl.*`/`sasl.*` キークラス(kafka)・`listeners.*`+`cluster_formation`+vm_memory/disk_free_limit(rabbitmq)・cluster/jetstream/accounts/gateway/websocket `{` ブロック+`key:`/`key=` kv(nats)・空白区切り `option value`+listener/auth/persistence/`connection` ブリッジ(mosquitto)・brokerServicePort/zookeeperServers/clusterName camelCase+managedLedger+bookiePort/journal*/ledger*(pulsar)・listeners.tcp/ssl + node.*/cluster.* + mqtt セッション制限+authentication/dashboard ブロック(emqx)・bind/save/appendonly/replicaof/maxmemory 指令クラス(redisconf)で、ブローカー・リスナー・永続化・レプリケーション・セキュリティ構成を整数計数する。
+
+
+
+## 第227次:Linter・フロントエンドツールチェーン設定形式
+
+.eslintrc・.prettierrc・.stylelintrc・biome.json・.golangci.yml・browserslist・jest.config の7形式を追加。env/extends/plugins/rules/parserOptions/overrides セクション+severity(error/warn/off/0/1/2)ルールエントリ(eslintrc)・~31 オプション名+overrides ブロック(prettier)・extends/plugins 参照+`rules:` ブロック行判定(stylelint)・$schema/biomejs.dev+organizeImports/assist/linter/formatter+`no*`/`use*` ルールグループ(biome)・linters/linters-settings/run/issues+enable/disable `- ` 項目(golangci)・`last N versions`/`> N%`/`not dead` クエリ構文+`[env]` セクション(browserslist)・testEnvironment/testMatch/collectCoverage*/transform*/moduleName* キークラス+`<rootDir>`(jest)で、各ツールチェーン構成を整数計数する。
+
+
+
+## 第228次:データベース・ストレージエンジン設定形式
+
+postgresql.conf・my.cnf・mongod.conf・cassandra.yaml・etcd.conf.yaml・MinIO env/config.json・ClickHouse config.xml の7形式を追加。`key = value` GUC 指令+include 系(postgresql)・`[mysqld]`/`[mariadb*]` グループ+裸フラグ+`!include`(mysql)・systemLog/storage/net/replication/security/setParameter+camelCase ネスト(mongod)・snake_case キー+seed_provider/endpoint_snitch+`- ` リスト(cassandra)・listen-*/advertise-*/initial-cluster*/experimental-*+TLS ブロック(etcd)・`MINIO_*` 環境変数+notify_* サービス+credential/server JSON(minio)・`<clickhouse>`/`<yandex>` ルート+ポート/remote_servers/zookeeper/users_config 要素(clickhouse)で、接続・認証・永続化・クラスタ構成を整数計数する。
+
+
+
+## 第229次:プロファイラ・トレース・パフォーマンス解析形式
+
+Go pprof テキストプロファイル・Chrome Trace Event JSON・perf script 出力・Valgrind callgrind 出力・Java Flight Recorder チャンク・Paraver `.prv`・speedscope JSON の7形式を追加。`heap/goroutine/… profile:` ヘッダ+`N: M [A: B] @` サンプル+`#` フレーム+folded スタック(pprof)・`"ph"` フェーズ文字 B/E/X/i/C/M/…+`"pid"`/`"cat"` キャリア(chrometrace)・`comm pid [cpu] ts: event:` 行+トレースポイント `x:y` イベント+cpu/comm 別カウント(perflog)・`events:`/`fl=`/`fn=`/`cfl=`/`cfn=`/`calls=` キー行+コスト行(callgrind)・`FLR\0`+68B ビッグエンディアン チャンクヘッダ(jfr)・`#Paraver (date):duration:` ヘッダ+`1:`/`2:`/`3:`/`4:` レコード型(paraver)・`shared.frames`+`profiles` の `sampled`/`evented`/`list`+samples/weights(speedscope)で、プロファイル・トレース内容を整数計数する。
+
+
+
+## 第230次:ベンチマーク・計測結果形式
+
+Google Benchmark JSON・hyperfine JSON・Go benchstat/benchfmt テキスト・JMH JSON・Criterion.rs 結果 JSON・airspeed velocity 結果 JSON・pytest-benchmark JSON の7形式を追加。`"benchmarks"`+`"run_type"` iteration/aggregate+`"time_unit"`+per-second カウンタ(gbench)・`"command"`+`"times"`+`"exit_codes"`+parameters/warmup(hyperfine)・`BenchmarkName-N` レコード+distinct 名/単位+`key: value` メタデータ(benchstat)・`"primaryMetric"`+`"scoreUnit"`+mode 別+rawData/scoreCI/secondaryMetrics(jmh)・estimates.json の統計ブロック+point_estimate/confidence_interval+sample.json iters/times+benchmark.json メタデータ(criterion)・`"results"`+`"benchmark_version"`+`"started_at"`+result/code/param_names(asv)・`"machine_info"`+`"benchmarks"`+`"stats"`+rounds/iterations/ops 合計(pytestbench)で、ベンチマーク計測結果を整数計数する。
+
+
+
+## 第231次:セキュリティスキャナ・静的解析レポート形式
+
+Trivy JSON・Anchore Grype JSON・Snyk JSON・Semgrep JSON・SonarQube issues JSON・SpotBugs XML・Checkov JSON の7形式を追加。`Results`/`Target`+`VulnerabilityID`+5段severity+Misconfigurations/Secrets/Licenses(trivy)・`matches`+`vulnerability`+`artifact.type` 別+fix/ignoredMatches(grype)・`SNYK-*`/`CVE-*` id+severity+upgradePath/patches/isIgnored+dependencyCount(snyk)・`check_id`+ERROR/WARNING/INFO+distinct path+errors ブロック(semgrep)・`issues`+5 severity+BUG/VULNERABILITY/CODE_SMELL(sonar)・`<BugInstance>`+priority 1-4+distinct type/category+`<Class>`(spotbugs)・passed/failed/skipped/parsing_errors+`CKV_*`+check_type(checkov)で、スキャンレポート内容を整数計数する。
+
+
+
+## 第232次:機械学習・MLOps メタデータ形式
+
+MLflow MLmodel・DVC dvc.yaml/lock・W&B metadata/config・BentoML bentofile/bento.yaml・PMML XML・TFRecord バイナリ・RecordIO チャンクの7形式を追加。`flavors:`+loader/signature/metadata キー(mlflow)・`stages:`+cmd/deps/outs/metrics/params+md5+frozen/foreach(dvcfile)・wandb-metadata.json キー集合+`wandb_version:`+desc エントリ+sweep(wandb)・`service:`+include/exclude/models/runners/apis+python/docker/conda セクション(bentoml)・`<DataField>`/`<MiningField>`+16 種モデル要素+`<Segment>`(pmml)・len+CRC レコード歩行(tfrecord)・`kMagic`+4B アライン パディング チャンク歩行(recordio)で、MLOps 定義を整数計数する。
+
+
+
+## 第233次:図・ダイアグラム記述形式
+
+Graphviz DOT・Mermaid・PlantUML・Excalidraw JSON・drawio/diagrams.net XML・Visual Studio DGML・Trivial Graph Format の7形式を追加。`digraph`/`strict`/`subgraph`+`->`/`--` 演算子(dot)・21 種図型ステートメント+演算子正規化辺(mermaid)・`@start*`/`@end*`+矢印演算子+宣言キーワード(plantuml)・`elements` 型センサス+`boundElements` 参照除外+appState/files(excalidraw)・`<diagram>`/`<mxCell>` vertex/edge+圧縮ペイロード検出(drawio)・`<Node>`/`<Link>`/`<Category>` 要素センサス(dgml)・ノード行+`#` セパレータ+辺行(tgf)で、テキスト図定義を整数計数する。
+
+
+
+## 第234次:DNS・名前解決設定形式
+
+DNS ゾーンファイル・BIND named.conf・resolv.conf・nsswitch.conf・dnsmasq.conf・Unbound unbound.conf・CoreDNS Corefile の7形式を追加。`$` 指令+RR 型センサス(DNSSEC 含む、型トークンは先頭名スキップ前方スキャンで RRSIG rdata 内 `A` 誤爆を回避)(zone)・`options`/`zone`/logging/acl/view ブロック+zone type(namedconf)・nameserver/search/options サブオプション(resolv)・`db: source` 行+`[ACTION=]` 上書き(nsswitch)・裸フラグ+`key=value`+dhcp 分類(dnsmasq)・`server:`/`forward-zone:` セクション(unbound)・`zones {}` ブロック+プラグイン指令(corefile)で、名前解決設定を整数計数する。
+
+
+
+## 第235次:認証・CLIツール設定ファイル形式
+
+.env・ssh_config・kubeconfig・.gitconfig・AWS credentials/config・openssl.cnf・.pgpass の7形式を追加。`KEY=value`+export/quoted/bare(dotenv)・`Host`/`Match`+4 キーワードクラス(sshconf)・`kind: Config`+clusters/users/contexts スコープ追跡(kubeconfig)・`[sec "sub"]`+includeIf/url 分類(gitconfig)・`[profile]`+aws_*/sso_*/assume-role キー(awscredentials)・`[ section ]`+`${VAR}`/`.include`+oid/link(openssl)・`host:port:db:user:pass`+`\` エスケープ+`*` ワイルドカード(pgpass)で、CLI ツール設定を整数計数する。
+
+
+
+## 第236次:仮想マシン・OCI・仮想化定義形式
+
+.dockerignore・Packer(JSON/HCL)・libvirt domain XML・OVF・wsl.conf・lima.yaml・cloud-config の7形式を追加。glob+`!`例外+`**`/`*`/`?`(dockerignore)・`"builders"`/`source`/`build {}` JSON/HCL 両対応(packer)・`<domain>`+デバイス/features センサス(virtxml)・`<Envelope>`+`<Item>`/セクション(ovf)・INI セクション+真偽値(wslconf)・スコープ追跡 `- ` 項目+トップレベルキー(lima)・`#cloud-config`+モジュールキー(cloudinit)で、VM/コンテナ定義を整数計数する。
+
+
+
+## 第237次:ビルド・パッケージメタデータ形式
+
+pom.xml・Gradle .module・ivy.xml・go.mod・go.sum・vcpkg.json・conanfile.txt の7形式を追加。GAV+dependency/plugin/module/profile(pom)・formatVersion+attributes ブロック規則からの variant 計数+org.gradle.*(gradlemod)・`<ivy-module>`+conf/dependency/override(ivy)・module/go/toolchain+require ブロック+`// indirect`(gomod)・`path ver h1:`+`/go.mod`+distinct module(gosum)・深さ追跡の依存配列+overrides/features/v 系キー(vcpkg)・INI セクション+`@u/c`+`[>=]`レンジ(conanfile)で、パッケージメタデータを整数計数する。
+
+
+
+## 第238次:テストレポート・QA 結果形式
+
+Allure result/container JSON・CTRF・xUnit.net XML・Maven Surefire TXT・JMeter JTL・k6 JSON summary・Mocha JSON reporter の7形式を追加。uuid/status/steps+container fixture キー(allure)・`results`/`summary`+status 別センサス(ctrf)・`<assemblies>`/`<collection>`+`result=`(xunit)・`Tests run:` 行の数値集計(surefire)・CSV/XML 両系統の sample/label/thread 収計(jtl)・`metrics` の型別収計+thresholds(k6)・`stats`+top-level 結果配列(mochajson)で、QA 結果を整数計数する。
+
+
+
+## 第239次:ネットワーク機器・OS ネットワーク設定形式
+
+RouterOS export・Junos 設定・Cisco IOS running-config・OpenWrt UCI・Netplan YAML・ifupdown interfaces・firewalld zone XML の7形式を追加。`/` セクション+add/set 動詞+key=value(routeros)・`set`+トップ階層集合+ブレース形(junos)・`!`+interface/router ブロック+機能分類(iosconf)・`config`+option/list(uci)・network ルート+装置グループ+装置ID(netplan)・auto/iface スタンザ+メソッド分類(interfaces)・zone 内要素センサス(firewalld)で、ネットワーク機器設定を整数計数する。
+
+
+
+## 第240次:構成管理・ジョブ定義形式
+
+Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェスト・Nomad ジョブ HCL・Rundeck ジョブ YAML・borgmatic 設定の7形式を追加。plays/hosts+scope 追跡のタスク・モジュール呼出(ansible)・`key:`+`- `+`family.func`(salt)・resource+` do`+action/notifies/`node[`(chef)・class/node/define+`{ '':`+`=>`+`Type[`(puppet)・job/group/task/service/port+constraint/resources(nomad)・`- name:`+commands+schedule+nodefilters(rundeck)・source_directories/repositories+keep_*/hooks(borgmatic)で、構成管理・ジョブ定義を整数計数する。
