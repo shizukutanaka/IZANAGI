@@ -5078,3 +5078,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Arch Wiki automated installation pages, Qiita/Zenn kickstart/preseed 記事
 
 — 全て整数のみで実装。
+
+## 第278次 — 暗号資産・ブロックチェーンノード設定形式
+
+- `bitcoinconf` — Bitcoin Core `bitcoin.conf`: `key=value` と裸 `key`(=1 扱い)、`[main]`/`[test]`/`[signet]`/`[regtest]`/`[testnet3]` ネットワークセクション、既知オプション集合、繰返し可能キー(`addnode`/`connect`/`zmqpub*`/`includeconf`/`loadwallet`/`whitelist`/`bind`/`debug`/`onlynet`/`externalip`)。
+- `cardanoconf` — cardano-node `config.json`: PascalCase トップキー走査、`Trace*`(Mux/ChainSyncClient/BlockFetch*/Forge/PeerSelection…)、`Byron`/`Shelley`/`Alonzo`/`Conway` `*GenesisFile`/`*GenesisHash`、`EnableP2P`/`PeerSharing`/`defaultScribes`/`setupScribes`/`hasEKG`/`hasPrometheus`/`minSeverity`/`TracingVerbosity`/`TurnOnLogging`/`RequiresNetworkMagic`、値種別(bool/string/number/array/object)分類。
+- `gethconf` — `geth dumpconfig`/`config.toml`: PascalCase テーブル(`[Eth]`/`[Node]`/`[Node.P2P]`/`[Eth.TxPool]`/`[Eth.Miner]`/`[Eth.Ethash]`/`[Dashboard]`/`[Metrics]`/`[Les]`…)、CamelCase キー(`NetworkId`/`SyncMode`/`DiscoveryURLs`/`MaxPeers`/`Etherbase`/`GasFloor`…)、ネストテーブル検出、bool/string/number/配列値分類。
+- `lndconf` — Lightning `lnd.conf`: `[Application Options]`/`[Bitcoin]`/`[Btcd]`/`[Neutrino]`/`[Litecoin]`/`[autopilot]`/`[watchtower]`/`[wtclient]`/`[routerrpc]`/`[workers]`/`[caches]`/`[protocol]`/`[sweeper]`/`[healthcheck]`/`[signrpc]`/`[walletrpc]`/`[chainrpc]`/`[invoices]`/`[bolt]`/`[db]`/`[fee]`/`[middleware]`/`[remotesigner]`/`[monitoring]`/`[htlcswitch]`/`[gossip]`/`[bitcoind]`/`[ltcd]` セクション、`bitcoin.*`/`btcd.*`/`watchtower.*` 等ドットキー、`;`/`#` コメント。
+- `monero` — `monerod.conf`/`bitmonero.conf`: kebab-key `key=value`(`p2p-bind-*`/`rpc-bind-*`/`rpc-ssl-*`/`rpc-payment-*`/`data-dir`/`log-level`/`db-sync-mode`/`limit-rate-*`/`add-peer`/`add-priority-node`/`seed-node`/`zmq-pub`/`restricted-rpc`/`bg-mining-*`/`bootstrap-daemon-*`/`block-notify`/`reorg-notify`…)、先頭セグメントのグループ重複排除、endpoint(`host:port`)/数値/bool 値分類。
+- `parityconf` — Parity/OpenEthereum `config.toml`: 小文字セクション(`[parity]`/`[network]`/`[rpc]`/`[websockets]`/`[ipc]`/`[dapps]`/`[secretstore]`/`[ipfs]`/`[mining]`/`[footprint]`/`[snapshots]`/`[misc]`/`[stratum]`/`[account]`/`[keys]`/`[ui]`)、snake_case キー(`chain`/`base_path`/`bootnodes`/`min_peers`/`apis`/`origins`/`author`/`engine_signer`/`tx_queue_*`/`fat_db`/`pruning`/`warp`/`no_discovery`…)、bool/string/number/list 値分類、geth(CamelCase)との識別。
+- `suiconf` — Sui `fullnode.yaml`/バリデータ設定: kebab-case トップキー(`db-path`/`network-address`/`metrics-address`/`admin-interface-port`/`json-rpc-address`/`websocket-address`/`enable-event-processing`/`supported-protocol-versions`/`genesis`/`p2p-config`/`authority-store-pruning-config`/`end-of-epoch-broadcast-channel-capacity`/`checkpoint-executor-config`/`expensive-safety-check-config`/`transaction-deny-config`/`state-debug-dump-config`/`policy-config`/`protocol-config`/`zklogin-providers`/`db-checkpoint-config`/`consensus-config`/`protocol-key-pair`…)、ネストマップ/flow 値、既知キー検出。
+
+## 出典
+
+- `contrib/debian/examples/bitcoin.conf` (bitcoin/bitcoin), Bitcoin Core config docs (bitcoin.org, docs.bitcoincore.org)
+- `geth dumpconfig`/`--config` TOML reference (geth.ethereum.org/docs, go-ethereum source `eth/config.go`)
+- `monerod.conf` オプション一覧 (github.com/monero-project/monero `command_line` docs, monero docs)
+- `sample-lnd.conf` (github.com/lightningnetwork/lnd) のセクション構成
+- cardano-node `mainnet-config.json` (github.com/input-output-hk / book.world.dev.cardano.org)
+- `parity --config`/`config.toml` sections (github.com/openethereum/parity-ethereum wiki)
+- Sui `fullnode.yaml` template (github.com/MystenLabs/sui `crates/sui-config`)
+
+— 全て整数のみで実装。
