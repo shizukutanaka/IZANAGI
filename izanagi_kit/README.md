@@ -648,6 +648,13 @@ The capability map — with per-feature implementation status — lives in
 | `rego` | OPA Rego (`package`/`import`/rule head/`if`/`some`/`every`) |
 | `sentinel` | HashiCorp Sentinel (`import`/`param`/`const`/`main = rule`/`when`) |
 | `xacml` | XACML XML (`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`) |
+| `appjson` | Expo `app.json` — `expo` object keys, platform sections (`ios`/`android`/`web`), `plugins`/`extra` list items. |
+| `babelrc` | `.babelrc` / `babel.config.js` — `presets`/`plugins` arrays, `[name, options]` tuples, `env`/`overrides` sections. |
+| `capacitor` | Capacitor `capacitor.config.ts`/`capacitor.config.json` — app identity keys, `plugins:` block depth, platform navigations. |
+| `metroconf` | Metro `metro.config.js` — `resolver`/`transformer`/`serializer`/`server`/`symbolicator`/`watcher` sections, `getDefaultConfig`/`mergeConfig` helpers. |
+| `rollup` | `rollup.config.js` — `input`/`output` entries, output `format:`s, `plugins`, `external`, config-object count. |
+| `viteconf` | `vite.config.ts` — `defineConfig`, `plugins` (incl. `name()` calls), `server.proxy`/`resolve.alias` quoted keys, config sections. |
+| `webpackconf` | `webpack.config.js` — `mode`/`devtool`/`entry`/`output`, `module.rules`/`plugins`/`resolve` keys, `module.exports`/exported config fns. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

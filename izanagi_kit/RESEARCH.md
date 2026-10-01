@@ -4950,3 +4950,25 @@ RouterOS export・Junos 設定・Cisco IOS running-config・OpenWrt UCI・Netpla
 ## 第240次:構成管理・ジョブ定義形式
 
 Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェスト・Nomad ジョブ HCL・Rundeck ジョブ YAML・borgmatic 設定の7形式を追加。plays/hosts+scope 追跡のタスク・モジュール呼出(ansible)・`key:`+`- `+`family.func`(salt)・resource+` do`+action/notifies/`node[`(chef)・class/node/define+`{ '':`+`=>`+`Type[`(puppet)・job/group/task/service/port+constraint/resources(nomad)・`- name:`+commands+schedule+nodefilters(rundeck)・source_directories/repositories+keep_*/hooks(borgmatic)で、構成管理・ジョブ定義を整数計数する。
+
+## 第272次 — フロントエンド・モバイルアプリ設定形式
+
+- `appjson` — Expo `app.json`:`"expo"` オブジェクトの検出、プラットフォーム別セクションと `plugins`/`extra` 項目の計数。
+- `babelrc` — `.babelrc`/`babel.config.js`:`presets`/`plugins` 配列、`[name, options]` タプル、`env`/`overrides` 環境分岐を構造抽出。
+- `capacitor` — Capacitor `capacitor.config.*`:アプリ識別(`appId`/`appName`/`webDir`)、`plugins:` ブロック深さ、プラットフォーム設定。
+- `metroconf` — Metro `metro.config.js`:`resolver`/`transformer`/`serializer`/`server`/`symbolicator`/`watcher`/`project`/`reporter` セクションキーと `getDefaultConfig`/`mergeConfig` 呼び出し。
+- `rollup` — `rollup.config.js`:`input`/`output`/`plugins`/`external`、出力 `format:`、複数エクスポート設定。
+- `viteconf` — `vite.config.ts`:`defineConfig`、`plugins` 配列(プラグイン呼出式含む)、`server.proxy`/`resolve.alias` の引用キー。
+- `webpackconf` — `webpack.config.js`:`mode`/`devtool`/`entry`/`output`/`module.rules`/`plugins`/`resolve`、関数返却型設定。
+
+## 出典
+
+- Webpack Configuration ドキュメント (webpack.js.org)
+- Rollup Configuration Options (rollupjs.org)
+- Vite Config Reference (vite.dev)
+- Babel Configuration Files (babeljs.io)
+- Metro Configuration (metrobundler.dev)
+- Capacitor Config File (capacitorjs.com)
+- Expo app.json Reference (docs.expo.dev)
+
+— 全て整数のみで実装。
