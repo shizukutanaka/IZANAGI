@@ -648,6 +648,13 @@ The capability map — with per-feature implementation status — lives in
 | `rego` | OPA Rego (`package`/`import`/rule head/`if`/`some`/`every`) |
 | `sentinel` | HashiCorp Sentinel (`import`/`param`/`const`/`main = rule`/`when`) |
 | `xacml` | XACML XML (`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`) |
+| `apacheconf` | Apache `httpd.conf`: `<VirtualHost>`/`<Directory>` コンテナ、`LoadModule`/`DocumentRoot` ディレクティブ、`<IfModule>` 分類、`#` コメントのセンサス。 |
+| `caddyfile` | Caddyfile: サイトブロック(`host {`)、`reverse_proxy`/`file_server`/`php_fastcgi` 等ディレクティブ、`@name`/`(name)` マッチャ、`#` コメントのセンサス。 |
+| `cherokee` | Cherokee `cherokee.conf`: `vserver!N!key`/`source!N!key`/`icons!key`/`rule!N!key`/`mime!`/`config!`/`admin!` 名前空間 vs 素の `key = value`、`#`/`;` コメントのセンサス。 |
+| `h2oconf` | H2O `h2o.conf`: `listen:`/`hosts:`/`paths:`/`ssl:`/`access-log:` 系キー、`"/path":` パススコープ、`- ` リスト項目のセンサス。 |
+| `hiawatha` | Hiawatha `hiawatha.conf`: `VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック vs `key = value` 設定のセンサス。 |
+| `lighttpd` | lighttpd.conf: `=`/`+=` 代入、`$HTTP["host"]`/`else` 条件ブロック、`include`/`include_shell`、`#` コメントのセンサス。 |
+| `unitconf` | NGINX Unit `conf.json`: `listeners`/`routes`/`applications`/`upstreams`/`certificates`/`settings`/`access_log` セクション、`match`/`action`/`pass`/`share`/`proxy`/`processes` 制御キー、`"key":` 全数のセンサス。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
