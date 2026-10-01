@@ -5209,3 +5209,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Discourse `app.yml`/`web_only.yml` サンプル (github.com/discourse/discourse_docker)
 
 — 全て整数のみで実装。
+
+## 第284次 — X Window・ディスプレイマネージャ設定形式
+
+- `xorgconf` — X.Org `xorg.conf`/`xorg.conf.d/*.conf`: `Section`/`SubSection`/`EndSection`/`EndSubSection` ブロックと `ServerLayout`/`ServerFlags`/`Files`/`Module`/`Extensions`/`InputDevice`/`InputClass`/`Device`/`Monitor`/`Modes`/`Display`/`Screen` 等既知名、`Identifier`/`Option` ステートメント。
+- `xresources` — `.Xresources`/`Xdefaults`/`app-defaults/*`: `Name.Class*resource: value` リソース行、`*`/`?` ワイルドカード、`!` コメント、cpp プリプロセッサ (`#define`/`#include`/`#if`/`#endif`)。`Xft.`/`xterm*`/`urxvt*`/`rofi.`/`*color*` 等接頭辞で汎用 `key: value` と区別。
+- `xmodmap` — `.Xmodmap`: `keycode N = keysym …`/`keysym a = …`/`pointer = …`/`clear`/`add`/`remove` 文。
+- `lightdm` — LightDM `lightdm.conf`: `[LightDM]`/`[Seat:*]`/`[Seat:seat0]`/`[XDMCPServer]`/`[VNCServer]`/`[XDMCPClient]` セクションと `greeter-session`/`user-session`/`autologin-*`/`xserver-*`/`greeter-hide-users` 等 ~55 キー。
+- `sddmconf` — SDDM `sddm.conf`: `[General]`/`[Theme]`/`[Users]`/`[Wayland]`/`[X11]`/`[Autologin]` セクションと `HaltCommand`/`Numlock`/`Current`/`CursorTheme`/`MinimumUid`/`VirtualTerminal`/`Session`/`User` 等 ~45 キー。
+- `gdmconf` — GDM `custom.conf`/`daemon.conf`: `[daemon]`/`[security]`/`[xdmcp]`/`[chooser]`/`[debug]` セクションと `AutomaticLogin*`/`TimedLogin*`/`WaylandEnable`/`DisallowTCP`/`MaxSessions` 等キー。
+- `westonconf` — Weston `weston.ini`: `[core]`/`[shell]`/`[output]`/`[input-device]`/`[keyboard]`/`[terminal]`/`[launcher]`/`[screen-share]`/`[xwayland]`/`[libinput]`/`[remote]`/`[remoting]` セクションと `modules`/`keymap_*`/`panel-position`/`transform`/`scale`/`mode` 等キー。
+
+## 出典
+
+- xorg.conf セクション仕様 (xorg.conf(5) man page, wiki.archlinux.org/xorg)
+- .Xresources/cpp リソース構文 (wiki.archlinux.org/x_resources, man xrdb)
+- .Xmodmap 文法 (man xmodmap, wiki.archlinux.org/xmodmap)
+- LightDM `lightdm.conf` リファレンス (github.com/canonical/lightdm)
+- SDDM `sddm.conf` サンプル/リファレンス (github.com/sddm/sddm)
+- GDM `custom.conf` (help.gnome.org/admin/gdm)
+- Weston `weston.ini` マニュアル (man weston.ini, wayland.freedesktop.org)
+
+— 全て整数のみで実装。
