@@ -324,20 +324,27 @@ fixed version has no such state at all.
 | `lego` | lego env/ini (`LEGO_*` + provider credential サフィックス) |
 | `minica` | minica.conf (CA/DN/extensions/crl/ocsp セクション) |
 | `stepca` | step-ca ca.json (provisioners/claims/dnsNames) |
-| `apacheconf` | Apache `httpd.conf`: `<VirtualHost>`/`<Directory>` コンテナ、`LoadModule`/`DocumentRoot` ディレクティブ、`<IfModule>` 分類、`#` コメントのセンサス。 |
-| `caddyfile` | Caddyfile: サイトブロック(`host {`)、`reverse_proxy`/`file_server`/`php_fastcgi` 等ディレクティブ、`@name`/`(name)` マッチャ、`#` コメントのセンサス。 |
-| `cherokee` | Cherokee `cherokee.conf`: `vserver!N!key`/`source!N!key`/`icons!key`/`rule!N!key`/`mime!`/`config!`/`admin!` 名前空間 vs 素の `key = value`、`#`/`;` コメントのセンサス。 |
-| `h2oconf` | H2O `h2o.conf`: `listen:`/`hosts:`/`paths:`/`ssl:`/`access-log:` 系キー、`"/path":` パススコープ、`- ` リスト項目のセンサス。 |
-| `hiawatha` | Hiawatha `hiawatha.conf`: `VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック vs `key = value` 設定のセンサス。 |
-| `lighttpd` | lighttpd.conf: `=`/`+=` 代入、`$HTTP["host"]`/`else` 条件ブロック、`include`/`include_shell`、`#` コメントのセンサス。 |
-| `unitconf` | NGINX Unit `conf.json`: `listeners`/`routes`/`applications`/`upstreams`/`certificates`/`settings`/`access_log` セクション、`match`/`action`/`pass`/`share`/`proxy`/`processes` 制御キー、`"key":` 全数のセンサス。 |
-| `casbin` | Casbin model.conf/policy.csv (`[request_definition]`/`r,p,e,m` 定義行、`p,g` CSV 行) |
-| `cedar` | AWS Cedar policy (`permit`/`forbid`+`principal`/`action`/`resource` scope+`when`/`unless`) |
-| `cloudcustodian` | Cloud Custodian policies.yaml (`policies:` + `- name:`/`resource:`/`filters:`/`actions:`) |
-| `openfga` | OpenFGA DSL (`schema 1.1`/`type`/`relations`/`define`/`condition`) |
-| `rego` | OPA Rego (`package`/`import`/rule head/`if`/`some`/`every`) |
-| `sentinel` | HashiCorp Sentinel (`import`/`param`/`const`/`main = rule`/`when`) |
-| `xacml` | XACML XML (`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`) |
+| `airflow` | Airflow DAG census |
+| `algolia` | Algolia settings JSON census |
+| `argocd` | Argo CD Application census |
+| `argowf` | Argo Workflows manifest census |
+| `consul` | Consul agent/service conf census |
+| `dagster` | Dagster workspace.yaml census |
+| `dbt` | dbt project/profiles census |
+| `envoy` | Envoy bootstrap YAML census |
+| `esmapping` | Elasticsearch mapping census |
+| `essettings` | Elasticsearch settings census |
+| `istio` | Istio CR census |
+| `kong` | Kong config/declarative census |
+| `kubeflow` | Kubeflow Pipeline spec census |
+| `linkerd` | Linkerd config census |
+| `meili` | Meilisearch settings census |
+| `nginx` | nginx.conf census |
+| `prefect` | Prefect flow/deployment census |
+| `solrconfig` | Solr solrconfig.xml census |
+| `solrschema` | Solr schema.xml census |
+| `traefik` | Traefik config census |
+| `typesense` | Typesense collection census |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -634,6 +641,20 @@ The capability map — with per-feature implementation status — lives in
 | `docx` / `xlsx` / `pptx` / `vsdx` / `xps` / `jar` / `kmz` | Office & ZIP-based document packages: WordprocessingML `.docx`/`.docm` (`parse`/`Docx` — `word/document.xml` required, `<w:p` count, styles/media/core-props, `vbaProject.bin` macro flag, `dc:title`), SpreadsheetML `.xlsx` (`parse`/`Xlsx` — `xl/workbook.xml` + `<sheet name>` list, sheet/sharedStrings/styles/calcChain parts, macro flag), PresentationML `.pptx` (`parse`/`Pptx` — `ppt/presentation.xml`, slide/master/notes counts, `<p:sldSz>` EMU size), Visio `.vsdx` (`parse`/`Vsdx` — `visio/document.xml`, page/master counts), OpenXPS `.xps`/`.oxps` (`parse`/`Xps` — `FixedDocSeq.fdseq` or `[0].piece` + `.fpage` count), Java `.jar` (`parse`/`Jar` — `META-INF/MANIFEST.MF` required, RFC-style folded manifest `Main-Class`/`Automatic-Module-Name`, class/signed/multi-release/modular flags), and Google Earth `.kmz` (`parse`/`Kmz` — root `*.kml` member, `<name>`/`<Placemark>` counts, `files/` resources). |
 | `gre` / `esp` / `ospf` / `rip` / `pim` / `smb2` / `snmp` | Network protocols vol.4 (tunneling/routing/directory): GRE (RFC 2784/2890 — `parse`/`Gre` — flag-driven C/K/S optional fields + payload offset), IPsec ESP (RFC 4303 — `parse`/`Esp` — SPI + seq + trailer pad/next-header detection), OSPFv2/v3 (RFC 2328/5340 — `parse`/`Ospf`/`Kind` — len-fits-buffer, LSU `lsa_count`), RIPv2 (RFC 2453 — `parse`/`Rip`/`Route`/`Command` — 20-byte entries, metric, auth family 0xFFFF), PIMv2 (RFC 4601 — `parse`/`Pim`/`Kind` — version-2 nibble + RFC 1071 checksum check), SMB2 (MS-SMB2 — `parse`/`Smb2`/`Command` — `\xFESMB` + structure_size 64 + flags/msg/session IDs), and SNMP (RFC 1157/3416/3412 — `parse`/`Snmp`/`Pdu`/`Version` — minimal BER TLV walk: SEQUENCE → version → community → PDU tag). |
 | `crl` / `csr` / `p7b` / `ocsp` / `spf` / `dkim` / `dmarc` | PKI, signatures & email auth: X.509 CRL (RFC 5280 — `parse`/`Crl` — tbsCertList fields + revoked serial list), PKCS#10 CSR (RFC 2986 — `parse`/`Csr` — cri + signature alg OID + attributes flag), PKCS#7/CMS ContentInfo (RFC 5652 — `parse`/`P7b`/`Kind` — content-type OID classification), OCSP response envelope (RFC 6960 — `parse`/`Ocsp`/`Status` — ENUMERATED status + BasicOCSPResponse detection), SPF TXT (RFC 7208 — `parse`/`Spf`/`Term`/`Qualifier`/`Mechanism` — qualifier+mechanism terms, trailing `all`), DKIM key records & `DKIM-Signature:` (RFC 6376 — `parse`/`parse_key_record`/`Dkim` — `tag=value` lists, `p=` pubkey), DMARC (RFC 7489 — `parse`/`Dmarc`/`Policy` — `v=DMARC1` first-tag rule, `p=` policy, `pct` bounds). |
+| `casbin` | Casbin model.conf/policy.csv (`[request_definition]`/`r,p,e,m` 定義行、`p,g` CSV 行) |
+| `cedar` | AWS Cedar policy (`permit`/`forbid`+`principal`/`action`/`resource` scope+`when`/`unless`) |
+| `cloudcustodian` | Cloud Custodian policies.yaml (`policies:` + `- name:`/`resource:`/`filters:`/`actions:`) |
+| `openfga` | OpenFGA DSL (`schema 1.1`/`type`/`relations`/`define`/`condition`) |
+| `rego` | OPA Rego (`package`/`import`/rule head/`if`/`some`/`every`) |
+| `sentinel` | HashiCorp Sentinel (`import`/`param`/`const`/`main = rule`/`when`) |
+| `xacml` | XACML XML (`<Policy>`/`<PolicySet>`/`<Rule>`/`<Target>`/`<AttributeDesignator>`) |
+| `apacheconf` | Apache `httpd.conf`: `<VirtualHost>`/`<Directory>` コンテナ、`LoadModule`/`DocumentRoot` ディレクティブ、`<IfModule>` 分類、`#` コメントのセンサス。 |
+| `caddyfile` | Caddyfile: サイトブロック(`host {`)、`reverse_proxy`/`file_server`/`php_fastcgi` 等ディレクティブ、`@name`/`(name)` マッチャ、`#` コメントのセンサス。 |
+| `cherokee` | Cherokee `cherokee.conf`: `vserver!N!key`/`source!N!key`/`icons!key`/`rule!N!key`/`mime!`/`config!`/`admin!` 名前空間 vs 素の `key = value`、`#`/`;` コメントのセンサス。 |
+| `h2oconf` | H2O `h2o.conf`: `listen:`/`hosts:`/`paths:`/`ssl:`/`access-log:` 系キー、`"/path":` パススコープ、`- ` リスト項目のセンサス。 |
+| `hiawatha` | Hiawatha `hiawatha.conf`: `VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック vs `key = value` 設定のセンサス。 |
+| `lighttpd` | lighttpd.conf: `=`/`+=` 代入、`$HTTP["host"]`/`else` 条件ブロック、`include`/`include_shell`、`#` コメントのセンサス。 |
+| `unitconf` | NGINX Unit `conf.json`: `listeners`/`routes`/`applications`/`upstreams`/`certificates`/`settings`/`access_log` セクション、`match`/`action`/`pass`/`share`/`proxy`/`processes` 制御キー、`"key":` 全数のセンサス。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
