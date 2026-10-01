@@ -5401,3 +5401,68 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Winston Transports/Formats (github.com/winstonjs/winston)
 
 — 全て整数のみで実装。
+
+## 第293次 — データベースマイグレーション・ORM 設定形式
+
+- `flyway` — Flyway `flyway.conf`: `flyway.url`/`user`/`password`/`driver`/`connectRetries`/`initSql` 接続系、`locations`/`schemas`/`defaultSchema`/`createSchemas`/`failOnMissingLocations` ロケーション系、`table`/`baseline*`/`cleanDisabled`/`outOfOrder`/`validateOnMigrate`/`mixed`/`group`/`batch`/`stream`/`target`/`cherryPick`/`skipExecutingMigrations`/`ignore*` 挙動系、`sqlMigrationPrefix`/`undo*`/`repeatable*`/`sqlMigrationSuffixes`/`scriptFileExtensions` 命名系、`placeholders.*`/`placeholder*`/`encoding`/`resourceProvider` 系、`outputQueryResults`/`outputType`/`dryRunOutput`/`progress`/`loggers`/`licenseKey` 出力系、`flyway.<vendor>.*` (oracle/postgresql/sqlserver/mysql/db2/snowflake/spanner/bigquery/cockroachdb/tidb/clickhouse/…) ベンダネスト系。
+- `liquibase` — `liquibase.properties`: `changeLogFile`/`changeSetDirectory`/`contexts`/`labels`/`runOnChange`/`includeAllFilesWithId`/`searchPath`/`databaseChangeLog*TableName` 変更ログ系、`url`/`username`/`password`/`driver`/`defaultSchemaName`/`defaultCatalogName`/`reference*`/`liquibase*Name` DB 系、`logLevel`/`logFile`/`outputFile*`/`monitorPerformance`/`showBanner`/`secureParsing`/`liquibaseProLicenseKey` 出力系、`hub.*`/`hubApiKey`/`hubMode` Hub 系、`parameter.*`/`variable.*` 定義、`liquibase.command.<cmd>.*` コマンド別オプション。
+- `alembic` — `alembic.ini`: `[alembic]` の `script_location`/`prepend_sys_path`/`path_separator`/`file_template`/`version_locations`/`recursive_version_locations`/`sourceless` レイアウト系と `sqlalchemy.url`/`transaction_per_migration`/`compare_type`/`render_as_batch`/`revision_environment`/`truncate_slug_length` 実行系 + logging.configparser の `[loggers]`/`[handlers]`/`[formatters]`/`[logger_*]`/`[handler_*]`/`[formatter_*]`。
+- `sqitchconf` — `sqitch.conf`: `[core]`/`[core "<engine>"]`/`[engine "<name>"]`/`[target "<name>"]`/`[deploy]`/`[revert]`/`[verify]`/`[rework]`/`[add]`/`[plan]`/`[tag]`/`[checkout]`/`[init]`/`[status]`/`[log]`/`[bundle]`/`[rebase]`/`[config]`/`[show]`/`[upgrade]` セクション + `deploy_dir`/`revert_dir`/`verify_dir`/`reworked_*`/`top_dir`/`extension`/`plan_file`/`template_dir` ディレクトリ系、`engine`/`target`/`uri`/`registry`/`client`/`db_name`/`host`/`port`/`username`/`password`/`driver` エンジン系、`set`/`variables`/`verify`/`mode`/`log_only` 制御系、`user.*` (name/email/accept)。
+- `sequelizerc` — `.sequelizerc`/sequelize config: `'config'`/`'models-path'`/`'seeders-path'`/`'migrations-path'`/`'migration-storage-path'`/`'url'` パス解決、`development`/`test`/`production`/`staging`/`local`/`ci` 環境セクション、`username`/`password`/`database`/`host`/`port`/`dialect`/`storage`/`use_env_variable`/`dialectModule*`/`socketPath` DB キー、`logging`/`pool`/`dialectOptions`/`define`/`timezone`/`retry`/`seederStorage*`/`migrationStorage*`/`operatorsAliases`/`typeValidation`/`minifyAliases` オプション、`mysql|postgres|sqlite|mariadb|mssql|db2|oracle|snowflake` dialect 値。
+- `knexfile` — `knexfile.js`/`knexfile.ts`: `client:` + `connection:` (filename/host/port/user/password/database/charset/ssl/instanceName/connectionString*)、`pool:` (min/max/acquireTimeoutMillis/idleTimeoutMillis/afterCreate/beforeDestroy/propagateCreateError 等 tarn 系)、`migrations:`/`seeds:` (tableName/schemaName/directory/extension/stub/loadExtensions/disableTransactions/validateChecksums/sortDirsSeparately)、`useNullAsDefault`/`searchPath`/`acquireConnectionTimeout`/`wrapIdentifier`/`postProcessResponse`/`asyncStackTraces`/`compileSqlOnError`/`queryBuilder` Knex 固有キー。
+- `typeormconf` — `data-source.ts`/`ormconfig.json`/`ormconfig.env`/`ormconfig.yml`: `TYPEORM_*` 環境変数行、`new DataSource`/`module.exports`/`createConnection` コンストラクタ、`type`/`host`/`port`/`username`/`password`/`database`/`url`/`sid`/`serviceName`/`schema`/`extra`/`socketPath` DB キー、`synchronize`/`dropSchema`/`migrationsRun`/`logging`/`logger`/`cache`/`namingStrategy`/`entityPrefix`/`relationLoadStrategy`/`metadataTableName`/`poolSize` ORM キー、`entities`/`migrations`/`subscribers`/`factories`/`seeds`/`cli`/`entitiesDir`/`migrationsDir`/`subscribersDir`/`migrationsTableName` パス系、`mysql`〜`spanner` dialect 値。
+
+## 出典
+
+- Flyway Configuration (documentation.red-gate.com/fd)
+- Liquibase Parameters (docs.liquibase.com)
+- Alembic Configuration (alembic.sqlalchemy.org)
+- Sqitch Configuration (sqitch.org/docs/manual/sqitch-configuration)
+- Sequelize CLI / sequelizerc (sequelize.org/docs)
+- Knexfile / knex configuration (knexjs.org/guide)
+- TypeORM Data Source Options (typeorm.io)
+
+— 全て整数のみで実装。
+
+## 第294次 — ネットワーク接続・無線LAN・PPP 設定形式
+
+- **hostapd**: hostapd.conf — `key=value` フラット。iface/radio/security/RADIUS/BSS/WPS/`hs20*`/`anqp_*` 接頭辞系を別計数する構成。
+- **wpasupplicant**: wpa_supplicant.conf — グローバル `key=value` と `network={}` ブロックの 2 層構造。ブロック内は ssid/psk/key_mgmt/eap/identity/phase* を識別。
+- **dhcpcdconf**: dhcpcd.conf — `interface`/`profile`/`ssid` 選択、`static <opt>=<val>`、`option`/`nooption`/`require`、`slaac`/`duid`/`clientid`、IPv4/IPv6 系、`metric`/`defaultroute`。
+- **dhclientconf**: ISC dhclient.conf — `;` 終端ステートメント。request/require/send/option、supersede/prepend/append/default、interface/lease/alias ブロック、timeout/retry/backoff-cutoff/initial-interval/reboot/select-timeout。
+- **nmconnection**: NetworkManager keyfile — `[connection]` 必須セクション + `[ipv4]`/`[ipv6]`/`[wifi]`/`[wifi-security]`/`[802-1x]`/`[proxy]`/`[wireguard-peer.<pk>]`。
+- **iwdconf**: iwd — `[General]`/`[Network]`/`[Scan]`/`[IPv4]`/`[IPv6]`/`[Security]`/`[Settings]` セクションと CamelCase キー。
+- **pppdconf**: pppd options + pap-secrets/chap-secrets — 裸フラグ/`key value`/`key=value` + 4 欄 secrets、`no*`/`refuse-*`/`require-*`、`lcp-*`/`ipcp-*`/`ccp-*`/`ipv6cp-*` プレフィックス。
+
+## 出典
+
+- hostapd.conf(5) (w1.fi/hostapd)
+- wpa_supplicant.conf(5) (w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf)
+- dhcpcd.conf(5) (roy.marples.name/projects/dhcpcd)
+- dhclient.conf(5) (ISC dhcp, kb.isc.org)
+- NetworkManager keyfile / nm-settings-keyfile (networkmanager.dev)
+- iwd main.conf / network-provisioning (iwd.wiki.kernel.org)
+- pppd(8) / options / pap-secrets (ppp.samba.org/pppd)
+
+— 全て整数のみで実装。
+## 第295次 — 時刻同期・NTP/PTP デーモン設定形式
+
+- **chronyconf**: chrony.conf — `server`/`pool`/`peer`/`refclock`/`broadcast` ソース + `allow`/`deny`/`local`/`cmdallow`/`cmddeny`/`initstepslew`/`auth*`/`nts*`/`bindaddress` 等、行頭キー + ソース行内オプション (iburst/prefer/minpoll/maxpoll) を別計数。
+- **gpsd**: /etc/default/gpsd — `KEY="value"`。DEVICES/GPSD_DEVICES/SERIAL_DEVICES/BAUDRATE → デバイス、GPSD_OPTIONS/GPSD_ARGS/OPTIONS/GPSD_DEBUG → オプション、USBAUTO/START_DAEMON/GPSD_ENABLE → トグル、GPSD_SOCKET/CONTROL_SOCKET/NTPD_SHM → ソケット、GPSD_GROUP/GPSD_USER/GPSD_HOME → 環境。
+- **ntpconf**: ntp.conf — `server`/`pool`/`peer`/`broadcast*`/`multicastclient`/`manycast*` ソース、`restrict`/`interface`/`discard`/`mru*` 制限、`keys`/`trustedkey`/`crypto`/`cert`/`leapfile` 認証、`driftfile`/`statistics`/`filegen`/`logconfig`/`includefile` ファイル、`tos`/`tinker`/`enable`/`disable`/`rlimit`/`orphan`/`automax` チューニング。ソース内 `iburst`/`prefer`/`minpoll`/`maxpoll`、restrict 内 `kod`/`limited`/`nomodify`/`nopeer`/`noquery` フラグを別計数。
+- **ntpsec**: NTPsec ntp.conf — クラシック ntp.conf に加え `refclock <shm|local|nmea|oncore|…> [unit N] [refid S] [flagN V]`、`nts <enable|ca|cert|key|cookie|mintls|maxtls|aead|…>`、`leapsmearinterval`/`mspps`/`mintc`/`maxclock` 拡張を識別。
+- **openntpd**: ntpd.conf — `listen on <addr> [port N]`、`server`/`servers`/`pool` + `weight`/`trusted`/`query`、`sensor <dev> [correction N] [weight N] [refid S] [stratum N]`、`constraint(s) from <url>`。
+- **ptp4l**: linuxptp ptp4l.cfg — INI 的 `[global]` + `[eth*]`/`[unicast_master_table]`。時計属性 (domainNumber/priority1/2/clockClass/clockAccuracy/offsetScaledLogVariance/slaveOnly/twoStepFlag/clock_servo/pi_*/kernel_leap/sanity_freq_limit)、ポート・ネットワーク (time_stamping/delay_mechanism/network_transport/ptp_dst_mac/udp_ttl/logMin*/logAnnounce*/announceReceiptTimeout)、UCM テーブルを分類。
+- **timesyncd**: systemd-timesyncd.conf — `[Time]` のみ。`NTP`/`FallbackNTP`/`Trusted`/`NTPTrusted` → サーバ、`RootDistanceMaxSec`/`PollIntervalMinSec`/`PollIntervalMaxSec`/`ConnectionRetrySec`/`SaveIntervalSec`/`SampleTimeoutSec`/`Boltar*` → 間隔・閾値。
+
+## 出典
+
+- chrony.conf(5) (chrony-project.org/doc/4.6/chrony.conf.html)
+- ntp.conf(5) (ntp.org/documentation — classic ntpd)
+- timesyncd.conf(5) (systemd.io)
+- ptp4l(8) + linuxptp documentation (linuxptp.sf.net)
+- ntpd.conf(5) OpenBSD (man.openbsd.org)
+- NTPsec ntp.conf documentation (docs.ntpsec.org)
+- gpsd(8) + gpsd packaging defaults (gpsd.io)
+
+— 全て整数のみで実装。

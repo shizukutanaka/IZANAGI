@@ -795,6 +795,27 @@ The capability map — with per-feature implementation status — lives in
 | `serilog` | Serilog `appsettings.json` `"Serilog"` セクション census: `Using`/`MinimumLevel`(Default/Override)/`WriteTo`/`Enrich`/`Properties`、Args 既知キー (path/rollingInterval/outputTemplate/…)。 |
 | `winstonconf` | Winston `winston.createLogger({…})` census: `winston.transports.*`/`format.*`/`npm|syslog.levels`/level/silent/exitOnError/exceptionHandlers/defaultMeta。 |
 | `zapconf` | Zap `zap.config`/`zap.yaml` census: `level`/`encoding`/`encoderConfig`(messageKey/levelKey/*Encoder)/`sampling`/`outputPaths`/`errorOutputPaths`。 |
+| `alembic` | Alembic `alembic.ini` census: `[alembic]` (script_location/sqlalchemy.url/version_locations) + logging.configparser セクション (`[logger_*]`/`[handler_*]`/`[formatter_*]`) 分類。 |
+| `flyway` | Flyway `flyway.conf` census: `flyway.<cat>.<key>` を接続/ロケーション/挙動/命名/プレースホルダ/出力/`flyway.<db>.*` ベンダ別に分類。 |
+| `knexfile` | Knex `knexfile.js` census: `<env>: { client: '<dialect>', connection/pool/migrations/seeds/useNullAsDefault/searchPath }` キー種別集計。 |
+| `liquibase` | Liquibase `liquibase.properties` census: `key: value`/`=`、changelog/DB 接続/出力/hub.*/parameter.*/`liquibase.command.*` 分類。 |
+| `sequelizerc` | `.sequelizerc`/sequelize config census: `'config'`/`'*-path'` パス解決 + `development|test|production` × DB キー + `dialect` 値。 |
+| `sqitchconf` | Sqitch `sqitch.conf` census: `[core]`/`[engine "pg"]`/`[target]`/`[deploy]` git-config 風セクション + dir/engine/user/var キー分類。 |
+| `typeormconf` | TypeORM `data-source.ts`/`ormconfig.json`/`ormconfig.env` census: `TYPEORM_*` env・type/host/db キー・synchronize/entities/migrations/subscribers/cli 系。 |
+| `dhcpcdconf` | dhcpcd `dhcpcd.conf` census: `interface`/`profile`/`static <opt>=<val>`/`option`/`nohook`/`slaac`/`duid` 等を scope/DHCP/IPv4-6/ルート/フラグ別に分類。 |
+| `dhclientconf` | ISC `dhclient.conf` census: `request`/`require`/`send`/`option`/`supersede`/`prepend`/`interface`/`lease`/`timeout`/`retry` ステートメント分類。 |
+| `hostapd` | hostapd `hostapd.conf` census: iface/radio/security(WPA/802.1X)/RADIUS/BSS/WPS/接頭辞系キー別計数。 |
+| `iwdconf` | iwd `main.conf`・`<net>.psk`/`.8021x` census: `[General]`/`[Network]`/`[Scan]`/`[IPv4]`/`[Security]`/`[Settings]` セクション別計数。 |
+| `nmconnection` | NetworkManager `.nmconnection` keyfile census: `[connection]`/`[ipv4]`/`[ipv6]`/`[wifi]`/`[wifi-security]`/`[802-1x]`/`[wireguard-peer.*]` 分類。 |
+| `pppdconf` | pppd `options`/`pap-secrets`/`chap-secrets` census: 裸フラグ/`key value`/`key=value` + 4 欄 secrets + `no*`/`require-*`/`lcp-*`/`ipcp-*` 分類。 |
+| `wpasupplicant` | wpa_supplicant `wpa_supplicant.conf` census: グローバル `key=value` + `network={}` ブロック内 ssid/psk/key_mgmt/eap/identity 等を分類。 |
+| `chronyconf` | chrony `chrony.conf` census: `server`/`pool`/`peer`/`refclock` ソース + `allow`/`deny`/`local` + `driftfile`/`makestep`/`rtcsync`/`log*`/`keyfile`/`nts*`/`bindaddress` 分類、ソース内オプション別計数。 |
+| `gpsd` | gpsd `/etc/default/gpsd` census: `KEY="value"` 形式、`DEVICES`/`GPSD_OPTIONS`/`USBAUTO`/`START_DAEMON`/`GPSD_SOCKET`/`GPSD_GROUP`/`GPSD_USER` 分類。 |
+| `ntpconf` | ntpd `ntp.conf` census: `server`/`pool`/`peer`/`broadcast`/`restrict`/`keys`/`crypto`/`driftfile`/`statistics`/`filegen`/`logconfig`/`tos`/`tinker`/`enable`/`disable` 分類、ソース・restrict オプション別計数。 |
+| `ntpsec` | NTPsec `ntp.conf`/`ntp.d` census: `refclock <driver>`/`nts`/`leapsmearinterval`/`mspps` 拡張 + クラシックディレクティブ、refclock オプション別計数。 |
+| `openntpd` | OpenNTPD `ntpd.conf` census: `listen on`/`server`/`servers`/`pool`/`sensor`/`constraints from` 系、`weight`/`correction`/`refid`/`stratum`/`port` オプション別計数。 |
+| `ptp4l` | linuxptp `ptp4l.cfg` census: `[global]`/`[eth*]`/`[unicast_master_table]` セクション + `domainNumber`/`priority*`/`clockClass`/`logSyncInterval`/`delay_mechanism`/`time_stamping`/`network_transport`/`pi_*` 分類。 |
+| `timesyncd` | systemd-timesyncd `timesyncd.conf` census: `[Time]` セクション + `NTP`/`FallbackNTP`/`RootDistanceMaxSec`/`PollInterval{Min,Max}Sec`/`ConnectionRetrySec`/`SaveIntervalSec`/`SampleTimeoutSec` 分類。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
