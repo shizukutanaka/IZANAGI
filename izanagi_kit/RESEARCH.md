@@ -5252,3 +5252,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Wireshark `preferences` ファイル構造 (wiki.wireshark.org/Preferences)
 
 — 全て整数のみで実装。
+
+## 第286次 — 分散ストレージ・ファイル共有デーモン設定形式
+
+- `samba` — Samba `smb.conf`: `[global]`/`[homes]`/`[printers]`/`[netlogon]`/`[sysvol]`/`[profiles]`/`[ipc$]`/`[print$]` セクションと `workgroup`/`security`/`map to guest`/`vfs objects`/`valid users`/`read only`/`browseable`/`guest ok` 等 ~60 キー (空白含みキー許容)。
+- `nfsexports` — NFS `/etc/exports`: `/path host(opts)` エントリ、`rw`/`ro`/`sync`/`no_subtree_check`/`root_squash`/`all_squash`/`fsid`/`anonuid`/`sec=` 等 ~30 オプション、CIDR/`*`/`@group` ホスト指定。
+- `cephconf` — Ceph `ceph.conf`: `[global]`/`[mon]`/`[osd]`/`[mds]`/`[mgr]`/`[client]`/`[osd.0]`/`[mon.a]` daemon セクションと `fsid`/`mon_initial_members`/`mon_host`/`public_network`/`cluster_network`/`osd_pool_default_*`/`auth_*`/`bluestore_*`/`rgw_*`/`debug_*` 等 ~45 キー。
+- `drbdconf` — DRBD `drbd.conf`/`*.res`: `global`/`common`/`resource`/`on <host>`/`net`/`connection` ブロックと `device`/`disk`/`address`/`meta-disk`/`protocol`/`cram-hmac-alg`/`shared-secret`/`rate`/`al-extents`/`fencing` 等 ~50 キーワード。
+- `glusterfs` — GlusterFS volfile (`*.vol`): `volume <name>`/`type <translator>`/`option <k> <v>`/`subvolumes <list>`/`end-volume` の5構文のみで構成される形式。
+- `lvmconf` — LVM `lvm.conf`: `devices {}`/`global {}`/`activation {}`/`backup {}`/`log {}`/`allocation {}` 等 ~18 既知ブロックと `filter`/`global_filter`/`use_devicesfile`/`use_lvmetad`/`udev_sync`/`locking_type`/`mirror_region_size`/`thin_*_executable` 等 ~50 キー。
+- `hadoopconf` — Hadoop `core-site.xml`/`hdfs-site.xml`/`mapred-site.xml`/`yarn-site.xml`: `<property>`/`<name>`/`<value>` 構造と `fs.default`/`dfs.*`/`mapreduce.*`/`yarn.*`/`hadoop.*`/`ha.zookeeper.*`/`fs.s3*`/`fs.azure` 等既知接頭辞。
+
+## 出典
+
+- Samba `smb.conf` マニュアル (man smb.conf(5), samba.org)
+- NFS exports(5) マニュアル、`/etc/exports` 例 (linux-nfs.org, man exports(5))
+- Ceph `ceph.conf` 設定リファレンス (docs.ceph.com/en/latest/rados/configuration/ceph-conf)
+- DRBD 9.x `drbd.conf` ユーザガイド (linbit.com/drbd-user-guide)
+- GlusterFS volume file フォーマット (docs.gluster.org, `*.vol` 生成物)
+- LVM `lvm.conf(5)` マニュアル (man lvm.conf, sourceware.org/lvm2)
+- Hadoop `*-site.xml` デフォルト設定 (core-default.xml/hdfs-default.xml/yarn-default.xml, hadoop.apache.org)
+
+— 全て整数のみで実装。
