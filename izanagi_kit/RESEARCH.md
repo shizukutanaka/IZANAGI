@@ -4966,3 +4966,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Caddyfile 概念・ディレクティブ / Apache Core Features・LoadModule / lighttpd ConfigurationFileSyntax / NGINX Unit Configuration / H2O Configure Directives / Hiawatha WebServer manual / Cherokee Cookbook & config スキーマ、および GitHub 上の公開 Caddyfile/httpd.conf/lighttpd.conf/conf.json/h2o.conf/hiawatha.conf/cherokee.conf 実例。
 
 — 全て整数のみで実装。
+
+## 第273次 — APM・オブザーバビリティエージェント設定形式
+
+- `apmserver` — Elastic APM `apm-server.yml`:`apm-server:`/`output.elasticsearch` 等のブロック構造と出力先種別、`enabled:` トグルの計数。
+- `appdynamics` — `controller-info.xml`:ルート要素の `attr="value"` 属性、`<property name value/>` 拡張、`<application>`/`<tier>`/`<node>` コンテナ。
+- `datadog` — `datadog.yaml`:`api_key`/`site` 検出、`*_config:` セクション、`*_enabled` トグル、`listeners:`/`config_providers:` 項目。
+- `instana` — `configuration.yaml`:`com.instana.plugin.<tech>:` セクション群、`secrets:` リスト、プロパティ形式も受理。
+- `newrelic` — `newrelic.yml`:`common:`/`production:` 環境セクションと `transaction_tracer`/`error_collector`/`distributed_tracing`/`application_logging` 機能ブロックの区別。
+- `pinpoint` — `pinpoint.config`:`profiler.*` ドット区切りプロパティの第2レベルグループ化、`*.enabled` プラグイントグル。
+- `skywalking` — `agent.config`:`agent.*`/`collector.*`/`plugin.*` 等プレフィックス別グループ数、properties 両形式受理。
+
+## 出典
+
+- Datadog Agent Configuration (docs.datadoghq.com)
+- New Relic Java Agent Configuration (docs.newrelic.com)
+- Elastic APM Server Reference (elastic.co/guide)
+- SkyWalking agent.config (skywalking.apache.org)
+- AppDynamics controller-info.xml (docs.appdynamics.com)
+- Instana Agent Configuration (ibm.com/docs/instana)
+- Pinpoint pinpoint.config (pinpoint-apm.github.io)
+
+— 全て整数のみで実装。

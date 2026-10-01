@@ -655,6 +655,13 @@ The capability map — with per-feature implementation status — lives in
 | `hiawatha` | Hiawatha `hiawatha.conf`: `VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック vs `key = value` 設定のセンサス。 |
 | `lighttpd` | lighttpd.conf: `=`/`+=` 代入、`$HTTP["host"]`/`else` 条件ブロック、`include`/`include_shell`、`#` コメントのセンサス。 |
 | `unitconf` | NGINX Unit `conf.json`: `listeners`/`routes`/`applications`/`upstreams`/`certificates`/`settings`/`access_log` セクション、`match`/`action`/`pass`/`share`/`proxy`/`processes` 制御キー、`"key":` 全数のセンサス。 |
+| `apmserver` | Elastic APM `apm-server.yml` — `apm-server:`/`output.*`/`queue:`/`logging:` blocks, output type count, toggles, list items. |
+| `appdynamics` | AppDynamics `controller-info.xml` — root attributes, `<property name= value=/>` extensions, `<application>`/`<tier>`/`<node>` containers, identity keys. |
+| `datadog` | Datadog Agent `datadog.yaml` — top keys (`api_key`/`site`/`dd_url`), `*_config:` sections, `*_enabled` toggles, `listeners:`/`config_providers:` items. |
+| `instana` | Instana `configuration.yaml`/`agent.properties` — `com.instana.plugin.<name>:` plugin sections, `key:`/`key=` settings, `secrets` lists. |
+| `newrelic` | New Relic `newrelic.yml`/`newrelic-infra.yml` — `common:`/`production:` env sections, `transaction_tracer`/`distributed_tracing`/`application_logging` feature blocks. |
+| `pinpoint` | Pinpoint `pinpoint.config` — `profiler.*` dotted properties grouped by second-level prefix, `*.enabled` plugin toggles. |
+| `skywalking` | SkyWalking `agent.config` — `agent.*`/`collector.*`/`plugin.*`/`profile.*` dotted groups, `key=value`/`key: value` lines. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
