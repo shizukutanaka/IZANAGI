@@ -4976,3 +4976,538 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - `rollup` — `rollup.config.js`:`input`/`output`/`plugins`/`external`、出力 `format:`、複数エクスポート設定。
 - `viteconf` — `vite.config.ts`:`defineConfig`、`plugins` 配列(プラグイン呼出式含む)、`server.proxy`/`resolve.alias` の引用キー。
 - `webpackconf` — `webpack.config.js`:`mode`/`devtool`/`entry`/`output`/`module.rules`/`plugins`/`resolve`、関数返却型設定。
+
+## 第273次 — APM・オブザーバビリティエージェント設定形式
+
+- `apmserver` — Elastic APM `apm-server.yml`:`apm-server:`/`output.elasticsearch` 等のブロック構造と出力先種別、`enabled:` トグルの計数。
+- `appdynamics` — `controller-info.xml`:ルート要素の `attr="value"` 属性、`<property name value/>` 拡張、`<application>`/`<tier>`/`<node>` コンテナ。
+- `datadog` — `datadog.yaml`:`api_key`/`site` 検出、`*_config:` セクション、`*_enabled` トグル、`listeners:`/`config_providers:` 項目。
+- `instana` — `configuration.yaml`:`com.instana.plugin.<tech>:` セクション群、`secrets:` リスト、プロパティ形式も受理。
+- `newrelic` — `newrelic.yml`:`common:`/`production:` 環境セクションと `transaction_tracer`/`error_collector`/`distributed_tracing`/`application_logging` 機能ブロックの区別。
+- `pinpoint` — `pinpoint.config`:`profiler.*` ドット区切りプロパティの第2レベルグループ化、`*.enabled` プラグイントグル。
+- `skywalking` — `agent.config`:`agent.*`/`collector.*`/`plugin.*` 等プレフィックス別グループ数、properties 両形式受理。
+
+## 出典
+
+- Datadog Agent Configuration (docs.datadoghq.com)
+- New Relic Java Agent Configuration (docs.newrelic.com)
+- Elastic APM Server Reference (elastic.co/guide)
+- SkyWalking agent.config (skywalking.apache.org)
+- AppDynamics controller-info.xml (docs.appdynamics.com)
+- Instana Agent Configuration (ibm.com/docs/instana)
+- Pinpoint pinpoint.config (pinpoint-apm.github.io)
+
+— 全て整数のみで実装。
+
+## 第274次 — PaaS・サーバレスデプロイ設定形式
+
+- `amplifyconf` — AWS Amplify Hosting `amplify.yml`:`frontend:`/`backend:`/`test:` ブロック、`preBuild`/`build`/`postBuild`/`preTest`/`postTest` フェーズと `commands:` 項目、`artifacts:`/`cache:`/`customHeaders:` サブセクションの計数。
+- `flyio` — Fly.io `fly.toml`:`app`/`primary_region` 検出、`[http_service]`/`[services]`/`[[services.ports]]`/`[checks]`/`[deploy]`/`[mounts]`/`[[vm]]` 等サービス系テーブルの区別。
+- `netlifyconf` — Netlify `netlify.toml`:`[build]`/`[build.environment]`、`[[redirects]]`/`[[headers]]`/`[[plugins]]`/`[[edge_functions]]` 配列テーブル、`[context.*]` デプロイコンテキストの計数。
+- `platformsh` — Platform.sh `.platform.app.yaml`/`routes.yaml`/`services.yaml`:`relationships:`/`web:`/`workers:`/`crons:`/`hooks:`(build/deploy/post_deploy)/`mounts:`(`"/path":` エントリ)の構造計数。
+- `railwayconf` — Railway `railway.json`/`railway.toml`:JSON/TOML 両対応、`build`(builder/buildCommand)・`deploy`(startCommand/healthcheck*/restartPolicy*/sleepApplication)のスコープ別計数。
+- `renderconf` — Render Blueprint `render.yaml`:`services:` の `- type:` 項目、`databases:`、`envVars:` の `- key:` 項目、`fromDatabase:`/`fromService:` 参照の計数。
+- `vercelconf` — Vercel `vercel.json`:`"version": 2`、`builds`(src/use エントリ)、`routes`/`rewrites`/`redirects`/`headers` 配列、`functions`/`env`/`github`/`projectSettings` オブジェクトの計数。
+
+## 出典
+
+- Fly.io fly.toml Reference (fly.io/docs)
+- Netlify File-based Configuration (docs.netlify.com)
+- Vercel vercel.json Reference (vercel.com/docs)
+- Railway Config as Code (docs.railway.com)
+- Render Blueprint Specification (render.com/docs/blueprint-spec)
+- AWS Amplify Build Specification (docs.aws.amazon.com/amplify)
+- Platform.sh App Configuration (docs.platform.sh)
+
+— 全て整数のみで実装。
+
+## 第275次 — 組み込み・IoT・ファームウェア設定形式
+
+- `platformio` — PlatformIO `platformio.ini`:`[env:<名>]`/`[platformio]`/`[common]`/`[user]` セクション、列0 の `key = value` 代入とインデント継続行(`-DFLAG`/`lib_dep`)の区別、platform/board/framework 系オプションキー。
+- `sdkconfig` — ESP-IDF `sdkconfig`:`CONFIG_X=y/n/m/"…"/数値` 値分類、`# CONFIG_X is not set`、自動生成バナー、`CONFIG_<FAMILY>_` ファミリ(SOC/IDF/FREERTOS/BT/LWIP/… 重複排除)の計数。
+- `kconfig` — Kconfig 言語(Linux/Zephyr/Buildroot):`config`/`menuconfig`/`menu`/`choice`/`if`/`comment`/`source`/`rsource` 構文、bool/tristate/int/hex/string 型、default/depends on/select/imply/range/option/def_bool/help 属性の計数。
+- `defconfig` — カーネル・U-Boot・Buildroot `*_defconfig`/`.config` 断片:`CONFIG_X=v` + `is not set`、`=m` モジュール値の区別、カーネル系ファミリ(ARCH/ARM/CPU/NR_/CMD_/SYS_/LOCALVERSION 等)検出。
+- `mbedapp` — Mbed OS `mbed_app.json`/`mbed_lib.json`:`config`(param: macro_name/value/help_text)/`macros`/`target_overrides`(`"*"`/`TARGET_*` キー)/`custom_targets`/`requires`/`features` のスコープ別計数。
+- `westconf` — Zephyr `west.yml` west マニフェスト:`manifest:`/`defaults:`/`remotes:`(`- name:`/`url-base:`)/`projects:`(`- name:`/`remote:`/`repo-path:`/`path:`/`import:`/`groups:`)/`self:`/`group-filter:` のスコープ別計数。
+- `arduinoconf` — Arduino `arduino-cli.yaml`/`sketch.json`/`library.properties`:`board_manager`(`additional_urls:`)/`directories`/`library`/`logging`/`metrics`/`updater`/`sketch` セクション、`fqbn`/`platform`/`config` ボードキー、`name=`/`version=`/`architectures=`/`depends=`/`dot_a_linkage=`/`precompiled=` ライブラリ属性、`https://` スキームの誤キー化回避。
+
+## 出典
+
+- PlatformIO platformio.ini Project Configuration File (docs.platformio.org)
+- ESP-IDF sdkconfig / Kconfig configuration (docs.espressif.com)
+- The Kernel Configuration and Build System (kernel.org/doc/Documentation/kbuild/kconfig)
+- Zephyr west manifest repository format (docs.zephyrproject.org)
+- Mbed OS Program Setup / mbed_lib.json (os.mbed.com/docs)
+- Arduino CLI configuration / sketch profiles (arduino.github.io/arduino-cli)
+- Zephyr DeviceTree/Kconfig tooling notes, Qiita/Zenn embedded articles
+
+— 全て整数のみで実装。
+
+## 第276次 — Linux システム管理・低レベル設定形式
+
+- `sysctlconf` — `sysctl.conf`/`sysctl.d/*.conf`:`key = value` 代入、ドット区切りトップグループの重複排除、`*`/`[...]` ワイルドカード、数値/`0`/`1` 値分類。
+- `udevrules` — udev `.rules`: カンマ分割 `KEY op "value"` ペア、`==`/`!=` マッチ vs `=`/`:=`/`+=`/`-=` 代入演算、`ATTR{}`/`ATTRS{}`/`ENV{}`/`SYSCTL{}`/`TEST{}`/`IMPORT{}` 参照、`RUN`/`PROGRAM`/`GOTO`/`LABEL`/`IMPORT` フローキー。
+- `tmpfilesd` — systemd `tmpfiles.d/*.conf`: 型文字 `d D e v q Q f F w W L C p m c b z Z t T h H a A r R x X`、`!+-=~` 修飾子プレフィックス、mode/age/arg カラム位置別バケット。
+- `modprobeconf` — `modprobe.d/*.conf`/`modprobe.conf`: `alias`/`options`(行内 `k=v` 総数)/`blacklist`/`install`/`remove`/`softdep`/`use`/`include`/`depmod`/`prune`/`forbid` ディレクティブ、`\` 継続行。
+- `logindefs` — `/etc/login.defs`: `KEY VALUE` 空白区切り設定、`MAIL`/`PASS`/`UID`/`SYS_*`/`GID`/`ENCRYPT`/`SHA_CRYPT`/`UMASK`/`USERGROUPS`/`CREATE`/`LOGIN` ファミリ重複排除、`yes`/`no`/パス/数値 値分類。
+- `networkd` — systemd-networkd `.network`/`.netdev`/`.link`: `[Match]`/`[Link]`/`[Network]`/`[Address]`/`[Route]`/`[DHCPv4]`/`[NetDev]`/`[VLAN]`/`[WireGuard]` 等セクション、Match/Route 系キーのスコープ別計数、CIDR 値。
+- `pamstack` — PAM `/etc/pam.conf`/`/etc/pam.d/*`: `type control module-path args` 行、`required`/`requisite`/`sufficient`/`optional`/`binding` 単純制御 vs `[value=action]` 複雑制御、`include`/`substack`/`@include`、`pam_*.so` モジュール、`-`/`!` 行頭フラグ、pam.conf 5欄形式。
+
+## 出典
+
+- sysctl.conf(5) / sysctl.d(5) man pages (man7.org)
+- udev(7) rules syntax — systemd.source / freedesktop udev docs
+- tmpfiles.d(5) man page (freedesktop.org/software/systemd)
+- modprobe.d(5) / modprobe.conf(5) man pages (man7.org)
+- login.defs(5) man page — shadow-utils (github.com/shadow-maint)
+- systemd.network(5) / systemd.netdev(5) / systemd.link(5) man pages
+- pam.conf(5) / pam.d(5) man pages — Linux-PAM (linux-pam.org)
+- Arch Linux Wiki: udev/sysctl/PAM, Qiita/Zenn Linux 管理記事
+
+— 全て整数のみで実装。
+
+## 第277次 — OS インストーラ・自動応答ファイル形式
+
+- `kickstart` — RHEL/Fedora/CentOS Kickstart `.ks`: 列0コマンド(`lang`/`keyboard`/`timezone`/`rootpw`/`bootloader`/`clearpart`/`part`/`volgroup`/`logvol`/`raid`/`network`/`firewall`/`services`/`repo`/`url`/`user`/`group`/`sshpw`/`realm`/`timesource`/`syspurpose`/`zipl`/`mount` 等)、`%packages`/`%pre`/`%post`/`%pre-install`/`%addon`/`%anaconda`/`%onerror`/`%traceback`/`%ksappend`/`%include`/`%end` セクション、`--opt=value` オプション、パッケージ本体(`@group`/`pkg`/`^env`/`-pkg`)とスクリプト本体の分離。
+- `preseed` — Debian `preseed.cfg`: `d-i <question> <type> <value>` 4トークン、`string`/`boolean`/`select`/`multiselect`/`passwd`/`password`/`note`/`title`/`text`/`error`/`seen` 型、`d-i`/`anna`/`tasksel` 所有者重複排除。
+- `autoyast` — SUSE AutoYaST `autoinst.xml`: `<profile xmlns="…/yast2ns">` 識別、`<general>`/`<networking>`/`<partitioning>`/`<software>`/`<scripts>`/`<users>` 等トップセクション、`config:type="list"`/`"boolean"`/`"integer"`/`"string"`/`"symbol"` 型注釈、`<![CDATA[` スクリプトブロック。
+- `calamares` — Calamares `settings.conf`/`netinstall.yaml`: `sequence:` の `- show:`/`- exec:` グループとモジュール名、`modules-search`/`branding`/`prompt-install`/`dont-chroot`/`oem-setup`/`disable-cancel`/`quit-at-end` 等トップキー。
+- `archinstall` — archinstall `config.json`/`user_configuration.json`: `archinstall-language`/`disk_config`/`locale_config`/`mirror_config`/`network_config`/`profile_config`/`audio_config`/`kernels`/`packages`/`services`/`users`/`!root-password`/`version` 等既知キーの値種別(bool/配列/オブジェクト/数値)分類。
+- `pxelinux` — SYSLINUX/PXELINUX/ISOLINUX `pxelinux.cfg`: `LABEL` エントリ、`MENU TITLE/LABEL/DEFAULT/AUTOBOOT/BACKGROUND/COLOR` 等、`KERNEL`/`LINUX`/`INITRD`/`APPEND`/`IPAPPEND`/`SYSAPPEND`/`LOCALBOOT`、`DEFAULT`/`PROMPT`/`TIMEOUT`/`ONTIMEOUT`/`UI`/`INCLUDE`/`SERIAL`/`F1`–`F12` グローバル。
+- `debconf` — `debconf-set-selections`: `<owner> <question> <type> <value>`、preseed との owner 差(非 `d-i` パッケージ名 + `<pkg>/<name>` question)、型別分割。
+
+## 出典
+
+- Kickstart syntax reference (pykickstart, Red Hat/Fedora docs)
+- Debian Installer Preseed appendix (debian.org/releases/stable/amd64/apb)
+- AutoYaST Guide / autoinst.xml reference (opensuse.org, doc.opensuse.org)
+- Calamares settings.conf / module configuration (calamares.io, github.com/calamares)
+- archinstall guided installer config (github.com/archlinux/archinstall)
+- SYSLINUX/PXELINUX config directives (syslinux wiki)
+- debconf-set-selections / debconf-devel(7) (manpages.debian.org)
+- Arch Wiki automated installation pages, Qiita/Zenn kickstart/preseed 記事
+
+— 全て整数のみで実装。
+
+## 第278次 — 暗号資産・ブロックチェーンノード設定形式
+
+- `bitcoinconf` — Bitcoin Core `bitcoin.conf`: `key=value` と裸 `key`(=1 扱い)、`[main]`/`[test]`/`[signet]`/`[regtest]`/`[testnet3]` ネットワークセクション、既知オプション集合、繰返し可能キー(`addnode`/`connect`/`zmqpub*`/`includeconf`/`loadwallet`/`whitelist`/`bind`/`debug`/`onlynet`/`externalip`)。
+- `cardanoconf` — cardano-node `config.json`: PascalCase トップキー走査、`Trace*`(Mux/ChainSyncClient/BlockFetch*/Forge/PeerSelection…)、`Byron`/`Shelley`/`Alonzo`/`Conway` `*GenesisFile`/`*GenesisHash`、`EnableP2P`/`PeerSharing`/`defaultScribes`/`setupScribes`/`hasEKG`/`hasPrometheus`/`minSeverity`/`TracingVerbosity`/`TurnOnLogging`/`RequiresNetworkMagic`、値種別(bool/string/number/array/object)分類。
+- `gethconf` — `geth dumpconfig`/`config.toml`: PascalCase テーブル(`[Eth]`/`[Node]`/`[Node.P2P]`/`[Eth.TxPool]`/`[Eth.Miner]`/`[Eth.Ethash]`/`[Dashboard]`/`[Metrics]`/`[Les]`…)、CamelCase キー(`NetworkId`/`SyncMode`/`DiscoveryURLs`/`MaxPeers`/`Etherbase`/`GasFloor`…)、ネストテーブル検出、bool/string/number/配列値分類。
+- `lndconf` — Lightning `lnd.conf`: `[Application Options]`/`[Bitcoin]`/`[Btcd]`/`[Neutrino]`/`[Litecoin]`/`[autopilot]`/`[watchtower]`/`[wtclient]`/`[routerrpc]`/`[workers]`/`[caches]`/`[protocol]`/`[sweeper]`/`[healthcheck]`/`[signrpc]`/`[walletrpc]`/`[chainrpc]`/`[invoices]`/`[bolt]`/`[db]`/`[fee]`/`[middleware]`/`[remotesigner]`/`[monitoring]`/`[htlcswitch]`/`[gossip]`/`[bitcoind]`/`[ltcd]` セクション、`bitcoin.*`/`btcd.*`/`watchtower.*` 等ドットキー、`;`/`#` コメント。
+- `monero` — `monerod.conf`/`bitmonero.conf`: kebab-key `key=value`(`p2p-bind-*`/`rpc-bind-*`/`rpc-ssl-*`/`rpc-payment-*`/`data-dir`/`log-level`/`db-sync-mode`/`limit-rate-*`/`add-peer`/`add-priority-node`/`seed-node`/`zmq-pub`/`restricted-rpc`/`bg-mining-*`/`bootstrap-daemon-*`/`block-notify`/`reorg-notify`…)、先頭セグメントのグループ重複排除、endpoint(`host:port`)/数値/bool 値分類。
+- `parityconf` — Parity/OpenEthereum `config.toml`: 小文字セクション(`[parity]`/`[network]`/`[rpc]`/`[websockets]`/`[ipc]`/`[dapps]`/`[secretstore]`/`[ipfs]`/`[mining]`/`[footprint]`/`[snapshots]`/`[misc]`/`[stratum]`/`[account]`/`[keys]`/`[ui]`)、snake_case キー(`chain`/`base_path`/`bootnodes`/`min_peers`/`apis`/`origins`/`author`/`engine_signer`/`tx_queue_*`/`fat_db`/`pruning`/`warp`/`no_discovery`…)、bool/string/number/list 値分類、geth(CamelCase)との識別。
+- `suiconf` — Sui `fullnode.yaml`/バリデータ設定: kebab-case トップキー(`db-path`/`network-address`/`metrics-address`/`admin-interface-port`/`json-rpc-address`/`websocket-address`/`enable-event-processing`/`supported-protocol-versions`/`genesis`/`p2p-config`/`authority-store-pruning-config`/`end-of-epoch-broadcast-channel-capacity`/`checkpoint-executor-config`/`expensive-safety-check-config`/`transaction-deny-config`/`state-debug-dump-config`/`policy-config`/`protocol-config`/`zklogin-providers`/`db-checkpoint-config`/`consensus-config`/`protocol-key-pair`…)、ネストマップ/flow 値、既知キー検出。
+
+## 出典
+
+- `contrib/debian/examples/bitcoin.conf` (bitcoin/bitcoin), Bitcoin Core config docs (bitcoin.org, docs.bitcoincore.org)
+- `geth dumpconfig`/`--config` TOML reference (geth.ethereum.org/docs, go-ethereum source `eth/config.go`)
+- `monerod.conf` オプション一覧 (github.com/monero-project/monero `command_line` docs, monero docs)
+- `sample-lnd.conf` (github.com/lightningnetwork/lnd) のセクション構成
+- cardano-node `mainnet-config.json` (github.com/input-output-hk / book.world.dev.cardano.org)
+- `parity --config`/`config.toml` sections (github.com/openethereum/parity-ethereum wiki)
+- Sui `fullnode.yaml` template (github.com/MystenLabs/sui `crates/sui-config`)
+
+— 全て整数のみで実装。
+
+## 第279次 — ゲームエミュレータ設定形式
+
+- `dolphinconf` — Dolphin `Dolphin.ini`/`GFX.ini`/`WiimoteNew.ini`: `[General]`/`[Interface]`/`[Display]`/`[GameList]`/`[Core]`/`[Movie]`/`[DSP]`/`[Input]`/`[FifoPlayer]`/`[Analytics]`/`[Network]`/`[BluetoothPassthrough]`/`[USBPassthrough]`/`[SYSCONF]`/`[Controls]`/`[Video]`/`[Wiimote*]`/`[GBA]`、大文字 `True`/`False` 値。
+- `mameconf` — MAME `mame.ini`/`ui.ini`: `=` を使わない空白区切り `key value`、`rompath`/`hashpath`/`samplepath`/`artpath`/`ctrlrpath`/`inipath`/`*_directory` パス群、video/screen/input/debug 系既知キー。
+- `pcsx2conf` — `PCSX2_ui.ini`/`PCSX2_vm.ini`: `[EmuCore]`/`[EmuCore/Speedhacks]`/`[EmuCore/Gamefixes]`/`[EmuCore/CPU]`/`[EmuCore/CPU/Recompiler]`/`[EmuCore/GS]`/`[GSWindow]`/`[Filenames]`/`[Hotkeys]` パス風セクション、`enabled`/`disabled`/`true`/`false` 値、`Enable*`/`Disable*` トグル。
+- `ppssppconf` — `ppsspp.ini`/`controls.ini`: `[General]`/`[CPU]`/`[Graphics]`/`[Sound]`/`[Control]`/`[SystemParam]`/`[Network]`/`[Log]`/`[Debug]`/`[SpeedHacks]`/`[Recent]`/`[Achievements]`/`[Chat]`、`Key = True/False`。
+- `retroarch` — `retroarch.cfg`: `key = "value"`(文字列)と `key = value`(数値/bool)、`video_`/`audio_`/`input_`/`menu_`/`rgui_`/`savestate_`/`rewind_`/`netplay_`/`libretro_`/`notification_`/`playlist_`/`scan_`/`xmb_`/`ozone_`/`materialui_` 等プレフィックスグループ。
+- `rpcs3conf` — `config.yml`: `Core:`/`VFS:`/`Video:`/`Audio:`/`Input/Output:`/`System:`/`Net:`/`Miscellaneous:`/`Log:`/`Debug:`/`Compatibility:` トップセクション、空白含むサブキー(`PPU Decoder:`/`$(EmulatorDir):`/`/dev_hdd0:`/`Enable /host_root:`…)、`Enabled`/`Disabled`/`true`/`false` 値。
+- `yuzuconf` — `qt-config.ini`: `[General]`/`[UI]`/`[UIGameList]`/`[UILayout]`/`[Paths]`/`[Shortcuts]`/`[Core]`/`[CPU]`/`[Graphics]`/`[Audio]`/`[Controls]`/`[Data%20Storage]`/`[Multiplayer]`、Qt `Parent\Child=value` バックスラッシュキー、`%20` パーセントエスケープ、小文字 `true`/`false`。
+
+## 出典
+
+- Dolphin `Source/Core/Core/ConfigManager.cpp` / Dolphin.ini 構造 (github.com/dolphin-emu, Dolphin Emulator Wiki)
+- MAME `mame.ini` template / `source/frontend/mame/mameopts` (docs.mamedev.org)
+- PCSX2 `PCSX2_ui.ini`/`PCSX2_vm.ini` (github.com/PCSX2/pcsx2 `pcsx2-qt` settings)
+- PPSSPP `ppsspp.ini` 生成コード (github.com/hrydgard/ppsspp `Core/Config.h`)
+- RetroArch `retroarch.cfg` / `config.def.keybinds` (docs.libretro.com, libretro.com)
+- RPCS3 `config.yml` (github.com/RPCS3/rpcs3 `rpcs3/config.yml` wiki)
+- yuzu/sudachi `qt-config.ini` / Qt `QSettings` group serialization
+
+— 全て整数のみで実装。
+
+## 第280次 — 3Dプリンタ・CNC 制御設定形式
+
+- `klipperconf` — Klipper `printer.cfg`/`mmu.cfg` 等: 空白含みセクション `[stepper x]`/`[gcode_macro NAME]`/`[heater_fan]`、`key: value` 代入、`PA0`/`PC14`/`!PF5`/`^PD1`/`gpio`/`mcu:PA0` ピンエイリアス、`tmc2209`/`a4988`/`drv8825` ステッパドライバ系セクションと `gcode_macro` マクロの別計数。
+- `octoprint` — OctoPrint `config.yaml`: `server`/`webcam`/`appearance`/`accessControl`/`devel`/`serial`/`temperature`/`feature`/`folder`/`softwareupdate`/`tracking` 等トップキー、`plugins:` 直下のプラグイン ID ネスト追跡。
+- `prusaslicer` — PrusaSlicer `.ini` バンドル/プロファイル: `# generated by PrusaSlicer` マーカー、`[print]`/`[filament]`/`[printer]`/`[vendor]`/`[presets]` と `[print:0.20 QUALITY]` 名付きプリセット、`layer_height`/`retract_length`/`nozzle_temperature`/`wipe_tower` 等 ~160 既知キー、`*_gcode`/`*temperature*`/`inherits` 分類。
+- `orcaslicer` — OrcaSlicer `.ini`: `# generated by OrcaSlicer` マーカー、`print_sequence`/`auto_calibrate`/`curr_bed_type`/`machine_pause_gcode`/`preheat_time`/`wall_loops`/`sparse_infill_density`/`tree_support_*`/`ironing_*`/`z_hop_type` 等 Orca 固有キーと PrusaSlicer 共有キーの区別 (`printer_model` は Orca 固有として分類)。
+- `curaconf` — Ultimaker Cura `*.inst.cfg`/`cura.cfg`: `[general]`/`[metadata]`/`[values]`/`[machine]`/`[containers]`/`[profile]`/`[alterations]` セクション、必須 `setting_version` 整数、`key = value` (古い `cura.cfg` スタイルの `[machine]`/`[alterations]` も受理)。
+- `moonrakerconf` — Moonraker `moonraker.conf`: `[server]`/`[authorization]`/`[octoprint_compat]`/`[history]`/`[update_manager name]`/`[announcements]`/`[machine]`/`[data_sync]`/`[file_manager]`/`[database]`/`[job_queue]`/`[spoolman]`/`[timelapse]`/`[mqtt]`/`[notifier name]`/`[secrets]`、`key: value` 代入、`update_manager` 別計数、`power`/`wled`/`notifier`/`hue`/`tasmota`/`tplink`/`rf`/`sensor`/`shell_command` 等デバイス系セクション。
+- `marlinconf` — Marlin `Configuration.h`/`Configuration_adv.h`: `#define OPTION value`/`#define FLAG`/`//#define DISABLED` 3 形態、`MOTHERBOARD`/`BAUDRATE`/`EXTRUDERS`/`PIDTEMP`/`SDSUPPORT`/`NOZZLE_PARK_FEATURE`/`Z_SAFE_HOMING`/`LIN_ADVANCE`/`BLTOUCH`/`COREXY`/`DELTA` 等 ~350 既知オプション+`*_ENDSTOP_INVERTING`/`*_DRIVER_TYPE`/`*_AUTO_FAN_PIN`/`TEMP_SENSOR_*`/`USE_*_PLUG`/`AUTO_BED_LEVELING_*`/`DEFAULT_MAX_*`/`PROBE_PT_*` ファミリー規則、フラグ/数値/文字列値の分類。
+
+## 出典
+
+- Klipper `klippy/extras/*.py` 設定名と `printer.cfg` テンプレート (github.com/Klipper3d/klipper, klipper3d.org)
+- OctoPrint `config.yaml` 既定値 (github.com/OctoPrint/OctoPrint `settings.py`, docs.octoprint.org)
+- PrusaSlicer プリセット `.ini`/`PrintConfig.cpp` キー定義 (github.com/prusa3d/PrusaSlicer, help.prusa3d.com)
+- OrcaSlicer `.ini` プロファイルと Orca 固有キー (github.com/SoftFever/OrcaSlicer, github.com/OrcaSlicer wiki)
+- Ultimaker Cura `.inst.cfg` コンテナ/`setting_version` 仕様 (github.com/Ultimaker/Cura `resources/definitions`, github.com/Ultimaker/CuraEngine)
+- Moonraker `moonraker.conf` コンポーネント構造 (github.com/Arksine/moonraker, moonraker.readthedocs.io)
+- Marlin `Configuration.h`/`Configuration_adv.h` オプション名 (github.com/MarlinFirmware/Marlin, marlinfw.org/docs/configuration)
+
+— 全て整数のみで実装。
+
+## 第281次 — メールクライアント・取得/転送ツール設定形式
+
+- `muttrc` — Mutt `.muttrc`: `set`/`unset`/`reset`/`toggle`/`bind`/`macro`/`color`/`uncolor`/`mono`/`mailboxes`/`my_hdr`/`alias`/`alternates`/`source`/`exec`/`push`/`score`/`spam`/`group`/`lists`/`ignore` 等コマンド行と `account-hook`/`folder-hook`/`send-hook`/`reply-hook`/`mbox-hook` 等 `*-hook` 接尾辞系の別計数。
+- `neomuttconf` — NeoMutt `.neomuttrc`: mutt 構文互換だが `sidebar_*`/`nm_*` (notmuch) /`ts_*` (status) 変数と `virtual-mailboxes`/`named-mailboxes`/`lua`/`sidebar_pin`/`sidebar_whitelist`/`tag-formats` 等 NeoMutt 固有コマンドを必須条件として mutt と区別。
+- `aercconf` — aerc `aerc.conf`/`binds.conf`/`accounts.conf`: `[general]`/`[ui]`/`[viewer]`/`[composer]`/`[filters]`/`[triggers]`/`[statusline]`/`[templates]`/`[linter]`/`[binds]` セクションと `[ui:account=…]`/`[ui:folder=…]` コンテキスト付きサブセクション、`key=value`。
+- `mbsyncrc` — isync/mbsync `.mbsyncrc`: `IMAPAccount`/`IMAPStore`/`MaildirStore`/`Channel`/`Group` オブジェクトブロック宣言、`Host`/`Port`/`User`/`UserCmd`/`Pass`/`PassCmd`/`SSLType`/`SSLVersions`/`CertificateFile`/`Pipelinedepth`/`Trash`/`SubFolders`/`Inbox`/`Far`/`Near`/`Patterns`/`Sync`/`Expunge`/`Create`/`Remove`/`SyncState`/`MaxMessages`/`MaxSize`/`ExpireUnread`/`CopyArrivalDate`/`Filter` キー。
+- `msmtprc` — msmtp `.msmtprc`: `defaults`/`account name`/`account default : name` ブロック、`host`/`port`/`from`/`user`/`password`/`passwordeval`/`auth`/`tls`/`tls_*`/`logfile`/`sendmail`/`aliases`/`syslog`/`proxy_*`/`dsn_*`/`eval` キー、TLS・認証系の別計数。
+- `fetchmailconf` — fetchmail `.fetchmailrc`: `poll`/`server`/`skip`/`defaults`/`set`/`via`/`aka`/`localdomains` 先頭語と `proto`/`user`/`password`/`is`/`here`/`ssl`/`sslproto`/`sslfingerprint`/`uidl`/`keep`/`flush`/`fetchall`/`mda`/`smtphost`/`antispam`/`envelope`/`qvirtual`/`tracepolls`/`no rewrite` オプション語。
+- `offlineimap` — OfflineIMAP `.offlineimaprc`: `[general]`/`[Account name]`/`[Repository name]`/`[mbnames]`/`[ui.<name>]`/`[python]` セクション、`accounts`/`pythonfile`/`localrepository`/`remoterepository`/`type`(Maildir/IMAP/Gmail/Local)/`remotehost`/`remoteuser`/`remotepasseval`/`sslcacertfile`/`cert_fingerprint`/`folderfilter`/`nametrans`/`folderincludes`/`holdconnectionopen`/`keepalive`/`synclabels`/`oauth2_*`/`realdelete`/`maildir-windows-compatible` キー。
+
+## 出典
+
+- Mutt/NeoMutt `init.h` コマンド表と manual (mutt.org, neomutt.org/guide)
+- aerc `config/aerc.conf` 既定設定 (git.sr.ht/~rjarry/aerc, aerc-mail.org)
+- isync/mbsync `.mbsyncrc` フォーマット (isync.sourceforge.net, man mbsync)
+- msmtp `.msmtprc` 設定キー (marlam.de/msmtp/msmtp.html)
+- fetchmail `.fetchmailrc` keyword (fetchmail.info, man fetchmail)
+- OfflineIMAP `offlineimap.conf` サンプル (github.com/OfflineIMAP/offlineimap, offlineimap.org)
+
+— 全て整数のみで実装。
+
+## 第282次 — IRC・メッセージングクライアント/ブリッジ設定形式
+
+- `irssi` — Irssi `~/.irssi/config`: 列0 の `servers = (`/`chatnets = {`/`settings = {`/`hilights = (` 等トップブロック、`key = value;` 代入、`Libera = { type = "IRC"; };` 風の `Name = { }` 辞書エントリ、`;` 終端行の別計数。
+- `weechat` — WeeChat `*.conf`: `[look]`/`[network]`/`[server]`/`[ctcp]` 等セクションと `key = value`、`server.<name>.<opt>` ドット階層キー、`on`/`off` ブール値。
+- `hexchat` — HexChat `hexchat.conf`: セクションを持たない平坦な `key = value`、`version`/`auto_connect` + `irc_*`/`gui_*`/`dcc_*`/`completion_*`/`nick_*`/`proxy_*`/`text_*` プレフィックス系。
+- `znc` — ZNC `znc.conf`: `<User name>`/`<Listener l0>`/`<Network net>`/`<Chan #c>`/`<Pass password>` の位置引数付き開始タグ (属性 `=` を含まない点で XML と区別) と `Key = Value`。
+- `matterbridge` — Matterbridge `matterbridge.toml`: `[irc.x]`/`[discord.x]`/`[slack.x]`/`[matrix.x]`/`[xmpp.x]` 等 ~20 プロトコル接頭辞テーブルと `[[gateway]]`/`[[gateway.inout]]`/`[[gateway.in]]`/`[[gateway.out]]` ゲートウェイ配列。
+- `unrealircd` — UnrealIRCd `unrealircd.conf`: `me { }`/`admin { }`/`class x { }`/`oper x { }`/`listen { }`/`link x { }`/`allow { }`/`ban x { }`/`set { }`/`spamfilter x { }` 等 ~35 ブロック名と `stmt;` 終端、`include "…";`。
+- `pidginconf` — Pidgin/libpurple `prefs.xml`・`accounts.xml`: `<purple version='1.0'>`/`<account version='1.0'>` ルート、`<pref name type value/>`・`<setting name type>` 要素、`prpl-irc`/`prpl-xmpp` 等プロトコル識別子。
+
+## 出典
+
+- Irssi `config` 既定ファイルと settings ドキュメント (irssi.org/documentation/settings, github.com/irssi/irssi)
+- WeeChat `weechat.conf`/`irc.conf` リファレンス (weechat.org/files/doc)
+- HexChat `hexchat.conf` キー一覧 (hexchat.github.io, hexchat docs)
+- ZNC `znc.conf` ブロック構造 (wiki.znc.in/Configuration)
+- Matterbridge `matterbridge.toml.sample` (github.com/42wim/matterbridge)
+- UnrealIRCd `unrealircd.conf` ブロックリファレンス (unrealircd.org/docs)
+- Pidgin `prefs.xml`/`accounts.xml` (developer.pidgin.im, libpurple docs)
+
+— 全て整数のみで実装。
+
+## 第283次 — チャット・メッセージングサーバ設定形式
+
+- `ejabberd` — ejabberd `ejabberd.yml`: `hosts:`/`listen:`/`acl:`/`access_rules:`/`shaper:`/`shaper_rules:`/`modules:`/`certfiles:`/`odbc_*`/`s2s_*`/`sm_*`/`host_config`/`define_macro` 等トップキーと `mod_*:` モジュール項目。
+- `prosody` — Prosody `prosody.cfg.lua`: `admins`/`modules_enabled`/`allow_registration`/`c2s_require_encryption`/`authentication`/`storage`/`ssl`/`plugin_paths` 等 Lua 風代入、`key = { "a"; "b"; }` リスト、`VirtualHost "x"`/`Component "x" "muc"` 宣言。
+- `synapse` — Matrix Synapse `homeserver.yaml`: `server_name:`/`listeners:`/`database:`/`log_config:`/`media_store_path:`/`modules:`/`registration_shared_secret:`/`trusted_key_servers:`/`oidc_providers:`/`sso:`/`retention:` 等 ~50 トップキー。
+- `ngircd` — ngIRCd `ngircd.conf`: `[Global]`/`[Limits]`/`[Options]`/`[SSL]`/`[Operator]`/`[Server]`/`[Channel]`/`[Features]` セクションと `Name`/`Info`/`MotdFile`/`MaxConnections`/`PingTimeout`/`ChrootDir`/`Cloak*`/`PAM` 等キー。
+- `mattermost` — Mattermost `config.json`: `"ServiceSettings"`/`"TeamSettings"`/`"SqlSettings"`/`"EmailSettings"`/`"LdapSettings"`/`"SamlSettings"`/`"PluginSettings"`/`"FeatureFlags"` 等 ~40 PascalCase セクション。
+- `zulipconf` — Zulip `/etc/zulip/zulip.conf`: `[machine]`/`[postgresql]`/`[memcached]`/`[rabbitmq]`/`[application_server]`/`[sentry]`/`[nagios]`/`[loadbalancer]`/`[queue]` セクションと `puppet_classes`/`deploy_type`/`nodename`/`http_only`/`rate_limiting`/`s3_*` キー。
+- `discourse` — Discourse `containers/app.yml`: `templates:`/`expose:`/`params:`/`env:`/`volumes:`/`hooks:`/`links:`/`run:`/`docker_args:` トップキーと `DISCOURSE_*`/`UNICORN_*`/`db_*`/`LETSENCRYPT_*` env 変数。
+
+## 出典
+
+- ejabberd.yml サンプルと設定ドキュメント (docs.ejabberd.im, github.com/processone/ejabberd)
+- Prosody `prosody.cfg.lua` 既定設定とモジュール一覧 (prosody.im/doc)
+- Synapse homeserver.yaml サンプルと設定リファレンス (github.com/element-hq/synapse, element-hq.github.io/synapse)
+- ngIRCd `ngircd.conf` セクション/キー (ngircd.barton.de, man ngircd.conf)
+- Mattermost `config.json` 設定リファレンス (docs.mattermost.com/configure)
+- Zulip `zulip.conf` (github.com/zulip/zulip, zulip.readthedocs.io)
+- Discourse `app.yml`/`web_only.yml` サンプル (github.com/discourse/discourse_docker)
+
+— 全て整数のみで実装。
+
+## 第284次 — X Window・ディスプレイマネージャ設定形式
+
+- `xorgconf` — X.Org `xorg.conf`/`xorg.conf.d/*.conf`: `Section`/`SubSection`/`EndSection`/`EndSubSection` ブロックと `ServerLayout`/`ServerFlags`/`Files`/`Module`/`Extensions`/`InputDevice`/`InputClass`/`Device`/`Monitor`/`Modes`/`Display`/`Screen` 等既知名、`Identifier`/`Option` ステートメント。
+- `xresources` — `.Xresources`/`Xdefaults`/`app-defaults/*`: `Name.Class*resource: value` リソース行、`*`/`?` ワイルドカード、`!` コメント、cpp プリプロセッサ (`#define`/`#include`/`#if`/`#endif`)。`Xft.`/`xterm*`/`urxvt*`/`rofi.`/`*color*` 等接頭辞で汎用 `key: value` と区別。
+- `xmodmap` — `.Xmodmap`: `keycode N = keysym …`/`keysym a = …`/`pointer = …`/`clear`/`add`/`remove` 文。
+- `lightdm` — LightDM `lightdm.conf`: `[LightDM]`/`[Seat:*]`/`[Seat:seat0]`/`[XDMCPServer]`/`[VNCServer]`/`[XDMCPClient]` セクションと `greeter-session`/`user-session`/`autologin-*`/`xserver-*`/`greeter-hide-users` 等 ~55 キー。
+- `sddmconf` — SDDM `sddm.conf`: `[General]`/`[Theme]`/`[Users]`/`[Wayland]`/`[X11]`/`[Autologin]` セクションと `HaltCommand`/`Numlock`/`Current`/`CursorTheme`/`MinimumUid`/`VirtualTerminal`/`Session`/`User` 等 ~45 キー。
+- `gdmconf` — GDM `custom.conf`/`daemon.conf`: `[daemon]`/`[security]`/`[xdmcp]`/`[chooser]`/`[debug]` セクションと `AutomaticLogin*`/`TimedLogin*`/`WaylandEnable`/`DisallowTCP`/`MaxSessions` 等キー。
+- `westonconf` — Weston `weston.ini`: `[core]`/`[shell]`/`[output]`/`[input-device]`/`[keyboard]`/`[terminal]`/`[launcher]`/`[screen-share]`/`[xwayland]`/`[libinput]`/`[remote]`/`[remoting]` セクションと `modules`/`keymap_*`/`panel-position`/`transform`/`scale`/`mode` 等キー。
+
+## 出典
+
+- xorg.conf セクション仕様 (xorg.conf(5) man page, wiki.archlinux.org/xorg)
+- .Xresources/cpp リソース構文 (wiki.archlinux.org/x_resources, man xrdb)
+- .Xmodmap 文法 (man xmodmap, wiki.archlinux.org/xmodmap)
+- LightDM `lightdm.conf` リファレンス (github.com/canonical/lightdm)
+- SDDM `sddm.conf` サンプル/リファレンス (github.com/sddm/sddm)
+- GDM `custom.conf` (help.gnome.org/admin/gdm)
+- Weston `weston.ini` マニュアル (man weston.ini, wayland.freedesktop.org)
+
+— 全て整数のみで実装。
+
+## 第285次 — ネットワーク監視・IDS/NSM 設定形式
+
+- `suricata` — Suricata `suricata.yaml`: `%YAML 1.1`/`---` マーカと `vars:`/`af-packet:`/`outputs:`/`default-rule-path:`/`app-layer:`/`detect-engine:`/`logging:`/`stream:`/`detect:` 等 ~50 既知トップキー。
+- `zeekctl` — ZeekControl `node.cfg`/`zeekctl.cfg`/`control.cfg`: `[manager]`/`[proxy-*]`/`[logger]`/`[worker-*]`/`[standalone]` セクションと `type`/`host`/`interface`/`lb_method`/`pin_cpus` ノードキー + `LogDir`/`SpoolDir`/`MailTo`/`LogRotationInterval` 等 zeekctl キー。
+- `zeekscript` — Zeek `local.zeek`/`*.zeek`/`*.bro` スクリプト: `@load`/`@load-sigs`/`@if`/`@ifdef`/`@endif` ディレクティブと `module`/`export`/`redef`/`event`/`hook`/`function` 宣言。
+- `arkimeconf` — Arkime (旧 Moloch) `config.ini`: `[default]`/`[cache]`/`[overrides.<host>]` セクションと `elasticsearch`/`interface`/`pcapDir`/`passwordSecret`/`geoLite2*`/`rotateIndex`/`parsersDir` 等 ~50 キー。
+- `pmacctconf` — pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf`/`pmtelemetryd.conf`: `key: value` コロン形式と `daemonize`/`syslog`/`interface`/`plugins`/`aggregate`/`nfacctd_*`/`sql_*`/`kafka_*`/`rabbitmq_*`/`mongo_*`/`tee_*`/`imt_*` 等 ~100 キー。
+- `argusconf` — Argus `argus.conf`/`ra.conf`/`rarc`: `ARGUS_*`/`RA_*` 接頭辞の `KEY=value` 代入 (daemon/interface/filter/output/time-format/sort)。
+- `wiresharkpref` — Wireshark `preferences`/`enabled_protos`/`disabled_protos`: `pref.name: value` 行と `gui.`/`qt.`/`nameres.`/`tcp.`/`wlan.`/`uat.`/`extcap.`/`stats.`/`transum.` 等 ~100 プロトコル接頭辞 (`uat:file:section` 二重コロン形式対応)。
+
+## 出典
+
+- Suricata `suricata.yaml` サンプルと設定リファレンス (github.com/OISF/suricata, suricata.readthedocs.io)
+- ZeekControl `node.cfg`/`zeekctl.cfg` (github.com/zeek/zeekctl), Zeek スクリプト言語リファレンス (docs.zeek.org)
+- Arkime `config.ini` リファレンス (arkime.com/settings, github.com/arkime/arkime)
+- pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf` 設定ガイド (github.com/pmacct/pmacct)
+- Argus `argus.conf`/`ra.conf` マニュアル (qosient.com/argus, man argus.conf(5))
+- Wireshark `preferences` ファイル構造 (wiki.wireshark.org/Preferences)
+
+— 全て整数のみで実装。
+
+## 第286次 — 分散ストレージ・ファイル共有デーモン設定形式
+
+- `samba` — Samba `smb.conf`: `[global]`/`[homes]`/`[printers]`/`[netlogon]`/`[sysvol]`/`[profiles]`/`[ipc$]`/`[print$]` セクションと `workgroup`/`security`/`map to guest`/`vfs objects`/`valid users`/`read only`/`browseable`/`guest ok` 等 ~60 キー (空白含みキー許容)。
+- `nfsexports` — NFS `/etc/exports`: `/path host(opts)` エントリ、`rw`/`ro`/`sync`/`no_subtree_check`/`root_squash`/`all_squash`/`fsid`/`anonuid`/`sec=` 等 ~30 オプション、CIDR/`*`/`@group` ホスト指定。
+- `cephconf` — Ceph `ceph.conf`: `[global]`/`[mon]`/`[osd]`/`[mds]`/`[mgr]`/`[client]`/`[osd.0]`/`[mon.a]` daemon セクションと `fsid`/`mon_initial_members`/`mon_host`/`public_network`/`cluster_network`/`osd_pool_default_*`/`auth_*`/`bluestore_*`/`rgw_*`/`debug_*` 等 ~45 キー。
+- `drbdconf` — DRBD `drbd.conf`/`*.res`: `global`/`common`/`resource`/`on <host>`/`net`/`connection` ブロックと `device`/`disk`/`address`/`meta-disk`/`protocol`/`cram-hmac-alg`/`shared-secret`/`rate`/`al-extents`/`fencing` 等 ~50 キーワード。
+- `glusterfs` — GlusterFS volfile (`*.vol`): `volume <name>`/`type <translator>`/`option <k> <v>`/`subvolumes <list>`/`end-volume` の5構文のみで構成される形式。
+- `lvmconf` — LVM `lvm.conf`: `devices {}`/`global {}`/`activation {}`/`backup {}`/`log {}`/`allocation {}` 等 ~18 既知ブロックと `filter`/`global_filter`/`use_devicesfile`/`use_lvmetad`/`udev_sync`/`locking_type`/`mirror_region_size`/`thin_*_executable` 等 ~50 キー。
+- `hadoopconf` — Hadoop `core-site.xml`/`hdfs-site.xml`/`mapred-site.xml`/`yarn-site.xml`: `<property>`/`<name>`/`<value>` 構造と `fs.default`/`dfs.*`/`mapreduce.*`/`yarn.*`/`hadoop.*`/`ha.zookeeper.*`/`fs.s3*`/`fs.azure` 等既知接頭辞。
+
+## 出典
+
+- Samba `smb.conf` マニュアル (man smb.conf(5), samba.org)
+- NFS exports(5) マニュアル、`/etc/exports` 例 (linux-nfs.org, man exports(5))
+- Ceph `ceph.conf` 設定リファレンス (docs.ceph.com/en/latest/rados/configuration/ceph-conf)
+- DRBD 9.x `drbd.conf` ユーザガイド (linbit.com/drbd-user-guide)
+- GlusterFS volume file フォーマット (docs.gluster.org, `*.vol` 生成物)
+- LVM `lvm.conf(5)` マニュアル (man lvm.conf, sourceware.org/lvm2)
+- Hadoop `*-site.xml` デフォルト設定 (core-default.xml/hdfs-default.xml/yarn-default.xml, hadoop.apache.org)
+
+— 全て整数のみで実装。
+
+## 第287次 — ターミナルエミュレータ設定形式 (第2弾)
+
+- `footconf` — foot (Wayland ネイティブ) `foot.ini`: `[main]`/`[scrollback]`/`[url]`/`[cursor]`/`[mouse]`/`[colors]`/`[csd]`/`[bell]`/`[tweak]`/`[key-bindings]`/`[search-bindings]`/`[url-bindings]`/`[text-bindings]`/`[mouse-bindings]` セクションと `font`/`shell`/`term`/`alpha`/`regular0-7`/`bright0-7`/`style`/`blink`/`scrollback` 等 ~100 キー。
+- `weztermconf` — WezTerm `wezterm.lua`: `local wezterm = require 'wezterm'` ヘッダ、`config.<opt> =` 代入、`wezterm.font()`/`wezterm.config_builder()` 呼出、`return config`。
+- `ghosttyconf` — Ghostty `config`: 平坦 `key = value` と `font-family`/`font-size`/`theme`/`window-padding-x`/`cursor-style`/`keybind`/`background-opacity`/`macos-*`/`gtk-*`/`linux-cgroup-*` 等 ~80 キー。
+- `contourconf` — Contour `contour.yml`: `profiles:`/`color_schemes:`/`word_delimiters`/`spawn_new_process`/`bypass_mouse_protocol_modifier`/`renderer`/`text_shaper`/`font_locator`/`input_mapping` 等 ~30 既知トップキー。
+- `windowsterminal` — Windows Terminal `settings.json`: `profiles`(list/defaults)/`schemes`/`actions`/`keybindings`/`themes`/`globals` セクションと `guid`/`commandline`/`colorScheme`/`fontFace`/`useAcrylic` 等 ~80 キー (1行複数キー対応)。
+- `tabbyconf` — Tabby (旧 Terminus) `config.yaml`: `hotkeys:`/`terminal:`/`profiles:`/`profileDefaults:`/`appearance:`/`vault:`/`configSync:`/`ssh:`/`clickableLinks:` 等 ~30 既知トップキー。
+- `itermdyn` — iTerm2 Dynamic Profiles JSON: `"Profiles"` 配列と `"Guid"`/`"Dynamic Profile"`/`"Custom Command"`/`"Badge Text"`/`"Ansi * Color"`/`"HotKey *"` 等 PascalCase キー (1行複数キー対応)。
+
+## 出典
+
+- foot `foot.ini(5)` マニュアル (codeberg.org/dnkl/foot, man foot.ini)
+- WezTerm `wezterm.lua` 設定リファレンス (wezfurlong.org/wezterm/config)
+- Ghostty config リファレンス (ghostty.org/docs/config, ~400 オプション)
+- Contour `contour.yml` (github.com/contour-terminal/contour, examples/contour.yml)
+- Windows Terminal `settings.json` スキーマ (learn.microsoft.com/windows-terminal, aka.ms/terminal-profiles-schema)
+- Tabby `config.yaml` デフォルト設定 (github.com/Eugeny/tabby)
+- iTerm2 Dynamic Profiles JSON スキーマ (iterm2.com/documentation-dynamic-profiles)
+
+— 全て整数のみで実装。
+
+## 第288次 — ディレクトリ認証・リモートアクセス設定形式
+
+- `krb5conf` — MIT Kerberos `krb5.conf`: `[libdefaults]`/`[realms]`/`[domain_realm]`/`[kdc]`/`[kdcdefaults]`/`[logging]`/`[appdefaults]`/`[dbmodules]`/`[capaths]`/`[otp]`/`[plugins]` セクション、`default_realm`/`kdc`/`admin_server`/`default_ccache_name`/`default_tkt_enctypes`/`permitted_enctypes`/`supported_enctypes`/`acl_file`/`dict_file`/`iprop_enable` 等 ~60 キー、`REALM = {` ネストブロック。
+- `sssdconf` — SSSD `sssd.conf`: `[sssd]`/`[nss]`/`[pam]`/`[sudo]`/`[ssh]`/`[pac]`/`[ifp]`/`[secrets]`/`[kcm]`/`[domain/<名>]` セクション、`services`/`domains`/`id_provider`/`auth_provider`/`access_provider`/`ldap_uri`/`ldap_search_base`/`ldap_tls_*`/`ad_*`/`ipa_*`/`krb5_*`/`cache_credentials`/`enum_cache_timeout` 等 ~200 キー。
+- `nslcdconf` — nss-pam-ldapd `nslcd.conf`: 平坦 `key value`、`uid`/`gid`/`uri`/`base`/`scope`/`binddn`/`bindpw`/`ssl`/`tls_*`/`sasl_*`/`krb5_ccname`/`map`/`filter`/`pagesize`/`nss_*`/`pam_*`/`validnames`/`ignorecase` 等 ~50 キー。
+- `autofs` — autofs `auto.master`/`auto.*`: `<mount-point> <map> [options]`/`<key> [-options] <location>`、`file:`/`program:`/`exec:`/`yp:`/`nisplus:`/`ldap:`/`ldaps:`/`sss:`/`multi:` maptype、`+mapname`/`/-`/`/net`、`-hosts`。
+- `xrdpconf` — xrdp `xrdp.ini`/`sesman.ini`: `[Globals]`/`[Logging]`/`[Channels]`/`[SessionTypes]`/`[Xorg]`/`[Xvnc]`/`[X11rdp]`/`[xrdpN]` セクション、`port`/`crypt_level`/`bitmap_cache`/`security_layer`/`fork`/`name`/`param`/`lib`/`username`/`password`/`ip` 等 ~90 キー。
+- `rdpfile` — Windows `.rdp` (Remote Desktop Connection): `name:type:value` (`s:`/`i:`/`b:` 型接尾辞必須)、`full address`/`screen mode id`/`desktopwidth`/`session bpp`/`username`/`audiomode`/`redirect*`/`gateway*`/`remoteapplication*` 等 ~80 キー。
+- `remminaconf` — Remmina `remmina.pref`/`*.remmina`: `[remmina]`/`[remmina_pref]`/`[remmina_exec]` セクション、`name`/`protocol`/`server`/`username`/`domain`/`colourdepth`/`resolution`/`keymap`/`ssh_*`/`gateway_*`/`viewmode`/`screenshot_path` 等 ~90 キー。
+
+## 出典
+
+- MIT Kerberos `krb5.conf(5)` (web.mit.edu/kerberos/krb5-latest/doc/admin/conf_files/krb5_conf.html)
+- SSSD `sssd.conf(5)` マニュアル (man sssd.conf, sssd.io)
+- nss-pam-ldapd `nslcd.conf(5)` (arthurdejong.org/nss-pam-ldapd/nslcd.conf.5)
+- autofs `auto.master(5)`/`autofs(5)` (man auto.master)
+- xrdp `xrdp.ini(5)`/`sesman.ini(5)` (github.com/neutrinolabs/xrdp)
+- RDP `.rdp` ファイル設定キー (learn.microsoft.com/windows-server/remote/remote-desktop-services/clients/rdp-files)
+- Remmina `*.remmina`/`remmina.pref` (gitlab.com/Remmina/Remmina)
+
+— 全て整数のみで実装。
+
+## 第289次 — ログ管理・監査・侵入検知設定形式
+
+- `logrotate` — logrotate `logrotate.conf`/`logrotate.d/*`: `path {` ブロック、`daily`/`weekly`/`rotate`/`size`/`missingok`/`create`/`compress`/`sharedscripts`/`prerotate`/`postrotate`/`endscript` ディレクティブ、スクリプトブロック判定。
+- `auditdconf` — Linux audit `auditd.conf`: `log_file`/`log_format`/`flush`/`freq`/`num_logs`/`max_log_file_action`/`space_left_action`/`disk_full_action`/`use_libwrap`/`tcp_listen_*`/`qos_*` 等既知キー + 値種別分類。
+- `auditrule` — Linux audit `audit.rules`/`auditctl`: `-w <path>` watch、`/path` 直接指定、`-a list,action` syscall ルール、`-S`/`-F`/`-k`、`-D`/`-b`/`-e`/`-f`/`-i`/`-l`/`-r`/`-s`/`-v` 制御。
+- `journaldconf` — systemd-journald `journald.conf`/`journald.conf.d`: `[Journal]`/`[Upload]`、`Storage`/`Compress`/`RateLimitInterval*`/`SystemMaxUse`/`RuntimeMaxUse`/`ForwardTo*`/`MaxLevel*`/`URL`/`ServerKeyFile` 等。
+- `newsyslog` — BSD `newsyslog.conf`: `<file> [owner:group] <mode> <count> <size> <when> <flags>` 7〜8欄、`Z`/`J`/`Y`/`X`/`T` 圧縮フラグ、`B`/`U`/`N` 等、その他欄 (`pidfile`/`signal`)。
+- `rsyslogd` — rsyslog `rsyslog.conf`/`rsyslog.d`: レガシーセレクタ (`auth,authpriv.*`)、`$ModLoad`/`$IncludeConfig`/`$WorkDirectory`/`$ActionQueue*` 等 `$` ディレクティブ、`module(`/`template(`/`input(`/`action(`/`global(`/`main_queue(`/`ruleset(`/`lookup_table(`/`parser(` RAInerscript オブジェクト、`@@`/`@` 転送、`if … then`。
+- `fail2ban` — Fail2ban `jail.conf`/`jail.d`/`fail2ban.conf`/`filter.d`/`action.d`: `[DEFAULT]`+jail セクション、`enabled`/`port`/`logpath`/`maxretry`/`findtime`/`bantime`/`ignoreip`/`action`/`banaction`/`filter`/`failregex`/`ignoreregex`/`datepattern`/`backend`/`usedns`/`action*`/`actionban`/`dbfile`/`loglevel`/`socket` 等既知キー。
+
+## 出典
+
+- `logrotate.conf(5)` マニュアル (github.com/logrotate/logrotate)
+- `auditd.conf(5)`/`audit.rules(7)`/`auditctl(8)` (linux-audit project)
+- `journald.conf(5)`/`journald.conf.d` (systemd, freedesktop.org)
+- `newsyslog.conf(5)` FreeBSD (freebsd.org/cgi/man.cgi?newsyslog.conf)
+- rsyslog `rsyslog.conf` 文書 (rsyslog.com doc v8 公式)
+- Fail2ban `jail.conf`/`man jail.conf` (github.com/fail2ban/fail2ban)
+
+— 全て整数のみで実装。
+## 第290次 — ファイアウォール・パケットフィルタ設定形式
+
+- `nftconf` — nftables `nftables.conf`/`nft -f` スクリプト: `table <family>`(ip/ip6/inet/arp/bridge/netdev)、`chain`/`type … hook`/`policy`、`set`/`map`/`flowtable`/`counter`/`quota`/`ct helper`/`secmark` named object、`elements`、verdict (accept/drop/reject/return/queue/continue/jump/goto 等)。
+- `iptablessave` — `iptables-save`/`ip6tables-save`: `*filter`/`*nat`/`*mangle`/`*raw`/`*security` テーブル、`:<chain> <policy>` 宣言、`-N` ユーザーチェーン、`-A` ルール、`-j`/`-g` ジャンプ、`-m` マッチモジュール、`COMMIT`。
+- `ipset` — `ipset save`/`ipset restore`: `create <name> <type>`、`add`/`del`/`test`/`destroy`/`rename`/`swap`/`flush`/`save`/`restore`/`list`/`help`/`version`/`quit` コマンド、14 種型 (`hash:ip` 等)、IPv6 メンバー判定、`timeout`/`comment`/`skbinfo` オプション。
+- `pfconf` — OpenBSD `pf.conf`: マクロ (`key = value`)、`set` オプション、`table` 定義、`pass`/`block` フィルタ、`nat`/`rdr`/`binat`/`no nat`/`nat-to`/`rdr-to`、`match`、`queue`/`altq`/`scheduler`/`dummynet`、`anchor`/`load anchor`、`antispoof`/`scrub`/`include`/`rdom`/`keepcounters`、`\` 継続行。
+- `shorewall` — Shorewall `rules`/`zones`/`policy`/`interfaces`/`masq`/`nat`/`tunnels`/`routestopped`: ~55 アクション (ACCEPT/DROP/REJECT/DNAT/REDIRECT/MASQUERADE/SNAT 等)、`action:target` 形、小文字ゾーン/ポリシー行 (`fw`/`net`/`loc`/`dmz`/`vpn`/`all`)。
+- `ufwrules` — UFW `user.rules`/`user6.rules`/`before.rules`/`after.rules`: iptables-save 方言 + `### tuple ###`/`### RULES ###`/`### END RULES ###`/`### LOGGING ###`/`### RATE LIMITING ###`/`### PORT ###` マーカー、`-A ufw-*`/`ufw-before-*`/`ufw-user-*`/`ufw-logging-*` チェーン。
+- `ferm` — ferm `ferm.conf`/`ferm.d`: `@def`/`@include`/`@hook`/`@resolve`/`@if`/`@else`/`@end`/`@subchain`/`@ipfilter`/`@eq`/`@not` 等 `@` ディレクティブ、`domain (ip ip6)`/`table <name>`/`chain <name>` ブロック、`policy`、`proto`/`saddr`/`daddr`/`mod`/`state`/`interface`/`outerface` 等のルール文。
+
+## 出典
+
+- `nftables.conf(5)`/`nft(8)` wiki (wiki.nftables.org)
+- `iptables-save(8)`/`iptables-restore(8)` (netfilter.org)
+- `ipset(8)` (ipset.netfilter.org)
+- `pf.conf(5)` OpenBSD (man.openbsd.org)
+- Shorewall man pages (shorewall.org/manpages)
+- UFW `user.rules` ジェネレータ (launchpad.net/ufw)
+- `ferm(1)`/`ferm.conf(5)` (ferm.foo-projects.org)
+
+— 全て整数のみで実装。
+## 第291次 — クラスタ・HA・フェイルオーバー設定形式
+
+- `corosync` — Corosync `corosync.conf`/`corosync.conf.d`: `totem`/`nodelist`/`node`/`logging`/`quorum`/`resources`/`event`/`qb`/`amf`/`knet`/`interface`/`member` 中括弧ブロック、`key: value` 行、`ring*_addr`/`nodeid`/`name`。
+- `cibxml` — Pacemaker CIB XML: `<cib>`/`<configuration>`、`<primitive>`/`<group>`/`<clone>`/`<master>`/`<bundle>` リソース、`<rsc_location>`/`<rsc_colocation>`/`<rsc_order>`/`<rsc_ticket>` 制約、`<nvpair>`/`<op>`/`<meta_attributes>`/`<instance_attributes>`。
+- `crmconf` — crmsh `crm`/`crm configure` スクリプト: `configure <文>` 第2語再ディスパッチ、`primitive`/`group`/`clone`/`ms`/`master`/`rsc_template`/`bundle`、`location`/`colocation`/`order`/`rsc_ticket`、`property`/`rsc_defaults`/`op_defaults`/`fencing_topology`/`acl*`、`op` 句。
+- `hacf` — Linux-HA Heartbeat `ha.cf`: `logfile`/`keepalive`/`deadtime`/`warntime`/`initdead`/`udpport`/`bcast`/`mcast`/`ucast`/`serial`/`baud`/`ping`/`ping_group`/`auto_failback`/`node`/`respawn`/`apiauth`/`crm`/`stonith`/`watchdog`/`hbaping`/`ipfail`/`compression` 等既知キー。
+- `haresources` — Heartbeat `haresources`: `<primary-node> <resource…>` 行、`Agent::arg1::arg2` 形式、IP 系 (`IPaddr`/`IPaddr2`/`IPsrcaddr`/`SendArp`)・ストレージ系 (`Filesystem`/`drbddisk`/`LVM`/`RAID1`)・通知系 (`mailTo`/`VirtualDomain`/`WinPopup`) 分類、`\` 継続行。
+- `ldirectord` — Linux Virtual Server `ldirectord.cf`: グローバル `key=value` + `virtual=` セクション、`real=<ip>:<port> gate|masq|ipip <weight>`、`fallback`/`service`/`scheduler`/`protocol`/`checktype`/`checkport`/`request`/`receive`/`httpmethod`/`persistent`/`emailalert*` 既知キー。
+- `clusterconf` — RHEL Cluster Suite `cluster.conf` XML: `<cluster name config_version>`、`<clusternode>` (nodeid/votes/fence method)、`<fencedevice>`、`<cman>`、`<failoverdomain>`/`<failoverdomainnode>`、`<resources>` (`<ip>`/`<fs>`/`<netfs>`/`<nfs*>`/`<clusterfs>`/`<script>`/`<smb>`/`<mount>`)、`<service>`/`<apache>`/`<mysql>` 等。
+
+## 出典
+
+- `corosync.conf(5)` (corosync.github.io man pages)
+- Pacemaker CIB/`crm configure` (clusterlabs.org Pacemaker Explained)
+- `ha.cf`/`haresources` (linux-ha.org Heartbeat 文書)
+- `ldirectord(8)` (Linux Virtual Server, kb.linuxvirtualserver.org)
+- `cluster.conf(5)` (RHEL Cluster Administration, access.redhat.com)
+
+— 全て整数のみで実装。
+
+## 第292次 — ロギングライブラリ・構造化ログ設定形式
+
+- `log4j` — Apache Log4j 2 `log4j2.xml`: `<Configuration>` ルート (status/monitorInterval/monitor、`<Packages>`/`<Appenders>`/`<Loggers>`/`<CustomLevels>` コンテナ)、Console/File/RollingFile/RollingRandomAccessFile/Async 等アペンダー名照合、PatternLayout/JsonTemplateLayout/CsvLogEventLayout/MarkerPatternSelector/TimeBasedTriggeringPolicy/SizeBasedTriggeringPolicy/CronTriggeringPolicy/SizeBasedTriggeringPolicy 等レイアウト・ポリシー・フィルタタグ、`<Logger>`/`<Root>` + `<AppenderRef>`/`level=`/`name=`/`ref=` 属性、`<CustomLevel>`/`<KeyValuePair>`。
+- `logback` — Logback `logback.xml`/`logback-spring.xml`: `<configuration>`、`ch.qos.logback.*` アペンダークラス名照合、`<appender>`/`<logger>`/`<root>`/`<encoder>`/`<pattern>`/`<charset>`/`<immediateFlush>`、rollingPolicy/fileNamePattern/maxHistory/totalSizeCap/maxFileSize/cleanHistoryOnStart、`<appender-ref>`/`ref=`、`property`/`variable`/`substitutionProperty`/`define`/`include`/`jmxConfigurator`/`turboFilter`/`springProfile`/`springProperty`。
+- `log4perl` — Log::Log4perl `log4perl.conf` (`log4j.`/`log4perl.` プレフィックス両対応): `category`/`logger`/`rootCategory`/`rootLogger`/`additivity`/`appender <name> = Log::Log4perl::Appender::*`/`appender.<name>.layout = Log::Log4perl::Layout::*`/`appender.<name>.Filter`/`appender.<name>.Threshold`/ThresholdMatchAll/Filter`+`type`/`name`/`PatterLayout` 等末尾キー分類。
+- `zapconf` — Uber Zap `zap.config`/`zap.yaml`: `level`/`development`/`disableCaller`/`disableStacktrace`/`sampling`/`encoding`/`encoderConfig`/`outputPaths`/`errorOutputPaths`/`initialFields`/`epoch`/`DPanicKey` トップキー、`messageKey`/`levelKey`/`timeKey`/`nameKey`/`callerKey`/`functionKey`/`stacktraceKey`/`skipLineEnding`/`lineEnding`/`levelEncoder`/`timeEncoder`/`durationEncoder`/`callerEncoder`/`nameEncoder`/`consoleSeparator` エンコーダキー、`initial`/`thereafter`/`samplingFactor`、json/console/iso8601/rfc3339*/epoch/millis/nanos/capital*/lowercase/full/short/color/syslog/journald/stderr/stdout + ログレベル値、stdout/stderr/.log/file://|http 出力パス。
+- `nlogconf` — NLog `NLog.config`: `<nlog>` ルート、`<targets>`/`<rules>`、`<target xsi:type="File|Console|ColoredConsole|Memory|Network|Mail|Database|EventLog|Debug|Debugger|Trace|Null|AsyncWrapper|AutoFlushWrapper|BufferingWrapper|FallbackGroup|FilteringWrapper|ImpersonatingWrapper|LimitingWrapper|PostFilteringWrapper|RandomizeGroup|RetryingWrapper|RoundRobinGroup|SplitGroup|ChainedWrapper|CompoundFallback|Wrapper|MethodCall|PerfCounter|Chainsaw|FormControl">`、`<logger name minlevel writeTo final>`、`<extensions>`/`<add>`、`<variable>`/`<include>`/`<time>`/throwExceptions/internalLog*/globalThreshold/autoReload/throwConfigExceptions/parseMessageTemplates/optimizeBufferReuse/useInvariantCulture、`writeTo`/`fileName`/`layout`/`${` 属性。
+- `serilog` — Serilog `appsettings.json` `"Serilog"` セクション: `Using` (`Serilog.Sinks.*`/`Serilog.Enrichers.*`/`Serilog.Filters.*`/`Serilog.Formatting.*`/`Serilog.Settings.*`)、`MinimumLevel` (Default/Verbose|Debug|Information|Warning|Error|Fatal + Override `Microsoft.*`/`System.*`)、`WriteTo`/`AuditTo` (`Name`/`configure`/`Args`)、`Enrich` (FromLogContext/WithMachineName/WithThreadId/WithProcessId/WithEnvironmentUserName/WithExceptionDetails/ByExcluding/Matching)、`Properties`/`Destructure`/`Filter`/`Destructure`/`path`/`rollingInterval`/`fileSizeLimitBytes`/`retainedFileCountLimit`/`outputTemplate`/`restrictedToMinimumLevel`/`formatter`/`connectionString`/`tableName`/`autoCreateSqlTable`/`serverUrl`/`apiKey`/`batchPostingLimit`/`period`/`queueLimit`/`compact`/`renderings`/`theme`/`shared`/`preserveFilename`/`rollOnFileSizeLimit`/`useUtcTime`/`formatter`/`pathFormat`/`logEventLevel`/`status`/`controlLevelSwitch`/`audited`/`expression`/`subLogger`/`levelSwitch`/`pathFormat`/`filter`/`destructure`/`exclude`/`expandMemberTypes` 既知 Args/Args 末尾キー。
+- `winstonconf` — Winston `winston.createLogger({…})`/`winston.Logger`/`winston.configure`/`require('winston')`: `winston.transports.*` + `new <Name>Transport(` (Console/File/Http/HttpStream/Stream/Syslog/Loggly/Mail/Couchbase/MongoDB/Elasticsearch/Logstash/Papertrail/Fluentd/NewRelic/Datadog/CloudWatch/Insights/Webhook/Null/Realtime/Slack/SnsLogger/TransportProxy/WebSocket)、`format.*` (align/bigint/cli/colorize/combine/errors/json/label/logstash/ms/nest/prettyPrint/printf/simple/splat/timestamp/uncolorize/unix)、`level`/`levels`/`silent`/`exitOnError`/`handleExceptions`/`exceptionHandlers`/`handleRejections`/`rejectionHandlers`/`profilers`/`defaultMeta`/`npm|syslog|cli`.levels、`winston.add|remove`/`logger.add|remove`/`logger.clear`。
+
+## 出典
+
+- Log4j 2 XML Configuration (logging.apache.org)
+- Logback Configuration (logback.qos.ch/manual/configuration.html)
+- Log::Log4perl Configuration (metacpan.org Log::Log4perl::Config)
+- Zap Configuration reference (pkg.go.dev go.uber.org/zap, Configuration Examples)
+- NLog Configuration file (nlog-project.org/documentation)
+- Serilog appsettings.json (github.com/serilog/serilog-settings-configuration)
+- Winston Transports/Formats (github.com/winstonjs/winston)
+
+— 全て整数のみで実装。
+
+## 第293次 — データベースマイグレーション・ORM 設定形式
+
+- `flyway` — Flyway `flyway.conf`: `flyway.url`/`user`/`password`/`driver`/`connectRetries`/`initSql` 接続系、`locations`/`schemas`/`defaultSchema`/`createSchemas`/`failOnMissingLocations` ロケーション系、`table`/`baseline*`/`cleanDisabled`/`outOfOrder`/`validateOnMigrate`/`mixed`/`group`/`batch`/`stream`/`target`/`cherryPick`/`skipExecutingMigrations`/`ignore*` 挙動系、`sqlMigrationPrefix`/`undo*`/`repeatable*`/`sqlMigrationSuffixes`/`scriptFileExtensions` 命名系、`placeholders.*`/`placeholder*`/`encoding`/`resourceProvider` 系、`outputQueryResults`/`outputType`/`dryRunOutput`/`progress`/`loggers`/`licenseKey` 出力系、`flyway.<vendor>.*` (oracle/postgresql/sqlserver/mysql/db2/snowflake/spanner/bigquery/cockroachdb/tidb/clickhouse/…) ベンダネスト系。
+- `liquibase` — `liquibase.properties`: `changeLogFile`/`changeSetDirectory`/`contexts`/`labels`/`runOnChange`/`includeAllFilesWithId`/`searchPath`/`databaseChangeLog*TableName` 変更ログ系、`url`/`username`/`password`/`driver`/`defaultSchemaName`/`defaultCatalogName`/`reference*`/`liquibase*Name` DB 系、`logLevel`/`logFile`/`outputFile*`/`monitorPerformance`/`showBanner`/`secureParsing`/`liquibaseProLicenseKey` 出力系、`hub.*`/`hubApiKey`/`hubMode` Hub 系、`parameter.*`/`variable.*` 定義、`liquibase.command.<cmd>.*` コマンド別オプション。
+- `alembic` — `alembic.ini`: `[alembic]` の `script_location`/`prepend_sys_path`/`path_separator`/`file_template`/`version_locations`/`recursive_version_locations`/`sourceless` レイアウト系と `sqlalchemy.url`/`transaction_per_migration`/`compare_type`/`render_as_batch`/`revision_environment`/`truncate_slug_length` 実行系 + logging.configparser の `[loggers]`/`[handlers]`/`[formatters]`/`[logger_*]`/`[handler_*]`/`[formatter_*]`。
+- `sqitchconf` — `sqitch.conf`: `[core]`/`[core "<engine>"]`/`[engine "<name>"]`/`[target "<name>"]`/`[deploy]`/`[revert]`/`[verify]`/`[rework]`/`[add]`/`[plan]`/`[tag]`/`[checkout]`/`[init]`/`[status]`/`[log]`/`[bundle]`/`[rebase]`/`[config]`/`[show]`/`[upgrade]` セクション + `deploy_dir`/`revert_dir`/`verify_dir`/`reworked_*`/`top_dir`/`extension`/`plan_file`/`template_dir` ディレクトリ系、`engine`/`target`/`uri`/`registry`/`client`/`db_name`/`host`/`port`/`username`/`password`/`driver` エンジン系、`set`/`variables`/`verify`/`mode`/`log_only` 制御系、`user.*` (name/email/accept)。
+- `sequelizerc` — `.sequelizerc`/sequelize config: `'config'`/`'models-path'`/`'seeders-path'`/`'migrations-path'`/`'migration-storage-path'`/`'url'` パス解決、`development`/`test`/`production`/`staging`/`local`/`ci` 環境セクション、`username`/`password`/`database`/`host`/`port`/`dialect`/`storage`/`use_env_variable`/`dialectModule*`/`socketPath` DB キー、`logging`/`pool`/`dialectOptions`/`define`/`timezone`/`retry`/`seederStorage*`/`migrationStorage*`/`operatorsAliases`/`typeValidation`/`minifyAliases` オプション、`mysql|postgres|sqlite|mariadb|mssql|db2|oracle|snowflake` dialect 値。
+- `knexfile` — `knexfile.js`/`knexfile.ts`: `client:` + `connection:` (filename/host/port/user/password/database/charset/ssl/instanceName/connectionString*)、`pool:` (min/max/acquireTimeoutMillis/idleTimeoutMillis/afterCreate/beforeDestroy/propagateCreateError 等 tarn 系)、`migrations:`/`seeds:` (tableName/schemaName/directory/extension/stub/loadExtensions/disableTransactions/validateChecksums/sortDirsSeparately)、`useNullAsDefault`/`searchPath`/`acquireConnectionTimeout`/`wrapIdentifier`/`postProcessResponse`/`asyncStackTraces`/`compileSqlOnError`/`queryBuilder` Knex 固有キー。
+- `typeormconf` — `data-source.ts`/`ormconfig.json`/`ormconfig.env`/`ormconfig.yml`: `TYPEORM_*` 環境変数行、`new DataSource`/`module.exports`/`createConnection` コンストラクタ、`type`/`host`/`port`/`username`/`password`/`database`/`url`/`sid`/`serviceName`/`schema`/`extra`/`socketPath` DB キー、`synchronize`/`dropSchema`/`migrationsRun`/`logging`/`logger`/`cache`/`namingStrategy`/`entityPrefix`/`relationLoadStrategy`/`metadataTableName`/`poolSize` ORM キー、`entities`/`migrations`/`subscribers`/`factories`/`seeds`/`cli`/`entitiesDir`/`migrationsDir`/`subscribersDir`/`migrationsTableName` パス系、`mysql`〜`spanner` dialect 値。
+
+## 出典
+
+- Flyway Configuration (documentation.red-gate.com/fd)
+- Liquibase Parameters (docs.liquibase.com)
+- Alembic Configuration (alembic.sqlalchemy.org)
+- Sqitch Configuration (sqitch.org/docs/manual/sqitch-configuration)
+- Sequelize CLI / sequelizerc (sequelize.org/docs)
+- Knexfile / knex configuration (knexjs.org/guide)
+- TypeORM Data Source Options (typeorm.io)
+
+— 全て整数のみで実装。
+
+## 第294次 — ネットワーク接続・無線LAN・PPP 設定形式
+
+- **hostapd**: hostapd.conf — `key=value` フラット。iface/radio/security/RADIUS/BSS/WPS/`hs20*`/`anqp_*` 接頭辞系を別計数する構成。
+- **wpasupplicant**: wpa_supplicant.conf — グローバル `key=value` と `network={}` ブロックの 2 層構造。ブロック内は ssid/psk/key_mgmt/eap/identity/phase* を識別。
+- **dhcpcdconf**: dhcpcd.conf — `interface`/`profile`/`ssid` 選択、`static <opt>=<val>`、`option`/`nooption`/`require`、`slaac`/`duid`/`clientid`、IPv4/IPv6 系、`metric`/`defaultroute`。
+- **dhclientconf**: ISC dhclient.conf — `;` 終端ステートメント。request/require/send/option、supersede/prepend/append/default、interface/lease/alias ブロック、timeout/retry/backoff-cutoff/initial-interval/reboot/select-timeout。
+- **nmconnection**: NetworkManager keyfile — `[connection]` 必須セクション + `[ipv4]`/`[ipv6]`/`[wifi]`/`[wifi-security]`/`[802-1x]`/`[proxy]`/`[wireguard-peer.<pk>]`。
+- **iwdconf**: iwd — `[General]`/`[Network]`/`[Scan]`/`[IPv4]`/`[IPv6]`/`[Security]`/`[Settings]` セクションと CamelCase キー。
+- **pppdconf**: pppd options + pap-secrets/chap-secrets — 裸フラグ/`key value`/`key=value` + 4 欄 secrets、`no*`/`refuse-*`/`require-*`、`lcp-*`/`ipcp-*`/`ccp-*`/`ipv6cp-*` プレフィックス。
+
+## 出典
+
+- hostapd.conf(5) (w1.fi/hostapd)
+- wpa_supplicant.conf(5) (w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf)
+- dhcpcd.conf(5) (roy.marples.name/projects/dhcpcd)
+- dhclient.conf(5) (ISC dhcp, kb.isc.org)
+- NetworkManager keyfile / nm-settings-keyfile (networkmanager.dev)
+- iwd main.conf / network-provisioning (iwd.wiki.kernel.org)
+- pppd(8) / options / pap-secrets (ppp.samba.org/pppd)
+
+— 全て整数のみで実装。
+## 第295次 — 時刻同期・NTP/PTP デーモン設定形式
+
+- **chronyconf**: chrony.conf — `server`/`pool`/`peer`/`refclock`/`broadcast` ソース + `allow`/`deny`/`local`/`cmdallow`/`cmddeny`/`initstepslew`/`auth*`/`nts*`/`bindaddress` 等、行頭キー + ソース行内オプション (iburst/prefer/minpoll/maxpoll) を別計数。
+- **gpsd**: /etc/default/gpsd — `KEY="value"`。DEVICES/GPSD_DEVICES/SERIAL_DEVICES/BAUDRATE → デバイス、GPSD_OPTIONS/GPSD_ARGS/OPTIONS/GPSD_DEBUG → オプション、USBAUTO/START_DAEMON/GPSD_ENABLE → トグル、GPSD_SOCKET/CONTROL_SOCKET/NTPD_SHM → ソケット、GPSD_GROUP/GPSD_USER/GPSD_HOME → 環境。
+- **ntpconf**: ntp.conf — `server`/`pool`/`peer`/`broadcast*`/`multicastclient`/`manycast*` ソース、`restrict`/`interface`/`discard`/`mru*` 制限、`keys`/`trustedkey`/`crypto`/`cert`/`leapfile` 認証、`driftfile`/`statistics`/`filegen`/`logconfig`/`includefile` ファイル、`tos`/`tinker`/`enable`/`disable`/`rlimit`/`orphan`/`automax` チューニング。ソース内 `iburst`/`prefer`/`minpoll`/`maxpoll`、restrict 内 `kod`/`limited`/`nomodify`/`nopeer`/`noquery` フラグを別計数。
+- **ntpsec**: NTPsec ntp.conf — クラシック ntp.conf に加え `refclock <shm|local|nmea|oncore|…> [unit N] [refid S] [flagN V]`、`nts <enable|ca|cert|key|cookie|mintls|maxtls|aead|…>`、`leapsmearinterval`/`mspps`/`mintc`/`maxclock` 拡張を識別。
+- **openntpd**: ntpd.conf — `listen on <addr> [port N]`、`server`/`servers`/`pool` + `weight`/`trusted`/`query`、`sensor <dev> [correction N] [weight N] [refid S] [stratum N]`、`constraint(s) from <url>`。
+- **ptp4l**: linuxptp ptp4l.cfg — INI 的 `[global]` + `[eth*]`/`[unicast_master_table]`。時計属性 (domainNumber/priority1/2/clockClass/clockAccuracy/offsetScaledLogVariance/slaveOnly/twoStepFlag/clock_servo/pi_*/kernel_leap/sanity_freq_limit)、ポート・ネットワーク (time_stamping/delay_mechanism/network_transport/ptp_dst_mac/udp_ttl/logMin*/logAnnounce*/announceReceiptTimeout)、UCM テーブルを分類。
+- **timesyncd**: systemd-timesyncd.conf — `[Time]` のみ。`NTP`/`FallbackNTP`/`Trusted`/`NTPTrusted` → サーバ、`RootDistanceMaxSec`/`PollIntervalMinSec`/`PollIntervalMaxSec`/`ConnectionRetrySec`/`SaveIntervalSec`/`SampleTimeoutSec`/`Boltar*` → 間隔・閾値。
+
+## 出典
+
+- chrony.conf(5) (chrony-project.org/doc/4.6/chrony.conf.html)
+- ntp.conf(5) (ntp.org/documentation — classic ntpd)
+- timesyncd.conf(5) (systemd.io)
+- ptp4l(8) + linuxptp documentation (linuxptp.sf.net)
+- ntpd.conf(5) OpenBSD (man.openbsd.org)
+- NTPsec ntp.conf documentation (docs.ntpsec.org)
+- gpsd(8) + gpsd packaging defaults (gpsd.io)
+
+— 全て整数のみで実装。
+## 第296次 — ブートローダ・ファームウェア起動設定形式
+
+- **grubconf**: GRUB2 grub.cfg — `menuentry '…' {`/`submenu` ブロック、`set key=value`、`linux`/`initrd`/`chainloader`/`multiboot*`/`module*`/`xnu_*` ブート命令、`insmod`/`search`/`terminal*`/`load_env`/`save_env`/`configfile`、シェル構文 `if`/`elif`/`fi`/`for`/`do`/`done`/`function`/`setparams` を分類。
+- **grubenv**: grubenv 環境ブロック — `# GRUB Environment Block` ヘッダ + `key=value`。`saved_entry`/`next_entry`/`chosen` 選択、`boot_success`/`boot_indeterminate`/`recordfail` 起動状態、`kernelopts`/`menu_auto_hide`/`feature_*`/`superusers` を分類。
+- **ipxescript**: iPXE スクリプト — `#!ipxe` シバン、`:label`、`dhcp`/`ifopen`/`route`/`chain`/`img*`/`kernel`/`initrd`/`boot`/`sanboot`/`iscsi` ネット・ブート命令、`set`/`isset`/`iseq*`/`isgt`/`isle`/`echo`/`goto`/`menu`/`item`/`choose`/`params`/`prompt`/`sleep`/`exit`/`reboot`/`cpuid`/`console`/`colour`/`cert*`/`md5sum`/`smbios` 変数・制御命令を分類。
+- **limine**: limine.cfg — `:`/`::` エントリ名 + `KEY=value`。グローバル (`TIMEOUT`/`SERIAL`/`VERBOSE`/`RANDOMISE_MEMORY`/`TERM_*`/`THEME_*`/`INTERFACE_*`/`RESOLUTION`/`GRAPHICS`) とエントリ内ブートキー (`PROTOCOL`/`KERNEL_PATH`/`KERNEL_CMDLINE`/`CMDLINE`/`MODULE_PATH`/`IMAGE_PATH`/`INITRAMFS_PATH`/`ENTRY_PATH`/`DTB_PATH`) を分類。
+- **refind**: refind.conf — 空白区切り `keyword values`。`menuentry`/`submenuentry` ブロック内 (`volume`/`loader`/`initrd`/`options`/`ostype`/`icon`/`disabled`)、`scanfor`/`dont_scan_*`/`also_scan_*`/`hidden_tags*` スキャン制御、`timeout`/`hideui`/`showtools`/`resolution`/`default_selection`/`use_nvram` グローバルを分類。
+- **systemdboot**: systemd-boot loader.conf + entries/*.conf (BLS Type #1) — `title`/`version`/`machine-id`/`sort-key`/`architecture` メタ、`linux`/`efi`/`initrd`/`devicetree*`/`initrd-ucode` 起動ファイル、`options`、loader.conf の `default`/`timeout`/`console-mode`/`editor`/`auto-*`/`secure-boot-enroll` を分類。
+- **ubootenv**: U-Boot 環境 — `fw_printenv` 形式 `key=value` (既知変数 `bootcmd`/`bootargs`/`bootdelay`/`ethaddr`/`serverip`/`loadaddr`/`fdtaddr`/`boot_targets`/`distro_bootcmd`/`preboot`/`stdin`/`stdout`/`mmc*`/`fdtfile`/`initrd_high`/`fdt_high`) と boot.scr 系 `setenv`/`run`/`tftpboot`/`bootm`/`bootz`/`bootefi`/`if`/`then`/`else`/`fi`/`for`/`do`/`done`/`mmc`/`usb`/`sf`/`nand`/`ubi`/`fatload`/`ext4load`/`env`/`test`/`itest` コマンド行を分類。`setenv k v` 行は `=` を含んでも代入ではなくコマンドとして計数する。
+
+## 出典
+
+- GNU GRUB Manual (gnu.org/software/grub/manual) — grub.cfg / grubenv
+- rEFInd Configuration File (rodsbooks.com/refind/configfile.html)
+- Limine CONFIG.md (github.com/limine-bootloader/limine)
+- systemd Boot Loader Interface / Boot Loader Specification (uapi-group.org/specifications/specs/boot_loader_specification)
+- U-Boot Environment Variables + hush スクリプト (u-boot documentation)
+- iPXE Scripting Reference (ipxe.org/scripting)
+
+— 全て整数のみで実装。
+
+## 第297次 — EDA・回路設計ファイル形式
+
+- `eaglexml`: Autodesk EAGLE `.sch`/`.brd` (XML)。`<eagle>` ルート、`<layer>`/`<part>`/`<element>`/`<signal>`/`<net>`/`<wire>`/`<junction>`/`<pad>`/`<smd>`/`<via>`/`<hole>`/`<package>`/`<library>` を分類。
+- `gedasch`: gEDA gschem `.sch`。`v` バージョン行 + `C`/`N`/`U`/`P`/`B`/`V`/`A`/`T`/`M`/`G` オブジェクト + `{`〜`}` 属性ブロック。
+- `kicadpcb`: KiCad `.kicad_pcb` (S式)。`footprint`/`module`、`pad`、`segment`/`via`/`arc`、`zone`、`net`/`net_class`、`gr_*`/`fp_*`/`dimension`/`target` を分類。
+- `kicadpro`: KiCad `.kicad_pro` (JSON)。`board`/`pcbnew`/`schematic`/`sheets`/`cvpcb`/`libraries`/`text_variables`/`meta` 等のキーを board/schematic/libraries/meta 系に分類。
+- `kicadsch`: KiCad `.kicad_sch` (S式)。`symbol`/`power`/`hierarchical_sheet`、`wire`/`bus`/`bus_entry`、`label`/`global_label`/`hierarchical_label`、`junction`/`no_connect`、`property`/`pin`/`uuid` を分類。
+- `ltsconf`: LTspice `.asc`。`SHEET`/`WIRE`/`SYMBOL`/`SYMATTR`/`WINDOW`/`FLAG`/`IOPIN`/`TEXT`/`LINE`/`RECTANGLE`/`CIRCLE`/`ARC`/`NORMAL`/`ROTATED` 行指向コマンドを分類。
+- `spicenet`: SPICE/ngspice ネットリスト。タイトル行、`*` コメント、`+` 継続、`R`/`C`/`L`/`V`/`I`/`D`/`Q`/`M`/`X`/`E`/`F`/`G`/`H`/`B`/`J`/`Z` 素子、`.subckt`/`.model`/`.tran`/`.param` 等ディレクティブを分類。
+
+## 出典
+KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、Autodesk EAGLE XML format & DTD、gEDA gschem file format、LTspice .asc file format、SPICE3/ngspice input syntax。
+
+— 全て整数のみで実装。
