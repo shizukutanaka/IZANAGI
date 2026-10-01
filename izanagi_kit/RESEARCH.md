@@ -5445,3 +5445,24 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - pppd(8) / options / pap-secrets (ppp.samba.org/pppd)
 
 — 全て整数のみで実装。
+## 第295次 — 時刻同期・NTP/PTP デーモン設定形式
+
+- **chronyconf**: chrony.conf — `server`/`pool`/`peer`/`refclock`/`broadcast` ソース + `allow`/`deny`/`local`/`cmdallow`/`cmddeny`/`initstepslew`/`auth*`/`nts*`/`bindaddress` 等、行頭キー + ソース行内オプション (iburst/prefer/minpoll/maxpoll) を別計数。
+- **gpsd**: /etc/default/gpsd — `KEY="value"`。DEVICES/GPSD_DEVICES/SERIAL_DEVICES/BAUDRATE → デバイス、GPSD_OPTIONS/GPSD_ARGS/OPTIONS/GPSD_DEBUG → オプション、USBAUTO/START_DAEMON/GPSD_ENABLE → トグル、GPSD_SOCKET/CONTROL_SOCKET/NTPD_SHM → ソケット、GPSD_GROUP/GPSD_USER/GPSD_HOME → 環境。
+- **ntpconf**: ntp.conf — `server`/`pool`/`peer`/`broadcast*`/`multicastclient`/`manycast*` ソース、`restrict`/`interface`/`discard`/`mru*` 制限、`keys`/`trustedkey`/`crypto`/`cert`/`leapfile` 認証、`driftfile`/`statistics`/`filegen`/`logconfig`/`includefile` ファイル、`tos`/`tinker`/`enable`/`disable`/`rlimit`/`orphan`/`automax` チューニング。ソース内 `iburst`/`prefer`/`minpoll`/`maxpoll`、restrict 内 `kod`/`limited`/`nomodify`/`nopeer`/`noquery` フラグを別計数。
+- **ntpsec**: NTPsec ntp.conf — クラシック ntp.conf に加え `refclock <shm|local|nmea|oncore|…> [unit N] [refid S] [flagN V]`、`nts <enable|ca|cert|key|cookie|mintls|maxtls|aead|…>`、`leapsmearinterval`/`mspps`/`mintc`/`maxclock` 拡張を識別。
+- **openntpd**: ntpd.conf — `listen on <addr> [port N]`、`server`/`servers`/`pool` + `weight`/`trusted`/`query`、`sensor <dev> [correction N] [weight N] [refid S] [stratum N]`、`constraint(s) from <url>`。
+- **ptp4l**: linuxptp ptp4l.cfg — INI 的 `[global]` + `[eth*]`/`[unicast_master_table]`。時計属性 (domainNumber/priority1/2/clockClass/clockAccuracy/offsetScaledLogVariance/slaveOnly/twoStepFlag/clock_servo/pi_*/kernel_leap/sanity_freq_limit)、ポート・ネットワーク (time_stamping/delay_mechanism/network_transport/ptp_dst_mac/udp_ttl/logMin*/logAnnounce*/announceReceiptTimeout)、UCM テーブルを分類。
+- **timesyncd**: systemd-timesyncd.conf — `[Time]` のみ。`NTP`/`FallbackNTP`/`Trusted`/`NTPTrusted` → サーバ、`RootDistanceMaxSec`/`PollIntervalMinSec`/`PollIntervalMaxSec`/`ConnectionRetrySec`/`SaveIntervalSec`/`SampleTimeoutSec`/`Boltar*` → 間隔・閾値。
+
+## 出典
+
+- chrony.conf(5) (chrony-project.org/doc/4.6/chrony.conf.html)
+- ntp.conf(5) (ntp.org/documentation — classic ntpd)
+- timesyncd.conf(5) (systemd.io)
+- ptp4l(8) + linuxptp documentation (linuxptp.sf.net)
+- ntpd.conf(5) OpenBSD (man.openbsd.org)
+- NTPsec ntp.conf documentation (docs.ntpsec.org)
+- gpsd(8) + gpsd packaging defaults (gpsd.io)
+
+— 全て整数のみで実装。
