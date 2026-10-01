@@ -732,6 +732,13 @@ The capability map — with per-feature implementation status — lives in
 | `prosody` | Prosody `prosody.cfg.lua` — `key = value`/`key = { list; }` Lua 風代入、`VirtualHost "x"`/`Component "x" "type"` 宣言、`--` コメント。 |
 | `synapse` | Matrix Synapse `homeserver.yaml` — `server_name:`/`listeners:`/`database:`/`modules:`/`macaroon_secret_key` 等 ~50 トップキー。 |
 | `zulipconf` | Zulip `zulip.conf` — `[machine]`/`[postgresql]`/`[memcached]`/`[rabbitmq]`/`[application_server]`/`[sentry]` セクション。 |
+| `gdmconf` | GDM `custom.conf`/`daemon.conf` — `[daemon]`/`[security]`/`[xdmcp]`/`[chooser]`/`[debug]` セクション、`AutomaticLogin*`/`WaylandEnable`/`DisallowTCP` 等。 |
+| `lightdm` | LightDM `lightdm.conf` — `[LightDM]`/`[Seat:*]`/`[XDMCPServer]`/`[VNCServer]` セクション、`greeter-session`/`autologin-*`/`xserver-*` キー。 |
+| `sddmconf` | SDDM `sddm.conf` — `[General]`/`[Theme]`/`[Users]`/`[Wayland]`/`[X11]`/`[Autologin]` セクション、`Numlock`/`Current`/`MinimumUid`/`VirtualTerminal` 等。 |
+| `westonconf` | Weston `weston.ini` — `[core]`/`[shell]`/`[output]`/`[keyboard]`/`[terminal]`/`[launcher]` セクション、`keymap_*`/`panel-position`/`transform` キー。 |
+| `xmodmap` | `.Xmodmap` — `keycode N = keysym…`/`keysym`/`pointer`/`clear`/`add`/`remove` 文の分類計数。 |
+| `xorgconf` | X.Org `xorg.conf` — `Section`/`SubSection`/`EndSection` ブロック (~17 既知名)、`Identifier`/`Option`/`Driver` ステートメント。 |
+| `xresources` | `.Xresources`/`Xdefaults`/`app-defaults` — `Name.Class*res: value` 行、`!` コメント、cpp `#define`/`#include`/`#if` ディレクティブ。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
