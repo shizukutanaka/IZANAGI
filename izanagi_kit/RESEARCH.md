@@ -4213,6 +4213,7 @@ IaC・ビルド・パッケージ記述形式(Dockerfile・Procfile・systemd un
 - `gp` — Guitar Pro: `FICHIER GUITAR PRO v…` バナー(v3–v5)+ GP7 `BCFZ` コンテナ
 
 **検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
 ## 第244次(search-index 照合ラウンド / 実装証跡付き)
 
 `izanagi_kit` にデスクトップ・ウィンドウマネージャ設定形式7件を追加した(979→986)。`i3conf`(i3 `set $`/`set_from_resource`・`bindsym`/`bindcode`/`--release`/`--whole-window`/`--border`/`--whole-window`・`exec`/`exec_always`・`bar`/`colors`/`mode` `{` ブロック・`status_command`/`position`/`tray_output`/`binding_mode_indicator`/`workspace_buttons`/`strip_workspace_numbers`/`separator_symbol`/`icon_theme`/`verbose`/`i3bar_command`/`id`/`socket_path`/`modifier`・`font`/`mode`/`for_window`/`assign`/`floating_*`/`workspace`/`gaps`/`include`/`client.*` 指令)、`sway`(Sway `set`/`bindsym`/`bindcode`/`bindgesture`/`bindswitch`・`exec`/`exec_always`・`mode`/`bar`/`colors`/`input`/`output`/`seat`/`idle`/`workspace`/`gaps`/`default_dim_inactive` `{` ブロック・`xkb_*`/`tap`/`natural_scroll`/`dwt`/`pointer_accel`/`accel_profile`/`repeat_rate`/`repeat_delay`/`scroll_method`/`events`/`click_method`/`middle_emulation`/`left_handed`/`map_to_*`・`resolution`/`position`/`scale`/`transform`/`background`/`disable`/`adaptive_sync`/`subpixel`/`dpms`/`hdr`/`render_bit_depth`/`power`/`hotplug`・`swaybar_command`/`swaynag_command`/`icon_theme`/`status_command`/`position`/`tray_*`/`binding_mode_indicator`/`workspace_buttons`/`strip_workspace_*`/`separator_symbol`/`pango_markup`・`unbind*`/`mark`/`opacity`/`inhibit_idle`/`urgent`/`shortcuts_inhibitor`/`include`/`corner_radius`/`shadow`/`blur`/`xwayland`/`gesture`/`primary_selection`/`client.*`)、`hyprland`(Hyprland `general`/`decoration`/`animations`/`input`/`gestures`/`group`/`misc`/`binds`/`xwayland`/`cursor`/`debug`/`render`/`opengl`/`dwindle`/`master`/`plugin`/`device`/`touchdevice`/`tablet`/`keyboard`/`autoscale`/`ecosystem`/`experimental`/`snap`/`overview`/`hypervnc`/`shadow`/`blur`/`submap` セクション・`monitor`/`workspace`/`windowrule`/`windowrulev2`/`layerrule`/`permission`/`bezier`/`animation`/`blurls`/`source`/`env`/`exec`/`exec-once`/`execr`/`unbind`/`plugin`/`submap`・`bind`/`bindm`/`bindr`/`bindl`/`binde`/`bindd`/`bindc`/`bindi`/`bindt`/`bindn`・任意 `key = value`)、`waybar`(Waybar `layer`/`position`/`height`/`width`/`margin`/`spacing`/`mode`/`name`/`output`/`include`/`ipc`/`start_hidden`/`passthrough`/`exclusive`/`gtk-layer-shell`/`reload_style_on_change`/`fixed-center`/`separate-outputs` トップキー・`modules-left`/`modules-center`/`modules-right`+`"{mod}"/"{mod}#name"` モジュールオブジェクト+`format*`/`interval`/`tooltip`/`exec`/`on-*`/`return-type`/`rotate`/`states`/`icons`/`rewrite`/`expand`/`scroll-step`/`smooth-*`/`reverse-scrolling`/`transition-*`/`bat`/`adapter`/`on-update`/`signal`/`exec-if`/`hide*`/`show*`/`min-length`/`max-length`/`align`/`justify`/`escape`/`markup`/`wrap`/`device`/`click-through`・`#waybar`/`.modules-*`/`#*` セレクタ+`@import`/`@define-color`+CSS プロパティ)、`polybar`(Polybar `[bar/*]`/`[module/*]`/`[settings]`/`[colors]`/`[global/*]` セクション・module スコープ内 `type`/`exec`/`interval`/`tail`/`exec-if`/`format*`/`label*`/`ramp*`/`bar-*`/`animation-*`/`internal/*`/`menu-*`/`hook-*`/`initial`/`mount-*`/`warn-*`/`ws-icon-*`/`rotate`/`cycle`/`fuzzymatch`/`disable-scroll`/`smooth-scrolling` キー・bar スコープ `monitor`/`width`/`height`/`radius`/`fixed-center`/`background`/`foreground`/`line-*`/`border-*`/`padding-*`/`module-*`/`font-*`/`separator`/`wm-restack`/`override-redirect`/`cursor-*`/`scroll-*`/`enable-ipc`/`tray-*`/`offset-*`/`dpi`/`pseudo-transparency`/`struts`/`include-*`/`compositing-*`/`screenchange-*`/`dim-value`/`throttle-*`・`${xrdb:`/`${env:`/`${file:`/`${colors.*}`/`${bar.*}`/`${root.*}`/`${self.*}` 参照)、`rofi`(Rofi `.rasi`/`configuration {`/`window {`/`mainbox {`/`inputbar {`/`entry {`/`listview {`/`element* {`/`mode-switcher {`/`message {`/`textbox* {`/`button {`/`iconbox {`/`case-indicator {`/`prompt {`/`error-message {`/`sidebar {`/`dummy {`/`split {`/`stack {`/`box {`/`overlay {`/`child {`/`enabled {`/`horizontal {`/`num-* {`/`alternate {`/`urgent {`/`active {`/`selected {`/`normal {`/`hovered {`/`border* {`/`scrollbar {`/`handle {`/`filter {`/`scroll {`/`* {` ブロック・`key: value;` プロパティ+`rofi.`/`!` 旧形式・`@theme`/`@import`/`@media`/`@property`/`@default`/`@include`/`theme:`・`calc(`/`var(`/`env(`/`rgba(`/`hsla(`/`hsl(`/`lighten(`/`darken(`/`url(`/`linear-gradient(`/`argb:`/`#` カラー/関数)、`dunst`(Dunst `[global]`/`[experimental]`/`[shortcuts]`/`[urgency_*]`/ルール `[*]` スコープ追跡・global/urgency/rule 別 `key = value` 計数)。
@@ -4374,3 +4375,578 @@ DOS・Windows セットアップ/ドライバ設定形式:dossys(CONFIG.SYS/AUTO
 - OPA Rego Reference / HashiCorp Sentinel Language Spec / AWS Cedar Policy Language Reference / OpenFGA Modeling Language / Casbin Model & Policy 構文 / OASIS XACML 3.0 / Cloud Custodian Policies YAML reference、および GitHub 上の公開 .rego/.sentinel/.cedar/.fga/model.conf/xacml.xml/policies.yaml 実例。
 
 — 全て整数のみで実装。
+## 第182次: ビルドシステム・パッケージ定義形式 第2弾(cmake / meson / bazel / nix / gn / buck / pants)
+
+**方法**: 文献参照ラウンド継続 — ビルド定義 DSL。全7件が既存 1176 件と非衝突を確認(`makefile`/`ninja`/`hcl`/`spec`/`pkgbuild`/`dockerfile`/`procfile` は既存のため除外):
+
+- `cmake` — CMake `CMakeLists.txt`: `cmake_minimum_required(VERSION x)` + `project()` + `add_executable`/`add_library`/`find_package`/`install` 命令センサス(大文字小文字不問・`endif` 誤認防止)
+- `meson` — Meson `meson.build`: `project()`/`version:` kwarg + `executable`/`library`/`dependency`/`subdir`/`test` センサス + `=` 代入
+- `bazel` — Bazel `BUILD`: `load("@…//…")` + ルール呼出し + `name`/`srcs`/`deps`/`visibility`/`glob`
+- `nix` — Nix 式: `let…in`/`rec`/`with`/`inherit`/`builtins.` + `mkDerivation`/`fetchurl` + lambda `{a,b}:` 判定
+- `gn` — Chromium GN `BUILD.gn`: `group`/`executable`/`source_set`/`config`/`action` + `deps`/`sources`/`configs` リスト + `if`/`foreach`
+- `buck` — Buck/Buck2 `BUCK`/`TARGETS`: `load("@…")` + `cxx_binary`/`rust_library`/`python_test`/`export_file` 系 + `deps`/`visibility`
+- `pants` — Pants `BUILD`: `python_sources`/`pex_binary`/`shell_command`/`archive`/`docker_image` ファミリ + `dependencies`/`entry_point`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+## 第183次: シンセサイザー・サウンドデザイン形式(syx / osc / csd / mml / scl / kbm / fxp)
+
+**方法**: 文献参照ラウンド継続 — シンセ制御・楽器定義・マイクロトーニング。全7件が既存 1183 件と非衝突を確認:
+
+- `syx` — MIDI System Exclusive(RP-001): `F0` 開始 + メーカーID(1B/3B)+ `F7` 終端、複数ダンプ連結
+- `osc` — Open Sound Control 1.0/1.1: `#bundle\0`+timetag+要素走査、`/addr\0`+`,typetags` 4B アライン
+- `csd` — Csound Unified File Format: `<CsoundSynthesizer>` + CsOptions/CsInstruments/CsScore セクション
+- `mml` — Music Macro Language(MSX BASIC PLAY 系): `t`/`o`/`l`/`v` 命令 + `cdefgab`/`r`/`>`/`<`/`[]`
+- `scl` — Scala scale: `!` コメント + 説明行 + 度数 + `num/den` 比 または cents 行
+- `kbm` — Scala keyboard mapping: マップサイズ + ノート範囲 + 基準ノート/周波数 + キー再割当行
+- `fxp` — Steinberg VST2 `.fxp`/`.fxb`: `CcnK` マジック + `FxCk`/`FxBk`/`FxCB`/`FxBB` + BE ヘッダ + 28B 名
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第184次: 金融・企業間データ交換形式 第2弾(swiftmt / bai2 / xbrl / fpml / fixml / camt / pain)
+
+**方法**: 文献参照ラウンド継続 — 銀行間・企業間メッセージ交換。全7件が既存 1190 件と非衝突を確認(既存 `mt` は Mersenne Twister のため `swiftmt` に改名):
+
+- `swiftmt` — SWIFT FIN MT 汎用: `{1:}` 基本 + `{2:}` アプリ(I/O+型) + `{4:}` `:TAG:VALUE` + `{5:}` トレイラ
+- `bai2` — BAI2: `01`/`02`/`03`/`16`/`88`/`49`/`98`/`99` レコード + 制御合計
+- `xbrl` — XBRL 2.1 インスタンス: 名前空間接頭辞非依存の `context`/`unit`/`contextRef=` センサス
+- `fpml` — FpML: `<FpML version type>` + trade/party/product 集計
+- `fixml` — FIXML: `<FIXML v r s>` + 深さ1メッセージ列挙 + `<Batch>`
+- `camt` — ISO 20022 `camt.05x`: `BkToCstmr*` + `Ntry`/`Ccy`/`IBAN`
+- `pain` — ISO 20022 `pain.00x`: `Cstmr*Initn` + `PmtInf`/`CdtTrfTxInf` + `NbOfTxs` 照合
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第185次: API・IDL・スキーマ記述形式(openapi / graphql / idl / asn1 / wsdl / fidl / smithy)
+
+**方法**: 文献参照ラウンド継続 — API 記述とインターフェース定義言語。全7件が既存 1197 件と非衝突を確認:
+
+- `openapi` — OpenAPI 3.x / Swagger 2.0: `openapi:`/`swagger:` バージョン + paths センサス + operationId/components/$ref(YAML & JSON 両対応)
+- `graphql` — GraphQL SDL: `type`/`enum`/`input`/`interface`/`union`/`scalar`/`directive @`/`extend` 行頭宣言 + `@dir` 適用(定義サイト除外)
+- `idl` — OMG IDL: `module`/`interface`/`struct`/`exception` + `};` 終端 + `in`/`out`/`inout` + `sequence<`
+- `asn1` — X.680: `DEFINITIONS [IMPLICIT TAGS] ::= BEGIN` + `::=` 産出 + `IMPORTS` + `[n]` タグ + ビルトイン型参照
+- `wsdl` — WSDL 1.1(`<wsdl:definitions`)/2.0(`/ns/wsdl`)+ service/portType/interface/operation/message/binding センサス + soap 検出
+- `fidl` — Fuchsia IDL: `library a.b;` + `using` + `protocol`/`type`/`struct`… 行頭宣言 + メソッド/`->`/endpoint
+- `smithy` — AWS Smithy: `$version:`/`namespace` + shape 宣言センサス + `@trait`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第186次: 動画・メディアコンテナ形式 第2弾(asf / rm / mxf / mpegts / ivf / y4m / swf)
+
+**方法**: 文献参照ラウンド継続 — 放送・制作・ストリーミング系コンテナ。全7件が既存 1204 件と非衝突を確認(ebml/matroska・isobmff/mp4/mov・flv・ts(Qt Linguist)は既存のため除外):
+
+- `asf` — ASF(WMV/WMA): LE GUID オブジェクト鎖、Header/File Properties/Stream Properties + audio/video stream-type GUID 分類
+- `rm` — RealMedia: `.RMF` ヘッダ + `PROP`/`MDPR`/`CONT`/`DATA`/`INDX` チャンク走査
+- `mxf` — MXF(SMPTE ST 377): KLV `[16B UL][BER len][value]`、partition-pack プレフィックス + kind バイト(header/body/footer)
+- `mpegts` — MPEG-TS(ISO/IEC 13818-1): `0x47` 同期 188/192/204 stride 検出 + PID/PUSI/PAT/適応フィールド/スクランブル計数
+- `ivf` — IVF(libvpx): `DKIF` 32B LE ヘッダ + `VP80`/`VP90`/`AV01` fourcc + フレーム走査
+- `y4m` — YUV4MPEG2: `YUV4MPEG2 ` タグ行(`W`/`H`/`F`/`I`/`A`/`C`/`XYSCSS`)+ `FRAME` 計数
+- `swf` — SWF: `FWS`/`CWS`/`ZWS` 圧縮種別 + バージョン + 宣言長
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第187次: 図書館・アーカイブ・OCR 情報形式(marc / mets / ead / oai / alto / hocr / scandata)
+
+**方法**: 文献参照ラウンド継続 — 図書館目録・デジタルアーカイブ・OCR 出力系。全7件が既存 1211 件と非衝突を確認(mods/ris/medline/jats/csljson は既存のため除外):
+
+- `marc` — MARC21/ISO 2709: 24B リーダー(`NNNNN`+`4500`)+ 12B ディレクトリ走査 + 001-009 制御フィールド/データフィールド分類
+- `mets` — METS(LC): `<mets`+`/METS/` xmlns、`mets:` 接頭辞許容の `metsHdr`/`dmdSec`/`amdSec`/`fileSec`/`file`/`FLocat`/`structMap`/`structLink` 計数
+- `ead` — EAD(EAD 2002/EAD3): `eadheader`/`archdesc` + `<c>`/`<cNN>` コンポーネント階層 + `level=` 値列挙 + `did`/`unittitle`/`unitid`
+- `oai` — OAI-PMH 2.0: `verb`/`request`/`responseDate` + record/header/identifier/setSpec/resumptionToken + error code
+- `alto` — ALTO(LC OCR XML): Page/PrintSpace/TextBlock/TextLine/String/SP/HYP 階層 + ページ寸法
+- `hocr` — hOCR: HTML 内 `ocr_page`/`ocr_carea`/`ocr_par`/`ocr_line`/`ocrx_word` クラス + `bbox`/`x_wconf` 計数
+- `scandata` — Internet Archive scandata: `<page leafNum>` 列挙 + `pageType`/`addToAccessFormats`/broken・delete フラグ
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第188次: 最適化・数値計算モデル形式(mps / lp / dimacs / opb / mtx / hb / ampl)
+
+**方法**: 文献参照ラウンド継続 — 数理計画ソルバー・数値線形代数のモデル/行列交換系。全7件が既存 1218 件と非衝突を確認(sat は既存だがアルゴリズムであり形式ではないため dimacs と併存):
+
+- `mps` — MPS(LP/MIP 固定形式): `NAME`+`ROWS`/`COLUMNS`/`RHS`/`RANGES`/`BOUNDS`/`ENDATA` カード + N/L/G/E 行分類 + `INTORG`/`INTEND` 整数マーカー + bound kind
+- `lp` — CPLEX LP(可変形式): `maximize|minimize` + `subject to`/`bounds`/`general`/`binaries`/`end` セクション + `\` コメント + `<`/`=`/`>` 制約 + `free`/`inf` 境界
+- `dimacs` — DIMACS チャレンジ形式(CNF/graph/maxflow): `p <kind> <v> <e>` + `c` コメント + `e`/`a`/`n`/`d` レコード + CNF `0` 終端節
+- `opb` — OPB 擬似ブール(PB コンペ 2.1.2): `#variable=`/`#constraint=` ヘッダ + `min:`/`max:` + `>=`/`<=`/`=` 制約 + soft `\:` 重み
+- `mtx` — MatrixMarket(.mtx): `%%MatrixMarket` バナー + object/format/field/symmetry + `%` コメント + サイズ行
+- `hb` — Harwell-Boeing/Rutherford-Boeing(.rua/.rra 等): 80col カード + `i5` カーディナリティ + `mxkey`(rua/rra/rre/csa…)+ `nnz`/`neltvl` + `rhs` ブロック
+- `ampl` — AMPL .mod: `set`/`param`/`var`/`minimize`/`maximize`/`subject to` 宣言 + `sum`/`forall`/`exists` + `:=`/`option`/`solve`/`display` + `#` コメント
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第189次: 辞書・レファレンスデータ形式(stardict / mdx / dsl / epwing / slob / dictzip / dictd)
+
+**方法**: 文献参照ラウンド継続 — 電子辞書・レファレンス交換系。全7件が既存 1225 件と非衝突を確認(bgl は Babylon ヘッダ仕様の確証が取れず dictd に差替え; gzip は既存だが dictzip は RA 拡張の個別形式):
+
+- `stardict` — StarDict `.ifo`: `StarDict's dict ifo file` + `key=value` ヘッダ(bookname/version/wordcount/idxfilesize/synwordcount/idxoffsetbits/sametypesequence/author)
+- `mdx` — MDict `.mdx`: `u32` ヘッダ長 + `key="value"` 属性ヘッダ(v2 UTF-16LE / v3 UTF-8 自動判別)+ Title/Encoding/Format/CreatedByVersion
+- `dsl` — ABBYY Lingvo `.dsl`: `#NAME`/`#INDEX_LANGUAGE`/`#CONTENTS_LANGUAGE`/`#INCLUDE`/`#ABBREVIATE` 指示 + 行頭 headword vs 字下げ本文 + `[s]`/`<<>>` 参照
+- `epwing` — EPWING `CATALOGS`: `\x00`+ディスクコード(EBXA/EBXA-C/S-EBXA/EPWING)+ `u16be` ブック数 + 80B エントリ走査 + タイトル
+- `slob` — Aard2 `.slob`: `!-2\x02\x02SLOB\x1F` マジック + `u16be` 計数の encodings/tags/content-types + `u32be` blob 数 + `u64be` ストアオフセット
+- `dictzip` — dictzip `.dict.dz`: gzip FEXTRA 内 `RA` サブフィールド(chunk_size/chunk_count u16le)+ 他サブフィールド ID
+- `dictd` — dict.org `dictd` `.index`: `headword TAB b64offset TAB b64len` 行 + クォート headword + 不良行計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第190次: カメラ RAW 画像形式(cr2 / nef / arw / dng / orf / rw2 / raf)
+
+**方法**: 文献参照ラウンド継続 — デジタルカメラ RAW 系。全7件が既存 1232 件と非衝突を確認(`tiff`/`heif` は既存のため TIFF/ISOBMFF 派生として個別シグネチャで棲み分け; Canon CR3 は ISOBMFF 系で `heif` 判別に吸収されるため除外):
+
+- `cr2` — Canon CR2: `II*\x00`+IFD0@16 + `CR\x02\xNN` 二重シグネチャ + `u32le` JPEG プレビューオフセット
+- `nef` — Nikon NEF: TIFF `II`/`MM` + `NIKON` ブランド + `Make`/`MakerNote` タグ
+- `arw` — Sony ARW: `II*\x00` + `SONY` ブランド + `Make`/`Model`/`ExifIFD`/`MakerNote` タグ
+- `dng` — Adobe DNG: TIFF + `DNGVersion`(0xC612) タグ + `[major,minor]` + `UniqueCameraModel` + 0xC000 系 DNG 拡張タグ計数
+- `orf` — Olympus ORF: `II*\x00`+`IIRO`/`IIRS`@8 + IFD0@16
+- `rw2` — Panasonic RW2: `IIU\x00`(magic 85)+ `Panasonic` ブランド + タグ計数
+- `raf` — Fuji RAF: `FUJIFILMCCD-RAW ` バナー + `0201`/`0202` バージョン + BE JPEG/CFA ポインタ表
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第191次: 形式手法・定理証明・検証形式(tptp / smt2 / aiger / sby / isabelle / coq / lean)
+
+**方法**: 文献参照ラウンド継続 — 自動定理証明・モデル検査・対話的証明系。全7件が既存 1239 件と非衝突を確認(`sat` はアルゴリズムで形式ではないため併存):
+
+- `tptp` — TPTP 問題記述: `cnf`/`fof`/`tff`/`thf`/`tfa`/`tpi`/`ddt` kind 計数 + axiom/type vs conjecture/lemma ロール分類 + `include`
+- `smt2` — SMT-LIB v2: `set-logic`/`declare-fun`/`declare-sort`/`define-*`/`assert`/`check-sat`/`get-*`/`push`/`pop`/`set-option`/`exit` コマンド計数
+- `aiger` — AIGER 回路交換: `aag`/`aig` ヘッダ `M I L O A` + 拡張 `B C J F` + ASCII 行計数
+- `sby` — SymbiYosys: `[tasks]`/`[options]`/`[engines]`/`[script]`/`[files]` セクション + `mode`/`depth` + 行計数
+- `isabelle` — Isabelle/Isar `.thy`: `theory`/`imports`/`begin`/`end` 骨格 + lemma/definition/datatype/locale/tactic/hole キーワード計数(`(* *)` コメント除去)
+- `coq` — Coq/Rocq `.v`: vernacular コマンド計数(lemmas/Proof/Qed/Admitted/Definition/Inductive/Fixpoint/Module/Require)
+- `lean` — Lean 4: `import` ドット名/`theorem`/`def`/`inductive`/`instance`/`example`/`namespace`/`#check` 系 + `by`/`sorry` 計数
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第192次: 端末・BBS アート形式(ansi / sixel / iterm / kittyimg / terminfo / asciicast / ttyrec)
+
+**方法**: 文献参照ラウンド継続 — テキスト端末の描画・記録形式。`sauce` は既存のため除外、予告の `nfo` は汎用テキストで検出署名が弱いため除外:
+
+- `ansi` — ANSI アート(`.ans`): CSI 計数 + SGR(`m`)/カーソル移動(`H`–`u`)/消去(`J`/`K`) final 分類 + OSC + CP437 ハイバイト計数
+- `sixel` — DEC Sixel: `ESC P` パラメータ + `q` + `#` 色レジスタ/`!` RLE/`"` ラスタ/`-` 改行/`$` 復帰計数 + `ESC \` 終端
+- `iterm` — iTerm2 インライン画像: `ESC ] 1337 ; File =` k=v ペア + `:` base64 ペイロード + BEL/ST 終端
+- `kittyimg` — Kitty graphics protocol: `ESC _ G` カンマ k=v 制御(`a`/`f`/`t`/`m`) + `;` ペイロード + ST 終端
+- `terminfo` — コンパイル済み terminfo: `0x011A`/`0x021E`(拡張)マジック + u16×5 セクションサイズ
+- `asciicast` — asciinema `.cast`: `{"version":1|2}` ヘッダ + `o`/`i`/`m` イベント行計数(v1 は `"stdout"` 内蔵)
+- `ttyrec` — ttyrec: `u32le sec,usec,len` フレーム鎖 + ファイル長完全消費検証
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第193次: ゲームレベル・タイルマップ形式(tmx / tsx / ldtk / ogmo / t3d / smd / qmap)
+
+**方法**: 文献参照ラウンド継続 — 2D タイルエディタ・レベルエディタ・DCC 中間形式。全7件が既存 1253 件と非衝突を確認(`map` は `qmap` と命名して汎用名との混同を回避):
+
+- `tmx` — Tiled TMX: `<map>` geometry(orientation/width/tilewidth)+`<tileset>`/`<layer>`/`<objectgroup>`/`<imagelayer>`/`<group>` 計数 + `data encoding` 分類(csv/base64)
+- `tsx` — Tiled TSX タイルセット: `name`/`tilewidth`/`tilecount`/`columns` + `<image>`/`<tile>`/`<tileoffset>`/`<wangset>`/`<animation>`/`<frame>` 計数
+- `ldtk` — LDtk JSON: `__header`/`fileType` + `layerInstances`/`entityInstances`/`tileInstances`/`intGridValues`/`autoLayerTiles`/`gridSize`
+- `ogmo` — Ogmo Editor 3: `ogmoVersion` + `layers` の name/entity/grid/tile/decal/point 種別計数
+- `t3d` — Unreal テキストエクスポート: `Begin Map`/`Object`/`Actor`/`Brush`/`Surface` ブロック + `Class`/`Name`/`Archetype`/`Group` 代入計数
+- `smd` — Studiomdl Data: `version` + `nodes`/`skeleton`/`triangles` セクション走査 + フレーム/頂点計数
+- `qmap` — Quake `.map`: エンティティ/ブラシ `{` ブロック深さ + `( x y z )³` 面行 + `classname`/`worldspawn`
+
+**検証**: 各モジュール単体テスト + doctest。全て整数のみで実装。
+
+
+
+
+## 第194次: XML スキーマ・変換・クエリ形式(xsd / relaxng / sch / xslt / dtd / xlink / xq)
+
+**方法**: 文献参照ラウンド継続 — W3C XML 技術群のスキーマ言語・変換・リンク・クエリ。予告の `xi` は既存モジュールと衝突のため `xq`(XQuery)に差替え、7 件全て非衝突を確認:
+
+- `xsd` — XML Schema Definition: `<*:schema` + element/complexType/simpleType/attribute/compositor/facet/import/include 計数 + `targetNamespace`
+- `relaxng` — RELAX NG XML 構文: structure 名前空間 `<grammar>` + 全パターン素子計数
+- `sch` — Schematron: namespace/rule/assert/report/context/phase/diagnostics
+- `xslt` — XSLT: stylesheet/transform ルート + 20 命令センサス
+- `dtd` — DTD: `<!ELEMENT`/`<!ATTLIST`/`<!ENTITY`/`%pe;`/`<!NOTATION`/条件セクション + 外部 ID/属性キーワード
+- `xlink` — XLink: `xlink:href` + `type` 6 種 + 振る舞い属性
+- `xq` — XQuery: `xquery version` + prolog/FLWOR/`fn:`/`$var` 計数
+
+共通: `count_tag` は `</` 終了タグを除外する境界付き素名検索、属性値はクォート両対応で抽出。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(合計 21 + 8)。
+
+
+
+
+## 第195次: 識別子・チェックデジット形式(isbn / issn / ean / upc / ismn / orcid / luhn)
+
+**方法**: 文献参照ラウンド継続 — 標準識別子のチェックデジット検証器。全7件非衝突(`doi` は構造検証が弱く候補外):
+
+- `isbn` — ISBN-10(加重 i mod 11、`X`=10)/ISBN-13(978/979 EAN mod-10)
+- `issn` — ISSN(降順加重 8..1 mod 11、`X`)
+- `ean` — EAN-13(1,3 交互 mod-10 + GS1 prefix)
+- `upc` — UPC-A(3,1 交互 mod-10 + ナンバーシステム)
+- `ismn` — ISMN(979-0 mod-10 / レガシー `M-`:M=3 重み3 + A=10..Z=35)
+- `orcid` — ORCID(ISO 7064、逐次 `×2` mod 11、`X`)
+- `luhn` — Luhn mod-10(右から 2 倍 -9)+ `check_digit` 補助関数
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在識別子フィクスチャ)。
+
+
+
+
+## 第196次: トークン・認証資格形式(jwk / jwe / saml / paseto / macaroon / cookiejar / keytab)
+
+**方法**: 文献参照ラウンド継続 — 認証・認可系トークン/資格ファイルの構造検証。`jwt` は既存のため除外、全7件非衝突:
+
+- `jwk` — RFC 7517 JSON Web Key(`"kty"`/`"keys"`/`"n"`/`"e"`/`"x"`/`"y"`/`"crv"`/`"kid"`/`"alg"`/`"use"`/`"key_ops"`/`"x5c"` クレーム集合 + 秘密鍵パラメータ)
+- `jwe` — RFC 7516 コンパクトシリアライズ(5 base64url セグメント + ヘッダデコードで alg/enc/kid/zip/crit/epk)
+- `saml` — SAML 2.0(`samlp:Response`/`AuthnRequest`/`saml:Assertion` + Issuer/Subject/NameID/Conditions/AuthnStatement/Attribute/Signature/EncryptedAssertion/InResponseTo)
+- `paseto` — PASETO(`v1`..`v4` + `local`/`public` + base64url payload + 任意 footer)
+- `macaroon` — Macaroon(v2 JSON `{"v":2,"l","i","c","s64"}` / レガシー packet + cid/vid caveat + signature)
+- `cookiejar` — Netscape `cookies.txt`(7 カラム TAB 区切り + `#HttpOnly_` + banner + expires/session)
+- `keytab` — Kerberos keytab(`0x0502`/`0x0501` + u32be 長 prefix エントリ鎖 + プリンシパル/enctype 走査)
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在形式フィクスチャ、JWE は base64url デコード実装検証)。
+
+
+
+
+## 第197次: クエリ・検索言語形式(sparql / cypher / xpath / jsonpath / lucene / jq / kql)
+
+**方法**: 文献参照ラウンド継続 — クエリ言語の構文センサス。全7件非衝突(gremlin/promql は予備):
+
+- `sparql` — SPARQL 1.1(PREFIX/BASE/SELECT/ASK/CONSTRUCT/DESCRIBE + WHERE/OPTIONAL/FILTER/UNION/ORDER/LIMIT/OFFSET/BIND/VALUES/MINUS/SERVICE/GRAPH)
+- `cypher` — Neo4j Cypher(MATCH/OPTIONAL MATCH/WHERE/RETURN/CREATE/MERGE/SET/DELETE/WITH/UNWIND/CALL/UNION + `(n)-[:R]->(m)` パターン)
+- `xpath` — XPath 1.0/2.0(`/`/`//`/`@`/`[pred]`/`axis::`/`|` + 33 関数 + eq/lt/gt/mod/div)
+- `jsonpath` — JSONPath(RFC 9535 + Goessner、`$`/`..`/`[n]`/`[*]`/`[a:b:c]`/`[?()]`/`[()]`/`@`/`length()`)
+- `lucene` — Lucene 構文(field:term/+/-/NOT/AND/OR/&&/||||~fuzzy/^boost/"phrase"/[a TO b]/wildcards/groups)
+- `jq` — jq フィルタ(`.x`/`.[]`/`|`/`..`/`//`/`?`/def/as/reduce/if-elif-else-end/try/68 builtins)
+- `kql` — Kusto KQL(`| where|project|extend|summarize|sort|take|join|union|render` + let/datatable/by/ago/==/~=/in/between/has/contains)
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在クエリフィクスチャ)。
+
+
+
+
+## 第198次:分散識別子・名前付け形式パーサ(7 モジュール)
+
+`nanoid`(NanoID:`A–Za–z0–9_-` 64 文字 URL-safe、既定 21 文字、numeric/hex/lower 部分集合判別)/ `cuid`(CUID v2:小文字先頭+base36、legacy `c…` 判別、密度指数)/ `xid`(XID:12 バイトを base32hex 小文字 20 文字に、timestamp/machine/pid/counter 復元)/ `typeid`(TypeID:`prefix_`+26 文字 base32 suffix → UUIDv7 version/variant 検証)/ `did`(W3C DID:`did:method:msid` + `:`subid + `%xx` + `;`/`?`/`#`/`/` サフィックス + 既知 method 集合)/ `base32`(RFC 4648:`A–Z2–7`+合法パディング 0/1/3/4/6 + base32hex 変種判別)/ `crockford`(Crockford Base32:`-` 区切り + `I/L/O` エイリアス + `*~$=U` チェックシンボル mod-37 検証)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在 ID フィクスチャ・既知チェックディジット対)。
+
+
+
+
+## 第199次:セマンティック Web・連絡先・メタデータ交換形式パーサ(7 モジュール)
+
+`vcard`(vCard RFC 6350:BEGIN/END ブロック+VERSION 判別+プロパティ/FN・N・EMAIL・TEL 等センサス+folded)/ `ical`(iCalendar RFC 5545:VCALENDAR+VEVENT/VTODO/VJOURNAL/VFREEBUSY/VTIMEZONE/VALARM+DTSTART/RRULE+BEGIN/END 整合)/ `ldif`(LDIF RFC 2849:`dn:` エントリ+`attr:`/`::`base64/`<`url+changetype 系+distinct 属性名)/ `xmp`(Adobe XMP:xpacket PI+xmpmeta+rdf:Description/Seq/Bag/Alt/li+名前空間集合)/ `iptc`(IPTC-IIM:`0x1C` マーカー+record/dataset/長さ歩行+2:05/2:25/2:55/2:80/2:120 判別)/ `atom`(Atom RFC 4287:feed+2005/Atom+entry/title/link rel= センサス)/ `dsig`(XMLDSIG RFC 3275:Signature+xmldsig#+SignedInfo/SignatureValue/KeyInfo/Object+Reference URI/Transform/DigestMethod)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:VCARD カード・VCALENDAR・LDIF エントリ・XMP パケット・IPTC レコード・Atom フィード・XMLDSIG 署名)。
+
+
+
+
+## 第200次:配列アライメント・系統解析形式パーサ(7 モジュール)
+
+`bam`(BAM hts-specs:`BAM\x01`+`l_text` i32le SAM ヘッダ+`n_ref`/`l_name`/`name`/`l_ref` 辞書+`block_size` i32le アライメントレコード鎖歩行+切詰検出)/ `aln`(Clustal W/X/Omega:`CLUSTAL`|`MUSCLE` バナー+空行ブロック+`name seq` 行+`*:.` コンセンサス行)/ `maf`(UCSC MAF:`##maf key=value` ヘッダ+`a score=` ブロック+`s` src/start/size/strand/srcSize/seq+`i`/`e`/`q`/`p`/`c` 補助行)/ `paf`(minimap2 PAF:12 必須タブ列 qname/qlen/qstart/qend/strand/tname/tlen/tstart/tend/nmatch/alen/mapq+`tag:type:value` オプション列)/ `pileup`(SAMtools mpileup:`seq pos ref depth bases quals`+`.,ACGTNacgtn*^$+-[]` マーカー+indel/deletion/ref-only 計数)/ `nexus`(NEXUS:`#NEXUS`+`begin/end` ブロック+`dimensions ntax/nchar`+`tree`/`utree`/`matrix`/`translate`/`taxlabels`)/ `phylip`(PHYLIP:`<ntax> <nchar>` 先頭+`name seq` 行+sequential/interleaved レイアウト判別)。`vcf`/`sam` は既存モジュール(vCard/サフィックスオートマトン)のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BAM バイナリ・Clustal ブロック・MAF ブロック・PAF 行・mpileup 行・NEXUS ツリー・PHYLIP 行列)。
+
+
+
+
+## 第201次:TeX バイナリ・フォントメトリクス形式パーサ(7 モジュール)
+
+`dvi`(DVI/XDV:`0xF7`+version id 2/3/7(DVI/pTeX/XDV)+`num`/`den`/`mag`+`k` コメント+末尾 `0xF9` `post_post` の `q` 指す `0xF8` `post` で `l`/`u`/`s`/`t` 取得)/ `tfm`(TeX Font Metric:`lf lh bc ec`+`nw nh nd ni nl nk ne np` で `lf = 6+lh+chars+Σtables`・`len = 4*lf` 整合+`check_sum`/`design_size` ヘッダ)/ `jfm`(pTeX JFM:`id` 9(横)/11(縦)+`nt` char_type+`lf = 7+lh+nt+chars+Σ` 拡張式、`exten`→`glue` 差異)/ `gf`(Metafont Generic Font:`0xF7 131`+`k` コメント+`post` の `ds cs hppp vppp min_m..max_n` バウンディングボックス)/ `pk`(Packed:`0xF7 89`+`k` コメント+`ds cs hppp vppp`+`245 pk_post`/`246 pk_nop` パディング)/ `vf`(Virtual Font:`0xF7 202`+`cs`/`ds`+`flag<242` 短・`242` 長 char パケット+`243–246` `fnt_def` 歩行+`248 post`)/ `pl`(property list(tftopl/pltotf):`(FAMILY|CODINGSCHEME|DESIGNSIZE|CHECKSUM|FONTDIMEN|LIGTABLE|CHARACTER|…)` フォーム走査+`R D O H C F` radix タグ計数+`CHARWD`/`CHARHT`/`CHARIC`/`KRN`/`LIG`/`LABEL`/`STOP` 内訳)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:DVI post_post・TFM lf 式・JFM 縦組・GF post・PK postamble・VF fnt_def/char パケット・PL フォーム)。
+
+
+
+
+## 第202次:フロッピー・ディスクイメージ形式パーサ 第2弾(7 モジュール)
+
+`woz`(Apple II WOZ:`WOZ1`/`WOZ2`+`0xFF 0x0A 0x0D 0x0A` 整合バイト+`ID u32le` チャンク歩行で `INFO`/`TMAP`/`TRKS`/`META`/`FLUX`/`WRIT` センサス)/ `a2r`(Applesauce A2R:`A2R2`/`A2R3` 同系シグネチャ+`INFO`/`STRM`/`META`/`RWCP`/`SLVD`/`SELV`、STRM type で flux/nibble/bitstream 分類)/ `hfe`(HxC Floppy Emulator:`HXCPICFE`+rev 0+tracks/sides/encoding+bitrate/rpm u16le+interface mode+512B 単位 LUT 歩行)/ `scp`(SuperCard Pro:`SCP`+BCD version+disk type+revolutions+start/end track+flags/cell_size/heads/resolution+u32le checksum+168 エントリ u32le オフセット表)/ `imd`(ImageDisk:`IMD ` ASCII ヘッダ+`0x1A` 終端+mode/cyl/head(bit6 シリンダマップ/bit5 ヘッドマップ)/nsec/ssize `128<<n`+セクタデータ type `0..=8` 歩行)/ `td0`(TeleDisk:`TD`/`td`+sequence+check-sig+version/data_rate/drive_type/stepping/dos/sides+header CRC16+任意コメントブロック crc+len+日時)/ `edsk`(Amstrad CPC:`MV - CPCEMU Disk-File`/`EXTENDED CPC DSK File`+tracks/sides/track_size or サイズテーブル+`Track-Info` ブロック走査+セクタ情報リスト計数)。`nib`/`po`/`d64`/`d88` は既存モジュールのため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WOZ チャンク・A2R STRM・HFE LUT・SCP オフセット表・IMD トラックレコード・TD0 コメントブロック・EDSK Track-Info)。
+
+
+
+
+## 第203次:GPU シェーダ・中間言語形式パーサ(7 モジュール)
+
+`spv`(SPIR-V:`0x07230203` マジック+version/generator/bound/reserved+`wc u16 | opcode u16` 命令歩行で `OpEntryPoint`/`OpName`/`OpCapability`/`OpExtension` センサス)/ `dxbc`(DirectX Bytecode:`DXBC`+16B ハッシュ+u32le 版/総サイズ/チャンク数+オフセット表→`SHDR`/`SHEX`/`DXIL`/`ISGN`/`OSGN`/`RDEF`/`STAT`/`PSV0` FOURCC 分類)/ `metallib`(Apple Metal:`MTLB`+ヘッダ語+`TARG`/`TYPE`/`NAME`/`FNMD`/`HASH`/`MDCL`/`ENDT`/`BITC` タグ歩行+LLVM bitcode 検出)/ `ptx`(NVIDIA PTX:`.version M.m`+`.target sm_NN`+`.address_size`+`.entry`/`.func`/`.visible`/`.reg`/`.global` 等ディレクティブ走査)/ `glsl`(`#version NNN`+`es`/`core`/`compatibility` プロファイル+`#extension`+uniform/in/out/varying/layout/sampler/`gl_`/`void main` 集計)/ `hlsl`(`cbuffer`/`tbuffer`+`register(N)`/`packoffset`+`SV_*` セマンティクス+`Texture*`/`SamplerState`/`RWStructuredBuffer`+`floatN`/`matrix`+`[numthreads]` 属性+technique)/ `wgsl`(`@vertex`/`@fragment`/`@compute`+`@group`/`@binding`/`@builtin`/`@location`/`@workgroup_size`+`fn`/`struct`/`var<`/`let`/`const`/`override`+`vecNf`/`matNxMf` 型)。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:SPIR-V ヘッダ+命令語、DXBC チャンク表、MTLB タグ列、PTX ディレクティブ、GLSL `#version`+宣言、HLSL cbuffer/register、WGSL `@vertex`/`@group` 属性)。
+
+
+
+
+## 第204次:圧縮・アーカイブ形式パーサ 第3弾(7 モジュール)
+
+`wim`(Microsoft Windows Imaging:`MSWIM\0\0\0`/`MSWIMOLD`+u32le ヘッダサイズ・バージョン・フラグ+圧縮列挙(None/XPRESS/LZX/LZMS/solid 変種)+`reshdr`(8B オフセット+7B サイズ+1B フラグ)オフセットテーブル/XML/ブート/整合性区画センサス+パーツ番号/イメージ数)/ `zpaq`(Matt Mahoney:`zPQ`+level 1/2+メモリバイト、`h` ブロック開始・`d` データ・`i` ブロック終端マーカ走査+HCOMP ヘッダ(hh hm ph pn n+comp n バイト+END)集計)/ `lzfse`(Apple 圧縮:`bvx1` 非圧縮/`bvx2` v2/`bvxn` 非圧縮終端/`bvx-` raw/`bvx$` EOS ブロックマジック歩行+raw/payload バイト集計)/ `ace`(`**ACE**` シグネチャ+head crc/size/type/flags/version/host_os+型付きサブヘッダ entry(1=file,2=recovery,3=AV,4=comment)歩行)/ `alz`(ALZip:`ALZ\x01` マジック+`F` 型付きエントリレコード走査+末尾 u32le ファイル数との整合+EOF トレーラ検出)/ `zoo`(Rahul Dhesi:`FD C4 A7 DC` アーカイブマジック@20+テキスト導入部+ディレクトリエントリ `next` オフセット鎖歩行+type(1=file,2=sub)/method ビット集合+orig/packed サイズ集計)/ `lzip`(LZMA 単一/複数メンバ:`LZIP`+version 1+coded dict サイズ(上位3bit 指数)+20B メンバトレーラ crc32/data_size/member_size 整合走査)。`cab`/`cpio`/`ar`/`tar`/`lzw`/`gzip`/`bzip2`/`zstd`/`lz4`/`xz`/`zip`/`rar`/`x7z`/`squashfs` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:WIM reshdr 表・ZPAQ マーカ+HCOMP、LZFSE ブロック列・ACE サブヘッダ列・ALZ F レコード・ZOO エントリ鎖・lzip トレーラ)。
+
+
+
+
+## 第205次:FPGA ビットストリーム・プログラミング形式パーサ(7 モジュール)
+
+`bit`(Xilinx BitGen BIT:`00 09 0F F0 0F F0 0F F0 0F F0 00 01 00` プリアンブル+`a`/`b`/`c`/`d` u16be タグレコード(design/part/date/time)+`e` u32be データ長+ペイロード+`AA 99 55 66` 同期ワード検出)/ `jed`(JEDEC JESD3-C ヒューズマップ:`*`-終端レコード `QF` ヒューズ数・`F0`/`F1` デフォルト・`L<addr> <bits>` ヒューズ転写・`C` 16bit チェックサム・`G` セキュリティ・`N`/`D`/`E` 注記、STX/ETX フレーミング、set/clear ビット集計)/ `svf`(Serial Vector Format IEEE 1149.1:`HIR`/`TIR`/`HDR`/`TDR`/`SIR`/`SDR`/`RUNTEST`/`STATE`/`ENDIR`/`ENDDR`/`TRST`/`FREQUENCY` 文センサス+`TDO(`/`MASK(` ベクトル数、`;` 文分割、`//` コメント)/ `xsvf`(Xilinx XSVF バイナリ:XSDRSIZE オペコード 8+サイズ、オペコード歩行 `XCOMPLETE`/`XTDOMASK`/`XSIR`/`XSDR`/`XRUNTEST`/`XREPEAT`/`XSDRSIZE`/`XSTATE`/`XENDIR`/`XENDDR`/`XSIR2`/`XCOMMENT`/`XWAIT`、sdr_bytes=(bits+7)/8、truncated フラグ)/ `isc`(Xilinx ISC IEEE 1532:`ISC_*` コマンドセンサス `SIR`/`SDR`/`PROGRAM`/`ERASE`/`VERIFY`/`READ`/`BLANK`/`RUNTEST`/`ENABLE`/`DISABLE`+`TDO(` ベクトル+非 ISC 文 stray_text)/ `xdc`(Xilinx Design Constraints Tcl:`set_property`+`PACKAGE_PIN`/`IOSTANDARD`+`create_clock`/`create_generated_clock`+`set_input_delay`/`set_output_delay`/`set_false_path`/`set_multicycle_path`/`set_max_delay`/`set_clock_groups` タイミング例外+`get_ports`/`get_pins`/`get_cells`/`get_clocks`/`get_nets` オブジェクト参照+括弧深度バランス)/ `lpf`(Lattice LPF:`LOCATE`/`FREQUENCY`/`PERIOD`/`IOBUF`/`SYSCONFIG`/`BLOCK`/`UNBLOCK`/`PREFER`/`PROHIBIT`/`TIMESPEC`/`SLICE`/`UGROUP` 文センサス+`SITE` 参照数+MHz/KHz トークン+未知大文字コマンド unterminated)。予告の `rbf`/`sof` は署名のない生バイナリで detect()/parse() 契約を満たせず `xdc`/`lpf` に差替え。`sdc`/`pcf`/`ttf`/`soc`/`pal`/`gpl`/`ust` は既存のため除外。
+
+各 parse は検証成功時のみ Some を返すトータルパーサ。全て整数のみで実装。
+
+**検証**: 各モジュール単体テスト + doctest(実在フィクスチャ:BIT タグレコード列・JEDEC `*`-レコード+STX/ETX、SVF `;` 文・XSVF オペコード列・ISC `ISC_` 文・XDC Tcl 行・LPF 文)。
+
+
+
+
+## 第206次:言語別パッケージ定義ファイル形式
+
+Dart/Flutter `pubspec.yaml`・Crystal `shard.yml`・Haskell `.cabal`・LuaRocks `.rockspec`・Perl `cpanfile`・OCaml `.opam`・Nim `.nimble` の7形式を追加。全て YAML/DSL のテキスト形式で、署名の強いキー(`environment:` `sdk:`/`crystal:`/`cabal-version:`/`rockspec_format`/`opam-version:`/`srcDir`/`requires`)で検出し、セクション・スタンザ・テーブルを字下げ/括弧深さ歩行でセンサス。
+
+
+
+
+## 第207次:ボードゲーム・パズル形式
+
+チェス EPD・将棋 CSA 棋譜・KIF 棋譜・象棋 XQF・USI プロトコル・AcrossLite .puz・数独テキストの7形式を追加。pgn/fen/gtp/sgf は既存モジュールのため除外。テキスト系は行/フィールド走査、バイナリ系はマジック+レコード歩行で検出・集計する。
+
+
+
+
+## 第208次:グラフ・ネットワーク解析形式
+
+GML・GraphML・GEXF・Pajek .net・GUESS GDF・LEDA .gw・Tulip .tlp の7形式を追加。graph/dimacs/mtx/sparql は既存モジュールのため除外。XML 系は境界付きタグ走査、テキスト系はセクション/レコード走査で検出・集計する。
+
+
+
+
+## 第209次:量子計算・量子回路記述形式
+
+OpenQASM 2/3・Rigetti Quil・IBM Qobj・Amazon Braket IR・Xanadu Blackbird・Q#・OpenPulse の7形式を追加。`qir` は LLVM bitcode 系で `llvmbc` と兼任のため除外。QASM 系はステートメント単位、JSON 系はキー走査、Blackbird はヘッダ+パイプ記法、Q# はキーワード単位、OpenPulse は行頭キーワード計数で検出・集計する。
+
+
+
+
+## 第210次:ゲームエンジン・エディタプロジェクト形式
+
+Unreal `.uproject`/`.uplugin`・Godot `project.godot`/`.tscn`・Twee 3・Ren'Py `.rpy`・RPG Maker `.rxdata`/`.rvdata2` の7形式を追加。JSON 系はキー走査、INI/セクション系はヘッダ走査、Twee/Ren'Py は行頭キーワード計数、rvdata は Marshal 4.8 トークンの再帰走査で検出・集計する。
+
+
+
+
+## 第211次:構成・データ記述言語(DSL)形式
+
+Dhall・Jsonnet・Nickel・KCL・Apple Pkl・Clojure EDN・Zig ZON の7形式を追加。いずれも `let`/`in`・`self.`・`schema`・`amends`・`:keyword`・`.{` 等の言語固有シグネチャで検出し、バインディング・契約注釈・インポート・コメントを整数計数する。
+
+
+
+
+## 第212次:スマートコントラクト・ブロックチェーン言語形式
+
+Solidity・Vyper・Move・Cairo・Clarity・Tact・FunC の7言語を追加。`pragma solidity`/`# @version`/`module addr::name`/`#[starknet::contract]`/`(define-*`/`contract+receive`/`recv_internal` 等の言語固有シグネチャで検出し、宣言・デコレータ/属性・外部呼出・コメントを整数計数する。
+
+
+
+
+## 第213次:IaC・デプロイ定義ファイル形式
+
+CloudFormation・Bicep・Serverless Framework・Docker Compose・Vagrantfile・Helm Chart.yaml・Pulumi.yaml の7形式を追加。`AWSTemplateFormatVersion`/`targetScope`/`service+provider`/`services:`/`Vagrant.configure`/`apiVersion+type`/`name+runtime` 等の形式固有シグネチャで検出し、宣言・ブロック内エントリ・組込み関数使用数・コメントを整数計数する。YAML 系はインデント追跡のブロック抽出で同名キーのネスト混入(サービス内 `volumes:`、テンプレ内 `config:`)を抑制する。
+
+
+
+
+## 第214次:CI/CD パイプライン定義ファイル形式
+
+.gitlab-ci.yml・Jenkinsfile・.circleci/config.yml・azure-pipelines.yml・.drone.yml・Concourse pipeline.yml・bitrise.yml の7形式を追加。`stages`/`pipeline {`/`jobs+workflows`/`trigger+pool`/`kind: pipeline`/`resource_types`/`- get:`/`format_version` 等の形式固有シグネチャで検出し、ジョブ・ステップ・トリガ・イメージ・変数エントリを整数計数する。YAML 系はブロック内最小インデントの `- ` 項目のみ計数し、workflow 内 `jobs:` やサービス内 `volumes:` の同名ネスト混入を抑止する(第213次で導入した手法を踏襲)。
+
+
+
+
+## 第215次:API テスト・HTTP クライアント・サービス定義形式
+
+HTTP Archive(.har)・Hoppscotch collection・Bruno .bru・REST Client .http/.rest・Insomnia エクスポート・RAML・API Blueprint の7形式を追加。JSON キー走査(har/hoppscotch)・`name {`ブロック走査(bru)・行状態機械(httpfile/insomnia)・`#%RAML`+最小インデント子キー(raml)・Markdown 見出し/`+`マーカ走査(apib)で、リクエスト・ヘッダ・リソース・型宣言等を整数計数する。
+
+
+
+
+## 第216次:パッケージマネージャ・ロックファイル形式
+
+yarn.lock(v1)・package-lock.json・pnpm-lock.yaml・Cargo.lock・Gemfile.lock・poetry.lock・composer.lock の7形式を追加。エントリヘッダ(yarn)・JSON キーセンサス(npm/composer)・YAML ブロック走査(pnpm)・TOML テーブル(cargo/poetry)・セクション+インデント分類(gem)で、パッケージ数・解決 URL・整合性ハッシュ・依存ブロック等を整数計数する。
+
+
+
+
+## 第217次:歌声合成・ボーカルシーケンス形式
+
+UTAU .ust・OpenUtau .ustx・VOCALOID3/4 .vsqx・VOCALOID5 .vpr・Synthesizer V .svp・CeVIO .ccs・HTS/UTAU .lab の7形式を追加。INI セクション走査(ust)・YAML ブロック走査(ustx)・XML タグ/属性センサス(vsqx/ccs)・JSON キーセンサス(vpr/svp)・`start end phone` 行検証(lab)で、ノート数・歌詞・音素・ピッチ・パラメータ曲線等を整数計数する。
+
+
+
+
+## 第218次:天文・天体観測データ形式
+
+IVOA VOTable・ASDF・IPAC Table・Astropy ECSV・SAOImage DS9 リージョン・MPC 80桁観測フォーマット・IVOA ADQL の7形式を追加。XML タグ/属性センサス(votable)・`#ASDF`+YAML ツリー走査(asdf)・`|` ヘッダ行分類(ipac)・コメント YAML+CSV(ecsv)・座標系+shape(args) 行(ds9reg)・80桁固定カラム走査(mpc)・大文字キーワードセンサス(adql)で、テーブル構造・列型・座標系・観測レコード・幾何クエリを整数計数する。
+
+## 第219次:医療・生体信号データ形式
+
+HL7 v2・FHIR JSON・BrainVision .vhdr/.vmrk・XDF・WFDB .hea・NCPDP SCRIPT の7形式を追加。パイプ区切りセグメント走査(hl7)・JSON キーセンサス(fhir)・INI セクション+`MkN=` カンマフィールド(vmrk/vhdr)・`XDF:` +length-prefixed chunk 歩行(xdf)・`name/N fs N` レコード行+`fmtXgain`(wfdb)・XML タグセンサス(ncpdp)で、メッセージ構造・チャネル/マーカー・信号仕様を整数計数する。
+
+## 第220次:ログ収集・データパイプライン設定形式
+
+Logstash・Fluentd・Filebeat・Telegraf・Vector・Grok・syslog-ng OSE の7形式を追加。`input/filter/output` セクション+プラグインブロック(logstash)・`<source>`/`<match>`+`@type` パラメータ(fluentd)・`filebeat.inputs` YAML 歩行(filebeat)・`[[inputs.*]]`/`[agent]` TOML センサス(telegraf)・`[sources/transforms/sinks]`+`inputs=` 配線(vector)・`NAME regex`+`%{REF:field:type}`(grok)・`@version`+source/destination/log 文(syslogng)で、パイプライン構成・プラグイン・配線を整数計数する。
+
+## 第221次:エディタ・IDE・開発環境設定形式
+
+.editorconfig・devcontainer.json・devfile.yaml・Sublime project/settings・tmux.conf・kitty.conf・alacritty.toml/yml の7形式を追加。INI+`[glob]` セクション(editorconfig)・JSONC キーセンサス+lifecycle hook(devcontainer)・YAML ブロック歩行(devfile)・JSON セクション走査(sublime)・`set`/`bind`/`@plugin` コマンド文(tmuxconf)・`key value`+`map`/`symbol_map`(kittyconf)・TOML/YAML セクション+key_bindings(alacritty)で、エディタ/コンテナ/端末の構成を整数計数する。
+
+
+
+## 第222次:監視・オブザーバビリティ設定形式
+
+prometheus.yml・alertmanager.yml・Grafana provisioning/dashboard・OpenTelemetry Collector・nagios.cfg+objects・icinga2.conf・zabbix_agentd.conf の7形式を追加。YAML トップレベルセクション+`job_name`/`static_configs`/`*_sd_configs`/`relabel_configs`(prometheus)・`route:`/`receivers:`/`inhibit_rules:`+`*_configs` 連携(alertmanager)・apiVersion+providers/datasources+JSON キーセンサス(grafana)・receivers/processors/exporters/extensions/connectors+service.pipelines 配線(otelcol)・`define host|service|command`+`key value` フィールド+cfg_file 経路指令(nagios)・`object <Type> "name" { }`+`vars.*`/`key = value`(icinga)・`Server=`/`UserParameter=`/`Include=` キー分類(zabbix)で、監視構成・通知配線・パイプライン構成を整数計数する。
+
+## 第223次:検索エンジン・情報検索設定形式
+
+Solr schema.xml・solrconfig.xml・Elasticsearch mappings・Elasticsearch settings・Meilisearch settings・Typesense schema・Algolia index settings の7形式を追加。`<field>`/`<fieldType>`/`<copyField>`+`solr.*` クラス(solrschema)・requestHandler/cache/updateLog+`<lst>`/`<str>` 型付き要素(solrconfig)・`"properties"`/`"type":"text|keyword|…"` フィールド型(esmapping)・number_of_shards+analysis named objects(essettings)・rankingRules+`*Attributes`+typoTolerance(meili)・`{"name","type"}` フィールド配列+facet/default_sorting_field(typesense)・searchableAttributes+attributesForFaceting+customRanking+`ALGOLIA_*`(algolia)で、スキーマ・分析器・ランキング・クエリ構成を整数計数する。
+
+
+
+## 第224次:データパイプライン・ワークフロー定義形式
+
+Airflow DAG・dbt_project.yml・prefect.yaml・dagster.yaml/workspace.yaml・Argo Workflows・ArgoCD Application/AppProject/ApplicationSet・Kubeflow Pipelines の7形式を追加。`from airflow`/`import airflow`+`dag_id`+`@task` デコレータ+`>>`/`<<` 依存演算子(airflow)・`model-paths:`/`require-dbt-version:`+`models:`/`seeds:` ブロック+`+materialized` 等の `+` 設定キー(dbt)・`prefect-version:`+`deployments:` の `- name:` エントリ+`entrypoint:`/`work_pool:`+`cron:`/`rrule:` スケジュールキー(prefect)・`run_launcher:`/`run_storage:`/`event_log_storage:`+`load_from:` の `python_file:`/`grpc_server:` ロケーション(dagster)・`argoproj.io`+`kind: Workflow|CronWorkflow`+`entrypoint:`/`templates:`+`container:`/`dag:`/`steps:`(argowf)・`kind: Application|AppProject|ApplicationSet`+`source:`/`destination:`/`syncPolicy:`+`repoURL:`/`targetRevision:`/`automated:`/`prune:`/`selfHeal:`(argocd)・`tekton.dev`+`kind: PipelineRun`+`pipelines.kubeflow.org` アノテーション+IR `components:`/`deploymentSpec:`/`schemaVersion:`/`sdkVersion:`+`taskSpec:`/`runAfter:`/`when:`(kubeflow)で、DAG 依存・モデル構成・デプロイメント・ロケーション・ワークフローテンプレート・同期ポリシ・パイプライン IR を整数計数する。
+
+
+
+## 第225次:API ゲートウェイ・サービスメッシュ・プロキシ設定形式
+
+Kong 宣言的設定・Istio CRD・Envoy static config・Traefik static/dynamic・Linkerd policy CRD・アノテーション・Consul agent/service・nginx.conf の7形式を追加。`_format_version:`+services/routes/consumers/plugins/upstreams セクション(kong)・`networking.istio.io`+VirtualService/DestinationRule/Gateway/AuthorizationPolicy kind+route/destination/subset トラフィック+principals/action ポリシ+mtls/credentialName TLS(istio)・static_resources/dynamic_resources+listeners/clusters+lb_policy/circuit_breakers/envoy.filters(envoy)・entryPoints/providers+routers/services/middlewares 動的設定(traefik)・policy.linkerd.io+AuthorizationPolicy/HTTPRoute/Server/MeshTLSAuthentication+targetRef+linkerd.io/inject(linkerd)・datacenter/data_dir+service/check/acl/connect ブロック+`key = value` HCL(consul)・events/http/server/location/upstream コンテキスト+ssl_*/proxy_*/fastcgi_* 指令クラス(nginx)で、ルーティング・ロードバランシング・ポリシ・TLS 構成を整数計数する。
+
+## 第226次:メッセージブローカー・キュー設定形式
+
+Kafka server.properties・RabbitMQ sysctl conf・NATS server conf・mosquitto.conf・Pulsar broker/bookkeeper・EMQX HOCON・redis.conf の7形式を追加。`broker.id`+`log.*`/`ssl.*`/`sasl.*` キークラス(kafka)・`listeners.*`+`cluster_formation`+vm_memory/disk_free_limit(rabbitmq)・cluster/jetstream/accounts/gateway/websocket `{` ブロック+`key:`/`key=` kv(nats)・空白区切り `option value`+listener/auth/persistence/`connection` ブリッジ(mosquitto)・brokerServicePort/zookeeperServers/clusterName camelCase+managedLedger+bookiePort/journal*/ledger*(pulsar)・listeners.tcp/ssl + node.*/cluster.* + mqtt セッション制限+authentication/dashboard ブロック(emqx)・bind/save/appendonly/replicaof/maxmemory 指令クラス(redisconf)で、ブローカー・リスナー・永続化・レプリケーション・セキュリティ構成を整数計数する。
+
+
+
+## 第227次:Linter・フロントエンドツールチェーン設定形式
+
+.eslintrc・.prettierrc・.stylelintrc・biome.json・.golangci.yml・browserslist・jest.config の7形式を追加。env/extends/plugins/rules/parserOptions/overrides セクション+severity(error/warn/off/0/1/2)ルールエントリ(eslintrc)・~31 オプション名+overrides ブロック(prettier)・extends/plugins 参照+`rules:` ブロック行判定(stylelint)・$schema/biomejs.dev+organizeImports/assist/linter/formatter+`no*`/`use*` ルールグループ(biome)・linters/linters-settings/run/issues+enable/disable `- ` 項目(golangci)・`last N versions`/`> N%`/`not dead` クエリ構文+`[env]` セクション(browserslist)・testEnvironment/testMatch/collectCoverage*/transform*/moduleName* キークラス+`<rootDir>`(jest)で、各ツールチェーン構成を整数計数する。
+
+
+
+## 第228次:データベース・ストレージエンジン設定形式
+
+postgresql.conf・my.cnf・mongod.conf・cassandra.yaml・etcd.conf.yaml・MinIO env/config.json・ClickHouse config.xml の7形式を追加。`key = value` GUC 指令+include 系(postgresql)・`[mysqld]`/`[mariadb*]` グループ+裸フラグ+`!include`(mysql)・systemLog/storage/net/replication/security/setParameter+camelCase ネスト(mongod)・snake_case キー+seed_provider/endpoint_snitch+`- ` リスト(cassandra)・listen-*/advertise-*/initial-cluster*/experimental-*+TLS ブロック(etcd)・`MINIO_*` 環境変数+notify_* サービス+credential/server JSON(minio)・`<clickhouse>`/`<yandex>` ルート+ポート/remote_servers/zookeeper/users_config 要素(clickhouse)で、接続・認証・永続化・クラスタ構成を整数計数する。
+
+
+
+## 第229次:プロファイラ・トレース・パフォーマンス解析形式
+
+Go pprof テキストプロファイル・Chrome Trace Event JSON・perf script 出力・Valgrind callgrind 出力・Java Flight Recorder チャンク・Paraver `.prv`・speedscope JSON の7形式を追加。`heap/goroutine/… profile:` ヘッダ+`N: M [A: B] @` サンプル+`#` フレーム+folded スタック(pprof)・`"ph"` フェーズ文字 B/E/X/i/C/M/…+`"pid"`/`"cat"` キャリア(chrometrace)・`comm pid [cpu] ts: event:` 行+トレースポイント `x:y` イベント+cpu/comm 別カウント(perflog)・`events:`/`fl=`/`fn=`/`cfl=`/`cfn=`/`calls=` キー行+コスト行(callgrind)・`FLR\0`+68B ビッグエンディアン チャンクヘッダ(jfr)・`#Paraver (date):duration:` ヘッダ+`1:`/`2:`/`3:`/`4:` レコード型(paraver)・`shared.frames`+`profiles` の `sampled`/`evented`/`list`+samples/weights(speedscope)で、プロファイル・トレース内容を整数計数する。
+
+
+
+## 第230次:ベンチマーク・計測結果形式
+
+Google Benchmark JSON・hyperfine JSON・Go benchstat/benchfmt テキスト・JMH JSON・Criterion.rs 結果 JSON・airspeed velocity 結果 JSON・pytest-benchmark JSON の7形式を追加。`"benchmarks"`+`"run_type"` iteration/aggregate+`"time_unit"`+per-second カウンタ(gbench)・`"command"`+`"times"`+`"exit_codes"`+parameters/warmup(hyperfine)・`BenchmarkName-N` レコード+distinct 名/単位+`key: value` メタデータ(benchstat)・`"primaryMetric"`+`"scoreUnit"`+mode 別+rawData/scoreCI/secondaryMetrics(jmh)・estimates.json の統計ブロック+point_estimate/confidence_interval+sample.json iters/times+benchmark.json メタデータ(criterion)・`"results"`+`"benchmark_version"`+`"started_at"`+result/code/param_names(asv)・`"machine_info"`+`"benchmarks"`+`"stats"`+rounds/iterations/ops 合計(pytestbench)で、ベンチマーク計測結果を整数計数する。
+
+
+
+## 第231次:セキュリティスキャナ・静的解析レポート形式
+
+Trivy JSON・Anchore Grype JSON・Snyk JSON・Semgrep JSON・SonarQube issues JSON・SpotBugs XML・Checkov JSON の7形式を追加。`Results`/`Target`+`VulnerabilityID`+5段severity+Misconfigurations/Secrets/Licenses(trivy)・`matches`+`vulnerability`+`artifact.type` 別+fix/ignoredMatches(grype)・`SNYK-*`/`CVE-*` id+severity+upgradePath/patches/isIgnored+dependencyCount(snyk)・`check_id`+ERROR/WARNING/INFO+distinct path+errors ブロック(semgrep)・`issues`+5 severity+BUG/VULNERABILITY/CODE_SMELL(sonar)・`<BugInstance>`+priority 1-4+distinct type/category+`<Class>`(spotbugs)・passed/failed/skipped/parsing_errors+`CKV_*`+check_type(checkov)で、スキャンレポート内容を整数計数する。
+
+
+
+## 第232次:機械学習・MLOps メタデータ形式
+
+MLflow MLmodel・DVC dvc.yaml/lock・W&B metadata/config・BentoML bentofile/bento.yaml・PMML XML・TFRecord バイナリ・RecordIO チャンクの7形式を追加。`flavors:`+loader/signature/metadata キー(mlflow)・`stages:`+cmd/deps/outs/metrics/params+md5+frozen/foreach(dvcfile)・wandb-metadata.json キー集合+`wandb_version:`+desc エントリ+sweep(wandb)・`service:`+include/exclude/models/runners/apis+python/docker/conda セクション(bentoml)・`<DataField>`/`<MiningField>`+16 種モデル要素+`<Segment>`(pmml)・len+CRC レコード歩行(tfrecord)・`kMagic`+4B アライン パディング チャンク歩行(recordio)で、MLOps 定義を整数計数する。
+
+
+
+## 第233次:図・ダイアグラム記述形式
+
+Graphviz DOT・Mermaid・PlantUML・Excalidraw JSON・drawio/diagrams.net XML・Visual Studio DGML・Trivial Graph Format の7形式を追加。`digraph`/`strict`/`subgraph`+`->`/`--` 演算子(dot)・21 種図型ステートメント+演算子正規化辺(mermaid)・`@start*`/`@end*`+矢印演算子+宣言キーワード(plantuml)・`elements` 型センサス+`boundElements` 参照除外+appState/files(excalidraw)・`<diagram>`/`<mxCell>` vertex/edge+圧縮ペイロード検出(drawio)・`<Node>`/`<Link>`/`<Category>` 要素センサス(dgml)・ノード行+`#` セパレータ+辺行(tgf)で、テキスト図定義を整数計数する。
+
+
+
+## 第234次:DNS・名前解決設定形式
+
+DNS ゾーンファイル・BIND named.conf・resolv.conf・nsswitch.conf・dnsmasq.conf・Unbound unbound.conf・CoreDNS Corefile の7形式を追加。`$` 指令+RR 型センサス(DNSSEC 含む、型トークンは先頭名スキップ前方スキャンで RRSIG rdata 内 `A` 誤爆を回避)(zone)・`options`/`zone`/logging/acl/view ブロック+zone type(namedconf)・nameserver/search/options サブオプション(resolv)・`db: source` 行+`[ACTION=]` 上書き(nsswitch)・裸フラグ+`key=value`+dhcp 分類(dnsmasq)・`server:`/`forward-zone:` セクション(unbound)・`zones {}` ブロック+プラグイン指令(corefile)で、名前解決設定を整数計数する。
+
+
+
+## 第235次:認証・CLIツール設定ファイル形式
+
+.env・ssh_config・kubeconfig・.gitconfig・AWS credentials/config・openssl.cnf・.pgpass の7形式を追加。`KEY=value`+export/quoted/bare(dotenv)・`Host`/`Match`+4 キーワードクラス(sshconf)・`kind: Config`+clusters/users/contexts スコープ追跡(kubeconfig)・`[sec "sub"]`+includeIf/url 分類(gitconfig)・`[profile]`+aws_*/sso_*/assume-role キー(awscredentials)・`[ section ]`+`${VAR}`/`.include`+oid/link(openssl)・`host:port:db:user:pass`+`\` エスケープ+`*` ワイルドカード(pgpass)で、CLI ツール設定を整数計数する。
+
+
+
+## 第236次:仮想マシン・OCI・仮想化定義形式
+
+.dockerignore・Packer(JSON/HCL)・libvirt domain XML・OVF・wsl.conf・lima.yaml・cloud-config の7形式を追加。glob+`!`例外+`**`/`*`/`?`(dockerignore)・`"builders"`/`source`/`build {}` JSON/HCL 両対応(packer)・`<domain>`+デバイス/features センサス(virtxml)・`<Envelope>`+`<Item>`/セクション(ovf)・INI セクション+真偽値(wslconf)・スコープ追跡 `- ` 項目+トップレベルキー(lima)・`#cloud-config`+モジュールキー(cloudinit)で、VM/コンテナ定義を整数計数する。
+
+
+
+## 第237次:ビルド・パッケージメタデータ形式
+
+pom.xml・Gradle .module・ivy.xml・go.mod・go.sum・vcpkg.json・conanfile.txt の7形式を追加。GAV+dependency/plugin/module/profile(pom)・formatVersion+attributes ブロック規則からの variant 計数+org.gradle.*(gradlemod)・`<ivy-module>`+conf/dependency/override(ivy)・module/go/toolchain+require ブロック+`// indirect`(gomod)・`path ver h1:`+`/go.mod`+distinct module(gosum)・深さ追跡の依存配列+overrides/features/v 系キー(vcpkg)・INI セクション+`@u/c`+`[>=]`レンジ(conanfile)で、パッケージメタデータを整数計数する。
+
+
+
+## 第238次:テストレポート・QA 結果形式
+
+Allure result/container JSON・CTRF・xUnit.net XML・Maven Surefire TXT・JMeter JTL・k6 JSON summary・Mocha JSON reporter の7形式を追加。uuid/status/steps+container fixture キー(allure)・`results`/`summary`+status 別センサス(ctrf)・`<assemblies>`/`<collection>`+`result=`(xunit)・`Tests run:` 行の数値集計(surefire)・CSV/XML 両系統の sample/label/thread 収計(jtl)・`metrics` の型別収計+thresholds(k6)・`stats`+top-level 結果配列(mochajson)で、QA 結果を整数計数する。
+
+
+
+## 第239次:ネットワーク機器・OS ネットワーク設定形式
+
+RouterOS export・Junos 設定・Cisco IOS running-config・OpenWrt UCI・Netplan YAML・ifupdown interfaces・firewalld zone XML の7形式を追加。`/` セクション+add/set 動詞+key=value(routeros)・`set`+トップ階層集合+ブレース形(junos)・`!`+interface/router ブロック+機能分類(iosconf)・`config`+option/list(uci)・network ルート+装置グループ+装置ID(netplan)・auto/iface スタンザ+メソッド分類(interfaces)・zone 内要素センサス(firewalld)で、ネットワーク機器設定を整数計数する。
+
+
+
+## 第240次:構成管理・ジョブ定義形式
+
+Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェスト・Nomad ジョブ HCL・Rundeck ジョブ YAML・borgmatic 設定の7形式を追加。plays/hosts+scope 追跡のタスク・モジュール呼出(ansible)・`key:`+`- `+`family.func`(salt)・resource+` do`+action/notifies/`node[`(chef)・class/node/define+`{ '':`+`=>`+`Type[`(puppet)・job/group/task/service/port+constraint/resources(nomad)・`- name:`+commands+schedule+nodefilters(rundeck)・source_directories/repositories+keep_*/hooks(borgmatic)で、構成管理・ジョブ定義を整数計数する。

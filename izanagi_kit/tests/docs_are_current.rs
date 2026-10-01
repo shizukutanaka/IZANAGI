@@ -505,7 +505,7 @@ fn readme_test_counts_are_floors_the_suite_actually_clears() {
     // A floor has two failure modes: it can overclaim (suite no longer
     // clears it — the old check) or it can go stale (the suite outgrew it so
     // far the claim is technically true and practically a lie — README says
-    // "3,400+" while 6,000 real tests run). The band `actual >= claim >=
+    // "6,000+" while 8,000 real tests run). The band `actual >= claim >=
     // actual * 3/4` closes both directions: raising reality past ~133% of a
     // floor fails until the claim is raised in the same commit.
     for (claim, actual) in [

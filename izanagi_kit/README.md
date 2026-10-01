@@ -324,6 +324,27 @@ fixed version has no such state at all.
 | `lego` | lego env/ini (`LEGO_*` + provider credential サフィックス) |
 | `minica` | minica.conf (CA/DN/extensions/crl/ocsp セクション) |
 | `stepca` | step-ca ca.json (provisioners/claims/dnsNames) |
+| `airflow` | Airflow DAG census |
+| `algolia` | Algolia settings JSON census |
+| `argocd` | Argo CD Application census |
+| `argowf` | Argo Workflows manifest census |
+| `consul` | Consul agent/service conf census |
+| `dagster` | Dagster workspace.yaml census |
+| `dbt` | dbt project/profiles census |
+| `envoy` | Envoy bootstrap YAML census |
+| `esmapping` | Elasticsearch mapping census |
+| `essettings` | Elasticsearch settings census |
+| `istio` | Istio CR census |
+| `kong` | Kong config/declarative census |
+| `kubeflow` | Kubeflow Pipeline spec census |
+| `linkerd` | Linkerd config census |
+| `meili` | Meilisearch settings census |
+| `nginx` | nginx.conf census |
+| `prefect` | Prefect flow/deployment census |
+| `solrconfig` | Solr solrconfig.xml census |
+| `solrschema` | Solr schema.xml census |
+| `traefik` | Traefik config census |
+| `typesense` | Typesense collection census |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
