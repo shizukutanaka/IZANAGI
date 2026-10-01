@@ -774,6 +774,20 @@ The capability map — with per-feature implementation status — lives in
 | `logrotate` | logrotate `logrotate.conf`/`logrotate.d` — `path {` ブロック、`rotate`/`daily`/`size`/`prerotate`/`postrotate`/`endscript` ディレクティブ。 |
 | `newsyslog` | BSD `newsyslog.conf` — `<file> [owner:group] <mode> <count> <size> <when> <flags>` 7欄、`Z`/`J`/`B`/`T` 圧縮フラグ。 |
 | `rsyslogd` | rsyslog `rsyslog.conf`/`rsyslog.d` — レガシーセレクタ、`$ModLoad`/`$IncludeConfig` `$` ディレクティブ、`module(`/`template(`/`input(`/`action(`/`ruleset(` RAInerscript。 |
+| `ferm` | ferm `ferm.conf`/`ferm.d` — `@def`/`@include`/`@hook` ディレクティブ、`domain`/`table`/`chain` ブロック、`policy`/ルール文を解析。 |
+| `ipset` | `ipset save`/`ipset restore` 形式 — `create`/`add`/`del`/`destroy`/`swap`/`flush` コマンド、14 型・IPv6 判定・`timeout`/`comment`/`skbinfo` オプションを解析。 |
+| `iptablessave` | `iptables-save`/`ip6tables-save` — `*<table>`・`:<chain> <policy>` 宣言・`-N`/`-A` ルール・`-j`/`-g` ジャンプ・`-m` マッチ・`COMMIT` を解析。 |
+| `nftconf` | nftables `nftables.conf`/`nft -f` — `table <family>`・`chain`・`set`/`map`/`flowtable`/`counter`/`quota`・`type … hook`・`policy`・`elements`・verdict を解析。 |
+| `pfconf` | OpenBSD `pf.conf` — `set`/`table`/`pass`/`block`/`nat`/`rdr`/`binat`/`match`/`queue`/`altq`/`anchor`/`antispoof`/`scrub`/`include` とマクロ・継続行を解析。 |
+| `shorewall` | Shorewall `rules`/`zones`/`policy`/`interfaces`/`masq` — ~55 アクション分類 (ACCEPT/DROP/NAT/特殊)・ゾーン/ポリシー行を解析。 |
+| `ufwrules` | UFW `user.rules`/`before.rules`/`after.rules` — `### tuple ###`/`### RULES ###`/`### LOGGING ###` マーカー・`-A ufw-*` チェーンルールを解析。 |
+| `corosync` | Corosync `corosync.conf` — `totem`/`nodelist`/`node`/`logging`/`quorum` ブロック・`key: value`・ring アドレスを解析。 |
+| `cibxml` | Pacemaker CIB XML — `<primitive>`/`<clone>`/`<rsc_location>`/`<rsc_colocation>`/`<rsc_order>`/`<nvpair>`/`<op>` 要素を解析。 |
+| `crmconf` | crmsh スクリプト — `configure <文>`/`primitive`/`group`/`clone`/`location`/`colocation`/`order`/`property`/`op` を解析。 |
+| `hacf` | Heartbeat `ha.cf` — `keepalive`/`deadtime`/`bcast`/`mcast`/`ucast`/`node`/`respawn`/`crm`/`stonith_host` 等既知キーを解析。 |
+| `haresources` | Heartbeat `haresources` — `<node> <リソース…>` 行・`Agent::arg` 形式・IP/ストレージ/通知リソース分類を解析。 |
+| `ldirectord` | ldirectord.cf (LVS) — `virtual=`/`real=`/`fallback=`/`service=`/`checktype=`/`scheduler=`/`emailalert=` 既知キーを解析。 |
+| `clusterconf` | RHEL Cluster Suite `cluster.conf` XML — `<clusternode>`/`<fencedevice>`/`<failoverdomain>`/`<service>`/`<ip>`/`<fs>`/`<script>` 要素を解析。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
