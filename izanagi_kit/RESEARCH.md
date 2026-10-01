@@ -5187,3 +5187,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Pidgin `prefs.xml`/`accounts.xml` (developer.pidgin.im, libpurple docs)
 
 — 全て整数のみで実装。
+
+## 第283次 — チャット・メッセージングサーバ設定形式
+
+- `ejabberd` — ejabberd `ejabberd.yml`: `hosts:`/`listen:`/`acl:`/`access_rules:`/`shaper:`/`shaper_rules:`/`modules:`/`certfiles:`/`odbc_*`/`s2s_*`/`sm_*`/`host_config`/`define_macro` 等トップキーと `mod_*:` モジュール項目。
+- `prosody` — Prosody `prosody.cfg.lua`: `admins`/`modules_enabled`/`allow_registration`/`c2s_require_encryption`/`authentication`/`storage`/`ssl`/`plugin_paths` 等 Lua 風代入、`key = { "a"; "b"; }` リスト、`VirtualHost "x"`/`Component "x" "muc"` 宣言。
+- `synapse` — Matrix Synapse `homeserver.yaml`: `server_name:`/`listeners:`/`database:`/`log_config:`/`media_store_path:`/`modules:`/`registration_shared_secret:`/`trusted_key_servers:`/`oidc_providers:`/`sso:`/`retention:` 等 ~50 トップキー。
+- `ngircd` — ngIRCd `ngircd.conf`: `[Global]`/`[Limits]`/`[Options]`/`[SSL]`/`[Operator]`/`[Server]`/`[Channel]`/`[Features]` セクションと `Name`/`Info`/`MotdFile`/`MaxConnections`/`PingTimeout`/`ChrootDir`/`Cloak*`/`PAM` 等キー。
+- `mattermost` — Mattermost `config.json`: `"ServiceSettings"`/`"TeamSettings"`/`"SqlSettings"`/`"EmailSettings"`/`"LdapSettings"`/`"SamlSettings"`/`"PluginSettings"`/`"FeatureFlags"` 等 ~40 PascalCase セクション。
+- `zulipconf` — Zulip `/etc/zulip/zulip.conf`: `[machine]`/`[postgresql]`/`[memcached]`/`[rabbitmq]`/`[application_server]`/`[sentry]`/`[nagios]`/`[loadbalancer]`/`[queue]` セクションと `puppet_classes`/`deploy_type`/`nodename`/`http_only`/`rate_limiting`/`s3_*` キー。
+- `discourse` — Discourse `containers/app.yml`: `templates:`/`expose:`/`params:`/`env:`/`volumes:`/`hooks:`/`links:`/`run:`/`docker_args:` トップキーと `DISCOURSE_*`/`UNICORN_*`/`db_*`/`LETSENCRYPT_*` env 変数。
+
+## 出典
+
+- ejabberd.yml サンプルと設定ドキュメント (docs.ejabberd.im, github.com/processone/ejabberd)
+- Prosody `prosody.cfg.lua` 既定設定とモジュール一覧 (prosody.im/doc)
+- Synapse homeserver.yaml サンプルと設定リファレンス (github.com/element-hq/synapse, element-hq.github.io/synapse)
+- ngIRCd `ngircd.conf` セクション/キー (ngircd.barton.de, man ngircd.conf)
+- Mattermost `config.json` 設定リファレンス (docs.mattermost.com/configure)
+- Zulip `zulip.conf` (github.com/zulip/zulip, zulip.readthedocs.io)
+- Discourse `app.yml`/`web_only.yml` サンプル (github.com/discourse/discourse_docker)
+
+— 全て整数のみで実装。
