@@ -753,6 +753,13 @@ The capability map — with per-feature implementation status — lives in
 | `lvmconf` | LVM `lvm.conf` — `devices {}`/`global {}`/`activation {}` 名前付きブロック、`filter`/`global_filter`/`use_devicesfile`/`udev_sync` キー。 |
 | `nfsexports` | NFS `/etc/exports` — `/path host(opts)` エントリ、`rw`/`sync`/`root_squash`/`fsid`/`sec=` 等既知オプション。 |
 | `samba` | Samba `smb.conf` — `[global]`/`[homes]`/`[printers]`/`[netlogon]`/`[sysvol]` セクション、`workgroup`/`security`/`vfs objects`/`valid users` キー。 |
+| `contourconf` | Contour `contour.yml` — `profiles:`/`color_schemes:`/`word_delimiters`/`terminal_size`/`font` 既知トップキー。 |
+| `footconf` | foot (Wayland) `foot.ini` — `[main]`/`[colors]`/`[cursor]`/`[key-bindings]`/`[tweak]` セクション、`font`/`term`/`alpha`/`regular0`/`blink` キー。 |
+| `ghosttyconf` | Ghostty `config` — 平坦 `key = value`、`font-size`/`theme`/`window-padding-*`/`cursor-style`/`keybind` 等 ~80 キー。 |
+| `itermdyn` | iTerm2 Dynamic Profiles JSON — `"Profiles"` 配列と `"Guid"`/`"Dynamic Profile"`/`"Custom Command"`/`"Ansi * Color"` PascalCase キー。 |
+| `tabbyconf` | Tabby `config.yaml` — `hotkeys:`/`terminal:`/`profiles:`/`profileDefaults:`/`appearance:`/`ssh:` 既知トップキー。 |
+| `weztermconf` | WezTerm `wezterm.lua` — `local wezterm = require`/`config.<opt> =`/`wezterm.<fn>(`/`return config`。 |
+| `windowsterminal` | Windows Terminal `settings.json` — `profiles`/`schemes`/`actions`/`keybindings`/`themes` セクションと `guid`/`commandline`/`colorScheme` キー。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

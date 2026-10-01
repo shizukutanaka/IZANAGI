@@ -5274,3 +5274,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Hadoop `*-site.xml` デフォルト設定 (core-default.xml/hdfs-default.xml/yarn-default.xml, hadoop.apache.org)
 
 — 全て整数のみで実装。
+
+## 第287次 — ターミナルエミュレータ設定形式 (第2弾)
+
+- `footconf` — foot (Wayland ネイティブ) `foot.ini`: `[main]`/`[scrollback]`/`[url]`/`[cursor]`/`[mouse]`/`[colors]`/`[csd]`/`[bell]`/`[tweak]`/`[key-bindings]`/`[search-bindings]`/`[url-bindings]`/`[text-bindings]`/`[mouse-bindings]` セクションと `font`/`shell`/`term`/`alpha`/`regular0-7`/`bright0-7`/`style`/`blink`/`scrollback` 等 ~100 キー。
+- `weztermconf` — WezTerm `wezterm.lua`: `local wezterm = require 'wezterm'` ヘッダ、`config.<opt> =` 代入、`wezterm.font()`/`wezterm.config_builder()` 呼出、`return config`。
+- `ghosttyconf` — Ghostty `config`: 平坦 `key = value` と `font-family`/`font-size`/`theme`/`window-padding-x`/`cursor-style`/`keybind`/`background-opacity`/`macos-*`/`gtk-*`/`linux-cgroup-*` 等 ~80 キー。
+- `contourconf` — Contour `contour.yml`: `profiles:`/`color_schemes:`/`word_delimiters`/`spawn_new_process`/`bypass_mouse_protocol_modifier`/`renderer`/`text_shaper`/`font_locator`/`input_mapping` 等 ~30 既知トップキー。
+- `windowsterminal` — Windows Terminal `settings.json`: `profiles`(list/defaults)/`schemes`/`actions`/`keybindings`/`themes`/`globals` セクションと `guid`/`commandline`/`colorScheme`/`fontFace`/`useAcrylic` 等 ~80 キー (1行複数キー対応)。
+- `tabbyconf` — Tabby (旧 Terminus) `config.yaml`: `hotkeys:`/`terminal:`/`profiles:`/`profileDefaults:`/`appearance:`/`vault:`/`configSync:`/`ssh:`/`clickableLinks:` 等 ~30 既知トップキー。
+- `itermdyn` — iTerm2 Dynamic Profiles JSON: `"Profiles"` 配列と `"Guid"`/`"Dynamic Profile"`/`"Custom Command"`/`"Badge Text"`/`"Ansi * Color"`/`"HotKey *"` 等 PascalCase キー (1行複数キー対応)。
+
+## 出典
+
+- foot `foot.ini(5)` マニュアル (codeberg.org/dnkl/foot, man foot.ini)
+- WezTerm `wezterm.lua` 設定リファレンス (wezfurlong.org/wezterm/config)
+- Ghostty config リファレンス (ghostty.org/docs/config, ~400 オプション)
+- Contour `contour.yml` (github.com/contour-terminal/contour, examples/contour.yml)
+- Windows Terminal `settings.json` スキーマ (learn.microsoft.com/windows-terminal, aka.ms/terminal-profiles-schema)
+- Tabby `config.yaml` デフォルト設定 (github.com/Eugeny/tabby)
+- iTerm2 Dynamic Profiles JSON スキーマ (iterm2.com/documentation-dynamic-profiles)
+
+— 全て整数のみで実装。
