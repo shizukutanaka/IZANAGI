@@ -718,6 +718,13 @@ The capability map — with per-feature implementation status — lives in
 | `muttrc` | Mutt `.muttrc` — `set`/`unset`/`bind`/`macro`/`color`/`*-hook`/`source`/`mailboxes`/`my_hdr` command heads. |
 | `neomuttconf` | NeoMutt `.neomuttrc` — mutt syntax + `sidebar_*`/`nm_*`/`ts_*` vars, `virtual-mailboxes`/`named-mailboxes`/`lua` NeoMutt-only commands. |
 | `offlineimap` | OfflineIMAP `.offlineimaprc` — `[general]`/`[Account name]`/`[Repository name]`/`[mbnames]`/`[ui.x]` sections, `localrepository`/`remoterepository`/`type`/`folderfilter`/`nametrans` keys. |
+| `hexchat` | HexChat `hexchat.conf` — 平坦な `key = value` 群、`irc_*`/`gui_*`/`dcc_*`/`nick_*`/`completion_*` プレフィックス系。 |
+| `irssi` | Irssi `~/.irssi/config` — `servers = (`/`settings = {` トップブロック + `key = value;` + `Name = { };` 辞書エントリ。 |
+| `matterbridge` | Matterbridge `matterbridge.toml` — `[irc.x]`/`[discord.x]` 等プロトコルテーブル + `[[gateway]]`/`[[gateway.inout]]` 配列テーブル。 |
+| `pidginconf` | Pidgin/libpurple `prefs.xml`/`accounts.xml` — `<purple>`/`<account>` ルート、`<pref>`/`<setting>`/`prpl-*` プロトコル。 |
+| `unrealircd` | UnrealIRCd `unrealircd.conf` — `me`/`admin`/`class`/`oper`/`listen`/`link`/`allow`/`set` 等 `block { stmt; }` 形式、`include` 文。 |
+| `weechat` | WeeChat `*.conf` — `[section]` + `key = value`、`server.name.*` ドット階層キー、`on`/`off` ブール。 |
+| `znc` | ZNC `znc.conf` — `<Tag arg>`/`</Tag>` ブロック (属性なし位置引数) + `Key = Value`。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
