@@ -683,6 +683,83 @@ The capability map — with per-feature implementation status — lives in
 | `sysctlconf` | `sysctl.conf`/`sysctl.d/*.conf` — `key = value` assigns, dotted top-group dedup, `*`/`[]` wildcards, numeric/`0`/`1` value split. |
 | `tmpfilesd` | systemd `tmpfiles.d/*.conf` — type chars `d D e v q Q f F w W L C p m c b z Z t T h H a A r R x X`, `!+-=~` modifier prefix strip, mode/age/arg column buckets. |
 | `udevrules` | udev `.rules` — `KEY op "value"` comma-split pairs, `==`/`!=` match vs `=`/`:=`/`+=`/`-=` assign ops, `ATTR{}`/`ATTRS{}`/`ENV{}`/`SYSCTL{}`/`TEST{}`/`IMPORT{}` refs, `RUN`/`PROGRAM`/`GOTO`/`LABEL`/`IMPORT` flow keys. |
+| `archinstall` | archinstall `config.json`/`user_configuration.json` — `archinstall-language`/`disk_config`/`locale_config`/`mirror_config`/`network_config`/`profile_config`/`audio_config`/`kernels`/`packages`/`services`/`users`/`swap`/`ntp`/`parallel_downloads` known keys by value kind. |
+| `autoyast` | SUSE AutoYaST `autoinst.xml` — `<profile …yast2ns>` root, top config sections, `config:type="list"`/`"boolean"`/`"integer"`/`"string"` typed elements, `<![CDATA[` script blocks. |
+| `calamares` | Calamares `settings.conf`/`netinstall.yaml` — `sequence:` `- show:`/`- exec:` groups, per-module entries, `branding`/`prompt-install`/`dont-chroot`/`oem-setup`/`disable-cancel` top keys. |
+| `debconf` | `debconf-set-selections` files — `<owner> <question> <type> <value>` 4-token entries, select/multiselect/boolean/seen type split, package-owner dedup. |
+| `kickstart` | RHEL/Fedora Kickstart `.ks` — col-0 commands (`lang`/`part`/`volgroup`/`network`/`rootpw`…), `%packages`/`%pre`/`%post`/`%end`/`%addon` sections, `--opt=value` options, package/script bodies. |
+| `preseed` | Debian `preseed.cfg` — `d-i <question> <type> <value>` entries, string/boolean/select/multiselect/seen type split, `d-i`/`anna`/`tasksel` owner dedup. |
+| `pxelinux` | SYSLINUX/PXELINUX/ISOLINUX `pxelinux.cfg` — `LABEL` entries, `MENU` sub-directives, `KERNEL`/`LINUX`/`INITRD`/`BOOT`, `APPEND`/`IPAPPEND`/`SYSAPPEND`, `DEFAULT`/`PROMPT`/`TIMEOUT`/`ONTIMEOUT` globals. |
+| `bitcoinconf` | Bitcoin Core `bitcoin.conf` — `key=value`+bare `key` flags, `[main]`/`[test]`/`[signet]`/`[regtest]` network sections, known options, `0`/`1` bools, repeatable `addnode`/`connect`/`zmqpub*`/`loadwallet`. |
+| `cardanoconf` | Cardano node `config.json` — PascalCase top keys, `Trace*`/`TargetNumberOf*`, `*GenesisFile`/`*GenesisHash`, `EnableP2P`/`PeerSharing`/`defaultScribes`/`setupScribes`/`minSeverity`, value-kind split. |
+| `gethconf` | go-ethereum `dumpconfig`/`config.toml` — PascalCase tables `[Eth]`/`[Node]`/`[Node.P2P]`/`[Eth.TxPool]`/…, CamelCase keys, bool/string/number/array values. |
+| `lndconf` | Lightning `lnd.conf` — `[Application Options]`/`[Bitcoin]`/`[Btcd]`/`[Neutrino]`/`[watchtower]`/`[routerrpc]` sections, `chain.sub=key` dot-keys, `;`/`#` comments. |
+| `monero` | Monero `monerod.conf` — kebab-key `key=value`, `p2p-*`/`rpc-*`/`log-*`/`zmq-*`/`limit-*`/`bg-*`/`bootstrap-*` group dedup, port/endpoint values. |
+| `parityconf` | Parity/OpenEthereum `config.toml` — `[parity]`/`[network]`/`[rpc]`/`[mining]`/`[footprint]`/`[snapshots]`/`[dapps]`/`[secretstore]` sections, snake_case keys, bool/string/number/list values. |
+| `suiconf` | Sui `fullnode.yaml`/validator config — kebab-case top keys (`db-path`, `network-address`, `json-rpc-address`, `genesis`, `p2p-config`, `authority-store-pruning-config`, `checkpoint-executor-config`, …), nested maps, flow values. |
+| `dolphinconf` | Dolphin `Dolphin.ini`/`GFX.ini`/`WiimoteNew.ini` — `[General]`/`[Core]`/`[Interface]`/`[Display]`/`[DSP]`/`[Controls]`/`[Video]`/`[Wiimote*]` sections, `Key = True/False` values. |
+| `mameconf` | MAME `mame.ini`/`ui.ini` — whitespace `key value` (no `=`), `*path`/`*_directory` groups, video/screen/input/debug option names, `0`/`1` toggles. |
+| `pcsx2conf` | PCSX2 `PCSX2_ui.ini`/`PCSX2_vm.ini` — `[EmuCore]`/`[EmuCore/Speedhacks]`/`[EmuCore/CPU/Recompiler]`/`[GSWindow]`/`[Filenames]` path-style sections, `enabled`/`disabled` values, `Enable*`/`Disable*` toggles. |
+| `ppssppconf` | PPSSPP `ppsspp.ini`/`controls.ini` — `[General]`/`[CPU]`/`[Graphics]`/`[Sound]`/`[SystemParam]`/`[Network]`/`[Achievements]` sections, `Key = True/False` values. |
+| `retroarch` | RetroArch `retroarch.cfg` — `key = "quoted"`/`key = value` lines, `video_*`/`audio_*`/`input_*`/`menu_*`/`savestate_*`/`rewind_*`/`libretro_*`/`netplay_*` prefix groups. |
+| `rpcs3conf` | RPCS3 `config.yml` — `Core:`/`VFS:`/`Video:`/`Audio:`/`Input/Output:`/`System:`/`Net:`/`Miscellaneous:`/`Log:`/`Debug:` top sections, space-containing subkeys, `Enabled`/`Disabled` values. |
+| `yuzuconf` | yuzu/sudachi `qt-config.ini` — `[General]`/`[UI]`/`[Shortcuts]`/`[Core]`/`[Graphics]`/`[Controls]`/`[Data%20Storage]` sections, Qt `Parent\Child=key` backslash keys, `%20` escapes. |
+| `curaconf` | Ultimaker Cura `*.inst.cfg`/`cura.cfg` — `[general]`/`[metadata]`/`[values]`/`[machine]`/`[containers]` sections, required `setting_version` metadata, per-section entry tracking. |
+| `klipperconf` | Klipper `printer.cfg` — `[stepper x]`/`[gcode_macro NAME]`/`[tmc2209 …]` space-named sections, `key: value` pairs, `PA0`/`!PC1`/`gpio` pin aliases, driver/macro section families. |
+| `marlinconf` | Marlin `Configuration.h`/`Configuration_adv.h` — `#define`/`//#define` enabled vs disabled options, `_ENDSTOP_INVERTING`/`_DRIVER_TYPE`/`TEMP_SENSOR_*`/`USE_*_PLUG` families, flag/numeric/string values. |
+| `moonrakerconf` | Moonraker `moonraker.conf` — `[server]`/`[authorization]`/`[update_manager …]`/`[power device]` component sections, `key: value` pairs, device-name second-words. |
+| `octoprint` | OctoPrint `config.yaml` — `server`/`webcam`/`appearance`/`accessControl`/`serial`/`plugins` top keys, `plugins:` child plugin-id tracking. |
+| `orcaslicer` | OrcaSlicer `*.ini` — `generated by OrcaSlicer` marker, `print_sequence`/`auto_calibrate`/`curr_bed_type`/`machine_pause_gcode` Orca-only keys vs shared slicer keys. |
+| `prusaslicer` | PrusaSlicer `*.ini` — `[print]`/`[filament]`/`[printer]`/`[print:名前]` preset sections, `key = value`, `*gcode`/`*temperature*`/`inherits` families. |
+| `aercconf` | aerc `aerc.conf`/`binds.conf`/`accounts.conf` — `[ui]`/`[viewer]`/`[composer]`/`[filters]`/`[triggers]`/`[statusline]`/`[templates]`/`[linter]` sections, `[ui:account=…]` context sections, `key=value`. |
+| `fetchmailconf` | fetchmail `.fetchmailrc` — `poll`/`server`/`skip`/`defaults`/`set` heads, `proto`/`user`/`password`/`is`/`here`/`ssl` option words. |
+| `mbsyncrc` | isync/mbsync `.mbsyncrc` — `IMAPAccount`/`IMAPStore`/`MaildirStore`/`Channel`/`Group` object blocks, `Host`/`User`/`PassCmd`/`SSLType`/`Far`/`Near`/`Patterns`/`SyncState` keys. |
+| `msmtprc` | msmtp `.msmtprc` — `defaults`/`account name`/`account default :` blocks, `host`/`port`/`from`/`user`/`password`/`auth`/`tls*` keys, TLS/auth classification. |
+| `muttrc` | Mutt `.muttrc` — `set`/`unset`/`bind`/`macro`/`color`/`*-hook`/`source`/`mailboxes`/`my_hdr` command heads. |
+| `neomuttconf` | NeoMutt `.neomuttrc` — mutt syntax + `sidebar_*`/`nm_*`/`ts_*` vars, `virtual-mailboxes`/`named-mailboxes`/`lua` NeoMutt-only commands. |
+| `offlineimap` | OfflineIMAP `.offlineimaprc` — `[general]`/`[Account name]`/`[Repository name]`/`[mbnames]`/`[ui.x]` sections, `localrepository`/`remoterepository`/`type`/`folderfilter`/`nametrans` keys. |
+| `hexchat` | HexChat `hexchat.conf` — 平坦な `key = value` 群、`irc_*`/`gui_*`/`dcc_*`/`nick_*`/`completion_*` プレフィックス系。 |
+| `irssi` | Irssi `~/.irssi/config` — `servers = (`/`settings = {` トップブロック + `key = value;` + `Name = { };` 辞書エントリ。 |
+| `matterbridge` | Matterbridge `matterbridge.toml` — `[irc.x]`/`[discord.x]` 等プロトコルテーブル + `[[gateway]]`/`[[gateway.inout]]` 配列テーブル。 |
+| `pidginconf` | Pidgin/libpurple `prefs.xml`/`accounts.xml` — `<purple>`/`<account>` ルート、`<pref>`/`<setting>`/`prpl-*` プロトコル。 |
+| `unrealircd` | UnrealIRCd `unrealircd.conf` — `me`/`admin`/`class`/`oper`/`listen`/`link`/`allow`/`set` 等 `block { stmt; }` 形式、`include` 文。 |
+| `weechat` | WeeChat `*.conf` — `[section]` + `key = value`、`server.name.*` ドット階層キー、`on`/`off` ブール。 |
+| `znc` | ZNC `znc.conf` — `<Tag arg>`/`</Tag>` ブロック (属性なし位置引数) + `Key = Value`。 |
+| `discourse` | Discourse `containers/app.yml` — `templates:`/`expose:`/`params:`/`env:`/`volumes:`/`hooks:` トップキー、`DISCOURSE_*`/`UNICORN_*`/`db_*` env。 |
+| `ejabberd` | ejabberd `ejabberd.yml` — `hosts:`/`listen:`/`acl:`/`access_rules:`/`shaper_rules:`/`modules:` トップキー + `mod_*` モジュール項目。 |
+| `mattermost` | Mattermost `config.json` — `"*Settings":` PascalCase セクション (~40)、`SiteURL`/`DriverName` 等 PascalCase キー。 |
+| `ngircd` | ngIRCd `ngircd.conf` — `[Global]`/`[Limits]`/`[Options]`/`[SSL]`/`[Operator]`/`[Server]`/`[Channel]` セクション、`Key = Value`。 |
+| `prosody` | Prosody `prosody.cfg.lua` — `key = value`/`key = { list; }` Lua 風代入、`VirtualHost "x"`/`Component "x" "type"` 宣言、`--` コメント。 |
+| `synapse` | Matrix Synapse `homeserver.yaml` — `server_name:`/`listeners:`/`database:`/`modules:`/`macaroon_secret_key` 等 ~50 トップキー。 |
+| `zulipconf` | Zulip `zulip.conf` — `[machine]`/`[postgresql]`/`[memcached]`/`[rabbitmq]`/`[application_server]`/`[sentry]` セクション。 |
+| `gdmconf` | GDM `custom.conf`/`daemon.conf` — `[daemon]`/`[security]`/`[xdmcp]`/`[chooser]`/`[debug]` セクション、`AutomaticLogin*`/`WaylandEnable`/`DisallowTCP` 等。 |
+| `lightdm` | LightDM `lightdm.conf` — `[LightDM]`/`[Seat:*]`/`[XDMCPServer]`/`[VNCServer]` セクション、`greeter-session`/`autologin-*`/`xserver-*` キー。 |
+| `sddmconf` | SDDM `sddm.conf` — `[General]`/`[Theme]`/`[Users]`/`[Wayland]`/`[X11]`/`[Autologin]` セクション、`Numlock`/`Current`/`MinimumUid`/`VirtualTerminal` 等。 |
+| `westonconf` | Weston `weston.ini` — `[core]`/`[shell]`/`[output]`/`[keyboard]`/`[terminal]`/`[launcher]` セクション、`keymap_*`/`panel-position`/`transform` キー。 |
+| `xmodmap` | `.Xmodmap` — `keycode N = keysym…`/`keysym`/`pointer`/`clear`/`add`/`remove` 文の分類計数。 |
+| `xorgconf` | X.Org `xorg.conf` — `Section`/`SubSection`/`EndSection` ブロック (~17 既知名)、`Identifier`/`Option`/`Driver` ステートメント。 |
+| `xresources` | `.Xresources`/`Xdefaults`/`app-defaults` — `Name.Class*res: value` 行、`!` コメント、cpp `#define`/`#include`/`#if` ディレクティブ。 |
+| `argusconf` | Argus `argus.conf`/`ra.conf`/`rarc` — `ARGUS_*`/`RA_*` 接頭辞 `KEY=value` 代入の分類計数。 |
+| `arkimeconf` | Arkime/Moloch `config.ini` — `[default]`/`[cache]`/`[overrides.*]` セクション、`elasticsearch`/`pcapDir`/`passwordSecret`/`geoLite2*` キー。 |
+| `pmacctconf` | pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf` — `key: value` コロン形式、`plugins`/`aggregate`/`nfacctd_*`/`sql_*`/`kafka_*`/`imt_*` キー。 |
+| `suricata` | Suricata `suricata.yaml` — `%YAML 1.1` マーカ + `vars:`/`af-packet:`/`outputs:`/`app-layer:`/`detect-engine:` 等 ~50 既知トップキー。 |
+| `wiresharkpref` | Wireshark `preferences`/`enabled_protos` — `pref.name: value` 行、`gui.`/`nameres.`/`tcp.`/`uat.`/`extcap.` 等 ~100 プロトコル接頭辞。 |
+| `zeekctl` | ZeekControl `node.cfg`/`zeekctl.cfg` — `[manager]`/`[proxy-*]`/`[logger]`/`[worker-*]` セクション、`type`/`host`/`lb_method`/`pin_cpus`/`LogDir`/`SpoolDir` キー。 |
+| `zeekscript` | Zeek `local.zeek`/`*.zeek`/`*.bro` — `@load`/`@ifdef`/`@load-sigs` ディレクティブ、`module`/`export`/`redef`/`event`/`hook` 宣言。 |
+| `cephconf` | Ceph `ceph.conf` — `[global]`/`[mon]`/`[osd]`/`[mds]`/`[client]`/`[osd.0]` セクション、`fsid`/`mon_host`/`public_network`/`osd_journal` キー。 |
+| `drbdconf` | DRBD `drbd.conf`/`*.res` — `global`/`common`/`resource`/`on <host>` ブロック、`device`/`disk`/`address`/`meta-disk`/`protocol` ステートメント。 |
+| `glusterfs` | GlusterFS volfile (`*.vol`) — `volume`/`type`/`option`/`subvolumes`/`end-volume` 5構文。 |
+| `hadoopconf` | Hadoop `*-site.xml` — `<property>`/`<name>`/`<value>`、`fs.defaultFS`/`dfs.*`/`mapreduce.*`/`yarn.*`/`hadoop.*`/`ha.zookeeper.*` 接頭辞。 |
+| `lvmconf` | LVM `lvm.conf` — `devices {}`/`global {}`/`activation {}` 名前付きブロック、`filter`/`global_filter`/`use_devicesfile`/`udev_sync` キー。 |
+| `nfsexports` | NFS `/etc/exports` — `/path host(opts)` エントリ、`rw`/`sync`/`root_squash`/`fsid`/`sec=` 等既知オプション。 |
+| `samba` | Samba `smb.conf` — `[global]`/`[homes]`/`[printers]`/`[netlogon]`/`[sysvol]` セクション、`workgroup`/`security`/`vfs objects`/`valid users` キー。 |
+| `contourconf` | Contour `contour.yml` — `profiles:`/`color_schemes:`/`word_delimiters`/`terminal_size`/`font` 既知トップキー。 |
+| `footconf` | foot (Wayland) `foot.ini` — `[main]`/`[colors]`/`[cursor]`/`[key-bindings]`/`[tweak]` セクション、`font`/`term`/`alpha`/`regular0`/`blink` キー。 |
+| `ghosttyconf` | Ghostty `config` — 平坦 `key = value`、`font-size`/`theme`/`window-padding-*`/`cursor-style`/`keybind` 等 ~80 キー。 |
+| `itermdyn` | iTerm2 Dynamic Profiles JSON — `"Profiles"` 配列と `"Guid"`/`"Dynamic Profile"`/`"Custom Command"`/`"Ansi * Color"` PascalCase キー。 |
+| `tabbyconf` | Tabby `config.yaml` — `hotkeys:`/`terminal:`/`profiles:`/`profileDefaults:`/`appearance:`/`ssh:` 既知トップキー。 |
+| `weztermconf` | WezTerm `wezterm.lua` — `local wezterm = require`/`config.<opt> =`/`wezterm.<fn>(`/`return config`。 |
+| `windowsterminal` | Windows Terminal `settings.json` — `profiles`/`schemes`/`actions`/`keybindings`/`themes` セクションと `guid`/`commandline`/`colorScheme` キー。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

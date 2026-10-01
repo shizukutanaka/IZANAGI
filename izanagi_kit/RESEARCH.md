@@ -5055,3 +5055,244 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Arch Linux Wiki: udev/sysctl/PAM, Qiita/Zenn Linux 管理記事
 
 — 全て整数のみで実装。
+
+## 第277次 — OS インストーラ・自動応答ファイル形式
+
+- `kickstart` — RHEL/Fedora/CentOS Kickstart `.ks`: 列0コマンド(`lang`/`keyboard`/`timezone`/`rootpw`/`bootloader`/`clearpart`/`part`/`volgroup`/`logvol`/`raid`/`network`/`firewall`/`services`/`repo`/`url`/`user`/`group`/`sshpw`/`realm`/`timesource`/`syspurpose`/`zipl`/`mount` 等)、`%packages`/`%pre`/`%post`/`%pre-install`/`%addon`/`%anaconda`/`%onerror`/`%traceback`/`%ksappend`/`%include`/`%end` セクション、`--opt=value` オプション、パッケージ本体(`@group`/`pkg`/`^env`/`-pkg`)とスクリプト本体の分離。
+- `preseed` — Debian `preseed.cfg`: `d-i <question> <type> <value>` 4トークン、`string`/`boolean`/`select`/`multiselect`/`passwd`/`password`/`note`/`title`/`text`/`error`/`seen` 型、`d-i`/`anna`/`tasksel` 所有者重複排除。
+- `autoyast` — SUSE AutoYaST `autoinst.xml`: `<profile xmlns="…/yast2ns">` 識別、`<general>`/`<networking>`/`<partitioning>`/`<software>`/`<scripts>`/`<users>` 等トップセクション、`config:type="list"`/`"boolean"`/`"integer"`/`"string"`/`"symbol"` 型注釈、`<![CDATA[` スクリプトブロック。
+- `calamares` — Calamares `settings.conf`/`netinstall.yaml`: `sequence:` の `- show:`/`- exec:` グループとモジュール名、`modules-search`/`branding`/`prompt-install`/`dont-chroot`/`oem-setup`/`disable-cancel`/`quit-at-end` 等トップキー。
+- `archinstall` — archinstall `config.json`/`user_configuration.json`: `archinstall-language`/`disk_config`/`locale_config`/`mirror_config`/`network_config`/`profile_config`/`audio_config`/`kernels`/`packages`/`services`/`users`/`!root-password`/`version` 等既知キーの値種別(bool/配列/オブジェクト/数値)分類。
+- `pxelinux` — SYSLINUX/PXELINUX/ISOLINUX `pxelinux.cfg`: `LABEL` エントリ、`MENU TITLE/LABEL/DEFAULT/AUTOBOOT/BACKGROUND/COLOR` 等、`KERNEL`/`LINUX`/`INITRD`/`APPEND`/`IPAPPEND`/`SYSAPPEND`/`LOCALBOOT`、`DEFAULT`/`PROMPT`/`TIMEOUT`/`ONTIMEOUT`/`UI`/`INCLUDE`/`SERIAL`/`F1`–`F12` グローバル。
+- `debconf` — `debconf-set-selections`: `<owner> <question> <type> <value>`、preseed との owner 差(非 `d-i` パッケージ名 + `<pkg>/<name>` question)、型別分割。
+
+## 出典
+
+- Kickstart syntax reference (pykickstart, Red Hat/Fedora docs)
+- Debian Installer Preseed appendix (debian.org/releases/stable/amd64/apb)
+- AutoYaST Guide / autoinst.xml reference (opensuse.org, doc.opensuse.org)
+- Calamares settings.conf / module configuration (calamares.io, github.com/calamares)
+- archinstall guided installer config (github.com/archlinux/archinstall)
+- SYSLINUX/PXELINUX config directives (syslinux wiki)
+- debconf-set-selections / debconf-devel(7) (manpages.debian.org)
+- Arch Wiki automated installation pages, Qiita/Zenn kickstart/preseed 記事
+
+— 全て整数のみで実装。
+
+## 第278次 — 暗号資産・ブロックチェーンノード設定形式
+
+- `bitcoinconf` — Bitcoin Core `bitcoin.conf`: `key=value` と裸 `key`(=1 扱い)、`[main]`/`[test]`/`[signet]`/`[regtest]`/`[testnet3]` ネットワークセクション、既知オプション集合、繰返し可能キー(`addnode`/`connect`/`zmqpub*`/`includeconf`/`loadwallet`/`whitelist`/`bind`/`debug`/`onlynet`/`externalip`)。
+- `cardanoconf` — cardano-node `config.json`: PascalCase トップキー走査、`Trace*`(Mux/ChainSyncClient/BlockFetch*/Forge/PeerSelection…)、`Byron`/`Shelley`/`Alonzo`/`Conway` `*GenesisFile`/`*GenesisHash`、`EnableP2P`/`PeerSharing`/`defaultScribes`/`setupScribes`/`hasEKG`/`hasPrometheus`/`minSeverity`/`TracingVerbosity`/`TurnOnLogging`/`RequiresNetworkMagic`、値種別(bool/string/number/array/object)分類。
+- `gethconf` — `geth dumpconfig`/`config.toml`: PascalCase テーブル(`[Eth]`/`[Node]`/`[Node.P2P]`/`[Eth.TxPool]`/`[Eth.Miner]`/`[Eth.Ethash]`/`[Dashboard]`/`[Metrics]`/`[Les]`…)、CamelCase キー(`NetworkId`/`SyncMode`/`DiscoveryURLs`/`MaxPeers`/`Etherbase`/`GasFloor`…)、ネストテーブル検出、bool/string/number/配列値分類。
+- `lndconf` — Lightning `lnd.conf`: `[Application Options]`/`[Bitcoin]`/`[Btcd]`/`[Neutrino]`/`[Litecoin]`/`[autopilot]`/`[watchtower]`/`[wtclient]`/`[routerrpc]`/`[workers]`/`[caches]`/`[protocol]`/`[sweeper]`/`[healthcheck]`/`[signrpc]`/`[walletrpc]`/`[chainrpc]`/`[invoices]`/`[bolt]`/`[db]`/`[fee]`/`[middleware]`/`[remotesigner]`/`[monitoring]`/`[htlcswitch]`/`[gossip]`/`[bitcoind]`/`[ltcd]` セクション、`bitcoin.*`/`btcd.*`/`watchtower.*` 等ドットキー、`;`/`#` コメント。
+- `monero` — `monerod.conf`/`bitmonero.conf`: kebab-key `key=value`(`p2p-bind-*`/`rpc-bind-*`/`rpc-ssl-*`/`rpc-payment-*`/`data-dir`/`log-level`/`db-sync-mode`/`limit-rate-*`/`add-peer`/`add-priority-node`/`seed-node`/`zmq-pub`/`restricted-rpc`/`bg-mining-*`/`bootstrap-daemon-*`/`block-notify`/`reorg-notify`…)、先頭セグメントのグループ重複排除、endpoint(`host:port`)/数値/bool 値分類。
+- `parityconf` — Parity/OpenEthereum `config.toml`: 小文字セクション(`[parity]`/`[network]`/`[rpc]`/`[websockets]`/`[ipc]`/`[dapps]`/`[secretstore]`/`[ipfs]`/`[mining]`/`[footprint]`/`[snapshots]`/`[misc]`/`[stratum]`/`[account]`/`[keys]`/`[ui]`)、snake_case キー(`chain`/`base_path`/`bootnodes`/`min_peers`/`apis`/`origins`/`author`/`engine_signer`/`tx_queue_*`/`fat_db`/`pruning`/`warp`/`no_discovery`…)、bool/string/number/list 値分類、geth(CamelCase)との識別。
+- `suiconf` — Sui `fullnode.yaml`/バリデータ設定: kebab-case トップキー(`db-path`/`network-address`/`metrics-address`/`admin-interface-port`/`json-rpc-address`/`websocket-address`/`enable-event-processing`/`supported-protocol-versions`/`genesis`/`p2p-config`/`authority-store-pruning-config`/`end-of-epoch-broadcast-channel-capacity`/`checkpoint-executor-config`/`expensive-safety-check-config`/`transaction-deny-config`/`state-debug-dump-config`/`policy-config`/`protocol-config`/`zklogin-providers`/`db-checkpoint-config`/`consensus-config`/`protocol-key-pair`…)、ネストマップ/flow 値、既知キー検出。
+
+## 出典
+
+- `contrib/debian/examples/bitcoin.conf` (bitcoin/bitcoin), Bitcoin Core config docs (bitcoin.org, docs.bitcoincore.org)
+- `geth dumpconfig`/`--config` TOML reference (geth.ethereum.org/docs, go-ethereum source `eth/config.go`)
+- `monerod.conf` オプション一覧 (github.com/monero-project/monero `command_line` docs, monero docs)
+- `sample-lnd.conf` (github.com/lightningnetwork/lnd) のセクション構成
+- cardano-node `mainnet-config.json` (github.com/input-output-hk / book.world.dev.cardano.org)
+- `parity --config`/`config.toml` sections (github.com/openethereum/parity-ethereum wiki)
+- Sui `fullnode.yaml` template (github.com/MystenLabs/sui `crates/sui-config`)
+
+— 全て整数のみで実装。
+
+## 第279次 — ゲームエミュレータ設定形式
+
+- `dolphinconf` — Dolphin `Dolphin.ini`/`GFX.ini`/`WiimoteNew.ini`: `[General]`/`[Interface]`/`[Display]`/`[GameList]`/`[Core]`/`[Movie]`/`[DSP]`/`[Input]`/`[FifoPlayer]`/`[Analytics]`/`[Network]`/`[BluetoothPassthrough]`/`[USBPassthrough]`/`[SYSCONF]`/`[Controls]`/`[Video]`/`[Wiimote*]`/`[GBA]`、大文字 `True`/`False` 値。
+- `mameconf` — MAME `mame.ini`/`ui.ini`: `=` を使わない空白区切り `key value`、`rompath`/`hashpath`/`samplepath`/`artpath`/`ctrlrpath`/`inipath`/`*_directory` パス群、video/screen/input/debug 系既知キー。
+- `pcsx2conf` — `PCSX2_ui.ini`/`PCSX2_vm.ini`: `[EmuCore]`/`[EmuCore/Speedhacks]`/`[EmuCore/Gamefixes]`/`[EmuCore/CPU]`/`[EmuCore/CPU/Recompiler]`/`[EmuCore/GS]`/`[GSWindow]`/`[Filenames]`/`[Hotkeys]` パス風セクション、`enabled`/`disabled`/`true`/`false` 値、`Enable*`/`Disable*` トグル。
+- `ppssppconf` — `ppsspp.ini`/`controls.ini`: `[General]`/`[CPU]`/`[Graphics]`/`[Sound]`/`[Control]`/`[SystemParam]`/`[Network]`/`[Log]`/`[Debug]`/`[SpeedHacks]`/`[Recent]`/`[Achievements]`/`[Chat]`、`Key = True/False`。
+- `retroarch` — `retroarch.cfg`: `key = "value"`(文字列)と `key = value`(数値/bool)、`video_`/`audio_`/`input_`/`menu_`/`rgui_`/`savestate_`/`rewind_`/`netplay_`/`libretro_`/`notification_`/`playlist_`/`scan_`/`xmb_`/`ozone_`/`materialui_` 等プレフィックスグループ。
+- `rpcs3conf` — `config.yml`: `Core:`/`VFS:`/`Video:`/`Audio:`/`Input/Output:`/`System:`/`Net:`/`Miscellaneous:`/`Log:`/`Debug:`/`Compatibility:` トップセクション、空白含むサブキー(`PPU Decoder:`/`$(EmulatorDir):`/`/dev_hdd0:`/`Enable /host_root:`…)、`Enabled`/`Disabled`/`true`/`false` 値。
+- `yuzuconf` — `qt-config.ini`: `[General]`/`[UI]`/`[UIGameList]`/`[UILayout]`/`[Paths]`/`[Shortcuts]`/`[Core]`/`[CPU]`/`[Graphics]`/`[Audio]`/`[Controls]`/`[Data%20Storage]`/`[Multiplayer]`、Qt `Parent\Child=value` バックスラッシュキー、`%20` パーセントエスケープ、小文字 `true`/`false`。
+
+## 出典
+
+- Dolphin `Source/Core/Core/ConfigManager.cpp` / Dolphin.ini 構造 (github.com/dolphin-emu, Dolphin Emulator Wiki)
+- MAME `mame.ini` template / `source/frontend/mame/mameopts` (docs.mamedev.org)
+- PCSX2 `PCSX2_ui.ini`/`PCSX2_vm.ini` (github.com/PCSX2/pcsx2 `pcsx2-qt` settings)
+- PPSSPP `ppsspp.ini` 生成コード (github.com/hrydgard/ppsspp `Core/Config.h`)
+- RetroArch `retroarch.cfg` / `config.def.keybinds` (docs.libretro.com, libretro.com)
+- RPCS3 `config.yml` (github.com/RPCS3/rpcs3 `rpcs3/config.yml` wiki)
+- yuzu/sudachi `qt-config.ini` / Qt `QSettings` group serialization
+
+— 全て整数のみで実装。
+
+## 第280次 — 3Dプリンタ・CNC 制御設定形式
+
+- `klipperconf` — Klipper `printer.cfg`/`mmu.cfg` 等: 空白含みセクション `[stepper x]`/`[gcode_macro NAME]`/`[heater_fan]`、`key: value` 代入、`PA0`/`PC14`/`!PF5`/`^PD1`/`gpio`/`mcu:PA0` ピンエイリアス、`tmc2209`/`a4988`/`drv8825` ステッパドライバ系セクションと `gcode_macro` マクロの別計数。
+- `octoprint` — OctoPrint `config.yaml`: `server`/`webcam`/`appearance`/`accessControl`/`devel`/`serial`/`temperature`/`feature`/`folder`/`softwareupdate`/`tracking` 等トップキー、`plugins:` 直下のプラグイン ID ネスト追跡。
+- `prusaslicer` — PrusaSlicer `.ini` バンドル/プロファイル: `# generated by PrusaSlicer` マーカー、`[print]`/`[filament]`/`[printer]`/`[vendor]`/`[presets]` と `[print:0.20 QUALITY]` 名付きプリセット、`layer_height`/`retract_length`/`nozzle_temperature`/`wipe_tower` 等 ~160 既知キー、`*_gcode`/`*temperature*`/`inherits` 分類。
+- `orcaslicer` — OrcaSlicer `.ini`: `# generated by OrcaSlicer` マーカー、`print_sequence`/`auto_calibrate`/`curr_bed_type`/`machine_pause_gcode`/`preheat_time`/`wall_loops`/`sparse_infill_density`/`tree_support_*`/`ironing_*`/`z_hop_type` 等 Orca 固有キーと PrusaSlicer 共有キーの区別 (`printer_model` は Orca 固有として分類)。
+- `curaconf` — Ultimaker Cura `*.inst.cfg`/`cura.cfg`: `[general]`/`[metadata]`/`[values]`/`[machine]`/`[containers]`/`[profile]`/`[alterations]` セクション、必須 `setting_version` 整数、`key = value` (古い `cura.cfg` スタイルの `[machine]`/`[alterations]` も受理)。
+- `moonrakerconf` — Moonraker `moonraker.conf`: `[server]`/`[authorization]`/`[octoprint_compat]`/`[history]`/`[update_manager name]`/`[announcements]`/`[machine]`/`[data_sync]`/`[file_manager]`/`[database]`/`[job_queue]`/`[spoolman]`/`[timelapse]`/`[mqtt]`/`[notifier name]`/`[secrets]`、`key: value` 代入、`update_manager` 別計数、`power`/`wled`/`notifier`/`hue`/`tasmota`/`tplink`/`rf`/`sensor`/`shell_command` 等デバイス系セクション。
+- `marlinconf` — Marlin `Configuration.h`/`Configuration_adv.h`: `#define OPTION value`/`#define FLAG`/`//#define DISABLED` 3 形態、`MOTHERBOARD`/`BAUDRATE`/`EXTRUDERS`/`PIDTEMP`/`SDSUPPORT`/`NOZZLE_PARK_FEATURE`/`Z_SAFE_HOMING`/`LIN_ADVANCE`/`BLTOUCH`/`COREXY`/`DELTA` 等 ~350 既知オプション+`*_ENDSTOP_INVERTING`/`*_DRIVER_TYPE`/`*_AUTO_FAN_PIN`/`TEMP_SENSOR_*`/`USE_*_PLUG`/`AUTO_BED_LEVELING_*`/`DEFAULT_MAX_*`/`PROBE_PT_*` ファミリー規則、フラグ/数値/文字列値の分類。
+
+## 出典
+
+- Klipper `klippy/extras/*.py` 設定名と `printer.cfg` テンプレート (github.com/Klipper3d/klipper, klipper3d.org)
+- OctoPrint `config.yaml` 既定値 (github.com/OctoPrint/OctoPrint `settings.py`, docs.octoprint.org)
+- PrusaSlicer プリセット `.ini`/`PrintConfig.cpp` キー定義 (github.com/prusa3d/PrusaSlicer, help.prusa3d.com)
+- OrcaSlicer `.ini` プロファイルと Orca 固有キー (github.com/SoftFever/OrcaSlicer, github.com/OrcaSlicer wiki)
+- Ultimaker Cura `.inst.cfg` コンテナ/`setting_version` 仕様 (github.com/Ultimaker/Cura `resources/definitions`, github.com/Ultimaker/CuraEngine)
+- Moonraker `moonraker.conf` コンポーネント構造 (github.com/Arksine/moonraker, moonraker.readthedocs.io)
+- Marlin `Configuration.h`/`Configuration_adv.h` オプション名 (github.com/MarlinFirmware/Marlin, marlinfw.org/docs/configuration)
+
+— 全て整数のみで実装。
+
+## 第281次 — メールクライアント・取得/転送ツール設定形式
+
+- `muttrc` — Mutt `.muttrc`: `set`/`unset`/`reset`/`toggle`/`bind`/`macro`/`color`/`uncolor`/`mono`/`mailboxes`/`my_hdr`/`alias`/`alternates`/`source`/`exec`/`push`/`score`/`spam`/`group`/`lists`/`ignore` 等コマンド行と `account-hook`/`folder-hook`/`send-hook`/`reply-hook`/`mbox-hook` 等 `*-hook` 接尾辞系の別計数。
+- `neomuttconf` — NeoMutt `.neomuttrc`: mutt 構文互換だが `sidebar_*`/`nm_*` (notmuch) /`ts_*` (status) 変数と `virtual-mailboxes`/`named-mailboxes`/`lua`/`sidebar_pin`/`sidebar_whitelist`/`tag-formats` 等 NeoMutt 固有コマンドを必須条件として mutt と区別。
+- `aercconf` — aerc `aerc.conf`/`binds.conf`/`accounts.conf`: `[general]`/`[ui]`/`[viewer]`/`[composer]`/`[filters]`/`[triggers]`/`[statusline]`/`[templates]`/`[linter]`/`[binds]` セクションと `[ui:account=…]`/`[ui:folder=…]` コンテキスト付きサブセクション、`key=value`。
+- `mbsyncrc` — isync/mbsync `.mbsyncrc`: `IMAPAccount`/`IMAPStore`/`MaildirStore`/`Channel`/`Group` オブジェクトブロック宣言、`Host`/`Port`/`User`/`UserCmd`/`Pass`/`PassCmd`/`SSLType`/`SSLVersions`/`CertificateFile`/`Pipelinedepth`/`Trash`/`SubFolders`/`Inbox`/`Far`/`Near`/`Patterns`/`Sync`/`Expunge`/`Create`/`Remove`/`SyncState`/`MaxMessages`/`MaxSize`/`ExpireUnread`/`CopyArrivalDate`/`Filter` キー。
+- `msmtprc` — msmtp `.msmtprc`: `defaults`/`account name`/`account default : name` ブロック、`host`/`port`/`from`/`user`/`password`/`passwordeval`/`auth`/`tls`/`tls_*`/`logfile`/`sendmail`/`aliases`/`syslog`/`proxy_*`/`dsn_*`/`eval` キー、TLS・認証系の別計数。
+- `fetchmailconf` — fetchmail `.fetchmailrc`: `poll`/`server`/`skip`/`defaults`/`set`/`via`/`aka`/`localdomains` 先頭語と `proto`/`user`/`password`/`is`/`here`/`ssl`/`sslproto`/`sslfingerprint`/`uidl`/`keep`/`flush`/`fetchall`/`mda`/`smtphost`/`antispam`/`envelope`/`qvirtual`/`tracepolls`/`no rewrite` オプション語。
+- `offlineimap` — OfflineIMAP `.offlineimaprc`: `[general]`/`[Account name]`/`[Repository name]`/`[mbnames]`/`[ui.<name>]`/`[python]` セクション、`accounts`/`pythonfile`/`localrepository`/`remoterepository`/`type`(Maildir/IMAP/Gmail/Local)/`remotehost`/`remoteuser`/`remotepasseval`/`sslcacertfile`/`cert_fingerprint`/`folderfilter`/`nametrans`/`folderincludes`/`holdconnectionopen`/`keepalive`/`synclabels`/`oauth2_*`/`realdelete`/`maildir-windows-compatible` キー。
+
+## 出典
+
+- Mutt/NeoMutt `init.h` コマンド表と manual (mutt.org, neomutt.org/guide)
+- aerc `config/aerc.conf` 既定設定 (git.sr.ht/~rjarry/aerc, aerc-mail.org)
+- isync/mbsync `.mbsyncrc` フォーマット (isync.sourceforge.net, man mbsync)
+- msmtp `.msmtprc` 設定キー (marlam.de/msmtp/msmtp.html)
+- fetchmail `.fetchmailrc` keyword (fetchmail.info, man fetchmail)
+- OfflineIMAP `offlineimap.conf` サンプル (github.com/OfflineIMAP/offlineimap, offlineimap.org)
+
+— 全て整数のみで実装。
+
+## 第282次 — IRC・メッセージングクライアント/ブリッジ設定形式
+
+- `irssi` — Irssi `~/.irssi/config`: 列0 の `servers = (`/`chatnets = {`/`settings = {`/`hilights = (` 等トップブロック、`key = value;` 代入、`Libera = { type = "IRC"; };` 風の `Name = { }` 辞書エントリ、`;` 終端行の別計数。
+- `weechat` — WeeChat `*.conf`: `[look]`/`[network]`/`[server]`/`[ctcp]` 等セクションと `key = value`、`server.<name>.<opt>` ドット階層キー、`on`/`off` ブール値。
+- `hexchat` — HexChat `hexchat.conf`: セクションを持たない平坦な `key = value`、`version`/`auto_connect` + `irc_*`/`gui_*`/`dcc_*`/`completion_*`/`nick_*`/`proxy_*`/`text_*` プレフィックス系。
+- `znc` — ZNC `znc.conf`: `<User name>`/`<Listener l0>`/`<Network net>`/`<Chan #c>`/`<Pass password>` の位置引数付き開始タグ (属性 `=` を含まない点で XML と区別) と `Key = Value`。
+- `matterbridge` — Matterbridge `matterbridge.toml`: `[irc.x]`/`[discord.x]`/`[slack.x]`/`[matrix.x]`/`[xmpp.x]` 等 ~20 プロトコル接頭辞テーブルと `[[gateway]]`/`[[gateway.inout]]`/`[[gateway.in]]`/`[[gateway.out]]` ゲートウェイ配列。
+- `unrealircd` — UnrealIRCd `unrealircd.conf`: `me { }`/`admin { }`/`class x { }`/`oper x { }`/`listen { }`/`link x { }`/`allow { }`/`ban x { }`/`set { }`/`spamfilter x { }` 等 ~35 ブロック名と `stmt;` 終端、`include "…";`。
+- `pidginconf` — Pidgin/libpurple `prefs.xml`・`accounts.xml`: `<purple version='1.0'>`/`<account version='1.0'>` ルート、`<pref name type value/>`・`<setting name type>` 要素、`prpl-irc`/`prpl-xmpp` 等プロトコル識別子。
+
+## 出典
+
+- Irssi `config` 既定ファイルと settings ドキュメント (irssi.org/documentation/settings, github.com/irssi/irssi)
+- WeeChat `weechat.conf`/`irc.conf` リファレンス (weechat.org/files/doc)
+- HexChat `hexchat.conf` キー一覧 (hexchat.github.io, hexchat docs)
+- ZNC `znc.conf` ブロック構造 (wiki.znc.in/Configuration)
+- Matterbridge `matterbridge.toml.sample` (github.com/42wim/matterbridge)
+- UnrealIRCd `unrealircd.conf` ブロックリファレンス (unrealircd.org/docs)
+- Pidgin `prefs.xml`/`accounts.xml` (developer.pidgin.im, libpurple docs)
+
+— 全て整数のみで実装。
+
+## 第283次 — チャット・メッセージングサーバ設定形式
+
+- `ejabberd` — ejabberd `ejabberd.yml`: `hosts:`/`listen:`/`acl:`/`access_rules:`/`shaper:`/`shaper_rules:`/`modules:`/`certfiles:`/`odbc_*`/`s2s_*`/`sm_*`/`host_config`/`define_macro` 等トップキーと `mod_*:` モジュール項目。
+- `prosody` — Prosody `prosody.cfg.lua`: `admins`/`modules_enabled`/`allow_registration`/`c2s_require_encryption`/`authentication`/`storage`/`ssl`/`plugin_paths` 等 Lua 風代入、`key = { "a"; "b"; }` リスト、`VirtualHost "x"`/`Component "x" "muc"` 宣言。
+- `synapse` — Matrix Synapse `homeserver.yaml`: `server_name:`/`listeners:`/`database:`/`log_config:`/`media_store_path:`/`modules:`/`registration_shared_secret:`/`trusted_key_servers:`/`oidc_providers:`/`sso:`/`retention:` 等 ~50 トップキー。
+- `ngircd` — ngIRCd `ngircd.conf`: `[Global]`/`[Limits]`/`[Options]`/`[SSL]`/`[Operator]`/`[Server]`/`[Channel]`/`[Features]` セクションと `Name`/`Info`/`MotdFile`/`MaxConnections`/`PingTimeout`/`ChrootDir`/`Cloak*`/`PAM` 等キー。
+- `mattermost` — Mattermost `config.json`: `"ServiceSettings"`/`"TeamSettings"`/`"SqlSettings"`/`"EmailSettings"`/`"LdapSettings"`/`"SamlSettings"`/`"PluginSettings"`/`"FeatureFlags"` 等 ~40 PascalCase セクション。
+- `zulipconf` — Zulip `/etc/zulip/zulip.conf`: `[machine]`/`[postgresql]`/`[memcached]`/`[rabbitmq]`/`[application_server]`/`[sentry]`/`[nagios]`/`[loadbalancer]`/`[queue]` セクションと `puppet_classes`/`deploy_type`/`nodename`/`http_only`/`rate_limiting`/`s3_*` キー。
+- `discourse` — Discourse `containers/app.yml`: `templates:`/`expose:`/`params:`/`env:`/`volumes:`/`hooks:`/`links:`/`run:`/`docker_args:` トップキーと `DISCOURSE_*`/`UNICORN_*`/`db_*`/`LETSENCRYPT_*` env 変数。
+
+## 出典
+
+- ejabberd.yml サンプルと設定ドキュメント (docs.ejabberd.im, github.com/processone/ejabberd)
+- Prosody `prosody.cfg.lua` 既定設定とモジュール一覧 (prosody.im/doc)
+- Synapse homeserver.yaml サンプルと設定リファレンス (github.com/element-hq/synapse, element-hq.github.io/synapse)
+- ngIRCd `ngircd.conf` セクション/キー (ngircd.barton.de, man ngircd.conf)
+- Mattermost `config.json` 設定リファレンス (docs.mattermost.com/configure)
+- Zulip `zulip.conf` (github.com/zulip/zulip, zulip.readthedocs.io)
+- Discourse `app.yml`/`web_only.yml` サンプル (github.com/discourse/discourse_docker)
+
+— 全て整数のみで実装。
+
+## 第284次 — X Window・ディスプレイマネージャ設定形式
+
+- `xorgconf` — X.Org `xorg.conf`/`xorg.conf.d/*.conf`: `Section`/`SubSection`/`EndSection`/`EndSubSection` ブロックと `ServerLayout`/`ServerFlags`/`Files`/`Module`/`Extensions`/`InputDevice`/`InputClass`/`Device`/`Monitor`/`Modes`/`Display`/`Screen` 等既知名、`Identifier`/`Option` ステートメント。
+- `xresources` — `.Xresources`/`Xdefaults`/`app-defaults/*`: `Name.Class*resource: value` リソース行、`*`/`?` ワイルドカード、`!` コメント、cpp プリプロセッサ (`#define`/`#include`/`#if`/`#endif`)。`Xft.`/`xterm*`/`urxvt*`/`rofi.`/`*color*` 等接頭辞で汎用 `key: value` と区別。
+- `xmodmap` — `.Xmodmap`: `keycode N = keysym …`/`keysym a = …`/`pointer = …`/`clear`/`add`/`remove` 文。
+- `lightdm` — LightDM `lightdm.conf`: `[LightDM]`/`[Seat:*]`/`[Seat:seat0]`/`[XDMCPServer]`/`[VNCServer]`/`[XDMCPClient]` セクションと `greeter-session`/`user-session`/`autologin-*`/`xserver-*`/`greeter-hide-users` 等 ~55 キー。
+- `sddmconf` — SDDM `sddm.conf`: `[General]`/`[Theme]`/`[Users]`/`[Wayland]`/`[X11]`/`[Autologin]` セクションと `HaltCommand`/`Numlock`/`Current`/`CursorTheme`/`MinimumUid`/`VirtualTerminal`/`Session`/`User` 等 ~45 キー。
+- `gdmconf` — GDM `custom.conf`/`daemon.conf`: `[daemon]`/`[security]`/`[xdmcp]`/`[chooser]`/`[debug]` セクションと `AutomaticLogin*`/`TimedLogin*`/`WaylandEnable`/`DisallowTCP`/`MaxSessions` 等キー。
+- `westonconf` — Weston `weston.ini`: `[core]`/`[shell]`/`[output]`/`[input-device]`/`[keyboard]`/`[terminal]`/`[launcher]`/`[screen-share]`/`[xwayland]`/`[libinput]`/`[remote]`/`[remoting]` セクションと `modules`/`keymap_*`/`panel-position`/`transform`/`scale`/`mode` 等キー。
+
+## 出典
+
+- xorg.conf セクション仕様 (xorg.conf(5) man page, wiki.archlinux.org/xorg)
+- .Xresources/cpp リソース構文 (wiki.archlinux.org/x_resources, man xrdb)
+- .Xmodmap 文法 (man xmodmap, wiki.archlinux.org/xmodmap)
+- LightDM `lightdm.conf` リファレンス (github.com/canonical/lightdm)
+- SDDM `sddm.conf` サンプル/リファレンス (github.com/sddm/sddm)
+- GDM `custom.conf` (help.gnome.org/admin/gdm)
+- Weston `weston.ini` マニュアル (man weston.ini, wayland.freedesktop.org)
+
+— 全て整数のみで実装。
+
+## 第285次 — ネットワーク監視・IDS/NSM 設定形式
+
+- `suricata` — Suricata `suricata.yaml`: `%YAML 1.1`/`---` マーカと `vars:`/`af-packet:`/`outputs:`/`default-rule-path:`/`app-layer:`/`detect-engine:`/`logging:`/`stream:`/`detect:` 等 ~50 既知トップキー。
+- `zeekctl` — ZeekControl `node.cfg`/`zeekctl.cfg`/`control.cfg`: `[manager]`/`[proxy-*]`/`[logger]`/`[worker-*]`/`[standalone]` セクションと `type`/`host`/`interface`/`lb_method`/`pin_cpus` ノードキー + `LogDir`/`SpoolDir`/`MailTo`/`LogRotationInterval` 等 zeekctl キー。
+- `zeekscript` — Zeek `local.zeek`/`*.zeek`/`*.bro` スクリプト: `@load`/`@load-sigs`/`@if`/`@ifdef`/`@endif` ディレクティブと `module`/`export`/`redef`/`event`/`hook`/`function` 宣言。
+- `arkimeconf` — Arkime (旧 Moloch) `config.ini`: `[default]`/`[cache]`/`[overrides.<host>]` セクションと `elasticsearch`/`interface`/`pcapDir`/`passwordSecret`/`geoLite2*`/`rotateIndex`/`parsersDir` 等 ~50 キー。
+- `pmacctconf` — pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf`/`pmtelemetryd.conf`: `key: value` コロン形式と `daemonize`/`syslog`/`interface`/`plugins`/`aggregate`/`nfacctd_*`/`sql_*`/`kafka_*`/`rabbitmq_*`/`mongo_*`/`tee_*`/`imt_*` 等 ~100 キー。
+- `argusconf` — Argus `argus.conf`/`ra.conf`/`rarc`: `ARGUS_*`/`RA_*` 接頭辞の `KEY=value` 代入 (daemon/interface/filter/output/time-format/sort)。
+- `wiresharkpref` — Wireshark `preferences`/`enabled_protos`/`disabled_protos`: `pref.name: value` 行と `gui.`/`qt.`/`nameres.`/`tcp.`/`wlan.`/`uat.`/`extcap.`/`stats.`/`transum.` 等 ~100 プロトコル接頭辞 (`uat:file:section` 二重コロン形式対応)。
+
+## 出典
+
+- Suricata `suricata.yaml` サンプルと設定リファレンス (github.com/OISF/suricata, suricata.readthedocs.io)
+- ZeekControl `node.cfg`/`zeekctl.cfg` (github.com/zeek/zeekctl), Zeek スクリプト言語リファレンス (docs.zeek.org)
+- Arkime `config.ini` リファレンス (arkime.com/settings, github.com/arkime/arkime)
+- pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf` 設定ガイド (github.com/pmacct/pmacct)
+- Argus `argus.conf`/`ra.conf` マニュアル (qosient.com/argus, man argus.conf(5))
+- Wireshark `preferences` ファイル構造 (wiki.wireshark.org/Preferences)
+
+— 全て整数のみで実装。
+
+## 第286次 — 分散ストレージ・ファイル共有デーモン設定形式
+
+- `samba` — Samba `smb.conf`: `[global]`/`[homes]`/`[printers]`/`[netlogon]`/`[sysvol]`/`[profiles]`/`[ipc$]`/`[print$]` セクションと `workgroup`/`security`/`map to guest`/`vfs objects`/`valid users`/`read only`/`browseable`/`guest ok` 等 ~60 キー (空白含みキー許容)。
+- `nfsexports` — NFS `/etc/exports`: `/path host(opts)` エントリ、`rw`/`ro`/`sync`/`no_subtree_check`/`root_squash`/`all_squash`/`fsid`/`anonuid`/`sec=` 等 ~30 オプション、CIDR/`*`/`@group` ホスト指定。
+- `cephconf` — Ceph `ceph.conf`: `[global]`/`[mon]`/`[osd]`/`[mds]`/`[mgr]`/`[client]`/`[osd.0]`/`[mon.a]` daemon セクションと `fsid`/`mon_initial_members`/`mon_host`/`public_network`/`cluster_network`/`osd_pool_default_*`/`auth_*`/`bluestore_*`/`rgw_*`/`debug_*` 等 ~45 キー。
+- `drbdconf` — DRBD `drbd.conf`/`*.res`: `global`/`common`/`resource`/`on <host>`/`net`/`connection` ブロックと `device`/`disk`/`address`/`meta-disk`/`protocol`/`cram-hmac-alg`/`shared-secret`/`rate`/`al-extents`/`fencing` 等 ~50 キーワード。
+- `glusterfs` — GlusterFS volfile (`*.vol`): `volume <name>`/`type <translator>`/`option <k> <v>`/`subvolumes <list>`/`end-volume` の5構文のみで構成される形式。
+- `lvmconf` — LVM `lvm.conf`: `devices {}`/`global {}`/`activation {}`/`backup {}`/`log {}`/`allocation {}` 等 ~18 既知ブロックと `filter`/`global_filter`/`use_devicesfile`/`use_lvmetad`/`udev_sync`/`locking_type`/`mirror_region_size`/`thin_*_executable` 等 ~50 キー。
+- `hadoopconf` — Hadoop `core-site.xml`/`hdfs-site.xml`/`mapred-site.xml`/`yarn-site.xml`: `<property>`/`<name>`/`<value>` 構造と `fs.default`/`dfs.*`/`mapreduce.*`/`yarn.*`/`hadoop.*`/`ha.zookeeper.*`/`fs.s3*`/`fs.azure` 等既知接頭辞。
+
+## 出典
+
+- Samba `smb.conf` マニュアル (man smb.conf(5), samba.org)
+- NFS exports(5) マニュアル、`/etc/exports` 例 (linux-nfs.org, man exports(5))
+- Ceph `ceph.conf` 設定リファレンス (docs.ceph.com/en/latest/rados/configuration/ceph-conf)
+- DRBD 9.x `drbd.conf` ユーザガイド (linbit.com/drbd-user-guide)
+- GlusterFS volume file フォーマット (docs.gluster.org, `*.vol` 生成物)
+- LVM `lvm.conf(5)` マニュアル (man lvm.conf, sourceware.org/lvm2)
+- Hadoop `*-site.xml` デフォルト設定 (core-default.xml/hdfs-default.xml/yarn-default.xml, hadoop.apache.org)
+
+— 全て整数のみで実装。
+
+## 第287次 — ターミナルエミュレータ設定形式 (第2弾)
+
+- `footconf` — foot (Wayland ネイティブ) `foot.ini`: `[main]`/`[scrollback]`/`[url]`/`[cursor]`/`[mouse]`/`[colors]`/`[csd]`/`[bell]`/`[tweak]`/`[key-bindings]`/`[search-bindings]`/`[url-bindings]`/`[text-bindings]`/`[mouse-bindings]` セクションと `font`/`shell`/`term`/`alpha`/`regular0-7`/`bright0-7`/`style`/`blink`/`scrollback` 等 ~100 キー。
+- `weztermconf` — WezTerm `wezterm.lua`: `local wezterm = require 'wezterm'` ヘッダ、`config.<opt> =` 代入、`wezterm.font()`/`wezterm.config_builder()` 呼出、`return config`。
+- `ghosttyconf` — Ghostty `config`: 平坦 `key = value` と `font-family`/`font-size`/`theme`/`window-padding-x`/`cursor-style`/`keybind`/`background-opacity`/`macos-*`/`gtk-*`/`linux-cgroup-*` 等 ~80 キー。
+- `contourconf` — Contour `contour.yml`: `profiles:`/`color_schemes:`/`word_delimiters`/`spawn_new_process`/`bypass_mouse_protocol_modifier`/`renderer`/`text_shaper`/`font_locator`/`input_mapping` 等 ~30 既知トップキー。
+- `windowsterminal` — Windows Terminal `settings.json`: `profiles`(list/defaults)/`schemes`/`actions`/`keybindings`/`themes`/`globals` セクションと `guid`/`commandline`/`colorScheme`/`fontFace`/`useAcrylic` 等 ~80 キー (1行複数キー対応)。
+- `tabbyconf` — Tabby (旧 Terminus) `config.yaml`: `hotkeys:`/`terminal:`/`profiles:`/`profileDefaults:`/`appearance:`/`vault:`/`configSync:`/`ssh:`/`clickableLinks:` 等 ~30 既知トップキー。
+- `itermdyn` — iTerm2 Dynamic Profiles JSON: `"Profiles"` 配列と `"Guid"`/`"Dynamic Profile"`/`"Custom Command"`/`"Badge Text"`/`"Ansi * Color"`/`"HotKey *"` 等 PascalCase キー (1行複数キー対応)。
+
+## 出典
+
+- foot `foot.ini(5)` マニュアル (codeberg.org/dnkl/foot, man foot.ini)
+- WezTerm `wezterm.lua` 設定リファレンス (wezfurlong.org/wezterm/config)
+- Ghostty config リファレンス (ghostty.org/docs/config, ~400 オプション)
+- Contour `contour.yml` (github.com/contour-terminal/contour, examples/contour.yml)
+- Windows Terminal `settings.json` スキーマ (learn.microsoft.com/windows-terminal, aka.ms/terminal-profiles-schema)
+- Tabby `config.yaml` デフォルト設定 (github.com/Eugeny/tabby)
+- iTerm2 Dynamic Profiles JSON スキーマ (iterm2.com/documentation-dynamic-profiles)
+
+— 全て整数のみで実装。
