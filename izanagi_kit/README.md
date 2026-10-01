@@ -690,6 +690,13 @@ The capability map — with per-feature implementation status — lives in
 | `kickstart` | RHEL/Fedora Kickstart `.ks` — col-0 commands (`lang`/`part`/`volgroup`/`network`/`rootpw`…), `%packages`/`%pre`/`%post`/`%end`/`%addon` sections, `--opt=value` options, package/script bodies. |
 | `preseed` | Debian `preseed.cfg` — `d-i <question> <type> <value>` entries, string/boolean/select/multiselect/seen type split, `d-i`/`anna`/`tasksel` owner dedup. |
 | `pxelinux` | SYSLINUX/PXELINUX/ISOLINUX `pxelinux.cfg` — `LABEL` entries, `MENU` sub-directives, `KERNEL`/`LINUX`/`INITRD`/`BOOT`, `APPEND`/`IPAPPEND`/`SYSAPPEND`, `DEFAULT`/`PROMPT`/`TIMEOUT`/`ONTIMEOUT` globals. |
+| `bitcoinconf` | Bitcoin Core `bitcoin.conf` — `key=value`+bare `key` flags, `[main]`/`[test]`/`[signet]`/`[regtest]` network sections, known options, `0`/`1` bools, repeatable `addnode`/`connect`/`zmqpub*`/`loadwallet`. |
+| `cardanoconf` | Cardano node `config.json` — PascalCase top keys, `Trace*`/`TargetNumberOf*`, `*GenesisFile`/`*GenesisHash`, `EnableP2P`/`PeerSharing`/`defaultScribes`/`setupScribes`/`minSeverity`, value-kind split. |
+| `gethconf` | go-ethereum `dumpconfig`/`config.toml` — PascalCase tables `[Eth]`/`[Node]`/`[Node.P2P]`/`[Eth.TxPool]`/…, CamelCase keys, bool/string/number/array values. |
+| `lndconf` | Lightning `lnd.conf` — `[Application Options]`/`[Bitcoin]`/`[Btcd]`/`[Neutrino]`/`[watchtower]`/`[routerrpc]` sections, `chain.sub=key` dot-keys, `;`/`#` comments. |
+| `monero` | Monero `monerod.conf` — kebab-key `key=value`, `p2p-*`/`rpc-*`/`log-*`/`zmq-*`/`limit-*`/`bg-*`/`bootstrap-*` group dedup, port/endpoint values. |
+| `parityconf` | Parity/OpenEthereum `config.toml` — `[parity]`/`[network]`/`[rpc]`/`[mining]`/`[footprint]`/`[snapshots]`/`[dapps]`/`[secretstore]` sections, snake_case keys, bool/string/number/list values. |
+| `suiconf` | Sui `fullnode.yaml`/validator config — kebab-case top keys (`db-path`, `network-address`, `json-rpc-address`, `genesis`, `p2p-config`, `authority-store-pruning-config`, `checkpoint-executor-config`, …), nested maps, flow values. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
