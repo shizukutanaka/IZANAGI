@@ -106,19 +106,26 @@ fixed version has no such state at all.
 | Tier | What it is | Modules |
 |---|---|---|
 | **1. Determinism substrate** | Load-bearing. Break one of these and replay breaks. | `fixed`, `vec`, `rng`, `rng_xoshiro`, `noise`, `world_hash`, `replay`, `rollback`, `sim`, `dst`, `shrink`, `prop`, `plan`, `explore`, `temporal`, `recovery`, `verify`, `netinput`, `cmdqueue`, `bits`, `savefile`, `timestep` |
+| `amplifyconf` | AWS Amplify Hosting `amplify.yml` |
 | `appdaemon` | AppDaemon apps.yaml census |
 | `bird` | BIRD routing daemon config census |
 | `esphome` | ESPHome device yaml census |
+| `flyio` | Fly.io `fly.toml` |
 | `frigate` | Frigate NVR config census |
 | `frr` | FRRouting frr.conf census |
 | `haproxy` | HAProxy haproxy.cfg census |
 | `homeassistant` | Home Assistant configuration.yaml census |
 | `keepalived` | keepalived.conf census |
+| `netlifyconf` | Netlify `netlify.toml` |
 | `nodered` | Node-RED flows.json census |
 | `openbgpd` | OpenBGPD bgpd.conf census |
 | `openhab` | openHAB items/things/rules census |
+| `platformsh` | Platform.sh `.platform.app.yaml`/`routes.yaml` |
+| `railwayconf` | Railway `railway.json`/`railway.toml` |
+| `renderconf` | Render `render.yaml` Blueprint |
 | `squid` | squid.conf census |
 | `vcl` | Varnish VCL census |
+| `vercelconf` | Vercel `vercel.json` |
 | `zigbee2mqtt` | zigbee2mqtt configuration.yaml census |
 | `alloy` | Alloy model census |
 | `dafny` | Dafny program census |

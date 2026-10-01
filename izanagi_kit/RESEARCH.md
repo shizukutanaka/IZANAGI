@@ -4988,3 +4988,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Pinpoint pinpoint.config (pinpoint-apm.github.io)
 
 — 全て整数のみで実装。
+
+## 第274次 — PaaS・サーバレスデプロイ設定形式
+
+- `amplifyconf` — AWS Amplify Hosting `amplify.yml`:`frontend:`/`backend:`/`test:` ブロック、`preBuild`/`build`/`postBuild`/`preTest`/`postTest` フェーズと `commands:` 項目、`artifacts:`/`cache:`/`customHeaders:` サブセクションの計数。
+- `flyio` — Fly.io `fly.toml`:`app`/`primary_region` 検出、`[http_service]`/`[services]`/`[[services.ports]]`/`[checks]`/`[deploy]`/`[mounts]`/`[[vm]]` 等サービス系テーブルの区別。
+- `netlifyconf` — Netlify `netlify.toml`:`[build]`/`[build.environment]`、`[[redirects]]`/`[[headers]]`/`[[plugins]]`/`[[edge_functions]]` 配列テーブル、`[context.*]` デプロイコンテキストの計数。
+- `platformsh` — Platform.sh `.platform.app.yaml`/`routes.yaml`/`services.yaml`:`relationships:`/`web:`/`workers:`/`crons:`/`hooks:`(build/deploy/post_deploy)/`mounts:`(`"/path":` エントリ)の構造計数。
+- `railwayconf` — Railway `railway.json`/`railway.toml`:JSON/TOML 両対応、`build`(builder/buildCommand)・`deploy`(startCommand/healthcheck*/restartPolicy*/sleepApplication)のスコープ別計数。
+- `renderconf` — Render Blueprint `render.yaml`:`services:` の `- type:` 項目、`databases:`、`envVars:` の `- key:` 項目、`fromDatabase:`/`fromService:` 参照の計数。
+- `vercelconf` — Vercel `vercel.json`:`"version": 2`、`builds`(src/use エントリ)、`routes`/`rewrites`/`redirects`/`headers` 配列、`functions`/`env`/`github`/`projectSettings` オブジェクトの計数。
+
+## 出典
+
+- Fly.io fly.toml Reference (fly.io/docs)
+- Netlify File-based Configuration (docs.netlify.com)
+- Vercel vercel.json Reference (vercel.com/docs)
+- Railway Config as Code (docs.railway.com)
+- Render Blueprint Specification (render.com/docs/blueprint-spec)
+- AWS Amplify Build Specification (docs.aws.amazon.com/amplify)
+- Platform.sh App Configuration (docs.platform.sh)
+
+— 全て整数のみで実装。
