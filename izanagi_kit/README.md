@@ -697,6 +697,13 @@ The capability map — with per-feature implementation status — lives in
 | `monero` | Monero `monerod.conf` — kebab-key `key=value`, `p2p-*`/`rpc-*`/`log-*`/`zmq-*`/`limit-*`/`bg-*`/`bootstrap-*` group dedup, port/endpoint values. |
 | `parityconf` | Parity/OpenEthereum `config.toml` — `[parity]`/`[network]`/`[rpc]`/`[mining]`/`[footprint]`/`[snapshots]`/`[dapps]`/`[secretstore]` sections, snake_case keys, bool/string/number/list values. |
 | `suiconf` | Sui `fullnode.yaml`/validator config — kebab-case top keys (`db-path`, `network-address`, `json-rpc-address`, `genesis`, `p2p-config`, `authority-store-pruning-config`, `checkpoint-executor-config`, …), nested maps, flow values. |
+| `dolphinconf` | Dolphin `Dolphin.ini`/`GFX.ini`/`WiimoteNew.ini` — `[General]`/`[Core]`/`[Interface]`/`[Display]`/`[DSP]`/`[Controls]`/`[Video]`/`[Wiimote*]` sections, `Key = True/False` values. |
+| `mameconf` | MAME `mame.ini`/`ui.ini` — whitespace `key value` (no `=`), `*path`/`*_directory` groups, video/screen/input/debug option names, `0`/`1` toggles. |
+| `pcsx2conf` | PCSX2 `PCSX2_ui.ini`/`PCSX2_vm.ini` — `[EmuCore]`/`[EmuCore/Speedhacks]`/`[EmuCore/CPU/Recompiler]`/`[GSWindow]`/`[Filenames]` path-style sections, `enabled`/`disabled` values, `Enable*`/`Disable*` toggles. |
+| `ppssppconf` | PPSSPP `ppsspp.ini`/`controls.ini` — `[General]`/`[CPU]`/`[Graphics]`/`[Sound]`/`[SystemParam]`/`[Network]`/`[Achievements]` sections, `Key = True/False` values. |
+| `retroarch` | RetroArch `retroarch.cfg` — `key = "quoted"`/`key = value` lines, `video_*`/`audio_*`/`input_*`/`menu_*`/`savestate_*`/`rewind_*`/`libretro_*`/`netplay_*` prefix groups. |
+| `rpcs3conf` | RPCS3 `config.yml` — `Core:`/`VFS:`/`Video:`/`Audio:`/`Input/Output:`/`System:`/`Net:`/`Miscellaneous:`/`Log:`/`Debug:` top sections, space-containing subkeys, `Enabled`/`Disabled` values. |
+| `yuzuconf` | yuzu/sudachi `qt-config.ini` — `[General]`/`[UI]`/`[Shortcuts]`/`[Core]`/`[Graphics]`/`[Controls]`/`[Data%20Storage]` sections, Qt `Parent\Child=key` backslash keys, `%20` escapes. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

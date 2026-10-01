@@ -5100,3 +5100,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Sui `fullnode.yaml` template (github.com/MystenLabs/sui `crates/sui-config`)
 
 — 全て整数のみで実装。
+
+## 第279次 — ゲームエミュレータ設定形式
+
+- `dolphinconf` — Dolphin `Dolphin.ini`/`GFX.ini`/`WiimoteNew.ini`: `[General]`/`[Interface]`/`[Display]`/`[GameList]`/`[Core]`/`[Movie]`/`[DSP]`/`[Input]`/`[FifoPlayer]`/`[Analytics]`/`[Network]`/`[BluetoothPassthrough]`/`[USBPassthrough]`/`[SYSCONF]`/`[Controls]`/`[Video]`/`[Wiimote*]`/`[GBA]`、大文字 `True`/`False` 値。
+- `mameconf` — MAME `mame.ini`/`ui.ini`: `=` を使わない空白区切り `key value`、`rompath`/`hashpath`/`samplepath`/`artpath`/`ctrlrpath`/`inipath`/`*_directory` パス群、video/screen/input/debug 系既知キー。
+- `pcsx2conf` — `PCSX2_ui.ini`/`PCSX2_vm.ini`: `[EmuCore]`/`[EmuCore/Speedhacks]`/`[EmuCore/Gamefixes]`/`[EmuCore/CPU]`/`[EmuCore/CPU/Recompiler]`/`[EmuCore/GS]`/`[GSWindow]`/`[Filenames]`/`[Hotkeys]` パス風セクション、`enabled`/`disabled`/`true`/`false` 値、`Enable*`/`Disable*` トグル。
+- `ppssppconf` — `ppsspp.ini`/`controls.ini`: `[General]`/`[CPU]`/`[Graphics]`/`[Sound]`/`[Control]`/`[SystemParam]`/`[Network]`/`[Log]`/`[Debug]`/`[SpeedHacks]`/`[Recent]`/`[Achievements]`/`[Chat]`、`Key = True/False`。
+- `retroarch` — `retroarch.cfg`: `key = "value"`(文字列)と `key = value`(数値/bool)、`video_`/`audio_`/`input_`/`menu_`/`rgui_`/`savestate_`/`rewind_`/`netplay_`/`libretro_`/`notification_`/`playlist_`/`scan_`/`xmb_`/`ozone_`/`materialui_` 等プレフィックスグループ。
+- `rpcs3conf` — `config.yml`: `Core:`/`VFS:`/`Video:`/`Audio:`/`Input/Output:`/`System:`/`Net:`/`Miscellaneous:`/`Log:`/`Debug:`/`Compatibility:` トップセクション、空白含むサブキー(`PPU Decoder:`/`$(EmulatorDir):`/`/dev_hdd0:`/`Enable /host_root:`…)、`Enabled`/`Disabled`/`true`/`false` 値。
+- `yuzuconf` — `qt-config.ini`: `[General]`/`[UI]`/`[UIGameList]`/`[UILayout]`/`[Paths]`/`[Shortcuts]`/`[Core]`/`[CPU]`/`[Graphics]`/`[Audio]`/`[Controls]`/`[Data%20Storage]`/`[Multiplayer]`、Qt `Parent\Child=value` バックスラッシュキー、`%20` パーセントエスケープ、小文字 `true`/`false`。
+
+## 出典
+
+- Dolphin `Source/Core/Core/ConfigManager.cpp` / Dolphin.ini 構造 (github.com/dolphin-emu, Dolphin Emulator Wiki)
+- MAME `mame.ini` template / `source/frontend/mame/mameopts` (docs.mamedev.org)
+- PCSX2 `PCSX2_ui.ini`/`PCSX2_vm.ini` (github.com/PCSX2/pcsx2 `pcsx2-qt` settings)
+- PPSSPP `ppsspp.ini` 生成コード (github.com/hrydgard/ppsspp `Core/Config.h`)
+- RetroArch `retroarch.cfg` / `config.def.keybinds` (docs.libretro.com, libretro.com)
+- RPCS3 `config.yml` (github.com/RPCS3/rpcs3 `rpcs3/config.yml` wiki)
+- yuzu/sudachi `qt-config.ini` / Qt `QSettings` group serialization
+
+— 全て整数のみで実装。
