@@ -669,6 +669,13 @@ The capability map — with per-feature implementation status — lives in
 | `newrelic` | New Relic `newrelic.yml`/`newrelic-infra.yml` — `common:`/`production:` env sections, `transaction_tracer`/`distributed_tracing`/`application_logging` feature blocks. |
 | `pinpoint` | Pinpoint `pinpoint.config` — `profiler.*` dotted properties grouped by second-level prefix, `*.enabled` plugin toggles. |
 | `skywalking` | SkyWalking `agent.config` — `agent.*`/`collector.*`/`plugin.*`/`profile.*` dotted groups, `key=value`/`key: value` lines. |
+| `arduinoconf` | Arduino `arduino-cli.yaml`/`sketch.json`/`library.properties` — `board_manager`/`directories`/`updater` sections, `additional_urls`/`fqbn` board keys, `name=`/`architectures=`/`depends=` library props. |
+| `defconfig` | Kernel/U-Boot/Buildroot `*_defconfig`/`*.config` fragments — `CONFIG_X=v`, `# CONFIG_X is not set`, `=y/n/m` values, kernel-family split. |
+| `kconfig` | Kconfig language (Linux/Zephyr/Buildroot) — `config`/`menuconfig`/`menu`/`choice`/`if`/`source` blocks, `bool`/`tristate`/`default`/`depends on`/`select`/`range`/`help` attrs. |
+| `mbedapp` | Mbed OS `mbed_app.json`/`mbed_lib.json` — `config`/`macros`/`target_overrides`/`requires` sections, `macro_name`/`value`/`help_text` param attrs, `*`/`TARGET_*` keys. |
+| `platformio` | PlatformIO `platformio.ini` — `[env:*]`/`[platformio]`/`[common]`/`[user]` sections, `key = value` assigns, indented continuations, `board`/`platform`/`framework`/`lib_deps` option keys. |
+| `sdkconfig` | ESP-IDF `sdkconfig` — `CONFIG_X=y/n/m/"…"/number`, `# CONFIG_X is not set`, `CONFIG_<FAMILY>_` family dedup, header banner. |
+| `westconf` | Zephyr `west.yml` west manifest — `manifest:`/`defaults:`/`remotes:`(`- name:`/`url-base:`)/`projects:`(`- name:`/`remote:`/`repo-path:`/`import:`)/`self:` scopes. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

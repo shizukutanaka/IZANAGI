@@ -5010,3 +5010,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Platform.sh App Configuration (docs.platform.sh)
 
 — 全て整数のみで実装。
+
+## 第275次 — 組み込み・IoT・ファームウェア設定形式
+
+- `platformio` — PlatformIO `platformio.ini`:`[env:<名>]`/`[platformio]`/`[common]`/`[user]` セクション、列0 の `key = value` 代入とインデント継続行(`-DFLAG`/`lib_dep`)の区別、platform/board/framework 系オプションキー。
+- `sdkconfig` — ESP-IDF `sdkconfig`:`CONFIG_X=y/n/m/"…"/数値` 値分類、`# CONFIG_X is not set`、自動生成バナー、`CONFIG_<FAMILY>_` ファミリ(SOC/IDF/FREERTOS/BT/LWIP/… 重複排除)の計数。
+- `kconfig` — Kconfig 言語(Linux/Zephyr/Buildroot):`config`/`menuconfig`/`menu`/`choice`/`if`/`comment`/`source`/`rsource` 構文、bool/tristate/int/hex/string 型、default/depends on/select/imply/range/option/def_bool/help 属性の計数。
+- `defconfig` — カーネル・U-Boot・Buildroot `*_defconfig`/`.config` 断片:`CONFIG_X=v` + `is not set`、`=m` モジュール値の区別、カーネル系ファミリ(ARCH/ARM/CPU/NR_/CMD_/SYS_/LOCALVERSION 等)検出。
+- `mbedapp` — Mbed OS `mbed_app.json`/`mbed_lib.json`:`config`(param: macro_name/value/help_text)/`macros`/`target_overrides`(`"*"`/`TARGET_*` キー)/`custom_targets`/`requires`/`features` のスコープ別計数。
+- `westconf` — Zephyr `west.yml` west マニフェスト:`manifest:`/`defaults:`/`remotes:`(`- name:`/`url-base:`)/`projects:`(`- name:`/`remote:`/`repo-path:`/`path:`/`import:`/`groups:`)/`self:`/`group-filter:` のスコープ別計数。
+- `arduinoconf` — Arduino `arduino-cli.yaml`/`sketch.json`/`library.properties`:`board_manager`(`additional_urls:`)/`directories`/`library`/`logging`/`metrics`/`updater`/`sketch` セクション、`fqbn`/`platform`/`config` ボードキー、`name=`/`version=`/`architectures=`/`depends=`/`dot_a_linkage=`/`precompiled=` ライブラリ属性、`https://` スキームの誤キー化回避。
+
+## 出典
+
+- PlatformIO platformio.ini Project Configuration File (docs.platformio.org)
+- ESP-IDF sdkconfig / Kconfig configuration (docs.espressif.com)
+- The Kernel Configuration and Build System (kernel.org/doc/Documentation/kbuild/kconfig)
+- Zephyr west manifest repository format (docs.zephyrproject.org)
+- Mbed OS Program Setup / mbed_lib.json (os.mbed.com/docs)
+- Arduino CLI configuration / sketch profiles (arduino.github.io/arduino-cli)
+- Zephyr DeviceTree/Kconfig tooling notes, Qiita/Zenn embedded articles
+
+— 全て整数のみで実装。
