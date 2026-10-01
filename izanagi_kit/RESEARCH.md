@@ -5055,3 +5055,26 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Arch Linux Wiki: udev/sysctl/PAM, Qiita/Zenn Linux 管理記事
 
 — 全て整数のみで実装。
+
+## 第277次 — OS インストーラ・自動応答ファイル形式
+
+- `kickstart` — RHEL/Fedora/CentOS Kickstart `.ks`: 列0コマンド(`lang`/`keyboard`/`timezone`/`rootpw`/`bootloader`/`clearpart`/`part`/`volgroup`/`logvol`/`raid`/`network`/`firewall`/`services`/`repo`/`url`/`user`/`group`/`sshpw`/`realm`/`timesource`/`syspurpose`/`zipl`/`mount` 等)、`%packages`/`%pre`/`%post`/`%pre-install`/`%addon`/`%anaconda`/`%onerror`/`%traceback`/`%ksappend`/`%include`/`%end` セクション、`--opt=value` オプション、パッケージ本体(`@group`/`pkg`/`^env`/`-pkg`)とスクリプト本体の分離。
+- `preseed` — Debian `preseed.cfg`: `d-i <question> <type> <value>` 4トークン、`string`/`boolean`/`select`/`multiselect`/`passwd`/`password`/`note`/`title`/`text`/`error`/`seen` 型、`d-i`/`anna`/`tasksel` 所有者重複排除。
+- `autoyast` — SUSE AutoYaST `autoinst.xml`: `<profile xmlns="…/yast2ns">` 識別、`<general>`/`<networking>`/`<partitioning>`/`<software>`/`<scripts>`/`<users>` 等トップセクション、`config:type="list"`/`"boolean"`/`"integer"`/`"string"`/`"symbol"` 型注釈、`<![CDATA[` スクリプトブロック。
+- `calamares` — Calamares `settings.conf`/`netinstall.yaml`: `sequence:` の `- show:`/`- exec:` グループとモジュール名、`modules-search`/`branding`/`prompt-install`/`dont-chroot`/`oem-setup`/`disable-cancel`/`quit-at-end` 等トップキー。
+- `archinstall` — archinstall `config.json`/`user_configuration.json`: `archinstall-language`/`disk_config`/`locale_config`/`mirror_config`/`network_config`/`profile_config`/`audio_config`/`kernels`/`packages`/`services`/`users`/`!root-password`/`version` 等既知キーの値種別(bool/配列/オブジェクト/数値)分類。
+- `pxelinux` — SYSLINUX/PXELINUX/ISOLINUX `pxelinux.cfg`: `LABEL` エントリ、`MENU TITLE/LABEL/DEFAULT/AUTOBOOT/BACKGROUND/COLOR` 等、`KERNEL`/`LINUX`/`INITRD`/`APPEND`/`IPAPPEND`/`SYSAPPEND`/`LOCALBOOT`、`DEFAULT`/`PROMPT`/`TIMEOUT`/`ONTIMEOUT`/`UI`/`INCLUDE`/`SERIAL`/`F1`–`F12` グローバル。
+- `debconf` — `debconf-set-selections`: `<owner> <question> <type> <value>`、preseed との owner 差(非 `d-i` パッケージ名 + `<pkg>/<name>` question)、型別分割。
+
+## 出典
+
+- Kickstart syntax reference (pykickstart, Red Hat/Fedora docs)
+- Debian Installer Preseed appendix (debian.org/releases/stable/amd64/apb)
+- AutoYaST Guide / autoinst.xml reference (opensuse.org, doc.opensuse.org)
+- Calamares settings.conf / module configuration (calamares.io, github.com/calamares)
+- archinstall guided installer config (github.com/archlinux/archinstall)
+- SYSLINUX/PXELINUX config directives (syslinux wiki)
+- debconf-set-selections / debconf-devel(7) (manpages.debian.org)
+- Arch Wiki automated installation pages, Qiita/Zenn kickstart/preseed 記事
+
+— 全て整数のみで実装。

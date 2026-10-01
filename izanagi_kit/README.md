@@ -683,6 +683,13 @@ The capability map — with per-feature implementation status — lives in
 | `sysctlconf` | `sysctl.conf`/`sysctl.d/*.conf` — `key = value` assigns, dotted top-group dedup, `*`/`[]` wildcards, numeric/`0`/`1` value split. |
 | `tmpfilesd` | systemd `tmpfiles.d/*.conf` — type chars `d D e v q Q f F w W L C p m c b z Z t T h H a A r R x X`, `!+-=~` modifier prefix strip, mode/age/arg column buckets. |
 | `udevrules` | udev `.rules` — `KEY op "value"` comma-split pairs, `==`/`!=` match vs `=`/`:=`/`+=`/`-=` assign ops, `ATTR{}`/`ATTRS{}`/`ENV{}`/`SYSCTL{}`/`TEST{}`/`IMPORT{}` refs, `RUN`/`PROGRAM`/`GOTO`/`LABEL`/`IMPORT` flow keys. |
+| `archinstall` | archinstall `config.json`/`user_configuration.json` — `archinstall-language`/`disk_config`/`locale_config`/`mirror_config`/`network_config`/`profile_config`/`audio_config`/`kernels`/`packages`/`services`/`users`/`swap`/`ntp`/`parallel_downloads` known keys by value kind. |
+| `autoyast` | SUSE AutoYaST `autoinst.xml` — `<profile …yast2ns>` root, top config sections, `config:type="list"`/`"boolean"`/`"integer"`/`"string"` typed elements, `<![CDATA[` script blocks. |
+| `calamares` | Calamares `settings.conf`/`netinstall.yaml` — `sequence:` `- show:`/`- exec:` groups, per-module entries, `branding`/`prompt-install`/`dont-chroot`/`oem-setup`/`disable-cancel` top keys. |
+| `debconf` | `debconf-set-selections` files — `<owner> <question> <type> <value>` 4-token entries, select/multiselect/boolean/seen type split, package-owner dedup. |
+| `kickstart` | RHEL/Fedora Kickstart `.ks` — col-0 commands (`lang`/`part`/`volgroup`/`network`/`rootpw`…), `%packages`/`%pre`/`%post`/`%end`/`%addon` sections, `--opt=value` options, package/script bodies. |
+| `preseed` | Debian `preseed.cfg` — `d-i <question> <type> <value>` entries, string/boolean/select/multiselect/seen type split, `d-i`/`anna`/`tasksel` owner dedup. |
+| `pxelinux` | SYSLINUX/PXELINUX/ISOLINUX `pxelinux.cfg` — `LABEL` entries, `MENU` sub-directives, `KERNEL`/`LINUX`/`INITRD`/`BOOT`, `APPEND`/`IPAPPEND`/`SYSAPPEND`, `DEFAULT`/`PROMPT`/`TIMEOUT`/`ONTIMEOUT` globals. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
