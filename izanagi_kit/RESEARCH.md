@@ -4951,6 +4951,22 @@ RouterOS export・Junos 設定・Cisco IOS running-config・OpenWrt UCI・Netpla
 
 Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェスト・Nomad ジョブ HCL・Rundeck ジョブ YAML・borgmatic 設定の7形式を追加。plays/hosts+scope 追跡のタスク・モジュール呼出(ansible)・`key:`+`- `+`family.func`(salt)・resource+` do`+action/notifies/`node[`(chef)・class/node/define+`{ '':`+`=>`+`Type[`(puppet)・job/group/task/service/port+constraint/resources(nomad)・`- name:`+commands+schedule+nodefilters(rundeck)・source_directories/repositories+keep_*/hooks(borgmatic)で、構成管理・ジョブ定義を整数計数する。
 
+## 第271次 — Web サーバ・リバースプロキシ設定形式
+
+- caddyfile.rs: Caddyfile。サイトアドレス(`host {`)/ディレクティブ(`reverse_proxy`/`file_server`/`php_fastcgi`/`encode`/`tls`/`root`/`log`)/`@name`/`(name)` マッチャ/`#` コメント。
+- apacheconf.rs: Apache httpd.conf。`<VirtualHost>`/`<Directory*>`/`<Location*>`/`<IfModule*>`/`<Files*>` コンテナ vs `</…>` クローザ vs ディレクティブ(`LoadModule`/`DocumentRoot`/`ServerName`/`Listen`/`Options`/`Require`/`AllowOverride`)。
+- lighttpd.rs: lighttpd.conf。`key = value`/`+=` 代入、`$HTTP["host"|"url"|"remoteip"|"querystring"|"cookie"|"useragent"|"socket"]`/`else` 条件、`include`/`include_shell`。
+- unitconf.rs: NGINX Unit conf.json。`listeners`/`routes`/`applications`/`upstreams`/`certificates`/`settings`/`access_log` セクション、`match`/`action`/`pass`/`share`/`proxy`/`return`/`type`/`processes` 制御キー、`"key":` キー全数。
+- h2oconf.rs: H2O h2o.conf(YAML 風)。`listen:`/`hosts:`/`paths:`/`ssl:`/`access-log:`/`error-log:`/`user:`/`pid-file:` 構造キー、`"/path":` パススコープ分類、`- ` リスト項目。
+- hiawatha.rs: Hiawatha hiawatha.conf。`VirtualHost`/`Binding`/`Directory`/`FastCGIserver`/`UrlToolkit`/`CGIhandler`/`Thread` ブロック、`key = value` 設定。
+- cherokee.rs: Cherokee cherokee.conf。`vserver!`/`source!`/`rule!`/`icons!`/`mime!`/`config!`/`admin!` 名前空間 `key = value` vs 素の設定、`#`/`;` コメント。
+
+## 出典
+
+- Caddyfile 概念・ディレクティブ / Apache Core Features・LoadModule / lighttpd ConfigurationFileSyntax / NGINX Unit Configuration / H2O Configure Directives / Hiawatha WebServer manual / Cherokee Cookbook & config スキーマ、および GitHub 上の公開 Caddyfile/httpd.conf/lighttpd.conf/conf.json/h2o.conf/hiawatha.conf/cherokee.conf 実例。
+
+— 全て整数のみで実装。
+
 ## 第272次 — フロントエンド・モバイルアプリ設定形式
 
 - `appjson` — Expo `app.json`:`"expo"` オブジェクトの検出、プラットフォーム別セクションと `plugins`/`extra` 項目の計数。
@@ -4960,15 +4976,3 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - `rollup` — `rollup.config.js`:`input`/`output`/`plugins`/`external`、出力 `format:`、複数エクスポート設定。
 - `viteconf` — `vite.config.ts`:`defineConfig`、`plugins` 配列(プラグイン呼出式含む)、`server.proxy`/`resolve.alias` の引用キー。
 - `webpackconf` — `webpack.config.js`:`mode`/`devtool`/`entry`/`output`/`module.rules`/`plugins`/`resolve`、関数返却型設定。
-
-## 出典
-
-- Webpack Configuration ドキュメント (webpack.js.org)
-- Rollup Configuration Options (rollupjs.org)
-- Vite Config Reference (vite.dev)
-- Babel Configuration Files (babeljs.io)
-- Metro Configuration (metrobundler.dev)
-- Capacitor Config File (capacitorjs.com)
-- Expo app.json Reference (docs.expo.dev)
-
-— 全て整数のみで実装。
