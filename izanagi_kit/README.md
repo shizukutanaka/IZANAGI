@@ -739,6 +739,13 @@ The capability map — with per-feature implementation status — lives in
 | `xmodmap` | `.Xmodmap` — `keycode N = keysym…`/`keysym`/`pointer`/`clear`/`add`/`remove` 文の分類計数。 |
 | `xorgconf` | X.Org `xorg.conf` — `Section`/`SubSection`/`EndSection` ブロック (~17 既知名)、`Identifier`/`Option`/`Driver` ステートメント。 |
 | `xresources` | `.Xresources`/`Xdefaults`/`app-defaults` — `Name.Class*res: value` 行、`!` コメント、cpp `#define`/`#include`/`#if` ディレクティブ。 |
+| `argusconf` | Argus `argus.conf`/`ra.conf`/`rarc` — `ARGUS_*`/`RA_*` 接頭辞 `KEY=value` 代入の分類計数。 |
+| `arkimeconf` | Arkime/Moloch `config.ini` — `[default]`/`[cache]`/`[overrides.*]` セクション、`elasticsearch`/`pcapDir`/`passwordSecret`/`geoLite2*` キー。 |
+| `pmacctconf` | pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf` — `key: value` コロン形式、`plugins`/`aggregate`/`nfacctd_*`/`sql_*`/`kafka_*`/`imt_*` キー。 |
+| `suricata` | Suricata `suricata.yaml` — `%YAML 1.1` マーカ + `vars:`/`af-packet:`/`outputs:`/`app-layer:`/`detect-engine:` 等 ~50 既知トップキー。 |
+| `wiresharkpref` | Wireshark `preferences`/`enabled_protos` — `pref.name: value` 行、`gui.`/`nameres.`/`tcp.`/`uat.`/`extcap.` 等 ~100 プロトコル接頭辞。 |
+| `zeekctl` | ZeekControl `node.cfg`/`zeekctl.cfg` — `[manager]`/`[proxy-*]`/`[logger]`/`[worker-*]` セクション、`type`/`host`/`lb_method`/`pin_cpus`/`LogDir`/`SpoolDir` キー。 |
+| `zeekscript` | Zeek `local.zeek`/`*.zeek`/`*.bro` — `@load`/`@ifdef`/`@load-sigs` ディレクティブ、`module`/`export`/`redef`/`event`/`hook` 宣言。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

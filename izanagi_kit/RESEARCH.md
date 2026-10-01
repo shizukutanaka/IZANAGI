@@ -5231,3 +5231,24 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Weston `weston.ini` マニュアル (man weston.ini, wayland.freedesktop.org)
 
 — 全て整数のみで実装。
+
+## 第285次 — ネットワーク監視・IDS/NSM 設定形式
+
+- `suricata` — Suricata `suricata.yaml`: `%YAML 1.1`/`---` マーカと `vars:`/`af-packet:`/`outputs:`/`default-rule-path:`/`app-layer:`/`detect-engine:`/`logging:`/`stream:`/`detect:` 等 ~50 既知トップキー。
+- `zeekctl` — ZeekControl `node.cfg`/`zeekctl.cfg`/`control.cfg`: `[manager]`/`[proxy-*]`/`[logger]`/`[worker-*]`/`[standalone]` セクションと `type`/`host`/`interface`/`lb_method`/`pin_cpus` ノードキー + `LogDir`/`SpoolDir`/`MailTo`/`LogRotationInterval` 等 zeekctl キー。
+- `zeekscript` — Zeek `local.zeek`/`*.zeek`/`*.bro` スクリプト: `@load`/`@load-sigs`/`@if`/`@ifdef`/`@endif` ディレクティブと `module`/`export`/`redef`/`event`/`hook`/`function` 宣言。
+- `arkimeconf` — Arkime (旧 Moloch) `config.ini`: `[default]`/`[cache]`/`[overrides.<host>]` セクションと `elasticsearch`/`interface`/`pcapDir`/`passwordSecret`/`geoLite2*`/`rotateIndex`/`parsersDir` 等 ~50 キー。
+- `pmacctconf` — pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf`/`pmtelemetryd.conf`: `key: value` コロン形式と `daemonize`/`syslog`/`interface`/`plugins`/`aggregate`/`nfacctd_*`/`sql_*`/`kafka_*`/`rabbitmq_*`/`mongo_*`/`tee_*`/`imt_*` 等 ~100 キー。
+- `argusconf` — Argus `argus.conf`/`ra.conf`/`rarc`: `ARGUS_*`/`RA_*` 接頭辞の `KEY=value` 代入 (daemon/interface/filter/output/time-format/sort)。
+- `wiresharkpref` — Wireshark `preferences`/`enabled_protos`/`disabled_protos`: `pref.name: value` 行と `gui.`/`qt.`/`nameres.`/`tcp.`/`wlan.`/`uat.`/`extcap.`/`stats.`/`transum.` 等 ~100 プロトコル接頭辞 (`uat:file:section` 二重コロン形式対応)。
+
+## 出典
+
+- Suricata `suricata.yaml` サンプルと設定リファレンス (github.com/OISF/suricata, suricata.readthedocs.io)
+- ZeekControl `node.cfg`/`zeekctl.cfg` (github.com/zeek/zeekctl), Zeek スクリプト言語リファレンス (docs.zeek.org)
+- Arkime `config.ini` リファレンス (arkime.com/settings, github.com/arkime/arkime)
+- pmacct `pmacctd.conf`/`nfacctd.conf`/`sfacctd.conf` 設定ガイド (github.com/pmacct/pmacct)
+- Argus `argus.conf`/`ra.conf` マニュアル (qosient.com/argus, man argus.conf(5))
+- Wireshark `preferences` ファイル構造 (wiki.wireshark.org/Preferences)
+
+— 全て整数のみで実装。
