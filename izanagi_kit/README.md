@@ -725,6 +725,13 @@ The capability map — with per-feature implementation status — lives in
 | `unrealircd` | UnrealIRCd `unrealircd.conf` — `me`/`admin`/`class`/`oper`/`listen`/`link`/`allow`/`set` 等 `block { stmt; }` 形式、`include` 文。 |
 | `weechat` | WeeChat `*.conf` — `[section]` + `key = value`、`server.name.*` ドット階層キー、`on`/`off` ブール。 |
 | `znc` | ZNC `znc.conf` — `<Tag arg>`/`</Tag>` ブロック (属性なし位置引数) + `Key = Value`。 |
+| `discourse` | Discourse `containers/app.yml` — `templates:`/`expose:`/`params:`/`env:`/`volumes:`/`hooks:` トップキー、`DISCOURSE_*`/`UNICORN_*`/`db_*` env。 |
+| `ejabberd` | ejabberd `ejabberd.yml` — `hosts:`/`listen:`/`acl:`/`access_rules:`/`shaper_rules:`/`modules:` トップキー + `mod_*` モジュール項目。 |
+| `mattermost` | Mattermost `config.json` — `"*Settings":` PascalCase セクション (~40)、`SiteURL`/`DriverName` 等 PascalCase キー。 |
+| `ngircd` | ngIRCd `ngircd.conf` — `[Global]`/`[Limits]`/`[Options]`/`[SSL]`/`[Operator]`/`[Server]`/`[Channel]` セクション、`Key = Value`。 |
+| `prosody` | Prosody `prosody.cfg.lua` — `key = value`/`key = { list; }` Lua 風代入、`VirtualHost "x"`/`Component "x" "type"` 宣言、`--` コメント。 |
+| `synapse` | Matrix Synapse `homeserver.yaml` — `server_name:`/`listeners:`/`database:`/`modules:`/`macaroon_secret_key` 等 ~50 トップキー。 |
+| `zulipconf` | Zulip `zulip.conf` — `[machine]`/`[postgresql]`/`[memcached]`/`[rabbitmq]`/`[application_server]`/`[sentry]` セクション。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
