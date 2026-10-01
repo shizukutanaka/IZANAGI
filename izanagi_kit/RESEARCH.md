@@ -5466,3 +5466,23 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - gpsd(8) + gpsd packaging defaults (gpsd.io)
 
 — 全て整数のみで実装。
+## 第296次 — ブートローダ・ファームウェア起動設定形式
+
+- **grubconf**: GRUB2 grub.cfg — `menuentry '…' {`/`submenu` ブロック、`set key=value`、`linux`/`initrd`/`chainloader`/`multiboot*`/`module*`/`xnu_*` ブート命令、`insmod`/`search`/`terminal*`/`load_env`/`save_env`/`configfile`、シェル構文 `if`/`elif`/`fi`/`for`/`do`/`done`/`function`/`setparams` を分類。
+- **grubenv**: grubenv 環境ブロック — `# GRUB Environment Block` ヘッダ + `key=value`。`saved_entry`/`next_entry`/`chosen` 選択、`boot_success`/`boot_indeterminate`/`recordfail` 起動状態、`kernelopts`/`menu_auto_hide`/`feature_*`/`superusers` を分類。
+- **ipxescript**: iPXE スクリプト — `#!ipxe` シバン、`:label`、`dhcp`/`ifopen`/`route`/`chain`/`img*`/`kernel`/`initrd`/`boot`/`sanboot`/`iscsi` ネット・ブート命令、`set`/`isset`/`iseq*`/`isgt`/`isle`/`echo`/`goto`/`menu`/`item`/`choose`/`params`/`prompt`/`sleep`/`exit`/`reboot`/`cpuid`/`console`/`colour`/`cert*`/`md5sum`/`smbios` 変数・制御命令を分類。
+- **limine**: limine.cfg — `:`/`::` エントリ名 + `KEY=value`。グローバル (`TIMEOUT`/`SERIAL`/`VERBOSE`/`RANDOMISE_MEMORY`/`TERM_*`/`THEME_*`/`INTERFACE_*`/`RESOLUTION`/`GRAPHICS`) とエントリ内ブートキー (`PROTOCOL`/`KERNEL_PATH`/`KERNEL_CMDLINE`/`CMDLINE`/`MODULE_PATH`/`IMAGE_PATH`/`INITRAMFS_PATH`/`ENTRY_PATH`/`DTB_PATH`) を分類。
+- **refind**: refind.conf — 空白区切り `keyword values`。`menuentry`/`submenuentry` ブロック内 (`volume`/`loader`/`initrd`/`options`/`ostype`/`icon`/`disabled`)、`scanfor`/`dont_scan_*`/`also_scan_*`/`hidden_tags*` スキャン制御、`timeout`/`hideui`/`showtools`/`resolution`/`default_selection`/`use_nvram` グローバルを分類。
+- **systemdboot**: systemd-boot loader.conf + entries/*.conf (BLS Type #1) — `title`/`version`/`machine-id`/`sort-key`/`architecture` メタ、`linux`/`efi`/`initrd`/`devicetree*`/`initrd-ucode` 起動ファイル、`options`、loader.conf の `default`/`timeout`/`console-mode`/`editor`/`auto-*`/`secure-boot-enroll` を分類。
+- **ubootenv**: U-Boot 環境 — `fw_printenv` 形式 `key=value` (既知変数 `bootcmd`/`bootargs`/`bootdelay`/`ethaddr`/`serverip`/`loadaddr`/`fdtaddr`/`boot_targets`/`distro_bootcmd`/`preboot`/`stdin`/`stdout`/`mmc*`/`fdtfile`/`initrd_high`/`fdt_high`) と boot.scr 系 `setenv`/`run`/`tftpboot`/`bootm`/`bootz`/`bootefi`/`if`/`then`/`else`/`fi`/`for`/`do`/`done`/`mmc`/`usb`/`sf`/`nand`/`ubi`/`fatload`/`ext4load`/`env`/`test`/`itest` コマンド行を分類。`setenv k v` 行は `=` を含んでも代入ではなくコマンドとして計数する。
+
+## 出典
+
+- GNU GRUB Manual (gnu.org/software/grub/manual) — grub.cfg / grubenv
+- rEFInd Configuration File (rodsbooks.com/refind/configfile.html)
+- Limine CONFIG.md (github.com/limine-bootloader/limine)
+- systemd Boot Loader Interface / Boot Loader Specification (uapi-group.org/specifications/specs/boot_loader_specification)
+- U-Boot Environment Variables + hush スクリプト (u-boot documentation)
+- iPXE Scripting Reference (ipxe.org/scripting)
+
+— 全て整数のみで実装。

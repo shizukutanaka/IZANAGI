@@ -816,6 +816,13 @@ The capability map — with per-feature implementation status — lives in
 | `openntpd` | OpenNTPD `ntpd.conf` census: `listen on`/`server`/`servers`/`pool`/`sensor`/`constraints from` 系、`weight`/`correction`/`refid`/`stratum`/`port` オプション別計数。 |
 | `ptp4l` | linuxptp `ptp4l.cfg` census: `[global]`/`[eth*]`/`[unicast_master_table]` セクション + `domainNumber`/`priority*`/`clockClass`/`logSyncInterval`/`delay_mechanism`/`time_stamping`/`network_transport`/`pi_*` 分類。 |
 | `timesyncd` | systemd-timesyncd `timesyncd.conf` census: `[Time]` セクション + `NTP`/`FallbackNTP`/`RootDistanceMaxSec`/`PollInterval{Min,Max}Sec`/`ConnectionRetrySec`/`SaveIntervalSec`/`SampleTimeoutSec` 分類。 |
+| `grubconf` | GRUB2 `grub.cfg` census: `menuentry`/`submenu` + `set`/`linux`/`initrd`/`chainloader`/`insmod`/`search`/`terminal*` + `if`/`for`/`function` 構文分類。 |
+| `grubenv` | GRUB `grubenv` 環境ブロック census: `saved_entry`/`boot_success`/`boot_indeterminate`/`kernelopts`/`menu_auto_hide`/`feature_*` 分類。 |
+| `ipxescript` | iPXE `*.ipxe` スクリプト census: `#!ipxe` シバン + `:`ラベル + `dhcp`/`chain`/`kernel`/`initrd`/`boot`/`sanboot`/`img*` ネット・ブート命令 + `set`/`isset`/`iseq`/`goto`/`menu`/`item`/`choose`/`prompt` 変数・制御分類。 |
+| `limine` | Limine `limine.cfg` census: `KEY=value` + `:`/`::` エントリ名行、`TIMEOUT`/`SERIAL`/`VERBOSE`/`THEME_*`/`INTERFACE_*` グローバルと `PROTOCOL`/`KERNEL_PATH`/`CMDLINE`/`MODULE_PATH` ブートキー分類。 |
+| `refind` | rEFInd `refind.conf` census: `menuentry`/`submenuentry` ブロック + `scanfor`/`dont_scan_*`/`also_scan_*` スキャン制御 + `timeout`/`hideui`/`showtools`/`resolution`/`default_selection` グローバル分類。 |
+| `systemdboot` | systemd-boot `loader.conf` + `entries/*.conf` (BLS Type #1) census: `title`/`version`/`sort-key`/`linux`/`efi`/`initrd`/`devicetree`/`options`/`default`/`timeout`/`auto-*` 分類。 |
+| `ubootenv` | U-Boot 環境 (`fw_printenv`/`uEnv.txt`/`boot.scr`) census: `key=value` 代入 + `bootcmd`/`bootargs`/`ethaddr`/`loadaddr` 既知変数 + `setenv`/`run`/`tftpboot`/`bootm`/`if`/`for`/`mmc`/`sf`/`nand` コマンド分類。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
