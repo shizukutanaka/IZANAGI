@@ -5379,3 +5379,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - `cluster.conf(5)` (RHEL Cluster Administration, access.redhat.com)
 
 — 全て整数のみで実装。
+
+## 第292次 — ロギングライブラリ・構造化ログ設定形式
+
+- `log4j` — Apache Log4j 2 `log4j2.xml`: `<Configuration>` ルート (status/monitorInterval/monitor、`<Packages>`/`<Appenders>`/`<Loggers>`/`<CustomLevels>` コンテナ)、Console/File/RollingFile/RollingRandomAccessFile/Async 等アペンダー名照合、PatternLayout/JsonTemplateLayout/CsvLogEventLayout/MarkerPatternSelector/TimeBasedTriggeringPolicy/SizeBasedTriggeringPolicy/CronTriggeringPolicy/SizeBasedTriggeringPolicy 等レイアウト・ポリシー・フィルタタグ、`<Logger>`/`<Root>` + `<AppenderRef>`/`level=`/`name=`/`ref=` 属性、`<CustomLevel>`/`<KeyValuePair>`。
+- `logback` — Logback `logback.xml`/`logback-spring.xml`: `<configuration>`、`ch.qos.logback.*` アペンダークラス名照合、`<appender>`/`<logger>`/`<root>`/`<encoder>`/`<pattern>`/`<charset>`/`<immediateFlush>`、rollingPolicy/fileNamePattern/maxHistory/totalSizeCap/maxFileSize/cleanHistoryOnStart、`<appender-ref>`/`ref=`、`property`/`variable`/`substitutionProperty`/`define`/`include`/`jmxConfigurator`/`turboFilter`/`springProfile`/`springProperty`。
+- `log4perl` — Log::Log4perl `log4perl.conf` (`log4j.`/`log4perl.` プレフィックス両対応): `category`/`logger`/`rootCategory`/`rootLogger`/`additivity`/`appender <name> = Log::Log4perl::Appender::*`/`appender.<name>.layout = Log::Log4perl::Layout::*`/`appender.<name>.Filter`/`appender.<name>.Threshold`/ThresholdMatchAll/Filter`+`type`/`name`/`PatterLayout` 等末尾キー分類。
+- `zapconf` — Uber Zap `zap.config`/`zap.yaml`: `level`/`development`/`disableCaller`/`disableStacktrace`/`sampling`/`encoding`/`encoderConfig`/`outputPaths`/`errorOutputPaths`/`initialFields`/`epoch`/`DPanicKey` トップキー、`messageKey`/`levelKey`/`timeKey`/`nameKey`/`callerKey`/`functionKey`/`stacktraceKey`/`skipLineEnding`/`lineEnding`/`levelEncoder`/`timeEncoder`/`durationEncoder`/`callerEncoder`/`nameEncoder`/`consoleSeparator` エンコーダキー、`initial`/`thereafter`/`samplingFactor`、json/console/iso8601/rfc3339*/epoch/millis/nanos/capital*/lowercase/full/short/color/syslog/journald/stderr/stdout + ログレベル値、stdout/stderr/.log/file://|http 出力パス。
+- `nlogconf` — NLog `NLog.config`: `<nlog>` ルート、`<targets>`/`<rules>`、`<target xsi:type="File|Console|ColoredConsole|Memory|Network|Mail|Database|EventLog|Debug|Debugger|Trace|Null|AsyncWrapper|AutoFlushWrapper|BufferingWrapper|FallbackGroup|FilteringWrapper|ImpersonatingWrapper|LimitingWrapper|PostFilteringWrapper|RandomizeGroup|RetryingWrapper|RoundRobinGroup|SplitGroup|ChainedWrapper|CompoundFallback|Wrapper|MethodCall|PerfCounter|Chainsaw|FormControl">`、`<logger name minlevel writeTo final>`、`<extensions>`/`<add>`、`<variable>`/`<include>`/`<time>`/throwExceptions/internalLog*/globalThreshold/autoReload/throwConfigExceptions/parseMessageTemplates/optimizeBufferReuse/useInvariantCulture、`writeTo`/`fileName`/`layout`/`${` 属性。
+- `serilog` — Serilog `appsettings.json` `"Serilog"` セクション: `Using` (`Serilog.Sinks.*`/`Serilog.Enrichers.*`/`Serilog.Filters.*`/`Serilog.Formatting.*`/`Serilog.Settings.*`)、`MinimumLevel` (Default/Verbose|Debug|Information|Warning|Error|Fatal + Override `Microsoft.*`/`System.*`)、`WriteTo`/`AuditTo` (`Name`/`configure`/`Args`)、`Enrich` (FromLogContext/WithMachineName/WithThreadId/WithProcessId/WithEnvironmentUserName/WithExceptionDetails/ByExcluding/Matching)、`Properties`/`Destructure`/`Filter`/`Destructure`/`path`/`rollingInterval`/`fileSizeLimitBytes`/`retainedFileCountLimit`/`outputTemplate`/`restrictedToMinimumLevel`/`formatter`/`connectionString`/`tableName`/`autoCreateSqlTable`/`serverUrl`/`apiKey`/`batchPostingLimit`/`period`/`queueLimit`/`compact`/`renderings`/`theme`/`shared`/`preserveFilename`/`rollOnFileSizeLimit`/`useUtcTime`/`formatter`/`pathFormat`/`logEventLevel`/`status`/`controlLevelSwitch`/`audited`/`expression`/`subLogger`/`levelSwitch`/`pathFormat`/`filter`/`destructure`/`exclude`/`expandMemberTypes` 既知 Args/Args 末尾キー。
+- `winstonconf` — Winston `winston.createLogger({…})`/`winston.Logger`/`winston.configure`/`require('winston')`: `winston.transports.*` + `new <Name>Transport(` (Console/File/Http/HttpStream/Stream/Syslog/Loggly/Mail/Couchbase/MongoDB/Elasticsearch/Logstash/Papertrail/Fluentd/NewRelic/Datadog/CloudWatch/Insights/Webhook/Null/Realtime/Slack/SnsLogger/TransportProxy/WebSocket)、`format.*` (align/bigint/cli/colorize/combine/errors/json/label/logstash/ms/nest/prettyPrint/printf/simple/splat/timestamp/uncolorize/unix)、`level`/`levels`/`silent`/`exitOnError`/`handleExceptions`/`exceptionHandlers`/`handleRejections`/`rejectionHandlers`/`profilers`/`defaultMeta`/`npm|syslog|cli`.levels、`winston.add|remove`/`logger.add|remove`/`logger.clear`。
+
+## 出典
+
+- Log4j 2 XML Configuration (logging.apache.org)
+- Logback Configuration (logback.qos.ch/manual/configuration.html)
+- Log::Log4perl Configuration (metacpan.org Log::Log4perl::Config)
+- Zap Configuration reference (pkg.go.dev go.uber.org/zap, Configuration Examples)
+- NLog Configuration file (nlog-project.org/documentation)
+- Serilog appsettings.json (github.com/serilog/serilog-settings-configuration)
+- Winston Transports/Formats (github.com/winstonjs/winston)
+
+— 全て整数のみで実装。

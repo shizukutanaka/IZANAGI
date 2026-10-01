@@ -788,6 +788,13 @@ The capability map — with per-feature implementation status — lives in
 | `haresources` | Heartbeat `haresources` — `<node> <リソース…>` 行・`Agent::arg` 形式・IP/ストレージ/通知リソース分類を解析。 |
 | `ldirectord` | ldirectord.cf (LVS) — `virtual=`/`real=`/`fallback=`/`service=`/`checktype=`/`scheduler=`/`emailalert=` 既知キーを解析。 |
 | `clusterconf` | RHEL Cluster Suite `cluster.conf` XML — `<clusternode>`/`<fencedevice>`/`<failoverdomain>`/`<service>`/`<ip>`/`<fs>`/`<script>` 要素を解析。 |
+| `log4j` | Apache Log4j 2 `log4j2.xml` census: `<Configuration` root, `<Console`/`<RollingFile`/`<Async` 等アペンダー、`<Logger>`/`<Root>`、レイアウト/フィルタ/ロールオーバーポリシー別計数。 |
+| `log4perl` | `log4perl.conf` census: `log4perl.category.*`/`appender.* = Log::Log4perl::Appender::*`/`*.layout`/`filter.*`/`rootLogger`/`additivity` (log4j 互換プレフィックス対応)。 |
+| `logback` | Logback `logback.xml`/`logback-spring.xml` census: `<appender class="ch.qos.logback.*">`、`<logger>`/`<root>`、`<encoder>`/`<pattern>`、rollingPolicy/fileNamePattern/maxHistory。 |
+| `nlogconf` | NLog `NLog.config` census: `<nlog>`、`<target xsi:type="File|Console|AsyncWrapper|Database|…">`、`<logger name minlevel writeTo>` ルール、`<extensions>`/`<add>`、`<variable>`。 |
+| `serilog` | Serilog `appsettings.json` `"Serilog"` セクション census: `Using`/`MinimumLevel`(Default/Override)/`WriteTo`/`Enrich`/`Properties`、Args 既知キー (path/rollingInterval/outputTemplate/…)。 |
+| `winstonconf` | Winston `winston.createLogger({…})` census: `winston.transports.*`/`format.*`/`npm|syslog.levels`/level/silent/exitOnError/exceptionHandlers/defaultMeta。 |
+| `zapconf` | Zap `zap.config`/`zap.yaml` census: `level`/`encoding`/`encoderConfig`(messageKey/levelKey/*Encoder)/`sampling`/`outputPaths`/`errorOutputPaths`。 |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
