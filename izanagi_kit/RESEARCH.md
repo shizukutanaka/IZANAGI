@@ -5339,3 +5339,24 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 - Fail2ban `jail.conf`/`man jail.conf` (github.com/fail2ban/fail2ban)
 
 — 全て整数のみで実装。
+## 第290次 — ファイアウォール・パケットフィルタ設定形式
+
+- `nftconf` — nftables `nftables.conf`/`nft -f` スクリプト: `table <family>`(ip/ip6/inet/arp/bridge/netdev)、`chain`/`type … hook`/`policy`、`set`/`map`/`flowtable`/`counter`/`quota`/`ct helper`/`secmark` named object、`elements`、verdict (accept/drop/reject/return/queue/continue/jump/goto 等)。
+- `iptablessave` — `iptables-save`/`ip6tables-save`: `*filter`/`*nat`/`*mangle`/`*raw`/`*security` テーブル、`:<chain> <policy>` 宣言、`-N` ユーザーチェーン、`-A` ルール、`-j`/`-g` ジャンプ、`-m` マッチモジュール、`COMMIT`。
+- `ipset` — `ipset save`/`ipset restore`: `create <name> <type>`、`add`/`del`/`test`/`destroy`/`rename`/`swap`/`flush`/`save`/`restore`/`list`/`help`/`version`/`quit` コマンド、14 種型 (`hash:ip` 等)、IPv6 メンバー判定、`timeout`/`comment`/`skbinfo` オプション。
+- `pfconf` — OpenBSD `pf.conf`: マクロ (`key = value`)、`set` オプション、`table` 定義、`pass`/`block` フィルタ、`nat`/`rdr`/`binat`/`no nat`/`nat-to`/`rdr-to`、`match`、`queue`/`altq`/`scheduler`/`dummynet`、`anchor`/`load anchor`、`antispoof`/`scrub`/`include`/`rdom`/`keepcounters`、`\` 継続行。
+- `shorewall` — Shorewall `rules`/`zones`/`policy`/`interfaces`/`masq`/`nat`/`tunnels`/`routestopped`: ~55 アクション (ACCEPT/DROP/REJECT/DNAT/REDIRECT/MASQUERADE/SNAT 等)、`action:target` 形、小文字ゾーン/ポリシー行 (`fw`/`net`/`loc`/`dmz`/`vpn`/`all`)。
+- `ufwrules` — UFW `user.rules`/`user6.rules`/`before.rules`/`after.rules`: iptables-save 方言 + `### tuple ###`/`### RULES ###`/`### END RULES ###`/`### LOGGING ###`/`### RATE LIMITING ###`/`### PORT ###` マーカー、`-A ufw-*`/`ufw-before-*`/`ufw-user-*`/`ufw-logging-*` チェーン。
+- `ferm` — ferm `ferm.conf`/`ferm.d`: `@def`/`@include`/`@hook`/`@resolve`/`@if`/`@else`/`@end`/`@subchain`/`@ipfilter`/`@eq`/`@not` 等 `@` ディレクティブ、`domain (ip ip6)`/`table <name>`/`chain <name>` ブロック、`policy`、`proto`/`saddr`/`daddr`/`mod`/`state`/`interface`/`outerface` 等のルール文。
+
+## 出典
+
+- `nftables.conf(5)`/`nft(8)` wiki (wiki.nftables.org)
+- `iptables-save(8)`/`iptables-restore(8)` (netfilter.org)
+- `ipset(8)` (ipset.netfilter.org)
+- `pf.conf(5)` OpenBSD (man.openbsd.org)
+- Shorewall man pages (shorewall.org/manpages)
+- UFW `user.rules` ジェネレータ (launchpad.net/ufw)
+- `ferm(1)`/`ferm.conf(5)` (ferm.foo-projects.org)
+
+— 全て整数のみで実装。
