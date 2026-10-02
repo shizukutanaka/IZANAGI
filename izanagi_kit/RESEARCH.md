@@ -5719,3 +5719,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 — 全て整数のみで実装。
 
+## 第308次 — プロキシ・オーバーレイネットワーク設定形式
+
+- xrayconf: Xray config.json(`inbounds`/`outbounds`/`routing`/`dns`/`policy`/`transport` + `vmess`/`vless`/`trojan`/`wireguard` 等プロトコル値)
+- clashconf: Clash/Clash Meta config.yaml(`proxies`/`proxy-groups`/`rules`/`proxy-providers`/`dns`/`tun` + `- RULE,TARGET` エントリ)
+- singboxconf: sing-box config.json(`inbounds`/`outbounds`/`route`/`dns`/`services`/`endpoints` + `"type":` 既知値)
+- nebulaconf: Nebula config.yml(`pki`/`lighthouse`/`static_host_map`/`tun`/`firewall`/`relay` セクション + `am_lighthouse`/`inbound`/`outbound` サブキー)
+- tincconf: Tinc tinc.conf/hosts/*(PascalCase `Key = value`、`Name`/`ConnectTo`/`Subnet`/`Device`/`Cipher`/`PMTUDiscovery` ~60)
+- headscaleconf: Headscale config.yaml(`server_url`/`listen_addr`/`noise`/`prefixes`/`derp`/`database`/`oidc`/`policy` + ネスト既知キー)
+- shadowsocksconf: Shadowsocks config.json(`server`/`server_port`/`method`/`password`/`plugin` + `aes-*-gcm`/`chacha20-*`/`2022-blake3-*` メソッド値)
+
+## 出典
+
+- XTLS/Xray-core — config.json / Xray Examples
+- Dreamacro/clash・MetaCubeX/mihomo — config.yaml reference
+- SagerNet/sing-box — configuration docs
+- slackhq/nebula — config.yml reference
+- gsliepen/tinc — tinc.conf(5) manual
+- juanfont/headscale — config.yaml.example / docs
+- shadowsocks/shadowsocks-rust — config.json reference
+
+— 全て整数のみで実装。

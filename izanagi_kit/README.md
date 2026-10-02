@@ -911,6 +911,13 @@ The capability map — with per-feature implementation status — lives in
 | `chasquidconf` | Chasquid `chasquid.conf` | `key: "value"` textproto ~20 既知キー |
 | `zonemtaconf` | ZoneMTA `zonemta.toml` | `[api]`/`[smtp]`/`[zones]`/`[dkim]` テーブル + ~90 キー |
 | `postalconf` | Postal `postal.yml` | `web`/`smtp_server`/`rabbitmq`/`main_db` トップセクション |
+| `xrayconf` | Xray `config.json` | `inbounds`/`outbounds`/`routing`/`dns` + 既知プロトコル値 |
+| `clashconf` | Clash `config.yaml` | `proxies`/`proxy-groups`/`rules`/`dns`/`tun` + `- RULE,…` エントリ |
+| `singboxconf` | sing-box `config.json` | `inbounds`/`outbounds`/`route`/`dns` + `"type":` 既知値 |
+| `nebulaconf` | Nebula `config.yml` | `pki`/`lighthouse`/`tun`/`firewall`/`static_host_map` セクション |
+| `tincconf` | Tinc `tinc.conf`/`hosts/*` | PascalCase フラット `Key = value` ~60 既知キー |
+| `headscaleconf` | Headscale `config.yaml` | `server_url`/`noise`/`prefixes`/`derp`/`database`/`oidc` キー |
+| `shadowsocksconf` | Shadowsocks `config.json` | `server`/`method`/`password` + 既知暗号メソッド値 |
 
 ## Runnable examples
 
