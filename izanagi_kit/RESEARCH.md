@@ -5893,3 +5893,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Leiningen sample.project.clj
 
 — 全て整数のみで実装。
+
+## 第316次 — 文章・ドキュメントリンタ設定形式
+
+- vale: .vale.ini(StylesPath/MinAlertLevel/Packages/Vocab + `[formats]`/`[glob]` セクション + `Style.Rule = YES|NO|level` トグル)
+- textlint: .textlintrc(rules/filters/rulePaths/severity/presets/plugins/overrides)
+- cspell: cspell.json(~37 キー、words/flagWords/ignorePaths/dictionaries/languageSettings/overrides/import)
+- codespell: .codespellrc/setup.cfg `[codespell]`(23 オプション、section-scoped)
+- alexrc: .alexrc(allow/deny/profanitySureness/noBinary、JS module.exports または YAML/JSON)
+- redpen: redpen-conf.xml(`<redpen-conf lang>` + `<validators>`/`<validator name>` + `<property>`/`<symbol>`、29 既知バリデータ)
+- proselint: .proselintrc(`checks` マップ + 30 `category.check` カテゴリ + `max_errors`)
+
+## 出典
+
+- Vale documentation — .vale.ini configuration
+- textlint docs — .textlintrc configuration
+- cspell docs — configuration files
+- codespell README — config options
+- alex (get-alex) docs — configuration
+- RedPen manual — redpen-conf.xml validators
+- proselint docs — .proselintrc checks
+
+— 全て整数のみで実装。

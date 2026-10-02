@@ -967,6 +967,13 @@ The capability map — with per-feature implementation status — lives in
 | `rakefile` | Ruby Rakefile | `task`/`namespace`/`rule`/`file`/`directory`/`multitask`/`desc` |
 | `rebarconfig` | Erlang rebar.config | `{key, value}.` ターム ~46 既知キー |
 | `taskfile` | go-task Taskfile.yml | `version:`+`tasks:` + タスク名/26 タスクキー |
+| `alexrc` | alex `.alexrc`(.js/.json) | `allow`/`deny`/`profanitySureness`/`noBinary` |
+| `codespell` | `.codespellrc`/`[codespell]` | 23 オプション(skip/ignore-words/quiet-level/builtin) |
+| `cspell` | `cspell.json`/`cSpell.json` | ~37 キー(words/dictionaries/languageSettings/overrides) |
+| `proselint` | `.proselintrc` | `checks` + 30 カテゴリ(`typography.*`/`weasel_words.*`) + `max_errors` |
+| `redpen` | `redpen-conf.xml` | `<redpen-conf>` + 29 既知バリデータ + `<property>`/`<symbol>` |
+| `textlint` | `.textlintrc` | `rules:`/`filters:`/`rulePaths`/`severity`/`presets` |
+| `vale` | `.vale.ini` | `StylesPath`/`MinAlertLevel` + `[*.md]` 内 `BasedOnStyles`/`Style.Rule = YES` |
 
 ## Runnable examples
 
