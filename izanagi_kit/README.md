@@ -865,6 +865,13 @@ The capability map — with per-feature implementation status — lives in
 | `tempoconf` | Grafana Tempo `tempo.yaml` | 検出・構造カウント |
 | `thanosconf` | Thanos bucket YAML | 検出・構造カウント |
 | `vmagentconf` | VictoriaMetrics vmagent YAML | 検出・構造カウント |
+| `bogofilter` | Bogofilter `bogofilter.cf` | 検出・構造カウント |
+| `maildrop` | maildrop フィルタ | 検出・構造カウント |
+| `newsboat` | newsboat `config` | 検出・構造カウント |
+| `procmailrc` | procmail `.procmailrc` | 検出・構造カウント |
+| `rss2email` | rss2email `config.cfg` | 検出・構造カウント |
+| `sievescript` | Sieve スクリプト | 検出・構造カウント |
+| `slrnconf` | slrn `.slrnrc` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

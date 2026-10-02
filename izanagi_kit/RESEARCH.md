@@ -5611,3 +5611,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Pyroscope Docs — server configuration / scrape-configs
 
 — 全て整数のみで実装。
+
+## 第303次 — メールフィルタ・ニュースリーダー設定形式
+
+- sievescript: Sieve(RFC 5228)、require/if-elsif-else/テスト・アクション分類
+- procmailrc: procmail レシピ、`:0`・`*`条件・アクション・代入
+- maildrop: maildropfilter、if/foreach ループ・to/cc/xfilter
+- bogofilter: bogofilter.cf、既知オプション ~50 キー
+- rss2email: config.cfg、`[DEFAULT]`+`[feed.*]` セクション
+- newsboat: newsboat config、~110 既知ディレクティブ+bind-key/macro/color
+- slrnconf: .slrnrc、set/unset/setkey/color/group/server + %% コメント
+
+## 出典
+
+- RFC 5228 — Sieve: An Email Filtering Language
+- procmailrc(5) / procmailex(5) man pages
+- maildropfilter(5) man page
+- Bogofilter FAQ / bogofilter.cf.example
+- rss2email config.py / README
+- newsboat Documentation — Configuration Commands
+- slrn reference manual — slrnrc commands
+
+— 全て整数のみで実装。
