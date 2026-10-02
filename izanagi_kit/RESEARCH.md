@@ -5740,3 +5740,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - shadowsocks/shadowsocks-rust — config.json reference
 
 — 全て整数のみで実装。
+
+## 第309次 — リンタ・静的検証ツール設定形式 第2弾
+
+- shellcheckrc: .shellcheckrc(`disable`/`enable`/`source`/`shell`/`severity`/`external-sources` 等 15 既知キー + `SCNNNN` コード走査)
+- yamllint: .yamllint(`extends`/`rules`/`ignore`/`yaml-files` + `rules:` 内 24 既知ルール、インデント階層でルール/オプション分離)
+- markdownlint: .markdownlint.json/.markdownlintrc/.yaml(`MDNNN` コード + ~55 名前付きエイリアス、JSON 複数キー走査と YAML の両対応)
+- hadolintconf: .hadolint.yaml(`ignored`/`failure-threshold`/`label-schema`/`override`/`trustedRegistries` + `DLNNNN`/`SCNNNN` コード)
+- actionlint: .github/actionlint.yaml(`self-hosted-runner`/`config-variables`/`paths` + `labels`/`ignore-errors`/glob マップ)
+- reviveconf: revive.toml(10 既知トップスカラ + `[rule.<name>]` 77 既知ルールテーブル + テーブル内 settings)
+- staticcheckconf: staticcheck.conf(`checks`/`initialisms`/`dot_import_whitelist`/`http_status_code_whitelist` + `"all"`/`"-XXXXNNNN"` チェック値)
+
+## 出典
+
+- koalaman/shellcheck — .shellcheckrc ディレクティブ
+- adrienverge/yamllint — configuration / rules list
+- DavidAnson/markdownlint — .markdownlint.json rules
+- hadolint/hadolint — .hadolint.yaml config
+- rhysd/actionlint — .github/actionlint.yaml
+- mgechev/revive — revive.toml recommended config
+- dominikh/go-tools — staticcheck.conf reference
+
+— 全て整数のみで実装。

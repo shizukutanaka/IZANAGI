@@ -918,6 +918,13 @@ The capability map — with per-feature implementation status — lives in
 | `tincconf` | Tinc `tinc.conf`/`hosts/*` | PascalCase フラット `Key = value` ~60 既知キー |
 | `headscaleconf` | Headscale `config.yaml` | `server_url`/`noise`/`prefixes`/`derp`/`database`/`oidc` キー |
 | `shadowsocksconf` | Shadowsocks `config.json` | `server`/`method`/`password` + 既知暗号メソッド値 |
+| `shellcheckrc` | ShellCheck `.shellcheckrc` | `key=value` ディレクティブ + `SCNNNN` コード |
+| `yamllint` | yamllint `.yamllint` | `extends`/`rules`/`ignore` + 既知ルール名 |
+| `markdownlint` | markdownlint `.markdownlint.*` | `MDNNN` コード + エイリアス(JSON/YAML 両対応) |
+| `hadolintconf` | hadolint `.hadolint.yaml` | `ignored`/`failure-threshold`/`label-schema`/`override` + `DL/SC` コード |
+| `actionlint` | actionlint `actionlint.yaml` | `self-hosted-runner`/`config-variables`/`paths`/`labels` |
+| `reviveconf` | revive `revive.toml` | トップスカラ + `[rule.<name>]` ~70 既知ルール |
+| `staticcheckconf` | Staticcheck `staticcheck.conf` | `checks`/`initialisms`/`dot_import_whitelist` + `SA/ST` 値 |
 
 ## Runnable examples
 
