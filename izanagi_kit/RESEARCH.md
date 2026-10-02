@@ -5567,3 +5567,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - TileServer GL Docs — Configuration file
 
 — 全て整数のみで実装。
+
+## 第301次 — インメモリKV・キャッシュサーバ設定形式
+
+- aerospike: `aerospike.conf`(コンテキスト `{ }` + `key value`、namespace/network/logging 系統別)
+- dragonflyconf: Dragonfly flagfile(`--flag value` / `--flag=v` 両形、core/cluster/tls/runtime)
+- garnetconf: Microsoft Garnet `.conf`(net/storage/runtime 系統別)
+- keydbconf: KeyDB `keydb.conf`(KeyDB 固有キー必須で redis.conf と区別)
+- memcachedconf: memcached `-o` 形式(`-x` フラグ系統別)
+- tarantool: Tarantool `box.cfg{...}`(行内複数 `key =` 走査、replication/wal/storage/net/sys)
+- valkeyconf: Valkey `valkey.conf`(Redis 系 `key value` を net/persistence/replication/security/limits)
+
+## 出典
+
+- memcached Docs — command line arguments / config file
+- Valkey Docs — valkey.conf / CONFIG parameters
+- Dragonfly Docs — flagfile / command line flags
+- Aerospike Docs — Configuration Reference
+- KeyDB Docs — keydb.conf / multi-master / active-replica
+- Tarantool Reference — box.cfg configuration parameters
+- Garnet Docs — configuration options
+
+— 全て整数のみで実装。
