@@ -5762,3 +5762,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - dominikh/go-tools — staticcheck.conf reference
 
 — 全て整数のみで実装。
+
+## 第310次 — パッケージマネージャ・レジストリ設定形式
+
+- npmrc: .npmrc(~135 既知キー + `//host/path/:key=value` スコープ auth + `@scope:key=` スコープレジストリ)
+- pypirc: .pypirc(`[distutils]`/`index-servers` + `[pypi]`/`[testpypi]`/`[server-login]` + repository/username/password/ca_cert)
+- cargoconf: .cargo/config.toml(~19 テーブル接頭辞 + ~50 既知キー、alias/env/source/patch/registries はユーザキー許容)
+- gemrc: .gemrc(`:sym:` シンボルキー 16 + `gem:`/サブコマンド/gem_home 等プレーンキー)
+- nugetconfig: nuget.config(`<packageSources>` 等 16 コンテナ + `<add>`/`<clear>`/`<remove>` エントリ + key/value 属性、閉じタグ行は構造行)
+- mvnsettings: .m2/settings.xml(`<settings>` + 13 コンテナ + ~33 フィールド、閉じタグ行は構造行)
+- bundlerconf: .bundle/config(`BUNDLE_*` 接頭辞 + `BUNDLE_MIRROR__*`/`BUNDLE_GLOBAL__*` + ~40 既定名)
+
+## 出典
+
+- npm/cli — npmrc config docs
+- pypa/packaging.python.org — .pypirc reference
+- rust-lang/cargo — config.toml documentation
+- rubygems/rubygems — .gemrc / gem command options
+- NuGet/docs.microsoft.com — nuget.config reference
+- apache/maven — settings.xml reference
+- rubygems/bundler — bundle config keys
+
+— 全て整数のみで実装。

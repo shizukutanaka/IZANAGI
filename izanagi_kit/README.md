@@ -925,6 +925,13 @@ The capability map — with per-feature implementation status — lives in
 | `actionlint` | actionlint `actionlint.yaml` | `self-hosted-runner`/`config-variables`/`paths`/`labels` |
 | `reviveconf` | revive `revive.toml` | トップスカラ + `[rule.<name>]` ~70 既知ルール |
 | `staticcheckconf` | Staticcheck `staticcheck.conf` | `checks`/`initialisms`/`dot_import_whitelist` + `SA/ST` 値 |
+| `npmrc` | npm `.npmrc` | ~135 既知キー + `//host/:key=`/`@scope:` スコープ設定 |
+| `pypirc` | Python `.pypirc` | `[distutils]`/`[pypi]`/`[testpypi]`/`[server-login]` + 認証キー |
+| `cargoconf` | Cargo `.cargo/config.toml` | `[build]`/`[target.*]`/`[net]`/`[alias]`/`[source.*]` テーブル + 既知キー |
+| `gemrc` | RubyGems `.gemrc` | `:sources:`/`gem:`/`install:` 等シンボル・コマンドキー |
+| `nugetconfig` | NuGet `nuget.config` | `<packageSources>`/`<config>`/`<apikeys>` 等 + `<add key value>` |
+| `mvnsettings` | Maven `.m2/settings.xml` | `<settings>` + proxies/servers/mirrors/profiles コンテナ |
+| `bundlerconf` | Bundler `.bundle/config` | `BUNDLE_*` キー + 既知既定名 |
 
 ## Runnable examples
 
