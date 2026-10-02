@@ -960,6 +960,13 @@ The capability map — with per-feature implementation status — lives in
 | `userscript` | `==UserScript==` メタブロック | ~38 ディレクティブ(@match/@grant/@require/@run-at/@connect) |
 | `webmanifest` | PWA Web App Manifest | ~37 既知キー(start_url/display/icons/protocol_handlers/file_handlers) |
 | `widgetxml` | W3C Widget `config.xml` | `<widget>` + name/content/icon/access/feature/preference + 17 属性 |
+| `earthly` | Earthly Earthfile | `VERSION`/`FROM` + `target:` + ~37 コマンド |
+| `justfile` | just Justfile | `name:`/`name args: dep` レシピ + `:=`/`set`/`alias` |
+| `leiningen` | Clojure project.clj | `(defproject` + ~50 キーワード(`:dependencies`/`:profiles`) |
+| `mixexs` | Elixir mix.exs | `defmodule *.MixProject` + アトムキー + `{:dep, ver}` |
+| `rakefile` | Ruby Rakefile | `task`/`namespace`/`rule`/`file`/`directory`/`multitask`/`desc` |
+| `rebarconfig` | Erlang rebar.config | `{key, value}.` ターム ~46 既知キー |
+| `taskfile` | go-task Taskfile.yml | `version:`+`tasks:` + タスク名/26 タスクキー |
 
 ## Runnable examples
 

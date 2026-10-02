@@ -5871,3 +5871,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - WHATWG HTML — Offline Web applications (application cache)
 
 — 全て整数のみで実装。
+
+## 第315次 — ビルドタスクランナー設定形式 第2弾
+
+- justfile: `name:`/`name args: dep` レシピ(インデント本体・`:=`/`set`/`alias`/`import` で YAML と区別)
+- taskfile: go-task Taskfile.yml(`version:`+`tasks:` 必須、インデント階層でタスク名/キー分離)
+- earthly: Earthfile(`VERSION` 先頭 + `target:` + FROM/COPY/RUN/SAVE ARTIFACT/DO/BUILD ~37 コマンド)
+- rakefile: Rakefile(`task :x => [:dep]`/`desc`/`namespace`/`rule`/`file`/`directory`/`multitask`)
+- mixexs: mix.exs(`defmodule *.MixProject` + def/defp ブロック + アトムキー + `{:dep, ver}` タプル)
+- rebarconfig: rebar.config(`{key, value}.` Erlang ターム ~46 キー、`%` コメント)
+- leiningen: project.clj(`(defproject` + ~50 `:keyword`、`;` コメント)
+
+## 出典
+
+- just (casey/just) manual / cheat-sheet
+- go-task Taskfile reference / schema
+- Earthly docs — Earthfile spec
+- Rake documentation — rakefile format
+- Elixir Mix docs — mix.exs project/0
+- rebar3 docs — rebar.config
+- Leiningen sample.project.clj
+
+— 全て整数のみで実装。
