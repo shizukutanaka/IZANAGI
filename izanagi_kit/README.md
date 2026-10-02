@@ -844,6 +844,13 @@ The capability map — with per-feature implementation status — lives in
 | `mergify` | Mergify `.mergify.yml` | 検出・構造カウント |
 | `releaseplease` | release-please `release-please-config.json` | 検出・構造カウント |
 | `renovate` | Renovate `renovate.json` | 検出・構造カウント |
+| `mapfile` | MapServer `.map` | 検出・構造カウント |
+| `mapnikxml` | Mapnik XML | 検出・構造カウント |
+| `mapproxyconf` | MapProxy `mapproxy.yaml` | 検出・構造カウント |
+| `osm2pgsqlstyle` | osm2pgsql Lua スタイル | 検出・構造カウント |
+| `planetilerconf` | Planetiler `config.yml` | 検出・構造カウント |
+| `qgsproj` | QGIS プロジェクト `.qgs` | 検出・構造カウント |
+| `tileservergl` | TileServer GL `config.json` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
