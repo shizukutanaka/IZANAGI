@@ -5696,3 +5696,26 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - isort Documentation — Configuring isort / supported config files
 
 — 全て整数のみで実装。
+
+## 第307次 — メールサーバ・MTA 設定形式 第2弾
+
+- rspamdconf: Rspamd rspamd.conf/local.d(UCL、`options`/`worker "name"`/`modules` ブロック + `key = v;` 既知キー)
+- harakaconf: Haraka smtp.ini + config/plugins(`[main]`/`[tls]`/`[dkim]`/`[outbound]` + `key = v` + 1行1プラグイン)
+- stalwartconf: Stalwart Mail config.toml(`server.*`/`imap.*`/`smtp.*`/`jmap.*`/`store.*`/`spam-filter.*` ドットファミリ + TOML テーブル併用)
+- maddyconf: Maddy maddy.conf(`smtp tcp://.. {`/`imap {`/`submission {`/`delivery`/`tls` ブロックモジュール + `key value`)
+- chasquidconf: Chasquid chasquid.conf(textproto `key: "value"`、hostname/smtp_address/mail_delivery_agent_* ~20 キー)
+- zonemtaconf: ZoneMTA zonemta.toml(`[api]`/`[smtp]`/`[zones]`/`[dkim]`/`[plugins]` + `feeder`/`deliveryConcurrency`/`maxConnections` 等)
+- postalconf: Postal postal.yml(`web`/`smtp_server`/`rabbitmq`/`main_db`/`message_db`/`dns`/`smtp_relays` トップセクション + ネストリーフ)
+
+## 出典
+
+- Rspamd Documentation — rspamd.conf / local.d / worker settings
+- Haraka Documentation — Configuration (smtp.ini) / plugins
+- Stalwart Mail Server — Configuration reference (config.toml)
+- Maddy — maddy.conf reference / modules
+- Chasquid — chasquid.conf(5) man page
+- ZoneMTA — zonemta.toml example / config keys
+- Postal — postal.yml example config / install docs
+
+— 全て整数のみで実装。
+

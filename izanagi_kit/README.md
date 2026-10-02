@@ -904,6 +904,13 @@ The capability map — with per-feature implementation status — lives in
 | `mypyconf` | Mypy `mypy.ini`/`[mypy]` | `[mypy-*]` セクション + `python_version`/`strict`/`warn_*`/`disallow_*` |
 | `pyrightconf` | Pyright `pyrightconfig.json` | `typeCheckingMode`/`report*`/`executionEnvironments` |
 | `ruffconf` | Ruff `ruff.toml`/`[tool.ruff]` | `[tool.ruff.lint.*]` サブセクション + `select`/`line-length`/`target-version` |
+| `rspamdconf` | Rspamd `rspamd.conf` (UCL) | `options`/`worker`/`logging`/`modules` ブロック + `key = v;` |
+| `harakaconf` | Haraka `smtp.ini`/`config/plugins` | `[main]`/`[tls]` セクション + `key = v` + プラグイン行 |
+| `stalwartconf` | Stalwart `config.toml` | `server.*`/`imap.*`/`smtp.*` ドットキーファミリ + TOML テーブル |
+| `maddyconf` | Maddy `maddy.conf` | `smtp tcp://.. {`/`imap {`/`delivery` モジュールブロック |
+| `chasquidconf` | Chasquid `chasquid.conf` | `key: "value"` textproto ~20 既知キー |
+| `zonemtaconf` | ZoneMTA `zonemta.toml` | `[api]`/`[smtp]`/`[zones]`/`[dkim]` テーブル + ~90 キー |
+| `postalconf` | Postal `postal.yml` | `web`/`smtp_server`/`rabbitmq`/`main_db` トップセクション |
 
 ## Runnable examples
 
