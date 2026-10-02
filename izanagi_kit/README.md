@@ -890,6 +890,13 @@ The capability map — with per-feature implementation status — lives in
 | `savefile` | Versioned, checksummed binary save framing. |
 | `bits` | LSB-first bit-level wire codec (`BitWriter`/`BitReader`): packed bitfields, ranged integers, canonical varint+zigzag — the lockstep packet primitive. |
 | `noise` | Deterministic integer value-noise and hashing for procedural generation — value/fbm/ridge/turbulence plus Worley cellular noise (exact F1/F2). |
+| `chromaconf` | Chroma 設定 | `chroma_*`/`CHROMA_*` 設定キー |
+| `milvusconf` | Milvus `milvus.yaml` | `etcd`/`minio`/`mq`/`proxy`/`common` セクション |
+| `opensearch` | OpenSearch `opensearch.yml` | `cluster.*`/`node.*`/`path.*`/`discovery.*`/`plugins.*` ドットキー |
+| `qdrantconf` | Qdrant `config.yaml` | `storage`/`service`/`cluster` セクション |
+| `soniccfg` | Sonic `config.cfg` | `[channel]`/`[server]`/`[store.*]` セクション |
+| `vespaconf` | Vespa `services.xml` | `<services>` ルート + container/content/jdisc/admin クラスタ |
+| `weaviateconf` | Weaviate 設定 | `PERSISTENCE_*`/`DEFAULT_VECTORIZER_MODULE`/`ENABLE_MODULES` env |
 
 ## Runnable examples
 

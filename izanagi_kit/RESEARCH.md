@@ -5654,3 +5654,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - GB Studio Docs — project file
 
 — 全て整数のみで実装。
+## 第305次 — ベクトルDB・検索エンジン設定 第2弾
+
+- opensearch: opensearch.yml(`cluster.*`/`node.*`/`path.*`/`discovery.*`/`plugins.*` ドットキー)
+- qdrantconf: Qdrant config.yaml(`storage`/`service`/`cluster` セクション + 既知サブキー)
+- weaviateconf: Weaviate env 設定(`PERSISTENCE_*`/`DEFAULT_VECTORIZER_MODULE`/`ENABLE_MODULES`/`AUTHENTICATION_*`/`QUERY_*`/`CLUSTER_*` 大文字キー)
+- milvusconf: milvus.yaml(`etcd`/`minio`/`mq`/`proxy`/`common` 等 25 既知トップセクション)
+- chromaconf: Chroma 設定(`chroma_*`/`CHROMA_*` 既知キー、`export ` 剥がし対応)
+- vespaconf: Vespa services.xml(`<services>` ルート + container/content/jdisc/admin クラスタ + 機構要素)
+- soniccfg: Sonic config.cfg(`[channel]`/`[server]`/`[store.*]` 既知セクション + キー)
+
+## 出典
+
+- OpenSearch Documentation — Configuring OpenSearch / opensearch.yml
+- Qdrant Documentation — Configuration
+- Weaviate Docs — Configuration / Environment variables
+- Milvus Docs — milvus.yaml / system configurations
+- Chroma Docs — Deployment / Settings
+- Vespa Documentation — services.xml reference
+- Sonic (valeriansaliou/sonic) — config.cfg example
+
+— 全て整数のみで実装。
