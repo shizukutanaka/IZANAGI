@@ -5633,3 +5633,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - slrn reference manual — slrnrc commands
 
 — 全て整数のみで実装。
+
+## 第304次 — ゲームエンジン設定 第2弾
+
+- unitysettings: ProjectSettings.asset(Unity YAML %TAG !u! + 既知ルート)
+- unitymanifest: Packages/manifest.json(com.unity.* 依存 + scopedRegistries)
+- loveconf: LÖVE conf.lua(love.conf(t) + t.<group>.<key> 分類)
+- defoldproj: game.project(既知セクション ~40 + キー)
+- rpgmakerconf: js/plugins.js(name/status/parameters オブジェクト走査)
+- cocosproj: project.json(project_type/engine_version/isNative シグネチャ)
+- gbstudio: project.gbsproj(リソース配列キー + settings 既知キー)
+
+## 出典
+
+- Unity Manual — Project Settings / Package manifest
+- LÖVE2D wiki — Config Files
+- Defold Manual — game.project settings
+- RPGツクール MV/MZ Help — plugins.js structure
+- Cocos2d-x Docs — project.json
+- GB Studio Docs — project file
+
+— 全て整数のみで実装。

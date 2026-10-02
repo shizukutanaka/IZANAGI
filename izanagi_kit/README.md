@@ -872,6 +872,13 @@ The capability map — with per-feature implementation status — lives in
 | `rss2email` | rss2email `config.cfg` | 検出・構造カウント |
 | `sievescript` | Sieve スクリプト | 検出・構造カウント |
 | `slrnconf` | slrn `.slrnrc` | 検出・構造カウント |
+| `cocosproj` | Cocos `project.json` | 検出・構造カウント |
+| `defoldproj` | Defold `game.project` | 検出・構造カウント |
+| `gbstudio` | GB Studio `project.gbsproj` | 検出・構造カウント |
+| `loveconf` | LÖVE `conf.lua` | 検出・構造カウント |
+| `rpgmakerconf` | RPGツクール `js/plugins.js` | 検出・構造カウント |
+| `unitymanifest` | Unity `Packages/manifest.json` | 検出・構造カウント |
+| `unitysettings` | Unity `ProjectSettings.asset` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
