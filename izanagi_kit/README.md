@@ -946,6 +946,13 @@ The capability map — with per-feature implementation status — lives in
 | `hivemq` | HiveMQ `config.xml` | `<hivemq>` + listeners/mqtt/cluster/security/restrictions ブロック |
 | `ibmmq` | IBM MQ `qm.ini`/`mqs.ini` | スタンザ(`QueueManager:`/`TCP:`/`Log:` 等) + `Key=Value` |
 | `kubemq` | KubeMQ `kubemq.yaml` | K8s マニフェスト構造 + store/queues/events/grpc/rest/license キー |
+| `airbyteconf` | Airbyte コネクタ設定(JSON/YAML) | `connectionConfiguration`/`sync_mode`/`cursor_field`/`auth_type` 等 ~55 キー |
+| `fivetranconf` | Fivetran connector 設定 | `service`/`group_id`/`sync_frequency` + `config` 内 ~65 既知キー |
+| `hopconf` | Apache Hop pipeline/workflow XML | `<pipeline>`/`<workflow>` + `<transform>`/`<action>`/`<hop>` 要素 |
+| `ketl` | Pentaho Kettle `.ktr` | `<transformation>` + `<order>`/`<hop>`/`<step>` + `<type>` |
+| `meltano` | Meltano `meltano.yml` | `plugins:` 種別ブロック(extractors/loaders/...)+ `- name:`/`pip_url:`/`settings:` |
+| `nififlow` | NiFi flow/template XML | `<template>`/`<flow>` + `<processors>`/`<connections>`/`<processGroups>` |
+| `singerconf` | Singer spec JSONL | `"type":"SCHEMA/RECORD/STATE/ACTIVATE_VERSION/METRIC"` メッセージ別計数 |
 
 ## Runnable examples
 

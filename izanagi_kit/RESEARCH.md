@@ -5828,3 +5828,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - kubemq-io — kubemq-cluster 設定
 
 — 全て整数のみで実装。
+
+## 第313次 — ETL・データ統合パイプライン設定形式
+
+- meltano: meltano.yml(`plugins:` 配下 8 種別 + 17 トップキー + 19 リーフキー)
+- airbyteconf: Airbyte ソース/宛先設定 JSON/YAML(~55 既知キー、`"k":` と `k:` 両対応)
+- singerconf: Singer spec JSONL(SCHEMA/RECORD/STATE/ACTIVATE_VERSION/METRIC/BATCH 種別計数)
+- ketl: Pentaho .ktr(`<transformation>` + 23 コンテナ + 20 エントリタグ)
+- nififlow: NiFi template/flow XML(16 コンテナ + 37 エントリ、NiFi クラス名非依存)
+- hopconf: Apache Hop .hpl/.hwf(`<pipeline>`/`<workflow>` 両ルート、transform/action 要素)
+- fivetranconf: Fivetran connector JSON/YAML(~65 既知キー、config 内 auth/ssh/agent/*)
+
+## 出典
+
+- meltano/meltano — meltano.yml リファレンス
+- airbytehq/airbyte — connector specification
+- singer-io/getting-started — Singer spec(SPEC.md)
+- pentaho/pdi-ee — .ktr 変換 XML
+- apache/nifi — flow.xml/template XML スキーマ
+- apache/hop — pipeline/workflow メタデータ XML
+- fivetran/docs — REST API connections ペイロード
+
+— 全て整数のみで実装。
