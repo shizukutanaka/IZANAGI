@@ -5675,3 +5675,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Sonic (valeriansaliou/sonic) — config.cfg example
 
 — 全て整数のみで実装。
+## 第306次 — Python ツールチェーン設定形式
+
+- ruffconf: ruff.toml/pyproject `[tool.ruff]` + `lint`/`format`/`server`/`per-file-ignores` サブセクション
+- pyrightconf: pyrightconfig.json(`typeCheckingMode` + `report*` 診断キー + `executionEnvironments`)
+- mypyconf: mypy.ini(`[mypy]`/`[mypy-<module>]` + `python_version`/`strict`/`warn_*`/`disallow_*`)
+- flake8conf: .flake8/tox.ini `[flake8]`(`max-line-length`/`select`/`extend-ignore` + プラグインオプション ~100)
+- blackconf: pyproject `[tool.black]`(`line-length`/`target-version`/`include`/`preview`/`required-version`)
+- banditconf: .bandit/bandit.yaml(`tests`/`skips` + `B1xx`-`B7xx` テストコード)
+- isortconf: .isort.cfg/`[isort]`/`[tool.isort]`(`profile`/`multi_line_output`/`known_*`/`force_*` ~100)
+
+## 出典
+
+- Ruff Documentation — Configuration / Settings
+- Pyright Documentation — pyrightconfig.json
+- Mypy Documentation — The mypy configuration file
+- Flake8 Documentation — Configuring Flake8
+- Black Documentation — Configuration via a file / pyproject.toml
+- Bandit Documentation — Configuration (.bandit / bandit.yaml)
+- isort Documentation — Configuring isort / supported config files
+
+— 全て整数のみで実装。

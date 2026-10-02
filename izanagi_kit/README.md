@@ -897,6 +897,13 @@ The capability map — with per-feature implementation status — lives in
 | `soniccfg` | Sonic `config.cfg` | `[channel]`/`[server]`/`[store.*]` セクション |
 | `vespaconf` | Vespa `services.xml` | `<services>` ルート + container/content/jdisc/admin クラスタ |
 | `weaviateconf` | Weaviate 設定 | `PERSISTENCE_*`/`DEFAULT_VECTORIZER_MODULE`/`ENABLE_MODULES` env |
+| `banditconf` | Bandit `.bandit`/`bandit.yaml` | `tests`/`skips`/`severity`/`confidence` + `B1xx`-`B7xx` テストコード |
+| `blackconf` | Black `pyproject.toml` `[tool.black]` | `line-length`/`target-version`/`include`/`skip-*`/`preview` |
+| `flake8conf` | Flake8 `.flake8`/`[flake8]` | `max-line-length`/`select`/`extend-ignore`/`per-file-ignores` + プラグインオプション |
+| `isortconf` | isort `[isort]`/`[tool.isort]`/`[settings]` | `profile`/`multi_line_output`/`known_*`/`force_*` |
+| `mypyconf` | Mypy `mypy.ini`/`[mypy]` | `[mypy-*]` セクション + `python_version`/`strict`/`warn_*`/`disallow_*` |
+| `pyrightconf` | Pyright `pyrightconfig.json` | `typeCheckingMode`/`report*`/`executionEnvironments` |
+| `ruffconf` | Ruff `ruff.toml`/`[tool.ruff]` | `[tool.ruff.lint.*]` サブセクション + `select`/`line-length`/`target-version` |
 
 ## Runnable examples
 
