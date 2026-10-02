@@ -932,6 +932,13 @@ The capability map — with per-feature implementation status — lives in
 | `nugetconfig` | NuGet `nuget.config` | `<packageSources>`/`<config>`/`<apikeys>` 等 + `<add key value>` |
 | `mvnsettings` | Maven `.m2/settings.xml` | `<settings>` + proxies/servers/mirrors/profiles コンテナ |
 | `bundlerconf` | Bundler `.bundle/config` | `BUNDLE_*` キー + 既知既定名 |
+| `travisci` | Travis CI `.travis.yml` | ~65 トップキー + `jobs:`/`matrix:` include/exclude/allow_failures |
+| `appveyor` | AppVeyor `appveyor.yml` | ~55 トップキー + `for:` 条件ブロック |
+| `buildkite` | Buildkite `pipeline.yml` | `steps:` + ステップ種別(command/wait/block/trigger/group) + ~25 ステップキー |
+| `woodpecker` | Woodpecker `.woodpecker.yml` | `steps:`/`pipeline:`/`services:` ブロック + ~21 ステップキー |
+| `cirrus` | Cirrus `.cirrus.yml` | `*_task:`/`*_pipe:`/`*_template:` + `*_script:` フィールド + ~50 既知キー |
+| `giteaaction` | Gitea/Forgejo Actions `.gitea/workflows/*.yml` | GH Actions 互換 `on:`/`jobs:`/`steps:` + runs-on/needs/strategy |
+| `harness` | Harness `pipeline.yaml` | `pipeline:`/`service:`/`environment:` ルート + stage/step/stepGroup/parallel |
 
 ## Runnable examples
 

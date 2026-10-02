@@ -5784,3 +5784,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - rubygems/bundler — bundle config keys
 
 — 全て整数のみで実装。
+
+## 第311次 — CI/CD サービス設定形式 第2弾
+
+- travisci: .travis.yml(~65 トップキー + `jobs:`/`matrix:` 内 include/exclude/allow_failures/fast_finish)
+- appveyor: appveyor.yml(~55 トップキー + `for:` 条件ブロック内の既知条件キー)
+- buildkite: pipeline.yml(`steps:` + command/wait/block/input/select/trigger/group 種別 + ~25 ステップキー)
+- woodpecker: .woodpecker.yml(`steps:`/`pipeline:`/`services:` + ~21 ステップキー、ステップ名は indent 2 のマップキー)
+- cirrus: .cirrus.yml(`*_task:`/`*_pipe:`/`*_template:` タスク + `*_script:`/`*_cache:`/`*_artifacts:` フィールド)
+- giteaaction: .gitea/workflows(GH Actions 互換: `on:`/`jobs:`/`jobs.<id>.steps`、ジョブ ID は indent 2 のキー)
+- harness: pipeline.yaml(`pipeline:`/`service:`/`infrastructure:`/`environment:`/`inputs:` ルート + stage/step/stepGroup/parallel/matrix/repeat 要素)
+
+## 出典
+
+- Travis CI — .travis.yml reference
+- AppVeyor — appveyor.yml reference
+- Buildkite — pipeline.yml docs
+- Woodpecker CI — workflow syntax
+- Cirrus CI — .cirrus.yml reference
+- Gitea/Forgejo — actions workflows (GitHub Actions 互換)
+- Harness — pipeline YAML spec
+
+— 全て整数のみで実装。
