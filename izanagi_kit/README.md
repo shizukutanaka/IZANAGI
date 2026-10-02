@@ -953,6 +953,13 @@ The capability map — with per-feature implementation status — lives in
 | `meltano` | Meltano `meltano.yml` | `plugins:` 種別ブロック(extractors/loaders/...)+ `- name:`/`pip_url:`/`settings:` |
 | `nififlow` | NiFi flow/template XML | `<template>`/`<flow>` + `<processors>`/`<connections>`/`<processGroups>` |
 | `singerconf` | Singer spec JSONL | `"type":"SCHEMA/RECORD/STATE/ACTIVATE_VERSION/METRIC"` メッセージ別計数 |
+| `appcache` | Application Cache `CACHE MANIFEST` | `CACHE:`/`NETWORK:`/`FALLBACK:` セクション + URI/`*` エントリ |
+| `browserconfig` | Microsoft `browserconfig.xml` | `<msapplication>`/`<tile>`/`<notification>` + square*logo/polling-uri 要素 |
+| `extmanifest` | 拡張機能 `manifest.json`(MV2/MV3) | ~58 既知キー(permissions/background/content_scripts/action/side_panel) |
+| `usercss` | UserCSS `==UserStyle==` ブロック | ~21 ディレクティブ + `@-moz-document` ルール + `@var`/`@advanced` |
+| `userscript` | `==UserScript==` メタブロック | ~38 ディレクティブ(@match/@grant/@require/@run-at/@connect) |
+| `webmanifest` | PWA Web App Manifest | ~37 既知キー(start_url/display/icons/protocol_handlers/file_handlers) |
+| `widgetxml` | W3C Widget `config.xml` | `<widget>` + name/content/icon/access/feature/preference + 17 属性 |
 
 ## Runnable examples
 

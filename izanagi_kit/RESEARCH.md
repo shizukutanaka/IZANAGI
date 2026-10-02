@@ -5850,3 +5850,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - fivetran/docs — REST API connections ペイロード
 
 — 全て整数のみで実装。
+
+## 第314次 — ブラウザ拡張・ユーザスクリプト・PWA 形式
+
+- webmanifest: site.webmanifest(~37 W3C マニフェストキー、JSON `"k":` 走査)
+- extmanifest: manifest.json MV2/MV3(~58 キー、permissions/background/content_scripts/action/side_panel/browser_specific_settings)
+- userscript: `==UserScript==` メタブロック(~38 `@directive`、マーカー間スコープ)
+- usercss: `==UserStyle==` メタブロック(~21 ディレクティブ + `@-moz-document` ルール)
+- browserconfig: browserconfig.xml(`<msapplication>`/`<tile>`/`<notification>` + 9 エントリ + src=/content=)
+- widgetxml: W3C widget config.xml(`<widget>` ルート + 12 エントリ + 17 既知属性)
+- appcache: CACHE MANIFEST(先頭マーカー必須 + 3 セクションヘッダ + URI ホワイトリスト文字)
+
+## 出典
+
+- W3C — Web App Manifest spec / Packaged Web Apps (Widgets)
+- MDN — browserconfig.xml schema / content scripts manifest keys
+- Chrome Extensions docs — manifest.json file format (MV2/MV3)
+- Greasemonkey/Tampermonkey docs — ==UserScript== metadata block
+- Stylus usercss Wiki — ==UserStyle== ディレクティブ
+- WHATWG HTML — Offline Web applications (application cache)
+
+— 全て整数のみで実装。
