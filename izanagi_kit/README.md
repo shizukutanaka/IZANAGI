@@ -858,6 +858,13 @@ The capability map — with per-feature implementation status — lives in
 | `memcachedconf` | memcached `-o` ファイル | 検出・構造カウント |
 | `tarantool` | Tarantool `box.cfg` | 検出・構造カウント |
 | `valkeyconf` | Valkey `valkey.conf` | 検出・構造カウント |
+| `loki` | Loki `config.yaml` | 検出・構造カウント |
+| `mimirconf` | Grafana Mimir `mimir.yaml` | 検出・構造カウント |
+| `promtailconf` | Promtail `config.yaml` | 検出・構造カウント |
+| `pyroconf` | Pyroscope `server.yaml` | 検出・構造カウント |
+| `tempoconf` | Grafana Tempo `tempo.yaml` | 検出・構造カウント |
+| `thanosconf` | Thanos bucket YAML | 検出・構造カウント |
+| `vmagentconf` | VictoriaMetrics vmagent YAML | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
