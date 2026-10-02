@@ -939,6 +939,13 @@ The capability map — with per-feature implementation status — lives in
 | `cirrus` | Cirrus `.cirrus.yml` | `*_task:`/`*_pipe:`/`*_template:` + `*_script:` フィールド + ~50 既知キー |
 | `giteaaction` | Gitea/Forgejo Actions `.gitea/workflows/*.yml` | GH Actions 互換 `on:`/`jobs:`/`steps:` + runs-on/needs/strategy |
 | `harness` | Harness `pipeline.yaml` | `pipeline:`/`service:`/`environment:` ルート + stage/step/stepGroup/parallel |
+| `activemq` | ActiveMQ `activemq.xml` | `<broker>` + コネクタ/ポリシー/永続化/プラグイン XML 要素 + 既知属性 |
+| `rocketmq` | RocketMQ `broker.conf` | ~120 既知プロパティキー(broker/store/flush/HA/Dledger) |
+| `nsqconf` | NSQ `nsqd.cfg`/`nsqlookupd.cfg` | ~55 既知キー(data-path/lookupd/tls/statsd/latency) |
+| `vernemq` | VerneMQ `vernemq.conf` | `listener.*`/`vmq_*`/`allow_*`/`max_*` 等ドット区切り cuttlefish キー |
+| `hivemq` | HiveMQ `config.xml` | `<hivemq>` + listeners/mqtt/cluster/security/restrictions ブロック |
+| `ibmmq` | IBM MQ `qm.ini`/`mqs.ini` | スタンザ(`QueueManager:`/`TCP:`/`Log:` 等) + `Key=Value` |
+| `kubemq` | KubeMQ `kubemq.yaml` | K8s マニフェスト構造 + store/queues/events/grpc/rest/license キー |
 
 ## Runnable examples
 

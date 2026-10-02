@@ -5806,3 +5806,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Harness — pipeline YAML spec
 
 — 全て整数のみで実装。
+
+## 第312次 — メッセージキュー・ブローカー設定形式 第2弾
+
+- activemq: activemq.xml(18 コンテナ + 28 エントリ + 20 既知属性、閉じタグ行は構造行)
+- rocketmq: broker.conf(~120 既知プロパティ: broker*/storePath*/flush*/ha*/dLeger*/server*)
+- nsqconf: nsqd.cfg/nsqlookupd.cfg(~55 既知キー、`key = value` TOML 風)
+- vernemq: vernemq.conf(cuttlefish、`listener.`/`vmq_*`/`erlang.`/`leveldb.`/`plugins.` 接頭辞 + ~30 完全一致キー)
+- hivemq: config.xml(`<hivemq>` 必須 + 28 コンテナ + 31 エントリ/リーフ)
+- ibmmq: qm.ini/mqs.ini(24 既知スタンザ + ~65 既知キー、`Stanza:` 行 + `Key=Value`)
+- kubemq: kubemq.yaml(K8s 構造キー + ~40 KubeMQ 固有キー)
+
+## 出典
+
+- apache/activemq — XML 設定リファレンス
+- apache/rocketmq — broker.conf 設定ガイド
+- nsqio/nsq — nsqd.cfg リファレンス
+- vernemed/vernemq — vernemq.conf プロパティ
+- hivemq/hivemq-community-edition — config.xml
+- IBM Docs — qm.ini/mqs.ini スタンザ
+- kubemq-io — kubemq-cluster 設定
+
+— 全て整数のみで実装。
