@@ -5937,3 +5937,23 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Microsoft Sysmon schema — XML config reference
 
 — 全て整数のみで実装。
+
+## 第318次 — コンテナランタイム・ローカルK8s設定形式
+
+- buildkitd: BuildKit buildkitd.toml(`[worker.oci]`/`[worker.containerd]`/`[grpc]`/`[registry."host"]`/`[otlp]`/`[frontend.*]` + root/debug/gc/entitlements/networkMode キー)
+- crio: CRI-O crio.conf(`[crio]`/`[crio.runtime]`/`[crio.image]`/`[crio.network]`/`[crio.metrics]` テーブル + default_runtime/conmon/pause_image/plugin_dirs キー)
+- colima: Colima colima.yaml(cpu/memory/disk/arch/autoActivate/kubernetes/env/network/mountType/vmType/rosetta)
+- k0sconf: k0s ClusterConfig(apiVersion `k0s.k0sproject.io/v1beta1` + kind 必須 + spec.api/controllerManager/scheduler/network/storage/konnectivity/telemetry)
+- k3sconf: k3s config.yaml(server/agent/token/node-*/cluster-*/service-cidr/tls-san/etcd-snapshot-*/flannel-*/kubelet-arg/kube-apiserver-arg/secrets-encryption ~60キー)
+- minikubeconf: Minikube config.json(driver/cpus/memory/disk-size/kubernetes-version/container-runtime/registry-mirror/vm-driver/extra-config ~60キー、JSON `"key":` 走査)
+- nerdctl: nerdctl.toml(address/namespace/snapshotter/cgroup_manager/cni_path/cni_netconfpath/host_gateway_ip/experimental/insecure_registry)
+
+## 出典
+
+- BuildKit docs — buildkitd.toml reference
+- cri-o/cri-o — crio.conf(5) man page
+- abiosoft/colima — colima.yaml default config
+- k0sproject/k0s — Configuration Options (k0s.k0sproject.io/v1beta1 ClusterConfig)
+- k3s-io/docs — Configuration File (config.yaml)
+- kubernetes/minikube — config.json settings reference
+- containerd/nerdctl — nerdctl.toml documentation
