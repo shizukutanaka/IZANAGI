@@ -5511,3 +5511,25 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、Autodesk EAGLE XML format & DTD、gEDA gschem file format、LTspice .asc file format、SPICE3/ngspice input syntax。
 
 — 全て整数のみで実装。
+
+## 第298次 — DAW・音楽制作プロジェクト/設定ファイル形式
+
+- `reaper` — REAPER `.rpp`。`<REAPER_PROJECT` ヘッダ、`<TRACK`/`<ITEM`/`<SOURCE` ブロック、`VST`/`AU`/`JS`/`DX`/`LV2`/`CLAP` エフェクト行、`MARKER` マーカー。
+- `ardour` — Ardour `.ardour` セッション XML。`Session` ルート、`Route`/`Region`/`Playlist`/`Location`/`Plugin`/`Source` タグ走査。
+- `audacity` — Audacity `.aup`。`audacityproject` 名前空間確認、トラック/クリップ/シーケンス/ブロック/ラベル/インポート分類。
+- `lmms` — LMMS `.mmp`。`lmms-project` ルート、track/pattern/note/fxchannel/楽器プラグイン(30 種既知名)分類。
+- `mixxx` — Mixxx `mixxx.cfg`。セクション系統(ライブラリ/サウンド/コントロール/ブロードキャスト/エフェクト)別エントリ計数。
+- `hydrogen` — Hydrogen `.h2song`/`.h2drumkit`。pattern/instrument/note/layer/patternID/component 分類、`<instrument>` はノート内参照も計上。
+- `carla` — Carla `.carxp`。`CARLA-PRESET` ルート、Plugin/Parameter/Cable/CustomData/Info 分類。
+
+## 出典
+
+- REAPER .RPP file format (REAPER 公式ドキュメント・コミュニティ解析)
+- Ardour session file format / ardour XML source
+- Audacity .aup project format (Audacity wiki, DTD)
+- LMMS project file format (.mmp XML schema)
+- Mixxx ユーザー設定 mixxx.cfg (Mixxx ソースの ConfigObject)
+- Hydrogen .h2song/.h2drumkit XML schema
+- Carla project file .carxp (falkTX/Carla 仕様)
+
+— 全て整数のみで実装。

@@ -837,6 +837,13 @@ The capability map — with per-feature implementation status — lives in
 | `kicadsch` | KiCad `.kicad_sch` S式。symbol/wire/bus/label/junction/property/pin 分類。 |
 | `ltsconf` | LTspice `.asc`。SHEET/WIRE/SYMBOL/SYMATTR/FLAG/TEXT/RECTANGLE 分類。 |
 | `spicenet` | SPICE ネットリスト。要素行/.subckt/.model/.tran/.param/継続行 分類。 |
+| `ardour` | Ardour `.ardour` session XML — `Session` root census: `Route` tracks/buses, `Region`, `Playlist`, `Location` markers, `Plugin`, `Source` counts. |
+| `audacity` | Audacity `.aup` project XML — `audacityproject` namespace check, `wavetrack`/`labeltrack`/`timetrack` tracks, `waveclip`, `sequence`, `waveblock`/`simpleblockfile` blocks, `label`, `import`. |
+| `carla` | Carla `.carxp` patchbay XML — `CARLA-PRESET` root, `Plugin`/`Parameter`/`Cable`/`CustomData`/`Info` census. |
+| `hydrogen` | Hydrogen `.h2song`/`.h2drumkit` XML — `pattern`/`instrument`/`note`/`layer`/`patternID`/`component` census. |
+| `lmms` | LMMS `.mmp` project XML — `lmms-project` root, `track`/`note`/`pattern`/`bbtco`/`automationpattern`/`fxchannel` and instrument plugin census. |
+| `mixxx` | Mixxx `mixxx.cfg` — INI-style `key value` sections classified into library/sound/control/broadcast/effect families. |
+| `reaper` | REAPER `.rpp` project — `REAPER_PROJECT` header, `TRACK`/`ITEM`/`SOURCE` blocks, `VST`/`AU`/`JS`/`DX`/`LV2`/`CLAP` fx lines, `MARKER` census. |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
