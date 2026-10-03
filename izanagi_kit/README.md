@@ -352,13 +352,6 @@ fixed version has no such state at all.
 | `solrschema` | Solr schema.xml census |
 | `traefik` | Traefik config census |
 | `typesense` | Typesense collection census |
-| `appjson` | Expo `app.json` — `expo` object keys, platform sections (`ios`/`android`/`web`), `plugins`/`extra` list items. |
-| `babelrc` | `.babelrc` / `babel.config.js` — `presets`/`plugins` arrays, `[name, options]` tuples, `env`/`overrides` sections. |
-| `capacitor` | Capacitor `capacitor.config.ts`/`capacitor.config.json` — app identity keys, `plugins:` block depth, platform navigations. |
-| `metroconf` | Metro `metro.config.js` — `resolver`/`transformer`/`serializer`/`server`/`symbolicator`/`watcher` sections, `getDefaultConfig`/`mergeConfig` helpers. |
-| `rollup` | `rollup.config.js` — `input`/`output` entries, output `format:`s, `plugins`, `external`, config-object count. |
-| `viteconf` | `vite.config.ts` — `defineConfig`, `plugins` (incl. `name()` calls), `server.proxy`/`resolve.alias` quoted keys, config sections. |
-| `webpackconf` | `webpack.config.js` — `mode`/`devtool`/`entry`/`output`, `module.rules`/`plugins`/`resolve` keys, `module.exports`/exported config fns. |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
@@ -844,7 +837,6 @@ The capability map — with per-feature implementation status — lives in
 | `lmms` | LMMS `.mmp` project XML — `lmms-project` root, `track`/`note`/`pattern`/`bbtco`/`automationpattern`/`fxchannel` and instrument plugin census. |
 | `mixxx` | Mixxx `mixxx.cfg` — INI-style `key value` sections classified into library/sound/control/broadcast/effect families. |
 | `reaper` | REAPER `.rpp` project — `REAPER_PROJECT` header, `TRACK`/`ITEM`/`SOURCE` blocks, `VST`/`AU`/`JS`/`DX`/`LV2`/`CLAP` fx lines, `MARKER` census. |
-<<<<<<< HEAD
 | `codeclimate` | CodeClimate `.codeclimate.yml` | 検出・構造カウント |
 | `codecov` | Codecov `codecov.yml` | 検出・構造カウント |
 | `coveralls` | Coveralls `.coveralls.yml` | 検出・構造カウント |
@@ -859,16 +851,13 @@ The capability map — with per-feature implementation status — lives in
 | `planetilerconf` | Planetiler `config.yml` | 検出・構造カウント |
 | `qgsproj` | QGIS プロジェクト `.qgs` | 検出・構造カウント |
 | `tileservergl` | TileServer GL `config.json` | 検出・構造カウント |
-||||||| 342d9c3
-=======
-| `codeclimate` | CodeClimate `.codeclimate.yml` | 検出・構造カウント |
-| `codecov` | Codecov `codecov.yml` | 検出・構造カウント |
-| `coveralls` | Coveralls `.coveralls.yml` | 検出・構造カウント |
-| `dependabot` | Dependabot `dependabot.yml` | 検出・構造カウント |
-| `mergify` | Mergify `.mergify.yml` | 検出・構造カウント |
-| `releaseplease` | release-please `release-please-config.json` | 検出・構造カウント |
-| `renovate` | Renovate `renovate.json` | 検出・構造カウント |
->>>>>>> origin/main
+| `aerospike` | Aerospike `aerospike.conf` | 検出・構造カウント |
+| `dragonflyconf` | Dragonfly flagfile | 検出・構造カウント |
+| `garnetconf` | Microsoft Garnet `.conf` | 検出・構造カウント |
+| `keydbconf` | KeyDB `keydb.conf` | 検出・構造カウント |
+| `memcachedconf` | memcached `-o` ファイル | 検出・構造カウント |
+| `tarantool` | Tarantool `box.cfg` | 検出・構造カウント |
+| `valkeyconf` | Valkey `valkey.conf` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
