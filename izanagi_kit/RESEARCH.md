@@ -4967,6 +4967,16 @@ Ansible playbook・Salt SLS・Chef recipe/metadata.rb・Puppet マニフェス�
 
 — 全て整数のみで実装。
 
+## 第272次 — フロントエンド・モバイルアプリ設定形式
+
+- `appjson` — Expo `app.json`:`"expo"` オブジェクトの検出、プラットフォーム別セクションと `plugins`/`extra` 項目の計数。
+- `babelrc` — `.babelrc`/`babel.config.js`:`presets`/`plugins` 配列、`[name, options]` タプル、`env`/`overrides` 環境分岐を構造抽出。
+- `capacitor` — Capacitor `capacitor.config.*`:アプリ識別(`appId`/`appName`/`webDir`)、`plugins:` ブロック深さ、プラットフォーム設定。
+- `metroconf` — Metro `metro.config.js`:`resolver`/`transformer`/`serializer`/`server`/`symbolicator`/`watcher`/`project`/`reporter` セクションキーと `getDefaultConfig`/`mergeConfig` 呼び出し。
+- `rollup` — `rollup.config.js`:`input`/`output`/`plugins`/`external`、出力 `format:`、複数エクスポート設定。
+- `viteconf` — `vite.config.ts`:`defineConfig`、`plugins` 配列(プラグイン呼出式含む)、`server.proxy`/`resolve.alias` の引用キー。
+- `webpackconf` — `webpack.config.js`:`mode`/`devtool`/`entry`/`output`/`module.rules`/`plugins`/`resolve`、関数返却型設定。
+
 ## 第273次 — APM・オブザーバビリティエージェント設定形式
 
 - `apmserver` — Elastic APM `apm-server.yml`:`apm-server:`/`output.elasticsearch` 等のブロック構造と出力先種別、`enabled:` トグルの計数。
@@ -5567,3 +5577,4 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - TileServer GL Docs — Configuration file
 
 — 全て整数のみで実装。
+
