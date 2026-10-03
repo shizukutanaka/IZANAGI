@@ -5915,3 +5915,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - proselint docs — .proselintrc checks
 
 — 全て整数のみで実装。
+
+## 第317次 — ホスト型IDS・セキュリティエージェント設定形式
+
+- aideconf: aide.conf(`@@define`/`@@ifhost`/`@@groupadd` + `database_in/out/new`/`verbose`/`report_*` + `/path RULE`・`!/path` 選択ルール)
+- falcoconf: falco.yaml(rules_file/json_output/log_level/outputs/webserver/grpc/plugins/syscall_events/container_engines ~35キー)
+- lynisconf: Lynis default/custom.prf(`config:key=value` + `test:ID`/`skip-test=ID`/`option group=test` + ~25 キー)
+- osqueryconf: osquery.conf/options JSON(options/schedule/packs/decorators/discovery/yara + ~50 option キー)+ flagfile `--flag=value` 対応
+- ossecconf: ossec.conf XML(`<ossec_config>` + global/syscheck/rootcheck/rules/localfile/wodle/indexer ~25 ブロック)
+- rkhunter: rkhunter.conf(`KEY=VAL`/`KEY VAL` + ~70 キー、`*_WHITELIST` 汎用化)
+- sysmonconf: Sysmon XML(`<Sysmon schemaversion>` + `<EventFiltering>`/`<RuleGroup>` + ~25 イベント種別タグ + onmatch 条件要素)
+
+## 出典
+
+- AIDE manual — aide.conf(5)
+- Falco docs — configuration
+- Lynis docs — profile settings
+- osquery docs — osqueryd configuration
+- Wazuh/OSSEC docs — ossec.conf
+- rkhunter FAQ/README — rkhunter.conf options
+- Microsoft Sysmon schema — XML config reference
+
+— 全て整数のみで実装。

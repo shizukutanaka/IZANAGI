@@ -974,6 +974,13 @@ The capability map — with per-feature implementation status — lives in
 | `redpen` | `redpen-conf.xml` | `<redpen-conf>` + 29 既知バリデータ + `<property>`/`<symbol>` |
 | `textlint` | `.textlintrc` | `rules:`/`filters:`/`rulePaths`/`severity`/`presets` |
 | `vale` | `.vale.ini` | `StylesPath`/`MinAlertLevel` + `[*.md]` 内 `BasedOnStyles`/`Style.Rule = YES` |
+| `aideconf` | AIDE `aide.conf` | `@@` ディレクティブ + `/path RULE`・`!/path` 選択ルール |
+| `falcoconf` | Falco `falco.yaml` | ~35 キー(rules_file/outputs/webserver/plugins/syscall_events) |
+| `lynisconf` | Lynis `custom.prf` | `config:key=value` + `test:`/`skip-test=`/`option group=` |
+| `osqueryconf` | `osquery.conf`/flags | `options`/`schedule`/`packs` + ~50 option キー |
+| `ossecconf` | OSSEC/Wazuh `ossec.conf` | `<ossec_config>` + 25 ブロック(global/syscheck/rootcheck/wodle) |
+| `rkhunter` | `rkhunter.conf` | ~70 キー(`*_WHITELIST`/`DISABLE_TESTS`/`ALLOW_SSH_*`) |
+| `sysmonconf` | Sysmon XML | `<Sysmon schemaversion>` + `<RuleGroup>` + ~25 イベントタグ |
 
 ## Runnable examples
 
