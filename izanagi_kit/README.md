@@ -844,6 +844,7 @@ The capability map — with per-feature implementation status — lives in
 | `lmms` | LMMS `.mmp` project XML — `lmms-project` root, `track`/`note`/`pattern`/`bbtco`/`automationpattern`/`fxchannel` and instrument plugin census. |
 | `mixxx` | Mixxx `mixxx.cfg` — INI-style `key value` sections classified into library/sound/control/broadcast/effect families. |
 | `reaper` | REAPER `.rpp` project — `REAPER_PROJECT` header, `TRACK`/`ITEM`/`SOURCE` blocks, `VST`/`AU`/`JS`/`DX`/`LV2`/`CLAP` fx lines, `MARKER` census. |
+<<<<<<< HEAD
 | `codeclimate` | CodeClimate `.codeclimate.yml` | 検出・構造カウント |
 | `codecov` | Codecov `codecov.yml` | 検出・構造カウント |
 | `coveralls` | Coveralls `.coveralls.yml` | 検出・構造カウント |
@@ -851,6 +852,23 @@ The capability map — with per-feature implementation status — lives in
 | `mergify` | Mergify `.mergify.yml` | 検出・構造カウント |
 | `releaseplease` | release-please `release-please-config.json` | 検出・構造カウント |
 | `renovate` | Renovate `renovate.json` | 検出・構造カウント |
+| `mapfile` | MapServer `.map` | 検出・構造カウント |
+| `mapnikxml` | Mapnik XML | 検出・構造カウント |
+| `mapproxyconf` | MapProxy `mapproxy.yaml` | 検出・構造カウント |
+| `osm2pgsqlstyle` | osm2pgsql Lua スタイル | 検出・構造カウント |
+| `planetilerconf` | Planetiler `config.yml` | 検出・構造カウント |
+| `qgsproj` | QGIS プロジェクト `.qgs` | 検出・構造カウント |
+| `tileservergl` | TileServer GL `config.json` | 検出・構造カウント |
+||||||| 342d9c3
+=======
+| `codeclimate` | CodeClimate `.codeclimate.yml` | 検出・構造カウント |
+| `codecov` | Codecov `codecov.yml` | 検出・構造カウント |
+| `coveralls` | Coveralls `.coveralls.yml` | 検出・構造カウント |
+| `dependabot` | Dependabot `dependabot.yml` | 検出・構造カウント |
+| `mergify` | Mergify `.mergify.yml` | 検出・構造カウント |
+| `releaseplease` | release-please `release-please-config.json` | 検出・構造カウント |
+| `renovate` | Renovate `renovate.json` | 検出・構造カウント |
+>>>>>>> origin/main
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

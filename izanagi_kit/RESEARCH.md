@@ -5555,3 +5555,26 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Renovate Docs — Configuration options
 
 — 全て整数のみで実装。
+
+## 第300次 — GIS・地図レンダリング設定形式
+
+- mapfile: MapServer `.map`(ブロックキーワード/END 対 + 既知ステートメント)
+- mapnikxml: Mapnik XML(Layer/Style/Rule/*Symbolizer/Datasource タグ走査)
+- mapproxyconf: MapProxy `mapproxy.yaml`(services/layers/caches/sources/grids/globals セクション走査)
+- osm2pgsqlstyle: osm2pgsql Lua スタイル(define_table/カラム/タグ選択/Lua 構文)
+- planetilerconf: Planetiler `config.yml`(sources/layers/args/output セクションと既知レイヤ名)
+- qgsproj: QGIS `.qgs` プロジェクト(maplayer/layer-tree/properties/relations タグ走査)
+- tileservergl: TileServer GL `config.json`(options/paths/serve_*/style JSON キー走査)
+
+## 出典
+
+- MapServer Docs — MapFile reference
+- Mapnik Wiki — XMLConfigReference
+- MapProxy Docs — Configuration (mapproxy.yaml)
+- osm2pgsql Docs — Lua style files / define_table
+- Planetiler README — config.yml reference
+- QGIS Docs — Project file structure (.qgs)
+- TileServer GL Docs — Configuration file
+
+— 全て整数のみで実装。
+
