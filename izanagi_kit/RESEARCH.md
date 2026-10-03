@@ -5589,3 +5589,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Garnet Docs — configuration options
 
 — 全て整数のみで実装。
+
+## 第302次 — 観測性バックエンド設定形式
+
+- loki: Loki `config.yaml`(既知トップキー ~35 + storage_config バックエンド名)
+- promtailconf: Promtail `config.yaml`(scrape_configs `- job_name:`・clients `- url:` 項目計数)
+- mimirconf: Grafana Mimir `mimir.yaml`(既知トップキー ~38 + セクション内ネスト名)
+- tempoconf: Grafana Tempo `tempo.yaml`(storage.trace バックエンド + metrics_generator)
+- thanosconf: Thanos bucket YAML(`type:` 既知オブジェクトストア種別必須 + config キー)
+- vmagentconf: VictoriaMetrics vmagent(scrape_configs/remote_write 項目走査)
+- pyroconf: Pyroscope `server.yaml`(scrape-configs `- job-name:` 項目)
+
+## 出典
+
+- Grafana Loki Docs — Configuration file reference
+- Promtail Docs — Configuration reference
+- Grafana Mimir Docs — mimir.yaml parameters
+- Grafana Tempo Docs — Configuration reference
+- Thanos Docs — Object Storage configuration
+- VictoriaMetrics Docs — vmagent scrape configs / remoteWrite
+- Pyroscope Docs — server configuration / scrape-configs
+
+— 全て整数のみで実装。
