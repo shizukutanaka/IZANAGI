@@ -352,6 +352,13 @@ fixed version has no such state at all.
 | `solrschema` | Solr schema.xml census |
 | `traefik` | Traefik config census |
 | `typesense` | Typesense collection census |
+| `appjson` | Expo `app.json` — `expo` object keys, platform sections (`ios`/`android`/`web`), `plugins`/`extra` list items. |
+| `babelrc` | `.babelrc` / `babel.config.js` — `presets`/`plugins` arrays, `[name, options]` tuples, `env`/`overrides` sections. |
+| `capacitor` | Capacitor `capacitor.config.ts`/`capacitor.config.json` — app identity keys, `plugins:` block depth, platform navigations. |
+| `metroconf` | Metro `metro.config.js` — `resolver`/`transformer`/`serializer`/`server`/`symbolicator`/`watcher` sections, `getDefaultConfig`/`mergeConfig` helpers. |
+| `rollup` | `rollup.config.js` — `input`/`output` entries, output `format:`s, `plugins`, `external`, config-object count. |
+| `viteconf` | `vite.config.ts` — `defineConfig`, `plugins` (incl. `name()` calls), `server.proxy`/`resolve.alias` quoted keys, config sections. |
+| `webpackconf` | `webpack.config.js` — `mode`/`devtool`/`entry`/`output`, `module.rules`/`plugins`/`resolve` keys, `module.exports`/exported config fns. |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
 | **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
