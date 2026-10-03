@@ -5533,3 +5533,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Carla project file .carxp (falkTX/Carla 仕様)
 
 — 全て整数のみで実装。
+
+## 第299次 — リポジトリ自動化・リリース管理設定形式
+
+- codecov: Codecov `codecov.yml`(カバレッジ/通知/除外/挙動のトップキー分類)
+- codeclimate: CodeClimate `.codeclimate.yml`(`engines`/`plugins`/`checks`/`ratings`/`exclude_paths` 配下の項目走査)
+- coveralls: Coveralls `.coveralls.yml`(`service_*`/VCS/実行系フラグ分類)
+- dependabot: `.github/dependabot.yml`(`updates` の `package-ecosystem` エントリ/スケジュール/許可除外分類)
+- mergify: `.mergify.yml`(`pull_request_rules`/`queue_rules` 配下の `- name:` ルール項目)
+- releaseplease: `release-please-config.json`(`packages`/`release-type`/changelog/メタ系キー)
+- renovate: `renovate.json`(extends/packageRules/schedule/platform/ダッシュボード系 JSON キー走査)
+
+## 出典
+
+- Codecov Docs — Codecov YAML reference
+- CodeClimate Docs — Advanced configuration
+- Coveralls Docs — Coveralls config
+- GitHub Docs — Dependabot options reference / configuration file for dependabot.yml
+- Mergify Docs — Configuration file format
+- Google release-please — Config file reference (release-please-config.json)
+- Renovate Docs — Configuration options
+
+— 全て整数のみで実装。
