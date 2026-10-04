@@ -5695,3 +5695,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第328次 — リンタ・静的検証ツール設定形式 第2弾(リトライ)
+
+- shellcheckrc: .shellcheckrc、15 既知ディレクティブ + SCNNNN コード走査
+- yamllint: .yamllint、`rules:` 内 24 既知ルール、インデントでルール/オプション分離
+- markdownlint: .markdownlint.{json,yaml}、MDNNN + ~55 エイリアス、JSON/YAML 両対応
+- hadolintconf: .hadolint.yaml、既知トップキー + DL/SC コード、ネストキーも options
+- actionlint: actionlint.yaml、self-hosted-runner/paths/labels/ignore-errors/glob マップ
+- reviveconf: revive.toml、トップスカラ + `[rule.<name>]` 77 既知ルール + settings
+- staticcheckconf: staticcheck.conf、`checks` 等 6 キー + `"all"`/`"-XXXXNNNN"` 値判定
+
+## 出典
+
+- ShellCheck directives — external-sources/disable/requires/source-path
+- yamllint configuration — rules/braces/colons/indentation
+- markdownlint-cli rules — MD001-MD059 + aliases
+- hadolint config — ignored/trustedRegistries/label-schema
+- actionlint config — self-hosted-runner labels/paths/ignore-errors
+- revive lint rules — exported/blank-imports/var-naming 等 77
+- staticcheck.conf — checks/initialisms/dot_import_whitelist
+
+— 全て整数のみで実装。旧 r309(PR #327)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
