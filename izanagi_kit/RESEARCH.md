@@ -5695,3 +5695,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第335次 — 文章・ドキュメントリンタ設定形式(リトライ)
+
+- vale: .vale.ini、`[*.md]` セクション + `Style.Rule = YES/NO` ドットキートグル
+- textlint: .textlintrc、`rules:`/`filters:`/`presets`
+- cspell: cspell.json、~37 キー(words/ignorePaths/dictionaries...)
+- codespell: .codespellrc、`[codespell]`/`[tool.codespell]` 内 23 オプション
+- alexrc: .alexrc、JS module.exports/YAML/JSON 3形態
+- redpen: redpen-conf.xml、`<validator>`/`<property>`/`<symbol>`
+- proselint: .proselintrc、`checks` マップ + 30 `category.check` カテゴリ
+
+## 出典
+
+- Vale configuration — .vale.ini StylesPath/MinAlertLevel/glob sections
+- textlintrc — rules/filters/presets format
+- cspell settings — words/ignoreWords/flagWords/dictionaries
+- codespell options — quiet-level/skip/ignore-words
+- alexrc — profanitySureness/allow/noBinary config
+- RedPen validator config — redpen-conf.xml validator properties
+- proselint checks — typographical_symbols.miscellaneous カテゴリ構造
+
+— 全て整数のみで実装。旧 r316(PR #334)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
