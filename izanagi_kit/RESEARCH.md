@@ -5695,3 +5695,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第337次 — ゲームエンジン・プロジェクト設定形式(リトライ)
+
+- cocosproj: Cocos Creator プロジェクト設定/パッケージ
+- defoldproj: game.project、`[section]` INI + `key = value`
+- gbstudio: GB Studio .gbsproj、scenes/backgrounds/spriteSheets/music/customEvents JSON
+- loveconf: conf.lua、`love.conf`/`t.*` テーブルキー
+- rpgmakerconf: RPG Maker Game.ini + data/System.json
+- unitymanifest: Packages/manifest.json、dependencies + scopedRegistries
+- unitysettings: ProjectSettings.asset、YAML PlayerSettings/m_TagManager
+
+## 出典
+
+- Cocos Creator project — project.json/tsconfig/sprite frames
+- Defold game.project — [bootstrap]/[display]/[input] INI
+- GB Studio .gbsproj — scenes/actors/sprites JSON
+- LÖVE conf.lua — love.conf t.window/t.modules
+- RPG Maker — Game.ini + System.json data files
+- Unity Packages/manifest.json + ProjectSettings.asset YAML
+
+— 全て整数のみで実装。旧 r304(PR #322)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
