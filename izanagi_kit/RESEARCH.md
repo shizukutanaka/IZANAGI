@@ -5695,3 +5695,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第329次 — パッケージマネージャ・レジストリ設定形式(リトライ)
+
+- npmrc: .npmrc、~135 既知キー + `//host/:key=` スコープ設定 + `@scope:`
+- pypirc: .pypirc、`[distutils]`/`[pypi]`/`[testpypi]`/`[server-login]`、`=`/`:` 両区切り
+- cargoconf: .cargo/config.toml、~19 テーブル接頭辞 + ~50 キー、alias/env/source/patch/registries はユーザキー許容
+- gemrc: .gemrc、`:sym:` シンボルキー + `gem:`/サブコマンドキー
+- nugetconfig: nuget.config、16 コンテナタグ + `<add>`/`<clear>` + key/value 属性走査
+- mvnsettings: .m2/settings.xml、`<settings>` + 13 コンテナ + ~33 フィールド
+- bundlerconf: .bundle/config、`BUNDLE_*`/`bundle.` 接頭辞 + ~40 既定名
+
+## 出典
+
+- npm config — npmrc registry/scope/cache/proxy keys
+- Python distutils/packaging — .pypirc sections
+- Cargo config — build/net/source/registries tables
+- RubyGems .gemrc — :key: symbols + command keys
+- NuGet.Config reference — packageSources/credentials/config sections
+- Maven settings.xml — servers/mirrors/proxies/profiles
+- Bundler config — BUNDLE_* environment keys
+
+— 全て整数のみで実装。旧 r310(PR #328)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
