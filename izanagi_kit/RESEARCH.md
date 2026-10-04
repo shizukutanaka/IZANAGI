@@ -5695,3 +5695,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第330次 — CI/CD サービス設定形式 第2弾(リトライ)
+
+- travisci: .travis.yml、~65 トップキー + `jobs:`/`matrix:` 内 include/exclude/allow_failures
+- appveyor: appveyor.yml、~55 トップキー + `for:` 条件ブロック
+- buildkite: pipeline.yml、`steps:`、command/wait/block/trigger/group 種別 + ~25 ステップキー
+- woodpecker: .woodpecker.yml、`steps:`/`pipeline:`/`services:` ブロック + ステップ名判定
+- cirrus: .cirrus.yml、`*_task:`/`*_pipe:`/`*_template:` + `*_script:` 系フィールド
+- giteaaction: Gitea/Forgejo Actions、GH Actions 互換 `on:`/`jobs:`/`steps:`
+- harness: pipeline.yaml、`pipeline:`/`service:`/`environment:` ルート + stage/step/stepGroup/parallel
+
+## 出典
+
+- Travis CI build config — language/script/deploy/matrix
+- AppVeyor YAML — build/test/deploy/for-branches
+- Buildkite pipelines — steps/command/agents/plugins
+- Woodpecker CI — steps/services/workspace
+- Cirrus CI — task/pipe/script fields
+- Gitea Actions — GH Actions-compatible workflows
+- Harness pipeline — pipeline/stages/steps YAML
+
+— 全て整数のみで実装。旧 r311(PR #329)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
