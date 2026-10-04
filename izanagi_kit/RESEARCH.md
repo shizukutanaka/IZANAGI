@@ -5633,3 +5633,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - slrn reference manual — slrnrc commands
 
 — 全て整数のみで実装。
+
+## 第319次 — テストランナー・ブラウザテスト設定形式
+
+- vitestconf: vitest.config.ts、`defineConfig`+`test:` ブロック、pattern/coverage/runtime/output 分類
+- playwrightconf: playwright.config.ts、`@playwright/test` defineConfig、path/exec/use/misc 分類
+- cypressconf: cypress.config.* + cypress.json、e2e/component ブロック + timeout/retry 系
+- karmaconf: karma.conf.js、`config.set({...})`、files/frameworks/browsers/run 分類
+- mocharc: .mocharc.yml/.mocharc.json/mocha.opts、`key:`/`--flag` 両形態
+- avaconf: ava.config.js + package.json `"ava"`、files/sources/babel/typescript
+- taprc: .taprc/tap.yml、coverage 閾値系 + jobs/reporter/plugin
+
+## 出典
+
+- Vitest Docs — Config reference (test.* options)
+- Playwright Test Docs — Configuration (testDir/use/projects/webServer)
+- Cypress Docs — Configuration (e2e/component, experimental* flags)
+- Karma Docs — Configuration File (config.set options)
+- Mocha Docs — Configuring Mocha / mocha.opts / .mocharc.*
+- AVA Docs — Configuration (files/sources/babel/typescript)
+- node-tap Docs — .taprc / tap.yml option reference
+
+— 全て整数のみで実装。
