@@ -5695,3 +5695,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第325次 — Python ツールチェーン設定形式(リトライ)
+
+- ruffconf: ruff.toml / [tool.ruff]、セクション(lint/format/server/per-file-ignores)と lint 選択キー・トップキー分離
+- pyrightconf: pyrightconfig.json、typeCheckingMode + report* 診断キー ~70、単行 JSON 走査
+- mypyconf: mypy.ini / [mypy] / [mypy-<module>]、~90 既知キー
+- flake8conf: .flake8 / [flake8] / [flake8:local-plugins]、~100 キー・プラグインオプション
+- blackconf: [tool.black]、line-length/target-version/skip-* ~24 キー
+- banditconf: .bandit / bandit.yaml、B101-B704 コード走査 + [bandit] セクション
+- isortconf: .isort.cfg / [isort] / [tool.isort] / [settings]、~120 キー
+
+## 出典
+
+- Ruff configuration docs — ruff.toml + [tool.ruff.*] tables
+- Pyright configuration reference — pyrightconfig.json report* keys
+- mypy configuration file docs — [mypy]/[mypy-pattern] options
+- flake8 configuration — .flake8/setup.cfg/tox.ini [flake8] options
+- Black configuration — pyproject.toml [tool.black]
+- Bandit configuration — .bandit YAML + B-code test IDs
+- isort configuration — .isort.cfg/[isort] options
+
+— 全て整数のみで実装。旧 r306(PR #324)未マージクローズ分を最新 main 起点で再実装。
