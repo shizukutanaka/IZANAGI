@@ -5633,3 +5633,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - slrn reference manual — slrnrc commands
 
 — 全て整数のみで実装。
+
+## 第321次 — シンタックスハイライト・言語定義形式
+
+- textmategram: .tmLanguage JSON/plist、scopeName/patterns/repository/captures
+- katesyntax: Kate highlighting XML、language/contexts/context + RegExpr/DetectChar/keyword
+- gtksrclang: GtkSourceView .lang、metadata/styles/definitions/context + style-ref/def:
+- wordfileuew: UltraEdit .uew、/Ln・/Cn・Line Comment・Delimiter ディレクティブ+** 区切り
+- treesittergram: tree-sitter grammar.js、grammar({rules,extras,conflicts}) + seq/choice/prec/field
+- acemode: Ace mode-*.js、ace.define/oop.inherits/HighlightRules/$rules
+- vimsyntax: Vim syntax/*.vim、syntax keyword/match/region + contains=/hi def link
+
+## 出典
+
+- TextMate Language Grammars Manual — scopeName/patterns/repository keys
+- KDE Kate Syntax Highlighting docs — context/matcher tag reference
+- GtkSourceView Language Definition Reference — .lang XML schema
+- UltraEdit Wordfile (UEW) Format Specification — /Ln /Cn directives
+- tree-sitter Grammar DSL docs — grammar()/rules/external DSL
+- Ace Editor Custom Mode guide — ace.define/HighlightRules contract
+- Vim :help syntax — syntax keyword/match/region command reference
+
+— 全て整数のみで実装。
