@@ -5633,3 +5633,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - slrn reference manual — slrnrc commands
 
 — 全て整数のみで実装。
+
+## 第320次 — メタビルド・ジェネレータ設定形式
+
+- xmakeconf: xmake.lua、`target()`/`set_kind`/`add_files` 呼出、decl/attr/hook 分類
+- premakeconf: premake5.lua、`workspace`/`project`/`kind`/`files`/`filter`、scope/setting/dep 分類
+- sconstruct: SConstruct/SConscript、`Environment`+`env.*`/`Program`/`SConscript`、target/env/top 分類
+- wafconf: waf wscript、`def options/configure/build`+`conf.`/`bld.`、hook/check/bld 分類
+- qmakepro: .pro、`TEMPLATE`/`QT +=`/`SOURCES`+`$$` 参照+`win32:` スコープ
+- configureac: configure.ac、`AC_*`/`AM_*`/`LT_INIT`/`PKG_CHECK_MODULES` マクロ、setup/prog/check/out 分類
+- amfile: Makefile.am、`*_PROGRAMS`/`*_SOURCES`/`AM_*FLAGS`/`SUBDIRS` プライマリ
+
+## 出典
+
+- xmake Documentation — xmake.lua API (target/option/hooks)
+- Premake Wiki — Premake 5.x scripting reference (workspace/project/filter)
+- SCons User Guide — SConstruct builders & construction environments
+- waf Book — wscript functions (options/configure/build, conf checks)
+- qmake Manual — .pro variable & function reference (TEMPLATE/QT/scope)
+- Autoconf Manual — AC_*/AM_* macro index (configure.ac)
+- Automake Manual — Makefile.am primaries (_PROGRAMS/_SOURCES/SUBDIRS)
+
+— 全て整数のみで実装。
