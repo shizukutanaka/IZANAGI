@@ -5695,3 +5695,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第323次 — セルフホスト Git サーバ・コードホスティング設定形式
+
+- giteaapp: Gitea app.ini、[server]/[database]/[repository] セクション + RUN_MODE/ROOT_URL/INSTALL_LOCK
+- gogsconf: Gogs app.ini、RUN_USER/ROOT_URL/INSTALL_LOCK + [repository] ROOT
+- gitlabrb: omnibus gitlab.rb、external_url + gitlab_rails['x']/nginx['x'] 等 32 コンポーネント接頭辞
+- cgitrc: cgit cgitrc、repo.* ディレクティブ + scan-path/virtual-root/clone-url + section= グループ
+- gitwebconf: gitweb_config.perl、$projectroot/$projects_list/@git_base_url_list/$feature{...}
+- srhtconf: sourcehut config.ini、[meta]/[web]/[mail] + srv.origin + [<service>.sr.ht] サービスセクション
+- phabricatorconf: Phabricator local.json、"phabricator.*"/"metamta.*"/"diffusion.*"/"phd.*" 接頭辞
+
+## 出典
+
+- Gitea Config Cheat Sheet — app.ini section/key reference
+- Gogs Configuration — app.ini docs
+- Omnibus GitLab gitlab.rb settings — component['key'] reference
+- cgitrc(5) man page — repo.*/scan-path/virtual-root directives
+- gitweb.conf(5) — $projectroot/$feature{...} Perl variables
+- sourcehut config.ini — meta/web/mail + <service>.sr.ht sections
+- Phabricator Config Guide — "phabricator.*"/"metamta.*" key families
+
+— 全て整数のみで実装。
