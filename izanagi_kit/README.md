@@ -893,6 +893,13 @@ The capability map — with per-feature implementation status — lives in
 | `treesittergram` | tree-sitter `grammar.js` | 検出・構造カウント |
 | `vimsyntax` | Vim `syntax/*.vim` | 検出・構造カウント |
 | `wordfileuew` | UltraEdit `.uew` wordfile | 検出・構造カウント |
+| `activemq` | `activemq.xml` | 検出・構造カウント |
+| `hivemq` | `config.xml` (HiveMQ) | 検出・構造カウント |
+| `ibmmq` | `qm.ini`/`mqs.ini` | 検出・構造カウント |
+| `kubemq` | `kubemq.yaml` | 検出・構造カウント |
+| `nsqconf` | `nsqd.cfg` | 検出・構造カウント |
+| `rocketmq` | `broker.conf` | 検出・構造カウント |
+| `vernemq` | `vernemq.conf` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
