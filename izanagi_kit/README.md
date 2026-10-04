@@ -872,6 +872,13 @@ The capability map — with per-feature implementation status — lives in
 | `rss2email` | rss2email `config.cfg` | 検出・構造カウント |
 | `sievescript` | Sieve スクリプト | 検出・構造カウント |
 | `slrnconf` | slrn `.slrnrc` | 検出・構造カウント |
+| `avaconf` | AVA `ava.config.js` / `"ava"` ブロック | 検出・構造カウント |
+| `cypressconf` | Cypress `cypress.config.*` / `cypress.json` | 検出・構造カウント |
+| `karmaconf` | Karma `karma.conf.js` | 検出・構造カウント |
+| `mocharc` | Mocha `.mocharc.*` / `mocha.opts` | 検出・構造カウント |
+| `playwrightconf` | Playwright `playwright.config.*` | 検出・構造カウント |
+| `taprc` | node-tap `.taprc` / `tap.yml` | 検出・構造カウント |
+| `vitestconf` | Vitest `vitest.config.*` / `test:` ブロック | 検出・構造カウント |
 | `amfile` | automake `Makefile.am` | 検出・構造カウント |
 | `configureac` | autoconf `configure.ac` | 検出・構造カウント |
 | `premakeconf` | Premake `premake5.lua` | 検出・構造カウント |
