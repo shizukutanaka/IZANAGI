@@ -879,6 +879,13 @@ The capability map — with per-feature implementation status — lives in
 | `playwrightconf` | Playwright `playwright.config.*` | 検出・構造カウント |
 | `taprc` | node-tap `.taprc` / `tap.yml` | 検出・構造カウント |
 | `vitestconf` | Vitest `vitest.config.*` / `test:` ブロック | 検出・構造カウント |
+| `amfile` | automake `Makefile.am` | 検出・構造カウント |
+| `configureac` | autoconf `configure.ac` | 検出・構造カウント |
+| `premakeconf` | Premake `premake5.lua` | 検出・構造カウント |
+| `qmakepro` | qmake `.pro` / `.pri` | 検出・構造カウント |
+| `sconstruct` | SCons `SConstruct` / `SConscript` | 検出・構造カウント |
+| `wafconf` | waf `wscript` | 検出・構造カウント |
+| `xmakeconf` | xmake `xmake.lua` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
