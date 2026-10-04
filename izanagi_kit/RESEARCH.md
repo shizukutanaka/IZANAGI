@@ -5695,3 +5695,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Vim :help syntax — syntax keyword/match/region command reference
 
 — 全て整数のみで実装。
+
+## 第322次 — オーディオサーバ・MIDI 設定形式
+
+- asoundrc: ALSA .asoundrc、pcm./ctl./defaults. 宣言 + slave.pcm/type/rate
+- defaultpa: PulseAudio default.pa、load-module module-* + .ifexists/set-default-*
+- pipewireconf: PipeWire *.conf SPA-JSON、context.* + node.*/default.clock.*
+- wireplumberconf: WirePlumber config、wireplumber.profiles + monitor.* rules
+- jackrc: .jackdrc、jackd -d/-r/-p/-n フラグ + ドライバ値
+- pulseclientconf: PulseAudio client.conf/daemon.conf、default-*/autospawn/rlimit-*
+- easyeffects: EasyEffects preset JSON、output.plugins_order + <plugin>#N ブロック + パラメータキー
+
+## 出典
+
+- ALSA Library Configuration Files — .asoundrc/asound.conf grammar
+- PulseAudio default.pa documentation — load-module/.ifexists directive set
+- PipeWire Configuration — SPA-JSON context/objects/properties
+- WirePlumber Configuration — profiles/monitor.rules format
+- JACK jackd man page — driver/option flag reference (.jackdrc)
+- PulseAudio client.conf/daemon.conf man — option reference
+- EasyEffects Preset JSON schema — plugins_order/<name>#N layout
+
+— 全て整数のみで実装。
