@@ -5634,6 +5634,46 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 — 全て整数のみで実装。
 
+## 第319次 — テストランナー・ブラウザテスト設定形式
+
+- vitestconf: vitest.config.ts、`defineConfig`+`test:` ブロック、pattern/coverage/runtime/output 分類
+- playwrightconf: playwright.config.ts、`@playwright/test` defineConfig、path/exec/use/misc 分類
+- cypressconf: cypress.config.* + cypress.json、e2e/component ブロック + timeout/retry 系
+- karmaconf: karma.conf.js、`config.set({...})`、files/frameworks/browsers/run 分類
+- mocharc: .mocharc.yml/.mocharc.json/mocha.opts、`key:`/`--flag` 両形態
+- avaconf: ava.config.js + package.json `"ava"`、files/sources/babel/typescript
+- taprc: .taprc/tap.yml、coverage 閾値系 + jobs/reporter/plugin
+
+## 出典
+
+- Vitest Docs — Config reference (test.* options)
+- Playwright Test Docs — Configuration (testDir/use/projects/webServer)
+- Cypress Docs — Configuration (e2e/component, experimental* flags)
+- Karma Docs — Configuration File (config.set options)
+- Mocha Docs — Configuring Mocha / mocha.opts / .mocharc.*
+- AVA Docs — Configuration (files/sources/babel/typescript)
+- node-tap Docs — .taprc / tap.yml option reference
+
+## 第320次 — メタビルド・ジェネレータ設定形式
+
+- xmakeconf: xmake.lua、`target()`/`set_kind`/`add_files` 呼出、decl/attr/hook 分類
+- premakeconf: premake5.lua、`workspace`/`project`/`kind`/`files`/`filter`、scope/setting/dep 分類
+- sconstruct: SConstruct/SConscript、`Environment`+`env.*`/`Program`/`SConscript`、target/env/top 分類
+- wafconf: waf wscript、`def options/configure/build`+`conf.`/`bld.`、hook/check/bld 分類
+- qmakepro: .pro、`TEMPLATE`/`QT +=`/`SOURCES`+`$$` 参照+`win32:` スコープ
+- configureac: configure.ac、`AC_*`/`AM_*`/`LT_INIT`/`PKG_CHECK_MODULES` マクロ、setup/prog/check/out 分類
+- amfile: Makefile.am、`*_PROGRAMS`/`*_SOURCES`/`AM_*FLAGS`/`SUBDIRS` プライマリ
+
+## 出典
+
+- xmake Documentation — xmake.lua API (target/option/hooks)
+- Premake Wiki — Premake 5.x scripting reference (workspace/project/filter)
+- SCons User Guide — SConstruct builders & construction environments
+- waf Book — wscript functions (options/configure/build, conf checks)
+- qmake Manual — .pro variable & function reference (TEMPLATE/QT/scope)
+- Autoconf Manual — AC_*/AM_* macro index (configure.ac)
+- Automake Manual — Makefile.am primaries (_PROGRAMS/_SOURCES/SUBDIRS)
+
 ## 第321次 — シンタックスハイライト・言語定義形式
 
 - textmategram: .tmLanguage JSON/plist、scopeName/patterns/repository/captures
