@@ -886,6 +886,13 @@ The capability map — with per-feature implementation status — lives in
 | `sconstruct` | SCons `SConstruct` / `SConscript` | 検出・構造カウント |
 | `wafconf` | waf `wscript` | 検出・構造カウント |
 | `xmakeconf` | xmake `xmake.lua` | 検出・構造カウント |
+| `acemode` | Ace `mode-*.js` | 検出・構造カウント |
+| `gtksrclang` | GtkSourceView `.lang` | 検出・構造カウント |
+| `katesyntax` | Kate highlighting `.xml` | 検出・構造カウント |
+| `textmategram` | TextMate `.tmLanguage` / `.json` | 検出・構造カウント |
+| `treesittergram` | tree-sitter `grammar.js` | 検出・構造カウント |
+| `vimsyntax` | Vim `syntax/*.vim` | 検出・構造カウント |
+| `wordfileuew` | UltraEdit `.uew` wordfile | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
