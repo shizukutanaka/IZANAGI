@@ -893,6 +893,13 @@ The capability map — with per-feature implementation status — lives in
 | `treesittergram` | tree-sitter `grammar.js` | 検出・構造カウント |
 | `vimsyntax` | Vim `syntax/*.vim` | 検出・構造カウント |
 | `wordfileuew` | UltraEdit `.uew` wordfile | 検出・構造カウント |
+| `chasquidconf` | chasquid `chasquid.conf` | 検出・構造カウント |
+| `harakaconf` | Haraka `config/*.ini`/`plugins` | 検出・構造カウント |
+| `maddyconf` | maddy `maddy.conf` | 検出・構造カウント |
+| `postalconf` | Postal `postal.yml` | 検出・構造カウント |
+| `rspamdconf` | Rspamd UCL `*.conf` | 検出・構造カウント |
+| `stalwartconf` | Stalwart `config.toml` | 検出・構造カウント |
+| `zonemtaconf` | ZoneMTA `zonemta.toml` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
