@@ -991,6 +991,13 @@ The capability map — with per-feature implementation status — lives in
 | `npmrc` | `.npmrc` | 検出・構造カウント |
 | `nugetconfig` | `nuget.config` | 検出・構造カウント |
 | `pypirc` | `.pypirc` | 検出・構造カウント |
+| `actionlint` | `.github/actionlint.yaml` | 検出・構造カウント |
+| `hadolintconf` | `.hadolint.yaml` | 検出・構造カウント |
+| `markdownlint` | `.markdownlint.json` | 検出・構造カウント |
+| `reviveconf` | `revive.toml` | 検出・構造カウント |
+| `shellcheckrc` | `.shellcheckrc` | 検出・構造カウント |
+| `staticcheckconf` | `staticcheck.conf` | 検出・構造カウント |
+| `yamllint` | `.yamllint` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
