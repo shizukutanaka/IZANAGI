@@ -984,6 +984,13 @@ The capability map — with per-feature implementation status — lives in
 | `harness` | `pipeline.yaml` | 検出・構造カウント |
 | `travisci` | `.travis.yml` | 検出・構造カウント |
 | `woodpecker` | `.woodpecker.yml` | 検出・構造カウント |
+| `bundlerconf` | `.bundle/config` | 検出・構造カウント |
+| `cargoconf` | `.cargo/config.toml` | 検出・構造カウント |
+| `gemrc` | `.gemrc` | 検出・構造カウント |
+| `mvnsettings` | `.m2/settings.xml` | 検出・構造カウント |
+| `npmrc` | `.npmrc` | 検出・構造カウント |
+| `nugetconfig` | `nuget.config` | 検出・構造カウント |
+| `pypirc` | `.pypirc` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
