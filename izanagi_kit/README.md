@@ -942,6 +942,13 @@ The capability map — with per-feature implementation status — lives in
 | `pipewireconf` | PipeWire `*.conf` (SPA-JSON) | 検出・構造カウント |
 | `pulseclientconf` | PulseAudio `client.conf` / `daemon.conf` | 検出・構造カウント |
 | `wireplumberconf` | WirePlumber `wireplumber.conf` | 検出・構造カウント |
+| `cocosproj` | Cocos Creator プロジェクト設定 | 検出・構造カウント |
+| `defoldproj` | `game.project` (Defold) | 検出・構造カウント |
+| `gbstudio` | GB Studio `.gbsproj` | 検出・構造カウント |
+| `loveconf` | LÖVE `conf.lua` | 検出・構造カウント |
+| `rpgmakerconf` | RPG Maker `Game.ini`/`System.json` | 検出・構造カウント |
+| `unitymanifest` | Unity `manifest.json` | 検出・構造カウント |
+| `unitysettings` | Unity `ProjectSettings.asset` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
