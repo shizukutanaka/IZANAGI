@@ -5696,6 +5696,28 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 — 全て整数のみで実装。
 
+## 第332次 — ETL・データ統合パイプライン設定形式(リトライ)
+
+- meltano: meltano.yml、8 プラグイン種別(extractors/loaders/transformers...)+ `- name:`/`pip_url:`
+- airbyteconf: Airbyte source/destination 設定 JSON/YAML、~55 既知キー
+- singerconf: Singer spec JSONL、SCHEMA/RECORD/STATE メッセージ種別計数
+- ketl: Pentaho Kettle .ktr、`<transformation>` + `<hop>`/`<step>`/`<info>`
+- nififlow: NiFi template/flow XML、`<processors>`/`<connections>`/`<controllerServices>`
+- hopconf: Apache Hop pipeline/workflow 両ルート (`<pipeline>`/`<workflow>`)
+- fivetranconf: Fivetran connector 設定、~65 既知キー
+
+## 出典
+
+- Meltano meltano.yml — extractors/loaders/utilities/orchestrators
+- Airbyte connector spec — source/destination JSON schema
+- Singer spec — tap config + SCHEMA/RECORD/STATE messages
+- Pentaho Kettle .ktr — transformation/step/hop XML
+- Apache NiFi flow — template/flow.xml.gz processors
+- Apache Hop — pipeline/workflow hop files
+- Fivetran connector config — sync_frequency/schema/key keys
+
+— 全て整数のみで実装。旧 r313(PR #331)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
 ## 第331次 — メッセージキュー・ブローカー設定形式 第2弾(リトライ)
 
 - activemq: activemq.xml、broker/plugins/transportConnectors コンテナ + エントリ + 既知属性
