@@ -977,6 +977,13 @@ The capability map — with per-feature implementation status — lives in
 | `userscript` | `==UserScript==` メタブロック | 検出・構造カウント |
 | `webmanifest` | `site.webmanifest` | 検出・構造カウント |
 | `widgetxml` | W3C widget `config.xml` | 検出・構造カウント |
+| `appveyor` | `appveyor.yml` | 検出・構造カウント |
+| `buildkite` | `pipeline.yml` | 検出・構造カウント |
+| `cirrus` | `.cirrus.yml` | 検出・構造カウント |
+| `giteaaction` | `.gitea/workflows` | 検出・構造カウント |
+| `harness` | `pipeline.yaml` | 検出・構造カウント |
+| `travisci` | `.travis.yml` | 検出・構造カウント |
+| `woodpecker` | `.woodpecker.yml` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
