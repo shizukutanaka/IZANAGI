@@ -893,6 +893,27 @@ The capability map — with per-feature implementation status — lives in
 | `treesittergram` | tree-sitter `grammar.js` | 検出・構造カウント |
 | `vimsyntax` | Vim `syntax/*.vim` | 検出・構造カウント |
 | `wordfileuew` | UltraEdit `.uew` wordfile | 検出・構造カウント |
+| `airbyteconf` | Airbyte connector 設定 | 検出・構造カウント |
+| `fivetranconf` | Fivetran connector 設定 | 検出・構造カウント |
+| `hopconf` | Apache Hop pipeline/workflow | 検出・構造カウント |
+| `ketl` | Pentaho Kettle `.ktr` | 検出・構造カウント |
+| `meltano` | `meltano.yml` | 検出・構造カウント |
+| `nififlow` | NiFi template/flow XML | 検出・構造カウント |
+| `singerconf` | Singer tap config/catalog | 検出・構造カウント |
+| `activemq` | `activemq.xml` | 検出・構造カウント |
+| `hivemq` | `config.xml` (HiveMQ) | 検出・構造カウント |
+| `ibmmq` | `qm.ini`/`mqs.ini` | 検出・構造カウント |
+| `kubemq` | `kubemq.yaml` | 検出・構造カウント |
+| `nsqconf` | `nsqd.cfg` | 検出・構造カウント |
+| `rocketmq` | `broker.conf` | 検出・構造カウント |
+| `vernemq` | `vernemq.conf` | 検出・構造カウント |
+| `clashconf` | Clash `config.yaml` | 検出・構造カウント |
+| `headscaleconf` | Headscale `config.yaml` | 検出・構造カウント |
+| `nebulaconf` | Nebula `config.yml` | 検出・構造カウント |
+| `shadowsocksconf` | Shadowsocks `config.json` | 検出・構造カウント |
+| `singboxconf` | sing-box `config.json` | 検出・構造カウント |
+| `tincconf` | tinc `tinc.conf` | 検出・構造カウント |
+| `xrayconf` | Xray `config.json` | 検出・構造カウント |
 | `chromaconf` | Chroma env `chroma_*` | 検出・構造カウント |
 | `milvusconf` | Milvus `milvus.yaml` | 検出・構造カウント |
 | `opensearch` | OpenSearch `opensearch.yml` | 検出・構造カウント |

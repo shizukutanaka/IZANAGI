@@ -5696,6 +5696,72 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 — 全て整数のみで実装。
 
+## 第332次 — ETL・データ統合パイプライン設定形式(リトライ)
+
+- meltano: meltano.yml、8 プラグイン種別(extractors/loaders/transformers...)+ `- name:`/`pip_url:`
+- airbyteconf: Airbyte source/destination 設定 JSON/YAML、~55 既知キー
+- singerconf: Singer spec JSONL、SCHEMA/RECORD/STATE メッセージ種別計数
+- ketl: Pentaho Kettle .ktr、`<transformation>` + `<hop>`/`<step>`/`<info>`
+- nififlow: NiFi template/flow XML、`<processors>`/`<connections>`/`<controllerServices>`
+- hopconf: Apache Hop pipeline/workflow 両ルート (`<pipeline>`/`<workflow>`)
+- fivetranconf: Fivetran connector 設定、~65 既知キー
+
+## 出典
+
+- Meltano meltano.yml — extractors/loaders/utilities/orchestrators
+- Airbyte connector spec — source/destination JSON schema
+- Singer spec — tap config + SCHEMA/RECORD/STATE messages
+- Pentaho Kettle .ktr — transformation/step/hop XML
+- Apache NiFi flow — template/flow.xml.gz processors
+- Apache Hop — pipeline/workflow hop files
+- Fivetran connector config — sync_frequency/schema/key keys
+
+— 全て整数のみで実装。旧 r313(PR #331)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第331次 — メッセージキュー・ブローカー設定形式 第2弾(リトライ)
+
+- activemq: activemq.xml、broker/plugins/transportConnectors コンテナ + エントリ + 既知属性
+- rocketmq: broker.conf、~120 brokerRole/storePath/flushDisk キー
+- nsqconf: nsqd.cfg、~55 broadcast/data_path/mem_queue_size キー
+- vernemq: vernemq.conf、cuttlefish `allow_anonymous`/`listener.*` 接頭辞ファミリ
+- hivemq: config.xml、`<hivemq>` ルート必須 + listeners/extensions コンテナ
+- ibmmq: qm.ini/mqs.ini、24 既知スタンザ(Log:/CHANNELS:/SSL:/TCP:)
+- kubemq: kubemq.yaml、K8s 構造 + ~45 キー
+
+## 出典
+
+- ActiveMQ XML configuration — broker/plugins/transportConnectors
+- RocketMQ broker.conf — brokerRole/storePathRootDir/flushDiskType
+- NSQ nsqd.cfg — broadcast_address/mem-queue-size/tls
+- VerneMQ cuttlefish — allow_anonymous/listener.vmq.*
+- HiveMQ config.xml — listeners/tcp-listener/extensions
+- IBM MQ qm.ini/mqs.ini — stanza reference
+- KubeMQ helm/standalone — kubemq.yaml
+
+— 全て整数のみで実装。旧 r312(PR #330)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第327次 — プロキシ・オーバーレイネットワーク設定形式(リトライ)
+
+- xrayconf: Xray config.json、inbounds/outbounds/routing/dns セクション + ~13 プロトコル値
+- clashconf: Clash config.yaml、~80 トップキー + `- RULE,TARGET` ~28 ルールヘッド + ~25 type 値
+- singboxconf: sing-box config.json、10 セクション + ~29 `"type"` 値 + ~120 キー
+- nebulaconf: Nebula config.yml、16 トップセクション + ~90 ネストキー
+- tincconf: tinc.conf、PascalCase `Key = value` ~80 キー
+- headscaleconf: Headscale config.yaml、~30 トップキー/セクション + ~90 ネストキー
+- shadowsocksconf: config.json、~60 キー + ~30 メソッド値
+
+## 出典
+
+- Xray-core configuration — inbounds/outbounds/routing JSON sections
+- Clash / mihomo config — proxies/proxy-groups/rules YAML
+- sing-box configuration — log/dns/inbounds/outbounds/route JSON
+- Nebula reference config — pki/lighthouse/tun/firewall YAML
+- tinc manual — tinc.conf + host file PascalCase keys
+- Headscale config.yaml — server_url/noise/prefixes/derp/database/dns
+- shadowsocks-rust config — server/method JSON + 2022-blake3 methods
+
+— 全て整数のみで実装。旧 r308(PR #326)未マージクローズ分を最新 main 起点で再実装。
+
 ## 第324次 — ベクトルDB・検索エンジン設定形式(リトライ)
 
 - opensearch: opensearch.yml、cluster.*/node.*/network.*/http.*/transport.*/discovery.*/path.*/plugins.security.* ドットプレフィックス族 ~70 キー
