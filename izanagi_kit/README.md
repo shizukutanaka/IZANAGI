@@ -907,6 +907,13 @@ The capability map — with per-feature implementation status — lives in
 | `nsqconf` | `nsqd.cfg` | 検出・構造カウント |
 | `rocketmq` | `broker.conf` | 検出・構造カウント |
 | `vernemq` | `vernemq.conf` | 検出・構造カウント |
+| `clashconf` | Clash `config.yaml` | 検出・構造カウント |
+| `headscaleconf` | Headscale `config.yaml` | 検出・構造カウント |
+| `nebulaconf` | Nebula `config.yml` | 検出・構造カウント |
+| `shadowsocksconf` | Shadowsocks `config.json` | 検出・構造カウント |
+| `singboxconf` | sing-box `config.json` | 検出・構造カウント |
+| `tincconf` | tinc `tinc.conf` | 検出・構造カウント |
+| `xrayconf` | Xray `config.json` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |

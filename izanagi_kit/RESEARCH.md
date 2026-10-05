@@ -5739,3 +5739,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - KubeMQ helm/standalone — kubemq.yaml
 
 — 全て整数のみで実装。旧 r312(PR #330)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第327次 — プロキシ・オーバーレイネットワーク設定形式(リトライ)
+
+- xrayconf: Xray config.json、inbounds/outbounds/routing/dns セクション + ~13 プロトコル値
+- clashconf: Clash config.yaml、~80 トップキー + `- RULE,TARGET` ~28 ルールヘッド + ~25 type 値
+- singboxconf: sing-box config.json、10 セクション + ~29 `"type"` 値 + ~120 キー
+- nebulaconf: Nebula config.yml、16 トップセクション + ~90 ネストキー
+- tincconf: tinc.conf、PascalCase `Key = value` ~80 キー
+- headscaleconf: Headscale config.yaml、~30 トップキー/セクション + ~90 ネストキー
+- shadowsocksconf: config.json、~60 キー + ~30 メソッド値
+
+## 出典
+
+- Xray-core configuration — inbounds/outbounds/routing JSON sections
+- Clash / mihomo config — proxies/proxy-groups/rules YAML
+- sing-box configuration — log/dns/inbounds/outbounds/route JSON
+- Nebula reference config — pki/lighthouse/tun/firewall YAML
+- tinc manual — tinc.conf + host file PascalCase keys
+- Headscale config.yaml — server_url/noise/prefixes/derp/database/dns
+- shadowsocks-rust config — server/method JSON + 2022-blake3 methods
+
+— 全て整数のみで実装。旧 r308(PR #326)未マージクローズ分を最新 main 起点で再実装。
