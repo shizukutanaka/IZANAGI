@@ -83,6 +83,20 @@ const JSON_KEYS: &[&str] = &[
 /// Anchor tokens.
 const ANCHORS: &[&str] = &["grammar(", "$ =>", "module.exports"];
 
+/// Anchor tokens for the generated `grammar.json` form.
+const JSON_ANCHORS: &[&str] = &[
+    "\"type\"",
+    "\"members\"",
+    "\"word\"",
+    "\"conflicts\"",
+    "\"supertypes\"",
+    "\"externals\"",
+    "\"inline\"",
+    "\"SYMBOL\"",
+    "\"PREC\"",
+    "\"TOKEN\"",
+];
+
 /// Distinctive keys for detection.
 const ALL: &[&str] = &[
     "grammar(",
@@ -107,12 +121,16 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let hits = ALL.iter().filter(|k| key_present(t, k)).count();
     let anchor = ANCHORS.iter().any(|a| t.contains(a));
-    hits >= 2 && anchor
+    if hits >= 2 && anchor {
+        return true;
+    }
+    let json_hits = JSON_ANCHORS.iter().filter(|k| key_present(t, k)).count();
+    t.contains("\"rules\"") && t.contains("\"name\"") && json_hits >= 2
 }
 
 impl Tsgram {
-    /// Count categories in a grammar.js. Returns `None` when the input
-    /// does not look like one.
+    /// Count categories in a grammar.js / grammar.json. Returns `None`
+    /// when the input does not look like one.
     #[must_use]
     pub fn parse(b: &[u8]) -> Option<Self> {
         if !detect(b) {
@@ -159,6 +177,15 @@ mod tests {
         assert!(c.meta_keys >= 4);
         assert!(c.rule_keys >= 6);
         assert!(c.keys >= 10);
+    }
+
+    #[test]
+    fn detects_generated_json() {
+        let b = br#"{"name":"demo","rules":{"source_file":{"type":"REPEAT","content":{"type":"SYMBOL","name":"_stmt"}}},"word":"w"}"#;
+        assert!(detect(b));
+        let c = Tsgram::parse(b).unwrap();
+        assert!(c.json_keys >= 5);
+        assert!(c.keys >= 5);
     }
 
     #[test]
