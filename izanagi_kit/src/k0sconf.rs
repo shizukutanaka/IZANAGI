@@ -82,11 +82,27 @@ fn known_key(t: &str) -> bool {
 }
 
 /// `ClusterConfig` らしさを判定する(`k0s.k0sproject.io` + `ClusterConfig`)。
+///
+/// 両マーカーがトップレベルの `apiVersion:`/`kind:` キー行にあることだけを
+/// 見る — コメントや文字列値の中に同じ語が現れても検出しない。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
-    text.contains("k0s.k0sproject.io") && text.contains("ClusterConfig")
+    let mut api = false;
+    let mut kind = false;
+    for line in text.lines() {
+        if line.starts_with("apiVersion:") && line.contains("k0s.k0sproject.io") {
+            api = true;
+        }
+        if line.starts_with("kind:") && line.contains("ClusterConfig") {
+            kind = true;
+        }
+        if api && kind {
+            return true;
+        }
+    }
+    false
 }
 
 /// 構造をカウントする。
@@ -160,5 +176,31 @@ mod tests {
     fn not_k0sconf() {
         assert!(!detect(b"apiVersion: v1\nkind: ConfigMap\n"));
         assert!(parse(b"text\n").is_none());
+    }
+
+    #[test]
+    fn commented_markers_do_not_detect() {
+        // Both markers present but only inside comments / string values.
+        assert!(!detect(
+            b"# apiVersion: k0s.k0sproject.io/v1beta1\n# kind: ClusterConfig\n"
+        ));
+        assert!(!detect(
+            b"apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: \"k0s.k0sproject.io ClusterConfig\"\n"
+        ));
+        // kind is real but apiVersion is comment-only -> must not detect.
+        assert!(!detect(
+            b"#   apiVersion: k0s.k0sproject.io/v1beta1\nkind: ClusterConfig\n"
+        ));
+    }
+
+    #[test]
+    fn markers_need_top_level_keys() {
+        assert!(detect(
+            b"apiVersion: k0s.k0sproject.io/v1beta1\nkind: ClusterConfig\n"
+        ));
+        // Indented (non-top-level) occurrences do not qualify.
+        assert!(!detect(
+            b"spec:\n  apiVersion: k0s.k0sproject.io/v1beta1\n  kind: ClusterConfig\n"
+        ));
     }
 }
