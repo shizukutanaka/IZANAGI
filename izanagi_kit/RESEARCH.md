@@ -5761,3 +5761,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - shadowsocks-rust config — server/method JSON + 2022-blake3 methods
 
 — 全て整数のみで実装。旧 r308(PR #326)未マージクローズ分を最新 main 起点で再実装。
+
+## 第324次 — ベクトルDB・検索エンジン設定形式(リトライ)
+
+- opensearch: opensearch.yml、cluster.*/node.*/network.*/http.*/transport.*/discovery.*/path.*/plugins.security.* ドットプレフィックス族 ~70 キー
+- qdrantconf: Qdrant config.yaml、storage/service/cluster/telemetry/optimizer トップセクション + ネストキー
+- weaviateconf: Weaviate .env、UPPER_SNAKE_CASE 環境変数 ~57(QUERY_DEFAULTS_LIMIT/PERSISTENCE_DATA_PATH/AUTHENTICATION_*/AUTHORIZATION_*/ENABLE_MODULES/BACKUP_*/CLUSTER_*)
+- milvusconf: milvus.yaml、26 既知トップセクション(etcd/minio/pulsar/*Coord/*Node/proxy/grpc/metrics)
+- chromaconf: Chroma env、chroma_* 環境変数 ~36 + export 接頭辞
+- vespaconf: Vespa services.xml、<services> ルート + container/content/document 三系統タグ
+- soniccfg: Sonic config.cfg、[channel]/[store.kv]/[store.fst]/[server] + inet/auth_password/query_alternate_terms_limit
+
+## 出典
+
+- OpenSearch opensearch.yml documentation — cluster/node/discovery/path settings reference
+- Qdrant configuration guide — config.yaml storage/service/cluster schema
+- Weaviate environment variables reference — AUTHENTICATION_*/BACKUP_* env naming
+- Milvus milvus.yaml configuration — component section map
+- Chroma deployment docs — chroma_* environment variables
+- Vespa services.xml reference — container/content cluster tags
+- Sonic config.cfg — channel/store.kv/store.fst sections
+
+— 全て整数のみで実装。旧 r305(PR #323)未マージクローズ分を最新 main 起点で再実装。
