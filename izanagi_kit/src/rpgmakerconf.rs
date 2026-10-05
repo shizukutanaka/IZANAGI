@@ -65,9 +65,13 @@ pub struct Counts {
 }
 
 /// b が plugins.js かどうか。
+///
+/// `name`/`status`/`parameters` が JSON キー位置(`"key":`)にあること
+/// だけを見る — 文字列値の中の同名語では検出しない。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
-    text.contains("\"name\"") && text.contains("\"status\"") && text.contains("\"parameters\"")
+    let keys: Vec<&str> = entries(text).iter().map(|(k, _, _)| *k).collect();
+    keys.contains(&"name") && keys.contains(&"status") && keys.contains(&"parameters")
 }
 
 /// plugins.js の構造を数える。
@@ -114,5 +118,16 @@ mod tests {
     fn not_rpgmaker() {
         assert!(!detect(b"{\"name\":\"x\"}"));
         assert!(!detect(b"key = v\n"));
+    }
+
+    #[test]
+    fn markers_in_string_values_do_not_detect() {
+        // The quoted words inside string values must not trigger.
+        assert!(!detect(
+            b"[{\"note\": \"\\\"name\\\" \\\"status\\\" \\\"parameters\\\"\"}]"
+        ));
+        assert!(detect(
+            b"[{\"name\":\"X\",\"status\":false,\"parameters\":{}}]"
+        ));
     }
 }

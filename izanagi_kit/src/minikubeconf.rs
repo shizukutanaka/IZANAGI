@@ -122,22 +122,23 @@ fn key_hits(t: &str) -> usize {
 }
 
 /// `config.json` らしさを判定する。
+///
+/// 非コメント行を連結してから走査するので、`"key"` と `:` が
+/// 改行で分かれた記法(`"key"\n:`)にも耐える。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
-    let mut hits = 0usize;
+    let mut joined = String::with_capacity(text.len());
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with("//") {
             continue;
         }
-        hits += key_hits(t);
-        if hits >= 2 {
-            return true;
-        }
+        joined.push_str(t);
+        joined.push('\n');
     }
-    false
+    key_hits(&joined) >= 2
 }
 
 /// 構造をカウントする。
@@ -196,5 +197,15 @@ mod tests {
         ));
         let c = parse(b"{\n  \"driver\"\t:\t\"docker\",\n  \"cpus\" : 2\n}\n").unwrap();
         assert_eq!(c.options, 2);
+    }
+
+    #[test]
+    fn newline_before_colon_still_detects() {
+        // JSON permits a line break between the quoted key and the colon.
+        assert!(detect(
+            b"{\n  \"driver\"\n: \"docker\",\n  \"cpus\"\n: 2\n}\n"
+        ));
+        // Keys mentioned only inside string values do not count.
+        assert!(!detect(b"{\"note\": \"driver cpus\"}\n"));
     }
 }

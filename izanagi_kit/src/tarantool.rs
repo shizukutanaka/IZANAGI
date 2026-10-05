@@ -159,7 +159,20 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
-    text.contains("box.cfg") && text.contains('{')
+    // `box.cfg` の直後に `{`/`(` が来る呼び出し形だけを見る
+    // — Lua コメント(`--`)や文字列値中の同名語では検出しない。
+    text.lines().any(|l| {
+        let t = l.trim_start();
+        if t.starts_with("--") {
+            return false;
+        }
+        let Some(i) = l.find("box.cfg") else {
+            return false;
+        };
+        l[i + "box.cfg".len()..]
+            .trim_start()
+            .starts_with(['{', '('])
+    })
 }
 
 /// `b` を Tarantool 設定として解析する。
@@ -251,5 +264,15 @@ mod tests {
     #[test]
     fn not_tarantool() {
         assert!(parse(b"x = 1\n").is_none());
+    }
+
+    #[test]
+    fn box_cfg_in_comment_or_string_does_not_detect() {
+        // `box.cfg` inside a Lua comment must not trigger.
+        assert!(!detect(b"-- box.cfg{listen = 3301}\nx = 1\n"));
+        // `box.cfg` as a bare word inside a string must not trigger.
+        assert!(!detect(b"msg = \"run box.cfg first\"\nx = 1\n"));
+        // `box.cfg(...)` call form is accepted.
+        assert!(detect(b"box.cfg({listen = 3301})\n"));
     }
 }

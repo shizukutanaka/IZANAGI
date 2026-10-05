@@ -54,26 +54,38 @@ fn key_hits(t: &str) -> usize {
     n
 }
 
+/// `"key"` の直後に(空白/改行を挟んでも)`:` が来るか。
+fn has_key(t: &str, key: &str) -> bool {
+    let quoted = format!("\"{}\"", key);
+    let mut rest = t;
+    while let Some(i) = rest.find(&quoted) {
+        let after = &rest[i + quoted.len()..];
+        if after.trim_start().starts_with(':') {
+            return true;
+        }
+        rest = &rest[i + 1..];
+    }
+    false
+}
+
 /// `.textlintrc` らしさを判定する(`rules`/`filters` トップキー必須)。
+///
+/// 非コメント行を連結してから判定するので、文字列値中の
+/// `"rules"` や `//` コメント中のキー語では検出しない。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
-    let mut hits = 0usize;
+    let mut joined = String::with_capacity(text.len());
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with("//") {
             continue;
         }
-        hits += TOP_KEYS
-            .iter()
-            .filter(|k| t.contains(&format!("\"{}\":", k)))
-            .count();
-        if hits >= 1 && text.contains("\"rules\"") {
-            return true;
-        }
+        joined.push_str(t);
+        joined.push('\n');
     }
-    false
+    TOP_KEYS.iter().any(|k| has_key(&joined, k)) && has_key(&joined, "rules")
 }
 
 /// 構造をカウントする。
@@ -122,5 +134,16 @@ mod tests {
     fn not_textlint() {
         assert!(!detect(b"{\"a\": 1}\n"));
         assert!(parse(b"text\n").is_none());
+    }
+
+    #[test]
+    fn rules_marker_must_be_a_key() {
+        // `"rules"` inside a string value or a `//` comment must not trigger.
+        assert!(!detect(b"{\"note\": \"rules\", \"filters\": {}}\n"));
+        assert!(!detect(
+            b"// \"rules\": {}\n// \"filters\": {}\n{\"a\": 1}\n"
+        ));
+        // Whitespace between key and colon still counts.
+        assert!(detect(b"{\"rules\" : {\"no-todo\": true}}\n"));
     }
 }

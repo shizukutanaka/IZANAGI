@@ -124,7 +124,13 @@ pub struct Counts {
 /// b が Unity ProjectSettings アセットかどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
-    let has_tag = text.contains("!u!") || text.contains("unity3d.com");
+    // `!u!`/`unity3d.com` は YAML タグ宣言やドキュメント行に限り
+    // シグネチャとする — コメント/値の中の文字列では検出しない。
+    let has_tag = text.lines().any(|l| {
+        let t = l.trim_start();
+        (t.starts_with("---") || t.starts_with("%TAG") || t.starts_with("%YAML"))
+            && (t.contains("!u!") || t.contains("unity3d.com"))
+    });
     let mut roots = 0;
     for line in text.lines() {
         let t = line.trim();
@@ -207,5 +213,18 @@ mod tests {
     fn not_unity() {
         assert!(!detect(b"key: value\nother: 1\n"));
         assert!(!detect(b"hello\n"));
+    }
+
+    #[test]
+    fn tag_marker_must_be_a_directive() {
+        // `!u!` in a comment or plain line is not a Unity signature.
+        assert!(!detect(b"# !u!129 &1\nPlayerSettings:\n  productName: x\n"));
+        assert!(!detect(
+            b"notes: contains !u! text\nPlayerSettings:\n  x: 1\n"
+        ));
+        // The real `%TAG`/`--- !u!` directives still detect.
+        assert!(detect(
+            b"%TAG !u! tag:unity3d.com,2011:\n--- !u!129 &1\nPlayerSettings:\n"
+        ));
     }
 }

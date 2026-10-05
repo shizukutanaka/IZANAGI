@@ -98,6 +98,7 @@ fn yaml_key(t: &str) -> Option<&str> {
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
     let mut hits = 0;
+    let mut pipeline = false;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') {
@@ -107,9 +108,14 @@ pub fn detect(b: &[u8]) -> bool {
             if ROOT_KEYS.contains(&k) || KEYS.contains(&k) || ELEMENT_KEYS.contains(&k) {
                 hits += 1;
             }
+            // `pipeline:` はトップレベルキーのときだけシグネチャとする
+            // — コメント行やネスト値中の同名語では検出しない。
+            if k == "pipeline" && !line.starts_with([' ', '\t']) {
+                pipeline = true;
+            }
         }
     }
-    hits >= 3 && text.contains("pipeline:")
+    hits >= 3 && pipeline
 }
 
 /// 構造を数える。
@@ -167,5 +173,20 @@ mod tests {
     fn not_harness() {
         assert!(!detect(b"key: value\nother: thing\n"));
         assert!(!detect(b"name: x\nidentifier: y\n"));
+    }
+
+    #[test]
+    fn pipeline_marker_must_be_top_level() {
+        // `pipeline:` only inside a comment does not qualify.
+        assert!(!detect(
+            b"# pipeline:\nname: ci\nidentifier: ci\nstages:\n  - stage:\n      name: b\n"
+        ));
+        // Nested `pipeline:` key does not qualify either.
+        assert!(!detect(
+            b"spec:\n  pipeline:\n    name: ci\n  identifier: ci\n  stages:\n    - stage:\n        name: b\n"
+        ));
+        assert!(detect(
+            b"pipeline:\n  name: ci\n  identifier: ci\n  stages: []\n"
+        ));
     }
 }

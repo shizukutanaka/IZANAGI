@@ -72,9 +72,16 @@ pub struct Counts {
 }
 
 /// b が Unity manifest.json かどうか。
+///
+/// `com.unity.*` が JSON キー位置(`"key":`)にあることだけを見る —
+/// 値文字列(例: scopedRegistries の `scopes`/`testables` 値)の中に
+/// 同じ接頭辞があっても検出しない。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
-    text.contains("com.unity.") && text.contains('{')
+    text.contains('{')
+        && json_keys(text)
+            .iter()
+            .any(|(_, k)| k.starts_with("com.unity."))
 }
 
 /// manifest.json の構造を数える。
@@ -135,5 +142,15 @@ mod tests {
     fn not_unity() {
         assert!(!detect(b"{\"name\":\"x\"}"));
         assert!(!detect(b"key = value\n"));
+    }
+
+    #[test]
+    fn com_unity_in_value_does_not_detect() {
+        // `com.unity.*` appearing only inside string values must not trigger.
+        assert!(!detect(
+            b"{\"testables\": [\"com.unity.test-framework\"]}\n"
+        ));
+        assert!(!detect(b"{\"note\": \"com.unity.modules\"}\n"));
+        assert!(detect(b"{\"dependencies\":{\"com.unity.x\":\"1\"}}"));
     }
 }

@@ -81,10 +81,22 @@ fn known_key(t: &str) -> bool {
     KEYS.contains(&key_of(t))
 }
 
+/// `key : value` 行のコメント手前までの値部分を返す。
+///
+/// キーと `:` の間の空白(`apiVersion :`)は許容し、` #` 以降の
+/// インラインコメントは値から除く。
+fn value_of<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let rest = line.strip_prefix(key)?.trim_start();
+    let rest = rest.strip_prefix(':')?;
+    let value = rest.split(" #").next().unwrap_or(rest);
+    Some(value.trim().trim_matches(|c| c == '"' || c == '\''))
+}
+
 /// `ClusterConfig` らしさを判定する(`k0s.k0sproject.io` + `ClusterConfig`)。
 ///
-/// 両マーカーがトップレベルの `apiVersion:`/`kind:` キー行にあることだけを
-/// 見る — コメントや文字列値の中に同じ語が現れても検出しない。
+/// 両マーカーがトップレベルの `apiVersion:`/`kind:` キー行の
+/// 値位置にあることだけを見る — コメントや文字列値の中に
+/// 同じ語が現れても検出しない。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
@@ -92,10 +104,10 @@ pub fn detect(input: &[u8]) -> bool {
     let mut api = false;
     let mut kind = false;
     for line in text.lines() {
-        if line.starts_with("apiVersion:") && line.contains("k0s.k0sproject.io") {
+        if value_of(line, "apiVersion").is_some_and(|v| v.starts_with("k0s.k0sproject.io")) {
             api = true;
         }
-        if line.starts_with("kind:") && line.contains("ClusterConfig") {
+        if value_of(line, "kind").is_some_and(|v| v.starts_with("ClusterConfig")) {
             kind = true;
         }
         if api && kind {
@@ -201,6 +213,22 @@ mod tests {
         // Indented (non-top-level) occurrences do not qualify.
         assert!(!detect(
             b"spec:\n  apiVersion: k0s.k0sproject.io/v1beta1\n  kind: ClusterConfig\n"
+        ));
+    }
+
+    #[test]
+    fn spaced_colon_and_inline_comments() {
+        // `apiVersion :` / `kind :` (space before colon) still counts.
+        assert!(detect(
+            b"apiVersion : k0s.k0sproject.io/v1beta1\nkind : ClusterConfig\n"
+        ));
+        // Markers inside an inline comment do not count as the value.
+        assert!(!detect(
+            b"apiVersion: v1 # k0s.k0sproject.io\nkind: ConfigMap # ClusterConfig\n"
+        ));
+        // Quoted values are accepted.
+        assert!(detect(
+            b"apiVersion: \"k0s.k0sproject.io/v1beta1\"\nkind: 'ClusterConfig'\n"
         ));
     }
 }
