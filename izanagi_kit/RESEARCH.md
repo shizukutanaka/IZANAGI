@@ -5914,3 +5914,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - proselint checks — typographical_symbols.miscellaneous カテゴリ構造
 
 — 全て整数のみで実装。旧 r316(PR #334)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第334次 — ビルドタスクランナー設定形式 第2弾(リトライ)
+
+- justfile: Justfile、レシピ(`name:`/引数付き)+ `:=` 代入 + `set`、`x := v` をレシピ誤検出しない判定
+- taskfile: Taskfile.yml、`version:` + `tasks:` + インデント階層
+- earthly: Earthfile、`VERSION` + ターゲット(`name:`)+ ~37 コマンド(FROM/RUN/COPY)
+- rakefile: Rakefile、`task`/`namespace`/`rule`/`desc`/`file`
+- mixexs: mix.exs、`*.MixProject` + アトムキー + `{:dep, "ver"}` タプル
+- rebarconfig: rebar.config、`{key, val}.` Erlang ターム、~46 キー
+- leiningen: project.clj、`(defproject` + ~50 キーワード
+
+## 出典
+
+- just manual — recipes/variables/set directives
+- Taskfile v3 schema — version/tasks/sources/generates
+- Earthly Earthfile — VERSION + targets + commands
+- Rake DSL — task/namespace/file/rule/desc
+- Mix.exs project — defproject/app/deps
+- rebar.config — Erlang term format deps/profiles/erl_opts
+- Leiningen project.clj — defproject + keyword map
+
+— 全て整数のみで実装。旧 r315(PR #333)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。

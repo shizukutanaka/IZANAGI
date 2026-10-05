@@ -963,6 +963,13 @@ The capability map — with per-feature implementation status — lives in
 | `redpen` | `redpen-conf.xml` | 検出・構造カウント |
 | `textlint` | `.textlintrc` | 検出・構造カウント |
 | `vale` | `.vale.ini` | 検出・構造カウント |
+| `earthly` | `Earthfile` | 検出・構造カウント |
+| `justfile` | `Justfile` | 検出・構造カウント |
+| `leiningen` | `project.clj` | 検出・構造カウント |
+| `mixexs` | `mix.exs` | 検出・構造カウント |
+| `rakefile` | `Rakefile` | 検出・構造カウント |
+| `rebarconfig` | `rebar.config` | 検出・構造カウント |
+| `taskfile` | `Taskfile.yml` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
