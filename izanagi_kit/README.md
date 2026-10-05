@@ -109,13 +109,20 @@ fixed version has no such state at all.
 | `amplifyconf` | AWS Amplify Hosting `amplify.yml` |
 | `appdaemon` | AppDaemon apps.yaml census |
 | `bird` | BIRD routing daemon config census |
+| `buildkitd` | BuildKit `buildkitd.toml` tables and settings counts |
+| `colima` | Colima `colima.yaml` VM/kubernetes settings counts |
+| `crio` | CRI-O `crio.conf` TOML tables and runtime/image/network settings counts |
 | `esphome` | ESPHome device yaml census |
 | `flyio` | Fly.io `fly.toml` |
 | `frigate` | Frigate NVR config census |
 | `frr` | FRRouting frr.conf census |
 | `haproxy` | HAProxy haproxy.cfg census |
 | `homeassistant` | Home Assistant configuration.yaml census |
+| `k0sconf` | k0s `ClusterConfig` spec section and key counts |
+| `k3sconf` | k3s `config.yaml` server/agent and component-arg key counts |
 | `keepalived` | keepalived.conf census |
+| `minikubeconf` | Minikube `config.json` driver/resources/kubernetes key counts |
+| `nerdctl` | nerdctl `nerdctl.toml` daemon/CNI/registry key counts |
 | `netlifyconf` | Netlify `netlify.toml` |
 | `nodered` | Node-RED flows.json census |
 | `openbgpd` | OpenBGPD bgpd.conf census |
