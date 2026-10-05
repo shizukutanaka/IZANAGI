@@ -5783,3 +5783,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Sonic config.cfg — channel/store.kv/store.fst sections
 
 — 全て整数のみで実装。旧 r305(PR #323)未マージクローズ分を最新 main 起点で再実装。
+
+## 第326次 — メールサーバ・MTA 設定形式 第2弾(リトライ)
+
+- rspamdconf: Rspamd UCL、`worker "name" {` 引用符引数ブロック + actions/options セクション
+- harakaconf: Haraka .ini `[core]`/`[tls]` + config/plugins プラグインリスト
+- stalwartconf: Stalwart config.toml、`server.*`/`imap.*`/`spam-filter.*` ドットファミリ ~100 キー
+- maddyconf: maddy.conf、`smtp tcp://.. {` / `submission tls://.. {` モジュールブロック
+- chasquidconf: chasquid.conf textproto `key: "value"` ~16 キー
+- zonemtaconf: zonemta.toml、`[api]`/`[smtp]`/`[zones.*]`/`[dbs]` テーブル + ~65 キー
+- postalconf: postal.yml、`web:`/`main_db:`/`message_db:`/`smtp:`/`dns:` トップセクション + ネストリーフ
+
+## 出典
+
+- Rspamd worker settings — UCL worker/actions/options blocks
+- Haraka config docs — [core]/[tls] INI + plugins list
+- Stalwart Mail Server configuration reference — dotted TOML families
+- maddy reference config — module blocks smtp/submission/imap/storage
+- chasquid configuration — protobuf-text key: "value"
+- ZoneMTA zonemta.toml — [api]/[smtp]/[zones]/[dbs] tables
+- Postal postal.yml — top-level section families
+
+— 全て整数のみで実装。旧 r307(PR #325)未マージクローズ分を最新 main 起点で再実装。
