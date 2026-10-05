@@ -102,10 +102,23 @@ pub struct Counts {
     pub misc: usize,
 }
 
+/// `"key"` の直後に(空白を挟んでも)`:` が来るか。JSON は `"key" : value`
+/// のようにコロン前の空白を許す。
+fn has_key(t: &str, key: &str) -> bool {
+    let quoted = format!("\"{}\"", key);
+    let mut rest = t;
+    while let Some(i) = rest.find(&quoted) {
+        let after = &rest[i + quoted.len()..];
+        if after.trim_start().starts_with(':') {
+            return true;
+        }
+        rest = &rest[i + 1..];
+    }
+    false
+}
+
 fn key_hits(t: &str) -> usize {
-    KEYS.iter()
-        .filter(|k| t.contains(&format!("\"{}\":", k)))
-        .count()
+    KEYS.iter().filter(|k| has_key(t, k)).count()
 }
 
 /// `config.json` らしさを判定する。
@@ -173,5 +186,15 @@ mod tests {
     fn not_minikubeconf() {
         assert!(!detect(b"{\"a\": 1}\n"));
         assert!(parse(b"text\n").is_none());
+    }
+
+    #[test]
+    fn spaced_colon_still_detects() {
+        // JSON permits whitespace between the quoted key and the colon.
+        assert!(detect(
+            b"{\n  \"driver\" : \"docker\",\n  \"cpus\" : 2,\n  \"memory\" : 2048\n}\n"
+        ));
+        let c = parse(b"{\n  \"driver\"\t:\t\"docker\",\n  \"cpus\" : 2\n}\n").unwrap();
+        assert_eq!(c.options, 2);
     }
 }
