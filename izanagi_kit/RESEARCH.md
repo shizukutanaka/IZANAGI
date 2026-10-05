@@ -5936,3 +5936,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Leiningen project.clj — defproject + keyword map
 
 — 全て整数のみで実装。旧 r315(PR #333)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第333次 — ブラウザ拡張・ユーザスクリプト・PWA 形式(リトライ)
+
+- webmanifest: site.webmanifest、~37 W3C キー(name/icons/display/start_url...)
+- extmanifest: manifest.json MV2/MV3、~58 キー(manifest_version/permissions/host_permissions...)
+- userscript: `==UserScript==` メタブロック、~38 ディレクティブ(@match/@grant/@require)
+- usercss: `==UserStyle==` + `@-moz-document` ルール
+- browserconfig: browserconfig.xml、`<msapplication>` + tile/notification
+- widgetxml: W3C widget config.xml、`<widget>` ルート + 17 属性
+- appcache: `CACHE MANIFEST` + CACHE:/NETWORK:/FALLBACK: セクション
+
+## 出典
+
+- W3C Web App Manifest — name/short_name/icons/display/start_url
+- Chrome/Firefox extension manifest — MV2/MV3 key differences
+- Greasemonkey/Tampermonkey — ==UserScript== metadata block
+- Stylish usercss — ==UserStyle== + @-moz-document
+- MS browserconfig.xml — msapplication tile config
+- W3C Widget — config.xml widget element
+- HTML5 Application Cache — CACHE/NETWORK/FALLBACK manifest
+
+— 全て整数のみで実装。旧 r314(PR #332)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。

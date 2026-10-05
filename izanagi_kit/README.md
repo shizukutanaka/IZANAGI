@@ -970,6 +970,13 @@ The capability map — with per-feature implementation status — lives in
 | `rakefile` | `Rakefile` | 検出・構造カウント |
 | `rebarconfig` | `rebar.config` | 検出・構造カウント |
 | `taskfile` | `Taskfile.yml` | 検出・構造カウント |
+| `appcache` | `CACHE MANIFEST` | 検出・構造カウント |
+| `browserconfig` | `browserconfig.xml` | 検出・構造カウント |
+| `extmanifest` | 拡張機能 `manifest.json` MV2/MV3 | 検出・構造カウント |
+| `usercss` | `==UserStyle==` メタブロック | 検出・構造カウント |
+| `userscript` | `==UserScript==` メタブロック | 検出・構造カウント |
+| `webmanifest` | `site.webmanifest` | 検出・構造カウント |
+| `widgetxml` | W3C widget `config.xml` | 検出・構造カウント |
 | `hexgrid` | Axial-coordinate hex math (`Hex`, `DIRECTIONS`, `distance`, `line`, `ring`, `spiral`, odd/even-r offset conversion, `random_in_range`, `hex_astar` shortest paths) — the redblobgames recipe set, integer-exact and `DetHash`-pinned. |
 | `terminal` / `camera` | Headless cell buffer with 24-bit ANSI output, diffing, and a world→screen camera. |
 | `turn` / `combat` / `inventory` / `status` / `random_table` / `dice` | Energy scheduler, integer combat, items, buff/debuff timers, weighted loot/spawn tables, `NdM±K` dice notation. |
