@@ -5696,6 +5696,225 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 — 全て整数のみで実装。
 
+## 第332次 — ETL・データ統合パイプライン設定形式(リトライ)
+
+- meltano: meltano.yml、8 プラグイン種別(extractors/loaders/transformers...)+ `- name:`/`pip_url:`
+- airbyteconf: Airbyte source/destination 設定 JSON/YAML、~55 既知キー
+- singerconf: Singer spec JSONL、SCHEMA/RECORD/STATE メッセージ種別計数
+- ketl: Pentaho Kettle .ktr、`<transformation>` + `<hop>`/`<step>`/`<info>`
+- nififlow: NiFi template/flow XML、`<processors>`/`<connections>`/`<controllerServices>`
+- hopconf: Apache Hop pipeline/workflow 両ルート (`<pipeline>`/`<workflow>`)
+- fivetranconf: Fivetran connector 設定、~65 既知キー
+
+## 出典
+
+- Meltano meltano.yml — extractors/loaders/utilities/orchestrators
+- Airbyte connector spec — source/destination JSON schema
+- Singer spec — tap config + SCHEMA/RECORD/STATE messages
+- Pentaho Kettle .ktr — transformation/step/hop XML
+- Apache NiFi flow — template/flow.xml.gz processors
+- Apache Hop — pipeline/workflow hop files
+- Fivetran connector config — sync_frequency/schema/key keys
+
+— 全て整数のみで実装。旧 r313(PR #331)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第331次 — メッセージキュー・ブローカー設定形式 第2弾(リトライ)
+
+- activemq: activemq.xml、broker/plugins/transportConnectors コンテナ + エントリ + 既知属性
+- rocketmq: broker.conf、~120 brokerRole/storePath/flushDisk キー
+- nsqconf: nsqd.cfg、~55 broadcast/data_path/mem_queue_size キー
+- vernemq: vernemq.conf、cuttlefish `allow_anonymous`/`listener.*` 接頭辞ファミリ
+- hivemq: config.xml、`<hivemq>` ルート必須 + listeners/extensions コンテナ
+- ibmmq: qm.ini/mqs.ini、24 既知スタンザ(Log:/CHANNELS:/SSL:/TCP:)
+- kubemq: kubemq.yaml、K8s 構造 + ~45 キー
+
+## 出典
+
+- ActiveMQ XML configuration — broker/plugins/transportConnectors
+- RocketMQ broker.conf — brokerRole/storePathRootDir/flushDiskType
+- NSQ nsqd.cfg — broadcast_address/mem-queue-size/tls
+- VerneMQ cuttlefish — allow_anonymous/listener.vmq.*
+- HiveMQ config.xml — listeners/tcp-listener/extensions
+- IBM MQ qm.ini/mqs.ini — stanza reference
+- KubeMQ helm/standalone — kubemq.yaml
+
+— 全て整数のみで実装。旧 r312(PR #330)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第327次 — プロキシ・オーバーレイネットワーク設定形式(リトライ)
+
+- xrayconf: Xray config.json、inbounds/outbounds/routing/dns セクション + ~13 プロトコル値
+- clashconf: Clash config.yaml、~80 トップキー + `- RULE,TARGET` ~28 ルールヘッド + ~25 type 値
+- singboxconf: sing-box config.json、10 セクション + ~29 `"type"` 値 + ~120 キー
+- nebulaconf: Nebula config.yml、16 トップセクション + ~90 ネストキー
+- tincconf: tinc.conf、PascalCase `Key = value` ~80 キー
+- headscaleconf: Headscale config.yaml、~30 トップキー/セクション + ~90 ネストキー
+- shadowsocksconf: config.json、~60 キー + ~30 メソッド値
+
+## 出典
+
+- Xray-core configuration — inbounds/outbounds/routing JSON sections
+- Clash / mihomo config — proxies/proxy-groups/rules YAML
+- sing-box configuration — log/dns/inbounds/outbounds/route JSON
+- Nebula reference config — pki/lighthouse/tun/firewall YAML
+- tinc manual — tinc.conf + host file PascalCase keys
+- Headscale config.yaml — server_url/noise/prefixes/derp/database/dns
+- shadowsocks-rust config — server/method JSON + 2022-blake3 methods
+
+— 全て整数のみで実装。旧 r308(PR #326)未マージクローズ分を最新 main 起点で再実装。
+
+## 第324次 — ベクトルDB・検索エンジン設定形式(リトライ)
+
+- opensearch: opensearch.yml、cluster.*/node.*/network.*/http.*/transport.*/discovery.*/path.*/plugins.security.* ドットプレフィックス族 ~70 キー
+- qdrantconf: Qdrant config.yaml、storage/service/cluster/telemetry/optimizer トップセクション + ネストキー
+- weaviateconf: Weaviate .env、UPPER_SNAKE_CASE 環境変数 ~57(QUERY_DEFAULTS_LIMIT/PERSISTENCE_DATA_PATH/AUTHENTICATION_*/AUTHORIZATION_*/ENABLE_MODULES/BACKUP_*/CLUSTER_*)
+- milvusconf: milvus.yaml、26 既知トップセクション(etcd/minio/pulsar/*Coord/*Node/proxy/grpc/metrics)
+- chromaconf: Chroma env、chroma_* 環境変数 ~36 + export 接頭辞
+- vespaconf: Vespa services.xml、<services> ルート + container/content/document 三系統タグ
+- soniccfg: Sonic config.cfg、[channel]/[store.kv]/[store.fst]/[server] + inet/auth_password/query_alternate_terms_limit
+
+## 出典
+
+- OpenSearch opensearch.yml documentation — cluster/node/discovery/path settings reference
+- Qdrant configuration guide — config.yaml storage/service/cluster schema
+- Weaviate environment variables reference — AUTHENTICATION_*/BACKUP_* env naming
+- Milvus milvus.yaml configuration — component section map
+- Chroma deployment docs — chroma_* environment variables
+- Vespa services.xml reference — container/content cluster tags
+- Sonic config.cfg — channel/store.kv/store.fst sections
+
+— 全て整数のみで実装。旧 r305(PR #323)未マージクローズ分を最新 main 起点で再実装。
+
+## 第326次 — メールサーバ・MTA 設定形式 第2弾(リトライ)
+
+- rspamdconf: Rspamd UCL、`worker "name" {` 引用符引数ブロック + actions/options セクション
+- harakaconf: Haraka .ini `[core]`/`[tls]` + config/plugins プラグインリスト
+- stalwartconf: Stalwart config.toml、`server.*`/`imap.*`/`spam-filter.*` ドットファミリ ~100 キー
+- maddyconf: maddy.conf、`smtp tcp://.. {` / `submission tls://.. {` モジュールブロック
+- chasquidconf: chasquid.conf textproto `key: "value"` ~16 キー
+- zonemtaconf: zonemta.toml、`[api]`/`[smtp]`/`[zones.*]`/`[dbs]` テーブル + ~65 キー
+- postalconf: postal.yml、`web:`/`main_db:`/`message_db:`/`smtp:`/`dns:` トップセクション + ネストリーフ
+
+## 出典
+
+- Rspamd worker settings — UCL worker/actions/options blocks
+- Haraka config docs — [core]/[tls] INI + plugins list
+- Stalwart Mail Server configuration reference — dotted TOML families
+- maddy reference config — module blocks smtp/submission/imap/storage
+- chasquid configuration — protobuf-text key: "value"
+- ZoneMTA zonemta.toml — [api]/[smtp]/[zones]/[dbs] tables
+- Postal postal.yml — top-level section families
+
+— 全て整数のみで実装。旧 r307(PR #325)未マージクローズ分を最新 main 起点で再実装。
+
+## 第325次 — Python ツールチェーン設定形式(リトライ)
+
+- ruffconf: ruff.toml / [tool.ruff]、セクション(lint/format/server/per-file-ignores)と lint 選択キー・トップキー分離
+- pyrightconf: pyrightconfig.json、typeCheckingMode + report* 診断キー ~70、単行 JSON 走査
+- mypyconf: mypy.ini / [mypy] / [mypy-<module>]、~90 既知キー
+- flake8conf: .flake8 / [flake8] / [flake8:local-plugins]、~100 キー・プラグインオプション
+- blackconf: [tool.black]、line-length/target-version/skip-* ~24 キー
+- banditconf: .bandit / bandit.yaml、B101-B704 コード走査 + [bandit] セクション
+- isortconf: .isort.cfg / [isort] / [tool.isort] / [settings]、~120 キー
+
+## 出典
+
+- Ruff configuration docs — ruff.toml + [tool.ruff.*] tables
+- Pyright configuration reference — pyrightconfig.json report* keys
+- mypy configuration file docs — [mypy]/[mypy-pattern] options
+- flake8 configuration — .flake8/setup.cfg/tox.ini [flake8] options
+- Black configuration — pyproject.toml [tool.black]
+- Bandit configuration — .bandit YAML + B-code test IDs
+- isort configuration — .isort.cfg/[isort] options
+
+— 全て整数のみで実装。旧 r306(PR #324)未マージクローズ分を最新 main 起点で再実装。
+
+## 第322次 — オーディオサーバ・MIDI 設定形式
+
+- asoundrc: ALSA .asoundrc、pcm./ctl./defaults. 宣言 + slave.pcm/type/rate
+- defaultpa: PulseAudio default.pa、load-module module-* + .ifexists/set-default-*
+- pipewireconf: PipeWire *.conf SPA-JSON、context.* + node.*/default.clock.*
+- wireplumberconf: WirePlumber config、wireplumber.profiles + monitor.* rules
+- jackrc: .jackdrc、jackd -d/-r/-p/-n フラグ + ドライバ値
+- pulseclientconf: PulseAudio client.conf/daemon.conf、default-*/autospawn/rlimit-*
+- easyeffects: EasyEffects preset JSON、output.plugins_order + <plugin>#N ブロック + パラメータキー
+
+## 出典
+
+- ALSA Library Configuration Files — .asoundrc/asound.conf grammar
+- PulseAudio default.pa documentation — load-module/.ifexists directive set
+- PipeWire Configuration — SPA-JSON context/objects/properties
+- WirePlumber Configuration — profiles/monitor.rules format
+- JACK jackd man page — driver/option flag reference (.jackdrc)
+- PulseAudio client.conf/daemon.conf man — option reference
+- EasyEffects Preset JSON schema — plugins_order/<name>#N layout
+
+— 全て整数のみで実装。
+
+## 第337次 — ゲームエンジン・プロジェクト設定形式(リトライ)
+
+- cocosproj: Cocos Creator プロジェクト設定/パッケージ
+- defoldproj: game.project、`[section]` INI + `key = value`
+- gbstudio: GB Studio .gbsproj、scenes/backgrounds/spriteSheets/music/customEvents JSON
+- loveconf: conf.lua、`love.conf`/`t.*` テーブルキー
+- rpgmakerconf: RPG Maker Game.ini + data/System.json
+- unitymanifest: Packages/manifest.json、dependencies + scopedRegistries
+- unitysettings: ProjectSettings.asset、YAML PlayerSettings/m_TagManager
+
+## 出典
+
+- Cocos Creator project — project.json/tsconfig/sprite frames
+- Defold game.project — [bootstrap]/[display]/[input] INI
+- GB Studio .gbsproj — scenes/actors/sprites JSON
+- LÖVE conf.lua — love.conf t.window/t.modules
+- RPG Maker — Game.ini + System.json data files
+- Unity Packages/manifest.json + ProjectSettings.asset YAML
+
+— 全て整数のみで実装。旧 r304(PR #322)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第336次 — ホスト型IDS・セキュリティエージェント設定形式(リトライ)
+
+- aideconf: aide.conf、`@@` ディレクティブ + `/path RULE`/`!/path` 選択ルール
+- falcoconf: falco.yaml、~35 トップキー(rules_file/json_output/syscall_*)
+- lynisconf: custom.prf、`config:k=v` + `test:`/`skip-test=` 制御
+- osqueryconf: osquery.conf、options/schedule/packs + `--flag=` flagfile 対応
+- ossecconf: ossec.conf (OSSEC/Wazuh)、`<ossec_config>` + ~25 ブロック
+- rkhunter: rkhunter.conf、~70 キー + `*_WHITELIST` 汎用
+- sysmonconf: Sysmon XML、`<Sysmon>` + `<RuleGroup>` + ~25 イベントタグ
+
+## 出典
+
+- AIDE aide.conf — @@define/@@ifhost/selection rules
+- Falco falco.yaml — rules_file/json_output/buffered_outputs
+- Lynis profiles — config:test:skip-test directives
+- osquery configuration — options/schedule/packs/flagfile
+- OSSEC/Wazuh ossec.conf — global/syscheck/rootcheck/alerts
+- rkhunter.conf — ALLOWDEVFILE/SCRIPTWHITELIST/*_WHITELIST
+- Sysmon XML — Sysmon/RuleGroup/EventFiltering tags
+
+— 全て整数のみで実装。旧 r317(PR #335)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第335次 — 文章・ドキュメントリンタ設定形式(リトライ)
+
+- vale: .vale.ini、`[*.md]` セクション + `Style.Rule = YES/NO` ドットキートグル
+- textlint: .textlintrc、`rules:`/`filters:`/`presets`
+- cspell: cspell.json、~37 キー(words/ignorePaths/dictionaries...)
+- codespell: .codespellrc、`[codespell]`/`[tool.codespell]` 内 23 オプション
+- alexrc: .alexrc、JS module.exports/YAML/JSON 3形態
+- redpen: redpen-conf.xml、`<validator>`/`<property>`/`<symbol>`
+- proselint: .proselintrc、`checks` マップ + 30 `category.check` カテゴリ
+
+## 出典
+
+- Vale configuration — .vale.ini StylesPath/MinAlertLevel/glob sections
+- textlintrc — rules/filters/presets format
+- cspell settings — words/ignoreWords/flagWords/dictionaries
+- codespell options — quiet-level/skip/ignore-words
+- alexrc — profanitySureness/allow/noBinary config
+- RedPen validator config — redpen-conf.xml validator properties
+- proselint checks — typographical_symbols.miscellaneous カテゴリ構造
+
+— 全て整数のみで実装。旧 r316(PR #334)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
 ## 第334次 — ビルドタスクランナー設定形式 第2弾(リトライ)
 
 - justfile: Justfile、レシピ(`name:`/引数付き)+ `:=` 代入 + `set`、`x := v` をレシピ誤検出しない判定
