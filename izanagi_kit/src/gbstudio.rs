@@ -139,9 +139,13 @@ pub struct Counts {
 }
 
 /// b が .gbsproj かどうか。
+///
+/// `scenes`/`settings` が JSON キー位置(`"key":`)にあることだけを
+/// 見る — 文字列値の中の同名語では検出しない。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
-    text.contains("\"scenes\"") && text.contains("\"settings\"") && text.contains('{')
+    let keys: Vec<&str> = entries(text).iter().map(|(k, _)| *k).collect();
+    text.contains('{') && keys.contains(&"scenes") && keys.contains(&"settings")
 }
 
 /// .gbsproj の構造を数える。
@@ -193,5 +197,14 @@ mod tests {
     fn not_gbstudio() {
         assert!(!detect(b"{\"name\":\"x\"}"));
         assert!(!detect(b"key = v\n"));
+    }
+
+    #[test]
+    fn markers_in_string_values_do_not_detect() {
+        // The quoted words inside a string value must not trigger.
+        assert!(!detect(b"{\"notes\": \"\\\"scenes\\\" \\\"settings\\\"\"}"));
+        assert!(detect(
+            b"{\"scenes\":[],\"settings\":{\"startSceneId\":\"1\"}}"
+        ));
     }
 }

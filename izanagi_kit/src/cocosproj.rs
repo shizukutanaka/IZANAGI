@@ -94,9 +94,15 @@ pub struct Counts {
 }
 
 /// b が Cocos project.json かどうか。
+///
+/// シグネチャキーが JSON キー位置(`"key":`)にあることだけを
+/// 見る — 文字列値の中に同じ語が現れても検出しない。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
-    (text.contains("project_type") || text.contains("engine_version")) && text.contains('{')
+    text.contains('{')
+        && json_keys(text)
+            .iter()
+            .any(|&k| k == "project_type" || k == "engine_version")
 }
 
 /// project.json の構造を数える。
@@ -141,5 +147,13 @@ mod tests {
     fn not_cocos() {
         assert!(!detect(b"{\"name\":\"x\"}"));
         assert!(!detect(b"key = v\n"));
+    }
+
+    #[test]
+    fn marker_in_string_value_does_not_detect() {
+        // The signature words inside a string value must not trigger.
+        assert!(!detect(b"{\"notes\": \"project_type engine_version\"}"));
+        assert!(detect(b"{\"project_type\" : \"js\"}"));
+        assert!(detect(b"{\"engine_version\":\"3.17\"}"));
     }
 }

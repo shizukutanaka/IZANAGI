@@ -127,16 +127,32 @@ pub struct Counts {
 /// b が LÖVE conf/main かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
-    if text.contains("love.conf") {
-        return true;
-    }
-    let mut cb = 0;
-    for &w in CALLBACKS {
-        if w != "conf" && text.contains("love.") && text.contains(w) {
-            cb += 1;
+    let mut seen: Vec<&str> = Vec::new();
+    for line in text.lines() {
+        let t = line.trim();
+        // Lua コメント(`--`)はシグネチャに使わない。
+        if t.starts_with("--") {
+            continue;
+        }
+        if let Some(rest) = t.strip_prefix("function") {
+            let rest = rest.trim_start();
+            if let Some(after) = rest.strip_prefix("love.") {
+                let name: String = after
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                    .collect();
+                if name == "conf" {
+                    return true;
+                }
+                if let Some(&w) = CALLBACKS.iter().find(|&&w| w == name) {
+                    if !seen.contains(&w) {
+                        seen.push(w);
+                    }
+                }
+            }
         }
     }
-    cb >= 3
+    seen.len() >= 3
 }
 
 /// conf.lua 相当の構造を数える。
@@ -209,5 +225,20 @@ mod tests {
     fn not_love() {
         assert!(!detect(b"function main()\nend\n"));
         assert!(!detect(b"key = value\n"));
+    }
+
+    #[test]
+    fn markers_in_comments_or_strings_do_not_detect() {
+        // `love.conf` mentioned only inside comments/strings must not trigger.
+        assert!(!detect(b"-- function love.conf(t)\nx = 1\n"));
+        assert!(!detect(b"help = \"see function love.conf\"\n"));
+        // Three real love.* callbacks still detect.
+        assert!(detect(
+            b"function love.load()\nend\nfunction love.update(dt)\nend\nfunction love.draw()\nend\n"
+        ));
+        // Two callbacks are not enough.
+        assert!(!detect(
+            b"function love.load()\nend\nfunction love.draw()\nend\n"
+        ));
     }
 }
