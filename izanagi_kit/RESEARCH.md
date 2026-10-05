@@ -5717,3 +5717,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Fivetran connector config — sync_frequency/schema/key keys
 
 — 全て整数のみで実装。旧 r313(PR #331)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第331次 — メッセージキュー・ブローカー設定形式 第2弾(リトライ)
+
+- activemq: activemq.xml、broker/plugins/transportConnectors コンテナ + エントリ + 既知属性
+- rocketmq: broker.conf、~120 brokerRole/storePath/flushDisk キー
+- nsqconf: nsqd.cfg、~55 broadcast/data_path/mem_queue_size キー
+- vernemq: vernemq.conf、cuttlefish `allow_anonymous`/`listener.*` 接頭辞ファミリ
+- hivemq: config.xml、`<hivemq>` ルート必須 + listeners/extensions コンテナ
+- ibmmq: qm.ini/mqs.ini、24 既知スタンザ(Log:/CHANNELS:/SSL:/TCP:)
+- kubemq: kubemq.yaml、K8s 構造 + ~45 キー
+
+## 出典
+
+- ActiveMQ XML configuration — broker/plugins/transportConnectors
+- RocketMQ broker.conf — brokerRole/storePathRootDir/flushDiskType
+- NSQ nsqd.cfg — broadcast_address/mem-queue-size/tls
+- VerneMQ cuttlefish — allow_anonymous/listener.vmq.*
+- HiveMQ config.xml — listeners/tcp-listener/extensions
+- IBM MQ qm.ini/mqs.ini — stanza reference
+- KubeMQ helm/standalone — kubemq.yaml
+
+— 全て整数のみで実装。旧 r312(PR #330)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
