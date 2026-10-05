@@ -6068,3 +6068,17 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - containerd/nerdctl — nerdctl.toml documentation
 
 — 全て整数のみで実装。旧 r318(PR #336 が main でなくベースブランチへマージされ連鎖ごと未リリース)分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第341次 — 検出器レジストリ `DETECTORS` + 全検出器横断panic非発火テスト
+
+監査で洗い出した P0「census `detect()` の panic 非発火が未証明」への対応。
+`detect(&[u8]) -> bool` を持つ全 1079 モジュールを `izanagi_kit::DETECTORS`
+`(モジュール名, 関数ポインタ)` 表に登録し、新規テスト
+`tests/detect_never_panics.rs` で:
+
+- 全検出器に共有コーパス(単バイト 0..=255、マーカー混在文の全長さ切り詰め、
+  バイト反転、SplitMix64 ノイズ、均一充填)を入力し panic 非発火を検証
+- `src/*.rs` を走査し `pub fn detect(` を持つモジュールが `DETECTORS`
+  に登録済みであることを検証(未登録の追加をビルド失敗にする)
+
+今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
