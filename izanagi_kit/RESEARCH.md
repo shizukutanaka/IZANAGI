@@ -5870,3 +5870,25 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - Unity Packages/manifest.json + ProjectSettings.asset YAML
 
 — 全て整数のみで実装。旧 r304(PR #322)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
+
+## 第336次 — ホスト型IDS・セキュリティエージェント設定形式(リトライ)
+
+- aideconf: aide.conf、`@@` ディレクティブ + `/path RULE`/`!/path` 選択ルール
+- falcoconf: falco.yaml、~35 トップキー(rules_file/json_output/syscall_*)
+- lynisconf: custom.prf、`config:k=v` + `test:`/`skip-test=` 制御
+- osqueryconf: osquery.conf、options/schedule/packs + `--flag=` flagfile 対応
+- ossecconf: ossec.conf (OSSEC/Wazuh)、`<ossec_config>` + ~25 ブロック
+- rkhunter: rkhunter.conf、~70 キー + `*_WHITELIST` 汎用
+- sysmonconf: Sysmon XML、`<Sysmon>` + `<RuleGroup>` + ~25 イベントタグ
+
+## 出典
+
+- AIDE aide.conf — @@define/@@ifhost/selection rules
+- Falco falco.yaml — rules_file/json_output/buffered_outputs
+- Lynis profiles — config:test:skip-test directives
+- osquery configuration — options/schedule/packs/flagfile
+- OSSEC/Wazuh ossec.conf — global/syscheck/rootcheck/alerts
+- rkhunter.conf — ALLOWDEVFILE/SCRIPTWHITELIST/*_WHITELIST
+- Sysmon XML — Sysmon/RuleGroup/EventFiltering tags
+
+— 全て整数のみで実装。旧 r317(PR #335)未マージクローズ分をゲート検証済みファイルを再利用して最新 main 起点で再実装。
