@@ -47,8 +47,13 @@ pub struct Cfn {
 
 fn is_key(tr: &str, key: &str) -> bool {
     let k = tr.trim_start_matches(['"', '\'']);
-    k.strip_prefix(key)
-        .is_some_and(|r| r.starts_with(':') || r.starts_with("\":") || r.starts_with("':"))
+    k.strip_prefix(key).is_some_and(|r| {
+        // `key :`/`"key" :`(コロン前の空白と閉じ引用符)も YAML では合法。
+        r.trim_start()
+            .trim_start_matches(['"', '\''])
+            .trim_start()
+            .starts_with(':')
+    })
 }
 
 fn has_key(t: &str, key: &str) -> bool {
@@ -211,6 +216,13 @@ impl Cfn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法。
+        let v = String::from_utf8_lossy(SRC).replace("Type:", "Type :");
+        assert!(detect(v.as_bytes()));
+    }
 
     const SRC: &[u8] = b"# demo
 AWSTemplateFormatVersion: \"2010-09-09\"
