@@ -893,6 +893,90 @@ The capability map — with per-feature implementation status — lives in
 | `treesittergram` | tree-sitter `grammar.js` | 検出・構造カウント |
 | `vimsyntax` | Vim `syntax/*.vim` | 検出・構造カウント |
 | `wordfileuew` | UltraEdit `.uew` wordfile | 検出・構造カウント |
+| `airbyteconf` | Airbyte connector 設定 | 検出・構造カウント |
+| `fivetranconf` | Fivetran connector 設定 | 検出・構造カウント |
+| `hopconf` | Apache Hop pipeline/workflow | 検出・構造カウント |
+| `ketl` | Pentaho Kettle `.ktr` | 検出・構造カウント |
+| `meltano` | `meltano.yml` | 検出・構造カウント |
+| `nififlow` | NiFi template/flow XML | 検出・構造カウント |
+| `singerconf` | Singer tap config/catalog | 検出・構造カウント |
+| `activemq` | `activemq.xml` | 検出・構造カウント |
+| `hivemq` | `config.xml` (HiveMQ) | 検出・構造カウント |
+| `ibmmq` | `qm.ini`/`mqs.ini` | 検出・構造カウント |
+| `kubemq` | `kubemq.yaml` | 検出・構造カウント |
+| `nsqconf` | `nsqd.cfg` | 検出・構造カウント |
+| `rocketmq` | `broker.conf` | 検出・構造カウント |
+| `vernemq` | `vernemq.conf` | 検出・構造カウント |
+| `clashconf` | Clash `config.yaml` | 検出・構造カウント |
+| `headscaleconf` | Headscale `config.yaml` | 検出・構造カウント |
+| `nebulaconf` | Nebula `config.yml` | 検出・構造カウント |
+| `shadowsocksconf` | Shadowsocks `config.json` | 検出・構造カウント |
+| `singboxconf` | sing-box `config.json` | 検出・構造カウント |
+| `tincconf` | tinc `tinc.conf` | 検出・構造カウント |
+| `xrayconf` | Xray `config.json` | 検出・構造カウント |
+| `chromaconf` | Chroma env `chroma_*` | 検出・構造カウント |
+| `milvusconf` | Milvus `milvus.yaml` | 検出・構造カウント |
+| `opensearch` | OpenSearch `opensearch.yml` | 検出・構造カウント |
+| `qdrantconf` | Qdrant `config.yaml` | 検出・構造カウント |
+| `soniccfg` | Sonic `config.cfg` | 検出・構造カウント |
+| `vespaconf` | Vespa `services.xml` | 検出・構造カウント |
+| `weaviateconf` | Weaviate env vars | 検出・構造カウント |
+| `chasquidconf` | chasquid `chasquid.conf` | 検出・構造カウント |
+| `harakaconf` | Haraka `config/*.ini`/`plugins` | 検出・構造カウント |
+| `maddyconf` | maddy `maddy.conf` | 検出・構造カウント |
+| `postalconf` | Postal `postal.yml` | 検出・構造カウント |
+| `rspamdconf` | Rspamd UCL `*.conf` | 検出・構造カウント |
+| `stalwartconf` | Stalwart `config.toml` | 検出・構造カウント |
+| `zonemtaconf` | ZoneMTA `zonemta.toml` | 検出・構造カウント |
+| `banditconf` | Bandit `.bandit` | 検出・構造カウント |
+| `blackconf` | Black `[tool.black]` | 検出・構造カウント |
+| `flake8conf` | flake8 `.flake8`/`[flake8]` | 検出・構造カウント |
+| `isortconf` | isort `.isort.cfg`/`[isort]` | 検出・構造カウント |
+| `mypyconf` | mypy `mypy.ini` | 検出・構造カウント |
+| `pyrightconf` | Pyright `pyrightconfig.json` | 検出・構造カウント |
+| `ruffconf` | Ruff `ruff.toml`/`[tool.ruff]` | 検出・構造カウント |
+| `asoundrc` | ALSA `.asoundrc` / `asound.conf` | 検出・構造カウント |
+| `defaultpa` | PulseAudio `default.pa` | 検出・構造カウント |
+| `easyeffects` | EasyEffects preset `.json` | 検出・構造カウント |
+| `jackrc` | JACK `.jackdrc` | 検出・構造カウント |
+| `pipewireconf` | PipeWire `*.conf` (SPA-JSON) | 検出・構造カウント |
+| `pulseclientconf` | PulseAudio `client.conf` / `daemon.conf` | 検出・構造カウント |
+| `wireplumberconf` | WirePlumber `wireplumber.conf` | 検出・構造カウント |
+| `cocosproj` | Cocos Creator プロジェクト設定 | 検出・構造カウント |
+| `defoldproj` | `game.project` (Defold) | 検出・構造カウント |
+| `gbstudio` | GB Studio `.gbsproj` | 検出・構造カウント |
+| `loveconf` | LÖVE `conf.lua` | 検出・構造カウント |
+| `rpgmakerconf` | RPG Maker `Game.ini`/`System.json` | 検出・構造カウント |
+| `unitymanifest` | Unity `manifest.json` | 検出・構造カウント |
+| `unitysettings` | Unity `ProjectSettings.asset` | 検出・構造カウント |
+| `aideconf` | `aide.conf` | 検出・構造カウント |
+| `falcoconf` | `falco.yaml` | 検出・構造カウント |
+| `lynisconf` | `custom.prf` (Lynis) | 検出・構造カウント |
+| `osqueryconf` | `osquery.conf` | 検出・構造カウント |
+| `ossecconf` | `ossec.conf` (Wazuh) | 検出・構造カウント |
+| `rkhunter` | `rkhunter.conf` | 検出・構造カウント |
+| `sysmonconf` | Sysmon XML | 検出・構造カウント |
+| `alexrc` | `.alexrc` | 検出・構造カウント |
+| `codespell` | `.codespellrc` | 検出・構造カウント |
+| `cspell` | `cspell.json` | 検出・構造カウント |
+| `proselint` | `.proselintrc` | 検出・構造カウント |
+| `redpen` | `redpen-conf.xml` | 検出・構造カウント |
+| `textlint` | `.textlintrc` | 検出・構造カウント |
+| `vale` | `.vale.ini` | 検出・構造カウント |
+| `earthly` | `Earthfile` | 検出・構造カウント |
+| `justfile` | `Justfile` | 検出・構造カウント |
+| `leiningen` | `project.clj` | 検出・構造カウント |
+| `mixexs` | `mix.exs` | 検出・構造カウント |
+| `rakefile` | `Rakefile` | 検出・構造カウント |
+| `rebarconfig` | `rebar.config` | 検出・構造カウント |
+| `taskfile` | `Taskfile.yml` | 検出・構造カウント |
+| `appcache` | `CACHE MANIFEST` | 検出・構造カウント |
+| `browserconfig` | `browserconfig.xml` | 検出・構造カウント |
+| `extmanifest` | 拡張機能 `manifest.json` MV2/MV3 | 検出・構造カウント |
+| `usercss` | `==UserStyle==` メタブロック | 検出・構造カウント |
+| `userscript` | `==UserScript==` メタブロック | 検出・構造カウント |
+| `webmanifest` | `site.webmanifest` | 検出・構造カウント |
+| `widgetxml` | W3C widget `config.xml` | 検出・構造カウント |
 | `appveyor` | `appveyor.yml` | 検出・構造カウント |
 | `buildkite` | `pipeline.yml` | 検出・構造カウント |
 | `cirrus` | `.cirrus.yml` | 検出・構造カウント |
