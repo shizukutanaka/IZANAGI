@@ -6660,3 +6660,48 @@ metatile/stale lock timeout等、hint>=1&>=3 or >=5)。
 mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
 カバー済みのため差替。いずれも行アンカー判定、コメント行除外、
 テスト4本ずつ。
+## 第388次
+
+会計ジャーナル/ブートローダ/プリンタ/デスクトップ残り系の
+設定形式8モジュールを追加(pub mod/DETECTORS/PARSERSの3箇所登録):
+
+- ledgerjournal(Ledger/hledger/beancountジャーナル:
+  YYYY-MM-DD|/|.取引ヘッダ+インデント転記行(金額または
+  `Account:Sub`形式)+account/commodity/payee/include/P/D/Y/
+  apply/balance/open/close等ディレクティブ、txn>=1&post>=3 or
+  txn>=2&post>=2 or dir>=3 or dir>=1&txn>=2)、
+- grubcfg(grub.cfg:menuentry/submenuブロック+set/insmod/
+  linux/initrd/search/if/function/serial/load_video等
+  GRUB2コマンド、entry>=1&cmd>=3 or cmd>=6)、
+- cupsconf(cupsd.conf:Apache風のListen/Port/ServerName/
+  LogLevel/MaxJobs/PreserveJobHistory/Browsing/DefaultShared/
+  WebInterface/SystemGroup/ErrorLog等ディレクティブ+
+  `<Location>`/`<Policy>`/`<Limit>`ブロック、
+  block>=1&dir>=2 or dir>=3)、
+- mpvconf(mpv.conf:`key=value`/`--key=value`、vo/ao/hwdec/
+  profile/volume/slang/alang/sub-auto/ytdl-format/cache/
+  interpolation/video-sync/deband/scale/dscale/cscale/
+  sigmoid-upscaling/tone-mapping/save-position-on-quit/
+  input-ipc-server/osd-*/sub-*/screenshot-*/watch-later-directory等
+  約170キー、>=3)、
+- kdeglobals(KDEグローバル設定INI:[General]/[KDE]/[Icons]/
+  [WM]/[Shortcuts]/[Translations]/[KFileDialog Settings]+
+  [Colors:*]/[ColorEffects:*]セクション群+ColorScheme/
+  widgetStyle/font/fixed/menuFont/singleClick/Xft*等キー、
+  sec>=1&key>=2 or key>=3 or sec>=3)、
+- zathurarc(zathurarc:`set <option>`/`map`/`unmap`/`include`
+  ディレクティブ、adjust-open/recolor*/scroll-step/zoom-*/
+  guioptions/statusbar-*/synctex/database/highlight-*/index-*/
+  page-padding等約80オプション、set>=3 or set>=1&map>=2)、
+- qt5ctconf(qt5ct/qt6ct.conf INI:[Appearance]/[Fonts]/
+  [Interface]/[PaletteEditor]/[SettingsWindow]/[Troubleshooting]
+  セクション+color_scheme_path/custom_palette/icon_theme/style/
+  buttonbox_layout/stylesheets/toolbutton_style等キー、
+  sec>=1&key>=1 or key>=3)、
+- digikamrc(digikamrc KDE風INI:[Album Settings]/[IconView]/
+  [Metadata Settings]/[Slideshow Settings]/[Tag Properties]等
+  セクション+AlbumPath/DefaultIconSize/IconShow*/SaveImageTags/
+  SaveFaceTags/AutoTrashItems/FaceDetector等キー、
+  sec>=1&key>=2 or key>=3 or sec>=3)。
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
