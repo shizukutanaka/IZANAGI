@@ -470,6 +470,7 @@ pub mod arff;
 pub mod argocd;
 pub mod argowf;
 pub mod argusconf;
+pub mod aria2;
 pub mod arith;
 pub mod arj;
 pub mod arkimeconf;
@@ -515,6 +516,7 @@ pub mod base32;
 pub mod base58;
 pub mod base64;
 pub mod bashrc;
+pub mod bazarr;
 pub mod bazel;
 pub mod bbcode;
 pub mod bdb;
@@ -776,6 +778,7 @@ pub mod defoldproj;
 pub mod dehydrated;
 pub mod delaunay;
 pub mod delta;
+pub mod deluge;
 pub mod denoconf;
 pub mod dependabot;
 pub mod der;
@@ -1356,6 +1359,7 @@ pub mod knownhosts;
 pub mod knx;
 pub mod kodiadv;
 pub mod kong;
+pub mod kopia;
 pub mod kpaths;
 pub mod kql;
 pub mod kratos;
@@ -1599,6 +1603,7 @@ pub mod nanoid;
 pub mod nanorc;
 pub mod nas;
 pub mod nats;
+pub mod navidrome;
 pub mod nbd;
 pub mod nbt;
 pub mod nc;
@@ -1896,6 +1901,7 @@ pub mod pyrightconf;
 pub mod pyroconf;
 pub mod pytestbench;
 pub mod qasm;
+pub mod qbittorrent;
 pub mod qcow2;
 pub mod qcp;
 pub mod qdrantconf;
@@ -2020,6 +2026,7 @@ pub mod rsync;
 pub mod rsyslogd;
 pub mod rtcp;
 pub mod rtf;
+pub mod rtorrent;
 pub mod rtp;
 pub mod rtree;
 pub mod rtsp;
@@ -2316,6 +2323,7 @@ pub mod tournament;
 pub mod toxini;
 pub mod tptp;
 pub mod traefik;
+pub mod transmission;
 pub mod travisci;
 pub mod treap;
 pub mod treesittergram;
@@ -2791,6 +2799,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("argocd", argocd::detect),
     ("argowf", argowf::detect),
     ("argusconf", argusconf::detect),
+    ("aria2", aria2::detect),
     ("arkimeconf", arkimeconf::detect),
     ("arw", arw::detect),
     ("asciicast", asciicast::detect),
@@ -2816,6 +2825,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bannedips", bannedips::detect),
     ("base32", base32::detect),
     ("bashrc", bashrc::detect),
+    ("bazarr", bazarr::detect),
     ("bazel", bazel::detect),
     ("bbcode", bbcode::detect),
     ("beets", beets::detect),
@@ -2942,6 +2952,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("defconfig", defconfig::detect),
     ("defoldproj", defoldproj::detect),
     ("dehydrated", dehydrated::detect),
+    ("deluge", deluge::detect),
     ("denoconf", denoconf::detect),
     ("dependabot", dependabot::detect),
     ("detekt", detekt::detect),
@@ -3219,6 +3230,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("knexfile", knexfile::detect),
     ("kodiadv", kodiadv::detect),
     ("kong", kong::detect),
+    ("kopia", kopia::detect),
     ("kql", kql::detect),
     ("kratos", kratos::detect),
     ("krb5conf", krb5conf::detect),
@@ -3347,6 +3359,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("nanoid", nanoid::detect),
     ("nanorc", nanorc::detect),
     ("nats", nats::detect),
+    ("navidrome", navidrome::detect),
     ("nbd", nbd::detect),
     ("ncmpcpp", ncmpcpp::detect),
     ("ncpdp", ncpdp::detect),
@@ -3501,6 +3514,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pyroconf", pyroconf::detect),
     ("pytestbench", pytestbench::detect),
     ("qasm", qasm::detect),
+    ("qbittorrent", qbittorrent::detect),
     ("qcp", qcp::detect),
     ("qdrantconf", qdrantconf::detect),
     ("qgsproj", qgsproj::detect),
@@ -3561,6 +3575,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("rspamdconf", rspamdconf::detect),
     ("rss2email", rss2email::detect),
     ("rsyslogd", rsyslogd::detect),
+    ("rtorrent", rtorrent::detect),
     ("rubocop", rubocop::detect),
     ("ruffconf", ruffconf::detect),
     ("rundeck", rundeck::detect),
@@ -3707,6 +3722,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("toxini", toxini::detect),
     ("tptp", tptp::detect),
     ("traefik", traefik::detect),
+    ("transmission", transmission::detect),
     ("travisci", travisci::detect),
     ("treesittergram", treesittergram::detect),
     ("trivy", trivy::detect),

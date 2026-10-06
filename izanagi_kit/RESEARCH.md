@@ -6199,6 +6199,17 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 `pub mod` / `DETECTORS` 登録済み(1088 エントリ)。API ピン更新
 (18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
+## 第368次
+
+メディア/ダウンロード/バックアップ系の設定形式8モジュール
+(`aria2`, `bazarr`, `deluge`, `kopia`, `navidrome`, `qbittorrent`, `rtorrent`, `transmission`)
+を追加。qbittorrent は `Session\`/`WebUI\`/`MailNotification\` バックスラッシュ名前空間キー、
+rtorrent は `directory`/`session`/`port_range`/`scgi_port`/`method.*`、
+aria2 は `bt-*`/`dht-*`/`rpc-*` キー、bazarr は `[sonarr]`/`[radarr]`+
+`enabled_providers`/`*_sync`、navidrome は `MusicFolder`/`ScanSchedule` キャメルキー、
+kopia は `masterKey`/`hashedPassword`/`keepHourly`/`cacheDirectory` 排他キー。
+JSON系は `jkey` で行頭 `"key":` のみ照合。DETECTORS 1095件、kit モジュール数2185。
+
 ## 第378次
 
 FPGA/EDAツールチェーンの設定形式8モジュールを追加
