@@ -484,6 +484,7 @@ pub mod asoundrc;
 pub mod ass;
 pub mod assetlinks;
 pub mod assets;
+pub mod asterisk;
 pub mod asv;
 pub mod atom;
 pub mod atr;
@@ -994,6 +995,7 @@ pub mod fpml;
 pub mod fps;
 pub mod frac;
 pub mod frd;
+pub mod freeswitch;
 pub mod freetds;
 pub mod frigate;
 pub mod frobenius;
@@ -1068,6 +1070,7 @@ pub mod glusterfs;
 pub mod gml;
 pub mod gn;
 pub mod gnoise;
+pub mod gnugk;
 pub mod goap;
 pub mod godot;
 pub mod goertzel;
@@ -1260,6 +1263,7 @@ pub mod ivy;
 pub mod iwdconf;
 pub mod jackrc;
 pub mod jacobi;
+pub mod janus;
 pub mod jar;
 pub mod jaro;
 pub mod jats;
@@ -1305,6 +1309,7 @@ pub mod k3sconf;
 pub mod k6;
 pub mod kafka;
 pub mod kalman;
+pub mod kamailio;
 pub mod kap;
 pub mod karatsuba;
 pub mod karmaconf;
@@ -1685,6 +1690,7 @@ pub mod openntpd;
 pub mod openpulse;
 pub mod openrc;
 pub mod opensearch;
+pub mod opensips;
 pub mod openssl;
 pub mod opentsdb;
 pub mod openvpn;
@@ -1781,6 +1787,7 @@ pub mod pinpoint;
 pub mod pipewireconf;
 pub mod pipfile;
 pub mod pjs;
+pub mod pjsua;
 pub mod pk;
 pub mod pkcs12;
 pub mod pkcs8;
@@ -2000,6 +2007,7 @@ pub mod rsyslogd;
 pub mod rtcp;
 pub mod rtf;
 pub mod rtp;
+pub mod rtpengine;
 pub mod rtree;
 pub mod rtsp;
 pub mod rubocop;
@@ -2765,6 +2773,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("asf", asf::detect),
     ("asn1", asn1::detect),
     ("asoundrc", asoundrc::detect),
+    ("asterisk", asterisk::detect),
     ("asv", asv::detect),
     ("atom", atom::detect),
     ("audacity", audacity::detect),
@@ -2999,6 +3008,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("footconf", footconf::detect),
     ("fossilconf", fossilconf::detect),
     ("fpml", fpml::detect),
+    ("freeswitch", freeswitch::detect),
     ("freetds", freetds::detect),
     ("frigate", frigate::detect),
     ("frr", frr::detect),
@@ -3033,6 +3043,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("glusterfs", glusterfs::detect),
     ("gml", gml::detect),
     ("gn", gn::detect),
+    ("gnugk", gnugk::detect),
     ("godot", godot::detect),
     ("gogsconf", gogsconf::detect),
     ("golangci", golangci::detect),
@@ -3125,6 +3136,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ivy", ivy::detect),
     ("iwdconf", iwdconf::detect),
     ("jackrc", jackrc::detect),
+    ("janus", janus::detect),
     ("jbig2", jbig2::detect),
     ("jed", jed::detect),
     ("jekyll", jekyll::detect),
@@ -3152,6 +3164,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("k3sconf", k3sconf::detect),
     ("k6", k6::detect),
     ("kafka", kafka::detect),
+    ("kamailio", kamailio::detect),
     ("karmaconf", karmaconf::detect),
     ("katesyntax", katesyntax::detect),
     ("kbm", kbm::detect),
@@ -3362,6 +3375,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openpulse", openpulse::detect),
     ("openrc", openrc::detect),
     ("opensearch", opensearch::detect),
+    ("opensips", opensips::detect),
     ("openssl", openssl::detect),
     ("openvpn", openvpn::detect),
     ("opsjson", opsjson::detect),
@@ -3397,6 +3411,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pinpoint", pinpoint::detect),
     ("pipewireconf", pipewireconf::detect),
     ("pipfile", pipfile::detect),
+    ("pjsua", pjsua::detect),
     ("pk", pk::detect),
     ("pkl", pkl::detect),
     ("pl", pl::detect),
@@ -3507,6 +3522,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("rspamdconf", rspamdconf::detect),
     ("rss2email", rss2email::detect),
     ("rsyslogd", rsyslogd::detect),
+    ("rtpengine", rtpengine::detect),
     ("rubocop", rubocop::detect),
     ("ruffconf", ruffconf::detect),
     ("rundeck", rundeck::detect),

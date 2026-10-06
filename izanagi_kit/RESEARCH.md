@@ -6121,3 +6121,16 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第370次
+
+VoIP/リアルタイム通信デーモン系の設定形式8モジュール
+(`asterisk`, `freeswitch`, `gnugk`, `janus`, `kamailio`, `opensips`,
+`pjsua`, `rtpengine`) を追加。asterisk は `[section]`+`exten =>`/
+`key => value` dialplan、freeswitch は `<param>`+`<configuration>` XML、
+kamailio は `#!define`+`route[...]`+`loadmodule`/`modparam` cfg-script、
+opensips はフォーク由来の同形 cfg (route必須で弁別)、rtpengine は
+`[rtpengine]`+`listen-ng`/`port-min`/`redis` INI、janus は libconfig式
+`general:`/`nat:`/`media:`/`ws:` グループ+pjsuaは`--flag`行、
+gnugk は `[Gatekeeper::Main]`/`[RoutedMode]` 名前空間セクション。
+DETECTORS 1103件、kit モジュール数2185。
