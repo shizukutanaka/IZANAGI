@@ -6121,3 +6121,33 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第362次 — IdP/認証プロキシ・監視エージェント系 9 モジュール
+
+アイデンティティ・ゼロトラスト系ツールの設定形式を追加。YAMLトップキー(強/弱)、INI、HCL の3パターン。
+
+- cerbos: Cerbos ポリシー(`api.cerbos.dev` + ResourcePolicy/PrincipalPolicy/DerivedRoles/ExportVariables)
+- teleport: `teleport.yaml`(`teleport:`/`auth_service:`/`proxy_service:`/`*_service:` 系強キー)
+- keto: Ory Keto `keto.yaml`(`namespaces:`/`dsn:` 強キー+`serve:`/`limit:` 弱キー)
+- zitadel: ZITADEL config(`ExternalDomain`/`ExternalPort`/`SystemDefaults`/`DefaultInstance` 等 PascalCase 強キー)
+- casdoor: `app.conf` INI(`origin`/`staticBaseURL`/`isDemoMode`/`redisEndpoint` 等 Casdoor 排他キー)
+- pomerium: Pomerium `config.yaml`(`authenticate_service_url`/`databroker_service_url`/`shared_secret`/`idp_*` 強キー)
+- boundary: Boundary `boundary.hcl`(`listener "x"` + `controller {`/`worker {`/`kms "t"`/`purpose =` 併存が必須 — Vault との区別)
+- metricbeat: `metricbeat.yml`(`metricbeat.modules`/`metricbeat.autodetect` 等 metricbeat.* トップキー)
+- winlogbeat: `winlogbeat.yml`(`winlogbeat.event_logs`/`winlogbeat.registry_file` 等 winlogbeat.* トップキー)
+
+(`osquery.conf` は既存 osqueryconf がカバーしていたため差替)
+
+`pub mod` / `DETECTORS` 登録済み(1088 エントリ)。API ピン更新
+(18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- cerbos/cerbos — api.cerbos.dev policy kinds
+- gravitational/teleport — teleport.yaml service sections
+- ory/keto — keto.yaml serve/namespaces/dsn
+- zitadel/zitadel — config keys (ExternalDomain…)
+- casdoor/casdoor — app.conf keys
+- pomerium/pomerium — config.yaml keys
+- hashicorp/boundary — boundary.hcl listener/controller/worker/kms
+- elastic/beats — metricbeat.yml / winlogbeat.yml top keys
