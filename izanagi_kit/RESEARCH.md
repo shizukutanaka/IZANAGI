@@ -6121,3 +6121,21 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第379次
+
+デバッグ/プロファイラ/組込みツールの設定形式8モジュールを追加:
+openocd(openocd.cfg Tcl: `source [find ...]`行 + adapter_khz/
+reset_config/init/jtag/target等コマンド), avrdude(avrdude.conf
+独自形式: part/programmer/memoryブロック + id/desc/signature/
+baudrate等`key = value;`), gdbinit(.gdbinit: set/define/source/
+handle/break/add-auto-load-safe-path等コマンド、set+3コマンド or
+5コマンド), lldbinit(.lldbinit: settings set/command alias/
+breakpoint set/plugin load等、settings+3 or 5), valgrindsupp
+(Valgrind抑制: `{ name / Memcheck:|fun:|obj:|match-leak-kinds: / }`
+ブロック), perfconfig(.perfconfig INI: [tui]/[annotate]/[call-graph]/
+[buildid]等既知セクション+キー), doxygenconf(Doxyfile: PROJECT_NAME/
+OUTPUT_DIRECTORY/INPUT/GENERATE_*/EXTRACT_*大文字`KEY = value`>=3 +
+@INCLUDE), bpftrace(.btプログラム: BEGIN/END/tracepoint:/kprobe:/
+interval:等プローブ指定子+{}ブロック)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。

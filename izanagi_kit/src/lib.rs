@@ -499,6 +499,7 @@ pub mod autoyast;
 pub mod avaconf;
 pub mod avi;
 pub mod avltree;
+pub mod avrdude;
 pub mod avro;
 pub mod awscredentials;
 pub mod ay;
@@ -566,6 +567,7 @@ pub mod bogofilter;
 pub mod bootimg;
 pub mod bootini;
 pub mod borgmatic;
+pub mod bpftrace;
 pub mod bplus;
 pub mod bps;
 pub mod braille;
@@ -831,6 +833,7 @@ pub mod dossys;
 pub mod dot;
 pub mod dotenv;
 pub mod dovecot;
+pub mod doxygenconf;
 pub mod dpll;
 pub mod dpx;
 pub mod dragonflyconf;
@@ -1021,6 +1024,7 @@ pub mod gci;
 pub mod gcm;
 pub mod gcode;
 pub mod gcov;
+pub mod gdbinit;
 pub mod gdbm;
 pub mod gdf;
 pub mod gdiff;
@@ -1394,6 +1398,7 @@ pub mod linrec;
 pub mod liquibase;
 pub mod lis;
 pub mod lit;
+pub mod lldbinit;
 pub mod lldp;
 pub mod llmnr;
 pub mod llvmbc;
@@ -1682,6 +1687,7 @@ pub mod opendmarc;
 pub mod openfga;
 pub mod openhab;
 pub mod openntpd;
+pub mod openocd;
 pub mod openpulse;
 pub mod openrc;
 pub mod opensearch;
@@ -1757,6 +1763,7 @@ pub mod peg;
 pub mod pell;
 pub mod pem;
 pub mod perceptron;
+pub mod perfconfig;
 pub mod perflog;
 pub mod perm;
 pub mod permissions;
@@ -2370,6 +2377,7 @@ pub mod uuid;
 pub mod uuid7;
 pub mod vagrant;
 pub mod vale;
+pub mod valgrindsupp;
 pub mod validator;
 pub mod valkeyconf;
 pub mod varint;
@@ -2774,6 +2782,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("autofs", autofs::detect),
     ("autoyast", autoyast::detect),
     ("avaconf", avaconf::detect),
+    ("avrdude", avrdude::detect),
     ("awscredentials", awscredentials::detect),
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
@@ -2799,6 +2808,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bogofilter", bogofilter::detect),
     ("bootini", bootini::detect),
     ("borgmatic", borgmatic::detect),
+    ("bpftrace", bpftrace::detect),
     ("braket", braket::detect),
     ("browserconfig", browserconfig::detect),
     ("browserslist", browserslist::detect),
@@ -2935,6 +2945,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dot", dot::detect),
     ("dotenv", dotenv::detect),
     ("dovecot", dovecot::detect),
+    ("doxygenconf", doxygenconf::detect),
     ("dpx", dpx::detect),
     ("dragonflyconf", dragonflyconf::detect),
     ("drawio", drawio::detect),
@@ -3008,6 +3019,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("garnetconf", garnetconf::detect),
     ("gbench", gbench::detect),
     ("gbstudio", gbstudio::detect),
+    ("gdbinit", gdbinit::detect),
     ("gdf", gdf::detect),
     ("gdmconf", gdmconf::detect),
     ("gedasch", gedasch::detect),
@@ -3203,6 +3215,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("limine", limine::detect),
     ("linkerd", linkerd::detect),
     ("liquibase", liquibase::detect),
+    ("lldbinit", lldbinit::detect),
     ("lmms", lmms::detect),
     ("lndconf", lndconf::detect),
     ("log4j", log4j::detect),
@@ -3359,6 +3372,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openfga", openfga::detect),
     ("openhab", openhab::detect),
     ("openntpd", openntpd::detect),
+    ("openocd", openocd::detect),
     ("openpulse", openpulse::detect),
     ("openrc", openrc::detect),
     ("opensearch", opensearch::detect),
@@ -3385,6 +3399,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("parityconf", parityconf::detect),
     ("paseto", paseto::detect),
     ("pcsx2conf", pcsx2conf::detect),
+    ("perfconfig", perfconfig::detect),
     ("perflog", perflog::detect),
     ("pfconf", pfconf::detect),
     ("pgpass", pgpass::detect),
@@ -3687,6 +3702,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ustx", ustx::detect),
     ("vagrant", vagrant::detect),
     ("vale", vale::detect),
+    ("valgrindsupp", valgrindsupp::detect),
     ("valkeyconf", valkeyconf::detect),
     ("vaultagent", vaultagent::detect),
     ("vcard", vcard::detect),
