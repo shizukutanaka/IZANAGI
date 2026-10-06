@@ -59,6 +59,9 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    // UTF-8 BOM は Windows 系エディタ由来で付き得る — Rust の trim 系は
+    // U+FEFF を空白と見なさないため先に剥がす。
+    let s = s.strip_prefix('\u{feff}').unwrap_or(s);
     let first = s.lines().next().unwrap_or("").trim_end();
     first.starts_with("CLUSTAL") || first.starts_with("MUSCLE")
 }
@@ -70,6 +73,7 @@ pub fn parse(b: &[u8]) -> Option<Aln> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = s.strip_prefix('\u{feff}').unwrap_or(s);
     let mut lines = s.lines();
     let banner = lines.next().unwrap_or("");
     let program_len = banner.trim_end().len();
@@ -113,6 +117,15 @@ pub fn parse(b: &[u8]) -> Option<Aln> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_utf8_bom() {
+        // Windows 系エディタ由来の BOM 付きでも先頭行バナーを読める。
+        let mut v = b"\xef\xbb\xbf".to_vec();
+        v.extend_from_slice(D);
+        assert!(detect(&v));
+        assert!(parse(&v).is_some());
+    }
 
     const D: &[u8] = b"CLUSTAL W (1.83) multiple sequence alignment\n\n\
 seq1    ACGTACGT\n\
