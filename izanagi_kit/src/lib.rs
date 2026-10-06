@@ -502,6 +502,7 @@ pub mod avi;
 pub mod avltree;
 pub mod avro;
 pub mod awscredentials;
+pub mod awselb;
 pub mod ay;
 pub mod azurepipe;
 pub mod azw;
@@ -615,6 +616,7 @@ pub mod candump;
 pub mod canopen;
 pub mod capacitor;
 pub mod capnp;
+pub mod capsule;
 pub mod capx;
 pub mod cardanoconf;
 pub mod cargoconf;
@@ -1319,8 +1321,10 @@ pub mod k0sconf;
 pub mod k3d;
 pub mod k3sconf;
 pub mod k6;
+pub mod k8gb;
 pub mod kafka;
 pub mod kalman;
+pub mod kamaji;
 pub mod kap;
 pub mod karatsuba;
 pub mod karmaconf;
@@ -1787,6 +1791,7 @@ pub mod peg;
 pub mod pell;
 pub mod pem;
 pub mod perceptron;
+pub mod percona;
 pub mod perflog;
 pub mod perm;
 pub mod permissions;
@@ -2079,6 +2084,7 @@ pub mod sch;
 pub mod scl;
 pub mod sconstruct;
 pub mod scp;
+pub mod scyllaop;
 pub mod sdc;
 pub mod sddmconf;
 pub mod sdf;
@@ -2309,6 +2315,7 @@ pub mod thanosconf;
 pub mod threat;
 pub mod threemf;
 pub mod thrift;
+pub mod tidb;
 pub mod tiff;
 pub mod tilemap;
 pub mod tileservergl;
@@ -2453,6 +2460,7 @@ pub mod virtxml;
 pub mod visibility;
 pub mod viteconf;
 pub mod viterbi;
+pub mod vitess;
 pub mod vitestconf;
 pub mod vlcrc;
 pub mod vlt;
@@ -2833,6 +2841,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("autoyast", autoyast::detect),
     ("avaconf", avaconf::detect),
     ("awscredentials", awscredentials::detect),
+    ("awselb", awselb::detect),
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
     ("bai2", bai2::detect),
@@ -2878,6 +2887,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("callgrind", callgrind::detect),
     ("camt", camt::detect),
     ("capacitor", capacitor::detect),
+    ("capsule", capsule::detect),
     ("capx", capx::detect),
     ("cardanoconf", cardanoconf::detect),
     ("cargoconf", cargoconf::detect),
@@ -3224,7 +3234,9 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("k3d", k3d::detect),
     ("k3sconf", k3sconf::detect),
     ("k6", k6::detect),
+    ("k8gb", k8gb::detect),
     ("kafka", kafka::detect),
+    ("kamaji", kamaji::detect),
     ("karmaconf", karmaconf::detect),
     ("katesyntax", katesyntax::detect),
     ("kbm", kbm::detect),
@@ -3472,6 +3484,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("paseto", paseto::detect),
     ("pcsx2conf", pcsx2conf::detect),
     ("pdns", pdns::detect),
+    ("percona", percona::detect),
     ("perflog", perflog::detect),
     ("pfconf", pfconf::detect),
     ("pgpass", pgpass::detect),
@@ -3621,6 +3634,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("scl", scl::detect),
     ("sconstruct", sconstruct::detect),
     ("scp", scp::detect),
+    ("scyllaop", scyllaop::detect),
     ("sdc", sdc::detect),
     ("sddmconf", sddmconf::detect),
     ("sdkconfig", sdkconfig::detect),
@@ -3736,6 +3750,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tfrecord", tfrecord::detect),
     ("tgf", tgf::detect),
     ("thanosconf", thanosconf::detect),
+    ("tidb", tidb::detect),
     ("tileservergl", tileservergl::detect),
     ("tiltfile", tiltfile::detect),
     ("timesyncd", timesyncd::detect),
@@ -3810,6 +3825,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vimsyntax", vimsyntax::detect),
     ("virtxml", virtxml::detect),
     ("viteconf", viteconf::detect),
+    ("vitess", vitess::detect),
     ("vitestconf", vitestconf::detect),
     ("vlcrc", vlcrc::detect),
     ("vlt", vlt::detect),

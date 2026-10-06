@@ -6180,6 +6180,22 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
 
+## 第359次 — DBオペレータ/負荷分散・マルチテナント系 CRD 8 モジュール
+
+DBオペレータとLB/マルチテナント系 CRD 群第4弾。
+
+- awselb: AWS Load Balancer Controller(`elbv2.k8s.aws`/`vpcresources.k8s.aws` + TargetGroupBinding/IngressClassParams/SecurityGroupPolicy)
+- k8gb: k8gb(`k8gb.absa.oss` + Gslb)
+- kamaji: Kamaji(`kamaji.clastix.io` + TenantControlPlane/DataStore)
+- capsule: Capsule(`capsule.clastix.io` + Tenant/CapsuleConfiguration/GlobalTenantResource/ResourcePool)
+- scyllaop: ScyllaDB Operator(`scylla.scylladb.com` + ScyllaCluster/ScyllaDBDatacenter/ScyllaDBMonitoring/NodeConfig 等)
+- percona: Percona オペレータ群(`*.percona.com` + PerconaXtraDBCluster/PerconaServerMongoDB/PerconaServerMySQL/PerconaPGCluster +*Backup/*Restore)
+- tidb: TiDB Operator(`pingcap.com` + TidbCluster/TidbMonitor/TidbInitializer/TidbClusterAutoScaler/DMCluster/Backup/Restore 等)
+- vitess: Vitess Operator(`planetscale.com` + VitessCluster/VitessShard/VitessCell/VitessKeyspace/VitessBackup* 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第360次 — DB/バックアップ・レジストリ系オペレータ CRD 8 モジュール
 
 分散DB・バックアップ・コンテナレジストリ系 CRD 群第5弾。
