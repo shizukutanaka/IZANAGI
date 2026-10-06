@@ -6121,3 +6121,14 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第368次
+
+メディア/ダウンロード/バックアップ系の設定形式8モジュール
+(`aria2`, `bazarr`, `deluge`, `kopia`, `navidrome`, `qbittorrent`, `rtorrent`, `transmission`)
+を追加。qbittorrent は `Session\`/`WebUI\`/`MailNotification\` バックスラッシュ名前空間キー、
+rtorrent は `directory`/`session`/`port_range`/`scgi_port`/`method.*`、
+aria2 は `bt-*`/`dht-*`/`rpc-*` キー、bazarr は `[sonarr]`/`[radarr]`+
+`enabled_providers`/`*_sync`、navidrome は `MusicFolder`/`ScanSchedule` キャメルキー、
+kopia は `masterKey`/`hashedPassword`/`keepHourly`/`cacheDirectory` 排他キー。
+JSON系は `jkey` で行頭 `"key":` のみ照合。DETECTORS 1095件、kit モジュール数2185。
