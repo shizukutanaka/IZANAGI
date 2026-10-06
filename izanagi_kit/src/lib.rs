@@ -521,6 +521,7 @@ pub mod bdb;
 pub mod bdd;
 pub mod bdf;
 pub mod beam;
+pub mod beansxml;
 pub mod bech32;
 pub mod bed;
 pub mod beets;
@@ -702,6 +703,7 @@ pub mod consul;
 pub mod containerd;
 pub mod containersconf;
 pub mod content;
+pub mod contextxml;
 pub mod contourconf;
 pub mod conv;
 pub mod cookiejar;
@@ -934,6 +936,7 @@ pub mod exr;
 pub mod ext2;
 pub mod extmanifest;
 pub mod f2fs;
+pub mod facesconfig;
 pub mod faction;
 pub mod fail2ban;
 pub mod falcoconf;
@@ -1060,6 +1063,7 @@ pub mod gitsecret;
 pub mod gitwebconf;
 pub mod gjk;
 pub mod glade;
+pub mod glassfishweb;
 pub mod glb;
 pub mod glob;
 pub mod glsl;
@@ -1264,6 +1268,7 @@ pub mod jar;
 pub mod jaro;
 pub mod jats;
 pub mod jbig2;
+pub mod jbossweb;
 pub mod jdx;
 pub mod jed;
 pub mod jef;
@@ -1760,6 +1765,7 @@ pub mod perceptron;
 pub mod perflog;
 pub mod perm;
 pub mod permissions;
+pub mod persistencexml;
 pub mod pes;
 pub mod pfconf;
 pub mod pfm;
@@ -2443,9 +2449,11 @@ pub mod wdsu;
 pub mod weaviateconf;
 pub mod webfinger;
 pub mod webloc;
+pub mod weblogicxml;
 pub mod webmanifest;
 pub mod webp;
 pub mod webpackconf;
+pub mod webxml;
 pub mod weechat;
 pub mod westconf;
 pub mod westonconf;
@@ -2785,6 +2793,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bashrc", bashrc::detect),
     ("bazel", bazel::detect),
     ("bbcode", bbcode::detect),
+    ("beansxml", beansxml::detect),
     ("beets", beets::detect),
     ("benchstat", benchstat::detect),
     ("bentoml", bentoml::detect),
@@ -2870,6 +2879,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("consul", consul::detect),
     ("containerd", containerd::detect),
     ("containersconf", containersconf::detect),
+    ("contextxml", contextxml::detect),
     ("contourconf", contourconf::detect),
     ("cookiejar", cookiejar::detect),
     ("coq", coq::detect),
@@ -2977,6 +2987,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("exr", exr::detect),
     ("extmanifest", extmanifest::detect),
     ("f2fs", f2fs::detect),
+    ("facesconfig", facesconfig::detect),
     ("fail2ban", fail2ban::detect),
     ("falcoconf", falcoconf::detect),
     ("far", far::detect),
@@ -3029,6 +3040,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gitsecret", gitsecret::detect),
     ("gitwebconf", gitwebconf::detect),
     ("glade", glade::detect),
+    ("glassfishweb", glassfishweb::detect),
     ("glsl", glsl::detect),
     ("glusterfs", glusterfs::detect),
     ("gml", gml::detect),
@@ -3126,6 +3138,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("iwdconf", iwdconf::detect),
     ("jackrc", jackrc::detect),
     ("jbig2", jbig2::detect),
+    ("jbossweb", jbossweb::detect),
     ("jed", jed::detect),
     ("jekyll", jekyll::detect),
     ("jellyfin", jellyfin::detect),
@@ -3386,6 +3399,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("paseto", paseto::detect),
     ("pcsx2conf", pcsx2conf::detect),
     ("perflog", perflog::detect),
+    ("persistencexml", persistencexml::detect),
     ("pfconf", pfconf::detect),
     ("pgpass", pgpass::detect),
     ("pgservice", pgservice::detect),
@@ -3718,8 +3732,10 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wandb", wandb::detect),
     ("waybar", waybar::detect),
     ("weaviateconf", weaviateconf::detect),
+    ("weblogicxml", weblogicxml::detect),
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),
+    ("webxml", webxml::detect),
     ("weechat", weechat::detect),
     ("westconf", westconf::detect),
     ("westonconf", westonconf::detect),

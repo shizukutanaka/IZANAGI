@@ -6121,3 +6121,27 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第374次
+
+Jakarta EE デプロイメント記述子8モジュールを追加:
+webxml(web.xml: <web-app> ルート + servlet/filter/listener/
+session-config/security-constraint 等約110要素),
+persistencexml(persistence.xml: <persistence>+<persistence-unit>/
+jta-data-source/properties + jakarta.persistence.*/javax.persistence.*
+属性), beansxml(CDI beans.xml: <beans bean-discovery-mode> +
+alternatives/decorators/interceptors/scan/exclude),
+facesconfig(faces-config.xml: <faces-config> + managed-bean/
+navigation-rule/converter/validator/render-kit 等約100要素),
+contextxml(Tomcat context.xml: <Context> + Resource/Valve/Realm/
+Loader/Manager/WatchedResource 等), weblogicxml(weblogic.xml:
+<weblogic-web-app> + context-root/session-descriptor/
+jsp-descriptor/container-descriptor/security-role-assignment/
+work-manager 等約100要素), glassfishweb(glassfish-web.xml/
+sun-web.xml: <glassfish-web-app|sun-web-app> + session-config/
+jsp-config/class-loader/security-role-mapping/locale-charset-info
+等), jbossweb(jboss-web.xml: <jboss-web> + context-root/
+security-domain/virtual-host/valve/replication-config/
+max-active-sessions/webservice-description 等)。
+いずれも XML 要素行プレフィックス一致、コメント行除外、
+テスト4本ずつ。
