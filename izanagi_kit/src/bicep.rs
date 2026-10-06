@@ -38,16 +38,23 @@ pub struct Bicep {
     /// `//` and `/*` comment lines.
     pub comments: usize,
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `//`/`/*` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with("//") && !l.starts_with("/*") && l.contains(needle)
+    })
+}
 
 /// Returns `true` when `b` looks like Bicep source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    if t.contains("targetScope") {
+    if code_has(t, "targetScope") {
         return true;
     }
-    (t.contains("resource ") && t.contains("'@") && t.contains("= "))
-        || (t.contains("param ") && t.contains("output ") && t.contains("= "))
+    (code_has(t, "resource ") && code_has(t, "'@") && code_has(t, "= "))
+        || (code_has(t, "param ") && code_has(t, "output ") && code_has(t, "= "))
 }
 
 impl Bicep {
@@ -114,6 +121,11 @@ impl Bicep {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"// targetScope = 'subscription'\n"));
+    }
 
     const SRC: &[u8] = b"// infra
 targetScope = 'resourceGroup'

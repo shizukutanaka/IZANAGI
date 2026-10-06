@@ -50,18 +50,25 @@ fn words(t: &str) -> impl Iterator<Item = &str> {
     t.split(|c: char| !(c.is_alphanumeric() || c == '_'))
         .filter(|w| !w.is_empty())
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `//`/`/*` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with("//") && !l.starts_with("/*") && l.contains(needle)
+    })
+}
 
 /// Returns `true` when `b` looks like Cairo source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("%lang starknet")
-        || t.contains("#[starknet")
-        || t.contains("#[contract]")
-        || t.contains("#[storage]")
-        || t.contains("#[external")
-        || t.contains("#[event]")
-        || (t.contains("func ") && t.contains("felt"))
+    code_has(t, "%lang starknet")
+        || code_has(t, "#[starknet")
+        || code_has(t, "#[contract]")
+        || code_has(t, "#[storage]")
+        || code_has(t, "#[external")
+        || code_has(t, "#[event]")
+        || (code_has(t, "func ") && code_has(t, "felt"))
 }
 
 impl Cairo {
@@ -113,6 +120,11 @@ impl Cairo {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"// #[contract]\n// %lang starknet\n"));
+    }
 
     const SRC: &[u8] = b"#[starknet::contract]\nmod Counter {\n    #[storage]\n    struct Storage { c: u128 }\n}\n";
 
