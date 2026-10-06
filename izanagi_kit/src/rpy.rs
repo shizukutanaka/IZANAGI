@@ -50,17 +50,22 @@ pub struct Rpy {
     /// `#` comment lines.
     pub comments: usize,
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `#` コメント行内の言及は証拠にしない。
+    t.lines()
+        .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
+}
 
 /// Returns `true` when `b` looks like a Ren'Py script.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("label ")
-        && (t.contains("define ")
-            || t.contains("screen ")
-            || t.contains("init python")
-            || t.contains("image ")
-            || t.contains("Character("))
+    code_has(t, "label ")
+        && (code_has(t, "define ")
+            || code_has(t, "screen ")
+            || code_has(t, "init python")
+            || code_has(t, "image ")
+            || code_has(t, "Character("))
 }
 
 impl Rpy {
@@ -143,6 +148,11 @@ impl Rpy {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# label start:\n# define e = 1\n"));
+    }
 
     #[test]
     fn detects_rpy() {
