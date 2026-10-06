@@ -6180,6 +6180,23 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
 
+## 第351次 — Carvel/Bitbucket CI/Kapitan/Garden/moonrepo系設定形式 8 モジュール
+
+census 未収録ドメイン第4弾。CI・モノレポ・Kubernetes補助ツールの
+デファクト標準設定形式を追加。
+
+- carvel: Carvel suite(`*.k14s.io` / `packaging.carvel.dev` + Config/App/PackageInstall/PackageRepository/Package/ImagesConfig 等)
+- ytt: Carvel ytt テンプレート(`#@` ディレクティブ2個以上 + data/values・load・@ytt: 等の強マーカー)
+- magefile: Mage(`//go:build mage` / `// +build mage` or magefile/mage/mg import + `package main`)
+- pnpmworkspace: `pnpm-workspace.yaml`(`packages:` グロブ or catalog/catalogs/overrides 等 pnpm 固有キー)
+- bitbucketpipes: `bitbucket-pipelines.yml`(`pipelines:` + `- step`/`script:`/`pipe:`)
+- kapitan: Kapitan クラス/ターゲット(`classes:` + `parameters:`、or `parameters` 配下の `kapitan:` + `compile:`)
+- garden: Garden.io(`apiVersion: garden.io/v0|v1` + Project/Module/Build/Deploy/Test/Run/Workflow/Provider 等)
+- moonrepo: moonrepo `moon.yml`/`.moon/*.yml`(`tasks:` + language/fileGroups/vcs/runner/toolchain 等 moon 固有キー)
+
+`pub mod` / `DETECTORS` 登録済み(1095 エントリ)。API ピン更新
+(18186→18207)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第352次 — Kubernetesネットワーク/証明書/シークレット系 CRD + atlantis 8 モジュール
 
 census 未収録ドメイン第5弾。K8s ネットワーク・証明書・シークレット管理の

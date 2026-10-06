@@ -560,6 +560,7 @@ pub mod bird;
 pub mod bit;
 pub mod bitap;
 pub mod bitboard;
+pub mod bitbucketpipes;
 pub mod bitcoinconf;
 pub mod bitonic;
 pub mod bitrise;
@@ -637,6 +638,7 @@ pub mod cargolock;
 pub mod carla;
 pub mod cartesian;
 pub mod cartocss;
+pub mod carvel;
 pub mod casbin;
 pub mod casdoor;
 pub mod cassandra;
@@ -1057,6 +1059,7 @@ pub mod fuzzy;
 pub mod fxml;
 pub mod fxp;
 pub mod gapbuffer;
+pub mod garden;
 pub mod garnetconf;
 pub mod gatewayapi;
 pub mod gatsby;
@@ -1369,6 +1372,7 @@ pub mod kafka;
 pub mod kalman;
 pub mod kamaji;
 pub mod kap;
+pub mod kapitan;
 pub mod karatsuba;
 pub mod karmaconf;
 pub mod karp;
@@ -1516,6 +1520,7 @@ pub mod macaroon;
 pub mod macho;
 pub mod maddyconf;
 pub mod maf;
+pub mod magefile;
 pub mod magic;
 pub mod mailcap;
 pub mod maildir;
@@ -1625,6 +1630,7 @@ pub mod monero;
 pub mod mongod;
 pub mod monit;
 pub mod moonrakerconf;
+pub mod moonrepo;
 pub mod mopidy;
 pub mod mosquitto;
 pub mod motionconf;
@@ -1913,6 +1919,7 @@ pub mod pmx;
 pub mod png;
 pub mod pnm;
 pub mod pnpmlock;
+pub mod pnpmworkspace;
 pub mod po;
 pub mod pod;
 pub mod podfile;
@@ -2714,6 +2721,7 @@ pub mod yenc;
 pub mod yfast;
 pub mod yggdrasil;
 pub mod yosys;
+pub mod ytt;
 pub mod yugabyte;
 pub mod yuzuconf;
 pub mod z64;
@@ -2989,6 +2997,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("biome", biome::detect),
     ("bird", bird::detect),
     ("bit", bit::detect),
+    ("bitbucketpipes", bitbucketpipes::detect),
     ("bitcoinconf", bitcoinconf::detect),
     ("bitrise", bitrise::detect),
     ("blackbird", blackbird::detect),
@@ -3027,6 +3036,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cargolock", cargolock::detect),
     ("carla", carla::detect),
     ("cartocss", cartocss::detect),
+    ("carvel", carvel::detect),
     ("casbin", casbin::detect),
     ("casdoor", casdoor::detect),
     ("cassandra", cassandra::detect),
@@ -3238,6 +3248,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fusesoc", fusesoc::detect),
     ("fxml", fxml::detect),
     ("fxp", fxp::detect),
+    ("garden", garden::detect),
     ("garnetconf", garnetconf::detect),
     ("gatewayapi", gatewayapi::detect),
     ("gatsby", gatsby::detect),
@@ -3400,6 +3411,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("k8gb", k8gb::detect),
     ("kafka", kafka::detect),
     ("kamaji", kamaji::detect),
+    ("kapitan", kapitan::detect),
     ("karmaconf", karmaconf::detect),
     ("karpenter", karpenter::detect),
     ("katesyntax", katesyntax::detect),
@@ -3490,6 +3502,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("macaroon", macaroon::detect),
     ("maddyconf", maddyconf::detect),
     ("maf", maf::detect),
+    ("magefile", magefile::detect),
     ("maildrop", maildrop::detect),
     ("mameconf", mameconf::detect),
     ("mapfile", mapfile::detect),
@@ -3546,6 +3559,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mongod", mongod::detect),
     ("monit", monit::detect),
     ("moonrakerconf", moonrakerconf::detect),
+    ("moonrepo", moonrepo::detect),
     ("mopidy", mopidy::detect),
     ("mosquitto", mosquitto::detect),
     ("motionconf", motionconf::detect),
@@ -3700,6 +3714,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pmacctconf", pmacctconf::detect),
     ("pmml", pmml::detect),
     ("pnpmlock", pnpmlock::detect),
+    ("pnpmworkspace", pnpmworkspace::detect),
     ("podfile", podfile::detect),
     ("poetry", poetry::detect),
     ("policyjson", policyjson::detect),
@@ -4134,6 +4149,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("yarnrc", yarnrc::detect),
     ("yggdrasil", yggdrasil::detect),
     ("yosys", yosys::detect),
+    ("ytt", ytt::detect),
     ("yugabyte", yugabyte::detect),
     ("yuzuconf", yuzuconf::detect),
     ("zabbix", zabbix::detect),
