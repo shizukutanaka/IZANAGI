@@ -6150,3 +6150,22 @@ K8s オペレータ CRD 群第2弾。全て apiVersion グループ+kind の2条
 - operator-framework/operator-lifecycle-manager — operators.coreos.com CRDs
 - shipwright-io/build — shipwright.io CRDs
 - dapr/dapr — dapr.io CRDs
+
+## 第378次
+
+FPGA/EDAツールチェーンの設定形式8モジュールを追加
+(xdc/sdc/pcf/lpf/gedasch/kicad*は既存):
+qsf(Quartus設定: set_global_assignment/set_instance_assignment/
+set_location_assignmentのTcl代入行), qpf(Quartusプロジェクト:
+QUARTUS_VERSION=+PROJECT_REVISION=固定ヘッダ),
+ucf(Xilinx ISE制約: NET/PIN/INST/TIMESPEC/TIMEGRP/AREA_GROUP
+キーワード行 + `=`必須), yosys(.ys合成スクリプト: read_*/hierarchy/
+proc/opt/techmap/abc/synth_*/write_*コマンド、read_+2コマンド or 4コマンド),
+vlt(Verilator lint: `` `verilator_config ``ヘッダ + lint_off/lint_on/
+coverage_off等ディレクティブ), modeldo(ModelSim/Questa .do:
+vlib/vlog/vcom/vsim/add wave/runコマンド群), openlane(OpenLane
+config.tcl: `set ::env(VAR) value`代入、DESIGN_/CLOCK_/FP_/
+SYNTH_/PDK等既知envプレフィックス>=2 or env代入>=4),
+fusesoc(FuseSoC .core: `CAPI=2:`必須ヘッダ + name/filesets/
+targets/providers等トップレベルYAMLキー)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
