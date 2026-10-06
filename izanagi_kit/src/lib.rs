@@ -888,6 +888,7 @@ pub mod eep;
 pub mod eertree;
 pub mod egypt;
 pub mod ejabberd;
+pub mod elasticsearch;
 pub mod elf;
 pub mod elias;
 pub mod elo;
@@ -978,6 +979,7 @@ pub mod flatpak;
 pub mod flif;
 pub mod flow;
 pub mod flowfield;
+pub mod fluentbit;
 pub mod fluentd;
 pub mod flv;
 pub mod flyio;
@@ -1326,6 +1328,7 @@ pub mod keycloak;
 pub mod keydbconf;
 pub mod keymap;
 pub mod keytab;
+pub mod kibana;
 pub mod kicadpcb;
 pub mod kicadpro;
 pub mod kicadsch;
@@ -1634,6 +1637,7 @@ pub mod npy;
 pub mod npz;
 pub mod nrg;
 pub mod nrrd;
+pub mod nsd;
 pub mod nsf;
 pub mod nslcdconf;
 pub mod nsqconf;
@@ -1751,6 +1755,7 @@ pub mod pcsx2conf;
 pub mod pcx;
 pub mod pdb;
 pub mod pdf;
+pub mod pdns;
 pub mod pds;
 pub mod pec;
 pub mod peg;
@@ -2198,6 +2203,7 @@ pub mod stylelint;
 pub mod su;
 pub mod su2;
 pub mod sublime;
+pub mod sudoers;
 pub mod sudoku;
 pub mod suffix;
 pub mod sufftree;
@@ -2284,6 +2290,7 @@ pub mod tmpfilesd;
 pub mod tmuxconf;
 pub mod tmx;
 pub mod tnsnames;
+pub mod tomcat;
 pub mod toml;
 pub mod tonelli;
 pub mod topojson;
@@ -2556,6 +2563,7 @@ pub mod zon;
 pub mod zone;
 pub mod zonemtaconf;
 pub mod zoo;
+pub mod zookeeper;
 pub mod zorder;
 pub mod zpaq;
 pub mod zpl;
@@ -2960,6 +2968,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("edn", edn::detect),
     ("edsk", edsk::detect),
     ("ejabberd", ejabberd::detect),
+    ("elasticsearch", elasticsearch::detect),
     ("emacs", emacs::detect),
     ("emqx", emqx::detect),
     ("envoy", envoy::detect),
@@ -2993,6 +3002,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fixml", fixml::detect),
     ("flake8conf", flake8conf::detect),
     ("flif", flif::detect),
+    ("fluentbit", fluentbit::detect),
     ("fluentd", fluentd::detect),
     ("flyio", flyio::detect),
     ("flyway", flyway::detect),
@@ -3165,6 +3175,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("keycloak", keycloak::detect),
     ("keydbconf", keydbconf::detect),
     ("keytab", keytab::detect),
+    ("kibana", kibana::detect),
     ("kicadpcb", kicadpcb::detect),
     ("kicadpro", kicadpro::detect),
     ("kicadsch", kicadsch::detect),
@@ -3332,6 +3343,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("nomad", nomad::detect),
     ("npmlock", npmlock::detect),
     ("npmrc", npmrc::detect),
+    ("nsd", nsd::detect),
     ("nslcdconf", nslcdconf::detect),
     ("nsqconf", nsqconf::detect),
     ("nsswitch", nsswitch::detect),
@@ -3385,6 +3397,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("parityconf", parityconf::detect),
     ("paseto", paseto::detect),
     ("pcsx2conf", pcsx2conf::detect),
+    ("pdns", pdns::detect),
     ("perflog", perflog::detect),
     ("pfconf", pfconf::detect),
     ("pgpass", pgpass::detect),
@@ -3595,6 +3608,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("storageconf", storageconf::detect),
     ("stylelint", stylelint::detect),
     ("sublime", sublime::detect),
+    ("sudoers", sudoers::detect),
     ("sudoku", sudoku::detect),
     ("suiconf", suiconf::detect),
     ("supervisor", supervisor::detect),
@@ -3647,6 +3661,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tmuxconf", tmuxconf::detect),
     ("tmx", tmx::detect),
     ("tnsnames", tnsnames::detect),
+    ("tomcat", tomcat::detect),
     ("toxini", toxini::detect),
     ("tptp", tptp::detect),
     ("traefik", traefik::detect),
@@ -3784,6 +3799,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zone", zone::detect),
     ("zonemtaconf", zonemtaconf::detect),
     ("zoo", zoo::detect),
+    ("zookeeper", zookeeper::detect),
     ("zpaq", zpaq::detect),
     ("zshrc", zshrc::detect),
     ("zulipconf", zulipconf::detect),

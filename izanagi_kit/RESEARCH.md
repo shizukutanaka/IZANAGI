@@ -6121,3 +6121,23 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第364次 — DNS/認証/オブザーバ/アプリサーバ系 8 モジュール
+
+新規センサスモジュール(DETECTORS 1087 エントリ):
+
+| モジュール | 対象 | 検出ロジック |
+| --- | --- | --- |
+| `fluentbit` | `fluent-bit.conf` | `[SERVICE]`/`[INPUT]`/`[FILTER]`/`[OUTPUT]`/`[PARSER]` セクション ≥2 + `Name`/`Match` ディレクティブ |
+| `zookeeper` | `zoo.cfg` | `tickTime`/`initLimit`/`server.N=`/`autopurge.*`/`quorum.auth.*` 等専用キー |
+| `sudoers` | sudoers | `Defaults`/`User_Alias`/`Cmnd_Alias`/`NOPASSWD:`/`ALL=(` スペック + `#includedir`/`@include` |
+| `pdns` | PowerDNS `pdns.conf` | `launch`/`soa-*-default`/`axfr-lower-serial`/`slave-cycle-interval` 等専用キー |
+| `elasticsearch` | `elasticsearch.yml` | `cluster.name`/`node.name`/`discovery.seed_hosts`/`path.data` 等専用ドットキー |
+| `kibana` | `kibana.yml` | `server.port`/`elasticsearch.hosts`/`kibana.index`/`savedObjects.*` 等専用ドットキー |
+| `nsd` | `nsd.conf` | `zone:`/`pattern:`/`remote-control:`/`dnstap:`/`verify:` 等セクションキー |
+| `tomcat` | `server.xml` | `<Server` ルート + `<Service`/`<Connector`/`<Engine`/`<Host` 子要素 |
+
+スキップ重複: `clash`(clashconf), `chrony`(chronyconf), `exports`(nfsexports),
+`krb5`(krb5conf), `sssd`(sssdconf), `rsyslog`(rsyslogd) — `*conf`/*d サフィックス
+別名の既存モジュールが多数あるため、命名時は `ls src/ | grep <basename>` で
+全形確認が必須。
