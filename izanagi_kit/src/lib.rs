@@ -430,6 +430,7 @@ pub mod aln;
 pub mod alphahull;
 pub mod alto;
 pub mod alz;
+pub mod ambassador;
 pub mod amf;
 pub mod amfile;
 pub mod ampl;
@@ -447,6 +448,7 @@ pub mod aout;
 pub mod apacheconf;
 pub mod ape;
 pub mod apib;
+pub mod apisix;
 pub mod apk;
 pub mod apkg;
 pub mod apmserver;
@@ -458,6 +460,7 @@ pub mod appengine;
 pub mod appimage;
 pub mod appjson;
 pub mod appveyor;
+pub mod aprxconf;
 pub mod aps;
 pub mod apsp;
 pub mod apt;
@@ -470,6 +473,7 @@ pub mod ardour;
 pub mod arduinoconf;
 pub mod arff;
 pub mod argocd;
+pub mod argoevents;
 pub mod argowf;
 pub mod argusconf;
 pub mod aria2;
@@ -489,6 +493,7 @@ pub mod assetlinks;
 pub mod assets;
 pub mod astro;
 pub mod asv;
+pub mod atlantis;
 pub mod atom;
 pub mod atr;
 pub mod au;
@@ -506,6 +511,7 @@ pub mod avltree;
 pub mod avro;
 pub mod awscredentials;
 pub mod awselb;
+pub mod axports;
 pub mod ay;
 pub mod azurepipe;
 pub mod azw;
@@ -554,6 +560,7 @@ pub mod bird;
 pub mod bit;
 pub mod bitap;
 pub mod bitboard;
+pub mod bitbucketpipes;
 pub mod bitcoinconf;
 pub mod bitonic;
 pub mod bitrise;
@@ -573,6 +580,7 @@ pub mod bogofilter;
 pub mod bootimg;
 pub mod bootini;
 pub mod borgmatic;
+pub mod bors;
 pub mod boundary;
 pub mod bplus;
 pub mod bps;
@@ -614,6 +622,7 @@ pub mod cairo;
 pub mod calamares;
 pub mod calendar;
 pub mod calendars;
+pub mod calico;
 pub mod callgrind;
 pub mod camera;
 pub mod camt;
@@ -628,6 +637,8 @@ pub mod cargoconf;
 pub mod cargolock;
 pub mod carla;
 pub mod cartesian;
+pub mod cartocss;
+pub mod carvel;
 pub mod casbin;
 pub mod casdoor;
 pub mod cassandra;
@@ -645,6 +656,7 @@ pub mod centroid;
 pub mod cephconf;
 pub mod cerbos;
 pub mod certbot;
+pub mod certmanager;
 pub mod cf;
 pub mod cfn;
 pub mod cfssl;
@@ -661,6 +673,7 @@ pub mod checkstyle;
 pub mod chef;
 pub mod cherokee;
 pub mod chip8;
+pub mod chirpcsv;
 pub mod christofides;
 pub mod chromaconf;
 pub mod chrometrace;
@@ -669,6 +682,7 @@ pub mod chronyconf;
 pub mod cht;
 pub mod cibxml;
 pub mod cif;
+pub mod cilium;
 pub mod circleci;
 pub mod circulation;
 pub mod cirrus;
@@ -683,6 +697,7 @@ pub mod clique;
 pub mod closestpair;
 pub mod cloudcustodian;
 pub mod cloudinit;
+pub mod clusterapi;
 pub mod clusterconf;
 pub mod cmake;
 pub mod cmdbat;
@@ -690,6 +705,7 @@ pub mod cmdqueue;
 pub mod cml;
 pub mod cms;
 pub mod cmus;
+pub mod cnpg;
 pub mod coap;
 pub mod cob;
 pub mod cobertura;
@@ -701,6 +717,7 @@ pub mod codespell;
 pub mod coff;
 pub mod coins;
 pub mod colima;
+pub mod collectd;
 pub mod coloring;
 pub mod comb;
 pub mod combat;
@@ -740,6 +757,7 @@ pub mod crockford;
 pub mod cromwell;
 pub mod cron;
 pub mod crontab;
+pub mod crowdsec;
 pub mod csa;
 pub mod csaf;
 pub mod csd;
@@ -768,6 +786,7 @@ pub mod dafny;
 pub mod dagsp;
 pub mod dagster;
 pub mod damage;
+pub mod dapr;
 pub mod dask;
 pub mod datadog;
 pub mod db2cli;
@@ -790,6 +809,7 @@ pub mod delaunay;
 pub mod delta;
 pub mod deluge;
 pub mod denoconf;
+pub mod denyhosts;
 pub mod dependabot;
 pub mod der;
 pub mod derange;
@@ -797,6 +817,7 @@ pub mod desktop;
 pub mod detekt;
 pub mod devcontainer;
 pub mod devfile;
+pub mod devspace;
 pub mod dex;
 pub mod dexidp;
 pub mod dfamin;
@@ -820,6 +841,7 @@ pub mod digit;
 pub mod dihedral;
 pub mod dimacs;
 pub mod dinit;
+pub mod direwolfconf;
 pub mod discourse;
 pub mod dita;
 pub mod dither;
@@ -892,6 +914,7 @@ pub mod easyrsa;
 pub mod ebml;
 pub mod ec;
 pub mod ecat;
+pub mod eck;
 pub mod ecsv;
 pub mod ed25519;
 pub mod edf;
@@ -951,10 +974,12 @@ pub mod explore;
 pub mod expr;
 pub mod exr;
 pub mod ext2;
+pub mod externalsecrets;
 pub mod extmanifest;
 pub mod f2fs;
 pub mod faction;
 pub mod fail2ban;
+pub mod fail2banconf;
 pub mod falcoconf;
 pub mod far;
 pub mod farbfeld;
@@ -995,7 +1020,10 @@ pub mod flac;
 pub mod flake8conf;
 pub mod flatbuf;
 pub mod flatpak;
+pub mod fldigiconf;
+pub mod fleet;
 pub mod flif;
+pub mod flink;
 pub mod flow;
 pub mod flowfield;
 pub mod fluentbit;
@@ -1031,7 +1059,9 @@ pub mod fuzzy;
 pub mod fxml;
 pub mod fxp;
 pub mod gapbuffer;
+pub mod garden;
 pub mod garnetconf;
+pub mod gatewayapi;
 pub mod gatsby;
 pub mod gauss;
 pub mod gb;
@@ -1106,6 +1136,7 @@ pub mod gp;
 pub mod gpkg;
 pub mod gpsd;
 pub mod gpx;
+pub mod gqrxconf;
 pub mod gradle;
 pub mod gradlemod;
 pub mod grafana;
@@ -1302,6 +1333,7 @@ pub mod jef;
 pub mod jekyll;
 pub mod jellyfin;
 pub mod jenkinsfile;
+pub mod jenkinsx;
 pub mod jest;
 pub mod jffs2;
 pub mod jfm;
@@ -1340,9 +1372,11 @@ pub mod kafka;
 pub mod kalman;
 pub mod kamaji;
 pub mod kap;
+pub mod kapitan;
 pub mod karatsuba;
 pub mod karmaconf;
 pub mod karp;
+pub mod karpenter;
 pub mod katesyntax;
 pub mod kbm;
 pub mod kcl;
@@ -1351,6 +1385,7 @@ pub mod kcore;
 pub mod kdbx;
 pub mod kdf;
 pub mod kdtree;
+pub mod keda;
 pub mod kedro;
 pub mod keepalived;
 pub mod keepassxc;
@@ -1392,10 +1427,13 @@ pub mod kserve;
 pub mod kss;
 pub mod ktlint;
 pub mod kubeconfig;
+pub mod kubedb;
 pub mod kubeflow;
 pub mod kubeflowtraining;
 pub mod kubemq;
 pub mod kubevela;
+pub mod kubevirt;
+pub mod kuma;
 pub mod kustomize;
 pub mod l2tp;
 pub mod lab;
@@ -1441,6 +1479,7 @@ pub mod lmms;
 pub mod lndconf;
 pub mod lnk;
 pub mod loader;
+pub mod locxml;
 pub mod log4j;
 pub mod log4perl;
 pub mod logback;
@@ -1448,6 +1487,7 @@ pub mod logindefs;
 pub mod logrotate;
 pub mod logstash;
 pub mod loki;
+pub mod longhorn;
 pub mod loveconf;
 pub mod lp;
 pub mod lpf;
@@ -1480,6 +1520,7 @@ pub mod macaroon;
 pub mod macho;
 pub mod maddyconf;
 pub mod maf;
+pub mod magefile;
 pub mod magic;
 pub mod mailcap;
 pub mod maildir;
@@ -1536,6 +1577,8 @@ pub mod mermaid;
 pub mod meson;
 pub mod meta;
 pub mod metaflow;
+pub mod metal3;
+pub mod metallb;
 pub mod metallib;
 pub mod metricbeat;
 pub mod metroconf;
@@ -1568,6 +1611,7 @@ pub mod mkdocs;
 pub mod mlflow;
 pub mod mmheap;
 pub mod mml;
+pub mod mmlstyle;
 pub mod mo;
 pub mod mobi;
 pub mod mobius;
@@ -1579,12 +1623,14 @@ pub mod modfile;
 pub mod modlin;
 pub mod modprobeconf;
 pub mod mods;
+pub mod modsecurity;
 pub mod mol;
 pub mod mol2;
 pub mod monero;
 pub mod mongod;
 pub mod monit;
 pub mod moonrakerconf;
+pub mod moonrepo;
 pub mod mopidy;
 pub mod mosquitto;
 pub mod motionconf;
@@ -1616,6 +1662,7 @@ pub mod mt940;
 pub mod mtm;
 pub mod mtx;
 pub mod multimap;
+pub mod multus;
 pub mod murmur;
 pub mod musicxml;
 pub mod muttrc;
@@ -1632,6 +1679,7 @@ pub mod nanorc;
 pub mod nas;
 pub mod nats;
 pub mod navidrome;
+pub mod naxsiconf;
 pub mod nbd;
 pub mod nbt;
 pub mod nc;
@@ -1640,6 +1688,7 @@ pub mod ncpdp;
 pub mod ne;
 pub mod nebulaconf;
 pub mod nef;
+pub mod neo4jconf;
 pub mod neomuttconf;
 pub mod nerdctl;
 pub mod netflow;
@@ -1718,7 +1767,9 @@ pub mod offlinelca;
 pub mod ofx;
 pub mod ogg;
 pub mod ogmo;
+pub mod okteto;
 pub mod ole;
+pub mod olm;
 pub mod omm;
 pub mod onion;
 pub mod onnx;
@@ -1729,6 +1780,7 @@ pub mod openapi;
 pub mod openbgpd;
 pub mod opendkim;
 pub mod opendmarc;
+pub mod openebs;
 pub mod openfaas;
 pub mod openfga;
 pub mod openhab;
@@ -1764,11 +1816,13 @@ pub mod otf;
 pub mod otp;
 pub mod otpauth;
 pub mod otsu;
+pub mod overpass;
 pub mod ovf;
 pub mod p7b;
 pub mod pack;
 pub mod packer;
 pub mod packfile;
+pub mod packit;
 pub mod pacman;
 pub mod paf;
 pub mod pagerank;
@@ -1820,6 +1874,7 @@ pub mod pfconf;
 pub mod pfm;
 pub mod pgm;
 pub mod pgn;
+pub mod pgo;
 pub mod pgp;
 pub mod pgpass;
 pub mod pgservice;
@@ -1864,6 +1919,7 @@ pub mod pmx;
 pub mod png;
 pub mod pnm;
 pub mod pnpmlock;
+pub mod pnpmworkspace;
 pub mod po;
 pub mod pod;
 pub mod podfile;
@@ -1882,6 +1938,7 @@ pub mod pool;
 pub mod pop3;
 pub mod portage;
 pub mod porter;
+pub mod portworx;
 pub mod poscar;
 pub mod postalconf;
 pub mod postcss;
@@ -1906,15 +1963,19 @@ pub mod procd;
 pub mod procfile;
 pub mod procmailrc;
 pub mod profiler;
+pub mod proftpd;
 pub mod progression;
+pub mod projjson;
 pub mod prom;
 pub mod promela;
 pub mod prometheus;
+pub mod promoperator;
 pub mod promtailconf;
 pub mod prop;
 pub mod proselint;
 pub mod prosody;
 pub mod proto;
+pub mod prow;
 pub mod prowlarr;
 pub mod prusaslicer;
 pub mod psd;
@@ -1930,6 +1991,7 @@ pub mod pulseclientconf;
 pub mod pulumi;
 pub mod punycode;
 pub mod puppet;
+pub mod pureftpd;
 pub mod puz;
 pub mod pxelinux;
 pub mod pyc;
@@ -1966,6 +2028,7 @@ pub mod quil;
 pub mod rabbitmq;
 pub mod radarr;
 pub mod radius;
+pub mod radiusd;
 pub mod radixheap;
 pub mod radixsort;
 pub mod raf;
@@ -2044,6 +2107,7 @@ pub mod rofi;
 pub mod rollback;
 pub mod rolling;
 pub mod rollup;
+pub mod rook;
 pub mod roots;
 pub mod rope;
 pub mod roq;
@@ -2089,6 +2153,7 @@ pub mod sais;
 pub mod salt;
 pub mod sam;
 pub mod samba;
+pub mod samhainconf;
 pub mod saml;
 pub mod sap;
 pub mod sarif;
@@ -2115,9 +2180,12 @@ pub mod sdc;
 pub mod sddmconf;
 pub mod sdf;
 pub mod sdkconfig;
+pub mod sdrppconf;
+pub mod sealedsecrets;
 pub mod seamcarve;
 pub mod seccomp;
 pub mod secretsbaseline;
+pub mod secretsstore;
 pub mod securitytxt;
 pub mod segbeats;
 pub mod seglazy;
@@ -2153,6 +2221,7 @@ pub mod shamir;
 pub mod shard;
 pub mod shellcheckrc;
 pub mod shibconf;
+pub mod shipwright;
 pub mod shop;
 pub mod shorewall;
 pub mod shp;
@@ -2176,6 +2245,7 @@ pub mod skaffold;
 pub mod skiplist;
 pub mod skp;
 pub mod skywalking;
+pub mod slapd;
 pub mod slide;
 pub mod slob;
 pub mod slopetrick;
@@ -2196,6 +2266,7 @@ pub mod snapcraft;
 pub mod snappy;
 pub mod sndh;
 pub mod snmp;
+pub mod snmpdconf;
 pub mod snoise;
 pub mod snoop;
 pub mod snort;
@@ -2215,6 +2286,7 @@ pub mod soundex;
 pub mod sourcemap;
 pub mod sp3;
 pub mod spamassassin;
+pub mod spark;
 pub mod sparql;
 pub mod sparse;
 pub mod sparse_set;
@@ -2228,6 +2300,7 @@ pub mod spf;
 pub mod sphinx;
 pub mod spicenet;
 pub mod spigot;
+pub mod spire;
 pub mod splay;
 pub mod spotbugs;
 pub mod spring;
@@ -2267,6 +2340,7 @@ pub mod stockholm;
 pub mod storageconf;
 pub mod storybook;
 pub mod stp;
+pub mod strimzi;
 pub mod strings;
 pub mod strongswanconf;
 pub mod studio3;
@@ -2334,11 +2408,13 @@ pub mod temporal;
 pub mod terminal;
 pub mod terminfo;
 pub mod ternary;
+pub mod terragrunt;
 pub mod texinfo;
 pub mod textile;
 pub mod textlayout;
 pub mod textlint;
 pub mod textmategram;
+pub mod tflint;
 pub mod tflite;
 pub mod tfm;
 pub mod tfrecord;
@@ -2353,6 +2429,7 @@ pub mod tidb;
 pub mod tiff;
 pub mod tilemap;
 pub mod tileservergl;
+pub mod tilestacheconf;
 pub mod tiltfile;
 pub mod timer;
 pub mod timestep;
@@ -2384,7 +2461,9 @@ pub mod treap;
 pub mod treesittergram;
 pub mod trie;
 pub mod trigger;
+pub mod tripwireconf;
 pub mod trivy;
+pub mod trivyop;
 pub mod trojanconf;
 pub mod trx;
 pub mod ts;
@@ -2471,6 +2550,7 @@ pub mod vcd;
 pub mod vcf;
 pub mod vcl;
 pub mod vclock;
+pub mod vcluster;
 pub mod vcpkg;
 pub mod vdi;
 pub mod veb;
@@ -2508,6 +2588,7 @@ pub mod vmrk;
 pub mod vms;
 pub mod vnoise;
 pub mod voc;
+pub mod volcano;
 pub mod voronoi;
 pub mod vose;
 pub mod votable;
@@ -2516,8 +2597,10 @@ pub mod vp3;
 pub mod vpk;
 pub mod vpr;
 pub mod vrrp;
+pub mod vrtgdal;
 pub mod vscodeconf;
 pub mod vsdx;
+pub mod vsftpd;
 pub mod vsqx;
 pub mod vtf;
 pub mod vtk;
@@ -2535,6 +2618,7 @@ pub mod wasm;
 pub mod wav;
 pub mod wavelet;
 pub mod waybar;
+pub mod waypoint;
 pub mod wdsu;
 pub mod weaviateconf;
 pub mod webfinger;
@@ -2564,6 +2648,7 @@ pub mod wireplumberconf;
 pub mod wiresharkpref;
 pub mod wkb;
 pub mod wkt;
+pub mod wktproj;
 pub mod woff;
 pub mod woff2;
 pub mod woodpecker;
@@ -2576,6 +2661,7 @@ pub mod wrangler;
 pub mod wrl;
 pub mod ws;
 pub mod wsdl;
+pub mod wsjtxconf;
 pub mod wslconf;
 pub mod wv;
 pub mod x3d;
@@ -2635,6 +2721,7 @@ pub mod yenc;
 pub mod yfast;
 pub mod yggdrasil;
 pub mod yosys;
+pub mod ytt;
 pub mod yugabyte;
 pub mod yuzuconf;
 pub mod z64;
@@ -2642,6 +2729,7 @@ pub mod zabbix;
 pub mod zapconf;
 pub mod zeckendorf;
 pub mod zedconf;
+pub mod zeekconf;
 pub mod zeekctl;
 pub mod zeekscript;
 pub mod zerobfs;
@@ -2669,6 +2757,1437 @@ pub mod zstd;
 pub mod zulipconf;
 pub mod zypper;
 
+pub use aabb::Aabb;
+pub use ability::{Ability, AbilityResult, AbilitySet};
+pub use affix::{Affix, AffixGenerator, AffixSlot, AffixedItem};
+pub use arch::ArchTable;
+pub use assets::{AssetHandle, AssetStore};
+pub use autotile::{compute_all, compute_mask, SimpleTileTable};
+pub use behavior::{BehaviorNode, BehaviorStatus, BehaviorTree};
+pub use calendar::Calendar;
+pub use camera::Camera;
+pub use change::{ChangeTracker, Changed};
+pub use cmdqueue::CmdQueue;
+pub use combat::{
+    apply_resistance, base_damage, critical_strike, melee_attack, ranged_attack, roll_damage,
+    roll_to_hit, splash_attack, Stats, StatsModifier, StrikeResult,
+};
+pub use content::{Content, Diagnostic, ExtendsError, Prefab, Severity, Tile};
+pub use damage::{DamageType, ResistanceProfile};
+pub use diag_json::severity_filter;
+pub use dialogue::{Choice, Dialogue, DialogueNode};
+pub use dice::Dice;
+pub use dst::{
+    dst_determinism_sweep, dst_replay, dst_swarm_replay, dst_swarm_sweep, dst_sweep, swarm_subset,
+    DstFailure, SwarmFailure,
+};
+pub use easing::{
+    ease_in_back, ease_in_bounce, ease_in_circ, ease_in_cubic, ease_in_expo, ease_in_out_back,
+    ease_in_out_bounce, ease_in_out_circ, ease_in_out_cubic, ease_in_out_expo, ease_in_out_quad,
+    ease_in_out_quart, ease_in_out_quint, ease_in_out_sine, ease_in_quad, ease_in_quart,
+    ease_in_quint, ease_in_sine, ease_out_back, ease_out_bounce, ease_out_circ, ease_out_cubic,
+    ease_out_expo, ease_out_quad, ease_out_quart, ease_out_quint, ease_out_sine, ease_reversed,
+    linear,
+};
+pub use encounter::{EncounterPack, EncounterSlot};
+pub use entity::{Entity, EntityAllocator};
+pub use equipment::{EquipSlot, Equipment};
+pub use eventqueue::EventQueue;
+pub use explore::{explore, explore_sim, explore_sim_until, explore_until, Archive, ExploreConfig};
+pub use faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
+pub use fixed::Fixed;
+pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};
+pub use fsm::Fsm;
+pub use geometry::{
+    chebyshev_distance, cone, cone_visible, diamond, knockback, line, line_of_sight,
+    manhattan_distance, ray_blocked_at, ray_cast, rect_contains, rect_perimeter, reflect_point,
+    rotate_90_ccw, rotate_90_cw, vec_toward, Distance,
+};
+pub use hfsm::HFsm;
+pub use hud::{BarWidget, HudPanel, StatLine};
+pub use identify::Identification;
+pub use influence::InfluenceMap;
+pub use inputbuf::{InputBuffer, KeySource, ListKeySource};
+pub use inventory::Inventory;
+pub use keymap::KeyMap;
+pub use lightmap::{LightMap, MAX_LIGHT};
+pub use loader::{load_level, LoadedLevel, Position, Render};
+pub use mapgen::{
+    generate_bsp, generate_cave, generate_drunkard, generate_dungeon, BspParams, CaveParams,
+    DrunkardParams, Dungeon, GenParams, MapBuilder, Rect,
+};
+pub use menu::{Menu, MenuItem};
+pub use meta::MetaProgress;
+pub use msglog::MsgLog;
+pub use multimap::{Connector, MultiMap};
+pub use netinput::{AdaptiveDelay, DelayScheduler, NetInputBuffer};
+pub use noise::{
+    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_in_range, fbm_2d_wrap, fbm_3d, hash_1d, hash_2d, hash_3d,
+    noise_3d_in_range, normalize_noise, ridge_noise_2d, value_noise_1d, value_noise_1d_wrap,
+    value_noise_2d, value_noise_2d_wrap, value_noise_3d,
+};
+pub use observe::{ComponentEvent, Observed};
+pub use parser::{error_count, parse, warning_count};
+pub use passability::PassabilityGrid;
+pub use pathfinding::{
+    astar, auto_explore, combine_maps, descend, dijkstra_map, farthest_cell, flee_map, flood_fill,
+    is_path_clear, is_reachable, jps, jps4, nearest_reachable, octile_distance, path_cost,
+    path_to_direction_vec, smooth_path, step_toward, weighted_astar, ConnectivityMap, DijkstraMap,
+};
+pub use plan::plan_inputs;
+pub use pool::Pool;
+pub use profiler::{EventLog, LogEntry, Profiler};
+pub use progression::{LevelCurve, Progression};
+pub use prop::{forall_inputs, forall_model, forall_states, ModelFailure, PropFailure};
+pub use quest::{Objective, Quest, QuestState};
+pub use random_table::RandomTable;
+pub use recipe::{Ingredient, Recipe};
+pub use recovery::{restart_test, restart_test_bytes, restart_test_sim, RestartFailure};
+pub use relations::Relations;
+pub use replay::{
+    check_trace, count_divergences, desync_report, desync_report_labeled, first_divergence,
+    first_divergence_labeled, record_trace, resimulate, DesyncPolicy, DesyncReport, Divergence,
+    LabeledDivergence,
+};
+pub use rng::SplitMix64;
+pub use rng_xoshiro::Xoshiro256pp;
+pub use rollback::{sync_test, SnapshotRing, SyncTestFailure};
+pub use savefile::{
+    estimate_save_size, load_bytes, load_bytes_migrated, load_bytes_owned, save_bytes,
+    validate_integrity, LoadError, Migrator, SaveHeader,
+};
+pub use serializer::{content_eq, serialize};
+pub use shop::{Listing, Shop};
+pub use shrink::{is_one_minimal, shrink_inputs, shrink_simulation_inputs};
+pub use shufflebag::ShuffleBag;
+pub use sim::{audit, AuditReport, Simulation};
+pub use sparse_set::{join, join3, join3_mut, join_mut, SparseSet};
+pub use spatial_hash::SpatialHash;
+pub use status::{Effect, StatTarget, StatusSet};
+pub use temporal::{check_run, Monitor, MonitorSet, Verdict};
+pub use terminal::{Cell, Screen};
+pub use textlayout::{
+    center, count_lines, fit_to_box, justify, measure_lines, pad_left, pad_lines, pad_right,
+    truncate, truncate_lines, wrap_words, wrap_words_max_lines,
+};
+pub use threat::ThreatTable;
+pub use tilemap::{LayeredMap, TileMap};
+pub use timer::{Cooldown, TimerQueue};
+pub use timestep::FixedTimestep;
+pub use trigger::{Trigger, TriggerSet};
+pub use turn::Scheduler;
+pub use tween::{Tween, TweenSequence};
+pub use validator::{is_loadable, validate};
+pub use vec::{Vec2, Vec3};
+pub use verify::{
+    check_invariant, check_temporal, reachable_states, Counterexample, NotSafety, Verification,
+};
+pub use visibility::{Visibility, VisibilityMap};
+pub use wallet::Wallet;
+pub use wfc::{
+    wfc_solve, wfc_solve_backtrack, wfc_solve_partial, wfc_solve_retry, wfc_solve_with_selector,
+    CellSelector, LowestEntropySelector, WfcGrid, WfcResult, WfcRules,
+};
+pub use world_hash::{
+    field_coverage, hash_covers, hash_state, hash_state_mixed, hash_unordered, uncovered_fields,
+    DetHash, FieldMutator, Fnv1a, LabeledDigest,
+};
+
+/// 設定/フォーマット検出器の関数型(`detect(&[u8]) -> bool`)。
+pub type DetectorFn = fn(&[u8]) -> bool;
+
+/// 設定/フォーマット検出器 `DetectorFn` の全モジュール一覧。
+///
+/// (モジュール名, 関数ポインタ) の対で、判別器の列挙・一括適用や
+/// 全検出器横断の性質テスト(panic非発火など)に使う。
+/// `detect` を持つモジュール追加時はこの表にも登録すること。
+pub const DETECTORS: &[(&str, DetectorFn)] = &[
+    ("a2r", a2r::detect),
+    ("ac", ac::detect),
+    ("ace", ace::detect),
+    ("acemode", acemode::detect),
+    ("actionlint", actionlint::detect),
+    ("activemq", activemq::detect),
+    ("adguard", adguard::detect),
+    ("adql", adql::detect),
+    ("aercconf", aercconf::detect),
+    ("aerospike", aerospike::detect),
+    ("aideconf", aideconf::detect),
+    ("aiger", aiger::detect),
+    ("airbyteconf", airbyteconf::detect),
+    ("airflow", airflow::detect),
+    ("alacritty", alacritty::detect),
+    ("alembic", alembic::detect),
+    ("alertmanager", alertmanager::detect),
+    ("alexrc", alexrc::detect),
+    ("algolia", algolia::detect),
+    ("alloy", alloy::detect),
+    ("allure", allure::detect),
+    ("aln", aln::detect),
+    ("alto", alto::detect),
+    ("alz", alz::detect),
+    ("ambassador", ambassador::detect),
+    ("amfile", amfile::detect),
+    ("ampl", ampl::detect),
+    ("amplifyconf", amplifyconf::detect),
+    ("amr", amr::detect),
+    ("angularconf", angularconf::detect),
+    ("ansi", ansi::detect),
+    ("ansible", ansible::detect),
+    ("antex", antex::detect),
+    ("aoe", aoe::detect),
+    ("apacheconf", apacheconf::detect),
+    ("apib", apib::detect),
+    ("apisix", apisix::detect),
+    ("apk", apk::detect),
+    ("apmserver", apmserver::detect),
+    ("apparmor", apparmor::detect),
+    ("appcache", appcache::detect),
+    ("appdaemon", appdaemon::detect),
+    ("appdynamics", appdynamics::detect),
+    ("appengine", appengine::detect),
+    ("appjson", appjson::detect),
+    ("appveyor", appveyor::detect),
+    ("aprxconf", aprxconf::detect),
+    ("apt", apt::detect),
+    ("archinstall", archinstall::detect),
+    ("ardour", ardour::detect),
+    ("arduinoconf", arduinoconf::detect),
+    ("argocd", argocd::detect),
+    ("argoevents", argoevents::detect),
+    ("argowf", argowf::detect),
+    ("argusconf", argusconf::detect),
+    ("aria2", aria2::detect),
+    ("arkimeconf", arkimeconf::detect),
+    ("arw", arw::detect),
+    ("asciicast", asciicast::detect),
+    ("asdf", asdf::detect),
+    ("asf", asf::detect),
+    ("asn1", asn1::detect),
+    ("asoundrc", asoundrc::detect),
+    ("astro", astro::detect),
+    ("asv", asv::detect),
+    ("atlantis", atlantis::detect),
+    ("atom", atom::detect),
+    ("audacity", audacity::detect),
+    ("auditdconf", auditdconf::detect),
+    ("auditrule", auditrule::detect),
+    ("authelia", authelia::detect),
+    ("autofs", autofs::detect),
+    ("autoyast", autoyast::detect),
+    ("avaconf", avaconf::detect),
+    ("awscredentials", awscredentials::detect),
+    ("awselb", awselb::detect),
+    ("axports", axports::detect),
+    ("azurepipe", azurepipe::detect),
+    ("babelrc", babelrc::detect),
+    ("bai2", bai2::detect),
+    ("bam", bam::detect),
+    ("banditconf", banditconf::detect),
+    ("bannedips", bannedips::detect),
+    ("base32", base32::detect),
+    ("bashrc", bashrc::detect),
+    ("bazarr", bazarr::detect),
+    ("bazel", bazel::detect),
+    ("bbcode", bbcode::detect),
+    ("beets", beets::detect),
+    ("benchstat", benchstat::detect),
+    ("bentoml", bentoml::detect),
+    ("bicep", bicep::detect),
+    ("biome", biome::detect),
+    ("bird", bird::detect),
+    ("bit", bit::detect),
+    ("bitbucketpipes", bitbucketpipes::detect),
+    ("bitcoinconf", bitcoinconf::detect),
+    ("bitrise", bitrise::detect),
+    ("blackbird", blackbird::detect),
+    ("blackconf", blackconf::detect),
+    ("blocky", blocky::detect),
+    ("bogofilter", bogofilter::detect),
+    ("bootini", bootini::detect),
+    ("borgmatic", borgmatic::detect),
+    ("bors", bors::detect),
+    ("boundary", boundary::detect),
+    ("braket", braket::detect),
+    ("brewfile", brewfile::detect),
+    ("browserconfig", browserconfig::detect),
+    ("browserslist", browserslist::detect),
+    ("bru", bru::detect),
+    ("btrbk", btrbk::detect),
+    ("btrfs", btrfs::detect),
+    ("buck", buck::detect),
+    ("buildkitd", buildkitd::detect),
+    ("buildkite", buildkite::detect),
+    ("bukkit", bukkit::detect),
+    ("bundlerconf", bundlerconf::detect),
+    ("bunfig", bunfig::detect),
+    ("cabal", cabal::detect),
+    ("caddyfile", caddyfile::detect),
+    ("cairo", cairo::detect),
+    ("calamares", calamares::detect),
+    ("calico", calico::detect),
+    ("callgrind", callgrind::detect),
+    ("camt", camt::detect),
+    ("capacitor", capacitor::detect),
+    ("capsule", capsule::detect),
+    ("capx", capx::detect),
+    ("cardanoconf", cardanoconf::detect),
+    ("cargoconf", cargoconf::detect),
+    ("cargolock", cargolock::detect),
+    ("carla", carla::detect),
+    ("cartocss", cartocss::detect),
+    ("carvel", carvel::detect),
+    ("casbin", casbin::detect),
+    ("casdoor", casdoor::detect),
+    ("cassandra", cassandra::detect),
+    ("ccs", ccs::detect),
+    ("cedar", cedar::detect),
+    ("cephconf", cephconf::detect),
+    ("cerbos", cerbos::detect),
+    ("certbot", certbot::detect),
+    ("certmanager", certmanager::detect),
+    ("cfn", cfn::detect),
+    ("cfssl", cfssl::detect),
+    ("cgitrc", cgitrc::detect),
+    ("chart", chart::detect),
+    ("chasquidconf", chasquidconf::detect),
+    ("checkov", checkov::detect),
+    ("chef", chef::detect),
+    ("cherokee", cherokee::detect),
+    ("chirpcsv", chirpcsv::detect),
+    ("chromaconf", chromaconf::detect),
+    ("chrometrace", chrometrace::detect),
+    ("chronyconf", chronyconf::detect),
+    ("cibxml", cibxml::detect),
+    ("cilium", cilium::detect),
+    ("circleci", circleci::detect),
+    ("cirrus", cirrus::detect),
+    ("clangformat", clangformat::detect),
+    ("clangtidy", clangtidy::detect),
+    ("clar", clar::detect),
+    ("clashconf", clashconf::detect),
+    ("clickhouse", clickhouse::detect),
+    ("cloudcustodian", cloudcustodian::detect),
+    ("cloudinit", cloudinit::detect),
+    ("clusterapi", clusterapi::detect),
+    ("clusterconf", clusterconf::detect),
+    ("cmake", cmake::detect),
+    ("cmdbat", cmdbat::detect),
+    ("cmus", cmus::detect),
+    ("cnpg", cnpg::detect),
+    ("cob", cob::detect),
+    ("cockroach", cockroach::detect),
+    ("cocosproj", cocosproj::detect),
+    ("codeclimate", codeclimate::detect),
+    ("codecov", codecov::detect),
+    ("codespell", codespell::detect),
+    ("colima", colima::detect),
+    ("collectd", collectd::detect),
+    ("compose", compose::detect),
+    ("composer", composer::detect),
+    ("composerlock", composerlock::detect),
+    ("conanfile", conanfile::detect),
+    ("concourse", concourse::detect),
+    ("condaenv", condaenv::detect),
+    ("condarc", condarc::detect),
+    ("configureac", configureac::detect),
+    ("consul", consul::detect),
+    ("containerd", containerd::detect),
+    ("containersconf", containersconf::detect),
+    ("contourconf", contourconf::detect),
+    ("cookiejar", cookiejar::detect),
+    ("coq", coq::detect),
+    ("corefile", corefile::detect),
+    ("corosync", corosync::detect),
+    ("coveralls", coveralls::detect),
+    ("cpanfile", cpanfile::detect),
+    ("cpplint", cpplint::detect),
+    ("cr2", cr2::detect),
+    ("creole", creole::detect),
+    ("crio", crio::detect),
+    ("criterion", criterion::detect),
+    ("crmconf", crmconf::detect),
+    ("crockford", crockford::detect),
+    ("cromwell", cromwell::detect),
+    ("crowdsec", crowdsec::detect),
+    ("csa", csa::detect),
+    ("csd", csd::detect),
+    ("cspell", cspell::detect),
+    ("ctrf", ctrf::detect),
+    ("cuid", cuid::detect),
+    ("curaconf", curaconf::detect),
+    ("cve", cve::detect),
+    ("cypher", cypher::detect),
+    ("cypressconf", cypressconf::detect),
+    ("dae", dae::detect),
+    ("dafny", dafny::detect),
+    ("dagster", dagster::detect),
+    ("dapr", dapr::detect),
+    ("dask", dask::detect),
+    ("datadog", datadog::detect),
+    ("db2cli", db2cli::detect),
+    ("dbm", dbm::detect),
+    ("dbt", dbt::detect),
+    ("debconf", debconf::detect),
+    ("defaultpa", defaultpa::detect),
+    ("defconfig", defconfig::detect),
+    ("defoldproj", defoldproj::detect),
+    ("dehydrated", dehydrated::detect),
+    ("deluge", deluge::detect),
+    ("denoconf", denoconf::detect),
+    ("denyhosts", denyhosts::detect),
+    ("dependabot", dependabot::detect),
+    ("detekt", detekt::detect),
+    ("devcontainer", devcontainer::detect),
+    ("devfile", devfile::detect),
+    ("devspace", devspace::detect),
+    ("dexidp", dexidp::detect),
+    ("dgml", dgml::detect),
+    ("dhall", dhall::detect),
+    ("dhclientconf", dhclientconf::detect),
+    ("dhcpcdconf", dhcpcdconf::detect),
+    ("dictd", dictd::detect),
+    ("dictzip", dictzip::detect),
+    ("did", did::detect),
+    ("dimacs", dimacs::detect),
+    ("dinit", dinit::detect),
+    ("direwolfconf", direwolfconf::detect),
+    ("discourse", discourse::detect),
+    ("dita", dita::detect),
+    ("dnfconf", dnfconf::detect),
+    ("dng", dng::detect),
+    ("dnsmasq", dnsmasq::detect),
+    ("docbook", docbook::detect),
+    ("dockerdaemon", dockerdaemon::detect),
+    ("dockerignore", dockerignore::detect),
+    ("docsify", docsify::detect),
+    ("docusaurus", docusaurus::detect),
+    ("dolphinconf", dolphinconf::detect),
+    ("dossys", dossys::detect),
+    ("dot", dot::detect),
+    ("dotenv", dotenv::detect),
+    ("dovecot", dovecot::detect),
+    ("dpx", dpx::detect),
+    ("dragonflyconf", dragonflyconf::detect),
+    ("drawio", drawio::detect),
+    ("drbdconf", drbdconf::detect),
+    ("drone", drone::detect),
+    ("ds9reg", ds9reg::detect),
+    ("dsig", dsig::detect),
+    ("dsl", dsl::detect),
+    ("dtd", dtd::detect),
+    ("dune", dune::detect),
+    ("dunst", dunst::detect),
+    ("duplicacy", duplicacy::detect),
+    ("dvcfile", dvcfile::detect),
+    ("dvi", dvi::detect),
+    ("dxbc", dxbc::detect),
+    ("ead", ead::detect),
+    ("eaglexml", eaglexml::detect),
+    ("ean", ean::detect),
+    ("earthly", earthly::detect),
+    ("easyeffects", easyeffects::detect),
+    ("easyrsa", easyrsa::detect),
+    ("eck", eck::detect),
+    ("ecsv", ecsv::detect),
+    ("editorconfig", editorconfig::detect),
+    ("edn", edn::detect),
+    ("edsk", edsk::detect),
+    ("ejabberd", ejabberd::detect),
+    ("elasticsearch", elasticsearch::detect),
+    ("emacs", emacs::detect),
+    ("emqx", emqx::detect),
+    ("envoy", envoy::detect),
+    ("envrc", envrc::detect),
+    ("epd", epd::detect),
+    ("epwing", epwing::detect),
+    ("eslintrc", eslintrc::detect),
+    ("esmapping", esmapping::detect),
+    ("esphome", esphome::detect),
+    ("essettings", essettings::detect),
+    ("etcd", etcd::detect),
+    ("eula", eula::detect),
+    ("excalidraw", excalidraw::detect),
+    ("exim", exim::detect),
+    ("exr", exr::detect),
+    ("externalsecrets", externalsecrets::detect),
+    ("extmanifest", extmanifest::detect),
+    ("f2fs", f2fs::detect),
+    ("fail2ban", fail2ban::detect),
+    ("fail2banconf", fail2banconf::detect),
+    ("falcoconf", falcoconf::detect),
+    ("far", far::detect),
+    ("fcoe", fcoe::detect),
+    ("feast", feast::detect),
+    ("ferm", ferm::detect),
+    ("fetchmailconf", fetchmailconf::detect),
+    ("fhir", fhir::detect),
+    ("fidl", fidl::detect),
+    ("filebeat", filebeat::detect),
+    ("firebase", firebase::detect),
+    ("firewalld", firewalld::detect),
+    ("fishconf", fishconf::detect),
+    ("fivetranconf", fivetranconf::detect),
+    ("fixml", fixml::detect),
+    ("flake8conf", flake8conf::detect),
+    ("fldigiconf", fldigiconf::detect),
+    ("fleet", fleet::detect),
+    ("flif", flif::detect),
+    ("flink", flink::detect),
+    ("fluentbit", fluentbit::detect),
+    ("fluentd", fluentd::detect),
+    ("flyio", flyio::detect),
+    ("flyway", flyway::detect),
+    ("footconf", footconf::detect),
+    ("fossilconf", fossilconf::detect),
+    ("fpml", fpml::detect),
+    ("freetds", freetds::detect),
+    ("frigate", frigate::detect),
+    ("frr", frr::detect),
+    ("func", func::detect),
+    ("fusesoc", fusesoc::detect),
+    ("fxml", fxml::detect),
+    ("fxp", fxp::detect),
+    ("garden", garden::detect),
+    ("garnetconf", garnetconf::detect),
+    ("gatewayapi", gatewayapi::detect),
+    ("gatsby", gatsby::detect),
+    ("gbench", gbench::detect),
+    ("gbstudio", gbstudio::detect),
+    ("gdf", gdf::detect),
+    ("gdmconf", gdmconf::detect),
+    ("gedasch", gedasch::detect),
+    ("gemfile", gemfile::detect),
+    ("gemlock", gemlock::detect),
+    ("gemrc", gemrc::detect),
+    ("gemspec", gemspec::detect),
+    ("gethconf", gethconf::detect),
+    ("gexf", gexf::detect),
+    ("gf", gf::detect),
+    ("ghosttyconf", ghosttyconf::detect),
+    ("gitattributes", gitattributes::detect),
+    ("gitconfig", gitconfig::detect),
+    ("giteaaction", giteaaction::detect),
+    ("giteaapp", giteaapp::detect),
+    ("gitignore", gitignore::detect),
+    ("gitlabci", gitlabci::detect),
+    ("gitlabrb", gitlabrb::detect),
+    ("gitleaks", gitleaks::detect),
+    ("gitmodules", gitmodules::detect),
+    ("gitsecret", gitsecret::detect),
+    ("gitwebconf", gitwebconf::detect),
+    ("glade", glade::detect),
+    ("glsl", glsl::detect),
+    ("glusterfs", glusterfs::detect),
+    ("gml", gml::detect),
+    ("gn", gn::detect),
+    ("gnuplot", gnuplot::detect),
+    ("godot", godot::detect),
+    ("gogsconf", gogsconf::detect),
+    ("golangci", golangci::detect),
+    ("gomod", gomod::detect),
+    ("gostconf", gostconf::detect),
+    ("gosum", gosum::detect),
+    ("gp", gp::detect),
+    ("gpsd", gpsd::detect),
+    ("gqrxconf", gqrxconf::detect),
+    ("gradle", gradle::detect),
+    ("gradlemod", gradlemod::detect),
+    ("grafana", grafana::detect),
+    ("grafanaop", grafanaop::detect),
+    ("graphml", graphml::detect),
+    ("graphql", graphql::detect),
+    ("greatexp", greatexp::detect),
+    ("grok", grok::detect),
+    ("grubconf", grubconf::detect),
+    ("grubenv", grubenv::detect),
+    ("grype", grype::detect),
+    ("gtksrclang", gtksrclang::detect),
+    ("h2oconf", h2oconf::detect),
+    ("hacf", hacf::detect),
+    ("hadolintconf", hadolintconf::detect),
+    ("hadoopconf", hadoopconf::detect),
+    ("haproxy", haproxy::detect),
+    ("har", har::detect),
+    ("harakaconf", harakaconf::detect),
+    ("harbor", harbor::detect),
+    ("haresources", haresources::detect),
+    ("harness", harness::detect),
+    ("hb", hb::detect),
+    ("headscaleconf", headscaleconf::detect),
+    ("helix", helix::detect),
+    ("helmfile", helmfile::detect),
+    ("hexchat", hexchat::detect),
+    ("hexo", hexo::detect),
+    ("hfe", hfe::detect),
+    ("hfs", hfs::detect),
+    ("hgignore", hgignore::detect),
+    ("hgrc", hgrc::detect),
+    ("hiawatha", hiawatha::detect),
+    ("hivemq", hivemq::detect),
+    ("hl7", hl7::detect),
+    ("hlsl", hlsl::detect),
+    ("hocr", hocr::detect),
+    ("homeassistant", homeassistant::detect),
+    ("hopconf", hopconf::detect),
+    ("hoppscotch", hoppscotch::detect),
+    ("hostapd", hostapd::detect),
+    ("httpfile", httpfile::detect),
+    ("hugoconf", hugoconf::detect),
+    ("hydra", hydra::detect),
+    ("hydraml", hydraml::detect),
+    ("hydrogen", hydrogen::detect),
+    ("hyperfine", hyperfine::detect),
+    ("hyprland", hyprland::detect),
+    ("hysteriaconf", hysteriaconf::detect),
+    ("i3conf", i3conf::detect),
+    ("ibmmq", ibmmq::detect),
+    ("ical", ical::detect),
+    ("icecast", icecast::detect),
+    ("icinga", icinga::detect),
+    ("ideavim", ideavim::detect),
+    ("idl", idl::detect),
+    ("imd", imd::detect),
+    ("inffile", inffile::detect),
+    ("infinispan", infinispan::detect),
+    ("inittab", inittab::detect),
+    ("inputrc", inputrc::detect),
+    ("insomnia", insomnia::detect),
+    ("instana", instana::detect),
+    ("interfaces", interfaces::detect),
+    ("ioc", ioc::detect),
+    ("iosconf", iosconf::detect),
+    ("ipac", ipac::detect),
+    ("ipset", ipset::detect),
+    ("iptablessave", iptablessave::detect),
+    ("iptc", iptc::detect),
+    ("ipxact", ipxact::detect),
+    ("ipxescript", ipxescript::detect),
+    ("ipythonconf", ipythonconf::detect),
+    ("ircam", ircam::detect),
+    ("irssi", irssi::detect),
+    ("isabelle", isabelle::detect),
+    ("isbn", isbn::detect),
+    ("isc", isc::detect),
+    ("iscsi", iscsi::detect),
+    ("ismn", ismn::detect),
+    ("isortconf", isortconf::detect),
+    ("issn", issn::detect),
+    ("istio", istio::detect),
+    ("iterm", iterm::detect),
+    ("itermdyn", itermdyn::detect),
+    ("iv", iv::detect),
+    ("ivf", ivf::detect),
+    ("ivy", ivy::detect),
+    ("iwdconf", iwdconf::detect),
+    ("jackrc", jackrc::detect),
+    ("jbig2", jbig2::detect),
+    ("jed", jed::detect),
+    ("jekyll", jekyll::detect),
+    ("jellyfin", jellyfin::detect),
+    ("jenkinsfile", jenkinsfile::detect),
+    ("jenkinsx", jenkinsx::detect),
+    ("jest", jest::detect),
+    ("jfm", jfm::detect),
+    ("jfr", jfr::detect),
+    ("jfs", jfs::detect),
+    ("jmh", jmh::detect),
+    ("journaldconf", journaldconf::detect),
+    ("jp2", jp2::detect),
+    ("jq", jq::detect),
+    ("jsonnet", jsonnet::detect),
+    ("jsonpath", jsonpath::detect),
+    ("jtl", jtl::detect),
+    ("junos", junos::detect),
+    ("jupyterconf", jupyterconf::detect),
+    ("justfile", justfile::detect),
+    ("jwe", jwe::detect),
+    ("jwk", jwk::detect),
+    ("jxr", jxr::detect),
+    ("k0sconf", k0sconf::detect),
+    ("k3d", k3d::detect),
+    ("k3sconf", k3sconf::detect),
+    ("k6", k6::detect),
+    ("k8gb", k8gb::detect),
+    ("kafka", kafka::detect),
+    ("kamaji", kamaji::detect),
+    ("kapitan", kapitan::detect),
+    ("karmaconf", karmaconf::detect),
+    ("karpenter", karpenter::detect),
+    ("katesyntax", katesyntax::detect),
+    ("kbm", kbm::detect),
+    ("kcl", kcl::detect),
+    ("kconfig", kconfig::detect),
+    ("keda", keda::detect),
+    ("kedro", kedro::detect),
+    ("keepalived", keepalived::detect),
+    ("keepassxc", keepassxc::detect),
+    ("kern", kern::detect),
+    ("ketl", ketl::detect),
+    ("keto", keto::detect),
+    ("keycloak", keycloak::detect),
+    ("keydbconf", keydbconf::detect),
+    ("keytab", keytab::detect),
+    ("kibana", kibana::detect),
+    ("kicadpcb", kicadpcb::detect),
+    ("kicadpro", kicadpro::detect),
+    ("kicadsch", kicadsch::detect),
+    ("kickstart", kickstart::detect),
+    ("kif", kif::detect),
+    ("kindconf", kindconf::detect),
+    ("kittyconf", kittyconf::detect),
+    ("kittyimg", kittyimg::detect),
+    ("klipperconf", klipperconf::detect),
+    ("knexfile", knexfile::detect),
+    ("kodiadv", kodiadv::detect),
+    ("kong", kong::detect),
+    ("kopia", kopia::detect),
+    ("kql", kql::detect),
+    ("kratos", kratos::detect),
+    ("krb5conf", krb5conf::detect),
+    ("kserve", kserve::detect),
+    ("ktlint", ktlint::detect),
+    ("kubeconfig", kubeconfig::detect),
+    ("kubedb", kubedb::detect),
+    ("kubeflow", kubeflow::detect),
+    ("kubeflowtraining", kubeflowtraining::detect),
+    ("kubemq", kubemq::detect),
+    ("kubevela", kubevela::detect),
+    ("kubevirt", kubevirt::detect),
+    ("kuma", kuma::detect),
+    ("kustomize", kustomize::detect),
+    ("lab", lab::detect),
+    ("ldapconf", ldapconf::detect),
+    ("ldif", ldif::detect),
+    ("ldirectord", ldirectord::detect),
+    ("ldtk", ldtk::detect),
+    ("lean", lean::detect),
+    ("leda", leda::detect),
+    ("lego", lego::detect),
+    ("leiningen", leiningen::detect),
+    ("lerna", lerna::detect),
+    ("lf", lf::detect),
+    ("lidarr", lidarr::detect),
+    ("lightdm", lightdm::detect),
+    ("lighttpd", lighttpd::detect),
+    ("lima", lima::detect),
+    ("limine", limine::detect),
+    ("linkerd", linkerd::detect),
+    ("liquibase", liquibase::detect),
+    ("lmms", lmms::detect),
+    ("lndconf", lndconf::detect),
+    ("locxml", locxml::detect),
+    ("log4j", log4j::detect),
+    ("log4perl", log4perl::detect),
+    ("logback", logback::detect),
+    ("logindefs", logindefs::detect),
+    ("logrotate", logrotate::detect),
+    ("logstash", logstash::detect),
+    ("loki", loki::detect),
+    ("longhorn", longhorn::detect),
+    ("loveconf", loveconf::detect),
+    ("lp", lp::detect),
+    ("lpf", lpf::detect),
+    ("lsf", lsf::detect),
+    ("ltsconf", ltsconf::detect),
+    ("lucene", lucene::detect),
+    ("luhn", luhn::detect),
+    ("luigi", luigi::detect),
+    ("lvmconf", lvmconf::detect),
+    ("lwo", lwo::detect),
+    ("ly", ly::detect),
+    ("lynisconf", lynisconf::detect),
+    ("lzfse", lzfse::detect),
+    ("lzip", lzip::detect),
+    ("macaroon", macaroon::detect),
+    ("maddyconf", maddyconf::detect),
+    ("maf", maf::detect),
+    ("magefile", magefile::detect),
+    ("maildrop", maildrop::detect),
+    ("mameconf", mameconf::detect),
+    ("mapfile", mapfile::detect),
+    ("mapnikxml", mapnikxml::detect),
+    ("mapproxyconf", mapproxyconf::detect),
+    ("marc", marc::detect),
+    ("markdownlint", markdownlint::detect),
+    ("marlinconf", marlinconf::detect),
+    ("matplotlibrc", matplotlibrc::detect),
+    ("matterbridge", matterbridge::detect),
+    ("mattermost", mattermost::detect),
+    ("maud", maud::detect),
+    ("mbedapp", mbedapp::detect),
+    ("mbsyncrc", mbsyncrc::detect),
+    ("mch", mch::detect),
+    ("md3", md3::detect),
+    ("mdx", mdx::detect),
+    ("med", med::detect),
+    ("mediamtx", mediamtx::detect),
+    ("mediawiki", mediawiki::detect),
+    ("mei", mei::detect),
+    ("meili", meili::detect),
+    ("meltano", meltano::detect),
+    ("memcachedconf", memcachedconf::detect),
+    ("mergify", mergify::detect),
+    ("mermaid", mermaid::detect),
+    ("meson", meson::detect),
+    ("metaflow", metaflow::detect),
+    ("metal3", metal3::detect),
+    ("metallb", metallb::detect),
+    ("metallib", metallib::detect),
+    ("metricbeat", metricbeat::detect),
+    ("metroconf", metroconf::detect),
+    ("mets", mets::detect),
+    ("milvusconf", milvusconf::detect),
+    ("mimirconf", mimirconf::detect),
+    ("minica", minica::detect),
+    ("minikubeconf", minikubeconf::detect),
+    ("minio", minio::detect),
+    ("misp", misp::detect),
+    ("mix", mix::detect),
+    ("mixexs", mixexs::detect),
+    ("mixxx", mixxx::detect),
+    ("mkdocs", mkdocs::detect),
+    ("mlflow", mlflow::detect),
+    ("mml", mml::detect),
+    ("mmlstyle", mmlstyle::detect),
+    ("mochajson", mochajson::detect),
+    ("mocharc", mocharc::detect),
+    ("modeldo", modeldo::detect),
+    ("modprobeconf", modprobeconf::detect),
+    ("modsecurity", modsecurity::detect),
+    ("monero", monero::detect),
+    ("mongod", mongod::detect),
+    ("monit", monit::detect),
+    ("moonrakerconf", moonrakerconf::detect),
+    ("moonrepo", moonrepo::detect),
+    ("mopidy", mopidy::detect),
+    ("mosquitto", mosquitto::detect),
+    ("motionconf", motionconf::detect),
+    ("movelang", movelang::detect),
+    ("mpc", mpc::detect),
+    ("mpd", mpd::detect),
+    ("mpegts", mpegts::detect),
+    ("mplayerconf", mplayerconf::detect),
+    ("mps", mps::detect),
+    ("mpv", mpv::detect),
+    ("mscx", mscx::detect),
+    ("msmtprc", msmtprc::detect),
+    ("mtm", mtm::detect),
+    ("mtx", mtx::detect),
+    ("multus", multus::detect),
+    ("musicxml", musicxml::detect),
+    ("muttrc", muttrc::detect),
+    ("mvnsettings", mvnsettings::detect),
+    ("mxf", mxf::detect),
+    ("mypyconf", mypyconf::detect),
+    ("mysql", mysql::detect),
+    ("nagios", nagios::detect),
+    ("namedconf", namedconf::detect),
+    ("nanoid", nanoid::detect),
+    ("nanorc", nanorc::detect),
+    ("nats", nats::detect),
+    ("navidrome", navidrome::detect),
+    ("naxsiconf", naxsiconf::detect),
+    ("nbd", nbd::detect),
+    ("ncmpcpp", ncmpcpp::detect),
+    ("ncpdp", ncpdp::detect),
+    ("nebulaconf", nebulaconf::detect),
+    ("nef", nef::detect),
+    ("neo4jconf", neo4jconf::detect),
+    ("neomuttconf", neomuttconf::detect),
+    ("nerdctl", nerdctl::detect),
+    ("netlifyconf", netlifyconf::detect),
+    ("netplan", netplan::detect),
+    ("networkd", networkd::detect),
+    ("newrelic", newrelic::detect),
+    ("newsboat", newsboat::detect),
+    ("newsyslog", newsyslog::detect),
+    ("nextflow", nextflow::detect),
+    ("nexus", nexus::detect),
+    ("nfsexports", nfsexports::detect),
+    ("nftconf", nftconf::detect),
+    ("nginx", nginx::detect),
+    ("ngircd", ngircd::detect),
+    ("nib", nib::detect),
+    ("nickel", nickel::detect),
+    ("nififlow", nififlow::detect),
+    ("nimble", nimble::detect),
+    ("nist", nist::detect),
+    ("nix", nix::detect),
+    ("nixconf", nixconf::detect),
+    ("nlogconf", nlogconf::detect),
+    ("nmconnection", nmconnection::detect),
+    ("nodered", nodered::detect),
+    ("nomad", nomad::detect),
+    ("npmlock", npmlock::detect),
+    ("npmrc", npmrc::detect),
+    ("nsd", nsd::detect),
+    ("nslcdconf", nslcdconf::detect),
+    ("nsqconf", nsqconf::detect),
+    ("nsswitch", nsswitch::detect),
+    ("ntpconf", ntpconf::detect),
+    ("ntpsec", ntpsec::detect),
+    ("nuconf", nuconf::detect),
+    ("nugetconfig", nugetconfig::detect),
+    ("nuxt", nuxt::detect),
+    ("nwc", nwc::detect),
+    ("nxconf", nxconf::detect),
+    ("oai", oai::detect),
+    ("oathkeeper", oathkeeper::detect),
+    ("obsconf", obsconf::detect),
+    ("octaverc", octaverc::detect),
+    ("octoprint", octoprint::detect),
+    ("odbcini", odbcini::detect),
+    ("oem", oem::detect),
+    ("offlineimap", offlineimap::detect),
+    ("ogmo", ogmo::detect),
+    ("okteto", okteto::detect),
+    ("olm", olm::detect),
+    ("omm", omm::detect),
+    ("opam", opam::detect),
+    ("opb", opb::detect),
+    ("openapi", openapi::detect),
+    ("openbgpd", openbgpd::detect),
+    ("opendkim", opendkim::detect),
+    ("opendmarc", opendmarc::detect),
+    ("openebs", openebs::detect),
+    ("openfaas", openfaas::detect),
+    ("openfga", openfga::detect),
+    ("openhab", openhab::detect),
+    ("openlane", openlane::detect),
+    ("openntpd", openntpd::detect),
+    ("openpulse", openpulse::detect),
+    ("openrc", openrc::detect),
+    ("opensearch", opensearch::detect),
+    ("opensearchop", opensearchop::detect),
+    ("openssl", openssl::detect),
+    ("openvpn", openvpn::detect),
+    ("opsjson", opsjson::detect),
+    ("orcaslicer", orcaslicer::detect),
+    ("orcid", orcid::detect),
+    ("orf", orf::detect),
+    ("osc", osc::detect),
+    ("osm2pgsqlstyle", osm2pgsqlstyle::detect),
+    ("osqueryconf", osqueryconf::detect),
+    ("ossecconf", ossecconf::detect),
+    ("otelcol", otelcol::detect),
+    ("overpass", overpass::detect),
+    ("ovf", ovf::detect),
+    ("packer", packer::detect),
+    ("packit", packit::detect),
+    ("pacman", pacman::detect),
+    ("paf", paf::detect),
+    ("pain", pain::detect),
+    ("pajek", pajek::detect),
+    ("pamstack", pamstack::detect),
+    ("pants", pants::detect),
+    ("paraver", paraver::detect),
+    ("parityconf", parityconf::detect),
+    ("paseto", paseto::detect),
+    ("pcsx2conf", pcsx2conf::detect),
+    ("pdns", pdns::detect),
+    ("percona", percona::detect),
+    ("perflog", perflog::detect),
+    ("pfconf", pfconf::detect),
+    ("pgo", pgo::detect),
+    ("pgpass", pgpass::detect),
+    ("pgservice", pgservice::detect),
+    ("phabricatorconf", phabricatorconf::detect),
+    ("phylip", phylip::detect),
+    ("picard", picard::detect),
+    ("pidginconf", pidginconf::detect),
+    ("pihole", pihole::detect),
+    ("pileup", pileup::detect),
+    ("pinpoint", pinpoint::detect),
+    ("pipewireconf", pipewireconf::detect),
+    ("pipfile", pipfile::detect),
+    ("pk", pk::detect),
+    ("pkl", pkl::detect),
+    ("pl", pl::detect),
+    ("planetilerconf", planetilerconf::detect),
+    ("plantuml", plantuml::detect),
+    ("platformio", platformio::detect),
+    ("platformsh", platformsh::detect),
+    ("playwrightconf", playwrightconf::detect),
+    ("plexconf", plexconf::detect),
+    ("pm2", pm2::detect),
+    ("pmacctconf", pmacctconf::detect),
+    ("pmml", pmml::detect),
+    ("pnpmlock", pnpmlock::detect),
+    ("pnpmworkspace", pnpmworkspace::detect),
+    ("podfile", podfile::detect),
+    ("poetry", poetry::detect),
+    ("policyjson", policyjson::detect),
+    ("polybar", polybar::detect),
+    ("pom", pom::detect),
+    ("pomerium", pomerium::detect),
+    ("portage", portage::detect),
+    ("portworx", portworx::detect),
+    ("postalconf", postalconf::detect),
+    ("postcss", postcss::detect),
+    ("postfix", postfix::detect),
+    ("postgresql", postgresql::detect),
+    ("pppdconf", pppdconf::detect),
+    ("pprof", pprof::detect),
+    ("ppssppconf", ppssppconf::detect),
+    ("pptpd", pptpd::detect),
+    ("prefect", prefect::detect),
+    ("premakeconf", premakeconf::detect),
+    ("preseed", preseed::detect),
+    ("prettier", prettier::detect),
+    ("privoxy", privoxy::detect),
+    ("procd", procd::detect),
+    ("procmailrc", procmailrc::detect),
+    ("proftpd", proftpd::detect),
+    ("projjson", projjson::detect),
+    ("promela", promela::detect),
+    ("prometheus", prometheus::detect),
+    ("promoperator", promoperator::detect),
+    ("promtailconf", promtailconf::detect),
+    ("proselint", proselint::detect),
+    ("prosody", prosody::detect),
+    ("prow", prow::detect),
+    ("prowlarr", prowlarr::detect),
+    ("prusaslicer", prusaslicer::detect),
+    ("ptm", ptm::detect),
+    ("ptp4l", ptp4l::detect),
+    ("ptx", ptx::detect),
+    ("pubspec", pubspec::detect),
+    ("pulsar", pulsar::detect),
+    ("pulseclientconf", pulseclientconf::detect),
+    ("pulumi", pulumi::detect),
+    ("puppet", puppet::detect),
+    ("pureftpd", pureftpd::detect),
+    ("puz", puz::detect),
+    ("pxelinux", pxelinux::detect),
+    ("pylintrc", pylintrc::detect),
+    ("pypirc", pypirc::detect),
+    ("pyproject", pyproject::detect),
+    ("pyrightconf", pyrightconf::detect),
+    ("pyroconf", pyroconf::detect),
+    ("pytestbench", pytestbench::detect),
+    ("qasm", qasm::detect),
+    ("qbittorrent", qbittorrent::detect),
+    ("qcp", qcp::detect),
+    ("qdrantconf", qdrantconf::detect),
+    ("qgsproj", qgsproj::detect),
+    ("qmakepro", qmakepro::detect),
+    ("qmap", qmap::detect),
+    ("qobj", qobj::detect),
+    ("qpf", qpf::detect),
+    ("qs", qs::detect),
+    ("qsf", qsf::detect),
+    ("qtui", qtui::detect),
+    ("quartz", quartz::detect),
+    ("quil", quil::detect),
+    ("rabbitmq", rabbitmq::detect),
+    ("radarr", radarr::detect),
+    ("radiusd", radiusd::detect),
+    ("raf", raf::detect),
+    ("railwayconf", railwayconf::detect),
+    ("rakefile", rakefile::detect),
+    ("raml", raml::detect),
+    ("rc", rc::detect),
+    ("rcloneconf", rcloneconf::detect),
+    ("rdpfile", rdpfile::detect),
+    ("reaper", reaper::detect),
+    ("rebarconfig", rebarconfig::detect),
+    ("recordio", recordio::detect),
+    ("redisconf", redisconf::detect),
+    ("redpanda", redpanda::detect),
+    ("redpen", redpen::detect),
+    ("refind", refind::detect),
+    ("regfile", regfile::detect),
+    ("registriesconf", registriesconf::detect),
+    ("rego", rego::detect),
+    ("reiserfs", reiserfs::detect),
+    ("relaxng", relaxng::detect),
+    ("releaseplease", releaseplease::detect),
+    ("remminaconf", remminaconf::detect),
+    ("renderconf", renderconf::detect),
+    ("renovate", renovate::detect),
+    ("renviron", renviron::detect),
+    ("requirements", requirements::detect),
+    ("res", res::detect),
+    ("resolv", resolv::detect),
+    ("resticprofile", resticprofile::detect),
+    ("retroarch", retroarch::detect),
+    ("reviveconf", reviveconf::detect),
+    ("rfb", rfb::detect),
+    ("rinex", rinex::detect),
+    ("rkhunter", rkhunter::detect),
+    ("rm", rm::detect),
+    ("rocketmq", rocketmq::detect),
+    ("rockspec", rockspec::detect),
+    ("rofi", rofi::detect),
+    ("rollup", rollup::detect),
+    ("rook", rook::detect),
+    ("routeros", routeros::detect),
+    ("rpcs3conf", rpcs3conf::detect),
+    ("rpgmakerconf", rpgmakerconf::detect),
+    ("rprofile", rprofile::detect),
+    ("rpy", rpy::detect),
+    ("rsnapshot", rsnapshot::detect),
+    ("rspamdconf", rspamdconf::detect),
+    ("rss2email", rss2email::detect),
+    ("rsyslogd", rsyslogd::detect),
+    ("rtorrent", rtorrent::detect),
+    ("rubocop", rubocop::detect),
+    ("ruffconf", ruffconf::detect),
+    ("rundeck", rundeck::detect),
+    ("runit", runit::detect),
+    ("rvdata", rvdata::detect),
+    ("rw2", rw2::detect),
+    ("rx2", rx2::detect),
+    ("s6rc", s6rc::detect),
+    ("saif", saif::detect),
+    ("salt", salt::detect),
+    ("samba", samba::detect),
+    ("samhainconf", samhainconf::detect),
+    ("saml", saml::detect),
+    ("sbf", sbf::detect),
+    ("sbt", sbt::detect),
+    ("sby", sby::detect),
+    ("scandata", scandata::detect),
+    ("sch", sch::detect),
+    ("scl", scl::detect),
+    ("sconstruct", sconstruct::detect),
+    ("scp", scp::detect),
+    ("scyllaop", scyllaop::detect),
+    ("sdc", sdc::detect),
+    ("sddmconf", sddmconf::detect),
+    ("sdkconfig", sdkconfig::detect),
+    ("sdrppconf", sdrppconf::detect),
+    ("sealedsecrets", sealedsecrets::detect),
+    ("seccomp", seccomp::detect),
+    ("secretsbaseline", secretsbaseline::detect),
+    ("secretsstore", secretsstore::detect),
+    ("seldon", seldon::detect),
+    ("semgrep", semgrep::detect),
+    ("sendmail", sendmail::detect),
+    ("sentinel", sentinel::detect),
+    ("sequelizerc", sequelizerc::detect),
+    ("serilog", serilog::detect),
+    ("serverless", serverless::detect),
+    ("serverprop", serverprop::detect),
+    ("setupcfg", setupcfg::detect),
+    ("sftp", sftp::detect),
+    ("sgi", sgi::detect),
+    ("shadowsocksconf", shadowsocksconf::detect),
+    ("shard", shard::detect),
+    ("shellcheckrc", shellcheckrc::detect),
+    ("shibconf", shibconf::detect),
+    ("shipwright", shipwright::detect),
+    ("shorewall", shorewall::detect),
+    ("sidekiq", sidekiq::detect),
+    ("sievescript", sievescript::detect),
+    ("sigma", sigma::detect),
+    ("singboxconf", singboxconf::detect),
+    ("singerconf", singerconf::detect),
+    ("sixel", sixel::detect),
+    ("skaffold", skaffold::detect),
+    ("skywalking", skywalking::detect),
+    ("slapd", slapd::detect),
+    ("slob", slob::detect),
+    ("slrnconf", slrnconf::detect),
+    ("slurm", slurm::detect),
+    ("smd", smd::detect),
+    ("smithy", smithy::detect),
+    ("smt2", smt2::detect),
+    ("snapcast", snapcast::detect),
+    ("snapcraft", snapcraft::detect),
+    ("snmpdconf", snmpdconf::detect),
+    ("snort", snort::detect),
+    ("snyk", snyk::detect),
+    ("sol", sol::detect),
+    ("solrconfig", solrconfig::detect),
+    ("solrschema", solrschema::detect),
+    ("sonar", sonar::detect),
+    ("sonarr", sonarr::detect),
+    ("soniccfg", soniccfg::detect),
+    ("sops", sops::detect),
+    ("sp3", sp3::detect),
+    ("spamassassin", spamassassin::detect),
+    ("spark", spark::detect),
+    ("sparql", sparql::detect),
+    ("speedscope", speedscope::detect),
+    ("spef", spef::detect),
+    ("sphinx", sphinx::detect),
+    ("spicenet", spicenet::detect),
+    ("spigot", spigot::detect),
+    ("spire", spire::detect),
+    ("spotbugs", spotbugs::detect),
+    ("spv", spv::detect),
+    ("sqitchconf", sqitchconf::detect),
+    ("sqlnet", sqlnet::detect),
+    ("squid", squid::detect),
+    ("srhtconf", srhtconf::detect),
+    ("sshconf", sshconf::detect),
+    ("sssdconf", sssdconf::detect),
+    ("stack", stack::detect),
+    ("stalwartconf", stalwartconf::detect),
+    ("stardict", stardict::detect),
+    ("starship", starship::detect),
+    ("stash", stash::detect),
+    ("staticcheckconf", staticcheckconf::detect),
+    ("stepca", stepca::detect),
+    ("stix", stix::detect),
+    ("stm", stm::detect),
+    ("storageconf", storageconf::detect),
+    ("storybook", storybook::detect),
+    ("strimzi", strimzi::detect),
+    ("strongswanconf", strongswanconf::detect),
+    ("stylelint", stylelint::detect),
+    ("sublime", sublime::detect),
+    ("sudoers", sudoers::detect),
+    ("sudoku", sudoku::detect),
+    ("suiconf", suiconf::detect),
+    ("supabase", supabase::detect),
+    ("supervisor", supervisor::detect),
+    ("surefire", surefire::detect),
+    ("suricata", suricata::detect),
+    ("svelte", svelte::detect),
+    ("svf", svf::detect),
+    ("svnconf", svnconf::detect),
+    ("svp", svp::detect),
+    ("swanctl", swanctl::detect),
+    ("sway", sway::detect),
+    ("swf", swf::detect),
+    ("swiftlint", swiftlint::detect),
+    ("swiftmt", swiftmt::detect),
+    ("synapse", synapse::detect),
+    ("syncthingconf", syncthingconf::detect),
+    ("sysctlconf", sysctlconf::detect),
+    ("syslogng", syslogng::detect),
+    ("sysmonconf", sysmonconf::detect),
+    ("systemdboot", systemdboot::detect),
+    ("sysv", sysv::detect),
+    ("syx", syx::detect),
+    ("t3d", t3d::detect),
+    ("tabbyconf", tabbyconf::detect),
+    ("tact", tact::detect),
+    ("tailscale", tailscale::detect),
+    ("tailwind", tailwind::detect),
+    ("talisman", talisman::detect),
+    ("taprc", taprc::detect),
+    ("tarantool", tarantool::detect),
+    ("taskfile", taskfile::detect),
+    ("td0", td0::detect),
+    ("tdm", tdm::detect),
+    ("telegraf", telegraf::detect),
+    ("teleport", teleport::detect),
+    ("telnet", telnet::detect),
+    ("tempoconf", tempoconf::detect),
+    ("terminfo", terminfo::detect),
+    ("terragrunt", terragrunt::detect),
+    ("textile", textile::detect),
+    ("textlint", textlint::detect),
+    ("textmategram", textmategram::detect),
+    ("tflint", tflint::detect),
+    ("tfm", tfm::detect),
+    ("tfrecord", tfrecord::detect),
+    ("tgf", tgf::detect),
+    ("thanosconf", thanosconf::detect),
+    ("tidb", tidb::detect),
+    ("tileservergl", tileservergl::detect),
+    ("tilestacheconf", tilestacheconf::detect),
+    ("tiltfile", tiltfile::detect),
+    ("timesyncd", timesyncd::detect),
+    ("tincconf", tincconf::detect),
+    ("tinyproxy", tinyproxy::detect),
+    ("tlaplus", tlaplus::detect),
+    ("tlp", tlp::detect),
+    ("tmpfilesd", tmpfilesd::detect),
+    ("tmuxconf", tmuxconf::detect),
+    ("tmx", tmx::detect),
+    ("tnsnames", tnsnames::detect),
+    ("tomcat", tomcat::detect),
+    ("torrc", torrc::detect),
+    ("toxini", toxini::detect),
+    ("tptp", tptp::detect),
+    ("traefik", traefik::detect),
+    ("transmission", transmission::detect),
+    ("travisci", travisci::detect),
+    ("treesittergram", treesittergram::detect),
+    ("tripwireconf", tripwireconf::detect),
+    ("trivy", trivy::detect),
+    ("trivyop", trivyop::detect),
+    ("trojanconf", trojanconf::detect),
+    ("tscn", tscn::detect),
+    ("tsconfig", tsconfig::detect),
+    ("tsx", tsx::detect),
+    ("ttyrec", ttyrec::detect),
+    ("tuicconf", tuicconf::detect),
+    ("turboconf", turboconf::detect),
+    ("twee", twee::detect),
+    ("txt2tags", txt2tags::detect),
+    ("typeid", typeid::detect),
+    ("typeormconf", typeormconf::detect),
+    ("typesense", typesense::detect),
+    ("ubootenv", ubootenv::detect),
+    ("ucf", ucf::detect),
+    ("uci", uci::detect),
+    ("udevrules", udevrules::detect),
+    ("ufwrules", ufwrules::detect),
+    ("ult", ult::detect),
+    ("unattend", unattend::detect),
+    ("unbound", unbound::detect),
+    ("unison", unison::detect),
+    ("unitconf", unitconf::detect),
+    ("unitymanifest", unitymanifest::detect),
+    ("unitysettings", unitysettings::detect),
+    ("unocss", unocss::detect),
+    ("unrealircd", unrealircd::detect),
+    ("upc", upc::detect),
+    ("upf", upf::detect),
+    ("uplugin", uplugin::detect),
+    ("uproject", uproject::detect),
+    ("upstart", upstart::detect),
+    ("usercss", usercss::detect),
+    ("userscript", userscript::detect),
+    ("usi", usi::detect),
+    ("ust", ust::detect),
+    ("ustx", ustx::detect),
+    ("v2rayconf", v2rayconf::detect),
+    ("vagrant", vagrant::detect),
+    ("vale", vale::detect),
+    ("valkeyconf", valkeyconf::detect),
+    ("vaultagent", vaultagent::detect),
+    ("vcard", vcard::detect),
+    ("vcd", vcd::detect),
+    ("vcl", vcl::detect),
+    ("vcluster", vcluster::detect),
+    ("vcpkg", vcpkg::detect),
+    ("vector", vector::detect),
+    ("vercelconf", vercelconf::detect),
+    ("verilog", verilog::detect),
+    ("vernemq", vernemq::detect),
+    ("vespaconf", vespaconf::detect),
+    ("vf", vf::detect),
+    ("vhdr", vhdr::detect),
+    ("victoria", victoria::detect),
+    ("vimrc", vimrc::detect),
+    ("vimsyntax", vimsyntax::detect),
+    ("virtxml", virtxml::detect),
+    ("viteconf", viteconf::detect),
+    ("vitepress", vitepress::detect),
+    ("vitess", vitess::detect),
+    ("vitestconf", vitestconf::detect),
+    ("vlcrc", vlcrc::detect),
+    ("vlt", vlt::detect),
+    ("vmagentconf", vmagentconf::detect),
+    ("vmrk", vmrk::detect),
+    ("volcano", volcano::detect),
+    ("votable", votable::detect),
+    ("vpr", vpr::detect),
+    ("vrtgdal", vrtgdal::detect),
+    ("vscodeconf", vscodeconf::detect),
+    ("vsftpd", vsftpd::detect),
+    ("vsqx", vsqx::detect),
+    ("vyper", vyper::detect),
+    ("w64", w64::detect),
+    ("wafconf", wafconf::detect),
+    ("wandb", wandb::detect),
+    ("waybar", waybar::detect),
+    ("waypoint", waypoint::detect),
+    ("weaviateconf", weaviateconf::detect),
+    ("webmanifest", webmanifest::detect),
+    ("webpackconf", webpackconf::detect),
+    ("weechat", weechat::detect),
+    ("westconf", westconf::detect),
+    ("westonconf", westonconf::detect),
+    ("weztermconf", weztermconf::detect),
+    ("wfdb", wfdb::detect),
+    ("wgsl", wgsl::detect),
+    ("whitelist", whitelist::detect),
+    ("whyml", whyml::detect),
+    ("widgetxml", widgetxml::detect),
+    ("wim", wim::detect),
+    ("windowsterminal", windowsterminal::detect),
+    ("winini", winini::detect),
+    ("winlogbeat", winlogbeat::detect),
+    ("winstonconf", winstonconf::detect),
+    ("wireguard", wireguard::detect),
+    ("wireplumberconf", wireplumberconf::detect),
+    ("wiresharkpref", wiresharkpref::detect),
+    ("wktproj", wktproj::detect),
+    ("woodpecker", woodpecker::detect),
+    ("wordfileuew", wordfileuew::detect),
+    ("woz", woz::detect),
+    ("wpasupplicant", wpasupplicant::detect),
+    ("wrangler", wrangler::detect),
+    ("wrl", wrl::detect),
+    ("wsdl", wsdl::detect),
+    ("wsjtxconf", wsjtxconf::detect),
+    ("wslconf", wslconf::detect),
+    ("xacml", xacml::detect),
+    ("xbrl", xbrl::detect),
+    ("xdc", xdc::detect),
+    ("xdf", xdf::detect),
+    ("xib", xib::detect),
+    ("xid", xid::detect),
+    ("xl2tpd", xl2tpd::detect),
+    ("xlink", xlink::detect),
+    ("xmakeconf", xmakeconf::detect),
+    ("xmodmap", xmodmap::detect),
+    ("xmp", xmp::detect),
+    ("xorgconf", xorgconf::detect),
+    ("xpath", xpath::detect),
+    ("xq", xq::detect),
+    ("xqf", xqf::detect),
+    ("xrayconf", xrayconf::detect),
+    ("xrdpconf", xrdpconf::detect),
+    ("xresources", xresources::detect),
+    ("xsd", xsd::detect),
+    ("xslt", xslt::detect),
+    ("xsvf", xsvf::detect),
+    ("xunit", xunit::detect),
+    ("y4m", y4m::detect),
+    ("yamllint", yamllint::detect),
+    ("yara", yara::detect),
+    ("yarnlock", yarnlock::detect),
+    ("yarnrc", yarnrc::detect),
+    ("yggdrasil", yggdrasil::detect),
+    ("yosys", yosys::detect),
+    ("ytt", ytt::detect),
+    ("yugabyte", yugabyte::detect),
+    ("yuzuconf", yuzuconf::detect),
+    ("zabbix", zabbix::detect),
+    ("zapconf", zapconf::detect),
+    ("zedconf", zedconf::detect),
+    ("zeekconf", zeekconf::detect),
+    ("zeekctl", zeekctl::detect),
+    ("zeekscript", zeekscript::detect),
+    ("zerotier", zerotier::detect),
+    ("zfs", zfs::detect),
+    ("zigbee2mqtt", zigbee2mqtt::detect),
+    ("zitadel", zitadel::detect),
+    ("znc", znc::detect),
+    ("zola", zola::detect),
+    ("zon", zon::detect),
+    ("zone", zone::detect),
+    ("zonemtaconf", zonemtaconf::detect),
+    ("zoo", zoo::detect),
+    ("zookeeper", zookeeper::detect),
+    ("zookeeperop", zookeeperop::detect),
+    ("zpaq", zpaq::detect),
+    ("zshrc", zshrc::detect),
+    ("zulipconf", zulipconf::detect),
+    ("zypper", zypper::detect),
+];
+
+/// 全検出器に入力を流し、合致したモジュール名を全て返す。
+///
+/// [`DETECTORS`] の並び順(名前昇順)で返る。合致なしなら空 `Vec`。
+/// 1入力に複数形式が合致し得るため先勝ちではなく全件を返す。
+#[must_use]
+pub fn detect_all(input: &[u8]) -> Vec<&'static str> {
+    DETECTORS
+        .iter()
+        .filter(|(_, f)| f(input))
+        .map(|(name, _)| *name)
+        .collect()
+}
 /// バイト列パーサーの関数型。戻り型がモジュールごとに異なるため
 /// (`Option<T>`/`Vec<T>`/…)呼び捨ての `fn(&[u8])` に正規化する。
 pub type ParserFn = fn(&[u8]);
@@ -2793,6 +4312,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("aps", |b| {
         let _ = aps::parse(b);
     }),
+    ("aprxconf", |b| {
+        let _ = aprxconf::parse(b);
+    }),
     ("ar", |b| {
         let _ = ar::parse(b);
     }),
@@ -2867,6 +4389,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("avro", |b| {
         let _ = avro::parse(b);
+    }),
+    ("axports", |b| {
+        let _ = axports::parse(b);
     }),
     ("ay", |b| {
         let _ = ay::parse(b);
@@ -2997,6 +4522,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("cardanoconf", |b| {
         let _ = cardanoconf::parse(b);
     }),
+    ("cartocss", |b| {
+        let _ = cartocss::parse(b);
+    }),
     ("cargoconf", |b| {
         let _ = cargoconf::parse(b);
     }),
@@ -3017,6 +4545,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("cephconf", |b| {
         let _ = cephconf::parse(b);
+    }),
+    ("chirpcsv", |b| {
+        let _ = chirpcsv::parse(b);
     }),
     ("chd", |b| {
         let _ = chd::parse(b);
@@ -3117,6 +4648,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("crl", |b| {
         let _ = crl::parse(b);
     }),
+    ("crowdsec", |b| {
+        let _ = crowdsec::parse(b);
+    }),
     ("crmconf", |b| {
         let _ = crmconf::parse(b);
     }),
@@ -3192,6 +4726,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("dds", |b| {
         let _ = dds::parse(b);
     }),
+    ("denyhosts", |b| {
+        let _ = denyhosts::parse(b);
+    }),
     ("deb", |b| {
         let _ = deb::parse(b);
     }),
@@ -3236,6 +4773,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("dicom", |b| {
         let _ = dicom::parse(b);
+    }),
+    ("direwolfconf", |b| {
+        let _ = direwolfconf::parse(b);
     }),
     ("dictd", |b| {
         let _ = dictd::parse(b);
@@ -3426,6 +4966,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("excellon", |b| {
         let _ = excellon::parse(b);
     }),
+    ("fail2banconf", |b| {
+        let _ = fail2banconf::parse(b);
+    }),
     ("exfat", |b| {
         let _ = exfat::parse(b);
     }),
@@ -3482,6 +5025,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("fit", |b| {
         let _ = fit::parse(b);
+    }),
+    ("fldigiconf", |b| {
+        let _ = fldigiconf::parse(b);
     }),
     ("fits", |b| {
         let _ = fits::parse(b);
@@ -3630,8 +5176,14 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("gitpack", |b| {
         let _ = gitpack::parse(b);
     }),
+    ("gostconf", |b| {
+        let _ = gostconf::parse(b);
+    }),
     ("glade", |b| {
         let _ = glade::parse(b);
+    }),
+    ("gqrxconf", |b| {
+        let _ = gqrxconf::parse(b);
     }),
     ("glb", |b| {
         let _ = glb::parse(b);
@@ -3761,6 +5313,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("hivemq", |b| {
         let _ = hivemq::parse(b);
+    }),
+    ("hysteriaconf", |b| {
+        let _ = hysteriaconf::parse(b);
     }),
     ("hlsl", |b| {
         let _ = hlsl::parse(b);
@@ -4143,6 +5698,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("leiningen", |b| {
         let _ = leiningen::parse(b);
     }),
+    ("locxml", |b| {
+        let _ = locxml::parse(b);
+    }),
     ("lha", |b| {
         let _ = lha::parse(b);
     }),
@@ -4368,6 +5926,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("mets", |b| {
         let _ = mets::parse(b);
     }),
+    ("mmlstyle", |b| {
+        let _ = mmlstyle::parse(b);
+    }),
     ("mft", |b| {
         let _ = mft::parse(b);
     }),
@@ -4382,6 +5943,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("mime", |b| {
         let _ = mime::parse(b);
+    }),
+    ("modsecurity", |b| {
+        let _ = modsecurity::parse(b);
     }),
     ("mimirconf", |b| {
         let _ = mimirconf::parse(b);
@@ -4463,6 +6027,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("msf", |b| {
         let _ = msf::parse(b);
+    }),
+    ("naxsiconf", |b| {
+        let _ = naxsiconf::parse(b);
     }),
     ("msh", |b| {
         let _ = msh::parse(b);
@@ -4695,6 +6262,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("openlane", |b| {
         let _ = openlane::parse(b);
     }),
+    ("overpass", |b| {
+        let _ = overpass::parse(b);
+    }),
     ("openntpd", |b| {
         let _ = openntpd::parse(b);
     }),
@@ -4883,6 +6453,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("pmd", |b| {
         let _ = pmd::parse(b);
+    }),
+    ("projjson", |b| {
+        let _ = projjson::parse(b);
     }),
     ("pmtiles", |b| {
         let _ = pmtiles::parse(b);
@@ -5145,6 +6718,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("rpcs3conf", |b| {
         let _ = rpcs3conf::parse(b);
     }),
+    ("samhainconf", |b| {
+        let _ = samhainconf::parse(b);
+    }),
     ("rpgmakerconf", |b| {
         let _ = rpgmakerconf::parse(b);
     }),
@@ -5195,6 +6771,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("saif", |b| {
         let _ = saif::parse(b);
+    }),
+    ("sdrppconf", |b| {
+        let _ = sdrppconf::parse(b);
     }),
     ("samba", |b| {
         let _ = samba::parse(b);
@@ -5379,6 +6958,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("spec", |b| {
         let _ = spec::parse(b);
     }),
+    ("strongswanconf", |b| {
+        let _ = strongswanconf::parse(b);
+    }),
     ("spef", |b| {
         let _ = spef::parse(b);
     }),
@@ -5508,6 +7090,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("tacacs", |b| {
         let _ = tacacs::parse(b);
     }),
+    ("tilestacheconf", |b| {
+        let _ = tilestacheconf::parse(b);
+    }),
     ("tarantool", |b| {
         let _ = tarantool::parse(b);
     }),
@@ -5523,8 +7108,17 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("td0", |b| {
         let _ = td0::parse(b);
     }),
+    ("torrc", |b| {
+        let _ = torrc::parse(b);
+    }),
     ("tdm", |b| {
         let _ = tdm::parse(b);
+    }),
+    ("trojanconf", |b| {
+        let _ = trojanconf::parse(b);
+    }),
+    ("tripwireconf", |b| {
+        let _ = tripwireconf::parse(b);
     }),
     ("tds", |b| {
         let _ = tds::parse(b);
@@ -5543,6 +7137,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("textile", |b| {
         let _ = textile::parse(b);
+    }),
+    ("tuicconf", |b| {
+        let _ = tuicconf::parse(b);
     }),
     ("textlint", |b| {
         let _ = textlint::parse(b);
@@ -5643,6 +7240,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("ubootenv", |b| {
         let _ = ubootenv::parse(b);
     }),
+    ("v2rayconf", |b| {
+        let _ = v2rayconf::parse(b);
+    }),
     ("ubx", |b| {
         let _ = ubx::parse(b);
     }),
@@ -5699,6 +7299,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("urlencode", |b| {
         let _ = urlencode::parse(b);
+    }),
+    ("vrtgdal", |b| {
+        let _ = vrtgdal::parse(b);
     }),
     ("usercss", |b| {
         let _ = usercss::parse(b);
@@ -5775,6 +7378,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("vp3", |b| {
         let _ = vp3::parse(b);
     }),
+    ("wktproj", |b| {
+        let _ = wktproj::parse(b);
+    }),
     ("vpk", |b| {
         let _ = vpk::parse(b);
     }),
@@ -5789,6 +7395,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("vtk", |b| {
         let _ = vtk::parse(b);
+    }),
+    ("wsjtxconf", |b| {
+        let _ = wsjtxconf::parse(b);
     }),
     ("vtu", |b| {
         let _ = vtu::parse(b);
@@ -5913,6 +7522,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("xi", |b| {
         let _ = xi::parse(b);
     }),
+    ("yggdrasil", |b| {
+        let _ = yggdrasil::parse(b);
+    }),
     ("xib", |b| {
         let _ = xib::parse(b);
     }),
@@ -5921,6 +7533,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("xliff", |b| {
         let _ = xliff::parse(b);
+    }),
+    ("zeekconf", |b| {
+        let _ = zeekconf::parse(b);
     }),
     ("xlink", |b| {
         let _ = xlink::parse(b);
@@ -6043,1347 +7658,3 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
         let _ = zulipconf::parse(b);
     }),
 ];
-
-pub use aabb::Aabb;
-pub use ability::{Ability, AbilityResult, AbilitySet};
-pub use affix::{Affix, AffixGenerator, AffixSlot, AffixedItem};
-pub use arch::ArchTable;
-pub use assets::{AssetHandle, AssetStore};
-pub use autotile::{compute_all, compute_mask, SimpleTileTable};
-pub use behavior::{BehaviorNode, BehaviorStatus, BehaviorTree};
-pub use calendar::Calendar;
-pub use camera::Camera;
-pub use change::{ChangeTracker, Changed};
-pub use cmdqueue::CmdQueue;
-pub use combat::{
-    apply_resistance, base_damage, critical_strike, melee_attack, ranged_attack, roll_damage,
-    roll_to_hit, splash_attack, Stats, StatsModifier, StrikeResult,
-};
-pub use content::{Content, Diagnostic, ExtendsError, Prefab, Severity, Tile};
-pub use damage::{DamageType, ResistanceProfile};
-pub use diag_json::severity_filter;
-pub use dialogue::{Choice, Dialogue, DialogueNode};
-pub use dice::Dice;
-pub use dst::{
-    dst_determinism_sweep, dst_replay, dst_swarm_replay, dst_swarm_sweep, dst_sweep, swarm_subset,
-    DstFailure, SwarmFailure,
-};
-pub use easing::{
-    ease_in_back, ease_in_bounce, ease_in_circ, ease_in_cubic, ease_in_expo, ease_in_out_back,
-    ease_in_out_bounce, ease_in_out_circ, ease_in_out_cubic, ease_in_out_expo, ease_in_out_quad,
-    ease_in_out_quart, ease_in_out_quint, ease_in_out_sine, ease_in_quad, ease_in_quart,
-    ease_in_quint, ease_in_sine, ease_out_back, ease_out_bounce, ease_out_circ, ease_out_cubic,
-    ease_out_expo, ease_out_quad, ease_out_quart, ease_out_quint, ease_out_sine, ease_reversed,
-    linear,
-};
-pub use encounter::{EncounterPack, EncounterSlot};
-pub use entity::{Entity, EntityAllocator};
-pub use equipment::{EquipSlot, Equipment};
-pub use eventqueue::EventQueue;
-pub use explore::{explore, explore_sim, explore_sim_until, explore_until, Archive, ExploreConfig};
-pub use faction::{FactionMap, FRIENDLY_THRESHOLD, HOSTILE_THRESHOLD, MAX_REP, MIN_REP};
-pub use fixed::Fixed;
-pub use fov::{can_see, compute_fov, compute_fov_dist, fov_count_filtered, fov_to_vec};
-pub use fsm::Fsm;
-pub use geometry::{
-    chebyshev_distance, cone, cone_visible, diamond, knockback, line, line_of_sight,
-    manhattan_distance, ray_blocked_at, ray_cast, rect_contains, rect_perimeter, reflect_point,
-    rotate_90_ccw, rotate_90_cw, vec_toward, Distance,
-};
-pub use hfsm::HFsm;
-pub use hud::{BarWidget, HudPanel, StatLine};
-pub use identify::Identification;
-pub use influence::InfluenceMap;
-pub use inputbuf::{InputBuffer, KeySource, ListKeySource};
-pub use inventory::Inventory;
-pub use keymap::KeyMap;
-pub use lightmap::{LightMap, MAX_LIGHT};
-pub use loader::{load_level, LoadedLevel, Position, Render};
-pub use mapgen::{
-    generate_bsp, generate_cave, generate_drunkard, generate_dungeon, BspParams, CaveParams,
-    DrunkardParams, Dungeon, GenParams, MapBuilder, Rect,
-};
-pub use menu::{Menu, MenuItem};
-pub use meta::MetaProgress;
-pub use msglog::MsgLog;
-pub use multimap::{Connector, MultiMap};
-pub use netinput::{AdaptiveDelay, DelayScheduler, NetInputBuffer};
-pub use noise::{
-    fbm_1d, fbm_1d_wrap, fbm_2d, fbm_2d_in_range, fbm_2d_wrap, fbm_3d, hash_1d, hash_2d, hash_3d,
-    noise_3d_in_range, normalize_noise, ridge_noise_2d, value_noise_1d, value_noise_1d_wrap,
-    value_noise_2d, value_noise_2d_wrap, value_noise_3d,
-};
-pub use observe::{ComponentEvent, Observed};
-pub use parser::{error_count, parse, warning_count};
-pub use passability::PassabilityGrid;
-pub use pathfinding::{
-    astar, auto_explore, combine_maps, descend, dijkstra_map, farthest_cell, flee_map, flood_fill,
-    is_path_clear, is_reachable, jps, jps4, nearest_reachable, octile_distance, path_cost,
-    path_to_direction_vec, smooth_path, step_toward, weighted_astar, ConnectivityMap, DijkstraMap,
-};
-pub use plan::plan_inputs;
-pub use pool::Pool;
-pub use profiler::{EventLog, LogEntry, Profiler};
-pub use progression::{LevelCurve, Progression};
-pub use prop::{forall_inputs, forall_model, forall_states, ModelFailure, PropFailure};
-pub use quest::{Objective, Quest, QuestState};
-pub use random_table::RandomTable;
-pub use recipe::{Ingredient, Recipe};
-pub use recovery::{restart_test, restart_test_bytes, restart_test_sim, RestartFailure};
-pub use relations::Relations;
-pub use replay::{
-    check_trace, count_divergences, desync_report, desync_report_labeled, first_divergence,
-    first_divergence_labeled, record_trace, resimulate, DesyncPolicy, DesyncReport, Divergence,
-    LabeledDivergence,
-};
-pub use rng::SplitMix64;
-pub use rng_xoshiro::Xoshiro256pp;
-pub use rollback::{sync_test, SnapshotRing, SyncTestFailure};
-pub use savefile::{
-    estimate_save_size, load_bytes, load_bytes_migrated, load_bytes_owned, save_bytes,
-    validate_integrity, LoadError, Migrator, SaveHeader,
-};
-pub use serializer::{content_eq, serialize};
-pub use shop::{Listing, Shop};
-pub use shrink::{is_one_minimal, shrink_inputs, shrink_simulation_inputs};
-pub use shufflebag::ShuffleBag;
-pub use sim::{audit, AuditReport, Simulation};
-pub use sparse_set::{join, join3, join3_mut, join_mut, SparseSet};
-pub use spatial_hash::SpatialHash;
-pub use status::{Effect, StatTarget, StatusSet};
-pub use temporal::{check_run, Monitor, MonitorSet, Verdict};
-pub use terminal::{Cell, Screen};
-pub use textlayout::{
-    center, count_lines, fit_to_box, justify, measure_lines, pad_left, pad_lines, pad_right,
-    truncate, truncate_lines, wrap_words, wrap_words_max_lines,
-};
-pub use threat::ThreatTable;
-pub use tilemap::{LayeredMap, TileMap};
-pub use timer::{Cooldown, TimerQueue};
-pub use timestep::FixedTimestep;
-pub use trigger::{Trigger, TriggerSet};
-pub use turn::Scheduler;
-pub use tween::{Tween, TweenSequence};
-pub use validator::{is_loadable, validate};
-pub use vec::{Vec2, Vec3};
-pub use verify::{
-    check_invariant, check_temporal, reachable_states, Counterexample, NotSafety, Verification,
-};
-pub use visibility::{Visibility, VisibilityMap};
-pub use wallet::Wallet;
-pub use wfc::{
-    wfc_solve, wfc_solve_backtrack, wfc_solve_partial, wfc_solve_retry, wfc_solve_with_selector,
-    CellSelector, LowestEntropySelector, WfcGrid, WfcResult, WfcRules,
-};
-pub use world_hash::{
-    field_coverage, hash_covers, hash_state, hash_state_mixed, hash_unordered, uncovered_fields,
-    DetHash, FieldMutator, Fnv1a, LabeledDigest,
-};
-
-/// 設定/フォーマット検出器の関数型(`detect(&[u8]) -> bool`)。
-pub type DetectorFn = fn(&[u8]) -> bool;
-
-/// 設定/フォーマット検出器 `DetectorFn` の全モジュール一覧。
-///
-/// (モジュール名, 関数ポインタ) の対で、判別器の列挙・一括適用や
-/// 全検出器横断の性質テスト(panic非発火など)に使う。
-/// `detect` を持つモジュール追加時はこの表にも登録すること。
-pub const DETECTORS: &[(&str, DetectorFn)] = &[
-    ("a2r", a2r::detect),
-    ("ac", ac::detect),
-    ("ace", ace::detect),
-    ("acemode", acemode::detect),
-    ("actionlint", actionlint::detect),
-    ("activemq", activemq::detect),
-    ("adguard", adguard::detect),
-    ("adql", adql::detect),
-    ("aercconf", aercconf::detect),
-    ("aerospike", aerospike::detect),
-    ("aideconf", aideconf::detect),
-    ("aiger", aiger::detect),
-    ("airbyteconf", airbyteconf::detect),
-    ("airflow", airflow::detect),
-    ("alacritty", alacritty::detect),
-    ("alembic", alembic::detect),
-    ("alertmanager", alertmanager::detect),
-    ("alexrc", alexrc::detect),
-    ("algolia", algolia::detect),
-    ("alloy", alloy::detect),
-    ("allure", allure::detect),
-    ("aln", aln::detect),
-    ("alto", alto::detect),
-    ("alz", alz::detect),
-    ("amfile", amfile::detect),
-    ("ampl", ampl::detect),
-    ("amplifyconf", amplifyconf::detect),
-    ("amr", amr::detect),
-    ("angularconf", angularconf::detect),
-    ("ansi", ansi::detect),
-    ("ansible", ansible::detect),
-    ("antex", antex::detect),
-    ("aoe", aoe::detect),
-    ("apacheconf", apacheconf::detect),
-    ("apib", apib::detect),
-    ("apk", apk::detect),
-    ("apmserver", apmserver::detect),
-    ("apparmor", apparmor::detect),
-    ("appcache", appcache::detect),
-    ("appdaemon", appdaemon::detect),
-    ("appdynamics", appdynamics::detect),
-    ("appengine", appengine::detect),
-    ("appjson", appjson::detect),
-    ("appveyor", appveyor::detect),
-    ("apt", apt::detect),
-    ("archinstall", archinstall::detect),
-    ("ardour", ardour::detect),
-    ("arduinoconf", arduinoconf::detect),
-    ("argocd", argocd::detect),
-    ("argowf", argowf::detect),
-    ("argusconf", argusconf::detect),
-    ("aria2", aria2::detect),
-    ("arkimeconf", arkimeconf::detect),
-    ("arw", arw::detect),
-    ("asciicast", asciicast::detect),
-    ("asdf", asdf::detect),
-    ("asf", asf::detect),
-    ("asn1", asn1::detect),
-    ("asoundrc", asoundrc::detect),
-    ("astro", astro::detect),
-    ("asv", asv::detect),
-    ("atom", atom::detect),
-    ("audacity", audacity::detect),
-    ("auditdconf", auditdconf::detect),
-    ("auditrule", auditrule::detect),
-    ("authelia", authelia::detect),
-    ("autofs", autofs::detect),
-    ("autoyast", autoyast::detect),
-    ("avaconf", avaconf::detect),
-    ("awscredentials", awscredentials::detect),
-    ("awselb", awselb::detect),
-    ("azurepipe", azurepipe::detect),
-    ("babelrc", babelrc::detect),
-    ("bai2", bai2::detect),
-    ("bam", bam::detect),
-    ("banditconf", banditconf::detect),
-    ("bannedips", bannedips::detect),
-    ("base32", base32::detect),
-    ("bashrc", bashrc::detect),
-    ("bazarr", bazarr::detect),
-    ("bazel", bazel::detect),
-    ("bbcode", bbcode::detect),
-    ("beets", beets::detect),
-    ("benchstat", benchstat::detect),
-    ("bentoml", bentoml::detect),
-    ("bicep", bicep::detect),
-    ("biome", biome::detect),
-    ("bird", bird::detect),
-    ("bit", bit::detect),
-    ("bitcoinconf", bitcoinconf::detect),
-    ("bitrise", bitrise::detect),
-    ("blackbird", blackbird::detect),
-    ("blackconf", blackconf::detect),
-    ("blocky", blocky::detect),
-    ("bogofilter", bogofilter::detect),
-    ("bootini", bootini::detect),
-    ("borgmatic", borgmatic::detect),
-    ("boundary", boundary::detect),
-    ("braket", braket::detect),
-    ("brewfile", brewfile::detect),
-    ("browserconfig", browserconfig::detect),
-    ("browserslist", browserslist::detect),
-    ("bru", bru::detect),
-    ("btrbk", btrbk::detect),
-    ("btrfs", btrfs::detect),
-    ("buck", buck::detect),
-    ("buildkitd", buildkitd::detect),
-    ("buildkite", buildkite::detect),
-    ("bukkit", bukkit::detect),
-    ("bundlerconf", bundlerconf::detect),
-    ("bunfig", bunfig::detect),
-    ("cabal", cabal::detect),
-    ("caddyfile", caddyfile::detect),
-    ("cairo", cairo::detect),
-    ("calamares", calamares::detect),
-    ("callgrind", callgrind::detect),
-    ("camt", camt::detect),
-    ("capacitor", capacitor::detect),
-    ("capsule", capsule::detect),
-    ("capx", capx::detect),
-    ("cardanoconf", cardanoconf::detect),
-    ("cargoconf", cargoconf::detect),
-    ("cargolock", cargolock::detect),
-    ("carla", carla::detect),
-    ("casbin", casbin::detect),
-    ("casdoor", casdoor::detect),
-    ("cassandra", cassandra::detect),
-    ("ccs", ccs::detect),
-    ("cedar", cedar::detect),
-    ("cephconf", cephconf::detect),
-    ("cerbos", cerbos::detect),
-    ("certbot", certbot::detect),
-    ("cfn", cfn::detect),
-    ("cfssl", cfssl::detect),
-    ("cgitrc", cgitrc::detect),
-    ("chart", chart::detect),
-    ("chasquidconf", chasquidconf::detect),
-    ("checkov", checkov::detect),
-    ("chef", chef::detect),
-    ("cherokee", cherokee::detect),
-    ("chromaconf", chromaconf::detect),
-    ("chrometrace", chrometrace::detect),
-    ("chronyconf", chronyconf::detect),
-    ("cibxml", cibxml::detect),
-    ("circleci", circleci::detect),
-    ("cirrus", cirrus::detect),
-    ("clangformat", clangformat::detect),
-    ("clangtidy", clangtidy::detect),
-    ("clar", clar::detect),
-    ("clashconf", clashconf::detect),
-    ("clickhouse", clickhouse::detect),
-    ("cloudcustodian", cloudcustodian::detect),
-    ("cloudinit", cloudinit::detect),
-    ("clusterconf", clusterconf::detect),
-    ("cmake", cmake::detect),
-    ("cmdbat", cmdbat::detect),
-    ("cmus", cmus::detect),
-    ("cob", cob::detect),
-    ("cockroach", cockroach::detect),
-    ("cocosproj", cocosproj::detect),
-    ("codeclimate", codeclimate::detect),
-    ("codecov", codecov::detect),
-    ("codespell", codespell::detect),
-    ("colima", colima::detect),
-    ("compose", compose::detect),
-    ("composer", composer::detect),
-    ("composerlock", composerlock::detect),
-    ("conanfile", conanfile::detect),
-    ("concourse", concourse::detect),
-    ("condaenv", condaenv::detect),
-    ("condarc", condarc::detect),
-    ("configureac", configureac::detect),
-    ("consul", consul::detect),
-    ("containerd", containerd::detect),
-    ("containersconf", containersconf::detect),
-    ("contourconf", contourconf::detect),
-    ("cookiejar", cookiejar::detect),
-    ("coq", coq::detect),
-    ("corefile", corefile::detect),
-    ("corosync", corosync::detect),
-    ("coveralls", coveralls::detect),
-    ("cpanfile", cpanfile::detect),
-    ("cpplint", cpplint::detect),
-    ("cr2", cr2::detect),
-    ("creole", creole::detect),
-    ("crio", crio::detect),
-    ("criterion", criterion::detect),
-    ("crmconf", crmconf::detect),
-    ("crockford", crockford::detect),
-    ("cromwell", cromwell::detect),
-    ("csa", csa::detect),
-    ("csd", csd::detect),
-    ("cspell", cspell::detect),
-    ("ctrf", ctrf::detect),
-    ("cuid", cuid::detect),
-    ("curaconf", curaconf::detect),
-    ("cve", cve::detect),
-    ("cypher", cypher::detect),
-    ("cypressconf", cypressconf::detect),
-    ("dae", dae::detect),
-    ("dafny", dafny::detect),
-    ("dagster", dagster::detect),
-    ("dask", dask::detect),
-    ("datadog", datadog::detect),
-    ("db2cli", db2cli::detect),
-    ("dbm", dbm::detect),
-    ("dbt", dbt::detect),
-    ("debconf", debconf::detect),
-    ("defaultpa", defaultpa::detect),
-    ("defconfig", defconfig::detect),
-    ("defoldproj", defoldproj::detect),
-    ("dehydrated", dehydrated::detect),
-    ("deluge", deluge::detect),
-    ("denoconf", denoconf::detect),
-    ("dependabot", dependabot::detect),
-    ("detekt", detekt::detect),
-    ("devcontainer", devcontainer::detect),
-    ("devfile", devfile::detect),
-    ("dexidp", dexidp::detect),
-    ("dgml", dgml::detect),
-    ("dhall", dhall::detect),
-    ("dhclientconf", dhclientconf::detect),
-    ("dhcpcdconf", dhcpcdconf::detect),
-    ("dictd", dictd::detect),
-    ("dictzip", dictzip::detect),
-    ("did", did::detect),
-    ("dimacs", dimacs::detect),
-    ("dinit", dinit::detect),
-    ("discourse", discourse::detect),
-    ("dita", dita::detect),
-    ("dnfconf", dnfconf::detect),
-    ("dng", dng::detect),
-    ("dnsmasq", dnsmasq::detect),
-    ("docbook", docbook::detect),
-    ("dockerdaemon", dockerdaemon::detect),
-    ("dockerignore", dockerignore::detect),
-    ("docsify", docsify::detect),
-    ("docusaurus", docusaurus::detect),
-    ("dolphinconf", dolphinconf::detect),
-    ("dossys", dossys::detect),
-    ("dot", dot::detect),
-    ("dotenv", dotenv::detect),
-    ("dovecot", dovecot::detect),
-    ("dpx", dpx::detect),
-    ("dragonflyconf", dragonflyconf::detect),
-    ("drawio", drawio::detect),
-    ("drbdconf", drbdconf::detect),
-    ("drone", drone::detect),
-    ("ds9reg", ds9reg::detect),
-    ("dsig", dsig::detect),
-    ("dsl", dsl::detect),
-    ("dtd", dtd::detect),
-    ("dune", dune::detect),
-    ("dunst", dunst::detect),
-    ("duplicacy", duplicacy::detect),
-    ("dvcfile", dvcfile::detect),
-    ("dvi", dvi::detect),
-    ("dxbc", dxbc::detect),
-    ("ead", ead::detect),
-    ("eaglexml", eaglexml::detect),
-    ("ean", ean::detect),
-    ("earthly", earthly::detect),
-    ("easyeffects", easyeffects::detect),
-    ("easyrsa", easyrsa::detect),
-    ("ecsv", ecsv::detect),
-    ("editorconfig", editorconfig::detect),
-    ("edn", edn::detect),
-    ("edsk", edsk::detect),
-    ("ejabberd", ejabberd::detect),
-    ("elasticsearch", elasticsearch::detect),
-    ("emacs", emacs::detect),
-    ("emqx", emqx::detect),
-    ("envoy", envoy::detect),
-    ("envrc", envrc::detect),
-    ("epd", epd::detect),
-    ("epwing", epwing::detect),
-    ("eslintrc", eslintrc::detect),
-    ("esmapping", esmapping::detect),
-    ("esphome", esphome::detect),
-    ("essettings", essettings::detect),
-    ("etcd", etcd::detect),
-    ("eula", eula::detect),
-    ("excalidraw", excalidraw::detect),
-    ("exim", exim::detect),
-    ("exr", exr::detect),
-    ("extmanifest", extmanifest::detect),
-    ("f2fs", f2fs::detect),
-    ("fail2ban", fail2ban::detect),
-    ("falcoconf", falcoconf::detect),
-    ("far", far::detect),
-    ("fcoe", fcoe::detect),
-    ("feast", feast::detect),
-    ("ferm", ferm::detect),
-    ("fetchmailconf", fetchmailconf::detect),
-    ("fhir", fhir::detect),
-    ("fidl", fidl::detect),
-    ("filebeat", filebeat::detect),
-    ("firebase", firebase::detect),
-    ("firewalld", firewalld::detect),
-    ("fishconf", fishconf::detect),
-    ("fivetranconf", fivetranconf::detect),
-    ("fixml", fixml::detect),
-    ("flake8conf", flake8conf::detect),
-    ("flif", flif::detect),
-    ("fluentbit", fluentbit::detect),
-    ("fluentd", fluentd::detect),
-    ("flyio", flyio::detect),
-    ("flyway", flyway::detect),
-    ("footconf", footconf::detect),
-    ("fossilconf", fossilconf::detect),
-    ("fpml", fpml::detect),
-    ("freetds", freetds::detect),
-    ("frigate", frigate::detect),
-    ("frr", frr::detect),
-    ("func", func::detect),
-    ("fusesoc", fusesoc::detect),
-    ("fxml", fxml::detect),
-    ("fxp", fxp::detect),
-    ("garnetconf", garnetconf::detect),
-    ("gatsby", gatsby::detect),
-    ("gbench", gbench::detect),
-    ("gbstudio", gbstudio::detect),
-    ("gdf", gdf::detect),
-    ("gdmconf", gdmconf::detect),
-    ("gedasch", gedasch::detect),
-    ("gemfile", gemfile::detect),
-    ("gemlock", gemlock::detect),
-    ("gemrc", gemrc::detect),
-    ("gemspec", gemspec::detect),
-    ("gethconf", gethconf::detect),
-    ("gexf", gexf::detect),
-    ("gf", gf::detect),
-    ("ghosttyconf", ghosttyconf::detect),
-    ("gitattributes", gitattributes::detect),
-    ("gitconfig", gitconfig::detect),
-    ("giteaaction", giteaaction::detect),
-    ("giteaapp", giteaapp::detect),
-    ("gitignore", gitignore::detect),
-    ("gitlabci", gitlabci::detect),
-    ("gitlabrb", gitlabrb::detect),
-    ("gitleaks", gitleaks::detect),
-    ("gitmodules", gitmodules::detect),
-    ("gitsecret", gitsecret::detect),
-    ("gitwebconf", gitwebconf::detect),
-    ("glade", glade::detect),
-    ("glsl", glsl::detect),
-    ("glusterfs", glusterfs::detect),
-    ("gml", gml::detect),
-    ("gn", gn::detect),
-    ("gnuplot", gnuplot::detect),
-    ("godot", godot::detect),
-    ("gogsconf", gogsconf::detect),
-    ("golangci", golangci::detect),
-    ("gomod", gomod::detect),
-    ("gostconf", gostconf::detect),
-    ("gosum", gosum::detect),
-    ("gp", gp::detect),
-    ("gpsd", gpsd::detect),
-    ("gradle", gradle::detect),
-    ("gradlemod", gradlemod::detect),
-    ("grafana", grafana::detect),
-    ("grafanaop", grafanaop::detect),
-    ("graphml", graphml::detect),
-    ("graphql", graphql::detect),
-    ("greatexp", greatexp::detect),
-    ("grok", grok::detect),
-    ("grubconf", grubconf::detect),
-    ("grubenv", grubenv::detect),
-    ("grype", grype::detect),
-    ("gtksrclang", gtksrclang::detect),
-    ("h2oconf", h2oconf::detect),
-    ("hacf", hacf::detect),
-    ("hadolintconf", hadolintconf::detect),
-    ("hadoopconf", hadoopconf::detect),
-    ("haproxy", haproxy::detect),
-    ("har", har::detect),
-    ("harakaconf", harakaconf::detect),
-    ("harbor", harbor::detect),
-    ("haresources", haresources::detect),
-    ("harness", harness::detect),
-    ("hb", hb::detect),
-    ("headscaleconf", headscaleconf::detect),
-    ("helix", helix::detect),
-    ("helmfile", helmfile::detect),
-    ("hexchat", hexchat::detect),
-    ("hexo", hexo::detect),
-    ("hfe", hfe::detect),
-    ("hfs", hfs::detect),
-    ("hgignore", hgignore::detect),
-    ("hgrc", hgrc::detect),
-    ("hiawatha", hiawatha::detect),
-    ("hivemq", hivemq::detect),
-    ("hl7", hl7::detect),
-    ("hlsl", hlsl::detect),
-    ("hocr", hocr::detect),
-    ("homeassistant", homeassistant::detect),
-    ("hopconf", hopconf::detect),
-    ("hoppscotch", hoppscotch::detect),
-    ("hostapd", hostapd::detect),
-    ("httpfile", httpfile::detect),
-    ("hugoconf", hugoconf::detect),
-    ("hydra", hydra::detect),
-    ("hydraml", hydraml::detect),
-    ("hydrogen", hydrogen::detect),
-    ("hyperfine", hyperfine::detect),
-    ("hyprland", hyprland::detect),
-    ("hysteriaconf", hysteriaconf::detect),
-    ("i3conf", i3conf::detect),
-    ("ibmmq", ibmmq::detect),
-    ("ical", ical::detect),
-    ("icecast", icecast::detect),
-    ("icinga", icinga::detect),
-    ("ideavim", ideavim::detect),
-    ("idl", idl::detect),
-    ("imd", imd::detect),
-    ("inffile", inffile::detect),
-    ("infinispan", infinispan::detect),
-    ("inittab", inittab::detect),
-    ("inputrc", inputrc::detect),
-    ("insomnia", insomnia::detect),
-    ("instana", instana::detect),
-    ("interfaces", interfaces::detect),
-    ("ioc", ioc::detect),
-    ("iosconf", iosconf::detect),
-    ("ipac", ipac::detect),
-    ("ipset", ipset::detect),
-    ("iptablessave", iptablessave::detect),
-    ("iptc", iptc::detect),
-    ("ipxact", ipxact::detect),
-    ("ipxescript", ipxescript::detect),
-    ("ipythonconf", ipythonconf::detect),
-    ("ircam", ircam::detect),
-    ("irssi", irssi::detect),
-    ("isabelle", isabelle::detect),
-    ("isbn", isbn::detect),
-    ("isc", isc::detect),
-    ("iscsi", iscsi::detect),
-    ("ismn", ismn::detect),
-    ("isortconf", isortconf::detect),
-    ("issn", issn::detect),
-    ("istio", istio::detect),
-    ("iterm", iterm::detect),
-    ("itermdyn", itermdyn::detect),
-    ("iv", iv::detect),
-    ("ivf", ivf::detect),
-    ("ivy", ivy::detect),
-    ("iwdconf", iwdconf::detect),
-    ("jackrc", jackrc::detect),
-    ("jbig2", jbig2::detect),
-    ("jed", jed::detect),
-    ("jekyll", jekyll::detect),
-    ("jellyfin", jellyfin::detect),
-    ("jenkinsfile", jenkinsfile::detect),
-    ("jest", jest::detect),
-    ("jfm", jfm::detect),
-    ("jfr", jfr::detect),
-    ("jfs", jfs::detect),
-    ("jmh", jmh::detect),
-    ("journaldconf", journaldconf::detect),
-    ("jp2", jp2::detect),
-    ("jq", jq::detect),
-    ("jsonnet", jsonnet::detect),
-    ("jsonpath", jsonpath::detect),
-    ("jtl", jtl::detect),
-    ("junos", junos::detect),
-    ("jupyterconf", jupyterconf::detect),
-    ("justfile", justfile::detect),
-    ("jwe", jwe::detect),
-    ("jwk", jwk::detect),
-    ("jxr", jxr::detect),
-    ("k0sconf", k0sconf::detect),
-    ("k3d", k3d::detect),
-    ("k3sconf", k3sconf::detect),
-    ("k6", k6::detect),
-    ("k8gb", k8gb::detect),
-    ("kafka", kafka::detect),
-    ("kamaji", kamaji::detect),
-    ("karmaconf", karmaconf::detect),
-    ("katesyntax", katesyntax::detect),
-    ("kbm", kbm::detect),
-    ("kcl", kcl::detect),
-    ("kconfig", kconfig::detect),
-    ("kedro", kedro::detect),
-    ("keepalived", keepalived::detect),
-    ("keepassxc", keepassxc::detect),
-    ("kern", kern::detect),
-    ("ketl", ketl::detect),
-    ("keto", keto::detect),
-    ("keycloak", keycloak::detect),
-    ("keydbconf", keydbconf::detect),
-    ("keytab", keytab::detect),
-    ("kibana", kibana::detect),
-    ("kicadpcb", kicadpcb::detect),
-    ("kicadpro", kicadpro::detect),
-    ("kicadsch", kicadsch::detect),
-    ("kickstart", kickstart::detect),
-    ("kif", kif::detect),
-    ("kindconf", kindconf::detect),
-    ("kittyconf", kittyconf::detect),
-    ("kittyimg", kittyimg::detect),
-    ("klipperconf", klipperconf::detect),
-    ("knexfile", knexfile::detect),
-    ("kodiadv", kodiadv::detect),
-    ("kong", kong::detect),
-    ("kopia", kopia::detect),
-    ("kql", kql::detect),
-    ("kratos", kratos::detect),
-    ("krb5conf", krb5conf::detect),
-    ("kserve", kserve::detect),
-    ("ktlint", ktlint::detect),
-    ("kubeconfig", kubeconfig::detect),
-    ("kubeflow", kubeflow::detect),
-    ("kubeflowtraining", kubeflowtraining::detect),
-    ("kubemq", kubemq::detect),
-    ("kubevela", kubevela::detect),
-    ("kustomize", kustomize::detect),
-    ("lab", lab::detect),
-    ("ldapconf", ldapconf::detect),
-    ("ldif", ldif::detect),
-    ("ldirectord", ldirectord::detect),
-    ("ldtk", ldtk::detect),
-    ("lean", lean::detect),
-    ("leda", leda::detect),
-    ("lego", lego::detect),
-    ("leiningen", leiningen::detect),
-    ("lerna", lerna::detect),
-    ("lf", lf::detect),
-    ("lidarr", lidarr::detect),
-    ("lightdm", lightdm::detect),
-    ("lighttpd", lighttpd::detect),
-    ("lima", lima::detect),
-    ("limine", limine::detect),
-    ("linkerd", linkerd::detect),
-    ("liquibase", liquibase::detect),
-    ("lmms", lmms::detect),
-    ("lndconf", lndconf::detect),
-    ("log4j", log4j::detect),
-    ("log4perl", log4perl::detect),
-    ("logback", logback::detect),
-    ("logindefs", logindefs::detect),
-    ("logrotate", logrotate::detect),
-    ("logstash", logstash::detect),
-    ("loki", loki::detect),
-    ("loveconf", loveconf::detect),
-    ("lp", lp::detect),
-    ("lpf", lpf::detect),
-    ("lsf", lsf::detect),
-    ("ltsconf", ltsconf::detect),
-    ("lucene", lucene::detect),
-    ("luhn", luhn::detect),
-    ("luigi", luigi::detect),
-    ("lvmconf", lvmconf::detect),
-    ("lwo", lwo::detect),
-    ("ly", ly::detect),
-    ("lynisconf", lynisconf::detect),
-    ("lzfse", lzfse::detect),
-    ("lzip", lzip::detect),
-    ("macaroon", macaroon::detect),
-    ("maddyconf", maddyconf::detect),
-    ("maf", maf::detect),
-    ("maildrop", maildrop::detect),
-    ("mameconf", mameconf::detect),
-    ("mapfile", mapfile::detect),
-    ("mapnikxml", mapnikxml::detect),
-    ("mapproxyconf", mapproxyconf::detect),
-    ("marc", marc::detect),
-    ("markdownlint", markdownlint::detect),
-    ("marlinconf", marlinconf::detect),
-    ("matplotlibrc", matplotlibrc::detect),
-    ("matterbridge", matterbridge::detect),
-    ("mattermost", mattermost::detect),
-    ("maud", maud::detect),
-    ("mbedapp", mbedapp::detect),
-    ("mbsyncrc", mbsyncrc::detect),
-    ("mch", mch::detect),
-    ("md3", md3::detect),
-    ("mdx", mdx::detect),
-    ("med", med::detect),
-    ("mediamtx", mediamtx::detect),
-    ("mediawiki", mediawiki::detect),
-    ("mei", mei::detect),
-    ("meili", meili::detect),
-    ("meltano", meltano::detect),
-    ("memcachedconf", memcachedconf::detect),
-    ("mergify", mergify::detect),
-    ("mermaid", mermaid::detect),
-    ("meson", meson::detect),
-    ("metaflow", metaflow::detect),
-    ("metallib", metallib::detect),
-    ("metricbeat", metricbeat::detect),
-    ("metroconf", metroconf::detect),
-    ("mets", mets::detect),
-    ("milvusconf", milvusconf::detect),
-    ("mimirconf", mimirconf::detect),
-    ("minica", minica::detect),
-    ("minikubeconf", minikubeconf::detect),
-    ("minio", minio::detect),
-    ("misp", misp::detect),
-    ("mix", mix::detect),
-    ("mixexs", mixexs::detect),
-    ("mixxx", mixxx::detect),
-    ("mkdocs", mkdocs::detect),
-    ("mlflow", mlflow::detect),
-    ("mml", mml::detect),
-    ("mochajson", mochajson::detect),
-    ("mocharc", mocharc::detect),
-    ("modeldo", modeldo::detect),
-    ("modprobeconf", modprobeconf::detect),
-    ("monero", monero::detect),
-    ("mongod", mongod::detect),
-    ("monit", monit::detect),
-    ("moonrakerconf", moonrakerconf::detect),
-    ("mopidy", mopidy::detect),
-    ("mosquitto", mosquitto::detect),
-    ("motionconf", motionconf::detect),
-    ("movelang", movelang::detect),
-    ("mpc", mpc::detect),
-    ("mpd", mpd::detect),
-    ("mpegts", mpegts::detect),
-    ("mplayerconf", mplayerconf::detect),
-    ("mps", mps::detect),
-    ("mpv", mpv::detect),
-    ("mscx", mscx::detect),
-    ("msmtprc", msmtprc::detect),
-    ("mtm", mtm::detect),
-    ("mtx", mtx::detect),
-    ("musicxml", musicxml::detect),
-    ("muttrc", muttrc::detect),
-    ("mvnsettings", mvnsettings::detect),
-    ("mxf", mxf::detect),
-    ("mypyconf", mypyconf::detect),
-    ("mysql", mysql::detect),
-    ("nagios", nagios::detect),
-    ("namedconf", namedconf::detect),
-    ("nanoid", nanoid::detect),
-    ("nanorc", nanorc::detect),
-    ("nats", nats::detect),
-    ("navidrome", navidrome::detect),
-    ("nbd", nbd::detect),
-    ("ncmpcpp", ncmpcpp::detect),
-    ("ncpdp", ncpdp::detect),
-    ("nebulaconf", nebulaconf::detect),
-    ("nef", nef::detect),
-    ("neomuttconf", neomuttconf::detect),
-    ("nerdctl", nerdctl::detect),
-    ("netlifyconf", netlifyconf::detect),
-    ("netplan", netplan::detect),
-    ("networkd", networkd::detect),
-    ("newrelic", newrelic::detect),
-    ("newsboat", newsboat::detect),
-    ("newsyslog", newsyslog::detect),
-    ("nextflow", nextflow::detect),
-    ("nexus", nexus::detect),
-    ("nfsexports", nfsexports::detect),
-    ("nftconf", nftconf::detect),
-    ("nginx", nginx::detect),
-    ("ngircd", ngircd::detect),
-    ("nib", nib::detect),
-    ("nickel", nickel::detect),
-    ("nififlow", nififlow::detect),
-    ("nimble", nimble::detect),
-    ("nist", nist::detect),
-    ("nix", nix::detect),
-    ("nixconf", nixconf::detect),
-    ("nlogconf", nlogconf::detect),
-    ("nmconnection", nmconnection::detect),
-    ("nodered", nodered::detect),
-    ("nomad", nomad::detect),
-    ("npmlock", npmlock::detect),
-    ("npmrc", npmrc::detect),
-    ("nsd", nsd::detect),
-    ("nslcdconf", nslcdconf::detect),
-    ("nsqconf", nsqconf::detect),
-    ("nsswitch", nsswitch::detect),
-    ("ntpconf", ntpconf::detect),
-    ("ntpsec", ntpsec::detect),
-    ("nuconf", nuconf::detect),
-    ("nugetconfig", nugetconfig::detect),
-    ("nuxt", nuxt::detect),
-    ("nwc", nwc::detect),
-    ("nxconf", nxconf::detect),
-    ("oai", oai::detect),
-    ("oathkeeper", oathkeeper::detect),
-    ("obsconf", obsconf::detect),
-    ("octaverc", octaverc::detect),
-    ("octoprint", octoprint::detect),
-    ("odbcini", odbcini::detect),
-    ("oem", oem::detect),
-    ("offlineimap", offlineimap::detect),
-    ("ogmo", ogmo::detect),
-    ("omm", omm::detect),
-    ("opam", opam::detect),
-    ("opb", opb::detect),
-    ("openapi", openapi::detect),
-    ("openbgpd", openbgpd::detect),
-    ("opendkim", opendkim::detect),
-    ("opendmarc", opendmarc::detect),
-    ("openfaas", openfaas::detect),
-    ("openfga", openfga::detect),
-    ("openhab", openhab::detect),
-    ("openlane", openlane::detect),
-    ("openntpd", openntpd::detect),
-    ("openpulse", openpulse::detect),
-    ("openrc", openrc::detect),
-    ("opensearch", opensearch::detect),
-    ("opensearchop", opensearchop::detect),
-    ("openssl", openssl::detect),
-    ("openvpn", openvpn::detect),
-    ("opsjson", opsjson::detect),
-    ("orcaslicer", orcaslicer::detect),
-    ("orcid", orcid::detect),
-    ("orf", orf::detect),
-    ("osc", osc::detect),
-    ("osm2pgsqlstyle", osm2pgsqlstyle::detect),
-    ("osqueryconf", osqueryconf::detect),
-    ("ossecconf", ossecconf::detect),
-    ("otelcol", otelcol::detect),
-    ("ovf", ovf::detect),
-    ("packer", packer::detect),
-    ("pacman", pacman::detect),
-    ("paf", paf::detect),
-    ("pain", pain::detect),
-    ("pajek", pajek::detect),
-    ("pamstack", pamstack::detect),
-    ("pants", pants::detect),
-    ("paraver", paraver::detect),
-    ("parityconf", parityconf::detect),
-    ("paseto", paseto::detect),
-    ("pcsx2conf", pcsx2conf::detect),
-    ("pdns", pdns::detect),
-    ("percona", percona::detect),
-    ("perflog", perflog::detect),
-    ("pfconf", pfconf::detect),
-    ("pgpass", pgpass::detect),
-    ("pgservice", pgservice::detect),
-    ("phabricatorconf", phabricatorconf::detect),
-    ("phylip", phylip::detect),
-    ("picard", picard::detect),
-    ("pidginconf", pidginconf::detect),
-    ("pihole", pihole::detect),
-    ("pileup", pileup::detect),
-    ("pinpoint", pinpoint::detect),
-    ("pipewireconf", pipewireconf::detect),
-    ("pipfile", pipfile::detect),
-    ("pk", pk::detect),
-    ("pkl", pkl::detect),
-    ("pl", pl::detect),
-    ("planetilerconf", planetilerconf::detect),
-    ("plantuml", plantuml::detect),
-    ("platformio", platformio::detect),
-    ("platformsh", platformsh::detect),
-    ("playwrightconf", playwrightconf::detect),
-    ("plexconf", plexconf::detect),
-    ("pm2", pm2::detect),
-    ("pmacctconf", pmacctconf::detect),
-    ("pmml", pmml::detect),
-    ("pnpmlock", pnpmlock::detect),
-    ("podfile", podfile::detect),
-    ("poetry", poetry::detect),
-    ("policyjson", policyjson::detect),
-    ("polybar", polybar::detect),
-    ("pom", pom::detect),
-    ("pomerium", pomerium::detect),
-    ("portage", portage::detect),
-    ("postalconf", postalconf::detect),
-    ("postcss", postcss::detect),
-    ("postfix", postfix::detect),
-    ("postgresql", postgresql::detect),
-    ("pppdconf", pppdconf::detect),
-    ("pprof", pprof::detect),
-    ("ppssppconf", ppssppconf::detect),
-    ("pptpd", pptpd::detect),
-    ("prefect", prefect::detect),
-    ("premakeconf", premakeconf::detect),
-    ("preseed", preseed::detect),
-    ("prettier", prettier::detect),
-    ("privoxy", privoxy::detect),
-    ("procd", procd::detect),
-    ("procmailrc", procmailrc::detect),
-    ("promela", promela::detect),
-    ("prometheus", prometheus::detect),
-    ("promtailconf", promtailconf::detect),
-    ("proselint", proselint::detect),
-    ("prosody", prosody::detect),
-    ("prowlarr", prowlarr::detect),
-    ("prusaslicer", prusaslicer::detect),
-    ("ptm", ptm::detect),
-    ("ptp4l", ptp4l::detect),
-    ("ptx", ptx::detect),
-    ("pubspec", pubspec::detect),
-    ("pulsar", pulsar::detect),
-    ("pulseclientconf", pulseclientconf::detect),
-    ("pulumi", pulumi::detect),
-    ("puppet", puppet::detect),
-    ("puz", puz::detect),
-    ("pxelinux", pxelinux::detect),
-    ("pylintrc", pylintrc::detect),
-    ("pypirc", pypirc::detect),
-    ("pyproject", pyproject::detect),
-    ("pyrightconf", pyrightconf::detect),
-    ("pyroconf", pyroconf::detect),
-    ("pytestbench", pytestbench::detect),
-    ("qasm", qasm::detect),
-    ("qbittorrent", qbittorrent::detect),
-    ("qcp", qcp::detect),
-    ("qdrantconf", qdrantconf::detect),
-    ("qgsproj", qgsproj::detect),
-    ("qmakepro", qmakepro::detect),
-    ("qmap", qmap::detect),
-    ("qobj", qobj::detect),
-    ("qpf", qpf::detect),
-    ("qs", qs::detect),
-    ("qsf", qsf::detect),
-    ("qtui", qtui::detect),
-    ("quartz", quartz::detect),
-    ("quil", quil::detect),
-    ("rabbitmq", rabbitmq::detect),
-    ("radarr", radarr::detect),
-    ("raf", raf::detect),
-    ("railwayconf", railwayconf::detect),
-    ("rakefile", rakefile::detect),
-    ("raml", raml::detect),
-    ("rc", rc::detect),
-    ("rcloneconf", rcloneconf::detect),
-    ("rdpfile", rdpfile::detect),
-    ("reaper", reaper::detect),
-    ("rebarconfig", rebarconfig::detect),
-    ("recordio", recordio::detect),
-    ("redisconf", redisconf::detect),
-    ("redpanda", redpanda::detect),
-    ("redpen", redpen::detect),
-    ("refind", refind::detect),
-    ("regfile", regfile::detect),
-    ("registriesconf", registriesconf::detect),
-    ("rego", rego::detect),
-    ("reiserfs", reiserfs::detect),
-    ("relaxng", relaxng::detect),
-    ("releaseplease", releaseplease::detect),
-    ("remminaconf", remminaconf::detect),
-    ("renderconf", renderconf::detect),
-    ("renovate", renovate::detect),
-    ("renviron", renviron::detect),
-    ("requirements", requirements::detect),
-    ("res", res::detect),
-    ("resolv", resolv::detect),
-    ("resticprofile", resticprofile::detect),
-    ("retroarch", retroarch::detect),
-    ("reviveconf", reviveconf::detect),
-    ("rfb", rfb::detect),
-    ("rinex", rinex::detect),
-    ("rkhunter", rkhunter::detect),
-    ("rm", rm::detect),
-    ("rocketmq", rocketmq::detect),
-    ("rockspec", rockspec::detect),
-    ("rofi", rofi::detect),
-    ("rollup", rollup::detect),
-    ("routeros", routeros::detect),
-    ("rpcs3conf", rpcs3conf::detect),
-    ("rpgmakerconf", rpgmakerconf::detect),
-    ("rprofile", rprofile::detect),
-    ("rpy", rpy::detect),
-    ("rsnapshot", rsnapshot::detect),
-    ("rspamdconf", rspamdconf::detect),
-    ("rss2email", rss2email::detect),
-    ("rsyslogd", rsyslogd::detect),
-    ("rtorrent", rtorrent::detect),
-    ("rubocop", rubocop::detect),
-    ("ruffconf", ruffconf::detect),
-    ("rundeck", rundeck::detect),
-    ("runit", runit::detect),
-    ("rvdata", rvdata::detect),
-    ("rw2", rw2::detect),
-    ("rx2", rx2::detect),
-    ("s6rc", s6rc::detect),
-    ("saif", saif::detect),
-    ("salt", salt::detect),
-    ("samba", samba::detect),
-    ("saml", saml::detect),
-    ("sbf", sbf::detect),
-    ("sbt", sbt::detect),
-    ("sby", sby::detect),
-    ("scandata", scandata::detect),
-    ("sch", sch::detect),
-    ("scl", scl::detect),
-    ("sconstruct", sconstruct::detect),
-    ("scp", scp::detect),
-    ("scyllaop", scyllaop::detect),
-    ("sdc", sdc::detect),
-    ("sddmconf", sddmconf::detect),
-    ("sdkconfig", sdkconfig::detect),
-    ("seccomp", seccomp::detect),
-    ("secretsbaseline", secretsbaseline::detect),
-    ("seldon", seldon::detect),
-    ("semgrep", semgrep::detect),
-    ("sendmail", sendmail::detect),
-    ("sentinel", sentinel::detect),
-    ("sequelizerc", sequelizerc::detect),
-    ("serilog", serilog::detect),
-    ("serverless", serverless::detect),
-    ("serverprop", serverprop::detect),
-    ("setupcfg", setupcfg::detect),
-    ("sftp", sftp::detect),
-    ("sgi", sgi::detect),
-    ("shadowsocksconf", shadowsocksconf::detect),
-    ("shard", shard::detect),
-    ("shellcheckrc", shellcheckrc::detect),
-    ("shibconf", shibconf::detect),
-    ("shorewall", shorewall::detect),
-    ("sidekiq", sidekiq::detect),
-    ("sievescript", sievescript::detect),
-    ("sigma", sigma::detect),
-    ("singboxconf", singboxconf::detect),
-    ("singerconf", singerconf::detect),
-    ("sixel", sixel::detect),
-    ("skaffold", skaffold::detect),
-    ("skywalking", skywalking::detect),
-    ("slob", slob::detect),
-    ("slrnconf", slrnconf::detect),
-    ("slurm", slurm::detect),
-    ("smd", smd::detect),
-    ("smithy", smithy::detect),
-    ("smt2", smt2::detect),
-    ("snapcast", snapcast::detect),
-    ("snapcraft", snapcraft::detect),
-    ("snort", snort::detect),
-    ("snyk", snyk::detect),
-    ("sol", sol::detect),
-    ("solrconfig", solrconfig::detect),
-    ("solrschema", solrschema::detect),
-    ("sonar", sonar::detect),
-    ("sonarr", sonarr::detect),
-    ("soniccfg", soniccfg::detect),
-    ("sops", sops::detect),
-    ("sp3", sp3::detect),
-    ("spamassassin", spamassassin::detect),
-    ("sparql", sparql::detect),
-    ("speedscope", speedscope::detect),
-    ("spef", spef::detect),
-    ("sphinx", sphinx::detect),
-    ("spicenet", spicenet::detect),
-    ("spigot", spigot::detect),
-    ("spotbugs", spotbugs::detect),
-    ("spv", spv::detect),
-    ("sqitchconf", sqitchconf::detect),
-    ("sqlnet", sqlnet::detect),
-    ("squid", squid::detect),
-    ("srhtconf", srhtconf::detect),
-    ("sshconf", sshconf::detect),
-    ("sssdconf", sssdconf::detect),
-    ("stack", stack::detect),
-    ("stalwartconf", stalwartconf::detect),
-    ("stardict", stardict::detect),
-    ("starship", starship::detect),
-    ("stash", stash::detect),
-    ("staticcheckconf", staticcheckconf::detect),
-    ("stepca", stepca::detect),
-    ("stix", stix::detect),
-    ("stm", stm::detect),
-    ("storageconf", storageconf::detect),
-    ("storybook", storybook::detect),
-    ("strongswanconf", strongswanconf::detect),
-    ("stylelint", stylelint::detect),
-    ("sublime", sublime::detect),
-    ("sudoers", sudoers::detect),
-    ("sudoku", sudoku::detect),
-    ("suiconf", suiconf::detect),
-    ("supabase", supabase::detect),
-    ("supervisor", supervisor::detect),
-    ("surefire", surefire::detect),
-    ("suricata", suricata::detect),
-    ("svelte", svelte::detect),
-    ("svf", svf::detect),
-    ("svnconf", svnconf::detect),
-    ("svp", svp::detect),
-    ("swanctl", swanctl::detect),
-    ("sway", sway::detect),
-    ("swf", swf::detect),
-    ("swiftlint", swiftlint::detect),
-    ("swiftmt", swiftmt::detect),
-    ("synapse", synapse::detect),
-    ("syncthingconf", syncthingconf::detect),
-    ("sysctlconf", sysctlconf::detect),
-    ("syslogng", syslogng::detect),
-    ("sysmonconf", sysmonconf::detect),
-    ("systemdboot", systemdboot::detect),
-    ("sysv", sysv::detect),
-    ("syx", syx::detect),
-    ("t3d", t3d::detect),
-    ("tabbyconf", tabbyconf::detect),
-    ("tact", tact::detect),
-    ("tailscale", tailscale::detect),
-    ("tailwind", tailwind::detect),
-    ("talisman", talisman::detect),
-    ("taprc", taprc::detect),
-    ("tarantool", tarantool::detect),
-    ("taskfile", taskfile::detect),
-    ("td0", td0::detect),
-    ("tdm", tdm::detect),
-    ("telegraf", telegraf::detect),
-    ("teleport", teleport::detect),
-    ("telnet", telnet::detect),
-    ("tempoconf", tempoconf::detect),
-    ("terminfo", terminfo::detect),
-    ("textile", textile::detect),
-    ("textlint", textlint::detect),
-    ("textmategram", textmategram::detect),
-    ("tfm", tfm::detect),
-    ("tfrecord", tfrecord::detect),
-    ("tgf", tgf::detect),
-    ("thanosconf", thanosconf::detect),
-    ("tidb", tidb::detect),
-    ("tileservergl", tileservergl::detect),
-    ("tiltfile", tiltfile::detect),
-    ("timesyncd", timesyncd::detect),
-    ("tincconf", tincconf::detect),
-    ("tinyproxy", tinyproxy::detect),
-    ("tlaplus", tlaplus::detect),
-    ("tlp", tlp::detect),
-    ("tmpfilesd", tmpfilesd::detect),
-    ("tmuxconf", tmuxconf::detect),
-    ("tmx", tmx::detect),
-    ("tnsnames", tnsnames::detect),
-    ("tomcat", tomcat::detect),
-    ("torrc", torrc::detect),
-    ("toxini", toxini::detect),
-    ("tptp", tptp::detect),
-    ("traefik", traefik::detect),
-    ("transmission", transmission::detect),
-    ("travisci", travisci::detect),
-    ("treesittergram", treesittergram::detect),
-    ("trivy", trivy::detect),
-    ("trojanconf", trojanconf::detect),
-    ("tscn", tscn::detect),
-    ("tsconfig", tsconfig::detect),
-    ("tsx", tsx::detect),
-    ("ttyrec", ttyrec::detect),
-    ("tuicconf", tuicconf::detect),
-    ("turboconf", turboconf::detect),
-    ("twee", twee::detect),
-    ("txt2tags", txt2tags::detect),
-    ("typeid", typeid::detect),
-    ("typeormconf", typeormconf::detect),
-    ("typesense", typesense::detect),
-    ("ubootenv", ubootenv::detect),
-    ("ucf", ucf::detect),
-    ("uci", uci::detect),
-    ("udevrules", udevrules::detect),
-    ("ufwrules", ufwrules::detect),
-    ("ult", ult::detect),
-    ("unattend", unattend::detect),
-    ("unbound", unbound::detect),
-    ("unison", unison::detect),
-    ("unitconf", unitconf::detect),
-    ("unitymanifest", unitymanifest::detect),
-    ("unitysettings", unitysettings::detect),
-    ("unocss", unocss::detect),
-    ("unrealircd", unrealircd::detect),
-    ("upc", upc::detect),
-    ("upf", upf::detect),
-    ("uplugin", uplugin::detect),
-    ("uproject", uproject::detect),
-    ("upstart", upstart::detect),
-    ("usercss", usercss::detect),
-    ("userscript", userscript::detect),
-    ("usi", usi::detect),
-    ("ust", ust::detect),
-    ("ustx", ustx::detect),
-    ("v2rayconf", v2rayconf::detect),
-    ("vagrant", vagrant::detect),
-    ("vale", vale::detect),
-    ("valkeyconf", valkeyconf::detect),
-    ("vaultagent", vaultagent::detect),
-    ("vcard", vcard::detect),
-    ("vcd", vcd::detect),
-    ("vcl", vcl::detect),
-    ("vcpkg", vcpkg::detect),
-    ("vector", vector::detect),
-    ("vercelconf", vercelconf::detect),
-    ("verilog", verilog::detect),
-    ("vernemq", vernemq::detect),
-    ("vespaconf", vespaconf::detect),
-    ("vf", vf::detect),
-    ("vhdr", vhdr::detect),
-    ("victoria", victoria::detect),
-    ("vimrc", vimrc::detect),
-    ("vimsyntax", vimsyntax::detect),
-    ("virtxml", virtxml::detect),
-    ("viteconf", viteconf::detect),
-    ("vitepress", vitepress::detect),
-    ("vitess", vitess::detect),
-    ("vitestconf", vitestconf::detect),
-    ("vlcrc", vlcrc::detect),
-    ("vlt", vlt::detect),
-    ("vmagentconf", vmagentconf::detect),
-    ("vmrk", vmrk::detect),
-    ("votable", votable::detect),
-    ("vpr", vpr::detect),
-    ("vscodeconf", vscodeconf::detect),
-    ("vsqx", vsqx::detect),
-    ("vyper", vyper::detect),
-    ("w64", w64::detect),
-    ("wafconf", wafconf::detect),
-    ("wandb", wandb::detect),
-    ("waybar", waybar::detect),
-    ("weaviateconf", weaviateconf::detect),
-    ("webmanifest", webmanifest::detect),
-    ("webpackconf", webpackconf::detect),
-    ("weechat", weechat::detect),
-    ("westconf", westconf::detect),
-    ("westonconf", westonconf::detect),
-    ("weztermconf", weztermconf::detect),
-    ("wfdb", wfdb::detect),
-    ("wgsl", wgsl::detect),
-    ("whitelist", whitelist::detect),
-    ("whyml", whyml::detect),
-    ("widgetxml", widgetxml::detect),
-    ("wim", wim::detect),
-    ("windowsterminal", windowsterminal::detect),
-    ("winini", winini::detect),
-    ("winlogbeat", winlogbeat::detect),
-    ("winstonconf", winstonconf::detect),
-    ("wireguard", wireguard::detect),
-    ("wireplumberconf", wireplumberconf::detect),
-    ("wiresharkpref", wiresharkpref::detect),
-    ("woodpecker", woodpecker::detect),
-    ("wordfileuew", wordfileuew::detect),
-    ("woz", woz::detect),
-    ("wpasupplicant", wpasupplicant::detect),
-    ("wrangler", wrangler::detect),
-    ("wrl", wrl::detect),
-    ("wsdl", wsdl::detect),
-    ("wslconf", wslconf::detect),
-    ("xacml", xacml::detect),
-    ("xbrl", xbrl::detect),
-    ("xdc", xdc::detect),
-    ("xdf", xdf::detect),
-    ("xib", xib::detect),
-    ("xid", xid::detect),
-    ("xl2tpd", xl2tpd::detect),
-    ("xlink", xlink::detect),
-    ("xmakeconf", xmakeconf::detect),
-    ("xmodmap", xmodmap::detect),
-    ("xmp", xmp::detect),
-    ("xorgconf", xorgconf::detect),
-    ("xpath", xpath::detect),
-    ("xq", xq::detect),
-    ("xqf", xqf::detect),
-    ("xrayconf", xrayconf::detect),
-    ("xrdpconf", xrdpconf::detect),
-    ("xresources", xresources::detect),
-    ("xsd", xsd::detect),
-    ("xslt", xslt::detect),
-    ("xsvf", xsvf::detect),
-    ("xunit", xunit::detect),
-    ("y4m", y4m::detect),
-    ("yamllint", yamllint::detect),
-    ("yara", yara::detect),
-    ("yarnlock", yarnlock::detect),
-    ("yarnrc", yarnrc::detect),
-    ("yggdrasil", yggdrasil::detect),
-    ("yosys", yosys::detect),
-    ("yugabyte", yugabyte::detect),
-    ("yuzuconf", yuzuconf::detect),
-    ("zabbix", zabbix::detect),
-    ("zapconf", zapconf::detect),
-    ("zedconf", zedconf::detect),
-    ("zeekctl", zeekctl::detect),
-    ("zeekscript", zeekscript::detect),
-    ("zerotier", zerotier::detect),
-    ("zfs", zfs::detect),
-    ("zigbee2mqtt", zigbee2mqtt::detect),
-    ("zitadel", zitadel::detect),
-    ("znc", znc::detect),
-    ("zola", zola::detect),
-    ("zon", zon::detect),
-    ("zone", zone::detect),
-    ("zonemtaconf", zonemtaconf::detect),
-    ("zoo", zoo::detect),
-    ("zookeeper", zookeeper::detect),
-    ("zookeeperop", zookeeperop::detect),
-    ("zpaq", zpaq::detect),
-    ("zshrc", zshrc::detect),
-    ("zulipconf", zulipconf::detect),
-    ("zypper", zypper::detect),
-];
-
-/// 全検出器に入力を流し、合致したモジュール名を全て返す。
-///
-/// [`DETECTORS`] の並び順(名前昇順)で返る。合致なしなら空 `Vec`。
-/// 1入力に複数形式が合致し得るため先勝ちではなく全件を返す。
-#[must_use]
-pub fn detect_all(input: &[u8]) -> Vec<&'static str> {
-    DETECTORS
-        .iter()
-        .filter(|(_, f)| f(input))
-        .map(|(name, _)| *name)
-        .collect()
-}
