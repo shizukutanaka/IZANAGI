@@ -6083,6 +6083,44 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
 
+## 第343次 — census 集約 API `detect_all` + 契約テスト
+
+監査 P1「census 集約 API: `identify_all(input) -> &[&str]`」への最小実装。
+`izanagi_kit::detect_all(input: &[u8]) -> Vec<&'static str>` を追加 — 第341次の
+`DETECTORS` を総当りし、合致したモジュール名を登録順(名前昇順)で全件返す。
+拡張子ヒントによる2段設計は複雑化の割に利が薄い(1079回の軽量detectで済む)
+ため YAGNI により先勝ち/優先度付けは採らず全件返却のみ。
+
+新規 `tests/detect_all.rs` が以下を検証:
+
+- 返却名は全て DETECTORS 登録済みで、その detect() も実際に合致する
+- 総当り結果と完全一致(集約実装の重複・欠落なし)
+- 返却順がソート済み・重複なし
+- Jsonnet 既知入力で `jsonnet` を含む
+
+命名は既存 `identify` モジュール(ローグライクのアイテム同定)との衝突を避け
+`detect_all` とした。
+
+## 第344次 — YAML `key :`(コロン前空白)バリアントの偽陰性一括修正
+
+監査 P0 残件「JSON `"key" :` と同型の空白許容が YAML/INI 系でも要監査」への対応。
+YAML のブロックマッピングはコロン前の空白を許容する(`key :` 合法)のに、
+検出器が `key:` リテラルだけを見るため偽陰性になっていた欠陥クラスを一括修正。
+
+- `is_key` ヘルパー共有の4モジュール(azurepipe/bitrise/cfn/circleci):
+  `r.trim_start().trim_start_matches(quote).trim_start().starts_with(':')` へ拡張し
+  `key :`・`"key" :` を受理
+- raw `key:` チェックの8モジュール:
+  - apmserver/appdaemon/amplifyconf/ansible/datadog/asdf — `is_key` 化
+  - appdaemon/bentoml/ansible — 全文 `contains("key:")` を行アンカー
+    `has_key` へ(偽陰性修正と同時に値中マーカー偽陽性も解消、第340次と同方向)
+  - argowf — `kind_value` ヘルパーで `kind` 値を正規化抽出
+    (`kind: X`/`kind : X`/任意空白幅)、SPEC/TEMPLATE/IO キー群も is_key 化
+
+各モジュールに空白バリアントの回帰テストを追加(既存 parse/detect 動作は不変、
+`key:` 系は受理を維持したまま superset 化)。対象外: `- name:`/`- hosts:` の
+ダッシュ項は is_key で包括済み、callgrind 等の非YAMLリテラル形式は仕様上除外。
+
 ## 第345次
 
 「先頭行必須」形式の `detect()`/`parse()` が UTF-8 BOM (U+FEFF) 付き入力を
@@ -6122,6 +6160,26 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
 
+## 第347次
+
+第340/346次の継続 — `detect()` の全文 `contains(marker)` でコメント行内の
+言及だけで合致する偽陽性の残存クラスを一括修正(18ファイル):
+
+- **`//`/`/*` 系**: `jenkinsfile`(`node`+`stage` の汎用語ペアは
+  `node {`/`node(`/`stage(`/`stage '`/… の形に限定化し `agent` も既知形へ)、
+  `sol`, `cairo`, `openpulse`, `tact`, `movelang`, `qs`, `bicep`
+- **`;;` 系**: `func` (FunC)
+- **`#` 系**: `rpy`, `airflow`, `nginx`, `consul`(`#`+`//`), `vyper`
+  (`# @version` は規格上コメント必須のため保持、`def `+デコレータは
+  行頭 `@` 必須に強化)
+- **JSON キー位置**: `qobj`, `uplugin`, `uproject`, `braket`, `cfn` —
+  `jkey(t,key)` が `"key"` の直後に `:` を要求し値位置の文字列混入を拒否
+  (minified JSON `{"K":"v"}` は `has_key` では取れず `jkey` が必要)
+
+共通ヘルパー `code_has`(コメント行を除外する行単位 contains)を
+各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
+テスト追加。
+
 ## 第360次 — DB/バックアップ・レジストリ系オペレータ CRD 8 モジュール
 
 分散DB・バックアップ・コンテナレジストリ系 CRD 群第5弾。
@@ -6138,16 +6196,55 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 `pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
 (18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
-## 出典
+## 第362次 — IdP/認証プロキシ・監視エージェント系 9 モジュール
 
-- pravega/zookeeper-operator — zookeeper.pravega.io CRD
-- goharbor/harbor-operator — goharbor.io CRDs
-- stashed/stash — stash.appscode.com CRDs
-- cockroachdb/cockroach-operator — crdb.cockroachlabs.com CRD
-- yugabyte/yugabyte-operator — YBCluster CRD
-- redpanda-data/redpanda-operator — cluster.redpanda.com CRDs
-- infinispan/infinispan-operator — infinispan.org CRDs
-- opensearch-project/opensearch-k8s-operator — opensearch.opster.io CRDs
+アイデンティティ・ゼロトラスト系ツールの設定形式を追加。YAMLトップキー(強/弱)、INI、HCL の3パターン。
+
+- cerbos: Cerbos ポリシー(`api.cerbos.dev` + ResourcePolicy/PrincipalPolicy/DerivedRoles/ExportVariables)
+- teleport: `teleport.yaml`(`teleport:`/`auth_service:`/`proxy_service:`/`*_service:` 系強キー)
+- keto: Ory Keto `keto.yaml`(`namespaces:`/`dsn:` 強キー+`serve:`/`limit:` 弱キー)
+- zitadel: ZITADEL config(`ExternalDomain`/`ExternalPort`/`SystemDefaults`/`DefaultInstance` 等 PascalCase 強キー)
+- casdoor: `app.conf` INI(`origin`/`staticBaseURL`/`isDemoMode`/`redisEndpoint` 等 Casdoor 排他キー)
+- pomerium: Pomerium `config.yaml`(`authenticate_service_url`/`databroker_service_url`/`shared_secret`/`idp_*` 強キー)
+- boundary: Boundary `boundary.hcl`(`listener "x"` + `controller {`/`worker {`/`kms "t"`/`purpose =` 併存が必須 — Vault との区別)
+- metricbeat: `metricbeat.yml`(`metricbeat.modules`/`metricbeat.autodetect` 等 metricbeat.* トップキー)
+- winlogbeat: `winlogbeat.yml`(`winlogbeat.event_logs`/`winlogbeat.registry_file` 等 winlogbeat.* トップキー)
+
+(`osquery.conf` は既存 osqueryconf がカバーしていたため差替)
+
+`pub mod` / `DETECTORS` 登録済み(1088 エントリ)。API ピン更新
+(18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第364次 — DNS/認証/オブザーバ/アプリサーバ系 8 モジュール
+
+新規センサスモジュール(DETECTORS 1087 エントリ):
+
+| モジュール | 対象 | 検出ロジック |
+| --- | --- | --- |
+| `fluentbit` | `fluent-bit.conf` | `[SERVICE]`/`[INPUT]`/`[FILTER]`/`[OUTPUT]`/`[PARSER]` セクション ≥2 + `Name`/`Match` ディレクティブ |
+| `zookeeper` | `zoo.cfg` | `tickTime`/`initLimit`/`server.N=`/`autopurge.*`/`quorum.auth.*` 等専用キー |
+| `sudoers` | sudoers | `Defaults`/`User_Alias`/`Cmnd_Alias`/`NOPASSWD:`/`ALL=(` スペック + `#includedir`/`@include` |
+| `pdns` | PowerDNS `pdns.conf` | `launch`/`soa-*-default`/`axfr-lower-serial`/`slave-cycle-interval` 等専用キー |
+| `elasticsearch` | `elasticsearch.yml` | `cluster.name`/`node.name`/`discovery.seed_hosts`/`path.data` 等専用ドットキー |
+| `kibana` | `kibana.yml` | `server.port`/`elasticsearch.hosts`/`kibana.index`/`savedObjects.*` 等専用ドットキー |
+| `nsd` | `nsd.conf` | `zone:`/`pattern:`/`remote-control:`/`dnstap:`/`verify:` 等セクションキー |
+| `tomcat` | `server.xml` | `<Server` ルート + `<Service`/`<Connector`/`<Engine`/`<Host` 子要素 |
+
+スキップ重複: `clash`(clashconf), `chrony`(chronyconf), `exports`(nfsexports),
+`krb5`(krb5conf), `sssd`(sssdconf), `rsyslog`(rsyslogd) — `*conf`/*d サフィックス
+別名の既存モジュールが多数あるため、命名時は `ls src/ | grep <basename>` で
+全形確認が必須。
+
+## 第368次
+
+メディア/ダウンロード/バックアップ系の設定形式8モジュール
+(`aria2`, `bazarr`, `deluge`, `kopia`, `navidrome`, `qbittorrent`, `rtorrent`, `transmission`)
+を追加。qbittorrent は `Session\`/`WebUI\`/`MailNotification\` バックスラッシュ名前空間キー、
+rtorrent は `directory`/`session`/`port_range`/`scgi_port`/`method.*`、
+aria2 は `bt-*`/`dht-*`/`rpc-*` キー、bazarr は `[sonarr]`/`[radarr]`+
+`enabled_providers`/`*_sync`、navidrome は `MusicFolder`/`ScanSchedule` キャメルキー、
+kopia は `masterKey`/`hashedPassword`/`keepHourly`/`cacheDirectory` 排他キー。
+JSON系は `jkey` で行頭 `"key":` のみ照合。DETECTORS 1095件、kit モジュール数2185。
 
 ## 第378次
 
@@ -6186,4 +6283,30 @@ cromwell(cromwell.conf HOCON:backend/system/call_caching/
 database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=2)、
 luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第385次
+
+VPN/プロキシ系の設定形式8モジュールを追加:
+torrc(torrc:SocksPort/ORPort/ExitPolicy/ExitNodes/HiddenServiceDir/
+Nickname/ContactInfo/Bridge/UseBridges等既知ディレクティブ>=3)、
+v2rayconf(V2Ray/Xray config.json:"inbounds"/"outbounds"/"routing"/
+"dns"/"log"/"policy"/"stats"/"api"/"transport"/"observatory"等
+JSONキー、inbounds+outbounds両方 or キー>=3)、
+yggdrasil(yggdrasil.conf:"Peers"/"InterfacePeers"/"Listen"/
+"AdminListen"/"MulticastInterfaces"/"IfName"/"IfMTU"/
+"NodeInfoPrivacy"/"PrivateKey"等、hint>=1&>=2 or >=4)、
+trojanconf(trojan config.json:"run_type"/"local_addr"/"local_port"/
+"remote_addr"/"remote_port"/"password"/"ssl"/"sni"/"mux"/"verify"等、
+hint>=2&>=4 or >=6)、
+hysteriaconf(Hysteria config.yaml:server/listen/up/down/obfs/auth/
+tls/bandwidth/recv_window*/protocol/masquerade等YAMLキー、
+hint>=1&>=2 or >=4)、
+gostconf(GOST v3 gost.yml:トップレベルのservices/chains/hops/
+bypasses/resolvers/authers/limits/observer等キー>=1+1 or >=3)、
+strongswanconf(ipsec.conf:config setup/conn名セクションヘッダ+
+left/right/leftsubnet/rightsubnet/keyexchange/ike/esp/authby/auto
+等パラメータ、conn>=1&>=2 or >=5)、
+tuicconf(TUIC config.json:"server"/"uuid"/"password"/
+"congestion_control"/"alpn"/"udp_relay_mode"/"reduce_rtt"/
+"send_window"等、hint>=1&>=2 or >=5)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
