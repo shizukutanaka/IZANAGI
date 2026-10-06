@@ -123,16 +123,43 @@ const ANNOTATION_KEYS: &[&str] = &[
     "sidecar.istio.io",
     "kfp-pipeline",
 ];
+fn is_key(tr: &str, key: &str) -> bool {
+    let k = tr.trim_start_matches(['"', '\'']);
+    k.strip_prefix(key)
+        .is_some_and(|r| r.starts_with(':') || r.starts_with("\":") || r.starts_with("':"))
+}
+
+fn has_key(t: &str, key: &str) -> bool {
+    t.lines().any(|l| is_key(l.trim_start(), key))
+}
+fn code_has(t: &str, needle: &str) -> bool {
+    // `#` コメント行内の言及は証拠にしない。
+    t.lines()
+        .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
+}
+fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let l = line.trim_start_matches(['"', '\'']);
+    let r = l
+        .strip_prefix(key)?
+        .trim_start_matches(['"', '\''])
+        .trim_start();
+    r.strip_prefix(':')
+        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
+}
+
+fn has_kv(t: &str, key: &str, val: &str) -> bool {
+    t.lines().any(|l| yaml_val(l.trim(), key) == Some(val))
+}
 
 /// Detects Kubeflow Pipelines manifests and IR.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
     let kfp_ir =
-        t.contains("schemaVersion:") && t.contains("sdkVersion:") && t.contains("components:");
-    let kfp_ann = t.contains("pipelines.kubeflow.org") || t.contains("pipeline.kubeflow.org");
-    let tekton = t.contains("tekton.dev/")
-        && (t.contains("kind: PipelineRun") || t.contains("kind: Pipeline"));
+        has_key(&t, "schemaVersion") && has_key(&t, "sdkVersion") && has_key(&t, "components");
+    let kfp_ann = code_has(&t, "pipelines.kubeflow.org") || code_has(&t, "pipeline.kubeflow.org");
+    let tekton = code_has(&t, "tekton.dev/")
+        && (has_kv(&t, "kind", "PipelineRun") || has_kv(&t, "kind", "Pipeline"));
     kfp_ir || kfp_ann || tekton
 }
 
@@ -179,6 +206,15 @@ impl Kubeflow {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(
+            b"# schemaVersion: 1\n# sdkVersion: 2\n# components: {}\n"
+        ));
+        assert!(!detect(b"# pipelines.kubeflow.org/x: y\n"));
+        assert!(!detect(b"# tekton.dev/v1\n# kind: PipelineRun\n"));
+    }
 
     #[test]
     fn detects_tekton_pipeline_run() {

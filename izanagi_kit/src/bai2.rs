@@ -47,6 +47,8 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    // UTF-8 BOM(U+FEFF)は trim 系が空白と見なさないため先に剥がす。
+    let s = s.strip_prefix('\u{feff}').unwrap_or(s);
     let first = match s.lines().find(|l| !l.trim().is_empty()) {
         Some(l) => l.trim(),
         None => return false,
@@ -58,6 +60,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Bai2> {
     let s = core::str::from_utf8(b).ok()?;
+    let s = s.strip_prefix('\u{feff}').unwrap_or(s);
     let mut r = Bai2 {
         sender: String::new(),
         receiver: String::new(),
@@ -99,6 +102,14 @@ pub fn parse(b: &[u8]) -> Option<Bai2> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_utf8_bom() {
+        let mut v = b"\xef\xbb\xbf".to_vec();
+        v.extend_from_slice(FIXTURE);
+        assert!(detect(&v));
+        assert!(parse(&v).is_some());
+    }
 
     const FIXTURE: &[u8] = b"01,SNDCORP,RCVBANK,260926,0100,001,80,1,2/\n02,GRP1,SNDCORP,260926,0100,,USD,1/\n03,12345678,USD,010,500000,,,015,120000/\n16,475,15000,CK,0000123456,,,VENDOR INV 77/\n88,SECOND LINE/\n49,500000,1/\n98,500000,1,1/\n99,500000,1,1/\n";
 

@@ -117,6 +117,19 @@ fn val_after<'a>(t: &'a str, key: &str) -> Option<&'a str> {
     }
     None
 }
+fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let l = line.trim_start_matches(['"', '\'']);
+    let r = l
+        .strip_prefix(key)?
+        .trim_start_matches(['"', '\''])
+        .trim_start();
+    r.strip_prefix(':')
+        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
+}
+
+fn has_kv(t: &str, key: &str, val: &str) -> bool {
+    t.lines().any(|l| yaml_val(l.trim(), key) == Some(val))
+}
 
 /// Returns `true` when `b` looks like a Helm `Chart.yaml`.
 #[must_use]
@@ -125,9 +138,9 @@ pub fn detect(b: &[u8]) -> bool {
     has_key(t, "apiVersion")
         && has_key(t, "name")
         && has_key(t, "version")
-        && (t.contains("appVersion")
-            || t.contains("type: application")
-            || t.contains("type: library")
+        && (has_key(t, "appVersion")
+            || has_kv(t, "type", "application")
+            || has_kv(t, "type", "library")
             || has_key(t, "dependencies"))
 }
 
@@ -168,6 +181,16 @@ impl Chart {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(
+            b"apiVersion: v2\nname: x\nversion: 1.0.0\n# appVersion: 1.0\n"
+        ));
+        assert!(!detect(
+            b"apiVersion: v2\nname: x\nversion: 1.0.0\n# type: application\n"
+        ));
+    }
 
     const SRC: &[u8] = b"# chart
 apiVersion: v2
