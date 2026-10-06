@@ -6332,6 +6332,18 @@ aria2 は `bt-*`/`dht-*`/`rpc-*` キー、bazarr は `[sonarr]`/`[radarr]`+
 kopia は `masterKey`/`hashedPassword`/`keepHourly`/`cacheDirectory` 排他キー。
 JSON系は `jkey` で行頭 `"key":` のみ照合。DETECTORS 1095件、kit モジュール数2185。
 
+## 第369次
+
+FTP/LDAP/監視/DBデーモン系の設定形式8モジュール
+(`collectd`, `neo4jconf`, `proftpd`, `pureftpd`, `radiusd`, `slapd`,
+`snmpdconf`, `vsftpd`) を追加。vsftpd は `key=value` YES/NO ディレクティブ、
+proftpd は Apache式 `Directive`+`<Context>` ブロック、pureftpd は CamelCase
+ディレクティブ、snmpdconf は net-snmp (既存snmpはwireパケットパーサで別物)、
+collectd は `LoadPlugin`+`<Plugin>` ブロック、neo4jconf は `dbms.*`/`server.*`
+名前空間、slapd は `slapd.conf`+`olc*` 属性(ldapconfはクライアント側で別物)、
+radiusd は `key = value`+`client/listen {}` ブロック(radiusはRADIUSパケットで別物)。
+DETECTORS 1087件、kit モジュール数2185。
+
 ## 第378次
 
 FPGA/EDAツールチェーンの設定形式8モジュールを追加

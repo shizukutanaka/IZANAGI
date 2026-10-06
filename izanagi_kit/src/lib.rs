@@ -701,6 +701,7 @@ pub mod codespell;
 pub mod coff;
 pub mod coins;
 pub mod colima;
+pub mod collectd;
 pub mod coloring;
 pub mod comb;
 pub mod combat;
@@ -1640,6 +1641,7 @@ pub mod ncpdp;
 pub mod ne;
 pub mod nebulaconf;
 pub mod nef;
+pub mod neo4jconf;
 pub mod neomuttconf;
 pub mod nerdctl;
 pub mod netflow;
@@ -1906,6 +1908,7 @@ pub mod procd;
 pub mod procfile;
 pub mod procmailrc;
 pub mod profiler;
+pub mod proftpd;
 pub mod progression;
 pub mod prom;
 pub mod promela;
@@ -1930,6 +1933,7 @@ pub mod pulseclientconf;
 pub mod pulumi;
 pub mod punycode;
 pub mod puppet;
+pub mod pureftpd;
 pub mod puz;
 pub mod pxelinux;
 pub mod pyc;
@@ -1966,6 +1970,7 @@ pub mod quil;
 pub mod rabbitmq;
 pub mod radarr;
 pub mod radius;
+pub mod radiusd;
 pub mod radixheap;
 pub mod radixsort;
 pub mod raf;
@@ -2176,6 +2181,7 @@ pub mod skaffold;
 pub mod skiplist;
 pub mod skp;
 pub mod skywalking;
+pub mod slapd;
 pub mod slide;
 pub mod slob;
 pub mod slopetrick;
@@ -2196,6 +2202,7 @@ pub mod snapcraft;
 pub mod snappy;
 pub mod sndh;
 pub mod snmp;
+pub mod snmpdconf;
 pub mod snoise;
 pub mod snoop;
 pub mod snort;
@@ -2518,6 +2525,7 @@ pub mod vpr;
 pub mod vrrp;
 pub mod vscodeconf;
 pub mod vsdx;
+pub mod vsftpd;
 pub mod vsqx;
 pub mod vtf;
 pub mod vtk;
@@ -2978,6 +2986,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("codecov", codecov::detect),
     ("codespell", codespell::detect),
     ("colima", colima::detect),
+    ("collectd", collectd::detect),
     ("compose", compose::detect),
     ("composer", composer::detect),
     ("composerlock", composerlock::detect),
@@ -3457,6 +3466,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ncpdp", ncpdp::detect),
     ("nebulaconf", nebulaconf::detect),
     ("nef", nef::detect),
+    ("neo4jconf", neo4jconf::detect),
     ("neomuttconf", neomuttconf::detect),
     ("nerdctl", nerdctl::detect),
     ("netlifyconf", netlifyconf::detect),
@@ -3593,6 +3603,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("privoxy", privoxy::detect),
     ("procd", procd::detect),
     ("procmailrc", procmailrc::detect),
+    ("proftpd", proftpd::detect),
     ("promela", promela::detect),
     ("prometheus", prometheus::detect),
     ("promtailconf", promtailconf::detect),
@@ -3608,6 +3619,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pulseclientconf", pulseclientconf::detect),
     ("pulumi", pulumi::detect),
     ("puppet", puppet::detect),
+    ("pureftpd", pureftpd::detect),
     ("puz", puz::detect),
     ("pxelinux", pxelinux::detect),
     ("pylintrc", pylintrc::detect),
@@ -3632,6 +3644,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("quil", quil::detect),
     ("rabbitmq", rabbitmq::detect),
     ("radarr", radarr::detect),
+    ("radiusd", radiusd::detect),
     ("raf", raf::detect),
     ("railwayconf", railwayconf::detect),
     ("rakefile", rakefile::detect),
@@ -3730,6 +3743,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sixel", sixel::detect),
     ("skaffold", skaffold::detect),
     ("skywalking", skywalking::detect),
+    ("slapd", slapd::detect),
     ("slob", slob::detect),
     ("slrnconf", slrnconf::detect),
     ("slurm", slurm::detect),
@@ -3738,6 +3752,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("smt2", smt2::detect),
     ("snapcast", snapcast::detect),
     ("snapcraft", snapcraft::detect),
+    ("snmpdconf", snmpdconf::detect),
     ("snort", snort::detect),
     ("snyk", snyk::detect),
     ("sol", sol::detect),
@@ -3912,6 +3927,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("votable", votable::detect),
     ("vpr", vpr::detect),
     ("vscodeconf", vscodeconf::detect),
+    ("vsftpd", vsftpd::detect),
     ("vsqx", vsqx::detect),
     ("vyper", vyper::detect),
     ("w64", w64::detect),
