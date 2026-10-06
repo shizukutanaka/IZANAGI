@@ -6121,3 +6121,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第373次
+
+Rustツールチェーン設定形式8モジュールを追加:
+rustfmt(rustfmt.toml: max_width/edition/hard_tabs/newline_style/
+imports_granularity 等約75オプション、行アンカーkey一致>=3),
+clippytoml(clippy.toml: msrv/disallowed-{names,methods,macros,types}/
+cognitive-complexity-threshold 等約60オプション >=2),
+rusttoolchain(rust-toolchain.toml: [toolchain]テーブルまたは
+channel+components/targets/profile キー), cargodeny(deny.toml:
+[bans]/[licenses]/[advisories]/[sources]/[graph]テーブル +
+multiple-versions/wildcards/vulnerability 等キー), nextest
+(.config/nextest.toml: [profile.*]/[store]テーブル + retries/
+slow-timeout/status-level 等キー), bacon(bacon.toml: [jobs.*]/
+[keybindings]テーブル + default_job/command/need_stdout 等キー),
+cargomake(Makefile.toml: [tasks.*]/[env]/[config]テーブル +
+command/args/dependencies/run_task/install_crate 等キー),
+crossconf(Cross.toml: [build]/[target.*]テーブル + xargo/
+docker-in-docker/pre-build/runner 等STRONGキー)。
+全てTOMLの行アンカー key= 一致 + テーブル名(前方一致でサブ
+テーブルも捕捉)による判定、コメント行除外、テスト4本ずつ。

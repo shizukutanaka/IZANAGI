@@ -506,6 +506,7 @@ pub mod azurepipe;
 pub mod azw;
 pub mod babelrc;
 pub mod bacnet;
+pub mod bacon;
 pub mod bai2;
 pub mod bam;
 pub mod bandit;
@@ -615,7 +616,9 @@ pub mod capnp;
 pub mod capx;
 pub mod cardanoconf;
 pub mod cargoconf;
+pub mod cargodeny;
 pub mod cargolock;
+pub mod cargomake;
 pub mod carla;
 pub mod cartesian;
 pub mod casbin;
@@ -667,6 +670,7 @@ pub mod clar;
 pub mod clashconf;
 pub mod classfile;
 pub mod clickhouse;
+pub mod clippytoml;
 pub mod clique;
 pub mod closestpair;
 pub mod cloudcustodian;
@@ -725,6 +729,7 @@ pub mod crmconf;
 pub mod crockford;
 pub mod cron;
 pub mod crontab;
+pub mod crossconf;
 pub mod csa;
 pub mod csaf;
 pub mod csd;
@@ -1607,6 +1612,7 @@ pub mod newick;
 pub mod newrelic;
 pub mod newsboat;
 pub mod newsyslog;
+pub mod nextest;
 pub mod nexus;
 pub mod nfsexports;
 pub mod nftconf;
@@ -2006,6 +2012,8 @@ pub mod rubocop;
 pub mod ruffconf;
 pub mod rundeck;
 pub mod runit;
+pub mod rustfmt;
+pub mod rusttoolchain;
 pub mod rvdata;
 pub mod rw2;
 pub mod rx2;
@@ -2777,6 +2785,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("awscredentials", awscredentials::detect),
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
+    ("bacon", bacon::detect),
     ("bai2", bai2::detect),
     ("bam", bam::detect),
     ("banditconf", banditconf::detect),
@@ -2821,7 +2830,9 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("capx", capx::detect),
     ("cardanoconf", cardanoconf::detect),
     ("cargoconf", cargoconf::detect),
+    ("cargodeny", cargodeny::detect),
     ("cargolock", cargolock::detect),
+    ("cargomake", cargomake::detect),
     ("carla", carla::detect),
     ("casbin", casbin::detect),
     ("cassandra", cassandra::detect),
@@ -2848,6 +2859,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("clar", clar::detect),
     ("clashconf", clashconf::detect),
     ("clickhouse", clickhouse::detect),
+    ("clippytoml", clippytoml::detect),
     ("cloudcustodian", cloudcustodian::detect),
     ("cloudinit", cloudinit::detect),
     ("clusterconf", clusterconf::detect),
@@ -2884,6 +2896,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("criterion", criterion::detect),
     ("crmconf", crmconf::detect),
     ("crockford", crockford::detect),
+    ("crossconf", crossconf::detect),
     ("csa", csa::detect),
     ("csd", csd::detect),
     ("cspell", cspell::detect),
@@ -3314,6 +3327,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("newrelic", newrelic::detect),
     ("newsboat", newsboat::detect),
     ("newsyslog", newsyslog::detect),
+    ("nextest", nextest::detect),
     ("nexus", nexus::detect),
     ("nfsexports", nfsexports::detect),
     ("nftconf", nftconf::detect),
@@ -3511,6 +3525,8 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ruffconf", ruffconf::detect),
     ("rundeck", rundeck::detect),
     ("runit", runit::detect),
+    ("rustfmt", rustfmt::detect),
+    ("rusttoolchain", rusttoolchain::detect),
     ("rvdata", rvdata::detect),
     ("rw2", rw2::detect),
     ("rx2", rx2::detect),
