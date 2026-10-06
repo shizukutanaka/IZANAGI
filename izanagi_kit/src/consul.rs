@@ -197,21 +197,28 @@ const SERVICE_KEYS: &[&str] = &[
     "passing",
     "warning",
 ];
+fn code_has(t: &str, needle: &str) -> bool {
+    // `#`/`//` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with('#') && !l.starts_with("//") && l.contains(needle)
+    })
+}
 
 /// Detects Consul HCL/JSON config files.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
-    let agent = (t.contains("datacenter")
-        || t.contains("data_dir")
-        || t.contains("node_name")
-        || t.contains("retry_join"))
-        && (t.contains("server")
-            || t.contains("bind_addr")
-            || t.contains("client_addr")
-            || t.contains("bootstrap_expect"));
-    let svc = (t.contains("service {") || t.contains("\"service\""))
-        && (t.contains("port") || t.contains("check") || t.contains("tags"));
+    let agent = (code_has(&t, "datacenter")
+        || code_has(&t, "data_dir")
+        || code_has(&t, "node_name")
+        || code_has(&t, "retry_join"))
+        && (code_has(&t, "server")
+            || code_has(&t, "bind_addr")
+            || code_has(&t, "client_addr")
+            || code_has(&t, "bootstrap_expect"));
+    let svc = (code_has(&t, "service {") || code_has(&t, "\"service\""))
+        && (code_has(&t, "port") || code_has(&t, "check") || code_has(&t, "tags"));
     agent || svc
 }
 
@@ -269,6 +276,11 @@ impl Consul {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# datacenter = \"dc1\"\n# server = true\n"));
+    }
 
     #[test]
     fn detects_and_counts() {
