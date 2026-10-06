@@ -6121,3 +6121,30 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第361次 — ML serving/分散実行・監視オペレータ系 CRD 8 モジュール
+
+MLプラットフォーム・サーバレス・監視オペレータ系 CRD 群第6弾。
+
+- kubeflowtraining: Kubeflow Training Operator(`kubeflow.org` + TFJob/PyTorchJob/MPIJob/XGBoostJob/PaddleJob/JAXJob/TrainJob/ClusterTrainingRuntime)
+- kserve: KServe(`serving.kserve.io` + InferenceService/InferenceGraph/TrainedModel/ServingRuntime/ClusterServingRuntime)
+- seldon: Seldon Core(`machinelearning.seldon.io` + SeldonDeployment)
+- dask: Dask Operator(`kubernetes.dask.org` + DaskCluster/DaskJob/DaskWorkerGroup/DaskAutoscaler)
+- openfaas: OpenFaaS(`openfaas.com` + Function/Profile/FunctionIngress)
+- kubevela: KubeVela(`*.oam.dev` + Application/ApplicationRevision/ComponentDefinition/TraitDefinition/PolicyDefinition 等)
+- grafanaop: Grafana Operator(`*.integreatly.org`/`*.grafana.com` + Grafana/GrafanaDashboard/GrafanaDatasource/GrafanaFolder/ContactPoint 等)
+- victoria: VictoriaMetrics Operator(`operator.victoriametrics.com` + VMAgent/VMAlert/VMCluster/VMServiceScrape/VMRule/VMSingle/VMAuth 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- kubeflow/training-operator — kubeflow.org *Job CRDs
+- kserve/kserve — serving.kserve.io CRDs
+- SeldonIO/seldon-core — machinelearning.seldon.io CRD
+- dask/dask-kubernetes — kubernetes.dask.org CRDs
+- openfaas/faas-netes — openfaas.com CRDs
+- kubevela/kubevela — *.oam.dev CRDs
+- grafana/grafana-operator — grafana.integreatly.org CRDs
+- VictoriaMetrics/operator — operator.victoriametrics.com CRDs

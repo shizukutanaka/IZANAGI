@@ -753,6 +753,7 @@ pub mod dafny;
 pub mod dagsp;
 pub mod dagster;
 pub mod damage;
+pub mod dask;
 pub mod datadog;
 pub mod db2cli;
 pub mod dbf;
@@ -1081,6 +1082,7 @@ pub mod gpsd;
 pub mod gpx;
 pub mod gradlemod;
 pub mod grafana;
+pub mod grafanaop;
 pub mod graph;
 pub mod graphite;
 pub mod graphml;
@@ -1351,11 +1353,14 @@ pub mod kpaths;
 pub mod kql;
 pub mod kratos;
 pub mod krb5conf;
+pub mod kserve;
 pub mod kss;
 pub mod ktlint;
 pub mod kubeconfig;
 pub mod kubeflow;
+pub mod kubeflowtraining;
 pub mod kubemq;
+pub mod kubevela;
 pub mod kustomize;
 pub mod l2tp;
 pub mod lab;
@@ -1679,6 +1684,7 @@ pub mod openapi;
 pub mod openbgpd;
 pub mod opendkim;
 pub mod opendmarc;
+pub mod openfaas;
 pub mod openfga;
 pub mod openhab;
 pub mod openntpd;
@@ -2054,6 +2060,7 @@ pub mod seglazy;
 pub mod segment;
 pub mod segtree;
 pub mod segy;
+pub mod seldon;
 pub mod semgrep;
 pub mod semver;
 pub mod sendmail;
@@ -2397,6 +2404,7 @@ pub mod vgm;
 pub mod vhd;
 pub mod vhdr;
 pub mod vhdx;
+pub mod victoria;
 pub mod vimrc;
 pub mod vimsyntax;
 pub mod vip;
@@ -2896,6 +2904,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dae", dae::detect),
     ("dafny", dafny::detect),
     ("dagster", dagster::detect),
+    ("dask", dask::detect),
     ("datadog", datadog::detect),
     ("db2cli", db2cli::detect),
     ("dbm", dbm::detect),
@@ -3042,6 +3051,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gpsd", gpsd::detect),
     ("gradlemod", gradlemod::detect),
     ("grafana", grafana::detect),
+    ("grafanaop", grafanaop::detect),
     ("graphml", graphml::detect),
     ("graphql", graphql::detect),
     ("greatexp", greatexp::detect),
@@ -3180,10 +3190,13 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kql", kql::detect),
     ("kratos", kratos::detect),
     ("krb5conf", krb5conf::detect),
+    ("kserve", kserve::detect),
     ("ktlint", ktlint::detect),
     ("kubeconfig", kubeconfig::detect),
     ("kubeflow", kubeflow::detect),
+    ("kubeflowtraining", kubeflowtraining::detect),
     ("kubemq", kubemq::detect),
+    ("kubevela", kubevela::detect),
     ("kustomize", kustomize::detect),
     ("lab", lab::detect),
     ("ldapconf", ldapconf::detect),
@@ -3356,6 +3369,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openbgpd", openbgpd::detect),
     ("opendkim", opendkim::detect),
     ("opendmarc", opendmarc::detect),
+    ("openfaas", openfaas::detect),
     ("openfga", openfga::detect),
     ("openhab", openhab::detect),
     ("openntpd", openntpd::detect),
@@ -3531,6 +3545,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sdkconfig", sdkconfig::detect),
     ("seccomp", seccomp::detect),
     ("secretsbaseline", secretsbaseline::detect),
+    ("seldon", seldon::detect),
     ("semgrep", semgrep::detect),
     ("sendmail", sendmail::detect),
     ("sentinel", sentinel::detect),
@@ -3700,6 +3715,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vespaconf", vespaconf::detect),
     ("vf", vf::detect),
     ("vhdr", vhdr::detect),
+    ("victoria", victoria::detect),
     ("vimrc", vimrc::detect),
     ("vimsyntax", vimsyntax::detect),
     ("virtxml", virtxml::detect),
