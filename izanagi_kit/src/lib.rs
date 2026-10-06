@@ -468,6 +468,7 @@ pub mod ardour;
 pub mod arduinoconf;
 pub mod arff;
 pub mod argocd;
+pub mod argoevents;
 pub mod argowf;
 pub mod argusconf;
 pub mod arith;
@@ -1270,6 +1271,7 @@ pub mod jef;
 pub mod jekyll;
 pub mod jellyfin;
 pub mod jenkinsfile;
+pub mod jenkinsx;
 pub mod jest;
 pub mod jffs2;
 pub mod jfm;
@@ -1679,6 +1681,7 @@ pub mod openapi;
 pub mod openbgpd;
 pub mod opendkim;
 pub mod opendmarc;
+pub mod openebs;
 pub mod openfga;
 pub mod openhab;
 pub mod openntpd;
@@ -1716,6 +1719,7 @@ pub mod p7b;
 pub mod pack;
 pub mod packer;
 pub mod packfile;
+pub mod packit;
 pub mod pacman;
 pub mod paf;
 pub mod pagerank;
@@ -1824,6 +1828,7 @@ pub mod pool;
 pub mod pop3;
 pub mod portage;
 pub mod porter;
+pub mod portworx;
 pub mod poscar;
 pub mod postalconf;
 pub mod postfix;
@@ -2048,6 +2053,7 @@ pub mod sdkconfig;
 pub mod seamcarve;
 pub mod seccomp;
 pub mod secretsbaseline;
+pub mod secretsstore;
 pub mod securitytxt;
 pub mod segbeats;
 pub mod seglazy;
@@ -2155,6 +2161,7 @@ pub mod spef;
 pub mod spf;
 pub mod spicenet;
 pub mod spigot;
+pub mod spire;
 pub mod splay;
 pub mod spotbugs;
 pub mod spring;
@@ -2257,6 +2264,7 @@ pub mod textile;
 pub mod textlayout;
 pub mod textlint;
 pub mod textmategram;
+pub mod tflint;
 pub mod tflite;
 pub mod tfm;
 pub mod tfrecord;
@@ -2756,6 +2764,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ardour", ardour::detect),
     ("arduinoconf", arduinoconf::detect),
     ("argocd", argocd::detect),
+    ("argoevents", argoevents::detect),
     ("argowf", argowf::detect),
     ("argusconf", argusconf::detect),
     ("arkimeconf", arkimeconf::detect),
@@ -3130,6 +3139,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("jekyll", jekyll::detect),
     ("jellyfin", jellyfin::detect),
     ("jenkinsfile", jenkinsfile::detect),
+    ("jenkinsx", jenkinsx::detect),
     ("jest", jest::detect),
     ("jfm", jfm::detect),
     ("jfr", jfr::detect),
@@ -3356,6 +3366,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openbgpd", openbgpd::detect),
     ("opendkim", opendkim::detect),
     ("opendmarc", opendmarc::detect),
+    ("openebs", openebs::detect),
     ("openfga", openfga::detect),
     ("openhab", openhab::detect),
     ("openntpd", openntpd::detect),
@@ -3375,6 +3386,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("otelcol", otelcol::detect),
     ("ovf", ovf::detect),
     ("packer", packer::detect),
+    ("packit", packit::detect),
     ("pacman", pacman::detect),
     ("paf", paf::detect),
     ("pain", pain::detect),
@@ -3415,6 +3427,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("polybar", polybar::detect),
     ("pom", pom::detect),
     ("portage", portage::detect),
+    ("portworx", portworx::detect),
     ("postalconf", postalconf::detect),
     ("postfix", postfix::detect),
     ("postgresql", postgresql::detect),
@@ -3531,6 +3544,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sdkconfig", sdkconfig::detect),
     ("seccomp", seccomp::detect),
     ("secretsbaseline", secretsbaseline::detect),
+    ("secretsstore", secretsstore::detect),
     ("semgrep", semgrep::detect),
     ("sendmail", sendmail::detect),
     ("sentinel", sentinel::detect),
@@ -3577,6 +3591,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("spef", spef::detect),
     ("spicenet", spicenet::detect),
     ("spigot", spigot::detect),
+    ("spire", spire::detect),
     ("spotbugs", spotbugs::detect),
     ("spv", spv::detect),
     ("sqitchconf", sqitchconf::detect),
@@ -3633,6 +3648,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("textile", textile::detect),
     ("textlint", textlint::detect),
     ("textmategram", textmategram::detect),
+    ("tflint", tflint::detect),
     ("tfm", tfm::detect),
     ("tfrecord", tfrecord::detect),
     ("tgf", tgf::detect),
