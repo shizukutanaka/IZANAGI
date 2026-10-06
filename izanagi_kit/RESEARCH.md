@@ -6121,3 +6121,30 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第359次 — DBオペレータ/負荷分散・マルチテナント系 CRD 8 モジュール
+
+DBオペレータとLB/マルチテナント系 CRD 群第4弾。
+
+- awselb: AWS Load Balancer Controller(`elbv2.k8s.aws`/`vpcresources.k8s.aws` + TargetGroupBinding/IngressClassParams/SecurityGroupPolicy)
+- k8gb: k8gb(`k8gb.absa.oss` + Gslb)
+- kamaji: Kamaji(`kamaji.clastix.io` + TenantControlPlane/DataStore)
+- capsule: Capsule(`capsule.clastix.io` + Tenant/CapsuleConfiguration/GlobalTenantResource/ResourcePool)
+- scyllaop: ScyllaDB Operator(`scylla.scylladb.com` + ScyllaCluster/ScyllaDBDatacenter/ScyllaDBMonitoring/NodeConfig 等)
+- percona: Percona オペレータ群(`*.percona.com` + PerconaXtraDBCluster/PerconaServerMongoDB/PerconaServerMySQL/PerconaPGCluster +*Backup/*Restore)
+- tidb: TiDB Operator(`pingcap.com` + TidbCluster/TidbMonitor/TidbInitializer/TidbClusterAutoScaler/DMCluster/Backup/Restore 等)
+- vitess: Vitess Operator(`planetscale.com` + VitessCluster/VitessShard/VitessCell/VitessKeyspace/VitessBackup* 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- kubernetes-sigs/aws-load-balancer-controller — elbv2.k8s.aws CRDs
+- k8gb-io/k8gb — k8gb.absa.oss Gslb CRD
+- clastix/kamaji — kamaji.clastix.io CRDs
+- projectcapsule/capsule — capsule.clastix.io CRDs
+- scylladb/scylla-operator — scylla.scylladb.com CRDs
+- percona — *.percona.com operator CRDs
+- pingcap/tidb-operator — pingcap.com CRDs
+- planetscale/vitess-operator — planetscale.com CRDs
