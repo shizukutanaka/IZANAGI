@@ -689,6 +689,7 @@ pub mod clique;
 pub mod closestpair;
 pub mod cloudcustodian;
 pub mod cloudinit;
+pub mod clusterapi;
 pub mod clusterconf;
 pub mod cmake;
 pub mod cmdbat;
@@ -777,6 +778,7 @@ pub mod dafny;
 pub mod dagsp;
 pub mod dagster;
 pub mod damage;
+pub mod dapr;
 pub mod dask;
 pub mod datadog;
 pub mod db2cli;
@@ -903,6 +905,7 @@ pub mod easyrsa;
 pub mod ebml;
 pub mod ec;
 pub mod ecat;
+pub mod eck;
 pub mod ecsv;
 pub mod ed25519;
 pub mod edf;
@@ -1010,6 +1013,7 @@ pub mod flatpak;
 pub mod fldigiconf;
 pub mod fleet;
 pub mod flif;
+pub mod flink;
 pub mod flow;
 pub mod flowfield;
 pub mod fluentbit;
@@ -1746,6 +1750,7 @@ pub mod ofx;
 pub mod ogg;
 pub mod ogmo;
 pub mod ole;
+pub mod olm;
 pub mod omm;
 pub mod onion;
 pub mod onnx;
@@ -2194,6 +2199,7 @@ pub mod shamir;
 pub mod shard;
 pub mod shellcheckrc;
 pub mod shibconf;
+pub mod shipwright;
 pub mod shop;
 pub mod shorewall;
 pub mod shp;
@@ -2258,6 +2264,7 @@ pub mod soundex;
 pub mod sourcemap;
 pub mod sp3;
 pub mod spamassassin;
+pub mod spark;
 pub mod sparql;
 pub mod sparse;
 pub mod sparse_set;
@@ -2311,6 +2318,7 @@ pub mod stockholm;
 pub mod storageconf;
 pub mod storybook;
 pub mod stp;
+pub mod strimzi;
 pub mod strings;
 pub mod strongswanconf;
 pub mod studio3;
@@ -3029,6 +3037,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("clickhouse", clickhouse::detect),
     ("cloudcustodian", cloudcustodian::detect),
     ("cloudinit", cloudinit::detect),
+    ("clusterapi", clusterapi::detect),
     ("clusterconf", clusterconf::detect),
     ("cmake", cmake::detect),
     ("cmdbat", cmdbat::detect),
@@ -3081,6 +3090,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dae", dae::detect),
     ("dafny", dafny::detect),
     ("dagster", dagster::detect),
+    ("dapr", dapr::detect),
     ("dask", dask::detect),
     ("datadog", datadog::detect),
     ("db2cli", db2cli::detect),
@@ -3145,6 +3155,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("earthly", earthly::detect),
     ("easyeffects", easyeffects::detect),
     ("easyrsa", easyrsa::detect),
+    ("eck", eck::detect),
     ("ecsv", ecsv::detect),
     ("editorconfig", editorconfig::detect),
     ("edn", edn::detect),
@@ -3188,6 +3199,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fldigiconf", fldigiconf::detect),
     ("fleet", fleet::detect),
     ("flif", flif::detect),
+    ("flink", flink::detect),
     ("fluentbit", fluentbit::detect),
     ("fluentd", fluentd::detect),
     ("flyio", flyio::detect),
@@ -3587,6 +3599,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("oem", oem::detect),
     ("offlineimap", offlineimap::detect),
     ("ogmo", ogmo::detect),
+    ("olm", olm::detect),
     ("omm", omm::detect),
     ("opam", opam::detect),
     ("opb", opb::detect),
@@ -3818,6 +3831,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("shard", shard::detect),
     ("shellcheckrc", shellcheckrc::detect),
     ("shibconf", shibconf::detect),
+    ("shipwright", shipwright::detect),
     ("shorewall", shorewall::detect),
     ("sidekiq", sidekiq::detect),
     ("sievescript", sievescript::detect),
@@ -3848,6 +3862,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sops", sops::detect),
     ("sp3", sp3::detect),
     ("spamassassin", spamassassin::detect),
+    ("spark", spark::detect),
     ("sparql", sparql::detect),
     ("speedscope", speedscope::detect),
     ("spef", spef::detect),
@@ -3874,6 +3889,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("stm", stm::detect),
     ("storageconf", storageconf::detect),
     ("storybook", storybook::detect),
+    ("strimzi", strimzi::detect),
     ("strongswanconf", strongswanconf::detect),
     ("stylelint", stylelint::detect),
     ("sublime", sublime::detect),
