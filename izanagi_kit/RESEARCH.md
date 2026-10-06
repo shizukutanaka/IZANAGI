@@ -6121,3 +6121,14 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第367次
+
+言語パッケージ/フロントエンドツールチェーン系の設定形式8モジュール
+(`dune`, `gatsby`, `gemfile`, `mix`, `postcss`, `sbt`, `svelte`, `unocss`)
+を追加。既存の `leiningen`/`rebarconfig`/`appjson`/`procfile`/`capacitor`
+等を避けて選定。dune はS式スタンザ名走査 (`(lang dune`/`(libraries`/
+`(modules`/`(executable` ≥3)。mix.exs は `use Mix.Project`/`defp deps`/
+`{:` タプル。sbt は `%%`/`%%%` 座標+`:=`設定。unocss/svelte/gatsby は
+フレームワーク固有プリセット/プラグイン名。DETECTORS 1103件、
+kit モジュール数2185。
