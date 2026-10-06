@@ -6121,3 +6121,31 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第352次 — Kubernetesネットワーク/証明書/シークレット系 CRD + atlantis 8 モジュール
+
+census 未収録ドメイン第5弾。K8s ネットワーク・証明書・シークレット管理の
+主要 CRD 群7形式と Terraform PR 自動化ツール atlantis を追加。
+
+- certmanager: cert-manager(`cert-manager.io`/`acme.cert-manager.io` + Issuer/ClusterIssuer/Certificate/CertificateRequest/Order/Challenge)
+- externalsecrets: External Secrets Operator(`external-secrets.io`/`generators.external-secrets.io` + ExternalSecret/SecretStore/ClusterSecretStore/PushSecret/ジェネレータ kind 群)
+- sealedsecrets: Bitnami Sealed Secrets(`sealedsecrets.bitnami.com` + SealedSecret)
+- metallb: MetalLB(`metallb.io` + IPAddressPool/L2Advertisement/BGPAdvertisement/BGPPeer/BFDProfile/Community)
+- cilium: Cilium(`cilium.io` + CiliumNetworkPolicy/CiliumClusterwideNetworkPolicy/CiliumBGP*/CiliumPodIPPool 等)
+- calico: Calico(`crd.projectcalico.org`/`projectcalico.org` + NetworkPolicy/GlobalNetworkPolicy/IPPool/FelixConfiguration 等)
+- apisix: Apache APISIX Ingress(`apisix.apache.org` + ApisixRoute/ApisixUpstream/ApisixTls/ApisixConsumer 等)
+- atlantis: `atlantis.yaml`(`version:` + projects/workflows/policies/repos + automerge/parallel_plan/repo_locks 等排他キー)
+
+`pub mod` / `DETECTORS` 登録済み(1103 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- cert-manager/cert-manager — Issuer/Certificate CRDs
+- external-secrets/external-secrets — ExternalSecret/SecretStore CRDs
+- bitnami-labs/sealed-secrets — SealedSecret CRD
+- metallb/metallb — IPAddressPool/BGPPeer CRDs
+- cilium/cilium — CiliumNetworkPolicy 等 CRDs
+- projectcalico/calico — Calico CRD リファレンス
+- apache/apisix-ingress-controller — Apisix* CRDs
+- runatlantis/atlantis — atlantis.yaml server-side repo config
