@@ -80,14 +80,34 @@ fn env_entries(t: &str) -> usize {
     }
     n
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `//`/`/*` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with("//") && !l.starts_with("/*") && l.contains(needle)
+    })
+}
 
 /// Returns `true` when `b` looks like a Jenkinsfile.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("pipeline {")
-        || (t.contains("node") && t.contains("stage"))
-        || t.contains("stages {") && t.contains("agent")
+    code_has(t, "pipeline {")
+        || ((code_has(t, "node {") || code_has(t, "node("))
+            && ["stage(", "stage '", "stage \"", "stage{"]
+                .iter()
+                .any(|m| code_has(t, m)))
+        || code_has(t, "stages {")
+            && [
+                "agent any",
+                "agent none",
+                "agent {",
+                "agent label",
+                "agent docker",
+                "agent kubernetes",
+            ]
+            .iter()
+            .any(|m| code_has(t, m))
 }
 
 impl Jenkinsfile {
@@ -160,6 +180,11 @@ impl Jenkinsfile {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"// pipeline {\n// node {\n// stage(\"x\")\n"));
+    }
 
     const SRC: &[u8] = b"// build
 pipeline {

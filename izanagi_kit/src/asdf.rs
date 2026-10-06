@@ -52,6 +52,12 @@ fn indent(l: &str) -> usize {
     l.len() - l.trim_start().len()
 }
 
+fn is_key(s: &str, key: &str) -> bool {
+    // `key :` (コロン前の空白)も YAML では合法。
+    s.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
+
 /// Reports whether `b` looks like an ASDF file.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -136,13 +142,13 @@ impl Asdf {
                 if indent(l) == 0 && tr.contains(':') {
                     a.tree_keys += 1;
                 }
-                if tr.starts_with("datatype:") {
+                if is_key(tr, "datatype") {
                     a.datatypes += 1;
                 }
-                if tr.starts_with("shape:") {
+                if is_key(tr, "shape") {
                     a.shapes += 1;
                 }
-                if tr.starts_with("source:") {
+                if is_key(tr, "source") {
                     a.sources += 1;
                 }
                 if tr.contains('!') {
@@ -169,6 +175,14 @@ impl Asdf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_space_before_colon() {
+        // YAML tree では `key :` も合法。
+        let v = String::from_utf8_lossy(S).replace("datatype:", "datatype :");
+        let a = Asdf::parse(v.as_bytes()).unwrap();
+        assert_eq!(a.datatypes, 1);
+    }
 
     const S: &[u8] = b"#ASDF 1\n#ASDF_STANDARD 1\n%YAML 1\n--- !core/asdf\ndata:\n  datatype: int32\n  shape: [4]\n  source: 0\nwcs: {}\n...\nBLK\n";
 
