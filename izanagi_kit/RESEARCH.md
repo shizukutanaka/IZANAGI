@@ -6083,6 +6083,16 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
 
+## 第342次 — パーサーレジストリ `PARSERS` + 全パーサー横断panic非発火テスト
+
+第341次の `DETECTORS` と同型で、フリー関数 `pub fn parse(x: &[u8])` を持つ
+全 1105 モジュールを `izanagi_kit::PARSERS` `(モジュール名, ParserFn)` に登録。
+戻り型の差(`Option<T>`/`Vec<T>` 等)は `let _ =` ラッパーで `fn(&[u8])` に正規化。
+新規テスト `tests/parse_never_panics.rs` は detect 用と同じコーパスを全パーサーに
+入力し panic 非発火を検証し、`src/*.rs` 走査で登録漏れをビルド失敗にする。
+`&str` 入力や複数引数の parse(例: `canopen`, `arj`)は対象外。
+該当モジュール追加時は `PARSERS` にも登録すること。
+
 ## 第343次 — census 集約 API `detect_all` + 契約テスト
 
 監査 P1「census 集約 API: `identify_all(input) -> &[&str]`」への最小実装。
@@ -6179,6 +6189,160 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 共通ヘルパー `code_has`(コメント行を除外する行単位 contains)を
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
+
+## 第348次 — Git フック/JS ツールチェーン/リリース自動化/サービスカタログ系設定形式 8 モジュール
+
+census の未収録ドメインとして、JS/Go ツールチェーンのデファクト標準設定
+ファイルを 8 形式追加。いずれも「その形式に固有の構造キーの組合せ」を
+要求し、汎用 YAML/TOML/JSON との誤検出を避ける設計。
+
+- precommit: pre-commit `.pre-commit-config.yaml`(`repos:` 直下の `- repo:` アイテム必須)
+- lefthook: `lefthook.yml`(git フック名キー + commands/scripts/run/parallel/piped)
+- lintstaged: `lint-staged` セクション(JSON/YAML、グロブキー + 引用符コマンド)
+- commitlint: `commitlint.config.js`/`.commitlintrc*`(`@commitlint` 参照 or ルールキー + extends/rules)
+- changesets: changesets `.md` frontmatter(`---` + `"pkg": patch|minor|major`)と `config.json`
+- goreleaser: `.goreleaser.yaml`(builds + goos/goarch/targets 等 Go ターゲットキー)
+- nfpm: `nfpm.yaml`(`contents:` 内の `- src:`/`- dst:` ペア or `overrides:` + deb/rpm/apk/archlinux)
+- backstage: Backstage カタログエンティティ(apiVersion `backstage.io/` + 既知 kind 9種)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18198)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第349次 — GitOps/ポリシー/ツール管理/リリース自動化系設定形式 8 モジュール
+
+census 未収録ドメイン第2弾。第348次と同型の
+「`apiVersion`/`kind` 値の組合せ必須」設計で k8s エコシステム系と、
+ツールチェーン・リリース自動化のデファクト標準設定ファイルを追加。
+
+- fluxcd: FluxCD マニフェスト(apiVersion `*.fluxcd.io/` + Kustomization/HelmRelease/GitRepository/Alert/Receiver/ImageUpdateAutomation 等 kind)
+- tekton: Tekton CI(`tekton.dev/`・`triggers.tekton.dev/` + Task/Pipeline/PipelineRun/TaskRun/EventListener 等)
+- knative: Knative(`*.knative.dev/` + Service/Broker/Trigger/Revision/Route/Subscription 等)
+- kyverno: Kyverno ポリシー(`kyverno.io/`/`wgpolicyk8s.io/` + ClusterPolicy/Policy/PolicyReport 等)
+- crossplane: Crossplane(`*.crossplane.io/` + CompositeResourceDefinition/Composition/Provider/Function 等)
+- mise: `mise.toml`(`[tools]` セクション + 既知ツール名 or `[plugins]`/`[alias]`/`[tasks]` 等 mise セクション)
+- werf: `werf.yaml`(`project:` + `configVersion: 1` の必須ペア)
+- releaserc: semantic-release `.releaserc`(branches + plugins + `@semantic-release/` 参照 or tagFormat/preset 等固有キー)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18196)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第351次 — Carvel/Bitbucket CI/Kapitan/Garden/moonrepo系設定形式 8 モジュール
+
+census 未収録ドメイン第4弾。CI・モノレポ・Kubernetes補助ツールの
+デファクト標準設定形式を追加。
+
+- carvel: Carvel suite(`*.k14s.io` / `packaging.carvel.dev` + Config/App/PackageInstall/PackageRepository/Package/ImagesConfig 等)
+- ytt: Carvel ytt テンプレート(`#@` ディレクティブ2個以上 + data/values・load・@ytt: 等の強マーカー)
+- magefile: Mage(`//go:build mage` / `// +build mage` or magefile/mage/mg import + `package main`)
+- pnpmworkspace: `pnpm-workspace.yaml`(`packages:` グロブ or catalog/catalogs/overrides 等 pnpm 固有キー)
+- bitbucketpipes: `bitbucket-pipelines.yml`(`pipelines:` + `- step`/`script:`/`pipe:`)
+- kapitan: Kapitan クラス/ターゲット(`classes:` + `parameters:`、or `parameters` 配下の `kapitan:` + `compile:`)
+- garden: Garden.io(`apiVersion: garden.io/v0|v1` + Project/Module/Build/Deploy/Test/Run/Workflow/Provider 等)
+- moonrepo: moonrepo `moon.yml`/`.moon/*.yml`(`tasks:` + language/fileGroups/vcs/runner/toolchain 等 moon 固有キー)
+
+`pub mod` / `DETECTORS` 登録済み(1095 エントリ)。API ピン更新
+(18186→18207)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第352次 — Kubernetesネットワーク/証明書/シークレット系 CRD + atlantis 8 モジュール
+
+census 未収録ドメイン第5弾。K8s ネットワーク・証明書・シークレット管理の
+主要 CRD 群7形式と Terraform PR 自動化ツール atlantis を追加。
+
+- certmanager: cert-manager(`cert-manager.io`/`acme.cert-manager.io` + Issuer/ClusterIssuer/Certificate/CertificateRequest/Order/Challenge)
+- externalsecrets: External Secrets Operator(`external-secrets.io`/`generators.external-secrets.io` + ExternalSecret/SecretStore/ClusterSecretStore/PushSecret/ジェネレータ kind 群)
+- sealedsecrets: Bitnami Sealed Secrets(`sealedsecrets.bitnami.com` + SealedSecret)
+- metallb: MetalLB(`metallb.io` + IPAddressPool/L2Advertisement/BGPAdvertisement/BGPPeer/BFDProfile/Community)
+- cilium: Cilium(`cilium.io` + CiliumNetworkPolicy/CiliumClusterwideNetworkPolicy/CiliumBGP*/CiliumPodIPPool 等)
+- calico: Calico(`crd.projectcalico.org`/`projectcalico.org` + NetworkPolicy/GlobalNetworkPolicy/IPPool/FelixConfiguration 等)
+- apisix: Apache APISIX Ingress(`apisix.apache.org` + ApisixRoute/ApisixUpstream/ApisixTls/ApisixConsumer 等)
+- atlantis: `atlantis.yaml`(`version:` + projects/workflows/policies/repos + automerge/parallel_plan/repo_locks 等排他キー)
+
+`pub mod` / `DETECTORS` 登録済み(1103 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第353次 — Gateway API/オートスケーラ/ストレージ/開発環境系 8 モジュール
+
+census 未収録ドメイン第6弾。K8s 標準 Gateway API、オートスケーリング、
+分散ストレージ、開発環境ツール、Terragrunt を追加。
+
+- gatewayapi: Kubernetes Gateway API(`gateway.networking.k8s.io` + GatewayClass/Gateway/HTTPRoute/GRPCRoute/ReferenceGrant/BackendTLSPolicy 等)
+- keda: KEDA(`keda.sh`/`eventing.keda.sh` + ScaledObject/ScaledJob/TriggerAuthentication/EventSource)
+- rook: Rook Ceph(`ceph.rook.io` + CephCluster/CephBlockPool/CephFilesystem/CephObjectStore 等)
+- longhorn: Longhorn(`longhorn.io` + Volume/Engine/Replica/BackupTarget/RecurringJob 等)
+- ambassador: Emissary-ingress(`getambassador.io`/`x.getambassador.io` + Mapping/Listener/Host/TLSContext 等)
+- devspace: `devspace.yaml`(`version:` + pipelines/deployments/dev/images/vars/profiles)
+- okteto: `okteto.yaml`(deploy/destroy/test/build/dev + sync/forward/remote/autocreate 等 okteto 固有サブキー)
+- terragrunt: `terragrunt.hcl`(include/dependency/remote_state/generate + find_in_parent_folders/get_parent_terragrunt_dir 等 TG 固有トークン、コメント行除外済み)
+
+`pub mod` / `DETECTORS` 登録済み(1111 エントリ)。API ピン更新
+(18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第354次 — Argo Events/SPIRE/CSI秘密管理/ストレージ/パッケージ系 8 モジュール
+
+census 未収録ドメイン第7弾。K8s ストレージ・セキュリティ CRD 群と
+パッケージ連携・Terraform lint 設定を追加。
+
+- argoevents: Argo Events(`argoproj.io` + EventSource/Sensor/EventBus。argocd/argowf/argorollout と kind 集合で分離)
+- spire: SPIRE/SPIFFE(`spire.spiffe.io`/`spiffeid.spiffe.io` + ClusterSPIFFEID/ClusterFederatedTrustDomain/UpstreamAuthority* 等)
+- secretsstore: Secrets Store CSI Driver(`secrets-store.csi.x-k8s.io` + SecretProviderClass/SecretProviderClassPodStatus/SecretSync)
+- jenkinsx: Jenkins X(`jenkins.io`/`jenkins-x.io` + Environment/PipelineActivity/Release/SourceRepository/Scheduler 等)
+- portworx: Portworx(`portworx.io`/`core.libopenstorage.org`/`stork.*`/`autopilot.*` + StorageCluster/BackupLocation/MigrationSchedule 等)
+- openebs: OpenEBS(`cstor.openebs.io`/`local.openebs.io`/`openebs.io` + CStorPool/ZFSVolume/JivaVolume/BlockDevice 等)
+- packit: `.packit.yaml`(specfile_path/upstream_project_url 等 packit 排他キー×2 または排他キー+jobs)
+- tflint: `.tflint.hcl`(`plugin "x"`/`rule "x"` ブロック or call_module_type/disabled_by_default/plugin_dir 等排他キー、コメント除外)
+
+`pub mod` / `DETECTORS` 登録済み(1119 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第355次 — Prow/Bors/Karpenter/KubeVirt/KubeDB/Fleet/vCluster/Waypoint 8 モジュール
+
+CI補助ツール・K8sオペレータCRD・GitOps/仮想クラスタ系を追加。
+
+- karpenter: Karpenter(`karpenter.sh`/`karpenter.k8s.aws` + Provisioner/NodePool/AWSNodeTemplate/EC2NodeClass/NodeClaim)
+- kubedb: KubeDB(`kubedb.com` + Postgres/Elasticsearch/MongoDB/Redis/Kafka 等 DB kind 群)
+- kubevirt: KubeVirt(`kubevirt.io` + VirtualMachine/VirtualMachineInstance/Snapshot/Clone/Pool 等)
+- fleet: Rancher Fleet `fleet.yaml`(targets/clusterSelector/rolloutStrategy 等の強キー+弱キー合計≥2)
+- vcluster: vCluster `vcluster.yaml`(vcluster/controlPlane/syncer/telemetry 等の強キー+弱キー合計≥2)
+- prow: Prow `config.yaml`(presubmits/postsubmits/periodics/tide/plank 等の排他トップキー≥2)
+- bors: `bors.toml`(status/block_labels/required_approvals 等キー≥2)
+- waypoint: `waypoint.hcl`(`app "x" {}` ブロック+build/deploy/release/runner 内側証拠)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18204)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第356次 — Cluster API/OLM/データ系オペレータ CRD 8 モジュール
+
+K8s オペレータ CRD 群第2弾。全て apiVersion グループ+kind の2条件検出。
+
+- clusterapi: Cluster API(`*.cluster.x-k8s.io` + Cluster/MachineDeployment/MachineSet/KubeadmControlPlane/ClusterClass 等)
+- strimzi: Strimzi Kafka(`kafka.strimzi.io`/`core.strimzi.io` + Kafka/KafkaTopic/KafkaUser/KafkaConnect/KafkaMirrorMaker2/KafkaNodePool 等)
+- spark: Spark Operator(`sparkoperator.k8s.io` + SparkApplication/ScheduledSparkApplication)
+- flink: Flink Operator(`flink.apache.org` + FlinkDeployment/FlinkSessionJob/FlinkSessionCluster/FlinkStateSnapshot)
+- eck: Elastic Cloud on K8s(`*.k8s.elastic.co` + Elasticsearch/Kibana/ApmServer/EnterpriseSearch/Beat/Agent/Logstash 等)
+- olm: Operator Lifecycle Manager(`operators.coreos.com` + CatalogSource/Subscription/OperatorGroup/InstallPlan/ClusterServiceVersion)
+- shipwright: Shipwright(`shipwright.io` + Build/BuildRun/BuildStrategy/ClusterBuildStrategy)
+- dapr: Dapr(`dapr.io` + Component/Subscription/Configuration/Resiliency/HTTPEndpoint)
+
+`api_ok` のグループ一致を強化:`bootstrap.cluster.x-k8s.io` のような
+ドット区切りサブグループも合致するよう strip_suffix 判定を追加。
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第357次 — Multus/Prometheus Operator/DB・バッチ・ベアメタル CRD 8 モジュール
+
+ネットワーク・監視・DBオペレータ・バッチスケジューラ系 CRD を追加。
+
+- multus: Multus CNI(`k8s.cni.cncf.io` + NetworkAttachmentDefinition)
+- promoperator: Prometheus Operator(`monitoring.coreos.com` + ServiceMonitor/PodMonitor/Probe/PrometheusRule/AlertmanagerConfig/ScrapeConfig/PrometheusAgent/ThanosRuler)
+- volcano: Volcano(`*.volcano.sh` + Job/PodGroup/Queue/NumaTopo)
+- cnpg: CloudNativePG(`postgresql.cnpg.io` + Cluster/Backup/ScheduledBackup/Pooler/ImageCatalog 等)
+- pgo: Crunchy Postgres(`postgres-operator.crunchydata.com` + PostgresCluster/PGAdmin/PGUpgrade/PGBackRestBackup)
+- kuma: Kuma(`kuma.io` + Mesh/TrafficRoute/CircuitBreaker/FaultInjection/RateLimit/Retry/Timeout/MeshGateway/MeshHTTPRoute 等)
+- metal3: Metal³(`metal3.io` + BareMetalHost/BMCEventSubscription/HostFirmwareSettings/DataImage 等)
+- trivyop: Trivy Operator(`aquasecurity.github.io` + VulnerabilityReport/ConfigAuditReport/ExposedSecretReport/ClusterComplianceReport/SbomReport 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
 ## 第359次 — DBオペレータ/負荷分散・マルチテナント系 CRD 8 モジュール
 
@@ -6332,6 +6496,18 @@ aria2 は `bt-*`/`dht-*`/`rpc-*` キー、bazarr は `[sonarr]`/`[radarr]`+
 kopia は `masterKey`/`hashedPassword`/`keepHourly`/`cacheDirectory` 排他キー。
 JSON系は `jkey` で行頭 `"key":` のみ照合。DETECTORS 1095件、kit モジュール数2185。
 
+## 第369次
+
+FTP/LDAP/監視/DBデーモン系の設定形式8モジュール
+(`collectd`, `neo4jconf`, `proftpd`, `pureftpd`, `radiusd`, `slapd`,
+`snmpdconf`, `vsftpd`) を追加。vsftpd は `key=value` YES/NO ディレクティブ、
+proftpd は Apache式 `Directive`+`<Context>` ブロック、pureftpd は CamelCase
+ディレクティブ、snmpdconf は net-snmp (既存snmpはwireパケットパーサで別物)、
+collectd は `LoadPlugin`+`<Plugin>` ブロック、neo4jconf は `dbms.*`/`server.*`
+名前空間、slapd は `slapd.conf`+`olc*` 属性(ldapconfはクライアント側で別物)、
+radiusd は `key = value`+`client/listen {}` ブロック(radiusはRADIUSパケットで別物)。
+DETECTORS 1087件、kit モジュール数2185。
+
 ## 第378次
 
 FPGA/EDAツールチェーンの設定形式8モジュールを追加
@@ -6371,26 +6547,51 @@ luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
 
-## 第387次
 
-ゲームエミュレータ系の設定形式8モジュールを追加:
-scummvm(.ini:[scummvm]+gameid/engineid/path/language等>=1&>=1 or >=3)、
-mednafen(.cfg:`;`コメント+`key value`ドットキー、psx./video./sound./
-ss./nes./gba.等既知プレフィックス>=3)、
-citraconf(qt-config.ini:[Core]/[Renderer]/[Audio]等+use_cpu_jit/
-hw_shader/resolution_factor等)、
-dosboxconf(dosbox-*.conf:[sdl]/[cpu]/[mixer]/[sblaster]等+
-fullscreen/output/cycles/memsize/oplmode等)、
-melonds(melonDS.ini:フラットkey=value、ScreenSwap/ScreenVSync/
-3DRenderer/BIOS9Path/DSiNANDPath/EnableDLDI等>=3)、
-bsnes(bsnes settings.cfg:`Section/Key = value`階層キー、
-Video/Driver/Audio/Input/Paths/Emulator等>=3)、
-fceux(fceux.cfg:`SDL.*`ドットキー key=value>=3)、
-openmsx(settings.xml:<settings>+<setting id="renderer/scale_factor/
-vsync/scanline等">、root>=1&>=2 or >=4)。
-retroarch/pcsx2/yuzuは既存retroarch/pcsx2conf/yuzuconf、
-dolphin/mameはdolphinconf/mameconf、ppsspp/rpcs3はppssppconf/
-rpcs3conf、desmumeはdsvでカバー済みのため差替。
+## 第383次
+
+アマチュア無線/SDR系の設定形式8モジュールを追加:
+direwolfconf(direwolf.conf:ADEVICE/ACHANNELS/MYCALL/MODEM/AGWPORT/
+PBEACON/IGSERVER等大文字ディレクティブ行、アンカー>=1&>=3 or >=5)、
+gqrxconf(gqrx default.conf INI:[input]/[receiver]/[demod]/[audio]等
+セクション+demod/filter_width/freq/gain/antenna等キー)、
+sdrppconf(SDR++ config.json:"frequency"/"modules"/"moduleInstances"/
+"menuElements"/"vfo"/"streams"等JSONキー>=2)、
+fldigiconf(fldigi_def.xml:<MODEM>/<AFQUENCY>/<PWR>/<CALL>/
+<FLDIGI_DEFS>等大文字<TAG>value</TAG>行、hint>=1&>=4 or >=8)、
+wsjtxconf(WSJT-X.ini Qt INI:[General]/[Call]/[Decode]等セクション+
+MyCall/MyGrid/FDMode/CATSerialPort等キー)、
+axports(/etc/ax25/axports:port callsign speed paclen window説明の
+空白5カラム、コールサインN0CALL-9形式>=2行)、
+aprxconf(aprx.conf:mycall/myloc/login/server/tx-ok等ディレクティブ+
+<aprsis>/<interface>/<beacon>/<logging>等ブロック)、
+chirpcsv(CHIRP CSV:先頭行Location,Name,Frequency,Duplex,Offset,
+Tone,rToneFreq,cToneFreq,DtcsCode,DtcsPolarity,Mode,TStep,Skip,
+Comment等既知カラム>=5)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第384次
+
+セキュリティ監視/IDS系の設定形式8モジュールを追加:
+zeekconf(local.zeek:@load/@load-sigs/@ifdef/redef/export/global等
+Zeekスクリプト宣言、@load>=1&宣言>=2)、
+fail2banconf(jail.conf/jail.local INI:[DEFAULT]セクション+
+enabled/bantime/findtime/maxretry/logpath/filter/action/ignoreip
+等既知キー、DEFAULT>=1&>=2 or キー>=3 or セクション>=2&キー>=2)、
+crowdsec(crowdsec config.yaml:crowdsec_service/cscli/api/
+db_config/acquisition/profiles/plugin_config/prometheus等
+YAMLキー>=2)、
+tripwireconf(twpol.txt:`パス -> $(MASK) (opt);`アロールール+
+@@section/@@ifhostディレクティブ+`NAME = $(X);`変数定義、
+アロー>=1&文>=3)、
+samhainconf(samhainrc:[Attributes]/[Log]/[Suid]/[EventSeverity]/
+[PortCheck]等セクション+file/dir/severity系キー)、
+denyhosts(denyhosts.conf:SECURE_LOG/HOSTS_DENY/PURGE_DENY/
+DENY_THRESHOLD_*/WORK_DIR/DAEMON_LOG/SYNC_*等既知大文字キー>=3)、
+modsecurity(modsecurity.conf:SecRule/SecAction/SecRuleEngine/
+SecRequestBodyAccess/SecAuditLog等Sec*ディレクティブ、
+ルール>=1&>=2 or >=4)、
+naxsiconf(naxsiルール:MainRule/BasicRule/CheckRule/LearningMode/
+SecRulesEnabled/DeniedUrl/IgnoreIP等ヘッドトークン>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
 ## 第385次
 
@@ -6417,4 +6618,51 @@ left/right/leftsubnet/rightsubnet/keyexchange/ike/esp/authby/auto
 tuicconf(TUIC config.json:"server"/"uuid"/"password"/
 "congestion_control"/"alpn"/"udp_relay_mode"/"reduce_rtt"/
 "send_window"等、hint>=1&>=2 or >=5)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第386次
+
+GIS/地理空間系の設定形式8モジュールを追加:
+wktproj(.prj WKT:PROJCS/GEOGCS/DATUM/SPHEROID/PRIMEM/UNIT/
+PROJECTION/PARAMETER/AXIS/TOWGS84等キーワード`KEYWORD[`、
+アンカー+>=3 or >=5)、
+projjson(PROJJSON:"type"が"GeographicCRS"/"ProjectedCRS"/
+"VerticalCRS"/"BoundCRS"/"GeodeticReferenceFrame"等の既知型)、
+cartocss(.mss CartoCSS:#layer/Mapセレクタ+line-color/polygon-fill/
+marker-file/text-name/polygon-gamma/raster-opacity等
+地図プロパティ>=2)、
+overpass(Overpass QL:[out:json]/[timeout:]設定ブロック+
+node/way/relation/area/nwr/out文、設定>=1&>=2 or >=3)、
+mmlstyle(TileMill .mml JSON:"Stylesheet"/"Layer"/"interactivity"/
+"srs"/"Datasource"/"bounds"/"format"等、hint>=1&>=2 or >=4)、
+locxml(TopoGraphix LOC XML:<loc version>+waypoint/name id="GC"/
+coord lat lon/type/link要素)、
+vrtgdal(GDAL .vrt XML:<VRTDataset rasterXSize>+SRS/GeoTransform/
+VRTRasterBand/SimpleSource/SourceFilename/SrcRect/DstRect/
+LUT/NoDataValue等VRT要素)、
+tilestacheconf(TileStache tilestache.cfg JSON:トップレベルcache/
+layers/logging/index/preview/publicUrl+層内provider/projection/
+metatile/stale lock timeout等、hint>=1&>=3 or >=5)。
+mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
+カバー済みのため差替。いずれも行アンカー判定、コメント行除外、
+テスト4本ずつ。
+## 第387次
+
+ゲームエミュレータ系の設定形式8モジュールを追加:
+scummvm(.ini:[scummvm]+gameid/engineid/path/language等>=1&>=1 or >=3)、
+mednafen(.cfg:`;`コメント+`key value`ドットキー、psx./video./sound./
+ss./nes./gba.等既知プレフィックス>=3)、
+citraconf(qt-config.ini:[Core]/[Renderer]/[Audio]等+use_cpu_jit/
+hw_shader/resolution_factor等)、
+dosboxconf(dosbox-*.conf:[sdl]/[cpu]/[mixer]/[sblaster]等+
+fullscreen/output/cycles/memsize/oplmode等)、
+melonds(melonDS.ini:フラットkey=value、ScreenSwap/ScreenVSync/
+3DRenderer/BIOS9Path/DSiNANDPath/EnableDLDI等>=3)、
+bsnes(bsnes settings.cfg:`Section/Key = value`階層キー、
+Video/Driver/Audio/Input/Paths/Emulator等>=3)、
+fceux(fceux.cfg:`SDL.*`ドットキー key=value>=3)、
+openmsx(settings.xml:<settings>+<setting id="renderer/scale_factor/
+vsync/scanline等">、root>=1&>=2 or >=4)。
+retroarch/pcsx2/yuzuは既存retroarch/pcsx2conf/yuzuconf、
+dolphin/mameはdolphinconf/mameconf、ppsspp/rpcs3はppssppconf/
+rpcs3conf、desmumeはdsvでカバー済みのため差替。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
