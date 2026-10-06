@@ -6082,3 +6082,22 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
   に登録済みであることを検証(未登録の追加をビルド失敗にする)
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
+
+## 第345次
+
+「先頭行必須」形式の `detect()`/`parse()` が UTF-8 BOM (U+FEFF) 付き入力を
+全て偽陰性にしていた欠陥の修正。Rust の `trim` 系は U+FEFF を空白と
+見なさないため、`from_utf8` 直後に `strip_prefix('\u{feff}')` で剥がす
+正規化を 6 モジュールに適用:
+
+- `aln` — `CLUSTAL`/`MUSCLE` バナー(1行目)
+- `appcache` — `CACHE MANIFEST`(先頭の非空行)
+- `bai2` — `01,` ヘッダレコード(先頭の非空行)
+- `maf` — `##maf` バナー(1行目)と parse 側の version 抽出
+- `qasm` — `OPENQASM` ヘッダ(`trim_start` の前に剥がす)
+- `tscn` — `[gd_scene`/`[gd_resource` ヘッダ(同上)
+
+各ファイルに `detects_utf8_bom` テスト追加。`regfile` は既に
+`trim_start_matches(['\u{feff}', ...])` で対応済み。BOM 自体が
+実行不能な shebang 必須系(`runit`)やバイナリマジック先頭比較は
+規格上正しい拒否のため対象外と確認済み。

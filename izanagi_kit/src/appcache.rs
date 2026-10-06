@@ -33,7 +33,7 @@ pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
-    for line in text.lines() {
+    for line in text.strip_prefix('\u{feff}').unwrap_or(text).lines() {
         let t = line.trim();
         if t.is_empty() {
             continue;
@@ -51,6 +51,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let mut c = Counts {
         sections: 0,
         entries: 0,
@@ -115,6 +116,14 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_utf8_bom() {
+        let mut v = b"\xef\xbb\xbf".to_vec();
+        v.extend_from_slice(SAMPLE);
+        assert!(detect(&v));
+        assert!(parse(&v).is_some());
+    }
 
     const SAMPLE: &[u8] = b"CACHE MANIFEST\n# 2024-01 rev\nCACHE:\n/index.html\n/css/app.css\n/js/app.js\nNETWORK:\napi/status\n*\nFALLBACK:\n/api /offline.json\n/ /offline.html\n";
 
