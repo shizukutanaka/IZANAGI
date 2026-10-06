@@ -505,6 +505,7 @@ pub mod ay;
 pub mod azurepipe;
 pub mod azw;
 pub mod babelrc;
+pub mod backstage;
 pub mod bacnet;
 pub mod bai2;
 pub mod bam;
@@ -639,6 +640,7 @@ pub mod cfssl;
 pub mod cgitrc;
 pub mod chacha;
 pub mod change;
+pub mod changesets;
 pub mod chart;
 pub mod chash;
 pub mod chasquidconf;
@@ -691,6 +693,7 @@ pub mod colima;
 pub mod coloring;
 pub mod comb;
 pub mod combat;
+pub mod commitlint;
 pub mod compose;
 pub mod composerlock;
 pub mod conanfile;
@@ -1074,6 +1077,7 @@ pub mod goertzel;
 pub mod gogsconf;
 pub mod golangci;
 pub mod gomod;
+pub mod goreleaser;
 pub mod gosum;
 pub mod gp;
 pub mod gpkg;
@@ -1374,6 +1378,7 @@ pub mod le;
 pub mod lean;
 pub mod leda;
 pub mod lef;
+pub mod lefthook;
 pub mod leftist;
 pub mod lego;
 pub mod leiningen;
@@ -1391,6 +1396,7 @@ pub mod limine;
 pub mod linkcut;
 pub mod linkerd;
 pub mod linrec;
+pub mod lintstaged;
 pub mod liquibase;
 pub mod lis;
 pub mod lit;
@@ -1608,6 +1614,7 @@ pub mod newrelic;
 pub mod newsboat;
 pub mod newsyslog;
 pub mod nexus;
+pub mod nfpm;
 pub mod nfsexports;
 pub mod nftconf;
 pub mod nginx;
@@ -1836,6 +1843,7 @@ pub mod pprof;
 pub mod ppssppconf;
 pub mod pptpd;
 pub mod pptx;
+pub mod precommit;
 pub mod prefect;
 pub mod prefetch;
 pub mod premakeconf;
@@ -2777,6 +2785,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("awscredentials", awscredentials::detect),
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
+    ("backstage", backstage::detect),
     ("bai2", bai2::detect),
     ("bam", bam::detect),
     ("banditconf", banditconf::detect),
@@ -2832,6 +2841,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cfn", cfn::detect),
     ("cfssl", cfssl::detect),
     ("cgitrc", cgitrc::detect),
+    ("changesets", changesets::detect),
     ("chart", chart::detect),
     ("chasquidconf", chasquidconf::detect),
     ("checkov", checkov::detect),
@@ -2860,6 +2870,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("codecov", codecov::detect),
     ("codespell", codespell::detect),
     ("colima", colima::detect),
+    ("commitlint", commitlint::detect),
     ("compose", compose::detect),
     ("composerlock", composerlock::detect),
     ("conanfile", conanfile::detect),
@@ -3037,6 +3048,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gogsconf", gogsconf::detect),
     ("golangci", golangci::detect),
     ("gomod", gomod::detect),
+    ("goreleaser", goreleaser::detect),
     ("gosum", gosum::detect),
     ("gp", gp::detect),
     ("gpsd", gpsd::detect),
@@ -3192,6 +3204,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ldtk", ldtk::detect),
     ("lean", lean::detect),
     ("leda", leda::detect),
+    ("lefthook", lefthook::detect),
     ("lego", lego::detect),
     ("leiningen", leiningen::detect),
     ("lerna", lerna::detect),
@@ -3202,6 +3215,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("lima", lima::detect),
     ("limine", limine::detect),
     ("linkerd", linkerd::detect),
+    ("lintstaged", lintstaged::detect),
     ("liquibase", liquibase::detect),
     ("lmms", lmms::detect),
     ("lndconf", lndconf::detect),
@@ -3315,6 +3329,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("newsboat", newsboat::detect),
     ("newsyslog", newsyslog::detect),
     ("nexus", nexus::detect),
+    ("nfpm", nfpm::detect),
     ("nfsexports", nfsexports::detect),
     ("nftconf", nftconf::detect),
     ("nginx", nginx::detect),
@@ -3422,6 +3437,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pprof", pprof::detect),
     ("ppssppconf", ppssppconf::detect),
     ("pptpd", pptpd::detect),
+    ("precommit", precommit::detect),
     ("prefect", prefect::detect),
     ("premakeconf", premakeconf::detect),
     ("preseed", preseed::detect),

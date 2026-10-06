@@ -6082,3 +6082,32 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
   に登録済みであることを検証(未登録の追加をビルド失敗にする)
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
+
+## 第348次 — Git フック/JS ツールチェーン/リリース自動化/サービスカタログ系設定形式 8 モジュール
+
+census の未収録ドメインとして、JS/Go ツールチェーンのデファクト標準設定
+ファイルを 8 形式追加。いずれも「その形式に固有の構造キーの組合せ」を
+要求し、汎用 YAML/TOML/JSON との誤検出を避ける設計。
+
+- precommit: pre-commit `.pre-commit-config.yaml`(`repos:` 直下の `- repo:` アイテム必須)
+- lefthook: `lefthook.yml`(git フック名キー + commands/scripts/run/parallel/piped)
+- lintstaged: `lint-staged` セクション(JSON/YAML、グロブキー + 引用符コマンド)
+- commitlint: `commitlint.config.js`/`.commitlintrc*`(`@commitlint` 参照 or ルールキー + extends/rules)
+- changesets: changesets `.md` frontmatter(`---` + `"pkg": patch|minor|major`)と `config.json`
+- goreleaser: `.goreleaser.yaml`(builds + goos/goarch/targets 等 Go ターゲットキー)
+- nfpm: `nfpm.yaml`(`contents:` 内の `- src:`/`- dst:` ペア or `overrides:` + deb/rpm/apk/archlinux)
+- backstage: Backstage カタログエンティティ(apiVersion `backstage.io/` + 既知 kind 9種)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18198)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- pre-commit/pre-commit — .pre-commit-config.yaml reference
+- lefthook/lefthook — lefthook.yml configuration
+- lint-staged/lint-staged — configuration section
+- conventional-changelog/commitlint — configuration (extends/rules)
+- changesets/changesets — config.json + changeset frontmatter format
+- goreleaser/goreleaser — .goreleaser.yaml build settings
+- goreleaser/nfpm — nfpm.yaml (contents/overrides)
+- backstage/backstage — descriptor format (apiVersion backstage.io/* + kind)
