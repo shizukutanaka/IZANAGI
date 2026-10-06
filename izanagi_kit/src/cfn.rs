@@ -127,12 +127,24 @@ fn val_after<'a>(t: &'a str, key: &str) -> Option<&'a str> {
     }
     None
 }
+fn jkey(t: &str, key: &str) -> bool {
+    // `"key"` が値位置ではなくキー位置(直後が `:`)にあるかを確認。
+    let pat = format!("\"{key}\"");
+    let mut rest = t;
+    while let Some(i) = rest.find(&pat) {
+        rest = &rest[i + pat.len()..];
+        if rest.trim_start().starts_with(':') {
+            return true;
+        }
+    }
+    false
+}
 
 /// Returns `true` when `b` looks like a CloudFormation template.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    if t.contains("AWSTemplateFormatVersion") {
+    if has_key(t, "AWSTemplateFormatVersion") || jkey(t, "AWSTemplateFormatVersion") {
         return true;
     }
     let res = section(t, "Resources");
@@ -216,6 +228,12 @@ impl Cfn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# AWSTemplateFormatVersion: 2010-09-09\n"));
+        assert!(!detect(b"{\"note\": \"AWSTemplateFormatVersion\"}\n"));
+    }
 
     #[test]
     fn detects_space_before_colon() {
