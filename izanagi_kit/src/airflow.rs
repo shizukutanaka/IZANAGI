@@ -219,16 +219,21 @@ const SETTINGS: &[&str] = &[
     "proxies",
     "cert=",
 ];
+fn code_has(t: &str, needle: &str) -> bool {
+    // `#` コメント行内の言及は証拠にしない。
+    t.lines()
+        .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
+}
 
 /// Detects Airflow DAG Python source files.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
-    (t.contains("from airflow") || t.contains("import airflow"))
-        && (t.contains("DAG(")
-            || t.contains("dag_id")
-            || t.contains("with DAG")
-            || t.contains("@dag"))
+    (code_has(&t, "from airflow") || code_has(&t, "import airflow"))
+        && (code_has(&t, "DAG(")
+            || code_has(&t, "dag_id")
+            || code_has(&t, "with DAG")
+            || code_has(&t, "@dag"))
 }
 
 fn count_lines<F: Fn(&str) -> bool>(t: &str, f: F) -> usize {
@@ -268,6 +273,11 @@ impl Airflow {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# from airflow import DAG\n# with DAG() as d:\n"));
+    }
 
     #[test]
     fn detects_and_counts() {
