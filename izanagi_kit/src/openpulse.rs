@@ -56,15 +56,22 @@ fn word_count(t: &str, kw: &str) -> usize {
     }
     n
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `//`/`/*` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with("//") && !l.starts_with("/*") && l.contains(needle)
+    })
+}
 
 /// Returns `true` when `b` looks like an OpenPulse program.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("defcal")
-        || (t.contains("cal {")
-            && (t.contains("frame") || t.contains("port ") || t.contains("waveform")))
-        || t.contains("defcalgrammar")
+    code_has(t, "defcal")
+        || (code_has(t, "cal {")
+            && (code_has(t, "frame") || code_has(t, "port ") || code_has(t, "waveform")))
+        || code_has(t, "defcalgrammar")
 }
 
 impl OpenPulse {
@@ -121,6 +128,11 @@ impl OpenPulse {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"// defcal x %0;\n"));
+    }
 
     #[test]
     fn detects_defcal() {

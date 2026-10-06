@@ -48,8 +48,13 @@ pub struct Circleci {
 
 fn is_key(tr: &str, key: &str) -> bool {
     let k = tr.trim_start_matches(['"', '\'']);
-    k.strip_prefix(key)
-        .is_some_and(|r| r.starts_with(':') || r.starts_with("\":") || r.starts_with("':"))
+    k.strip_prefix(key).is_some_and(|r| {
+        // `key :`/`"key" :`(コロン前の空白と閉じ引用符)も YAML では合法。
+        r.trim_start()
+            .trim_start_matches(['"', '\''])
+            .trim_start()
+            .starts_with(':')
+    })
 }
 
 fn blocks<'a>(t: &'a str, key: &str) -> Vec<Vec<&'a str>> {
@@ -222,6 +227,13 @@ impl Circleci {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法。
+        let v = String::from_utf8_lossy(SRC).replace("version:", "version :");
+        assert!(detect(v.as_bytes()));
+    }
 
     const SRC: &[u8] = b"# ci
 version: 2\x2e1
