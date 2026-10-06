@@ -6199,6 +6199,26 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 `pub mod` / `DETECTORS` 登録済み(1088 エントリ)。API ピン更新
 (18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
+## 第364次 — DNS/認証/オブザーバ/アプリサーバ系 8 モジュール
+
+新規センサスモジュール(DETECTORS 1087 エントリ):
+
+| モジュール | 対象 | 検出ロジック |
+| --- | --- | --- |
+| `fluentbit` | `fluent-bit.conf` | `[SERVICE]`/`[INPUT]`/`[FILTER]`/`[OUTPUT]`/`[PARSER]` セクション ≥2 + `Name`/`Match` ディレクティブ |
+| `zookeeper` | `zoo.cfg` | `tickTime`/`initLimit`/`server.N=`/`autopurge.*`/`quorum.auth.*` 等専用キー |
+| `sudoers` | sudoers | `Defaults`/`User_Alias`/`Cmnd_Alias`/`NOPASSWD:`/`ALL=(` スペック + `#includedir`/`@include` |
+| `pdns` | PowerDNS `pdns.conf` | `launch`/`soa-*-default`/`axfr-lower-serial`/`slave-cycle-interval` 等専用キー |
+| `elasticsearch` | `elasticsearch.yml` | `cluster.name`/`node.name`/`discovery.seed_hosts`/`path.data` 等専用ドットキー |
+| `kibana` | `kibana.yml` | `server.port`/`elasticsearch.hosts`/`kibana.index`/`savedObjects.*` 等専用ドットキー |
+| `nsd` | `nsd.conf` | `zone:`/`pattern:`/`remote-control:`/`dnstap:`/`verify:` 等セクションキー |
+| `tomcat` | `server.xml` | `<Server` ルート + `<Service`/`<Connector`/`<Engine`/`<Host` 子要素 |
+
+スキップ重複: `clash`(clashconf), `chrony`(chronyconf), `exports`(nfsexports),
+`krb5`(krb5conf), `sssd`(sssdconf), `rsyslog`(rsyslogd) — `*conf`/*d サフィックス
+別名の既存モジュールが多数あるため、命名時は `ls src/ | grep <basename>` で
+全形確認が必須。
+
 ## 第368次
 
 メディア/ダウンロード/バックアップ系の設定形式8モジュール
