@@ -6121,3 +6121,32 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第356次 — Cluster API/OLM/データ系オペレータ CRD 8 モジュール
+
+K8s オペレータ CRD 群第2弾。全て apiVersion グループ+kind の2条件検出。
+
+- clusterapi: Cluster API(`*.cluster.x-k8s.io` + Cluster/MachineDeployment/MachineSet/KubeadmControlPlane/ClusterClass 等)
+- strimzi: Strimzi Kafka(`kafka.strimzi.io`/`core.strimzi.io` + Kafka/KafkaTopic/KafkaUser/KafkaConnect/KafkaMirrorMaker2/KafkaNodePool 等)
+- spark: Spark Operator(`sparkoperator.k8s.io` + SparkApplication/ScheduledSparkApplication)
+- flink: Flink Operator(`flink.apache.org` + FlinkDeployment/FlinkSessionJob/FlinkSessionCluster/FlinkStateSnapshot)
+- eck: Elastic Cloud on K8s(`*.k8s.elastic.co` + Elasticsearch/Kibana/ApmServer/EnterpriseSearch/Beat/Agent/Logstash 等)
+- olm: Operator Lifecycle Manager(`operators.coreos.com` + CatalogSource/Subscription/OperatorGroup/InstallPlan/ClusterServiceVersion)
+- shipwright: Shipwright(`shipwright.io` + Build/BuildRun/BuildStrategy/ClusterBuildStrategy)
+- dapr: Dapr(`dapr.io` + Component/Subscription/Configuration/Resiliency/HTTPEndpoint)
+
+`api_ok` のグループ一致を強化:`bootstrap.cluster.x-k8s.io` のような
+ドット区切りサブグループも合致するよう strip_suffix 判定を追加。
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- kubernetes-sigs/cluster-api — *.cluster.x-k8s.io API groups
+- strimzi/strimzi-kafka-operator — kafka.strimzi.io CRDs
+- kubeflow/spark-operator — sparkoperator.k8s.io CRDs
+- apache/flink-kubernetes-operator — flink.apache.org CRDs
+- elastic/cloud-on-k8s — *.k8s.elastic.co CRDs
+- operator-framework/operator-lifecycle-manager — operators.coreos.com CRDs
+- shipwright-io/build — shipwright.io CRDs
+- dapr/dapr — dapr.io CRDs
