@@ -6150,3 +6150,23 @@ SYNTH_/PDK等既知envプレフィックス>=2 or env代入>=4),
 fusesoc(FuseSoC .core: `CAPI=2:`必須ヘッダ + name/filesets/
 targets/providers等トップレベルYAMLキー)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第380次
+
+科学計算/統計ツール系の設定形式8モジュールを追加:
+matplotlibrc(matplotlibrc:`key: value`行+axes./figure./savefig./
+font./lines.等ドットプレフィックス>=3)、renviron(.Renviron:
+KEY=VALUE行+R_LIBS*/R_PROFILE_USER等R_プレフィックス>=1かつ
+キー>=2で汎用.envと区別)、rprofile(.Rprofile:options()/library()/
+require()/Sys.setenv()/setwd()/<-代入行、options>=1&R行>=3 or R行>=5)、
+gnuplot(.gnuplot/プロットスクリプト:set/unset/plot/splot/load/fit等
+ヘッドトークン、set>=2&コマンド>=3 or コマンド>=6)、
+octaverc(.octaverc:addpath/pkg load/more off/PS1/format等、
+Octave固有情報>=1&コマンド>=3 or コマンド>=5)、
+nextflow(nextflow.config:params./process./docker.等ドットキー>=2
+or ブロック>=1&ドット>=1 or ブロック>=2)、
+cromwell(cromwell.conf HOCON:backend/system/call_caching/
+database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=2)、
+luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
+既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
