@@ -1011,6 +1011,7 @@ pub mod fstab;
 pub mod ftl;
 pub mod func;
 pub mod funnel;
+pub mod fusesoc;
 pub mod fuzzy;
 pub mod fxml;
 pub mod fxp;
@@ -1537,6 +1538,7 @@ pub mod mobius;
 pub mod mochajson;
 pub mod mocharc;
 pub mod modbus;
+pub mod modeldo;
 pub mod modfile;
 pub mod modlin;
 pub mod modprobeconf;
@@ -1688,6 +1690,7 @@ pub mod opendkim;
 pub mod opendmarc;
 pub mod openfga;
 pub mod openhab;
+pub mod openlane;
 pub mod openntpd;
 pub mod openpulse;
 pub mod openrc;
@@ -1896,8 +1899,10 @@ pub mod qmakepro;
 pub mod qmap;
 pub mod qobj;
 pub mod qoi;
+pub mod qpf;
 pub mod qr;
 pub mod qs;
+pub mod qsf;
 pub mod qti;
 pub mod qtui;
 pub mod quadtree;
@@ -2334,6 +2339,7 @@ pub mod uasset;
 pub mod ubi;
 pub mod ubootenv;
 pub mod ubx;
+pub mod ucf;
 pub mod uci;
 pub mod udevrules;
 pub mod udf;
@@ -2414,6 +2420,7 @@ pub mod viteconf;
 pub mod viterbi;
 pub mod vitestconf;
 pub mod vlcrc;
+pub mod vlt;
 pub mod vmagentconf;
 pub mod vmdk;
 pub mod vmrk;
@@ -2542,6 +2549,7 @@ pub mod yara;
 pub mod yarnlock;
 pub mod yenc;
 pub mod yfast;
+pub mod yosys;
 pub mod yuzuconf;
 pub mod z64;
 pub mod zabbix;
@@ -3017,6 +3025,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("frigate", frigate::detect),
     ("frr", frr::detect),
     ("func", func::detect),
+    ("fusesoc", fusesoc::detect),
     ("fxml", fxml::detect),
     ("fxp", fxp::detect),
     ("garnetconf", garnetconf::detect),
@@ -3286,6 +3295,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mml", mml::detect),
     ("mochajson", mochajson::detect),
     ("mocharc", mocharc::detect),
+    ("modeldo", modeldo::detect),
     ("modprobeconf", modprobeconf::detect),
     ("monero", monero::detect),
     ("mongod", mongod::detect),
@@ -3373,6 +3383,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("opendmarc", opendmarc::detect),
     ("openfga", openfga::detect),
     ("openhab", openhab::detect),
+    ("openlane", openlane::detect),
     ("openntpd", openntpd::detect),
     ("openpulse", openpulse::detect),
     ("openrc", openrc::detect),
@@ -3472,7 +3483,9 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("qmakepro", qmakepro::detect),
     ("qmap", qmap::detect),
     ("qobj", qobj::detect),
+    ("qpf", qpf::detect),
     ("qs", qs::detect),
+    ("qsf", qsf::detect),
     ("qtui", qtui::detect),
     ("quartz", quartz::detect),
     ("quil", quil::detect),
@@ -3680,6 +3693,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("typeormconf", typeormconf::detect),
     ("typesense", typesense::detect),
     ("ubootenv", ubootenv::detect),
+    ("ucf", ucf::detect),
     ("uci", uci::detect),
     ("udevrules", udevrules::detect),
     ("ufwrules", ufwrules::detect),
@@ -3722,6 +3736,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("viteconf", viteconf::detect),
     ("vitestconf", vitestconf::detect),
     ("vlcrc", vlcrc::detect),
+    ("vlt", vlt::detect),
     ("vmagentconf", vmagentconf::detect),
     ("vmrk", vmrk::detect),
     ("votable", votable::detect),
@@ -3785,6 +3800,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("yamllint", yamllint::detect),
     ("yara", yara::detect),
     ("yarnlock", yarnlock::detect),
+    ("yosys", yosys::detect),
     ("yuzuconf", yuzuconf::detect),
     ("zabbix", zabbix::detect),
     ("zapconf", zapconf::detect),
