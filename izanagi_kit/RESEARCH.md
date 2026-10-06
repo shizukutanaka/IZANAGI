@@ -6102,6 +6102,26 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 実行不能な shebang 必須系(`runit`)やバイナリマジック先頭比較は
 規格上正しい拒否のため対象外と確認済み。
 
+## 第346次
+
+第340次の継続 — `detect()` の全文 `contains(marker)` 判定で、コメント行内の
+言及だけで合致してしまう偽陽性の残存モジュールを一括修正(13ファイル):
+
+- **YAML `#` コメント系**: `kong`(`_format_version`)、`envoy`(5キー)、
+  `traefik`(8キー)、`dbt`(4キー+name/version/profile)、`dagster`
+  (`load_from`+ロケーションキー — `- python_file:` リスト項目形式に対応)、
+  `prefect`(6キー)を `is_key`/`has_key` の行アンカー比較へ
+- **k8s apiVersion/kind 系**: `argocd`/`istio`/`linkerd`/`kubeflow` —
+  `*.io/` アノテーションは非コメント行内の出現(`code_has`)、
+  `kind: X` は値一致(`has_kv`)に強化
+- **`drone`**: `kind: pipeline` を `has_kv` の値一致へ
+- **`concourse`**: `- get:`/`- task:` を `is_key` の `- `項目行比較へ
+- **`chart`**: `appVersion`/`type:` を `has_key`/`has_kv` へ
+
+各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
+非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
+引用符剥がし対応。
+
 
 ## 第342次 — パーサーレジストリ `PARSERS` + 全パーサー横断panic非発火テスト
 

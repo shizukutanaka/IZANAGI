@@ -125,12 +125,25 @@ fn val_after<'a>(t: &'a str, key: &str) -> Option<&'a str> {
     }
     None
 }
+fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let l = line.trim_start_matches(['"', '\'']);
+    let r = l
+        .strip_prefix(key)?
+        .trim_start_matches(['"', '\''])
+        .trim_start();
+    r.strip_prefix(':')
+        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
+}
+
+fn has_kv(t: &str, key: &str, val: &str) -> bool {
+    t.lines().any(|l| yaml_val(l.trim(), key) == Some(val))
+}
 
 /// Returns `true` when `b` looks like a `.drone.yml`.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    if t.contains("kind: pipeline") || t.contains("\"kind\": \"pipeline\"") {
+    if has_kv(t, "kind", "pipeline") || t.contains("\"kind\": \"pipeline\"") {
         return true;
     }
     let has = |k: &str| t.lines().any(|l| is_key(l.trim_start(), k));
@@ -173,6 +186,11 @@ impl Drone {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# kind: pipeline\n"));
+    }
 
     const SRC: &[u8] = b"# ci
 kind: pipeline
