@@ -630,6 +630,7 @@ pub mod cargoconf;
 pub mod cargolock;
 pub mod carla;
 pub mod cartesian;
+pub mod cartocss;
 pub mod casbin;
 pub mod casdoor;
 pub mod cassandra;
@@ -1451,6 +1452,7 @@ pub mod lmms;
 pub mod lndconf;
 pub mod lnk;
 pub mod loader;
+pub mod locxml;
 pub mod log4j;
 pub mod log4perl;
 pub mod logback;
@@ -1578,6 +1580,7 @@ pub mod mkdocs;
 pub mod mlflow;
 pub mod mmheap;
 pub mod mml;
+pub mod mmlstyle;
 pub mod mo;
 pub mod mobi;
 pub mod mobius;
@@ -1777,6 +1780,7 @@ pub mod otf;
 pub mod otp;
 pub mod otpauth;
 pub mod otsu;
+pub mod overpass;
 pub mod ovf;
 pub mod p7b;
 pub mod pack;
@@ -1921,6 +1925,7 @@ pub mod procmailrc;
 pub mod profiler;
 pub mod proftpd;
 pub mod progression;
+pub mod projjson;
 pub mod prom;
 pub mod promela;
 pub mod prometheus;
@@ -2373,6 +2378,7 @@ pub mod tidb;
 pub mod tiff;
 pub mod tilemap;
 pub mod tileservergl;
+pub mod tilestacheconf;
 pub mod tiltfile;
 pub mod timer;
 pub mod timestep;
@@ -2537,6 +2543,7 @@ pub mod vp3;
 pub mod vpk;
 pub mod vpr;
 pub mod vrrp;
+pub mod vrtgdal;
 pub mod vscodeconf;
 pub mod vsdx;
 pub mod vsftpd;
@@ -2586,6 +2593,7 @@ pub mod wireplumberconf;
 pub mod wiresharkpref;
 pub mod wkb;
 pub mod wkt;
+pub mod wktproj;
 pub mod woff;
 pub mod woff2;
 pub mod woodpecker;
@@ -2964,6 +2972,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cargoconf", cargoconf::detect),
     ("cargolock", cargolock::detect),
     ("carla", carla::detect),
+    ("cartocss", cartocss::detect),
     ("casbin", casbin::detect),
     ("casdoor", casdoor::detect),
     ("cassandra", cassandra::detect),
@@ -3384,6 +3393,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("liquibase", liquibase::detect),
     ("lmms", lmms::detect),
     ("lndconf", lndconf::detect),
+    ("locxml", locxml::detect),
     ("log4j", log4j::detect),
     ("log4perl", log4perl::detect),
     ("logback", logback::detect),
@@ -3452,6 +3462,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mkdocs", mkdocs::detect),
     ("mlflow", mlflow::detect),
     ("mml", mml::detect),
+    ("mmlstyle", mmlstyle::detect),
     ("mochajson", mochajson::detect),
     ("mocharc", mocharc::detect),
     ("modeldo", modeldo::detect),
@@ -3568,6 +3579,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("osqueryconf", osqueryconf::detect),
     ("ossecconf", ossecconf::detect),
     ("otelcol", otelcol::detect),
+    ("overpass", overpass::detect),
     ("ovf", ovf::detect),
     ("packer", packer::detect),
     ("pacman", pacman::detect),
@@ -3631,6 +3643,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("procd", procd::detect),
     ("procmailrc", procmailrc::detect),
     ("proftpd", proftpd::detect),
+    ("projjson", projjson::detect),
     ("promela", promela::detect),
     ("prometheus", prometheus::detect),
     ("promtailconf", promtailconf::detect),
@@ -3870,6 +3883,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("thanosconf", thanosconf::detect),
     ("tidb", tidb::detect),
     ("tileservergl", tileservergl::detect),
+    ("tilestacheconf", tilestacheconf::detect),
     ("tiltfile", tiltfile::detect),
     ("timesyncd", timesyncd::detect),
     ("tincconf", tincconf::detect),
@@ -3956,6 +3970,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vmrk", vmrk::detect),
     ("votable", votable::detect),
     ("vpr", vpr::detect),
+    ("vrtgdal", vrtgdal::detect),
     ("vscodeconf", vscodeconf::detect),
     ("vsftpd", vsftpd::detect),
     ("vsqx", vsqx::detect),
@@ -3984,6 +3999,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wireguard", wireguard::detect),
     ("wireplumberconf", wireplumberconf::detect),
     ("wiresharkpref", wiresharkpref::detect),
+    ("wktproj", wktproj::detect),
     ("woodpecker", woodpecker::detect),
     ("wordfileuew", wordfileuew::detect),
     ("woz", woz::detect),
