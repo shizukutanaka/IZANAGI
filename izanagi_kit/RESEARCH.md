@@ -6121,3 +6121,30 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第357次 — Multus/Prometheus Operator/DB・バッチ・ベアメタル CRD 8 モジュール
+
+ネットワーク・監視・DBオペレータ・バッチスケジューラ系 CRD を追加。
+
+- multus: Multus CNI(`k8s.cni.cncf.io` + NetworkAttachmentDefinition)
+- promoperator: Prometheus Operator(`monitoring.coreos.com` + ServiceMonitor/PodMonitor/Probe/PrometheusRule/AlertmanagerConfig/ScrapeConfig/PrometheusAgent/ThanosRuler)
+- volcano: Volcano(`*.volcano.sh` + Job/PodGroup/Queue/NumaTopo)
+- cnpg: CloudNativePG(`postgresql.cnpg.io` + Cluster/Backup/ScheduledBackup/Pooler/ImageCatalog 等)
+- pgo: Crunchy Postgres(`postgres-operator.crunchydata.com` + PostgresCluster/PGAdmin/PGUpgrade/PGBackRestBackup)
+- kuma: Kuma(`kuma.io` + Mesh/TrafficRoute/CircuitBreaker/FaultInjection/RateLimit/Retry/Timeout/MeshGateway/MeshHTTPRoute 等)
+- metal3: Metal³(`metal3.io` + BareMetalHost/BMCEventSubscription/HostFirmwareSettings/DataImage 等)
+- trivyop: Trivy Operator(`aquasecurity.github.io` + VulnerabilityReport/ConfigAuditReport/ExposedSecretReport/ClusterComplianceReport/SbomReport 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- k8snetworkplumbingwg/multus-cni — NetworkAttachmentDefinition CRD
+- prometheus-operator — monitoring.coreos.com CRDs
+- volcano-sh/volcano — batch.volcano.sh CRDs
+- cloudnative-pg — postgresql.cnpg.io CRDs
+- CrunchyData/postgres-operator — postgres-operator.crunchydata.com CRDs
+- kumahq/kuma — kuma.io CRDs
+- metal3-io/baremetal-operator — metal3.io CRDs
+- aquasecurity/trivy-operator — aquasecurity.github.io report CRDs
