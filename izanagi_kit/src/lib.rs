@@ -681,6 +681,7 @@ pub mod cmus;
 pub mod coap;
 pub mod cob;
 pub mod cobertura;
+pub mod cockroach;
 pub mod cocosproj;
 pub mod codeclimate;
 pub mod codecov;
@@ -1115,6 +1116,7 @@ pub mod hanoi;
 pub mod haproxy;
 pub mod har;
 pub mod harakaconf;
+pub mod harbor;
 pub mod haresources;
 pub mod harness;
 pub mod hb;
@@ -1199,6 +1201,7 @@ pub mod imscc;
 pub mod imx;
 pub mod ines;
 pub mod inffile;
+pub mod infinispan;
 pub mod inflate;
 pub mod influence;
 pub mod influx;
@@ -1685,6 +1688,7 @@ pub mod openntpd;
 pub mod openpulse;
 pub mod openrc;
 pub mod opensearch;
+pub mod opensearchop;
 pub mod openssl;
 pub mod opentsdb;
 pub mod openvpn;
@@ -1932,6 +1936,7 @@ pub mod recovery;
 pub mod rectunion;
 pub mod redblack;
 pub mod redisconf;
+pub mod redpanda;
 pub mod redpen;
 pub mod refind;
 pub mod regex;
@@ -2176,6 +2181,7 @@ pub mod stable;
 pub mod stalwartconf;
 pub mod stardict;
 pub mod starship;
+pub mod stash;
 pub mod staticcheckconf;
 pub mod stats;
 pub mod statsd;
@@ -2534,6 +2540,7 @@ pub mod yara;
 pub mod yarnlock;
 pub mod yenc;
 pub mod yfast;
+pub mod yugabyte;
 pub mod yuzuconf;
 pub mod z64;
 pub mod zabbix;
@@ -2556,6 +2563,7 @@ pub mod zon;
 pub mod zone;
 pub mod zonemtaconf;
 pub mod zoo;
+pub mod zookeeperop;
 pub mod zorder;
 pub mod zpaq;
 pub mod zpl;
@@ -2855,6 +2863,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cmdbat", cmdbat::detect),
     ("cmus", cmus::detect),
     ("cob", cob::detect),
+    ("cockroach", cockroach::detect),
     ("cocosproj", cocosproj::detect),
     ("codeclimate", codeclimate::detect),
     ("codecov", codecov::detect),
@@ -3057,6 +3066,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("haproxy", haproxy::detect),
     ("har", har::detect),
     ("harakaconf", harakaconf::detect),
+    ("harbor", harbor::detect),
     ("haresources", haresources::detect),
     ("harness", harness::detect),
     ("hb", hb::detect),
@@ -3094,6 +3104,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("idl", idl::detect),
     ("imd", imd::detect),
     ("inffile", inffile::detect),
+    ("infinispan", infinispan::detect),
     ("inittab", inittab::detect),
     ("inputrc", inputrc::detect),
     ("insomnia", insomnia::detect),
@@ -3362,6 +3373,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openpulse", openpulse::detect),
     ("openrc", openrc::detect),
     ("opensearch", opensearch::detect),
+    ("opensearchop", opensearchop::detect),
     ("openssl", openssl::detect),
     ("openvpn", openvpn::detect),
     ("opsjson", opsjson::detect),
@@ -3474,6 +3486,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("rebarconfig", rebarconfig::detect),
     ("recordio", recordio::detect),
     ("redisconf", redisconf::detect),
+    ("redpanda", redpanda::detect),
     ("redpen", redpen::detect),
     ("refind", refind::detect),
     ("regfile", regfile::detect),
@@ -3588,6 +3601,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("stalwartconf", stalwartconf::detect),
     ("stardict", stardict::detect),
     ("starship", starship::detect),
+    ("stash", stash::detect),
     ("staticcheckconf", staticcheckconf::detect),
     ("stepca", stepca::detect),
     ("stix", stix::detect),
@@ -3769,6 +3783,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("yamllint", yamllint::detect),
     ("yara", yara::detect),
     ("yarnlock", yarnlock::detect),
+    ("yugabyte", yugabyte::detect),
     ("yuzuconf", yuzuconf::detect),
     ("zabbix", zabbix::detect),
     ("zapconf", zapconf::detect),
@@ -3784,6 +3799,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zone", zone::detect),
     ("zonemtaconf", zonemtaconf::detect),
     ("zoo", zoo::detect),
+    ("zookeeperop", zookeeperop::detect),
     ("zpaq", zpaq::detect),
     ("zshrc", zshrc::detect),
     ("zulipconf", zulipconf::detect),

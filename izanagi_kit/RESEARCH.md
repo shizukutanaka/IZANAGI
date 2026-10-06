@@ -6121,3 +6121,30 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第360次 — DB/バックアップ・レジストリ系オペレータ CRD 8 モジュール
+
+分散DB・バックアップ・コンテナレジストリ系 CRD 群第5弾。
+
+- zookeeperop: ZooKeeper Operator(`zookeeper.pravega.io` + ZookeeperCluster)
+- harbor: Harbor Operator(`goharbor.io` + HarborCluster/HarborServerConfiguration)
+- stash: Stash(`stash.appscode.com` + BackupConfiguration/RestoreSession/Repository/BackupBatch/HookTemplate 等)
+- cockroach: CockroachDB Operator(`crdb.cockroachlabs.com` + CrdbCluster)
+- yugabyte: YugabyteDB Operator(`yugabyte.com` + YBCluster/YBUniverse)
+- redpanda: Redpanda Operator(`cluster.redpanda.com` + Redpanda/Topic/User/Schema/Console)
+- infinispan: Infinispan Operator(`infinispan.org` + Infinispan/Cache/Backup/Restore/Batch)
+- opensearchop: OpenSearch Operator(`opensearch.opster.io` + OpenSearchCluster/OpenSearchWorkload)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- pravega/zookeeper-operator — zookeeper.pravega.io CRD
+- goharbor/harbor-operator — goharbor.io CRDs
+- stashed/stash — stash.appscode.com CRDs
+- cockroachdb/cockroach-operator — crdb.cockroachlabs.com CRD
+- yugabyte/yugabyte-operator — YBCluster CRD
+- redpanda-data/redpanda-operator — cluster.redpanda.com CRDs
+- infinispan/infinispan-operator — infinispan.org CRDs
+- opensearch-project/opensearch-k8s-operator — opensearch.opster.io CRDs
