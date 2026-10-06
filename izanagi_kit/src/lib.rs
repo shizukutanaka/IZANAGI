@@ -568,6 +568,7 @@ pub mod bogofilter;
 pub mod bootimg;
 pub mod bootini;
 pub mod borgmatic;
+pub mod boundary;
 pub mod bplus;
 pub mod bps;
 pub mod braille;
@@ -621,6 +622,7 @@ pub mod cargolock;
 pub mod carla;
 pub mod cartesian;
 pub mod casbin;
+pub mod casdoor;
 pub mod cassandra;
 pub mod catalan;
 pub mod catmull;
@@ -634,6 +636,7 @@ pub mod ccx;
 pub mod cedar;
 pub mod centroid;
 pub mod cephconf;
+pub mod cerbos;
 pub mod certbot;
 pub mod cf;
 pub mod cfn;
@@ -1080,6 +1083,7 @@ pub mod goertzel;
 pub mod gogsconf;
 pub mod golangci;
 pub mod gomod;
+pub mod gostconf;
 pub mod gosum;
 pub mod gp;
 pub mod gpkg;
@@ -1177,6 +1181,7 @@ pub mod hydraml;
 pub mod hydrogen;
 pub mod hyperfine;
 pub mod hyprland;
+pub mod hysteriaconf;
 pub mod i3conf;
 pub mod ibmmq;
 pub mod ical;
@@ -1328,6 +1333,7 @@ pub mod keepalived;
 pub mod keepassxc;
 pub mod kern;
 pub mod ketl;
+pub mod keto;
 pub mod keycloak;
 pub mod keydbconf;
 pub mod keymap;
@@ -1504,6 +1510,7 @@ pub mod meson;
 pub mod meta;
 pub mod metaflow;
 pub mod metallib;
+pub mod metricbeat;
 pub mod metroconf;
 pub mod mets;
 pub mod mft;
@@ -1834,6 +1841,7 @@ pub mod polybar;
 pub mod polyclip;
 pub mod polylabel;
 pub mod pom;
+pub mod pomerium;
 pub mod pool;
 pub mod pop3;
 pub mod portage;
@@ -2212,6 +2220,7 @@ pub mod stockholm;
 pub mod storageconf;
 pub mod stp;
 pub mod strings;
+pub mod strongswanconf;
 pub mod studio3;
 pub mod stun;
 pub mod stylelint;
@@ -2266,6 +2275,7 @@ pub mod td0;
 pub mod tdm;
 pub mod tds;
 pub mod telegraf;
+pub mod teleport;
 pub mod telnet;
 pub mod tempoconf;
 pub mod temporal;
@@ -2307,6 +2317,7 @@ pub mod tnsnames;
 pub mod toml;
 pub mod tonelli;
 pub mod topojson;
+pub mod torrc;
 pub mod torrent;
 pub mod tournament;
 pub mod toxini;
@@ -2319,6 +2330,7 @@ pub mod treesittergram;
 pub mod trie;
 pub mod trigger;
 pub mod trivy;
+pub mod trojanconf;
 pub mod trx;
 pub mod ts;
 pub mod tscn;
@@ -2330,6 +2342,7 @@ pub mod ttc;
 pub mod ttf;
 pub mod ttml;
 pub mod ttyrec;
+pub mod tuicconf;
 pub mod tunstall;
 pub mod turboconf;
 pub mod turn;
@@ -2390,6 +2403,7 @@ pub mod utmp;
 pub mod uue;
 pub mod uuid;
 pub mod uuid7;
+pub mod v2rayconf;
 pub mod vagrant;
 pub mod vale;
 pub mod validator;
@@ -2483,6 +2497,7 @@ pub mod widgetxml;
 pub mod wim;
 pub mod windowsterminal;
 pub mod winini;
+pub mod winlogbeat;
 pub mod winnow;
 pub mod winstonconf;
 pub mod wireguard;
@@ -2557,6 +2572,7 @@ pub mod yara;
 pub mod yarnlock;
 pub mod yenc;
 pub mod yfast;
+pub mod yggdrasil;
 pub mod yosys;
 pub mod yuzuconf;
 pub mod z64;
@@ -2572,6 +2588,7 @@ pub mod zfs;
 pub mod zfunc;
 pub mod zigbee2mqtt;
 pub mod zip;
+pub mod zitadel;
 pub mod zlib;
 pub mod znc;
 pub mod zobrist;
@@ -2825,6 +2842,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bogofilter", bogofilter::detect),
     ("bootini", bootini::detect),
     ("borgmatic", borgmatic::detect),
+    ("boundary", boundary::detect),
     ("braket", braket::detect),
     ("browserconfig", browserconfig::detect),
     ("browserslist", browserslist::detect),
@@ -2850,10 +2868,12 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cargolock", cargolock::detect),
     ("carla", carla::detect),
     ("casbin", casbin::detect),
+    ("casdoor", casdoor::detect),
     ("cassandra", cassandra::detect),
     ("ccs", ccs::detect),
     ("cedar", cedar::detect),
     ("cephconf", cephconf::detect),
+    ("cerbos", cerbos::detect),
     ("certbot", certbot::detect),
     ("cfn", cfn::detect),
     ("cfssl", cfssl::detect),
@@ -3067,6 +3087,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gogsconf", gogsconf::detect),
     ("golangci", golangci::detect),
     ("gomod", gomod::detect),
+    ("gostconf", gostconf::detect),
     ("gosum", gosum::detect),
     ("gp", gp::detect),
     ("gpsd", gpsd::detect),
@@ -3115,6 +3136,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("hydrogen", hydrogen::detect),
     ("hyperfine", hyperfine::detect),
     ("hyprland", hyprland::detect),
+    ("hysteriaconf", hysteriaconf::detect),
     ("i3conf", i3conf::detect),
     ("ibmmq", ibmmq::detect),
     ("ical", ical::detect),
@@ -3192,6 +3214,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("keepassxc", keepassxc::detect),
     ("kern", kern::detect),
     ("ketl", ketl::detect),
+    ("keto", keto::detect),
     ("keycloak", keycloak::detect),
     ("keydbconf", keydbconf::detect),
     ("keytab", keytab::detect),
@@ -3289,6 +3312,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("meson", meson::detect),
     ("metaflow", metaflow::detect),
     ("metallib", metallib::detect),
+    ("metricbeat", metricbeat::detect),
     ("metroconf", metroconf::detect),
     ("mets", mets::detect),
     ("milvusconf", milvusconf::detect),
@@ -3452,6 +3476,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("policyjson", policyjson::detect),
     ("polybar", polybar::detect),
     ("pom", pom::detect),
+    ("pomerium", pomerium::detect),
     ("portage", portage::detect),
     ("postalconf", postalconf::detect),
     ("postfix", postfix::detect),
@@ -3637,6 +3662,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("stix", stix::detect),
     ("stm", stm::detect),
     ("storageconf", storageconf::detect),
+    ("strongswanconf", strongswanconf::detect),
     ("stylelint", stylelint::detect),
     ("sublime", sublime::detect),
     ("sudoku", sudoku::detect),
@@ -3671,6 +3697,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("td0", td0::detect),
     ("tdm", tdm::detect),
     ("telegraf", telegraf::detect),
+    ("teleport", teleport::detect),
     ("telnet", telnet::detect),
     ("tempoconf", tempoconf::detect),
     ("terminfo", terminfo::detect),
@@ -3691,6 +3718,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tmuxconf", tmuxconf::detect),
     ("tmx", tmx::detect),
     ("tnsnames", tnsnames::detect),
+    ("torrc", torrc::detect),
     ("toxini", toxini::detect),
     ("tptp", tptp::detect),
     ("traefik", traefik::detect),
@@ -3698,10 +3726,12 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("travisci", travisci::detect),
     ("treesittergram", treesittergram::detect),
     ("trivy", trivy::detect),
+    ("trojanconf", trojanconf::detect),
     ("tscn", tscn::detect),
     ("tsconfig", tsconfig::detect),
     ("tsx", tsx::detect),
     ("ttyrec", ttyrec::detect),
+    ("tuicconf", tuicconf::detect),
     ("turboconf", turboconf::detect),
     ("twee", twee::detect),
     ("txt2tags", txt2tags::detect),
@@ -3731,6 +3761,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("usi", usi::detect),
     ("ust", ust::detect),
     ("ustx", ustx::detect),
+    ("v2rayconf", v2rayconf::detect),
     ("vagrant", vagrant::detect),
     ("vale", vale::detect),
     ("valkeyconf", valkeyconf::detect),
@@ -3779,6 +3810,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wim", wim::detect),
     ("windowsterminal", windowsterminal::detect),
     ("winini", winini::detect),
+    ("winlogbeat", winlogbeat::detect),
     ("winstonconf", winstonconf::detect),
     ("wireguard", wireguard::detect),
     ("wireplumberconf", wireplumberconf::detect),
@@ -3816,6 +3848,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("yamllint", yamllint::detect),
     ("yara", yara::detect),
     ("yarnlock", yarnlock::detect),
+    ("yggdrasil", yggdrasil::detect),
     ("yosys", yosys::detect),
     ("yuzuconf", yuzuconf::detect),
     ("zabbix", zabbix::detect),
@@ -3826,6 +3859,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zerotier", zerotier::detect),
     ("zfs", zfs::detect),
     ("zigbee2mqtt", zigbee2mqtt::detect),
+    ("zitadel", zitadel::detect),
     ("znc", znc::detect),
     ("zola", zola::detect),
     ("zon", zon::detect),
@@ -3837,3 +3871,16 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zulipconf", zulipconf::detect),
     ("zypper", zypper::detect),
 ];
+
+/// 全検出器に入力を流し、合致したモジュール名を全て返す。
+///
+/// [`DETECTORS`] の並び順(名前昇順)で返る。合致なしなら空 `Vec`。
+/// 1入力に複数形式が合致し得るため先勝ちではなく全件を返す。
+#[must_use]
+pub fn detect_all(input: &[u8]) -> Vec<&'static str> {
+    DETECTORS
+        .iter()
+        .filter(|(_, f)| f(input))
+        .map(|(name, _)| *name)
+        .collect()
+}

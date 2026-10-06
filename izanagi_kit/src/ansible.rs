@@ -99,14 +99,24 @@ pub struct Ansible {
     pub names: usize,
 }
 
+fn is_key(s: &str, key: &str) -> bool {
+    // `key :` (コロン前の空白)も YAML では合法。
+    s.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
+
+fn has_key(t: &str, key: &str) -> bool {
+    t.lines().any(|l| is_key(l.trim(), key))
+}
+
 /// Whether the buffer looks like an Ansible playbook.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    (t.contains("hosts:") || t.contains("- name:"))
-        && (t.contains("tasks:") || t.contains("roles:") || t.contains("gather_facts:"))
+    (has_key(t, "hosts") || has_key(t, "- name"))
+        && (has_key(t, "tasks") || has_key(t, "roles") || has_key(t, "gather_facts"))
 }
 
 impl Ansible {
@@ -134,33 +144,33 @@ impl Ansible {
             if s.is_empty() || s.starts_with('#') {
                 continue;
             }
-            if s.starts_with("tasks:") {
+            if is_key(s, "tasks") {
                 scope = "tasks";
                 continue;
             }
-            if s.starts_with("handlers:") {
+            if is_key(s, "handlers") {
                 scope = "handlers";
                 continue;
             }
-            if s.starts_with("roles:") {
+            if is_key(s, "roles") {
                 scope = "roles";
                 continue;
             }
-            if s.starts_with("vars:") {
+            if is_key(s, "vars") {
                 scope = "vars";
                 continue;
             }
-            if s.starts_with("hosts:") || s == "- hosts:" {
+            if is_key(s, "hosts") || is_key(s, "- hosts") {
                 c.plays += 1;
                 scope = "";
                 continue;
             }
-            if s.starts_with("- hosts:") {
+            if is_key(s, "- hosts") {
                 c.plays += 1;
                 scope = "";
                 continue;
             }
-            if s.starts_with("- name:") {
+            if is_key(s, "- name") {
                 c.names += 1;
                 match scope {
                     "tasks" => c.tasks += 1,
@@ -178,7 +188,7 @@ impl Ansible {
                 c.vars += 1;
                 continue;
             }
-            if s.starts_with("become") || s.starts_with("remote_user:") {
+            if s.starts_with("become") || is_key(s, "remote_user") {
                 c.becomes += 1;
                 continue;
             }
@@ -186,7 +196,7 @@ impl Ansible {
                 || s.starts_with("import_tasks")
                 || s.starts_with("import_playbook")
                 || s.starts_with("include_vars")
-                || s.starts_with("include:")
+                || is_key(s, "include")
             {
                 c.includes += 1;
                 continue;
@@ -212,6 +222,12 @@ impl Ansible {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法(`- name :` もシーケンス内マップとして合法)。
+        assert!(detect(b"hosts : all\n- name : t\ntasks :\n  - x: y\n"));
+    }
 
     #[test]
     fn parses_playbook() {
