@@ -725,6 +725,7 @@ pub mod crmconf;
 pub mod crockford;
 pub mod cron;
 pub mod crontab;
+pub mod crossplane;
 pub mod csa;
 pub mod csaf;
 pub mod csd;
@@ -979,6 +980,7 @@ pub mod flif;
 pub mod flow;
 pub mod flowfield;
 pub mod fluentd;
+pub mod fluxcd;
 pub mod flv;
 pub mod flyio;
 pub mod flyway;
@@ -1342,6 +1344,7 @@ pub mod kmp;
 pub mod kmv;
 pub mod kmz;
 pub mod knapsack;
+pub mod knative;
 pub mod knexfile;
 pub mod knownhosts;
 pub mod knx;
@@ -1357,6 +1360,7 @@ pub mod kubeconfig;
 pub mod kubeflow;
 pub mod kubemq;
 pub mod kustomize;
+pub mod kyverno;
 pub mod l2tp;
 pub mod lab;
 pub mod las;
@@ -1517,6 +1521,7 @@ pub mod minix;
 pub mod minkowski;
 pub mod minq;
 pub mod mis;
+pub mod mise;
 pub mod misp;
 pub mod mixexs;
 pub mod mixxx;
@@ -1943,6 +1948,7 @@ pub mod reiserfs;
 pub mod relations;
 pub mod relaxng;
 pub mod releaseplease;
+pub mod releaserc;
 pub mod remminaconf;
 pub mod renderconf;
 pub mod renovate;
@@ -2245,6 +2251,7 @@ pub mod tcx;
 pub mod td0;
 pub mod tdm;
 pub mod tds;
+pub mod tekton;
 pub mod telegraf;
 pub mod telnet;
 pub mod tempoconf;
@@ -2447,6 +2454,7 @@ pub mod webmanifest;
 pub mod webp;
 pub mod webpackconf;
 pub mod weechat;
+pub mod werf;
 pub mod westconf;
 pub mod westonconf;
 pub mod weztermconf;
@@ -2884,6 +2892,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("criterion", criterion::detect),
     ("crmconf", crmconf::detect),
     ("crockford", crockford::detect),
+    ("crossplane", crossplane::detect),
     ("csa", csa::detect),
     ("csd", csd::detect),
     ("cspell", cspell::detect),
@@ -2994,6 +3003,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("flake8conf", flake8conf::detect),
     ("flif", flif::detect),
     ("fluentd", fluentd::detect),
+    ("fluxcd", fluxcd::detect),
     ("flyio", flyio::detect),
     ("flyway", flyway::detect),
     ("footconf", footconf::detect),
@@ -3174,6 +3184,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kittyconf", kittyconf::detect),
     ("kittyimg", kittyimg::detect),
     ("klipperconf", klipperconf::detect),
+    ("knative", knative::detect),
     ("knexfile", knexfile::detect),
     ("kodiadv", kodiadv::detect),
     ("kong", kong::detect),
@@ -3185,6 +3196,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kubeflow", kubeflow::detect),
     ("kubemq", kubemq::detect),
     ("kustomize", kustomize::detect),
+    ("kyverno", kyverno::detect),
     ("lab", lab::detect),
     ("ldapconf", ldapconf::detect),
     ("ldif", ldif::detect),
@@ -3263,6 +3275,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("minica", minica::detect),
     ("minikubeconf", minikubeconf::detect),
     ("minio", minio::detect),
+    ("mise", mise::detect),
     ("misp", misp::detect),
     ("mixexs", mixexs::detect),
     ("mixxx", mixxx::detect),
@@ -3482,6 +3495,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("reiserfs", reiserfs::detect),
     ("relaxng", relaxng::detect),
     ("releaseplease", releaseplease::detect),
+    ("releaserc", releaserc::detect),
     ("remminaconf", remminaconf::detect),
     ("renderconf", renderconf::detect),
     ("renovate", renovate::detect),
@@ -3626,6 +3640,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("taskfile", taskfile::detect),
     ("td0", td0::detect),
     ("tdm", tdm::detect),
+    ("tekton", tekton::detect),
     ("telegraf", telegraf::detect),
     ("telnet", telnet::detect),
     ("tempoconf", tempoconf::detect),
@@ -3721,6 +3736,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),
     ("weechat", weechat::detect),
+    ("werf", werf::detect),
     ("westconf", westconf::detect),
     ("westonconf", westonconf::detect),
     ("weztermconf", weztermconf::detect),
