@@ -6121,3 +6121,23 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第375次
+
+分散/キャッシュビルド系の設定形式8モジュールを追加:
+ccache(ccache.conf: cache_dir/max_size/compression/sloppiness/
+compiler_check/remote_storage 等約45オプション、行アンカーkey=一致>=3),
+sccache(SCCACHE_CONF TOML: [cache.*]/[dist.*]テーブル + dir/size/
+bucket/endpoint/scheduler_url/toolchain_cache_size 等キー),
+distcc(hostsファイル: HOST[:PORT][/N][,cpp,lzo]ホスト指定行 +
+--randomize/+zeroconfオプション、2行以上必須でhosts除外),
+iceccconf(icecc.conf: ICECC_*/ICECREAM_*プレフィックスKEY=value行
+約35変数>=2), gomaconf(GOMA_*プレフィックスKEY=value行約60変数>=3),
+reclientconf(reclient.cfg/reproxy.cfg: service/instance/exec_strategy/
+server_address/cas_server/remote_cache/num_rbe_workers 等key=value、
+service+3キーまたは4キー以上), fastbuild(.bff: Compiler/ObjectList/
+Library/Alias/Exec/Unity/Settings 等ブロック関数呼出 + .Var=代入 +
+#include/#if/#defineディレクティブ), bitbake(Yocto .bb/.conf:
+SRC_URI/LICENSE/DEPENDS/RDEPENDS/PACKAGECONFIG/IMAGE_*/BB_*等
+変数代入 + inherit/include/require/addtask + do_*タスク)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。

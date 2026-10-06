@@ -547,6 +547,7 @@ pub mod biquad;
 pub mod bird;
 pub mod bit;
 pub mod bitap;
+pub mod bitbake;
 pub mod bitboard;
 pub mod bitcoinconf;
 pub mod bitonic;
@@ -624,6 +625,7 @@ pub mod catalan;
 pub mod catmull;
 pub mod cbfs;
 pub mod cbor;
+pub mod ccache;
 pub mod ccd;
 pub mod ccl;
 pub mod ccs;
@@ -804,6 +806,7 @@ pub mod dihedral;
 pub mod dimacs;
 pub mod dinit;
 pub mod discourse;
+pub mod distcc;
 pub mod dita;
 pub mod dither;
 pub mod djvu;
@@ -941,6 +944,7 @@ pub mod far;
 pub mod farbfeld;
 pub mod farey;
 pub mod fasta;
+pub mod fastbuild;
 pub mod fastq;
 pub mod fat;
 pub mod fb2;
@@ -1073,6 +1077,7 @@ pub mod godot;
 pub mod goertzel;
 pub mod gogsconf;
 pub mod golangci;
+pub mod gomaconf;
 pub mod gomod;
 pub mod gosum;
 pub mod gp;
@@ -1176,6 +1181,7 @@ pub mod ibmmq;
 pub mod ical;
 pub mod icc;
 pub mod icecast;
+pub mod iceccconf;
 pub mod icinga;
 pub mod icmp;
 pub mod icns;
@@ -1927,6 +1933,7 @@ pub mod reaper;
 pub mod rebarconfig;
 pub mod recbin;
 pub mod recipe;
+pub mod reclientconf;
 pub mod recordio;
 pub mod recovery;
 pub mod rectunion;
@@ -2037,6 +2044,7 @@ pub mod sby;
 pub mod scandata;
 pub mod scapegoat;
 pub mod scc;
+pub mod sccache;
 pub mod sch;
 pub mod scl;
 pub mod sconstruct;
@@ -2792,6 +2800,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("biome", biome::detect),
     ("bird", bird::detect),
     ("bit", bit::detect),
+    ("bitbake", bitbake::detect),
     ("bitcoinconf", bitcoinconf::detect),
     ("bitrise", bitrise::detect),
     ("blackbird", blackbird::detect),
@@ -2825,6 +2834,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("carla", carla::detect),
     ("casbin", casbin::detect),
     ("cassandra", cassandra::detect),
+    ("ccache", ccache::detect),
     ("ccs", ccs::detect),
     ("cedar", cedar::detect),
     ("cephconf", cephconf::detect),
@@ -2921,6 +2931,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dimacs", dimacs::detect),
     ("dinit", dinit::detect),
     ("discourse", discourse::detect),
+    ("distcc", distcc::detect),
     ("dita", dita::detect),
     ("dnfconf", dnfconf::detect),
     ("dng", dng::detect),
@@ -2980,6 +2991,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fail2ban", fail2ban::detect),
     ("falcoconf", falcoconf::detect),
     ("far", far::detect),
+    ("fastbuild", fastbuild::detect),
     ("fcoe", fcoe::detect),
     ("feast", feast::detect),
     ("ferm", ferm::detect),
@@ -3036,6 +3048,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("godot", godot::detect),
     ("gogsconf", gogsconf::detect),
     ("golangci", golangci::detect),
+    ("gomaconf", gomaconf::detect),
     ("gomod", gomod::detect),
     ("gosum", gosum::detect),
     ("gp", gp::detect),
@@ -3089,6 +3102,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ibmmq", ibmmq::detect),
     ("ical", ical::detect),
     ("icecast", icecast::detect),
+    ("iceccconf", iceccconf::detect),
     ("icinga", icinga::detect),
     ("ideavim", ideavim::detect),
     ("idl", idl::detect),
@@ -3472,6 +3486,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("rdpfile", rdpfile::detect),
     ("reaper", reaper::detect),
     ("rebarconfig", rebarconfig::detect),
+    ("reclientconf", reclientconf::detect),
     ("recordio", recordio::detect),
     ("redisconf", redisconf::detect),
     ("redpen", redpen::detect),
@@ -3522,6 +3537,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sbf", sbf::detect),
     ("sby", sby::detect),
     ("scandata", scandata::detect),
+    ("sccache", sccache::detect),
     ("sch", sch::detect),
     ("scl", scl::detect),
     ("sconstruct", sconstruct::detect),
