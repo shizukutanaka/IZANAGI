@@ -6160,3 +6160,30 @@ database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=
 luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第385次
+
+VPN/プロキシ系の設定形式8モジュールを追加:
+torrc(torrc:SocksPort/ORPort/ExitPolicy/ExitNodes/HiddenServiceDir/
+Nickname/ContactInfo/Bridge/UseBridges等既知ディレクティブ>=3)、
+v2rayconf(V2Ray/Xray config.json:"inbounds"/"outbounds"/"routing"/
+"dns"/"log"/"policy"/"stats"/"api"/"transport"/"observatory"等
+JSONキー、inbounds+outbounds両方 or キー>=3)、
+yggdrasil(yggdrasil.conf:"Peers"/"InterfacePeers"/"Listen"/
+"AdminListen"/"MulticastInterfaces"/"IfName"/"IfMTU"/
+"NodeInfoPrivacy"/"PrivateKey"等、hint>=1&>=2 or >=4)、
+trojanconf(trojan config.json:"run_type"/"local_addr"/"local_port"/
+"remote_addr"/"remote_port"/"password"/"ssl"/"sni"/"mux"/"verify"等、
+hint>=2&>=4 or >=6)、
+hysteriaconf(Hysteria config.yaml:server/listen/up/down/obfs/auth/
+tls/bandwidth/recv_window*/protocol/masquerade等YAMLキー、
+hint>=1&>=2 or >=4)、
+gostconf(GOST v3 gost.yml:トップレベルのservices/chains/hops/
+bypasses/resolvers/authers/limits/observer等キー>=1+1 or >=3)、
+strongswanconf(ipsec.conf:config setup/conn名セクションヘッダ+
+left/right/leftsubnet/rightsubnet/keyexchange/ike/esp/authby/auto
+等パラメータ、conn>=1&>=2 or >=5)、
+tuicconf(TUIC config.json:"server"/"uuid"/"password"/
+"congestion_control"/"alpn"/"udp_relay_mode"/"reduce_rtt"/
+"send_window"等、hint>=1&>=2 or >=5)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
