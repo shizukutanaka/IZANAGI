@@ -6083,6 +6083,24 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
 
+## 第343次 — census 集約 API `detect_all` + 契約テスト
+
+監査 P1「census 集約 API: `identify_all(input) -> &[&str]`」への最小実装。
+`izanagi_kit::detect_all(input: &[u8]) -> Vec<&'static str>` を追加 — 第341次の
+`DETECTORS` を総当りし、合致したモジュール名を登録順(名前昇順)で全件返す。
+拡張子ヒントによる2段設計は複雑化の割に利が薄い(1079回の軽量detectで済む)
+ため YAGNI により先勝ち/優先度付けは採らず全件返却のみ。
+
+新規 `tests/detect_all.rs` が以下を検証:
+
+- 返却名は全て DETECTORS 登録済みで、その detect() も実際に合致する
+- 総当り結果と完全一致(集約実装の重複・欠落なし)
+- 返却順がソート済み・重複なし
+- Jsonnet 既知入力で `jsonnet` を含む
+
+命名は既存 `identify` モジュール(ローグライクのアイテム同定)との衝突を避け
+`detect_all` とした。
+
 ## 第344次 — YAML `key :`(コロン前空白)バリアントの偽陰性一括修正
 
 監査 P0 残件「JSON `"key" :` と同型の空白許容が YAML/INI 系でも要監査」への対応。
@@ -6142,34 +6160,6 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
 
-## 第354次 — Argo Events/SPIRE/CSI秘密管理/ストレージ/パッケージ系 8 モジュール
-
-census 未収録ドメイン第7弾。K8s ストレージ・セキュリティ CRD 群と
-パッケージ連携・Terraform lint 設定を追加。
-
-- argoevents: Argo Events(`argoproj.io` + EventSource/Sensor/EventBus。argocd/argowf/argorollout と kind 集合で分離)
-- spire: SPIRE/SPIFFE(`spire.spiffe.io`/`spiffeid.spiffe.io` + ClusterSPIFFEID/ClusterFederatedTrustDomain/UpstreamAuthority* 等)
-- secretsstore: Secrets Store CSI Driver(`secrets-store.csi.x-k8s.io` + SecretProviderClass/SecretProviderClassPodStatus/SecretSync)
-- jenkinsx: Jenkins X(`jenkins.io`/`jenkins-x.io` + Environment/PipelineActivity/Release/SourceRepository/Scheduler 等)
-- portworx: Portworx(`portworx.io`/`core.libopenstorage.org`/`stork.*`/`autopilot.*` + StorageCluster/BackupLocation/MigrationSchedule 等)
-- openebs: OpenEBS(`cstor.openebs.io`/`local.openebs.io`/`openebs.io` + CStorPool/ZFSVolume/JivaVolume/BlockDevice 等)
-- packit: `.packit.yaml`(specfile_path/upstream_project_url 等 packit 排他キー×2 または排他キー+jobs)
-- tflint: `.tflint.hcl`(`plugin "x"`/`rule "x"` ブロック or call_module_type/disabled_by_default/plugin_dir 等排他キー、コメント除外)
-
-`pub mod` / `DETECTORS` 登録済み(1119 エントリ)。API ピン更新
-(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
-
-## 出典
-
-- argoproj/argo-events — EventSource/Sensor/EventBus CRDs
-- spiffe/spire — ClusterSPIFFEID/ClusterFederatedTrustDomain CRDs
-- kubernetes-sigs/secrets-store-csi-driver — SecretProviderClass CRD
-- jenkins-x/jx — jenkins.io CRDs
-- libopenstorage/operator — Portworx/Stork/Autopilot CRDs
-- openebs — CStor/Jiva/ZFS-LocalPV CRDs
-- packit/packit — .packit.yaml schema
-- terraform-linters/tflint — .tflint.hcl plugin/rule/config blocks
-
 ## 第347次
 
 第340/346次の継続 — `detect()` の全文 `contains(marker)` でコメント行内の
@@ -6189,6 +6179,203 @@ census 未収録ドメイン第7弾。K8s ストレージ・セキュリティ C
 共通ヘルパー `code_has`(コメント行を除外する行単位 contains)を
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
+
+## 第354次 — Argo Events/SPIRE/CSI秘密管理/ストレージ/パッケージ系 8 モジュール
+
+census 未収録ドメイン第7弾。K8s ストレージ・セキュリティ CRD 群と
+パッケージ連携・Terraform lint 設定を追加。
+
+- argoevents: Argo Events(`argoproj.io` + EventSource/Sensor/EventBus。argocd/argowf/argorollout と kind 集合で分離)
+- spire: SPIRE/SPIFFE(`spire.spiffe.io`/`spiffeid.spiffe.io` + ClusterSPIFFEID/ClusterFederatedTrustDomain/UpstreamAuthority* 等)
+- secretsstore: Secrets Store CSI Driver(`secrets-store.csi.x-k8s.io` + SecretProviderClass/SecretProviderClassPodStatus/SecretSync)
+- jenkinsx: Jenkins X(`jenkins.io`/`jenkins-x.io` + Environment/PipelineActivity/Release/SourceRepository/Scheduler 等)
+- portworx: Portworx(`portworx.io`/`core.libopenstorage.org`/`stork.*`/`autopilot.*` + StorageCluster/BackupLocation/MigrationSchedule 等)
+- openebs: OpenEBS(`cstor.openebs.io`/`local.openebs.io`/`openebs.io` + CStorPool/ZFSVolume/JivaVolume/BlockDevice 等)
+- packit: `.packit.yaml`(specfile_path/upstream_project_url 等 packit 排他キー×2 または排他キー+jobs)
+- tflint: `.tflint.hcl`(`plugin "x"`/`rule "x"` ブロック or call_module_type/disabled_by_default/plugin_dir 等排他キー、コメント除外)
+
+`pub mod` / `DETECTORS` 登録済み(1119 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第355次 — Prow/Bors/Karpenter/KubeVirt/KubeDB/Fleet/vCluster/Waypoint 8 モジュール
+
+CI補助ツール・K8sオペレータCRD・GitOps/仮想クラスタ系を追加。
+
+- karpenter: Karpenter(`karpenter.sh`/`karpenter.k8s.aws` + Provisioner/NodePool/AWSNodeTemplate/EC2NodeClass/NodeClaim)
+- kubedb: KubeDB(`kubedb.com` + Postgres/Elasticsearch/MongoDB/Redis/Kafka 等 DB kind 群)
+- kubevirt: KubeVirt(`kubevirt.io` + VirtualMachine/VirtualMachineInstance/Snapshot/Clone/Pool 等)
+- fleet: Rancher Fleet `fleet.yaml`(targets/clusterSelector/rolloutStrategy 等の強キー+弱キー合計≥2)
+- vcluster: vCluster `vcluster.yaml`(vcluster/controlPlane/syncer/telemetry 等の強キー+弱キー合計≥2)
+- prow: Prow `config.yaml`(presubmits/postsubmits/periodics/tide/plank 等の排他トップキー≥2)
+- bors: `bors.toml`(status/block_labels/required_approvals 等キー≥2)
+- waypoint: `waypoint.hcl`(`app "x" {}` ブロック+build/deploy/release/runner 内側証拠)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18204)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第359次 — DBオペレータ/負荷分散・マルチテナント系 CRD 8 モジュール
+
+DBオペレータとLB/マルチテナント系 CRD 群第4弾。
+
+- awselb: AWS Load Balancer Controller(`elbv2.k8s.aws`/`vpcresources.k8s.aws` + TargetGroupBinding/IngressClassParams/SecurityGroupPolicy)
+- k8gb: k8gb(`k8gb.absa.oss` + Gslb)
+- kamaji: Kamaji(`kamaji.clastix.io` + TenantControlPlane/DataStore)
+- capsule: Capsule(`capsule.clastix.io` + Tenant/CapsuleConfiguration/GlobalTenantResource/ResourcePool)
+- scyllaop: ScyllaDB Operator(`scylla.scylladb.com` + ScyllaCluster/ScyllaDBDatacenter/ScyllaDBMonitoring/NodeConfig 等)
+- percona: Percona オペレータ群(`*.percona.com` + PerconaXtraDBCluster/PerconaServerMongoDB/PerconaServerMySQL/PerconaPGCluster +*Backup/*Restore)
+- tidb: TiDB Operator(`pingcap.com` + TidbCluster/TidbMonitor/TidbInitializer/TidbClusterAutoScaler/DMCluster/Backup/Restore 等)
+- vitess: Vitess Operator(`planetscale.com` + VitessCluster/VitessShard/VitessCell/VitessKeyspace/VitessBackup* 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第360次 — DB/バックアップ・レジストリ系オペレータ CRD 8 モジュール
+
+分散DB・バックアップ・コンテナレジストリ系 CRD 群第5弾。
+
+- zookeeperop: ZooKeeper Operator(`zookeeper.pravega.io` + ZookeeperCluster)
+- harbor: Harbor Operator(`goharbor.io` + HarborCluster/HarborServerConfiguration)
+- stash: Stash(`stash.appscode.com` + BackupConfiguration/RestoreSession/Repository/BackupBatch/HookTemplate 等)
+- cockroach: CockroachDB Operator(`crdb.cockroachlabs.com` + CrdbCluster)
+- yugabyte: YugabyteDB Operator(`yugabyte.com` + YBCluster/YBUniverse)
+- redpanda: Redpanda Operator(`cluster.redpanda.com` + Redpanda/Topic/User/Schema/Console)
+- infinispan: Infinispan Operator(`infinispan.org` + Infinispan/Cache/Backup/Restore/Batch)
+- opensearchop: OpenSearch Operator(`opensearch.opster.io` + OpenSearchCluster/OpenSearchWorkload)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第361次 — ML serving/分散実行・監視オペレータ系 CRD 8 モジュール
+
+MLプラットフォーム・サーバレス・監視オペレータ系 CRD 群第6弾。
+
+- kubeflowtraining: Kubeflow Training Operator(`kubeflow.org` + TFJob/PyTorchJob/MPIJob/XGBoostJob/PaddleJob/JAXJob/TrainJob/ClusterTrainingRuntime)
+- kserve: KServe(`serving.kserve.io` + InferenceService/InferenceGraph/TrainedModel/ServingRuntime/ClusterServingRuntime)
+- seldon: Seldon Core(`machinelearning.seldon.io` + SeldonDeployment)
+- dask: Dask Operator(`kubernetes.dask.org` + DaskCluster/DaskJob/DaskWorkerGroup/DaskAutoscaler)
+- openfaas: OpenFaaS(`openfaas.com` + Function/Profile/FunctionIngress)
+- kubevela: KubeVela(`*.oam.dev` + Application/ApplicationRevision/ComponentDefinition/TraitDefinition/PolicyDefinition 等)
+- grafanaop: Grafana Operator(`*.integreatly.org`/`*.grafana.com` + Grafana/GrafanaDashboard/GrafanaDatasource/GrafanaFolder/ContactPoint 等)
+- victoria: VictoriaMetrics Operator(`operator.victoriametrics.com` + VMAgent/VMAlert/VMCluster/VMServiceScrape/VMRule/VMSingle/VMAuth 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第362次 — IdP/認証プロキシ・監視エージェント系 9 モジュール
+
+アイデンティティ・ゼロトラスト系ツールの設定形式を追加。YAMLトップキー(強/弱)、INI、HCL の3パターン。
+
+- cerbos: Cerbos ポリシー(`api.cerbos.dev` + ResourcePolicy/PrincipalPolicy/DerivedRoles/ExportVariables)
+- teleport: `teleport.yaml`(`teleport:`/`auth_service:`/`proxy_service:`/`*_service:` 系強キー)
+- keto: Ory Keto `keto.yaml`(`namespaces:`/`dsn:` 強キー+`serve:`/`limit:` 弱キー)
+- zitadel: ZITADEL config(`ExternalDomain`/`ExternalPort`/`SystemDefaults`/`DefaultInstance` 等 PascalCase 強キー)
+- casdoor: `app.conf` INI(`origin`/`staticBaseURL`/`isDemoMode`/`redisEndpoint` 等 Casdoor 排他キー)
+- pomerium: Pomerium `config.yaml`(`authenticate_service_url`/`databroker_service_url`/`shared_secret`/`idp_*` 強キー)
+- boundary: Boundary `boundary.hcl`(`listener "x"` + `controller {`/`worker {`/`kms "t"`/`purpose =` 併存が必須 — Vault との区別)
+- metricbeat: `metricbeat.yml`(`metricbeat.modules`/`metricbeat.autodetect` 等 metricbeat.* トップキー)
+- winlogbeat: `winlogbeat.yml`(`winlogbeat.event_logs`/`winlogbeat.registry_file` 等 winlogbeat.* トップキー)
+
+(`osquery.conf` は既存 osqueryconf がカバーしていたため差替)
+
+`pub mod` / `DETECTORS` 登録済み(1088 エントリ)。API ピン更新
+(18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第363次 — プロキシ/ネットワークエッジ・デプロイ補助系 8 モジュール
+
+新規センサスモジュール(DETECTORS 1087 エントリ):
+
+| モジュール | 対象 | 検出ロジック |
+| --- | --- | --- |
+| `wrangler` | `wrangler.toml` (Cloudflare Workers) | `compatibility_date`/`workers_dev`/`kv_namespaces` 等 Cloudflare 専用キー |
+| `snapcraft` | `snapcraft.yaml` | `confinement`/`grade`/`parts`/`plugs` 等 snap 専用トップキー |
+| `brewfile` | `Brewfile` (Homebrew bundle) | `brew "`/`cask "`/`tap "`/`mas "`/`vscode "` DSL 呼出 ≥2 |
+| `adguard` | `AdGuardHome.yaml` | `querylog`/`statistics`/`filtering`/`whitelist_filters` 等専用トップキー |
+| `blocky` | `config.yml` (blocky DNS) | `upstreams`/`blocking`/`customDNS`/`bootstrapDns` 等専用トップキー |
+| `privoxy` | privoxy `config` | `actionsfile`/`filterfile`/`forward-socks5`/`listen-address` 等専用ディレクティブ |
+| `tinyproxy` | `tinyproxy.conf` | `MinSpareServers`/`StatHost`/`ViaProxyName`/`ConnectPort` 等 PascalCase 専用キー |
+| `pihole` | `setupVars.conf` | `PIHOLE_*`/`QUERY_LOGGING`/`BLOCKING_ENABLED` 等 Pi-hole 専用キー |
+
+スキップ重複: `clash` は既存 `clashconf` がカバー(差替で pihole 採用)、
+`corefile`(CoreDNS)/`vcl`(Varnish)/`netlifyconf`/`vercelconf`/`tiltfile`/
+`earthly`/`snap`(squashfs)/`snappy` は既存のため対象外。
+
+既存イディオム踏襲: YAML strong/weak トップキー走査、INI `=` 割当走査、
+TOML セクション/キー抽出、DSL 呼出カウント。全モジュール `detect` は
+コメント行を除外し、非検出側テスト(`rejects_others`)付き。
+
+## 第364次 — DNS/認証/オブザーバ/アプリサーバ系 8 モジュール
+
+新規センサスモジュール(DETECTORS 1087 エントリ):
+
+| モジュール | 対象 | 検出ロジック |
+| --- | --- | --- |
+| `fluentbit` | `fluent-bit.conf` | `[SERVICE]`/`[INPUT]`/`[FILTER]`/`[OUTPUT]`/`[PARSER]` セクション ≥2 + `Name`/`Match` ディレクティブ |
+| `zookeeper` | `zoo.cfg` | `tickTime`/`initLimit`/`server.N=`/`autopurge.*`/`quorum.auth.*` 等専用キー |
+| `sudoers` | sudoers | `Defaults`/`User_Alias`/`Cmnd_Alias`/`NOPASSWD:`/`ALL=(` スペック + `#includedir`/`@include` |
+| `pdns` | PowerDNS `pdns.conf` | `launch`/`soa-*-default`/`axfr-lower-serial`/`slave-cycle-interval` 等専用キー |
+| `elasticsearch` | `elasticsearch.yml` | `cluster.name`/`node.name`/`discovery.seed_hosts`/`path.data` 等専用ドットキー |
+| `kibana` | `kibana.yml` | `server.port`/`elasticsearch.hosts`/`kibana.index`/`savedObjects.*` 等専用ドットキー |
+| `nsd` | `nsd.conf` | `zone:`/`pattern:`/`remote-control:`/`dnstap:`/`verify:` 等セクションキー |
+| `tomcat` | `server.xml` | `<Server` ルート + `<Service`/`<Connector`/`<Engine`/`<Host` 子要素 |
+
+スキップ重複: `clash`(clashconf), `chrony`(chronyconf), `exports`(nfsexports),
+`krb5`(krb5conf), `sssd`(sssdconf), `rsyslog`(rsyslogd) — `*conf`/*d サフィックス
+別名の既存モジュールが多数あるため、命名時は `ls src/ | grep <basename>` で
+全形確認が必須。
+
+## 第365次
+
+言語パッケージマネージャ/ドキュメント系の設定形式8モジュール
+(`composer`, `gemspec`, `gradle`, `podfile`, `pyproject`, `sphinx`, `stack`, `yarnrc`)
+を追加。composer.json は `dependencies`/`devDependencies` を REJECT キーとして
+package.json と識別。gradlemod は `.module` 公開メタデータで build.gradle とは別対象。
+DETECTORS 1087件、kit モジュール数2185。
+
+## 第366次
+
+フロントエンド/PaaS系の設定形式8モジュール
+(`appengine`, `astro`, `firebase`, `nuxt`, `storybook`, `supabase`, `tailwind`, `vitepress`)
+を追加。既存の `*conf` ツイン多数(railwayconf/renderconf/turboconf/viteconf/
+travisci/eslintrc/babelrc/karmaconf/mochajson/mocharc/avaconf/amplifyconf/
+azurepipe/webpackconf/vitestconf/netlifyconf)を避けて選定。
+firebase.json は `dependencies`/`devDependencies`/`scripts` を REJECT キーとして
+package.json と識別。supabase は `[edge_runtime]`/`[pooler]`/`verify_jwt` 等の
+排他セクション/キー。JS設定系は `defineNuxtConfig`/`defineConfig`+フレームワーク
+固有キーで識別。DETECTORS 1095件、kit モジュール数2185。
+
+## 第367次
+
+言語パッケージ/フロントエンドツールチェーン系の設定形式8モジュール
+(`dune`, `gatsby`, `gemfile`, `mix`, `postcss`, `sbt`, `svelte`, `unocss`)
+を追加。既存の `leiningen`/`rebarconfig`/`appjson`/`procfile`/`capacitor`
+等を避けて選定。dune はS式スタンザ名走査 (`(lang dune`/`(libraries`/
+`(modules`/`(executable` ≥3)。mix.exs は `use Mix.Project`/`defp deps`/
+`{:` タプル。sbt は `%%`/`%%%` 座標+`:=`設定。unocss/svelte/gatsby は
+フレームワーク固有プリセット/プラグイン名。DETECTORS 1103件、
+kit モジュール数2185。
+
+## 第368次
+
+メディア/ダウンロード/バックアップ系の設定形式8モジュール
+(`aria2`, `bazarr`, `deluge`, `kopia`, `navidrome`, `qbittorrent`, `rtorrent`, `transmission`)
+を追加。qbittorrent は `Session\`/`WebUI\`/`MailNotification\` バックスラッシュ名前空間キー、
+rtorrent は `directory`/`session`/`port_range`/`scgi_port`/`method.*`、
+aria2 は `bt-*`/`dht-*`/`rpc-*` キー、bazarr は `[sonarr]`/`[radarr]`+
+`enabled_providers`/`*_sync`、navidrome は `MusicFolder`/`ScanSchedule` キャメルキー、
+kopia は `masterKey`/`hashedPassword`/`keepHourly`/`cacheDirectory` 排他キー。
+JSON系は `jkey` で行頭 `"key":` のみ照合。DETECTORS 1095件、kit モジュール数2185。
+
+## 第369次
+
+FTP/LDAP/監視/DBデーモン系の設定形式8モジュール
+(`collectd`, `neo4jconf`, `proftpd`, `pureftpd`, `radiusd`, `slapd`,
+`snmpdconf`, `vsftpd`) を追加。vsftpd は `key=value` YES/NO ディレクティブ、
+proftpd は Apache式 `Directive`+`<Context>` ブロック、pureftpd は CamelCase
+ディレクティブ、snmpdconf は net-snmp (既存snmpはwireパケットパーサで別物)、
+collectd は `LoadPlugin`+`<Plugin>` ブロック、neo4jconf は `dbms.*`/`server.*`
+名前空間、slapd は `slapd.conf`+`olc*` 属性(ldapconfはクライアント側で別物)、
+radiusd は `key = value`+`client/listen {}` ブロック(radiusはRADIUSパケットで別物)。
+DETECTORS 1087件、kit モジュール数2185。
 
 ## 第378次
 
@@ -6228,3 +6415,100 @@ database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=
 luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第383次
+
+アマチュア無線/SDR系の設定形式8モジュールを追加:
+direwolfconf(direwolf.conf:ADEVICE/ACHANNELS/MYCALL/MODEM/AGWPORT/
+PBEACON/IGSERVER等大文字ディレクティブ行、アンカー>=1&>=3 or >=5)、
+gqrxconf(gqrx default.conf INI:[input]/[receiver]/[demod]/[audio]等
+セクション+demod/filter_width/freq/gain/antenna等キー)、
+sdrppconf(SDR++ config.json:"frequency"/"modules"/"moduleInstances"/
+"menuElements"/"vfo"/"streams"等JSONキー>=2)、
+fldigiconf(fldigi_def.xml:<MODEM>/<AFQUENCY>/<PWR>/<CALL>/
+<FLDIGI_DEFS>等大文字<TAG>value</TAG>行、hint>=1&>=4 or >=8)、
+wsjtxconf(WSJT-X.ini Qt INI:[General]/[Call]/[Decode]等セクション+
+MyCall/MyGrid/FDMode/CATSerialPort等キー)、
+axports(/etc/ax25/axports:port callsign speed paclen window説明の
+空白5カラム、コールサインN0CALL-9形式>=2行)、
+aprxconf(aprx.conf:mycall/myloc/login/server/tx-ok等ディレクティブ+
+<aprsis>/<interface>/<beacon>/<logging>等ブロック)、
+chirpcsv(CHIRP CSV:先頭行Location,Name,Frequency,Duplex,Offset,
+Tone,rToneFreq,cToneFreq,DtcsCode,DtcsPolarity,Mode,TStep,Skip,
+Comment等既知カラム>=5)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第384次
+
+セキュリティ監視/IDS系の設定形式8モジュールを追加:
+zeekconf(local.zeek:@load/@load-sigs/@ifdef/redef/export/global等
+Zeekスクリプト宣言、@load>=1&宣言>=2)、
+fail2banconf(jail.conf/jail.local INI:[DEFAULT]セクション+
+enabled/bantime/findtime/maxretry/logpath/filter/action/ignoreip
+等既知キー、DEFAULT>=1&>=2 or キー>=3 or セクション>=2&キー>=2)、
+crowdsec(crowdsec config.yaml:crowdsec_service/cscli/api/
+db_config/acquisition/profiles/plugin_config/prometheus等
+YAMLキー>=2)、
+tripwireconf(twpol.txt:`パス -> $(MASK) (opt);`アロールール+
+@@section/@@ifhostディレクティブ+`NAME = $(X);`変数定義、
+アロー>=1&文>=3)、
+samhainconf(samhainrc:[Attributes]/[Log]/[Suid]/[EventSeverity]/
+[PortCheck]等セクション+file/dir/severity系キー)、
+denyhosts(denyhosts.conf:SECURE_LOG/HOSTS_DENY/PURGE_DENY/
+DENY_THRESHOLD_*/WORK_DIR/DAEMON_LOG/SYNC_*等既知大文字キー>=3)、
+modsecurity(modsecurity.conf:SecRule/SecAction/SecRuleEngine/
+SecRequestBodyAccess/SecAuditLog等Sec*ディレクティブ、
+ルール>=1&>=2 or >=4)、
+naxsiconf(naxsiルール:MainRule/BasicRule/CheckRule/LearningMode/
+SecRulesEnabled/DeniedUrl/IgnoreIP等ヘッドトークン>=2)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第385次
+
+VPN/プロキシ系の設定形式8モジュールを追加:
+torrc(torrc:SocksPort/ORPort/ExitPolicy/ExitNodes/HiddenServiceDir/
+Nickname/ContactInfo/Bridge/UseBridges等既知ディレクティブ>=3)、
+v2rayconf(V2Ray/Xray config.json:"inbounds"/"outbounds"/"routing"/
+"dns"/"log"/"policy"/"stats"/"api"/"transport"/"observatory"等
+JSONキー、inbounds+outbounds両方 or キー>=3)、
+yggdrasil(yggdrasil.conf:"Peers"/"InterfacePeers"/"Listen"/
+"AdminListen"/"MulticastInterfaces"/"IfName"/"IfMTU"/
+"NodeInfoPrivacy"/"PrivateKey"等、hint>=1&>=2 or >=4)、
+trojanconf(trojan config.json:"run_type"/"local_addr"/"local_port"/
+"remote_addr"/"remote_port"/"password"/"ssl"/"sni"/"mux"/"verify"等、
+hint>=2&>=4 or >=6)、
+hysteriaconf(Hysteria config.yaml:server/listen/up/down/obfs/auth/
+tls/bandwidth/recv_window*/protocol/masquerade等YAMLキー、
+hint>=1&>=2 or >=4)、
+gostconf(GOST v3 gost.yml:トップレベルのservices/chains/hops/
+bypasses/resolvers/authers/limits/observer等キー>=1+1 or >=3)、
+strongswanconf(ipsec.conf:config setup/conn名セクションヘッダ+
+left/right/leftsubnet/rightsubnet/keyexchange/ike/esp/authby/auto
+等パラメータ、conn>=1&>=2 or >=5)、
+tuicconf(TUIC config.json:"server"/"uuid"/"password"/
+"congestion_control"/"alpn"/"udp_relay_mode"/"reduce_rtt"/
+"send_window"等、hint>=1&>=2 or >=5)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第386次
+
+GIS/地理空間系の設定形式8モジュールを追加:
+wktproj(.prj WKT:PROJCS/GEOGCS/DATUM/SPHEROID/PRIMEM/UNIT/
+PROJECTION/PARAMETER/AXIS/TOWGS84等キーワード`KEYWORD[`、
+アンカー+>=3 or >=5)、
+projjson(PROJJSON:"type"が"GeographicCRS"/"ProjectedCRS"/
+"VerticalCRS"/"BoundCRS"/"GeodeticReferenceFrame"等の既知型)、
+cartocss(.mss CartoCSS:#layer/Mapセレクタ+line-color/polygon-fill/
+marker-file/text-name/polygon-gamma/raster-opacity等
+地図プロパティ>=2)、
+overpass(Overpass QL:[out:json]/[timeout:]設定ブロック+
+node/way/relation/area/nwr/out文、設定>=1&>=2 or >=3)、
+mmlstyle(TileMill .mml JSON:"Stylesheet"/"Layer"/"interactivity"/
+"srs"/"Datasource"/"bounds"/"format"等、hint>=1&>=2 or >=4)、
+locxml(TopoGraphix LOC XML:<loc version>+waypoint/name id="GC"/
+coord lat lon/type/link要素)、
+vrtgdal(GDAL .vrt XML:<VRTDataset rasterXSize>+SRS/GeoTransform/
+VRTRasterBand/SimpleSource/SourceFilename/SrcRect/DstRect/
+LUT/NoDataValue等VRT要素)、
+tilestacheconf(TileStache tilestache.cfg JSON:トップレベルcache/
+layers/logging/index/preview/publicUrl+層内provider/projection/
+metatile/stale lock timeout等、hint>=1&>=3 or >=5)。
+mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
+カバー済みのため差替。いずれも行アンカー判定、コメント行除外、
+テスト4本ずつ。
