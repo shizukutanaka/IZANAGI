@@ -145,12 +145,21 @@ const ENTITY_KEYS: &[&str] = &[
     "set:",
     "env:",
 ];
+fn is_key(tr: &str, key: &str) -> bool {
+    let k = tr.trim_start_matches(['"', '\'']);
+    k.strip_prefix(key)
+        .is_some_and(|r| r.starts_with(':') || r.starts_with("\":") || r.starts_with("':"))
+}
+
+fn has_key(t: &str, key: &str) -> bool {
+    t.lines().any(|l| is_key(l.trim_start(), key))
+}
 
 /// Detects Kong declarative config files.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
-    t.contains("_format_version:")
+    has_key(&t, "_format_version")
 }
 
 impl Kong {
@@ -195,6 +204,11 @@ impl Kong {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# _format_version: \"3.0\"\n"));
+    }
 
     #[test]
     fn detects_and_counts() {
