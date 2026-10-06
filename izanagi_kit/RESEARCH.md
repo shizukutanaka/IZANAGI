@@ -6160,3 +6160,25 @@ database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=
 luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第383次
+
+アマチュア無線/SDR系の設定形式8モジュールを追加:
+direwolfconf(direwolf.conf:ADEVICE/ACHANNELS/MYCALL/MODEM/AGWPORT/
+PBEACON/IGSERVER等大文字ディレクティブ行、アンカー>=1&>=3 or >=5)、
+gqrxconf(gqrx default.conf INI:[input]/[receiver]/[demod]/[audio]等
+セクション+demod/filter_width/freq/gain/antenna等キー)、
+sdrppconf(SDR++ config.json:"frequency"/"modules"/"moduleInstances"/
+"menuElements"/"vfo"/"streams"等JSONキー>=2)、
+fldigiconf(fldigi_def.xml:<MODEM>/<AFQUENCY>/<PWR>/<CALL>/
+<FLDIGI_DEFS>等大文字<TAG>value</TAG>行、hint>=1&>=4 or >=8)、
+wsjtxconf(WSJT-X.ini Qt INI:[General]/[Call]/[Decode]等セクション+
+MyCall/MyGrid/FDMode/CATSerialPort等キー)、
+axports(/etc/ax25/axports:port callsign speed paclen window説明の
+空白5カラム、コールサインN0CALL-9形式>=2行)、
+aprxconf(aprx.conf:mycall/myloc/login/server/tx-ok等ディレクティブ+
+<aprsis>/<interface>/<beacon>/<logging>等ブロック)、
+chirpcsv(CHIRP CSV:先頭行Location,Name,Frequency,Duplex,Offset,
+Tone,rToneFreq,cToneFreq,DtcsCode,DtcsPolarity,Mode,TStep,Skip,
+Comment等既知カラム>=5)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。

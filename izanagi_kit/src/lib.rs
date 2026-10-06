@@ -456,6 +456,7 @@ pub mod appdynamics;
 pub mod appimage;
 pub mod appjson;
 pub mod appveyor;
+pub mod aprxconf;
 pub mod aps;
 pub mod apsp;
 pub mod apt;
@@ -501,6 +502,7 @@ pub mod avi;
 pub mod avltree;
 pub mod avro;
 pub mod awscredentials;
+pub mod axports;
 pub mod ay;
 pub mod azurepipe;
 pub mod azw;
@@ -649,6 +651,7 @@ pub mod checkstyle;
 pub mod chef;
 pub mod cherokee;
 pub mod chip8;
+pub mod chirpcsv;
 pub mod christofides;
 pub mod chromaconf;
 pub mod chrometrace;
@@ -804,6 +807,7 @@ pub mod digit;
 pub mod dihedral;
 pub mod dimacs;
 pub mod dinit;
+pub mod direwolfconf;
 pub mod discourse;
 pub mod dita;
 pub mod dither;
@@ -976,6 +980,7 @@ pub mod flac;
 pub mod flake8conf;
 pub mod flatbuf;
 pub mod flatpak;
+pub mod fldigiconf;
 pub mod flif;
 pub mod flow;
 pub mod flowfield;
@@ -1082,6 +1087,7 @@ pub mod gp;
 pub mod gpkg;
 pub mod gpsd;
 pub mod gpx;
+pub mod gqrxconf;
 pub mod gradlemod;
 pub mod grafana;
 pub mod graph;
@@ -2058,6 +2064,7 @@ pub mod sdc;
 pub mod sddmconf;
 pub mod sdf;
 pub mod sdkconfig;
+pub mod sdrppconf;
 pub mod seamcarve;
 pub mod seccomp;
 pub mod secretsbaseline;
@@ -2493,6 +2500,7 @@ pub mod wpasupplicant;
 pub mod wrl;
 pub mod ws;
 pub mod wsdl;
+pub mod wsjtxconf;
 pub mod wslconf;
 pub mod wv;
 pub mod x3d;
@@ -2767,6 +2775,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("appdynamics", appdynamics::detect),
     ("appjson", appjson::detect),
     ("appveyor", appveyor::detect),
+    ("aprxconf", aprxconf::detect),
     ("apt", apt::detect),
     ("archinstall", archinstall::detect),
     ("ardour", ardour::detect),
@@ -2791,6 +2800,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("autoyast", autoyast::detect),
     ("avaconf", avaconf::detect),
     ("awscredentials", awscredentials::detect),
+    ("axports", axports::detect),
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
     ("bai2", bai2::detect),
@@ -2853,6 +2863,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("checkov", checkov::detect),
     ("chef", chef::detect),
     ("cherokee", cherokee::detect),
+    ("chirpcsv", chirpcsv::detect),
     ("chromaconf", chromaconf::detect),
     ("chrometrace", chrometrace::detect),
     ("chronyconf", chronyconf::detect),
@@ -2937,6 +2948,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("did", did::detect),
     ("dimacs", dimacs::detect),
     ("dinit", dinit::detect),
+    ("direwolfconf", direwolfconf::detect),
     ("discourse", discourse::detect),
     ("dita", dita::detect),
     ("dnfconf", dnfconf::detect),
@@ -3009,6 +3021,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fivetranconf", fivetranconf::detect),
     ("fixml", fixml::detect),
     ("flake8conf", flake8conf::detect),
+    ("fldigiconf", fldigiconf::detect),
     ("flif", flif::detect),
     ("fluentd", fluentd::detect),
     ("flyio", flyio::detect),
@@ -3059,6 +3072,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gosum", gosum::detect),
     ("gp", gp::detect),
     ("gpsd", gpsd::detect),
+    ("gqrxconf", gqrxconf::detect),
     ("gradlemod", gradlemod::detect),
     ("grafana", grafana::detect),
     ("graphml", graphml::detect),
@@ -3558,6 +3572,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sdc", sdc::detect),
     ("sddmconf", sddmconf::detect),
     ("sdkconfig", sdkconfig::detect),
+    ("sdrppconf", sdrppconf::detect),
     ("seccomp", seccomp::detect),
     ("secretsbaseline", secretsbaseline::detect),
     ("semgrep", semgrep::detect),
@@ -3773,6 +3788,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wpasupplicant", wpasupplicant::detect),
     ("wrl", wrl::detect),
     ("wsdl", wsdl::detect),
+    ("wsjtxconf", wsjtxconf::detect),
     ("wslconf", wslconf::detect),
     ("xacml", xacml::detect),
     ("xbrl", xbrl::detect),
