@@ -453,6 +453,7 @@ pub mod apparmor;
 pub mod appcache;
 pub mod appdaemon;
 pub mod appdynamics;
+pub mod appengine;
 pub mod appimage;
 pub mod appjson;
 pub mod appveyor;
@@ -484,6 +485,7 @@ pub mod asoundrc;
 pub mod ass;
 pub mod assetlinks;
 pub mod assets;
+pub mod astro;
 pub mod asv;
 pub mod atom;
 pub mod atr;
@@ -962,6 +964,7 @@ pub mod fibheap;
 pub mod fidl;
 pub mod figlet;
 pub mod filebeat;
+pub mod firebase;
 pub mod firewalld;
 pub mod fishconf;
 pub mod fit;
@@ -1647,6 +1650,7 @@ pub mod nuconf;
 pub mod nuget;
 pub mod nugetconfig;
 pub mod nunit;
+pub mod nuxt;
 pub mod nwc;
 pub mod nxconf;
 pub mod oai;
@@ -2190,6 +2194,7 @@ pub mod stl;
 pub mod stm;
 pub mod stockholm;
 pub mod storageconf;
+pub mod storybook;
 pub mod stp;
 pub mod strings;
 pub mod studio3;
@@ -2202,6 +2207,7 @@ pub mod sudoku;
 pub mod suffix;
 pub mod sufftree;
 pub mod suiconf;
+pub mod supabase;
 pub mod supervisor;
 pub mod surefire;
 pub mod suricata;
@@ -2234,6 +2240,7 @@ pub mod tabbyconf;
 pub mod tacacs;
 pub mod tact;
 pub mod tailscale;
+pub mod tailwind;
 pub mod talisman;
 pub mod tap;
 pub mod taprc;
@@ -2403,6 +2410,7 @@ pub mod vip;
 pub mod virtxml;
 pub mod visibility;
 pub mod viteconf;
+pub mod vitepress;
 pub mod viterbi;
 pub mod vitestconf;
 pub mod vlcrc;
@@ -2749,6 +2757,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("appcache", appcache::detect),
     ("appdaemon", appdaemon::detect),
     ("appdynamics", appdynamics::detect),
+    ("appengine", appengine::detect),
     ("appjson", appjson::detect),
     ("appveyor", appveyor::detect),
     ("apt", apt::detect),
@@ -2765,6 +2774,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("asf", asf::detect),
     ("asn1", asn1::detect),
     ("asoundrc", asoundrc::detect),
+    ("astro", astro::detect),
     ("asv", asv::detect),
     ("atom", atom::detect),
     ("audacity", audacity::detect),
@@ -2987,6 +2997,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fhir", fhir::detect),
     ("fidl", fidl::detect),
     ("filebeat", filebeat::detect),
+    ("firebase", firebase::detect),
     ("firewalld", firewalld::detect),
     ("fishconf", fishconf::detect),
     ("fivetranconf", fivetranconf::detect),
@@ -3339,6 +3350,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ntpsec", ntpsec::detect),
     ("nuconf", nuconf::detect),
     ("nugetconfig", nugetconfig::detect),
+    ("nuxt", nuxt::detect),
     ("nwc", nwc::detect),
     ("nxconf", nxconf::detect),
     ("oai", oai::detect),
@@ -3593,10 +3605,12 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("stix", stix::detect),
     ("stm", stm::detect),
     ("storageconf", storageconf::detect),
+    ("storybook", storybook::detect),
     ("stylelint", stylelint::detect),
     ("sublime", sublime::detect),
     ("sudoku", sudoku::detect),
     ("suiconf", suiconf::detect),
+    ("supabase", supabase::detect),
     ("supervisor", supervisor::detect),
     ("surefire", surefire::detect),
     ("suricata", suricata::detect),
@@ -3620,6 +3634,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tabbyconf", tabbyconf::detect),
     ("tact", tact::detect),
     ("tailscale", tailscale::detect),
+    ("tailwind", tailwind::detect),
     ("talisman", talisman::detect),
     ("taprc", taprc::detect),
     ("tarantool", tarantool::detect),
@@ -3704,6 +3719,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vimsyntax", vimsyntax::detect),
     ("virtxml", virtxml::detect),
     ("viteconf", viteconf::detect),
+    ("vitepress", vitepress::detect),
     ("vitestconf", vitestconf::detect),
     ("vlcrc", vlcrc::detect),
     ("vmagentconf", vmagentconf::detect),
