@@ -429,6 +429,7 @@ pub mod aln;
 pub mod alphahull;
 pub mod alto;
 pub mod alz;
+pub mod ambassador;
 pub mod amf;
 pub mod amfile;
 pub mod ampl;
@@ -780,6 +781,7 @@ pub mod desktop;
 pub mod detekt;
 pub mod devcontainer;
 pub mod devfile;
+pub mod devspace;
 pub mod dex;
 pub mod dexidp;
 pub mod dfamin;
@@ -1010,6 +1012,7 @@ pub mod fxml;
 pub mod fxp;
 pub mod gapbuffer;
 pub mod garnetconf;
+pub mod gatewayapi;
 pub mod gauss;
 pub mod gb;
 pub mod gba;
@@ -1317,6 +1320,7 @@ pub mod kcore;
 pub mod kdbx;
 pub mod kdf;
 pub mod kdtree;
+pub mod keda;
 pub mod kedro;
 pub mod keepalived;
 pub mod keepassxc;
@@ -1408,6 +1412,7 @@ pub mod logindefs;
 pub mod logrotate;
 pub mod logstash;
 pub mod loki;
+pub mod longhorn;
 pub mod loveconf;
 pub mod lp;
 pub mod lpf;
@@ -1668,6 +1673,7 @@ pub mod offlinelca;
 pub mod ofx;
 pub mod ogg;
 pub mod ogmo;
+pub mod okteto;
 pub mod ole;
 pub mod omm;
 pub mod onion;
@@ -1978,6 +1984,7 @@ pub mod rofi;
 pub mod rollback;
 pub mod rolling;
 pub mod rollup;
+pub mod rook;
 pub mod roots;
 pub mod rope;
 pub mod roq;
@@ -2252,6 +2259,7 @@ pub mod temporal;
 pub mod terminal;
 pub mod terminfo;
 pub mod ternary;
+pub mod terragrunt;
 pub mod texinfo;
 pub mod textile;
 pub mod textlayout;
@@ -2732,6 +2740,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("aln", aln::detect),
     ("alto", alto::detect),
     ("alz", alz::detect),
+    ("ambassador", ambassador::detect),
     ("amfile", amfile::detect),
     ("ampl", ampl::detect),
     ("amplifyconf", amplifyconf::detect),
@@ -2910,6 +2919,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("detekt", detekt::detect),
     ("devcontainer", devcontainer::detect),
     ("devfile", devfile::detect),
+    ("devspace", devspace::detect),
     ("dexidp", dexidp::detect),
     ("dgml", dgml::detect),
     ("dhall", dhall::detect),
@@ -3006,6 +3016,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fxml", fxml::detect),
     ("fxp", fxp::detect),
     ("garnetconf", garnetconf::detect),
+    ("gatewayapi", gatewayapi::detect),
     ("gbench", gbench::detect),
     ("gbstudio", gbstudio::detect),
     ("gdf", gdf::detect),
@@ -3157,6 +3168,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kbm", kbm::detect),
     ("kcl", kcl::detect),
     ("kconfig", kconfig::detect),
+    ("keda", keda::detect),
     ("kedro", kedro::detect),
     ("keepalived", keepalived::detect),
     ("keepassxc", keepassxc::detect),
@@ -3212,6 +3224,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("logrotate", logrotate::detect),
     ("logstash", logstash::detect),
     ("loki", loki::detect),
+    ("longhorn", longhorn::detect),
     ("loveconf", loveconf::detect),
     ("lp", lp::detect),
     ("lpf", lpf::detect),
@@ -3349,6 +3362,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("oem", oem::detect),
     ("offlineimap", offlineimap::detect),
     ("ogmo", ogmo::detect),
+    ("okteto", okteto::detect),
     ("omm", omm::detect),
     ("opam", opam::detect),
     ("opb", opb::detect),
@@ -3499,6 +3513,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("rockspec", rockspec::detect),
     ("rofi", rofi::detect),
     ("rollup", rollup::detect),
+    ("rook", rook::detect),
     ("routeros", routeros::detect),
     ("rpcs3conf", rpcs3conf::detect),
     ("rpgmakerconf", rpgmakerconf::detect),
@@ -3630,6 +3645,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("telnet", telnet::detect),
     ("tempoconf", tempoconf::detect),
     ("terminfo", terminfo::detect),
+    ("terragrunt", terragrunt::detect),
     ("textile", textile::detect),
     ("textlint", textlint::detect),
     ("textmategram", textmategram::detect),

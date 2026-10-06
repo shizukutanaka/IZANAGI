@@ -6121,3 +6121,31 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第353次 — Gateway API/オートスケーラ/ストレージ/開発環境系 8 モジュール
+
+census 未収録ドメイン第6弾。K8s 標準 Gateway API、オートスケーリング、
+分散ストレージ、開発環境ツール、Terragrunt を追加。
+
+- gatewayapi: Kubernetes Gateway API(`gateway.networking.k8s.io` + GatewayClass/Gateway/HTTPRoute/GRPCRoute/ReferenceGrant/BackendTLSPolicy 等)
+- keda: KEDA(`keda.sh`/`eventing.keda.sh` + ScaledObject/ScaledJob/TriggerAuthentication/EventSource)
+- rook: Rook Ceph(`ceph.rook.io` + CephCluster/CephBlockPool/CephFilesystem/CephObjectStore 等)
+- longhorn: Longhorn(`longhorn.io` + Volume/Engine/Replica/BackupTarget/RecurringJob 等)
+- ambassador: Emissary-ingress(`getambassador.io`/`x.getambassador.io` + Mapping/Listener/Host/TLSContext 等)
+- devspace: `devspace.yaml`(`version:` + pipelines/deployments/dev/images/vars/profiles)
+- okteto: `okteto.yaml`(deploy/destroy/test/build/dev + sync/forward/remote/autocreate 等 okteto 固有サブキー)
+- terragrunt: `terragrunt.hcl`(include/dependency/remote_state/generate + find_in_parent_folders/get_parent_terragrunt_dir 等 TG 固有トークン、コメント行除外済み)
+
+`pub mod` / `DETECTORS` 登録済み(1111 エントリ)。API ピン更新
+(18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- kubernetes-sigs/gateway-api — Gateway/Route CRDs
+- kedacore/keda — ScaledObject/TriggerAuthentication CRDs
+- rook/rook — Ceph CRDs (ceph.rook.io)
+- longhorn/longhorn — Volume/Engine CRDs
+- emissary-ingress/emissary — getambassador.io CRDs
+- devspace-sh/devspace — devspace.yaml schema
+- okteto/okteto — okteto manifest reference
+- gruntwork-io/terragrunt — terragrunt.hcl blocks & functions
