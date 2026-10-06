@@ -6121,3 +6121,15 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第369次
+
+FTP/LDAP/監視/DBデーモン系の設定形式8モジュール
+(`collectd`, `neo4jconf`, `proftpd`, `pureftpd`, `radiusd`, `slapd`,
+`snmpdconf`, `vsftpd`) を追加。vsftpd は `key=value` YES/NO ディレクティブ、
+proftpd は Apache式 `Directive`+`<Context>` ブロック、pureftpd は CamelCase
+ディレクティブ、snmpdconf は net-snmp (既存snmpはwireパケットパーサで別物)、
+collectd は `LoadPlugin`+`<Plugin>` ブロック、neo4jconf は `dbms.*`/`server.*`
+名前空間、slapd は `slapd.conf`+`olc*` 属性(ldapconfはクライアント側で別物)、
+radiusd は `key = value`+`client/listen {}` ブロック(radiusはRADIUSパケットで別物)。
+DETECTORS 1087件、kit モジュール数2185。
