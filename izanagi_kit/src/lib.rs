@@ -1080,6 +1080,7 @@ pub mod goertzel;
 pub mod gogsconf;
 pub mod golangci;
 pub mod gomod;
+pub mod gostconf;
 pub mod gosum;
 pub mod gp;
 pub mod gpkg;
@@ -1177,6 +1178,7 @@ pub mod hydraml;
 pub mod hydrogen;
 pub mod hyperfine;
 pub mod hyprland;
+pub mod hysteriaconf;
 pub mod i3conf;
 pub mod ibmmq;
 pub mod ical;
@@ -2211,6 +2213,7 @@ pub mod stockholm;
 pub mod storageconf;
 pub mod stp;
 pub mod strings;
+pub mod strongswanconf;
 pub mod studio3;
 pub mod stun;
 pub mod stylelint;
@@ -2307,6 +2310,7 @@ pub mod tnsnames;
 pub mod toml;
 pub mod tonelli;
 pub mod topojson;
+pub mod torrc;
 pub mod torrent;
 pub mod tournament;
 pub mod toxini;
@@ -2318,6 +2322,7 @@ pub mod treesittergram;
 pub mod trie;
 pub mod trigger;
 pub mod trivy;
+pub mod trojanconf;
 pub mod trx;
 pub mod ts;
 pub mod tscn;
@@ -2329,6 +2334,7 @@ pub mod ttc;
 pub mod ttf;
 pub mod ttml;
 pub mod ttyrec;
+pub mod tuicconf;
 pub mod tunstall;
 pub mod turboconf;
 pub mod turn;
@@ -2389,6 +2395,7 @@ pub mod utmp;
 pub mod uue;
 pub mod uuid;
 pub mod uuid7;
+pub mod v2rayconf;
 pub mod vagrant;
 pub mod vale;
 pub mod validator;
@@ -2557,6 +2564,7 @@ pub mod yara;
 pub mod yarnlock;
 pub mod yenc;
 pub mod yfast;
+pub mod yggdrasil;
 pub mod yosys;
 pub mod yuzuconf;
 pub mod z64;
@@ -3068,6 +3076,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gogsconf", gogsconf::detect),
     ("golangci", golangci::detect),
     ("gomod", gomod::detect),
+    ("gostconf", gostconf::detect),
     ("gosum", gosum::detect),
     ("gp", gp::detect),
     ("gpsd", gpsd::detect),
@@ -3116,6 +3125,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("hydrogen", hydrogen::detect),
     ("hyperfine", hyperfine::detect),
     ("hyprland", hyprland::detect),
+    ("hysteriaconf", hysteriaconf::detect),
     ("i3conf", i3conf::detect),
     ("ibmmq", ibmmq::detect),
     ("ical", ical::detect),
@@ -3637,6 +3647,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("stix", stix::detect),
     ("stm", stm::detect),
     ("storageconf", storageconf::detect),
+    ("strongswanconf", strongswanconf::detect),
     ("stylelint", stylelint::detect),
     ("sublime", sublime::detect),
     ("sudoku", sudoku::detect),
@@ -3692,16 +3703,19 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tmuxconf", tmuxconf::detect),
     ("tmx", tmx::detect),
     ("tnsnames", tnsnames::detect),
+    ("torrc", torrc::detect),
     ("toxini", toxini::detect),
     ("tptp", tptp::detect),
     ("traefik", traefik::detect),
     ("travisci", travisci::detect),
     ("treesittergram", treesittergram::detect),
     ("trivy", trivy::detect),
+    ("trojanconf", trojanconf::detect),
     ("tscn", tscn::detect),
     ("tsconfig", tsconfig::detect),
     ("tsx", tsx::detect),
     ("ttyrec", ttyrec::detect),
+    ("tuicconf", tuicconf::detect),
     ("turboconf", turboconf::detect),
     ("twee", twee::detect),
     ("txt2tags", txt2tags::detect),
@@ -3731,6 +3745,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("usi", usi::detect),
     ("ust", ust::detect),
     ("ustx", ustx::detect),
+    ("v2rayconf", v2rayconf::detect),
     ("vagrant", vagrant::detect),
     ("vale", vale::detect),
     ("valkeyconf", valkeyconf::detect),
@@ -3817,6 +3832,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("yamllint", yamllint::detect),
     ("yara", yara::detect),
     ("yarnlock", yarnlock::detect),
+    ("yggdrasil", yggdrasil::detect),
     ("yosys", yosys::detect),
     ("yuzuconf", yuzuconf::detect),
     ("zabbix", zabbix::detect),
