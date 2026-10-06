@@ -6212,6 +6212,22 @@ DBオペレータとLB/マルチテナント系 CRD 群第4弾。
 `pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
 (18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
+## 第361次 — ML serving/分散実行・監視オペレータ系 CRD 8 モジュール
+
+MLプラットフォーム・サーバレス・監視オペレータ系 CRD 群第6弾。
+
+- kubeflowtraining: Kubeflow Training Operator(`kubeflow.org` + TFJob/PyTorchJob/MPIJob/XGBoostJob/PaddleJob/JAXJob/TrainJob/ClusterTrainingRuntime)
+- kserve: KServe(`serving.kserve.io` + InferenceService/InferenceGraph/TrainedModel/ServingRuntime/ClusterServingRuntime)
+- seldon: Seldon Core(`machinelearning.seldon.io` + SeldonDeployment)
+- dask: Dask Operator(`kubernetes.dask.org` + DaskCluster/DaskJob/DaskWorkerGroup/DaskAutoscaler)
+- openfaas: OpenFaaS(`openfaas.com` + Function/Profile/FunctionIngress)
+- kubevela: KubeVela(`*.oam.dev` + Application/ApplicationRevision/ComponentDefinition/TraitDefinition/PolicyDefinition 等)
+- grafanaop: Grafana Operator(`*.integreatly.org`/`*.grafana.com` + Grafana/GrafanaDashboard/GrafanaDatasource/GrafanaFolder/ContactPoint 等)
+- victoria: VictoriaMetrics Operator(`operator.victoriametrics.com` + VMAgent/VMAlert/VMCluster/VMServiceScrape/VMRule/VMSingle/VMAuth 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第362次 — IdP/認証プロキシ・監視エージェント系 9 モジュール
 
 アイデンティティ・ゼロトラスト系ツールの設定形式を追加。YAMLトップキー(強/弱)、INI、HCL の3パターン。
