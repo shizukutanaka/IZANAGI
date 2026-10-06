@@ -46,16 +46,29 @@ pub struct Argowf {
     pub comments: usize,
 }
 
-const WF_KINDS: &[&str] = &[
-    "kind: Workflow",
-    "kind: CronWorkflow",
-    "kind: WorkflowTemplate",
-    "kind: ClusterWorkflowTemplate",
-    "kind: WorkflowEventBinding",
-    "kind: WorkflowTaskSet",
-    "kind: WorkflowArtifactGCTask",
-    "kind: WorkflowTaskResult",
+const KIND_NAMES: &[&str] = &[
+    "Workflow",
+    "CronWorkflow",
+    "WorkflowTemplate",
+    "ClusterWorkflowTemplate",
+    "WorkflowEventBinding",
+    "WorkflowTaskSet",
+    "WorkflowArtifactGCTask",
+    "WorkflowTaskResult",
 ];
+
+/// `kind` の値を返す(`kind:`/`kind :` 双方。YAML ではコロン前の空白も合法)。
+fn kind_value(tr: &str) -> Option<&str> {
+    tr.strip_prefix("kind")?
+        .trim_start()
+        .strip_prefix(':')
+        .map(str::trim)
+}
+
+fn is_key(tr: &str, key: &str) -> bool {
+    tr.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
 
 const SPEC_KEYS: &[&str] = &[
     "entrypoint:",
@@ -178,7 +191,9 @@ const IO_KEYS: &[&str] = &[
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
-    t.contains("argoproj.io/") && WF_KINDS.iter().any(|k| t.contains(k))
+    t.contains("argoproj.io/")
+        && t.lines()
+            .any(|l| kind_value(l.trim()).is_some_and(|v| KIND_NAMES.contains(&v)))
 }
 
 impl Argowf {
@@ -192,7 +207,7 @@ impl Argowf {
         let mut c = Self {
             kinds: t
                 .lines()
-                .filter(|l| WF_KINDS.iter().any(|k| l.trim() == *k))
+                .filter(|l| kind_value(l.trim()).is_some_and(|v| KIND_NAMES.contains(&v)))
                 .count(),
             spec_keys: 0,
             template_keys: 0,
@@ -206,13 +221,20 @@ impl Argowf {
                 continue;
             }
             let tr = tr.trim_start_matches("- ").trim_start();
-            if SPEC_KEYS.iter().any(|k| tr.starts_with(k)) {
+            if SPEC_KEYS
+                .iter()
+                .any(|k| is_key(tr, k.trim_end_matches(':')))
+            {
                 c.spec_keys += 1;
             }
-            if TEMPLATE_KEYS.iter().any(|k| tr.starts_with(k)) || tr.starts_with("name:") {
+            if TEMPLATE_KEYS
+                .iter()
+                .any(|k| is_key(tr, k.trim_end_matches(':')))
+                || is_key(tr, "name")
+            {
                 c.template_keys += 1;
             }
-            if IO_KEYS.iter().any(|k| tr.starts_with(k)) {
+            if IO_KEYS.iter().any(|k| is_key(tr, k.trim_end_matches(':'))) {
                 c.io_keys += 1;
             }
         }
@@ -223,6 +245,15 @@ impl Argowf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `kind : Workflow` も合法。
+        let b = b"apiVersion: argoproj.io/v1alpha1\nkind : Workflow\nspec: {}\n";
+        assert!(detect(b));
+        let c = Argowf::parse(b).unwrap();
+        assert_eq!(c.kinds, 1);
+    }
 
     #[test]
     fn detects_and_counts() {

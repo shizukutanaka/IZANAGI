@@ -6083,6 +6083,26 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
 
+## 第344次 — YAML `key :`(コロン前空白)バリアントの偽陰性一括修正
+
+監査 P0 残件「JSON `"key" :` と同型の空白許容が YAML/INI 系でも要監査」への対応。
+YAML のブロックマッピングはコロン前の空白を許容する(`key :` 合法)のに、
+検出器が `key:` リテラルだけを見るため偽陰性になっていた欠陥クラスを一括修正。
+
+- `is_key` ヘルパー共有の4モジュール(azurepipe/bitrise/cfn/circleci):
+  `r.trim_start().trim_start_matches(quote).trim_start().starts_with(':')` へ拡張し
+  `key :`・`"key" :` を受理
+- raw `key:` チェックの8モジュール:
+  - apmserver/appdaemon/amplifyconf/ansible/datadog/asdf — `is_key` 化
+  - appdaemon/bentoml/ansible — 全文 `contains("key:")` を行アンカー
+    `has_key` へ(偽陰性修正と同時に値中マーカー偽陽性も解消、第340次と同方向)
+  - argowf — `kind_value` ヘルパーで `kind` 値を正規化抽出
+    (`kind: X`/`kind : X`/任意空白幅)、SPEC/TEMPLATE/IO キー群も is_key 化
+
+各モジュールに空白バリアントの回帰テストを追加(既存 parse/detect 動作は不変、
+`key:` 系は受理を維持したまま superset 化)。対象外: `- name:`/`- hosts:` の
+ダッシュ項は is_key で包括済み、callgrind 等の非YAMLリテラル形式は仕様上除外。
+
 ## 第345次
 
 「先頭行必須」形式の `detect()`/`parse()` が UTF-8 BOM (U+FEFF) 付き入力を
@@ -6148,6 +6168,26 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 - karmada-io/karmada — *.karmada.io CRDs
 - gardener/gardener — *.gardener.cloud CRDs
 - tinkerbell — tinkerbell.org CRDs
+
+## 第347次
+
+第340/346次の継続 — `detect()` の全文 `contains(marker)` でコメント行内の
+言及だけで合致する偽陽性の残存クラスを一括修正(18ファイル):
+
+- **`//`/`/*` 系**: `jenkinsfile`(`node`+`stage` の汎用語ペアは
+  `node {`/`node(`/`stage(`/`stage '`/… の形に限定化し `agent` も既知形へ)、
+  `sol`, `cairo`, `openpulse`, `tact`, `movelang`, `qs`, `bicep`
+- **`;;` 系**: `func` (FunC)
+- **`#` 系**: `rpy`, `airflow`, `nginx`, `consul`(`#`+`//`), `vyper`
+  (`# @version` は規格上コメント必須のため保持、`def `+デコレータは
+  行頭 `@` 必須に強化)
+- **JSON キー位置**: `qobj`, `uplugin`, `uproject`, `braket`, `cfn` —
+  `jkey(t,key)` が `"key"` の直後に `:` を要求し値位置の文字列混入を拒否
+  (minified JSON `{"K":"v"}` は `has_key` では取れず `jkey` が必要)
+
+共通ヘルパー `code_has`(コメント行を除外する行単位 contains)を
+各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
+テスト追加。
 
 ## 第378次
 
