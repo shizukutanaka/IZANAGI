@@ -6180,6 +6180,23 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
 
+## 第353次 — Gateway API/オートスケーラ/ストレージ/開発環境系 8 モジュール
+
+census 未収録ドメイン第6弾。K8s 標準 Gateway API、オートスケーリング、
+分散ストレージ、開発環境ツール、Terragrunt を追加。
+
+- gatewayapi: Kubernetes Gateway API(`gateway.networking.k8s.io` + GatewayClass/Gateway/HTTPRoute/GRPCRoute/ReferenceGrant/BackendTLSPolicy 等)
+- keda: KEDA(`keda.sh`/`eventing.keda.sh` + ScaledObject/ScaledJob/TriggerAuthentication/EventSource)
+- rook: Rook Ceph(`ceph.rook.io` + CephCluster/CephBlockPool/CephFilesystem/CephObjectStore 等)
+- longhorn: Longhorn(`longhorn.io` + Volume/Engine/Replica/BackupTarget/RecurringJob 等)
+- ambassador: Emissary-ingress(`getambassador.io`/`x.getambassador.io` + Mapping/Listener/Host/TLSContext 等)
+- devspace: `devspace.yaml`(`version:` + pipelines/deployments/dev/images/vars/profiles)
+- okteto: `okteto.yaml`(deploy/destroy/test/build/dev + sync/forward/remote/autocreate 等 okteto 固有サブキー)
+- terragrunt: `terragrunt.hcl`(include/dependency/remote_state/generate + find_in_parent_folders/get_parent_terragrunt_dir 等 TG 固有トークン、コメント行除外済み)
+
+`pub mod` / `DETECTORS` 登録済み(1111 エントリ)。API ピン更新
+(18186→18206)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第354次 — Argo Events/SPIRE/CSI秘密管理/ストレージ/パッケージ系 8 モジュール
 
 census 未収録ドメイン第7弾。K8s ストレージ・セキュリティ CRD 群と
