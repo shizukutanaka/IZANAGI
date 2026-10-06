@@ -6180,6 +6180,23 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
 
+## 第352次 — Kubernetesネットワーク/証明書/シークレット系 CRD + atlantis 8 モジュール
+
+census 未収録ドメイン第5弾。K8s ネットワーク・証明書・シークレット管理の
+主要 CRD 群7形式と Terraform PR 自動化ツール atlantis を追加。
+
+- certmanager: cert-manager(`cert-manager.io`/`acme.cert-manager.io` + Issuer/ClusterIssuer/Certificate/CertificateRequest/Order/Challenge)
+- externalsecrets: External Secrets Operator(`external-secrets.io`/`generators.external-secrets.io` + ExternalSecret/SecretStore/ClusterSecretStore/PushSecret/ジェネレータ kind 群)
+- sealedsecrets: Bitnami Sealed Secrets(`sealedsecrets.bitnami.com` + SealedSecret)
+- metallb: MetalLB(`metallb.io` + IPAddressPool/L2Advertisement/BGPAdvertisement/BGPPeer/BFDProfile/Community)
+- cilium: Cilium(`cilium.io` + CiliumNetworkPolicy/CiliumClusterwideNetworkPolicy/CiliumBGP*/CiliumPodIPPool 等)
+- calico: Calico(`crd.projectcalico.org`/`projectcalico.org` + NetworkPolicy/GlobalNetworkPolicy/IPPool/FelixConfiguration 等)
+- apisix: Apache APISIX Ingress(`apisix.apache.org` + ApisixRoute/ApisixUpstream/ApisixTls/ApisixConsumer 等)
+- atlantis: `atlantis.yaml`(`version:` + projects/workflows/policies/repos + automerge/parallel_plan/repo_locks 等排他キー)
+
+`pub mod` / `DETECTORS` 登録済み(1103 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第353次 — Gateway API/オートスケーラ/ストレージ/開発環境系 8 モジュール
 
 census 未収録ドメイン第6弾。K8s 標準 Gateway API、オートスケーリング、

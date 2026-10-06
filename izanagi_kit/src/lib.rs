@@ -448,6 +448,7 @@ pub mod aout;
 pub mod apacheconf;
 pub mod ape;
 pub mod apib;
+pub mod apisix;
 pub mod apk;
 pub mod apkg;
 pub mod apmserver;
@@ -492,6 +493,7 @@ pub mod assetlinks;
 pub mod assets;
 pub mod astro;
 pub mod asv;
+pub mod atlantis;
 pub mod atom;
 pub mod atr;
 pub mod au;
@@ -619,6 +621,7 @@ pub mod cairo;
 pub mod calamares;
 pub mod calendar;
 pub mod calendars;
+pub mod calico;
 pub mod callgrind;
 pub mod camera;
 pub mod camt;
@@ -651,6 +654,7 @@ pub mod centroid;
 pub mod cephconf;
 pub mod cerbos;
 pub mod certbot;
+pub mod certmanager;
 pub mod cf;
 pub mod cfn;
 pub mod cfssl;
@@ -676,6 +680,7 @@ pub mod chronyconf;
 pub mod cht;
 pub mod cibxml;
 pub mod cif;
+pub mod cilium;
 pub mod circleci;
 pub mod circulation;
 pub mod cirrus;
@@ -967,6 +972,7 @@ pub mod explore;
 pub mod expr;
 pub mod exr;
 pub mod ext2;
+pub mod externalsecrets;
 pub mod extmanifest;
 pub mod f2fs;
 pub mod faction;
@@ -1567,6 +1573,7 @@ pub mod meson;
 pub mod meta;
 pub mod metaflow;
 pub mod metal3;
+pub mod metallb;
 pub mod metallib;
 pub mod metricbeat;
 pub mod metroconf;
@@ -2167,6 +2174,7 @@ pub mod sddmconf;
 pub mod sdf;
 pub mod sdkconfig;
 pub mod sdrppconf;
+pub mod sealedsecrets;
 pub mod seamcarve;
 pub mod seccomp;
 pub mod secretsbaseline;
@@ -2922,6 +2930,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("aoe", aoe::detect),
     ("apacheconf", apacheconf::detect),
     ("apib", apib::detect),
+    ("apisix", apisix::detect),
     ("apk", apk::detect),
     ("apmserver", apmserver::detect),
     ("apparmor", apparmor::detect),
@@ -2950,6 +2959,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("asoundrc", asoundrc::detect),
     ("astro", astro::detect),
     ("asv", asv::detect),
+    ("atlantis", atlantis::detect),
     ("atom", atom::detect),
     ("audacity", audacity::detect),
     ("auditdconf", auditdconf::detect),
@@ -3006,6 +3016,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("caddyfile", caddyfile::detect),
     ("cairo", cairo::detect),
     ("calamares", calamares::detect),
+    ("calico", calico::detect),
     ("callgrind", callgrind::detect),
     ("camt", camt::detect),
     ("capacitor", capacitor::detect),
@@ -3024,6 +3035,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cephconf", cephconf::detect),
     ("cerbos", cerbos::detect),
     ("certbot", certbot::detect),
+    ("certmanager", certmanager::detect),
     ("cfn", cfn::detect),
     ("cfssl", cfssl::detect),
     ("cgitrc", cgitrc::detect),
@@ -3037,6 +3049,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("chrometrace", chrometrace::detect),
     ("chronyconf", chronyconf::detect),
     ("cibxml", cibxml::detect),
+    ("cilium", cilium::detect),
     ("circleci", circleci::detect),
     ("cirrus", cirrus::detect),
     ("clangformat", clangformat::detect),
@@ -3187,6 +3200,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("excalidraw", excalidraw::detect),
     ("exim", exim::detect),
     ("exr", exr::detect),
+    ("externalsecrets", externalsecrets::detect),
     ("extmanifest", extmanifest::detect),
     ("f2fs", f2fs::detect),
     ("fail2ban", fail2ban::detect),
@@ -3505,6 +3519,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("meson", meson::detect),
     ("metaflow", metaflow::detect),
     ("metal3", metal3::detect),
+    ("metallb", metallb::detect),
     ("metallib", metallib::detect),
     ("metricbeat", metricbeat::detect),
     ("metroconf", metroconf::detect),
@@ -3828,6 +3843,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sddmconf", sddmconf::detect),
     ("sdkconfig", sdkconfig::detect),
     ("sdrppconf", sdrppconf::detect),
+    ("sealedsecrets", sealedsecrets::detect),
     ("seccomp", seccomp::detect),
     ("secretsbaseline", secretsbaseline::detect),
     ("secretsstore", secretsstore::detect),
