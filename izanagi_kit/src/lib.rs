@@ -728,6 +728,7 @@ pub mod criterion;
 pub mod crl;
 pub mod crmconf;
 pub mod crockford;
+pub mod cromwell;
 pub mod cron;
 pub mod crontab;
 pub mod csa;
@@ -1075,6 +1076,7 @@ pub mod glusterfs;
 pub mod gml;
 pub mod gn;
 pub mod gnoise;
+pub mod gnuplot;
 pub mod goap;
 pub mod godot;
 pub mod goertzel;
@@ -1429,6 +1431,7 @@ pub mod luac;
 pub mod lucas;
 pub mod lucene;
 pub mod luhn;
+pub mod luigi;
 pub mod lvmconf;
 pub mod lwo;
 pub mod lww;
@@ -1463,6 +1466,7 @@ pub mod markov;
 pub mod marlinconf;
 pub mod mat;
 pub mod matchain;
+pub mod matplotlibrc;
 pub mod matterbridge;
 pub mod mattermost;
 pub mod maud;
@@ -1616,6 +1620,7 @@ pub mod newick;
 pub mod newrelic;
 pub mod newsboat;
 pub mod newsyslog;
+pub mod nextflow;
 pub mod nexus;
 pub mod nfsexports;
 pub mod nftconf;
@@ -1665,6 +1670,7 @@ pub mod obj;
 pub mod obsconf;
 pub mod observe;
 pub mod ocsp;
+pub mod octaverc;
 pub mod octoprint;
 pub mod octree;
 pub mod odbcini;
@@ -1958,6 +1964,7 @@ pub mod releaseplease;
 pub mod remminaconf;
 pub mod renderconf;
 pub mod renovate;
+pub mod renviron;
 pub mod replay;
 pub mod requirements;
 pub mod reroot;
@@ -1999,6 +2006,7 @@ pub mod routeros;
 pub mod rpcs3conf;
 pub mod rpgmakerconf;
 pub mod rpm;
+pub mod rprofile;
 pub mod rpy;
 pub mod rsa;
 pub mod rsfec;
@@ -2905,6 +2913,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("criterion", criterion::detect),
     ("crmconf", crmconf::detect),
     ("crockford", crockford::detect),
+    ("cromwell", cromwell::detect),
     ("csa", csa::detect),
     ("csd", csd::detect),
     ("cspell", cspell::detect),
@@ -3056,6 +3065,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("glusterfs", glusterfs::detect),
     ("gml", gml::detect),
     ("gn", gn::detect),
+    ("gnuplot", gnuplot::detect),
     ("godot", godot::detect),
     ("gogsconf", gogsconf::detect),
     ("golangci", golangci::detect),
@@ -3242,6 +3252,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ltsconf", ltsconf::detect),
     ("lucene", lucene::detect),
     ("luhn", luhn::detect),
+    ("luigi", luigi::detect),
     ("lvmconf", lvmconf::detect),
     ("lwo", lwo::detect),
     ("ly", ly::detect),
@@ -3259,6 +3270,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("marc", marc::detect),
     ("markdownlint", markdownlint::detect),
     ("marlinconf", marlinconf::detect),
+    ("matplotlibrc", matplotlibrc::detect),
     ("matterbridge", matterbridge::detect),
     ("mattermost", mattermost::detect),
     ("maud", maud::detect),
@@ -3339,6 +3351,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("newrelic", newrelic::detect),
     ("newsboat", newsboat::detect),
     ("newsyslog", newsyslog::detect),
+    ("nextflow", nextflow::detect),
     ("nexus", nexus::detect),
     ("nfsexports", nfsexports::detect),
     ("nftconf", nftconf::detect),
@@ -3369,6 +3382,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("oai", oai::detect),
     ("oathkeeper", oathkeeper::detect),
     ("obsconf", obsconf::detect),
+    ("octaverc", octaverc::detect),
     ("octoprint", octoprint::detect),
     ("odbcini", odbcini::detect),
     ("oem", oem::detect),
@@ -3513,6 +3527,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("remminaconf", remminaconf::detect),
     ("renderconf", renderconf::detect),
     ("renovate", renovate::detect),
+    ("renviron", renviron::detect),
     ("requirements", requirements::detect),
     ("res", res::detect),
     ("resolv", resolv::detect),
@@ -3530,6 +3545,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("routeros", routeros::detect),
     ("rpcs3conf", rpcs3conf::detect),
     ("rpgmakerconf", rpgmakerconf::detect),
+    ("rprofile", rprofile::detect),
     ("rpy", rpy::detect),
     ("rsnapshot", rsnapshot::detect),
     ("rspamdconf", rspamdconf::detect),
