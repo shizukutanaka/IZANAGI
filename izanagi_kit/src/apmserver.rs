@@ -60,6 +60,12 @@ fn key_of(s: &str) -> &str {
     }
 }
 
+fn is_key(s: &str, key: &str) -> bool {
+    // `key :` (コロン前の空白)も YAML では合法。
+    s.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
+
 /// Detects apm-server yaml.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -69,7 +75,7 @@ pub fn detect(b: &[u8]) -> bool {
     let mut hits = 0usize;
     for l in t.lines() {
         let s = l.trim();
-        if s.starts_with("apm-server:") || s.starts_with("apm-server.") {
+        if is_key(s, "apm-server") || s.starts_with("apm-server.") {
             hits += 2;
         }
         if s.starts_with("output.elasticsearch")
@@ -134,6 +140,12 @@ impl ApmServer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法。
+        assert!(detect(b"apm-server :\n  host: localhost:8200\n"));
+    }
 
     #[test]
     fn detects_apm() {
