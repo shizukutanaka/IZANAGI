@@ -1101,6 +1101,7 @@ pub mod geohash;
 pub mod geojson;
 pub mod geometry;
 pub mod gerber;
+pub mod gerbera;
 pub mod gethconf;
 pub mod gexf;
 pub mod gf;
@@ -1161,6 +1162,7 @@ pub mod gray;
 pub mod grd;
 pub mod gre;
 pub mod greatexp;
+pub mod greetd;
 pub mod grib;
 pub mod gridcast;
 pub mod gro;
@@ -1383,6 +1385,7 @@ pub mod k8gb;
 pub mod kafka;
 pub mod kalman;
 pub mod kamaji;
+pub mod kanata;
 pub mod kap;
 pub mod kapitan;
 pub mod karatsuba;
@@ -1405,6 +1408,7 @@ pub mod kern;
 pub mod ketl;
 pub mod keto;
 pub mod keycloak;
+pub mod keyd;
 pub mod keydbconf;
 pub mod keymap;
 pub mod keytab;
@@ -1613,6 +1617,7 @@ pub mod mincircle;
 pub mod mincut;
 pub mod minhash;
 pub mod minica;
+pub mod minidlna;
 pub mod minikubeconf;
 pub mod minimax;
 pub mod minio;
@@ -1766,6 +1771,7 @@ pub mod nunit;
 pub mod nuxt;
 pub mod nwc;
 pub mod nxconf;
+pub mod nzbget;
 pub mod oai;
 pub mod oathkeeper;
 pub mod obd;
@@ -2070,6 +2076,7 @@ pub mod rdb;
 pub mod rdiff;
 pub mod rdp;
 pub mod rdpfile;
+pub mod readarr;
 pub mod reaper;
 pub mod rebarconfig;
 pub mod recbin;
@@ -2166,6 +2173,7 @@ pub mod s3m;
 pub mod s6rc;
 pub mod s7;
 pub mod s98;
+pub mod sabnzbd;
 pub mod sac;
 pub mod saddleback;
 pub mod safetensors;
@@ -3296,6 +3304,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gemlock", gemlock::detect),
     ("gemrc", gemrc::detect),
     ("gemspec", gemspec::detect),
+    ("gerbera", gerbera::detect),
     ("gethconf", gethconf::detect),
     ("gexf", gexf::detect),
     ("gf", gf::detect),
@@ -3334,6 +3343,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("graphml", graphml::detect),
     ("graphql", graphql::detect),
     ("greatexp", greatexp::detect),
+    ("greetd", greetd::detect),
     ("grok", grok::detect),
     ("grubconf", grubconf::detect),
     ("grubenv", grubenv::detect),
@@ -3447,6 +3457,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("k8gb", k8gb::detect),
     ("kafka", kafka::detect),
     ("kamaji", kamaji::detect),
+    ("kanata", kanata::detect),
     ("kapitan", kapitan::detect),
     ("karmaconf", karmaconf::detect),
     ("karpenter", karpenter::detect),
@@ -3462,6 +3473,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ketl", ketl::detect),
     ("keto", keto::detect),
     ("keycloak", keycloak::detect),
+    ("keyd", keyd::detect),
     ("keydbconf", keydbconf::detect),
     ("keytab", keytab::detect),
     ("kibana", kibana::detect),
@@ -3581,6 +3593,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("milvusconf", milvusconf::detect),
     ("mimirconf", mimirconf::detect),
     ("minica", minica::detect),
+    ("minidlna", minidlna::detect),
     ("minikubeconf", minikubeconf::detect),
     ("minio", minio::detect),
     ("mise", mise::detect),
@@ -3675,6 +3688,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("nuxt", nuxt::detect),
     ("nwc", nwc::detect),
     ("nxconf", nxconf::detect),
+    ("nzbget", nzbget::detect),
     ("oai", oai::detect),
     ("oathkeeper", oathkeeper::detect),
     ("obsconf", obsconf::detect),
@@ -3834,6 +3848,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("rc", rc::detect),
     ("rcloneconf", rcloneconf::detect),
     ("rdpfile", rdpfile::detect),
+    ("readarr", readarr::detect),
     ("reaper", reaper::detect),
     ("rebarconfig", rebarconfig::detect),
     ("recordio", recordio::detect),
@@ -3885,6 +3900,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("rw2", rw2::detect),
     ("rx2", rx2::detect),
     ("s6rc", s6rc::detect),
+    ("sabnzbd", sabnzbd::detect),
     ("saif", saif::detect),
     ("salt", salt::detect),
     ("samba", samba::detect),
@@ -5233,6 +5249,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("gerber", |b| {
         let _ = gerber::parse(b);
     }),
+    ("gerbera", |b| {
+        let _ = gerbera::parse(b);
+    }),
     ("gethconf", |b| {
         let _ = gethconf::parse(b);
     }),
@@ -5313,6 +5332,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("gre", |b| {
         let _ = gre::parse(b);
+    }),
+    ("greetd", |b| {
+        let _ = greetd::parse(b);
     }),
     ("grib", |b| {
         let _ = grib::parse(b);
@@ -5677,6 +5699,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("k3sconf", |b| {
         let _ = k3sconf::parse(b);
     }),
+    ("kanata", |b| {
+        let _ = kanata::parse(b);
+    }),
     ("kap", |b| {
         let _ = kap::parse(b);
     }),
@@ -5694,6 +5719,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("ketl", |b| {
         let _ = ketl::parse(b);
+    }),
+    ("keyd", |b| {
+        let _ = keyd::parse(b);
     }),
     ("keydbconf", |b| {
         let _ = keydbconf::parse(b);
@@ -6025,6 +6053,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("mets", |b| {
         let _ = mets::parse(b);
     }),
+    ("minidlna", |b| {
+        let _ = minidlna::parse(b);
+    }),
     ("mmlstyle", |b| {
         let _ = mmlstyle::parse(b);
     }),
@@ -6312,6 +6343,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("nwc", |b| {
         let _ = nwc::parse(b);
+    }),
+    ("nzbget", |b| {
+        let _ = nzbget::parse(b);
     }),
     ("oai", |b| {
         let _ = oai::parse(b);
@@ -6727,6 +6761,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("rdpfile", |b| {
         let _ = rdpfile::parse(b);
     }),
+    ("readarr", |b| {
+        let _ = readarr::parse(b);
+    }),
     ("reaper", |b| {
         let _ = reaper::parse(b);
     }),
@@ -6828,6 +6865,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("rpcs3conf", |b| {
         let _ = rpcs3conf::parse(b);
+    }),
+    ("sabnzbd", |b| {
+        let _ = sabnzbd::parse(b);
     }),
     ("samhainconf", |b| {
         let _ = samhainconf::parse(b);
