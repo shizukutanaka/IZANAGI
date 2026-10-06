@@ -6121,3 +6121,21 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第372次
+
+.NETエコシステム設定形式8モジュールを追加:
+appsettings(.NET汎用JSON: AllowedHosts/Kestrel/Serilog/ConnectionStrings/
+Jwt/Logging/ApplicationInsights/HealthChecks-UI/IdentityServer等キー集合 +
+compilerOptions/dependencies等REJECT), globaljson(.NET SDKピン:
+sdk/version/rollForward/allowPrerelease/msbuild-sdks), launchsettings
+(VS/launchSettings.json: commandName/applicationUrl/environmentVariables/
+iisSettings/profiles), sln(Visual Studioソリューション: Project("{guid}") =
+"name", "path" 行 + Global/GlobalSection(…)ブロック), webconfig(IIS/ASP.NET
+web.config: <system.web*>/<appSettings>/<connectionStrings>/<location>/
+<rewrite>要素群 + <configuration>ルート共起), msbuild(MSBuild .csproj等:
+<PropertyGroup>/<ItemGroup>/<Target>/<UsingTask>/SDK import 要素群),
+log4net(.NETロガーXML: <log4net>ルート + <appender>/<layout>/<filter>/
+<root>/<logger>要素), packagesconfig(nuget packages.config: <packages>+
+<package id=… version=… 行)。いずれもホスト環境非依存で key/要素/行
+プレフィックスマーカーによる判定、テスト4本ずつ。

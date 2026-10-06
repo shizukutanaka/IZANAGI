@@ -455,6 +455,7 @@ pub mod appdaemon;
 pub mod appdynamics;
 pub mod appimage;
 pub mod appjson;
+pub mod appsettings;
 pub mod appveyor;
 pub mod aps;
 pub mod apsp;
@@ -1062,6 +1063,7 @@ pub mod gjk;
 pub mod glade;
 pub mod glb;
 pub mod glob;
+pub mod globaljson;
 pub mod glsl;
 pub mod gltf;
 pub mod glusterfs;
@@ -1360,6 +1362,7 @@ pub mod kustomize;
 pub mod l2tp;
 pub mod lab;
 pub mod las;
+pub mod launchsettings;
 pub mod lazyseg;
 pub mod lca;
 pub mod lcov;
@@ -1402,6 +1405,7 @@ pub mod lndconf;
 pub mod lnk;
 pub mod loader;
 pub mod log4j;
+pub mod log4net;
 pub mod log4perl;
 pub mod logback;
 pub mod logindefs;
@@ -1556,6 +1560,7 @@ pub mod mps;
 pub mod mpv;
 pub mod mqtt;
 pub mod mrc;
+pub mod msbuild;
 pub mod mscx;
 pub mod mseed;
 pub mod msf;
@@ -1714,6 +1719,7 @@ pub mod otsu;
 pub mod ovf;
 pub mod p7b;
 pub mod pack;
+pub mod packagesconfig;
 pub mod packer;
 pub mod packfile;
 pub mod pacman;
@@ -2106,6 +2112,7 @@ pub mod skiplist;
 pub mod skp;
 pub mod skywalking;
 pub mod slide;
+pub mod sln;
 pub mod slob;
 pub mod slopetrick;
 pub mod slotmap;
@@ -2441,6 +2448,7 @@ pub mod wavelet;
 pub mod waybar;
 pub mod wdsu;
 pub mod weaviateconf;
+pub mod webconfig;
 pub mod webfinger;
 pub mod webloc;
 pub mod webmanifest;
@@ -2750,6 +2758,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("appdaemon", appdaemon::detect),
     ("appdynamics", appdynamics::detect),
     ("appjson", appjson::detect),
+    ("appsettings", appsettings::detect),
     ("appveyor", appveyor::detect),
     ("apt", apt::detect),
     ("archinstall", archinstall::detect),
@@ -3029,6 +3038,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gitsecret", gitsecret::detect),
     ("gitwebconf", gitwebconf::detect),
     ("glade", glade::detect),
+    ("globaljson", globaljson::detect),
     ("glsl", glsl::detect),
     ("glusterfs", glusterfs::detect),
     ("gml", gml::detect),
@@ -3186,6 +3196,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kubemq", kubemq::detect),
     ("kustomize", kustomize::detect),
     ("lab", lab::detect),
+    ("launchsettings", launchsettings::detect),
     ("ldapconf", ldapconf::detect),
     ("ldif", ldif::detect),
     ("ldirectord", ldirectord::detect),
@@ -3206,6 +3217,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("lmms", lmms::detect),
     ("lndconf", lndconf::detect),
     ("log4j", log4j::detect),
+    ("log4net", log4net::detect),
     ("log4perl", log4perl::detect),
     ("logback", logback::detect),
     ("logindefs", logindefs::detect),
@@ -3286,6 +3298,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mplayerconf", mplayerconf::detect),
     ("mps", mps::detect),
     ("mpv", mpv::detect),
+    ("msbuild", msbuild::detect),
     ("mscx", mscx::detect),
     ("msmtprc", msmtprc::detect),
     ("mtm", mtm::detect),
@@ -3374,6 +3387,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ossecconf", ossecconf::detect),
     ("otelcol", otelcol::detect),
     ("ovf", ovf::detect),
+    ("packagesconfig", packagesconfig::detect),
     ("packer", packer::detect),
     ("pacman", pacman::detect),
     ("paf", paf::detect),
@@ -3554,6 +3568,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sixel", sixel::detect),
     ("skaffold", skaffold::detect),
     ("skywalking", skywalking::detect),
+    ("sln", sln::detect),
     ("slob", slob::detect),
     ("slrnconf", slrnconf::detect),
     ("slurm", slurm::detect),
@@ -3718,6 +3733,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wandb", wandb::detect),
     ("waybar", waybar::detect),
     ("weaviateconf", weaviateconf::detect),
+    ("webconfig", webconfig::detect),
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),
     ("weechat", weechat::detect),
