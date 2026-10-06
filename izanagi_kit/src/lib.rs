@@ -692,6 +692,7 @@ pub mod coloring;
 pub mod comb;
 pub mod combat;
 pub mod compose;
+pub mod composer;
 pub mod composerlock;
 pub mod conanfile;
 pub mod concourse;
@@ -1029,6 +1030,7 @@ pub mod gds;
 pub mod gedasch;
 pub mod gemlock;
 pub mod gemrc;
+pub mod gemspec;
 pub mod genbank;
 pub mod geo;
 pub mod geohash;
@@ -1079,6 +1081,7 @@ pub mod gp;
 pub mod gpkg;
 pub mod gpsd;
 pub mod gpx;
+pub mod gradle;
 pub mod gradlemod;
 pub mod grafana;
 pub mod graph;
@@ -1810,6 +1813,7 @@ pub mod pnm;
 pub mod pnpmlock;
 pub mod po;
 pub mod pod;
+pub mod podfile;
 pub mod poetry;
 pub mod poisson;
 pub mod policyjson;
@@ -1875,6 +1879,7 @@ pub mod pxelinux;
 pub mod pyc;
 pub mod pylintrc;
 pub mod pypirc;
+pub mod pyproject;
 pub mod pyrightconf;
 pub mod pyroconf;
 pub mod pytestbench;
@@ -2153,6 +2158,7 @@ pub mod spec;
 pub mod speedscope;
 pub mod spef;
 pub mod spf;
+pub mod sphinx;
 pub mod spicenet;
 pub mod spigot;
 pub mod splay;
@@ -2173,6 +2179,7 @@ pub mod sssdconf;
 pub mod sst;
 pub mod ssw;
 pub mod stable;
+pub mod stack;
 pub mod stalwartconf;
 pub mod stardict;
 pub mod starship;
@@ -2532,6 +2539,7 @@ pub mod y4m;
 pub mod yamllint;
 pub mod yara;
 pub mod yarnlock;
+pub mod yarnrc;
 pub mod yenc;
 pub mod yfast;
 pub mod yuzuconf;
@@ -2861,6 +2869,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("codespell", codespell::detect),
     ("colima", colima::detect),
     ("compose", compose::detect),
+    ("composer", composer::detect),
     ("composerlock", composerlock::detect),
     ("conanfile", conanfile::detect),
     ("concourse", concourse::detect),
@@ -3013,6 +3022,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gedasch", gedasch::detect),
     ("gemlock", gemlock::detect),
     ("gemrc", gemrc::detect),
+    ("gemspec", gemspec::detect),
     ("gethconf", gethconf::detect),
     ("gexf", gexf::detect),
     ("gf", gf::detect),
@@ -3040,6 +3050,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gosum", gosum::detect),
     ("gp", gp::detect),
     ("gpsd", gpsd::detect),
+    ("gradle", gradle::detect),
     ("gradlemod", gradlemod::detect),
     ("grafana", grafana::detect),
     ("graphml", graphml::detect),
@@ -3410,6 +3421,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pmacctconf", pmacctconf::detect),
     ("pmml", pmml::detect),
     ("pnpmlock", pnpmlock::detect),
+    ("podfile", podfile::detect),
     ("poetry", poetry::detect),
     ("policyjson", policyjson::detect),
     ("polybar", polybar::detect),
@@ -3447,6 +3459,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pxelinux", pxelinux::detect),
     ("pylintrc", pylintrc::detect),
     ("pypirc", pypirc::detect),
+    ("pyproject", pyproject::detect),
     ("pyrightconf", pyrightconf::detect),
     ("pyroconf", pyroconf::detect),
     ("pytestbench", pytestbench::detect),
@@ -3575,6 +3588,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sparql", sparql::detect),
     ("speedscope", speedscope::detect),
     ("spef", spef::detect),
+    ("sphinx", sphinx::detect),
     ("spicenet", spicenet::detect),
     ("spigot", spigot::detect),
     ("spotbugs", spotbugs::detect),
@@ -3585,6 +3599,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("srhtconf", srhtconf::detect),
     ("sshconf", sshconf::detect),
     ("sssdconf", sssdconf::detect),
+    ("stack", stack::detect),
     ("stalwartconf", stalwartconf::detect),
     ("stardict", stardict::detect),
     ("starship", starship::detect),
@@ -3769,6 +3784,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("yamllint", yamllint::detect),
     ("yara", yara::detect),
     ("yarnlock", yarnlock::detect),
+    ("yarnrc", yarnrc::detect),
     ("yuzuconf", yuzuconf::detect),
     ("zabbix", zabbix::detect),
     ("zapconf", zapconf::detect),

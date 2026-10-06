@@ -6121,3 +6121,11 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第365次
+
+言語パッケージマネージャ/ドキュメント系の設定形式8モジュール
+(`composer`, `gemspec`, `gradle`, `podfile`, `pyproject`, `sphinx`, `stack`, `yarnrc`)
+を追加。composer.json は `dependencies`/`devDependencies` を REJECT キーとして
+package.json と識別。gradlemod は `.module` 公開メタデータで build.gradle とは別対象。
+DETECTORS 1087件、kit モジュール数2185。
