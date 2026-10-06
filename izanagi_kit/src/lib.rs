@@ -760,6 +760,7 @@ pub mod crockford;
 pub mod cromwell;
 pub mod cron;
 pub mod crontab;
+pub mod crossplane;
 pub mod crowdsec;
 pub mod csa;
 pub mod csaf;
@@ -1031,6 +1032,7 @@ pub mod flow;
 pub mod flowfield;
 pub mod fluentbit;
 pub mod fluentd;
+pub mod fluxcd;
 pub mod flv;
 pub mod flyio;
 pub mod flyway;
@@ -1417,6 +1419,7 @@ pub mod kmp;
 pub mod kmv;
 pub mod kmz;
 pub mod knapsack;
+pub mod knative;
 pub mod knexfile;
 pub mod knownhosts;
 pub mod knx;
@@ -1439,6 +1442,7 @@ pub mod kubevela;
 pub mod kubevirt;
 pub mod kuma;
 pub mod kustomize;
+pub mod kyverno;
 pub mod l2tp;
 pub mod lab;
 pub mod las;
@@ -1609,6 +1613,7 @@ pub mod minix;
 pub mod minkowski;
 pub mod minq;
 pub mod mis;
+pub mod mise;
 pub mod misp;
 pub mod mix;
 pub mod mixexs;
@@ -2079,6 +2084,7 @@ pub mod reiserfs;
 pub mod relations;
 pub mod relaxng;
 pub mod releaseplease;
+pub mod releaserc;
 pub mod remminaconf;
 pub mod renderconf;
 pub mod renovate;
@@ -2408,6 +2414,7 @@ pub mod tcx;
 pub mod td0;
 pub mod tdm;
 pub mod tds;
+pub mod tekton;
 pub mod telegraf;
 pub mod teleport;
 pub mod telnet;
@@ -2635,6 +2642,7 @@ pub mod webmanifest;
 pub mod webp;
 pub mod webpackconf;
 pub mod weechat;
+pub mod werf;
 pub mod westconf;
 pub mod westonconf;
 pub mod weztermconf;
@@ -3120,6 +3128,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("crmconf", crmconf::detect),
     ("crockford", crockford::detect),
     ("cromwell", cromwell::detect),
+    ("crossplane", crossplane::detect),
     ("crowdsec", crowdsec::detect),
     ("csa", csa::detect),
     ("csd", csd::detect),
@@ -3247,6 +3256,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("flink", flink::detect),
     ("fluentbit", fluentbit::detect),
     ("fluentd", fluentd::detect),
+    ("fluxcd", fluxcd::detect),
     ("flyio", flyio::detect),
     ("flyway", flyway::detect),
     ("footconf", footconf::detect),
@@ -3450,6 +3460,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kittyconf", kittyconf::detect),
     ("kittyimg", kittyimg::detect),
     ("klipperconf", klipperconf::detect),
+    ("knative", knative::detect),
     ("knexfile", knexfile::detect),
     ("kodiadv", kodiadv::detect),
     ("kong", kong::detect),
@@ -3468,6 +3479,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kubevirt", kubevirt::detect),
     ("kuma", kuma::detect),
     ("kustomize", kustomize::detect),
+    ("kyverno", kyverno::detect),
     ("lab", lab::detect),
     ("ldapconf", ldapconf::detect),
     ("ldif", ldif::detect),
@@ -3556,6 +3568,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("minica", minica::detect),
     ("minikubeconf", minikubeconf::detect),
     ("minio", minio::detect),
+    ("mise", mise::detect),
     ("misp", misp::detect),
     ("mix", mix::detect),
     ("mixexs", mixexs::detect),
@@ -3819,6 +3832,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("reiserfs", reiserfs::detect),
     ("relaxng", relaxng::detect),
     ("releaseplease", releaseplease::detect),
+    ("releaserc", releaserc::detect),
     ("remminaconf", remminaconf::detect),
     ("renderconf", renderconf::detect),
     ("renovate", renovate::detect),
@@ -3990,6 +4004,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("taskfile", taskfile::detect),
     ("td0", td0::detect),
     ("tdm", tdm::detect),
+    ("tekton", tekton::detect),
     ("telegraf", telegraf::detect),
     ("teleport", teleport::detect),
     ("telnet", telnet::detect),
@@ -4110,6 +4125,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),
     ("weechat", weechat::detect),
+    ("werf", werf::detect),
     ("westconf", westconf::detect),
     ("westonconf", westonconf::detect),
     ("weztermconf", weztermconf::detect),
@@ -4688,6 +4704,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("crontab", |b| {
         let _ = crontab::parse(b);
     }),
+    ("crossplane", |b| {
+        let _ = crossplane::parse(b);
+    }),
     ("csa", |b| {
         let _ = csa::parse(b);
     }),
@@ -5074,6 +5093,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("flatbuf", |b| {
         let _ = flatbuf::parse(b);
+    }),
+    ("fluxcd", |b| {
+        let _ = fluxcd::parse(b);
     }),
     ("flif", |b| {
         let _ = flif::parse(b);
@@ -5666,6 +5688,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("klipperconf", |b| {
         let _ = klipperconf::parse(b);
     }),
+    ("knative", |b| {
+        let _ = knative::parse(b);
+    }),
     ("kmz", |b| {
         let _ = kmz::parse(b);
     }),
@@ -5680,6 +5705,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("krb5conf", |b| {
         let _ = krb5conf::parse(b);
+    }),
+    ("kyverno", |b| {
+        let _ = kyverno::parse(b);
     }),
     ("kss", |b| {
         let _ = kss::parse(b);
@@ -5983,6 +6011,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("mimirconf", |b| {
         let _ = mimirconf::parse(b);
+    }),
+    ("mise", |b| {
+        let _ = mise::parse(b);
     }),
     ("minc", |b| {
         let _ = minc::parse(b);
@@ -6671,6 +6702,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("redpen", |b| {
         let _ = redpen::parse(b);
     }),
+    ("releaserc", |b| {
+        let _ = releaserc::parse(b);
+    }),
     ("refind", |b| {
         let _ = refind::parse(b);
     }),
@@ -7148,6 +7182,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("td0", |b| {
         let _ = td0::parse(b);
     }),
+    ("tekton", |b| {
+        let _ = tekton::parse(b);
+    }),
     ("torrc", |b| {
         let _ = torrc::parse(b);
     }),
@@ -7450,6 +7487,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("wad", |b| {
         let _ = wad::parse(b);
+    }),
+    ("werf", |b| {
+        let _ = werf::parse(b);
     }),
     ("wasm", |b| {
         let _ = wasm::parse(b);

@@ -6208,6 +6208,24 @@ census の未収録ドメインとして、JS/Go ツールチェーンのデフ�
 `pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
 (18186→18198)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
+## 第349次 — GitOps/ポリシー/ツール管理/リリース自動化系設定形式 8 モジュール
+
+census 未収録ドメイン第2弾。第348次と同型の
+「`apiVersion`/`kind` 値の組合せ必須」設計で k8s エコシステム系と、
+ツールチェーン・リリース自動化のデファクト標準設定ファイルを追加。
+
+- fluxcd: FluxCD マニフェスト(apiVersion `*.fluxcd.io/` + Kustomization/HelmRelease/GitRepository/Alert/Receiver/ImageUpdateAutomation 等 kind)
+- tekton: Tekton CI(`tekton.dev/`・`triggers.tekton.dev/` + Task/Pipeline/PipelineRun/TaskRun/EventListener 等)
+- knative: Knative(`*.knative.dev/` + Service/Broker/Trigger/Revision/Route/Subscription 等)
+- kyverno: Kyverno ポリシー(`kyverno.io/`/`wgpolicyk8s.io/` + ClusterPolicy/Policy/PolicyReport 等)
+- crossplane: Crossplane(`*.crossplane.io/` + CompositeResourceDefinition/Composition/Provider/Function 等)
+- mise: `mise.toml`(`[tools]` セクション + 既知ツール名 or `[plugins]`/`[alias]`/`[tasks]` 等 mise セクション)
+- werf: `werf.yaml`(`project:` + `configVersion: 1` の必須ペア)
+- releaserc: semantic-release `.releaserc`(branches + plugins + `@semantic-release/` 参照 or tagFormat/preset 等固有キー)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18196)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第351次 — Carvel/Bitbucket CI/Kapitan/Garden/moonrepo系設定形式 8 モジュール
 
 census 未収録ドメイン第4弾。CI・モノレポ・Kubernetes補助ツールの
