@@ -6310,6 +6310,17 @@ package.json と識別。supabase は `[edge_runtime]`/`[pooler]`/`verify_jwt` �
 排他セクション/キー。JS設定系は `defineNuxtConfig`/`defineConfig`+フレームワーク
 固有キーで識別。DETECTORS 1095件、kit モジュール数2185。
 
+## 第367次
+
+言語パッケージ/フロントエンドツールチェーン系の設定形式8モジュール
+(`dune`, `gatsby`, `gemfile`, `mix`, `postcss`, `sbt`, `svelte`, `unocss`)
+を追加。既存の `leiningen`/`rebarconfig`/`appjson`/`procfile`/`capacitor`
+等を避けて選定。dune はS式スタンザ名走査 (`(lang dune`/`(libraries`/
+`(modules`/`(executable` ≥3)。mix.exs は `use Mix.Project`/`defp deps`/
+`{:` タプル。sbt は `%%`/`%%%` 座標+`:=`設定。unocss/svelte/gatsby は
+フレームワーク固有プリセット/プラグイン名。DETECTORS 1103件、
+kit モジュール数2185。
+
 ## 第368次
 
 メディア/ダウンロード/バックアップ系の設定形式8モジュール

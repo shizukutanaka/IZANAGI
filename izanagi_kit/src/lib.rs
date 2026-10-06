@@ -868,6 +868,7 @@ pub mod dtd;
 pub mod dted;
 pub mod dtw;
 pub mod dual;
+pub mod dune;
 pub mod dunst;
 pub mod duplicacy;
 pub mod dvcfile;
@@ -1031,6 +1032,7 @@ pub mod fxml;
 pub mod fxp;
 pub mod gapbuffer;
 pub mod garnetconf;
+pub mod gatsby;
 pub mod gauss;
 pub mod gb;
 pub mod gba;
@@ -1048,6 +1050,7 @@ pub mod gdiff;
 pub mod gdmconf;
 pub mod gds;
 pub mod gedasch;
+pub mod gemfile;
 pub mod gemlock;
 pub mod gemrc;
 pub mod gemspec;
@@ -1558,6 +1561,7 @@ pub mod minkowski;
 pub mod minq;
 pub mod mis;
 pub mod misp;
+pub mod mix;
 pub mod mixexs;
 pub mod mixxx;
 pub mod mkdocs;
@@ -1880,6 +1884,7 @@ pub mod portage;
 pub mod porter;
 pub mod poscar;
 pub mod postalconf;
+pub mod postcss;
 pub mod postfix;
 pub mod postgresql;
 pub mod postman;
@@ -2094,6 +2099,7 @@ pub mod sav;
 pub mod savefile;
 pub mod sbf;
 pub mod sbi;
+pub mod sbt;
 pub mod sbus;
 pub mod sbv;
 pub mod sby;
@@ -2278,6 +2284,7 @@ pub mod supabase;
 pub mod supervisor;
 pub mod surefire;
 pub mod suricata;
+pub mod svelte;
 pub mod svf;
 pub mod svg;
 pub mod svnconf;
@@ -2426,6 +2433,7 @@ pub mod unitconf;
 pub mod unityfs;
 pub mod unitymanifest;
 pub mod unitysettings;
+pub mod unocss;
 pub mod unrealircd;
 pub mod unv;
 pub mod upc;
@@ -3058,6 +3066,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dsig", dsig::detect),
     ("dsl", dsl::detect),
     ("dtd", dtd::detect),
+    ("dune", dune::detect),
     ("dunst", dunst::detect),
     ("duplicacy", duplicacy::detect),
     ("dvcfile", dvcfile::detect),
@@ -3124,11 +3133,13 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fxml", fxml::detect),
     ("fxp", fxp::detect),
     ("garnetconf", garnetconf::detect),
+    ("gatsby", gatsby::detect),
     ("gbench", gbench::detect),
     ("gbstudio", gbstudio::detect),
     ("gdf", gdf::detect),
     ("gdmconf", gdmconf::detect),
     ("gedasch", gedasch::detect),
+    ("gemfile", gemfile::detect),
     ("gemlock", gemlock::detect),
     ("gemrc", gemrc::detect),
     ("gemspec", gemspec::detect),
@@ -3401,6 +3412,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("minikubeconf", minikubeconf::detect),
     ("minio", minio::detect),
     ("misp", misp::detect),
+    ("mix", mix::detect),
     ("mixexs", mixexs::detect),
     ("mixxx", mixxx::detect),
     ("mkdocs", mkdocs::detect),
@@ -3567,6 +3579,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pomerium", pomerium::detect),
     ("portage", portage::detect),
     ("postalconf", postalconf::detect),
+    ("postcss", postcss::detect),
     ("postfix", postfix::detect),
     ("postgresql", postgresql::detect),
     ("pppdconf", pppdconf::detect),
@@ -3680,6 +3693,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("samba", samba::detect),
     ("saml", saml::detect),
     ("sbf", sbf::detect),
+    ("sbt", sbt::detect),
     ("sby", sby::detect),
     ("scandata", scandata::detect),
     ("sch", sch::detect),
@@ -3770,6 +3784,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("supervisor", supervisor::detect),
     ("surefire", surefire::detect),
     ("suricata", suricata::detect),
+    ("svelte", svelte::detect),
     ("svf", svf::detect),
     ("svnconf", svnconf::detect),
     ("svp", svp::detect),
@@ -3854,6 +3869,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("unitconf", unitconf::detect),
     ("unitymanifest", unitymanifest::detect),
     ("unitysettings", unitysettings::detect),
+    ("unocss", unocss::detect),
     ("unrealircd", unrealircd::detect),
     ("upc", upc::detect),
     ("upf", upf::detect),
