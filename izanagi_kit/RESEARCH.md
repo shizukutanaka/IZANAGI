@@ -6298,6 +6298,18 @@ TOML セクション/キー抽出、DSL 呼出カウント。全モジュール 
 package.json と識別。gradlemod は `.module` 公開メタデータで build.gradle とは別対象。
 DETECTORS 1087件、kit モジュール数2185。
 
+## 第366次
+
+フロントエンド/PaaS系の設定形式8モジュール
+(`appengine`, `astro`, `firebase`, `nuxt`, `storybook`, `supabase`, `tailwind`, `vitepress`)
+を追加。既存の `*conf` ツイン多数(railwayconf/renderconf/turboconf/viteconf/
+travisci/eslintrc/babelrc/karmaconf/mochajson/mocharc/avaconf/amplifyconf/
+azurepipe/webpackconf/vitestconf/netlifyconf)を避けて選定。
+firebase.json は `dependencies`/`devDependencies`/`scripts` を REJECT キーとして
+package.json と識別。supabase は `[edge_runtime]`/`[pooler]`/`verify_jwt` 等の
+排他セクション/キー。JS設定系は `defineNuxtConfig`/`defineConfig`+フレームワーク
+固有キーで識別。DETECTORS 1095件、kit モジュール数2185。
+
 ## 第368次
 
 メディア/ダウンロード/バックアップ系の設定形式8モジュール
