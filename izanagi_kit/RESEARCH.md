@@ -6180,6 +6180,22 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
 
+## 第360次 — DB/バックアップ・レジストリ系オペレータ CRD 8 モジュール
+
+分散DB・バックアップ・コンテナレジストリ系 CRD 群第5弾。
+
+- zookeeperop: ZooKeeper Operator(`zookeeper.pravega.io` + ZookeeperCluster)
+- harbor: Harbor Operator(`goharbor.io` + HarborCluster/HarborServerConfiguration)
+- stash: Stash(`stash.appscode.com` + BackupConfiguration/RestoreSession/Repository/BackupBatch/HookTemplate 等)
+- cockroach: CockroachDB Operator(`crdb.cockroachlabs.com` + CrdbCluster)
+- yugabyte: YugabyteDB Operator(`yugabyte.com` + YBCluster/YBUniverse)
+- redpanda: Redpanda Operator(`cluster.redpanda.com` + Redpanda/Topic/User/Schema/Console)
+- infinispan: Infinispan Operator(`infinispan.org` + Infinispan/Cache/Backup/Restore/Batch)
+- opensearchop: OpenSearch Operator(`opensearch.opster.io` + OpenSearchCluster/OpenSearchWorkload)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第362次 — IdP/認証プロキシ・監視エージェント系 9 モジュール
 
 アイデンティティ・ゼロトラスト系ツールの設定形式を追加。YAMLトップキー(強/弱)、INI、HCL の3パターン。
