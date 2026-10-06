@@ -47,16 +47,21 @@ fn words(t: &str) -> impl Iterator<Item = &str> {
     t.split(|c: char| !(c.is_alphanumeric() || c == '_'))
         .filter(|w| !w.is_empty())
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `;;` コメント行内の言及は証拠にしない。
+    t.lines()
+        .any(|l| !l.trim_start().starts_with(";;") && l.contains(needle))
+}
 
 /// Returns `true` when `b` looks like FunC source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("recv_internal(")
-        || t.contains("recv_external(")
-        || t.contains("run_ticktock(")
-        || t.contains("method_id")
-        || (t.contains("#include") && t.contains("impure"))
+    code_has(t, "recv_internal(")
+        || code_has(t, "recv_external(")
+        || code_has(t, "run_ticktock(")
+        || code_has(t, "method_id")
+        || (code_has(t, "#include") && code_has(t, "impure"))
 }
 
 impl Func {
@@ -112,6 +117,11 @@ impl Func {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b";; recv_internal()\n"));
+    }
 
     const SRC: &[u8] =
         b"() recv_internal(int msg_value, cell in_msg, slice in_msg_body) impure {\n}\n";

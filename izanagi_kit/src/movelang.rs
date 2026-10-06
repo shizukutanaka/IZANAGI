@@ -50,15 +50,22 @@ fn words(t: &str) -> impl Iterator<Item = &str> {
     t.split(|c: char| !(c.is_alphanumeric() || c == '_'))
         .filter(|w| !w.is_empty())
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `//`/`/*` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with("//") && !l.starts_with("/*") && l.contains(needle)
+    })
+}
 
 /// Returns `true` when `b` looks like Move source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    (t.contains("module ") && t.contains("::") && t.contains('{'))
-        || t.contains("script {")
-        || t.contains("public fun ")
-        || t.contains("entry fun ")
+    (code_has(t, "module ") && code_has(t, "::") && code_has(t, "{"))
+        || code_has(t, "script {")
+        || code_has(t, "public fun ")
+        || code_has(t, "entry fun ")
 }
 
 impl Move {
@@ -109,6 +116,11 @@ impl Move {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"// script {\n// public fun f()\n"));
+    }
 
     const SRC: &[u8] = b"module 0x1::coin {\n    public fun mint() {}\n}\n";
 
