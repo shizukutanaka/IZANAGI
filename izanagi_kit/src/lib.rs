@@ -517,6 +517,7 @@ pub mod ay;
 pub mod azurepipe;
 pub mod azw;
 pub mod babelrc;
+pub mod backstage;
 pub mod bacnet;
 pub mod bai2;
 pub mod bam;
@@ -664,6 +665,7 @@ pub mod cfssl;
 pub mod cgitrc;
 pub mod chacha;
 pub mod change;
+pub mod changesets;
 pub mod chaosmesh;
 pub mod chart;
 pub mod chash;
@@ -724,6 +726,7 @@ pub mod collectd;
 pub mod coloring;
 pub mod comb;
 pub mod combat;
+pub mod commitlint;
 pub mod compose;
 pub mod composer;
 pub mod composerlock;
@@ -760,6 +763,7 @@ pub mod crockford;
 pub mod cromwell;
 pub mod cron;
 pub mod crontab;
+pub mod crossplane;
 pub mod crowdsec;
 pub mod csa;
 pub mod csaf;
@@ -1033,6 +1037,7 @@ pub mod flow;
 pub mod flowfield;
 pub mod fluentbit;
 pub mod fluentd;
+pub mod fluxcd;
 pub mod flv;
 pub mod flyio;
 pub mod flyway;
@@ -1136,6 +1141,7 @@ pub mod goertzel;
 pub mod gogsconf;
 pub mod golangci;
 pub mod gomod;
+pub mod goreleaser;
 pub mod gostconf;
 pub mod gosum;
 pub mod gp;
@@ -1419,6 +1425,7 @@ pub mod kmp;
 pub mod kmv;
 pub mod kmz;
 pub mod knapsack;
+pub mod knative;
 pub mod knexfile;
 pub mod knownhosts;
 pub mod knx;
@@ -1441,6 +1448,7 @@ pub mod kubevela;
 pub mod kubevirt;
 pub mod kuma;
 pub mod kustomize;
+pub mod kyverno;
 pub mod l2tp;
 pub mod lab;
 pub mod las;
@@ -1458,6 +1466,7 @@ pub mod le;
 pub mod lean;
 pub mod leda;
 pub mod lef;
+pub mod lefthook;
 pub mod leftist;
 pub mod lego;
 pub mod leiningen;
@@ -1475,6 +1484,7 @@ pub mod limine;
 pub mod linkcut;
 pub mod linkerd;
 pub mod linrec;
+pub mod lintstaged;
 pub mod liquibase;
 pub mod lis;
 pub mod lit;
@@ -1610,6 +1620,7 @@ pub mod minix;
 pub mod minkowski;
 pub mod minq;
 pub mod mis;
+pub mod mise;
 pub mod misp;
 pub mod mix;
 pub mod mixexs;
@@ -1711,6 +1722,7 @@ pub mod newsboat;
 pub mod newsyslog;
 pub mod nextflow;
 pub mod nexus;
+pub mod nfpm;
 pub mod nfsexports;
 pub mod nftconf;
 pub mod nginx;
@@ -1959,6 +1971,7 @@ pub mod pprof;
 pub mod ppssppconf;
 pub mod pptpd;
 pub mod pptx;
+pub mod precommit;
 pub mod prefect;
 pub mod prefetch;
 pub mod premakeconf;
@@ -2078,6 +2091,7 @@ pub mod reiserfs;
 pub mod relations;
 pub mod relaxng;
 pub mod releaseplease;
+pub mod releaserc;
 pub mod remminaconf;
 pub mod renderconf;
 pub mod renovate;
@@ -2407,6 +2421,7 @@ pub mod tcx;
 pub mod td0;
 pub mod tdm;
 pub mod tds;
+pub mod tekton;
 pub mod telegraf;
 pub mod teleport;
 pub mod telnet;
@@ -2635,6 +2650,7 @@ pub mod webmanifest;
 pub mod webp;
 pub mod webpackconf;
 pub mod weechat;
+pub mod werf;
 pub mod westconf;
 pub mod westonconf;
 pub mod weztermconf;
@@ -2990,6 +3006,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("axports", axports::detect),
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
+    ("backstage", backstage::detect),
     ("bai2", bai2::detect),
     ("bam", bam::detect),
     ("banditconf", banditconf::detect),
@@ -3058,6 +3075,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cfn", cfn::detect),
     ("cfssl", cfssl::detect),
     ("cgitrc", cgitrc::detect),
+    ("changesets", changesets::detect),
     ("chaosmesh", chaosmesh::detect),
     ("chart", chart::detect),
     ("chasquidconf", chasquidconf::detect),
@@ -3094,6 +3112,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("codespell", codespell::detect),
     ("colima", colima::detect),
     ("collectd", collectd::detect),
+    ("commitlint", commitlint::detect),
     ("compose", compose::detect),
     ("composer", composer::detect),
     ("composerlock", composerlock::detect),
@@ -3120,6 +3139,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("crmconf", crmconf::detect),
     ("crockford", crockford::detect),
     ("cromwell", cromwell::detect),
+    ("crossplane", crossplane::detect),
     ("crowdsec", crowdsec::detect),
     ("csa", csa::detect),
     ("csd", csd::detect),
@@ -3249,6 +3269,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("flink", flink::detect),
     ("fluentbit", fluentbit::detect),
     ("fluentd", fluentd::detect),
+    ("fluxcd", fluxcd::detect),
     ("flyio", flyio::detect),
     ("flyway", flyway::detect),
     ("footconf", footconf::detect),
@@ -3293,11 +3314,14 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("glade", glade::detect),
     ("glsl", glsl::detect),
     ("glusterfs", glusterfs::detect),
+    ("gml", gml::detect),
+    ("gn", gn::detect),
     ("gnuplot", gnuplot::detect),
     ("godot", godot::detect),
     ("gogsconf", gogsconf::detect),
     ("golangci", golangci::detect),
     ("gomod", gomod::detect),
+    ("goreleaser", goreleaser::detect),
     ("gostconf", gostconf::detect),
     ("gosum", gosum::detect),
     ("gp", gp::detect),
@@ -3450,6 +3474,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kittyconf", kittyconf::detect),
     ("kittyimg", kittyimg::detect),
     ("klipperconf", klipperconf::detect),
+    ("knative", knative::detect),
     ("knexfile", knexfile::detect),
     ("kodiadv", kodiadv::detect),
     ("kong", kong::detect),
@@ -3468,6 +3493,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kubevirt", kubevirt::detect),
     ("kuma", kuma::detect),
     ("kustomize", kustomize::detect),
+    ("kyverno", kyverno::detect),
     ("lab", lab::detect),
     ("ldapconf", ldapconf::detect),
     ("ldif", ldif::detect),
@@ -3475,6 +3501,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ldtk", ldtk::detect),
     ("lean", lean::detect),
     ("leda", leda::detect),
+    ("lefthook", lefthook::detect),
     ("lego", lego::detect),
     ("leiningen", leiningen::detect),
     ("lerna", lerna::detect),
@@ -3485,6 +3512,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("lima", lima::detect),
     ("limine", limine::detect),
     ("linkerd", linkerd::detect),
+    ("lintstaged", lintstaged::detect),
     ("liquibase", liquibase::detect),
     ("litmus", litmus::detect),
     ("lmms", lmms::detect),
@@ -3521,6 +3549,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mapfile", mapfile::detect),
     ("mapnikxml", mapnikxml::detect),
     ("mapproxyconf", mapproxyconf::detect),
+    ("marc", marc::detect),
     ("markdownlint", markdownlint::detect),
     ("marlinconf", marlinconf::detect),
     ("matplotlibrc", matplotlibrc::detect),
@@ -3554,6 +3583,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("minica", minica::detect),
     ("minikubeconf", minikubeconf::detect),
     ("minio", minio::detect),
+    ("mise", mise::detect),
     ("misp", misp::detect),
     ("mix", mix::detect),
     ("mixexs", mixexs::detect),
@@ -3616,6 +3646,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("newsyslog", newsyslog::detect),
     ("nextflow", nextflow::detect),
     ("nexus", nexus::detect),
+    ("nfpm", nfpm::detect),
     ("nfsexports", nfsexports::detect),
     ("nftconf", nftconf::detect),
     ("nginx", nginx::detect),
@@ -3743,6 +3774,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pprof", pprof::detect),
     ("ppssppconf", ppssppconf::detect),
     ("pptpd", pptpd::detect),
+    ("precommit", precommit::detect),
     ("prefect", prefect::detect),
     ("premakeconf", premakeconf::detect),
     ("preseed", preseed::detect),
@@ -3815,6 +3847,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("reiserfs", reiserfs::detect),
     ("relaxng", relaxng::detect),
     ("releaseplease", releaseplease::detect),
+    ("releaserc", releaserc::detect),
     ("remminaconf", remminaconf::detect),
     ("renderconf", renderconf::detect),
     ("renovate", renovate::detect),
@@ -3986,6 +4019,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("taskfile", taskfile::detect),
     ("td0", td0::detect),
     ("tdm", tdm::detect),
+    ("tekton", tekton::detect),
     ("telegraf", telegraf::detect),
     ("teleport", teleport::detect),
     ("telnet", telnet::detect),
@@ -4107,6 +4141,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),
     ("weechat", weechat::detect),
+    ("werf", werf::detect),
     ("westconf", westconf::detect),
     ("westonconf", westonconf::detect),
     ("weztermconf", weztermconf::detect),
@@ -4201,3 +4236,3545 @@ pub fn detect_all(input: &[u8]) -> Vec<&'static str> {
         .map(|(name, _)| *name)
         .collect()
 }
+/// バイト列パーサーの関数型。戻り型がモジュールごとに異なるため
+/// (`Option<T>`/`Vec<T>`/…)呼び捨ての `fn(&[u8])` に正規化する。
+pub type ParserFn = fn(&[u8]);
+
+/// フリー関数 `pub fn parse(x: &[u8])` を持つ全モジュールの一覧。
+///
+/// 各エントリは `let _ = <mod>::parse(b);` のラッパーで、
+/// 戻り型の差を吸収して一括適用・性質テストを可能にする。
+/// 該当モジュール追加時はこの表にも登録すること。
+pub const PARSERS: &[(&str, ParserFn)] = &[
+    ("a2r", |b| {
+        let _ = a2r::parse(b);
+    }),
+    ("abc", |b| {
+        let _ = abc::parse(b);
+    }),
+    ("ac", |b| {
+        let _ = ac::parse(b);
+    }),
+    ("ace", |b| {
+        let _ = ace::parse(b);
+    }),
+    ("ach", |b| {
+        let _ = ach::parse(b);
+    }),
+    ("actionlint", |b| {
+        let _ = actionlint::parse(b);
+    }),
+    ("activemq", |b| {
+        let _ = activemq::parse(b);
+    }),
+    ("adoc", |b| {
+        let _ = adoc::parse(b);
+    }),
+    ("aercconf", |b| {
+        let _ = aercconf::parse(b);
+    }),
+    ("aerospike", |b| {
+        let _ = aerospike::parse(b);
+    }),
+    ("afm", |b| {
+        let _ = afm::parse(b);
+    }),
+    ("afp", |b| {
+        let _ = afp::parse(b);
+    }),
+    ("aideconf", |b| {
+        let _ = aideconf::parse(b);
+    }),
+    ("aiff", |b| {
+        let _ = aiff::parse(b);
+    }),
+    ("aiger", |b| {
+        let _ = aiger::parse(b);
+    }),
+    ("airbyteconf", |b| {
+        let _ = airbyteconf::parse(b);
+    }),
+    ("ais", |b| {
+        let _ = ais::parse(b);
+    }),
+    ("alembic", |b| {
+        let _ = alembic::parse(b);
+    }),
+    ("alexrc", |b| {
+        let _ = alexrc::parse(b);
+    }),
+    ("aln", |b| {
+        let _ = aln::parse(b);
+    }),
+    ("alto", |b| {
+        let _ = alto::parse(b);
+    }),
+    ("alz", |b| {
+        let _ = alz::parse(b);
+    }),
+    ("amf", |b| {
+        let _ = amf::parse(b);
+    }),
+    ("ampl", |b| {
+        let _ = ampl::parse(b);
+    }),
+    ("amplifyconf", |b| {
+        let _ = amplifyconf::parse(b);
+    }),
+    ("amqp", |b| {
+        let _ = amqp::parse(b);
+    }),
+    ("amr", |b| {
+        let _ = amr::parse(b);
+    }),
+    ("analyze", |b| {
+        let _ = analyze::parse(b);
+    }),
+    ("ansi", |b| {
+        let _ = ansi::parse(b);
+    }),
+    ("antex", |b| {
+        let _ = antex::parse(b);
+    }),
+    ("aoe", |b| {
+        let _ = aoe::parse(b);
+    }),
+    ("aout", |b| {
+        let _ = aout::parse(b);
+    }),
+    ("ape", |b| {
+        let _ = ape::parse(b);
+    }),
+    ("apkg", |b| {
+        let _ = apkg::parse(b);
+    }),
+    ("appcache", |b| {
+        let _ = appcache::parse(b);
+    }),
+    ("appimage", |b| {
+        let _ = appimage::parse(b);
+    }),
+    ("appveyor", |b| {
+        let _ = appveyor::parse(b);
+    }),
+    ("aps", |b| {
+        let _ = aps::parse(b);
+    }),
+    ("aprxconf", |b| {
+        let _ = aprxconf::parse(b);
+    }),
+    ("ar", |b| {
+        let _ = ar::parse(b);
+    }),
+    ("arb", |b| {
+        let _ = arb::parse(b);
+    }),
+    ("archinstall", |b| {
+        let _ = archinstall::parse(b);
+    }),
+    ("ardour", |b| {
+        let _ = ardour::parse(b);
+    }),
+    ("arduinoconf", |b| {
+        let _ = arduinoconf::parse(b);
+    }),
+    ("arff", |b| {
+        let _ = arff::parse(b);
+    }),
+    ("argusconf", |b| {
+        let _ = argusconf::parse(b);
+    }),
+    ("argorollout", |b| {
+        let _ = argorollout::parse(b);
+    }),
+    ("arkimeconf", |b| {
+        let _ = arkimeconf::parse(b);
+    }),
+    ("arp", |b| {
+        let _ = arp::parse(b);
+    }),
+    ("arrow", |b| {
+        let _ = arrow::parse(b);
+    }),
+    ("arw", |b| {
+        let _ = arw::parse(b);
+    }),
+    ("asciicast", |b| {
+        let _ = asciicast::parse(b);
+    }),
+    ("asf", |b| {
+        let _ = asf::parse(b);
+    }),
+    ("asn1", |b| {
+        let _ = asn1::parse(b);
+    }),
+    ("assetlinks", |b| {
+        let _ = assetlinks::parse(b);
+    }),
+    ("atom", |b| {
+        let _ = atom::parse(b);
+    }),
+    ("atr", |b| {
+        let _ = atr::parse(b);
+    }),
+    ("au", |b| {
+        let _ = au::parse(b);
+    }),
+    ("audacity", |b| {
+        let _ = audacity::parse(b);
+    }),
+    ("auditdconf", |b| {
+        let _ = auditdconf::parse(b);
+    }),
+    ("auditrule", |b| {
+        let _ = auditrule::parse(b);
+    }),
+    ("autofs", |b| {
+        let _ = autofs::parse(b);
+    }),
+    ("autoyast", |b| {
+        let _ = autoyast::parse(b);
+    }),
+    ("avi", |b| {
+        let _ = avi::parse(b);
+    }),
+    ("avro", |b| {
+        let _ = avro::parse(b);
+    }),
+    ("axports", |b| {
+        let _ = axports::parse(b);
+    }),
+    ("ay", |b| {
+        let _ = ay::parse(b);
+    }),
+    ("azw", |b| {
+        let _ = azw::parse(b);
+    }),
+    ("bacnet", |b| {
+        let _ = bacnet::parse(b);
+    }),
+    ("backstage", |b| {
+        let _ = backstage::parse(b);
+    }),
+    ("bai2", |b| {
+        let _ = bai2::parse(b);
+    }),
+    ("bam", |b| {
+        let _ = bam::parse(b);
+    }),
+    ("base32", |b| {
+        let _ = base32::parse(b);
+    }),
+    ("bazel", |b| {
+        let _ = bazel::parse(b);
+    }),
+    ("bbcode", |b| {
+        let _ = bbcode::parse(b);
+    }),
+    ("bdb", |b| {
+        let _ = bdb::parse(b);
+    }),
+    ("bdf", |b| {
+        let _ = bdf::parse(b);
+    }),
+    ("bgp", |b| {
+        let _ = bgp::parse(b);
+    }),
+    ("bibtex", |b| {
+        let _ = bibtex::parse(b);
+    }),
+    ("bik", |b| {
+        let _ = bik::parse(b);
+    }),
+    ("bit", |b| {
+        let _ = bit::parse(b);
+    }),
+    ("bitcoinconf", |b| {
+        let _ = bitcoinconf::parse(b);
+    }),
+    ("blend", |b| {
+        let _ = blend::parse(b);
+    }),
+    ("bogofilter", |b| {
+        let _ = bogofilter::parse(b);
+    }),
+    ("bootimg", |b| {
+        let _ = bootimg::parse(b);
+    }),
+    ("bps", |b| {
+        let _ = bps::parse(b);
+    }),
+    ("browserconfig", |b| {
+        let _ = browserconfig::parse(b);
+    }),
+    ("bsdiff", |b| {
+        let _ = bsdiff::parse(b);
+    }),
+    ("bson", |b| {
+        let _ = bson::parse(b);
+    }),
+    ("bsp", |b| {
+        let _ = bsp::parse(b);
+    }),
+    ("btrfs", |b| {
+        let _ = btrfs::parse(b);
+    }),
+    ("btsnoop", |b| {
+        let _ = btsnoop::parse(b);
+    }),
+    ("buck", |b| {
+        let _ = buck::parse(b);
+    }),
+    ("bufr", |b| {
+        let _ = bufr::parse(b);
+    }),
+    ("buildkitd", |b| {
+        let _ = buildkitd::parse(b);
+    }),
+    ("buildkite", |b| {
+        let _ = buildkite::parse(b);
+    }),
+    ("bundle", |b| {
+        let _ = bundle::parse(b);
+    }),
+    ("bundlerconf", |b| {
+        let _ = bundlerconf::parse(b);
+    }),
+    ("bvh", |b| {
+        let _ = bvh::parse(b);
+    }),
+    ("bzip2", |b| {
+        let _ = bzip2::parse(b);
+    }),
+    ("c3d", |b| {
+        let _ = c3d::parse(b);
+    }),
+    ("cab", |b| {
+        let _ = cab::parse(b);
+    }),
+    ("cabal", |b| {
+        let _ = cabal::parse(b);
+    }),
+    ("caf", |b| {
+        let _ = caf::parse(b);
+    }),
+    ("calamares", |b| {
+        let _ = calamares::parse(b);
+    }),
+    ("camt", |b| {
+        let _ = camt::parse(b);
+    }),
+    ("candump", |b| {
+        let _ = candump::parse(b);
+    }),
+    ("capnp", |b| {
+        let _ = capnp::parse(b);
+    }),
+    ("capx", |b| {
+        let _ = capx::parse(b);
+    }),
+    ("cardanoconf", |b| {
+        let _ = cardanoconf::parse(b);
+    }),
+    ("cartocss", |b| {
+        let _ = cartocss::parse(b);
+    }),
+    ("cargoconf", |b| {
+        let _ = cargoconf::parse(b);
+    }),
+    ("carla", |b| {
+        let _ = carla::parse(b);
+    }),
+    ("cbfs", |b| {
+        let _ = cbfs::parse(b);
+    }),
+    ("ccd", |b| {
+        let _ = ccd::parse(b);
+    }),
+    ("ccsds", |b| {
+        let _ = ccsds::parse(b);
+    }),
+    ("ccx", |b| {
+        let _ = ccx::parse(b);
+    }),
+    ("cephconf", |b| {
+        let _ = cephconf::parse(b);
+    }),
+    ("chirpcsv", |b| {
+        let _ = chirpcsv::parse(b);
+    }),
+    ("changesets", |b| {
+        let _ = changesets::parse(b);
+    }),
+    ("chaosmesh", |b| {
+        let _ = chaosmesh::parse(b);
+    }),
+    ("chd", |b| {
+        let _ = chd::parse(b);
+    }),
+    ("checkstyle", |b| {
+        let _ = checkstyle::parse(b);
+    }),
+    ("chronyconf", |b| {
+        let _ = chronyconf::parse(b);
+    }),
+    ("cibxml", |b| {
+        let _ = cibxml::parse(b);
+    }),
+    ("cif", |b| {
+        let _ = cif::parse(b);
+    }),
+    ("cliff", |b| {
+        let _ = cliff::parse(b);
+    }),
+    ("cirrus", |b| {
+        let _ = cirrus::parse(b);
+    }),
+    ("classfile", |b| {
+        let _ = classfile::parse(b);
+    }),
+    ("clusterconf", |b| {
+        let _ = clusterconf::parse(b);
+    }),
+    ("cmake", |b| {
+        let _ = cmake::parse(b);
+    }),
+    ("cml", |b| {
+        let _ = cml::parse(b);
+    }),
+    ("coap", |b| {
+        let _ = coap::parse(b);
+    }),
+    ("cob", |b| {
+        let _ = cob::parse(b);
+    }),
+    ("cobertura", |b| {
+        let _ = cobertura::parse(b);
+    }),
+    ("cocosproj", |b| {
+        let _ = cocosproj::parse(b);
+    }),
+    ("codeclimate", |b| {
+        let _ = codeclimate::parse(b);
+    }),
+    ("codecov", |b| {
+        let _ = codecov::parse(b);
+    }),
+    ("codespell", |b| {
+        let _ = codespell::parse(b);
+    }),
+    ("coff", |b| {
+        let _ = coff::parse(b);
+    }),
+    ("coins", |b| {
+        let _ = coins::parse(b);
+    }),
+    ("commitlint", |b| {
+        let _ = commitlint::parse(b);
+    }),
+    ("colima", |b| {
+        let _ = colima::parse(b);
+    }),
+    ("contourconf", |b| {
+        let _ = contourconf::parse(b);
+    }),
+    ("cookiejar", |b| {
+        let _ = cookiejar::parse(b);
+    }),
+    ("coq", |b| {
+        let _ = coq::parse(b);
+    }),
+    ("corosync", |b| {
+        let _ = corosync::parse(b);
+    }),
+    ("coveralls", |b| {
+        let _ = coveralls::parse(b);
+    }),
+    ("cpanfile", |b| {
+        let _ = cpanfile::parse(b);
+    }),
+    ("cpio", |b| {
+        let _ = cpio::parse(b);
+    }),
+    ("cr2", |b| {
+        let _ = cr2::parse(b);
+    }),
+    ("cramfs", |b| {
+        let _ = cramfs::parse(b);
+    }),
+    ("crashdump", |b| {
+        let _ = crashdump::parse(b);
+    }),
+    ("creole", |b| {
+        let _ = creole::parse(b);
+    }),
+    ("crio", |b| {
+        let _ = crio::parse(b);
+    }),
+    ("crl", |b| {
+        let _ = crl::parse(b);
+    }),
+    ("crowdsec", |b| {
+        let _ = crowdsec::parse(b);
+    }),
+    ("crmconf", |b| {
+        let _ = crmconf::parse(b);
+    }),
+    ("crockford", |b| {
+        let _ = crockford::parse(b);
+    }),
+    ("cromwell", |b| {
+        let _ = cromwell::parse(b);
+    }),
+    ("crontab", |b| {
+        let _ = crontab::parse(b);
+    }),
+    ("crossplane", |b| {
+        let _ = crossplane::parse(b);
+    }),
+    ("csa", |b| {
+        let _ = csa::parse(b);
+    }),
+    ("csaf", |b| {
+        let _ = csaf::parse(b);
+    }),
+    ("csd", |b| {
+        let _ = csd::parse(b);
+    }),
+    ("csljson", |b| {
+        let _ = csljson::parse(b);
+    }),
+    ("cspell", |b| {
+        let _ = cspell::parse(b);
+    }),
+    ("csr", |b| {
+        let _ = csr::parse(b);
+    }),
+    ("csv", |b| {
+        let _ = csv::parse(b);
+    }),
+    ("cube", |b| {
+        let _ = cube::parse(b);
+    }),
+    ("cuid", |b| {
+        let _ = cuid::parse(b);
+    }),
+    ("curaconf", |b| {
+        let _ = curaconf::parse(b);
+    }),
+    ("cve", |b| {
+        let _ = cve::parse(b);
+    }),
+    ("cvsrcs", |b| {
+        let _ = cvsrcs::parse(b);
+    }),
+    ("cyclonedx", |b| {
+        let _ = cyclonedx::parse(b);
+    }),
+    ("cypher", |b| {
+        let _ = cypher::parse(b);
+    }),
+    ("d64", |b| {
+        let _ = d64::parse(b);
+    }),
+    ("d88", |b| {
+        let _ = d88::parse(b);
+    }),
+    ("dae", |b| {
+        let _ = dae::parse(b);
+    }),
+    ("dbf", |b| {
+        let _ = dbf::parse(b);
+    }),
+    ("dbm", |b| {
+        let _ = dbm::parse(b);
+    }),
+    ("dcd", |b| {
+        let _ = dcd::parse(b);
+    }),
+    ("dds", |b| {
+        let _ = dds::parse(b);
+    }),
+    ("denyhosts", |b| {
+        let _ = denyhosts::parse(b);
+    }),
+    ("deb", |b| {
+        let _ = deb::parse(b);
+    }),
+    ("debconf", |b| {
+        let _ = debconf::parse(b);
+    }),
+    ("def", |b| {
+        let _ = def::parse(b);
+    }),
+    ("defconfig", |b| {
+        let _ = defconfig::parse(b);
+    }),
+    ("defoldproj", |b| {
+        let _ = defoldproj::parse(b);
+    }),
+    ("dependabot", |b| {
+        let _ = dependabot::parse(b);
+    }),
+    ("devbox", |b| {
+        let _ = devbox::parse(b);
+    }),
+    ("der", |b| {
+        let _ = der::parse(b);
+    }),
+    ("desktop", |b| {
+        let _ = desktop::parse(b);
+    }),
+    ("dex", |b| {
+        let _ = dex::parse(b);
+    }),
+    ("dgn", |b| {
+        let _ = dgn::parse(b);
+    }),
+    ("dhclientconf", |b| {
+        let _ = dhclientconf::parse(b);
+    }),
+    ("dhcp", |b| {
+        let _ = dhcp::parse(b);
+    }),
+    ("dhcpcdconf", |b| {
+        let _ = dhcpcdconf::parse(b);
+    }),
+    ("diameter", |b| {
+        let _ = diameter::parse(b);
+    }),
+    ("dicom", |b| {
+        let _ = dicom::parse(b);
+    }),
+    ("direwolfconf", |b| {
+        let _ = direwolfconf::parse(b);
+    }),
+    ("dictd", |b| {
+        let _ = dictd::parse(b);
+    }),
+    ("dictzip", |b| {
+        let _ = dictzip::parse(b);
+    }),
+    ("did", |b| {
+        let _ = did::parse(b);
+    }),
+    ("dif", |b| {
+        let _ = dif::parse(b);
+    }),
+    ("dimacs", |b| {
+        let _ = dimacs::parse(b);
+    }),
+    ("discourse", |b| {
+        let _ = discourse::parse(b);
+    }),
+    ("dita", |b| {
+        let _ = dita::parse(b);
+    }),
+    ("djvu", |b| {
+        let _ = djvu::parse(b);
+    }),
+    ("dls", |b| {
+        let _ = dls::parse(b);
+    }),
+    ("dlt", |b| {
+        let _ = dlt::parse(b);
+    }),
+    ("dm3", |b| {
+        let _ = dm3::parse(b);
+    }),
+    ("dmg", |b| {
+        let _ = dmg::parse(b);
+    }),
+    ("dng", |b| {
+        let _ = dng::parse(b);
+    }),
+    ("dns", |b| {
+        let _ = dns::parse(b);
+    }),
+    ("docbook", |b| {
+        let _ = docbook::parse(b);
+    }),
+    ("dockerfile", |b| {
+        let _ = dockerfile::parse(b);
+    }),
+    ("docx", |b| {
+        let _ = docx::parse(b);
+    }),
+    ("dolphinconf", |b| {
+        let _ = dolphinconf::parse(b);
+    }),
+    ("dpx", |b| {
+        let _ = dpx::parse(b);
+    }),
+    ("dragonflyconf", |b| {
+        let _ = dragonflyconf::parse(b);
+    }),
+    ("drbdconf", |b| {
+        let _ = drbdconf::parse(b);
+    }),
+    ("dro", |b| {
+        let _ = dro::parse(b);
+    }),
+    ("dsf", |b| {
+        let _ = dsf::parse(b);
+    }),
+    ("dsig", |b| {
+        let _ = dsig::parse(b);
+    }),
+    ("dsl", |b| {
+        let _ = dsl::parse(b);
+    }),
+    ("dsn", |b| {
+        let _ = dsn::parse(b);
+    }),
+    ("dsv", |b| {
+        let _ = dsv::parse(b);
+    }),
+    ("dta", |b| {
+        let _ = dta::parse(b);
+    }),
+    ("dtd", |b| {
+        let _ = dtd::parse(b);
+    }),
+    ("dted", |b| {
+        let _ = dted::parse(b);
+    }),
+    ("dvi", |b| {
+        let _ = dvi::parse(b);
+    }),
+    ("dwarf", |b| {
+        let _ = dwarf::parse(b);
+    }),
+    ("dwg", |b| {
+        let _ = dwg::parse(b);
+    }),
+    ("dx", |b| {
+        let _ = dx::parse(b);
+    }),
+    ("dxbc", |b| {
+        let _ = dxbc::parse(b);
+    }),
+    ("e00", |b| {
+        let _ = e00::parse(b);
+    }),
+    ("e57", |b| {
+        let _ = e57::parse(b);
+    }),
+    ("ead", |b| {
+        let _ = ead::parse(b);
+    }),
+    ("eaglexml", |b| {
+        let _ = eaglexml::parse(b);
+    }),
+    ("ean", |b| {
+        let _ = ean::parse(b);
+    }),
+    ("eap", |b| {
+        let _ = eap::parse(b);
+    }),
+    ("earthly", |b| {
+        let _ = earthly::parse(b);
+    }),
+    ("ebml", |b| {
+        let _ = ebml::parse(b);
+    }),
+    ("ecat", |b| {
+        let _ = ecat::parse(b);
+    }),
+    ("edf", |b| {
+        let _ = edf::parse(b);
+    }),
+    ("edi", |b| {
+        let _ = edi::parse(b);
+    }),
+    ("edsk", |b| {
+        let _ = edsk::parse(b);
+    }),
+    ("eep", |b| {
+        let _ = eep::parse(b);
+    }),
+    ("ejabberd", |b| {
+        let _ = ejabberd::parse(b);
+    }),
+    ("elf", |b| {
+        let _ = elf::parse(b);
+    }),
+    ("endnote", |b| {
+        let _ = endnote::parse(b);
+    }),
+    ("epd", |b| {
+        let _ = epd::parse(b);
+    }),
+    ("eps", |b| {
+        let _ = eps::parse(b);
+    }),
+    ("epub", |b| {
+        let _ = epub::parse(b);
+    }),
+    ("epwing", |b| {
+        let _ = epwing::parse(b);
+    }),
+    ("erf", |b| {
+        let _ = erf::parse(b);
+    }),
+    ("escpos", |b| {
+        let _ = escpos::parse(b);
+    }),
+    ("esp", |b| {
+        let _ = esp::parse(b);
+    }),
+    ("ethercat", |b| {
+        let _ = ethercat::parse(b);
+    }),
+    ("ethernet", |b| {
+        let _ = ethernet::parse(b);
+    }),
+    ("evt", |b| {
+        let _ = evt::parse(b);
+    }),
+    ("evtx", |b| {
+        let _ = evtx::parse(b);
+    }),
+    ("excellon", |b| {
+        let _ = excellon::parse(b);
+    }),
+    ("fail2banconf", |b| {
+        let _ = fail2banconf::parse(b);
+    }),
+    ("exfat", |b| {
+        let _ = exfat::parse(b);
+    }),
+    ("exr", |b| {
+        let _ = exr::parse(b);
+    }),
+    ("ext2", |b| {
+        let _ = ext2::parse(b);
+    }),
+    ("extmanifest", |b| {
+        let _ = extmanifest::parse(b);
+    }),
+    ("f2fs", |b| {
+        let _ = f2fs::parse(b);
+    }),
+    ("fail2ban", |b| {
+        let _ = fail2ban::parse(b);
+    }),
+    ("falcoconf", |b| {
+        let _ = falcoconf::parse(b);
+    }),
+    ("far", |b| {
+        let _ = far::parse(b);
+    }),
+    ("farbfeld", |b| {
+        let _ = farbfeld::parse(b);
+    }),
+    ("fat", |b| {
+        let _ = fat::parse(b);
+    }),
+    ("fbx", |b| {
+        let _ = fbx::parse(b);
+    }),
+    ("fchk", |b| {
+        let _ = fchk::parse(b);
+    }),
+    ("fcoe", |b| {
+        let _ = fcoe::parse(b);
+    }),
+    ("fds", |b| {
+        let _ = fds::parse(b);
+    }),
+    ("ferm", |b| {
+        let _ = ferm::parse(b);
+    }),
+    ("flagger", |b| {
+        let _ = flagger::parse(b);
+    }),
+    ("fetchmailconf", |b| {
+        let _ = fetchmailconf::parse(b);
+    }),
+    ("fgb", |b| {
+        let _ = fgb::parse(b);
+    }),
+    ("fidl", |b| {
+        let _ = fidl::parse(b);
+    }),
+    ("fit", |b| {
+        let _ = fit::parse(b);
+    }),
+    ("fldigiconf", |b| {
+        let _ = fldigiconf::parse(b);
+    }),
+    ("fits", |b| {
+        let _ = fits::parse(b);
+    }),
+    ("fivetranconf", |b| {
+        let _ = fivetranconf::parse(b);
+    }),
+    ("fix", |b| {
+        let _ = fix::parse(b);
+    }),
+    ("fixml", |b| {
+        let _ = fixml::parse(b);
+    }),
+    ("fla", |b| {
+        let _ = fla::parse(b);
+    }),
+    ("flac", |b| {
+        let _ = flac::parse(b);
+    }),
+    ("flatbuf", |b| {
+        let _ = flatbuf::parse(b);
+    }),
+    ("fluxcd", |b| {
+        let _ = fluxcd::parse(b);
+    }),
+    ("flif", |b| {
+        let _ = flif::parse(b);
+    }),
+    ("flv", |b| {
+        let _ = flv::parse(b);
+    }),
+    ("flyio", |b| {
+        let _ = flyio::parse(b);
+    }),
+    ("flyway", |b| {
+        let _ = flyway::parse(b);
+    }),
+    ("fnt", |b| {
+        let _ = fnt::parse(b);
+    }),
+    ("fon", |b| {
+        let _ = fon::parse(b);
+    }),
+    ("footconf", |b| {
+        let _ = footconf::parse(b);
+    }),
+    ("fossil", |b| {
+        let _ = fossil::parse(b);
+    }),
+    ("fpml", |b| {
+        let _ = fpml::parse(b);
+    }),
+    ("frd", |b| {
+        let _ = frd::parse(b);
+    }),
+    ("fsb", |b| {
+        let _ = fsb::parse(b);
+    }),
+    ("fstab", |b| {
+        let _ = fstab::parse(b);
+    }),
+    ("gatekeeper", |b| {
+        let _ = gatekeeper::parse(b);
+    }),
+    ("ftl", |b| {
+        let _ = ftl::parse(b);
+    }),
+    ("fusesoc", |b| {
+        let _ = fusesoc::parse(b);
+    }),
+    ("fxml", |b| {
+        let _ = fxml::parse(b);
+    }),
+    ("fxp", |b| {
+        let _ = fxp::parse(b);
+    }),
+    ("garnetconf", |b| {
+        let _ = garnetconf::parse(b);
+    }),
+    ("gb", |b| {
+        let _ = gb::parse(b);
+    }),
+    ("gba", |b| {
+        let _ = gba::parse(b);
+    }),
+    ("gbs", |b| {
+        let _ = gbs::parse(b);
+    }),
+    ("gbstudio", |b| {
+        let _ = gbstudio::parse(b);
+    }),
+    ("gci", |b| {
+        let _ = gci::parse(b);
+    }),
+    ("gcode", |b| {
+        let _ = gcode::parse(b);
+    }),
+    ("gcov", |b| {
+        let _ = gcov::parse(b);
+    }),
+    ("gdbm", |b| {
+        let _ = gdbm::parse(b);
+    }),
+    ("gdf", |b| {
+        let _ = gdf::parse(b);
+    }),
+    ("gdiff", |b| {
+        let _ = gdiff::parse(b);
+    }),
+    ("gdmconf", |b| {
+        let _ = gdmconf::parse(b);
+    }),
+    ("gds", |b| {
+        let _ = gds::parse(b);
+    }),
+    ("gedasch", |b| {
+        let _ = gedasch::parse(b);
+    }),
+    ("gemrc", |b| {
+        let _ = gemrc::parse(b);
+    }),
+    ("genbank", |b| {
+        let _ = genbank::parse(b);
+    }),
+    ("geojson", |b| {
+        let _ = geojson::parse(b);
+    }),
+    ("gerber", |b| {
+        let _ = gerber::parse(b);
+    }),
+    ("gethconf", |b| {
+        let _ = gethconf::parse(b);
+    }),
+    ("gexf", |b| {
+        let _ = gexf::parse(b);
+    }),
+    ("gf", |b| {
+        let _ = gf::parse(b);
+    }),
+    ("gguf", |b| {
+        let _ = gguf::parse(b);
+    }),
+    ("ghosttyconf", |b| {
+        let _ = ghosttyconf::parse(b);
+    }),
+    ("goreleaser", |b| {
+        let _ = goreleaser::parse(b);
+    }),
+    ("giteaaction", |b| {
+        let _ = giteaaction::parse(b);
+    }),
+    ("gitidx", |b| {
+        let _ = gitidx::parse(b);
+    }),
+    ("gitpack", |b| {
+        let _ = gitpack::parse(b);
+    }),
+    ("gostconf", |b| {
+        let _ = gostconf::parse(b);
+    }),
+    ("glade", |b| {
+        let _ = glade::parse(b);
+    }),
+    ("gqrxconf", |b| {
+        let _ = gqrxconf::parse(b);
+    }),
+    ("glb", |b| {
+        let _ = glb::parse(b);
+    }),
+    ("glsl", |b| {
+        let _ = glsl::parse(b);
+    }),
+    ("gltf", |b| {
+        let _ = gltf::parse(b);
+    }),
+    ("glusterfs", |b| {
+        let _ = glusterfs::parse(b);
+    }),
+    ("gml", |b| {
+        let _ = gml::parse(b);
+    }),
+    ("gn", |b| {
+        let _ = gn::parse(b);
+    }),
+    ("gnuplot", |b| {
+        let _ = gnuplot::parse(b);
+    }),
+    ("gp", |b| {
+        let _ = gp::parse(b);
+    }),
+    ("gpkg", |b| {
+        let _ = gpkg::parse(b);
+    }),
+    ("gpsd", |b| {
+        let _ = gpsd::parse(b);
+    }),
+    ("graphite", |b| {
+        let _ = graphite::parse(b);
+    }),
+    ("graphml", |b| {
+        let _ = graphml::parse(b);
+    }),
+    ("graphql", |b| {
+        let _ = graphql::parse(b);
+    }),
+    ("grd", |b| {
+        let _ = grd::parse(b);
+    }),
+    ("gre", |b| {
+        let _ = gre::parse(b);
+    }),
+    ("grib", |b| {
+        let _ = grib::parse(b);
+    }),
+    ("gro", |b| {
+        let _ = gro::parse(b);
+    }),
+    ("group", |b| {
+        let _ = group::parse(b);
+    }),
+    ("grp", |b| {
+        let _ = grp::parse(b);
+    }),
+    ("grubconf", |b| {
+        let _ = grubconf::parse(b);
+    }),
+    ("grubenv", |b| {
+        let _ = grubenv::parse(b);
+    }),
+    ("gtp", |b| {
+        let _ = gtp::parse(b);
+    }),
+    ("gxf", |b| {
+        let _ = gxf::parse(b);
+    }),
+    ("gym", |b| {
+        let _ = gym::parse(b);
+    }),
+    ("gzip", |b| {
+        let _ = gzip::parse(b);
+    }),
+    ("hacf", |b| {
+        let _ = hacf::parse(b);
+    }),
+    ("hadolintconf", |b| {
+        let _ = hadolintconf::parse(b);
+    }),
+    ("hadoopconf", |b| {
+        let _ = hadoopconf::parse(b);
+    }),
+    ("haresources", |b| {
+        let _ = haresources::parse(b);
+    }),
+    ("harness", |b| {
+        let _ = harness::parse(b);
+    }),
+    ("hb", |b| {
+        let _ = hb::parse(b);
+    }),
+    ("hcl", |b| {
+        let _ = hcl::parse(b);
+    }),
+    ("hdlc", |b| {
+        let _ = hdlc::parse(b);
+    }),
+    ("hdr", |b| {
+        let _ = hdr::parse(b);
+    }),
+    ("heif", |b| {
+        let _ = heif::parse(b);
+    }),
+    ("hes", |b| {
+        let _ = hes::parse(b);
+    }),
+    ("hexchat", |b| {
+        let _ = hexchat::parse(b);
+    }),
+    ("hfe", |b| {
+        let _ = hfe::parse(b);
+    }),
+    ("hfs", |b| {
+        let _ = hfs::parse(b);
+    }),
+    ("hfsplus", |b| {
+        let _ = hfsplus::parse(b);
+    }),
+    ("hgt", |b| {
+        let _ = hgt::parse(b);
+    }),
+    ("hiberfil", |b| {
+        let _ = hiberfil::parse(b);
+    }),
+    ("hivemq", |b| {
+        let _ = hivemq::parse(b);
+    }),
+    ("hysteriaconf", |b| {
+        let _ = hysteriaconf::parse(b);
+    }),
+    ("hlsl", |b| {
+        let _ = hlsl::parse(b);
+    }),
+    ("hocr", |b| {
+        let _ = hocr::parse(b);
+    }),
+    ("hopconf", |b| {
+        let _ = hopconf::parse(b);
+    }),
+    ("hostapd", |b| {
+        let _ = hostapd::parse(b);
+    }),
+    ("hosts", |b| {
+        let _ = hosts::parse(b);
+    }),
+    ("hpgl", |b| {
+        let _ = hpgl::parse(b);
+    }),
+    ("hqx", |b| {
+        let _ = hqx::parse(b);
+    }),
+    ("htaccess", |b| {
+        let _ = htaccess::parse(b);
+    }),
+    ("hus", |b| {
+        let _ = hus::parse(b);
+    }),
+    ("hydrogen", |b| {
+        let _ = hydrogen::parse(b);
+    }),
+    ("ibmmq", |b| {
+        let _ = ibmmq::parse(b);
+    }),
+    ("ical", |b| {
+        let _ = ical::parse(b);
+    }),
+    ("icc", |b| {
+        let _ = icc::parse(b);
+    }),
+    ("icmp", |b| {
+        let _ = icmp::parse(b);
+    }),
+    ("icns", |b| {
+        let _ = icns::parse(b);
+    }),
+    ("ico", |b| {
+        let _ = ico::parse(b);
+    }),
+    ("id3", |b| {
+        let _ = id3::parse(b);
+    }),
+    ("idl", |b| {
+        let _ = idl::parse(b);
+    }),
+    ("ifc", |b| {
+        let _ = ifc::parse(b);
+    }),
+    ("ifd", |b| {
+        let _ = ifd::parse(b);
+    }),
+    ("iff", |b| {
+        let _ = iff::parse(b);
+    }),
+    ("iges", |b| {
+        let _ = iges::parse(b);
+    }),
+    ("igmp", |b| {
+        let _ = igmp::parse(b);
+    }),
+    ("imap", |b| {
+        let _ = imap::parse(b);
+    }),
+    ("imd", |b| {
+        let _ = imd::parse(b);
+    }),
+    ("imscc", |b| {
+        let _ = imscc::parse(b);
+    }),
+    ("imx", |b| {
+        let _ = imx::parse(b);
+    }),
+    ("ines", |b| {
+        let _ = ines::parse(b);
+    }),
+    ("influx", |b| {
+        let _ = influx::parse(b);
+    }),
+    ("inp", |b| {
+        let _ = inp::parse(b);
+    }),
+    ("interfile", |b| {
+        let _ = interfile::parse(b);
+    }),
+    ("intoto", |b| {
+        let _ = intoto::parse(b);
+    }),
+    ("ioc", |b| {
+        let _ = ioc::parse(b);
+    }),
+    ("ion", |b| {
+        let _ = ion::parse(b);
+    }),
+    ("ipfix", |b| {
+        let _ = ipfix::parse(b);
+    }),
+    ("ipk", |b| {
+        let _ = ipk::parse(b);
+    }),
+    ("ips", |b| {
+        let _ = ips::parse(b);
+    }),
+    ("ipset", |b| {
+        let _ = ipset::parse(b);
+    }),
+    ("iptablessave", |b| {
+        let _ = iptablessave::parse(b);
+    }),
+    ("iptc", |b| {
+        let _ = iptc::parse(b);
+    }),
+    ("ipv4", |b| {
+        let _ = ipv4::parse(b);
+    }),
+    ("ipv6", |b| {
+        let _ = ipv6::parse(b);
+    }),
+    ("ipxact", |b| {
+        let _ = ipxact::parse(b);
+    }),
+    ("ipxescript", |b| {
+        let _ = ipxescript::parse(b);
+    }),
+    ("irc", |b| {
+        let _ = irc::parse(b);
+    }),
+    ("ircam", |b| {
+        let _ = ircam::parse(b);
+    }),
+    ("irssi", |b| {
+        let _ = irssi::parse(b);
+    }),
+    ("isabelle", |b| {
+        let _ = isabelle::parse(b);
+    }),
+    ("isakmp", |b| {
+        let _ = isakmp::parse(b);
+    }),
+    ("isbn", |b| {
+        let _ = isbn::parse(b);
+    }),
+    ("isc", |b| {
+        let _ = isc::parse(b);
+    }),
+    ("iscsi", |b| {
+        let _ = iscsi::parse(b);
+    }),
+    ("isis", |b| {
+        let _ = isis::parse(b);
+    }),
+    ("ismn", |b| {
+        let _ = ismn::parse(b);
+    }),
+    ("iso8583", |b| {
+        let _ = iso8583::parse(b);
+    }),
+    ("iso9660", |b| {
+        let _ = iso9660::parse(b);
+    }),
+    ("isobmff", |b| {
+        let _ = isobmff::parse(b);
+    }),
+    ("issn", |b| {
+        let _ = issn::parse(b);
+    }),
+    ("it", |b| {
+        let _ = it::parse(b);
+    }),
+    ("iterm", |b| {
+        let _ = iterm::parse(b);
+    }),
+    ("itermdyn", |b| {
+        let _ = itermdyn::parse(b);
+    }),
+    ("iti", |b| {
+        let _ = iti::parse(b);
+    }),
+    ("iv", |b| {
+        let _ = iv::parse(b);
+    }),
+    ("ivf", |b| {
+        let _ = ivf::parse(b);
+    }),
+    ("iwdconf", |b| {
+        let _ = iwdconf::parse(b);
+    }),
+    ("jar", |b| {
+        let _ = jar::parse(b);
+    }),
+    ("jats", |b| {
+        let _ = jats::parse(b);
+    }),
+    ("jbig2", |b| {
+        let _ = jbig2::parse(b);
+    }),
+    ("jdx", |b| {
+        let _ = jdx::parse(b);
+    }),
+    ("jed", |b| {
+        let _ = jed::parse(b);
+    }),
+    ("jef", |b| {
+        let _ = jef::parse(b);
+    }),
+    ("jffs2", |b| {
+        let _ = jffs2::parse(b);
+    }),
+    ("jfm", |b| {
+        let _ = jfm::parse(b);
+    }),
+    ("jfs", |b| {
+        let _ = jfs::parse(b);
+    }),
+    ("jks", |b| {
+        let _ = jks::parse(b);
+    }),
+    ("journal", |b| {
+        let _ = journal::parse(b);
+    }),
+    ("journaldconf", |b| {
+        let _ = journaldconf::parse(b);
+    }),
+    ("jp2", |b| {
+        let _ = jp2::parse(b);
+    }),
+    ("jpeg", |b| {
+        let _ = jpeg::parse(b);
+    }),
+    ("jq", |b| {
+        let _ = jq::parse(b);
+    }),
+    ("json", |b| {
+        let _ = json::parse(b);
+    }),
+    ("jsonpath", |b| {
+        let _ = jsonpath::parse(b);
+    }),
+    ("jumplist", |b| {
+        let _ = jumplist::parse(b);
+    }),
+    ("junit", |b| {
+        let _ = junit::parse(b);
+    }),
+    ("justfile", |b| {
+        let _ = justfile::parse(b);
+    }),
+    ("jwe", |b| {
+        let _ = jwe::parse(b);
+    }),
+    ("jwk", |b| {
+        let _ = jwk::parse(b);
+    }),
+    ("jxl", |b| {
+        let _ = jxl::parse(b);
+    }),
+    ("jxr", |b| {
+        let _ = jxr::parse(b);
+    }),
+    ("k", |b| {
+        let _ = k::parse(b);
+    }),
+    ("k0sconf", |b| {
+        let _ = k0sconf::parse(b);
+    }),
+    ("k3sconf", |b| {
+        let _ = k3sconf::parse(b);
+    }),
+    ("kap", |b| {
+        let _ = kap::parse(b);
+    }),
+    ("kbm", |b| {
+        let _ = kbm::parse(b);
+    }),
+    ("kconfig", |b| {
+        let _ = kconfig::parse(b);
+    }),
+    ("kdbx", |b| {
+        let _ = kdbx::parse(b);
+    }),
+    ("kern", |b| {
+        let _ = kern::parse(b);
+    }),
+    ("ketl", |b| {
+        let _ = ketl::parse(b);
+    }),
+    ("keydbconf", |b| {
+        let _ = keydbconf::parse(b);
+    }),
+    ("keytab", |b| {
+        let _ = keytab::parse(b);
+    }),
+    ("kicadpcb", |b| {
+        let _ = kicadpcb::parse(b);
+    }),
+    ("kicadpro", |b| {
+        let _ = kicadpro::parse(b);
+    }),
+    ("kicadsch", |b| {
+        let _ = kicadsch::parse(b);
+    }),
+    ("kickstart", |b| {
+        let _ = kickstart::parse(b);
+    }),
+    ("kif", |b| {
+        let _ = kif::parse(b);
+    }),
+    ("kittyimg", |b| {
+        let _ = kittyimg::parse(b);
+    }),
+    ("klipperconf", |b| {
+        let _ = klipperconf::parse(b);
+    }),
+    ("knative", |b| {
+        let _ = knative::parse(b);
+    }),
+    ("kmz", |b| {
+        let _ = kmz::parse(b);
+    }),
+    ("knexfile", |b| {
+        let _ = knexfile::parse(b);
+    }),
+    ("knx", |b| {
+        let _ = knx::parse(b);
+    }),
+    ("kql", |b| {
+        let _ = kql::parse(b);
+    }),
+    ("krb5conf", |b| {
+        let _ = krb5conf::parse(b);
+    }),
+    ("kyverno", |b| {
+        let _ = kyverno::parse(b);
+    }),
+    ("kss", |b| {
+        let _ = kss::parse(b);
+    }),
+    ("kubemq", |b| {
+        let _ = kubemq::parse(b);
+    }),
+    ("l2tp", |b| {
+        let _ = l2tp::parse(b);
+    }),
+    ("las", |b| {
+        let _ = las::parse(b);
+    }),
+    ("lcov", |b| {
+        let _ = lcov::parse(b);
+    }),
+    ("ldap", |b| {
+        let _ = ldap::parse(b);
+    }),
+    ("ldblog", |b| {
+        let _ = ldblog::parse(b);
+    }),
+    ("ldif", |b| {
+        let _ = ldif::parse(b);
+    }),
+    ("ldirectord", |b| {
+        let _ = ldirectord::parse(b);
+    }),
+    ("ldtk", |b| {
+        let _ = ldtk::parse(b);
+    }),
+    ("le", |b| {
+        let _ = le::parse(b);
+    }),
+    ("lean", |b| {
+        let _ = lean::parse(b);
+    }),
+    ("leda", |b| {
+        let _ = leda::parse(b);
+    }),
+    ("lefthook", |b| {
+        let _ = lefthook::parse(b);
+    }),
+    ("lef", |b| {
+        let _ = lef::parse(b);
+    }),
+    ("leiningen", |b| {
+        let _ = leiningen::parse(b);
+    }),
+    ("locxml", |b| {
+        let _ = locxml::parse(b);
+    }),
+    ("lintstaged", |b| {
+        let _ = lintstaged::parse(b);
+    }),
+    ("lha", |b| {
+        let _ = lha::parse(b);
+    }),
+    ("litmus", |b| {
+        let _ = litmus::parse(b);
+    }),
+    ("liberty", |b| {
+        let _ = liberty::parse(b);
+    }),
+    ("lightdm", |b| {
+        let _ = lightdm::parse(b);
+    }),
+    ("limine", |b| {
+        let _ = limine::parse(b);
+    }),
+    ("liquibase", |b| {
+        let _ = liquibase::parse(b);
+    }),
+    ("lit", |b| {
+        let _ = lit::parse(b);
+    }),
+    ("lldp", |b| {
+        let _ = lldp::parse(b);
+    }),
+    ("llmnr", |b| {
+        let _ = llmnr::parse(b);
+    }),
+    ("llvmbc", |b| {
+        let _ = llvmbc::parse(b);
+    }),
+    ("lmms", |b| {
+        let _ = lmms::parse(b);
+    }),
+    ("lndconf", |b| {
+        let _ = lndconf::parse(b);
+    }),
+    ("lnk", |b| {
+        let _ = lnk::parse(b);
+    }),
+    ("log4j", |b| {
+        let _ = log4j::parse(b);
+    }),
+    ("log4perl", |b| {
+        let _ = log4perl::parse(b);
+    }),
+    ("logback", |b| {
+        let _ = logback::parse(b);
+    }),
+    ("logindefs", |b| {
+        let _ = logindefs::parse(b);
+    }),
+    ("logrotate", |b| {
+        let _ = logrotate::parse(b);
+    }),
+    ("loki", |b| {
+        let _ = loki::parse(b);
+    }),
+    ("loveconf", |b| {
+        let _ = loveconf::parse(b);
+    }),
+    ("lp", |b| {
+        let _ = lp::parse(b);
+    }),
+    ("lpf", |b| {
+        let _ = lpf::parse(b);
+    }),
+    ("lrc", |b| {
+        let _ = lrc::parse(b);
+    }),
+    ("ltsconf", |b| {
+        let _ = ltsconf::parse(b);
+    }),
+    ("luac", |b| {
+        let _ = luac::parse(b);
+    }),
+    ("lucene", |b| {
+        let _ = lucene::parse(b);
+    }),
+    ("luhn", |b| {
+        let _ = luhn::parse(b);
+    }),
+    ("luigi", |b| {
+        let _ = luigi::parse(b);
+    }),
+    ("lvmconf", |b| {
+        let _ = lvmconf::parse(b);
+    }),
+    ("lwo", |b| {
+        let _ = lwo::parse(b);
+    }),
+    ("ly", |b| {
+        let _ = ly::parse(b);
+    }),
+    ("lynisconf", |b| {
+        let _ = lynisconf::parse(b);
+    }),
+    ("lz4f", |b| {
+        let _ = lz4f::parse(b);
+    }),
+    ("lzfse", |b| {
+        let _ = lzfse::parse(b);
+    }),
+    ("lzip", |b| {
+        let _ = lzip::parse(b);
+    }),
+    ("macaroon", |b| {
+        let _ = macaroon::parse(b);
+    }),
+    ("macho", |b| {
+        let _ = macho::parse(b);
+    }),
+    ("maf", |b| {
+        let _ = maf::parse(b);
+    }),
+    ("mailcap", |b| {
+        let _ = mailcap::parse(b);
+    }),
+    ("maildrop", |b| {
+        let _ = maildrop::parse(b);
+    }),
+    ("makefile", |b| {
+        let _ = makefile::parse(b);
+    }),
+    ("mameconf", |b| {
+        let _ = mameconf::parse(b);
+    }),
+    ("mapfile", |b| {
+        let _ = mapfile::parse(b);
+    }),
+    ("mapnikxml", |b| {
+        let _ = mapnikxml::parse(b);
+    }),
+    ("mapproxyconf", |b| {
+        let _ = mapproxyconf::parse(b);
+    }),
+    ("marc", |b| {
+        let _ = marc::parse(b);
+    }),
+    ("markdownlint", |b| {
+        let _ = markdownlint::parse(b);
+    }),
+    ("marlinconf", |b| {
+        let _ = marlinconf::parse(b);
+    }),
+    ("mat", |b| {
+        let _ = mat::parse(b);
+    }),
+    ("matplotlibrc", |b| {
+        let _ = matplotlibrc::parse(b);
+    }),
+    ("matterbridge", |b| {
+        let _ = matterbridge::parse(b);
+    }),
+    ("mattermost", |b| {
+        let _ = mattermost::parse(b);
+    }),
+    ("maud", |b| {
+        let _ = maud::parse(b);
+    }),
+    ("mavlink", |b| {
+        let _ = mavlink::parse(b);
+    }),
+    ("mbedapp", |b| {
+        let _ = mbedapp::parse(b);
+    }),
+    ("mbox", |b| {
+        let _ = mbox::parse(b);
+    }),
+    ("mbsyncrc", |b| {
+        let _ = mbsyncrc::parse(b);
+    }),
+    ("mbtiles", |b| {
+        let _ = mbtiles::parse(b);
+    }),
+    ("mbus", |b| {
+        let _ = mbus::parse(b);
+    }),
+    ("mcap", |b| {
+        let _ = mcap::parse(b);
+    }),
+    ("mcr", |b| {
+        let _ = mcr::parse(b);
+    }),
+    ("md2", |b| {
+        let _ = md2::parse(b);
+    }),
+    ("md3", |b| {
+        let _ = md3::parse(b);
+    }),
+    ("mdb", |b| {
+        let _ = mdb::parse(b);
+    }),
+    ("mdl", |b| {
+        let _ = mdl::parse(b);
+    }),
+    ("mdx", |b| {
+        let _ = mdx::parse(b);
+    }),
+    ("med", |b| {
+        let _ = med::parse(b);
+    }),
+    ("mediawiki", |b| {
+        let _ = mediawiki::parse(b);
+    }),
+    ("medline", |b| {
+        let _ = medline::parse(b);
+    }),
+    ("mei", |b| {
+        let _ = mei::parse(b);
+    }),
+    ("meltano", |b| {
+        let _ = meltano::parse(b);
+    }),
+    ("memcachedconf", |b| {
+        let _ = memcachedconf::parse(b);
+    }),
+    ("mergify", |b| {
+        let _ = mergify::parse(b);
+    }),
+    ("meson", |b| {
+        let _ = meson::parse(b);
+    }),
+    ("metallib", |b| {
+        let _ = metallib::parse(b);
+    }),
+    ("mets", |b| {
+        let _ = mets::parse(b);
+    }),
+    ("mmlstyle", |b| {
+        let _ = mmlstyle::parse(b);
+    }),
+    ("mft", |b| {
+        let _ = mft::parse(b);
+    }),
+    ("mhd", |b| {
+        let _ = mhd::parse(b);
+    }),
+    ("mht", |b| {
+        let _ = mht::parse(b);
+    }),
+    ("midi", |b| {
+        let _ = midi::parse(b);
+    }),
+    ("mime", |b| {
+        let _ = mime::parse(b);
+    }),
+    ("modsecurity", |b| {
+        let _ = modsecurity::parse(b);
+    }),
+    ("mimirconf", |b| {
+        let _ = mimirconf::parse(b);
+    }),
+    ("mise", |b| {
+        let _ = mise::parse(b);
+    }),
+    ("minc", |b| {
+        let _ = minc::parse(b);
+    }),
+    ("minikubeconf", |b| {
+        let _ = minikubeconf::parse(b);
+    }),
+    ("minix", |b| {
+        let _ = minix::parse(b);
+    }),
+    ("misp", |b| {
+        let _ = misp::parse(b);
+    }),
+    ("mixexs", |b| {
+        let _ = mixexs::parse(b);
+    }),
+    ("mixxx", |b| {
+        let _ = mixxx::parse(b);
+    }),
+    ("mml", |b| {
+        let _ = mml::parse(b);
+    }),
+    ("mobi", |b| {
+        let _ = mobi::parse(b);
+    }),
+    ("modeldo", |b| {
+        let _ = modeldo::parse(b);
+    }),
+    ("modfile", |b| {
+        let _ = modfile::parse(b);
+    }),
+    ("modprobeconf", |b| {
+        let _ = modprobeconf::parse(b);
+    }),
+    ("mods", |b| {
+        let _ = mods::parse(b);
+    }),
+    ("mol", |b| {
+        let _ = mol::parse(b);
+    }),
+    ("mol2", |b| {
+        let _ = mol2::parse(b);
+    }),
+    ("monero", |b| {
+        let _ = monero::parse(b);
+    }),
+    ("moonrakerconf", |b| {
+        let _ = moonrakerconf::parse(b);
+    }),
+    ("mp3", |b| {
+        let _ = mp3::parse(b);
+    }),
+    ("mpegts", |b| {
+        let _ = mpegts::parse(b);
+    }),
+    ("mpl2", |b| {
+        let _ = mpl2::parse(b);
+    }),
+    ("mpq", |b| {
+        let _ = mpq::parse(b);
+    }),
+    ("mps", |b| {
+        let _ = mps::parse(b);
+    }),
+    ("mqtt", |b| {
+        let _ = mqtt::parse(b);
+    }),
+    ("mrc", |b| {
+        let _ = mrc::parse(b);
+    }),
+    ("mscx", |b| {
+        let _ = mscx::parse(b);
+    }),
+    ("mseed", |b| {
+        let _ = mseed::parse(b);
+    }),
+    ("msf", |b| {
+        let _ = msf::parse(b);
+    }),
+    ("naxsiconf", |b| {
+        let _ = naxsiconf::parse(b);
+    }),
+    ("msh", |b| {
+        let _ = msh::parse(b);
+    }),
+    ("msi", |b| {
+        let _ = msi::parse(b);
+    }),
+    ("msmtprc", |b| {
+        let _ = msmtprc::parse(b);
+    }),
+    ("mt940", |b| {
+        let _ = mt940::parse(b);
+    }),
+    ("mtm", |b| {
+        let _ = mtm::parse(b);
+    }),
+    ("mtx", |b| {
+        let _ = mtx::parse(b);
+    }),
+    ("musicxml", |b| {
+        let _ = musicxml::parse(b);
+    }),
+    ("muttrc", |b| {
+        let _ = muttrc::parse(b);
+    }),
+    ("mvnsettings", |b| {
+        let _ = mvnsettings::parse(b);
+    }),
+    ("mvt", |b| {
+        let _ = mvt::parse(b);
+    }),
+    ("mxf", |b| {
+        let _ = mxf::parse(b);
+    }),
+    ("mzml", |b| {
+        let _ = mzml::parse(b);
+    }),
+    ("nanoid", |b| {
+        let _ = nanoid::parse(b);
+    }),
+    ("nas", |b| {
+        let _ = nas::parse(b);
+    }),
+    ("nbd", |b| {
+        let _ = nbd::parse(b);
+    }),
+    ("nbt", |b| {
+        let _ = nbt::parse(b);
+    }),
+    ("nc", |b| {
+        let _ = nc::parse(b);
+    }),
+    ("ne", |b| {
+        let _ = ne::parse(b);
+    }),
+    ("nef", |b| {
+        let _ = nef::parse(b);
+    }),
+    ("neomuttconf", |b| {
+        let _ = neomuttconf::parse(b);
+    }),
+    ("nerdctl", |b| {
+        let _ = nerdctl::parse(b);
+    }),
+    ("netflow", |b| {
+        let _ = netflow::parse(b);
+    }),
+    ("netlifyconf", |b| {
+        let _ = netlifyconf::parse(b);
+    }),
+    ("netrc", |b| {
+        let _ = netrc::parse(b);
+    }),
+    ("networkd", |b| {
+        let _ = networkd::parse(b);
+    }),
+    ("nfpm", |b| {
+        let _ = nfpm::parse(b);
+    }),
+    ("neu", |b| {
+        let _ = neu::parse(b);
+    }),
+    ("newick", |b| {
+        let _ = newick::parse(b);
+    }),
+    ("newsboat", |b| {
+        let _ = newsboat::parse(b);
+    }),
+    ("newsyslog", |b| {
+        let _ = newsyslog::parse(b);
+    }),
+    ("nextflow", |b| {
+        let _ = nextflow::parse(b);
+    }),
+    ("nexus", |b| {
+        let _ = nexus::parse(b);
+    }),
+    ("nfsexports", |b| {
+        let _ = nfsexports::parse(b);
+    }),
+    ("nftconf", |b| {
+        let _ = nftconf::parse(b);
+    }),
+    ("ngircd", |b| {
+        let _ = ngircd::parse(b);
+    }),
+    ("nib", |b| {
+        let _ = nib::parse(b);
+    }),
+    ("nififlow", |b| {
+        let _ = nififlow::parse(b);
+    }),
+    ("nifti", |b| {
+        let _ = nifti::parse(b);
+    }),
+    ("nimble", |b| {
+        let _ = nimble::parse(b);
+    }),
+    ("ninja", |b| {
+        let _ = ninja::parse(b);
+    }),
+    ("nist", |b| {
+        let _ = nist::parse(b);
+    }),
+    ("nix", |b| {
+        let _ = nix::parse(b);
+    }),
+    ("nlogconf", |b| {
+        let _ = nlogconf::parse(b);
+    }),
+    ("nmconnection", |b| {
+        let _ = nmconnection::parse(b);
+    }),
+    ("nntp", |b| {
+        let _ = nntp::parse(b);
+    }),
+    ("npmrc", |b| {
+        let _ = npmrc::parse(b);
+    }),
+    ("npy", |b| {
+        let _ = npy::parse(b);
+    }),
+    ("nrg", |b| {
+        let _ = nrg::parse(b);
+    }),
+    ("nrrd", |b| {
+        let _ = nrrd::parse(b);
+    }),
+    ("nsf", |b| {
+        let _ = nsf::parse(b);
+    }),
+    ("nslcdconf", |b| {
+        let _ = nslcdconf::parse(b);
+    }),
+    ("nsqconf", |b| {
+        let _ = nsqconf::parse(b);
+    }),
+    ("ntfs", |b| {
+        let _ = ntfs::parse(b);
+    }),
+    ("ntp", |b| {
+        let _ = ntp::parse(b);
+    }),
+    ("ntpconf", |b| {
+        let _ = ntpconf::parse(b);
+    }),
+    ("ntpsec", |b| {
+        let _ = ntpsec::parse(b);
+    }),
+    ("nuget", |b| {
+        let _ = nuget::parse(b);
+    }),
+    ("nugetconfig", |b| {
+        let _ = nugetconfig::parse(b);
+    }),
+    ("nunit", |b| {
+        let _ = nunit::parse(b);
+    }),
+    ("nwc", |b| {
+        let _ = nwc::parse(b);
+    }),
+    ("oai", |b| {
+        let _ = oai::parse(b);
+    }),
+    ("ocsp", |b| {
+        let _ = ocsp::parse(b);
+    }),
+    ("octaverc", |b| {
+        let _ = octaverc::parse(b);
+    }),
+    ("octoprint", |b| {
+        let _ = octoprint::parse(b);
+    }),
+    ("odex", |b| {
+        let _ = odex::parse(b);
+    }),
+    ("oem", |b| {
+        let _ = oem::parse(b);
+    }),
+    ("off", |b| {
+        let _ = off::parse(b);
+    }),
+    ("offlineimap", |b| {
+        let _ = offlineimap::parse(b);
+    }),
+    ("ofx", |b| {
+        let _ = ofx::parse(b);
+    }),
+    ("ogmo", |b| {
+        let _ = ogmo::parse(b);
+    }),
+    ("ole", |b| {
+        let _ = ole::parse(b);
+    }),
+    ("omm", |b| {
+        let _ = omm::parse(b);
+    }),
+    ("onnx", |b| {
+        let _ = onnx::parse(b);
+    }),
+    ("op2", |b| {
+        let _ = op2::parse(b);
+    }),
+    ("opam", |b| {
+        let _ = opam::parse(b);
+    }),
+    ("opb", |b| {
+        let _ = opb::parse(b);
+    }),
+    ("openapi", |b| {
+        let _ = openapi::parse(b);
+    }),
+    ("openlane", |b| {
+        let _ = openlane::parse(b);
+    }),
+    ("overpass", |b| {
+        let _ = overpass::parse(b);
+    }),
+    ("openntpd", |b| {
+        let _ = openntpd::parse(b);
+    }),
+    ("opentsdb", |b| {
+        let _ = opentsdb::parse(b);
+    }),
+    ("opml", |b| {
+        let _ = opml::parse(b);
+    }),
+    ("optionrom", |b| {
+        let _ = optionrom::parse(b);
+    }),
+    ("orcaslicer", |b| {
+        let _ = orcaslicer::parse(b);
+    }),
+    ("orcid", |b| {
+        let _ = orcid::parse(b);
+    }),
+    ("orf", |b| {
+        let _ = orf::parse(b);
+    }),
+    ("org", |b| {
+        let _ = org::parse(b);
+    }),
+    ("osc", |b| {
+        let _ = osc::parse(b);
+    }),
+    ("osm2pgsqlstyle", |b| {
+        let _ = osm2pgsqlstyle::parse(b);
+    }),
+    ("osmpbf", |b| {
+        let _ = osmpbf::parse(b);
+    }),
+    ("ospf", |b| {
+        let _ = ospf::parse(b);
+    }),
+    ("osqueryconf", |b| {
+        let _ = osqueryconf::parse(b);
+    }),
+    ("ossecconf", |b| {
+        let _ = ossecconf::parse(b);
+    }),
+    ("osv", |b| {
+        let _ = osv::parse(b);
+    }),
+    ("otf", |b| {
+        let _ = otf::parse(b);
+    }),
+    ("p7b", |b| {
+        let _ = p7b::parse(b);
+    }),
+    ("packfile", |b| {
+        let _ = packfile::parse(b);
+    }),
+    ("paf", |b| {
+        let _ = paf::parse(b);
+    }),
+    ("pain", |b| {
+        let _ = pain::parse(b);
+    }),
+    ("pajek", |b| {
+        let _ = pajek::parse(b);
+    }),
+    ("pak", |b| {
+        let _ = pak::parse(b);
+    }),
+    ("pamstack", |b| {
+        let _ = pamstack::parse(b);
+    }),
+    ("pants", |b| {
+        let _ = pants::parse(b);
+    }),
+    ("parityconf", |b| {
+        let _ = parityconf::parse(b);
+    }),
+    ("parquet", |b| {
+        let _ = parquet::parse(b);
+    }),
+    ("parrec", |b| {
+        let _ = parrec::parse(b);
+    }),
+    ("paseto", |b| {
+        let _ = paseto::parse(b);
+    }),
+    ("passwd", |b| {
+        let _ = passwd::parse(b);
+    }),
+    ("pat", |b| {
+        let _ = pat::parse(b);
+    }),
+    ("pcap", |b| {
+        let _ = pcap::parse(b);
+    }),
+    ("pcapng", |b| {
+        let _ = pcapng::parse(b);
+    }),
+    ("pcd", |b| {
+        let _ = pcd::parse(b);
+    }),
+    ("pcf", |b| {
+        let _ = pcf::parse(b);
+    }),
+    ("pck", |b| {
+        let _ = pck::parse(b);
+    }),
+    ("pcl", |b| {
+        let _ = pcl::parse(b);
+    }),
+    ("pcsx2conf", |b| {
+        let _ = pcsx2conf::parse(b);
+    }),
+    ("pcx", |b| {
+        let _ = pcx::parse(b);
+    }),
+    ("pdb", |b| {
+        let _ = pdb::parse(b);
+    }),
+    ("pdf", |b| {
+        let _ = pdf::parse(b);
+    }),
+    ("pds", |b| {
+        let _ = pds::parse(b);
+    }),
+    ("pec", |b| {
+        let _ = pec::parse(b);
+    }),
+    ("pes", |b| {
+        let _ = pes::parse(b);
+    }),
+    ("pfconf", |b| {
+        let _ = pfconf::parse(b);
+    }),
+    ("pfm", |b| {
+        let _ = pfm::parse(b);
+    }),
+    ("phylip", |b| {
+        let _ = phylip::parse(b);
+    }),
+    ("pidginconf", |b| {
+        let _ = pidginconf::parse(b);
+    }),
+    ("pileup", |b| {
+        let _ = pileup::parse(b);
+    }),
+    ("pim", |b| {
+        let _ = pim::parse(b);
+    }),
+    ("pjs", |b| {
+        let _ = pjs::parse(b);
+    }),
+    ("pk", |b| {
+        let _ = pk::parse(b);
+    }),
+    ("pkcs12", |b| {
+        let _ = pkcs12::parse(b);
+    }),
+    ("pkcs8", |b| {
+        let _ = pkcs8::parse(b);
+    }),
+    ("pkg", |b| {
+        let _ = pkg::parse(b);
+    }),
+    ("pkgbuild", |b| {
+        let _ = pkgbuild::parse(b);
+    }),
+    ("pl", |b| {
+        let _ = pl::parse(b);
+    }),
+    ("planetilerconf", |b| {
+        let _ = planetilerconf::parse(b);
+    }),
+    ("platformio", |b| {
+        let _ = platformio::parse(b);
+    }),
+    ("platformsh", |b| {
+        let _ = platformsh::parse(b);
+    }),
+    ("pls", |b| {
+        let _ = pls::parse(b);
+    }),
+    ("ply", |b| {
+        let _ = ply::parse(b);
+    }),
+    ("pmacctconf", |b| {
+        let _ = pmacctconf::parse(b);
+    }),
+    ("pmd", |b| {
+        let _ = pmd::parse(b);
+    }),
+    ("projjson", |b| {
+        let _ = projjson::parse(b);
+    }),
+    ("pmtiles", |b| {
+        let _ = pmtiles::parse(b);
+    }),
+    ("pmx", |b| {
+        let _ = pmx::parse(b);
+    }),
+    ("pnm", |b| {
+        let _ = pnm::parse(b);
+    }),
+    ("po", |b| {
+        let _ = po::parse(b);
+    }),
+    ("pod", |b| {
+        let _ = pod::parse(b);
+    }),
+    ("pop3", |b| {
+        let _ = pop3::parse(b);
+    }),
+    ("precommit", |b| {
+        let _ = precommit::parse(b);
+    }),
+    ("poscar", |b| {
+        let _ = poscar::parse(b);
+    }),
+    ("ppf", |b| {
+        let _ = ppf::parse(b);
+    }),
+    ("ppp", |b| {
+        let _ = ppp::parse(b);
+    }),
+    ("pppdconf", |b| {
+        let _ = pppdconf::parse(b);
+    }),
+    ("ppssppconf", |b| {
+        let _ = ppssppconf::parse(b);
+    }),
+    ("pptx", |b| {
+        let _ = pptx::parse(b);
+    }),
+    ("prefetch", |b| {
+        let _ = prefetch::parse(b);
+    }),
+    ("preseed", |b| {
+        let _ = preseed::parse(b);
+    }),
+    ("prj", |b| {
+        let _ = prj::parse(b);
+    }),
+    ("procfile", |b| {
+        let _ = procfile::parse(b);
+    }),
+    ("procmailrc", |b| {
+        let _ = procmailrc::parse(b);
+    }),
+    ("prom", |b| {
+        let _ = prom::parse(b);
+    }),
+    ("promtailconf", |b| {
+        let _ = promtailconf::parse(b);
+    }),
+    ("proselint", |b| {
+        let _ = proselint::parse(b);
+    }),
+    ("prosody", |b| {
+        let _ = prosody::parse(b);
+    }),
+    ("prusaslicer", |b| {
+        let _ = prusaslicer::parse(b);
+    }),
+    ("psd", |b| {
+        let _ = psd::parse(b);
+    }),
+    ("psf", |b| {
+        let _ = psf::parse(b);
+    }),
+    ("psid", |b| {
+        let _ = psid::parse(b);
+    }),
+    ("ptm", |b| {
+        let _ = ptm::parse(b);
+    }),
+    ("ptp4l", |b| {
+        let _ = ptp4l::parse(b);
+    }),
+    ("ptx", |b| {
+        let _ = ptx::parse(b);
+    }),
+    ("pubspec", |b| {
+        let _ = pubspec::parse(b);
+    }),
+    ("puz", |b| {
+        let _ = puz::parse(b);
+    }),
+    ("pxelinux", |b| {
+        let _ = pxelinux::parse(b);
+    }),
+    ("pyc", |b| {
+        let _ = pyc::parse(b);
+    }),
+    ("pypirc", |b| {
+        let _ = pypirc::parse(b);
+    }),
+    ("pyroconf", |b| {
+        let _ = pyroconf::parse(b);
+    }),
+    ("qcow2", |b| {
+        let _ = qcow2::parse(b);
+    }),
+    ("qcp", |b| {
+        let _ = qcp::parse(b);
+    }),
+    ("qgsproj", |b| {
+        let _ = qgsproj::parse(b);
+    }),
+    ("qif", |b| {
+        let _ = qif::parse(b);
+    }),
+    ("qmap", |b| {
+        let _ = qmap::parse(b);
+    }),
+    ("qpf", |b| {
+        let _ = qpf::parse(b);
+    }),
+    ("qsf", |b| {
+        let _ = qsf::parse(b);
+    }),
+    ("qti", |b| {
+        let _ = qti::parse(b);
+    }),
+    ("qtui", |b| {
+        let _ = qtui::parse(b);
+    }),
+    ("radius", |b| {
+        let _ = radius::parse(b);
+    }),
+    ("raf", |b| {
+        let _ = raf::parse(b);
+    }),
+    ("railwayconf", |b| {
+        let _ = railwayconf::parse(b);
+    }),
+    ("rakefile", |b| {
+        let _ = rakefile::parse(b);
+    }),
+    ("rar", |b| {
+        let _ = rar::parse(b);
+    }),
+    ("ras", |b| {
+        let _ = ras::parse(b);
+    }),
+    ("rc", |b| {
+        let _ = rc::parse(b);
+    }),
+    ("rdata", |b| {
+        let _ = rdata::parse(b);
+    }),
+    ("rdb", |b| {
+        let _ = rdb::parse(b);
+    }),
+    ("rdiff", |b| {
+        let _ = rdiff::parse(b);
+    }),
+    ("rdpfile", |b| {
+        let _ = rdpfile::parse(b);
+    }),
+    ("reaper", |b| {
+        let _ = reaper::parse(b);
+    }),
+    ("rebarconfig", |b| {
+        let _ = rebarconfig::parse(b);
+    }),
+    ("recbin", |b| {
+        let _ = recbin::parse(b);
+    }),
+    ("redpen", |b| {
+        let _ = redpen::parse(b);
+    }),
+    ("releaserc", |b| {
+        let _ = releaserc::parse(b);
+    }),
+    ("refind", |b| {
+        let _ = refind::parse(b);
+    }),
+    ("regf", |b| {
+        let _ = regf::parse(b);
+    }),
+    ("reiserfs", |b| {
+        let _ = reiserfs::parse(b);
+    }),
+    ("relaxng", |b| {
+        let _ = relaxng::parse(b);
+    }),
+    ("releaseplease", |b| {
+        let _ = releaseplease::parse(b);
+    }),
+    ("remminaconf", |b| {
+        let _ = remminaconf::parse(b);
+    }),
+    ("renderconf", |b| {
+        let _ = renderconf::parse(b);
+    }),
+    ("renovate", |b| {
+        let _ = renovate::parse(b);
+    }),
+    ("renviron", |b| {
+        let _ = renviron::parse(b);
+    }),
+    ("res", |b| {
+        let _ = res::parse(b);
+    }),
+    ("resp", |b| {
+        let _ = resp::parse(b);
+    }),
+    ("resx", |b| {
+        let _ = resx::parse(b);
+    }),
+    ("retroarch", |b| {
+        let _ = retroarch::parse(b);
+    }),
+    ("reviveconf", |b| {
+        let _ = reviveconf::parse(b);
+    }),
+    ("revlog", |b| {
+        let _ = revlog::parse(b);
+    }),
+    ("rf64", |b| {
+        let _ = rf64::parse(b);
+    }),
+    ("rfa", |b| {
+        let _ = rfa::parse(b);
+    }),
+    ("rfb", |b| {
+        let _ = rfb::parse(b);
+    }),
+    ("rinex", |b| {
+        let _ = rinex::parse(b);
+    }),
+    ("rip", |b| {
+        let _ = rip::parse(b);
+    }),
+    ("ris", |b| {
+        let _ = ris::parse(b);
+    }),
+    ("rkhunter", |b| {
+        let _ = rkhunter::parse(b);
+    }),
+    ("rm", |b| {
+        let _ = rm::parse(b);
+    }),
+    ("rocketmq", |b| {
+        let _ = rocketmq::parse(b);
+    }),
+    ("rockspec", |b| {
+        let _ = rockspec::parse(b);
+    }),
+    ("roff", |b| {
+        let _ = roff::parse(b);
+    }),
+    ("roq", |b| {
+        let _ = roq::parse(b);
+    }),
+    ("rosbag", |b| {
+        let _ = rosbag::parse(b);
+    }),
+    ("rpcs3conf", |b| {
+        let _ = rpcs3conf::parse(b);
+    }),
+    ("samhainconf", |b| {
+        let _ = samhainconf::parse(b);
+    }),
+    ("rpgmakerconf", |b| {
+        let _ = rpgmakerconf::parse(b);
+    }),
+    ("rpm", |b| {
+        let _ = rpm::parse(b);
+    }),
+    ("rprofile", |b| {
+        let _ = rprofile::parse(b);
+    }),
+    ("rss2email", |b| {
+        let _ = rss2email::parse(b);
+    }),
+    ("rst", |b| {
+        let _ = rst::parse(b);
+    }),
+    ("rsyslogd", |b| {
+        let _ = rsyslogd::parse(b);
+    }),
+    ("rtcp", |b| {
+        let _ = rtcp::parse(b);
+    }),
+    ("rtp", |b| {
+        let _ = rtp::parse(b);
+    }),
+    ("rtsp", |b| {
+        let _ = rtsp::parse(b);
+    }),
+    ("rw2", |b| {
+        let _ = rw2::parse(b);
+    }),
+    ("rx2", |b| {
+        let _ = rx2::parse(b);
+    }),
+    ("s3m", |b| {
+        let _ = s3m::parse(b);
+    }),
+    ("s7", |b| {
+        let _ = s7::parse(b);
+    }),
+    ("s98", |b| {
+        let _ = s98::parse(b);
+    }),
+    ("sac", |b| {
+        let _ = sac::parse(b);
+    }),
+    ("safetensors", |b| {
+        let _ = safetensors::parse(b);
+    }),
+    ("saif", |b| {
+        let _ = saif::parse(b);
+    }),
+    ("sdrppconf", |b| {
+        let _ = sdrppconf::parse(b);
+    }),
+    ("samba", |b| {
+        let _ = samba::parse(b);
+    }),
+    ("saml", |b| {
+        let _ = saml::parse(b);
+    }),
+    ("sarif", |b| {
+        let _ = sarif::parse(b);
+    }),
+    ("sas7bdat", |b| {
+        let _ = sas7bdat::parse(b);
+    }),
+    ("sav", |b| {
+        let _ = sav::parse(b);
+    }),
+    ("sbf", |b| {
+        let _ = sbf::parse(b);
+    }),
+    ("sbi", |b| {
+        let _ = sbi::parse(b);
+    }),
+    ("sbus", |b| {
+        let _ = sbus::parse(b);
+    }),
+    ("sbv", |b| {
+        let _ = sbv::parse(b);
+    }),
+    ("sby", |b| {
+        let _ = sby::parse(b);
+    }),
+    ("scandata", |b| {
+        let _ = scandata::parse(b);
+    }),
+    ("scc", |b| {
+        let _ = scc::parse(b);
+    }),
+    ("sch", |b| {
+        let _ = sch::parse(b);
+    }),
+    ("scl", |b| {
+        let _ = scl::parse(b);
+    }),
+    ("scp", |b| {
+        let _ = scp::parse(b);
+    }),
+    ("sdc", |b| {
+        let _ = sdc::parse(b);
+    }),
+    ("sddmconf", |b| {
+        let _ = sddmconf::parse(b);
+    }),
+    ("sdkconfig", |b| {
+        let _ = sdkconfig::parse(b);
+    }),
+    ("segy", |b| {
+        let _ = segy::parse(b);
+    }),
+    ("sequelizerc", |b| {
+        let _ = sequelizerc::parse(b);
+    }),
+    ("serilog", |b| {
+        let _ = serilog::parse(b);
+    }),
+    ("sf2", |b| {
+        let _ = sf2::parse(b);
+    }),
+    ("sfc", |b| {
+        let _ = sfc::parse(b);
+    }),
+    ("sfd", |b| {
+        let _ = sfd::parse(b);
+    }),
+    ("sflow", |b| {
+        let _ = sflow::parse(b);
+    }),
+    ("sftp", |b| {
+        let _ = sftp::parse(b);
+    }),
+    ("sfv", |b| {
+        let _ = sfv::parse(b);
+    }),
+    ("sgi", |b| {
+        let _ = sgi::parse(b);
+    }),
+    ("shadow", |b| {
+        let _ = shadow::parse(b);
+    }),
+    ("shard", |b| {
+        let _ = shard::parse(b);
+    }),
+    ("shellcheckrc", |b| {
+        let _ = shellcheckrc::parse(b);
+    }),
+    ("shorewall", |b| {
+        let _ = shorewall::parse(b);
+    }),
+    ("shp", |b| {
+        let _ = shp::parse(b);
+    }),
+    ("sievescript", |b| {
+        let _ = sievescript::parse(b);
+    }),
+    ("sigma", |b| {
+        let _ = sigma::parse(b);
+    }),
+    ("singerconf", |b| {
+        let _ = singerconf::parse(b);
+    }),
+    ("sip", |b| {
+        let _ = sip::parse(b);
+    }),
+    ("sixel", |b| {
+        let _ = sixel::parse(b);
+    }),
+    ("skp", |b| {
+        let _ = skp::parse(b);
+    }),
+    ("slob", |b| {
+        let _ = slob::parse(b);
+    }),
+    ("slrnconf", |b| {
+        let _ = slrnconf::parse(b);
+    }),
+    ("slsa", |b| {
+        let _ = slsa::parse(b);
+    }),
+    ("smb2", |b| {
+        let _ = smb2::parse(b);
+    }),
+    ("smd", |b| {
+        let _ = smd::parse(b);
+    }),
+    ("smi", |b| {
+        let _ = smi::parse(b);
+    }),
+    ("smithy", |b| {
+        let _ = smithy::parse(b);
+    }),
+    ("smt2", |b| {
+        let _ = smt2::parse(b);
+    }),
+    ("smtp", |b| {
+        let _ = smtp::parse(b);
+    }),
+    ("snap", |b| {
+        let _ = snap::parse(b);
+    }),
+    ("snappy", |b| {
+        let _ = snappy::parse(b);
+    }),
+    ("sndh", |b| {
+        let _ = sndh::parse(b);
+    }),
+    ("snmp", |b| {
+        let _ = snmp::parse(b);
+    }),
+    ("snoop", |b| {
+        let _ = snoop::parse(b);
+    }),
+    ("snort", |b| {
+        let _ = snort::parse(b);
+    }),
+    ("socks", |b| {
+        let _ = socks::parse(b);
+    }),
+    ("sourcemap", |b| {
+        let _ = sourcemap::parse(b);
+    }),
+    ("sp3", |b| {
+        let _ = sp3::parse(b);
+    }),
+    ("sparql", |b| {
+        let _ = sparql::parse(b);
+    }),
+    ("sparse", |b| {
+        let _ = sparse::parse(b);
+    }),
+    ("spc", |b| {
+        let _ = spc::parse(b);
+    }),
+    ("spec", |b| {
+        let _ = spec::parse(b);
+    }),
+    ("strongswanconf", |b| {
+        let _ = strongswanconf::parse(b);
+    }),
+    ("spef", |b| {
+        let _ = spef::parse(b);
+    }),
+    ("spicenet", |b| {
+        let _ = spicenet::parse(b);
+    }),
+    ("spv", |b| {
+        let _ = spv::parse(b);
+    }),
+    ("sqitchconf", |b| {
+        let _ = sqitchconf::parse(b);
+    }),
+    ("sqlite", |b| {
+        let _ = sqlite::parse(b);
+    }),
+    ("srm", |b| {
+        let _ = srm::parse(b);
+    }),
+    ("sshkey", |b| {
+        let _ = sshkey::parse(b);
+    }),
+    ("sssdconf", |b| {
+        let _ = sssdconf::parse(b);
+    }),
+    ("sst", |b| {
+        let _ = sst::parse(b);
+    }),
+    ("stardict", |b| {
+        let _ = stardict::parse(b);
+    }),
+    ("staticcheckconf", |b| {
+        let _ = staticcheckconf::parse(b);
+    }),
+    ("statsd", |b| {
+        let _ = statsd::parse(b);
+    }),
+    ("step", |b| {
+        let _ = step::parse(b);
+    }),
+    ("stix", |b| {
+        let _ = stix::parse(b);
+    }),
+    ("stl", |b| {
+        let _ = stl::parse(b);
+    }),
+    ("stm", |b| {
+        let _ = stm::parse(b);
+    }),
+    ("stockholm", |b| {
+        let _ = stockholm::parse(b);
+    }),
+    ("stp", |b| {
+        let _ = stp::parse(b);
+    }),
+    ("strings", |b| {
+        let _ = strings::parse(b);
+    }),
+    ("studio3", |b| {
+        let _ = studio3::parse(b);
+    }),
+    ("stun", |b| {
+        let _ = stun::parse(b);
+    }),
+    ("su", |b| {
+        let _ = su::parse(b);
+    }),
+    ("su2", |b| {
+        let _ = su2::parse(b);
+    }),
+    ("sudoku", |b| {
+        let _ = sudoku::parse(b);
+    }),
+    ("suiconf", |b| {
+        let _ = suiconf::parse(b);
+    }),
+    ("suricata", |b| {
+        let _ = suricata::parse(b);
+    }),
+    ("svf", |b| {
+        let _ = svf::parse(b);
+    }),
+    ("svg", |b| {
+        let _ = svg::parse(b);
+    }),
+    ("svndump", |b| {
+        let _ = svndump::parse(b);
+    }),
+    ("swf", |b| {
+        let _ = swf::parse(b);
+    }),
+    ("swiftmt", |b| {
+        let _ = swiftmt::parse(b);
+    }),
+    ("sylk", |b| {
+        let _ = sylk::parse(b);
+    }),
+    ("synapse", |b| {
+        let _ = synapse::parse(b);
+    }),
+    ("sysctlconf", |b| {
+        let _ = sysctlconf::parse(b);
+    }),
+    ("syslog", |b| {
+        let _ = syslog::parse(b);
+    }),
+    ("sysmonconf", |b| {
+        let _ = sysmonconf::parse(b);
+    }),
+    ("systemd", |b| {
+        let _ = systemd::parse(b);
+    }),
+    ("systemdboot", |b| {
+        let _ = systemdboot::parse(b);
+    }),
+    ("sysv", |b| {
+        let _ = sysv::parse(b);
+    }),
+    ("syx", |b| {
+        let _ = syx::parse(b);
+    }),
+    ("t3d", |b| {
+        let _ = t3d::parse(b);
+    }),
+    ("tabbyconf", |b| {
+        let _ = tabbyconf::parse(b);
+    }),
+    ("tacacs", |b| {
+        let _ = tacacs::parse(b);
+    }),
+    ("tilestacheconf", |b| {
+        let _ = tilestacheconf::parse(b);
+    }),
+    ("tarantool", |b| {
+        let _ = tarantool::parse(b);
+    }),
+    ("taskfile", |b| {
+        let _ = taskfile::parse(b);
+    }),
+    ("tcp", |b| {
+        let _ = tcp::parse(b);
+    }),
+    ("tcx", |b| {
+        let _ = tcx::parse(b);
+    }),
+    ("td0", |b| {
+        let _ = td0::parse(b);
+    }),
+    ("tekton", |b| {
+        let _ = tekton::parse(b);
+    }),
+    ("torrc", |b| {
+        let _ = torrc::parse(b);
+    }),
+    ("tdm", |b| {
+        let _ = tdm::parse(b);
+    }),
+    ("trojanconf", |b| {
+        let _ = trojanconf::parse(b);
+    }),
+    ("tripwireconf", |b| {
+        let _ = tripwireconf::parse(b);
+    }),
+    ("tds", |b| {
+        let _ = tds::parse(b);
+    }),
+    ("telnet", |b| {
+        let _ = telnet::parse(b);
+    }),
+    ("tempoconf", |b| {
+        let _ = tempoconf::parse(b);
+    }),
+    ("terminfo", |b| {
+        let _ = terminfo::parse(b);
+    }),
+    ("texinfo", |b| {
+        let _ = texinfo::parse(b);
+    }),
+    ("textile", |b| {
+        let _ = textile::parse(b);
+    }),
+    ("tuicconf", |b| {
+        let _ = tuicconf::parse(b);
+    }),
+    ("textlint", |b| {
+        let _ = textlint::parse(b);
+    }),
+    ("tflite", |b| {
+        let _ = tflite::parse(b);
+    }),
+    ("tfm", |b| {
+        let _ = tfm::parse(b);
+    }),
+    ("tftp", |b| {
+        let _ = tftp::parse(b);
+    }),
+    ("thanosconf", |b| {
+        let _ = thanosconf::parse(b);
+    }),
+    ("threemf", |b| {
+        let _ = threemf::parse(b);
+    }),
+    ("thrift", |b| {
+        let _ = thrift::parse(b);
+    }),
+    ("tiff", |b| {
+        let _ = tiff::parse(b);
+    }),
+    ("tileservergl", |b| {
+        let _ = tileservergl::parse(b);
+    }),
+    ("timesyncd", |b| {
+        let _ = timesyncd::parse(b);
+    }),
+    ("tlp", |b| {
+        let _ = tlp::parse(b);
+    }),
+    ("tmpfilesd", |b| {
+        let _ = tmpfilesd::parse(b);
+    }),
+    ("tmx", |b| {
+        let _ = tmx::parse(b);
+    }),
+    ("topojson", |b| {
+        let _ = topojson::parse(b);
+    }),
+    ("torrent", |b| {
+        let _ = torrent::parse(b);
+    }),
+    ("tptp", |b| {
+        let _ = tptp::parse(b);
+    }),
+    ("travisci", |b| {
+        let _ = travisci::parse(b);
+    }),
+    ("trx", |b| {
+        let _ = trx::parse(b);
+    }),
+    ("ts", |b| {
+        let _ = ts::parse(b);
+    }),
+    ("tsx", |b| {
+        let _ = tsx::parse(b);
+    }),
+    ("tta", |b| {
+        let _ = tta::parse(b);
+    }),
+    ("ttc", |b| {
+        let _ = ttc::parse(b);
+    }),
+    ("ttf", |b| {
+        let _ = ttf::parse(b);
+    }),
+    ("ttml", |b| {
+        let _ = ttml::parse(b);
+    }),
+    ("ttyrec", |b| {
+        let _ = ttyrec::parse(b);
+    }),
+    ("txt2tags", |b| {
+        let _ = txt2tags::parse(b);
+    }),
+    ("typeid", |b| {
+        let _ = typeid::parse(b);
+    }),
+    ("typeormconf", |b| {
+        let _ = typeormconf::parse(b);
+    }),
+    ("tzif", |b| {
+        let _ = tzif::parse(b);
+    }),
+    ("tzx", |b| {
+        let _ = tzx::parse(b);
+    }),
+    ("uasset", |b| {
+        let _ = uasset::parse(b);
+    }),
+    ("ubi", |b| {
+        let _ = ubi::parse(b);
+    }),
+    ("ubootenv", |b| {
+        let _ = ubootenv::parse(b);
+    }),
+    ("v2rayconf", |b| {
+        let _ = v2rayconf::parse(b);
+    }),
+    ("ubx", |b| {
+        let _ = ubx::parse(b);
+    }),
+    ("ucf", |b| {
+        let _ = ucf::parse(b);
+    }),
+    ("udevrules", |b| {
+        let _ = udevrules::parse(b);
+    }),
+    ("udf", |b| {
+        let _ = udf::parse(b);
+    }),
+    ("udp", |b| {
+        let _ = udp::parse(b);
+    }),
+    ("ufs", |b| {
+        let _ = ufs::parse(b);
+    }),
+    ("ufwrules", |b| {
+        let _ = ufwrules::parse(b);
+    }),
+    ("uimage", |b| {
+        let _ = uimage::parse(b);
+    }),
+    ("ult", |b| {
+        let _ = ult::parse(b);
+    }),
+    ("unityfs", |b| {
+        let _ = unityfs::parse(b);
+    }),
+    ("unitymanifest", |b| {
+        let _ = unitymanifest::parse(b);
+    }),
+    ("unitysettings", |b| {
+        let _ = unitysettings::parse(b);
+    }),
+    ("unrealircd", |b| {
+        let _ = unrealircd::parse(b);
+    }),
+    ("unv", |b| {
+        let _ = unv::parse(b);
+    }),
+    ("upc", |b| {
+        let _ = upc::parse(b);
+    }),
+    ("upf", |b| {
+        let _ = upf::parse(b);
+    }),
+    ("ups", |b| {
+        let _ = ups::parse(b);
+    }),
+    ("urdf", |b| {
+        let _ = urdf::parse(b);
+    }),
+    ("urlencode", |b| {
+        let _ = urlencode::parse(b);
+    }),
+    ("vrtgdal", |b| {
+        let _ = vrtgdal::parse(b);
+    }),
+    ("usercss", |b| {
+        let _ = usercss::parse(b);
+    }),
+    ("userscript", |b| {
+        let _ = userscript::parse(b);
+    }),
+    ("usf", |b| {
+        let _ = usf::parse(b);
+    }),
+    ("usi", |b| {
+        let _ = usi::parse(b);
+    }),
+    ("utmp", |b| {
+        let _ = utmp::parse(b);
+    }),
+    ("velero", |b| {
+        let _ = velero::parse(b);
+    }),
+    ("uue", |b| {
+        let _ = uue::parse(b);
+    }),
+    ("vale", |b| {
+        let _ = vale::parse(b);
+    }),
+    ("valkeyconf", |b| {
+        let _ = valkeyconf::parse(b);
+    }),
+    ("vcard", |b| {
+        let _ = vcard::parse(b);
+    }),
+    ("vcd", |b| {
+        let _ = vcd::parse(b);
+    }),
+    ("vdi", |b| {
+        let _ = vdi::parse(b);
+    }),
+    ("vercelconf", |b| {
+        let _ = vercelconf::parse(b);
+    }),
+    ("verilog", |b| {
+        let _ = verilog::parse(b);
+    }),
+    ("vernemq", |b| {
+        let _ = vernemq::parse(b);
+    }),
+    ("vf", |b| {
+        let _ = vf::parse(b);
+    }),
+    ("vgm", |b| {
+        let _ = vgm::parse(b);
+    }),
+    ("vhd", |b| {
+        let _ = vhd::parse(b);
+    }),
+    ("vhdx", |b| {
+        let _ = vhdx::parse(b);
+    }),
+    ("vip", |b| {
+        let _ = vip::parse(b);
+    }),
+    ("vlt", |b| {
+        let _ = vlt::parse(b);
+    }),
+    ("vmagentconf", |b| {
+        let _ = vmagentconf::parse(b);
+    }),
+    ("vms", |b| {
+        let _ = vms::parse(b);
+    }),
+    ("voc", |b| {
+        let _ = voc::parse(b);
+    }),
+    ("vox", |b| {
+        let _ = vox::parse(b);
+    }),
+    ("vp3", |b| {
+        let _ = vp3::parse(b);
+    }),
+    ("wktproj", |b| {
+        let _ = wktproj::parse(b);
+    }),
+    ("vpk", |b| {
+        let _ = vpk::parse(b);
+    }),
+    ("vrrp", |b| {
+        let _ = vrrp::parse(b);
+    }),
+    ("vsdx", |b| {
+        let _ = vsdx::parse(b);
+    }),
+    ("vtf", |b| {
+        let _ = vtf::parse(b);
+    }),
+    ("vtk", |b| {
+        let _ = vtk::parse(b);
+    }),
+    ("wsjtxconf", |b| {
+        let _ = wsjtxconf::parse(b);
+    }),
+    ("vtu", |b| {
+        let _ = vtu::parse(b);
+    }),
+    ("vxlan", |b| {
+        let _ = vxlan::parse(b);
+    }),
+    ("w64", |b| {
+        let _ = w64::parse(b);
+    }),
+    ("wad", |b| {
+        let _ = wad::parse(b);
+    }),
+    ("werf", |b| {
+        let _ = werf::parse(b);
+    }),
+    ("wasm", |b| {
+        let _ = wasm::parse(b);
+    }),
+    ("wav", |b| {
+        let _ = wav::parse(b);
+    }),
+    ("webfinger", |b| {
+        let _ = webfinger::parse(b);
+    }),
+    ("webloc", |b| {
+        let _ = webloc::parse(b);
+    }),
+    ("webmanifest", |b| {
+        let _ = webmanifest::parse(b);
+    }),
+    ("webp", |b| {
+        let _ = webp::parse(b);
+    }),
+    ("weechat", |b| {
+        let _ = weechat::parse(b);
+    }),
+    ("westconf", |b| {
+        let _ = westconf::parse(b);
+    }),
+    ("westonconf", |b| {
+        let _ = westonconf::parse(b);
+    }),
+    ("weztermconf", |b| {
+        let _ = weztermconf::parse(b);
+    }),
+    ("wfn", |b| {
+        let _ = wfn::parse(b);
+    }),
+    ("wgsl", |b| {
+        let _ = wgsl::parse(b);
+    }),
+    ("widgetxml", |b| {
+        let _ = widgetxml::parse(b);
+    }),
+    ("wim", |b| {
+        let _ = wim::parse(b);
+    }),
+    ("windowsterminal", |b| {
+        let _ = windowsterminal::parse(b);
+    }),
+    ("winstonconf", |b| {
+        let _ = winstonconf::parse(b);
+    }),
+    ("wiresharkpref", |b| {
+        let _ = wiresharkpref::parse(b);
+    }),
+    ("wkb", |b| {
+        let _ = wkb::parse(b);
+    }),
+    ("woff", |b| {
+        let _ = woff::parse(b);
+    }),
+    ("woff2", |b| {
+        let _ = woff2::parse(b);
+    }),
+    ("woodpecker", |b| {
+        let _ = woodpecker::parse(b);
+    }),
+    ("woz", |b| {
+        let _ = woz::parse(b);
+    }),
+    ("wpasupplicant", |b| {
+        let _ = wpasupplicant::parse(b);
+    }),
+    ("wrl", |b| {
+        let _ = wrl::parse(b);
+    }),
+    ("wsdl", |b| {
+        let _ = wsdl::parse(b);
+    }),
+    ("wv", |b| {
+        let _ = wv::parse(b);
+    }),
+    ("x3d", |b| {
+        let _ = x3d::parse(b);
+    }),
+    ("x509", |b| {
+        let _ = x509::parse(b);
+    }),
+    ("x7z", |b| {
+        let _ = x7z::parse(b);
+    }),
+    ("xacro", |b| {
+        let _ = xacro::parse(b);
+    }),
+    ("xapi", |b| {
+        let _ = xapi::parse(b);
+    }),
+    ("xar", |b| {
+        let _ = xar::parse(b);
+    }),
+    ("xbrl", |b| {
+        let _ = xbrl::parse(b);
+    }),
+    ("xcf", |b| {
+        let _ = xcf::parse(b);
+    }),
+    ("xdc", |b| {
+        let _ = xdc::parse(b);
+    }),
+    ("xfs", |b| {
+        let _ = xfs::parse(b);
+    }),
+    ("xi", |b| {
+        let _ = xi::parse(b);
+    }),
+    ("yggdrasil", |b| {
+        let _ = yggdrasil::parse(b);
+    }),
+    ("xib", |b| {
+        let _ = xib::parse(b);
+    }),
+    ("xid", |b| {
+        let _ = xid::parse(b);
+    }),
+    ("xliff", |b| {
+        let _ = xliff::parse(b);
+    }),
+    ("zeekconf", |b| {
+        let _ = zeekconf::parse(b);
+    }),
+    ("xlink", |b| {
+        let _ = xlink::parse(b);
+    }),
+    ("xlsx", |b| {
+        let _ = xlsx::parse(b);
+    }),
+    ("xm", |b| {
+        let _ = xm::parse(b);
+    }),
+    ("xmodmap", |b| {
+        let _ = xmodmap::parse(b);
+    }),
+    ("xmp", |b| {
+        let _ = xmp::parse(b);
+    }),
+    ("xmpp", |b| {
+        let _ = xmpp::parse(b);
+    }),
+    ("xnb", |b| {
+        let _ = xnb::parse(b);
+    }),
+    ("xorgconf", |b| {
+        let _ = xorgconf::parse(b);
+    }),
+    ("xpath", |b| {
+        let _ = xpath::parse(b);
+    }),
+    ("xpm", |b| {
+        let _ = xpm::parse(b);
+    }),
+    ("xps", |b| {
+        let _ = xps::parse(b);
+    }),
+    ("xpt", |b| {
+        let _ = xpt::parse(b);
+    }),
+    ("xq", |b| {
+        let _ = xq::parse(b);
+    }),
+    ("xqf", |b| {
+        let _ = xqf::parse(b);
+    }),
+    ("xrdpconf", |b| {
+        let _ = xrdpconf::parse(b);
+    }),
+    ("xresources", |b| {
+        let _ = xresources::parse(b);
+    }),
+    ("xsd", |b| {
+        let _ = xsd::parse(b);
+    }),
+    ("xslt", |b| {
+        let _ = xslt::parse(b);
+    }),
+    ("xspf", |b| {
+        let _ = xspf::parse(b);
+    }),
+    ("xsvf", |b| {
+        let _ = xsvf::parse(b);
+    }),
+    ("xyz", |b| {
+        let _ = xyz::parse(b);
+    }),
+    ("xz", |b| {
+        let _ = xz::parse(b);
+    }),
+    ("y4m", |b| {
+        let _ = y4m::parse(b);
+    }),
+    ("yamllint", |b| {
+        let _ = yamllint::parse(b);
+    }),
+    ("yara", |b| {
+        let _ = yara::parse(b);
+    }),
+    ("yenc", |b| {
+        let _ = yenc::parse(b);
+    }),
+    ("yosys", |b| {
+        let _ = yosys::parse(b);
+    }),
+    ("yuzuconf", |b| {
+        let _ = yuzuconf::parse(b);
+    }),
+    ("z64", |b| {
+        let _ = z64::parse(b);
+    }),
+    ("zapconf", |b| {
+        let _ = zapconf::parse(b);
+    }),
+    ("zeekctl", |b| {
+        let _ = zeekctl::parse(b);
+    }),
+    ("zeekscript", |b| {
+        let _ = zeekscript::parse(b);
+    }),
+    ("zfs", |b| {
+        let _ = zfs::parse(b);
+    }),
+    ("zlib", |b| {
+        let _ = zlib::parse(b);
+    }),
+    ("znc", |b| {
+        let _ = znc::parse(b);
+    }),
+    ("zoo", |b| {
+        let _ = zoo::parse(b);
+    }),
+    ("zpaq", |b| {
+        let _ = zpaq::parse(b);
+    }),
+    ("zpl", |b| {
+        let _ = zpl::parse(b);
+    }),
+    ("zstd", |b| {
+        let _ = zstd::parse(b);
+    }),
+    ("zulipconf", |b| {
+        let _ = zulipconf::parse(b);
+    }),
+];
