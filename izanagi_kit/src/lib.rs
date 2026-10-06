@@ -3821,3 +3821,16 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zulipconf", zulipconf::detect),
     ("zypper", zypper::detect),
 ];
+
+/// 全検出器に入力を流し、合致したモジュール名を全て返す。
+///
+/// [`DETECTORS`] の並び順(名前昇順)で返る。合致なしなら空 `Vec`。
+/// 1入力に複数形式が合致し得るため先勝ちではなく全件を返す。
+#[must_use]
+pub fn detect_all(input: &[u8]) -> Vec<&'static str> {
+    DETECTORS
+        .iter()
+        .filter(|(_, f)| f(input))
+        .map(|(name, _)| *name)
+        .collect()
+}
