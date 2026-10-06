@@ -566,6 +566,7 @@ pub mod bogofilter;
 pub mod bootimg;
 pub mod bootini;
 pub mod borgmatic;
+pub mod boundary;
 pub mod bplus;
 pub mod bps;
 pub mod braille;
@@ -619,6 +620,7 @@ pub mod cargolock;
 pub mod carla;
 pub mod cartesian;
 pub mod casbin;
+pub mod casdoor;
 pub mod cassandra;
 pub mod catalan;
 pub mod catmull;
@@ -632,6 +634,7 @@ pub mod ccx;
 pub mod cedar;
 pub mod centroid;
 pub mod cephconf;
+pub mod cerbos;
 pub mod certbot;
 pub mod cf;
 pub mod cfn;
@@ -1327,6 +1330,7 @@ pub mod keepalived;
 pub mod keepassxc;
 pub mod kern;
 pub mod ketl;
+pub mod keto;
 pub mod keycloak;
 pub mod keydbconf;
 pub mod keymap;
@@ -1502,6 +1506,7 @@ pub mod meson;
 pub mod meta;
 pub mod metaflow;
 pub mod metallib;
+pub mod metricbeat;
 pub mod metroconf;
 pub mod mets;
 pub mod mft;
@@ -1831,6 +1836,7 @@ pub mod polybar;
 pub mod polyclip;
 pub mod polylabel;
 pub mod pom;
+pub mod pomerium;
 pub mod pool;
 pub mod pop3;
 pub mod portage;
@@ -2262,6 +2268,7 @@ pub mod td0;
 pub mod tdm;
 pub mod tds;
 pub mod telegraf;
+pub mod teleport;
 pub mod telnet;
 pub mod tempoconf;
 pub mod temporal;
@@ -2482,6 +2489,7 @@ pub mod widgetxml;
 pub mod wim;
 pub mod windowsterminal;
 pub mod winini;
+pub mod winlogbeat;
 pub mod winnow;
 pub mod winstonconf;
 pub mod wireguard;
@@ -2572,6 +2580,7 @@ pub mod zfs;
 pub mod zfunc;
 pub mod zigbee2mqtt;
 pub mod zip;
+pub mod zitadel;
 pub mod zlib;
 pub mod znc;
 pub mod zobrist;
@@ -2823,6 +2832,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bogofilter", bogofilter::detect),
     ("bootini", bootini::detect),
     ("borgmatic", borgmatic::detect),
+    ("boundary", boundary::detect),
     ("braket", braket::detect),
     ("browserconfig", browserconfig::detect),
     ("browserslist", browserslist::detect),
@@ -2848,10 +2858,12 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cargolock", cargolock::detect),
     ("carla", carla::detect),
     ("casbin", casbin::detect),
+    ("casdoor", casdoor::detect),
     ("cassandra", cassandra::detect),
     ("ccs", ccs::detect),
     ("cedar", cedar::detect),
     ("cephconf", cephconf::detect),
+    ("cerbos", cerbos::detect),
     ("certbot", certbot::detect),
     ("cfn", cfn::detect),
     ("cfssl", cfssl::detect),
@@ -3191,6 +3203,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("keepassxc", keepassxc::detect),
     ("kern", kern::detect),
     ("ketl", ketl::detect),
+    ("keto", keto::detect),
     ("keycloak", keycloak::detect),
     ("keydbconf", keydbconf::detect),
     ("keytab", keytab::detect),
@@ -3287,6 +3300,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("meson", meson::detect),
     ("metaflow", metaflow::detect),
     ("metallib", metallib::detect),
+    ("metricbeat", metricbeat::detect),
     ("metroconf", metroconf::detect),
     ("mets", mets::detect),
     ("milvusconf", milvusconf::detect),
@@ -3449,6 +3463,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("policyjson", policyjson::detect),
     ("polybar", polybar::detect),
     ("pom", pom::detect),
+    ("pomerium", pomerium::detect),
     ("portage", portage::detect),
     ("postalconf", postalconf::detect),
     ("postfix", postfix::detect),
@@ -3667,6 +3682,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("td0", td0::detect),
     ("tdm", tdm::detect),
     ("telegraf", telegraf::detect),
+    ("teleport", teleport::detect),
     ("telnet", telnet::detect),
     ("tempoconf", tempoconf::detect),
     ("terminfo", terminfo::detect),
@@ -3778,6 +3794,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wim", wim::detect),
     ("windowsterminal", windowsterminal::detect),
     ("winini", winini::detect),
+    ("winlogbeat", winlogbeat::detect),
     ("winstonconf", winstonconf::detect),
     ("wireguard", wireguard::detect),
     ("wireplumberconf", wireplumberconf::detect),
@@ -3826,6 +3843,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zerotier", zerotier::detect),
     ("zfs", zfs::detect),
     ("zigbee2mqtt", zigbee2mqtt::detect),
+    ("zitadel", zitadel::detect),
     ("znc", znc::detect),
     ("zola", zola::detect),
     ("zon", zon::detect),
@@ -3837,3 +3855,16 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zulipconf", zulipconf::detect),
     ("zypper", zypper::detect),
 ];
+
+/// 全検出器に入力を流し、合致したモジュール名を全て返す。
+///
+/// [`DETECTORS`] の並び順(名前昇順)で返る。合致なしなら空 `Vec`。
+/// 1入力に複数形式が合致し得るため先勝ちではなく全件を返す。
+#[must_use]
+pub fn detect_all(input: &[u8]) -> Vec<&'static str> {
+    DETECTORS
+        .iter()
+        .filter(|(_, f)| f(input))
+        .map(|(name, _)| *name)
+        .collect()
+}
