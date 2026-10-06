@@ -468,6 +468,7 @@ pub mod ardour;
 pub mod arduinoconf;
 pub mod arff;
 pub mod argocd;
+pub mod argorollout;
 pub mod argowf;
 pub mod argusconf;
 pub mod arith;
@@ -639,6 +640,7 @@ pub mod cfssl;
 pub mod cgitrc;
 pub mod chacha;
 pub mod change;
+pub mod chaosmesh;
 pub mod chart;
 pub mod chash;
 pub mod chasquidconf;
@@ -667,6 +669,7 @@ pub mod clar;
 pub mod clashconf;
 pub mod classfile;
 pub mod clickhouse;
+pub mod cliff;
 pub mod clique;
 pub mod closestpair;
 pub mod cloudcustodian;
@@ -778,6 +781,7 @@ pub mod der;
 pub mod derange;
 pub mod desktop;
 pub mod detekt;
+pub mod devbox;
 pub mod devcontainer;
 pub mod devfile;
 pub mod dex;
@@ -972,6 +976,7 @@ pub mod fixed;
 pub mod fixml;
 pub mod fla;
 pub mod flac;
+pub mod flagger;
 pub mod flake8conf;
 pub mod flatbuf;
 pub mod flatpak;
@@ -1010,6 +1015,7 @@ pub mod fxml;
 pub mod fxp;
 pub mod gapbuffer;
 pub mod garnetconf;
+pub mod gatekeeper;
 pub mod gauss;
 pub mod gb;
 pub mod gba;
@@ -1394,6 +1400,7 @@ pub mod linrec;
 pub mod liquibase;
 pub mod lis;
 pub mod lit;
+pub mod litmus;
 pub mod lldp;
 pub mod llmnr;
 pub mod llvmbc;
@@ -2385,6 +2392,7 @@ pub mod veb;
 pub mod veb3;
 pub mod vec;
 pub mod vector;
+pub mod velero;
 pub mod vercelconf;
 pub mod verify;
 pub mod verilog;
@@ -2756,6 +2764,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ardour", ardour::detect),
     ("arduinoconf", arduinoconf::detect),
     ("argocd", argocd::detect),
+    ("argorollout", argorollout::detect),
     ("argowf", argowf::detect),
     ("argusconf", argusconf::detect),
     ("arkimeconf", arkimeconf::detect),
@@ -2832,6 +2841,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cfn", cfn::detect),
     ("cfssl", cfssl::detect),
     ("cgitrc", cgitrc::detect),
+    ("chaosmesh", chaosmesh::detect),
     ("chart", chart::detect),
     ("chasquidconf", chasquidconf::detect),
     ("checkov", checkov::detect),
@@ -2848,6 +2858,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("clar", clar::detect),
     ("clashconf", clashconf::detect),
     ("clickhouse", clickhouse::detect),
+    ("cliff", cliff::detect),
     ("cloudcustodian", cloudcustodian::detect),
     ("cloudinit", cloudinit::detect),
     ("clusterconf", clusterconf::detect),
@@ -2908,6 +2919,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("denoconf", denoconf::detect),
     ("dependabot", dependabot::detect),
     ("detekt", detekt::detect),
+    ("devbox", devbox::detect),
     ("devcontainer", devcontainer::detect),
     ("devfile", devfile::detect),
     ("dexidp", dexidp::detect),
@@ -2991,6 +3003,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fishconf", fishconf::detect),
     ("fivetranconf", fivetranconf::detect),
     ("fixml", fixml::detect),
+    ("flagger", flagger::detect),
     ("flake8conf", flake8conf::detect),
     ("flif", flif::detect),
     ("fluentd", fluentd::detect),
@@ -3006,6 +3019,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fxml", fxml::detect),
     ("fxp", fxp::detect),
     ("garnetconf", garnetconf::detect),
+    ("gatekeeper", gatekeeper::detect),
     ("gbench", gbench::detect),
     ("gbstudio", gbstudio::detect),
     ("gdf", gdf::detect),
@@ -3203,6 +3217,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("limine", limine::detect),
     ("linkerd", linkerd::detect),
     ("liquibase", liquibase::detect),
+    ("litmus", litmus::detect),
     ("lmms", lmms::detect),
     ("lndconf", lndconf::detect),
     ("log4j", log4j::detect),
@@ -3694,6 +3709,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vcl", vcl::detect),
     ("vcpkg", vcpkg::detect),
     ("vector", vector::detect),
+    ("velero", velero::detect),
     ("vercelconf", vercelconf::detect),
     ("verilog", verilog::detect),
     ("vernemq", vernemq::detect),

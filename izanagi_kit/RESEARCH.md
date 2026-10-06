@@ -6121,3 +6121,31 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第350次 — GitOps補助/カオス/パッケージ環境/チェンジログ系設定形式 8 モジュール
+
+census 未収録ドメイン第3弾。apiVersion+kind 組合せ方式で Kubernetes
+周辺エコシステム6形式と、devbox・git-cliff のデファクト標準設定を追加。
+
+- argorollout: Argo Rollouts(`argoproj.io/` + Rollout/AnalysisTemplate/AnalysisRun/Experiment。ArgoCD とは kind 集合で分離)
+- flagger: Flagger(`flagger.app/` + Canary/MetricTemplate/AlertProvider)
+- gatekeeper: OPA Gatekeeper(`*.gatekeeper.sh/` + ConstraintTemplate/Config/Assign/ExpansionTemplate または `K8s*` 制約 kind)
+- velero: Velero(`velero.io/` + Backup/Restore/Schedule/BackupStorageLocation 等)
+- litmus: LitmusChaos(`litmuschaos.io/` + ChaosEngine/ChaosExperiment/ChaosResult)
+- chaosmesh: Chaos Mesh(`chaos-mesh.org/` + PodChaos/NetworkChaos/StressChaos/Schedule/Workflow 等)
+- cliff: git-cliff `cliff.toml`(`[changelog]` + `[git]`/commit_parsers/tag_pattern 等)
+- devbox: `devbox.json`(`packages` + devbox/jetify 参照 or init_hook/nixpkgs)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18198)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- argoproj/argo-rollouts — Rollout/AnalysisTemplate/Experiment CRDs
+- fluxcd/flagger — Canary/MetricTemplate CRDs (flagger.app)
+- open-policy-agent/gatekeeper — ConstraintTemplate/Assign/ExpansionTemplate (gatekeeper.sh)
+- vmware-tanzu/velero — Backup/Restore/Schedule CRDs (velero.io)
+- litmuschaos/litmus — ChaosEngine/ChaosExperiment/ChaosResult
+- chaos-mesh/chaos-mesh — Chaos CRDs (chaos-mesh.org)
+- orhun/git-cliff — cliff.toml reference ([changelog]/[git])
+- jetify-com/devbox — devbox.json schema (packages/shell/env/nixpkgs)
