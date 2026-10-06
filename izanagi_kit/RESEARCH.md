@@ -6180,6 +6180,23 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
 
+## 第354次 — Argo Events/SPIRE/CSI秘密管理/ストレージ/パッケージ系 8 モジュール
+
+census 未収録ドメイン第7弾。K8s ストレージ・セキュリティ CRD 群と
+パッケージ連携・Terraform lint 設定を追加。
+
+- argoevents: Argo Events(`argoproj.io` + EventSource/Sensor/EventBus。argocd/argowf/argorollout と kind 集合で分離)
+- spire: SPIRE/SPIFFE(`spire.spiffe.io`/`spiffeid.spiffe.io` + ClusterSPIFFEID/ClusterFederatedTrustDomain/UpstreamAuthority* 等)
+- secretsstore: Secrets Store CSI Driver(`secrets-store.csi.x-k8s.io` + SecretProviderClass/SecretProviderClassPodStatus/SecretSync)
+- jenkinsx: Jenkins X(`jenkins.io`/`jenkins-x.io` + Environment/PipelineActivity/Release/SourceRepository/Scheduler 等)
+- portworx: Portworx(`portworx.io`/`core.libopenstorage.org`/`stork.*`/`autopilot.*` + StorageCluster/BackupLocation/MigrationSchedule 等)
+- openebs: OpenEBS(`cstor.openebs.io`/`local.openebs.io`/`openebs.io` + CStorPool/ZFSVolume/JivaVolume/BlockDevice 等)
+- packit: `.packit.yaml`(specfile_path/upstream_project_url 等 packit 排他キー×2 または排他キー+jobs)
+- tflint: `.tflint.hcl`(`plugin "x"`/`rule "x"` ブロック or call_module_type/disabled_by_default/plugin_dir 等排他キー、コメント除外)
+
+`pub mod` / `DETECTORS` 登録済み(1119 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第355次 — Prow/Bors/Karpenter/KubeVirt/KubeDB/Fleet/vCluster/Waypoint 8 モジュール
 
 CI補助ツール・K8sオペレータCRD・GitOps/仮想クラスタ系を追加。
