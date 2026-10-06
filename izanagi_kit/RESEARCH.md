@@ -6121,3 +6121,22 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第377次
+
+IRCクライアント/サーバ/BOT残りの設定形式8モジュールを追加
+(weechat/irssi/znc/hexchat/ngircd/unrealircdは既存):
+inspircd(XMLライクな`<define>`/`<bind>`/`<class>`/`<connect>`/
+`<oper>`/`<server>`/`<module>`タグ行>=3), eggdrop(Tcl設定:
+`set username/nick/altnick/owner/net-type`等既知変数>=2 +
+listen/logfile/channel add/loadmodule/source),
+limnoria(Supybotレジストリ:`supybot.<path>: value`ドットキー行>=3、
+plugins/networks分類), quassel(quasselcore.conf INI:
+[Core]/[Storage]/[General]セクション+Storage/Listen/AdminUser等),
+bitlbee(bitlbee.conf INIセクション必須+RunMode/DaemonPort/User/
+ConfigDir/VHostName等>=3), kiwiirc(config.conf: conf.*/upstream.*/
+webirc.*/plugins/hostname/logLevel等`key = value`>=3),
+soju(soju.conf: listen/db/hostname/title/tls/motdディレクティブ、
+listen+db併存 or >=3), thelounge(config.js: module.exports内の
+public/host/port/theme/prefetch/defaults等キー>=3)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。

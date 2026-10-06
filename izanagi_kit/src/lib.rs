@@ -549,6 +549,7 @@ pub mod bit;
 pub mod bitap;
 pub mod bitboard;
 pub mod bitcoinconf;
+pub mod bitlbee;
 pub mod bitonic;
 pub mod bitrise;
 pub mod bits;
@@ -886,6 +887,7 @@ pub mod edsk;
 pub mod edt;
 pub mod eep;
 pub mod eertree;
+pub mod eggdrop;
 pub mod egypt;
 pub mod ejabberd;
 pub mod elf;
@@ -1208,6 +1210,7 @@ pub mod inp;
 pub mod inputbuf;
 pub mod inputrc;
 pub mod insomnia;
+pub mod inspircd;
 pub mod instana;
 pub mod integral;
 pub mod interfaces;
@@ -1334,6 +1337,7 @@ pub mod kif;
 pub mod kindconf;
 pub mod kittyconf;
 pub mod kittyimg;
+pub mod kiwiirc;
 pub mod kkpart;
 pub mod klipperconf;
 pub mod kmeans;
@@ -1388,6 +1392,7 @@ pub mod lightmap;
 pub mod lighttpd;
 pub mod lima;
 pub mod limine;
+pub mod limnoria;
 pub mod linkcut;
 pub mod linkerd;
 pub mod linrec;
@@ -1896,6 +1901,7 @@ pub mod qtui;
 pub mod quadtree;
 pub mod quantile;
 pub mod quartz;
+pub mod quassel;
 pub mod quat;
 pub mod quest;
 pub mod quil;
@@ -2131,6 +2137,7 @@ pub mod snowflake;
 pub mod snyk;
 pub mod sobol;
 pub mod socks;
+pub mod soju;
 pub mod sol;
 pub mod solrconfig;
 pub mod solrschema;
@@ -2264,6 +2271,7 @@ pub mod tftp;
 pub mod tga;
 pub mod tgf;
 pub mod thanosconf;
+pub mod thelounge;
 pub mod threat;
 pub mod threemf;
 pub mod thrift;
@@ -2793,6 +2801,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bird", bird::detect),
     ("bit", bit::detect),
     ("bitcoinconf", bitcoinconf::detect),
+    ("bitlbee", bitlbee::detect),
     ("bitrise", bitrise::detect),
     ("blackbird", blackbird::detect),
     ("blackconf", blackconf::detect),
@@ -2959,6 +2968,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("editorconfig", editorconfig::detect),
     ("edn", edn::detect),
     ("edsk", edsk::detect),
+    ("eggdrop", eggdrop::detect),
     ("ejabberd", ejabberd::detect),
     ("emacs", emacs::detect),
     ("emqx", emqx::detect),
@@ -3097,6 +3107,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("inittab", inittab::detect),
     ("inputrc", inputrc::detect),
     ("insomnia", insomnia::detect),
+    ("inspircd", inspircd::detect),
     ("instana", instana::detect),
     ("interfaces", interfaces::detect),
     ("ioc", ioc::detect),
@@ -3173,6 +3184,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kindconf", kindconf::detect),
     ("kittyconf", kittyconf::detect),
     ("kittyimg", kittyimg::detect),
+    ("kiwiirc", kiwiirc::detect),
     ("klipperconf", klipperconf::detect),
     ("knexfile", knexfile::detect),
     ("kodiadv", kodiadv::detect),
@@ -3201,6 +3213,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("lighttpd", lighttpd::detect),
     ("lima", lima::detect),
     ("limine", limine::detect),
+    ("limnoria", limnoria::detect),
     ("linkerd", linkerd::detect),
     ("liquibase", liquibase::detect),
     ("lmms", lmms::detect),
@@ -3460,6 +3473,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("qs", qs::detect),
     ("qtui", qtui::detect),
     ("quartz", quartz::detect),
+    ("quassel", quassel::detect),
     ("quil", quil::detect),
     ("rabbitmq", rabbitmq::detect),
     ("radarr", radarr::detect),
@@ -3563,6 +3577,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("snapcast", snapcast::detect),
     ("snort", snort::detect),
     ("snyk", snyk::detect),
+    ("soju", soju::detect),
     ("sol", sol::detect),
     ("solrconfig", solrconfig::detect),
     ("solrschema", solrschema::detect),
@@ -3637,6 +3652,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tfrecord", tfrecord::detect),
     ("tgf", tgf::detect),
     ("thanosconf", thanosconf::detect),
+    ("thelounge", thelounge::detect),
     ("tileservergl", tileservergl::detect),
     ("tiltfile", tiltfile::detect),
     ("timesyncd", timesyncd::detect),
