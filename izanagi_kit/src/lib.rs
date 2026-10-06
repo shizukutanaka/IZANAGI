@@ -575,6 +575,7 @@ pub mod bogofilter;
 pub mod bootimg;
 pub mod bootini;
 pub mod borgmatic;
+pub mod bors;
 pub mod boundary;
 pub mod bplus;
 pub mod bps;
@@ -1005,6 +1006,7 @@ pub mod flake8conf;
 pub mod flatbuf;
 pub mod flatpak;
 pub mod fldigiconf;
+pub mod fleet;
 pub mod flif;
 pub mod flow;
 pub mod flowfield;
@@ -1354,6 +1356,7 @@ pub mod kap;
 pub mod karatsuba;
 pub mod karmaconf;
 pub mod karp;
+pub mod karpenter;
 pub mod katesyntax;
 pub mod kbm;
 pub mod kcl;
@@ -1403,10 +1406,12 @@ pub mod kserve;
 pub mod kss;
 pub mod ktlint;
 pub mod kubeconfig;
+pub mod kubedb;
 pub mod kubeflow;
 pub mod kubeflowtraining;
 pub mod kubemq;
 pub mod kubevela;
+pub mod kubevirt;
 pub mod kustomize;
 pub mod l2tp;
 pub mod lab;
@@ -1934,6 +1939,7 @@ pub mod prop;
 pub mod proselint;
 pub mod prosody;
 pub mod proto;
+pub mod prow;
 pub mod prowlarr;
 pub mod prusaslicer;
 pub mod psd;
@@ -2498,6 +2504,7 @@ pub mod vcd;
 pub mod vcf;
 pub mod vcl;
 pub mod vclock;
+pub mod vcluster;
 pub mod vcpkg;
 pub mod vdi;
 pub mod veb;
@@ -2564,6 +2571,7 @@ pub mod wasm;
 pub mod wav;
 pub mod wavelet;
 pub mod waybar;
+pub mod waypoint;
 pub mod wdsu;
 pub mod weaviateconf;
 pub mod webfinger;
@@ -2945,6 +2953,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bogofilter", bogofilter::detect),
     ("bootini", bootini::detect),
     ("borgmatic", borgmatic::detect),
+    ("bors", bors::detect),
     ("boundary", boundary::detect),
     ("braket", braket::detect),
     ("brewfile", brewfile::detect),
@@ -3159,6 +3168,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fixml", fixml::detect),
     ("flake8conf", flake8conf::detect),
     ("fldigiconf", fldigiconf::detect),
+    ("fleet", fleet::detect),
     ("flif", flif::detect),
     ("fluentbit", fluentbit::detect),
     ("fluentd", fluentd::detect),
@@ -3335,6 +3345,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kafka", kafka::detect),
     ("kamaji", kamaji::detect),
     ("karmaconf", karmaconf::detect),
+    ("karpenter", karpenter::detect),
     ("katesyntax", katesyntax::detect),
     ("kbm", kbm::detect),
     ("kcl", kcl::detect),
@@ -3368,10 +3379,12 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kserve", kserve::detect),
     ("ktlint", ktlint::detect),
     ("kubeconfig", kubeconfig::detect),
+    ("kubedb", kubedb::detect),
     ("kubeflow", kubeflow::detect),
     ("kubeflowtraining", kubeflowtraining::detect),
     ("kubemq", kubemq::detect),
     ("kubevela", kubevela::detect),
+    ("kubevirt", kubevirt::detect),
     ("kustomize", kustomize::detect),
     ("lab", lab::detect),
     ("ldapconf", ldapconf::detect),
@@ -3649,6 +3662,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("promtailconf", promtailconf::detect),
     ("proselint", proselint::detect),
     ("prosody", prosody::detect),
+    ("prow", prow::detect),
     ("prowlarr", prowlarr::detect),
     ("prusaslicer", prusaslicer::detect),
     ("ptm", ptm::detect),
@@ -3948,6 +3962,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vcard", vcard::detect),
     ("vcd", vcd::detect),
     ("vcl", vcl::detect),
+    ("vcluster", vcluster::detect),
     ("vcpkg", vcpkg::detect),
     ("vector", vector::detect),
     ("vercelconf", vercelconf::detect),
@@ -3979,6 +3994,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wafconf", wafconf::detect),
     ("wandb", wandb::detect),
     ("waybar", waybar::detect),
+    ("waypoint", waypoint::detect),
     ("weaviateconf", weaviateconf::detect),
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),

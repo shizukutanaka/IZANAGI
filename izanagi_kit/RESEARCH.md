@@ -6180,6 +6180,22 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
 
+## 第355次 — Prow/Bors/Karpenter/KubeVirt/KubeDB/Fleet/vCluster/Waypoint 8 モジュール
+
+CI補助ツール・K8sオペレータCRD・GitOps/仮想クラスタ系を追加。
+
+- karpenter: Karpenter(`karpenter.sh`/`karpenter.k8s.aws` + Provisioner/NodePool/AWSNodeTemplate/EC2NodeClass/NodeClaim)
+- kubedb: KubeDB(`kubedb.com` + Postgres/Elasticsearch/MongoDB/Redis/Kafka 等 DB kind 群)
+- kubevirt: KubeVirt(`kubevirt.io` + VirtualMachine/VirtualMachineInstance/Snapshot/Clone/Pool 等)
+- fleet: Rancher Fleet `fleet.yaml`(targets/clusterSelector/rolloutStrategy 等の強キー+弱キー合計≥2)
+- vcluster: vCluster `vcluster.yaml`(vcluster/controlPlane/syncer/telemetry 等の強キー+弱キー合計≥2)
+- prow: Prow `config.yaml`(presubmits/postsubmits/periodics/tide/plank 等の排他トップキー≥2)
+- bors: `bors.toml`(status/block_labels/required_approvals 等キー≥2)
+- waypoint: `waypoint.hcl`(`app "x" {}` ブロック+build/deploy/release/runner 内側証拠)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18204)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第359次 — DBオペレータ/負荷分散・マルチテナント系 CRD 8 モジュール
 
 DBオペレータとLB/マルチテナント系 CRD 群第4弾。
