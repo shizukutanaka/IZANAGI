@@ -696,6 +696,7 @@ pub mod cmdqueue;
 pub mod cml;
 pub mod cms;
 pub mod cmus;
+pub mod cnpg;
 pub mod coap;
 pub mod cob;
 pub mod cobertura;
@@ -1414,6 +1415,7 @@ pub mod kubeflowtraining;
 pub mod kubemq;
 pub mod kubevela;
 pub mod kubevirt;
+pub mod kuma;
 pub mod kustomize;
 pub mod l2tp;
 pub mod lab;
@@ -1555,6 +1557,7 @@ pub mod mermaid;
 pub mod meson;
 pub mod meta;
 pub mod metaflow;
+pub mod metal3;
 pub mod metallib;
 pub mod metricbeat;
 pub mod metroconf;
@@ -1637,6 +1640,7 @@ pub mod mt940;
 pub mod mtm;
 pub mod mtx;
 pub mod multimap;
+pub mod multus;
 pub mod murmur;
 pub mod musicxml;
 pub mod muttrc;
@@ -1846,6 +1850,7 @@ pub mod pfconf;
 pub mod pfm;
 pub mod pgm;
 pub mod pgn;
+pub mod pgo;
 pub mod pgp;
 pub mod pgpass;
 pub mod pgservice;
@@ -1939,6 +1944,7 @@ pub mod projjson;
 pub mod prom;
 pub mod promela;
 pub mod prometheus;
+pub mod promoperator;
 pub mod promtailconf;
 pub mod prop;
 pub mod proselint;
@@ -2426,6 +2432,7 @@ pub mod trie;
 pub mod trigger;
 pub mod tripwireconf;
 pub mod trivy;
+pub mod trivyop;
 pub mod trojanconf;
 pub mod trx;
 pub mod ts;
@@ -2550,6 +2557,7 @@ pub mod vmrk;
 pub mod vms;
 pub mod vnoise;
 pub mod voc;
+pub mod volcano;
 pub mod voronoi;
 pub mod vose;
 pub mod votable;
@@ -3025,6 +3033,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cmake", cmake::detect),
     ("cmdbat", cmdbat::detect),
     ("cmus", cmus::detect),
+    ("cnpg", cnpg::detect),
     ("cob", cob::detect),
     ("cockroach", cockroach::detect),
     ("cocosproj", cocosproj::detect),
@@ -3395,6 +3404,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kubemq", kubemq::detect),
     ("kubevela", kubevela::detect),
     ("kubevirt", kubevirt::detect),
+    ("kuma", kuma::detect),
     ("kustomize", kustomize::detect),
     ("lab", lab::detect),
     ("ldapconf", ldapconf::detect),
@@ -3469,6 +3479,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mermaid", mermaid::detect),
     ("meson", meson::detect),
     ("metaflow", metaflow::detect),
+    ("metal3", metal3::detect),
     ("metallib", metallib::detect),
     ("metricbeat", metricbeat::detect),
     ("metroconf", metroconf::detect),
@@ -3509,6 +3520,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("msmtprc", msmtprc::detect),
     ("mtm", mtm::detect),
     ("mtx", mtx::detect),
+    ("multus", multus::detect),
     ("musicxml", musicxml::detect),
     ("muttrc", muttrc::detect),
     ("mvnsettings", mvnsettings::detect),
@@ -3621,6 +3633,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("percona", percona::detect),
     ("perflog", perflog::detect),
     ("pfconf", pfconf::detect),
+    ("pgo", pgo::detect),
     ("pgpass", pgpass::detect),
     ("pgservice", pgservice::detect),
     ("phabricatorconf", phabricatorconf::detect),
@@ -3672,6 +3685,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("projjson", projjson::detect),
     ("promela", promela::detect),
     ("prometheus", prometheus::detect),
+    ("promoperator", promoperator::detect),
     ("promtailconf", promtailconf::detect),
     ("proselint", proselint::detect),
     ("prosody", prosody::detect),
@@ -3934,6 +3948,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("treesittergram", treesittergram::detect),
     ("tripwireconf", tripwireconf::detect),
     ("trivy", trivy::detect),
+    ("trivyop", trivyop::detect),
     ("trojanconf", trojanconf::detect),
     ("tscn", tscn::detect),
     ("tsconfig", tsconfig::detect),
@@ -3999,6 +4014,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vlt", vlt::detect),
     ("vmagentconf", vmagentconf::detect),
     ("vmrk", vmrk::detect),
+    ("volcano", volcano::detect),
     ("votable", votable::detect),
     ("vpr", vpr::detect),
     ("vrtgdal", vrtgdal::detect),

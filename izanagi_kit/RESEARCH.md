@@ -6213,6 +6213,22 @@ CI補助ツール・K8sオペレータCRD・GitOps/仮想クラスタ系を追�
 `pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
 (18186→18204)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
+## 第357次 — Multus/Prometheus Operator/DB・バッチ・ベアメタル CRD 8 モジュール
+
+ネットワーク・監視・DBオペレータ・バッチスケジューラ系 CRD を追加。
+
+- multus: Multus CNI(`k8s.cni.cncf.io` + NetworkAttachmentDefinition)
+- promoperator: Prometheus Operator(`monitoring.coreos.com` + ServiceMonitor/PodMonitor/Probe/PrometheusRule/AlertmanagerConfig/ScrapeConfig/PrometheusAgent/ThanosRuler)
+- volcano: Volcano(`*.volcano.sh` + Job/PodGroup/Queue/NumaTopo)
+- cnpg: CloudNativePG(`postgresql.cnpg.io` + Cluster/Backup/ScheduledBackup/Pooler/ImageCatalog 等)
+- pgo: Crunchy Postgres(`postgres-operator.crunchydata.com` + PostgresCluster/PGAdmin/PGUpgrade/PGBackRestBackup)
+- kuma: Kuma(`kuma.io` + Mesh/TrafficRoute/CircuitBreaker/FaultInjection/RateLimit/Retry/Timeout/MeshGateway/MeshHTTPRoute 等)
+- metal3: Metal³(`metal3.io` + BareMetalHost/BMCEventSubscription/HostFirmwareSettings/DataImage 等)
+- trivyop: Trivy Operator(`aquasecurity.github.io` + VulnerabilityReport/ConfigAuditReport/ExposedSecretReport/ClusterComplianceReport/SbomReport 等)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第359次 — DBオペレータ/負荷分散・マルチテナント系 CRD 8 モジュール
 
 DBオペレータとLB/マルチテナント系 CRD 群第4弾。
