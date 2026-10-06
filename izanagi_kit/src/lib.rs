@@ -458,6 +458,7 @@ pub mod appengine;
 pub mod appimage;
 pub mod appjson;
 pub mod appveyor;
+pub mod aprxconf;
 pub mod aps;
 pub mod apsp;
 pub mod apt;
@@ -470,6 +471,7 @@ pub mod ardour;
 pub mod arduinoconf;
 pub mod arff;
 pub mod argocd;
+pub mod argoevents;
 pub mod argowf;
 pub mod argusconf;
 pub mod aria2;
@@ -506,6 +508,7 @@ pub mod avltree;
 pub mod avro;
 pub mod awscredentials;
 pub mod awselb;
+pub mod axports;
 pub mod ay;
 pub mod azurepipe;
 pub mod azw;
@@ -573,6 +576,7 @@ pub mod bogofilter;
 pub mod bootimg;
 pub mod bootini;
 pub mod borgmatic;
+pub mod bors;
 pub mod boundary;
 pub mod bplus;
 pub mod bps;
@@ -628,6 +632,7 @@ pub mod cargoconf;
 pub mod cargolock;
 pub mod carla;
 pub mod cartesian;
+pub mod cartocss;
 pub mod casbin;
 pub mod casdoor;
 pub mod cassandra;
@@ -661,6 +666,7 @@ pub mod checkstyle;
 pub mod chef;
 pub mod cherokee;
 pub mod chip8;
+pub mod chirpcsv;
 pub mod christofides;
 pub mod chromaconf;
 pub mod chrometrace;
@@ -691,6 +697,7 @@ pub mod cmdqueue;
 pub mod cml;
 pub mod cms;
 pub mod cmus;
+pub mod cnpg;
 pub mod coap;
 pub mod cob;
 pub mod cobertura;
@@ -702,6 +709,7 @@ pub mod codespell;
 pub mod coff;
 pub mod coins;
 pub mod colima;
+pub mod collectd;
 pub mod coloring;
 pub mod comb;
 pub mod combat;
@@ -741,6 +749,7 @@ pub mod crockford;
 pub mod cromwell;
 pub mod cron;
 pub mod crontab;
+pub mod crowdsec;
 pub mod csa;
 pub mod csaf;
 pub mod csd;
@@ -792,6 +801,7 @@ pub mod delaunay;
 pub mod delta;
 pub mod deluge;
 pub mod denoconf;
+pub mod denyhosts;
 pub mod dependabot;
 pub mod der;
 pub mod derange;
@@ -822,6 +832,7 @@ pub mod digit;
 pub mod dihedral;
 pub mod dimacs;
 pub mod dinit;
+pub mod direwolfconf;
 pub mod discourse;
 pub mod dita;
 pub mod dither;
@@ -958,6 +969,7 @@ pub mod extmanifest;
 pub mod f2fs;
 pub mod faction;
 pub mod fail2ban;
+pub mod fail2banconf;
 pub mod falcoconf;
 pub mod far;
 pub mod farbfeld;
@@ -998,6 +1010,8 @@ pub mod flac;
 pub mod flake8conf;
 pub mod flatbuf;
 pub mod flatpak;
+pub mod fldigiconf;
+pub mod fleet;
 pub mod flif;
 pub mod flink;
 pub mod flow;
@@ -1110,6 +1124,7 @@ pub mod gp;
 pub mod gpkg;
 pub mod gpsd;
 pub mod gpx;
+pub mod gqrxconf;
 pub mod gradle;
 pub mod gradlemod;
 pub mod grafana;
@@ -1306,6 +1321,7 @@ pub mod jef;
 pub mod jekyll;
 pub mod jellyfin;
 pub mod jenkinsfile;
+pub mod jenkinsx;
 pub mod jest;
 pub mod jffs2;
 pub mod jfm;
@@ -1347,6 +1363,7 @@ pub mod kap;
 pub mod karatsuba;
 pub mod karmaconf;
 pub mod karp;
+pub mod karpenter;
 pub mod katesyntax;
 pub mod kbm;
 pub mod kcl;
@@ -1396,10 +1413,13 @@ pub mod kserve;
 pub mod kss;
 pub mod ktlint;
 pub mod kubeconfig;
+pub mod kubedb;
 pub mod kubeflow;
 pub mod kubeflowtraining;
 pub mod kubemq;
 pub mod kubevela;
+pub mod kubevirt;
+pub mod kuma;
 pub mod kustomize;
 pub mod l2tp;
 pub mod lab;
@@ -1445,6 +1465,7 @@ pub mod lmms;
 pub mod lndconf;
 pub mod lnk;
 pub mod loader;
+pub mod locxml;
 pub mod log4j;
 pub mod log4perl;
 pub mod logback;
@@ -1540,6 +1561,7 @@ pub mod mermaid;
 pub mod meson;
 pub mod meta;
 pub mod metaflow;
+pub mod metal3;
 pub mod metallib;
 pub mod metricbeat;
 pub mod metroconf;
@@ -1572,6 +1594,7 @@ pub mod mkdocs;
 pub mod mlflow;
 pub mod mmheap;
 pub mod mml;
+pub mod mmlstyle;
 pub mod mo;
 pub mod mobi;
 pub mod mobius;
@@ -1583,6 +1606,7 @@ pub mod modfile;
 pub mod modlin;
 pub mod modprobeconf;
 pub mod mods;
+pub mod modsecurity;
 pub mod mol;
 pub mod mol2;
 pub mod monero;
@@ -1620,6 +1644,7 @@ pub mod mt940;
 pub mod mtm;
 pub mod mtx;
 pub mod multimap;
+pub mod multus;
 pub mod murmur;
 pub mod musicxml;
 pub mod muttrc;
@@ -1636,6 +1661,7 @@ pub mod nanorc;
 pub mod nas;
 pub mod nats;
 pub mod navidrome;
+pub mod naxsiconf;
 pub mod nbd;
 pub mod nbt;
 pub mod nc;
@@ -1644,6 +1670,7 @@ pub mod ncpdp;
 pub mod ne;
 pub mod nebulaconf;
 pub mod nef;
+pub mod neo4jconf;
 pub mod neomuttconf;
 pub mod nerdctl;
 pub mod netflow;
@@ -1734,6 +1761,7 @@ pub mod openapi;
 pub mod openbgpd;
 pub mod opendkim;
 pub mod opendmarc;
+pub mod openebs;
 pub mod openfaas;
 pub mod openfga;
 pub mod openhab;
@@ -1769,11 +1797,13 @@ pub mod otf;
 pub mod otp;
 pub mod otpauth;
 pub mod otsu;
+pub mod overpass;
 pub mod ovf;
 pub mod p7b;
 pub mod pack;
 pub mod packer;
 pub mod packfile;
+pub mod packit;
 pub mod pacman;
 pub mod paf;
 pub mod pagerank;
@@ -1825,6 +1855,7 @@ pub mod pfconf;
 pub mod pfm;
 pub mod pgm;
 pub mod pgn;
+pub mod pgo;
 pub mod pgp;
 pub mod pgpass;
 pub mod pgservice;
@@ -1887,6 +1918,7 @@ pub mod pool;
 pub mod pop3;
 pub mod portage;
 pub mod porter;
+pub mod portworx;
 pub mod poscar;
 pub mod postalconf;
 pub mod postcss;
@@ -1911,15 +1943,19 @@ pub mod procd;
 pub mod procfile;
 pub mod procmailrc;
 pub mod profiler;
+pub mod proftpd;
 pub mod progression;
+pub mod projjson;
 pub mod prom;
 pub mod promela;
 pub mod prometheus;
+pub mod promoperator;
 pub mod promtailconf;
 pub mod prop;
 pub mod proselint;
 pub mod prosody;
 pub mod proto;
+pub mod prow;
 pub mod prowlarr;
 pub mod prusaslicer;
 pub mod psd;
@@ -1935,6 +1971,7 @@ pub mod pulseclientconf;
 pub mod pulumi;
 pub mod punycode;
 pub mod puppet;
+pub mod pureftpd;
 pub mod puz;
 pub mod pxelinux;
 pub mod pyc;
@@ -1971,6 +2008,7 @@ pub mod quil;
 pub mod rabbitmq;
 pub mod radarr;
 pub mod radius;
+pub mod radiusd;
 pub mod radixheap;
 pub mod radixsort;
 pub mod raf;
@@ -2094,6 +2132,7 @@ pub mod sais;
 pub mod salt;
 pub mod sam;
 pub mod samba;
+pub mod samhainconf;
 pub mod saml;
 pub mod sap;
 pub mod sarif;
@@ -2120,9 +2159,11 @@ pub mod sdc;
 pub mod sddmconf;
 pub mod sdf;
 pub mod sdkconfig;
+pub mod sdrppconf;
 pub mod seamcarve;
 pub mod seccomp;
 pub mod secretsbaseline;
+pub mod secretsstore;
 pub mod securitytxt;
 pub mod segbeats;
 pub mod seglazy;
@@ -2182,6 +2223,7 @@ pub mod skaffold;
 pub mod skiplist;
 pub mod skp;
 pub mod skywalking;
+pub mod slapd;
 pub mod slide;
 pub mod slob;
 pub mod slopetrick;
@@ -2202,6 +2244,7 @@ pub mod snapcraft;
 pub mod snappy;
 pub mod sndh;
 pub mod snmp;
+pub mod snmpdconf;
 pub mod snoise;
 pub mod snoop;
 pub mod snort;
@@ -2235,6 +2278,7 @@ pub mod spf;
 pub mod sphinx;
 pub mod spicenet;
 pub mod spigot;
+pub mod spire;
 pub mod splay;
 pub mod spotbugs;
 pub mod spring;
@@ -2347,6 +2391,7 @@ pub mod textile;
 pub mod textlayout;
 pub mod textlint;
 pub mod textmategram;
+pub mod tflint;
 pub mod tflite;
 pub mod tfm;
 pub mod tfrecord;
@@ -2361,6 +2406,7 @@ pub mod tidb;
 pub mod tiff;
 pub mod tilemap;
 pub mod tileservergl;
+pub mod tilestacheconf;
 pub mod tiltfile;
 pub mod timer;
 pub mod timestep;
@@ -2392,7 +2438,9 @@ pub mod treap;
 pub mod treesittergram;
 pub mod trie;
 pub mod trigger;
+pub mod tripwireconf;
 pub mod trivy;
+pub mod trivyop;
 pub mod trojanconf;
 pub mod trx;
 pub mod ts;
@@ -2479,6 +2527,7 @@ pub mod vcd;
 pub mod vcf;
 pub mod vcl;
 pub mod vclock;
+pub mod vcluster;
 pub mod vcpkg;
 pub mod vdi;
 pub mod veb;
@@ -2516,6 +2565,7 @@ pub mod vmrk;
 pub mod vms;
 pub mod vnoise;
 pub mod voc;
+pub mod volcano;
 pub mod voronoi;
 pub mod vose;
 pub mod votable;
@@ -2524,8 +2574,10 @@ pub mod vp3;
 pub mod vpk;
 pub mod vpr;
 pub mod vrrp;
+pub mod vrtgdal;
 pub mod vscodeconf;
 pub mod vsdx;
+pub mod vsftpd;
 pub mod vsqx;
 pub mod vtf;
 pub mod vtk;
@@ -2543,6 +2595,7 @@ pub mod wasm;
 pub mod wav;
 pub mod wavelet;
 pub mod waybar;
+pub mod waypoint;
 pub mod wdsu;
 pub mod weaviateconf;
 pub mod webfinger;
@@ -2572,6 +2625,7 @@ pub mod wireplumberconf;
 pub mod wiresharkpref;
 pub mod wkb;
 pub mod wkt;
+pub mod wktproj;
 pub mod woff;
 pub mod woff2;
 pub mod woodpecker;
@@ -2584,6 +2638,7 @@ pub mod wrangler;
 pub mod wrl;
 pub mod ws;
 pub mod wsdl;
+pub mod wsjtxconf;
 pub mod wslconf;
 pub mod wv;
 pub mod x3d;
@@ -2650,6 +2705,7 @@ pub mod zabbix;
 pub mod zapconf;
 pub mod zeckendorf;
 pub mod zedconf;
+pub mod zeekconf;
 pub mod zeekctl;
 pub mod zeekscript;
 pub mod zerobfs;
@@ -2866,11 +2922,13 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("appengine", appengine::detect),
     ("appjson", appjson::detect),
     ("appveyor", appveyor::detect),
+    ("aprxconf", aprxconf::detect),
     ("apt", apt::detect),
     ("archinstall", archinstall::detect),
     ("ardour", ardour::detect),
     ("arduinoconf", arduinoconf::detect),
     ("argocd", argocd::detect),
+    ("argoevents", argoevents::detect),
     ("argowf", argowf::detect),
     ("argusconf", argusconf::detect),
     ("aria2", aria2::detect),
@@ -2893,6 +2951,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("avaconf", avaconf::detect),
     ("awscredentials", awscredentials::detect),
     ("awselb", awselb::detect),
+    ("axports", axports::detect),
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
     ("bai2", bai2::detect),
@@ -2919,6 +2978,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bogofilter", bogofilter::detect),
     ("bootini", bootini::detect),
     ("borgmatic", borgmatic::detect),
+    ("bors", bors::detect),
     ("boundary", boundary::detect),
     ("braket", braket::detect),
     ("brewfile", brewfile::detect),
@@ -2946,6 +3006,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cargoconf", cargoconf::detect),
     ("cargolock", cargolock::detect),
     ("carla", carla::detect),
+    ("cartocss", cartocss::detect),
     ("casbin", casbin::detect),
     ("casdoor", casdoor::detect),
     ("cassandra", cassandra::detect),
@@ -2962,6 +3023,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("checkov", checkov::detect),
     ("chef", chef::detect),
     ("cherokee", cherokee::detect),
+    ("chirpcsv", chirpcsv::detect),
     ("chromaconf", chromaconf::detect),
     ("chrometrace", chrometrace::detect),
     ("chronyconf", chronyconf::detect),
@@ -2980,6 +3042,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cmake", cmake::detect),
     ("cmdbat", cmdbat::detect),
     ("cmus", cmus::detect),
+    ("cnpg", cnpg::detect),
     ("cob", cob::detect),
     ("cockroach", cockroach::detect),
     ("cocosproj", cocosproj::detect),
@@ -2987,6 +3050,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("codecov", codecov::detect),
     ("codespell", codespell::detect),
     ("colima", colima::detect),
+    ("collectd", collectd::detect),
     ("compose", compose::detect),
     ("composer", composer::detect),
     ("composerlock", composerlock::detect),
@@ -3013,6 +3077,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("crmconf", crmconf::detect),
     ("crockford", crockford::detect),
     ("cromwell", cromwell::detect),
+    ("crowdsec", crowdsec::detect),
     ("csa", csa::detect),
     ("csd", csd::detect),
     ("cspell", cspell::detect),
@@ -3038,6 +3103,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dehydrated", dehydrated::detect),
     ("deluge", deluge::detect),
     ("denoconf", denoconf::detect),
+    ("denyhosts", denyhosts::detect),
     ("dependabot", dependabot::detect),
     ("detekt", detekt::detect),
     ("devcontainer", devcontainer::detect),
@@ -3052,6 +3118,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("did", did::detect),
     ("dimacs", dimacs::detect),
     ("dinit", dinit::detect),
+    ("direwolfconf", direwolfconf::detect),
     ("discourse", discourse::detect),
     ("dita", dita::detect),
     ("dnfconf", dnfconf::detect),
@@ -3113,6 +3180,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("extmanifest", extmanifest::detect),
     ("f2fs", f2fs::detect),
     ("fail2ban", fail2ban::detect),
+    ("fail2banconf", fail2banconf::detect),
     ("falcoconf", falcoconf::detect),
     ("far", far::detect),
     ("fcoe", fcoe::detect),
@@ -3128,6 +3196,8 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fivetranconf", fivetranconf::detect),
     ("fixml", fixml::detect),
     ("flake8conf", flake8conf::detect),
+    ("fldigiconf", fldigiconf::detect),
+    ("fleet", fleet::detect),
     ("flif", flif::detect),
     ("flink", flink::detect),
     ("fluentbit", fluentbit::detect),
@@ -3184,6 +3254,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gosum", gosum::detect),
     ("gp", gp::detect),
     ("gpsd", gpsd::detect),
+    ("gqrxconf", gqrxconf::detect),
     ("gradle", gradle::detect),
     ("gradlemod", gradlemod::detect),
     ("grafana", grafana::detect),
@@ -3279,6 +3350,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("jekyll", jekyll::detect),
     ("jellyfin", jellyfin::detect),
     ("jenkinsfile", jenkinsfile::detect),
+    ("jenkinsx", jenkinsx::detect),
     ("jest", jest::detect),
     ("jfm", jfm::detect),
     ("jfr", jfr::detect),
@@ -3304,6 +3376,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kafka", kafka::detect),
     ("kamaji", kamaji::detect),
     ("karmaconf", karmaconf::detect),
+    ("karpenter", karpenter::detect),
     ("katesyntax", katesyntax::detect),
     ("kbm", kbm::detect),
     ("kcl", kcl::detect),
@@ -3337,10 +3410,13 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kserve", kserve::detect),
     ("ktlint", ktlint::detect),
     ("kubeconfig", kubeconfig::detect),
+    ("kubedb", kubedb::detect),
     ("kubeflow", kubeflow::detect),
     ("kubeflowtraining", kubeflowtraining::detect),
     ("kubemq", kubemq::detect),
     ("kubevela", kubevela::detect),
+    ("kubevirt", kubevirt::detect),
+    ("kuma", kuma::detect),
     ("kustomize", kustomize::detect),
     ("lab", lab::detect),
     ("ldapconf", ldapconf::detect),
@@ -3362,6 +3438,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("liquibase", liquibase::detect),
     ("lmms", lmms::detect),
     ("lndconf", lndconf::detect),
+    ("locxml", locxml::detect),
     ("log4j", log4j::detect),
     ("log4perl", log4perl::detect),
     ("logback", logback::detect),
@@ -3414,6 +3491,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mermaid", mermaid::detect),
     ("meson", meson::detect),
     ("metaflow", metaflow::detect),
+    ("metal3", metal3::detect),
     ("metallib", metallib::detect),
     ("metricbeat", metricbeat::detect),
     ("metroconf", metroconf::detect),
@@ -3430,10 +3508,12 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mkdocs", mkdocs::detect),
     ("mlflow", mlflow::detect),
     ("mml", mml::detect),
+    ("mmlstyle", mmlstyle::detect),
     ("mochajson", mochajson::detect),
     ("mocharc", mocharc::detect),
     ("modeldo", modeldo::detect),
     ("modprobeconf", modprobeconf::detect),
+    ("modsecurity", modsecurity::detect),
     ("monero", monero::detect),
     ("mongod", mongod::detect),
     ("monit", monit::detect),
@@ -3452,6 +3532,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("msmtprc", msmtprc::detect),
     ("mtm", mtm::detect),
     ("mtx", mtx::detect),
+    ("multus", multus::detect),
     ("musicxml", musicxml::detect),
     ("muttrc", muttrc::detect),
     ("mvnsettings", mvnsettings::detect),
@@ -3464,11 +3545,13 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("nanorc", nanorc::detect),
     ("nats", nats::detect),
     ("navidrome", navidrome::detect),
+    ("naxsiconf", naxsiconf::detect),
     ("nbd", nbd::detect),
     ("ncmpcpp", ncmpcpp::detect),
     ("ncpdp", ncpdp::detect),
     ("nebulaconf", nebulaconf::detect),
     ("nef", nef::detect),
+    ("neo4jconf", neo4jconf::detect),
     ("neomuttconf", neomuttconf::detect),
     ("nerdctl", nerdctl::detect),
     ("netlifyconf", netlifyconf::detect),
@@ -3524,6 +3607,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openbgpd", openbgpd::detect),
     ("opendkim", opendkim::detect),
     ("opendmarc", opendmarc::detect),
+    ("openebs", openebs::detect),
     ("openfaas", openfaas::detect),
     ("openfga", openfga::detect),
     ("openhab", openhab::detect),
@@ -3544,8 +3628,10 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("osqueryconf", osqueryconf::detect),
     ("ossecconf", ossecconf::detect),
     ("otelcol", otelcol::detect),
+    ("overpass", overpass::detect),
     ("ovf", ovf::detect),
     ("packer", packer::detect),
+    ("packit", packit::detect),
     ("pacman", pacman::detect),
     ("paf", paf::detect),
     ("pain", pain::detect),
@@ -3560,6 +3646,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("percona", percona::detect),
     ("perflog", perflog::detect),
     ("pfconf", pfconf::detect),
+    ("pgo", pgo::detect),
     ("pgpass", pgpass::detect),
     ("pgservice", pgservice::detect),
     ("phabricatorconf", phabricatorconf::detect),
@@ -3591,6 +3678,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pom", pom::detect),
     ("pomerium", pomerium::detect),
     ("portage", portage::detect),
+    ("portworx", portworx::detect),
     ("postalconf", postalconf::detect),
     ("postcss", postcss::detect),
     ("postfix", postfix::detect),
@@ -3606,11 +3694,15 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("privoxy", privoxy::detect),
     ("procd", procd::detect),
     ("procmailrc", procmailrc::detect),
+    ("proftpd", proftpd::detect),
+    ("projjson", projjson::detect),
     ("promela", promela::detect),
     ("prometheus", prometheus::detect),
+    ("promoperator", promoperator::detect),
     ("promtailconf", promtailconf::detect),
     ("proselint", proselint::detect),
     ("prosody", prosody::detect),
+    ("prow", prow::detect),
     ("prowlarr", prowlarr::detect),
     ("prusaslicer", prusaslicer::detect),
     ("ptm", ptm::detect),
@@ -3621,6 +3713,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pulseclientconf", pulseclientconf::detect),
     ("pulumi", pulumi::detect),
     ("puppet", puppet::detect),
+    ("pureftpd", pureftpd::detect),
     ("puz", puz::detect),
     ("pxelinux", pxelinux::detect),
     ("pylintrc", pylintrc::detect),
@@ -3645,6 +3738,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("quil", quil::detect),
     ("rabbitmq", rabbitmq::detect),
     ("radarr", radarr::detect),
+    ("radiusd", radiusd::detect),
     ("raf", raf::detect),
     ("railwayconf", railwayconf::detect),
     ("rakefile", rakefile::detect),
@@ -3704,6 +3798,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("saif", saif::detect),
     ("salt", salt::detect),
     ("samba", samba::detect),
+    ("samhainconf", samhainconf::detect),
     ("saml", saml::detect),
     ("sbf", sbf::detect),
     ("sbt", sbt::detect),
@@ -3717,8 +3812,10 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sdc", sdc::detect),
     ("sddmconf", sddmconf::detect),
     ("sdkconfig", sdkconfig::detect),
+    ("sdrppconf", sdrppconf::detect),
     ("seccomp", seccomp::detect),
     ("secretsbaseline", secretsbaseline::detect),
+    ("secretsstore", secretsstore::detect),
     ("seldon", seldon::detect),
     ("semgrep", semgrep::detect),
     ("sendmail", sendmail::detect),
@@ -3744,6 +3841,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sixel", sixel::detect),
     ("skaffold", skaffold::detect),
     ("skywalking", skywalking::detect),
+    ("slapd", slapd::detect),
     ("slob", slob::detect),
     ("slrnconf", slrnconf::detect),
     ("slurm", slurm::detect),
@@ -3752,6 +3850,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("smt2", smt2::detect),
     ("snapcast", snapcast::detect),
     ("snapcraft", snapcraft::detect),
+    ("snmpdconf", snmpdconf::detect),
     ("snort", snort::detect),
     ("snyk", snyk::detect),
     ("sol", sol::detect),
@@ -3770,6 +3869,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sphinx", sphinx::detect),
     ("spicenet", spicenet::detect),
     ("spigot", spigot::detect),
+    ("spire", spire::detect),
     ("spotbugs", spotbugs::detect),
     ("spv", spv::detect),
     ("sqitchconf", sqitchconf::detect),
@@ -3836,12 +3936,14 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("textile", textile::detect),
     ("textlint", textlint::detect),
     ("textmategram", textmategram::detect),
+    ("tflint", tflint::detect),
     ("tfm", tfm::detect),
     ("tfrecord", tfrecord::detect),
     ("tgf", tgf::detect),
     ("thanosconf", thanosconf::detect),
     ("tidb", tidb::detect),
     ("tileservergl", tileservergl::detect),
+    ("tilestacheconf", tilestacheconf::detect),
     ("tiltfile", tiltfile::detect),
     ("timesyncd", timesyncd::detect),
     ("tincconf", tincconf::detect),
@@ -3860,7 +3962,9 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("transmission", transmission::detect),
     ("travisci", travisci::detect),
     ("treesittergram", treesittergram::detect),
+    ("tripwireconf", tripwireconf::detect),
     ("trivy", trivy::detect),
+    ("trivyop", trivyop::detect),
     ("trojanconf", trojanconf::detect),
     ("tscn", tscn::detect),
     ("tsconfig", tsconfig::detect),
@@ -3905,6 +4009,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vcard", vcard::detect),
     ("vcd", vcd::detect),
     ("vcl", vcl::detect),
+    ("vcluster", vcluster::detect),
     ("vcpkg", vcpkg::detect),
     ("vector", vector::detect),
     ("vercelconf", vercelconf::detect),
@@ -3925,15 +4030,19 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("vlt", vlt::detect),
     ("vmagentconf", vmagentconf::detect),
     ("vmrk", vmrk::detect),
+    ("volcano", volcano::detect),
     ("votable", votable::detect),
     ("vpr", vpr::detect),
+    ("vrtgdal", vrtgdal::detect),
     ("vscodeconf", vscodeconf::detect),
+    ("vsftpd", vsftpd::detect),
     ("vsqx", vsqx::detect),
     ("vyper", vyper::detect),
     ("w64", w64::detect),
     ("wafconf", wafconf::detect),
     ("wandb", wandb::detect),
     ("waybar", waybar::detect),
+    ("waypoint", waypoint::detect),
     ("weaviateconf", weaviateconf::detect),
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),
@@ -3954,6 +4063,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wireguard", wireguard::detect),
     ("wireplumberconf", wireplumberconf::detect),
     ("wiresharkpref", wiresharkpref::detect),
+    ("wktproj", wktproj::detect),
     ("woodpecker", woodpecker::detect),
     ("wordfileuew", wordfileuew::detect),
     ("woz", woz::detect),
@@ -3961,6 +4071,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wrangler", wrangler::detect),
     ("wrl", wrl::detect),
     ("wsdl", wsdl::detect),
+    ("wsjtxconf", wsjtxconf::detect),
     ("wslconf", wslconf::detect),
     ("xacml", xacml::detect),
     ("xbrl", xbrl::detect),
@@ -3996,6 +4107,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zabbix", zabbix::detect),
     ("zapconf", zapconf::detect),
     ("zedconf", zedconf::detect),
+    ("zeekconf", zeekconf::detect),
     ("zeekctl", zeekctl::detect),
     ("zeekscript", zeekscript::detect),
     ("zerotier", zerotier::detect),
