@@ -6083,6 +6083,16 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
 
+## 第342次 — パーサーレジストリ `PARSERS` + 全パーサー横断panic非発火テスト
+
+第341次の `DETECTORS` と同型で、フリー関数 `pub fn parse(x: &[u8])` を持つ
+全 1105 モジュールを `izanagi_kit::PARSERS` `(モジュール名, ParserFn)` に登録。
+戻り型の差(`Option<T>`/`Vec<T>` 等)は `let _ =` ラッパーで `fn(&[u8])` に正規化。
+新規テスト `tests/parse_never_panics.rs` は detect 用と同じコーパスを全パーサーに
+入力し panic 非発火を検証し、`src/*.rs` 走査で登録漏れをビルド失敗にする。
+`&str` 入力や複数引数の parse(例: `canopen`, `arj`)は対象外。
+該当モジュール追加時は `PARSERS` にも登録すること。
+
 ## 第343次 — census 集約 API `detect_all` + 契約テスト
 
 監査 P1「census 集約 API: `identify_all(input) -> &[&str]`」への最小実装。
