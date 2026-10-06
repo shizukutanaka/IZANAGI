@@ -577,6 +577,7 @@ pub mod browserslist;
 pub mod bru;
 pub mod bsdiff;
 pub mod bsgs;
+pub mod bsnes;
 pub mod bson;
 pub mod bsp;
 pub mod bspline;
@@ -660,6 +661,7 @@ pub mod cif;
 pub mod circleci;
 pub mod circulation;
 pub mod cirrus;
+pub mod citraconf;
 pub mod civil;
 pub mod clangformat;
 pub mod clangtidy;
@@ -828,6 +830,7 @@ pub mod docusaurus;
 pub mod docx;
 pub mod dolphinconf;
 pub mod dominators;
+pub mod dosboxconf;
 pub mod dossys;
 pub mod dot;
 pub mod dotenv;
@@ -946,6 +949,7 @@ pub mod fastq;
 pub mod fat;
 pub mod fb2;
 pub mod fbx;
+pub mod fceux;
 pub mod fchk;
 pub mod fcoe;
 pub mod fds;
@@ -1487,9 +1491,11 @@ pub mod med;
 pub mod mediamtx;
 pub mod mediawiki;
 pub mod medline;
+pub mod mednafen;
 pub mod meetmid;
 pub mod mei;
 pub mod meili;
+pub mod melonds;
 pub mod meltano;
 pub mod memcachedconf;
 pub mod menu;
@@ -1690,6 +1696,7 @@ pub mod opendmarc;
 pub mod openfga;
 pub mod openhab;
 pub mod openlane;
+pub mod openmsx;
 pub mod openntpd;
 pub mod openpulse;
 pub mod openrc;
@@ -2054,6 +2061,7 @@ pub mod sch;
 pub mod scl;
 pub mod sconstruct;
 pub mod scp;
+pub mod scummvm;
 pub mod sdc;
 pub mod sddmconf;
 pub mod sdf;
@@ -2819,6 +2827,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("browserconfig", browserconfig::detect),
     ("browserslist", browserslist::detect),
     ("bru", bru::detect),
+    ("bsnes", bsnes::detect),
     ("btrbk", btrbk::detect),
     ("btrfs", btrfs::detect),
     ("buck", buck::detect),
@@ -2859,6 +2868,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cibxml", cibxml::detect),
     ("circleci", circleci::detect),
     ("cirrus", cirrus::detect),
+    ("citraconf", citraconf::detect),
     ("clangformat", clangformat::detect),
     ("clangtidy", clangtidy::detect),
     ("clar", clar::detect),
@@ -2948,6 +2958,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("docsify", docsify::detect),
     ("docusaurus", docusaurus::detect),
     ("dolphinconf", dolphinconf::detect),
+    ("dosboxconf", dosboxconf::detect),
     ("dossys", dossys::detect),
     ("dot", dot::detect),
     ("dotenv", dotenv::detect),
@@ -2997,6 +3008,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fail2ban", fail2ban::detect),
     ("falcoconf", falcoconf::detect),
     ("far", far::detect),
+    ("fceux", fceux::detect),
     ("fcoe", fcoe::detect),
     ("feast", feast::detect),
     ("ferm", ferm::detect),
@@ -3268,8 +3280,10 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("med", med::detect),
     ("mediamtx", mediamtx::detect),
     ("mediawiki", mediawiki::detect),
+    ("mednafen", mednafen::detect),
     ("mei", mei::detect),
     ("meili", meili::detect),
+    ("melonds", melonds::detect),
     ("meltano", meltano::detect),
     ("memcachedconf", memcachedconf::detect),
     ("mergify", mergify::detect),
@@ -3383,6 +3397,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openfga", openfga::detect),
     ("openhab", openhab::detect),
     ("openlane", openlane::detect),
+    ("openmsx", openmsx::detect),
     ("openntpd", openntpd::detect),
     ("openpulse", openpulse::detect),
     ("openrc", openrc::detect),
@@ -3555,6 +3570,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("scl", scl::detect),
     ("sconstruct", sconstruct::detect),
     ("scp", scp::detect),
+    ("scummvm", scummvm::detect),
     ("sdc", sdc::detect),
     ("sddmconf", sddmconf::detect),
     ("sdkconfig", sdkconfig::detect),
