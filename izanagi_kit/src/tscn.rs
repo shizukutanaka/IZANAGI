@@ -63,6 +63,8 @@ fn attr_int(line: &str, name: &str) -> u32 {
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
+    // BOM(U+FEFF)は trim_start が空白と見なさないため先に剥がす。
+    let t = t.strip_prefix('\u{feff}').unwrap_or(t);
     let tt = t.trim_start();
     tt.starts_with("[gd_scene") || tt.starts_with("[gd_resource")
 }
@@ -72,6 +74,7 @@ impl Tscn {
     #[must_use]
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = core::str::from_utf8(b).ok()?;
+        let t = t.strip_prefix('\u{feff}').unwrap_or(t);
         let tt = t.trim_start();
         let kind = if tt.starts_with("[gd_scene") {
             "gd_scene"
@@ -131,6 +134,13 @@ impl Tscn {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_utf8_bom() {
+        assert!(detect(b"\xef\xbb\xbf[gd_scene format=3]\n"));
+        let s = Tscn::parse(b"\xef\xbb\xbf[gd_scene format=3]\n").unwrap();
+        assert_eq!(s.kind, "gd_scene");
+    }
 
     #[test]
     fn detects_scene() {

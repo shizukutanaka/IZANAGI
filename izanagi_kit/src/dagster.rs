@@ -130,24 +130,37 @@ const MODULE_KEYS: &[&str] = &[
 fn indent(l: &str) -> usize {
     l.len() - l.trim_start().len()
 }
+fn is_key(tr: &str, key: &str) -> bool {
+    let k = tr.trim_start_matches(['"', '\'']);
+    k.strip_prefix(key)
+        .is_some_and(|r| r.starts_with(':') || r.starts_with("\":") || r.starts_with("':"))
+}
+
+fn has_key(t: &str, key: &str) -> bool {
+    t.lines().any(|l| is_key(l.trim_start(), key))
+}
 
 /// Detects Dagster instance/workspace YAML files.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
     let inst = [
-        "run_launcher:",
-        "event_log_storage:",
-        "schedule_storage:",
-        "local_artifact_storage:",
-        "compute_logs:",
-        "run_storage:",
-        "instance_concurrency_limits:",
+        "run_launcher",
+        "event_log_storage",
+        "schedule_storage",
+        "local_artifact_storage",
+        "compute_logs",
+        "run_storage",
+        "instance_concurrency_limits",
     ]
     .iter()
-    .any(|m| t.contains(m));
-    let ws = t.contains("load_from:")
-        && (t.contains("python_file") || t.contains("python_module") || t.contains("grpc_server"));
+    .any(|m| has_key(&t, m));
+    // `- python_file:` のようなリスト項目形式も取るため `- ` 剥がしで比較する。
+    let has = |k: &str| {
+        t.lines()
+            .any(|l| is_key(l.trim().trim_start_matches("- ").trim_start(), k))
+    };
+    let ws = has("load_from") && (has("python_file") || has("python_module") || has("grpc_server"));
     inst || ws
 }
 
@@ -196,6 +209,12 @@ impl Dagster {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# load_from:\n# python_file: ws.py\n"));
+        assert!(!detect(b"# run_launcher:\n"));
+    }
 
     #[test]
     fn detects_instance_yaml() {
