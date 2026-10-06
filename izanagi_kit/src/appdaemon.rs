@@ -175,6 +175,16 @@ pub struct Appdaemon {
     pub plugins: usize,
 }
 
+fn is_key(s: &str, key: &str) -> bool {
+    // `key :` (コロン前の空白)も YAML では合法。
+    s.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
+
+fn has_key(t: &str, key: &str) -> bool {
+    t.lines().any(|l| is_key(l.trim(), key))
+}
+
 /// Whether the buffer looks like an AppDaemon config.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -183,8 +193,8 @@ pub fn detect(b: &[u8]) -> bool {
     };
     t.lines().any(|l| {
         let s = l.trim();
-        s == "appdaemon:" || s == "hadashboard:" || s.starts_with("plugins:")
-    }) || (t.contains("module:") && t.contains("class:"))
+        is_key(s, "appdaemon") || is_key(s, "hadashboard") || is_key(s, "plugins")
+    }) || (has_key(t, "module") && has_key(t, "class"))
 }
 
 impl Appdaemon {
@@ -288,6 +298,13 @@ impl Appdaemon {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法。
+        assert!(detect(b"appdaemon :\n  x: 1\n"));
+        assert!(detect(b"module : a\nclass : b\n"));
+    }
 
     #[test]
     fn parses_config() {
