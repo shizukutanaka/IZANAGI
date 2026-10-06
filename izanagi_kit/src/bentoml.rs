@@ -44,6 +44,16 @@ pub struct Bentoml {
     pub sections: usize,
 }
 
+fn is_key(s: &str, key: &str) -> bool {
+    // `key :` (コロン前の空白)も YAML では合法。
+    s.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
+
+fn has_key(t: &str, key: &str) -> bool {
+    t.lines().any(|l| is_key(l.trim(), key))
+}
+
 /// Whether the buffer looks like a BentoML manifest.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -51,8 +61,8 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     t.contains("bentoml")
-        || (t.contains("service:") && (t.contains("runners:") || t.contains("creation_time:")))
-        || (t.contains("service:") && t.contains("include:") && t.contains("exclude:"))
+        || (has_key(t, "service") && (has_key(t, "runners") || has_key(t, "creation_time")))
+        || (has_key(t, "service") && has_key(t, "include") && has_key(t, "exclude"))
 }
 
 impl Bentoml {
@@ -120,6 +130,15 @@ impl Bentoml {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法。
+        assert!(detect(b"service : svc\nrunners :\n  - a\n"));
+        assert!(detect(
+            b"service : svc\ninclude :\n  - '*.py'\nexclude :\n  - 'tests'\n"
+        ));
+    }
 
     #[test]
     fn detects_and_counts() {
