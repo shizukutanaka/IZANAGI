@@ -56,14 +56,21 @@ fn words(t: &str) -> impl Iterator<Item = &str> {
     t.split(|c: char| !(c.is_alphanumeric() || c == '_'))
         .filter(|w| !w.is_empty())
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `//`/`/*` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with("//") && !l.starts_with("/*") && l.contains(needle)
+    })
+}
 
 /// Returns `true` when `b` looks like Solidity source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("pragma solidity")
-        || (t.contains("contract ")
-            && (t.contains("function ") || t.contains("mapping(") || t.contains("event ")))
+    code_has(t, "pragma solidity")
+        || (code_has(t, "contract ")
+            && (code_has(t, "function ") || code_has(t, "mapping(") || code_has(t, "event ")))
 }
 
 impl Sol {
@@ -126,6 +133,11 @@ impl Sol {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"// pragma solidity ^0.8.0;\n"));
+    }
 
     const SRC: &[u8] = b"pragma solidity ^0\x2e8;\ncontract C {\n    function f() public {}\n}\n";
 

@@ -6082,3 +6082,23 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
   に登録済みであることを検証(未登録の追加をビルド失敗にする)
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
+
+## 第347次
+
+第340/346次の継続 — `detect()` の全文 `contains(marker)` でコメント行内の
+言及だけで合致する偽陽性の残存クラスを一括修正(18ファイル):
+
+- **`//`/`/*` 系**: `jenkinsfile`(`node`+`stage` の汎用語ペアは
+  `node {`/`node(`/`stage(`/`stage '`/… の形に限定化し `agent` も既知形へ)、
+  `sol`, `cairo`, `openpulse`, `tact`, `movelang`, `qs`, `bicep`
+- **`;;` 系**: `func` (FunC)
+- **`#` 系**: `rpy`, `airflow`, `nginx`, `consul`(`#`+`//`), `vyper`
+  (`# @version` は規格上コメント必須のため保持、`def `+デコレータは
+  行頭 `@` 必須に強化)
+- **JSON キー位置**: `qobj`, `uplugin`, `uproject`, `braket`, `cfn` —
+  `jkey(t,key)` が `"key"` の直後に `:` を要求し値位置の文字列混入を拒否
+  (minified JSON `{"K":"v"}` は `has_key` では取れず `jkey` が必要)
+
+共通ヘルパー `code_has`(コメント行を除外する行単位 contains)を
+各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
+テスト追加。
