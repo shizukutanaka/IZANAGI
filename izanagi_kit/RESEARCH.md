@@ -6121,3 +6121,30 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第358次 — eksctl/ネットワーク・クラスタ管理系 CRD 8 モジュール
+
+クラスタ管理・ネットワーク系 CRD 群第3弾。
+
+- eksctl: eksctl(`eksctl.io` + ClusterConfig)
+- sriov: SR-IOV Operator(`sriovnetwork.openshift.io` + SriovNetwork/SriovNetworkNodePolicy/SriovOperatorConfig/OVSNetwork 等)
+- appmesh: AWS App Mesh Controller(`appmesh.k8s.aws` + Mesh/VirtualNode/VirtualService/VirtualRouter/VirtualGateway/GatewayRoute)
+- submariner: Submariner(`submariner.io` + Broker/Submariner/Endpoint/Cluster/Gateway/GlobalIngressIP/RouteAgent 等)
+- externaldns: ExternalDNS(`externaldns.k8s.io` + DNSEndpoint)
+- karmada: Karmada(`*.karmada.io` + PropagationPolicy/OverridePolicy/Work/ResourceBinding/MultiClusterService 等)
+- gardener: Gardener(`*.gardener.cloud` + Shoot/Seed/Project/CloudProfile/ManagedSeed/BackupBucket 等)
+- tinkerbell: Tinkerbell(`tinkerbell.org` + Hardware/Template/Workflow/Machine)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18203)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 出典
+
+- eksctl-io/eksctl — eksctl.io ClusterConfig
+- k8snetworkplumbingwg/sriov-network-operator — sriovnetwork.openshift.io CRDs
+- aws/aws-app-mesh-controller-for-k8s — appmesh.k8s.aws CRDs
+- submariner-io/submariner-operator — submariner.io CRDs
+- kubernetes-sigs/external-dns — DNSEndpoint CRD
+- karmada-io/karmada — *.karmada.io CRDs
+- gardener/gardener — *.gardener.cloud CRDs
+- tinkerbell — tinkerbell.org CRDs

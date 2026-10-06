@@ -455,6 +455,7 @@ pub mod appdaemon;
 pub mod appdynamics;
 pub mod appimage;
 pub mod appjson;
+pub mod appmesh;
 pub mod appveyor;
 pub mod aps;
 pub mod apsp;
@@ -888,6 +889,7 @@ pub mod eep;
 pub mod eertree;
 pub mod egypt;
 pub mod ejabberd;
+pub mod eksctl;
 pub mod elf;
 pub mod elias;
 pub mod elo;
@@ -932,6 +934,7 @@ pub mod explore;
 pub mod expr;
 pub mod exr;
 pub mod ext2;
+pub mod externaldns;
 pub mod extmanifest;
 pub mod f2fs;
 pub mod faction;
@@ -1009,6 +1012,7 @@ pub mod fuzzy;
 pub mod fxml;
 pub mod fxp;
 pub mod gapbuffer;
+pub mod gardener;
 pub mod garnetconf;
 pub mod gauss;
 pub mod gb;
@@ -1308,6 +1312,7 @@ pub mod kalman;
 pub mod kap;
 pub mod karatsuba;
 pub mod karmaconf;
+pub mod karmada;
 pub mod karp;
 pub mod katesyntax;
 pub mod kbm;
@@ -2164,6 +2169,7 @@ pub mod sqlite;
 pub mod sqlnet;
 pub mod squid;
 pub mod srhtconf;
+pub mod sriov;
 pub mod srm;
 pub mod srt;
 pub mod ssh;
@@ -2198,6 +2204,7 @@ pub mod stylelint;
 pub mod su;
 pub mod su2;
 pub mod sublime;
+pub mod submariner;
 pub mod sudoku;
 pub mod suffix;
 pub mod sufftree;
@@ -2275,6 +2282,7 @@ pub mod timer;
 pub mod timestep;
 pub mod timesyncd;
 pub mod tincconf;
+pub mod tinkerbell;
 pub mod tlaplus;
 pub mod tle;
 pub mod tlp;
@@ -2750,6 +2758,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("appdaemon", appdaemon::detect),
     ("appdynamics", appdynamics::detect),
     ("appjson", appjson::detect),
+    ("appmesh", appmesh::detect),
     ("appveyor", appveyor::detect),
     ("apt", apt::detect),
     ("archinstall", archinstall::detect),
@@ -2960,6 +2969,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("edn", edn::detect),
     ("edsk", edsk::detect),
     ("ejabberd", ejabberd::detect),
+    ("eksctl", eksctl::detect),
     ("emacs", emacs::detect),
     ("emqx", emqx::detect),
     ("envoy", envoy::detect),
@@ -2975,6 +2985,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("excalidraw", excalidraw::detect),
     ("exim", exim::detect),
     ("exr", exr::detect),
+    ("externaldns", externaldns::detect),
     ("extmanifest", extmanifest::detect),
     ("f2fs", f2fs::detect),
     ("fail2ban", fail2ban::detect),
@@ -3005,6 +3016,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("func", func::detect),
     ("fxml", fxml::detect),
     ("fxp", fxp::detect),
+    ("gardener", gardener::detect),
     ("garnetconf", garnetconf::detect),
     ("gbench", gbench::detect),
     ("gbstudio", gbstudio::detect),
@@ -3153,6 +3165,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("k6", k6::detect),
     ("kafka", kafka::detect),
     ("karmaconf", karmaconf::detect),
+    ("karmada", karmada::detect),
     ("katesyntax", katesyntax::detect),
     ("kbm", kbm::detect),
     ("kcl", kcl::detect),
@@ -3583,6 +3596,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sqlnet", sqlnet::detect),
     ("squid", squid::detect),
     ("srhtconf", srhtconf::detect),
+    ("sriov", sriov::detect),
     ("sshconf", sshconf::detect),
     ("sssdconf", sssdconf::detect),
     ("stalwartconf", stalwartconf::detect),
@@ -3595,6 +3609,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("storageconf", storageconf::detect),
     ("stylelint", stylelint::detect),
     ("sublime", sublime::detect),
+    ("submariner", submariner::detect),
     ("sudoku", sudoku::detect),
     ("suiconf", suiconf::detect),
     ("supervisor", supervisor::detect),
@@ -3641,6 +3656,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tiltfile", tiltfile::detect),
     ("timesyncd", timesyncd::detect),
     ("tincconf", tincconf::detect),
+    ("tinkerbell", tinkerbell::detect),
     ("tlaplus", tlaplus::detect),
     ("tlp", tlp::detect),
     ("tmpfilesd", tmpfilesd::detect),
