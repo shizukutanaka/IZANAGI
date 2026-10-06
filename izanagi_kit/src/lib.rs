@@ -580,6 +580,7 @@ pub mod bsgs;
 pub mod bson;
 pub mod bsp;
 pub mod bspline;
+pub mod bspwmrc;
 pub mod btrbk;
 pub mod btree;
 pub mod btrfs;
@@ -1305,6 +1306,7 @@ pub mod k3sconf;
 pub mod k6;
 pub mod kafka;
 pub mod kalman;
+pub mod kanshi;
 pub mod kap;
 pub mod karatsuba;
 pub mod karmaconf;
@@ -1444,6 +1446,7 @@ pub mod mailcap;
 pub mod maildir;
 pub mod maildrop;
 pub mod makefile;
+pub mod makoconf;
 pub mod mameconf;
 pub mod manacher;
 pub mod mapfile;
@@ -1772,6 +1775,7 @@ pub mod phabricatorconf;
 pub mod phylip;
 pub mod picard;
 pub mod pickle;
+pub mod picom;
 pub mod pid;
 pub mod pidginconf;
 pub mod piecetable;
@@ -1892,6 +1896,7 @@ pub mod qoi;
 pub mod qr;
 pub mod qs;
 pub mod qti;
+pub mod qtileconf;
 pub mod qtui;
 pub mod quadtree;
 pub mod quantile;
@@ -1963,6 +1968,7 @@ pub mod rfb;
 pub mod rinex;
 pub mod rip;
 pub mod ris;
+pub mod riverctl;
 pub mod rkhunter;
 pub mod rle;
 pub mod rm;
@@ -2439,6 +2445,7 @@ pub mod wasm;
 pub mod wav;
 pub mod wavelet;
 pub mod waybar;
+pub mod wayfire;
 pub mod wdsu;
 pub mod weaviateconf;
 pub mod webfinger;
@@ -2469,6 +2476,7 @@ pub mod wkb;
 pub mod wkt;
 pub mod woff;
 pub mod woff2;
+pub mod wofi;
 pub mod woodpecker;
 pub mod wordfileuew;
 pub mod world_hash;
@@ -2803,6 +2811,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("browserconfig", browserconfig::detect),
     ("browserslist", browserslist::detect),
     ("bru", bru::detect),
+    ("bspwmrc", bspwmrc::detect),
     ("btrbk", btrbk::detect),
     ("btrfs", btrfs::detect),
     ("buck", buck::detect),
@@ -3152,6 +3161,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("k3sconf", k3sconf::detect),
     ("k6", k6::detect),
     ("kafka", kafka::detect),
+    ("kanshi", kanshi::detect),
     ("karmaconf", karmaconf::detect),
     ("katesyntax", katesyntax::detect),
     ("kbm", kbm::detect),
@@ -3229,6 +3239,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("maddyconf", maddyconf::detect),
     ("maf", maf::detect),
     ("maildrop", maildrop::detect),
+    ("makoconf", makoconf::detect),
     ("mameconf", mameconf::detect),
     ("mapfile", mapfile::detect),
     ("mapnikxml", mapnikxml::detect),
@@ -3392,6 +3403,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("phabricatorconf", phabricatorconf::detect),
     ("phylip", phylip::detect),
     ("picard", picard::detect),
+    ("picom", picom::detect),
     ("pidginconf", pidginconf::detect),
     ("pileup", pileup::detect),
     ("pinpoint", pinpoint::detect),
@@ -3458,6 +3470,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("qmap", qmap::detect),
     ("qobj", qobj::detect),
     ("qs", qs::detect),
+    ("qtileconf", qtileconf::detect),
     ("qtui", qtui::detect),
     ("quartz", quartz::detect),
     ("quil", quil::detect),
@@ -3493,6 +3506,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("reviveconf", reviveconf::detect),
     ("rfb", rfb::detect),
     ("rinex", rinex::detect),
+    ("riverctl", riverctl::detect),
     ("rkhunter", rkhunter::detect),
     ("rm", rm::detect),
     ("rocketmq", rocketmq::detect),
@@ -3717,6 +3731,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wafconf", wafconf::detect),
     ("wandb", wandb::detect),
     ("waybar", waybar::detect),
+    ("wayfire", wayfire::detect),
     ("weaviateconf", weaviateconf::detect),
     ("webmanifest", webmanifest::detect),
     ("webpackconf", webpackconf::detect),
@@ -3736,6 +3751,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wireguard", wireguard::detect),
     ("wireplumberconf", wireplumberconf::detect),
     ("wiresharkpref", wiresharkpref::detect),
+    ("wofi", wofi::detect),
     ("woodpecker", woodpecker::detect),
     ("wordfileuew", wordfileuew::detect),
     ("woz", woz::detect),

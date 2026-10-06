@@ -6121,3 +6121,18 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第376次
+
+Wayland/X11デスクトップ補助ツールの設定形式8モジュールを追加:
+picom(picom.conf: backend/vsync/shadow/opacity-rule等約60オプションの
+`key = value;`行、配列値`[ ... ]`対応、>=3), bspwmrc(bspcコマンド
+呼出スクリプト: bspc config/rule/monitor、シェル行混在許容),
+qtileconf(config.py: libqtile参照 or keys/groups/layouts/screens等
+トップレベル代入>=3), wayfire(wayfire.ini: [core]/[command]/
+[autostart]等既知セクション+代入行), riverctl(init: riverctl map/
+spawn/border-width等呼出行), makoconf(mako設定: max-visible/sort/
+layer/anchor/font等約35オプション`key=value`+[criteria]ブロック),
+wofi(wofi設定: show/prompt/location/width/height等約40オプション
+`key=value`), kanshi(kanshi設定: `profile { output ... exec ... }`
+ブロック)。いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
