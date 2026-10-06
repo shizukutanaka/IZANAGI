@@ -626,16 +626,21 @@ fn first_word(l: &str) -> &str {
         .next()
         .unwrap_or("")
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `#` コメント行内の言及は証拠にしない。
+    t.lines()
+        .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
+}
 
 /// Detects nginx configuration files.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
-    let events = t.contains("events")
-        && (t.contains("worker_connections") || t.contains("worker_processes"));
-    let http = (t.contains("http") || t.contains("stream"))
-        && (t.contains("server {") || t.contains("server{") || t.contains("upstream"))
-        && (t.contains("listen") || t.contains("server_name") || t.contains("proxy_pass"));
+    let events = code_has(&t, "events")
+        && (code_has(&t, "worker_connections") || code_has(&t, "worker_processes"));
+    let http = (code_has(&t, "http") || code_has(&t, "stream"))
+        && (code_has(&t, "server {") || code_has(&t, "server{") || code_has(&t, "upstream"))
+        && (code_has(&t, "listen") || code_has(&t, "server_name") || code_has(&t, "proxy_pass"));
     events || http
 }
 
@@ -694,6 +699,11 @@ impl Nginx {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# events {\n# worker_connections 1;\n"));
+    }
 
     #[test]
     fn detects_and_counts() {
