@@ -6121,3 +6121,17 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第371次
+
+PHPエコシステム系の設定形式8モジュール
+(`behat`, `distini`, `infection`, `phpcs`, `phpini`, `phpstan`,
+`phpunit`, `psalm`) を追加。phpini は `[PHP]`/`[opcache]`/`[xdebug]`
+セクション+`session.*`/`opcache.*`/`xdebug.*` 名前空間ディレクティブ、
+phpunit/phpcs/psalm は XML (`<phpunit>`/`<ruleset>`/`<psalm>` ルート+
+構造要素)、phpstan は NEON (`parameters:`/`includes:`+`level:`/
+`ignoreErrors:`)、infection は JSON jkey (`source`/`mutators`/`minMsi`/
+`minCoveredMsi`)、behat は `default:`/`suites:`/`extensions:`+
+`Behat\Vendor\Extension` 名前空間キー、distini は `[@Bundle]`+
+`name`/`author`/`license`/`copyright_holder` メタ。
+DETECTORS 1104件、kit モジュール数2185。

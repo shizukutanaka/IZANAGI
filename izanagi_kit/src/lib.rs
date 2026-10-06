@@ -524,6 +524,7 @@ pub mod beam;
 pub mod bech32;
 pub mod bed;
 pub mod beets;
+pub mod behat;
 pub mod behavior;
 pub mod bellman;
 pub mod benchstat;
@@ -804,6 +805,7 @@ pub mod dihedral;
 pub mod dimacs;
 pub mod dinit;
 pub mod discourse;
+pub mod distini;
 pub mod dita;
 pub mod dither;
 pub mod djvu;
@@ -1198,6 +1200,7 @@ pub mod imptreap;
 pub mod imscc;
 pub mod imx;
 pub mod ines;
+pub mod infection;
 pub mod inffile;
 pub mod inflate;
 pub mod influence;
@@ -1769,6 +1772,10 @@ pub mod pgp;
 pub mod pgpass;
 pub mod pgservice;
 pub mod phabricatorconf;
+pub mod phpcs;
+pub mod phpini;
+pub mod phpstan;
+pub mod phpunit;
 pub mod phylip;
 pub mod picard;
 pub mod pickle;
@@ -1857,6 +1864,7 @@ pub mod prosody;
 pub mod proto;
 pub mod prowlarr;
 pub mod prusaslicer;
+pub mod psalm;
 pub mod psd;
 pub mod psf;
 pub mod psid;
@@ -2786,6 +2794,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bazel", bazel::detect),
     ("bbcode", bbcode::detect),
     ("beets", beets::detect),
+    ("behat", behat::detect),
     ("benchstat", benchstat::detect),
     ("bentoml", bentoml::detect),
     ("bicep", bicep::detect),
@@ -2921,6 +2930,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dimacs", dimacs::detect),
     ("dinit", dinit::detect),
     ("discourse", discourse::detect),
+    ("distini", distini::detect),
     ("dita", dita::detect),
     ("dnfconf", dnfconf::detect),
     ("dng", dng::detect),
@@ -3093,6 +3103,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ideavim", ideavim::detect),
     ("idl", idl::detect),
     ("imd", imd::detect),
+    ("infection", infection::detect),
     ("inffile", inffile::detect),
     ("inittab", inittab::detect),
     ("inputrc", inputrc::detect),
@@ -3390,6 +3401,10 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pgpass", pgpass::detect),
     ("pgservice", pgservice::detect),
     ("phabricatorconf", phabricatorconf::detect),
+    ("phpcs", phpcs::detect),
+    ("phpini", phpini::detect),
+    ("phpstan", phpstan::detect),
+    ("phpunit", phpunit::detect),
     ("phylip", phylip::detect),
     ("picard", picard::detect),
     ("pidginconf", pidginconf::detect),
@@ -3435,6 +3450,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("prosody", prosody::detect),
     ("prowlarr", prowlarr::detect),
     ("prusaslicer", prusaslicer::detect),
+    ("psalm", psalm::detect),
     ("ptm", ptm::detect),
     ("ptp4l", ptp4l::detect),
     ("ptx", ptx::detect),
