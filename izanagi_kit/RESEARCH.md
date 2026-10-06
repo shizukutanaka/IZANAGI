@@ -6226,6 +6226,23 @@ census 未収録ドメイン第2弾。第348次と同型の
 `pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
 (18186→18196)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
+## 第350次 — GitOps補助/カオス/パッケージ環境/チェンジログ系設定形式 8 モジュール
+
+census 未収録ドメイン第3弾。apiVersion+kind 組合せ方式で Kubernetes
+周辺エコシステム6形式と、devbox・git-cliff のデファクト標準設定を追加。
+
+- argorollout: Argo Rollouts(`argoproj.io/` + Rollout/AnalysisTemplate/AnalysisRun/Experiment。ArgoCD とは kind 集合で分離)
+- flagger: Flagger(`flagger.app/` + Canary/MetricTemplate/AlertProvider)
+- gatekeeper: OPA Gatekeeper(`*.gatekeeper.sh/` + ConstraintTemplate/Config/Assign/ExpansionTemplate または `K8s*` 制約 kind)
+- velero: Velero(`velero.io/` + Backup/Restore/Schedule/BackupStorageLocation 等)
+- litmus: LitmusChaos(`litmuschaos.io/` + ChaosEngine/ChaosExperiment/ChaosResult)
+- chaosmesh: Chaos Mesh(`chaos-mesh.org/` + PodChaos/NetworkChaos/StressChaos/Schedule/Workflow 等)
+- cliff: git-cliff `cliff.toml`(`[changelog]` + `[git]`/commit_parsers/tag_pattern 等)
+- devbox: `devbox.json`(`packages` + devbox/jetify 参照 or init_hook/nixpkgs)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18198)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
 ## 第351次 — Carvel/Bitbucket CI/Kapitan/Garden/moonrepo系設定形式 8 モジュール
 
 census 未収録ドメイン第4弾。CI・モノレポ・Kubernetes補助ツールの
