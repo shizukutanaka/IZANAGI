@@ -49,6 +49,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = s.strip_prefix('\u{feff}').unwrap_or(s);
     s.lines().next().is_some_and(|l| l.starts_with("##maf"))
         || s.lines()
             .find(|l| !l.trim().is_empty() && !l.starts_with('#'))
@@ -62,6 +63,7 @@ pub fn parse(b: &[u8]) -> Option<Maf> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = s.strip_prefix('\u{feff}').unwrap_or(s);
     let mut m = Maf {
         version: None,
         header_pairs: 0,
@@ -114,6 +116,15 @@ pub fn parse(b: &[u8]) -> Option<Maf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_utf8_bom() {
+        let mut v = b"\xef\xbb\xbf".to_vec();
+        v.extend_from_slice(D);
+        assert!(detect(&v));
+        let m = parse(&v).unwrap();
+        assert_eq!(m.version, Some(1));
+    }
 
     const D: &[u8] = b"##maf version=1 scoring=tba.v8\n\
 # tba.v8\n\n\

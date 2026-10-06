@@ -59,6 +59,8 @@ pub struct Qasm {
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
+    // BOM(U+FEFF)は trim_start が空白と見なさないため先に剥がす。
+    let t = t.strip_prefix('\u{feff}').unwrap_or(t);
     t.trim_start().starts_with("OPENQASM")
 }
 
@@ -67,6 +69,7 @@ impl Qasm {
     #[must_use]
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = core::str::from_utf8(b).ok()?;
+        let t = t.strip_prefix('\u{feff}').unwrap_or(t);
         let tt = t.trim_start();
         let rest = tt.strip_prefix("OPENQASM")?;
         let mut q = Self {
@@ -197,6 +200,14 @@ fn bracket_num(s: &str) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_utf8_bom() {
+        // BOM(U+FEFF)は trim_start が空白と見なさないため検出対象だった。
+        assert!(detect(b"\xef\xbb\xbfOPENQASM 2.0;\nqreg q[1];\n"));
+        let q = Qasm::parse(b"\xef\xbb\xbfOPENQASM 2.0;\nqreg q[1];\n").unwrap();
+        assert_eq!(q.version_major, 2);
+    }
 
     #[test]
     fn detects_qasm2() {

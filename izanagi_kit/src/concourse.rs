@@ -115,8 +115,7 @@ fn step(t: &str, name: &str) -> usize {
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
     let has = |k: &str| t.lines().any(|l| is_key(l.trim_start(), k));
-    (has("jobs") || has("resources"))
-        && (has("resource_types") || t.contains("- get:") || t.contains("- task:"))
+    (has("jobs") || has("resources")) && (has("resource_types") || has("- get") || has("- task"))
 }
 
 impl Concourse {
@@ -154,6 +153,11 @@ impl Concourse {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"jobs:\n  - name: j\n# - get: r\n"));
+    }
 
     const SRC: &[u8] = b"# pipe
 resource_types:

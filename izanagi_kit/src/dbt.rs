@@ -176,20 +176,29 @@ const MODEL_KEYS: &[&str] = &[
 fn key_is(line: &str, keys: &[&str]) -> bool {
     keys.iter().any(|k| line.starts_with(k))
 }
+fn is_key(tr: &str, key: &str) -> bool {
+    let k = tr.trim_start_matches(['"', '\'']);
+    k.strip_prefix(key)
+        .is_some_and(|r| r.starts_with(':') || r.starts_with("\":") || r.starts_with("':"))
+}
+
+fn has_key(t: &str, key: &str) -> bool {
+    t.lines().any(|l| is_key(l.trim_start(), key))
+}
 
 /// Detects dbt project YAML files.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
     let has_marker = [
-        "model-paths:",
-        "require-dbt-version:",
-        "seed-paths:",
-        "snapshot-paths:",
+        "model-paths",
+        "require-dbt-version",
+        "seed-paths",
+        "snapshot-paths",
     ]
     .iter()
-    .any(|m| t.contains(m));
-    let triple = t.contains("name:") && t.contains("version:") && t.contains("profile:");
+    .any(|m| has_key(&t, m));
+    let triple = has_key(&t, "name") && has_key(&t, "version") && has_key(&t, "profile");
     has_marker || triple
 }
 
@@ -241,6 +250,12 @@ impl Dbt {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# name: x\n# version: 1\n# profile: p\n"));
+        assert!(!detect(b"# model-paths: [\"models\"]\n"));
+    }
 
     #[test]
     fn detects_and_counts() {
