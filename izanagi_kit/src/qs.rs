@@ -43,13 +43,20 @@ pub struct Qs {
     /// `//` comment lines.
     pub comments: usize,
 }
+fn code_has(t: &str, needle: &str) -> bool {
+    // `//`/`/*` コメント行内の言及は証拠にしない。
+    t.lines().any(|l| {
+        let l = l.trim_start();
+        !l.starts_with("//") && !l.starts_with("/*") && l.contains(needle)
+    })
+}
 
 /// Returns `true` when `b` looks like a Q# source file.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("namespace ")
-        && (t.contains("open Microsoft.") || t.contains("operation ") || t.contains("function "))
+    code_has(t, "namespace ")
+        && (code_has(t, "open Microsoft.") || code_has(t, "operation ") || code_has(t, "function "))
 }
 
 impl Qs {
@@ -114,6 +121,11 @@ impl Qs {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"// namespace Foo\n// operation A() : Unit {}\n"));
+    }
 
     #[test]
     fn detects_namespace() {
