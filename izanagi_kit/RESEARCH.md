@@ -6160,3 +6160,28 @@ database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=
 luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第384次
+
+セキュリティ監視/IDS系の設定形式8モジュールを追加:
+zeekconf(local.zeek:@load/@load-sigs/@ifdef/redef/export/global等
+Zeekスクリプト宣言、@load>=1&宣言>=2)、
+fail2banconf(jail.conf/jail.local INI:[DEFAULT]セクション+
+enabled/bantime/findtime/maxretry/logpath/filter/action/ignoreip
+等既知キー、DEFAULT>=1&>=2 or キー>=3 or セクション>=2&キー>=2)、
+crowdsec(crowdsec config.yaml:crowdsec_service/cscli/api/
+db_config/acquisition/profiles/plugin_config/prometheus等
+YAMLキー>=2)、
+tripwireconf(twpol.txt:`パス -> $(MASK) (opt);`アロールール+
+@@section/@@ifhostディレクティブ+`NAME = $(X);`変数定義、
+アロー>=1&文>=3)、
+samhainconf(samhainrc:[Attributes]/[Log]/[Suid]/[EventSeverity]/
+[PortCheck]等セクション+file/dir/severity系キー)、
+denyhosts(denyhosts.conf:SECURE_LOG/HOSTS_DENY/PURGE_DENY/
+DENY_THRESHOLD_*/WORK_DIR/DAEMON_LOG/SYNC_*等既知大文字キー>=3)、
+modsecurity(modsecurity.conf:SecRule/SecAction/SecRuleEngine/
+SecRequestBodyAccess/SecAuditLog等Sec*ディレクティブ、
+ルール>=1&>=2 or >=4)、
+naxsiconf(naxsiルール:MainRule/BasicRule/CheckRule/LearningMode/
+SecRulesEnabled/DeniedUrl/IgnoreIP等ヘッドトークン>=2)。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。

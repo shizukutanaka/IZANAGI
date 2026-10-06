@@ -726,6 +726,7 @@ pub mod crockford;
 pub mod cromwell;
 pub mod cron;
 pub mod crontab;
+pub mod crowdsec;
 pub mod csa;
 pub mod csaf;
 pub mod csd;
@@ -774,6 +775,7 @@ pub mod dehydrated;
 pub mod delaunay;
 pub mod delta;
 pub mod denoconf;
+pub mod denyhosts;
 pub mod dependabot;
 pub mod der;
 pub mod derange;
@@ -937,6 +939,7 @@ pub mod extmanifest;
 pub mod f2fs;
 pub mod faction;
 pub mod fail2ban;
+pub mod fail2banconf;
 pub mod falcoconf;
 pub mod far;
 pub mod farbfeld;
@@ -1540,6 +1543,7 @@ pub mod modfile;
 pub mod modlin;
 pub mod modprobeconf;
 pub mod mods;
+pub mod modsecurity;
 pub mod mol;
 pub mod mol2;
 pub mod monero;
@@ -1592,6 +1596,7 @@ pub mod nanoid;
 pub mod nanorc;
 pub mod nas;
 pub mod nats;
+pub mod naxsiconf;
 pub mod nbd;
 pub mod nbt;
 pub mod nc;
@@ -2034,6 +2039,7 @@ pub mod sais;
 pub mod salt;
 pub mod sam;
 pub mod samba;
+pub mod samhainconf;
 pub mod saml;
 pub mod sap;
 pub mod sarif;
@@ -2310,6 +2316,7 @@ pub mod treap;
 pub mod treesittergram;
 pub mod trie;
 pub mod trigger;
+pub mod tripwireconf;
 pub mod trivy;
 pub mod trx;
 pub mod ts;
@@ -2556,6 +2563,7 @@ pub mod zabbix;
 pub mod zapconf;
 pub mod zeckendorf;
 pub mod zedconf;
+pub mod zeekconf;
 pub mod zeekctl;
 pub mod zeekscript;
 pub mod zerobfs;
@@ -2901,6 +2909,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("crmconf", crmconf::detect),
     ("crockford", crockford::detect),
     ("cromwell", cromwell::detect),
+    ("crowdsec", crowdsec::detect),
     ("csa", csa::detect),
     ("csd", csd::detect),
     ("cspell", cspell::detect),
@@ -2923,6 +2932,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("defoldproj", defoldproj::detect),
     ("dehydrated", dehydrated::detect),
     ("denoconf", denoconf::detect),
+    ("denyhosts", denyhosts::detect),
     ("dependabot", dependabot::detect),
     ("detekt", detekt::detect),
     ("devcontainer", devcontainer::detect),
@@ -2995,6 +3005,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("extmanifest", extmanifest::detect),
     ("f2fs", f2fs::detect),
     ("fail2ban", fail2ban::detect),
+    ("fail2banconf", fail2banconf::detect),
     ("falcoconf", falcoconf::detect),
     ("far", far::detect),
     ("fcoe", fcoe::detect),
@@ -3294,6 +3305,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mocharc", mocharc::detect),
     ("modeldo", modeldo::detect),
     ("modprobeconf", modprobeconf::detect),
+    ("modsecurity", modsecurity::detect),
     ("monero", monero::detect),
     ("mongod", mongod::detect),
     ("monit", monit::detect),
@@ -3323,6 +3335,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("nanoid", nanoid::detect),
     ("nanorc", nanorc::detect),
     ("nats", nats::detect),
+    ("naxsiconf", naxsiconf::detect),
     ("nbd", nbd::detect),
     ("ncmpcpp", ncmpcpp::detect),
     ("ncpdp", ncpdp::detect),
@@ -3547,6 +3560,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("saif", saif::detect),
     ("salt", salt::detect),
     ("samba", samba::detect),
+    ("samhainconf", samhainconf::detect),
     ("saml", saml::detect),
     ("sbf", sbf::detect),
     ("sby", sby::detect),
@@ -3681,6 +3695,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("traefik", traefik::detect),
     ("travisci", travisci::detect),
     ("treesittergram", treesittergram::detect),
+    ("tripwireconf", tripwireconf::detect),
     ("trivy", trivy::detect),
     ("tscn", tscn::detect),
     ("tsconfig", tsconfig::detect),
@@ -3805,6 +3820,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("zabbix", zabbix::detect),
     ("zapconf", zapconf::detect),
     ("zedconf", zedconf::detect),
+    ("zeekconf", zeekconf::detect),
     ("zeekctl", zeekctl::detect),
     ("zeekscript", zeekscript::detect),
     ("zerotier", zerotier::detect),
