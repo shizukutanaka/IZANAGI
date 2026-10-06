@@ -6160,3 +6160,30 @@ database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=
 luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第386次
+
+GIS/地理空間系の設定形式8モジュールを追加:
+wktproj(.prj WKT:PROJCS/GEOGCS/DATUM/SPHEROID/PRIMEM/UNIT/
+PROJECTION/PARAMETER/AXIS/TOWGS84等キーワード`KEYWORD[`、
+アンカー+>=3 or >=5)、
+projjson(PROJJSON:"type"が"GeographicCRS"/"ProjectedCRS"/
+"VerticalCRS"/"BoundCRS"/"GeodeticReferenceFrame"等の既知型)、
+cartocss(.mss CartoCSS:#layer/Mapセレクタ+line-color/polygon-fill/
+marker-file/text-name/polygon-gamma/raster-opacity等
+地図プロパティ>=2)、
+overpass(Overpass QL:[out:json]/[timeout:]設定ブロック+
+node/way/relation/area/nwr/out文、設定>=1&>=2 or >=3)、
+mmlstyle(TileMill .mml JSON:"Stylesheet"/"Layer"/"interactivity"/
+"srs"/"Datasource"/"bounds"/"format"等、hint>=1&>=2 or >=4)、
+locxml(TopoGraphix LOC XML:<loc version>+waypoint/name id="GC"/
+coord lat lon/type/link要素)、
+vrtgdal(GDAL .vrt XML:<VRTDataset rasterXSize>+SRS/GeoTransform/
+VRTRasterBand/SimpleSource/SourceFilename/SrcRect/DstRect/
+LUT/NoDataValue等VRT要素)、
+tilestacheconf(TileStache tilestache.cfg JSON:トップレベルcache/
+layers/logging/index/preview/publicUrl+層内provider/projection/
+metatile/stale lock timeout等、hint>=1&>=3 or >=5)。
+mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
+カバー済みのため差替。いずれも行アンカー判定、コメント行除外、
+テスト4本ずつ。
