@@ -6121,3 +6121,26 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 各ファイルに `rejects_marker_in_comment` テスト追加(コメントのみ入力の
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
+
+## 第363次 — プロキシ/ネットワークエッジ・デプロイ補助系 8 モジュール
+
+新規センサスモジュール(DETECTORS 1087 エントリ):
+
+| モジュール | 対象 | 検出ロジック |
+| --- | --- | --- |
+| `wrangler` | `wrangler.toml` (Cloudflare Workers) | `compatibility_date`/`workers_dev`/`kv_namespaces` 等 Cloudflare 専用キー |
+| `snapcraft` | `snapcraft.yaml` | `confinement`/`grade`/`parts`/`plugs` 等 snap 専用トップキー |
+| `brewfile` | `Brewfile` (Homebrew bundle) | `brew "`/`cask "`/`tap "`/`mas "`/`vscode "` DSL 呼出 ≥2 |
+| `adguard` | `AdGuardHome.yaml` | `querylog`/`statistics`/`filtering`/`whitelist_filters` 等専用トップキー |
+| `blocky` | `config.yml` (blocky DNS) | `upstreams`/`blocking`/`customDNS`/`bootstrapDns` 等専用トップキー |
+| `privoxy` | privoxy `config` | `actionsfile`/`filterfile`/`forward-socks5`/`listen-address` 等専用ディレクティブ |
+| `tinyproxy` | `tinyproxy.conf` | `MinSpareServers`/`StatHost`/`ViaProxyName`/`ConnectPort` 等 PascalCase 専用キー |
+| `pihole` | `setupVars.conf` | `PIHOLE_*`/`QUERY_LOGGING`/`BLOCKING_ENABLED` 等 Pi-hole 専用キー |
+
+スキップ重複: `clash` は既存 `clashconf` がカバー(差替で pihole 採用)、
+`corefile`(CoreDNS)/`vcl`(Varnish)/`netlifyconf`/`vercelconf`/`tiltfile`/
+`earthly`/`snap`(squashfs)/`snappy` は既存のため対象外。
+
+既存イディオム踏襲: YAML strong/weak トップキー走査、INI `=` 割当走査、
+TOML セクション/キー抽出、DSL 呼出カウント。全モジュール `detect` は
+コメント行を除外し、非検出側テスト(`rejects_others`)付き。
