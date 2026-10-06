@@ -714,8 +714,8 @@ fn the_public_api_surface_is_pinned() {
         h.write_u8(0);
     }
     let actual = h.finish();
-    const PINNED_COUNT: usize = 18246;
-    const PINNED_HASH: u64 = 0x8167_a8ed_7ca3_494c;
+    const PINNED_COUNT: usize = 18276;
+    const PINNED_HASH: u64 = 0xc873_2e82_cf2b_62ed;
     if lines.len() != PINNED_COUNT || actual != PINNED_HASH {
         for line in &lines {
             eprintln!("surface| {line}");
