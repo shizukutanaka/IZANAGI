@@ -397,6 +397,7 @@ pub mod acemode;
 pub mod ach;
 pub mod actionlint;
 pub mod activemq;
+pub mod adguard;
 pub mod adic;
 pub mod adoc;
 pub mod adql;
@@ -560,6 +561,7 @@ pub mod blackbird;
 pub mod blackconf;
 pub mod blake2s;
 pub mod blend;
+pub mod blocky;
 pub mod bloom;
 pub mod blossom;
 pub mod bm25;
@@ -575,6 +577,7 @@ pub mod bps;
 pub mod braille;
 pub mod braket;
 pub mod brent;
+pub mod brewfile;
 pub mod brotli;
 pub mod browserconfig;
 pub mod browserslist;
@@ -1816,6 +1819,7 @@ pub mod pickle;
 pub mod pid;
 pub mod pidginconf;
 pub mod piecetable;
+pub mod pihole;
 pub mod pileup;
 pub mod pim;
 pub mod pinpoint;
@@ -1883,6 +1887,7 @@ pub mod prefetch;
 pub mod premakeconf;
 pub mod preseed;
 pub mod prettier;
+pub mod privoxy;
 pub mod prj;
 pub mod procd;
 pub mod procfile;
@@ -2172,6 +2177,7 @@ pub mod smt2;
 pub mod smtp;
 pub mod snap;
 pub mod snapcast;
+pub mod snapcraft;
 pub mod snappy;
 pub mod sndh;
 pub mod snmp;
@@ -2331,6 +2337,7 @@ pub mod timer;
 pub mod timestep;
 pub mod timesyncd;
 pub mod tincconf;
+pub mod tinyproxy;
 pub mod tlaplus;
 pub mod tle;
 pub mod tlp;
@@ -2542,6 +2549,7 @@ pub mod world_hash;
 pub mod worley;
 pub mod woz;
 pub mod wpasupplicant;
+pub mod wrangler;
 pub mod wrl;
 pub mod ws;
 pub mod wsdl;
@@ -2788,6 +2796,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("acemode", acemode::detect),
     ("actionlint", actionlint::detect),
     ("activemq", activemq::detect),
+    ("adguard", adguard::detect),
     ("adql", adql::detect),
     ("aercconf", aercconf::detect),
     ("aerospike", aerospike::detect),
@@ -2872,11 +2881,13 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("bitrise", bitrise::detect),
     ("blackbird", blackbird::detect),
     ("blackconf", blackconf::detect),
+    ("blocky", blocky::detect),
     ("bogofilter", bogofilter::detect),
     ("bootini", bootini::detect),
     ("borgmatic", borgmatic::detect),
     ("boundary", boundary::detect),
     ("braket", braket::detect),
+    ("brewfile", brewfile::detect),
     ("browserconfig", browserconfig::detect),
     ("browserslist", browserslist::detect),
     ("bru", bru::detect),
@@ -3507,6 +3518,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("phylip", phylip::detect),
     ("picard", picard::detect),
     ("pidginconf", pidginconf::detect),
+    ("pihole", pihole::detect),
     ("pileup", pileup::detect),
     ("pinpoint", pinpoint::detect),
     ("pipewireconf", pipewireconf::detect),
@@ -3541,6 +3553,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("premakeconf", premakeconf::detect),
     ("preseed", preseed::detect),
     ("prettier", prettier::detect),
+    ("privoxy", privoxy::detect),
     ("procd", procd::detect),
     ("procmailrc", procmailrc::detect),
     ("promela", promela::detect),
@@ -3685,6 +3698,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("smithy", smithy::detect),
     ("smt2", smt2::detect),
     ("snapcast", snapcast::detect),
+    ("snapcraft", snapcraft::detect),
     ("snort", snort::detect),
     ("snyk", snyk::detect),
     ("sol", sol::detect),
@@ -3770,6 +3784,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tiltfile", tiltfile::detect),
     ("timesyncd", timesyncd::detect),
     ("tincconf", tincconf::detect),
+    ("tinyproxy", tinyproxy::detect),
     ("tlaplus", tlaplus::detect),
     ("tlp", tlp::detect),
     ("tmpfilesd", tmpfilesd::detect),
@@ -3880,6 +3895,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("wordfileuew", wordfileuew::detect),
     ("woz", woz::detect),
     ("wpasupplicant", wpasupplicant::detect),
+    ("wrangler", wrangler::detect),
     ("wrl", wrl::detect),
     ("wsdl", wsdl::detect),
     ("wslconf", wslconf::detect),
