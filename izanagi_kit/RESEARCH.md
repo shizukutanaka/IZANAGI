@@ -6083,6 +6083,16 @@ KiCad file formats documentation (kicad_pro/kicad_sch/kicad_pcb S-expression)、
 
 今後 `detect` を持つモジュールを追加する際は `DETECTORS` にも登録すること。
 
+## 第342次 — パーサーレジストリ `PARSERS` + 全パーサー横断panic非発火テスト
+
+第341次の `DETECTORS` と同型で、フリー関数 `pub fn parse(x: &[u8])` を持つ
+全 1105 モジュールを `izanagi_kit::PARSERS` `(モジュール名, ParserFn)` に登録。
+戻り型の差(`Option<T>`/`Vec<T>` 等)は `let _ =` ラッパーで `fn(&[u8])` に正規化。
+新規テスト `tests/parse_never_panics.rs` は detect 用と同じコーパスを全パーサーに
+入力し panic 非発火を検証し、`src/*.rs` 走査で登録漏れをビルド失敗にする。
+`&str` 入力や複数引数の parse(例: `canopen`, `arj`)は対象外。
+該当モジュール追加時は `PARSERS` にも登録すること。
+
 ## 第343次 — census 集約 API `detect_all` + 契約テスト
 
 監査 P1「census 集約 API: `identify_all(input) -> &[&str]`」への最小実装。
@@ -6160,35 +6170,6 @@ YAML のブロックマッピングはコロン前の空白を許容する(`key 
 非検出を検証)。`is_key`/`yaml_val` は既存イディオムを複製、値比較は
 引用符剥がし対応。
 
-## 第349次 — GitOps/ポリシー/ツール管理/リリース自動化系設定形式 8 モジュール
-
-census 未収録ドメイン第2弾。第348次と同型の
-「`apiVersion`/`kind` 値の組合せ必須」設計で k8s エコシステム系と、
-ツールチェーン・リリース自動化のデファクト標準設定ファイルを追加。
-
-- fluxcd: FluxCD マニフェスト(apiVersion `*.fluxcd.io/` + Kustomization/HelmRelease/GitRepository/Alert/Receiver/ImageUpdateAutomation 等 kind)
-- tekton: Tekton CI(`tekton.dev/`・`triggers.tekton.dev/` + Task/Pipeline/PipelineRun/TaskRun/EventListener 等)
-- knative: Knative(`*.knative.dev/` + Service/Broker/Trigger/Revision/Route/Subscription 等)
-- kyverno: Kyverno ポリシー(`kyverno.io/`/`wgpolicyk8s.io/` + ClusterPolicy/Policy/PolicyReport 等)
-- crossplane: Crossplane(`*.crossplane.io/` + CompositeResourceDefinition/Composition/Provider/Function 等)
-- mise: `mise.toml`(`[tools]` セクション + 既知ツール名 or `[plugins]`/`[alias]`/`[tasks]` 等 mise セクション)
-- werf: `werf.yaml`(`project:` + `configVersion: 1` の必須ペア)
-- releaserc: semantic-release `.releaserc`(branches + plugins + `@semantic-release/` 参照 or tagFormat/preset 等固有キー)
-
-`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
-(18186→18196)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
-
-## 出典
-
-- fluxcd/flux2 — GitOps Toolkit CRDs (source/kustomize/helm/notification/image.toolkit.fluxcd.io)
-- tektoncd/pipeline — API reference (tekton.dev/v1)
-- knative/docs — Serving/Eventing YAML reference (*.knative.dev)
-- kyverno/kyverno — Policy types (kyverno.io, wgpolicyk8s.io)
-- crossplane/crossplane — XRD/Composition/pkg API (*.crossplane.io)
-- jdx/mise — mise.toml configuration reference
-- werf/werf — werf.yaml reference (project + configVersion)
-- semantic-release/semantic-release — configuration (.releaserc)
-
 ## 第347次
 
 第340/346次の継続 — `detect()` の全文 `contains(marker)` でコメント行内の
@@ -6208,6 +6189,42 @@ census 未収録ドメイン第2弾。第348次と同型の
 共通ヘルパー `code_has`(コメント行を除外する行単位 contains)を
 各言語のコメント接頭辞で複製。各ファイルに `rejects_marker_in_comment`
 テスト追加。
+
+## 第348次 — Git フック/JS ツールチェーン/リリース自動化/サービスカタログ系設定形式 8 モジュール
+
+census の未収録ドメインとして、JS/Go ツールチェーンのデファクト標準設定
+ファイルを 8 形式追加。いずれも「その形式に固有の構造キーの組合せ」を
+要求し、汎用 YAML/TOML/JSON との誤検出を避ける設計。
+
+- precommit: pre-commit `.pre-commit-config.yaml`(`repos:` 直下の `- repo:` アイテム必須)
+- lefthook: `lefthook.yml`(git フック名キー + commands/scripts/run/parallel/piped)
+- lintstaged: `lint-staged` セクション(JSON/YAML、グロブキー + 引用符コマンド)
+- commitlint: `commitlint.config.js`/`.commitlintrc*`(`@commitlint` 参照 or ルールキー + extends/rules)
+- changesets: changesets `.md` frontmatter(`---` + `"pkg": patch|minor|major`)と `config.json`
+- goreleaser: `.goreleaser.yaml`(builds + goos/goarch/targets 等 Go ターゲットキー)
+- nfpm: `nfpm.yaml`(`contents:` 内の `- src:`/`- dst:` ペア or `overrides:` + deb/rpm/apk/archlinux)
+- backstage: Backstage カタログエンティティ(apiVersion `backstage.io/` + 既知 kind 9種)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18198)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
+
+## 第349次 — GitOps/ポリシー/ツール管理/リリース自動化系設定形式 8 モジュール
+
+census 未収録ドメイン第2弾。第348次と同型の
+「`apiVersion`/`kind` 値の組合せ必須」設計で k8s エコシステム系と、
+ツールチェーン・リリース自動化のデファクト標準設定ファイルを追加。
+
+- fluxcd: FluxCD マニフェスト(apiVersion `*.fluxcd.io/` + Kustomization/HelmRelease/GitRepository/Alert/Receiver/ImageUpdateAutomation 等 kind)
+- tekton: Tekton CI(`tekton.dev/`・`triggers.tekton.dev/` + Task/Pipeline/PipelineRun/TaskRun/EventListener 等)
+- knative: Knative(`*.knative.dev/` + Service/Broker/Trigger/Revision/Route/Subscription 等)
+- kyverno: Kyverno ポリシー(`kyverno.io/`/`wgpolicyk8s.io/` + ClusterPolicy/Policy/PolicyReport 等)
+- crossplane: Crossplane(`*.crossplane.io/` + CompositeResourceDefinition/Composition/Provider/Function 等)
+- mise: `mise.toml`(`[tools]` セクション + 既知ツール名 or `[plugins]`/`[alias]`/`[tasks]` 等 mise セクション)
+- werf: `werf.yaml`(`project:` + `configVersion: 1` の必須ペア)
+- releaserc: semantic-release `.releaserc`(branches + plugins + `@semantic-release/` 参照 or tagFormat/preset 等固有キー)
+
+`pub mod` / `DETECTORS` 登録済み(1087 エントリ)。API ピン更新
+(18186→18196)、`AGENT_INSTRUCTIONS.md` のモジュール数 2177→2185。
 
 ## 第351次 — Carvel/Bitbucket CI/Kapitan/Garden/moonrepo系設定形式 8 モジュール
 
