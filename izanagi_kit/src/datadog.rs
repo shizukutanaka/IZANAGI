@@ -112,6 +112,12 @@ fn key_of(s: &str) -> &str {
     }
 }
 
+fn is_key(s: &str, key: &str) -> bool {
+    // `key :` (コロン前の空白)も YAML では合法。
+    s.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
+
 /// Detects Datadog agent yaml.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -129,8 +135,8 @@ pub fn detect(b: &[u8]) -> bool {
         }
         if s.starts_with("dd_url")
             || s.starts_with("dogstatsd_")
-            || s.starts_with("apm_config:")
-            || s.starts_with("process_config:")
+            || is_key(s, "apm_config")
+            || is_key(s, "process_config")
         {
             hits += 1;
         }
@@ -198,6 +204,14 @@ impl Datadog {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法。
+        assert!(detect(
+            b"api_key: x\nsite: datadoghq.com\napm_config :\n  enabled: true\n"
+        ));
+    }
 
     #[test]
     fn detects_datadog() {

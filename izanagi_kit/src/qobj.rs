@@ -54,12 +54,24 @@ fn jint(t: &str, key: &str) -> u32 {
     let digits: usize = s.bytes().take_while(u8::is_ascii_digit).count();
     s[..digits].parse().unwrap_or(0)
 }
+fn jkey(t: &str, key: &str) -> bool {
+    // `"key"` が値位置ではなくキー位置(直後が `:`)にあるかを確認。
+    let pat = format!("\"{key}\"");
+    let mut rest = t;
+    while let Some(i) = rest.find(&pat) {
+        rest = &rest[i + pat.len()..];
+        if rest.trim_start().starts_with(':') {
+            return true;
+        }
+    }
+    false
+}
 
 /// Returns `true` when `b` looks like a Qobj JSON document.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
-    t.contains("\"qobj_id\"") && t.contains("\"experiments\"")
+    jkey(t, "qobj_id") && jkey(t, "experiments")
 }
 
 impl Qobj {
@@ -93,6 +105,13 @@ impl Qobj {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(
+            b"{\"data\": \"qobj_id\", \"x\": \"experiments\"}\n"
+        ));
+    }
 
     #[test]
     fn detects_envelope() {
