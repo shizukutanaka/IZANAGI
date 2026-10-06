@@ -75,6 +75,12 @@ fn line_key(s: &str) -> Option<&str> {
     }
 }
 
+fn is_key(s: &str, key: &str) -> bool {
+    // `key :` (コロン前の空白)も YAML では合法。
+    s.strip_prefix(key)
+        .is_some_and(|r| r.trim_start().starts_with(':'))
+}
+
 /// `amplify.yml` らしさを返す。`version:` と `frontend:`/`backend:`/`phases:`
 /// 等ビルド構造キーの組合せで判定。
 #[must_use]
@@ -89,7 +95,7 @@ pub fn detect(b: &[u8]) -> bool {
         if s.is_empty() || s.starts_with('#') {
             continue;
         }
-        if s.starts_with("version:") {
+        if is_key(s, "version") {
             version = true;
         }
         for key in [
@@ -159,6 +165,13 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_space_before_colon() {
+        // YAML では `key :` も合法。
+        let b = b"version : 1\nfrontend:\n  phases:\n    build:\n      commands:\n        - x\n  artifacts:\n    baseDirectory: build\n";
+        assert!(detect(b));
+    }
 
     #[test]
     fn detects_amplify() {
