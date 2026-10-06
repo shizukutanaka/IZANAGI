@@ -157,15 +157,33 @@ const POLICY_KEYS: &[&str] = &[
     "configMapRef:",
     "postBuildSelectors:",
 ];
+fn code_has(t: &str, needle: &str) -> bool {
+    // `#` コメント行内の言及は証拠にしない。
+    t.lines()
+        .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
+}
+fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+    let l = line.trim_start_matches(['"', '\'']);
+    let r = l
+        .strip_prefix(key)?
+        .trim_start_matches(['"', '\''])
+        .trim_start();
+    r.strip_prefix(':')
+        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
+}
+
+fn has_kv(t: &str, key: &str, val: &str) -> bool {
+    t.lines().any(|l| yaml_val(l.trim(), key) == Some(val))
+}
 
 /// Detects ArgoCD manifests.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
-    t.contains("argoproj.io/")
-        && (t.contains("kind: Application")
-            || t.contains("kind: AppProject")
-            || t.contains("kind: ApplicationSet"))
+    code_has(&t, "argoproj.io/")
+        && (has_kv(&t, "kind", "Application")
+            || has_kv(&t, "kind", "AppProject")
+            || has_kv(&t, "kind", "ApplicationSet"))
 }
 
 impl Argocd {
@@ -219,6 +237,11 @@ impl Argocd {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rejects_marker_in_comment() {
+        assert!(!detect(b"# argoproj.io/v1alpha1\n# kind: Application\n"));
+    }
 
     #[test]
     fn detects_and_counts() {
