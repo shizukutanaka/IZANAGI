@@ -6937,3 +6937,33 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
+
+## 第405次 — 監査(失敗の表現力/パーサの検証性) + crontab・udevrules
+
+### 角度
+「parseは形式の検証器として機能しているか」— 全1,225パーサにごみ入力
+4種(散文/バイナリ/英文/数字)を投入し、何でも受理するパーサを洗い出し。
+
+### 計測結果
+- 76/1,225パーサがごみを受理。3分類:
+  (a) 仕様上正当 — バイナリフレーム(ethernet/esp/rip/tcp等:マジックを
+      持たず構造的に任意バイトが有効)、自由文書(roff/rst/org/pod/adoc等)、
+      mml(全アルファベットが音符)、csv(1列CSVは任意テキスト);
+  (b) `Some(全ゼロ)`を返すカンサス系(debconf/kconfig/platformio/
+      sdkconfig/netrc等) — `Option`が実質非utf8以外でNoneを返せず、
+      「認識した/できた」ではなく「走査に成功した」を意味する;
+  (c) 実害 — crontab(英字5語をスケジュール受理)、udevrules
+      (ペアを含まない裸行もルール計数)。
+
+### 対応
+- crontab: 5フィールドの各アトムをcron文法(`*`/数字/`?`/`L`/`W`/`#`/
+  範囲・リスト/月曜名)で検証 — 散文を拒否しつつ`MON-FRI`/`jan`は受理。
+- udevrules: `KEY op "value"`ペアを1つ以上含む行のみをルールとして計数
+  (udev仕様: ペアを持たない裸行はルールでない)。
+
+### 残課題
+- `Some(全ゼロ)`型パーサ(~40件): 「認識0件でNone」を返すべきかの
+  契約未決 — 空設定ファイルはSome(ゼロ)が自然で、入力非空かつ
+  認識ゼロでのNone化が妥当だが40モジュール規模の修正。
+- フレーム系はdetectの存在が契約の前提 — parse単体では検証不可。
+- ごみ受理76件のうち判別不能な例外リストの文書化未了。
