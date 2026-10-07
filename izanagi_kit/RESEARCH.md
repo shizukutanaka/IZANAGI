@@ -6937,3 +6937,33 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
+
+## 第407次 — parseのSome(認識ゼロ)統一(Option意味論)
+
+全1,122のOption返しパーサにごみ入力4種を投入 → `Some(認識ゼロ)`を返す
+45件を機械検出。主流契約(1,034件が棄却)「空→Some(ゼロ)、非空で認識
+ゼロ→None」に統一: Counts系9モジュールは全usizeフィールド和==0ならNone、
+tmpfilesdは型トークンを「型1字+MOD修飾子」のみに限定、promは値を
+float字句検証(no-float不変条件でf64使用不可 → 字句チェックに変更)、
+pdbはothersを大文字レコード名のみに限定、bibtex/netrcはentries/macros
+空+非空入力でNone。13モジュールにrejects_unrecognized_garbage追加。
+文書系(adoc/pod/rst/org/texinfo)とmvtは寛容を仕様として残置、imap/irc/
+nntp/smtpのparse_lineフォールバック受理は第408次へ繰越。
+残り22件(debconf/log4j/netlifyconf等)はオープンPR衝突ファイルのため
+それらのマージ後に適用。
+
+## 第408次 — 行プロトコルparse_lineのコマンド集合検証(文法忠実度)
+
+RFCコマンド集合でverbを検証: imap(RFC 3501コマンド+タグ応答OK/NO/BAD+
+拡張ID/IDLE/MOVE等、`X…`実験コマンド許可; untagged `*` は既知キーワード
+or 数値)、irc(RFC 2812コマンド集合+IRCv3 CAP/MONITOR等、3桁数値は常に受理)、
+nntp(RFC 3977+reader/feeder拡張、`X…`ベンダー動詞許可)、smtp(RFC 5321+
+ESMTP拡張AUTH/STARTTLS/BDAT/ETRN+RFC 821旧動詞、`X…`ベンダー動詞許可)。
+「任意の英字単語=コマンド」受理を解消し、散文transcriptは全行棄却に。
+各モジュールにrejects_unrecognized_garbageテスト追加。
+
+残課題: r407で検出した22件のSome(ゼロ)モジュール(オープンPR衝突中)、
+Vec<Entry>返し3件のOption化(API破壊)、非Option返し103件、detect⇒parse
+逆方向assert、fixture不在モジュールへの最小fixture必須化、全fixture×全
+DETECTORSの相互偽陽性マトリクスの10-39件帯の段階引き締め、PARSERS非整列、
+UTF-16入力、CRLF/Latin-1ファイル、実ファイルコーパスのparse側適用。
