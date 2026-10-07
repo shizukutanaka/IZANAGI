@@ -23,7 +23,7 @@
 //! let b = b"{\n  \"name\": \"My Game\",\n  \"description\": \"desc\",\n  \"max_players\": 0,\n  \"visibility\": {\"public\": true, \"lan\": true},\n  \"autosave_interval\": 10\n}\n";
 //! let c = izanagi_kit::factoriosettings::parse(b);
 //! assert!(izanagi_kit::factoriosettings::detect(b));
-//! assert_eq!(c.keys, 5);
+//! assert_eq!(c.keys, 7);
 //! ```
 
 const KEYS: &[&str] = &[
@@ -74,47 +74,78 @@ const KEYS: &[&str] = &[
     "width",
 ];
 
-fn is_key(l: &str) -> bool {
+const SIGNATURE: &[&str] = &[
+    "afk_autokick_interval",
+    "allow_commands",
+    "allow_debug_settings",
+    "autoplace_controls",
+    "autosave_interval",
+    "autosave_only_on_server",
+    "autosave_slots",
+    "cliff_settings",
+    "default_enable_all_autoplace_controls",
+    "difficulty_settings",
+    "enemy_evolution",
+    "enemy_expansion",
+    "game_password",
+    "ignore_player_limit_for_returning_players",
+    "map_settings",
+    "max_failed_behavior_count",
+    "max_heartbeats_per_second",
+    "max_players",
+    "max_upload_in_kilobytes_per_second",
+    "max_upload_slots",
+    "minimum_segment_size",
+    "non_blocking_saving",
+    "only_admins_can_pause_the_game",
+    "path_finder",
+    "peaceful_mode",
+    "pollution",
+    "property_expression_names",
+    "require_user_verification",
+    "server_query",
+    "spoiling_time_penalty",
+    "starting_area",
+    "steering",
+    "unit_group",
+    "verify_user_identity",
+    "visibility",
+];
+
+fn count_keys(t: &str) -> usize {
+    let mut n = 0usize;
     for k in KEYS {
-        if l.contains(&format!("\"{k}\"")) {
-            return true;
-        }
+        n += t.matches(&format!("\"{k}\"")).count();
     }
-    false
+    n
+}
+
+fn has_signature(t: &str) -> bool {
+    SIGNATURE.iter().any(|k| t.contains(&format!("\"{k}\"")))
 }
 
 /// `b` が Factorio 設定 JSON に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let t = std::str::from_utf8(b).unwrap_or("");
-    if !(t.trim_start().starts_with('{') && t.contains("\"name\"")) {
-        return false;
-    }
-    let mut keys = 0usize;
-    for l in t.lines() {
-        if is_key(l) {
-            keys += 1;
-        }
-    }
-    keys >= 3
+    // `"name"` は server-settings 専用で map/map-gen 系には無いため、
+    // Factorio 固有キーの出現で署名する。1行圧縮 JSON でも数えられるよう
+    // 行ではなく出現回数で判定する。
+    t.trim_start().starts_with('{') && has_signature(t) && count_keys(t) >= 3
 }
 
 /// Factorio 設定の統計。
 #[derive(Debug, Default, Clone)]
 pub struct FactorioSettings {
-    /// 既知キー行数。
+    /// 既知キーの出現数。
     pub keys: usize,
 }
 
 /// `b` を Factorio 設定として統計する。
 pub fn parse(b: &[u8]) -> FactorioSettings {
     let t = std::str::from_utf8(b).unwrap_or("");
-    let mut c = FactorioSettings::default();
-    for l in t.lines() {
-        if is_key(l) {
-            c.keys += 1;
-        }
+    FactorioSettings {
+        keys: count_keys(t),
     }
-    c
 }
 
 #[cfg(test)]
@@ -134,6 +165,35 @@ mod tests {
         assert!(!detect(b"{\n\"name\": \"x\",\n\"max_players\": 0\n}\n"));
         assert!(!detect(b"key=value\nfoo=bar\n"));
         assert!(!detect(b"{\n\"key\": 1,\n\"other\": 2,\n\"name2\": 3\n}\n"));
+    }
+
+    #[test]
+    fn detects_compact_one_line_json() {
+        let b = b"{\"name\": \"x\", \"max_players\": 0, \"visibility\": {\"public\": true}}";
+        assert!(detect(b));
+        let c = parse(b);
+        assert_eq!(c.keys, 4);
+    }
+
+    #[test]
+    fn detects_map_settings_without_name() {
+        let b = b"{\n\"pollution\": {},\n\"enemy_evolution\": {},\n\"enemy_expansion\": {}\n}\n";
+        assert!(detect(b));
+        let c = parse(b);
+        assert_eq!(c.keys, 3);
+    }
+
+    #[test]
+    fn detects_map_gen_settings_without_name() {
+        let b = b"{\n\"seed\": 1,\n\"width\": 0,\n\"autoplace_controls\": {},\n\"starting_area\": 1.0\n}\n";
+        assert!(detect(b));
+    }
+
+    #[test]
+    fn rejects_generic_json_without_signature() {
+        assert!(!detect(
+            b"{\n\"name\": \"x\",\n\"description\": \"y\",\n\"tags\": []\n}\n"
+        ));
     }
 
     #[test]
