@@ -121,9 +121,28 @@ fn prop_name(l: &str) -> Option<String> {
     Some(l[pos..end].to_string())
 }
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// `b` が 7dtd serverconfig.xml に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let t = std::str::from_utf8(b).unwrap_or("");
+    // コメントアウトされたプロパティ例は設定ではないので除く。
+    let t = strip_comments(t);
     let mut props = 0usize;
     for l in t.lines() {
         if let Some(n) = prop_name(l) {
@@ -145,6 +164,7 @@ pub struct SevenDtdXml {
 /// `b` を serverconfig.xml として統計する。
 pub fn parse(b: &[u8]) -> SevenDtdXml {
     let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_comments(t);
     let mut c = SevenDtdXml::default();
     for l in t.lines() {
         if let Some(n) = prop_name(l) {
@@ -173,6 +193,14 @@ mod tests {
         let b =
             b"<ServerSettings>\n<property name=\"ServerPort\" value=\"1\"/>\n</ServerSettings>\n";
         assert!(detect(b));
+    }
+
+    #[test]
+    fn commented_props_do_not_count() {
+        let b = b"<!--\n<property name=\"ServerPort\" value=\"1\"/>\n<property name=\"GameWorld\" value=\"N\"/>\n-->\n<ServerSettings>\n</ServerSettings>\n";
+        assert!(!detect(b));
+        let c = parse(b);
+        assert_eq!(c.props, 0);
     }
 
     #[test]

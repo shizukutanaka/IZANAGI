@@ -6880,6 +6880,42 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第393次
+
+第392次マージ後レビューで見つかった検出バグ5件を修正。
+
+- factoriosettings:`"name"`必須を廃止し Factorio 固有キー
+  (SIGNATURE 38件)>=1 + 既知キー出現>=3 に変更 — map-settings/
+  map-gen-settings(`"name"` を持たない)を検出可能に。併せて
+  行単位カウントを出現回数カウントに変え1行圧縮 JSON も検出。
+- arma3conf:basic.cfg 専用の帯域キー MinBandwidth/MaxBandwidth/
+  MaxSizeGuaranteed/MaxSizeNonguaranteed/MinErrorToSend/
+  MinErrorToSendNear を KEYS に追加 — basic.cfg 検出可能に。
+- sevendtdxml:`<!-- -->` コメントを除去してからプロパティ/
+  ルート要素を数える strip_comments を導入 — コメント内の
+  `<property>` 例を誤算しなくなった。detect/parse 両方に適用。
+- srcdscfg:is_cvar に値の存在(2トークン)を必須化 —
+  `sv_maxrate` 単独行のような問い合わせ行を誤検出しなくなった。
+
+いずれも回帰テスト追加(detects_compact_one_line_json/
+detects_map_settings_without_name/detects_map_gen_settings_
+without_name/rejects_generic_json_without_signature/
+detects_basic_cfg/commented_props_do_not_count/
+bare_cvar_names_do_not_count)。
+
+## 第396次
+
+監査(第3回)で「panic非発火は共有コーパスでは深いパース経路に
+届かない」ことを確認し、fixture起点の横断fuzzを追加。
+
+- tests/parse_never_panics.rs に `no_parser_panics_on_own_fixture_family`
+  を追加:src内の `const ..: &[u8] = b"..."` fixture をソースから
+  抽出・unescapeし、PARSERS登録の同名パーサへ
+  (a)全prefix、(b)単バイト破壊(64点サンプル)を投入、
+  catch_unwind でpanicを検出。
+- 432モジュールの深いパース経路を新規カバー
+  (共有fodderがdetect閾値を通らず early-return していた領域)。
+- 抽出器の劣化を防ぐ `covered >= 400` の下限 assert 付き。
 ## 第394次
 
 全量監査(長所50/短所50)に基づき、XML系検出器の複数行
@@ -6901,6 +6937,7 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
 - junitのヘッドスキャンは `<!--` 内の `>` で誤終了していた
   ので `-->` まで読み飛ばすよう修正。
 - 回帰テスト xml_comments_are_stripped を42モジュールに追加。
+||||||| 2fe94df
 
 ## 第398次 検出の再現率(recall)契約 — own_fixture_detected
 
@@ -6922,3 +6959,39 @@ fixtureを失墜させた場合、このテストが回帰を捕捉する。
 
 残課題: マジック断片系の「最小検出単位」ドキュメント化、doctest埋め込み
 fixture(let cfg = b"...")の抽出対応、detect⇒parse契約。
+
+## 第402次 実在ファイルによる実証 — real_world_files 回帰コーパス
+
+監査視点「テスト対象とテストデータが同一筆者による自己証明になっていないか」。
+実在プロジェクトの本物の設定ファイル20件を `tests/realfiles/` に収録し、
+`tests/real_world_files.rs` で全DETECTORSに投入する回帰コーパスを新設:
+
+- recall実証: 各実ファイルが意図する検出器で必ずヒットすることをassert
+- precision実証: 外来検出器ヒット数が記録した天井以下であることをassert
+  (改善なら常に通る、退行のみ失敗する天井方式)
+
+実測で判明した実害を7モジュールで修正:
+
+- iscsi: バイナリBHS判定がオプコード+AHS長のみで、ASCII先頭'#'(0x23=
+  Login Response)で任意テキストに発火 → AHS+data_lenの宣言フレーム長が
+  バッファに収まることを要求(テキストの5..8バイトは数MB級の長さになり棄却)
+- zone: RRタイプ名(A/DS/NS等)が一般英単語と衝突 → SOAレコード必須のアンカー
+  追加(rsyslogの$行も排除)
+- zonemtaconf: キー/セクションのt.contains()判定 → 行頭アンカー`key =`化 +
+  `[zones.`/`[smtp.feed]`/mxHost等のZoneMTA固有マーカーSTRONG化
+- isortconf: 汎用`[settings]`単独受理 → isortキー>=2併記要求に変更、キーも
+  行頭`key =`アンカー化
+- harakaconf: 汎用`[core]`/`[tls]`単独受理(git configと衝突) → セクション
+  >=2 or 行頭key>=4 or plugin行>=2
+- nix: キーワード`with`単独で受理(散文に頻出) → 腕削除
+- bashrc: 行頭アンカーのみで、実在1行委譲型`.bashrc`
+  (`[ -n "$PS1" ] && source ~/.bash_profile;`)を未検出 → `$PS1`ガードと
+  行中`source <path>`/`. <path>`をマーカー化、行内複数マーカーもカウント
+
+実ファイル外来ヒット計測(修正前→後): unbound 48→44, gitconfig 37→33,
+haproxy 41→36, zone 27→24, rsyslogd はzoneヒット消滅、iscsi/isortconf/
+harakaconf/zonemtaconf は全実ファイルでヒット消滅。
+
+残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
+(#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
+detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
