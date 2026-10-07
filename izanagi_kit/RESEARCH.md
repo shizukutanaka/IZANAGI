@@ -6697,3 +6697,163 @@ Linux入力/セッション層・Usenet/DLNA残り系の
   約35キー、media>=1&key>=2 or key>=3)。
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第388次
+
+会計ジャーナル/ブートローダ/プリンタ/デスクトップ残り系の
+設定形式8モジュールを追加(pub mod/DETECTORS/PARSERSの3箇所登録):
+
+- ledgerjournal(Ledger/hledger/beancountジャーナル:
+  YYYY-MM-DD|/|.取引ヘッダ+インデント転記行(金額または
+  `Account:Sub`形式)+account/commodity/payee/include/P/D/Y/
+  apply/balance/open/close等ディレクティブ、txn>=1&post>=3 or
+  txn>=2&post>=2 or dir>=3 or dir>=1&txn>=2)、
+- grubcfg(grub.cfg:menuentry/submenuブロック+set/insmod/
+  linux/initrd/search/if/function/serial/load_video等
+  GRUB2コマンド、entry>=1&cmd>=3 or cmd>=6)、
+- cupsconf(cupsd.conf:Apache風のListen/Port/ServerName/
+  LogLevel/MaxJobs/PreserveJobHistory/Browsing/DefaultShared/
+  WebInterface/SystemGroup/ErrorLog等ディレクティブ+
+  `<Location>`/`<Policy>`/`<Limit>`ブロック、
+  block>=1&dir>=2 or dir>=3)、
+- mpvconf(mpv.conf:`key=value`/`--key=value`、vo/ao/hwdec/
+  profile/volume/slang/alang/sub-auto/ytdl-format/cache/
+  interpolation/video-sync/deband/scale/dscale/cscale/
+  sigmoid-upscaling/tone-mapping/save-position-on-quit/
+  input-ipc-server/osd-*/sub-*/screenshot-*/watch-later-directory等
+  約170キー、>=3)、
+- kdeglobals(KDEグローバル設定INI:[General]/[KDE]/[Icons]/
+  [WM]/[Shortcuts]/[Translations]/[KFileDialog Settings]+
+  [Colors:*]/[ColorEffects:*]セクション群+ColorScheme/
+  widgetStyle/font/fixed/menuFont/singleClick/Xft*等キー、
+  sec>=1&key>=2 or key>=3 or sec>=3)、
+- zathurarc(zathurarc:`set <option>`/`map`/`unmap`/`include`
+  ディレクティブ、adjust-open/recolor*/scroll-step/zoom-*/
+  guioptions/statusbar-*/synctex/database/highlight-*/index-*/
+  page-padding等約80オプション、set>=3 or set>=1&map>=2)、
+- qt5ctconf(qt5ct/qt6ct.conf INI:[Appearance]/[Fonts]/
+  [Interface]/[PaletteEditor]/[SettingsWindow]/[Troubleshooting]
+  セクション+color_scheme_path/custom_palette/icon_theme/style/
+  buttonbox_layout/stylesheets/toolbutton_style等キー、
+  sec>=1&key>=1 or key>=3)、
+- digikamrc(digikamrc KDE風INI:[Album Settings]/[IconView]/
+  [Metadata Settings]/[Slideshow Settings]/[Tag Properties]等
+  セクション+AlbumPath/DefaultIconSize/IconShow*/SaveImageTags/
+  SaveFaceTags/AutoTrashItems/FaceDetector等キー、
+  sec>=1&key>=2 or key>=3 or sec>=3)。
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第390次
+
+メールエコシステム(リレーヤ/フェッチャ/クライアント/スパム判定系)
+の設定形式8モジュールを追加。
+
+- ssmtpconf(sSMTP:`root`/`mailhub`/`rewriteDomain`/`hostname`/
+  `FromLineOverride`/`UseTLS`/`UseSTARTTLS`/`AuthUser`/`AuthPass`/
+  `TLSCert`/`TLS_CA_File`等、key>=3)
+- smtpdconf(OpenSMTPD smtpd.conf:`listen on`/`pki`/`table`/
+  `action`/`match`/`queue`/`filter`/`mta`/`smtp`/`bounce`/
+  `masquerade`/`mda`/`mmda`/`include`/`ca`/`tag`/`limit`等、
+  anchor>=2 or 動詞>=5)
+- nullmailerconf(nullmailer /etc/nullmailer/remotes:
+  `<host> <smtp|ssl|qmqp> [--user/--pass/--port/--auth-login/
+  --starttls/--insecure/--ssl/--x509*/--source/--helo/--auth]`行、
+  >=1)
+- postsrsdconf(postsrsd systemd env風:`SRS_DOMAIN`/
+  `SRS_EXCLUDE_DOMAINS`/`SRS_FORWARD_PORT`/`SRS_REVERSE_PORT`/
+  `SRS_SECRET`/`SRS_TIMEOUT`/`RUN_AS`/`CHROOT_DIR`/`SEPARATOR`等、
+  >=2)
+- getmailrc([retriever]/[destination]/[options]/[filter-*]
+  セクション+`type = Simple*Retriever/Maildir/Mboxrd/MDA_external/
+  Filter_*`+server/username/password/mailboxes/path/delete/
+  read_all/verbose/message_log等、sec>=1&key>=2 or key>=4)
+- pinerc(Alpine .pinerc:`personal-name`/`user-domain`/`smtp-server`/
+  `inbox-path`/`feature-list`/`initial-keystroke-list`/
+  `display-filters`/`sending-filters`/`addressbook`/`signature-file`/
+  `bugs-*`/`rsh-*`/`smime-*`/`quell-*`等、>=3)
+- himalayaconf(himalaya config.toml:`[accounts.*]`+email/
+  display-name/default/backend.type/imap-*/smtp-*/notmuch-db-path/
+  maildir.*/sendmail.*/message.*/sync.*等、sec>=1&key>=2 or key>=4)
+- razorconf(Vipul's Razor razor-agent.conf:`razorhome`/`listfile`/
+  `logfile`/`debuglevel`/`razordiscovery`/`logic_method`/
+  `use_engines`/`engine_*_max_cf`/`engine_*_max_policy`/`se`/`cf`/
+  `whitelist`等、>=3)
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第391次
+
+サンドボックス/強制アクセス制御・レガシーインフラ系の設定形式
+8モジュールを追加。
+
+- firejailprof(Firejail .profile:include/blacklist/noblacklist/
+  whitelist/net/caps.*/seccomp*/nonewprivs/noroot/protocol/
+  private*/rlimit-*/read-only/disable-mnt/netns/x11等、>=3)
+- nsjailcfg(nsjail protobuf text:name/mode/chroot/exec_bin{}/
+  uidmap{}/gidmap{}/mount{}/uid/gid/cap/rlimit_*/cgroup_*/
+  clone_new*/seccomp_string/kafel_file等、block>=1 or key>=4)
+- selinuxte(SELinux .te:policy_module/gen_require/requireブロック+
+  allow/auditallow/dontaudit/neverallow/type_transition等ルール+
+  type/attribute/class/bool/role宣言、anchor>=1 or rule>=2&decl>=1
+  or rule+decl>=4)
+- selinuxfc(SELinux .fc:`<path_regex> [--|-d|-l|-s|-c|-b|-p|-e]
+  <system_u:object_r:*:s0|gen_context(...)|<<none>>>`行、>=2)
+- baculadir(Bacula/Bareos *.conf:`Director|Catalog|Storage|FileSet|
+  Client|Job|JobDefs|Schedule|Pool|Console|Messages|Device|
+  Autochanger { ... }`リソースブロック+key=value、res>=1&kv>=2
+  or res>=2)
+- amandaconf(amanda.conf:`org`/`dumpuser`/`mailto`/`dumpcycle`/
+  `tapecycle`/`tapedev`/`tpchanger`/`define <dumptype|tapetype|
+  changer|interface|application-tool|holdingdisk|script|interactivity>`
+  等、define>=1 or key>=3)
+- pacemaker(Pacemaker CIB XML:`<cib`/`<configuration>`+crm_config/
+  nodes/resources/constraints/primitive/clone/group/rsc_*/nvpair/
+  meta_attributes等、`<cib`/`<configuration` presence+elem>=3)
+- xinetdconf(xinetd.conf:`defaults`/`service <name>`ブロック+
+  disable/socket_type/protocol/wait/user/server/port/only_from/
+  log_type/instances/redirect/bind/flags/type/rpc_version等、
+  head>=1&kv>=2)
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第392次
+
+ゲーム専用サーバ(Minecraft/TS3/Arma/Factorio/Terraria/7DTD/
+Source Engine/Project Zomboid)の設定形式8モジュールを追加。
+
+- mcserverprops(Minecraft server.properties:motd/server-port/
+  max-players/difficulty/gamemode/online-mode/white-list/
+  level-name/level-seed/spawn-*/view-distance/simulation-distance/
+  enable-*/allow-*/op-permission-level/network-compression-threshold/
+  sync-chunk-writes等、>=4)
+- ts3serverini(TeamSpeak3 ts3server.ini:machine_id/default_voice_port/
+  voice_ip/filetransfer_port/query_port/dbplugin/dbsqlpath/logpath/
+  query_ip_whitelist/licensepath/query_protocols/virtualserver_metadata_*
+  等、>=3)
+- arma3conf(Arma3 server.cfg:`key = value;` hostname/password/
+  passwordAdmin/maxPlayers/motd[]/admins[]/voteThreshold/
+  verifySignatures/persistent/battlEye/logFile/headlessClients[]/
+  allowed*Extensions[]等+`class Missions/Mission_N/Params`
+  ブロック、key>=3 or class>=1&key>=1)
+- factoriosettings(Factorio server/map/map-gen settings JSON:
+  `"name"`/`"description"`/`"max_players"`/`"visibility"`/
+  `"autosave_interval"`/`"game_password"`/`"verify_user_identity"`/
+  `"pollution"`/`"enemy_evolution"`/`"unit_group"`/`"seed"`/
+  `"autoplace_controls"`等、{始まり+`"name"`+key>=3)
+- terrariaconf(Terraria config.txt:`world`/`autocreate`/`seed`/
+  `worldname`/`difficulty`/`maxplayers`/`port`/`password`/`motd`/
+  `worldpath`/`banlist`/`secure`/`language`/`upnp`/`npcstream`/
+  `priority`/`journeypermission_*`等、>=3)
+- sevendtdxml(7 Days to Die serverconfig.xml:`<ServerSettings>`+
+  `<property name="ServerName|ServerPort|GameWorld|MaxSpawnedZombies|
+  EACEnabled|BloodMoonFrequency|..." value="..."/>`、>=2 or
+  prop>=1+root要素)
+- srcdscfg(Source Engine server.cfg:`key "value"` convar列、
+  hostname/rcon_password/sv_*/mp_*/tv_*/bot_*、>=4)
+- pzserver(Project Zomboid servertest.ini:DefaultPort/UDPPort/
+  MaxPlayers/PVP/PauseEmpty/Public*/Mods/Map/ServerWelcomeMessage/
+  Safehouse*/RCON*/Steam*/UPnP*/Workshop*/Anticheat*/Discord*/Voice*/
+  Backups*/LoginQueue*/Faction*/DisableRadio*/AllowTradeUI/
+  FastForwardMultiplier等、>=4)
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
