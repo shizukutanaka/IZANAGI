@@ -60,14 +60,14 @@ fn count_kw(t: &str, kw: &str) -> usize {
     n
 }
 
-/// Detects Nix: `let … in`, `with …;`, `mkDerivation`/`derivation`, or a `{…}:` lambda head.
+/// Detects Nix: `let … in`, `mkDerivation`/`stdenv`/`<nixpkgs>`, or a `{…}:` lambda head.
+/// A bare `with` keyword alone does not qualify — it appears in ordinary prose.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
     count_kw(t, "let") > 0 && count_kw(t, "in") > 0
-        || count_kw(t, "with") > 0
         || t.contains("mkDerivation")
         || t.contains("stdenv")
         || t.contains("<nixpkgs>")
@@ -168,6 +168,10 @@ mod tests {
         assert!(detect(b"pkgs.stdenv.mkDerivation { }"));
         assert!(!detect(b"{ \"a\": 1 }"));
         assert!(!detect(b"plain"));
+        // Prose mentioning `with` is not a Nix expression.
+        assert!(!detect(
+            b"use this tool with care when installing packages\n"
+        ));
     }
 
     #[test]

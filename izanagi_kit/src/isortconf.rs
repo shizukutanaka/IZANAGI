@@ -146,7 +146,17 @@ const KEYS: &[&str] = &[
 ];
 
 fn key_present(t: &str, k: &str) -> bool {
-    t.contains(k)
+    // isort settings are `key = value` lines; a bare substring of the key
+    // name anywhere in the file does not count.
+    t.lines().any(|l| {
+        l.trim_start()
+            .strip_prefix(k)
+            .is_some_and(|r| r.trim_start().starts_with('='))
+    })
+}
+
+fn section_line(t: &str, name: &str) -> bool {
+    t.lines().any(|l| l.trim_start().starts_with(name))
 }
 
 /// Detect an isort config.
@@ -155,11 +165,13 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    if t.contains("[isort]") || t.contains("[tool.isort]") || t.contains("[settings]") {
-        return true;
-    }
     let hits = KEYS.iter().filter(|k| key_present(t, k)).count();
-    hits >= 4
+    // `[settings]` is isort's canonical section in `.isort.cfg` but is a
+    // generic name — require isort keys alongside it.
+    section_line(t, "[isort]")
+        || section_line(t, "[tool.isort]")
+        || (section_line(t, "[settings]") && hits >= 2)
+        || hits >= 4
 }
 
 impl Isort {
@@ -212,5 +224,9 @@ mod tests {
     fn rejects_ini() {
         assert!(!detect(b"[main]\nfoo = bar\n"));
         assert!(Isort::parse(b"").is_none());
+        // `[settings]` alone is generic — needs isort keys.
+        assert!(!detect(b"[settings]\nfoo = bar\nlevel = debug\n"));
+        // Key names as substrings/values do not count.
+        assert!(!detect(b"# mentions profile, skip and sections in prose\n"));
     }
 }
