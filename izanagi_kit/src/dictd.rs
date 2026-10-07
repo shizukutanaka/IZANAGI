@@ -37,7 +37,8 @@ fn b64ish(tok: &str) -> bool {
 }
 
 fn index_line(t: &str) -> Option<(&str, bool)> {
-    let mut it = t.split('\t');
+    // trailing whitespace is not part of the rightmost b64 field
+    let mut it = t.trim_end().split('\t');
     let w = it.next()?;
     if w.is_empty() {
         return None;
@@ -131,6 +132,15 @@ mod tests {
         assert_eq!(x.words, 2);
         assert_eq!(x.bad_lines, 1);
         assert!(!x.quoted);
+    }
+
+    #[test]
+    fn trailing_space_is_not_field_content() {
+        // editor drift: a space after the last b64 field
+        assert!(detect(b"apple\tQUJD\tREVG \nbanana\tR0hJ\tSktM\t \n"));
+        let x = parse(b"apple\tQUJD\tREVG \nbanana\tR0hJ\tSktM \n").unwrap();
+        assert_eq!(x.words, 2);
+        assert_eq!(x.bad_lines, 0);
     }
 
     #[test]

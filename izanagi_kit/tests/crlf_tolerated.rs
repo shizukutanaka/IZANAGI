@@ -155,3 +155,86 @@ fn text_fixtures_survive_crlf() {
         "text fixtures no longer detected under CRLF ({total} checked): {misses:?}"
     );
 }
+
+/// The same contract for two other real-world file-shape drift:
+/// stripping trailing newlines (a file saved without a final `\n`)
+/// and a stray space at end of every non-empty line (editor drift).
+/// `str::lines()` already hides CR-only and missing-terminator cases
+/// differently, so each variant is measured separately here — a miss
+/// is a detector that confused file shape for file content.
+fn for_each_detected_text_fixture(mut f: impl FnMut(&str, &str, &izanagi_kit::DetectorFn, &[u8])) {
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let detectors: BTreeMap<&str, &izanagi_kit::DetectorFn> = izanagi_kit::DETECTORS
+        .iter()
+        .map(|(n, d)| (*n, d))
+        .collect();
+    for entry in fs::read_dir(&src).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension() != Some(OsStr::new("rs")) {
+            continue;
+        }
+        let name = path.file_stem().unwrap().to_str().unwrap().to_string();
+        let Some(detect) = detectors.get(name.as_str()) else {
+            continue;
+        };
+        let text = fs::read_to_string(&path).unwrap_or_default();
+        for (cname, fixture) in extract_fixtures(&text) {
+            let utf8 = std::str::from_utf8(&fixture).is_ok();
+            if utf8 && detect(&fixture) {
+                f(&name, &cname, detect, &fixture);
+            }
+        }
+    }
+}
+
+#[test]
+fn text_fixtures_survive_missing_final_newline() {
+    let mut misses: Vec<String> = Vec::new();
+    let mut total = 0usize;
+    for_each_detected_text_fixture(|name, cname, detect, fixture| {
+        let mut conv = fixture.to_vec();
+        while conv.last() == Some(&b'\n') {
+            conv.pop();
+        }
+        if conv == fixture {
+            return;
+        }
+        total += 1;
+        if !detect(&conv) {
+            misses.push(format!("{name}::{cname}"));
+        }
+    });
+    assert!(
+        misses.is_empty(),
+        "text fixtures undetected without a trailing newline ({total} checked): {misses:?}"
+    );
+}
+
+#[test]
+fn text_fixtures_survive_trailing_spaces() {
+    let mut misses: Vec<String> = Vec::new();
+    let mut total = 0usize;
+    for_each_detected_text_fixture(|name, cname, detect, fixture| {
+        let mut conv = Vec::with_capacity(fixture.len() + 64);
+        for (i, l) in fixture.split(|&b| b == b'\n').enumerate() {
+            if i > 0 {
+                conv.push(b'\n');
+            }
+            conv.extend_from_slice(l);
+            if !l.is_empty() {
+                conv.push(b' ');
+            }
+        }
+        if conv == fixture {
+            return;
+        }
+        total += 1;
+        if !detect(&conv) {
+            misses.push(format!("{name}::{cname}"));
+        }
+    });
+    assert!(
+        misses.is_empty(),
+        "text fixtures undetected with trailing spaces ({total} checked): {misses:?}"
+    );
+}

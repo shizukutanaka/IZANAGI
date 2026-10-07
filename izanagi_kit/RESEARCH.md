@@ -6994,3 +6994,25 @@ nickelの修正:`t.contains(" in ")|contains(" in\n")` → 既存のwords()
 
 残課題:UTF-16/UTF-32入力の扱い(全検出器が対象外か、先頭BOMで復号するか方針決定要)、
 Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture要求。
+
+## 第413次：入力正規化の網羅性 — 行末・空白ドリフトの4変異掃引
+
+切り口:fixtureに「現実のファイル形状ドリフト」4変異を掛けて計測
+(検出されるテキストfixture ~415件):
+
+- 末尾改行なし(末尾`\n`全削除): **0 miss** — EOF許容は既に完全
+- 各行末スペース: **1 miss** — dictd(右端b64フィールドに空白混入で行棄却)
+  → `index_line`の先頭で`trim_end`適用で修正、実害解消
+- 先頭空行: **16 miss** — 全てヘッダ署名形式(raf/slob/sp3/mtx/aiger/
+  hl7/asciicast等)。先頭バイトが形式の一部なので棄却は**正当**で、
+  missではなく設計通りを確認
+- CR-only(`\n`→`\r`): **220/366 miss** — Rust `lines()`は`\r`単独を
+  分割しないため全行が1行に潰れる。旧Mac OS系の前時代的入力であり
+  UTF-16と同じ「バイト指向設計の方針外」として記録
+
+恒久化:`tests/crlf_tolerated.rs`に`for_each_detected_text_fixture`
+ヘルパを追加し、`missing_final_newline`/`trailing_spaces`の2スイープを
+恒久契約化(共に0 miss assert)。
+
+残課題:CR-only/NEL/LS/PSの正規化方針(方針決定要)、
+非UTF-8(Latin-1)入力、dictd同型の「右端フィールド厳格一致」残存確認。
