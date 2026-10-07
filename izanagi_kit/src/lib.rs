@@ -1107,6 +1107,7 @@ pub mod geojson;
 pub mod geometry;
 pub mod gerber;
 pub mod gethconf;
+pub mod getmailrc;
 pub mod gexf;
 pub mod gf;
 pub mod gf2;
@@ -1216,6 +1217,7 @@ pub mod hgrc;
 pub mod hgt;
 pub mod hiawatha;
 pub mod hiberfil;
+pub mod himalayaconf;
 pub mod hirschberg;
 pub mod histrect;
 pub mod hivemq;
@@ -1769,6 +1771,7 @@ pub mod ntpsec;
 pub mod nuconf;
 pub mod nuget;
 pub mod nugetconfig;
+pub mod nullmailerconf;
 pub mod nunit;
 pub mod nuxt;
 pub mod nwc;
@@ -1915,6 +1918,7 @@ pub mod piecetable;
 pub mod pihole;
 pub mod pileup;
 pub mod pim;
+pub mod pinerc;
 pub mod pinpoint;
 pub mod pipewireconf;
 pub mod pipfile;
@@ -1972,6 +1976,7 @@ pub mod postcss;
 pub mod postfix;
 pub mod postgresql;
 pub mod postman;
+pub mod postsrsdconf;
 pub mod ppf;
 pub mod ppp;
 pub mod pppdconf;
@@ -2072,6 +2077,7 @@ pub mod ras;
 pub mod raster;
 pub mod ratbezier;
 pub mod ray;
+pub mod razorconf;
 pub mod rc;
 pub mod rcloneconf;
 pub mod rdata;
@@ -2293,6 +2299,7 @@ pub mod smi;
 pub mod smithy;
 pub mod smt2;
 pub mod smtp;
+pub mod smtpdconf;
 pub mod snap;
 pub mod snapcast;
 pub mod snapcraft;
@@ -2349,6 +2356,7 @@ pub mod srt;
 pub mod ssh;
 pub mod sshconf;
 pub mod sshkey;
+pub mod ssmtpconf;
 pub mod sssdconf;
 pub mod sst;
 pub mod ssw;
@@ -3318,6 +3326,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gemrc", gemrc::detect),
     ("gemspec", gemspec::detect),
     ("gethconf", gethconf::detect),
+    ("getmailrc", getmailrc::detect),
     ("gexf", gexf::detect),
     ("gf", gf::detect),
     ("ghosttyconf", ghosttyconf::detect),
@@ -3381,6 +3390,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("hgignore", hgignore::detect),
     ("hgrc", hgrc::detect),
     ("hiawatha", hiawatha::detect),
+    ("himalayaconf", himalayaconf::detect),
     ("hivemq", hivemq::detect),
     ("hl7", hl7::detect),
     ("hlsl", hlsl::detect),
@@ -3695,6 +3705,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ntpsec", ntpsec::detect),
     ("nuconf", nuconf::detect),
     ("nugetconfig", nugetconfig::detect),
+    ("nullmailerconf", nullmailerconf::detect),
     ("nuxt", nuxt::detect),
     ("nwc", nwc::detect),
     ("nxconf", nxconf::detect),
@@ -3765,6 +3776,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pidginconf", pidginconf::detect),
     ("pihole", pihole::detect),
     ("pileup", pileup::detect),
+    ("pinerc", pinerc::detect),
     ("pinpoint", pinpoint::detect),
     ("pipewireconf", pipewireconf::detect),
     ("pipfile", pipfile::detect),
@@ -3794,6 +3806,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("postcss", postcss::detect),
     ("postfix", postfix::detect),
     ("postgresql", postgresql::detect),
+    ("postsrsdconf", postsrsdconf::detect),
     ("pppdconf", pppdconf::detect),
     ("pprof", pprof::detect),
     ("ppssppconf", ppssppconf::detect),
@@ -3856,6 +3869,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("railwayconf", railwayconf::detect),
     ("rakefile", rakefile::detect),
     ("raml", raml::detect),
+    ("razorconf", razorconf::detect),
     ("rc", rc::detect),
     ("rcloneconf", rcloneconf::detect),
     ("rdpfile", rdpfile::detect),
@@ -3967,6 +3981,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("smd", smd::detect),
     ("smithy", smithy::detect),
     ("smt2", smt2::detect),
+    ("smtpdconf", smtpdconf::detect),
     ("snapcast", snapcast::detect),
     ("snapcraft", snapcraft::detect),
     ("snmpdconf", snmpdconf::detect),
@@ -3997,6 +4012,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("srcdscfg", srcdscfg::detect),
     ("srhtconf", srhtconf::detect),
     ("sshconf", sshconf::detect),
+    ("ssmtpconf", ssmtpconf::detect),
     ("sssdconf", sssdconf::detect),
     ("stack", stack::detect),
     ("stalwartconf", stalwartconf::detect),
@@ -5283,6 +5299,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("gethconf", |b| {
         let _ = gethconf::parse(b);
     }),
+    ("getmailrc", |b| {
+        let _ = getmailrc::parse(b);
+    }),
     ("gexf", |b| {
         let _ = gexf::parse(b);
     }),
@@ -5441,6 +5460,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("hiberfil", |b| {
         let _ = hiberfil::parse(b);
+    }),
+    ("himalayaconf", |b| {
+        let _ = himalayaconf::parse(b);
     }),
     ("hivemq", |b| {
         let _ = hivemq::parse(b);
@@ -6360,6 +6382,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("nugetconfig", |b| {
         let _ = nugetconfig::parse(b);
     }),
+    ("nullmailerconf", |b| {
+        let _ = nullmailerconf::parse(b);
+    }),
     ("nunit", |b| {
         let _ = nunit::parse(b);
     }),
@@ -6573,6 +6598,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("pim", |b| {
         let _ = pim::parse(b);
     }),
+    ("pinerc", |b| {
+        let _ = pinerc::parse(b);
+    }),
     ("pjs", |b| {
         let _ = pjs::parse(b);
     }),
@@ -6614,6 +6642,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("pmd", |b| {
         let _ = pmd::parse(b);
+    }),
+    ("postsrsdconf", |b| {
+        let _ = postsrsdconf::parse(b);
     }),
     ("projjson", |b| {
         let _ = projjson::parse(b);
@@ -6770,6 +6801,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("ras", |b| {
         let _ = ras::parse(b);
+    }),
+    ("razorconf", |b| {
+        let _ = razorconf::parse(b);
     }),
     ("rc", |b| {
         let _ = rc::parse(b);
@@ -7098,6 +7132,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("smtp", |b| {
         let _ = smtp::parse(b);
     }),
+    ("smtpdconf", |b| {
+        let _ = smtpdconf::parse(b);
+    }),
     ("snap", |b| {
         let _ = snap::parse(b);
     }),
@@ -7136,6 +7173,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("spec", |b| {
         let _ = spec::parse(b);
+    }),
+    ("ssmtpconf", |b| {
+        let _ = ssmtpconf::parse(b);
     }),
     ("srcdscfg", |b| {
         let _ = srcdscfg::parse(b);

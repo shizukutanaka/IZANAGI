@@ -6661,6 +6661,44 @@ mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
 カバー済みのため差替。いずれも行アンカー判定、コメント行除外、
 テスト4本ずつ。
 
+## 第390次
+
+メールエコシステム(リレーヤ/フェッチャ/クライアント/スパム判定系)
+の設定形式8モジュールを追加。
+
+- ssmtpconf(sSMTP:`root`/`mailhub`/`rewriteDomain`/`hostname`/
+  `FromLineOverride`/`UseTLS`/`UseSTARTTLS`/`AuthUser`/`AuthPass`/
+  `TLSCert`/`TLS_CA_File`等、key>=3)
+- smtpdconf(OpenSMTPD smtpd.conf:`listen on`/`pki`/`table`/
+  `action`/`match`/`queue`/`filter`/`mta`/`smtp`/`bounce`/
+  `masquerade`/`mda`/`mmda`/`include`/`ca`/`tag`/`limit`等、
+  anchor>=2 or 動詞>=5)
+- nullmailerconf(nullmailer /etc/nullmailer/remotes:
+  `<host> <smtp|ssl|qmqp> [--user/--pass/--port/--auth-login/
+  --starttls/--insecure/--ssl/--x509*/--source/--helo/--auth]`行、
+  >=1)
+- postsrsdconf(postsrsd systemd env風:`SRS_DOMAIN`/
+  `SRS_EXCLUDE_DOMAINS`/`SRS_FORWARD_PORT`/`SRS_REVERSE_PORT`/
+  `SRS_SECRET`/`SRS_TIMEOUT`/`RUN_AS`/`CHROOT_DIR`/`SEPARATOR`等、
+  >=2)
+- getmailrc([retriever]/[destination]/[options]/[filter-*]
+  セクション+`type = Simple*Retriever/Maildir/Mboxrd/MDA_external/
+  Filter_*`+server/username/password/mailboxes/path/delete/
+  read_all/verbose/message_log等、sec>=1&key>=2 or key>=4)
+- pinerc(Alpine .pinerc:`personal-name`/`user-domain`/`smtp-server`/
+  `inbox-path`/`feature-list`/`initial-keystroke-list`/
+  `display-filters`/`sending-filters`/`addressbook`/`signature-file`/
+  `bugs-*`/`rsh-*`/`smime-*`/`quell-*`等、>=3)
+- himalayaconf(himalaya config.toml:`[accounts.*]`+email/
+  display-name/default/backend.type/imap-*/smtp-*/notmuch-db-path/
+  maildir.*/sendmail.*/message.*/sync.*等、sec>=1&key>=2 or key>=4)
+- razorconf(Vipul's Razor razor-agent.conf:`razorhome`/`listfile`/
+  `logfile`/`debuglevel`/`razordiscovery`/`logic_method`/
+  `use_engines`/`engine_*_max_cf`/`engine_*_max_policy`/`se`/`cf`/
+  `whitelist`等、>=3)
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
 ## 第391次
 
 サンドボックス/強制アクセス制御・レガシーインフラ系の設定形式
