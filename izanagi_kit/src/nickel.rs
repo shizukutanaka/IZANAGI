@@ -57,7 +57,8 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(v) => v,
         Err(_) => return false,
     };
-    (t.contains("let ") && (t.contains(" in ") || t.contains(" in\n"))) || t.contains("import \"")
+    // `in` is matched as a word so CRLF line endings (`in\r\n`) also hit.
+    (t.contains("let ") && words(t).any(|w| w == "in")) || t.contains("import \"")
 }
 
 impl Nickel {
@@ -110,6 +111,12 @@ mod tests {
         assert!(detect(b"let a = import \"x.ncl\" in a"));
         assert!(!detect(b"plain text"));
         assert!(!detect(b""));
+    }
+
+    #[test]
+    fn detects_crlf_source() {
+        // `in` immediately before CRLF (`in\r\n`) is still the keyword.
+        assert!(detect(b"let x = 1 in\r\n{ value = x }\r\n"));
     }
 
     #[test]
