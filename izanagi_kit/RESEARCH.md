@@ -6880,7 +6880,6 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
-
 ## 第396次
 
 監査(第3回)で「panic非発火は共有コーパスでは深いパース経路に
@@ -6894,3 +6893,24 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
 - 432モジュールの深いパース経路を新規カバー
   (共有fodderがdetect閾値を通らず early-return していた領域)。
 - 抽出器の劣化を防ぐ `covered >= 400` の下限 assert 付き。
+
+## 第398次 検出の再現率(recall)契約 — own_fixture_detected
+
+fixture抽出機構を `tests/own_fixture_detected.rs` にも展開し、recall側の契約を
+固定: 各モジュールの `const ..: &[u8]` フィクスチャは「そのモジュール自身の
+DETECTORSエントリで必ず検出される」ことを全件assert。
+
+スイープの結果、missは8件のみで全て「意図的な部分const」だった
+(edsk::STD/EXT/TIB = マジック断片, kittyimg/iterm::MARK = エスケープ
+シーケンス接頭辞, jbig2::SIG = シグネチャのみ, rvdata::TAGS/sudoku::EMPTY =
+文字集合)。実在のrecallバグは0件 — 検出器は自fixtureを全て検出済み。
+部分constは `KNOWN_FRAGMENTS` リストで明示宣言し、リストの陳腐化
+(実fixture化/削除)もassertで検出する。今後detect()の精密化が自モジュールの
+fixtureを失墜させた場合、このテストが回帰を捕捉する。
+
+補足: r396/r397で共有している fixture 抽出コードは当テストにも複写
+(#416マージ前のためmain上にfixture_contract.rsが存在しない)。統合は
+両者マージ後の統合候補。
+
+残課題: マジック断片系の「最小検出単位」ドキュメント化、doctest埋め込み
+fixture(let cfg = b"...")の抽出対応、detect⇒parse契約。
