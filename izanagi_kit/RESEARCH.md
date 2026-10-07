@@ -6563,6 +6563,8 @@ database/engine等ブロック>=2 or ブロック>=1&ドット>=1 or ドット>=
 luigi(luigi.cfg INI:[core]/[scheduler]/[worker]/[resources]等
 既知セクション>=1&キー>=1 or キー>=2 or セクション>=2)。
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+
 ## 第383次
 
 アマチュア無線/SDR系の設定形式8モジュールを追加:
@@ -6660,6 +6662,27 @@ metatile/stale lock timeout等、hint>=1&>=3 or >=5)。
 mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
 カバー済みのため差替。いずれも行アンカー判定、コメント行除外、
 テスト4本ずつ。
+## 第387次
+
+ゲームエミュレータ系の設定形式8モジュールを追加:
+scummvm(.ini:[scummvm]+gameid/engineid/path/language等>=1&>=1 or >=3)、
+mednafen(.cfg:`;`コメント+`key value`ドットキー、psx./video./sound./
+ss./nes./gba.等既知プレフィックス>=3)、
+citraconf(qt-config.ini:[Core]/[Renderer]/[Audio]等+use_cpu_jit/
+hw_shader/resolution_factor等)、
+dosboxconf(dosbox-*.conf:[sdl]/[cpu]/[mixer]/[sblaster]等+
+fullscreen/output/cycles/memsize/oplmode等)、
+melonds(melonDS.ini:フラットkey=value、ScreenSwap/ScreenVSync/
+3DRenderer/BIOS9Path/DSiNANDPath/EnableDLDI等>=3)、
+bsnes(bsnes settings.cfg:`Section/Key = value`階層キー、
+Video/Driver/Audio/Input/Paths/Emulator等>=3)、
+fceux(fceux.cfg:`SDL.*`ドットキー key=value>=3)、
+openmsx(settings.xml:<settings>+<setting id="renderer/scale_factor/
+vsync/scanline等">、root>=1&>=2 or >=4)。
+retroarch/pcsx2/yuzuは既存retroarch/pcsx2conf/yuzuconf、
+dolphin/mameはdolphinconf/mameconf、ppsspp/rpcs3はppssppconf/
+rpcs3conf、desmumeはdsvでカバー済みのため差替。
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
 ## 第389次
 
 Linux入力/セッション層・Usenet/DLNA残り系の

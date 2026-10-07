@@ -599,6 +599,7 @@ pub mod browserslist;
 pub mod bru;
 pub mod bsdiff;
 pub mod bsgs;
+pub mod bsnes;
 pub mod bson;
 pub mod bsp;
 pub mod bspline;
@@ -693,6 +694,7 @@ pub mod cilium;
 pub mod circleci;
 pub mod circulation;
 pub mod cirrus;
+pub mod citraconf;
 pub mod civil;
 pub mod clangformat;
 pub mod clangtidy;
@@ -879,6 +881,7 @@ pub mod docusaurus;
 pub mod docx;
 pub mod dolphinconf;
 pub mod dominators;
+pub mod dosboxconf;
 pub mod dossys;
 pub mod dot;
 pub mod dotenv;
@@ -1003,6 +1006,7 @@ pub mod fastq;
 pub mod fat;
 pub mod fb2;
 pub mod fbx;
+pub mod fceux;
 pub mod fchk;
 pub mod fcoe;
 pub mod fds;
@@ -1599,9 +1603,11 @@ pub mod med;
 pub mod mediamtx;
 pub mod mediawiki;
 pub mod medline;
+pub mod mednafen;
 pub mod meetmid;
 pub mod mei;
 pub mod meili;
+pub mod melonds;
 pub mod meltano;
 pub mod memcachedconf;
 pub mod menu;
@@ -1826,6 +1832,7 @@ pub mod openfaas;
 pub mod openfga;
 pub mod openhab;
 pub mod openlane;
+pub mod openmsx;
 pub mod openntpd;
 pub mod openpulse;
 pub mod openrc;
@@ -2226,6 +2233,7 @@ pub mod sch;
 pub mod scl;
 pub mod sconstruct;
 pub mod scp;
+pub mod scummvm;
 pub mod scyllaop;
 pub mod sdc;
 pub mod sddmconf;
@@ -3082,6 +3090,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("browserconfig", browserconfig::detect),
     ("browserslist", browserslist::detect),
     ("bru", bru::detect),
+    ("bsnes", bsnes::detect),
     ("btrbk", btrbk::detect),
     ("btrfs", btrfs::detect),
     ("buck", buck::detect),
@@ -3133,6 +3142,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cilium", cilium::detect),
     ("circleci", circleci::detect),
     ("cirrus", cirrus::detect),
+    ("citraconf", citraconf::detect),
     ("clangformat", clangformat::detect),
     ("clangtidy", clangtidy::detect),
     ("clar", clar::detect),
@@ -3240,6 +3250,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("docsify", docsify::detect),
     ("docusaurus", docusaurus::detect),
     ("dolphinconf", dolphinconf::detect),
+    ("dosboxconf", dosboxconf::detect),
     ("dossys", dossys::detect),
     ("dot", dot::detect),
     ("dotenv", dotenv::detect),
@@ -3295,6 +3306,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fail2banconf", fail2banconf::detect),
     ("falcoconf", falcoconf::detect),
     ("far", far::detect),
+    ("fceux", fceux::detect),
     ("fcoe", fcoe::detect),
     ("feast", feast::detect),
     ("ferm", ferm::detect),
@@ -3621,8 +3633,10 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("med", med::detect),
     ("mediamtx", mediamtx::detect),
     ("mediawiki", mediawiki::detect),
+    ("mednafen", mednafen::detect),
     ("mei", mei::detect),
     ("meili", meili::detect),
+    ("melonds", melonds::detect),
     ("meltano", meltano::detect),
     ("memcachedconf", memcachedconf::detect),
     ("mergify", mergify::detect),
@@ -3760,6 +3774,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("openfga", openfga::detect),
     ("openhab", openhab::detect),
     ("openlane", openlane::detect),
+    ("openmsx", openmsx::detect),
     ("openntpd", openntpd::detect),
     ("openpulse", openpulse::detect),
     ("openrc", openrc::detect),
@@ -3968,6 +3983,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("scl", scl::detect),
     ("sconstruct", sconstruct::detect),
     ("scp", scp::detect),
+    ("scummvm", scummvm::detect),
     ("scyllaop", scyllaop::detect),
     ("sdc", sdc::detect),
     ("sddmconf", sddmconf::detect),
@@ -4599,6 +4615,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("bsdiff", |b| {
         let _ = bsdiff::parse(b);
     }),
+    ("bsnes", |b| {
+        let _ = bsnes::parse(b);
+    }),
     ("bson", |b| {
         let _ = bson::parse(b);
     }),
@@ -4718,6 +4737,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("cirrus", |b| {
         let _ = cirrus::parse(b);
+    }),
+    ("citraconf", |b| {
+        let _ = citraconf::parse(b);
     }),
     ("classfile", |b| {
         let _ = classfile::parse(b);
@@ -4998,6 +5020,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("dolphinconf", |b| {
         let _ = dolphinconf::parse(b);
     }),
+    ("dosboxconf", |b| {
+        let _ = dosboxconf::parse(b);
+    }),
     ("dpx", |b| {
         let _ = dpx::parse(b);
     }),
@@ -5171,6 +5196,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("fbx", |b| {
         let _ = fbx::parse(b);
+    }),
+    ("fceux", |b| {
+        let _ = fceux::parse(b);
     }),
     ("fchk", |b| {
         let _ = fchk::parse(b);
@@ -6135,8 +6163,14 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("medline", |b| {
         let _ = medline::parse(b);
     }),
+    ("mednafen", |b| {
+        let _ = mednafen::parse(b);
+    }),
     ("mei", |b| {
         let _ = mei::parse(b);
+    }),
+    ("melonds", |b| {
+        let _ = melonds::parse(b);
     }),
     ("meltano", |b| {
         let _ = meltano::parse(b);
@@ -6512,6 +6546,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("openlane", |b| {
         let _ = openlane::parse(b);
+    }),
+    ("openmsx", |b| {
+        let _ = openmsx::parse(b);
     }),
     ("overpass", |b| {
         let _ = overpass::parse(b);
@@ -7052,6 +7089,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("saif", |b| {
         let _ = saif::parse(b);
+    }),
+    ("scummvm", |b| {
+        let _ = scummvm::parse(b);
     }),
     ("sdrppconf", |b| {
         let _ = sdrppconf::parse(b);
