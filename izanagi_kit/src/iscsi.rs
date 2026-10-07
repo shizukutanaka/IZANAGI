@@ -63,7 +63,11 @@ fn op_name(initiator: bool, op: u8) -> &'static str {
     }
 }
 
-/// Detects a plausible iSCSI BHS: 48 bytes min, valid opcode range, sane AHS size.
+/// Detects a plausible iSCSI BHS: 48 bytes min, valid opcode range, and the
+/// declared frame length (AHS + data segment) must fit in the buffer. The
+/// length bound is what rejects text: an ASCII `#` (0x23) reads as the
+/// Login Response opcode and byte 4 as a plausible AHS size, but bytes 5..8
+/// form a multi-megabyte data length that cannot fit.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     if b.len() < 48 {
@@ -72,7 +76,9 @@ pub fn detect(b: &[u8]) -> bool {
     let op = b[0] & 0x3f;
     let ok =
         (op <= 0x06) || op == 0x10 || (0x20..=0x26).contains(&op) || (0x31..=0x32).contains(&op);
-    ok && (b[4] as usize) * 4 + 48 <= b.len() && (b[4] == 0 || b.len() >= 48 + 4)
+    let ahs = (b[4] as usize) * 4;
+    let data_len = ((b[5] as usize) << 16) | ((b[6] as usize) << 8) | (b[7] as usize);
+    ok && 48 + ahs + data_len <= b.len() && (b[4] == 0 || b.len() >= 48 + 4)
 }
 
 /// Parses the 48-byte BHS; `None` when `detect` fails.
@@ -107,10 +113,10 @@ mod tests {
 
     #[test]
     fn parses() {
-        let mut d = vec![0u8; 48];
+        let mut d = vec![0u8; 64];
         d[0] = 0x41; // immediate + SCSI Command
         d[1] = 0x87; // F + flags
-        d[7] = 0x10;
+        d[7] = 0x10; // 16-byte data segment (fits the 64-byte buffer)
         d[8] = 1;
         d[16] = 0xde;
         d[17] = 0xad;
@@ -138,5 +144,16 @@ mod tests {
         let mut d = vec![0u8; 48];
         d[0] = 0x1f; // reserved opcode
         assert!(parse(&d).is_none());
+    }
+
+    #[test]
+    fn rejects_text_files() {
+        // `#` is ASCII 0x23, which decodes to the target Login Response
+        // opcode, so comment-led text files used to pass the opcode check.
+        // The declared data length (bytes 5..8) saves us: ASCII text cannot
+        // form a data segment that fits.
+        let t = b"# a comment-led config file\nkey = value\nanother = line\n";
+        assert!(!detect(t));
+        assert!(parse(t).is_none());
     }
 }

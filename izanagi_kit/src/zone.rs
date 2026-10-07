@@ -96,6 +96,7 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut score = 0usize;
+    let mut anchor = false;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with(';') {
@@ -107,11 +108,19 @@ pub fn detect(b: &[u8]) -> bool {
         }
         // an RR line has at least 2 tokens and a known type somewhere
         let toks: Vec<&str> = tr.split_whitespace().collect();
-        if toks.len() >= 2 && rr_of(&toks).is_some() {
-            score += 1;
+        if toks.len() >= 2 {
+            if let Some(tag) = rr_of(&toks) {
+                score += 1;
+                // Bare type names (A/DS/NS) occur as words in ordinary text,
+                // and `$`-prefixed lines appear in other formats (rsyslog);
+                // a zone file always carries an SOA record, so require one.
+                if tag == b's' {
+                    anchor = true;
+                }
+            }
         }
     }
-    score >= 3
+    score >= 3 && anchor
 }
 
 impl Zone {
@@ -226,5 +235,11 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"just some text\nwith words\n"));
         assert!(Zone::parse(b"x").is_none());
+        // RR type names as stray words are not a zone file without SOA.
+        assert!(!detect(b"foo IN bar\nbaz A qux\nquux NS one\n"));
+        // `$`-prefixed lines alone are not enough either (rsyslog config).
+        assert!(!detect(
+            b"$ModLoad imuxsock\n$ActionFileDefaultTemplate t\n*.* /var/log/all\n"
+        ));
     }
 }
