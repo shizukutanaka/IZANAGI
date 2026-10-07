@@ -125,7 +125,13 @@ const KEYS: &[&str] = &[
 ];
 
 fn is_cvar(t: &str) -> bool {
-    let w = t.split_whitespace().next().unwrap_or("");
+    let mut it = t.split_whitespace();
+    let w = it.next().unwrap_or("");
+    // 設定行は `cvar value` の2要素。単独の cvar 名は問い合わせであり
+    // 設定ではないので除外する。
+    if it.next().is_none() {
+        return false;
+    }
     KEYS.contains(&w)
         || w.starts_with("sv_")
         || w.starts_with("mp_")
@@ -196,6 +202,14 @@ mod tests {
     fn prefix_cvars() {
         let b = b"sv_x 1\nmp_y 2\ntv_z 3\nbot_w 4\n";
         assert!(detect(b));
+    }
+
+    #[test]
+    fn bare_cvar_names_do_not_count() {
+        let b = b"sv_maxrate\nsv_minrate\nmp_timelimit\nmp_friendlyfire\n";
+        assert!(!detect(b));
+        let c = parse(b);
+        assert_eq!(c.cvars, 0);
     }
 
     #[test]
