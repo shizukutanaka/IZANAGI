@@ -6937,3 +6937,37 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
+
+## 第404次 — 監査(detect⇔parse双方向契約) + bai2切詰耐性
+
+### 角度
+「検出器とパーサが同じ真実を語るか」— 両レジストリ共通の681モジュールで
+detect⇔parseの双方向整合を機械測定(自fixture + 1バイト破壊 + 切詰、
+計2,752入力)。
+
+### 計測結果
+- 完全fixtureで `detect⇒parse`: 342/344成立。違反はraf::MAGIC/slob::MAGIC
+  (マジック断片const — detectは接頭辞で受理するがparseは完全構造を要求、
+  意図的)。
+- 逆方向 `parse⇒detect`: 6件の切詰違反。内訳 — irssi/systemdboot/zncは
+  detectが「parse+閾値」構造(閾値割れは設計通り)、gbstudio/idlは独立
+  マーカー設計(許容差)、**bai2のみ実害**: detectが`99,`トレーラ必須
+  なのにparseは`01,`ヘッダのみで受理 — 切詰BAI2が検出不能。
+- detect/parseの実契約は3分類: (a)detect≡parse+閾値(irssi等)、
+  (b)独立マーカー同士の近似一致(bai2等)、(c)片方向登録(detect-only
+  663/parse-only 544)。仕様書上の統一契約は未記述。
+
+### 対応
+- bai2: detectを「`01,`ヘッダ + 後続BAI2レコード(02/03/16/49/88/98/99)」
+  に緩和 — 切詰ファイル(トレーラ欠落)を検出可能にしつつ、無関係な
+  `NN,`CSV誤検は型コード限定で防ぐ。
+- `tests/detect_implies_parse.rs` 新設: 完全fixtureで`detect⇒parse`を
+  全681共通モジュールにassert(断片constはKNOWN_FRAGMENTSに宣言)。
+  逆方向は設計上非契約と明記。
+
+### 残課題
+- detectの意図(軽量ゲートか厳格判定か)がモジュール間で非一貫 —
+  契約のドキュメント化が未了。
+- impl形parse(detect-only側)はこの契約テストの型付け到達圏外。
+- parse=Someだがdetect=falseの設計許容差(gbstudio/idl/irssi等)は
+  「トレラントparse+厳格detect」として明示宣言する仕組みがない。
