@@ -482,6 +482,7 @@ pub mod aria2;
 pub mod arith;
 pub mod arj;
 pub mod arkimeconf;
+pub mod arma3conf;
 pub mod arp;
 pub mod arrow;
 pub mod arw;
@@ -988,6 +989,7 @@ pub mod externalsecrets;
 pub mod extmanifest;
 pub mod f2fs;
 pub mod faction;
+pub mod factoriosettings;
 pub mod fail2ban;
 pub mod fail2banconf;
 pub mod falcoconf;
@@ -1573,6 +1575,7 @@ pub mod mcap;
 pub mod mcflow;
 pub mod mch;
 pub mod mcr;
+pub mod mcserverprops;
 pub mod mcts;
 pub mod md2;
 pub mod md3;
@@ -2026,6 +2029,7 @@ pub mod pyproject;
 pub mod pyrightconf;
 pub mod pyroconf;
 pub mod pytestbench;
+pub mod pzserver;
 pub mod qasm;
 pub mod qbittorrent;
 pub mod qcow2;
@@ -2231,6 +2235,7 @@ pub mod serilog;
 pub mod serverless;
 pub mod serverprop;
 pub mod setupcfg;
+pub mod sevendtdxml;
 pub mod sf2;
 pub mod sfc;
 pub mod sfd;
@@ -2337,6 +2342,7 @@ pub mod sqitchconf;
 pub mod sqlite;
 pub mod sqlnet;
 pub mod squid;
+pub mod srcdscfg;
 pub mod srhtconf;
 pub mod srm;
 pub mod srt;
@@ -2438,6 +2444,7 @@ pub mod terminal;
 pub mod terminfo;
 pub mod ternary;
 pub mod terragrunt;
+pub mod terrariaconf;
 pub mod texinfo;
 pub mod textile;
 pub mod textlayout;
@@ -2496,6 +2503,7 @@ pub mod trivyop;
 pub mod trojanconf;
 pub mod trx;
 pub mod ts;
+pub mod ts3serverini;
 pub mod tscn;
 pub mod tsconfig;
 pub mod tsp;
@@ -2993,6 +3001,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("argusconf", argusconf::detect),
     ("aria2", aria2::detect),
     ("arkimeconf", arkimeconf::detect),
+    ("arma3conf", arma3conf::detect),
     ("arw", arw::detect),
     ("asciicast", asciicast::detect),
     ("asdf", asdf::detect),
@@ -3255,6 +3264,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("externalsecrets", externalsecrets::detect),
     ("extmanifest", extmanifest::detect),
     ("f2fs", f2fs::detect),
+    ("factoriosettings", factoriosettings::detect),
     ("fail2ban", fail2ban::detect),
     ("fail2banconf", fail2banconf::detect),
     ("falcoconf", falcoconf::detect),
@@ -3570,6 +3580,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mbedapp", mbedapp::detect),
     ("mbsyncrc", mbsyncrc::detect),
     ("mch", mch::detect),
+    ("mcserverprops", mcserverprops::detect),
     ("md3", md3::detect),
     ("mdx", mdx::detect),
     ("med", med::detect),
@@ -3823,6 +3834,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pyrightconf", pyrightconf::detect),
     ("pyroconf", pyroconf::detect),
     ("pytestbench", pytestbench::detect),
+    ("pzserver", pzserver::detect),
     ("qasm", qasm::detect),
     ("qbittorrent", qbittorrent::detect),
     ("qcp", qcp::detect),
@@ -3931,6 +3943,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("serverless", serverless::detect),
     ("serverprop", serverprop::detect),
     ("setupcfg", setupcfg::detect),
+    ("sevendtdxml", sevendtdxml::detect),
     ("sftp", sftp::detect),
     ("sgi", sgi::detect),
     ("shadowsocksconf", shadowsocksconf::detect),
@@ -3981,6 +3994,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sqitchconf", sqitchconf::detect),
     ("sqlnet", sqlnet::detect),
     ("squid", squid::detect),
+    ("srcdscfg", srcdscfg::detect),
     ("srhtconf", srhtconf::detect),
     ("sshconf", sshconf::detect),
     ("sssdconf", sssdconf::detect),
@@ -4041,6 +4055,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tempoconf", tempoconf::detect),
     ("terminfo", terminfo::detect),
     ("terragrunt", terragrunt::detect),
+    ("terrariaconf", terrariaconf::detect),
     ("textile", textile::detect),
     ("textlint", textlint::detect),
     ("textmategram", textmategram::detect),
@@ -4074,6 +4089,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("trivy", trivy::detect),
     ("trivyop", trivyop::detect),
     ("trojanconf", trojanconf::detect),
+    ("ts3serverini", ts3serverini::detect),
     ("tscn", tscn::detect),
     ("tsconfig", tsconfig::detect),
     ("tsx", tsx::detect),
@@ -4408,6 +4424,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("arkimeconf", |b| {
         let _ = arkimeconf::parse(b);
+    }),
+    ("arma3conf", |b| {
+        let _ = arma3conf::parse(b);
     }),
     ("arp", |b| {
         let _ = arp::parse(b);
@@ -5059,6 +5078,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("excellon", |b| {
         let _ = excellon::parse(b);
+    }),
+    ("factoriosettings", |b| {
+        let _ = factoriosettings::parse(b);
     }),
     ("fail2banconf", |b| {
         let _ = fail2banconf::parse(b);
@@ -6005,6 +6027,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("mcr", |b| {
         let _ = mcr::parse(b);
     }),
+    ("mcserverprops", |b| {
+        let _ = mcserverprops::parse(b);
+    }),
     ("md2", |b| {
         let _ = md2::parse(b);
     }),
@@ -6698,6 +6723,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("pyroconf", |b| {
         let _ = pyroconf::parse(b);
     }),
+    ("pzserver", |b| {
+        let _ = pzserver::parse(b);
+    }),
     ("qcow2", |b| {
         let _ = qcow2::parse(b);
     }),
@@ -6986,6 +7014,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("serilog", |b| {
         let _ = serilog::parse(b);
     }),
+    ("sevendtdxml", |b| {
+        let _ = sevendtdxml::parse(b);
+    }),
     ("sf2", |b| {
         let _ = sf2::parse(b);
     }),
@@ -7105,6 +7136,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("spec", |b| {
         let _ = spec::parse(b);
+    }),
+    ("srcdscfg", |b| {
+        let _ = srcdscfg::parse(b);
     }),
     ("strongswanconf", |b| {
         let _ = strongswanconf::parse(b);
@@ -7238,6 +7272,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("tacacs", |b| {
         let _ = tacacs::parse(b);
     }),
+    ("terrariaconf", |b| {
+        let _ = terrariaconf::parse(b);
+    }),
     ("tilestacheconf", |b| {
         let _ = tilestacheconf::parse(b);
     }),
@@ -7288,6 +7325,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("textile", |b| {
         let _ = textile::parse(b);
+    }),
+    ("ts3serverini", |b| {
+        let _ = ts3serverini::parse(b);
     }),
     ("tuicconf", |b| {
         let _ = tuicconf::parse(b);

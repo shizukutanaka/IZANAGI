@@ -6695,3 +6695,45 @@ mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
   head>=1&kv>=2)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第392次
+
+ゲーム専用サーバ(Minecraft/TS3/Arma/Factorio/Terraria/7DTD/
+Source Engine/Project Zomboid)の設定形式8モジュールを追加。
+
+- mcserverprops(Minecraft server.properties:motd/server-port/
+  max-players/difficulty/gamemode/online-mode/white-list/
+  level-name/level-seed/spawn-*/view-distance/simulation-distance/
+  enable-*/allow-*/op-permission-level/network-compression-threshold/
+  sync-chunk-writes等、>=4)
+- ts3serverini(TeamSpeak3 ts3server.ini:machine_id/default_voice_port/
+  voice_ip/filetransfer_port/query_port/dbplugin/dbsqlpath/logpath/
+  query_ip_whitelist/licensepath/query_protocols/virtualserver_metadata_*
+  等、>=3)
+- arma3conf(Arma3 server.cfg:`key = value;` hostname/password/
+  passwordAdmin/maxPlayers/motd[]/admins[]/voteThreshold/
+  verifySignatures/persistent/battlEye/logFile/headlessClients[]/
+  allowed*Extensions[]等+`class Missions/Mission_N/Params`
+  ブロック、key>=3 or class>=1&key>=1)
+- factoriosettings(Factorio server/map/map-gen settings JSON:
+  `"name"`/`"description"`/`"max_players"`/`"visibility"`/
+  `"autosave_interval"`/`"game_password"`/`"verify_user_identity"`/
+  `"pollution"`/`"enemy_evolution"`/`"unit_group"`/`"seed"`/
+  `"autoplace_controls"`等、{始まり+`"name"`+key>=3)
+- terrariaconf(Terraria config.txt:`world`/`autocreate`/`seed`/
+  `worldname`/`difficulty`/`maxplayers`/`port`/`password`/`motd`/
+  `worldpath`/`banlist`/`secure`/`language`/`upnp`/`npcstream`/
+  `priority`/`journeypermission_*`等、>=3)
+- sevendtdxml(7 Days to Die serverconfig.xml:`<ServerSettings>`+
+  `<property name="ServerName|ServerPort|GameWorld|MaxSpawnedZombies|
+  EACEnabled|BloodMoonFrequency|..." value="..."/>`、>=2 or
+  prop>=1+root要素)
+- srcdscfg(Source Engine server.cfg:`key "value"` convar列、
+  hostname/rcon_password/sv_*/mp_*/tv_*/bot_*、>=4)
+- pzserver(Project Zomboid servertest.ini:DefaultPort/UDPPort/
+  MaxPlayers/PVP/PauseEmpty/Public*/Mods/Map/ServerWelcomeMessage/
+  Safehouse*/RCON*/Steam*/UPnP*/Workshop*/Anticheat*/Discord*/Voice*/
+  Backups*/LoginQueue*/Faction*/DisableRadio*/AllowTradeUI/
+  FastForwardMultiplier等、>=4)
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
