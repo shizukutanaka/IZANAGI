@@ -7001,3 +7001,41 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 測定: `pub fn parse` を持つが `PARSERS` 未登録のモジュールは 665 件 — ただし全て `impl Type` の関連関数(`pub struct X` に対する `X::parse`)であり、レジストリdoc「フリー関数のみ対象」との齟齬はなかったが、**横断panic-freeテストの対象外という実害**は存在した。
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
+
+## 第417次：証拠の深さ — 汎用スニペット誤検出と検出コミット行数
+
+切り口: 「検出器は何行の証拠で結論を出すか」。全fixtureを行頭prefixに縮小し
+最小検出行数を測定 + 形式固有語彙を持たない汎用スニペット12種
+(`name = value`, `set foo bar`, `import foo\nprint(1)` 等)を全DETECTORSに投入。
+
+### 計測所見
+
+- 412モジュールの最小検出行数: 63件が1行(うち大半はXML方言/マジック/1行形式
+  で正当 — fixture自体が1行)、残りは2-3行で確定。大半はfixture先頭が
+  固有マーカー(正しい設計)だが、汎用語彙で確定する検出器が残存。
+- 汎用スニペット命中: `mml`/`haresources`/`dotenv`/`creole`/`mediawiki`/
+  `lucene`/`requirements`/`gitconfig`/`namedconf`/`tmuxconf` は #434–#436 で
+  対応済み(未マージ)。新規実害は以下2件。
+
+### 修正
+
+- `gn`: `print(`/`assert(`/`error(`/`warning(`(DIAG)単独で検出 → Python/JSを
+  誤検出(`import foo\nprint(1)`)。TARGETS呼出・`deps =`/`sources =`等の
+  代入・`import("…gn/.gni")` 引用付きインポートのみを証拠化。
+- `base32`: 空白除去後「英字8文字以上」だけで検出 → 散文の連結("foobarbaz")
+  を誤検出。`=`パディングまたは数字(2–7/0–9)を1文字必須化 — RFC的には
+  数字なしBase32も存在するが、現実のエンコード出力では稀で、散文との
+  構造的区別が不能なため精度を優先(RESEARCH 記録)。
+
+### 恒久化
+
+`tests/generic_snippets_stay_precise.rs` 新設: 汎用スニペット12種それぞれの
+ヒット数がスナップショット上限以下であることをassert(fixtureラチェット
+`foreign_fixture_hits.rs` と相補的 — あちらは実fixture起点、こちらは
+最小合成入力起点)。
+
+### 残置(構造的曖昧性、再確認)
+
+- `nanoid`/`crockford`: アルファベットが英数字全域をカバーするため
+  「妥当なトークン」と「散文断片」に固有の区別信号が存在しない。
+  base32と違い数字要求でも切れない(nanoidは記号なし・数字なしも正当)。
