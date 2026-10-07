@@ -430,6 +430,7 @@ pub mod aln;
 pub mod alphahull;
 pub mod alto;
 pub mod alz;
+pub mod amandaconf;
 pub mod ambassador;
 pub mod amf;
 pub mod amfile;
@@ -520,6 +521,7 @@ pub mod azw;
 pub mod babelrc;
 pub mod backstage;
 pub mod bacnet;
+pub mod baculadir;
 pub mod bai2;
 pub mod bam;
 pub mod bandit;
@@ -1017,6 +1019,7 @@ pub mod fidl;
 pub mod figlet;
 pub mod filebeat;
 pub mod firebase;
+pub mod firejailprof;
 pub mod firewalld;
 pub mod fishconf;
 pub mod fit;
@@ -1754,6 +1757,7 @@ pub mod nrg;
 pub mod nrrd;
 pub mod nsd;
 pub mod nsf;
+pub mod nsjailcfg;
 pub mod nslcdconf;
 pub mod nsqconf;
 pub mod nsswitch;
@@ -1841,6 +1845,7 @@ pub mod otsu;
 pub mod overpass;
 pub mod ovf;
 pub mod p7b;
+pub mod pacemaker;
 pub mod pack;
 pub mod packer;
 pub mod packfile;
@@ -2218,6 +2223,8 @@ pub mod segment;
 pub mod segtree;
 pub mod segy;
 pub mod seldon;
+pub mod selinuxfc;
+pub mod selinuxte;
 pub mod semgrep;
 pub mod semver;
 pub mod sendmail;
@@ -2713,6 +2720,7 @@ pub mod xfs;
 pub mod xi;
 pub mod xib;
 pub mod xid;
+pub mod xinetdconf;
 pub mod xl2tpd;
 pub mod xliff;
 pub mod xlink;
@@ -2958,6 +2966,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("aln", aln::detect),
     ("alto", alto::detect),
     ("alz", alz::detect),
+    ("amandaconf", amandaconf::detect),
     ("ambassador", ambassador::detect),
     ("amfile", amfile::detect),
     ("ampl", ampl::detect),
@@ -3016,6 +3025,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
     ("backstage", backstage::detect),
+    ("baculadir", baculadir::detect),
     ("bai2", bai2::detect),
     ("bam", bam::detect),
     ("banditconf", banditconf::detect),
@@ -3267,6 +3277,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fidl", fidl::detect),
     ("filebeat", filebeat::detect),
     ("firebase", firebase::detect),
+    ("firejailprof", firejailprof::detect),
     ("firewalld", firewalld::detect),
     ("fishconf", fishconf::detect),
     ("fivetranconf", fivetranconf::detect),
@@ -3676,6 +3687,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("npmlock", npmlock::detect),
     ("npmrc", npmrc::detect),
     ("nsd", nsd::detect),
+    ("nsjailcfg", nsjailcfg::detect),
     ("nslcdconf", nslcdconf::detect),
     ("nsqconf", nsqconf::detect),
     ("nsswitch", nsswitch::detect),
@@ -3727,6 +3739,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("otelcol", otelcol::detect),
     ("overpass", overpass::detect),
     ("ovf", ovf::detect),
+    ("pacemaker", pacemaker::detect),
     ("packer", packer::detect),
     ("packit", packit::detect),
     ("pacman", pacman::detect),
@@ -3920,6 +3933,8 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("secretsbaseline", secretsbaseline::detect),
     ("secretsstore", secretsstore::detect),
     ("seldon", seldon::detect),
+    ("selinuxfc", selinuxfc::detect),
+    ("selinuxte", selinuxte::detect),
     ("semgrep", semgrep::detect),
     ("sendmail", sendmail::detect),
     ("sentinel", sentinel::detect),
@@ -4190,6 +4205,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("xdf", xdf::detect),
     ("xib", xib::detect),
     ("xid", xid::detect),
+    ("xinetdconf", xinetdconf::detect),
     ("xl2tpd", xl2tpd::detect),
     ("xlink", xlink::detect),
     ("xmakeconf", xmakeconf::detect),
@@ -4327,6 +4343,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("alz", |b| {
         let _ = alz::parse(b);
+    }),
+    ("amandaconf", |b| {
+        let _ = amandaconf::parse(b);
     }),
     ("amf", |b| {
         let _ = amf::parse(b);
@@ -4474,6 +4493,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("backstage", |b| {
         let _ = backstage::parse(b);
+    }),
+    ("baculadir", |b| {
+        let _ = baculadir::parse(b);
     }),
     ("bai2", |b| {
         let _ = bai2::parse(b);
@@ -5107,6 +5129,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("ferm", |b| {
         let _ = ferm::parse(b);
+    }),
+    ("firejailprof", |b| {
+        let _ = firejailprof::parse(b);
     }),
     ("flagger", |b| {
         let _ = flagger::parse(b);
@@ -6308,6 +6333,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("nsf", |b| {
         let _ = nsf::parse(b);
     }),
+    ("nsjailcfg", |b| {
+        let _ = nsjailcfg::parse(b);
+    }),
     ("nslcdconf", |b| {
         let _ = nslcdconf::parse(b);
     }),
@@ -6445,6 +6473,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("p7b", |b| {
         let _ = p7b::parse(b);
+    }),
+    ("pacemaker", |b| {
+        let _ = pacemaker::parse(b);
     }),
     ("packfile", |b| {
         let _ = packfile::parse(b);
@@ -6970,6 +7001,12 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("segy", |b| {
         let _ = segy::parse(b);
+    }),
+    ("selinuxfc", |b| {
+        let _ = selinuxfc::parse(b);
+    }),
+    ("selinuxte", |b| {
+        let _ = selinuxte::parse(b);
     }),
     ("sequelizerc", |b| {
         let _ = sequelizerc::parse(b);
@@ -7681,6 +7718,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("xi", |b| {
         let _ = xi::parse(b);
+    }),
+    ("xinetdconf", |b| {
+        let _ = xinetdconf::parse(b);
     }),
     ("yggdrasil", |b| {
         let _ = yggdrasil::parse(b);
