@@ -59,7 +59,16 @@ pub fn detect(b: &[u8]) -> bool {
     };
     t.lines().any(|l| {
         let tr = l.trim();
-        !tr.is_empty() && !tr.starts_with('#') && fields(tr).len() >= 5
+        if tr.is_empty() || tr.starts_with('#') {
+            return false;
+        }
+        // `host:port:db:user:password` — the port slot is digits or `*`;
+        // any file with five colon fields (fstab-like, passwd, …) without
+        // a port-shaped second field is not .pgpass
+        let fs = fields(tr);
+        fs.len() >= 5
+            && !fs[1].is_empty()
+            && (fs[1] == "*" || fs[1].chars().all(|c| c.is_ascii_digit()))
     })
 }
 
