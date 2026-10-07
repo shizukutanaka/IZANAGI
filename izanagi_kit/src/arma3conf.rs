@@ -15,7 +15,10 @@
 //! `localClient[]`/`loopback`/`dedicatedServerId`/`doubleIdDetected`/
 //! `onUserConnected`/`onUserDisconnected`/`onHackedData`/
 //! `onDifferentData`/`onUnsignedData`/`regularCheck`/`steamProtocolMaxDataSize`
-//! と、`class Missions { class Mission_1 { template = ...;
+//! と、basic.cfg の帯域設定 `MinBandwidth`/`MaxBandwidth`/
+//! `MaxSizeGuaranteed`/`MaxSizeNonguaranteed`/`MinErrorToSend`/
+//! `MinErrorToSendNear`、および
+//! `class Missions { class Mission_1 { template = ...;
 //! difficulty = ...; }; };`/`class Params` ブロックで構成される。
 //!
 //! ```
@@ -56,13 +59,19 @@ const KEYS: &[&str] = &[
     "localClient",
     "logFile",
     "loopback",
+    "MaxBandwidth",
     "maxCustomFileSize",
     "maxDesync",
     "maxHTMLLoadURIsize",
     "maxPacketLoss",
     "maxPing",
     "maxPlayers",
+    "MaxSizeGuaranteed",
+    "MaxSizeNonguaranteed",
     "mercenary",
+    "MinBandwidth",
+    "MinErrorToSend",
+    "MinErrorToSendNear",
     "missionWhitelist",
     "motd",
     "onDifferentData",
@@ -170,6 +179,14 @@ mod tests {
         let b =
             b"hostname = \"x\";\nclass Missions {\nclass Mission_1 {\ntemplate = altis;\n};\n};\n";
         assert!(detect(b));
+    }
+
+    #[test]
+    fn detects_basic_cfg() {
+        let b = b"MinBandwidth = 131072;\nMaxBandwidth = 524288;\nMaxSizeGuaranteed = 512;\nMaxSizeNonguaranteed = 256;\nMinErrorToSend = 0.001;\n";
+        assert!(detect(b));
+        let c = parse(b);
+        assert_eq!(c.keys, 5);
     }
 
     #[test]
