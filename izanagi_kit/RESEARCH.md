@@ -7001,3 +7001,27 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 測定: `pub fn parse` を持つが `PARSERS` 未登録のモジュールは 665 件 — ただし全て `impl Type` の関連関数(`pub struct X` に対する `X::parse`)であり、レジストリdoc「フリー関数のみ対象」との齟齬はなかったが、**横断panic-freeテストの対象外という実害**は存在した。
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
+
+## 第420–421次：リソース境界 — 入力由来割当のキャップ
+
+切り口: `panic`不能の次の敵は `with_capacity`/`vec!`/`repeat` の
+入力由来サイズ — 数バイト入力が数十GB要求を引き起こし、allocator
+abort(強制終了、panicですら捕捉不能)を招く。
+
+全837件の割当サイトを計測。キャップ規約(.min(1<<N))は既に20モジュールに
+存在する一方、ヘッダのu32/テキストのusizeを検証前に容量ヒントへ渡す
+実害が8モジュールに存在:
+
+- tzif: timecnt/typecnt(u32) — 残りバイト数/(レコードサイズ)でキャップ
+- off: nv/nf/n(テキスト) — data.len()由来キャップ
+- xyz: count(テキスト) — 同上
+- ply: list_count(u32系) — 残りバイト数/要素サイズでキャップ
+- rans/lzss/pcx/gif: 宣言出力長 — ヒントを1<<22にキャップ
+  (with_capacityはヒントでありpushの正当拡張を殺さない)
+
+安全確認済み: hll(clamp<=16), ttc/woff/pcf(上限値検査),
+stl/grp/shp/vox/bson(サイズ一致・チェック済み), dbf(u16), otf(u16)
+
+残課題: `1usize << n` のshift overflow経路(meetmid/sosdp/magic —
+アルゴリズムAPI、caller責任だが要ドキュメント)、全割当サイトの機械的分類、
+`Vec::push`ループ自体の入力比例OOM(逐次拡張ではなく飽和対応)。
