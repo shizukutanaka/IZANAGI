@@ -138,6 +138,7 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut score = 0usize;
+    let mut zone_blocks = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with('#') || tr.starts_with(';') || tr.starts_with("//") {
@@ -150,9 +151,19 @@ pub fn detect(b: &[u8]) -> bool {
         }
         if tr.ends_with('{') && !head.is_empty() {
             score += 1;
+            // ゾーン先頭行はドメイン形(`example.org`/`example.org:53`/`localhost`)か
+            // `.` / `.:port` — `server {`/`location {`/`x {` だけでは断定しない。
+            if head == "."
+                || head.starts_with('.')
+                || head.contains(':')
+                || head.contains('.')
+                || head == "localhost"
+            {
+                zone_blocks += 1;
+            }
         }
     }
-    score >= 3
+    score >= 3 && zone_blocks >= 1
 }
 
 impl Corefile {

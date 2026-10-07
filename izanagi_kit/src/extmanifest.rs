@@ -88,6 +88,28 @@ pub struct Counts {
     pub misc: usize,
 }
 
+/// ブラウザ拡張マニフェスト固有キー(`name`/`description`/`author` 等の
+/// 汎用キーとの区別に最低1件要求)。
+const EXCLUSIVE_KEYS: &[&str] = &[
+    "browser_action",
+    "browser_specific_settings",
+    "chrome_settings_overrides",
+    "chrome_url_overrides",
+    "content_scripts",
+    "declarative_net_request",
+    "devtools_page",
+    "externally_connectable",
+    "host_permissions",
+    "manifest_version",
+    "omnibox",
+    "options_ui",
+    "page_action",
+    "sidebar_action",
+    "side_panel",
+    "tts_engine",
+    "web_accessible_resources",
+];
+
 fn key_hits(t: &str) -> usize {
     let t = t.strip_prefix("- ").map_or(t, |s| s.trim_start());
     let mut n = 0usize;
@@ -99,23 +121,30 @@ fn key_hits(t: &str) -> usize {
     n
 }
 
+fn exclusive_hits(t: &str) -> usize {
+    let t = t.strip_prefix("- ").map_or(t, |s| s.trim_start());
+    EXCLUSIVE_KEYS
+        .iter()
+        .filter(|k| t.contains(&format!("\"{}\":", k)) || t.starts_with(&format!("{k}:")))
+        .count()
+}
+
 /// 拡張マニフェストらしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
     let mut hits = 0usize;
+    let mut exclusive = 0usize;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with("//") || t.starts_with('#') {
             continue;
         }
         hits += key_hits(t);
-        if hits >= 3 {
-            return true;
-        }
+        exclusive += exclusive_hits(t);
     }
-    false
+    hits >= 3 && exclusive >= 1
 }
 
 /// 構造をカウントする。

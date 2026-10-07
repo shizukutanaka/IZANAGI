@@ -64,6 +64,29 @@ pub struct Counts {
     pub misc: usize,
 }
 
+/// Web App Manifest 固有キー(`name`/`id`/`icons` 等の汎用キーとの区別に
+/// 最低1件要求)。
+const EXCLUSIVE_KEYS: &[&str] = &[
+    "apparent_orientation",
+    "background_color",
+    "display_override",
+    "edge_side_panel",
+    "file_handlers",
+    "form_factor",
+    "handle_links",
+    "iarc_rating_id",
+    "launch_handler",
+    "prefer_related_applications",
+    "protocol_handlers",
+    "related_applications",
+    "screenshots",
+    "serviceworker",
+    "share_target",
+    "shortcuts",
+    "start_url",
+    "theme_color",
+];
+
 fn key_hits(t: &str) -> usize {
     let t = t.strip_prefix("- ").map_or(t, |s| s.trim_start());
     let mut n = 0usize;
@@ -75,23 +98,30 @@ fn key_hits(t: &str) -> usize {
     n
 }
 
+fn exclusive_hits(t: &str) -> usize {
+    let t = t.strip_prefix("- ").map_or(t, |s| s.trim_start());
+    EXCLUSIVE_KEYS
+        .iter()
+        .filter(|k| t.contains(&format!("\"{}\":", k)) || t.starts_with(&format!("{k}:")))
+        .count()
+}
+
 /// Web App Manifest らしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
     let mut hits = 0usize;
+    let mut exclusive = 0usize;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with("//") || t.starts_with('#') {
             continue;
         }
         hits += key_hits(t);
-        if hits >= 3 {
-            return true;
-        }
+        exclusive += exclusive_hits(t);
     }
-    false
+    hits >= 3 && exclusive >= 1
 }
 
 /// 構造をカウントする。

@@ -52,19 +52,27 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let hits = t
-        .lines()
-        .filter(|l| {
-            let s = l.trim();
-            s.starts_with("syntax:")
-                || PREFIXES.iter().any(|p| s.starts_with(p))
-                || s.ends_with('/')
-                || s.starts_with('*')
-                || s == "**"
-                || s.contains("**/")
-        })
-        .count();
-    hits >= 2 || t.trim_start().starts_with("syntax:")
+    // `syntax:`/`glob:`/`path:`/`rootglob:`/`regexp:`/`re:`/`include:`… は
+    // .hgignore 固有。globstar や `dir/` は .gitignore と同形なので単独の
+    // 証拠にしない。
+    let mut hits = 0usize;
+    let mut prefixed = 0usize;
+    for l in t.lines() {
+        let s = l.trim();
+        let is_hit = s.starts_with("syntax:")
+            || PREFIXES.iter().any(|p| s.starts_with(p))
+            || s.ends_with('/')
+            || s.starts_with('*')
+            || s == "**"
+            || s.contains("**/");
+        if is_hit {
+            hits += 1;
+            if s.starts_with("syntax:") || PREFIXES.iter().any(|p| s.starts_with(p)) {
+                prefixed += 1;
+            }
+        }
+    }
+    hits >= 2 && prefixed >= 1
 }
 
 impl Hgignore {

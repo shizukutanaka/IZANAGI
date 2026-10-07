@@ -7001,3 +7001,75 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 測定: `pub fn parse` を持つが `PARSERS` 未登録のモジュールは 665 件 — ただし全て `impl Type` の関連関数(`pub struct X` に対する `X::parse`)であり、レジストリdoc「フリー関数のみ対象」との齟齬はなかったが、**横断panic-freeテストの対象外という実害**は存在した。
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
+
+## 第416次：検出器相互偽陽性 — 固有語彙ゲートとヒット・ラチェット
+
+切り口: 「`k=v`/`key:`/`verb` 形の汎用構造だけで検出する検出器は、
+他形式のfixtureに片っ端から命中しないか」。全538fixture×全1,344検出器の
+相互汚染マトリクス(zz_probe流)を計測し、前回までに残った中位帯を精査。
+
+### 修正(20モジュール、固有語彙ゲートの追加)
+
+- `airbyteconf`/`fivetranconf`/`webmanifest`/`extmanifest`: 汎用キー(name/host/
+  path…)に `t == k` の裸語一致や `key:` 一致だけで hits>=3 → 外来JSON/YAMLを
+  一括誤検出。形式固有キーのEXCLUSIVE集合を新設し `hits>=3 && exclusive>=1` に。
+  bare-word一致アームは削除(t=="name" の行だけでヒットになっていた)。
+- `cirrus`: `*_task:` サフィックス・`*_script`/汎用キーのみで hits>=2 →
+  `_task`/`_pipe`/`_template` サフィックスまたは Cirrus 固有キー(only_if/
+  compute_engine_instance/gke_container等)を1件必須化。
+- `corefile`: 任意の `x {` ブロック行 + 汎用プラグイン語(forward/proxy/log/
+  errors…)= スコア3 → `server {`/`location {`/`x {` の nginx/HAProxy 系を
+  誤検出。ブロック先頭行をゾーン形(`example.org`/`x:53`/`localhost`/`.`)に限定。
+- `namedconf`: `key {`/`server {`/`http {`/`tls {`/`view {` で+2 →
+  BIND 固有キーワード(zone "x"/type master/masters/trusted-keys/dnssec-policy
+  等)を1件必須化。
+- `dhclientconf`: `interface`/`zone`/`key`/`script`/`option`/`send`/`request`
+  語頭は named.conf と共通 → `supersede`/`failover`/`lease`/`ddns-*`/`reboot`/
+  `option … code … =` 等の DHCP 固有ステートメントを1件必須化。
+- `limine`: `/`-先頭のパス行だけでブートエントリ計数 → fstab を誤検出。
+  `:Entry` 名付きエントリ/BOOT_KEYS/GLOBAL_KEYS ベースに限定。
+- `meltano`: `name:`/`config:`/`settings:` のリーフキーだけで hits>=4 →
+  Meltano 固有トップキー(default_environment/send_anonymous_usage_stats/
+  venv_backend…)または plugins: 配下の種別キー(extractors/loaders…)必須化。
+- `travisci`: `env:`/`script:`/`install:`/`jobs:`/`cache:` の汎用CIキーで
+  hits>=2 → language/dist/matrix/addons/before_*/after_* 等の Travis 固有キー必須化。
+- `sievescript`: `if`/`elsif`/`require`/`header`/`size`/`set`/`stop`/`keep`
+  語頭で other>=2 → コード/散文を誤検出。fileinto/vacation/redirect/reject/
+  discard/notify/envelope 等の Sieve 固有動詞1件必須化。`require(` は JS と
+  区別するため `require `+空白のみを宣言とみなす。
+- `cmdbat`: `echo`/`set`/`if`/`for`/`exit`/`cd`/`dir`/`type` 行で hits>=2 →
+  シェルスクリプトを誤検出。`@echo`/`%~`/`%X%`/`errorlevel`/`if exist`/
+  `set /a`/`call :`/cmd固有コマンド(setx/schtasks/netsh/icacls 等)必須化。
+- `tmuxconf`: `set`/`bind`/`send`/`source`/`display`/`run`/`bind` 語頭で
+  cmds>=1 → `set x` 行だけのファイルを誤検出。tmux 固有動詞(bind-key/setw/
+  send-keys/…)または `set -g` 形のフラグ付き代入必須化。
+- `ipxescript`: `set`/`echo`/`menu`/`kernel`/`boot`/`route`/`dns`/`ping` 語頭で
+  entries-misc>=3 → シェル系を誤検出。dhcp/chain/sanboot/img*/pxebs/
+  net0 等の iPXE 固有動詞1件必須化(shebang `#!ipxe` は既存どおり即検出)。
+- `monero`: `k.contains('-')` のダッシュ入りキーで hits>=2 → dashed-key設定を
+  誤検出。KNOWN キーのみに限定。
+- `sysctlconf`: `a.b.c=v` ドットキーで hits>=2 → Java properties 系を誤検出。
+  kernel/vm/net/fs/dev/debug/abi/user/sunrpc の既知サブツリー1件必須化。
+- `hgignore`: `*/`/`x/` 形だけで hits>=2 → .gitignore 系を誤検出。
+  `syntax:`/`glob:`/`path:`/`rootglob:`/`re:` 等の Mercurial 固有宣言1件必須化。
+- `sendmail`: `V`先頭行(`Version:`/`VAR` 等)を `v` 証拠に → `V<digit>`
+  (`V10/Berkeley`) に限定。
+
+### 恒久化: 外来ヒット・ラチェット
+
+`tests/foreign_fixture_hits.rs` を新設: 全fixtureを全DETECTORSに通し、
+検出器ごとの外来ヒット数が記録済み上限(CEILINGS)以下であることをassert。
+新規検出器には DEFAULT_CEILING=6 が適用される。上限は下げる方向のみ更新。
+`tests/zz_probe.rs` (暫定census) は役割を移して削除。
+
+### 残置判断(本質的曖昧性)
+
+- `mml`/`haresources`/`requirements`/`lucene`/`creole`/`mediawiki`/`dockerignore`/
+  `gitignore`/`justfile`/`xpath`/`unbound`/`sudoers`/`openssl`/`pppdconf`/
+  `txt2tags`/`gitconfig`/`pgpass`/`memcachedconf`/`rsyslogd`/`autofs`/`inputrc`/
+  `kubemq`/`mpd`: PR #434/#435 で対応済み(未マージ) — このブランチはその上限を
+  スナップショット記録している。マージ後は新たな実測値に締め直す。
+- `crockford`/`base32`/`nanoid`: 文字集合の定義上曖昧(制限アルファベットの
+  トークンは UUID/hex/word に必然適合)。形式を区別する語彙が存在しない
+  構造的限界として残置。
+- `gradle`/`edn`: 既存の strong/weak ゲートで中位(14/10件)。更なる引き締め余地。

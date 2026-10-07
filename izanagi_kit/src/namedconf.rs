@@ -60,6 +60,22 @@ const BLOCK_KW: &[&str] = &[
     "dyndb",
     "parental-agents",
 ];
+/// ほぼ BIND 固有のブロック/ステートメント(`server {`/`http {`/`tls {` は
+/// nginx 等他形式でも使うため除外)。最低1件の出現を要求する。
+const EXCLUSIVE_KW: &[&str] = &[
+    "acl",
+    "controls",
+    "dlz",
+    "dnssec-policy",
+    "dyndb",
+    "logging",
+    "managed-keys",
+    "masters",
+    "options",
+    "parental-agents",
+    "statistics-channels",
+    "trusted-keys",
+];
 const SETTING_PREFIX: &[&str] = &[
     "allow-",
     "listen-on",
@@ -151,6 +167,7 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut score = 0usize;
+    let mut exclusive = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with("//") || tr.starts_with('#') || tr.starts_with("/*") {
@@ -159,16 +176,36 @@ pub fn detect(b: &[u8]) -> bool {
         for kw in BLOCK_KW {
             if tr.starts_with(&format!("{kw} ")) || tr.starts_with(&format!("{kw}{{")) {
                 score += 2;
+                if EXCLUSIVE_KW.contains(kw) {
+                    exclusive += 1;
+                }
             }
         }
         if tr.starts_with("zone") || tr.starts_with("include") || tr.starts_with("type") {
             score += 1;
+            // `zone "name" {`/`type master;`/`include "path"` は BIND 語彙。
+            let tok2 = tr
+                .split_whitespace()
+                .nth(1)
+                .map_or("", |s| s.trim_end_matches(';').trim_end_matches('{'));
+            if tr.starts_with("zone \"")
+                || tr.starts_with("zone '")
+                || (tr.starts_with("zone ") && tr.ends_with('{') && tok2.contains('.'))
+                || (tr.starts_with("type ")
+                    && matches!(
+                        tok2,
+                        "master" | "slave" | "stub" | "forward" | "hint" | "primary" | "secondary"
+                    ))
+                || tr.starts_with("include \"")
+            {
+                exclusive += 1;
+            }
         }
         if tr.starts_with("options") || tr.starts_with("controls") {
             score += 1;
         }
     }
-    score >= 2
+    score >= 2 && exclusive >= 1
 }
 
 impl Namedconf {

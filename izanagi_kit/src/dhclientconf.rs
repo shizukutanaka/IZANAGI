@@ -102,11 +102,58 @@ pub struct Counts {
     pub misc: usize,
 }
 
+/// DHCP/ISC 固有のステートメント語頭。`interface`/`zone`/`key`/`script`/
+/// `send`/`request`/`option`/`timeout` 等は named.conf 等他形式にも現れる
+/// ので、最低1件この集合が必要。
+const EXCLUSIVE_HEADS: &[&str] = &[
+    "also",
+    "backoff-cutoff",
+    "bootp-broadcast-always",
+    "check-timeout",
+    "db-time-format",
+    "ddns-domainname",
+    "ddns-rev-domainname",
+    "ddns-update-style",
+    "ddns-updates",
+    "delayed-ack",
+    "dhcp-cache-threshold",
+    "dhcp-lease-time",
+    "do-forward-updates",
+    "failover",
+    "fixed-address",
+    "initial-delay",
+    "initial-interval",
+    "lease",
+    "lease-file-name",
+    "max-ack-delay",
+    "max-response-delay",
+    "mclt",
+    "omapi-port",
+    "preferred-lifetime",
+    "pseudo",
+    "reboot",
+    "reject",
+    "select-timeout",
+    "supersede",
+    "use-host-decl-names",
+];
+
 /// `b` が `dhclient.conf` 形式かどうか。
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
+    let Ok(text) = std::str::from_utf8(b) else {
+        return false;
+    };
+    let exclusive = text
+        .lines()
+        .filter(|l| {
+            let head = l.trim().split([' ', '\t', ';']).next().unwrap_or("");
+            EXCLUSIVE_HEADS.contains(&head)
+        })
+        .count();
     parse(b).is_some_and(|c| {
-        c.entries - c.misc >= 2
+        (exclusive >= 1 || c.option_defs >= 1)
+            && c.entries - c.misc >= 2
             && (c.requests >= 1 || c.sends >= 1 || c.overrides >= 1 || c.declarations >= 1)
     })
 }
