@@ -63,7 +63,8 @@ fn strip_bom(t: &str) -> &str {
     t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
-/// Detects Nix: `let … in`, `with …;`, `mkDerivation`/`derivation`, or a `{…}:` lambda head.
+/// Detects Nix: `let … in`, `mkDerivation`/`stdenv`/`<nixpkgs>`, or a `{…}:` lambda head.
+/// A bare `with` keyword alone does not qualify — it appears in ordinary prose.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
@@ -71,7 +72,6 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let t = strip_bom(t);
     count_kw(t, "let") > 0 && count_kw(t, "in") > 0
-        || count_kw(t, "with") > 0
         || t.contains("mkDerivation")
         || t.contains("stdenv")
         || t.contains("<nixpkgs>")
@@ -173,6 +173,10 @@ mod tests {
         assert!(detect(b"pkgs.stdenv.mkDerivation { }"));
         assert!(!detect(b"{ \"a\": 1 }"));
         assert!(!detect(b"plain"));
+        // Prose mentioning `with` is not a Nix expression.
+        assert!(!detect(
+            b"use this tool with care when installing packages\n"
+        ));
     }
 
     #[test]

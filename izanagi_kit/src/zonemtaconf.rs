@@ -98,25 +98,44 @@ const KEYS: &[&str] = &[
     "storeAll",
 ];
 
+/// ZoneMTA-specific markers generic TOML configs never carry.
+const STRONG: &[&str] = &[
+    "[zones.",
+    "[smtp.feed]",
+    "[feeder",
+    "mxHost",
+    "mxPort",
+    "queueTimeout",
+    "senderDomains",
+    "rewriteDomains",
+];
+
+fn section_line(t: &str, name: &str) -> bool {
+    t.lines().any(|l| l.trim_start().starts_with(name))
+}
+
+fn key_present(t: &str, k: &str) -> bool {
+    // TOML keys are `key = value` lines; a bare substring of the key name
+    // anywhere in the file does not count.
+    t.lines().any(|l| {
+        l.trim_start()
+            .strip_prefix(k)
+            .is_some_and(|r| r.trim_start().starts_with('='))
+    })
+}
+
 /// Detect zonemta.toml.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let mut hits = 0usize;
-    for k in SECTION_KEYS {
-        if t.contains(k) {
-            hits += 1;
-        }
+    if STRONG.iter().any(|k| t.contains(k)) {
+        return true;
     }
-    let mut key_hits = 0usize;
-    for k in KEYS {
-        if t.contains(k) {
-            key_hits += 1;
-        }
-    }
-    hits >= 2 || key_hits >= 5
+    let section_hits = SECTION_KEYS.iter().filter(|s| section_line(t, s)).count();
+    let key_hits = KEYS.iter().filter(|k| key_present(t, k)).count();
+    section_hits >= 2 && key_hits >= 5
 }
 
 /// Structural counts for zonemta.toml.
@@ -182,5 +201,8 @@ mod tests {
         let b = b"[package]\nname = \"foo\"\n";
         assert!(!detect(b));
         assert!(Zonemta::parse(b).is_none());
+        // Generic sections plus generic keys are not zonemta.
+        let g = b"[api]\nhost = \"x\"\nport = 1\n[dns]\nserver = \"y\"\nenabled = true\n";
+        assert!(!detect(g));
     }
 }

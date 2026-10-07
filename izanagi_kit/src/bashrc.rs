@@ -125,13 +125,30 @@ pub fn detect(b: &[u8]) -> bool {
     for line in t.lines() {
         let s = line.trim();
         let head = s.split(' ').next().unwrap_or("");
-        if head == "export"
-            || head == "alias"
-            || head == "shopt"
-            || head == "source"
-            || s.starts_with("PS1=")
-            || s.contains("() {")
-        {
+        // `source <path>` may sit mid-line after `&&`/`;` (e.g. the common
+        // `[ -n "$PS1" ] && source ~/.bash_profile` delegation idiom).
+        let sources_path = {
+            let toks: Vec<&str> = s
+                .split(|c: char| c.is_whitespace() || c == ';' || c == '&')
+                .filter(|t| !t.is_empty())
+                .collect();
+            toks.iter()
+                .position(|t| *t == "source" || *t == ".")
+                .is_some_and(|i| {
+                    toks.get(i + 1)
+                        .is_some_and(|n| n.starts_with(['~', '/', '.', '$']))
+                })
+        };
+        if head == "export" || head == "alias" || head == "shopt" || head == "source" {
+            hits += 1;
+        }
+        if s.starts_with("PS1=") || s.contains("$PS1") {
+            hits += 1;
+        }
+        if s.contains("() {") {
+            hits += 1;
+        }
+        if sources_path && head != "source" {
             hits += 1;
         }
     }
@@ -204,6 +221,17 @@ mod tests {
     fn detects_bashrc() {
         let b = b"export EDITOR=vim\nalias ll='ls -la'\n";
         assert!(detect(b));
+    }
+
+    #[test]
+    fn detects_delegation_line() {
+        // Real-world one-liner .bashrc that delegates to .bash_profile
+        // behind an interactive-shell guard.
+        assert!(detect(b"[ -n \"$PS1\" ] && source ~/.bash_profile;\n"));
+        // Dot-builtin source counts too.
+        assert!(detect(
+            b"export EDITOR=vi\n[ -z \"$PS1\" ] && return\n. ~/.aliases\n"
+        ));
     }
 
     #[test]

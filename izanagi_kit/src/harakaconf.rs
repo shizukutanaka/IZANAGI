@@ -79,18 +79,40 @@ const KEYS: &[&str] = &[
     "send_mail",
 ];
 
+const SECTIONS: &[&str] = &[
+    "[main]",
+    "[core]",
+    "[tls]",
+    "[smtpgreeting]",
+    "[me]",
+    "[dkim]",
+];
+
+fn key_present(t: &str, k: &str) -> bool {
+    // Haraka ini keys are `key=value` lines; a bare substring of the key
+    // name anywhere in the file does not count.
+    t.lines().any(|l| {
+        l.trim_start()
+            .strip_prefix(k)
+            .is_some_and(|r| r.trim_start().starts_with('='))
+    })
+}
+
+fn section_line(t: &str, name: &str) -> bool {
+    t.lines().any(|l| l.trim_start().starts_with(name))
+}
+
 /// Detect a Haraka INI config or plugin list.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let mut hits = 0usize;
-    for k in KEYS {
-        if t.contains(k) {
-            hits += 1;
-        }
-    }
+    // `[core]`/`[tls]` are generic section names (git config uses `[core]`),
+    // so a single one proves nothing — require two Haraka-style sections,
+    // anchored `key=` hits, or the bare plugin-list form.
+    let section_hits = SECTIONS.iter().filter(|s| section_line(t, s)).count();
+    let key_hits = KEYS.iter().filter(|k| key_present(t, k)).count();
     let plugin_lines = t
         .lines()
         .filter(|l| {
@@ -103,7 +125,7 @@ pub fn detect(b: &[u8]) -> bool {
                 && (tr.contains("queue/") || tr.contains("dkim") || tr.contains("spamassassin"))
         })
         .count();
-    (t.contains("[core]") || t.contains("[tls]") || hits >= 4) || plugin_lines >= 2
+    section_hits >= 2 || key_hits >= 4 || plugin_lines >= 2
 }
 
 /// Structural counts for a Haraka config.
@@ -186,5 +208,9 @@ mod tests {
         let b = b"[section]\nfoo=bar\n";
         assert!(!detect(b));
         assert!(Haraka::parse(b).is_none());
+        // A lone generic section like `[core]` (git config) is not Haraka.
+        assert!(!detect(
+            b"[core]\nrepositoryformatversion = 0\nfilemode = true\n"
+        ));
     }
 }
