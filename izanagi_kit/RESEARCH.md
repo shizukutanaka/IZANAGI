@@ -6901,3 +6901,39 @@ fixtureを失墜させた場合、このテストが回帰を捕捉する。
 
 残課題: マジック断片系の「最小検出単位」ドキュメント化、doctest埋め込み
 fixture(let cfg = b"...")の抽出対応、detect⇒parse契約。
+
+## 第402次 実在ファイルによる実証 — real_world_files 回帰コーパス
+
+監査視点「テスト対象とテストデータが同一筆者による自己証明になっていないか」。
+実在プロジェクトの本物の設定ファイル20件を `tests/realfiles/` に収録し、
+`tests/real_world_files.rs` で全DETECTORSに投入する回帰コーパスを新設:
+
+- recall実証: 各実ファイルが意図する検出器で必ずヒットすることをassert
+- precision実証: 外来検出器ヒット数が記録した天井以下であることをassert
+  (改善なら常に通る、退行のみ失敗する天井方式)
+
+実測で判明した実害を7モジュールで修正:
+
+- iscsi: バイナリBHS判定がオプコード+AHS長のみで、ASCII先頭'#'(0x23=
+  Login Response)で任意テキストに発火 → AHS+data_lenの宣言フレーム長が
+  バッファに収まることを要求(テキストの5..8バイトは数MB級の長さになり棄却)
+- zone: RRタイプ名(A/DS/NS等)が一般英単語と衝突 → SOAレコード必須のアンカー
+  追加(rsyslogの$行も排除)
+- zonemtaconf: キー/セクションのt.contains()判定 → 行頭アンカー`key =`化 +
+  `[zones.`/`[smtp.feed]`/mxHost等のZoneMTA固有マーカーSTRONG化
+- isortconf: 汎用`[settings]`単独受理 → isortキー>=2併記要求に変更、キーも
+  行頭`key =`アンカー化
+- harakaconf: 汎用`[core]`/`[tls]`単独受理(git configと衝突) → セクション
+  >=2 or 行頭key>=4 or plugin行>=2
+- nix: キーワード`with`単独で受理(散文に頻出) → 腕削除
+- bashrc: 行頭アンカーのみで、実在1行委譲型`.bashrc`
+  (`[ -n "$PS1" ] && source ~/.bash_profile;`)を未検出 → `$PS1`ガードと
+  行中`source <path>`/`. <path>`をマーカー化、行内複数マーカーもカウント
+
+実ファイル外来ヒット計測(修正前→後): unbound 48→44, gitconfig 37→33,
+haproxy 41→36, zone 27→24, rsyslogd はzoneヒット消滅、iscsi/isortconf/
+harakaconf/zonemtaconf は全実ファイルでヒット消滅。
+
+残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
+(#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
+detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
