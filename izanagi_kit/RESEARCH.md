@@ -6937,3 +6937,39 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
+
+## 第407次 — 監査(Option意味論/認識ゼロのSome) + 13モジュール修正
+
+### 角度
+「`parse` の `Some` は『認識した』か『走査に成功した』か」— 第405次残課題。
+全1,122のOption返しパーサにごみ入力4種を投入し、Debug出力が全ゼロ/
+空のSome(認識ゼロ)を返す45モジュールを機械分類。
+
+### 計測結果
+- 45モジュールが非空ごみ入力で `Some(認識ゼロ)`。分類:
+  (a) 文書マークアップ(adoc/pod/rst/org/texinfo): 散文は仕様上有効 → 維持;
+  (b) バイナリ寛容(mvt): protobuf的に任意バイト有効 → 維持;
+  (c) 実害: 構造化形式がゼロ認識をSome返し — 主流契約(1,034件が棄却)
+     と不整合。うちオープンPR衝突(#413/#414/#424)で22件を除き13件修正。
+- オプション契約の結論: **空/空白のみ → Some(ゼロ)、非空で認識ゼロ → None**
+  (空設定ファイルは有効だが、認識不能な非空は「この形式でない」を示す)。
+
+### 対応(13モジュール)
+- Counts系9件(kconfig/mbedapp/archinstall/railwayconf/vercelconf/
+  winstonconf/zapconf/serilog/tmpfilesd): 全usize計数の合計==0かつ
+  非空入力 → None ガード追加。
+- tmpfilesd: 型トークンを「型文字1字+修飾子のみ」に限定(tmpfiles.d(5)
+  文法)— "the"/"hello" のような先頭文字偶然一致を除去。
+- prom: サンプル値をf64検証(Exposition形式はfloat/NaN/Infのみ)
+  + metas/samples双方空でNone。
+- pdb: `others` をPDBレコード名(英大文字/数字/空白)に限定
+  + atoms/cell/others全空でNone。
+- bibtex/netrc: entries(+macros)空でNone(バイト空白のみはSome維持)。
+- 全13モジュールに `rejects_unrecognized_garbage` 回帰テスト追加。
+
+### 残課題
+- imap/irc/nntp/smtp: parse_line がフォールバックで任意行を受理 —
+  RFCコマンドセットによる検証が必要(次ラウンド候補)。
+- 衝突で除外した22件(debconf/log4j/netlifyconf等)は対象PRマージ後に同契約を適用。
+- Vec<Entry>系(cpio/csv/mailcap)の空Vec曖昧性、非Option 103件の
+  棄却不能は Option化のAPI破壊が必要で別ラウンド。
