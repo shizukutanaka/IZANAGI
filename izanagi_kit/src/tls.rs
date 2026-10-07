@@ -104,7 +104,14 @@ pub fn records(d: &[u8]) -> Option<Vec<Record>> {
 }
 
 /// Emit a single record: `ty ‖ version ‖ len ‖ fragment`.
-pub fn emit(ty: u8, version: u16, fragment: &[u8]) -> Vec<u8> {
+///
+/// Returns `None` when `fragment` exceeds the protocol's 16384-byte
+/// cap — the same bound `records` enforces — since a longer fragment
+/// cannot be emitted without a length field that decodes wrongly.
+pub fn emit(ty: u8, version: u16, fragment: &[u8]) -> Option<Vec<u8>> {
+    if fragment.len() > 16384 {
+        return None;
+    }
     let mut out = Vec::with_capacity(5 + fragment.len());
     out.push(ty);
     out.push((version >> 8) as u8);
@@ -112,7 +119,7 @@ pub fn emit(ty: u8, version: u16, fragment: &[u8]) -> Vec<u8> {
     out.push((fragment.len() >> 8) as u8);
     out.push(fragment.len() as u8);
     out.extend_from_slice(fragment);
-    out
+    Some(out)
 }
 
 /// Split a Handshake record's fragment into `(type, body)` messages:
@@ -150,8 +157,8 @@ mod tests {
 
     #[test]
     fn record_walk() {
-        let mut f = emit(22, 0x0303, &client_hello_frag());
-        f.extend_from_slice(&emit(23, 0x0303, &[1, 2, 3]));
+        let mut f = emit(22, 0x0303, &client_hello_frag()).unwrap();
+        f.extend_from_slice(&emit(23, 0x0303, &[1, 2, 3]).unwrap());
         let r = records(&f).unwrap();
         assert_eq!(r.len(), 2);
         assert_eq!(r[0].ty, 22);
@@ -168,7 +175,7 @@ mod tests {
     #[test]
     fn emit_roundtrip() {
         let frag = b"hello, world";
-        let wire = emit(23, 0x0301, frag);
+        let wire = emit(23, 0x0301, frag).unwrap();
         let r = records(&wire).unwrap();
         assert_eq!(r.len(), 1);
         assert_eq!(r[0].fragment, frag);
@@ -182,5 +189,8 @@ mod tests {
         assert!(records(&[22, 3, 3, 0x40, 0]).is_none()); // len > 16384
         assert!(records(&[22, 3, 3, 0, 5, 1]).is_none()); // truncated frag
         assert!(handshake(&[1, 0, 0]).is_none());
+        // emit applies the same 16384 cap records enforces
+        assert!(emit(23, 0x0303, &[0u8; 16385]).is_none());
+        assert!(emit(23, 0x0303, &[0u8; 16384]).is_some());
     }
 }

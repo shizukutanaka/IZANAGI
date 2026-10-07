@@ -8,7 +8,7 @@
 //! ```
 //! use izanagi_kit::ogg;
 //! // one 2-byte segment, payload "hi"
-//! let p = ogg::emit_page(2 /* BOS */, 0, 0x77, 0, &[2], b"hi");
+//! let p = ogg::emit_page(2 /* BOS */, 0, 0x77, 0, &[2], b"hi").unwrap();
 //! let pages = ogg::pages(&p).unwrap();
 //! assert_eq!(pages.len(), 1);
 //! assert_eq!(pages[0].serial, 0x77);
@@ -170,6 +170,10 @@ pub fn packets(d: &[u8]) -> Option<Vec<Vec<u8>>> {
 /// Emit one page: `segments` = the lacing table (⌊n/255⌋ 255s then
 /// n%255 per packet), `payload` = the laced bytes. CRC is computed
 /// and inserted.
+///
+/// Returns `None` when `segments` exceeds the 255-entry lacing-table
+/// capacity — previously the count byte wrapped and produced a
+/// structurally corrupt page.
 pub fn emit_page(
     flags: u8,
     granule: u64,
@@ -177,7 +181,10 @@ pub fn emit_page(
     seq: u32,
     segments: &[u8],
     payload: &[u8],
-) -> Vec<u8> {
+) -> Option<Vec<u8>> {
+    if segments.len() > 255 {
+        return None;
+    }
     let mut out = b"OggS".to_vec();
     out.push(0);
     out.push(flags);
@@ -198,7 +205,7 @@ pub fn emit_page(
     for i in 0..4 {
         out[22 + i] = (crc >> (i * 8)) as u8;
     }
-    out
+    Some(out)
 }
 
 #[cfg(test)]
@@ -207,7 +214,7 @@ mod tests {
 
     #[test]
     fn single_page_roundtrip() {
-        let p = emit_page(2, 0x1122, 0x77, 0, &[2], b"hi");
+        let p = emit_page(2, 0x1122, 0x77, 0, &[2], b"hi").unwrap();
         let ps = pages(&p).unwrap();
         assert_eq!(ps.len(), 1);
         assert!(ps[0].bos());
@@ -218,14 +225,14 @@ mod tests {
         assert_eq!(packets(&p).unwrap(), vec![b"hi".to_vec()]);
         // the Ogg CRC is *not* the IEEE crc32: pinned independent value
         assert_eq!(ogg_crc(b"OggS"), 0x5FB0_A94F);
-        let e = emit_page(1 | 4, 0, 0x77, 1, &[2], b"hi");
+        let e = emit_page(1 | 4, 0, 0x77, 1, &[2], b"hi").unwrap();
         let es = pages(&e).unwrap();
         assert!(es[0].continued() && es[0].eos());
     }
 
     #[test]
     fn crc_is_verified() {
-        let mut p = emit_page(0, 0, 1, 0, &[2], b"hi");
+        let mut p = emit_page(0, 0, 1, 0, &[2], b"hi").unwrap();
         let n = p.len();
         p[n - 1] ^= 0xFF; // corrupt a payload byte
         assert!(pages(&p).is_none());
@@ -239,23 +246,31 @@ mod tests {
     fn spanning_packet_reassembles() {
         // packet: 300 bytes = page1's one 255 segment + page2's 45-byte tail
         let body: Vec<u8> = (0..300).map(|i| (i % 251) as u8).collect();
-        let mut d = emit_page(2, 0, 7, 0, &[255], &body[..255]);
-        d.extend_from_slice(&emit_page(1, 300, 7, 1, &[45], &body[255..])); // continued
+        let mut d = emit_page(2, 0, 7, 0, &[255], &body[..255]).unwrap();
+        d.extend_from_slice(&emit_page(1, 300, 7, 1, &[45], &body[255..]).unwrap()); // continued
         assert_eq!(packets(&d).unwrap(), vec![body.clone()]);
         // without the continued flag the stream is corrupt
-        let mut d2 = emit_page(2, 0, 7, 0, &[255], &body[..255]);
-        d2.extend_from_slice(&emit_page(0, 300, 7, 1, &[45], &body[255..]));
+        let mut d2 = emit_page(2, 0, 7, 0, &[255], &body[..255]).unwrap();
+        d2.extend_from_slice(&emit_page(0, 300, 7, 1, &[45], &body[255..]).unwrap());
         assert!(packets(&d2).is_none());
+    }
+
+    #[test]
+    fn oversized_lacing_table_refused() {
+        // 256 lacing values cannot be written to a one-byte count field
+        assert!(emit_page(0, 0, 1, 0, &[1u8; 256], &[0u8; 256]).is_none());
+        // 255 is the spec maximum and still works
+        assert!(emit_page(0, 0, 1, 0, &[1u8; 255], &[0u8; 255]).is_some());
     }
 
     #[test]
     fn malformed_rejected() {
         assert_eq!(pages(&[]), Some(vec![])); // empty stream is valid
         assert!(pages(b"OggX").is_none());
-        let mut p = emit_page(0, 0, 1, 0, &[2], b"hi");
+        let mut p = emit_page(0, 0, 1, 0, &[2], b"hi").unwrap();
         p[4] = 1; // version must be 0
         assert!(pages(&p).is_none());
-        let p2 = emit_page(0, 0, 1, 0, &[2], b"hi");
+        let p2 = emit_page(0, 0, 1, 0, &[2], b"hi").unwrap();
         assert!(pages(&p2[..p2.len() - 1]).is_none()); // truncated
     }
 }

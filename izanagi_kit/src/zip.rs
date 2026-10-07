@@ -174,16 +174,28 @@ impl ZipWriter {
     }
 
     /// Add a file compressed with [`crate::deflate::deflate`].
-    pub fn add(&mut self, name: &str, data: &[u8]) {
-        self.add_method(name, data, 8);
+    ///
+    /// Returns `false` — leaving the archive unchanged — when the entry
+    /// cannot be represented in the classic ZIP layout: a name longer
+    /// than `u16::MAX` bytes, a data offset past `u32::MAX`, or a full
+    /// `u16::MAX` entry table. Previously this truncated the name/offset
+    /// fields and produced a structurally corrupt archive.
+    pub fn add(&mut self, name: &str, data: &[u8]) -> bool {
+        self.add_method(name, data, 8)
     }
 
-    /// Add a file verbatim (method 0, stored).
-    pub fn add_stored(&mut self, name: &str, data: &[u8]) {
-        self.add_method(name, data, 0);
+    /// Add a file verbatim (method 0, stored). See [`Self::add`].
+    pub fn add_stored(&mut self, name: &str, data: &[u8]) -> bool {
+        self.add_method(name, data, 0)
     }
 
-    fn add_method(&mut self, name: &str, data: &[u8], method: u16) {
+    fn add_method(&mut self, name: &str, data: &[u8], method: u16) -> bool {
+        if name.len() > u16::MAX as usize
+            || self.entries.len() >= u16::MAX as usize
+            || self.body.len() > u32::MAX as usize
+        {
+            return false;
+        }
         let payload = if method == 8 {
             crate::deflate::deflate(data)
         } else {
@@ -208,6 +220,7 @@ impl ZipWriter {
         self.body.extend_from_slice(&payload);
         self.entries
             .push((name.to_string(), payload, crc, data.len() as u32, method));
+        true
     }
 
     /// Emit the complete archive: all local entries, central directory,
@@ -295,5 +308,17 @@ mod tests {
         let mut b = ZipWriter::new();
         b.add("f", b"payload");
         assert_eq!(a.finish(), b.finish());
+    }
+
+    #[test]
+    fn unrepresentable_entries_are_refused() {
+        // names over u16::MAX bytes cannot be written to either header
+        let mut w = ZipWriter::new();
+        let long = "x".repeat(u16::MAX as usize + 1);
+        assert!(!w.add_stored(&long, b"d"));
+        assert!(w.entries.is_empty());
+        assert!(w.add_stored("ok", b"d")); // archive stays usable
+        let z = w.finish();
+        assert!(extract(&z, "ok").is_some());
     }
 }
