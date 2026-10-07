@@ -6880,6 +6880,42 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+## 第393次
+
+第392次マージ後レビューで見つかった検出バグ5件を修正。
+
+- factoriosettings:`"name"`必須を廃止し Factorio 固有キー
+  (SIGNATURE 38件)>=1 + 既知キー出現>=3 に変更 — map-settings/
+  map-gen-settings(`"name"` を持たない)を検出可能に。併せて
+  行単位カウントを出現回数カウントに変え1行圧縮 JSON も検出。
+- arma3conf:basic.cfg 専用の帯域キー MinBandwidth/MaxBandwidth/
+  MaxSizeGuaranteed/MaxSizeNonguaranteed/MinErrorToSend/
+  MinErrorToSendNear を KEYS に追加 — basic.cfg 検出可能に。
+- sevendtdxml:`<!-- -->` コメントを除去してからプロパティ/
+  ルート要素を数える strip_comments を導入 — コメント内の
+  `<property>` 例を誤算しなくなった。detect/parse 両方に適用。
+- srcdscfg:is_cvar に値の存在(2トークン)を必須化 —
+  `sv_maxrate` 単独行のような問い合わせ行を誤検出しなくなった。
+
+いずれも回帰テスト追加(detects_compact_one_line_json/
+detects_map_settings_without_name/detects_map_gen_settings_
+without_name/rejects_generic_json_without_signature/
+detects_basic_cfg/commented_props_do_not_count/
+bare_cvar_names_do_not_count)。
+
+## 第396次
+
+監査(第3回)で「panic非発火は共有コーパスでは深いパース経路に
+届かない」ことを確認し、fixture起点の横断fuzzを追加。
+
+- tests/parse_never_panics.rs に `no_parser_panics_on_own_fixture_family`
+  を追加:src内の `const ..: &[u8] = b"..."` fixture をソースから
+  抽出・unescapeし、PARSERS登録の同名パーサへ
+  (a)全prefix、(b)単バイト破壊(64点サンプル)を投入、
+  catch_unwind でpanicを検出。
+- 432モジュールの深いパース経路を新規カバー
+  (共有fodderがdetect閾値を通らず early-return していた領域)。
+- 抽出器の劣化を防ぐ `covered >= 400` の下限 assert 付き。
 
 ## 第398次 検出の再現率(recall)契約 — own_fixture_detected
 
