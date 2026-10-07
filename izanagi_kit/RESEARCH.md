@@ -7001,3 +7001,25 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 測定: `pub fn parse` を持つが `PARSERS` 未登録のモジュールは 665 件 — ただし全て `impl Type` の関連関数(`pub struct X` に対する `X::parse`)であり、レジストリdoc「フリー関数のみ対象」との齟齬はなかったが、**横断panic-freeテストの対象外という実害**は存在した。
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
+
+## 第419次：panic経路の静的棚卸 — 失敗機構の構造的担保
+
+切り口: 失敗の機構設計。`detect_never_panics`/`parse_never_panics`はfuzzの
+行動面証明だが「到達しない経路」を証明できないため、panic-capableプリミティブの
+本番存在を静的棚卸:
+
+- 本番`.unwrap()`/`.unwrap_err()`/`.expect(`/`.expect_err(`/`panic!(`/
+  `todo!`/`unimplemented!`: **0件**(2,400モジュール)
+- `assert!`: 8件 — 全て構築時契約(netinput×3/rollback×2/timestep×2/identify×1)
+  でcaller bug限定、入力経路ではない
+- `unreachable!`: 2件(replay.rs) — `tick<max(len)`で構造的死亡
+- `debug_assert!`: 2件(fov/wallet) — リリース除去の不変式再検証
+- スライス切出し:900+件 — 全件目視監査は未了だが、切出しは先行lenゲート/
+  `shape_ok`(全行>=75)等で構造的安全化が主流
+
+対応: `tests/panic_free_production.rs`新設。laziness族は本番全面禁止(0件assert)、
+invariant族(assert!/debug_assert!/unreachable!)はallowlist+件数+理由で固定。
+wkt.rsの`expect`メソッドを`want`へ改名し`Option::expect`との同名衝突を解消。
+
+残課題: `at+N`型オフセット加算の32bit overflow、`assert!`vs`Result`の使い分け
+基準のCONVENTIONS化、`detect`失敗理由の可視化API、境界±1バイトfuzz。
