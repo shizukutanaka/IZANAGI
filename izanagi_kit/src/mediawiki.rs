@@ -76,7 +76,7 @@ pub fn parse(d: &[u8]) -> Option<Mediawiki> {
             headings += 1;
             continue;
         }
-        if l.starts_with('*') || l.starts_with('#') || l.starts_with(':') {
+        if l.starts_with('*') || l.starts_with(':') {
             list_items += 1;
             continue;
         }
@@ -115,16 +115,10 @@ pub fn parse(d: &[u8]) -> Option<Mediawiki> {
         categories,
         media,
     };
-    if mw.headings
-        + mw.bold_spans
-        + mw.italic_spans
-        + mw.internal_links
-        + mw.templates
-        + mw.external_links
-        + mw.list_items
-        + mw.rules
-        == 0
-    {
+    // Require a MediaWiki-specific marker (`== H ==`, `[[..]]`, `[http..]`,
+    // `[[Category:`/`[[File:`) — bare `{{ }}`/`''` spans, `*` bullets, and
+    // `----` rules show up in Helm/Python/markdown too.
+    if mw.headings + mw.internal_links + mw.external_links + categories + media == 0 {
         return None;
     }
     Some(mw)
@@ -166,5 +160,6 @@ mod tests {
     fn detect_works() {
         assert!(detect(DOC));
         assert!(!detect(b"hi"));
+        assert!(!detect(b"# comment\n* bullet\n{{jinja}}\n"));
     }
 }

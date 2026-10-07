@@ -49,19 +49,72 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut score = 0usize;
+    let mut strong = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with('#') || tr.starts_with(';') {
             continue;
         }
-        if (tr.starts_with('[') && tr.ends_with(']'))
-            || (tr.contains('=')
-                && (tr.contains("oid") || tr.contains("section") || tr.contains('_')))
+        if tr.starts_with('[') && tr.ends_with(']') {
+            score += 1;
+            if is_openssl_section(&tr[1..tr.len() - 1]) {
+                strong += 1;
+            }
+        } else if tr.contains('=')
+            && (tr.contains("oid") || tr.contains("section") || tr.contains('_'))
         {
             score += 1;
+            if is_openssl_key(tr) {
+                strong += 1;
+            }
         }
     }
-    score >= 3
+    // `[sec]` + `key_name = v` describes most INI files; an openssl.cnf
+    // also carries at least one OpenSSL-flavoured section or key.
+    score >= 3 && strong >= 1
+}
+
+/// Section names characteristic of openssl.cnf (`[ req ]`, `[ v3_ca ]`,
+/// `[ dn ]`, `[ oid_section ]`, …).
+fn is_openssl_section(inner: &str) -> bool {
+    let s = inner.trim();
+    s == "req"
+        || s == "dn"
+        || s == "ca"
+        || s == "tsa"
+        || s == "crl"
+        || s == "v3_ca"
+        || s == "usr_cert"
+        || s == "oid_section"
+        || s == "new_oids"
+        || s == "distinguished_name"
+        || s == "req_distinguished_name"
+        || s.contains("v3")
+        || s.contains("x509")
+        || s.contains("_ca")
+        || s.ends_with("_ext")
+        || s.contains("policy")
+        || s.contains("alt_names")
+}
+
+/// Keys/values characteristic of openssl.cnf content lines.
+fn is_openssl_key(line: &str) -> bool {
+    let l = line.to_ascii_lowercase();
+    l.contains("oid")
+        || l.contains("distinguished_name")
+        || l.contains("basicconstraints")
+        || l.contains("keyusage")
+        || l.contains("subjectaltname")
+        || l.contains("authoritykey")
+        || l.contains("x509")
+        || l.contains("nscomment")
+        || l.contains("default_bits")
+        || l.contains("default_md")
+        || l.contains("default_days")
+        || l.contains("unique_subject")
+        || l.contains("new_certs")
+        || l.contains("copy_extensions")
+        || l.contains("randfile")
 }
 
 impl Openssl {

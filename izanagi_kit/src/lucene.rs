@@ -71,14 +71,56 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let t = t.trim();
-    t.contains(':') && !t.contains("://")
-        || word(t, "AND") > 0
+    if t.contains("://") || t.contains('{') || t.contains('}') {
+        return false;
+    }
+    let fields = t.split_whitespace().filter(|tok| field_value(tok)).count();
+    let ops = word(t, "AND") > 0
         || word(t, "OR") > 0
         || word(t, "NOT") > 0
         || t.contains("&&")
-        || t.contains("||")
-        || t.contains('~')
-        || t.contains('^')
+        || t.contains("||");
+    // `host:port`-style single tokens are everywhere; a lone `field:value`
+    // only counts alongside query structure (ops, groups, fuzzy/boost).
+    fields >= 2
+        || ops
+        || (fields >= 1 && (t.contains('(') || t.split_whitespace().any(fuzzy_boost)))
+        || t.split_whitespace().any(fuzzy_boost) && t.contains(' ')
+}
+
+/// A `field:value` token (`title:foo`, `name:"a b"`, `x.y:z`, `x:*`):
+/// non-empty field of word/dots/`*, non-empty value starting right
+/// after the colon. Rejects `key:` (`key: value` style) and URLs.
+fn field_value(tok: &str) -> bool {
+    let Some(i) = tok.find(':') else {
+        return false;
+    };
+    let field = tok[..i].trim_start_matches(['(', '+', '-', '!', '"', '\'']);
+    let value = &tok[i + 1..];
+    !field.is_empty()
+        && !value.is_empty()
+        && !value.starts_with('/')
+        && !value.starts_with(':')
+        && field
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '*'))
+}
+
+/// Fuzzy (`word~`, `word~0.8`) or boost (`word^2`, `field:v^1.5`) tail.
+fn fuzzy_boost(tok: &str) -> bool {
+    for (i, m) in [('~', true), ('^', false)] {
+        if let Some(p) = tok.rfind(i) {
+            if p > 0 {
+                let rest = &tok[p + 1..];
+                if (rest.is_empty() || rest.chars().all(|c| c.is_ascii_digit() || c == '.'))
+                    && (m || !rest.is_empty())
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
 }
 
 /// Parses a Lucene query; `None` on non-UTF-8 or no query structure.
@@ -160,10 +202,13 @@ mod tests {
     #[test]
     fn detect_works() {
         assert!(detect(D));
-        assert!(detect(b"a:b"));
+        assert!(detect(b"a:b c:d"));
         assert!(detect(b"x AND y"));
         assert!(!detect(b"http://x"));
         assert!(!detect(b""));
+        assert!(!detect(b"key: value\nother: 1\n"));
+        assert!(!detect(b"host:8080"));
+        assert!(!detect(b"{\"a\":1,\"b\":2}"));
     }
 
     #[test]

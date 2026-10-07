@@ -40,16 +40,23 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    t.lines().any(|l| {
-        let tr = l.trim();
-        !tr.is_empty()
-            && !tr.starts_with('#')
-            && (tr.contains('*')
-                || tr.contains('?')
-                || tr.starts_with('!')
-                || tr.ends_with('/')
-                || tr.starts_with('/'))
-    })
+    // A single glob-ish line is not evidence; require two pattern-shaped
+    // lines (no `=`/`:` — those mean a config file, not a path list).
+    t.lines()
+        .filter(|l| {
+            let tr = l.trim();
+            !tr.is_empty()
+                && !tr.starts_with('#')
+                && !tr.contains('=')
+                && !tr.contains(':')
+                && (tr.contains('*')
+                    || tr.contains('?')
+                    || tr.starts_with('!')
+                    || tr.ends_with('/')
+                    || tr.starts_with('/'))
+        })
+        .count()
+        >= 2
 }
 
 impl Dockerignore {

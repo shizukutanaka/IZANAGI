@@ -49,6 +49,7 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut score = 0usize;
+    let mut upper = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with('#') {
@@ -58,10 +59,16 @@ pub fn detect(b: &[u8]) -> bool {
         if let Some((k, _)) = body.split_once('=') {
             if is_key(k.trim()) {
                 score += 1;
+                if tr.starts_with("export ") || k.chars().any(|c| c.is_ascii_uppercase()) {
+                    upper += 1;
+                }
             }
         }
     }
-    score >= 1
+    // `.env` files are inherently ambiguous with any `key=value` text;
+    // requiring two entries, at least one SCREAMING_CASE or `export`-ed,
+    // keeps lowercase INI-style configs from being claimed.
+    score >= 2 && upper >= 1
 }
 
 impl Dotenv {
@@ -147,6 +154,7 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(!detect(b"not a key value pair"));
+        assert!(!detect(b"A=1\n"));
         assert!(Dotenv::parse(b"1=x").is_none());
     }
 }

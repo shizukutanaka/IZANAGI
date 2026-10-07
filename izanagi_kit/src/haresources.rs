@@ -43,7 +43,10 @@ pub fn detect(b: &[u8]) -> bool {
         Some(c) => c,
         None => return false,
     };
-    c.entries >= 1 && c.resources >= 2 && c.colon_agents + c.script_resources >= 1
+    // Real haresources entries carry at least one `Agent::params` resource
+    // (IPaddr::, Filesystem::, DRBD::, …); requiring a colon agent keeps
+    // arbitrary multi-word text lines from being claimed.
+    c.entries >= 1 && c.resources >= 2 && c.colon_agents >= 1
 }
 
 fn agent_name(word: &str) -> &str {
@@ -176,6 +179,7 @@ ha1 IPsrcaddr::192.168.1.100 eth0::dhcp
     #[test]
     fn rejects_other_text() {
         assert!(!detect(b"hello world"));
+        assert!(!detect(b"node alpha beta gamma\n"));
         assert!(!detect(b"# comment only\n"));
     }
 }

@@ -85,10 +85,54 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let t = t.trim();
-    (t.contains("//") || t.starts_with('/') || t.contains('@') || t.contains("::"))
-        && t.bytes().all(|c| c.is_ascii())
-        && !t.contains("http")
-        && !t.contains("<?xml")
+    if t.contains("http") || t.contains("<?xml") {
+        return false;
+    }
+    // An XPath document is a query, not a text file: at most a few lines,
+    // each made only of path-expression characters, and at least one
+    // carrying a step marker (`/`, `//`, `axis::`, `@attr`, `.`).
+    let lines: Vec<&str> = t.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+    !lines.is_empty()
+        && lines.len() <= 4
+        && lines.iter().all(|l| {
+            l.chars().all(|c| {
+                c.is_ascii_alphanumeric()
+                    || matches!(
+                        c,
+                        ' ' | '\t'
+                            | '/'
+                            | '@'
+                            | ':'
+                            | '['
+                            | ']'
+                            | '('
+                            | ')'
+                            | '\''
+                            | '"'
+                            | '='
+                            | '<'
+                            | '>'
+                            | '!'
+                            | '.'
+                            | '*'
+                            | '_'
+                            | '-'
+                            | ','
+                            | '|'
+                            | '+'
+                            | '$'
+                            | '&'
+                            | '%'
+                    )
+            })
+        })
+        && lines.iter().any(|l| {
+            l.starts_with('/')
+                || l.starts_with('@')
+                || l.starts_with('.')
+                || l.contains("//")
+                || l.contains("::")
+        })
 }
 
 /// Parses an XPath expression; `None` on non-UTF-8 or missing steps.

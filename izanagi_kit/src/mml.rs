@@ -48,27 +48,64 @@ fn is_note(c: char) -> bool {
     matches!(c, 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g')
 }
 
-/// Detects MML: `t` tempo or `o`/`l` directives plus note letters.
+/// `tNN`/`oN`/`lN`/`vN` command token.
+fn is_directive_token(tok: &str) -> bool {
+    let mut c = tok.chars();
+    matches!(c.next(), Some('t' | 'o' | 'l' | 'v')) && c.next().is_some_and(|d| d.is_ascii_digit())
+}
+
+/// Token made only of note letters / rests / octave shifts /
+/// accidentals / ties / loop brackets / lengths.
+fn is_note_token(tok: &str) -> bool {
+    let Some(first) = tok.chars().next() else {
+        return false;
+    };
+    matches!(first, 'a'..='g' | 'r' | 'p' | '>' | '<' | '[')
+        && tok.chars().all(|c| {
+            matches!(
+                c,
+                'a'..='g'
+                    | 'r'
+                    | 'p'
+                    | '+'
+                    | '#'
+                    | '-'
+                    | '&'
+                    | '^'
+                    | '~'
+                    | '.'
+                    | '>'
+                    | '<'
+                    | '['
+                    | ']'
+            ) || c.is_ascii_digit()
+        })
+}
+
+/// Detects MML: the token stream must be dominated by MML-shaped
+/// tokens (a `t`/`o`/`l`/`v` directive or runs of note/rest
+/// commands), not just incidentally contain the letters a–g.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let toks = tokens(t);
-    let mut directives = 0;
-    let mut notes = 0;
-    let mut i = 0;
-    while i < toks.len() {
-        match toks[i] {
-            't' | 'o' | 'l' | 'v' if toks.get(i + 1).is_some_and(|c| c.is_ascii_digit()) => {
-                directives += 1;
-            }
-            c if is_note(c) => notes += 1,
-            _ => {}
+    let t = t.to_lowercase();
+    let mut total = 0usize;
+    let mut mml = 0usize;
+    let mut directives = 0usize;
+    let mut note_runs = 0usize;
+    for tok in t.split_whitespace() {
+        total += 1;
+        if is_directive_token(tok) {
+            directives += 1;
+            mml += 1;
+        } else if is_note_token(tok) {
+            note_runs += 1;
+            mml += 1;
         }
-        i += 1;
     }
-    directives >= 1 && notes >= 1 || notes >= 4
+    total > 0 && mml * 3 >= total * 2 && (directives >= 1 || note_runs >= 3)
 }
 
 /// Parses MML text; `None` on non-UTF-8 or no notes/directives.
@@ -150,9 +187,11 @@ mod tests {
     fn detect_works() {
         assert!(detect(D));
         assert!(detect(b"t90 cdef"));
-        assert!(detect(b"cdefg"));
+        assert!(detect(b"cdefgab gab cde"));
         assert!(!detect(b"12345"));
         assert!(!detect(b""));
+        assert!(!detect(b"hello world this is not music at all"));
+        assert!(!detect(b"server: web\n  host: example\n"));
     }
 
     #[test]

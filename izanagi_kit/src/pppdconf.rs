@@ -12,6 +12,8 @@
 //!             mru 1492\n\
 //!             defaultroute\n\
 //!             usepeerdns\n\
+//!             lcp-echo-interval 30\n\
+//!             lcp-echo-failure 4\n\
 //!             persist\n";
 //! assert!(izanagi_kit::pppdconf::detect(cfg));
 //! let c = izanagi_kit::pppdconf::parse(cfg).unwrap();
@@ -272,6 +274,54 @@ const OPTION_KEYS: &[&str] = &[
 ];
 
 /// secrets 欄パターン判定用 — `client server "secret" ip` 型 4 欄行。
+/// Options that only make sense to pppd (`lcp-*`, `chap-*`, `ms-dns`,
+/// `mppe`, `bsdcomp`, …). Short names match exactly so `chapter`,
+/// `paper`, `ipv6addr` are not claimed.
+fn is_proto_opt(head: &str) -> bool {
+    head.starts_with("lcp-")
+        || head.starts_with("ipcp-")
+        || head.starts_with("ccp-")
+        || head.starts_with("ipv6cp-")
+        || head.starts_with("ipx-")
+        || head.starts_with("eap-")
+        || head == "ipv6"
+        || head == "chap"
+        || head.starts_with("chap-")
+        || head == "pap"
+        || head.starts_with("pap-")
+        || head.starts_with("bsdcomp")
+        || head.starts_with("mppe")
+        || head == "nomppe"
+        || matches!(head, "ms-dns" | "ms-wins" | "ms-dns2" | "ms-wins2")
+        || head.starts_with("predictor")
+        || head == "nopredictor"
+        || head == "vj"
+        || head.starts_with("vj-")
+        || head == "novj"
+}
+
+/// `refuse-chap`/`require-mppe`/`noX` option negations — the suffix must
+/// still name a pppd feature, not just start with `require-`/`allow-`.
+fn is_negation_opt(head: &str) -> bool {
+    (head.starts_with("no") && OPTION_KEYS.contains(&head))
+        || (head.starts_with("refuse-")
+            || head.starts_with("require-")
+            || head.starts_with("allow-"))
+            && [
+                "chap",
+                "pap",
+                "eap",
+                "mppe",
+                "mschap",
+                "bsdcomp",
+                "deflate",
+                "predictor",
+                "vj",
+            ]
+            .iter()
+            .any(|s| head[1..].contains(s))
+}
+
 fn is_secret_line(line: &str) -> bool {
     let mut parts = line.split_whitespace();
     let a = parts.next();
@@ -311,7 +361,9 @@ pub struct Counts {
 /// `b` が pppd オプション/secrets 形式かどうか。
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
-    parse(b).is_some_and(|c| c.entries - c.misc >= 3 || c.secrets >= 1)
+    // `parse` already requires recognised pppd options or a secrets line —
+    // three arbitrary `word value` lines are not evidence of pppd.
+    parse(b).is_some()
 }
 
 /// `b` を pppd 設定ファイルとして解析する。
@@ -354,30 +406,9 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
                 .split_whitespace()
                 .nth(1)
                 .is_some_and(|v| !v.starts_with('#'));
-        if (head.starts_with("no") && OPTION_KEYS.contains(&head))
-            || head.starts_with("refuse-")
-            || head.starts_with("require-")
-            || head.starts_with("allow-")
-        {
+        if is_negation_opt(head) {
             c.negations += 1;
-        } else if head.starts_with("lcp-")
-            || head.starts_with("ipcp-")
-            || head.starts_with("ccp-")
-            || head.starts_with("ipv6")
-            || head.starts_with("ipx")
-            || head.starts_with("eap-")
-            || head.starts_with("chap")
-            || head.starts_with("pap")
-            || head.starts_with("bsdcomp")
-            || head.starts_with("deflate")
-            || head.starts_with("mppe")
-            || head.starts_with("nomppe")
-            || head.starts_with("ms-")
-            || head.starts_with("predictor")
-            || head.starts_with("nopredictor")
-            || head.starts_with("vj")
-            || head.starts_with("novj")
-        {
+        } else if is_proto_opt(head) {
             c.proto += 1;
         } else if matches!(
             head,
@@ -421,7 +452,13 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             c.misc += 1;
         }
     }
-    if known >= 2 || c.secrets >= 1 {
+    // Generic options (debug/lock/name/mtu/…) appear in many config
+    // files; require a pppd-distinctive construct (lcp-/chap/ms-/… proto,
+    // require-/refuse- negation, or an ip-up hook) or a secrets line.
+    // pap/chap-secrets files are nearly all 4-field secrets lines, so a
+    // stray `a b "x"` in an unrelated config must not qualify on its own.
+    if (c.secrets >= 1 && c.secrets * 2 >= c.entries) || (known >= 3 && c.proto + c.negations >= 1)
+    {
         Some(c)
     } else {
         None

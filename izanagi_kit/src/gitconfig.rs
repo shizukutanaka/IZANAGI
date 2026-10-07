@@ -48,18 +48,75 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut sections = 0usize;
+    let mut git_sections = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.starts_with('[') && tr.ends_with(']') && tr.len() > 2 {
             sections += 1;
+            let inner = tr[1..tr.len() - 1]
+                .split([' ', '\t', '"'])
+                .next()
+                .unwrap_or("");
+            if GIT_SECTIONS.contains(&inner) {
+                git_sections += 1;
+            }
         }
     }
+    // `[section]` + `key = value` describes every INI file — require at
+    // least one git-flavoured section (`[user]`/`[core]`/`[remote …]`).
     sections >= 1
+        && git_sections >= 1
         && t.lines().any(|l| {
             let tr = l.trim();
             !tr.starts_with('[') && tr.contains('=') && !tr.is_empty()
         })
 }
+
+/// Section heads a `.gitconfig` typically carries.
+const GIT_SECTIONS: &[&str] = &[
+    "user",
+    "core",
+    "remote",
+    "branch",
+    "alias",
+    "credential",
+    "include",
+    "includeIf",
+    "url",
+    "color",
+    "diff",
+    "merge",
+    "pull",
+    "push",
+    "fetch",
+    "gc",
+    "http",
+    "init",
+    "status",
+    "sendemail",
+    "receive",
+    "rerere",
+    "filter",
+    "submodule",
+    "pack",
+    "rebase",
+    "commit",
+    "tag",
+    "gpg",
+    "format",
+    "log",
+    "blame",
+    "apply",
+    "am",
+    "checkout",
+    "worktree",
+    "lfs",
+    "sparse",
+    "maintenance",
+    "interactive",
+    "index",
+    "advice",
+];
 
 impl Gitconfig {
     /// Parses a gitconfig summary.

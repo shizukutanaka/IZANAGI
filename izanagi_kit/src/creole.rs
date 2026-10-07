@@ -65,7 +65,7 @@ pub fn parse(d: &[u8]) -> Option<Creole> {
         if (1..=6).contains(&eq) && l[eq..].starts_with(' ') {
             headings += 1;
         }
-        if l.starts_with('*') || l.starts_with('#') {
+        if l.starts_with('*') {
             list_items += 1;
         }
         if l.trim() == "----" || l.trim_start_matches('-').is_empty() && l.len() >= 4 {
@@ -76,7 +76,10 @@ pub fn parse(d: &[u8]) -> Option<Creole> {
     let italic_spans = pairs(text, "//", "//");
     let links = pairs(text, "[[", "]]");
     let images = pairs(text, "{{", "}}");
-    if headings + list_items + rules + bold_spans + italic_spans + links + images == 0 {
+    let total = headings + list_items + rules + bold_spans + italic_spans + links + images;
+    // Need at least two markers, one of which is structural — a lone `*`
+    // bullet or `//` pair appears all over non-Creole text.
+    if total < 2 || (headings + rules + links + images + bold_spans) == 0 {
         return None;
     }
     Some(Creole {
@@ -111,7 +114,7 @@ mod tests {
         assert_eq!(c.links, 1);
         assert_eq!(c.images, 1);
         assert_eq!(c.rules, 1);
-        assert_eq!(c.list_items, 2);
+        assert_eq!(c.list_items, 1);
     }
 
     #[test]
@@ -125,5 +128,6 @@ mod tests {
     fn detect_works() {
         assert!(detect(DOC));
         assert!(!detect(b"hello"));
+        assert!(!detect(b"# a comment\n# another comment\n"));
     }
 }

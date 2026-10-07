@@ -6880,3 +6880,22 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第397次 検出精度の定量化 — フィクスチャ相互汚染テスト
+
+第396次のfixture抽出機構を拡張し、`tests/fixture_contract.rs`として各モジュールの
+`const ...: &[u8]` バイト列フィクスチャをソースから抽出、全fixtureを全DETECTORSに
+対して投入する相互偽陽性マトリクスを構築。検出器ごとに「自モジュール以外の
+フィクスチャを合致したモジュール数」を集計し、40モジュール超を検出精度崩壊と
+定義してassert。
+
+初回スイープで最悪だったのはmml(120)・haresources(114)・requirements(103)・
+dockerignore(123)等。共通の敗因は「汎用トークン/行形だけで合致」しており、
+format固有アンカー(ディレクティブ・セクション名・`Agent::params`・version演算子・
+`%!x:`・`= H =`・`[[..]]`・`field:value`・pppd固有オプション)を要求しない点だった。
+17モジュールを同アンカー必須化+密度ゲート(gitignore/pppdconfのsecrets)で修正し、
+最悪件数を 123 → 9 (閾値内) まで低減。各モジュールに非検出テストを追加済み。
+
+残課題: 10〜39件の中位偽陽性検出器の段階的引き締め、`detect(fixture)=true`なら
+`parse(fixture).is_some()`の契約assert、MAGIC/SIG系の部分const(自モジュールで
+単体検出不可=118件)の扱い明確化。

@@ -41,48 +41,74 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let mut specs = 0;
     let mut opts = 0;
+    let mut version_ops = 0;
     for l in t.lines() {
         let s = l.trim();
         if s.is_empty() || s.starts_with('#') {
             continue;
         }
         if s.starts_with('-') {
-            opts += 1;
+            // option lines: `-r`/`-c`/`-e`/`-i`/`-t`/`-f`/`--…` only
+            if s.len() > 1
+                && (s.starts_with("--")
+                    || matches!(
+                        s.as_bytes()[1],
+                        b'r' | b'c' | b'e' | b'i' | b't' | b'f' | b'u'
+                    ))
+            {
+                opts += 1;
+            }
             continue;
         }
-        if s.contains("==")
-            || s.contains(">=")
-            || s.contains("<=")
-            || s.contains("~=")
-            || s.contains("!=")
-            || s.chars()
-                .next()
-                .is_some_and(|ch| ch.is_ascii_alphanumeric())
-                && s.chars().all(|ch| {
-                    ch.is_ascii_alphanumeric()
-                        || matches!(
-                            ch,
-                            '-' | '_'
-                                | '.'
-                                | '['
-                                | ']'
-                                | ','
-                                | ';'
-                                | ' '
-                                | '<'
-                                | '>'
-                                | '='
-                                | '!'
-                                | '~'
-                                | '"'
-                                | '\''
-                        )
-                })
+        // spec lines are single tokens: `name[extras] op version` with
+        // optional `; marker` — whitespace separates marker text, so a
+        // space anywhere else means prose, not a spec.
+        if s.chars()
+            .next()
+            .is_some_and(|ch| ch.is_ascii_alphanumeric())
+            && s.chars().all(|ch| {
+                ch.is_ascii_alphanumeric()
+                    || matches!(
+                        ch,
+                        '-' | '_'
+                            | '.'
+                            | '['
+                            | ']'
+                            | ','
+                            | ';'
+                            | '<'
+                            | '>'
+                            | '='
+                            | '!'
+                            | '~'
+                            | '"'
+                            | '\''
+                            | ' '
+                    )
+            })
+            && (!s.contains(' ')
+                || s.contains("==")
+                || s.contains(">=")
+                || s.contains("<=")
+                || s.contains("~=")
+                || s.contains("!=")
+                || s.contains(';'))
         {
             specs += 1;
+            if s.contains("==")
+                || s.contains(">=")
+                || s.contains("<=")
+                || s.contains("~=")
+                || s.contains("!=")
+            {
+                version_ops += 1;
+            }
         }
     }
-    specs + opts >= 2 && (specs >= 1 || opts >= 2)
+    // A list of bare tokens is indistinguishable from a wordlist — need a
+    // version pin/range or an include/option line to call it
+    // requirements.txt.
+    specs + opts >= 2 && specs >= 1 && (version_ops >= 1 || opts >= 1)
 }
 
 impl Requirements {
@@ -179,5 +205,8 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Requirements::parse(b"hello world").is_none());
+        assert!(!detect(b"hello world"));
+        assert!(!detect(b"read the manual carefully\nthen run it\n"));
+        assert!(!detect(b"apple\nbanana\ncherry\n"));
     }
 }

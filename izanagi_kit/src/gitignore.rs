@@ -33,25 +33,42 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut hits = 0usize;
+    let mut plain = 0usize;
+    let mut total = 0usize;
     for l in t.lines() {
         let s = l.trim();
         if s.is_empty() {
             continue;
         }
+        if s.starts_with('#') {
+            continue;
+        }
+        total += 1;
         let s = s.strip_prefix('!').unwrap_or(s);
-        if s == "*"
+        // `[abc]`/`[a-z]`/`[!x]` are gitignore char classes; `[section]`
+        // (INI) or `[tool.x]` (TOML) are not — bound the class to ~5 chars.
+        let bracket_class = s.starts_with('[')
+            && s.len() > 1
+            && s[1..].find(']').is_some_and(|i| (1..=5).contains(&i));
+        let glob = s == "*"
             || s == "**"
             || s.starts_with('*')
             || s.ends_with('/')
             || s.starts_with('/')
+            || s.starts_with('!')
             || s.contains("**")
-            || s.contains('.') && !s.contains(' ')
-            || s.starts_with('[')
-        {
+            || s.contains('?')
+            || bracket_class;
+        if glob {
             hits += 1;
+        } else if s.contains('.') && !s.contains(' ') && !s.contains('=') {
+            plain += 1;
         }
     }
-    hits >= 2
+    // A bare filename list overlaps with many formats; require a real
+    // glob/negation/dir marker AND a majority of pattern-ish lines, so
+    // configs that merely mention `*.o` once aren't claimed.
+    hits >= 1 && hits + plain >= 2 && (hits + plain) * 2 >= total
 }
 
 impl Gitignore {
@@ -131,5 +148,6 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Gitignore::parse(b"hello\nworld\n").is_none());
+        assert!(!detect(b"[server]\nhost = x\nport = 1\n"));
     }
 }

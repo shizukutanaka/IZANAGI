@@ -67,12 +67,19 @@ fn marker(line: &str) -> usize {
     if TAGS.iter().any(|t| s.contains(t)) {
         n += 1;
     }
-    // `who where=(runas) command` spec: `x ALL=(` or `x host=(`
-    if s.split([' ', '\t'])
+    // `who where=(runas) command` spec: `x ALL=(runas)` / `x host=(` —
+    // require `ALL`/`%group` or an `=` followed by `(` so shell arrays
+    // like `x=(a b)` don't count.
+    let runas = s
+        .split([' ', '\t'])
         .nth(1)
         .is_some_and(|h| h.ends_with('='))
-        || s.contains("=(")
+        && s.contains('(');
+    if (s.contains("=(")
+        && s.split([' ', '\t'])
+            .any(|w| w == "ALL" || w.starts_with('%')))
         || s.starts_with("ALL=(")
+        || runas
     {
         n += 1;
     }

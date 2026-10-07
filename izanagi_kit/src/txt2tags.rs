@@ -87,7 +87,10 @@ pub fn parse(d: &[u8]) -> Option<Txt2tags> {
             table_rows += 1;
         }
     }
-    if directives + headings + bullets + numbered + table_rows == 0 {
+    // `%!directive:` lines and `= Heading =` are txt2tags' only
+    // distinguishing marks — `- `/`+ `/`|…| lists and tables show up in
+    // markdown too.
+    if directives + headings == 0 {
         return None;
     }
     Some(Txt2tags {
@@ -128,6 +131,7 @@ mod tests {
     #[test]
     fn rejects() {
         assert!(parse(b"").is_none());
+        assert!(parse(b"# comment\n- one\n- two\n|a|b|\n").is_none());
         assert!(parse(b"plain text\nno markers\n").is_none());
         assert!(parse(&[0xff]).is_none());
     }

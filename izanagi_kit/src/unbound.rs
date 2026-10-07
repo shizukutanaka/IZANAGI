@@ -62,6 +62,7 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut score = 0usize;
+    let mut sections = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with('#') || tr.starts_with(';') {
@@ -70,6 +71,7 @@ pub fn detect(b: &[u8]) -> bool {
         let head = tr.split(':').next().unwrap_or("");
         if SECTIONS.contains(&head.trim()) {
             score += 2;
+            sections += 1;
         } else if tr.contains(": ")
             && tr.split(':').next().is_some_and(|k| {
                 k.chars()
@@ -81,7 +83,9 @@ pub fn detect(b: &[u8]) -> bool {
             score += 1;
         }
     }
-    score >= 4
+    // Generic `key: value` configs score the same way; a real unbound.conf
+    // always opens at least one `server:`/`forward-zone:`/… section.
+    score >= 4 && sections >= 1
 }
 
 impl Unbound {
@@ -168,6 +172,9 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(!detect(b"key: value\nother: stuff\n"));
+        assert!(!detect(
+            b"alpha: one\nbeta: two\ngamma: three\ndelta: four\n"
+        ));
         assert!(Unbound::parse(b"x").is_none());
     }
 }

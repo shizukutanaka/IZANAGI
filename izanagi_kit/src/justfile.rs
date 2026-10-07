@@ -93,7 +93,19 @@ pub fn detect(input: &[u8]) -> bool {
     for line in text.lines() {
         if line.starts_with(char::is_whitespace) {
             if last_was_recipe && !line.trim().is_empty() && !line.trim().starts_with('#') {
-                saw_body = true;
+                // Recipe bodies are shell commands; a `key:`/`key: v` or
+                // `- item` shaped line is nested YAML, not a recipe body.
+                let tr = line.trim();
+                let yaml_like = tr.find(':').is_some_and(|c| {
+                    let k = &tr[..c];
+                    !k.is_empty()
+                        && k.chars()
+                            .all(|x| x.is_ascii_alphanumeric() || x == '-' || x == '_')
+                }) || tr.starts_with("- ")
+                    || tr == "-";
+                if !yaml_like {
+                    saw_body = true;
+                }
             }
             continue;
         }
@@ -177,6 +189,9 @@ mod tests {
     #[test]
     fn not_justfile() {
         assert!(!detect(b"key: value\nother: 1\n"));
+        assert!(!detect(
+            b"server:\n  host: x\n  port: 1\nworkers:\n  count: 2\n"
+        ));
         assert!(parse(b"text\n").is_none());
     }
 }
