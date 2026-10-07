@@ -6660,6 +6660,43 @@ metatile/stale lock timeout等、hint>=1&>=3 or >=5)。
 mapnik/osm2pgsql/qgsは既存mapnikxml/osm2pgsqlstyle/qgsprojで
 カバー済みのため差替。いずれも行アンカー判定、コメント行除外、
 テスト4本ずつ。
+## 第389次
+
+Linux入力/セッション層・Usenet/DLNA残り系の
+設定形式8モジュールを追加(pub mod/DETECTORS/PARSERSの3箇所登録):
+
+- kanata(kanata.kbd S式:(defsrc)/(deflayer)/(defalias)/
+  (defcfg)/(defchordsv2)/(deflayermap)/(defoverrides)/(defseq)/
+  (defvirtualkeys)/(deflocalkeys*)/(defvar)/(deftemplate)フォーム+
+  process-unmapped-keys/danger-enable-cmd/concurrent-tap-hold/
+  rapid-event-delay等defcfgオプション、src>=1&form>=3 or
+  form>=4 or form>=2&opt>=2)、
+- keyd(/etc/keyd/*.conf INI風:[ids]/[main]/[layer:name]等
+  セクション+key=action割当、actionはoverload(/oneshot(/layer(/
+  toggle(/macro(/command(/swap(/timeout(/setlayout(/block/noop等、
+  keyd_sec>=1&act>=1 or act>=3 or keyd_sec>=2&sec>=2)、
+- greetd(greetd/gtkgreet/tuigreet等TOML:[terminal]/
+  [default_session]/[initial_session]セクション+vt/command/
+  user/switch/agreety/remember*/gtk-*等キー、
+  sec>=1&key>=2 or sec>=2&key>=1 or key>=4)、
+- sabnzbd(sabnzbd.ini:[misc]/[folders]/[servers]/[categories]等+
+  [[server]]サブテーブル+host/port/api_key/nzb_key/download_dir/
+  complete_dir/bandwidth_max/top_only/par_option等約120キー、
+  sec>=1&key>=2 or key>=4 or sec>=2&key>=1)、
+- nzbget(nzbget.conf 平坦key=value:MainDir/DestDir/NzbDir/
+  QueueDir/ControlPort/DirectWrite/ParCheck/ParRepair等約90キー+
+  Server<N>.*/Category<N>.*/Task<N>.*/Feed<N>.*番号付きグループ、
+  key>=1&group>=1 or key>=3)、
+- readarr(Readarr config.xml:<Config>+<InstanceName>Readarr or
+  <Port>8787 or <Readarr+<ApiKey>)、
+- gerbera(Gerbera config.xml:<config>+<server>+ui/name/udn/
+  storage/mark-played-items/import/transcoding/autoscan等
+  約70要素、>=3)、
+- minidlna(minidlna.conf:media_dir=/friendly_name=/db_dir=/
+  log_dir=/presentation_url=/uuid=/ssdp_udn/force_sort_criteria等
+  約35キー、media>=1&key>=2 or key>=3)。
+
+いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
 ## 第388次
 
 会計ジャーナル/ブートローダ/プリンタ/デスクトップ残り系の
