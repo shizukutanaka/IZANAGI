@@ -430,6 +430,7 @@ pub mod aln;
 pub mod alphahull;
 pub mod alto;
 pub mod alz;
+pub mod amandaconf;
 pub mod ambassador;
 pub mod amf;
 pub mod amfile;
@@ -481,6 +482,7 @@ pub mod aria2;
 pub mod arith;
 pub mod arj;
 pub mod arkimeconf;
+pub mod arma3conf;
 pub mod arp;
 pub mod arrow;
 pub mod arw;
@@ -519,6 +521,7 @@ pub mod azw;
 pub mod babelrc;
 pub mod backstage;
 pub mod bacnet;
+pub mod baculadir;
 pub mod bai2;
 pub mod bam;
 pub mod bandit;
@@ -988,6 +991,7 @@ pub mod externalsecrets;
 pub mod extmanifest;
 pub mod f2fs;
 pub mod faction;
+pub mod factoriosettings;
 pub mod fail2ban;
 pub mod fail2banconf;
 pub mod falcoconf;
@@ -1017,6 +1021,7 @@ pub mod fidl;
 pub mod figlet;
 pub mod filebeat;
 pub mod firebase;
+pub mod firejailprof;
 pub mod firewalld;
 pub mod fishconf;
 pub mod fit;
@@ -1104,6 +1109,7 @@ pub mod geojson;
 pub mod geometry;
 pub mod gerber;
 pub mod gethconf;
+pub mod getmailrc;
 pub mod gexf;
 pub mod gf;
 pub mod gf2;
@@ -1214,6 +1220,7 @@ pub mod hgrc;
 pub mod hgt;
 pub mod hiawatha;
 pub mod hiberfil;
+pub mod himalayaconf;
 pub mod hirschberg;
 pub mod histrect;
 pub mod hivemq;
@@ -1575,6 +1582,7 @@ pub mod mcap;
 pub mod mcflow;
 pub mod mch;
 pub mod mcr;
+pub mod mcserverprops;
 pub mod mcts;
 pub mod md2;
 pub mod md3;
@@ -1757,6 +1765,7 @@ pub mod nrg;
 pub mod nrrd;
 pub mod nsd;
 pub mod nsf;
+pub mod nsjailcfg;
 pub mod nslcdconf;
 pub mod nsqconf;
 pub mod nsswitch;
@@ -1768,6 +1777,7 @@ pub mod ntpsec;
 pub mod nuconf;
 pub mod nuget;
 pub mod nugetconfig;
+pub mod nullmailerconf;
 pub mod nunit;
 pub mod nuxt;
 pub mod nwc;
@@ -1844,6 +1854,7 @@ pub mod otsu;
 pub mod overpass;
 pub mod ovf;
 pub mod p7b;
+pub mod pacemaker;
 pub mod pack;
 pub mod packer;
 pub mod packfile;
@@ -1913,6 +1924,7 @@ pub mod piecetable;
 pub mod pihole;
 pub mod pileup;
 pub mod pim;
+pub mod pinerc;
 pub mod pinpoint;
 pub mod pipewireconf;
 pub mod pipfile;
@@ -1970,6 +1982,7 @@ pub mod postcss;
 pub mod postfix;
 pub mod postgresql;
 pub mod postman;
+pub mod postsrsdconf;
 pub mod ppf;
 pub mod ppp;
 pub mod pppdconf;
@@ -2027,6 +2040,7 @@ pub mod pyproject;
 pub mod pyrightconf;
 pub mod pyroconf;
 pub mod pytestbench;
+pub mod pzserver;
 pub mod qasm;
 pub mod qbittorrent;
 pub mod qcow2;
@@ -2070,6 +2084,7 @@ pub mod ras;
 pub mod raster;
 pub mod ratbezier;
 pub mod ray;
+pub mod razorconf;
 pub mod rc;
 pub mod rcloneconf;
 pub mod rdata;
@@ -2221,6 +2236,8 @@ pub mod segment;
 pub mod segtree;
 pub mod segy;
 pub mod seldon;
+pub mod selinuxfc;
+pub mod selinuxte;
 pub mod semgrep;
 pub mod semver;
 pub mod sendmail;
@@ -2231,6 +2248,7 @@ pub mod serilog;
 pub mod serverless;
 pub mod serverprop;
 pub mod setupcfg;
+pub mod sevendtdxml;
 pub mod sf2;
 pub mod sfc;
 pub mod sfd;
@@ -2288,6 +2306,7 @@ pub mod smi;
 pub mod smithy;
 pub mod smt2;
 pub mod smtp;
+pub mod smtpdconf;
 pub mod snap;
 pub mod snapcast;
 pub mod snapcraft;
@@ -2337,12 +2356,14 @@ pub mod sqitchconf;
 pub mod sqlite;
 pub mod sqlnet;
 pub mod squid;
+pub mod srcdscfg;
 pub mod srhtconf;
 pub mod srm;
 pub mod srt;
 pub mod ssh;
 pub mod sshconf;
 pub mod sshkey;
+pub mod ssmtpconf;
 pub mod sssdconf;
 pub mod sst;
 pub mod ssw;
@@ -2438,6 +2459,7 @@ pub mod terminal;
 pub mod terminfo;
 pub mod ternary;
 pub mod terragrunt;
+pub mod terrariaconf;
 pub mod texinfo;
 pub mod textile;
 pub mod textlayout;
@@ -2496,6 +2518,7 @@ pub mod trivyop;
 pub mod trojanconf;
 pub mod trx;
 pub mod ts;
+pub mod ts3serverini;
 pub mod tscn;
 pub mod tsconfig;
 pub mod tsp;
@@ -2712,6 +2735,7 @@ pub mod xfs;
 pub mod xi;
 pub mod xib;
 pub mod xid;
+pub mod xinetdconf;
 pub mod xl2tpd;
 pub mod xliff;
 pub mod xlink;
@@ -2958,6 +2982,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("aln", aln::detect),
     ("alto", alto::detect),
     ("alz", alz::detect),
+    ("amandaconf", amandaconf::detect),
     ("ambassador", ambassador::detect),
     ("amfile", amfile::detect),
     ("ampl", ampl::detect),
@@ -2992,6 +3017,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("argusconf", argusconf::detect),
     ("aria2", aria2::detect),
     ("arkimeconf", arkimeconf::detect),
+    ("arma3conf", arma3conf::detect),
     ("arw", arw::detect),
     ("asciicast", asciicast::detect),
     ("asdf", asdf::detect),
@@ -3015,6 +3041,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("azurepipe", azurepipe::detect),
     ("babelrc", babelrc::detect),
     ("backstage", backstage::detect),
+    ("baculadir", baculadir::detect),
     ("bai2", bai2::detect),
     ("bam", bam::detect),
     ("banditconf", banditconf::detect),
@@ -3255,6 +3282,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("externalsecrets", externalsecrets::detect),
     ("extmanifest", extmanifest::detect),
     ("f2fs", f2fs::detect),
+    ("factoriosettings", factoriosettings::detect),
     ("fail2ban", fail2ban::detect),
     ("fail2banconf", fail2banconf::detect),
     ("falcoconf", falcoconf::detect),
@@ -3267,6 +3295,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("fidl", fidl::detect),
     ("filebeat", filebeat::detect),
     ("firebase", firebase::detect),
+    ("firejailprof", firejailprof::detect),
     ("firewalld", firewalld::detect),
     ("fishconf", fishconf::detect),
     ("fivetranconf", fivetranconf::detect),
@@ -3307,6 +3336,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("gemrc", gemrc::detect),
     ("gemspec", gemspec::detect),
     ("gethconf", gethconf::detect),
+    ("getmailrc", getmailrc::detect),
     ("gexf", gexf::detect),
     ("gf", gf::detect),
     ("ghosttyconf", ghosttyconf::detect),
@@ -3371,6 +3401,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("hgignore", hgignore::detect),
     ("hgrc", hgrc::detect),
     ("hiawatha", hiawatha::detect),
+    ("himalayaconf", himalayaconf::detect),
     ("hivemq", hivemq::detect),
     ("hl7", hl7::detect),
     ("hlsl", hlsl::detect),
@@ -3572,6 +3603,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mbedapp", mbedapp::detect),
     ("mbsyncrc", mbsyncrc::detect),
     ("mch", mch::detect),
+    ("mcserverprops", mcserverprops::detect),
     ("md3", md3::detect),
     ("mdx", mdx::detect),
     ("med", med::detect),
@@ -3679,6 +3711,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("npmlock", npmlock::detect),
     ("npmrc", npmrc::detect),
     ("nsd", nsd::detect),
+    ("nsjailcfg", nsjailcfg::detect),
     ("nslcdconf", nslcdconf::detect),
     ("nsqconf", nsqconf::detect),
     ("nsswitch", nsswitch::detect),
@@ -3686,6 +3719,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ntpsec", ntpsec::detect),
     ("nuconf", nuconf::detect),
     ("nugetconfig", nugetconfig::detect),
+    ("nullmailerconf", nullmailerconf::detect),
     ("nuxt", nuxt::detect),
     ("nwc", nwc::detect),
     ("nxconf", nxconf::detect),
@@ -3730,6 +3764,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("otelcol", otelcol::detect),
     ("overpass", overpass::detect),
     ("ovf", ovf::detect),
+    ("pacemaker", pacemaker::detect),
     ("packer", packer::detect),
     ("packit", packit::detect),
     ("pacman", pacman::detect),
@@ -3755,6 +3790,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pidginconf", pidginconf::detect),
     ("pihole", pihole::detect),
     ("pileup", pileup::detect),
+    ("pinerc", pinerc::detect),
     ("pinpoint", pinpoint::detect),
     ("pipewireconf", pipewireconf::detect),
     ("pipfile", pipfile::detect),
@@ -3784,6 +3820,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("postcss", postcss::detect),
     ("postfix", postfix::detect),
     ("postgresql", postgresql::detect),
+    ("postsrsdconf", postsrsdconf::detect),
     ("pppdconf", pppdconf::detect),
     ("pprof", pprof::detect),
     ("ppssppconf", ppssppconf::detect),
@@ -3824,6 +3861,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("pyrightconf", pyrightconf::detect),
     ("pyroconf", pyroconf::detect),
     ("pytestbench", pytestbench::detect),
+    ("pzserver", pzserver::detect),
     ("qasm", qasm::detect),
     ("qbittorrent", qbittorrent::detect),
     ("qcp", qcp::detect),
@@ -3846,6 +3884,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("railwayconf", railwayconf::detect),
     ("rakefile", rakefile::detect),
     ("raml", raml::detect),
+    ("razorconf", razorconf::detect),
     ("rc", rc::detect),
     ("rcloneconf", rcloneconf::detect),
     ("rdpfile", rdpfile::detect),
@@ -3923,6 +3962,8 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("secretsbaseline", secretsbaseline::detect),
     ("secretsstore", secretsstore::detect),
     ("seldon", seldon::detect),
+    ("selinuxfc", selinuxfc::detect),
+    ("selinuxte", selinuxte::detect),
     ("semgrep", semgrep::detect),
     ("sendmail", sendmail::detect),
     ("sentinel", sentinel::detect),
@@ -3931,6 +3972,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("serverless", serverless::detect),
     ("serverprop", serverprop::detect),
     ("setupcfg", setupcfg::detect),
+    ("sevendtdxml", sevendtdxml::detect),
     ("sftp", sftp::detect),
     ("sgi", sgi::detect),
     ("shadowsocksconf", shadowsocksconf::detect),
@@ -3954,6 +3996,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("smd", smd::detect),
     ("smithy", smithy::detect),
     ("smt2", smt2::detect),
+    ("smtpdconf", smtpdconf::detect),
     ("snapcast", snapcast::detect),
     ("snapcraft", snapcraft::detect),
     ("snmpdconf", snmpdconf::detect),
@@ -3981,8 +4024,10 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("sqitchconf", sqitchconf::detect),
     ("sqlnet", sqlnet::detect),
     ("squid", squid::detect),
+    ("srcdscfg", srcdscfg::detect),
     ("srhtconf", srhtconf::detect),
     ("sshconf", sshconf::detect),
+    ("ssmtpconf", ssmtpconf::detect),
     ("sssdconf", sssdconf::detect),
     ("stack", stack::detect),
     ("stalwartconf", stalwartconf::detect),
@@ -4041,6 +4086,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("tempoconf", tempoconf::detect),
     ("terminfo", terminfo::detect),
     ("terragrunt", terragrunt::detect),
+    ("terrariaconf", terrariaconf::detect),
     ("textile", textile::detect),
     ("textlint", textlint::detect),
     ("textmategram", textmategram::detect),
@@ -4074,6 +4120,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("trivy", trivy::detect),
     ("trivyop", trivyop::detect),
     ("trojanconf", trojanconf::detect),
+    ("ts3serverini", ts3serverini::detect),
     ("tscn", tscn::detect),
     ("tsconfig", tsconfig::detect),
     ("tsx", tsx::detect),
@@ -4189,6 +4236,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("xdf", xdf::detect),
     ("xib", xib::detect),
     ("xid", xid::detect),
+    ("xinetdconf", xinetdconf::detect),
     ("xl2tpd", xl2tpd::detect),
     ("xlink", xlink::detect),
     ("xmakeconf", xmakeconf::detect),
@@ -4328,6 +4376,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("alz", |b| {
         let _ = alz::parse(b);
     }),
+    ("amandaconf", |b| {
+        let _ = amandaconf::parse(b);
+    }),
     ("amf", |b| {
         let _ = amf::parse(b);
     }),
@@ -4406,6 +4457,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("arkimeconf", |b| {
         let _ = arkimeconf::parse(b);
     }),
+    ("arma3conf", |b| {
+        let _ = arma3conf::parse(b);
+    }),
     ("arp", |b| {
         let _ = arp::parse(b);
     }),
@@ -4471,6 +4525,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("backstage", |b| {
         let _ = backstage::parse(b);
+    }),
+    ("baculadir", |b| {
+        let _ = baculadir::parse(b);
     }),
     ("bai2", |b| {
         let _ = bai2::parse(b);
@@ -5060,6 +5117,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("excellon", |b| {
         let _ = excellon::parse(b);
     }),
+    ("factoriosettings", |b| {
+        let _ = factoriosettings::parse(b);
+    }),
     ("fail2banconf", |b| {
         let _ = fail2banconf::parse(b);
     }),
@@ -5107,6 +5167,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("ferm", |b| {
         let _ = ferm::parse(b);
+    }),
+    ("firejailprof", |b| {
+        let _ = firejailprof::parse(b);
     }),
     ("flagger", |b| {
         let _ = flagger::parse(b);
@@ -5257,6 +5320,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("gethconf", |b| {
         let _ = gethconf::parse(b);
+    }),
+    ("getmailrc", |b| {
+        let _ = getmailrc::parse(b);
     }),
     ("gexf", |b| {
         let _ = gexf::parse(b);
@@ -5419,6 +5485,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("hiberfil", |b| {
         let _ = hiberfil::parse(b);
+    }),
+    ("himalayaconf", |b| {
+        let _ = himalayaconf::parse(b);
     }),
     ("hivemq", |b| {
         let _ = hivemq::parse(b);
@@ -6011,6 +6080,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("mcr", |b| {
         let _ = mcr::parse(b);
     }),
+    ("mcserverprops", |b| {
+        let _ = mcserverprops::parse(b);
+    }),
     ("md2", |b| {
         let _ = md2::parse(b);
     }),
@@ -6317,6 +6389,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("nsf", |b| {
         let _ = nsf::parse(b);
     }),
+    ("nsjailcfg", |b| {
+        let _ = nsjailcfg::parse(b);
+    }),
     ("nslcdconf", |b| {
         let _ = nslcdconf::parse(b);
     }),
@@ -6340,6 +6415,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("nugetconfig", |b| {
         let _ = nugetconfig::parse(b);
+    }),
+    ("nullmailerconf", |b| {
+        let _ = nullmailerconf::parse(b);
     }),
     ("nunit", |b| {
         let _ = nunit::parse(b);
@@ -6455,6 +6533,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("p7b", |b| {
         let _ = p7b::parse(b);
     }),
+    ("pacemaker", |b| {
+        let _ = pacemaker::parse(b);
+    }),
     ("packfile", |b| {
         let _ = packfile::parse(b);
     }),
@@ -6551,6 +6632,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("pim", |b| {
         let _ = pim::parse(b);
     }),
+    ("pinerc", |b| {
+        let _ = pinerc::parse(b);
+    }),
     ("pjs", |b| {
         let _ = pjs::parse(b);
     }),
@@ -6592,6 +6676,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("pmd", |b| {
         let _ = pmd::parse(b);
+    }),
+    ("postsrsdconf", |b| {
+        let _ = postsrsdconf::parse(b);
     }),
     ("projjson", |b| {
         let _ = projjson::parse(b);
@@ -6701,6 +6788,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("pyroconf", |b| {
         let _ = pyroconf::parse(b);
     }),
+    ("pzserver", |b| {
+        let _ = pzserver::parse(b);
+    }),
     ("qcow2", |b| {
         let _ = qcow2::parse(b);
     }),
@@ -6748,6 +6838,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("ras", |b| {
         let _ = ras::parse(b);
+    }),
+    ("razorconf", |b| {
+        let _ = razorconf::parse(b);
     }),
     ("rc", |b| {
         let _ = rc::parse(b);
@@ -6980,11 +7073,20 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("segy", |b| {
         let _ = segy::parse(b);
     }),
+    ("selinuxfc", |b| {
+        let _ = selinuxfc::parse(b);
+    }),
+    ("selinuxte", |b| {
+        let _ = selinuxte::parse(b);
+    }),
     ("sequelizerc", |b| {
         let _ = sequelizerc::parse(b);
     }),
     ("serilog", |b| {
         let _ = serilog::parse(b);
+    }),
+    ("sevendtdxml", |b| {
+        let _ = sevendtdxml::parse(b);
     }),
     ("sf2", |b| {
         let _ = sf2::parse(b);
@@ -7067,6 +7169,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("smtp", |b| {
         let _ = smtp::parse(b);
     }),
+    ("smtpdconf", |b| {
+        let _ = smtpdconf::parse(b);
+    }),
     ("snap", |b| {
         let _ = snap::parse(b);
     }),
@@ -7105,6 +7210,12 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("spec", |b| {
         let _ = spec::parse(b);
+    }),
+    ("ssmtpconf", |b| {
+        let _ = ssmtpconf::parse(b);
+    }),
+    ("srcdscfg", |b| {
+        let _ = srcdscfg::parse(b);
     }),
     ("strongswanconf", |b| {
         let _ = strongswanconf::parse(b);
@@ -7238,6 +7349,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("tacacs", |b| {
         let _ = tacacs::parse(b);
     }),
+    ("terrariaconf", |b| {
+        let _ = terrariaconf::parse(b);
+    }),
     ("tilestacheconf", |b| {
         let _ = tilestacheconf::parse(b);
     }),
@@ -7288,6 +7402,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("textile", |b| {
         let _ = textile::parse(b);
+    }),
+    ("ts3serverini", |b| {
+        let _ = ts3serverini::parse(b);
     }),
     ("tuicconf", |b| {
         let _ = tuicconf::parse(b);
@@ -7678,6 +7795,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("xi", |b| {
         let _ = xi::parse(b);
+    }),
+    ("xinetdconf", |b| {
+        let _ = xinetdconf::parse(b);
     }),
     ("yggdrasil", |b| {
         let _ = yggdrasil::parse(b);
