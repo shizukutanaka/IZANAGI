@@ -50,6 +50,37 @@ fn words(t: &str) -> impl Iterator<Item = &str> {
         .filter(|w| !w.is_empty())
 }
 
+/// Source with `"..."` literals and `#` comments blanked, so keyword
+/// checks never fire inside string values or comments.
+fn code_only(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut in_string = false;
+    let mut in_comment = false;
+    for c in t.chars() {
+        match (in_string, in_comment, c) {
+            (false, false, '"') => {
+                in_string = true;
+                out.push(' ');
+            }
+            (false, false, '#') => {
+                in_comment = true;
+                out.push(' ');
+            }
+            (true, _, '"') => {
+                in_string = false;
+                out.push(' ');
+            }
+            (_, true, '\n') => {
+                in_comment = false;
+                out.push('\n');
+            }
+            (false, false, c) => out.push(c),
+            _ => out.push(' '),
+        }
+    }
+    out
+}
+
 /// Returns `true` when `b` looks like Nickel source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -57,8 +88,10 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(v) => v,
         Err(_) => return false,
     };
-    // `in` is matched as a word so CRLF line endings (`in\r\n`) also hit.
-    (t.contains("let ") && words(t).any(|w| w == "in")) || t.contains("import \"")
+    // `in` is matched as a word outside strings/comments, so both LF and
+    // CRLF line endings hit without counting quoted or commented `in`.
+    let c = code_only(t);
+    (c.contains("let ") && words(&c).any(|w| w == "in")) || t.contains("import \"")
 }
 
 impl Nickel {
@@ -117,6 +150,13 @@ mod tests {
     fn detects_crlf_source() {
         // `in` immediately before CRLF (`in\r\n`) is still the keyword.
         assert!(detect(b"let x = 1 in\r\n{ value = x }\r\n"));
+    }
+
+    #[test]
+    fn rejects_in_inside_string_or_comment() {
+        // `in` inside a string literal or a comment is not a delimiter.
+        assert!(!detect(b"let x = \"in\"\n"));
+        assert!(!detect(b"let x = 1 # in\n"));
     }
 
     #[test]
