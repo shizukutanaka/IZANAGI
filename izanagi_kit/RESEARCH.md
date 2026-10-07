@@ -6973,3 +6973,10 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
+
+## 第411次
+
+- 観点: モジュール形状の契約 — レジストリ登録漏れ・孤立パーサーの機械計測。
+- 測定: `pub fn parse` を持つが `PARSERS` 未登録のモジュールは 665 件 — ただし全て `impl Type` の関連関数(`pub struct X` に対する `X::parse`)であり、レジストリdoc「フリー関数のみ対象」との齟齬はなかったが、**横断panic-freeテストの対象外という実害**は存在した。
+- 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
+- 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
