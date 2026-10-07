@@ -63,7 +63,7 @@ const KNOWN_OPTIONS: &[&str] = &[
 pub fn detect(b: &[u8]) -> bool {
     let c = parse(b);
     match c {
-        Some(c) => c.exports >= 1 && c.known_options >= 2,
+        Some(c) => c.exports >= 1 && c.known_options >= 1,
         None => false,
     }
 }
@@ -137,6 +137,13 @@ mod tests {
         assert_eq!(c.hosts, 4);
         assert_eq!(c.option_blocks, 4);
         assert_eq!(c.known_options, 10);
+    }
+
+    #[test]
+    fn detects_single_known_option() {
+        // `/srv host(ro)` is a valid minimal exports entry; the previous
+        // `known_options >= 2` gate missed it.
+        assert!(detect(b"/srv host(ro)\n"));
     }
 
     #[test]

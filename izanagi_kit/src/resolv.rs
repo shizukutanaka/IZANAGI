@@ -43,9 +43,13 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    t.lines().any(|l| l.trim_start().starts_with("nameserver"))
-        || (t.lines().any(|l| l.trim_start().starts_with("search"))
-            && t.lines().any(|l| l.trim_start().starts_with("options")))
+    // resolv.conf directives are line-start keywords followed by an
+    // argument; `nameserverx`/`searchlight` must not qualify. `domain`,
+    // `sortlist`, and `options` are also valid directives (a file with
+    // only `search`/`domain`/`options` is still resolv.conf content).
+    ["nameserver", "search", "domain", "sortlist", "options"]
+        .iter()
+        .any(|key| t.lines().any(|l| l.split_whitespace().next() == Some(*key)))
 }
 
 impl Resolv {
@@ -123,8 +127,18 @@ mod tests {
     }
 
     #[test]
+    fn detects_search_or_domain_only() {
+        assert!(detect(b"domain example.com\n"));
+        assert!(detect(b"search corp.local example.com\n"));
+        assert!(detect(b"options timeout:2 rotate\n"));
+        assert!(detect(b"sortlist 130.155.160.0/255.255.240.0\n"));
+    }
+
+    #[test]
     fn rejects_other() {
         assert!(!detect(b"foo bar\n"));
+        // Keyword prefixes without a word boundary are not directives.
+        assert!(!detect(b"nameserverx 8.8.8.8\nsearchlight x\n"));
         assert!(Resolv::parse(b"x").is_none());
     }
 }

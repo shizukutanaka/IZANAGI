@@ -50,7 +50,8 @@ pub fn detect(b: &[u8]) -> bool {
             opts += 1;
             continue;
         }
-        if s.contains("==")
+        if is_direct_ref(s)
+            || s.contains("==")
             || s.contains(">=")
             || s.contains("<=")
             || s.contains("~=")
@@ -83,6 +84,26 @@ pub fn detect(b: &[u8]) -> bool {
         }
     }
     specs + opts >= 2 && (specs >= 1 || opts >= 2)
+}
+
+/// PEP 508 direct reference: `name @ url` / `name@url`. The part before
+/// `@` must be a bare package name and the URL part non-empty.
+fn is_direct_ref(s: &str) -> bool {
+    let Some((name, url)) = s.split_once('@') else {
+        return false;
+    };
+    let name = name.trim();
+    let url = url.trim();
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '[' | ']'))
+        && !url.is_empty()
+        && !url.chars().any(|c| c.is_whitespace())
+        && url
+            .chars()
+            .next()
+            .is_some_and(|c| c.is_ascii_alphanumeric() || c == '/')
 }
 
 impl Requirements {
@@ -150,6 +171,17 @@ impl Requirements {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn detects_pep508_direct_references() {
+        // `name @ url` is PEP 508; URLs contain `:`/`/` and previously
+        // failed the charset check, so URL-only requirements were missed.
+        assert!(detect(
+            b"requests @ https://pypi.org/pkg/requests-2.31.tar.gz\nflask\n"
+        ));
+        assert!(!is_direct_ref("email@example.com is not a spec"));
+        assert!(is_direct_ref("pkg@file:///opt/dist"));
+    }
 
     #[test]
     fn parses_reqs() {

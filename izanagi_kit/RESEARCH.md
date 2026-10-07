@@ -6880,3 +6880,19 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第400次
+
+監査ラウンド第7回。切り口:ドメイン正確性 — 各検出器が「実在形式の公式仕様」と一致しているか。fixture(自作の見本)ではなく仕様書と突き合わせ、以下の3件のずれを修正。
+
+- resolv(resolv.conf):`starts_with("nameserver")`/`starts_with("search")`/`starts_with("options")`は接頭辞一致で`nameserverx`/`searchlight`のような非ディレクティブにも合致(偽陽性)。また`search`+`options`の両立を要求し、`nameserver`無しの合法構成(`domain`/`sortlist`/単独`options`)を全て見落とし(偽陰性)。→ 単語境界を持つキーワード判定へ書き換え、`nameserver|search|domain|sortlist|options`のいずれか1行以上で検出。
+- nfsexports(/etc/exports):`known_options >= 2`を要求していたが、仕様上 `/srv host(ro)`(既知オプション1個)も合法であり見落とし。→ `known_options >= 1`に緩和(絶対パス必須+`(opt)`形は維持)。
+- requirements(pip requirements.txt):PEP 508直接参照 `name @ url`/`name@url` はURL由来の`:`/`/`/`-`等を含み既存の文字集合チェックで棄却され、URLのみのrequirements.txtを不検出。→ `is_direct_ref`ヘルパー(`@`前が裸のパッケージ名、後が空白を含まないURL)をspecとして計数に追加。
+
+残課題(未修正):
+- editorconfig detect が `t.contains('[')`/`t.contains("root")` の全文contains(コメント/値内の言及で偽陽性の余地;第346次系の残存)。
+- `detect=true ⇒ parse.is_some()` 契約の横断assert(#417未マージのためfixture抽出器がmainに無い)。
+- foreign-hit 10-39件帯の検出器段階引き締め。
+- UTF-16入力、detect_allベンチ、大入力時間上限スモーク。
+
+回帰テスト:resolv `detects_search_or_domain_only`+`nameserverx`否定、nfsexports `detects_single_known_option`、requirements `detects_pep508_direct_references`(+`is_direct_ref`負例)。clippy 0警告。
