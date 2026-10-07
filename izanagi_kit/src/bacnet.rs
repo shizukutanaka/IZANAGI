@@ -10,6 +10,7 @@
 //! ```
 
 /// BACnet/IP frame: BVLC header, NPDU offsets, and the first APDU byte.
+#[derive(Debug)]
 pub struct Bacnet {
     /// BVLC function/type byte (0x0A original-unicast, 0x0B broadcast, ...).
     pub bvlc_type: u8,

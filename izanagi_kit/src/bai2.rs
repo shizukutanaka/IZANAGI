@@ -15,6 +15,7 @@
 //! ```
 
 /// A parsed BAI2 report.
+#[derive(Debug)]
 pub struct Bai2 {
     /// Originator/sender id from the `01` record.
     pub sender: String,

@@ -18,6 +18,7 @@
 //! ```
 
 /// Parsed RF64/BW64 + ds64 header.
+#[derive(Debug)]
 pub struct Rf64 {
     /// True when the magic is `BW64` rather than `RF64`.
     pub bw64: bool,

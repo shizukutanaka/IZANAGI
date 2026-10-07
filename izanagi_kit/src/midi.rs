@@ -26,6 +26,7 @@
 use std::vec::Vec;
 
 /// A parsed event at an absolute tick.
+#[derive(Debug)]
 pub struct Ev {
     /// Absolute tick from track start.
     pub tick: u32,
@@ -106,12 +107,14 @@ pub enum EvKind {
 }
 
 /// One `MTrk` track.
+#[derive(Debug)]
 pub struct Track {
     /// Events in wire order, absolute ticks.
     pub events: Vec<Ev>,
 }
 
 /// A parsed SMF file.
+#[derive(Debug)]
 pub struct Midi {
     /// SMF format 0/1/2.
     pub format: u16,

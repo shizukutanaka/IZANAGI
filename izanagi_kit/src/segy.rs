@@ -48,6 +48,7 @@ impl SampleFormat {
 }
 
 /// Parsed SEG-Y binary header fields.
+#[derive(Debug)]
 pub struct Segy {
     /// Job identification number.
     pub job_id: i32,

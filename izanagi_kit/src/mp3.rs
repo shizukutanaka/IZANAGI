@@ -39,6 +39,7 @@ pub enum Layer {
 }
 
 /// Parsed MP3 frame header.
+#[derive(Debug)]
 pub struct Mp3 {
     /// MPEG version.
     pub version: Version,

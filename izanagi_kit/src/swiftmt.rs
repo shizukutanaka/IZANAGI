@@ -18,6 +18,7 @@
 //! ```
 
 /// A parsed SWIFT MT message.
+#[derive(Debug)]
 pub struct SwiftMt {
     /// 3-digit message type from block 2 (e.g. `103`, `940`).
     pub msg_type: String,

@@ -16,6 +16,7 @@
 //! ```
 
 /// A censused OMG IDL document.
+#[derive(Debug)]
 pub struct Idl {
     /// `module X {` count.
     pub modules: u32,

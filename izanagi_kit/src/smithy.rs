@@ -15,6 +15,7 @@
 //! ```
 
 /// A censused Smithy model.
+#[derive(Debug)]
 pub struct Smithy {
     /// `namespace a.b.c` value.
     pub namespace: String,
