@@ -41,7 +41,31 @@ use crate::geometry::line as bresenham_line;
 /// A multi-source integer distance field as produced by [`dijkstra_map`]:
 /// each reachable cell mapped to its path cost from the nearest source.
 /// Consumed by [`descend`], [`flee_map`] and [`combine_maps`].
+///
+/// The backing `HashMap` gives O(1) lookups but a **process-random iteration
+/// order**: never iterate it directly when the result must be replayable —
+/// look cells up by key, or use [`cells_row_major`] for an ordered pass.
 pub type DijkstraMap = HashMap<(i32, i32), i32>;
+
+/// Every `(cell, cost)` entry of a [`DijkstraMap`] in row-major order
+/// (smallest `(y, x)` first) — the deterministic way to scan a whole map.
+/// Iterating a `DijkstraMap` directly yields entries in `HashMap`'s
+/// process-random bucket order, which desyncs any order-dependent pass;
+/// this helper gives the replayable traversal (the same order
+/// [`farthest_cell`] uses to break ties).
+///
+/// ```
+/// let m = izanagi_kit::pathfinding::dijkstra_map(&[(0, 0)], 50, |x, y| !(0..3).contains(&x) || !(0..3).contains(&y));
+/// let cells = izanagi_kit::pathfinding::cells_row_major(&m);
+/// assert_eq!(cells.first().map(|(c, _)| *c), Some((0, 0)));
+/// assert!(cells.windows(2).all(|w| (w[0].0 .1, w[0].0 .0) < (w[1].0 .1, w[1].0 .0)));
+/// ```
+#[must_use]
+pub fn cells_row_major(map: &DijkstraMap) -> Vec<((i32, i32), i32)> {
+    let mut v: Vec<((i32, i32), i32)> = map.iter().map(|(&k, &c)| (k, c)).collect();
+    v.sort_unstable_by_key(|&(cell, _)| (cell.1, cell.0));
+    v
+}
 
 /// Orthogonal step cost (≈ 1.0, scaled by 10).
 const COST_ORTHO: i32 = 10;
@@ -726,7 +750,8 @@ where
 ///
 /// Runs one [`dijkstra_map`] from `sources` bounded by `max_cost`, then takes
 /// the argmax. Ties (several cells equidistant at the maximum) break by
-/// row-major order — smallest `(y, x)` — so the choice is **deterministic**
+/// row-major order — smallest `(y, x)`, the same order [`cells_row_major`]
+/// produces — so the choice is **deterministic**
 /// regardless of the underlying map's iteration order. Returns `None` only
 /// when no cell is reachable (every source blocked, or `sources` empty);
 /// otherwise at least the nearest source itself is present at cost 0.
@@ -1980,6 +2005,31 @@ mod tests {
         ka.sort();
         kb.sort();
         assert_eq!(ka, kb);
+    }
+
+    #[test]
+    fn test_cells_row_major_orders_deterministically() {
+        let walls = HashSet::from([(4, 2), (4, 3), (4, 4)]);
+        // Build the same field from the same sources in two insertion orders:
+        // HashMap storage may differ, but the row-major readback must not.
+        let a = dijkstra_map(&[(1, 1), (9, 9)], 500, blocker(12, 12, walls.clone()));
+        let b = dijkstra_map(&[(9, 9), (1, 1)], 500, blocker(12, 12, walls.clone()));
+        assert_eq!(cells_row_major(&a), cells_row_major(&b));
+        // Row-major means (y, x) non-decreasing.
+        let cells = cells_row_major(&a);
+        assert!(cells
+            .windows(2)
+            .all(|w| (w[0].0 .1, w[0].0 .0) <= (w[1].0 .1, w[1].0 .0)));
+        // farthest_cell breaks argmax ties by the same row-major order:
+        // its answer must be the first row-major cell among the argmax.
+        let (fc, fcost) =
+            farthest_cell(&[(1, 1), (9, 9)], 500, blocker(12, 12, walls.clone())).unwrap();
+        let argmax_first = cells
+            .iter()
+            .filter(|&&(_, c)| c == fcost)
+            .map(|&(c, _)| c)
+            .min_by_key(|&c| (c.1, c.0));
+        assert_eq!(argmax_first, Some(fc));
     }
 
     // --- smooth_path ---
