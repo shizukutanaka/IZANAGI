@@ -63,7 +63,7 @@ impl Godot {
             distinct_sections: 0,
             comments: 0,
         };
-        let mut seen: Vec<String> = Vec::new();
+        let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
         let mut cur = "";
         for line in t.lines() {
             let l = line.trim();
@@ -82,9 +82,7 @@ impl Godot {
                     "input" => "input",
                     _ => "",
                 };
-                if !seen.contains(&name) {
-                    seen.push(name);
-                }
+                seen.insert(name);
                 continue;
             }
             if let Some(eq) = l.find('=') {

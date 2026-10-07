@@ -30,12 +30,10 @@ pub struct Jtl {
 }
 
 fn distinct_csv_col(lines: &[&str], idx: usize) -> usize {
-    let mut seen: Vec<&str> = Vec::new();
+    let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
     for l in lines {
         let v = l.split(',').nth(idx).unwrap_or("");
-        if !seen.contains(&v) {
-            seen.push(v);
-        }
+        if seen.insert(v) {}
     }
     seen.len()
 }

@@ -127,7 +127,7 @@ pub struct Counts {
 /// b が LÖVE conf/main かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
-    let mut seen: Vec<&str> = Vec::new();
+    let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
     for line in text.lines() {
         let t = line.trim();
         // Lua コメント(`--`)はシグネチャに使わない。
@@ -145,9 +145,7 @@ pub fn detect(b: &[u8]) -> bool {
                     return true;
                 }
                 if let Some(&w) = CALLBACKS.iter().find(|&&w| w == name) {
-                    if !seen.contains(&w) {
-                        seen.push(w);
-                    }
+                    if seen.insert(w) {}
                 }
             }
         }

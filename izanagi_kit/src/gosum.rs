@@ -61,7 +61,7 @@ impl Gosum {
             modules: 0,
             h1: 0,
         };
-        let mut seen = Vec::new();
+        let mut seen = std::collections::BTreeSet::new();
         for l in t.lines() {
             let tr = l.trim();
             if !is_entry(tr) {
@@ -77,8 +77,7 @@ impl Gosum {
             if tr.contains("h1:") {
                 c.h1 += 1;
             }
-            if !seen.contains(&path) {
-                seen.push(path);
+            if seen.insert(path) {
                 c.modules += 1;
             }
         }

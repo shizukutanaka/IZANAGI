@@ -6880,3 +6880,23 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第399次 性能・計算量監査 — 行単位ループ内の二次計算量除去
+
+「detect()は行数nでO(n)か?」という問いから全detect/parse本体のループ構造を
+機械走査(`t.contains`等の全文走査をループ内で呼ぶ形、`Vec::contains`を入力行毎に
+呼ぶ形)。見つかった実害:
+
+- junos: 行毎に `t.contains('}')` を全文走査 → O(n²)。ループ外にhoistしてO(n)化
+- 9モジュールの入力行駆動型dedup(Vec+contains)をBTreeSet化:
+  godot(セクション名), gosum(モジュールパス), retroarch/monero(グループ名),
+  pinpoint(u64ハッシュ), httpfile(HTTPメソッド), jtl(ラベル), loveconf(文字),
+  nexus(ブロック名) — 全て「distinct数のcount」用途のみで順序非依存。
+  Vec+containsはO(L·D)(L=行数,D=distinct数) → BTreeSetでO(L·log D)
+
+残すVec.containsは固定小集合(bound_kinds/modes/fams/groups等の全enum値列挙、
+D≲20)で二次計算量は実害なし — 判断をRESEARCHに記録。
+
+残課題: `detect()`自体の最悪入力での時間上限テスト(fuzz+時間計測)、
+`detect_all` の1344回全走査コストのベンチ、巨大ファイルでのストリーミング
+検出の検討。

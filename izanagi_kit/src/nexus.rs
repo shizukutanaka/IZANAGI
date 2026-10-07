@@ -85,7 +85,7 @@ pub fn parse(b: &[u8]) -> Option<Nexus> {
         translate: 0,
         labels: 0,
     };
-    let mut names = Vec::new();
+    let mut names = std::collections::BTreeSet::new();
     let mut in_tree_block = false;
     // Commands may share a line: scan each statement split on ';'.
     for stmt in s.split(';') {
@@ -105,8 +105,8 @@ pub fn parse(b: &[u8]) -> Option<Nexus> {
                         .trim_end_matches(';')
                         .to_ascii_lowercase();
                     in_tree_block = name == "trees";
-                    if !name.is_empty() && !names.contains(&name) {
-                        names.push(name);
+                    if !name.is_empty() {
+                        names.insert(name);
                     }
                 }
                 "end" | "endblock" => in_tree_block = false,

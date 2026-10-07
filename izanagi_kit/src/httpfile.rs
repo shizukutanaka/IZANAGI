@@ -76,7 +76,7 @@ impl Httpfile {
             queries: 0,
             multipart: 0,
         };
-        let mut seen: Vec<&str> = Vec::new();
+        let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
         let mut in_req = false;
         let mut body = false;
         for l in t.lines() {
@@ -116,9 +116,7 @@ impl Httpfile {
                 in_req = true;
                 body = false;
                 let m = tr.split_whitespace().next().unwrap_or("");
-                if !seen.contains(&m) {
-                    seen.push(m);
-                }
+                seen.insert(m);
                 if tr.contains("?") && tr.contains('=') {
                     r.queries += 1;
                 }

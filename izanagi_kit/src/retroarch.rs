@@ -163,7 +163,7 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         groups: 0,
         comments: 0,
     };
-    let mut seen: std::vec::Vec<&str> = std::vec::Vec::new();
+    let mut seen: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
     for line in t.lines() {
         let s = line.trim();
         if s.is_empty() {
@@ -200,8 +200,7 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             }
         }
         let g = k.split('_').next().unwrap_or(k);
-        if !seen.contains(&g) {
-            seen.push(g);
+        if seen.insert(g) {
             c.groups += 1;
         }
     }

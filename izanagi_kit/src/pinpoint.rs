@@ -67,7 +67,7 @@ impl Pinpoint {
             toggles: 0,
             comments: 0,
         };
-        let mut seen = std::vec::Vec::<u64>::new();
+        let mut seen = std::collections::BTreeSet::<u64>::new();
         for l in t.lines() {
             let s = l.trim();
             if s.is_empty() {
@@ -96,8 +96,7 @@ impl Pinpoint {
                 for x in g.bytes() {
                     h = h.wrapping_mul(257).wrapping_add(u64::from(x));
                 }
-                if !seen.contains(&h) {
-                    seen.push(h);
+                if seen.insert(h) {
                     c.groups += 1;
                 }
                 let v = s[sep + 1..].trim_start_matches(':').trim();

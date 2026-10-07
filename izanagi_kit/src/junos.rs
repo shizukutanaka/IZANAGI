@@ -44,12 +44,13 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let mut sets = 0usize;
     let mut brace_pair = false;
+    let has_close = t.contains('}');
     for l in t.lines() {
         let s = l.trim();
         if s.starts_with("set ") {
             sets += 1;
         }
-        if s.ends_with('{') && t.contains('}') {
+        if s.ends_with('{') && has_close {
             brace_pair = true;
         }
     }
