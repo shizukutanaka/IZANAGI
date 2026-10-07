@@ -7001,3 +7001,40 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 測定: `pub fn parse` を持つが `PARSERS` 未登録のモジュールは 665 件 — ただし全て `impl Type` の関連関数(`pub struct X` に対する `X::parse`)であり、レジストリdoc「フリー関数のみ対象」との齟齬はなかったが、**横断panic-freeテストの対象外という実害**は存在した。
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
+
+## 第414次：検出器間相互偽陽性 — 全fixture×全DETECTORS掃引と上位13件の精密化
+
+切り口:foreign-fixture hits(他モジュールのfixtureを誤検出する件数)。
+538 fixture × 1,344 detector の相互汚染マトリクスを計測し、最悪の汎用
+検出器を「形式排他アンカー」で精密化した。
+
+修正前→後(外来ヒット数):
+
+| detector | before | after | 原因→修正 |
+|---|---|---|---|
+| mml | 477 | 0 | 音名文字集合のみ受理 → 純MMLトークンストリーム必須(directive≥1 & notes≥3 & others==0) |
+| haresources | 404 | 0 | `key: r1 r2` 1行で受理 → 複合閾値(entries≥1 & resources≥2 & colon_agents≥1 & 通信語彙≥1) |
+| requirements | 247 | 0 | `name>=v` 1行で受理 → is_spec_line文法+内容行過半数ゲート |
+| lucene | 212 | 83 | `:` 全域でfield計数 → field_terms(英文字識別子+非引用+次が空白/:/=でない)、`://`早期棄却 |
+| creole | 161 | 21 | 1ファミリのみで受理 → 異種マークアップ≥2ファミリ必須 |
+| mediawiki | 150 | 0 | 同上 |
+| dockerignore | 123 | <14 | 1行globで受理 → 全内容行パターン形状+marker≥1+patterns≥2 |
+| dotenv | 92 | 28 | `k=v` 1行で受理 → `[section]`棄却+内容行過半数が代入式 |
+| gitignore | 91 | <14 | `.`&非空白で受理 → dockerignoreと同規則 |
+| xpath | 82 | <14 | `//`/`@`/`::`広OR → 式形状(≤3行)+排他マーカー(`//name`,`[@`,axis::,fn() |
+| justfile | 82 | 20 | `name:`+indent=YAML同型 → just排他構文(:=,set,@,!,{{,引数default)≥1必須 |
+| unbound | 71 | <14 | `k: v`スコア≥4 → SECTIONS名付きセクション≥1必須 |
+| sudoers | 70 | <14 | `nth(1)=='='`(ini `k = v`の`=`自体)に命中 → `host=`が識別子のみであることを要求+汎用TAGS除去 |
+
+残存上位(本質的に不可分の ini/config 族曖昧性): openssl 66, pppdconf 65,
+txt2tags 59, gitconfig 45, pgpass 40, memcachedconf 37, rsyslogd 34 — 
+`k=v`/`k: v` 系は一意アンカーを持たないため「正しい曖昧性」として記録。
+lucene 83 の残りも `word:value` ×2行の YAML との構造同一性。
+
+設計パターンとして抽出した判定ルール:
+- 純度ゲート(受理文字集合のみで構成、混入即棄却)
+- 必須語彙(形式固有セクション/ディレクティブ名≥1)
+- 多数派ゲート(内容行の過半数がその形式の行型)
+- 全行パターン化(ignore系:全行がpattern-shaped)
+- 式形状(行数上限+言語排他マーカー)
+- トークン検証(単純substringではなくトークン構造を検査)
