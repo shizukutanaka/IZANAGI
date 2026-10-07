@@ -135,3 +135,155 @@ fn parsers_registry_covers_every_module_with_parse() {
         "PARSERS entries without a matching `pub fn parse(_: &[u8])` module: {extra:?}"
     );
 }
+
+/// Unescape a Rust `b"..."` literal body into raw bytes.
+fn unescape_byte_string(body: &str) -> Vec<u8> {
+    let bytes = body.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] != b'\\' {
+            out.push(bytes[i]);
+            i += 1;
+            continue;
+        }
+        i += 1;
+        match bytes.get(i).copied() {
+            Some(b'n') => out.push(b'\n'),
+            Some(b'r') => out.push(b'\r'),
+            Some(b't') => out.push(b'\t'),
+            Some(b'0') => out.push(0),
+            Some(b'\\') => out.push(b'\\'),
+            Some(b'\'') => out.push(b'\''),
+            Some(b'"') => out.push(b'"'),
+            Some(b'x') => {
+                let h = bytes.get(i + 1..i + 3).unwrap_or(&[]);
+                out.push(
+                    u8::from_str_radix(std::str::from_utf8(h).unwrap_or("0"), 16).unwrap_or(0),
+                );
+                i += 2;
+            }
+            Some(b'u') => {
+                // \u{HEX} — encode as UTF-8.
+                let mut j = i + 1;
+                let mut val = String::new();
+                while bytes.get(j).is_some_and(|&c| c != b'}') {
+                    val.push(bytes[j] as char);
+                    j += 1;
+                }
+                let cp = u32::from_str_radix(&val, 16).unwrap_or(0);
+                if let Some(c) = char::from_u32(cp) {
+                    let mut buf = [0u8; 4];
+                    out.extend_from_slice(c.encode_utf8(&mut buf).as_bytes());
+                }
+                i = j;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    out
+}
+
+/// Pull every `const NAME: &[u8] = b"..."` fixture out of one source file.
+fn extract_fixtures(text: &str) -> Vec<Vec<u8>> {
+    let mut out = Vec::new();
+    let mut rest = text;
+    while let Some(p) = rest.find("b\"") {
+        // Only trust `b"` inside a `const ..: &[u8..] =` declaration —
+        // the literal may sit a couple of lines after `=`.
+        let head = &rest[..p];
+        let mut line_start = head.len();
+        for _ in 0..4 {
+            line_start = head[..line_start].rfind('\n').map_or(0, |x| x + 1);
+            if head[line_start..].contains("const ") || line_start == 0 {
+                break;
+            }
+        }
+        let decl = &head[line_start..];
+        if !(decl.contains("const ") && decl.contains(": &[u8") && decl.trim_end().ends_with('=')) {
+            rest = &rest[p + 2..];
+            continue;
+        }
+        let body = &rest[p + 2..];
+        // Literal ends at the first unescaped '"'.
+        let mut end = None;
+        let mut j = 0;
+        let bb = body.as_bytes();
+        while j < bb.len() {
+            if bb[j] == b'\\' {
+                j += 2;
+                continue;
+            }
+            if bb[j] == b'"' {
+                end = Some(j);
+                break;
+            }
+            j += 1;
+        }
+        let Some(end) = end else { break };
+        out.push(unescape_byte_string(&body[..end]));
+        rest = &body[end + 1..];
+    }
+    out
+}
+
+/// The shared corpus cannot reach deep parse paths: it rarely passes the
+/// module's own marker gate, so most parsers bail in their first lines.
+/// Fix that by feeding every parser every truncation and single-byte
+/// corruption of *its own* in-source `const ..: &[u8] = b"..."` fixtures —
+/// the inputs closest to the happy path, where a panic actually hides.
+#[test]
+fn no_parser_panics_on_own_fixture_family() {
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut fixture_map: std::collections::BTreeMap<String, Vec<Vec<u8>>> =
+        std::collections::BTreeMap::new();
+    for entry in fs::read_dir(&src).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension() != Some(OsStr::new("rs")) {
+            continue;
+        }
+        let text = fs::read_to_string(&path).unwrap_or_default();
+        let fixtures = extract_fixtures(&text);
+        if !fixtures.is_empty() {
+            fixture_map.insert(
+                path.file_stem().unwrap().to_str().unwrap().to_string(),
+                fixtures,
+            );
+        }
+    }
+    let mut covered = 0usize;
+    for &(name, parse) in izanagi_kit::PARSERS {
+        let Some(fixtures) = fixture_map.get(name) else {
+            continue;
+        };
+        covered += 1;
+        for fixture in fixtures {
+            // Every prefix: structure cut at every byte position.
+            for n in 0..=fixture.len() {
+                let input = &fixture[..n];
+                let result = catch_unwind(AssertUnwindSafe(|| parse(input)));
+                assert!(
+                    result.is_ok(),
+                    "{name}::parse panicked on a {}-byte prefix of its own fixture",
+                    input.len()
+                );
+            }
+            // Single-byte corruption, densely sampled.
+            let step = (fixture.len() / 64).max(1);
+            for i in (0..fixture.len()).step_by(step) {
+                let mut m = fixture.clone();
+                m[i] ^= 0x5A;
+                let result = catch_unwind(AssertUnwindSafe(|| parse(&m)));
+                assert!(
+                    result.is_ok(),
+                    "{name}::parse panicked on its fixture with byte {i} corrupted"
+                );
+            }
+        }
+    }
+    assert!(
+        covered >= 400,
+        "fixture sweep covered only {covered} modules — the extractor drifted"
+    );
+}

@@ -6880,3 +6880,17 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第396次
+
+監査(第3回)で「panic非発火は共有コーパスでは深いパース経路に
+届かない」ことを確認し、fixture起点の横断fuzzを追加。
+
+- tests/parse_never_panics.rs に `no_parser_panics_on_own_fixture_family`
+  を追加:src内の `const ..: &[u8] = b"..."` fixture をソースから
+  抽出・unescapeし、PARSERS登録の同名パーサへ
+  (a)全prefix、(b)単バイト破壊(64点サンプル)を投入、
+  catch_unwind でpanicを検出。
+- 432モジュールの深いパース経路を新規カバー
+  (共有fodderがdetect閾値を通らず early-return していた領域)。
+- 抽出器の劣化を防ぐ `covered >= 400` の下限 assert 付き。
