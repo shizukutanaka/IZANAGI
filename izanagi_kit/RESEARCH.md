@@ -6880,3 +6880,25 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第394次
+
+全量監査(長所50/短所50)に基づき、XML系検出器の複数行
+`<!-- -->` コメント内記述がアクティブな設定として計数・
+合致する欠陥クラスを一括修正。
+
+- 修正した構造:各行で `tr.starts_with("<!--")` を見るだけ
+  だったため、複数行コメントの2行目以降に書かれたタグ/要素が
+  有効行として採用されていた。
+- strip_comments ヘルパー(String返却、`<!--`〜`-->`を
+  複数行対応で除去、未終了コメントは末尾まで除去)を
+  43モジュールへ導入し decode 直後に適用。
+- `comments` 統計フィールドを持つ11モジュール(clickhouse,
+  gtksrclang, jellyfin, katesyntax, ketl, ossecconf,
+  solrconfig, solrschema, sonarr, sysmonconf, xacml)は
+  detectのみstrip、parseはコメント計数の仕様維持。
+- autoyast(comments意図計数), dita/docbook/icecast/verilog
+  (自前処理済), sevendtdxml(前回修正済)は据置。
+- junitのヘッドスキャンは `<!--` 内の `>` で誤終了していた
+  ので `-->` まで読み飛ばすよう修正。
+- 回帰テスト xml_comments_are_stripped を42モジュールに追加。

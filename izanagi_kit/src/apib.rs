@@ -42,6 +42,22 @@ fn heading(l: &str, hashes: usize) -> Option<&str> {
         .filter(|r| r.starts_with(' '))
         .map(str::trim)
 }
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
 
 /// `true` when the text looks like an API Blueprint document.
 #[must_use]
@@ -49,6 +65,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = from_utf8(b) else {
         return false;
     };
+    let t = strip_comments(t);
     let has_format = t.lines().take(4).any(|l| l.trim() == "FORMAT: 1A");
     let has_actions = t
         .lines()
@@ -60,7 +77,7 @@ impl Apib {
     #[must_use]
     /// Parses `b` into `Apib`.
     pub fn parse(b: &[u8]) -> Option<Self> {
-        let t = from_utf8(b).ok()?;
+        let t = strip_comments(from_utf8(b).ok()?);
         if !detect(b) {
             return None;
         }
@@ -163,5 +180,16 @@ mod tests {
         assert_eq!(a.headers, 1);
         assert_eq!(a.attributes, 1);
         assert!(Apib::parse(b"").is_none());
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

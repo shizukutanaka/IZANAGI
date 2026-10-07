@@ -76,9 +76,26 @@ fn elem_name(t: &str) -> &str {
         .unwrap_or("")
 }
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// `b` が Pacemaker CIB に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
-    let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_comments(std::str::from_utf8(b).unwrap_or(""));
     if !t.contains("<cib") && !t.contains("<configuration") {
         return false;
     }
@@ -105,7 +122,7 @@ pub struct Pacemaker {
 
 /// `b` を CIB XML として統計する。
 pub fn parse(b: &[u8]) -> Pacemaker {
-    let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_comments(std::str::from_utf8(b).unwrap_or(""));
     let mut c = Pacemaker::default();
     for l in t.lines() {
         let mut s = l.trim_start();
@@ -153,5 +170,16 @@ mod tests {
         assert!(!detect(&[0xff, 0xfe, 0x00, 0x01, 0x90]));
         let c = parse(b"");
         assert_eq!(c.elems, 0);
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }
