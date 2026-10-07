@@ -53,6 +53,9 @@ const CMDS: &[&str] = &[
     "pl-export",
     "live-filter",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a cmus autosave/rc file.
 #[must_use]
@@ -60,6 +63,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let hits = t
         .lines()
         .filter(|l| {
@@ -84,6 +88,7 @@ impl Cmus {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             commands: 0,
             sets: 0,
@@ -151,5 +156,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Cmus::parse(b"ls -la\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

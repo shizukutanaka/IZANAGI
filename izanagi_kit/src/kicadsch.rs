@@ -32,6 +32,9 @@ pub struct Counts {
     /// 図形・その他名前付き S式数。
     pub misc: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が `.kicad_sch` かどうか。
 #[must_use]
@@ -40,6 +43,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let text = strip_bom(text);
     text.trim_start().starts_with("(kicad_sch")
 }
 
@@ -47,6 +51,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = std::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     if !detect(text.as_bytes()) {
         return None;
     }
@@ -145,5 +150,11 @@ mod tests {
     fn rejects_other_sexp() {
         assert!(!detect(b"(kicad_pcb (version 4))"));
         assert!(!detect(b"(foo bar)"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

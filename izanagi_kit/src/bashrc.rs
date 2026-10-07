@@ -109,6 +109,9 @@ const OTHER_HEADS: &[&str] = &[
     "let",
     "exec",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect bashrc content.
 #[must_use]
@@ -117,6 +120,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     for line in t.lines() {
         let s = line.trim();
@@ -142,6 +146,7 @@ impl Bashrc {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             exports: 0,
             aliases: 0,
@@ -262,5 +267,11 @@ mod tests {
         assert_eq!(c.binds, 3);
         assert!(c.named >= 12);
         assert_eq!(c.comments, 1);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -116,6 +116,9 @@ const OPTION_KEYS: &[&str] = &[
     "build_cache_dir",
     "shared_dir",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `platformio.ini` らしさを返す。`[env:` セクションか `platform`/`board`/
 /// `framework` の組合せで判定。
@@ -124,6 +127,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     let mut env_sec = false;
     for l in t.lines() {
@@ -166,6 +170,7 @@ fn assign_key(s: &str) -> Option<&str> {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut c = Counts {
         assigns: 0,
         envs: 0,
@@ -256,5 +261,11 @@ mod tests {
         let c = parse(b"[env:a]\nplatform = x\nboard = y\n").unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

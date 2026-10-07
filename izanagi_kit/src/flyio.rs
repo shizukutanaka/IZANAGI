@@ -43,6 +43,9 @@ const SERVICE_TABLES: &[&str] = &[
     "mounts",
     "vm",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `fly.toml` らしさを返す。`app =`/`primary_region` と `[http_service]`/
 /// `[services]`/`[[services.ports]]` 等の組合せで判定。
@@ -51,6 +54,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     let mut app = false;
     for l in t.lines() {
@@ -88,6 +92,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut c = Counts {
         assigns: 0,
         tables: 0,
@@ -180,5 +185,11 @@ mod tests {
         let c = parse(b"app = \"a\"\n[http_service]\n  internal_port = 1\n").unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

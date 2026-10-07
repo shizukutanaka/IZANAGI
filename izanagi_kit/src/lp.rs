@@ -40,6 +40,9 @@ pub struct Lp {
     /// `\` comment lines.
     pub comments: u32,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` on `max`/`min` + `subject to`-style skeleton.
 #[must_use]
@@ -48,6 +51,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     let low = s.to_ascii_lowercase();
     let mut dir = false;
     let mut st = false;
@@ -72,6 +76,7 @@ pub fn parse(b: &[u8]) -> Option<Lp> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let low = s.to_ascii_lowercase();
     let mut l = Lp {
         direction: None,
@@ -174,5 +179,11 @@ mod tests {
         assert_eq!(l.direction.as_deref(), Some("max"));
         let l = parse(b"Min\n obj: x\nSubject To\n c: x <= 2\nEnd\n").unwrap();
         assert_eq!(l.direction.as_deref(), Some("min"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

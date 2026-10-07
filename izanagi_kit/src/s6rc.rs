@@ -56,6 +56,9 @@ const VAR_OPS: &[&str] = &[
 
 /// Action builtin names.
 const ACTIONS: &[&str] = &["exec", "cd", "exit", "wait", "execve", "loopwhilex"];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// True if `b` looks like an s6-rc/execline script.
 #[must_use]
@@ -63,6 +66,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.contains("execlineb")
         || (t.contains("{") && (t.contains("s6-svc") || t.contains("s6-rc")))
         || (BLOCKS
@@ -81,6 +85,7 @@ impl S6rc {
     #[must_use]
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             blocks: 0,
             variable_ops: 0,
@@ -145,5 +150,11 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"#!/bin/sh\necho hi\n"));
         assert!(S6rc::parse(b"echo hi\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

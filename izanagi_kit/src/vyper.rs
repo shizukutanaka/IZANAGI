@@ -52,11 +52,15 @@ fn code_has(t: &str, needle: &str) -> bool {
     t.lines()
         .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Returns `true` when `b` looks like Vyper source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     t.contains("# @version")
         || (code_has(t, "def ")
             && ["@external", "@internal", "@view", "@pure", "@payable"]
@@ -72,6 +76,7 @@ impl Vyper {
             return None;
         }
         let t = core::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut v = Self {
             version: String::new(),
             functions: 0,
@@ -163,5 +168,11 @@ mod tests {
     fn rejects() {
         assert!(Vyper::parse(b"plain text").is_none());
         assert!(Vyper::parse(b"").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -59,6 +59,9 @@ fn count_kw(t: &str, kw: &str) -> usize {
     }
     n
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detects Nix: `let … in`, `with …;`, `mkDerivation`/`derivation`, or a `{…}:` lambda head.
 #[must_use]
@@ -66,6 +69,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     count_kw(t, "let") > 0 && count_kw(t, "in") > 0
         || count_kw(t, "with") > 0
         || t.contains("mkDerivation")
@@ -81,6 +85,7 @@ pub fn parse(b: &[u8]) -> Option<Nix> {
         return None;
     }
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut s = Nix {
         lets: count_kw(t, "let"),
         recs: count_kw(t, "rec"),
@@ -174,5 +179,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"select * from t").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -56,6 +56,9 @@ fn version_after<'a>(t: &'a str, name: &str) -> Option<&'a str> {
         (!tr.is_empty()).then_some(tr)
     })
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` when the text looks like Gemfile.lock.
 #[must_use]
@@ -63,6 +66,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     (t.contains("\nGEM\n") || t.starts_with("GEM\n") || t.contains("\nGIT\n"))
         && t.contains("specs:")
         || t.contains("BUNDLED WITH")
@@ -73,6 +77,7 @@ impl Gemlock {
     /// Parses `b` into `Gemlock`.
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = from_utf8(b).ok()?;
+        let t = strip_bom(t);
         if !detect(b) {
             return None;
         }
@@ -145,5 +150,11 @@ mod tests {
         assert_eq!(g.dependencies, 2);
         assert_eq!(g.bundled_with, "2\x2e4");
         assert!(Gemlock::parse(b"").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

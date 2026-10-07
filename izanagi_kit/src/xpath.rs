@@ -77,6 +77,9 @@ const FN: &[&str] = &[
     "substring-before(",
     "substring-after(",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detects XPath: a `/` step or `//` or `@` or `axis::`.
 #[must_use]
@@ -84,6 +87,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let t = t.trim();
     (t.contains("//") || t.starts_with('/') || t.contains('@') || t.contains("::"))
         && t.bytes().all(|c| c.is_ascii())
@@ -95,6 +99,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Xpath> {
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     if !detect(b) {
         return None;
     }
@@ -205,5 +210,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"just text").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

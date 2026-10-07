@@ -36,6 +36,9 @@ pub struct Resolv {
     /// `#`/`;` comment lines.
     pub comments: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like resolv.conf.
 #[must_use]
@@ -43,6 +46,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines().any(|l| l.trim_start().starts_with("nameserver"))
         || (t.lines().any(|l| l.trim_start().starts_with("search"))
             && t.lines().any(|l| l.trim_start().starts_with("options")))
@@ -56,6 +60,7 @@ impl Resolv {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             nameservers: 0,
             domain: 0,
@@ -126,5 +131,11 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"foo bar\n"));
         assert!(Resolv::parse(b"x").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

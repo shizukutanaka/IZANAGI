@@ -108,6 +108,9 @@ const KEYS: &[&str] = &[
 fn is_key(k: &str) -> bool {
     KEYS.iter().any(|x| k.starts_with(x))
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a `.clang-format` file.
 #[must_use]
@@ -115,6 +118,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines()
         .filter(|l| {
             let s = l.trim();
@@ -135,6 +139,7 @@ impl ClangFormat {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             settings: 0,
             booleans: 0,
@@ -205,5 +210,11 @@ mod tests {
     fn rejects_other() {
         assert!(ClangFormat::parse(b"foo: bar").is_none());
         assert!(ClangFormat::parse(b"Checks: '-*'").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }
