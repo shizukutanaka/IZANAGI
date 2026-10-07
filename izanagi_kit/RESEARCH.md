@@ -7025,3 +7025,36 @@ stl/grp/shp/vox/bson(サイズ一致・チェック済み), dbf(u16), otf(u16)
 残課題: `1usize << n` のshift overflow経路(meetmid/sosdp/magic —
 アルゴリズムAPI、caller責任だが要ドキュメント)、全割当サイトの機械的分類、
 `Vec::push`ループ自体の入力比例OOM(逐次拡張ではなく飽和対応)。
+
+## 第422次：シフト量オーバーフロー — `1 << n` の域外 n
+
+切り口: `1u64 << k` で `k >= 64` は debug で panic、release では
+masked-shift(`k & 63`)で `1u64 << 0` に折り返し — panic 回避で済まない
+「静かに違う答え」経路を全モジュールで機械計測。
+
+修正(9ファイル):
+- huffman: `decode` の canonical rebuild が wire 由来 `len=32` で
+  `u32 << 32` panic(実害、到達可能) → `cur` を u64 化+`checked_shl`。
+  `encode` は `len > 32` を事前拒否、packer の `acc` も u64 化
+  (`acc << 32` は `len=32` で debug panic)。
+- qcow2/f2fs: `pub` フィールド書換で parse 時の範囲検査を迂回可能 →
+  `cluster_size`/`block_size`/`incompat` を `checked_shl`・範囲判定で
+  飽和・偽固定に。
+- wfc: `count_tiles(tile >= 64)` → `0` (release では tile-0 の個数を
+  誤返していた)。
+- cyk/meetmid/sosdp/bdd: 表現域超過は契約違反として `assert!`
+  (黙って丸めるのは嘘を返すより悪い)。
+- magic: `subsets` の with_capacity ヒント `1usize << count_ones` →
+  `.min(22)` キャップ(既存規約に合流、防御的 — mask は実際 ≤~12bit)。
+
+分類軸: Option API → 偽の区別は assert、述語/カウント → 正しい有界値
+(0/saturating)、契約不変 → assert、割当ヒント → `.min(cap)`。
+
+安全確認済み(到達不能 or 既ガード): christofides/postman(DP_LIMIT<=20),
+bech32(shift<=15), xid/base32(i<=63), xorbasis(rank==64), veb3(x+1>=64),
+zorder(bits.min(16)), bitap(m<=64), veb(lo%64), avro(shift>63ガード),
+aiff(shift>60ガード), arch::with_capacity(ヒントAPI), 全 #[cfg(test)]
+oracle(steiner/knapsack/circulation/catalan/arborescence/automaton)。
+
+残課題: `1 << n` 以外の算術オーバーフロー(`n * m`/`n + m` の積和)の
+同種監査、usize::BITS 非依存の 128bit 域の棚卸。
