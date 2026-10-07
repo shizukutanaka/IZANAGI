@@ -4,7 +4,7 @@
 //! - 全件総当りと結果が一致する(集約実装の手抜き・重複・欠落を検出)
 //! - 既知入力で期待するモジュール名を含む
 
-use izanagi_kit::{detect_all, DETECTORS};
+use izanagi_kit::{detect_all, detector_by_name, parser_by_name, DETECTORS, PARSERS};
 
 /// 手作業入力の小コーパス。panic 非発火は detect_never_panics が担保済みなので
 /// ここでは集約の正しさのみを見る。
@@ -71,4 +71,48 @@ fn detect_all_result_count_never_exceeds_registry() {
     for input in cases() {
         assert!(detect_all(&input).len() <= DETECTORS.len());
     }
+}
+
+#[test]
+fn detectors_table_is_strictly_sorted() {
+    // `detector_by_name` は二分探索に依存する — 昇順が崩れると
+    // 誤った None を返しうるので整列性をテストで固定する。
+    for w in DETECTORS.windows(2) {
+        assert!(
+            w[0].0 < w[1].0,
+            "DETECTORS not sorted at {:?} / {:?}",
+            w[0].0,
+            w[1].0
+        );
+    }
+}
+
+#[test]
+fn detector_by_name_finds_every_registered_detector() {
+    for (name, f) in DETECTORS {
+        let got = detector_by_name(name).unwrap_or_else(|| panic!("{name} not found"));
+        // 関数ポインタ比較は不安定なので挙動で同一性を見る。
+        for input in cases() {
+            assert_eq!(
+                got(&input),
+                f(&input),
+                "detector_by_name({name}) returned a different function"
+            );
+        }
+    }
+}
+
+#[test]
+fn parser_by_name_finds_every_registered_parser() {
+    for (name, _) in PARSERS {
+        assert!(parser_by_name(name).is_some(), "{name} not found");
+    }
+}
+
+#[test]
+fn by_name_helpers_return_none_for_unknown_names() {
+    assert!(detector_by_name("no_such_format").is_none());
+    assert!(detector_by_name("").is_none());
+    assert!(detector_by_name("ZZZZZ").is_none());
+    assert!(parser_by_name("no_such_format").is_none());
 }

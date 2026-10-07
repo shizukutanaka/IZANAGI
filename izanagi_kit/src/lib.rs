@@ -4332,6 +4332,26 @@ pub fn detect_all(input: &[u8]) -> Vec<&'static str> {
         .map(|(name, _)| *name)
         .collect()
 }
+
+/// モジュール名から [`DetectorFn`] を引く。
+///
+/// [`DETECTORS`] は名前昇順のため二分探索(O(log n))。
+/// `detect_all` が返す名前から関数ポインタへ戻す用途や、
+/// 「この拡張子ならこのモジュール」という名前ベースの dispatch に使う。
+///
+/// ```
+/// let f = izanagi_kit::detector_by_name("nfsexports").unwrap();
+/// assert!(f(b"/srv host(rw,sync)\n"));
+/// assert!(izanagi_kit::detector_by_name("no_such_format").is_none());
+/// ```
+#[must_use]
+pub fn detector_by_name(name: &str) -> Option<DetectorFn> {
+    DETECTORS
+        .binary_search_by(|(n, _)| (*n).cmp(name))
+        .ok()
+        .map(|i| DETECTORS[i].1)
+}
+
 /// バイト列パーサーの関数型。戻り型がモジュールごとに異なるため
 /// (`Option<T>`/`Vec<T>`/…)呼び捨ての `fn(&[u8])` に正規化する。
 pub type ParserFn = fn(&[u8]);
@@ -8018,3 +8038,16 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
         let _ = zulipconf::parse(b);
     }),
 ];
+
+/// モジュール名から [`ParserFn`] を引く。
+///
+/// [`PARSERS`] は [`DETECTORS`] と異なり整列保証がないため線形探索(O(n))。
+///
+/// ```
+/// assert!(izanagi_kit::parser_by_name("nfsexports").is_some());
+/// assert!(izanagi_kit::parser_by_name("no_such_format").is_none());
+/// ```
+#[must_use]
+pub fn parser_by_name(name: &str) -> Option<ParserFn> {
+    PARSERS.iter().find(|(n, _)| *n == name).map(|(_, f)| *f)
+}

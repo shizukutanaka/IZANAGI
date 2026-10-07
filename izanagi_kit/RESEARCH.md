@@ -6880,3 +6880,20 @@ Source Engine/Project Zomboid)の設定形式8モジュールを追加。
   FastForwardMultiplier等、>=4)
 
 いずれも行アンカー判定、コメント行除外、テスト4本ずつ。
+
+## 第401次
+
+監査ラウンド第8回。切り口:発見可能性・APIユーザビリティ — 2,442モジュールの中からユーザーが名前から検出器/パーサーに辿り着けるか。
+
+発見と修正:
+- DETECTORSは名前昇順(1344件)だが「名前→関数」の逆引きAPIがなく、detect_allが返す名前から関数ポインタへ戻すにはユーザーが `iter().find()` を手書きする必要があった → `detector_by_name` を追加(昇順を利用した二分探索 O(log n))。
+- PARSERSは登録順が未整列(52箇所の逆順ペア) → `parser_by_name` は線形探索で追加し、O(n)であることをdocに明記。
+- 整列性が暗黙前提だったDETECTORSに `detectors_table_is_strictly_sorted` テストを追加し、将来の非整列挿入を契約として固定(二分探索の正当性を担保)。
+
+残課題(未修正):
+- PARSERSの整列化(ソートで二分探索可能にする。1225行のdiffになるため別ラウンドで)。
+- ファイル名/拡張子→モジュール名の逆引き索引(`nginx.conf`→`nginx`)。表自体が巨大になるため設計要検討。
+- detect_allの結果を「確度順」に並べる機構(現在は登録順)。
+- editorconfig `t.contains` 残存、detect⇒parse契約(#417待ち)、UTF-16。
+
+テスト: detect_all.rs に4件追加(sorted固定/全件検出/by-nameヒット/ミス)。APIピン 18857→18859(2関数追加)。
