@@ -6973,3 +6973,24 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
+
+## 第410次：CRLF行末の横断耐性 — nickel検出修正 + 恒久契約テスト
+
+切り口:入力符号化の堅牢性。DETECTORSレジストリを使い、各モジュールの
+自fixture(検出されるもの420件)を`\n`→`\r\n`変換して再検出を計測:
+
+- CRLF変換後も検出:417/420(99.3%)
+- 不検出:nickel(` in\n`終端を要求しており` in\r\n`を逃した — 実害、修正)、
+  jp2::SIG・dictzip::D(バイナリ署名内の0x0A/0x0Dは改行でなくペイロード=
+  正当なmiss)
+- UTF-16LE+BOM変換:0/420 — バイト指向設計による完全な不可視(要検討課題)
+
+nickelの修正:`t.contains(" in ")|contains(" in\n")` → 既存のwords()
+語単位イテレータで`w == "in"`を検査(語境界かつ行末不問)。
+
+恒久化:`tests/crlf_tolerated.rs`を新設。UTF-8復号できる全fixture
+(=テキスト形式のみ)が`\n`→`\r\n`後も自検出器で検出されることをassert。
+バイナリfixtureはUTF-8ゲートで自動除外されるため除外リスト不要。
+
+残課題:UTF-16/UTF-32入力の扱い(全検出器が対象外か、先頭BOMで復号するか方針決定要)、
+Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture要求。
