@@ -782,6 +782,7 @@ pub mod cuckoo;
 pub mod cuckoof;
 pub mod cue;
 pub mod cuid;
+pub mod cupsconf;
 pub mod curaconf;
 pub mod cve;
 pub mod cvsrcs;
@@ -848,6 +849,7 @@ pub mod dictzip;
 pub mod did;
 pub mod dif;
 pub mod diff;
+pub mod digikamrc;
 pub mod digit;
 pub mod dihedral;
 pub mod dimacs;
@@ -1173,6 +1175,7 @@ pub mod gro;
 pub mod grok;
 pub mod group;
 pub mod grp;
+pub mod grubcfg;
 pub mod grubconf;
 pub mod grubenv;
 pub mod grundy;
@@ -1402,6 +1405,7 @@ pub mod kcl;
 pub mod kconfig;
 pub mod kcore;
 pub mod kdbx;
+pub mod kdeglobals;
 pub mod kdf;
 pub mod kdtree;
 pub mod keda;
@@ -1472,6 +1476,7 @@ pub mod ldtk;
 pub mod le;
 pub mod lean;
 pub mod leda;
+pub mod ledgerjournal;
 pub mod lef;
 pub mod lefthook;
 pub mod leftist;
@@ -1671,6 +1676,7 @@ pub mod mplayerconf;
 pub mod mpq;
 pub mod mps;
 pub mod mpv;
+pub mod mpvconf;
 pub mod mqtt;
 pub mod mrc;
 pub mod mscx;
@@ -2051,6 +2057,7 @@ pub mod qpf;
 pub mod qr;
 pub mod qs;
 pub mod qsf;
+pub mod qt5ctconf;
 pub mod qti;
 pub mod qtui;
 pub mod quadtree;
@@ -2775,6 +2782,7 @@ pub mod yuzuconf;
 pub mod z64;
 pub mod zabbix;
 pub mod zapconf;
+pub mod zathurarc;
 pub mod zeckendorf;
 pub mod zedconf;
 pub mod zeekconf;
@@ -3173,6 +3181,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("cspell", cspell::detect),
     ("ctrf", ctrf::detect),
     ("cuid", cuid::detect),
+    ("cupsconf", cupsconf::detect),
     ("curaconf", curaconf::detect),
     ("cve", cve::detect),
     ("cypher", cypher::detect),
@@ -3208,6 +3217,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("dictd", dictd::detect),
     ("dictzip", dictzip::detect),
     ("did", did::detect),
+    ("digikamrc", digikamrc::detect),
     ("dimacs", dimacs::detect),
     ("dinit", dinit::detect),
     ("direwolfconf", direwolfconf::detect),
@@ -3365,6 +3375,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("graphql", graphql::detect),
     ("greatexp", greatexp::detect),
     ("grok", grok::detect),
+    ("grubcfg", grubcfg::detect),
     ("grubconf", grubconf::detect),
     ("grubenv", grubenv::detect),
     ("grype", grype::detect),
@@ -3485,6 +3496,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("kbm", kbm::detect),
     ("kcl", kcl::detect),
     ("kconfig", kconfig::detect),
+    ("kdeglobals", kdeglobals::detect),
     ("keda", keda::detect),
     ("kedro", kedro::detect),
     ("keepalived", keepalived::detect),
@@ -3532,6 +3544,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("ldtk", ldtk::detect),
     ("lean", lean::detect),
     ("leda", leda::detect),
+    ("ledgerjournal", ledgerjournal::detect),
     ("lefthook", lefthook::detect),
     ("lego", lego::detect),
     ("leiningen", leiningen::detect),
@@ -3644,6 +3657,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("mplayerconf", mplayerconf::detect),
     ("mps", mps::detect),
     ("mpv", mpv::detect),
+    ("mpvconf", mpvconf::detect),
     ("mscx", mscx::detect),
     ("msmtprc", msmtprc::detect),
     ("mtm", mtm::detect),
@@ -3859,6 +3873,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("qpf", qpf::detect),
     ("qs", qs::detect),
     ("qsf", qsf::detect),
+    ("qt5ctconf", qt5ctconf::detect),
     ("qtui", qtui::detect),
     ("quartz", quartz::detect),
     ("quil", quil::detect),
@@ -4250,6 +4265,7 @@ pub const DETECTORS: &[(&str, DetectorFn)] = &[
     ("yuzuconf", yuzuconf::detect),
     ("zabbix", zabbix::detect),
     ("zapconf", zapconf::detect),
+    ("zathurarc", zathurarc::detect),
     ("zedconf", zedconf::detect),
     ("zeekconf", zeekconf::detect),
     ("zeekctl", zeekctl::detect),
@@ -4816,6 +4832,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("cuid", |b| {
         let _ = cuid::parse(b);
     }),
+    ("cupsconf", |b| {
+        let _ = cupsconf::parse(b);
+    }),
     ("curaconf", |b| {
         let _ = curaconf::parse(b);
     }),
@@ -4902,6 +4921,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("dicom", |b| {
         let _ = dicom::parse(b);
+    }),
+    ("digikamrc", |b| {
+        let _ = digikamrc::parse(b);
     }),
     ("direwolfconf", |b| {
         let _ = direwolfconf::parse(b);
@@ -5392,6 +5414,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("grp", |b| {
         let _ = grp::parse(b);
     }),
+    ("grubcfg", |b| {
+        let _ = grubcfg::parse(b);
+    }),
     ("grubconf", |b| {
         let _ = grubconf::parse(b);
     }),
@@ -5758,6 +5783,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     ("kdbx", |b| {
         let _ = kdbx::parse(b);
     }),
+    ("kdeglobals", |b| {
+        let _ = kdeglobals::parse(b);
+    }),
     ("kern", |b| {
         let _ = kern::parse(b);
     }),
@@ -5850,6 +5878,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("leda", |b| {
         let _ = leda::parse(b);
+    }),
+    ("ledgerjournal", |b| {
+        let _ = ledgerjournal::parse(b);
     }),
     ("lefthook", |b| {
         let _ = lefthook::parse(b);
@@ -6186,6 +6217,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("mps", |b| {
         let _ = mps::parse(b);
+    }),
+    ("mpvconf", |b| {
+        let _ = mpvconf::parse(b);
     }),
     ("mqtt", |b| {
         let _ = mqtt::parse(b);
@@ -6777,6 +6811,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("qsf", |b| {
         let _ = qsf::parse(b);
+    }),
+    ("qt5ctconf", |b| {
+        let _ = qt5ctconf::parse(b);
     }),
     ("qti", |b| {
         let _ = qti::parse(b);
@@ -7773,6 +7810,9 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
     }),
     ("xliff", |b| {
         let _ = xliff::parse(b);
+    }),
+    ("zathurarc", |b| {
+        let _ = zathurarc::parse(b);
     }),
     ("zeekconf", |b| {
         let _ = zeekconf::parse(b);
