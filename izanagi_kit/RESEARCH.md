@@ -6973,3 +6973,27 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 残課題: mml/lucene/creole/mediawiki/haresources はfixture掃引帯の常連
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
+
+## 第409次：パース契約の最終外れ値 — cpio/mailcap を Option<Vec<Entry>> 化
+
+切り口:テストの検証強度。全1,185モジュール(Debug導出済み)の自fixtureを
+実際にparseしDebug表現を分類:informative=348件、vacuous=3件(jxl/stockholmは
+署名のみfixtureが妥当、snappyはbool判定)、rejected=50件(マジック断片const=
+KNOWN_FRAGMENTS系)。assert深度の監査でも実質的な抜けはrfa/upluginのみで、
+契約面はほぼ健全と判明。
+
+残った実害:parseシグネチャの最終外れ値。全1,244の自由関数parse中
+1,240件がOption返しだが、cpio/mailcapのみ`Vec<Entry>`返しで
+「認識ゼロ」を`[]`と`Some`の区別なく返していた(= r407で統一した
+「非空入力・認識ゼロ→None」を表現不能)。本ラウンドで両者を
+`Option<Vec<Entry>>`に変換:
+
+- cpio: 非空入力でレコードヘッダが1件もデコードできない→None
+  (最初のレコードまでの部分復元は従来通りSome)
+- mailcap: 非空で非コメント内容行があるのにエントリゼロ→None
+  (コメントのみ・空ファイルは従来通りSome(vec![]))
+- snappy::parse -> bool は「true=認識」が既に契約と同型のため据え置き
+- earley::parse(&self,..) -> bool はメソッド認識器のため対象外
+
+APIピン再取得(18857/0x7975…)。全Option返しが
+`parse(&[u8])->Option<_>`に統一された。
