@@ -146,7 +146,7 @@ impl P1<'_> {
             _ => None,
         }
     }
-    fn expect(&mut self, t: Tok) -> Option<()> {
+    fn want(&mut self, t: Tok) -> Option<()> {
         if self.next()? == t {
             Some(())
         } else {
@@ -166,33 +166,33 @@ impl P1<'_> {
     }
     fn point_list(&mut self) -> Option<Vec<P>> {
         // '(' x y (',' x y)* ')'
-        self.expect(Tok::LParen)?;
+        self.want(Tok::LParen)?;
         let mut v = vec![self.point()?];
         while self.peek() == Some(Tok::Comma) {
             self.i += 1;
             v.push(self.point()?);
         }
-        self.expect(Tok::RParen)?;
+        self.want(Tok::RParen)?;
         Some(v)
     }
     fn ring_list(&mut self) -> Option<Vec<Vec<P>>> {
-        self.expect(Tok::LParen)?;
+        self.want(Tok::LParen)?;
         let mut v = vec![self.point_list()?];
         while self.peek() == Some(Tok::Comma) {
             self.i += 1;
             v.push(self.point_list()?);
         }
-        self.expect(Tok::RParen)?;
+        self.want(Tok::RParen)?;
         Some(v)
     }
     fn poly_list(&mut self) -> Option<Vec<Vec<Vec<P>>>> {
-        self.expect(Tok::LParen)?;
+        self.want(Tok::LParen)?;
         let mut v = vec![self.ring_list()?];
         while self.peek() == Some(Tok::Comma) {
             self.i += 1;
             v.push(self.ring_list()?);
         }
-        self.expect(Tok::RParen)?;
+        self.want(Tok::RParen)?;
         Some(v)
     }
     fn geometry(&mut self, depth: usize) -> Option<Geo> {
@@ -222,21 +222,21 @@ impl P1<'_> {
         }
         match tag.as_str() {
             "POINT" => {
-                self.expect(Tok::LParen)?;
+                self.want(Tok::LParen)?;
                 let p = self.point()?;
-                self.expect(Tok::RParen)?;
+                self.want(Tok::RParen)?;
                 Some(Geo::Point(p))
             }
             "LINESTRING" => Some(Geo::LineString(self.point_list()?)),
             "POLYGON" => Some(Geo::Polygon(self.ring_list()?)),
             "MULTIPOINT" => {
-                self.expect(Tok::LParen)?;
+                self.want(Tok::LParen)?;
                 let mut v = Vec::new();
                 loop {
                     if self.peek() == Some(Tok::LParen) {
                         self.i += 1;
                         v.push(self.point()?);
-                        self.expect(Tok::RParen)?;
+                        self.want(Tok::RParen)?;
                     } else {
                         v.push(self.point()?);
                     }
@@ -246,19 +246,19 @@ impl P1<'_> {
                         break;
                     }
                 }
-                self.expect(Tok::RParen)?;
+                self.want(Tok::RParen)?;
                 Some(Geo::MultiPoint(v))
             }
             "MULTILINESTRING" => Some(Geo::MultiLineString(self.ring_list()?)),
             "MULTIPOLYGON" => Some(Geo::MultiPolygon(self.poly_list()?)),
             "GEOMETRYCOLLECTION" => {
-                self.expect(Tok::LParen)?;
+                self.want(Tok::LParen)?;
                 let mut v = vec![self.geometry(depth + 1)?];
                 while self.peek() == Some(Tok::Comma) {
                     self.i += 1;
                     v.push(self.geometry(depth + 1)?);
                 }
-                self.expect(Tok::RParen)?;
+                self.want(Tok::RParen)?;
                 Some(Geo::Collection(v))
             }
             _ => None,
