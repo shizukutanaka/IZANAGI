@@ -153,6 +153,79 @@ fn strip_bom(t: &str) -> &str {
     t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
+/// cmd 固有の信号: `set /a`,`%~`,`%X%` 変数,`errorlevel`,`nul` リダイレクト,
+/// `if exist`,`call :label`,`::` ラベル行…は他言語では出ない。
+fn is_exclusive(line: &str) -> bool {
+    let l = line.trim();
+    let low = l.to_ascii_lowercase();
+    if low.starts_with('@') {
+        return true;
+    }
+    let head = low.split([' ', '\t']).next().unwrap_or("");
+    const EXCLUSIVE_HEADS: &[&str] = &[
+        "rem",
+        "setlocal",
+        "endlocal",
+        "enabledelayedexpansion",
+        "verify",
+        "assoc",
+        "ftype",
+        "attrib",
+        "mklink",
+        "subst",
+        "doskey",
+        "vol",
+        "ver",
+        "title",
+        "color",
+        "mode",
+        "choice",
+        "wmic",
+        "certutil",
+        "bitsadmin",
+        "bcdedit",
+        "powercfg",
+        "sfc",
+        "chkdsk",
+        "defrag",
+        "diskpart",
+        "wscript",
+        "cscript",
+        "mshta",
+        "rundll32",
+        "mstsc",
+        "robocopy",
+        "xcopy",
+        "findstr",
+        "taskkill",
+        "tasklist",
+        "setx",
+        "schtasks",
+        "netsh",
+        "regsvr32",
+        "takeown",
+        "icacls",
+        "cacls",
+        "compact",
+        "cipher",
+        "expand",
+        "tree",
+        "goto",
+    ];
+    EXCLUSIVE_HEADS.contains(&head)
+        || low.contains("%~")
+        || low.contains("errorlevel")
+        || low.contains("enabledelayedexpansion")
+        || low.starts_with("if exist ")
+        || low.starts_with("if errorlevel")
+        || low.starts_with("set /")
+        || low.starts_with("call :")
+        || low.starts_with("2>")
+        || low.contains(">nul")
+        || l.matches('%').count() >= 2
+        || l.starts_with("::")
+}
+
 /// Whether the buffer looks like a batch file.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -160,20 +233,24 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let t = strip_bom(t);
-    let hits = t
-        .lines()
-        .filter(|l| {
-            let s = l.trim().to_ascii_lowercase();
-            CMDS.iter().any(|c| {
-                s == *c
-                    || s.starts_with(&format!("{c} "))
-                    || s.starts_with(&format!("{c}\t"))
-                    || s.starts_with(&format!("@{c}"))
-                    || s.starts_with(&format!("{c}."))
-            })
-        })
-        .count();
-    hits >= 2
+    let mut hits = 0usize;
+    let mut exclusive = 0usize;
+    for l in t.lines() {
+        let s = l.trim().to_ascii_lowercase();
+        if CMDS.iter().any(|c| {
+            s == *c
+                || s.starts_with(&format!("{c} "))
+                || s.starts_with(&format!("{c}\t"))
+                || s.starts_with(&format!("@{c}"))
+                || s.starts_with(&format!("{c}."))
+        }) {
+            hits += 1;
+        }
+        if is_exclusive(l) {
+            exclusive += 1;
+        }
+    }
+    hits >= 2 && exclusive >= 1
 }
 
 impl Cmdbat {

@@ -79,25 +79,55 @@ fn strip_bom(t: &str) -> &str {
     t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
+/// Sieve 固有の動詞(`if`/`elsif`/`set`/`stop`/`keep`/`header` 等は
+/// 他言語でも現れるため除外)。最低1件要求。
+const EXCLUSIVE_VERBS: &[&str] = &[
+    "addflag",
+    "addheader",
+    "allof",
+    "anyof",
+    "deleteheader",
+    "discard",
+    "envelope",
+    "ereject",
+    "fileinto",
+    "forEveryPart",
+    "imap4flags",
+    "notify",
+    "redirect",
+    "reject",
+    "removeflag",
+    "setflag",
+    "vacation",
+    "valid_notify_method",
+];
+
 /// b が Sieve スクリプトかどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
     let text = strip_bom(text);
     let mut req = 0;
     let mut other = 0;
+    let mut exclusive = 0;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') || t.starts_with("//") {
             continue;
         }
-        let h = head(t);
-        if h == "require" {
+        // `require [`/`require "x";` は Sieve 宣言。JS の `require(` は除く。
+        if t.starts_with("require ") || t.starts_with("require\t") {
             req += 1;
-        } else if CONTROLS.contains(&h) || ACTIONS.contains(&h) || TESTS.contains(&h) {
+            exclusive += 1;
+        }
+        let h = head(t);
+        if CONTROLS.contains(&h) || ACTIONS.contains(&h) || TESTS.contains(&h) {
             other += 1;
+            if EXCLUSIVE_VERBS.contains(&h) {
+                exclusive += 1;
+            }
         }
     }
-    req >= 1 || other >= 2
+    exclusive >= 1 && (req >= 1 || other >= 2)
 }
 
 /// Sieve スクリプトの構造を数える。

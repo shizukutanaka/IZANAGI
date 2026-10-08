@@ -113,19 +113,58 @@ fn strip_bom(t: &str) -> &str {
     t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
+/// Travis 固有のトップキー(`env`/`script`/`install`/`cache`/`jobs`/
+/// `services` 等は他の CI YAML でも現れるため除外)。最低1件要求。
+const EXCLUSIVE_KEYS: &[&str] = &[
+    "addons",
+    "after_deploy",
+    "after_failure",
+    "after_script",
+    "after_success",
+    "before_cache",
+    "before_deploy",
+    "before_install",
+    "before_script",
+    "bundler_args",
+    "composer_args",
+    "dist",
+    "dotnet",
+    "edge",
+    "filter_secrets",
+    "gemfile",
+    "language",
+    "matrix",
+    "mono",
+    "node_js",
+    "notifications",
+    "nvm",
+    "osx_image",
+    "rvm",
+    "sonarcloud",
+    "sudo",
+];
+
 /// b が .travis.yml かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
     let text = strip_bom(text);
-    text.lines()
-        .filter(|l| {
-            let t = l.trim();
-            !t.starts_with('#')
-                && (l.len() - l.trim_start().len()) == 0
-                && yaml_key(t).is_some_and(|k| TOP_KEYS.contains(&k))
-        })
-        .count()
-        >= 2
+    let mut hits = 0usize;
+    let mut exclusive = 0usize;
+    for l in text.lines() {
+        let t = l.trim();
+        if t.starts_with('#') || (l.len() - l.trim_start().len()) != 0 {
+            continue;
+        }
+        if let Some(k) = yaml_key(t) {
+            if TOP_KEYS.contains(&k) {
+                hits += 1;
+                if EXCLUSIVE_KEYS.contains(&k) {
+                    exclusive += 1;
+                }
+            }
+        }
+    }
+    hits >= 2 && exclusive >= 1
 }
 
 /// 構造を数える。

@@ -39,14 +39,6 @@ pub struct Tmuxconf {
     pub comments: usize,
 }
 
-const SET_CMDS: &[&str] = &[
-    "set",
-    "set-option",
-    "set-window-option",
-    "setw",
-    "setenv",
-    "set-environment",
-];
 const BIND_CMDS: &[&str] = &["bind", "bind-key", "unbind", "unbind-key"];
 const SRC_CMDS: &[&str] = &["source", "source-file"];
 const OTHER_CMDS: &[&str] = &[
@@ -72,25 +64,75 @@ const OTHER_CMDS: &[&str] = &[
     "clock",
 ];
 
+/// ほぼ tmux 固有の動詞(`send`/`display`/`run`/`source`/`bind`/`set` は
+/// 他形式でも現れるため弱い証拠)。
+const STRONG_CMDS: &[&str] = &[
+    "bind-key",
+    "unbind-key",
+    "set-option",
+    "set-window-option",
+    "setw",
+    "setenv",
+    "set-environment",
+    "set-hook",
+    "run-shell",
+    "send-keys",
+    "new-window",
+    "neww",
+    "split-window",
+    "splitw",
+    "kill-pane",
+    "select-pane",
+    "resize-pane",
+    "swap-pane",
+    "rename-window",
+    "move-window",
+    "attach-session",
+    "detach-client",
+    "display-message",
+    "display-panes",
+    "if-shell",
+    "clock",
+    "clock-mode",
+    "show-options",
+    "show-option",
+    "list-keys",
+    "source-file",
+];
+
 /// Returns `true` when the bytes look like a tmux.conf.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let cmds = t
-        .lines()
-        .filter(|l| {
-            let tr = l.trim();
-            let mut it = tr.split_whitespace();
-            let first = it.next().unwrap_or("");
-            SET_CMDS.contains(&first)
-                || BIND_CMDS.contains(&first)
-                || SRC_CMDS.contains(&first)
-                || OTHER_CMDS.contains(&first)
-        })
-        .count();
-    cmds >= 1
+    // `set`/`bind`/`send`/`source` 等の裸動詞だけでは他形式と区別が付かない。
+    // tmux 固有動詞(bind-key/setw/send-keys/…)か `set -g …` 形のオプション
+    // 代入を要求する。
+    let mut strong = 0usize;
+    let mut opt_set = 0usize;
+    let mut weak = 0usize;
+    for l in t.lines() {
+        let tr = l.trim();
+        let mut it = tr.split_whitespace();
+        let first = it.next().unwrap_or("");
+        if STRONG_CMDS.contains(&first) {
+            strong += 1;
+            continue;
+        }
+        if first == "set" {
+            // `set -g`/`set -s`/`set -u`/`set -a`/`set -F`/`set -e`/`set -o`
+            // あるいは `set-option` 系のフラグ付き形だけを tmux 証拠とする。
+            if it.next().is_some_and(|f| f.starts_with('-')) {
+                opt_set += 1;
+            }
+            continue;
+        }
+        if BIND_CMDS.contains(&first) || SRC_CMDS.contains(&first) || OTHER_CMDS.contains(&first) {
+            weak += 1;
+        }
+    }
+    strong >= 1 || opt_set >= 2 || (opt_set >= 1 && weak >= 1)
 }
 
 impl Tmuxconf {

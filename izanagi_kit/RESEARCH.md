@@ -6937,8 +6937,6 @@ bare_cvar_names_do_not_count)。
 - junitのヘッドスキャンは `<!--` 内の `>` で誤終了していた
   ので `-->` まで読み飛ばすよう修正。
 - 回帰テスト xml_comments_are_stripped を42モジュールに追加。
-||||||| 2fe94df
-||||||| 756a77a
 ## 第395次
 
 監査(長所50/短所50、第2回)に基づき、UTF-8 BOM (U+FEFF) 付き
@@ -6953,7 +6951,6 @@ bare_cvar_names_do_not_count)。
 - `from_utf8_lossy` を使う ldif は `strip_bom(&t)` で適用。
 - 回帰テスト `utf8_bom_is_tolerated` を各モジュールに追加。
 - 第345次の6モジュール修正を全量クラスとして一般化したもの。
-||||||| 2fe94df
 
 ## 第398次 検出の再現率(recall)契約 — own_fixture_detected
 
@@ -7046,7 +7043,6 @@ detect⇔parseの双方向整合を機械測定(自fixture + 1バイト破壊 + 
 - parse=Someだがdetect=falseの設計許容差(gbstudio/idl/irssi等)は
   「トレラントparse+厳格detect」として明示宣言する仕組みがない。
 
-||||||| 0c5ba00
 ## 第407次 — parseのSome(認識ゼロ)統一(Option意味論)
 
 全1,122のOption返しパーサにごみ入力4種を投入 → `Some(認識ゼロ)`を返す
@@ -7077,7 +7073,6 @@ Vec<Entry>返し3件のOption化(API破壊)、非Option返し103件、detect⇒p
 DETECTORSの相互偽陽性マトリクスの10-39件帯の段階引き締め、PARSERS非整列、
 UTF-16入力、CRLF/Latin-1ファイル、実ファイルコーパスのparse側適用。
 
-||||||| 0c5ba00
 ## 第407次 — 監査(Option意味論/認識ゼロのSome) + 13モジュール修正
 
 ### 角度
@@ -7114,7 +7109,6 @@ UTF-16入力、CRLF/Latin-1ファイル、実ファイルコーパスのparse側
 - Vec<Entry>系(cpio/csv/mailcap)の空Vec曖昧性、非Option 103件の
   棄却不能は Option化のAPI破壊が必要で別ラウンド。
 
-||||||| 0c5ba00
 ## 第405次 — 監査(失敗の表現力/パーサの検証性) + crontab・udevrules
 
 ### 角度
@@ -7173,6 +7167,78 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
 
+## 第416次：検出器相互偽陽性 — 固有語彙ゲートとヒット・ラチェット
+
+切り口: 「`k=v`/`key:`/`verb` 形の汎用構造だけで検出する検出器は、
+他形式のfixtureに片っ端から命中しないか」。全538fixture×全1,344検出器の
+相互汚染マトリクス(zz_probe流)を計測し、前回までに残った中位帯を精査。
+
+### 修正(20モジュール、固有語彙ゲートの追加)
+
+- `airbyteconf`/`fivetranconf`/`webmanifest`/`extmanifest`: 汎用キー(name/host/
+  path…)に `t == k` の裸語一致や `key:` 一致だけで hits>=3 → 外来JSON/YAMLを
+  一括誤検出。形式固有キーのEXCLUSIVE集合を新設し `hits>=3 && exclusive>=1` に。
+  bare-word一致アームは削除(t=="name" の行だけでヒットになっていた)。
+- `cirrus`: `*_task:` サフィックス・`*_script`/汎用キーのみで hits>=2 →
+  `_task`/`_pipe`/`_template` サフィックスまたは Cirrus 固有キー(only_if/
+  compute_engine_instance/gke_container等)を1件必須化。
+- `corefile`: 任意の `x {` ブロック行 + 汎用プラグイン語(forward/proxy/log/
+  errors…)= スコア3 → `server {`/`location {`/`x {` の nginx/HAProxy 系を
+  誤検出。ブロック先頭行をゾーン形(`example.org`/`x:53`/`localhost`/`.`)に限定。
+- `namedconf`: `key {`/`server {`/`http {`/`tls {`/`view {` で+2 →
+  BIND 固有キーワード(zone "x"/type master/masters/trusted-keys/dnssec-policy
+  等)を1件必須化。
+- `dhclientconf`: `interface`/`zone`/`key`/`script`/`option`/`send`/`request`
+  語頭は named.conf と共通 → `supersede`/`failover`/`lease`/`ddns-*`/`reboot`/
+  `option … code … =` 等の DHCP 固有ステートメントを1件必須化。
+- `limine`: `/`-先頭のパス行だけでブートエントリ計数 → fstab を誤検出。
+  `:Entry` 名付きエントリ/BOOT_KEYS/GLOBAL_KEYS ベースに限定。
+- `meltano`: `name:`/`config:`/`settings:` のリーフキーだけで hits>=4 →
+  Meltano 固有トップキー(default_environment/send_anonymous_usage_stats/
+  venv_backend…)または plugins: 配下の種別キー(extractors/loaders…)必須化。
+- `travisci`: `env:`/`script:`/`install:`/`jobs:`/`cache:` の汎用CIキーで
+  hits>=2 → language/dist/matrix/addons/before_*/after_* 等の Travis 固有キー必須化。
+- `sievescript`: `if`/`elsif`/`require`/`header`/`size`/`set`/`stop`/`keep`
+  語頭で other>=2 → コード/散文を誤検出。fileinto/vacation/redirect/reject/
+  discard/notify/envelope 等の Sieve 固有動詞1件必須化。`require(` は JS と
+  区別するため `require `+空白のみを宣言とみなす。
+- `cmdbat`: `echo`/`set`/`if`/`for`/`exit`/`cd`/`dir`/`type` 行で hits>=2 →
+  シェルスクリプトを誤検出。`@echo`/`%~`/`%X%`/`errorlevel`/`if exist`/
+  `set /a`/`call :`/cmd固有コマンド(setx/schtasks/netsh/icacls 等)必須化。
+- `tmuxconf`: `set`/`bind`/`send`/`source`/`display`/`run`/`bind` 語頭で
+  cmds>=1 → `set x` 行だけのファイルを誤検出。tmux 固有動詞(bind-key/setw/
+  send-keys/…)または `set -g` 形のフラグ付き代入必須化。
+- `ipxescript`: `set`/`echo`/`menu`/`kernel`/`boot`/`route`/`dns`/`ping` 語頭で
+  entries-misc>=3 → シェル系を誤検出。dhcp/chain/sanboot/img*/pxebs/
+  net0 等の iPXE 固有動詞1件必須化(shebang `#!ipxe` は既存どおり即検出)。
+- `monero`: `k.contains('-')` のダッシュ入りキーで hits>=2 → dashed-key設定を
+  誤検出。KNOWN キーのみに限定。
+- `sysctlconf`: `a.b.c=v` ドットキーで hits>=2 → Java properties 系を誤検出。
+  kernel/vm/net/fs/dev/debug/abi/user/sunrpc の既知サブツリー1件必須化。
+- `hgignore`: `*/`/`x/` 形だけで hits>=2 → .gitignore 系を誤検出。
+  `syntax:`/`glob:`/`path:`/`rootglob:`/`re:` 等の Mercurial 固有宣言1件必須化。
+- `sendmail`: `V`先頭行(`Version:`/`VAR` 等)を `v` 証拠に → `V<digit>`
+  (`V10/Berkeley`) に限定。
+
+### 恒久化: 外来ヒット・ラチェット
+
+`tests/foreign_fixture_hits.rs` を新設: 全fixtureを全DETECTORSに通し、
+検出器ごとの外来ヒット数が記録済み上限(CEILINGS)以下であることをassert。
+新規検出器には DEFAULT_CEILING=6 が適用される。上限は下げる方向のみ更新。
+`tests/zz_probe.rs` (暫定census) は役割を移して削除。
+
+### 残置判断(本質的曖昧性)
+
+- `mml`/`haresources`/`requirements`/`lucene`/`creole`/`mediawiki`/`dockerignore`/
+  `gitignore`/`justfile`/`xpath`/`unbound`/`sudoers`/`openssl`/`pppdconf`/
+  `txt2tags`/`gitconfig`/`pgpass`/`memcachedconf`/`rsyslogd`/`autofs`/`inputrc`/
+  `kubemq`/`mpd`: PR #434/#435 で対応済み(未マージ) — このブランチはその上限を
+  スナップショット記録している。マージ後は新たな実測値に締め直す。
+- `crockford`/`base32`/`nanoid`: 文字集合の定義上曖昧(制限アルファベットの
+  トークンは UUID/hex/word に必然適合)。形式を区別する語彙が存在しない
+  構造的限界として残置。
+- `gradle`/`edn`: 既存の strong/weak ゲートで中位(14/10件)。更なる引き締め余地。
+
 ## 第415次：残存ini/config族の外来ヒット分類・精密化(相互偽陽性スイープ第2弾)
 
 切り口:第414次P0残課題 — 全538fixture×全1,344検出器の外来ヒット上位に
@@ -7219,7 +7285,6 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 残課題: crockford/base32/nanoid等の単一トークン形式は定義上fixtureと
 区別不能(除外要検討)、airbyteconf 25/cirrus 24/base32 23は次ラウンド候補、
 段階的閾値ラチェットテストの検討。
-||||||| 56a2e9a
 
 ## 第419次：panic経路の静的棚卸 — 失敗機構の構造的担保
 
@@ -7242,7 +7307,6 @@ wkt.rsの`expect`メソッドを`want`へ改名し`Option::expect`との同名�
 
 残課題: `at+N`型オフセット加算の32bit overflow、`assert!`vs`Result`の使い分け
 基準のCONVENTIONS化、`detect`失敗理由の可視化API、境界±1バイトfuzz。
-||||||| 56a2e9a
 
 ## 第418次：エンジン側の決定性境界 — 順序なしコンテナの宣言強制
 
@@ -7282,7 +7346,6 @@ log/save/scene/state)が float 以外の非決定性源を持たないか全行�
   順序を漏洩」するパターンは静的テキストスキャンでは追えない(現時点で
   漏洩箇所なし — `contains`のみ)。
 - `Time::alpha`/accumulator等のf32経路は境界外として意図どおり。
-||||||| 56a2e9a
 
 ## 第414次：検出器間相互偽陽性 — 全fixture×全DETECTORS掃引と上位13件の精密化
 
@@ -7320,7 +7383,6 @@ lucene 83 の残りも `word:value` ×2行の YAML との構造同一性。
 - 全行パターン化(ignore系:全行がpattern-shaped)
 - 式形状(行数上限+言語排他マーカー)
 - トークン検証(単純substringではなくトークン構造を検査)
-||||||| 56a2e9a
 
 ## 第417次：証拠の深さ — 汎用スニペット誤検出と検出コミット行数
 
@@ -7359,7 +7421,6 @@ lucene 83 の残りも `word:value` ×2行の YAML との構造同一性。
 - `nanoid`/`crockford`: アルファベットが英数字全域をカバーするため
   「妥当なトークン」と「散文断片」に固有の区別信号が存在しない。
   base32と違い数字要求でも切れない(nanoidは記号なし・数字なしも正当)。
-||||||| 56a2e9a
 
 ## 第420–421次：リソース境界 — 入力由来割当のキャップ
 
