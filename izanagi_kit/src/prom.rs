@@ -46,6 +46,21 @@ pub struct Exposition {
     pub samples: Vec<Sample>,
 }
 
+/// サンプル値の字句チェック — exposition format の値は float/`NaN`/`+Inf`/`-Inf`
+/// のみ。浮動小数点型は使わず字句だけで判定する(no-float不変条件)。
+fn value_ok(v: &str) -> bool {
+    if v.is_empty() {
+        return false;
+    }
+    let low = v.to_ascii_lowercase();
+    if low == "nan" || low == "inf" || low == "+inf" || low == "-inf" {
+        return true;
+    }
+    v.chars()
+        .all(|c| c.is_ascii_digit() || matches!(c, '.' | 'e' | 'E' | '+' | '-'))
+        && v.chars().any(|c| c.is_ascii_digit())
+}
+
 fn ident(s: &str) -> bool {
     let mut it = s.bytes();
     matches!(it.next(), Some(b) if b.is_ascii_alphabetic() || b == b'_' || b == b':')
@@ -142,7 +157,11 @@ pub fn parse(data: &[u8]) -> Option<Exposition> {
         let tail_at = line.find('}').map(|e| e + 1).unwrap_or_else(|| name.len());
         let tail = line.get(tail_at..)?.trim();
         let mut parts = tail.split_whitespace();
-        let value = parts.next()?.to_string();
+        let value = parts.next()?;
+        if !value_ok(value) {
+            return None;
+        }
+        let value = value.to_string();
         let timestamp = parts.next().map(str::to_string);
         samples.push(Sample {
             name: name.to_string(),
@@ -150,6 +169,9 @@ pub fn parse(data: &[u8]) -> Option<Exposition> {
             value,
             timestamp,
         });
+    }
+    if metas.is_empty() && samples.is_empty() && !text.trim().is_empty() {
+        return None;
     }
     Some(Exposition { metas, samples })
 }
@@ -175,5 +197,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"9bad 1\n").is_none());
         assert!(parse(b"ok{bad} 1\n").is_none());
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

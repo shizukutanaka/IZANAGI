@@ -171,6 +171,18 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
     if !saw_any {
         return None;
     }
+    if !s.trim().is_empty()
+        && counts.roots
+            + counts.struct_keys
+            + counts.usings
+            + counts.sinks
+            + counts.enrichers
+            + counts.level_decls
+            + counts.arg_keys
+            == 0
+    {
+        return None;
+    }
     Some(counts)
 }
 
@@ -236,5 +248,11 @@ mod tests {
     fn rejects_other_text() {
         assert!(!detect(b"hello world"));
         assert!(!detect(b"{\"name\":\"value\"}"));
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

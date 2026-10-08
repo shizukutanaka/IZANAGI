@@ -125,6 +125,9 @@ pub fn parse(d: &[u8]) -> Option<Netrc> {
     if let Some(e) = cur.take() {
         n.entries.push(e);
     }
+    if n.entries.is_empty() && n.macros.is_empty() && !text.trim().is_empty() {
+        return None;
+    }
     Some(n)
 }
 
@@ -176,5 +179,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").unwrap().entries.is_empty());
         assert!(parse(b"\xFF\xFE").is_none());
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }
