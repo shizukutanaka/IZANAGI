@@ -53,8 +53,13 @@ pub fn detect(b: &[u8]) -> bool {
     }
     let data = &t[..t.len() - pad];
     let length_ok = pad == 0 || t.len() % 8 == 0;
+    // An all-letters blob is indistinguishable from prose once whitespace is
+    // stripped (`"foo bar baz"` -> `"FOOBARBAZ"`); real Base32 carries the
+    // digit half of the alphabet or `=` padding, so require one of them.
+    let distinctive = pad > 0 || data.iter().any(|c| c.is_ascii_digit());
     data.len() >= 8
         && length_ok
+        && distinctive
         && data
             .iter()
             .all(|c| std32(c.to_ascii_uppercase()) || hex32(c.to_ascii_uppercase()))
@@ -137,6 +142,18 @@ mod tests {
         assert!(!detect(b"MFRGG==="));
         assert!(!detect(b"short"));
         assert!(!detect(b""));
+    }
+
+    #[test]
+    fn rejects_all_letters_prose() {
+        // Whitespace-stripped prose is alphabet-legal; without a digit or
+        // padding it must not detect (round-417 census finding).
+        assert!(!detect(b"foo bar baz"));
+        assert!(!detect(b"package main"));
+        assert!(!detect(b"option foo bar"));
+        assert!(!detect(b"set foo bar"));
+        assert!(!detect(b"plainenglishword"));
+        assert!(parse(b"foo bar baz").is_none());
     }
 
     #[test]

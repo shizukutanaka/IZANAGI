@@ -164,10 +164,14 @@ fn kv_key(t: &str) -> Option<&str> {
 fn is_scoped_key(k: &str) -> bool {
     (k.starts_with("//") && k.contains("/:")) || (k.starts_with('@') && k.contains(':'))
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// b が .npmrc かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
+    let text = strip_bom(text);
     text.lines()
         .filter(|l| {
             let t = l.trim();
@@ -187,6 +191,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = core::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         options: 0,
         scoped: 0,
@@ -236,5 +241,11 @@ mod tests {
     fn not_npmrc() {
         assert!(!detect(b"foo=bar\nbaz=qux\n"));
         assert!(!detect(b"[section]\nkey = value\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

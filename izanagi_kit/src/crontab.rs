@@ -30,6 +30,27 @@ pub struct Crontab {
     pub entries: Vec<Entry>,
 }
 
+/// A cron field is valid when every `,`/`-`/`/` separated atom is `*`, a
+/// number (possibly with `?`/`L`/`W`/`#` modifiers), or a month/weekday name
+/// (`jan`..`dec`, `sun`..`sat`). Free text never satisfies this.
+fn field_ok(f: &str) -> bool {
+    const NAMES: [&str; 19] = [
+        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec", "sun",
+        "mon", "tue", "wed", "thu", "fri", "sat",
+    ];
+    if f.is_empty() || f.len() > 32 {
+        return false;
+    }
+    f.split([',', '-', '/']).all(|tok| {
+        !tok.is_empty()
+            && (tok == "*"
+                || tok
+                    .chars()
+                    .all(|c| c.is_ascii_digit() || matches!(c, '?' | 'L' | 'W' | '#'))
+                || NAMES.contains(&tok.to_ascii_lowercase().as_str()))
+    })
+}
+
 /// Parse a crontab. Blank lines and `#` comments are skipped; a line with `=`
 /// before the first whitespace is an environment assignment.
 pub fn parse(data: &[u8]) -> Option<Crontab> {
@@ -62,15 +83,15 @@ pub fn parse(data: &[u8]) -> Option<Crontab> {
         if f.len() != 6 || f[5].trim().is_empty() {
             return None;
         }
-        let schedule = f[..5]
+        let fields5: Vec<&str> = f[..5]
             .iter()
             .map(|s| s.trim())
             .filter(|s| !s.is_empty())
-            .collect::<Vec<_>>()
-            .join(" ");
-        if schedule.split(' ').count() != 5 {
+            .collect();
+        if fields5.len() != 5 || !fields5.iter().all(|x| field_ok(x)) {
             return None;
         }
+        let schedule = fields5.join(" ");
         entries.push(Entry {
             schedule,
             command: f[5].trim().to_string(),
@@ -98,5 +119,11 @@ mod tests {
         assert!(parse(b"0 5 * * *\n").is_none()); // schedule only, no command
         assert!(parse(b"0 5 * * /x\n").is_none()); // 4 fields
         assert!(parse(b"@daily\n").is_none()); // macro without command
+                                               // alphabetic words are not cron fields — free prose must not parse
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"0 0 * * FUNDAY cmd\n").is_none()); // unknown name
+                                                           // month/day names and ranges stay accepted
+        let c = parse(b"0 9 * jan MON-FRI x\n").unwrap();
+        assert_eq!(c.entries[0].schedule, "0 9 * jan MON-FRI");
     }
 }

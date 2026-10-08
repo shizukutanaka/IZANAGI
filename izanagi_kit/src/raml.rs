@@ -84,6 +84,9 @@ fn child_keys(t: &str, key: &str) -> usize {
     }
     out
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` when the text has a `#%RAML` marker.
 #[must_use]
@@ -91,6 +94,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines()
         .take(4)
         .any(|l| l.trim_start().starts_with("#%RAML"))
@@ -101,6 +105,7 @@ impl Raml {
     /// Parses `b` into `Raml`.
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = from_utf8(b).ok()?;
+        let t = strip_bom(t);
         if !detect(b) {
             return None;
         }
@@ -179,5 +184,11 @@ mod tests {
         assert_eq!(r.types, 1);
         assert_eq!(r.responses, 3);
         assert!(Raml::parse(b"").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

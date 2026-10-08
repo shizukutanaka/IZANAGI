@@ -28,8 +28,82 @@ pub struct Irc {
     pub trailing: Option<String>,
 }
 
-/// Parse one IRC line (no trailing CR/LF); `None` on empty or a
-/// line with no command.
+/// Named commands: RFC 1459/2812 core plus common IRCv3 and vendor
+/// commands. Three-digit numerics (`001`–`999`) are always accepted.
+const COMMANDS: &[&str] = &[
+    "ACCOUNT",
+    "ADMIN",
+    "AUTHENTICATE",
+    "AWAY",
+    "BATCH",
+    "CAP",
+    "CHATHISTORY",
+    "CHGHOST",
+    "CLEAR",
+    "CONNECT",
+    "DIE",
+    "ERROR",
+    "HELP",
+    "INFO",
+    "INVITE",
+    "ISON",
+    "JOIN",
+    "KICK",
+    "KILL",
+    "LINKS",
+    "LIST",
+    "LUSERS",
+    "MARKREAD",
+    "MODE",
+    "MONITOR",
+    "MOTD",
+    "NAMES",
+    "NICK",
+    "NOTICE",
+    "OPER",
+    "PART",
+    "PASS",
+    "PING",
+    "PONG",
+    "PRIVMSG",
+    "QUIT",
+    "REHASH",
+    "RESTART",
+    "RULES",
+    "SERVICE",
+    "SERVLIST",
+    "SETNAME",
+    "SQUERY",
+    "SQUIT",
+    "STATS",
+    "SUMMON",
+    "TAGMSG",
+    "TIME",
+    "TOPIC",
+    "TRACE",
+    "USER",
+    "USERHOST",
+    "USERS",
+    "VERSION",
+    "WALLOPS",
+    "WEBIRC",
+    "WHO",
+    "WHOIS",
+    "WHOWAS",
+];
+
+/// The RFC command token is `1*letter` (must be a registered command)
+/// or `3digit` (numeric reply).
+fn valid_command(cmd: &str) -> bool {
+    if cmd.len() == 3 && cmd.bytes().all(|b| b.is_ascii_digit()) {
+        return true;
+    }
+    cmd.bytes().all(|b| b.is_ascii_alphabetic())
+        && COMMANDS.iter().any(|c| c.eq_ignore_ascii_case(cmd))
+}
+
+/// Parse one IRC line (no trailing CR/LF); `None` on empty, a missing
+/// command, or a command outside the registered IRC command set.
 pub fn parse_line(line: &[u8]) -> Option<Irc> {
     let s = std::str::from_utf8(line)
         .ok()?
@@ -48,7 +122,7 @@ pub fn parse_line(line: &[u8]) -> Option<Irc> {
         Some(i) => (&rest[..i], &rest[i + 1..]),
         None => (rest, ""),
     };
-    if command.is_empty() {
+    if command.is_empty() || !valid_command(command) {
         return None;
     }
     let mut params = Vec::new();
@@ -136,5 +210,17 @@ mod tests {
         assert!(parse(b"").is_none());
         let t = parse(b"PING :a\r\nPONG :a\r\n").unwrap();
         assert_eq!(t.len(), 2);
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse_line(b"hello world").is_none()); // HELLO not a command
+        assert!(parse_line(b"the quick brown fox").is_none());
+        assert!(parse_line(b"abc123 mixed").is_none()); // not alpha, not 3digit
+        assert!(parse(b"hello world this is not irc at all\n").is_none());
+        // Registered commands and numerics stay accepted.
+        assert!(parse_line(b"CAP LS 302").is_some());
+        assert!(parse_line(b":srv 001 nick :hi").is_some());
+        assert!(parse_line(b"privmsg #c :x").is_some());
     }
 }
