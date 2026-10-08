@@ -58,6 +58,9 @@ const DETECT_KEYS: &[&str] = &[
     "reporter",
     "use_nested_configs",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a `.swiftlint.yml` file.
 #[must_use]
@@ -65,6 +68,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines()
         .filter(|l| {
             let s = l.trim();
@@ -85,6 +89,7 @@ impl Swiftlint {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             settings: 0,
             rules: 0,
@@ -184,5 +189,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Swiftlint::parse(b"foo: bar\nbaz: qux").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

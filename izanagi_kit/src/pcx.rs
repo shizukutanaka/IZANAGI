@@ -100,7 +100,8 @@ impl Pcx {
             return None;
         }
         let want = self.raster_len();
-        let mut out = Vec::with_capacity(want);
+        // reservation hint capped — push grows to the real `want`
+        let mut out = Vec::with_capacity(want.min(1 << 22));
         let mut i = HEADER;
         while out.len() < want {
             let b = *d.get(i)?;
@@ -235,5 +236,30 @@ mod tests {
         assert_eq!(MAKER, 0x0A);
         assert_eq!(ENCODING_RLE, 1);
         assert_eq!(RLE_TAG, 0xC0);
+    }
+
+    #[test]
+    fn a_max_raster_does_not_abort_the_reserve() {
+        let mut pcx = crate::pcx::Pcx {
+            version: 5,
+            encoding: crate::pcx::ENCODING_RLE,
+            bits_per_pixel: 8,
+            xmin: 0,
+            ymin: 0,
+            xmax: u16::MAX,
+            ymax: u16::MAX,
+            hres: 0,
+            vres: 0,
+            palette: [0; 48],
+            planes: 4,
+            bytes_per_line: u16::MAX,
+            palette_info: 1,
+        };
+        // ~17 GiB declared; the reserve hint is capped, decode starves on
+        // an empty body and returns None
+        assert!(pcx.decode(&[]).is_none());
+        pcx.planes = 1;
+        pcx.bytes_per_line = 1;
+        let _ = pcx.decode(&[]);
     }
 }

@@ -138,6 +138,9 @@ fn top_entries(t: &str) -> std::vec::Vec<(std::string::String, char)> {
     }
     out
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Cardano node config らしさを返す。JSON オブジェクト + 既知キー ≥2。
 #[must_use]
@@ -145,6 +148,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let t = t.trim_start();
     if !t.starts_with('{') {
         return false;
@@ -161,6 +165,7 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
     let Ok(t) = std::str::from_utf8(b) else {
         return None;
     };
+    let t = strip_bom(t);
     let mut c = Counts {
         entries: 0,
         trace_keys: 0,
@@ -208,5 +213,11 @@ mod tests {
     fn rejects_other_json() {
         assert!(parse(b"{\"name\": \"x\", \"version\": 1}").is_none());
         assert!(parse(b"{}").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

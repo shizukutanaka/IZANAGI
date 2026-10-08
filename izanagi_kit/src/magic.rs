@@ -78,7 +78,7 @@ fn relevant_mask(sq: u64, piece: Piece) -> u64 {
 
 /// Enumerate every subset of `mask` (Carry-Rippler trick).
 fn subsets(mask: u64) -> Vec<u64> {
-    let mut v = Vec::with_capacity(1usize << mask.count_ones());
+    let mut v = Vec::with_capacity(1usize << mask.count_ones().min(22));
     let mut s = mask;
     loop {
         v.push(s);

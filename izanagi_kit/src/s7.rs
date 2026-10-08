@@ -34,6 +34,7 @@ pub enum Rosctr {
 }
 
 /// Parsed S7comm header.
+#[derive(Debug)]
 pub struct S7 {
     /// Message type.
     pub rosctr: Rosctr,

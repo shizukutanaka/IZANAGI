@@ -55,6 +55,7 @@ pub struct Field {
 }
 
 /// Scanned AFP stream.
+#[derive(Debug)]
 pub struct Afp {
     /// Structured fields in order.
     pub fields: Vec<Field>,

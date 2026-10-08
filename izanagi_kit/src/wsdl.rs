@@ -15,6 +15,7 @@
 //! ```
 
 /// A censused WSDL document.
+#[derive(Debug)]
 pub struct Wsdl {
     /// `1` for `<wsdl:definitions>`/`wsdl namespace`, `2` for WSDL 2.0
     /// `<description>` + `www.w3.org/ns/wsdl`.

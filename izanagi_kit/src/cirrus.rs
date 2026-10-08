@@ -69,6 +69,23 @@ const KEYS: &[&str] = &[
 /// サフィックスでスクリプト系フィールドを判定する語。
 const SCRIPT_SUFFIXES: &[&str] = &["_script", "_artifacts", "_cache", "_instructions"];
 
+/// Cirrus 固有キー(汎用の `container:`/`image:`/`env:` 等との区別に
+/// 最低1件要求)。`*_task` 系サフィックスは常に固有として扱う。
+const EXCLUSIVE_KEYS: &[&str] = &[
+    "auto_cancellation",
+    "build_on_push",
+    "compute_engine_instance",
+    "docker_builder",
+    "ec2_instance",
+    "eks_container",
+    "execution_lock",
+    "experimental_features",
+    "freebsd_instance",
+    "gce_instance",
+    "gke_container",
+    "only_if",
+];
+
 /// cirrus 構造カウント。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -98,32 +115,41 @@ fn yaml_key(t: &str) -> Option<&str> {
         Some(k)
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// b が .cirrus.yml かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
+    let text = strip_bom(text);
     let mut hits = 0;
+    let mut exclusive = 0usize;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') {
             continue;
         }
         if let Some(k) = yaml_key(t) {
-            if TASK_SUFFIXES.iter().any(|s| k.ends_with(s))
-                || SCRIPT_SUFFIXES.iter().any(|s| k.ends_with(s))
-                || KEYS.contains(&k)
-            {
+            if TASK_SUFFIXES.iter().any(|s| k.ends_with(s)) {
                 hits += 1;
+                exclusive += 1;
+            } else if SCRIPT_SUFFIXES.iter().any(|s| k.ends_with(s)) || KEYS.contains(&k) {
+                hits += 1;
+                if EXCLUSIVE_KEYS.contains(&k) {
+                    exclusive += 1;
+                }
             }
         }
     }
-    hits >= 2
+    hits >= 2 && exclusive >= 1
 }
 
 /// 構造を数える。
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = core::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         tasks: 0,
         fields: 0,
@@ -175,5 +201,11 @@ mod tests {
     fn not_cirrus() {
         assert!(!detect(b"key: value\nother: thing\n"));
         assert!(!detect(b"env:\n  A: 1\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

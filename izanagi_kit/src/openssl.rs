@@ -42,26 +42,67 @@ pub struct Openssl {
     pub comments: usize,
 }
 
+/// OpenSSL-specific vocabulary — `[x]` sections and `k = v` lines are
+/// shared with every ini-style config and prove nothing on their own.
+const VOCAB: &[&str] = &[
+    "alt_names",
+    "authoritykeyidentifier",
+    "basicconstraints",
+    "ca_default",
+    "distinguished_name",
+    "default_bits",
+    "default_md",
+    "keyusage",
+    "ns_comment",
+    "oid_section",
+    "randfile",
+    "req_distinguished_name",
+    "subjectaltname",
+    "subjectkeyidentifier",
+    "uniquesubject",
+    "v3_ca",
+    "v3_req",
+    "x509",
+];
+
+fn vocab_hit(tr: &str) -> bool {
+    let low = tr.to_ascii_lowercase();
+    if VOCAB.iter().any(|v| low.contains(v)) {
+        return true;
+    }
+    // `oid`-prefixed word (`oid_section`, `oid_file`, `oid_table`…);
+    // `android`/`void` do not qualify
+    low.split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
+        .any(|w| w.starts_with("oid"))
+}
+
 /// Whether the buffer looks like openssl.cnf.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let mut sections = 0usize;
     let mut score = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with('#') || tr.starts_with(';') {
             continue;
         }
-        if (tr.starts_with('[') && tr.ends_with(']'))
-            || (tr.contains('=')
-                && (tr.contains("oid") || tr.contains("section") || tr.contains('_')))
+        if tr.starts_with('[') && tr.ends_with(']') {
+            sections += 1;
+            score += 1;
+        } else if tr.contains('=')
+            && (tr.contains("oid") || tr.contains("section") || tr.contains('_'))
         {
             score += 1;
         }
     }
-    score >= 3
+    let mut vocab = 0usize;
+    if score >= 3 && sections >= 1 {
+        vocab += t.lines().map(str::trim).filter(|l| vocab_hit(l)).count();
+    }
+    score >= 3 && sections >= 1 && vocab >= 1
 }
 
 impl Openssl {

@@ -17,6 +17,7 @@
 //! ```
 
 /// Parsed SU trace header (first trace of a file or a single trace).
+#[derive(Debug)]
 pub struct Su {
     /// Trace sequence number in line (`tracl`).
     pub tracl: i32,

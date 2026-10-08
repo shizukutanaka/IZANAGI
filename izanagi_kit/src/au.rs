@@ -43,6 +43,7 @@ pub enum Encoding {
 }
 
 /// Parsed `.au` header.
+#[derive(Debug)]
 pub struct Au {
     /// Byte offset of the audio data.
     pub data_at: usize,

@@ -151,6 +151,9 @@ pub struct Counts {
     /// その他行数。
     pub misc: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が Tarantool box.cfg かどうか。
 #[must_use]
@@ -159,6 +162,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let text = strip_bom(text);
     // `box.cfg` の直後に `{`/`(` が来る呼び出し形だけを見る
     // — Lua コメント(`--`)や文字列値中の同名語では検出しない。
     text.lines().any(|l| {
@@ -179,6 +183,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = std::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     if !text.contains("box.cfg") {
         return None;
     }
@@ -274,5 +279,11 @@ mod tests {
         assert!(!detect(b"msg = \"run box.cfg first\"\nx = 1\n"));
         // `box.cfg(...)` call form is accepted.
         assert!(detect(b"box.cfg({listen = 3301})\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

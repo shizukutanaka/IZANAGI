@@ -15,6 +15,7 @@
 //! ```
 
 /// A censused FIXML document.
+#[derive(Debug)]
 pub struct Fixml {
     /// `v=` version attribute (e.g. `FIX.4.4`, `FIX.5.0SP2`).
     pub version: String,

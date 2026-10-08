@@ -20,6 +20,7 @@
 //! ```
 
 /// Parsed TTA1 header.
+#[derive(Debug)]
 pub struct Tta {
     /// Audio format (1 = uncompressed lossless).
     pub format: u16,

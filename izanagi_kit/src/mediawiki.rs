@@ -130,9 +130,24 @@ pub fn parse(d: &[u8]) -> Option<Mediawiki> {
     Some(mw)
 }
 
-/// `true` if the buffer looks like wikitext.
+/// `true` if the buffer looks like wikitext. Requires at least two
+/// different markup families: a lone `[[x]]`/`{{x}}`/`----`/`#`-led
+/// line is shared with TOML, templating and config formats and does
+/// not qualify. `[[Category:…]]`/`[[File:…]]` are internal links, not
+/// separate families.
 pub fn detect(d: &[u8]) -> bool {
-    parse(d).is_some()
+    let Some(m) = parse(d) else {
+        return false;
+    };
+    (m.headings > 0) as usize
+        + (m.bold_spans > 0) as usize
+        + (m.italic_spans > 0) as usize
+        + (m.internal_links > 0) as usize
+        + (m.templates > 0) as usize
+        + (m.external_links > 0) as usize
+        + (m.list_items > 0) as usize
+        + (m.rules > 0) as usize
+        >= 2
 }
 
 #[cfg(test)]

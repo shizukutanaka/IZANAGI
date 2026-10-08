@@ -45,6 +45,9 @@ const PREFIXES: &[&str] = &[
     "subinclude:",
     "subtree:",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a `.hgignore`.
 #[must_use]
@@ -52,19 +55,28 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let hits = t
-        .lines()
-        .filter(|l| {
-            let s = l.trim();
-            s.starts_with("syntax:")
-                || PREFIXES.iter().any(|p| s.starts_with(p))
-                || s.ends_with('/')
-                || s.starts_with('*')
-                || s == "**"
-                || s.contains("**/")
-        })
-        .count();
-    hits >= 2 || t.trim_start().starts_with("syntax:")
+    let t = strip_bom(t);
+    // `syntax:`/`glob:`/`path:`/`rootglob:`/`regexp:`/`re:`/`include:`… は
+    // .hgignore 固有。globstar や `dir/` は .gitignore と同形なので単独の
+    // 証拠にしない。
+    let mut hits = 0usize;
+    let mut prefixed = 0usize;
+    for l in t.lines() {
+        let s = l.trim();
+        let is_hit = s.starts_with("syntax:")
+            || PREFIXES.iter().any(|p| s.starts_with(p))
+            || s.ends_with('/')
+            || s.starts_with('*')
+            || s == "**"
+            || s.contains("**/");
+        if is_hit {
+            hits += 1;
+            if s.starts_with("syntax:") || PREFIXES.iter().any(|p| s.starts_with(p)) {
+                prefixed += 1;
+            }
+        }
+    }
+    hits >= 2 && prefixed >= 1
 }
 
 impl Hgignore {
@@ -75,6 +87,7 @@ impl Hgignore {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             patterns: 0,
             syntaxes: 0,
@@ -131,5 +144,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Hgignore::parse(b"hello\nworld\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

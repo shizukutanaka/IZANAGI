@@ -61,12 +61,16 @@ fn known_key(t: &str) -> bool {
     let k = t[..eq].trim();
     KEYS.contains(&k)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `.codespellrc` らしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_bom(text);
     let mut in_sec = false;
     let mut hits = 0usize;
     for line in text.lines() {
@@ -94,6 +98,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         sections: 0,
         options: 0,
@@ -143,5 +148,11 @@ mod tests {
     fn not_codespell() {
         assert!(!detect(b"[flake8]\nmax-line-length = 100\n"));
         assert!(parse(b"text\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -15,6 +15,7 @@
 //! ```
 
 /// A censused ISO 20022 pain message.
+#[derive(Debug)]
 pub struct Pain {
     /// 3-digit message suffix from the namespace (`001`/`002`/`007`/`008`…).
     pub pain_code: String,

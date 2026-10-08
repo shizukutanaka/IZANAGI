@@ -34,6 +34,7 @@ pub struct Tool {
 }
 
 /// Parsed Excellon file.
+#[derive(Debug)]
 pub struct Excellon {
     /// `METRIC` (vs `INCH`); required in header.
     pub metric: bool,

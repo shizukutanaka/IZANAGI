@@ -45,6 +45,9 @@ fn directive<'a>(s: &'a str, key: &str) -> Option<&'a str> {
     }
     None
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` on a `#NAME`/`#INDEX_LANGUAGE` directive header + body lines.
 #[must_use]
@@ -53,6 +56,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     if !(s.contains("#NAME") || s.contains("#INDEX_LANGUAGE")) {
         return false;
     }
@@ -79,6 +83,7 @@ pub fn parse(b: &[u8]) -> Option<Dsl> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let mut l = Dsl {
         name: directive(s, "#NAME").map(str::to_string),
         index_language: directive(s, "#INDEX_LANGUAGE").map(str::to_string),
@@ -146,5 +151,11 @@ mod tests {
     #[test]
     fn rejects() {
         assert!(parse(b"plain").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

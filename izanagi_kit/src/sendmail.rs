@@ -54,7 +54,10 @@ pub fn detect(b: &[u8]) -> bool {
     let mut v = false;
     for line in t.lines() {
         match line.as_bytes().first().copied().unwrap_or(0) {
-            b'V' => v = true,
+            // `V10/Berkeley` — `Version:`/`VAR` 行では送信用はない。
+            b'V' => {
+                v |= line.as_bytes().get(1).is_some_and(|c| c.is_ascii_digit());
+            }
             b'R' => hits += 1,
             b'S' => {
                 if line.len() <= 12 {

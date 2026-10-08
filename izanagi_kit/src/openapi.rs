@@ -14,6 +14,7 @@
 //! ```
 
 /// A censused OpenAPI/Swagger document.
+#[derive(Debug)]
 pub struct OpenApi {
     /// Declared spec version (`3.x.y` or `2.0`).
     pub version: String,

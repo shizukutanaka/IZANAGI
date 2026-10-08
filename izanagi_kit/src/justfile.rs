@@ -9,7 +9,7 @@
 //!     b"set dotenv-load\nname := \"x\"\n\nbuild: deps\n    cargo build\n\n@lint:\n    cargo clippy\n").unwrap();
 //! assert_eq!(c.sections, 2);
 //! assert_eq!(c.options, 2);
-//! assert!(izanagi_kit::justfile::detect(b"run:\n    echo hi\n"));
+//! assert!(izanagi_kit::justfile::detect(b"@run:\n    echo hi\n"));
 //! ```
 
 /// 先頭ディレクティブ。
@@ -77,6 +77,9 @@ fn recipe_header(t: &str) -> bool {
         })
     })
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// justfile らしさを判定する。
 ///
@@ -86,14 +89,20 @@ pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_bom(text);
     let mut recipes = 0usize;
     let mut just_syntax = 0usize;
+    let mut distinctive = 0usize;
     let mut saw_body = false;
     let mut last_was_recipe = false;
     for line in text.lines() {
         if line.starts_with(char::is_whitespace) {
             if last_was_recipe && !line.trim().is_empty() && !line.trim().starts_with('#') {
                 saw_body = true;
+                // `{{var}}` interpolation is just-only syntax
+                if line.contains("{{") {
+                    distinctive += 1;
+                }
             }
             continue;
         }
@@ -105,6 +114,18 @@ pub fn detect(input: &[u8]) -> bool {
         if recipe_header(t) {
             recipes += 1;
             last_was_recipe = true;
+            // `@name:`/`!name:` private/silent recipes and
+            // `name arg="x":` parameter defaults don't exist in YAML
+            if t.starts_with('@') || t.starts_with('!') {
+                distinctive += 1;
+            } else {
+                let head = t.strip_prefix('@').unwrap_or(t);
+                if let Some(c) = head.find(':') {
+                    if head[..c].split_whitespace().nth(1).is_some() {
+                        distinctive += 1;
+                    }
+                }
+            }
         } else {
             last_was_recipe = false;
             if t.contains(":=")
@@ -116,7 +137,9 @@ pub fn detect(input: &[u8]) -> bool {
             }
         }
     }
-    (recipes >= 1 && saw_body) || (recipes >= 1 && just_syntax >= 1)
+    // `name:` + indented body is exactly the YAML mapping shape — a
+    // recipe list only counts when just-exclusive syntax is present
+    recipes >= 1 && (just_syntax >= 1 || (saw_body && distinctive >= 1))
 }
 
 /// 構造をカウントする。
@@ -125,6 +148,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         sections: 0,
         options: 0,
@@ -177,6 +201,15 @@ mod tests {
     #[test]
     fn not_justfile() {
         assert!(!detect(b"key: value\nother: 1\n"));
+        // `name:` + indented body is the YAML mapping shape — no
+        // just-exclusive syntax means not a justfile
+        assert!(!detect(b"build:\n  cargo build\n"));
         assert!(parse(b"text\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

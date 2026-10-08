@@ -113,6 +113,9 @@ fn census(s: &str, t: &mut Isabelle) {
         }
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` on a `theory … imports …` + `begin`/`end` skeleton.
 #[must_use]
@@ -121,6 +124,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     s.lines().any(|l| {
         let t = l.trim_start();
         t.starts_with("theory ")
@@ -139,6 +143,7 @@ pub fn parse(b: &[u8]) -> Option<Isabelle> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let mut t = Isabelle::default();
     for line in s.lines() {
         let l = line.trim();
@@ -197,5 +202,11 @@ fun g where \"g x = x\"\nend\n";
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"theory X\nno begin end\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

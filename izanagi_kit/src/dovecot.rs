@@ -229,6 +229,9 @@ const KEYS: &[&str] = &[
     "group",
     "mode",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect dovecot.conf content.
 #[must_use]
@@ -237,6 +240,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut named = 0usize;
     let mut blocks = 0usize;
     for line in t.lines() {
@@ -277,6 +281,7 @@ impl Dovecot {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             blocks: 0,
             settings: 0,
@@ -369,5 +374,11 @@ mod tests {
         assert!(c.named >= 10);
         assert_eq!(c.includes, 1);
         assert_eq!(c.comments, 1);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }
