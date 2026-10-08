@@ -7560,3 +7560,67 @@ oracle(steiner/knapsack/circulation/catalan/arborescence/automaton)。
 
 残課題: `1 << n` 以外の算術オーバーフロー(`n * m`/`n + m` の積和)の
 同種監査、usize::BITS 非依存の 128bit 域の棚卸。
+## 第423次：算術オーバーフロー — `n * m` / `n + m` の積和 wrap
+
+切り口: `a * b` が `usize::MAX` を超えると wrap で**小さく**なる —
+`vec![0; w*h]` が過小 → `out[y*w+x]` が領域外 panic、あるいは
+`data[y*w+x]` が範囲内の違う要素を読み静かな誤答。`data.len() !=
+w*h` ガードも wrap で誤通過しうる。第422次(シフト量)の直列続編。
+
+分類軸: ①両因子が入力由来か、②`checked_mul`/`checked_add` を使って
+いるか、③積が `vec!`/`with_capacity`/索引のどれに流れるか、
+④wrap がメモリ現実で到達可能か。
+
+発見と修正(4モジュール + review-folded 3件):
+
+- integral::Sat::new: `w*h` wrap が `data.len()` ガードを誤通過 →
+  `stride*(h+1)` も wrap で `cells` 過小 → fill の `data[y*w+x]` が
+  空スライスで panic(空入力+細工寸法で到達可能)。`checked_mul`
+  ガード + `width+1`/`stride*(h+1)` を `checked_*` で空 Sat 縮退。
+  `width=usize::MAX` で `stride` が `usize::MAX+1 → 0` に wrap する
+  経路も同時に解消。
+- dither::ordered_n / floyd_steinberg: `w*h` wrap で `vec![0u8; n]`
+  過小 → `out[y*w+x]`/`buf[i]` が領域外 panic。`checked_mul` で
+  `Vec::new()` に縮退(`w==0`/`h==0` と同じ zero-size 契約)。
+- cyk: `w = n+1` で `w*w` — 入力 ≥ 4 GiB で usize wrap → 過小
+  テーブル → `t[(i+1)*w+i]` panic。`checked_mul(...).expect()` で
+  表現不能を panic で名付け(G7 アローリスト cyk 1→2)。
+- align: `(n+1)*(m+1)` — 同上。`checked_mul(...).expect()` で
+  表現不能を panic で名付け(G7 アローリスト align 1 新規)。
+
+review-folded(PR #442 — マージ済み #441 の Devin Review 指摘3件):
+- bdd::count_sat: `nvars=128` を一律 assert 拒否していたが 2^127
+  は表現可能 — `assert!(nvars <= 128)` + TRUE-leaf/skip を
+  `checked_shl`/`saturating_mul` で飽和(`count_sat(TRUE,128)` =
+  `u128::MAX`、wrap で 1 にならない)。
+- meetmid::subset_sum: `n>126 → None` が `target=0` で空集合の
+  witness を損失 — `target==0 → Some(vec![])` で常に witness。
+- huffman::decode: `[len=1,1,32]` の過剰符号 table で canonical
+  値 `2^32` が `u32` 切詰で code 0 に再割当て — `cur >= 1u64 << l`
+  (Kraft 上界)で `None` に棄却。
+
+免責(到達不能/ヒントのみ/構造的有界):
+- hamdp `(full+1)*m`: `MAX_CITIES=16` → m≤15 → `(2^15)*15` で
+  不wrap。設計限界が先に宣言されていたため wrap 不成立。
+- tilemap/geometry `(w*h) as usize`: i32 wrap は `with_capacity`
+  のヒントのみ — push は正しく拡大し結果は同じ。負値→巨大usize→
+  abort は真の巨大要求と同じ結論で挙動不変。
+- autotile/ccl `(w as usize)*(h as usize)`: i32 正値を usize 化
+  してから乗算 → ≤ 2^62 で不wrap(OOM は正直な割当)。
+- s3m/it/xm/modfile: `usize::from(u16/u8)` 由来積 → ≤ 2^18 で不wrap。
+- bigedit `256*w`/bwt `2*n`/voronoi/steiner `n*(n-1)/2`/
+  minkowski `a.len()*b.len()`: 入力メモリ(~GiB)が先に尽きる。
+
+`n + m` の和: スライス長は `isize::MAX` 上限のため
+`len_a + len_b ≤ 2*isize::MAX < usize::MAX` — 2項の slice len 和は
+usize を wrap しない(クラス全体で免責)。3項以上の len 和は理論上
+wrap 可能だが入力メモリで先に尽きる。
+
+環境: gate.sh の packaged-crate テストで `No space left on device`
+— `target/` 29GiB + `/Library/Developer/CoreSimulator` 36GiB で
+逼迫 → CoreSimulator プロファイル削除で解消(123GiB→37GiB空き)。
+
+残課題: izanagi エンジン側の `cols*rows`/`w*h` 同型監査、
+`with_capacity` ヒントの usize キャップ規約の新規サイト適用検出、
+`n+m` 3項以上 len 和の機械分類、`empty 縮退`/`None`/`expect`
+三択規約の語彙統一。

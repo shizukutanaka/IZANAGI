@@ -161,9 +161,19 @@ fn allowed() -> BTreeMap<&'static str, (usize, &'static str)> {
     m.insert(
         "cyk.rs",
         (
-            1,
+            2,
             "Cyk::new asserts nt<=64 — nonterminal sets are u64 bitmasks; a \
-             larger grammar is a constructor-argument contract",
+             larger grammar is a constructor-argument contract; parse \
+             asserts the (n+1)^2 table fits usize — 4 GiB+ input is a \
+             caller-side size contract, not file or network input",
+        ),
+    );
+    m.insert(
+        "align.rs",
+        (
+            1,
+            "fill asserts (n+1)x(m+1) fits usize — 4 GiB+ input lengths \
+             are a caller-side size contract, not file or network input",
         ),
     );
     m.insert(
