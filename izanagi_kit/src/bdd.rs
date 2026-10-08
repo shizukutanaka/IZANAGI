@@ -213,23 +213,29 @@ impl Bdd {
     /// exact `u128` count, so output is order- and structure-free.
     pub fn count_sat(&self, f: u32, nvars: u32) -> u128 {
         assert!(
-            nvars < 128,
+            nvars <= 128,
             "count_sat: 2^{nvars} does not fit a u128 count"
         );
         // Memo-free exponential walk is fine for verified sizes; each
-        // node skips levels, contributing 2^(gap) paths.
+        // node skips levels, contributing 2^(gap) paths. Counts beyond
+        // u128 saturate — nvars = 128 keeps every partial count
+        // representable up to the final total.
         fn walk(bdd: &Bdd, n: u32, level: u32, nvars: u32) -> u128 {
             if n == FALSE {
                 return 0;
             }
             if n == TRUE {
-                return 1u128 << nvars.saturating_sub(level);
+                return 1u128
+                    .checked_shl(nvars.saturating_sub(level))
+                    .unwrap_or(u128::MAX);
             }
             let node = bdd.nodes[n as usize];
-            let skip = 1u128 << (node.var - level).min(nvars);
+            let skip = 1u128
+                .checked_shl((node.var - level).min(nvars))
+                .unwrap_or(u128::MAX);
             let lo = walk(bdd, node.lo, node.var + 1, nvars);
             let hi = walk(bdd, node.hi, node.var + 1, nvars);
-            skip * (lo + hi)
+            skip.saturating_mul(lo.saturating_add(hi))
         }
         walk(self, f, 0, nvars)
     }
@@ -406,10 +412,21 @@ mod tests {
     #[test]
     #[should_panic(expected = "does not fit a u128")]
     fn count_sat_beyond_u128_is_rejected() {
-        // `1u128 << nvars` wraps to `1u128 << (nvars & 127)` in release —
-        // `count_sat(f, 128)` silently returned the count for 0 vars.
         let mut b = Bdd::new();
         let f = b.mk(0, FALSE, TRUE);
-        b.count_sat(f, 128);
+        b.count_sat(f, 129);
+    }
+
+    #[test]
+    fn count_sat_at_128_vars_is_exact_or_saturated() {
+        // 128 vars: `2^127` fits u128 — the count must stay exact.
+        let mut b = Bdd::new();
+        let f = b.mk(0, FALSE, TRUE); // requires x0
+        assert_eq!(b.count_sat(f, 128), 1u128 << 127);
+        // `2^128` does not fit — saturate instead of wrapping to 1.
+        assert_eq!(b.count_sat(TRUE, 128), u128::MAX);
+        // Tautology over x0: both children count `2^127`, total `2^128`.
+        let t = b.mk(0, TRUE, TRUE);
+        assert_eq!(b.count_sat(t, 128), u128::MAX);
     }
 }
