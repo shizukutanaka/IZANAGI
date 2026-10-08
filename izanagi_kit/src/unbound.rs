@@ -66,6 +66,7 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let t = strip_bom(t);
     let mut score = 0usize;
+    let mut sections = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with('#') || tr.starts_with(';') {
@@ -74,6 +75,7 @@ pub fn detect(b: &[u8]) -> bool {
         let head = tr.split(':').next().unwrap_or("");
         if SECTIONS.contains(&head.trim()) {
             score += 2;
+            sections += 1;
         } else if tr.contains(": ")
             && tr.split(':').next().is_some_and(|k| {
                 k.chars()
@@ -85,7 +87,10 @@ pub fn detect(b: &[u8]) -> bool {
             score += 1;
         }
     }
-    score >= 4
+    // a real unbound.conf always opens at least one named section
+    // (`server:`/`forward-zone:`/…) — bare `key: value` config does not
+    // qualify on its own
+    sections >= 1 && score >= 4
 }
 
 impl Unbound {
@@ -173,6 +178,8 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(!detect(b"key: value\nother: stuff\n"));
+        // bare `key: value` config without a named section is not unbound
+        assert!(!detect(b"alpha: 1\nbeta: 2\ngamma: 3\ndelta: 4\n"));
         assert!(Unbound::parse(b"x").is_none());
     }
 

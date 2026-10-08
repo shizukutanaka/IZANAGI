@@ -29,33 +29,53 @@ fn strip_bom(t: &str) -> &str {
     t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
-/// Whether the buffer looks like a gitignore-style file.
+/// One ignore-file pattern line: non-empty, no whitespace, and none of
+/// the characters that would make it an assignment, URL, markup or
+/// code fragment instead of a path pattern.
+fn pattern_line(s: &str) -> bool {
+    !s.is_empty()
+        && !s.contains(char::is_whitespace)
+        && !s.chars().any(|c| {
+            matches!(
+                c,
+                '=' | ':' | '"' | '\'' | '{' | '}' | ';' | ',' | '(' | ')' | '<' | '>'
+            )
+        })
+}
+
+/// Whether the buffer looks like a gitignore-style file: *every*
+/// content line must be pattern-shaped, with at least two patterns
+/// and one glob/`!`-negation/`/`-anchor marker.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
     let t = strip_bom(t);
-    let mut hits = 0usize;
+    let mut patterns = 0usize;
+    let mut markers = 0usize;
+    let mut bad = 0usize;
     for l in t.lines() {
         let s = l.trim();
-        if s.is_empty() {
+        if s.is_empty() || s.starts_with('#') {
             continue;
         }
-        let s = s.strip_prefix('!').unwrap_or(s);
-        if s == "*"
-            || s == "**"
-            || s.starts_with('*')
-            || s.ends_with('/')
-            || s.starts_with('/')
-            || s.contains("**")
-            || s.contains('.') && !s.contains(' ')
-            || s.starts_with('[')
+        if !pattern_line(s) {
+            bad += 1;
+            continue;
+        }
+        patterns += 1;
+        let p = s.strip_prefix('!').unwrap_or(s);
+        if p.contains('*')
+            || p.contains('?')
+            || p.contains('[')
+            || p.starts_with('/')
+            || p.ends_with('/')
         {
-            hits += 1;
+            markers += 1;
         }
     }
-    hits >= 2
+    bad == 0 && patterns >= 2 && markers >= 1
 }
 
 impl Gitignore {
@@ -136,6 +156,7 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Gitignore::parse(b"hello\nworld\n").is_none());
+        assert!(!detect(b"key = value\n*.o\n"));
     }
 
     #[test]

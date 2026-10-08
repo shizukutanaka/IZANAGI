@@ -115,14 +115,37 @@ pub fn detect(b: &[u8]) -> bool {
     (c.directives + c.objects) >= 2 || (c.selectors >= 2 && c.forwarders >= 1) || c.selectors >= 3
 }
 
+/// syslog facilities (RFC 5424 names plus `local0`-`local7` and `*`).
+const FACILITIES: &[&str] = &[
+    "auth", "authpriv", "console", "cron", "daemon", "ftp", "kern", "lpr", "mail", "mark", "news",
+    "security", "syslog", "user", "uucp", "local0", "local1", "local2", "local3", "local4",
+    "local5", "local6", "local7",
+];
+
 fn looks_like_selector(line: &str) -> bool {
-    // レガシーセレクタ: `prio[,prio]…  action`。
-    let Some(rest) = line.split_whitespace().next() else {
+    // legacy selector: `facility.priority[,facility.priority]…  action`
+    // (groups may also be `;`-separated). A bare word is not a selector.
+    let Some(tok) = line.split_whitespace().next() else {
         return false;
     };
-    rest.bytes()
-        .all(|c| c.is_ascii_alphanumeric() || matches!(c, b',' | b'.' | b'*' | b'=' | b'!' | b'-'))
-        && (rest.contains('.') || rest.contains('*') || rest.contains('='))
+    if !tok.contains(['.', '*']) {
+        return false;
+    }
+    tok.split(';').all(|grp| {
+        !grp.is_empty()
+            && grp.split(',').all(|piece| {
+                let (fac, pri) = match piece.split_once('.') {
+                    Some((f, p)) => (f, p),
+                    None => (piece, ""),
+                };
+                (fac == "*" || FACILITIES.contains(&fac))
+                    && (pri.is_empty()
+                        || pri.bytes().all(|c| {
+                            c.is_ascii_alphanumeric()
+                                || matches!(c, b'=' | b'!' | b'<' | b'>' | b'*')
+                        }))
+            })
+    })
 }
 
 /// rsyslog.conf を解析して `Counts` を返す。

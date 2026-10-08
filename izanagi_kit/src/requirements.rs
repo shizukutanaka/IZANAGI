@@ -45,48 +45,48 @@ pub fn detect(b: &[u8]) -> bool {
     let t = strip_bom(t);
     let mut specs = 0;
     let mut opts = 0;
+    let mut content = 0;
     for l in t.lines() {
         let s = l.trim();
         if s.is_empty() || s.starts_with('#') {
             continue;
         }
+        content += 1;
         if s.starts_with('-') {
             opts += 1;
             continue;
         }
-        if s.contains("==")
-            || s.contains(">=")
-            || s.contains("<=")
-            || s.contains("~=")
-            || s.contains("!=")
-            || s.chars()
-                .next()
-                .is_some_and(|ch| ch.is_ascii_alphanumeric())
-                && s.chars().all(|ch| {
-                    ch.is_ascii_alphanumeric()
-                        || matches!(
-                            ch,
-                            '-' | '_'
-                                | '.'
-                                | '['
-                                | ']'
-                                | ','
-                                | ';'
-                                | ' '
-                                | '<'
-                                | '>'
-                                | '='
-                                | '!'
-                                | '~'
-                                | '"'
-                                | '\''
-                        )
-                })
-        {
+        if is_spec_line(s) {
             specs += 1;
         }
     }
-    specs + opts >= 2 && (specs >= 1 || opts >= 2)
+    // requirements files are *mostly* spec/option lines — a stray pair
+    // of bare words inside an unrelated file does not qualify
+    specs + opts >= 2 && (specs >= 1 || opts >= 2) && (specs + opts) * 2 >= content
+}
+
+/// A requirement spec line: `name`, `name[extras]`, `name op version`
+/// (`==`/`>=`/`<=`/`~=`/`!=`/`>`/`<`), `name @ url` or `name ; marker`.
+/// The name is `alnum (alnum|- _ .)*`; anything after it must begin
+/// with an extras/version/marker/direct-ref introducer, so prose like
+/// `Hello world` does not count.
+fn is_spec_line(s: &str) -> bool {
+    let b = s.as_bytes();
+    if !b[0].is_ascii_alphanumeric() {
+        return false;
+    }
+    let mut i = 0;
+    while i < b.len() && (b[i].is_ascii_alphanumeric() || matches!(b[i], b'-' | b'_' | b'.')) {
+        i += 1;
+    }
+    let rest = s[i..].trim_start();
+    rest.is_empty()
+        || rest.starts_with('[')
+        || rest.starts_with(';')
+        || rest.starts_with('@')
+        || ["==", ">=", "<=", "~=", "!=", ">", "<", "==="]
+            .iter()
+            .any(|op| rest.starts_with(op))
 }
 
 impl Requirements {

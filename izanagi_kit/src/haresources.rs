@@ -37,13 +37,18 @@ pub struct Counts {
     pub script_resources: usize,
 }
 
-/// `b` が haresources らしいかを返す。
+/// `b` が haresources らしいかを返す。`Agent::arg` 構文と既知の
+/// リソースエージェント (IP*/storage/notify 系) の両方を要求する —
+/// `::` を含む任意のコード行 (`use a::b` 等) だけでは検出しない。
 pub fn detect(b: &[u8]) -> bool {
     let c = match parse(b) {
         Some(c) => c,
         None => return false,
     };
-    c.entries >= 1 && c.resources >= 2 && c.colon_agents + c.script_resources >= 1
+    c.entries >= 1
+        && c.resources >= 2
+        && c.colon_agents >= 1
+        && c.ip_resources + c.storage_resources + c.notify_resources >= 1
 }
 
 fn agent_name(word: &str) -> &str {

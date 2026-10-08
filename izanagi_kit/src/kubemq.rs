@@ -101,11 +101,29 @@ fn strip_bom(t: &str) -> &str {
     t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
-/// b が kubemq.yaml かどうか。
+/// Keys (or inline mentions) that appear only in KubeMQ resources —
+/// `apiVersion`/`kind`/`metadata` alone are shared with every
+/// Kubernetes manifest and prove nothing on their own.
+const EXCLUSIVE_KEYS: &[&str] = &[
+    "grpc",
+    "grpcPort",
+    "exposeNodePort",
+    "eventsStore",
+    "nats",
+    "nats_io",
+    "restPort",
+    "license",
+    "keyData",
+    "certData",
+];
+
+/// KubemqCluster/Kubemq* カスタムリソースの検出。
+#[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
     let text = strip_bom(text);
     let mut hits = 0;
+    let mut exclusive = 0;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') {
@@ -114,8 +132,13 @@ pub fn detect(b: &[u8]) -> bool {
         if yaml_key(t).is_some_and(|k| TOP_KEYS.contains(&k) || KEYS.contains(&k)) {
             hits += 1;
         }
+        if yaml_key(t).is_some_and(|k| EXCLUSIVE_KEYS.contains(&k))
+            || t.to_ascii_lowercase().contains("kubemq")
+        {
+            exclusive += 1;
+        }
     }
-    hits >= 3
+    hits >= 3 && exclusive >= 1
 }
 
 /// 構造を数える。
