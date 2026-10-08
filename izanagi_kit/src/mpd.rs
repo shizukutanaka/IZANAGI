@@ -84,10 +84,22 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    KEYS.iter().filter(|k| t.contains(**k)).count() >= 2
-        || BLOCKS
-            .iter()
-            .any(|k| t.contains(&format!("{k} ")) && t.contains('{'))
+    // a setting is `key "value"` — the key must lead a line, not appear
+    // as a substring (`port` inside `export`, `user` in prose, …)
+    let at_start = |l: &str, k: &str| {
+        let s = l.trim();
+        s.len() > k.len() && s.starts_with(k) && s.as_bytes()[k.len()].is_ascii_whitespace()
+    };
+    KEYS.iter()
+        .filter(|k| t.lines().any(|l| at_start(l, k)))
+        .count()
+        >= 2
+        || BLOCKS.iter().any(|k| {
+            t.lines().any(|l| {
+                let s = l.trim();
+                s.len() > k.len() && s.starts_with(k) && s[k.len()..].trim_start().starts_with('{')
+            })
+        })
 }
 
 impl Mpd {

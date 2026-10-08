@@ -63,6 +63,9 @@ fn int_after(t: &str, key: &str) -> u64 {
     }
     rest[..digits].parse().unwrap_or(0)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a Snyk JSON report.
 #[must_use]
@@ -70,6 +73,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     if !t.trim_start().starts_with('{') {
         return false;
     }
@@ -87,6 +91,7 @@ impl Snyk {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         Some(Self {
             vulnerabilities: count_key(t, "\"SNYK-") + count_key(t, "\"CVE-"),
             critical: count_key(t, "\"critical\""),
@@ -137,5 +142,11 @@ mod tests {
         assert!(!detect(b"{\"vulnerabilities\": []}"));
         assert!(!detect(b"[1]"));
         assert!(Snyk::parse(b"{}").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -109,10 +109,14 @@ fn yaml_key(t: &str) -> Option<&str> {
         Some(k)
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// b が appveyor.yml かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
+    let text = strip_bom(text);
     text.lines()
         .filter(|l| {
             let t = l.trim();
@@ -128,6 +132,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = core::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         sections: 0,
         for_keys: 0,
@@ -189,5 +194,11 @@ mod tests {
     fn not_appveyor() {
         assert!(!detect(b"key: value\nother: thing\n"));
         assert!(!detect(b"image: none\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

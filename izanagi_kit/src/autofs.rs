@@ -69,19 +69,28 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         let Some(mount) = parts.next() else {
             continue;
         };
-        // mount point or map key must be absolute-ish or wildcard
+        // mount key must be an absolute path, direct-map `/-`,
+        // wildcard `*` or netgroup `+name` — a bare word is not a mount
         if !(mount.starts_with('/')
-            || mount.starts_with('-')
-            || mount.starts_with('*')
-            || mount
-                .bytes()
-                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'-')))
+            || mount == "*"
+            || mount.starts_with('+')
+            || mount.starts_with('-'))
         {
             continue;
         }
         let Some(map) = parts.next() else {
             continue;
         };
+        // map reference: `-map`, `type:name`, `auto.*`, an `/etc`-style
+        // path, or a plain word carrying `:` — a second bare word
+        // (`cmd arg` in any list) does not qualify
+        if !(map.starts_with('-')
+            || map.contains(':')
+            || map.contains('/')
+            || map.starts_with("auto."))
+        {
+            continue;
+        }
         c.master_entries += 1;
         if let Some(ty) = map.split(':').next() {
             if map.contains(':') && MAP_TYPES.contains(&ty) {

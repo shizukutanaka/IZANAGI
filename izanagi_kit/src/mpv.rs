@@ -115,6 +115,9 @@ const KEYS: &[&str] = &[
     "audio-exclusive",
     "audio-channels",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like an mpv.conf.
 #[must_use]
@@ -122,6 +125,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     for l in t.lines() {
         let s = l.trim_start();
@@ -148,6 +152,7 @@ impl Mpv {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             profiles: 0,
             entries: 0,
@@ -212,5 +217,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Mpv::parse(b"[x]\na=1\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

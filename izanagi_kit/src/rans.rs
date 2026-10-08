@@ -159,7 +159,9 @@ impl Rans {
         if chunks.len() % 2 != 0 {
             return None;
         }
-        let mut out = Vec::with_capacity(len);
+        // `len` is attacker-declared; cap the reservation hint —
+        // push still grows to the real decoded length
+        let mut out = Vec::with_capacity(len.min(1 << 22));
         let mut at = 0usize;
         for _ in 0..len {
             let slot = x & (L - 1);
@@ -260,5 +262,15 @@ mod tests {
         assert_eq!(t.decode(&wire), Some(data));
         // ~0.2 bits/symbol entropy — wire must be far under raw.
         assert!(wire.len() < 800, "wire {}B", wire.len());
+    }
+
+    #[test]
+    fn a_huge_declared_output_len_does_not_abort() {
+        // `len` is attacker-declared; the reservation hint must be capped —
+        // pushing past it is what grows, not the upfront reserve
+        let t = Rans::build(&counts_of(b"ab")).unwrap();
+        let mut wire = u32::MAX.to_le_bytes().to_vec();
+        wire.extend_from_slice(&0u32.to_le_bytes());
+        assert!(t.decode(&wire).is_none());
     }
 }

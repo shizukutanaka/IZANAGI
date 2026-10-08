@@ -31,6 +31,9 @@ pub struct Counts {
     /// `gr_*`/`fp_line`/`fp_circle`/`fp_arc`/`fp_text`/`fp_poly`/`fp_rect`/`dimension`/`target`/`stroke`/`fill`/`pts`/`xy`/`xyz`/`at`/`size`/`layers`/`layer` 図形・補助数。
     pub misc: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が `.kicad_pcb` かどうか。
 #[must_use]
@@ -39,6 +42,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let text = strip_bom(text);
     text.trim_start().starts_with("(kicad_pcb")
 }
 
@@ -46,6 +50,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = std::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     if !detect(text.as_bytes()) {
         return None;
     }
@@ -157,5 +162,11 @@ mod tests {
     fn rejects_other_sexp() {
         assert!(!detect(b"(kicad_sch (version 1))"));
         assert!(!detect(b"(foo bar)"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

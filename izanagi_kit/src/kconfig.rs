@@ -147,6 +147,25 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             }
         }
     }
+    if !t.trim().is_empty()
+        && c.symbols
+            + c.menuconfigs
+            + c.types
+            + c.defaults
+            + c.deps
+            + c.selects
+            + c.attrs
+            + c.menus
+            + c.choices
+            + c.ifs
+            + c.sources
+            + c.helps
+            + c.comment_stmts
+            + c.comments
+            == 0
+    {
+        return None;
+    }
     Some(c)
 }
 
@@ -189,5 +208,11 @@ mod tests {
         let c = parse(b"config A\n    bool \"x\"\n").unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

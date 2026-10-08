@@ -31,6 +31,9 @@ fn code_line(s: &str) -> &str {
     }
     s
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect a Boundary `boundary.hcl`.
 #[must_use]
@@ -39,6 +42,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     // Vault also opens `listener "tcp" {`; require a boundary-only
     // companion block (`controller`/`worker`/`kms "`/`purpose =`).
     let mut has_listener = false;
@@ -72,6 +76,7 @@ impl Boundary {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             assignments: 0,
             blocks: 0,
@@ -132,5 +137,11 @@ mod tests {
         ));
         assert!(!detect(b"# listener \"tcp\" {\n# }\ncontroller {\n}\n"));
         assert!(!detect(b"controller {\n  name = \"x\"\n}\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

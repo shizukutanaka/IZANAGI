@@ -33,6 +33,9 @@ pub struct Apt {
     /// `Acquire::`/`APT::`/`Dir::`/`DPkg::`/`Unattended-Upgrade::`/`RPM::`/`Binary-*::`/`Debug::`/`apt-key::`/`Machine`/`login`/`password`/`netrc`/`Blind*`/`Key*` apt.conf/auth keys.
     pub confs: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like an APT sources/auth file.
 #[must_use]
@@ -40,6 +43,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines().any(|l| {
         let s = l.trim();
         s.starts_with("deb ") || s.starts_with("deb-src ")
@@ -56,6 +60,7 @@ impl Apt {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             sources: 0,
             options: 0,
@@ -161,5 +166,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Apt::parse(b"foo = 1").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

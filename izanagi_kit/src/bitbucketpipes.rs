@@ -45,6 +45,9 @@ fn key_of(s: &str) -> &str {
         None => s.trim(),
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect bitbucket-pipelines.yml content.
 #[must_use]
@@ -53,6 +56,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut has_pipelines = false;
     let mut has_step = false;
     for line in t.lines() {
@@ -79,6 +83,7 @@ impl BitbucketPipes {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             steps: 0,
             commands: 0,
@@ -156,5 +161,11 @@ mod tests {
         assert!(!detect(b"pipelines:\n  list:\n  - a\n"));
         // Comment-only mention.
         assert!(!detect(b"# pipelines:\n#   - step:\nkey: v\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

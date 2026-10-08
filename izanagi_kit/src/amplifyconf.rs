@@ -80,6 +80,9 @@ fn is_key(s: &str, key: &str) -> bool {
     s.strip_prefix(key)
         .is_some_and(|r| r.trim_start().starts_with(':'))
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `amplify.yml` らしさを返す。`version:` と `frontend:`/`backend:`/`phases:`
 /// 等ビルド構造キーの組合せで判定。
@@ -88,6 +91,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     let mut version = false;
     for l in t.lines() {
@@ -118,6 +122,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut c = Counts {
         keys: 0,
         blocks: 0,
@@ -205,5 +210,11 @@ mod tests {
                 .unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

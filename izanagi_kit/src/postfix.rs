@@ -165,6 +165,9 @@ const KEYS: &[&str] = &[
 ];
 
 const MASTER_TYPES: &[&str] = &["inet", "unix", "unix-dgram", "fifo", "pass"];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect Postfix `main.cf`/`master.cf` content.
 #[must_use]
@@ -173,6 +176,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut kv_named = 0usize;
     let mut master = 0usize;
     for line in t.lines() {
@@ -213,6 +217,7 @@ impl Postfix {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             settings: 0,
             named: 0,
@@ -302,5 +307,11 @@ mod tests {
         assert_eq!(c.continuations, 2);
         assert_eq!(c.master_rows, 2);
         assert_eq!(c.comments, 1);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }
