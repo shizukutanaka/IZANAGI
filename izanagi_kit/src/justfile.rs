@@ -135,7 +135,7 @@ pub fn detect(input: &[u8]) -> bool {
     }
     // `name:` + indented body is exactly the YAML mapping shape — a
     // recipe list only counts when just-exclusive syntax is present
-    just_syntax >= 1 || (recipes >= 1 && saw_body && distinctive >= 1)
+    recipes >= 1 && (just_syntax >= 1 || (saw_body && distinctive >= 1))
 }
 
 /// 構造をカウントする。
