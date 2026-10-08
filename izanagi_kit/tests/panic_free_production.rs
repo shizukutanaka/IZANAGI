@@ -149,6 +149,39 @@ fn allowed() -> BTreeMap<&'static str, (usize, &'static str)> {
              re-verify, release stays branch-free",
         ),
     );
+    m.insert(
+        "bdd.rs",
+        (
+            1,
+            "Bdd::count_sat asserts nvars<128 — the exact count is a u128, \
+             so a larger variable count is a caller-side size contract, not \
+             file or network input",
+        ),
+    );
+    m.insert(
+        "cyk.rs",
+        (
+            1,
+            "Cyk::new asserts nt<=64 — nonterminal sets are u64 bitmasks; a \
+             larger grammar is a constructor-argument contract",
+        ),
+    );
+    m.insert(
+        "meetmid.rs",
+        (
+            1,
+            "subset_sums asserts items.len()<usize::BITS — 2^len sums cannot \
+             be enumerated otherwise; slice length is chosen by the caller",
+        ),
+    );
+    m.insert(
+        "sosdp.rs",
+        (
+            1,
+            "table asserts bits<usize::BITS — a 2^bits table cannot be \
+             addressed otherwise; bits is a caller-side size argument",
+        ),
+    );
     m
 }
 
