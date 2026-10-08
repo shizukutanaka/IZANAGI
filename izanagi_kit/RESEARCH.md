@@ -6937,8 +6937,6 @@ bare_cvar_names_do_not_count)。
 - junitのヘッドスキャンは `<!--` 内の `>` で誤終了していた
   ので `-->` まで読み飛ばすよう修正。
 - 回帰テスト xml_comments_are_stripped を42モジュールに追加。
-||||||| 2fe94df
-||||||| 756a77a
 ## 第395次
 
 監査(長所50/短所50、第2回)に基づき、UTF-8 BOM (U+FEFF) 付き
@@ -6953,7 +6951,6 @@ bare_cvar_names_do_not_count)。
 - `from_utf8_lossy` を使う ldif は `strip_bom(&t)` で適用。
 - 回帰テスト `utf8_bom_is_tolerated` を各モジュールに追加。
 - 第345次の6モジュール修正を全量クラスとして一般化したもの。
-||||||| 2fe94df
 
 ## 第398次 検出の再現率(recall)契約 — own_fixture_detected
 
@@ -7046,7 +7043,6 @@ detect⇔parseの双方向整合を機械測定(自fixture + 1バイト破壊 + 
 - parse=Someだがdetect=falseの設計許容差(gbstudio/idl/irssi等)は
   「トレラントparse+厳格detect」として明示宣言する仕組みがない。
 
-||||||| 0c5ba00
 ## 第407次 — parseのSome(認識ゼロ)統一(Option意味論)
 
 全1,122のOption返しパーサにごみ入力4種を投入 → `Some(認識ゼロ)`を返す
@@ -7077,7 +7073,6 @@ Vec<Entry>返し3件のOption化(API破壊)、非Option返し103件、detect⇒p
 DETECTORSの相互偽陽性マトリクスの10-39件帯の段階引き締め、PARSERS非整列、
 UTF-16入力、CRLF/Latin-1ファイル、実ファイルコーパスのparse側適用。
 
-||||||| 0c5ba00
 ## 第407次 — 監査(Option意味論/認識ゼロのSome) + 13モジュール修正
 
 ### 角度
@@ -7114,7 +7109,6 @@ UTF-16入力、CRLF/Latin-1ファイル、実ファイルコーパスのparse側
 - Vec<Entry>系(cpio/csv/mailcap)の空Vec曖昧性、非Option 103件の
   棄却不能は Option化のAPI破壊が必要で別ラウンド。
 
-||||||| 0c5ba00
 ## 第405次 — 監査(失敗の表現力/パーサの検証性) + crontab・udevrules
 
 ### 角度
@@ -7244,7 +7238,6 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
   トークンは UUID/hex/word に必然適合)。形式を区別する語彙が存在しない
   構造的限界として残置。
 - `gradle`/`edn`: 既存の strong/weak ゲートで中位(14/10件)。更なる引き締め余地。
-||||||| 56a2e9a
 
 ## 第415次：残存ini/config族の外来ヒット分類・精密化(相互偽陽性スイープ第2弾)
 
@@ -7292,7 +7285,6 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 残課題: crockford/base32/nanoid等の単一トークン形式は定義上fixtureと
 区別不能(除外要検討)、airbyteconf 25/cirrus 24/base32 23は次ラウンド候補、
 段階的閾値ラチェットテストの検討。
-||||||| 56a2e9a
 
 ## 第419次：panic経路の静的棚卸 — 失敗機構の構造的担保
 
@@ -7315,7 +7307,6 @@ wkt.rsの`expect`メソッドを`want`へ改名し`Option::expect`との同名�
 
 残課題: `at+N`型オフセット加算の32bit overflow、`assert!`vs`Result`の使い分け
 基準のCONVENTIONS化、`detect`失敗理由の可視化API、境界±1バイトfuzz。
-||||||| 56a2e9a
 
 ## 第418次：エンジン側の決定性境界 — 順序なしコンテナの宣言強制
 
@@ -7355,7 +7346,6 @@ log/save/scene/state)が float 以外の非決定性源を持たないか全行�
   順序を漏洩」するパターンは静的テキストスキャンでは追えない(現時点で
   漏洩箇所なし — `contains`のみ)。
 - `Time::alpha`/accumulator等のf32経路は境界外として意図どおり。
-||||||| 56a2e9a
 
 ## 第414次：検出器間相互偽陽性 — 全fixture×全DETECTORS掃引と上位13件の精密化
 
@@ -7393,7 +7383,6 @@ lucene 83 の残りも `word:value` ×2行の YAML との構造同一性。
 - 全行パターン化(ignore系:全行がpattern-shaped)
 - 式形状(行数上限+言語排他マーカー)
 - トークン検証(単純substringではなくトークン構造を検査)
-||||||| 56a2e9a
 
 ## 第417次：証拠の深さ — 汎用スニペット誤検出と検出コミット行数
 
@@ -7432,7 +7421,6 @@ lucene 83 の残りも `word:value` ×2行の YAML との構造同一性。
 - `nanoid`/`crockford`: アルファベットが英数字全域をカバーするため
   「妥当なトークン」と「散文断片」に固有の区別信号が存在しない。
   base32と違い数字要求でも切れない(nanoidは記号なし・数字なしも正当)。
-||||||| 56a2e9a
 
 ## 第420–421次：リソース境界 — 入力由来割当のキャップ
 
