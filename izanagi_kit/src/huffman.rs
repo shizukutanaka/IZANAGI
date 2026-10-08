@@ -198,7 +198,10 @@ pub fn decode(buf: &[u8]) -> Option<Vec<u8>> {
     let mut prev_len = 0u8;
     for &s in &order {
         let l = len[s as usize];
-        cur = cur.checked_shl((l - prev_len) as u32).unwrap_or(0);
+        cur = cur.checked_shl((l - prev_len) as u32)?;
+        if cur >= 1u64 << l {
+            return None; // oversubscribed lengths — not a prefix code
+        }
         decode_map.insert((l, cur as u32), s);
         cur += 1;
         prev_len = l;
@@ -328,6 +331,16 @@ mod tests {
         // `len` > 32 can never be represented — rejected at table read,
         // so the canonical rebuild never shifts by more than 32.
         let wire = [0u8, b'a', 33, 0, 0, 0, 0];
+        assert!(decode(&wire).is_none());
+    }
+
+    #[test]
+    fn decode_oversubscribed_table_is_rejected() {
+        // [len 1, len 1, len 32]: the two 1-bit codes already fill the
+        // code space, so the canonical value for the third symbol is
+        // `2^32` — truncating it to `u32` silently remapped it to code
+        // 0 and let the malformed table decode as a different message.
+        let wire = [2u8, b'a', 1, b'b', 1, b'c', 32, 0, 0, 0, 0];
         assert!(decode(&wire).is_none());
     }
 }

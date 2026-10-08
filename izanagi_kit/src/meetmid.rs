@@ -39,6 +39,9 @@ pub fn subset_sums(items: &[i64]) -> Vec<i128> {
 /// or `None`. Two-pass: enumerate the left half, binary-search
 /// the right half for the complement.
 pub fn subset_sum(weights: &[i64], target: i64) -> Option<Vec<u32>> {
+    if target == 0 {
+        return Some(Vec::new()); // the empty subset always witnesses 0
+    }
     let n = weights.len();
     if n > 126 {
         return None; // each half must fit a `u64` subset mask
@@ -221,5 +224,13 @@ mod tests {
         // witness-enumeration `1u64 << l.len()` wrapped to a few
         // subsets in release and silently returned the wrong subset.
         assert!(subset_sum(&vec![1i64; 200], 1).is_none());
+    }
+
+    #[test]
+    fn subset_sum_zero_target_always_has_a_witness() {
+        // The empty subset sums to 0 — a valid witness even when the
+        // input is too large to enumerate.
+        assert_eq!(subset_sum(&[1i64, 2, 3], 0), Some(vec![]));
+        assert_eq!(subset_sum(&vec![1i64; 200], 0), Some(vec![]));
     }
 }

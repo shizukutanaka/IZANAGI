@@ -629,8 +629,8 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
         "izanagi_kit/bdd.rs",
         (
             1,
-            "count_sat multiplies by 2^nvars — nvars >= 128 wrapped the \
-             u128 shift to `nvars & 127` and returned the wrong count",
+            "count_sat multiplies by 2^nvars — nvars > 128 can never fit \
+             a u128 count; nvars = 128 stays exact-or-saturated",
         ),
     );
     m.insert(
