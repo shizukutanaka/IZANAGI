@@ -18,6 +18,11 @@
 /// the same way `i128` does — callers keep values inside the
 /// accumulation range.
 pub fn subset_sums(items: &[i64]) -> Vec<i128> {
+    assert!(
+        items.len() < usize::BITS as usize,
+        "subset_sums: 2^{} subsets do not fit",
+        items.len()
+    );
     let mut sums = Vec::with_capacity(1usize << items.len());
     sums.push(0i128);
     for &x in items {
@@ -35,6 +40,9 @@ pub fn subset_sums(items: &[i64]) -> Vec<i128> {
 /// the right half for the complement.
 pub fn subset_sum(weights: &[i64], target: i64) -> Option<Vec<u32>> {
     let n = weights.len();
+    if n > 126 {
+        return None; // each half must fit a `u64` subset mask
+    }
     let (l, r) = weights.split_at(n / 2);
     let right = subset_sums(r);
     let mut sums = vec![0i128];
@@ -197,5 +205,21 @@ mod tests {
                 .unwrap_or(i128::MIN);
             assert_eq!(best_fit(&w, cap), want);
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "subsets do not fit")]
+    fn subset_sums_beyond_the_mask_domain_is_rejected() {
+        // `1usize << items.len()` wraps to `1usize << (len & 63)` in
+        // release — a 64-element input silently produced a hint of 1.
+        subset_sums(&[0i64; 64]);
+    }
+
+    #[test]
+    fn subset_sum_unenumerable_halves_return_none() {
+        // `weights.len() > 126` puts ≥ 64 items in one half — the
+        // witness-enumeration `1u64 << l.len()` wrapped to a few
+        // subsets in release and silently returned the wrong subset.
+        assert!(subset_sum(&vec![1i64; 200], 1).is_none());
     }
 }

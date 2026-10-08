@@ -7038,3 +7038,100 @@ lucene 83 の残りも `word:value` ×2行の YAML との構造同一性。
 - 全行パターン化(ignore系:全行がpattern-shaped)
 - 式形状(行数上限+言語排他マーカー)
 - トークン検証(単純substringではなくトークン構造を検査)
+||||||| 56a2e9a
+
+## 第417次：証拠の深さ — 汎用スニペット誤検出と検出コミット行数
+
+切り口: 「検出器は何行の証拠で結論を出すか」。全fixtureを行頭prefixに縮小し
+最小検出行数を測定 + 形式固有語彙を持たない汎用スニペット12種
+(`name = value`, `set foo bar`, `import foo\nprint(1)` 等)を全DETECTORSに投入。
+
+### 計測所見
+
+- 412モジュールの最小検出行数: 63件が1行(うち大半はXML方言/マジック/1行形式
+  で正当 — fixture自体が1行)、残りは2-3行で確定。大半はfixture先頭が
+  固有マーカー(正しい設計)だが、汎用語彙で確定する検出器が残存。
+- 汎用スニペット命中: `mml`/`haresources`/`dotenv`/`creole`/`mediawiki`/
+  `lucene`/`requirements`/`gitconfig`/`namedconf`/`tmuxconf` は #434–#436 で
+  対応済み(未マージ)。新規実害は以下2件。
+
+### 修正
+
+- `gn`: `print(`/`assert(`/`error(`/`warning(`(DIAG)単独で検出 → Python/JSを
+  誤検出(`import foo\nprint(1)`)。TARGETS呼出・`deps =`/`sources =`等の
+  代入・`import("…gn/.gni")` 引用付きインポートのみを証拠化。
+- `base32`: 空白除去後「英字8文字以上」だけで検出 → 散文の連結("foobarbaz")
+  を誤検出。`=`パディングまたは数字(2–7/0–9)を1文字必須化 — RFC的には
+  数字なしBase32も存在するが、現実のエンコード出力では稀で、散文との
+  構造的区別が不能なため精度を優先(RESEARCH 記録)。
+
+### 恒久化
+
+`tests/generic_snippets_stay_precise.rs` 新設: 汎用スニペット12種それぞれの
+ヒット数がスナップショット上限以下であることをassert(fixtureラチェット
+`foreign_fixture_hits.rs` と相補的 — あちらは実fixture起点、こちらは
+最小合成入力起点)。
+
+### 残置(構造的曖昧性、再確認)
+
+- `nanoid`/`crockford`: アルファベットが英数字全域をカバーするため
+  「妥当なトークン」と「散文断片」に固有の区別信号が存在しない。
+  base32と違い数字要求でも切れない(nanoidは記号なし・数字なしも正当)。
+||||||| 56a2e9a
+
+## 第420–421次：リソース境界 — 入力由来割当のキャップ
+
+切り口: `panic`不能の次の敵は `with_capacity`/`vec!`/`repeat` の
+入力由来サイズ — 数バイト入力が数十GB要求を引き起こし、allocator
+abort(強制終了、panicですら捕捉不能)を招く。
+
+全837件の割当サイトを計測。キャップ規約(.min(1<<N))は既に20モジュールに
+存在する一方、ヘッダのu32/テキストのusizeを検証前に容量ヒントへ渡す
+実害が8モジュールに存在:
+
+- tzif: timecnt/typecnt(u32) — 残りバイト数/(レコードサイズ)でキャップ
+- off: nv/nf/n(テキスト) — data.len()由来キャップ
+- xyz: count(テキスト) — 同上
+- ply: list_count(u32系) — 残りバイト数/要素サイズでキャップ
+- rans/lzss/pcx/gif: 宣言出力長 — ヒントを1<<22にキャップ
+  (with_capacityはヒントでありpushの正当拡張を殺さない)
+
+安全確認済み: hll(clamp<=16), ttc/woff/pcf(上限値検査),
+stl/grp/shp/vox/bson(サイズ一致・チェック済み), dbf(u16), otf(u16)
+
+残課題: `1usize << n` のshift overflow経路(meetmid/sosdp/magic —
+アルゴリズムAPI、caller責任だが要ドキュメント)、全割当サイトの機械的分類、
+`Vec::push`ループ自体の入力比例OOM(逐次拡張ではなく飽和対応)。
+
+## 第422次：シフト量オーバーフロー — `1 << n` の域外 n
+
+切り口: `1u64 << k` で `k >= 64` は debug で panic、release では
+masked-shift(`k & 63`)で `1u64 << 0` に折り返し — panic 回避で済まない
+「静かに違う答え」経路を全モジュールで機械計測。
+
+修正(9ファイル):
+- huffman: `decode` の canonical rebuild が wire 由来 `len=32` で
+  `u32 << 32` panic(実害、到達可能) → `cur` を u64 化+`checked_shl`。
+  `encode` は `len > 32` を事前拒否、packer の `acc` も u64 化
+  (`acc << 32` は `len=32` で debug panic)。
+- qcow2/f2fs: `pub` フィールド書換で parse 時の範囲検査を迂回可能 →
+  `cluster_size`/`block_size`/`incompat` を `checked_shl`・範囲判定で
+  飽和・偽固定に。
+- wfc: `count_tiles(tile >= 64)` → `0` (release では tile-0 の個数を
+  誤返していた)。
+- cyk/meetmid/sosdp/bdd: 表現域超過は契約違反として `assert!`
+  (黙って丸めるのは嘘を返すより悪い)。
+- magic: `subsets` の with_capacity ヒント `1usize << count_ones` →
+  `.min(22)` キャップ(既存規約に合流、防御的 — mask は実際 ≤~12bit)。
+
+分類軸: Option API → 偽の区別は assert、述語/カウント → 正しい有界値
+(0/saturating)、契約不変 → assert、割当ヒント → `.min(cap)`。
+
+安全確認済み(到達不能 or 既ガード): christofides/postman(DP_LIMIT<=20),
+bech32(shift<=15), xid/base32(i<=63), xorbasis(rank==64), veb3(x+1>=64),
+zorder(bits.min(16)), bitap(m<=64), veb(lo%64), avro(shift>63ガード),
+aiff(shift>60ガード), arch::with_capacity(ヒントAPI), 全 #[cfg(test)]
+oracle(steiner/knapsack/circulation/catalan/arborescence/automaton)。
+
+残課題: `1 << n` 以外の算術オーバーフロー(`n * m`/`n + m` の積和)の
+同種監査、usize::BITS 非依存の 128bit 域の棚卸。

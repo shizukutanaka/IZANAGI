@@ -55,7 +55,8 @@ fn lzw_decode(data: &[u8], min_code: u8, want: usize) -> Option<Vec<u8>> {
     let eoi = clear + 1;
     let mut dict: Vec<Vec<u8>> = Vec::new();
     let mut r = crate::bits::BitReader::new(data);
-    let mut out = Vec::with_capacity(want);
+    // reservation hint capped — push grows to the real `want`
+    let mut out = Vec::with_capacity(want.min(1 << 22));
     let mut width = min_code as u32 + 1;
     let mut next = eoi + 1;
     let mut prev: Option<Vec<u8>> = None;
@@ -261,5 +262,10 @@ mod tests {
         let mut bad = G2X1.to_vec();
         bad[10] |= 0x20; // not a real flag — still must parse or fail cleanly
         let _ = decode(&bad);
+    }
+
+    #[test]
+    fn a_huge_want_does_not_abort_the_reserve() {
+        assert!(lzw_decode(&[0xFF; 4], 2, usize::MAX).is_none());
     }
 }
