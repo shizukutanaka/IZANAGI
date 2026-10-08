@@ -104,7 +104,9 @@ fn hdr(d: &[u8]) -> Option<(u8, Hdr, usize)> {
 
 fn block(d: &[u8], mut i: usize, h: &Hdr, wide: bool, t: &mut Tzif) -> Option<usize> {
     let tsz = if wide { 8 } else { 4 };
-    let mut tr = Vec::with_capacity(h.timecnt);
+    // capacity hint bounded by what the file could contain
+    // (tsz + 1 bytes per transition); push still grows for real data
+    let mut tr = Vec::with_capacity(h.timecnt.min(d.len() / (tsz + 1) + 1));
     for _ in 0..h.timecnt {
         let v = if wide { be64(d, i)? } else { be32(d, i)? };
         tr.push(sig(v, wide));
@@ -118,8 +120,10 @@ fn block(d: &[u8], mut i: usize, h: &Hdr, wide: bool, t: &mut Tzif) -> Option<us
         t.transitions.push((ts, idx));
     }
     i += h.timecnt;
-    let mut types = Vec::with_capacity(h.typecnt);
-    let mut abidx = Vec::with_capacity(h.typecnt);
+    // same bound: each type record is 6 bytes of the file
+    let cap = h.typecnt.min(d.len() / 6 + 1);
+    let mut types = Vec::with_capacity(cap);
+    let mut abidx = Vec::with_capacity(cap);
     for _ in 0..h.typecnt {
         let off = sig(be32(d, i)?, false) as i32;
         let dst = *d.get(i + 4)? != 0;
@@ -344,5 +348,18 @@ mod tests {
     fn determinism() {
         let d = v1x(&[(0, false, 1, "UTC")], &[], b"\0UTC\0");
         assert_eq!(parse(&d), parse(&d));
+    }
+
+    #[test]
+    fn a_huge_declared_count_does_not_reserve_that_much() {
+        // timecnt/typecnt are u32 claims from the 44-byte header: before the
+        // cap, a small file claiming ~4e9 transitions reserved ~100 GiB and
+        // the allocator aborted — not a panic, a hard kill.
+        let mut d = b"TZif\x00".to_vec();
+        d.extend_from_slice(&[0; 15]);
+        for n in [0u32, 0, 0, u32::MAX, u32::MAX, 0] {
+            d.extend_from_slice(&w32(n as i32));
+        }
+        assert!(parse(&d).is_none());
     }
 }

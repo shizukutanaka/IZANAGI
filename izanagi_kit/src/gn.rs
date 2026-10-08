@@ -85,8 +85,14 @@ pub fn detect(b: &[u8]) -> bool {
     t.lines().map(strip_comment).any(|l| {
         let l = l.trim();
         if let Some(h) = call_head(l) {
-            if TARGETS.contains(&h) || DIAG.contains(&h) || h == "import" {
+            if TARGETS.contains(&h) {
                 return true;
+            }
+            // GN imports take a quoted .gn/.gni path (`import("//x.gni")`);
+            // a bare `import foo` is not GN, and `print(`/`assert(` heads
+            // are shared with Python/JS so they are not evidence.
+            if h == "import" {
+                return l.contains('"') && (l.contains(".gn") || l.contains(".gni"));
             }
         }
         l.starts_with("deps =") || l.starts_with("sources =") || l.starts_with("public_deps =")
@@ -169,8 +175,15 @@ mod tests {
     fn detect_works() {
         assert!(detect(D));
         assert!(detect(b"executable(\"x\") { }"));
+        assert!(detect(b"import(\"//tools/x.gni\")"));
+        assert!(detect(b"sources = [\"a.cc\"]"));
         assert!(!detect(b"print x"));
         assert!(!detect(b"plain"));
+        // Python/JS-shaped files share `print(`/`assert(` heads and a bare
+        // `import`; none of those alone may detect (round-417 census).
+        assert!(!detect(b"import foo\nprint(1)\n"));
+        assert!(!detect(b"print(1)\nassert(x)\n"));
+        assert!(!detect(b"import foo\n"));
     }
 
     #[test]

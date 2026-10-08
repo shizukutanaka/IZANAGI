@@ -90,9 +90,22 @@ pub fn parse(d: &[u8]) -> Option<Creole> {
     })
 }
 
-/// `true` if the buffer looks like a WikiCreole document.
+/// `true` if the buffer looks like a WikiCreole document. Requires at
+/// least two different markup families: a lone `[[x]]` (TOML arrays),
+/// a `#`-led line (config comments) or `**…**` alone are all shared
+/// with other formats and do not qualify.
 pub fn detect(d: &[u8]) -> bool {
-    parse(d).is_some()
+    let Some(c) = parse(d) else {
+        return false;
+    };
+    (c.headings > 0) as usize
+        + (c.list_items > 0) as usize
+        + (c.rules > 0) as usize
+        + (c.bold_spans > 0) as usize
+        + (c.italic_spans > 0) as usize
+        + (c.links > 0) as usize
+        + (c.images > 0) as usize
+        >= 2
 }
 
 #[cfg(test)]
