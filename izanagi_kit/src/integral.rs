@@ -31,15 +31,26 @@ impl Sat {
     /// length mismatch yields an empty `0×0` table rather than a
     /// panic (the G7 contract: bad input degrades, never faults).
     pub fn new(width: usize, height: usize, data: &[u32]) -> Self {
-        if data.len() != width * height {
-            return Sat {
-                width: 0,
-                height: 0,
-                cells: vec![0],
-            };
+        let empty = || Sat {
+            width: 0,
+            height: 0,
+            cells: vec![0],
+        };
+        let Some(n) = width.checked_mul(height) else {
+            return empty();
+        };
+        if data.len() != n {
+            return empty();
         }
-        let stride = width + 1;
-        let mut cells = vec![0u64; stride * (height + 1)];
+        // The (w+1)×(h+1) prefix table can overflow usize even when
+        // w*h fits — degrade the same way rather than wrap small.
+        let (Some(stride), Some(h1)) = (width.checked_add(1), height.checked_add(1)) else {
+            return empty();
+        };
+        let Some(size) = stride.checked_mul(h1) else {
+            return empty();
+        };
+        let mut cells = vec![0u64; size];
         for y in 0..height {
             let mut row_sum = 0u64;
             for x in 0..width {
@@ -113,6 +124,19 @@ impl Sat {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unrepresentable_dims_degrade_to_empty() {
+        // `w*h` wrapping to `data.len()` used to pass the length
+        // guard, then the fill loop indexed `data[0]` on an empty
+        // slice — a reachable panic, now a 0x0 table.
+        let s = Sat::new(1usize << 63, 1usize << 63, &[]);
+        assert_eq!(s.dims(), (0, 0));
+        assert_eq!(s.total(), 0);
+        // `width + 1` overflowed the stride for `usize::MAX`.
+        let s = Sat::new(usize::MAX, 0, &[]);
+        assert_eq!(s.dims(), (0, 0));
+    }
 
     /// O(w·h) brute rectangle sum.
     fn brute(data: &[u32], w: usize, x: usize, y: usize, rw: usize, rh: usize, h: usize) -> u64 {

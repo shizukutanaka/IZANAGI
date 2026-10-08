@@ -96,6 +96,12 @@ impl Cyk {
     fn parse(&self, input: &[u8]) -> Vec<u64> {
         let n = input.len();
         let w = n + 1;
+        // An input ≥ 4 GiB makes (n+1)^2 wrap usize — the table cannot
+        // exist anyway, so name the limit instead of wrapping small.
+        assert!(
+            w.checked_mul(w).is_some(),
+            "cyk: an (n+1)^2 table does not fit usize"
+        );
         let mut t = vec![0u64; w * w];
         for i in 0..n {
             t[(i + 1) * w + i] = self.term[input[i] as usize];

@@ -61,10 +61,13 @@ pub fn ordered(gray: &[u8], w: usize, h: usize, levels: u32) -> Vec<u8> {
 
 /// Ordered dither with explicit matrix `size` (4 or 8; else copies input).
 pub fn ordered_n(gray: &[u8], w: usize, h: usize, levels: u32, size: usize) -> Vec<u8> {
-    if w == 0 || h == 0 {
+    let Some(n) = w.checked_mul(h) else {
+        return Vec::new();
+    };
+    if n == 0 {
         return Vec::new();
     }
-    let mut out = vec![0u8; w * h];
+    let mut out = vec![0u8; n];
     let max_t = size * size;
     for y in 0..h {
         for x in 0..w {
@@ -85,12 +88,15 @@ pub fn ordered_n(gray: &[u8], w: usize, h: usize, levels: u32, size: usize) -> V
 ///
 /// Error distributes right 7/16, down-left 3/16, down 5/16, down-right 1/16.
 pub fn floyd_steinberg(gray: &[u8], w: usize, h: usize, levels: u32) -> Vec<u8> {
-    if w == 0 || h == 0 {
+    let Some(n) = w.checked_mul(h) else {
+        return Vec::new();
+    };
+    if n == 0 {
         return Vec::new();
     }
-    let mut buf: Vec<i32> = gray.iter().take(w * h).map(|&v| v as i32 * 16).collect();
-    buf.resize(w * h, 0);
-    let mut out = vec![0u8; w * h];
+    let mut buf: Vec<i32> = gray.iter().take(n).map(|&v| v as i32 * 16).collect();
+    buf.resize(n, 0);
+    let mut out = vec![0u8; n];
     for y in 0..h {
         for x in 0..w {
             let i = y * w + x;
@@ -186,5 +192,13 @@ mod tests {
             floyd_steinberg(&img, 12, 8, 4)
         );
         assert_eq!(ordered_n(&img, 12, 8, 2, 8), ordered_n(&img, 12, 8, 2, 8));
+    }
+
+    #[test]
+    fn unrepresentable_dims_return_empty() {
+        // `w*h` wrapped usize to a small size — `out[y*w+x]` then
+        // indexed past the undersized buffer and panicked.
+        assert_eq!(ordered_n(&[], 1usize << 63, 4, 2, 4), Vec::<u8>::new());
+        assert_eq!(floyd_steinberg(&[], 1usize << 63, 4, 2), Vec::<u8>::new());
     }
 }

@@ -36,6 +36,12 @@
 fn fill(a: &[u8], b: &[u8], match_score: i32, mismatch: i32, gap: i32, local: bool) -> Vec<i32> {
     let (n, m) = (a.len(), b.len());
     let w = m + 1;
+    // Inputs ≥ ~4 GiB make (n+1)*(m+1) wrap usize — the table cannot
+    // exist anyway, so name the limit instead of wrapping small.
+    assert!(
+        (n + 1).checked_mul(w).is_some(),
+        "align: an (n+1)x(m+1) score table does not fit usize"
+    );
     let mut f = vec![0i32; (n + 1) * w];
     for i in 0..=n {
         for j in 0..=m {

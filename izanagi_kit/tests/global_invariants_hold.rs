@@ -602,10 +602,19 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
     m.insert(
         "izanagi_kit/cyk.rs",
         (
-            1,
+            2,
             "nonterminal masks are u64 — a grammar over > 64 nonterminals \
              cannot be represented; silently wrapping `1u64 << lhs` to \
-             `lhs & 63` corrupted the grammar",
+             `lhs & 63` corrupted the grammar; the (n+1)^2 parse table \
+             is asserted representable rather than wrapping usize",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/align.rs",
+        (
+            1,
+            "the (n+1)x(m+1) DP score table is asserted representable \
+             rather than wrapping usize for inputs over ~4 GiB",
         ),
     );
     m.insert(
