@@ -71,7 +71,8 @@ pub fn parse(d: &[u8]) -> Option<Xyz> {
     let mut lines = text.lines();
     let count: usize = lines.next()?.trim().parse().ok()?;
     let comment = lines.next().unwrap_or("").trim().to_string();
-    let mut atoms = Vec::with_capacity(count);
+    // capacity hint bounded by the file (an atom line is >= 8 bytes)
+    let mut atoms = Vec::with_capacity(count.min(d.len() / 8 + 1));
     for line in lines {
         let t = line.trim();
         if t.is_empty() {
@@ -113,5 +114,11 @@ mod tests {
         assert_eq!(micro(""), None);
         assert_eq!(micro("-"), None);
         assert_eq!(micro("-.5"), Some(-500_000));
+    }
+
+    #[test]
+    fn a_huge_declared_atom_count_does_not_reserve_that_much() {
+        // the first line is a free usize count; parse must not reserve it
+        assert!(parse(b"999999999999999999\nc\nH 0 0 0\n").is_none());
     }
 }

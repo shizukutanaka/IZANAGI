@@ -64,21 +64,60 @@ fn word(t: &str, k: &str) -> usize {
     n
 }
 
-/// Detects a Lucene query: `field:` or operator/`+`/`-`/`~`/`^`/`"`.
+/// `field:` terms — a `:` with an identifier char before it and a
+/// non-space, non-bracket char after (`title:rust`, `date:[a TO b]`).
+/// `key: value` YAML/dict lines and `http://` URLs do not count.
+fn field_terms(t: &str) -> usize {
+    let b = t.as_bytes();
+    let mut n = 0;
+    for i in 1..b.len() {
+        if b[i] != b':' {
+            continue;
+        }
+        // the field-name token must start with a letter or `_` —
+        // `12:30` timestamps and `1.2.3:` version runs do not count
+        let mut j = i;
+        while j > 0 && (b[j - 1].is_ascii_alphanumeric() || matches!(b[j - 1], b'_' | b'-' | b'.'))
+        {
+            j -= 1;
+        }
+        // a quoted name is dict-shaped (`{"key":v}`), not a query field
+        let unquoted = j == 0 || !matches!(b[j - 1], b'"' | b'\'');
+        let prev_ok = j < i && unquoted && (b[j].is_ascii_alphabetic() || b[j] == b'_');
+        let next_ok = b
+            .get(i + 1)
+            .is_some_and(|&c| !matches!(c, b' ' | b'\t' | b':' | b'='));
+        if prev_ok && next_ok {
+            n += 1;
+        }
+    }
+    n
+}
+
+/// Detects a Lucene query: a `field:` term plus a query-only operator
+/// (`AND`/`OR`/`NOT`/`&&`/`||`/`~`/`^`/`"…"`/`x TO y`), or two field
+/// terms. A lone `a:b` is YAML-shaped, not a query — it does not
+/// detect, and neither does a bare `AND` in prose.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
     let t = t.trim();
-    t.contains(':') && !t.contains("://")
-        || word(t, "AND") > 0
-        || word(t, "OR") > 0
-        || word(t, "NOT") > 0
-        || t.contains("&&")
-        || t.contains("||")
-        || t.contains('~')
-        || t.contains('^')
+    if t.contains("://") {
+        return false;
+    }
+    let fields = field_terms(t);
+    let ops = word(t, "AND")
+        + word(t, "OR")
+        + word(t, "NOT")
+        + t.matches("&&").count()
+        + t.matches("||").count()
+        + t.matches('~').count()
+        + t.matches('^').count()
+        + t.matches(" TO ").count()
+        + t.matches('"').count() / 2;
+    fields >= 1 && ops >= 1 || fields >= 2
 }
 
 /// Parses a Lucene query; `None` on non-UTF-8 or no query structure.
@@ -160,8 +199,13 @@ mod tests {
     #[test]
     fn detect_works() {
         assert!(detect(D));
-        assert!(detect(b"a:b"));
-        assert!(detect(b"x AND y"));
+        // two field terms alone suffice
+        assert!(detect(b"a:b c:d"));
+        assert!(detect(b"title:rust AND body:fast"));
+        // a lone `k:v` is YAML-shaped, not a query
+        assert!(!detect(b"a:b"));
+        // a bare boolean word in prose is not a query either
+        assert!(!detect(b"x AND y"));
         assert!(!detect(b"http://x"));
         assert!(!detect(b""));
     }

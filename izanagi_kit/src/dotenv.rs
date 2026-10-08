@@ -49,11 +49,17 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut score = 0usize;
+    let mut content = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.is_empty() || tr.starts_with('#') {
             continue;
         }
+        if tr.starts_with('[') && tr.ends_with(']') {
+            // `[section]` headers are ini-style, never .env
+            return false;
+        }
+        content += 1;
         let body = tr.strip_prefix("export ").unwrap_or(tr);
         if let Some((k, _)) = body.split_once('=') {
             if is_key(k.trim()) {
@@ -61,7 +67,9 @@ pub fn detect(b: &[u8]) -> bool {
             }
         }
     }
-    score >= 1
+    // a .env file is *mostly* `KEY=value` lines — a stray assignment
+    // inside an unrelated config does not qualify
+    score >= 2 && score * 2 >= content
 }
 
 impl Dotenv {
@@ -147,6 +155,10 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(!detect(b"not a key value pair"));
+        // `[section]` headers are ini-style, never .env
+        assert!(!detect(b"[sec]\nA=1\nB=2\n"));
+        // a single stray assignment is not a .env
+        assert!(!detect(b"A=1\nsome prose line\nmore prose\n"));
         assert!(Dotenv::parse(b"1=x").is_none());
     }
 }
