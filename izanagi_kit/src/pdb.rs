@@ -154,11 +154,18 @@ pub fn parse(d: &[u8]) -> Option<Pdb> {
                 });
             }
             _ => {
-                if !rec.is_empty() {
+                if !rec.is_empty()
+                    && rec
+                        .chars()
+                        .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == ' ')
+                {
                     others.push(rec);
                 }
             }
         }
+    }
+    if atoms.is_empty() && cell.is_none() && others.is_empty() && !s.trim().is_empty() {
+        return None;
     }
     Some(Pdb {
         atoms,
@@ -218,5 +225,11 @@ mod tests {
     fn rejects_non_utf8() {
         assert!(parse(&[0xff, 0xfe]).is_none());
         assert!(parse(b"   \n").unwrap().atoms.is_empty());
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

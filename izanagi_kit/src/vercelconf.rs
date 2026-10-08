@@ -164,6 +164,10 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             c.routes += 1;
         }
     }
+    if !t.trim().is_empty() && c.keys + c.builds + c.routes + c.sections + c.bools + c.comments == 0
+    {
+        return None;
+    }
     Some(c)
 }
 
@@ -200,5 +204,11 @@ mod tests {
         let c = parse(b"{\"version\": 2, \"builds\": []}").unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

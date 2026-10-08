@@ -50,6 +50,9 @@ fn is_rule_name(s: &str) -> bool {
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
         && s.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detects a Bazel BUILD file: `load(…)` or a known rule call.
 #[must_use]
@@ -57,6 +60,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines().map(strip_comment).any(|l| {
         let l = l.trim();
         (l.starts_with("load(") && l.contains('@'))
@@ -73,6 +77,7 @@ pub fn parse(b: &[u8]) -> Option<Bazel> {
         return None;
     }
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut s = Bazel {
         loads: 0,
         rules: 0,
@@ -170,5 +175,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"x = 1").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

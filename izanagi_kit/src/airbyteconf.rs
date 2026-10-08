@@ -81,6 +81,28 @@ pub struct Counts {
     pub misc: usize,
 }
 
+/// Airbyte 固有キー(単体でも強い証拠)。汎用キー(name/host/path…)との
+/// 区別のため、最低1件の出現を要求する。
+const EXCLUSIVE_KEYS: &[&str] = &[
+    "airbyte_secret",
+    "configured_catalog",
+    "connectionConfiguration",
+    "connection_id",
+    "cursor_field",
+    "destination_type",
+    "namespace_definition",
+    "namespace_format",
+    "operation_type",
+    "operations",
+    "primary_key",
+    "replication_method",
+    "source_type",
+    "sync_mode",
+    "tunnel_method",
+    "validation_method",
+    "workspace_id",
+];
+
 fn key_hits(t: &str) -> usize {
     // JSON `"key":` と YAML `key:` の両方を走査(`- ` リスト項目も先頭キーとみなす)。
     let t = t.strip_prefix("- ").map_or(t, |s| s.trim_start());
@@ -91,11 +113,22 @@ fn key_hits(t: &str) -> usize {
             n += 1;
             continue;
         }
-        if t == *k || t.starts_with(&format!("{k}:")) {
+        if t.starts_with(&format!("{k}:")) {
             n += 1;
         }
     }
     n
+}
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
+
+fn exclusive_hits(t: &str) -> usize {
+    let t = t.strip_prefix("- ").map_or(t, |s| s.trim_start());
+    EXCLUSIVE_KEYS
+        .iter()
+        .filter(|k| t.contains(&format!("\"{}\":", k)) || t.starts_with(&format!("{k}:")))
+        .count()
 }
 
 /// Airbyte 設定らしさを判定する。
@@ -103,18 +136,18 @@ pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_bom(text);
     let mut hits = 0usize;
+    let mut exclusive = 0usize;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') || t.starts_with("//") {
             continue;
         }
         hits += key_hits(t);
-        if hits >= 3 {
-            return true;
-        }
+        exclusive += exclusive_hits(t);
     }
-    false
+    hits >= 3 && exclusive >= 1
 }
 
 /// 構造をカウントする。
@@ -123,6 +156,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         options: 0,
         comments: 0,
@@ -164,5 +198,11 @@ mod tests {
     fn not_airbyte() {
         assert!(!detect(b"{\"a\": 1}\n"));
         assert!(parse(b"hello\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

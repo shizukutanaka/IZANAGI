@@ -8018,3 +8018,2007 @@ pub const PARSERS: &[(&str, ParserFn)] = &[
         let _ = zulipconf::parse(b);
     }),
 ];
+
+/// `impl` 型の関連関数 `pub fn parse(x: &[u8])` を持つモジュールの一覧。
+///
+/// `PARSERS` はフリー関数のみを対象とするため、型の関連関数として実装された
+/// パーサーはこちらに登録する。各エントリは `let _ = <mod>::<Type>::parse(b);`
+/// のラッパーで、横断テストが同じバイト列コーパスを流せる。
+/// 該当モジュール追加時はこの表にも登録すること。
+pub const METHOD_PARSERS: &[(&str, ParserFn)] = &[
+    ("acemode", |b| {
+        let _ = acemode::Acemode::parse(b);
+    }),
+    ("adguard", |b| {
+        let _ = adguard::Adguard::parse(b);
+    }),
+    ("adql", |b| {
+        let _ = adql::Adql::parse(b);
+    }),
+    ("airflow", |b| {
+        let _ = airflow::Airflow::parse(b);
+    }),
+    ("alacritty", |b| {
+        let _ = alacritty::Alacritty::parse(b);
+    }),
+    ("alertmanager", |b| {
+        let _ = alertmanager::Alertmanager::parse(b);
+    }),
+    ("algolia", |b| {
+        let _ = algolia::Algolia::parse(b);
+    }),
+    ("alloy", |b| {
+        let _ = alloy::Alloy::parse(b);
+    }),
+    ("allure", |b| {
+        let _ = allure::Allure::parse(b);
+    }),
+    ("ambassador", |b| {
+        let _ = ambassador::Ambassador::parse(b);
+    }),
+    ("amfile", |b| {
+        let _ = amfile::Amfile::parse(b);
+    }),
+    ("angularconf", |b| {
+        let _ = angularconf::Angularconf::parse(b);
+    }),
+    ("ansible", |b| {
+        let _ = ansible::Ansible::parse(b);
+    }),
+    ("apacheconf", |b| {
+        let _ = apacheconf::Apacheconf::parse(b);
+    }),
+    ("apib", |b| {
+        let _ = apib::Apib::parse(b);
+    }),
+    ("apisix", |b| {
+        let _ = apisix::Apisix::parse(b);
+    }),
+    ("apk", |b| {
+        let _ = apk::Apk::parse(b);
+    }),
+    ("apmserver", |b| {
+        let _ = apmserver::ApmServer::parse(b);
+    }),
+    ("apparmor", |b| {
+        let _ = apparmor::AppArmor::parse(b);
+    }),
+    ("appdaemon", |b| {
+        let _ = appdaemon::Appdaemon::parse(b);
+    }),
+    ("appdynamics", |b| {
+        let _ = appdynamics::Appdynamics::parse(b);
+    }),
+    ("appengine", |b| {
+        let _ = appengine::Appengine::parse(b);
+    }),
+    ("appjson", |b| {
+        let _ = appjson::AppJson::parse(b);
+    }),
+    ("apt", |b| {
+        let _ = apt::Apt::parse(b);
+    }),
+    ("argocd", |b| {
+        let _ = argocd::Argocd::parse(b);
+    }),
+    ("argoevents", |b| {
+        let _ = argoevents::Argoevents::parse(b);
+    }),
+    ("argowf", |b| {
+        let _ = argowf::Argowf::parse(b);
+    }),
+    ("aria2", |b| {
+        let _ = aria2::Aria2::parse(b);
+    }),
+    ("asdf", |b| {
+        let _ = asdf::Asdf::parse(b);
+    }),
+    ("asoundrc", |b| {
+        let _ = asoundrc::Asound::parse(b);
+    }),
+    ("astro", |b| {
+        let _ = astro::Astro::parse(b);
+    }),
+    ("asv", |b| {
+        let _ = asv::Asv::parse(b);
+    }),
+    ("atlantis", |b| {
+        let _ = atlantis::Atlantis::parse(b);
+    }),
+    ("authelia", |b| {
+        let _ = authelia::Authelia::parse(b);
+    }),
+    ("avaconf", |b| {
+        let _ = avaconf::Ava::parse(b);
+    }),
+    ("awscredentials", |b| {
+        let _ = awscredentials::Awscredentials::parse(b);
+    }),
+    ("awselb", |b| {
+        let _ = awselb::Awselb::parse(b);
+    }),
+    ("azurepipe", |b| {
+        let _ = azurepipe::Azurepipe::parse(b);
+    }),
+    ("babelrc", |b| {
+        let _ = babelrc::BabelRc::parse(b);
+    }),
+    ("banditconf", |b| {
+        let _ = banditconf::Bandit::parse(b);
+    }),
+    ("bannedips", |b| {
+        let _ = bannedips::Bannedips::parse(b);
+    }),
+    ("bashrc", |b| {
+        let _ = bashrc::Bashrc::parse(b);
+    }),
+    ("bazarr", |b| {
+        let _ = bazarr::Bazarr::parse(b);
+    }),
+    ("beets", |b| {
+        let _ = beets::Beets::parse(b);
+    }),
+    ("benchstat", |b| {
+        let _ = benchstat::Benchstat::parse(b);
+    }),
+    ("bentoml", |b| {
+        let _ = bentoml::Bentoml::parse(b);
+    }),
+    ("bicep", |b| {
+        let _ = bicep::Bicep::parse(b);
+    }),
+    ("biome", |b| {
+        let _ = biome::Biome::parse(b);
+    }),
+    ("bird", |b| {
+        let _ = bird::Bird::parse(b);
+    }),
+    ("bitbucketpipes", |b| {
+        let _ = bitbucketpipes::BitbucketPipes::parse(b);
+    }),
+    ("bitrise", |b| {
+        let _ = bitrise::Bitrise::parse(b);
+    }),
+    ("blackbird", |b| {
+        let _ = blackbird::Blackbird::parse(b);
+    }),
+    ("blackconf", |b| {
+        let _ = blackconf::Black::parse(b);
+    }),
+    ("blocky", |b| {
+        let _ = blocky::Blocky::parse(b);
+    }),
+    ("bootini", |b| {
+        let _ = bootini::Bootini::parse(b);
+    }),
+    ("borgmatic", |b| {
+        let _ = borgmatic::Borgmatic::parse(b);
+    }),
+    ("bors", |b| {
+        let _ = bors::Bors::parse(b);
+    }),
+    ("boundary", |b| {
+        let _ = boundary::Boundary::parse(b);
+    }),
+    ("braket", |b| {
+        let _ = braket::Braket::parse(b);
+    }),
+    ("brewfile", |b| {
+        let _ = brewfile::Brewfile::parse(b);
+    }),
+    ("browserslist", |b| {
+        let _ = browserslist::Browserslist::parse(b);
+    }),
+    ("bru", |b| {
+        let _ = bru::Bru::parse(b);
+    }),
+    ("btrbk", |b| {
+        let _ = btrbk::Btrbk::parse(b);
+    }),
+    ("bukkit", |b| {
+        let _ = bukkit::Bukkit::parse(b);
+    }),
+    ("bunfig", |b| {
+        let _ = bunfig::Bunfig::parse(b);
+    }),
+    ("caddyfile", |b| {
+        let _ = caddyfile::Caddyfile::parse(b);
+    }),
+    ("cairo", |b| {
+        let _ = cairo::Cairo::parse(b);
+    }),
+    ("calico", |b| {
+        let _ = calico::Calico::parse(b);
+    }),
+    ("callgrind", |b| {
+        let _ = callgrind::Callgrind::parse(b);
+    }),
+    ("capacitor", |b| {
+        let _ = capacitor::Capacitor::parse(b);
+    }),
+    ("capsule", |b| {
+        let _ = capsule::Capsule::parse(b);
+    }),
+    ("cargolock", |b| {
+        let _ = cargolock::Cargolock::parse(b);
+    }),
+    ("carvel", |b| {
+        let _ = carvel::Carvel::parse(b);
+    }),
+    ("casbin", |b| {
+        let _ = casbin::Casbin::parse(b);
+    }),
+    ("casdoor", |b| {
+        let _ = casdoor::Casdoor::parse(b);
+    }),
+    ("cassandra", |b| {
+        let _ = cassandra::Cassandra::parse(b);
+    }),
+    ("ccs", |b| {
+        let _ = ccs::Ccs::parse(b);
+    }),
+    ("cedar", |b| {
+        let _ = cedar::Cedar::parse(b);
+    }),
+    ("cerbos", |b| {
+        let _ = cerbos::Cerbos::parse(b);
+    }),
+    ("certbot", |b| {
+        let _ = certbot::Certbot::parse(b);
+    }),
+    ("certmanager", |b| {
+        let _ = certmanager::Certmanager::parse(b);
+    }),
+    ("cfn", |b| {
+        let _ = cfn::Cfn::parse(b);
+    }),
+    ("cfssl", |b| {
+        let _ = cfssl::Cfssl::parse(b);
+    }),
+    ("cgitrc", |b| {
+        let _ = cgitrc::Cgit::parse(b);
+    }),
+    ("chart", |b| {
+        let _ = chart::Chart::parse(b);
+    }),
+    ("chasquidconf", |b| {
+        let _ = chasquidconf::Chasquid::parse(b);
+    }),
+    ("checkov", |b| {
+        let _ = checkov::Checkov::parse(b);
+    }),
+    ("chef", |b| {
+        let _ = chef::Chef::parse(b);
+    }),
+    ("cherokee", |b| {
+        let _ = cherokee::Cherokee::parse(b);
+    }),
+    ("chromaconf", |b| {
+        let _ = chromaconf::Chroma::parse(b);
+    }),
+    ("chrometrace", |b| {
+        let _ = chrometrace::Chrometrace::parse(b);
+    }),
+    ("cilium", |b| {
+        let _ = cilium::Cilium::parse(b);
+    }),
+    ("circleci", |b| {
+        let _ = circleci::Circleci::parse(b);
+    }),
+    ("clangformat", |b| {
+        let _ = clangformat::ClangFormat::parse(b);
+    }),
+    ("clangtidy", |b| {
+        let _ = clangtidy::ClangTidy::parse(b);
+    }),
+    ("clar", |b| {
+        let _ = clar::Clar::parse(b);
+    }),
+    ("clashconf", |b| {
+        let _ = clashconf::Clash::parse(b);
+    }),
+    ("clickhouse", |b| {
+        let _ = clickhouse::Clickhouse::parse(b);
+    }),
+    ("cloudcustodian", |b| {
+        let _ = cloudcustodian::Cloudcustodian::parse(b);
+    }),
+    ("cloudinit", |b| {
+        let _ = cloudinit::Cloudinit::parse(b);
+    }),
+    ("clusterapi", |b| {
+        let _ = clusterapi::Clusterapi::parse(b);
+    }),
+    ("cmdbat", |b| {
+        let _ = cmdbat::Cmdbat::parse(b);
+    }),
+    ("cmus", |b| {
+        let _ = cmus::Cmus::parse(b);
+    }),
+    ("cnpg", |b| {
+        let _ = cnpg::Cnpg::parse(b);
+    }),
+    ("cockroach", |b| {
+        let _ = cockroach::Cockroach::parse(b);
+    }),
+    ("collectd", |b| {
+        let _ = collectd::Collectd::parse(b);
+    }),
+    ("compose", |b| {
+        let _ = compose::Compose::parse(b);
+    }),
+    ("composer", |b| {
+        let _ = composer::Composer::parse(b);
+    }),
+    ("composerlock", |b| {
+        let _ = composerlock::Composerlock::parse(b);
+    }),
+    ("conanfile", |b| {
+        let _ = conanfile::Conanfile::parse(b);
+    }),
+    ("concourse", |b| {
+        let _ = concourse::Concourse::parse(b);
+    }),
+    ("condaenv", |b| {
+        let _ = condaenv::Condaenv::parse(b);
+    }),
+    ("condarc", |b| {
+        let _ = condarc::Condarc::parse(b);
+    }),
+    ("configureac", |b| {
+        let _ = configureac::Confac::parse(b);
+    }),
+    ("consul", |b| {
+        let _ = consul::Consul::parse(b);
+    }),
+    ("containerd", |b| {
+        let _ = containerd::Containerd::parse(b);
+    }),
+    ("containersconf", |b| {
+        let _ = containersconf::ContainersConf::parse(b);
+    }),
+    ("corefile", |b| {
+        let _ = corefile::Corefile::parse(b);
+    }),
+    ("cpplint", |b| {
+        let _ = cpplint::Cpplint::parse(b);
+    }),
+    ("criterion", |b| {
+        let _ = criterion::Criterion::parse(b);
+    }),
+    ("ctrf", |b| {
+        let _ = ctrf::Ctrf::parse(b);
+    }),
+    ("cypressconf", |b| {
+        let _ = cypressconf::Cypress::parse(b);
+    }),
+    ("dafny", |b| {
+        let _ = dafny::Dafny::parse(b);
+    }),
+    ("dagster", |b| {
+        let _ = dagster::Dagster::parse(b);
+    }),
+    ("dapr", |b| {
+        let _ = dapr::Dapr::parse(b);
+    }),
+    ("dask", |b| {
+        let _ = dask::Dask::parse(b);
+    }),
+    ("datadog", |b| {
+        let _ = datadog::Datadog::parse(b);
+    }),
+    ("db2cli", |b| {
+        let _ = db2cli::Db2cli::parse(b);
+    }),
+    ("dbt", |b| {
+        let _ = dbt::Dbt::parse(b);
+    }),
+    ("defaultpa", |b| {
+        let _ = defaultpa::Defaultpa::parse(b);
+    }),
+    ("dehydrated", |b| {
+        let _ = dehydrated::Dehydrated::parse(b);
+    }),
+    ("deluge", |b| {
+        let _ = deluge::Deluge::parse(b);
+    }),
+    ("denoconf", |b| {
+        let _ = denoconf::Denoconf::parse(b);
+    }),
+    ("detekt", |b| {
+        let _ = detekt::Detekt::parse(b);
+    }),
+    ("devcontainer", |b| {
+        let _ = devcontainer::Devcontainer::parse(b);
+    }),
+    ("devfile", |b| {
+        let _ = devfile::Devfile::parse(b);
+    }),
+    ("devspace", |b| {
+        let _ = devspace::Devspace::parse(b);
+    }),
+    ("dexidp", |b| {
+        let _ = dexidp::Dexidp::parse(b);
+    }),
+    ("dgml", |b| {
+        let _ = dgml::Dgml::parse(b);
+    }),
+    ("dhall", |b| {
+        let _ = dhall::Dhall::parse(b);
+    }),
+    ("dinit", |b| {
+        let _ = dinit::Dinit::parse(b);
+    }),
+    ("dnfconf", |b| {
+        let _ = dnfconf::Dnfconf::parse(b);
+    }),
+    ("dnsmasq", |b| {
+        let _ = dnsmasq::Dnsmasq::parse(b);
+    }),
+    ("dockerdaemon", |b| {
+        let _ = dockerdaemon::DockerDaemon::parse(b);
+    }),
+    ("dockerignore", |b| {
+        let _ = dockerignore::Dockerignore::parse(b);
+    }),
+    ("docsify", |b| {
+        let _ = docsify::Docsify::parse(b);
+    }),
+    ("docusaurus", |b| {
+        let _ = docusaurus::Docusaurus::parse(b);
+    }),
+    ("dossys", |b| {
+        let _ = dossys::Dossys::parse(b);
+    }),
+    ("dot", |b| {
+        let _ = dot::Dot::parse(b);
+    }),
+    ("dotenv", |b| {
+        let _ = dotenv::Dotenv::parse(b);
+    }),
+    ("dovecot", |b| {
+        let _ = dovecot::Dovecot::parse(b);
+    }),
+    ("drawio", |b| {
+        let _ = drawio::Drawio::parse(b);
+    }),
+    ("drone", |b| {
+        let _ = drone::Drone::parse(b);
+    }),
+    ("ds9reg", |b| {
+        let _ = ds9reg::Ds9reg::parse(b);
+    }),
+    ("dune", |b| {
+        let _ = dune::Dune::parse(b);
+    }),
+    ("dunst", |b| {
+        let _ = dunst::Dunst::parse(b);
+    }),
+    ("duplicacy", |b| {
+        let _ = duplicacy::Duplicacy::parse(b);
+    }),
+    ("dvcfile", |b| {
+        let _ = dvcfile::Dvcfile::parse(b);
+    }),
+    ("easyeffects", |b| {
+        let _ = easyeffects::Eepreset::parse(b);
+    }),
+    ("easyrsa", |b| {
+        let _ = easyrsa::EasyRsa::parse(b);
+    }),
+    ("eck", |b| {
+        let _ = eck::Eck::parse(b);
+    }),
+    ("ecsv", |b| {
+        let _ = ecsv::Ecsv::parse(b);
+    }),
+    ("editorconfig", |b| {
+        let _ = editorconfig::Editorconfig::parse(b);
+    }),
+    ("edn", |b| {
+        let _ = edn::Edn::parse(b);
+    }),
+    ("elasticsearch", |b| {
+        let _ = elasticsearch::Elasticsearch::parse(b);
+    }),
+    ("emacs", |b| {
+        let _ = emacs::Emacs::parse(b);
+    }),
+    ("emqx", |b| {
+        let _ = emqx::Emqx::parse(b);
+    }),
+    ("envoy", |b| {
+        let _ = envoy::Envoy::parse(b);
+    }),
+    ("envrc", |b| {
+        let _ = envrc::Envrc::parse(b);
+    }),
+    ("eslintrc", |b| {
+        let _ = eslintrc::Eslintrc::parse(b);
+    }),
+    ("esmapping", |b| {
+        let _ = esmapping::Esmapping::parse(b);
+    }),
+    ("esphome", |b| {
+        let _ = esphome::Esphome::parse(b);
+    }),
+    ("essettings", |b| {
+        let _ = essettings::Essettings::parse(b);
+    }),
+    ("etcd", |b| {
+        let _ = etcd::Etcd::parse(b);
+    }),
+    ("eula", |b| {
+        let _ = eula::Eula::parse(b);
+    }),
+    ("excalidraw", |b| {
+        let _ = excalidraw::Excalidraw::parse(b);
+    }),
+    ("exim", |b| {
+        let _ = exim::Exim::parse(b);
+    }),
+    ("externalsecrets", |b| {
+        let _ = externalsecrets::Externalsecrets::parse(b);
+    }),
+    ("feast", |b| {
+        let _ = feast::Feast::parse(b);
+    }),
+    ("fhir", |b| {
+        let _ = fhir::Fhir::parse(b);
+    }),
+    ("filebeat", |b| {
+        let _ = filebeat::Filebeat::parse(b);
+    }),
+    ("firebase", |b| {
+        let _ = firebase::Firebase::parse(b);
+    }),
+    ("firewalld", |b| {
+        let _ = firewalld::Firewalld::parse(b);
+    }),
+    ("fishconf", |b| {
+        let _ = fishconf::Fishconf::parse(b);
+    }),
+    ("flake8conf", |b| {
+        let _ = flake8conf::Flake8::parse(b);
+    }),
+    ("fleet", |b| {
+        let _ = fleet::Fleet::parse(b);
+    }),
+    ("flink", |b| {
+        let _ = flink::Flink::parse(b);
+    }),
+    ("fluentbit", |b| {
+        let _ = fluentbit::Fluentbit::parse(b);
+    }),
+    ("fluentd", |b| {
+        let _ = fluentd::Fluentd::parse(b);
+    }),
+    ("fossilconf", |b| {
+        let _ = fossilconf::Fossilconf::parse(b);
+    }),
+    ("freetds", |b| {
+        let _ = freetds::Freetds::parse(b);
+    }),
+    ("frigate", |b| {
+        let _ = frigate::Frigate::parse(b);
+    }),
+    ("frr", |b| {
+        let _ = frr::Frr::parse(b);
+    }),
+    ("func", |b| {
+        let _ = func::Func::parse(b);
+    }),
+    ("garden", |b| {
+        let _ = garden::Garden::parse(b);
+    }),
+    ("gatewayapi", |b| {
+        let _ = gatewayapi::Gatewayapi::parse(b);
+    }),
+    ("gatsby", |b| {
+        let _ = gatsby::Gatsby::parse(b);
+    }),
+    ("gbench", |b| {
+        let _ = gbench::Gbench::parse(b);
+    }),
+    ("gemfile", |b| {
+        let _ = gemfile::Gemfile::parse(b);
+    }),
+    ("gemlock", |b| {
+        let _ = gemlock::Gemlock::parse(b);
+    }),
+    ("gemspec", |b| {
+        let _ = gemspec::Gemspec::parse(b);
+    }),
+    ("gitattributes", |b| {
+        let _ = gitattributes::Gitattributes::parse(b);
+    }),
+    ("gitconfig", |b| {
+        let _ = gitconfig::Gitconfig::parse(b);
+    }),
+    ("giteaapp", |b| {
+        let _ = giteaapp::Gitea::parse(b);
+    }),
+    ("gitignore", |b| {
+        let _ = gitignore::Gitignore::parse(b);
+    }),
+    ("gitlabci", |b| {
+        let _ = gitlabci::Gitlabci::parse(b);
+    }),
+    ("gitlabrb", |b| {
+        let _ = gitlabrb::Gitlabrb::parse(b);
+    }),
+    ("gitleaks", |b| {
+        let _ = gitleaks::Gitleaks::parse(b);
+    }),
+    ("gitmodules", |b| {
+        let _ = gitmodules::Gitmodules::parse(b);
+    }),
+    ("gitsecret", |b| {
+        let _ = gitsecret::Gitsecret::parse(b);
+    }),
+    ("gitwebconf", |b| {
+        let _ = gitwebconf::Gitweb::parse(b);
+    }),
+    ("godot", |b| {
+        let _ = godot::Godot::parse(b);
+    }),
+    ("gogsconf", |b| {
+        let _ = gogsconf::Gogs::parse(b);
+    }),
+    ("golangci", |b| {
+        let _ = golangci::Golangci::parse(b);
+    }),
+    ("gomod", |b| {
+        let _ = gomod::Gomod::parse(b);
+    }),
+    ("gosum", |b| {
+        let _ = gosum::Gosum::parse(b);
+    }),
+    ("gradle", |b| {
+        let _ = gradle::Gradle::parse(b);
+    }),
+    ("gradlemod", |b| {
+        let _ = gradlemod::Gradlemod::parse(b);
+    }),
+    ("grafana", |b| {
+        let _ = grafana::Grafana::parse(b);
+    }),
+    ("grafanaop", |b| {
+        let _ = grafanaop::Grafanaop::parse(b);
+    }),
+    ("greatexp", |b| {
+        let _ = greatexp::GreatExp::parse(b);
+    }),
+    ("grok", |b| {
+        let _ = grok::Grok::parse(b);
+    }),
+    ("grype", |b| {
+        let _ = grype::Grype::parse(b);
+    }),
+    ("gtksrclang", |b| {
+        let _ = gtksrclang::Gtksrc::parse(b);
+    }),
+    ("h2oconf", |b| {
+        let _ = h2oconf::H2oconf::parse(b);
+    }),
+    ("haproxy", |b| {
+        let _ = haproxy::Haproxy::parse(b);
+    }),
+    ("har", |b| {
+        let _ = har::Har::parse(b);
+    }),
+    ("harakaconf", |b| {
+        let _ = harakaconf::Haraka::parse(b);
+    }),
+    ("harbor", |b| {
+        let _ = harbor::Harbor::parse(b);
+    }),
+    ("headscaleconf", |b| {
+        let _ = headscaleconf::Headscale::parse(b);
+    }),
+    ("helix", |b| {
+        let _ = helix::Helix::parse(b);
+    }),
+    ("helmfile", |b| {
+        let _ = helmfile::Helmfile::parse(b);
+    }),
+    ("hexo", |b| {
+        let _ = hexo::Hexo::parse(b);
+    }),
+    ("hgignore", |b| {
+        let _ = hgignore::Hgignore::parse(b);
+    }),
+    ("hgrc", |b| {
+        let _ = hgrc::Hgrc::parse(b);
+    }),
+    ("hiawatha", |b| {
+        let _ = hiawatha::Hiawatha::parse(b);
+    }),
+    ("hl7", |b| {
+        let _ = hl7::Hl7::parse(b);
+    }),
+    ("homeassistant", |b| {
+        let _ = homeassistant::Homeassistant::parse(b);
+    }),
+    ("hoppscotch", |b| {
+        let _ = hoppscotch::Hoppscotch::parse(b);
+    }),
+    ("httpfile", |b| {
+        let _ = httpfile::Httpfile::parse(b);
+    }),
+    ("hugoconf", |b| {
+        let _ = hugoconf::Hugoconf::parse(b);
+    }),
+    ("hydra", |b| {
+        let _ = hydra::Hydra::parse(b);
+    }),
+    ("hydraml", |b| {
+        let _ = hydraml::HydraMl::parse(b);
+    }),
+    ("hyperfine", |b| {
+        let _ = hyperfine::Hyperfine::parse(b);
+    }),
+    ("hyprland", |b| {
+        let _ = hyprland::Hyprland::parse(b);
+    }),
+    ("i3conf", |b| {
+        let _ = i3conf::I3conf::parse(b);
+    }),
+    ("icecast", |b| {
+        let _ = icecast::Icecast::parse(b);
+    }),
+    ("icinga", |b| {
+        let _ = icinga::Icinga::parse(b);
+    }),
+    ("ideavim", |b| {
+        let _ = ideavim::Ideavim::parse(b);
+    }),
+    ("inffile", |b| {
+        let _ = inffile::Inffile::parse(b);
+    }),
+    ("infinispan", |b| {
+        let _ = infinispan::Infinispan::parse(b);
+    }),
+    ("inittab", |b| {
+        let _ = inittab::Inittab::parse(b);
+    }),
+    ("inputrc", |b| {
+        let _ = inputrc::Inputrc::parse(b);
+    }),
+    ("insomnia", |b| {
+        let _ = insomnia::Insomnia::parse(b);
+    }),
+    ("instana", |b| {
+        let _ = instana::Instana::parse(b);
+    }),
+    ("interfaces", |b| {
+        let _ = interfaces::Interfaces::parse(b);
+    }),
+    ("iosconf", |b| {
+        let _ = iosconf::Iosconf::parse(b);
+    }),
+    ("ipac", |b| {
+        let _ = ipac::Ipac::parse(b);
+    }),
+    ("ipythonconf", |b| {
+        let _ = ipythonconf::IpythonConf::parse(b);
+    }),
+    ("isortconf", |b| {
+        let _ = isortconf::Isort::parse(b);
+    }),
+    ("istio", |b| {
+        let _ = istio::Istio::parse(b);
+    }),
+    ("ivy", |b| {
+        let _ = ivy::Ivy::parse(b);
+    }),
+    ("jackrc", |b| {
+        let _ = jackrc::Jackrc::parse(b);
+    }),
+    ("jekyll", |b| {
+        let _ = jekyll::Jekyll::parse(b);
+    }),
+    ("jellyfin", |b| {
+        let _ = jellyfin::Jellyfin::parse(b);
+    }),
+    ("jenkinsfile", |b| {
+        let _ = jenkinsfile::Jenkinsfile::parse(b);
+    }),
+    ("jenkinsx", |b| {
+        let _ = jenkinsx::Jenkinsx::parse(b);
+    }),
+    ("jest", |b| {
+        let _ = jest::Jest::parse(b);
+    }),
+    ("jfr", |b| {
+        let _ = jfr::Jfr::parse(b);
+    }),
+    ("jmh", |b| {
+        let _ = jmh::Jmh::parse(b);
+    }),
+    ("jsonnet", |b| {
+        let _ = jsonnet::Jsonnet::parse(b);
+    }),
+    ("jtl", |b| {
+        let _ = jtl::Jtl::parse(b);
+    }),
+    ("junos", |b| {
+        let _ = junos::Junos::parse(b);
+    }),
+    ("jupyterconf", |b| {
+        let _ = jupyterconf::JupyterConf::parse(b);
+    }),
+    ("k3d", |b| {
+        let _ = k3d::K3d::parse(b);
+    }),
+    ("k6", |b| {
+        let _ = k6::K6::parse(b);
+    }),
+    ("k8gb", |b| {
+        let _ = k8gb::K8gb::parse(b);
+    }),
+    ("kafka", |b| {
+        let _ = kafka::Kafka::parse(b);
+    }),
+    ("kamaji", |b| {
+        let _ = kamaji::Kamaji::parse(b);
+    }),
+    ("kapitan", |b| {
+        let _ = kapitan::Kapitan::parse(b);
+    }),
+    ("karmaconf", |b| {
+        let _ = karmaconf::Karma::parse(b);
+    }),
+    ("karpenter", |b| {
+        let _ = karpenter::Karpenter::parse(b);
+    }),
+    ("katesyntax", |b| {
+        let _ = katesyntax::Katesyn::parse(b);
+    }),
+    ("kcl", |b| {
+        let _ = kcl::Kcl::parse(b);
+    }),
+    ("keda", |b| {
+        let _ = keda::Keda::parse(b);
+    }),
+    ("kedro", |b| {
+        let _ = kedro::Kedro::parse(b);
+    }),
+    ("keepalived", |b| {
+        let _ = keepalived::Keepalived::parse(b);
+    }),
+    ("keepassxc", |b| {
+        let _ = keepassxc::Keepassxc::parse(b);
+    }),
+    ("keto", |b| {
+        let _ = keto::Keto::parse(b);
+    }),
+    ("keycloak", |b| {
+        let _ = keycloak::Keycloak::parse(b);
+    }),
+    ("kibana", |b| {
+        let _ = kibana::Kibana::parse(b);
+    }),
+    ("kindconf", |b| {
+        let _ = kindconf::Kindconf::parse(b);
+    }),
+    ("kittyconf", |b| {
+        let _ = kittyconf::Kittyconf::parse(b);
+    }),
+    ("kodiadv", |b| {
+        let _ = kodiadv::Kodiadv::parse(b);
+    }),
+    ("kong", |b| {
+        let _ = kong::Kong::parse(b);
+    }),
+    ("kopia", |b| {
+        let _ = kopia::Kopia::parse(b);
+    }),
+    ("kratos", |b| {
+        let _ = kratos::Kratos::parse(b);
+    }),
+    ("kserve", |b| {
+        let _ = kserve::Kserve::parse(b);
+    }),
+    ("ktlint", |b| {
+        let _ = ktlint::Ktlint::parse(b);
+    }),
+    ("kubeconfig", |b| {
+        let _ = kubeconfig::Kubeconfig::parse(b);
+    }),
+    ("kubedb", |b| {
+        let _ = kubedb::Kubedb::parse(b);
+    }),
+    ("kubeflow", |b| {
+        let _ = kubeflow::Kubeflow::parse(b);
+    }),
+    ("kubeflowtraining", |b| {
+        let _ = kubeflowtraining::Kubeflowtraining::parse(b);
+    }),
+    ("kubevela", |b| {
+        let _ = kubevela::Kubevela::parse(b);
+    }),
+    ("kubevirt", |b| {
+        let _ = kubevirt::Kubevirt::parse(b);
+    }),
+    ("kuma", |b| {
+        let _ = kuma::Kuma::parse(b);
+    }),
+    ("kustomize", |b| {
+        let _ = kustomize::Kustomize::parse(b);
+    }),
+    ("lab", |b| {
+        let _ = lab::Lab::parse(b);
+    }),
+    ("ldapconf", |b| {
+        let _ = ldapconf::Ldapconf::parse(b);
+    }),
+    ("lego", |b| {
+        let _ = lego::Lego::parse(b);
+    }),
+    ("lerna", |b| {
+        let _ = lerna::Lerna::parse(b);
+    }),
+    ("lf", |b| {
+        let _ = lf::Lf::parse(b);
+    }),
+    ("lidarr", |b| {
+        let _ = lidarr::Lidarr::parse(b);
+    }),
+    ("lighttpd", |b| {
+        let _ = lighttpd::Lighttpd::parse(b);
+    }),
+    ("lima", |b| {
+        let _ = lima::Lima::parse(b);
+    }),
+    ("linkerd", |b| {
+        let _ = linkerd::Linkerd::parse(b);
+    }),
+    ("logstash", |b| {
+        let _ = logstash::Logstash::parse(b);
+    }),
+    ("longhorn", |b| {
+        let _ = longhorn::Longhorn::parse(b);
+    }),
+    ("lsf", |b| {
+        let _ = lsf::Lsf::parse(b);
+    }),
+    ("maddyconf", |b| {
+        let _ = maddyconf::Maddy::parse(b);
+    }),
+    ("magefile", |b| {
+        let _ = magefile::Magefile::parse(b);
+    }),
+    ("mch", |b| {
+        let _ = mch::Mch::parse(b);
+    }),
+    ("mediamtx", |b| {
+        let _ = mediamtx::Mediamtx::parse(b);
+    }),
+    ("meili", |b| {
+        let _ = meili::Meili::parse(b);
+    }),
+    ("mermaid", |b| {
+        let _ = mermaid::Mermaid::parse(b);
+    }),
+    ("metaflow", |b| {
+        let _ = metaflow::Metaflow::parse(b);
+    }),
+    ("metal3", |b| {
+        let _ = metal3::Metal3::parse(b);
+    }),
+    ("metallb", |b| {
+        let _ = metallb::Metallb::parse(b);
+    }),
+    ("metricbeat", |b| {
+        let _ = metricbeat::Metricbeat::parse(b);
+    }),
+    ("metroconf", |b| {
+        let _ = metroconf::MetroConf::parse(b);
+    }),
+    ("milvusconf", |b| {
+        let _ = milvusconf::Milvus::parse(b);
+    }),
+    ("minica", |b| {
+        let _ = minica::Minica::parse(b);
+    }),
+    ("minio", |b| {
+        let _ = minio::Minio::parse(b);
+    }),
+    ("mix", |b| {
+        let _ = mix::Mix::parse(b);
+    }),
+    ("mkdocs", |b| {
+        let _ = mkdocs::Mkdocs::parse(b);
+    }),
+    ("mlflow", |b| {
+        let _ = mlflow::Mlflow::parse(b);
+    }),
+    ("mochajson", |b| {
+        let _ = mochajson::Mochajson::parse(b);
+    }),
+    ("mocharc", |b| {
+        let _ = mocharc::Mocharc::parse(b);
+    }),
+    ("mongod", |b| {
+        let _ = mongod::Mongod::parse(b);
+    }),
+    ("monit", |b| {
+        let _ = monit::Monit::parse(b);
+    }),
+    ("moonrepo", |b| {
+        let _ = moonrepo::Moonrepo::parse(b);
+    }),
+    ("mopidy", |b| {
+        let _ = mopidy::Mopidy::parse(b);
+    }),
+    ("mosquitto", |b| {
+        let _ = mosquitto::Mosquitto::parse(b);
+    }),
+    ("motionconf", |b| {
+        let _ = motionconf::Motionconf::parse(b);
+    }),
+    ("movelang", |b| {
+        let _ = movelang::Move::parse(b);
+    }),
+    ("mpc", |b| {
+        let _ = mpc::Mpc::parse(b);
+    }),
+    ("mpd", |b| {
+        let _ = mpd::Mpd::parse(b);
+    }),
+    ("mplayerconf", |b| {
+        let _ = mplayerconf::Mplayerconf::parse(b);
+    }),
+    ("mpv", |b| {
+        let _ = mpv::Mpv::parse(b);
+    }),
+    ("multus", |b| {
+        let _ = multus::Multus::parse(b);
+    }),
+    ("mypyconf", |b| {
+        let _ = mypyconf::Mypy::parse(b);
+    }),
+    ("mysql", |b| {
+        let _ = mysql::Mysql::parse(b);
+    }),
+    ("nagios", |b| {
+        let _ = nagios::Nagios::parse(b);
+    }),
+    ("namedconf", |b| {
+        let _ = namedconf::Namedconf::parse(b);
+    }),
+    ("nanorc", |b| {
+        let _ = nanorc::Nanorc::parse(b);
+    }),
+    ("nats", |b| {
+        let _ = nats::Nats::parse(b);
+    }),
+    ("navidrome", |b| {
+        let _ = navidrome::Navidrome::parse(b);
+    }),
+    ("ncmpcpp", |b| {
+        let _ = ncmpcpp::Ncmpcpp::parse(b);
+    }),
+    ("ncpdp", |b| {
+        let _ = ncpdp::Ncpdp::parse(b);
+    }),
+    ("nebulaconf", |b| {
+        let _ = nebulaconf::Nebula::parse(b);
+    }),
+    ("neo4jconf", |b| {
+        let _ = neo4jconf::Neo4jconf::parse(b);
+    }),
+    ("netplan", |b| {
+        let _ = netplan::Netplan::parse(b);
+    }),
+    ("newrelic", |b| {
+        let _ = newrelic::Newrelic::parse(b);
+    }),
+    ("nginx", |b| {
+        let _ = nginx::Nginx::parse(b);
+    }),
+    ("nickel", |b| {
+        let _ = nickel::Nickel::parse(b);
+    }),
+    ("nixconf", |b| {
+        let _ = nixconf::Nixconf::parse(b);
+    }),
+    ("nodered", |b| {
+        let _ = nodered::Nodered::parse(b);
+    }),
+    ("nomad", |b| {
+        let _ = nomad::Nomad::parse(b);
+    }),
+    ("npmlock", |b| {
+        let _ = npmlock::Npmlock::parse(b);
+    }),
+    ("nsd", |b| {
+        let _ = nsd::Nsd::parse(b);
+    }),
+    ("nsswitch", |b| {
+        let _ = nsswitch::Nsswitch::parse(b);
+    }),
+    ("nuconf", |b| {
+        let _ = nuconf::Nuconf::parse(b);
+    }),
+    ("nuxt", |b| {
+        let _ = nuxt::Nuxt::parse(b);
+    }),
+    ("nxconf", |b| {
+        let _ = nxconf::Nxconf::parse(b);
+    }),
+    ("oathkeeper", |b| {
+        let _ = oathkeeper::Oathkeeper::parse(b);
+    }),
+    ("obsconf", |b| {
+        let _ = obsconf::Obsconf::parse(b);
+    }),
+    ("odbcini", |b| {
+        let _ = odbcini::Odbcini::parse(b);
+    }),
+    ("okteto", |b| {
+        let _ = okteto::Okteto::parse(b);
+    }),
+    ("olm", |b| {
+        let _ = olm::Olm::parse(b);
+    }),
+    ("openbgpd", |b| {
+        let _ = openbgpd::Openbgpd::parse(b);
+    }),
+    ("opendkim", |b| {
+        let _ = opendkim::Opendkim::parse(b);
+    }),
+    ("opendmarc", |b| {
+        let _ = opendmarc::Opendmarc::parse(b);
+    }),
+    ("openebs", |b| {
+        let _ = openebs::Openebs::parse(b);
+    }),
+    ("openfaas", |b| {
+        let _ = openfaas::Openfaas::parse(b);
+    }),
+    ("openfga", |b| {
+        let _ = openfga::Openfga::parse(b);
+    }),
+    ("openhab", |b| {
+        let _ = openhab::Openhab::parse(b);
+    }),
+    ("openpulse", |b| {
+        let _ = openpulse::OpenPulse::parse(b);
+    }),
+    ("openrc", |b| {
+        let _ = openrc::Openrc::parse(b);
+    }),
+    ("opensearch", |b| {
+        let _ = opensearch::Opensearch::parse(b);
+    }),
+    ("opensearchop", |b| {
+        let _ = opensearchop::Opensearchop::parse(b);
+    }),
+    ("openssl", |b| {
+        let _ = openssl::Openssl::parse(b);
+    }),
+    ("openvpn", |b| {
+        let _ = openvpn::Openvpn::parse(b);
+    }),
+    ("opsjson", |b| {
+        let _ = opsjson::Opsjson::parse(b);
+    }),
+    ("otelcol", |b| {
+        let _ = otelcol::Otelcol::parse(b);
+    }),
+    ("ovf", |b| {
+        let _ = ovf::Ovf::parse(b);
+    }),
+    ("packer", |b| {
+        let _ = packer::Packer::parse(b);
+    }),
+    ("packit", |b| {
+        let _ = packit::Packit::parse(b);
+    }),
+    ("pacman", |b| {
+        let _ = pacman::Pacman::parse(b);
+    }),
+    ("paraver", |b| {
+        let _ = paraver::Paraver::parse(b);
+    }),
+    ("pdns", |b| {
+        let _ = pdns::Pdns::parse(b);
+    }),
+    ("percona", |b| {
+        let _ = percona::Percona::parse(b);
+    }),
+    ("perflog", |b| {
+        let _ = perflog::Perflog::parse(b);
+    }),
+    ("pgo", |b| {
+        let _ = pgo::Pgo::parse(b);
+    }),
+    ("pgpass", |b| {
+        let _ = pgpass::Pgpass::parse(b);
+    }),
+    ("pgservice", |b| {
+        let _ = pgservice::Pgservice::parse(b);
+    }),
+    ("phabricatorconf", |b| {
+        let _ = phabricatorconf::Phab::parse(b);
+    }),
+    ("picard", |b| {
+        let _ = picard::Picard::parse(b);
+    }),
+    ("pihole", |b| {
+        let _ = pihole::Pihole::parse(b);
+    }),
+    ("pinpoint", |b| {
+        let _ = pinpoint::Pinpoint::parse(b);
+    }),
+    ("pipewireconf", |b| {
+        let _ = pipewireconf::Pwconf::parse(b);
+    }),
+    ("pipfile", |b| {
+        let _ = pipfile::Pipfile::parse(b);
+    }),
+    ("pkl", |b| {
+        let _ = pkl::Pkl::parse(b);
+    }),
+    ("plantuml", |b| {
+        let _ = plantuml::Plantuml::parse(b);
+    }),
+    ("playwrightconf", |b| {
+        let _ = playwrightconf::Playwright::parse(b);
+    }),
+    ("plexconf", |b| {
+        let _ = plexconf::Plexconf::parse(b);
+    }),
+    ("pm2", |b| {
+        let _ = pm2::Pm2::parse(b);
+    }),
+    ("pmml", |b| {
+        let _ = pmml::Pmml::parse(b);
+    }),
+    ("pnpmlock", |b| {
+        let _ = pnpmlock::Pnpmlock::parse(b);
+    }),
+    ("pnpmworkspace", |b| {
+        let _ = pnpmworkspace::PnpmWorkspace::parse(b);
+    }),
+    ("podfile", |b| {
+        let _ = podfile::Podfile::parse(b);
+    }),
+    ("poetry", |b| {
+        let _ = poetry::Poetry::parse(b);
+    }),
+    ("policyjson", |b| {
+        let _ = policyjson::PolicyJson::parse(b);
+    }),
+    ("polybar", |b| {
+        let _ = polybar::Polybar::parse(b);
+    }),
+    ("pom", |b| {
+        let _ = pom::Pom::parse(b);
+    }),
+    ("pomerium", |b| {
+        let _ = pomerium::Pomerium::parse(b);
+    }),
+    ("portage", |b| {
+        let _ = portage::Portage::parse(b);
+    }),
+    ("portworx", |b| {
+        let _ = portworx::Portworx::parse(b);
+    }),
+    ("postalconf", |b| {
+        let _ = postalconf::Postal::parse(b);
+    }),
+    ("postcss", |b| {
+        let _ = postcss::Postcss::parse(b);
+    }),
+    ("postfix", |b| {
+        let _ = postfix::Postfix::parse(b);
+    }),
+    ("postgresql", |b| {
+        let _ = postgresql::Postgresql::parse(b);
+    }),
+    ("pprof", |b| {
+        let _ = pprof::Pprof::parse(b);
+    }),
+    ("pptpd", |b| {
+        let _ = pptpd::Pptpd::parse(b);
+    }),
+    ("prefect", |b| {
+        let _ = prefect::Prefect::parse(b);
+    }),
+    ("premakeconf", |b| {
+        let _ = premakeconf::Premake::parse(b);
+    }),
+    ("prettier", |b| {
+        let _ = prettier::Prettier::parse(b);
+    }),
+    ("privoxy", |b| {
+        let _ = privoxy::Privoxy::parse(b);
+    }),
+    ("procd", |b| {
+        let _ = procd::Procd::parse(b);
+    }),
+    ("proftpd", |b| {
+        let _ = proftpd::Proftpd::parse(b);
+    }),
+    ("promela", |b| {
+        let _ = promela::Promela::parse(b);
+    }),
+    ("prometheus", |b| {
+        let _ = prometheus::Prometheus::parse(b);
+    }),
+    ("promoperator", |b| {
+        let _ = promoperator::Promoperator::parse(b);
+    }),
+    ("prow", |b| {
+        let _ = prow::Prow::parse(b);
+    }),
+    ("prowlarr", |b| {
+        let _ = prowlarr::Prowlarr::parse(b);
+    }),
+    ("pulsar", |b| {
+        let _ = pulsar::Pulsar::parse(b);
+    }),
+    ("pulseclientconf", |b| {
+        let _ = pulseclientconf::Paclient::parse(b);
+    }),
+    ("pulumi", |b| {
+        let _ = pulumi::Pulumi::parse(b);
+    }),
+    ("puppet", |b| {
+        let _ = puppet::Puppet::parse(b);
+    }),
+    ("pureftpd", |b| {
+        let _ = pureftpd::Pureftpd::parse(b);
+    }),
+    ("pylintrc", |b| {
+        let _ = pylintrc::Pylintrc::parse(b);
+    }),
+    ("pyproject", |b| {
+        let _ = pyproject::Pyproject::parse(b);
+    }),
+    ("pyrightconf", |b| {
+        let _ = pyrightconf::Pyright::parse(b);
+    }),
+    ("pytestbench", |b| {
+        let _ = pytestbench::Pytestbench::parse(b);
+    }),
+    ("qasm", |b| {
+        let _ = qasm::Qasm::parse(b);
+    }),
+    ("qbittorrent", |b| {
+        let _ = qbittorrent::Qbittorrent::parse(b);
+    }),
+    ("qdrantconf", |b| {
+        let _ = qdrantconf::Qdrant::parse(b);
+    }),
+    ("qmakepro", |b| {
+        let _ = qmakepro::Qmake::parse(b);
+    }),
+    ("qobj", |b| {
+        let _ = qobj::Qobj::parse(b);
+    }),
+    ("qs", |b| {
+        let _ = qs::Qs::parse(b);
+    }),
+    ("quartz", |b| {
+        let _ = quartz::Quartz::parse(b);
+    }),
+    ("quil", |b| {
+        let _ = quil::Quil::parse(b);
+    }),
+    ("rabbitmq", |b| {
+        let _ = rabbitmq::Rabbitmq::parse(b);
+    }),
+    ("radarr", |b| {
+        let _ = radarr::Radarr::parse(b);
+    }),
+    ("radiusd", |b| {
+        let _ = radiusd::Radiusd::parse(b);
+    }),
+    ("raml", |b| {
+        let _ = raml::Raml::parse(b);
+    }),
+    ("rcloneconf", |b| {
+        let _ = rcloneconf::RcloneConf::parse(b);
+    }),
+    ("recordio", |b| {
+        let _ = recordio::Recordio::parse(b);
+    }),
+    ("redisconf", |b| {
+        let _ = redisconf::Redisconf::parse(b);
+    }),
+    ("redpanda", |b| {
+        let _ = redpanda::Redpanda::parse(b);
+    }),
+    ("regfile", |b| {
+        let _ = regfile::Regfile::parse(b);
+    }),
+    ("registriesconf", |b| {
+        let _ = registriesconf::RegistriesConf::parse(b);
+    }),
+    ("rego", |b| {
+        let _ = rego::Rego::parse(b);
+    }),
+    ("requirements", |b| {
+        let _ = requirements::Requirements::parse(b);
+    }),
+    ("resolv", |b| {
+        let _ = resolv::Resolv::parse(b);
+    }),
+    ("resticprofile", |b| {
+        let _ = resticprofile::ResticProfile::parse(b);
+    }),
+    ("rofi", |b| {
+        let _ = rofi::Rofi::parse(b);
+    }),
+    ("rollup", |b| {
+        let _ = rollup::Rollup::parse(b);
+    }),
+    ("rook", |b| {
+        let _ = rook::Rook::parse(b);
+    }),
+    ("routeros", |b| {
+        let _ = routeros::Routeros::parse(b);
+    }),
+    ("rpy", |b| {
+        let _ = rpy::Rpy::parse(b);
+    }),
+    ("rsnapshot", |b| {
+        let _ = rsnapshot::Rsnapshot::parse(b);
+    }),
+    ("rspamdconf", |b| {
+        let _ = rspamdconf::Rspamd::parse(b);
+    }),
+    ("rtorrent", |b| {
+        let _ = rtorrent::Rtorrent::parse(b);
+    }),
+    ("rubocop", |b| {
+        let _ = rubocop::Rubocop::parse(b);
+    }),
+    ("ruffconf", |b| {
+        let _ = ruffconf::Ruff::parse(b);
+    }),
+    ("rundeck", |b| {
+        let _ = rundeck::Rundeck::parse(b);
+    }),
+    ("runit", |b| {
+        let _ = runit::Runit::parse(b);
+    }),
+    ("rvdata", |b| {
+        let _ = rvdata::Rvdata::parse(b);
+    }),
+    ("s6rc", |b| {
+        let _ = s6rc::S6rc::parse(b);
+    }),
+    ("salt", |b| {
+        let _ = salt::Salt::parse(b);
+    }),
+    ("sauce", |b| {
+        let _ = sauce::Sauce::parse(b);
+    }),
+    ("sbt", |b| {
+        let _ = sbt::Sbt::parse(b);
+    }),
+    ("sconstruct", |b| {
+        let _ = sconstruct::Scons::parse(b);
+    }),
+    ("scyllaop", |b| {
+        let _ = scyllaop::Scyllaop::parse(b);
+    }),
+    ("sealedsecrets", |b| {
+        let _ = sealedsecrets::Sealedsecrets::parse(b);
+    }),
+    ("seccomp", |b| {
+        let _ = seccomp::Seccomp::parse(b);
+    }),
+    ("secretsbaseline", |b| {
+        let _ = secretsbaseline::SecretsBaseline::parse(b);
+    }),
+    ("secretsstore", |b| {
+        let _ = secretsstore::Secretsstore::parse(b);
+    }),
+    ("seldon", |b| {
+        let _ = seldon::Seldon::parse(b);
+    }),
+    ("semgrep", |b| {
+        let _ = semgrep::Semgrep::parse(b);
+    }),
+    ("semver", |b| {
+        let _ = semver::SemVer::parse(b);
+    }),
+    ("sendmail", |b| {
+        let _ = sendmail::Sendmail::parse(b);
+    }),
+    ("sentinel", |b| {
+        let _ = sentinel::Sentinel::parse(b);
+    }),
+    ("serverless", |b| {
+        let _ = serverless::Serverless::parse(b);
+    }),
+    ("serverprop", |b| {
+        let _ = serverprop::Serverprop::parse(b);
+    }),
+    ("setupcfg", |b| {
+        let _ = setupcfg::Setupcfg::parse(b);
+    }),
+    ("shadowsocksconf", |b| {
+        let _ = shadowsocksconf::Shadowsocks::parse(b);
+    }),
+    ("shibconf", |b| {
+        let _ = shibconf::Shibconf::parse(b);
+    }),
+    ("shipwright", |b| {
+        let _ = shipwright::Shipwright::parse(b);
+    }),
+    ("sidekiq", |b| {
+        let _ = sidekiq::Sidekiq::parse(b);
+    }),
+    ("singboxconf", |b| {
+        let _ = singboxconf::Singbox::parse(b);
+    }),
+    ("skaffold", |b| {
+        let _ = skaffold::Skaffold::parse(b);
+    }),
+    ("skywalking", |b| {
+        let _ = skywalking::Skywalking::parse(b);
+    }),
+    ("slapd", |b| {
+        let _ = slapd::Slapd::parse(b);
+    }),
+    ("slurm", |b| {
+        let _ = slurm::Slurm::parse(b);
+    }),
+    ("snapcast", |b| {
+        let _ = snapcast::Snapcast::parse(b);
+    }),
+    ("snapcraft", |b| {
+        let _ = snapcraft::Snapcraft::parse(b);
+    }),
+    ("snmpdconf", |b| {
+        let _ = snmpdconf::Snmpdconf::parse(b);
+    }),
+    ("snyk", |b| {
+        let _ = snyk::Snyk::parse(b);
+    }),
+    ("sol", |b| {
+        let _ = sol::Sol::parse(b);
+    }),
+    ("solrconfig", |b| {
+        let _ = solrconfig::Solrconfig::parse(b);
+    }),
+    ("solrschema", |b| {
+        let _ = solrschema::Solrschema::parse(b);
+    }),
+    ("sonar", |b| {
+        let _ = sonar::Sonar::parse(b);
+    }),
+    ("sonarr", |b| {
+        let _ = sonarr::Sonarr::parse(b);
+    }),
+    ("soniccfg", |b| {
+        let _ = soniccfg::Sonic::parse(b);
+    }),
+    ("sops", |b| {
+        let _ = sops::Sops::parse(b);
+    }),
+    ("spamassassin", |b| {
+        let _ = spamassassin::Spamassassin::parse(b);
+    }),
+    ("spark", |b| {
+        let _ = spark::Spark::parse(b);
+    }),
+    ("speedscope", |b| {
+        let _ = speedscope::Speedscope::parse(b);
+    }),
+    ("sphinx", |b| {
+        let _ = sphinx::Sphinx::parse(b);
+    }),
+    ("spigot", |b| {
+        let _ = spigot::Spigot::parse(b);
+    }),
+    ("spire", |b| {
+        let _ = spire::Spire::parse(b);
+    }),
+    ("spotbugs", |b| {
+        let _ = spotbugs::Spotbugs::parse(b);
+    }),
+    ("sqlnet", |b| {
+        let _ = sqlnet::Sqlnet::parse(b);
+    }),
+    ("squid", |b| {
+        let _ = squid::Squid::parse(b);
+    }),
+    ("srhtconf", |b| {
+        let _ = srhtconf::Srht::parse(b);
+    }),
+    ("sshconf", |b| {
+        let _ = sshconf::Sshconf::parse(b);
+    }),
+    ("stack", |b| {
+        let _ = stack::Stack::parse(b);
+    }),
+    ("stalwartconf", |b| {
+        let _ = stalwartconf::Stalwart::parse(b);
+    }),
+    ("starship", |b| {
+        let _ = starship::Starship::parse(b);
+    }),
+    ("stash", |b| {
+        let _ = stash::Stash::parse(b);
+    }),
+    ("stepca", |b| {
+        let _ = stepca::StepCa::parse(b);
+    }),
+    ("storageconf", |b| {
+        let _ = storageconf::StorageConf::parse(b);
+    }),
+    ("storybook", |b| {
+        let _ = storybook::Storybook::parse(b);
+    }),
+    ("strimzi", |b| {
+        let _ = strimzi::Strimzi::parse(b);
+    }),
+    ("stylelint", |b| {
+        let _ = stylelint::Stylelint::parse(b);
+    }),
+    ("sublime", |b| {
+        let _ = sublime::Sublime::parse(b);
+    }),
+    ("sudoers", |b| {
+        let _ = sudoers::Sudoers::parse(b);
+    }),
+    ("supabase", |b| {
+        let _ = supabase::Supabase::parse(b);
+    }),
+    ("supervisor", |b| {
+        let _ = supervisor::Supervisor::parse(b);
+    }),
+    ("surefire", |b| {
+        let _ = surefire::Surefire::parse(b);
+    }),
+    ("svelte", |b| {
+        let _ = svelte::Svelte::parse(b);
+    }),
+    ("svnconf", |b| {
+        let _ = svnconf::Svnconf::parse(b);
+    }),
+    ("svp", |b| {
+        let _ = svp::Svp::parse(b);
+    }),
+    ("swanctl", |b| {
+        let _ = swanctl::Swanctl::parse(b);
+    }),
+    ("sway", |b| {
+        let _ = sway::Sway::parse(b);
+    }),
+    ("swiftlint", |b| {
+        let _ = swiftlint::Swiftlint::parse(b);
+    }),
+    ("syncthingconf", |b| {
+        let _ = syncthingconf::SyncthingConf::parse(b);
+    }),
+    ("syslogng", |b| {
+        let _ = syslogng::Syslogng::parse(b);
+    }),
+    ("tact", |b| {
+        let _ = tact::Tact::parse(b);
+    }),
+    ("tailscale", |b| {
+        let _ = tailscale::Tailscale::parse(b);
+    }),
+    ("tailwind", |b| {
+        let _ = tailwind::Tailwind::parse(b);
+    }),
+    ("talisman", |b| {
+        let _ = talisman::Talisman::parse(b);
+    }),
+    ("taprc", |b| {
+        let _ = taprc::Taprc::parse(b);
+    }),
+    ("telegraf", |b| {
+        let _ = telegraf::Telegraf::parse(b);
+    }),
+    ("teleport", |b| {
+        let _ = teleport::Teleport::parse(b);
+    }),
+    ("terragrunt", |b| {
+        let _ = terragrunt::Terragrunt::parse(b);
+    }),
+    ("textmategram", |b| {
+        let _ = textmategram::Tmgram::parse(b);
+    }),
+    ("tflint", |b| {
+        let _ = tflint::Tflint::parse(b);
+    }),
+    ("tfrecord", |b| {
+        let _ = tfrecord::Tfrecord::parse(b);
+    }),
+    ("tgf", |b| {
+        let _ = tgf::Tgf::parse(b);
+    }),
+    ("tidb", |b| {
+        let _ = tidb::Tidb::parse(b);
+    }),
+    ("tiltfile", |b| {
+        let _ = tiltfile::Tiltfile::parse(b);
+    }),
+    ("tincconf", |b| {
+        let _ = tincconf::Tinc::parse(b);
+    }),
+    ("tinyproxy", |b| {
+        let _ = tinyproxy::Tinyproxy::parse(b);
+    }),
+    ("tlaplus", |b| {
+        let _ = tlaplus::Tlaplus::parse(b);
+    }),
+    ("tmuxconf", |b| {
+        let _ = tmuxconf::Tmuxconf::parse(b);
+    }),
+    ("tnsnames", |b| {
+        let _ = tnsnames::Tnsnames::parse(b);
+    }),
+    ("tomcat", |b| {
+        let _ = tomcat::Tomcat::parse(b);
+    }),
+    ("toxini", |b| {
+        let _ = toxini::Toxini::parse(b);
+    }),
+    ("traefik", |b| {
+        let _ = traefik::Traefik::parse(b);
+    }),
+    ("transmission", |b| {
+        let _ = transmission::Transmission::parse(b);
+    }),
+    ("treesittergram", |b| {
+        let _ = treesittergram::Tsgram::parse(b);
+    }),
+    ("trivy", |b| {
+        let _ = trivy::Trivy::parse(b);
+    }),
+    ("trivyop", |b| {
+        let _ = trivyop::Trivyop::parse(b);
+    }),
+    ("tscn", |b| {
+        let _ = tscn::Tscn::parse(b);
+    }),
+    ("tsconfig", |b| {
+        let _ = tsconfig::Tsconfig::parse(b);
+    }),
+    ("turboconf", |b| {
+        let _ = turboconf::Turboconf::parse(b);
+    }),
+    ("twee", |b| {
+        let _ = twee::Twee::parse(b);
+    }),
+    ("typesense", |b| {
+        let _ = typesense::Typesense::parse(b);
+    }),
+    ("uci", |b| {
+        let _ = uci::Uci::parse(b);
+    }),
+    ("unattend", |b| {
+        let _ = unattend::Unattend::parse(b);
+    }),
+    ("unbound", |b| {
+        let _ = unbound::Unbound::parse(b);
+    }),
+    ("unison", |b| {
+        let _ = unison::Unison::parse(b);
+    }),
+    ("unitconf", |b| {
+        let _ = unitconf::Unitconf::parse(b);
+    }),
+    ("unocss", |b| {
+        let _ = unocss::Unocss::parse(b);
+    }),
+    ("uplugin", |b| {
+        let _ = uplugin::Uplugin::parse(b);
+    }),
+    ("uproject", |b| {
+        let _ = uproject::Uproject::parse(b);
+    }),
+    ("upstart", |b| {
+        let _ = upstart::Upstart::parse(b);
+    }),
+    ("ust", |b| {
+        let _ = ust::Ust::parse(b);
+    }),
+    ("ustx", |b| {
+        let _ = ustx::Ustx::parse(b);
+    }),
+    ("vagrant", |b| {
+        let _ = vagrant::Vagrant::parse(b);
+    }),
+    ("vaultagent", |b| {
+        let _ = vaultagent::Vaultagent::parse(b);
+    }),
+    ("vcl", |b| {
+        let _ = vcl::Vcl::parse(b);
+    }),
+    ("vcluster", |b| {
+        let _ = vcluster::Vcluster::parse(b);
+    }),
+    ("vcpkg", |b| {
+        let _ = vcpkg::Vcpkg::parse(b);
+    }),
+    ("vector", |b| {
+        let _ = vector::Vector::parse(b);
+    }),
+    ("vespaconf", |b| {
+        let _ = vespaconf::Vespa::parse(b);
+    }),
+    ("vhdr", |b| {
+        let _ = vhdr::Vhdr::parse(b);
+    }),
+    ("victoria", |b| {
+        let _ = victoria::Victoria::parse(b);
+    }),
+    ("vimrc", |b| {
+        let _ = vimrc::Vimrc::parse(b);
+    }),
+    ("vimsyntax", |b| {
+        let _ = vimsyntax::Vimsyn::parse(b);
+    }),
+    ("virtxml", |b| {
+        let _ = virtxml::Virtxml::parse(b);
+    }),
+    ("viteconf", |b| {
+        let _ = viteconf::ViteConf::parse(b);
+    }),
+    ("vitepress", |b| {
+        let _ = vitepress::Vitepress::parse(b);
+    }),
+    ("vitess", |b| {
+        let _ = vitess::Vitess::parse(b);
+    }),
+    ("vitestconf", |b| {
+        let _ = vitestconf::Vitest::parse(b);
+    }),
+    ("vlcrc", |b| {
+        let _ = vlcrc::Vlcrc::parse(b);
+    }),
+    ("vmrk", |b| {
+        let _ = vmrk::Vmrk::parse(b);
+    }),
+    ("volcano", |b| {
+        let _ = volcano::Volcano::parse(b);
+    }),
+    ("votable", |b| {
+        let _ = votable::Votable::parse(b);
+    }),
+    ("vpr", |b| {
+        let _ = vpr::Vpr::parse(b);
+    }),
+    ("vscodeconf", |b| {
+        let _ = vscodeconf::Vscodeconf::parse(b);
+    }),
+    ("vsftpd", |b| {
+        let _ = vsftpd::Vsftpd::parse(b);
+    }),
+    ("vsqx", |b| {
+        let _ = vsqx::Vsqx::parse(b);
+    }),
+    ("vyper", |b| {
+        let _ = vyper::Vyper::parse(b);
+    }),
+    ("wafconf", |b| {
+        let _ = wafconf::Waf::parse(b);
+    }),
+    ("wandb", |b| {
+        let _ = wandb::Wandb::parse(b);
+    }),
+    ("waybar", |b| {
+        let _ = waybar::Waybar::parse(b);
+    }),
+    ("waypoint", |b| {
+        let _ = waypoint::Waypoint::parse(b);
+    }),
+    ("weaviateconf", |b| {
+        let _ = weaviateconf::Weaviate::parse(b);
+    }),
+    ("webpackconf", |b| {
+        let _ = webpackconf::WebpackConf::parse(b);
+    }),
+    ("wfdb", |b| {
+        let _ = wfdb::Wfdb::parse(b);
+    }),
+    ("whitelist", |b| {
+        let _ = whitelist::Whitelist::parse(b);
+    }),
+    ("whyml", |b| {
+        let _ = whyml::Whyml::parse(b);
+    }),
+    ("winini", |b| {
+        let _ = winini::Winini::parse(b);
+    }),
+    ("winlogbeat", |b| {
+        let _ = winlogbeat::Winlogbeat::parse(b);
+    }),
+    ("wireguard", |b| {
+        let _ = wireguard::Wireguard::parse(b);
+    }),
+    ("wireplumberconf", |b| {
+        let _ = wireplumberconf::Wpconf::parse(b);
+    }),
+    ("wordfileuew", |b| {
+        let _ = wordfileuew::Uew::parse(b);
+    }),
+    ("wrangler", |b| {
+        let _ = wrangler::Wrangler::parse(b);
+    }),
+    ("wslconf", |b| {
+        let _ = wslconf::Wslconf::parse(b);
+    }),
+    ("xacml", |b| {
+        let _ = xacml::Xacml::parse(b);
+    }),
+    ("xdf", |b| {
+        let _ = xdf::Xdf::parse(b);
+    }),
+    ("xl2tpd", |b| {
+        let _ = xl2tpd::Xl2tpd::parse(b);
+    }),
+    ("xmakeconf", |b| {
+        let _ = xmakeconf::Xmake::parse(b);
+    }),
+    ("xrayconf", |b| {
+        let _ = xrayconf::Xray::parse(b);
+    }),
+    ("xunit", |b| {
+        let _ = xunit::Xunit::parse(b);
+    }),
+    ("yarnlock", |b| {
+        let _ = yarnlock::Yarnlock::parse(b);
+    }),
+    ("yarnrc", |b| {
+        let _ = yarnrc::Yarnrc::parse(b);
+    }),
+    ("ytt", |b| {
+        let _ = ytt::Ytt::parse(b);
+    }),
+    ("yugabyte", |b| {
+        let _ = yugabyte::Yugabyte::parse(b);
+    }),
+    ("zabbix", |b| {
+        let _ = zabbix::Zabbix::parse(b);
+    }),
+    ("zedconf", |b| {
+        let _ = zedconf::Zedconf::parse(b);
+    }),
+    ("zerotier", |b| {
+        let _ = zerotier::Zerotier::parse(b);
+    }),
+    ("zigbee2mqtt", |b| {
+        let _ = zigbee2mqtt::Zigbee2mqtt::parse(b);
+    }),
+    ("zitadel", |b| {
+        let _ = zitadel::Zitadel::parse(b);
+    }),
+    ("zola", |b| {
+        let _ = zola::Zola::parse(b);
+    }),
+    ("zon", |b| {
+        let _ = zon::Zon::parse(b);
+    }),
+    ("zone", |b| {
+        let _ = zone::Zone::parse(b);
+    }),
+    ("zonemtaconf", |b| {
+        let _ = zonemtaconf::Zonemta::parse(b);
+    }),
+    ("zookeeper", |b| {
+        let _ = zookeeper::Zookeeper::parse(b);
+    }),
+    ("zookeeperop", |b| {
+        let _ = zookeeperop::Zookeeperop::parse(b);
+    }),
+    ("zshrc", |b| {
+        let _ = zshrc::Zshrc::parse(b);
+    }),
+    ("zypper", |b| {
+        let _ = zypper::Zypper::parse(b);
+    }),
+];

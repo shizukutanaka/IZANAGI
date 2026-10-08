@@ -101,12 +101,15 @@ pub fn build_book(data: &[u8]) -> CodeBook {
     // incrementally — the textbook canonical rule.
     let mut order: Vec<u8> = syms;
     order.sort_by_key(|&s| (len[s as usize], s));
-    let mut cur = 0u32;
+    let mut cur = 0u64;
     let mut prev_len = 0u8;
     for &s in &order {
         let l = len[s as usize];
-        cur <<= l - prev_len;
-        code[s as usize] = cur;
+        // `code` is u32 — a code longer than 32 bits is unrepresentable.
+        // `encode` rejects such books outright; `cur` stays u64 so the
+        // shift itself never overflows for honest `len` ≤ 32 inputs.
+        cur = cur.checked_shl((l - prev_len) as u32).unwrap_or(0);
+        code[s as usize] = cur as u32;
         cur += 1;
         prev_len = l;
     }
@@ -115,14 +118,17 @@ pub fn build_book(data: &[u8]) -> CodeBook {
 
 /// Encode `data` into a self-contained bitstream:
 /// `[count u8] (sym, len)* [bit_count u32le] [packed MSB-first bytes]`.
-/// Empty input → `Some(vec![])`; a `None` is impossible in practice —
-/// the only failure is bit length overflow beyond `u32` capacity
-/// (input would have to exceed 512 MiB).
+/// Empty input → `Some(vec![])`; `None` when the Huffman tree is so
+/// skewed a code would exceed the wire format's 32-bit code length —
+/// unreachable below ~2 GiB of Fibonacci-ratio frequencies.
 pub fn encode(data: &[u8]) -> Option<Vec<u8>> {
     if data.is_empty() {
         return Some(Vec::new());
     }
     let book = build_book(data);
+    if book.len.iter().any(|&l| l > 32) {
+        return None; // codes longer than 32 bits can't be represented
+    }
     let present: Vec<u8> = (0..=255u8).filter(|&s| book.len[s as usize] > 0).collect();
     let mut out = Vec::new();
     out.push((present.len() - 1) as u8); // count-1 so 256 fits
@@ -134,11 +140,11 @@ pub fn encode(data: &[u8]) -> Option<Vec<u8>> {
     let total_bits = u32::try_from(total_bits).ok()?;
     out.extend_from_slice(&total_bits.to_le_bytes());
     // Pack MSB-first.
-    let mut acc = 0u32;
+    let mut acc = 0u64;
     let mut nbits = 0u32;
     for &b in data {
         let len = book.len[b as usize] as u32;
-        acc = (acc << len) | book.code[b as usize];
+        acc = (acc << len) | u64::from(book.code[b as usize]);
         nbits += len;
         while nbits >= 8 {
             nbits -= 8;
@@ -188,12 +194,12 @@ pub fn decode(buf: &[u8]) -> Option<Vec<u8>> {
     order.sort_by_key(|&s| (len[s as usize], s));
     let mut decode_map: std::collections::BTreeMap<(u8, u32), u8> =
         std::collections::BTreeMap::new();
-    let mut cur = 0u32;
+    let mut cur = 0u64;
     let mut prev_len = 0u8;
     for &s in &order {
         let l = len[s as usize];
-        cur <<= l - prev_len;
-        decode_map.insert((l, cur), s);
+        cur = cur.checked_shl((l - prev_len) as u32).unwrap_or(0);
+        decode_map.insert((l, cur as u32), s);
         cur += 1;
         prev_len = l;
     }
@@ -306,5 +312,22 @@ mod tests {
     fn encode_is_a_pure_function_of_input() {
         let data = b"deterministic huffman should not depend on a hash seed";
         assert_eq!(encode(data), encode(data));
+    }
+
+    #[test]
+    fn decode_len32_table_does_not_panic() {
+        // A wire table may legitimately carry `len = 32` — the canonical
+        // rebuild shifted `cur` (u32) left by 32 and panicked in debug
+        // (release silently wrapped). `cur` is u64 now.
+        let wire = [0u8, b'a', 32, 0, 0, 0, 0];
+        assert_eq!(decode(&wire), Some(vec![]));
+    }
+
+    #[test]
+    fn decode_len_over_32_is_rejected() {
+        // `len` > 32 can never be represented — rejected at table read,
+        // so the canonical rebuild never shifts by more than 32.
+        let wire = [0u8, b'a', 33, 0, 0, 0, 0];
+        assert!(decode(&wire).is_none());
     }
 }

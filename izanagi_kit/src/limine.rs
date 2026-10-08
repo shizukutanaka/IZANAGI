@@ -123,7 +123,12 @@ pub struct Counts {
 /// `b` が `limine.cfg` 形式かどうか。
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
-    parse(b).is_some_and(|c| c.boot_entries >= 1 || c.boot + c.globals >= 2)
+    let Some(c) = parse(b) else {
+        return false;
+    };
+    // `/path` 行だけのファイル(fstab 等他形式)は limine.cfg ではない。
+    // `:Entry` 名付きエントリ、limine ブートキー、グローバルキーのいずれかを要求する。
+    c.boot_entries >= 1 || c.boot >= 1 || c.globals >= 2
 }
 
 /// `b` を `limine.cfg` として解析する。
@@ -143,9 +148,16 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-        if line.starts_with(':') || line.starts_with('/') {
+        if line.starts_with(':') {
+            // `:Entry`/`::Sub` は limine ブートエントリ名。`/`先頭のパス行は
+            // limine 証拠ではない(fstab 等と区別が付かない)。
             c.boot_entries += 1;
             known += 1;
+            continue;
+        }
+        if line.starts_with('/') {
+            c.entries += 1;
+            c.misc += 1;
             continue;
         }
         let Some((key, _)) = line.split_once('=') else {

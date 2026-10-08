@@ -6916,6 +6916,41 @@ bare_cvar_names_do_not_count)。
 - 432モジュールの深いパース経路を新規カバー
   (共有fodderがdetect閾値を通らず early-return していた領域)。
 - 抽出器の劣化を防ぐ `covered >= 400` の下限 assert 付き。
+## 第394次
+
+全量監査(長所50/短所50)に基づき、XML系検出器の複数行
+`<!-- -->` コメント内記述がアクティブな設定として計数・
+合致する欠陥クラスを一括修正。
+
+- 修正した構造:各行で `tr.starts_with("<!--")` を見るだけ
+  だったため、複数行コメントの2行目以降に書かれたタグ/要素が
+  有効行として採用されていた。
+- strip_comments ヘルパー(String返却、`<!--`〜`-->`を
+  複数行対応で除去、未終了コメントは末尾まで除去)を
+  43モジュールへ導入し decode 直後に適用。
+- `comments` 統計フィールドを持つ11モジュール(clickhouse,
+  gtksrclang, jellyfin, katesyntax, ketl, ossecconf,
+  solrconfig, solrschema, sonarr, sysmonconf, xacml)は
+  detectのみstrip、parseはコメント計数の仕様維持。
+- autoyast(comments意図計数), dita/docbook/icecast/verilog
+  (自前処理済), sevendtdxml(前回修正済)は据置。
+- junitのヘッドスキャンは `<!--` 内の `>` で誤終了していた
+  ので `-->` まで読み飛ばすよう修正。
+- 回帰テスト xml_comments_are_stripped を42モジュールに追加。
+## 第395次
+
+監査(長所50/短所50、第2回)に基づき、UTF-8 BOM (U+FEFF) 付き
+ファイルを不検出にしていた「先頭行アンカー」検出器を一括修正。
+
+- 修正した構造:`lines().next()`/`trim_start().starts_with()`/
+  `split().next()` で先頭内容を必須とする検出器が、BOM1文字を
+  理由に全体を不検出にしていた。Windows系エディタ生成の
+  UTF-8 BOM 付き設定ファイルで実害。
+- `strip_bom(&str) -> &str` ヘルパー(無確保、prefixのみ除去)を
+  222モジュールへ導入し decode 直後に適用(detect+parse 両方)。
+- `from_utf8_lossy` を使う ldif は `strip_bom(&t)` で適用。
+- 回帰テスト `utf8_bom_is_tolerated` を各モジュールに追加。
+- 第345次の6モジュール修正を全量クラスとして一般化したもの。
 
 ## 第398次 検出の再現率(recall)契約 — own_fixture_detected
 
@@ -6997,6 +7032,136 @@ detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(
 - detect-only/parse-onlyの分割が恣意的かどうかの整理(共通681が真のcensus対象)。
 
 
+## 第404次 — 監査(detect⇔parse双方向契約) + bai2切詰耐性
+
+### 角度
+「検出器とパーサが同じ真実を語るか」— 両レジストリ共通の681モジュールで
+detect⇔parseの双方向整合を機械測定(自fixture + 1バイト破壊 + 切詰、
+計2,752入力)。
+
+### 計測結果
+- 完全fixtureで `detect⇒parse`: 342/344成立。違反はraf::MAGIC/slob::MAGIC
+  (マジック断片const — detectは接頭辞で受理するがparseは完全構造を要求、
+  意図的)。
+- 逆方向 `parse⇒detect`: 6件の切詰違反。内訳 — irssi/systemdboot/zncは
+  detectが「parse+閾値」構造(閾値割れは設計通り)、gbstudio/idlは独立
+  マーカー設計(許容差)、**bai2のみ実害**: detectが`99,`トレーラ必須
+  なのにparseは`01,`ヘッダのみで受理 — 切詰BAI2が検出不能。
+- detect/parseの実契約は3分類: (a)detect≡parse+閾値(irssi等)、
+  (b)独立マーカー同士の近似一致(bai2等)、(c)片方向登録(detect-only
+  663/parse-only 544)。仕様書上の統一契約は未記述。
+
+### 対応
+- bai2: detectを「`01,`ヘッダ + 後続BAI2レコード(02/03/16/49/88/98/99)」
+  に緩和 — 切詰ファイル(トレーラ欠落)を検出可能にしつつ、無関係な
+  `NN,`CSV誤検は型コード限定で防ぐ。
+- `tests/detect_implies_parse.rs` 新設: 完全fixtureで`detect⇒parse`を
+  全681共通モジュールにassert(断片constはKNOWN_FRAGMENTSに宣言)。
+  逆方向は設計上非契約と明記。
+
+### 残課題
+- detectの意図(軽量ゲートか厳格判定か)がモジュール間で非一貫 —
+  契約のドキュメント化が未了。
+- impl形parse(detect-only側)はこの契約テストの型付け到達圏外。
+- parse=Someだがdetect=falseの設計許容差(gbstudio/idl/irssi等)は
+  「トレラントparse+厳格detect」として明示宣言する仕組みがない。
+
+## 第407次 — parseのSome(認識ゼロ)統一(Option意味論)
+
+全1,122のOption返しパーサにごみ入力4種を投入 → `Some(認識ゼロ)`を返す
+45件を機械検出。主流契約(1,034件が棄却)「空→Some(ゼロ)、非空で認識
+ゼロ→None」に統一: Counts系9モジュールは全usizeフィールド和==0ならNone、
+tmpfilesdは型トークンを「型1字+MOD修飾子」のみに限定、promは値を
+float字句検証(no-float不変条件でf64使用不可 → 字句チェックに変更)、
+pdbはothersを大文字レコード名のみに限定、bibtex/netrcはentries/macros
+空+非空入力でNone。13モジュールにrejects_unrecognized_garbage追加。
+文書系(adoc/pod/rst/org/texinfo)とmvtは寛容を仕様として残置、imap/irc/
+nntp/smtpのparse_lineフォールバック受理は第408次へ繰越。
+残り22件(debconf/log4j/netlifyconf等)はオープンPR衝突ファイルのため
+それらのマージ後に適用。
+
+## 第408次 — 行プロトコルparse_lineのコマンド集合検証(文法忠実度)
+
+RFCコマンド集合でverbを検証: imap(RFC 3501コマンド+タグ応答OK/NO/BAD+
+拡張ID/IDLE/MOVE等、`X…`実験コマンド許可; untagged `*` は既知キーワード
+or 数値)、irc(RFC 2812コマンド集合+IRCv3 CAP/MONITOR等、3桁数値は常に受理)、
+nntp(RFC 3977+reader/feeder拡張、`X…`ベンダー動詞許可)、smtp(RFC 5321+
+ESMTP拡張AUTH/STARTTLS/BDAT/ETRN+RFC 821旧動詞、`X…`ベンダー動詞許可)。
+「任意の英字単語=コマンド」受理を解消し、散文transcriptは全行棄却に。
+各モジュールにrejects_unrecognized_garbageテスト追加。
+
+残課題: r407で検出した22件のSome(ゼロ)モジュール(オープンPR衝突中)、
+Vec<Entry>返し3件のOption化(API破壊)、非Option返し103件、detect⇒parse
+逆方向assert、fixture不在モジュールへの最小fixture必須化、全fixture×全
+DETECTORSの相互偽陽性マトリクスの10-39件帯の段階引き締め、PARSERS非整列、
+UTF-16入力、CRLF/Latin-1ファイル、実ファイルコーパスのparse側適用。
+
+## 第407次 — 監査(Option意味論/認識ゼロのSome) + 13モジュール修正
+
+### 角度
+「`parse` の `Some` は『認識した』か『走査に成功した』か」— 第405次残課題。
+全1,122のOption返しパーサにごみ入力4種を投入し、Debug出力が全ゼロ/
+空のSome(認識ゼロ)を返す45モジュールを機械分類。
+
+### 計測結果
+- 45モジュールが非空ごみ入力で `Some(認識ゼロ)`。分類:
+  (a) 文書マークアップ(adoc/pod/rst/org/texinfo): 散文は仕様上有効 → 維持;
+  (b) バイナリ寛容(mvt): protobuf的に任意バイト有効 → 維持;
+  (c) 実害: 構造化形式がゼロ認識をSome返し — 主流契約(1,034件が棄却)
+     と不整合。うちオープンPR衝突(#413/#414/#424)で22件を除き13件修正。
+- オプション契約の結論: **空/空白のみ → Some(ゼロ)、非空で認識ゼロ → None**
+  (空設定ファイルは有効だが、認識不能な非空は「この形式でない」を示す)。
+
+### 対応(13モジュール)
+- Counts系9件(kconfig/mbedapp/archinstall/railwayconf/vercelconf/
+  winstonconf/zapconf/serilog/tmpfilesd): 全usize計数の合計==0かつ
+  非空入力 → None ガード追加。
+- tmpfilesd: 型トークンを「型文字1字+修飾子のみ」に限定(tmpfiles.d(5)
+  文法)— "the"/"hello" のような先頭文字偶然一致を除去。
+- prom: サンプル値をf64検証(Exposition形式はfloat/NaN/Infのみ)
+  + metas/samples双方空でNone。
+- pdb: `others` をPDBレコード名(英大文字/数字/空白)に限定
+  + atoms/cell/others全空でNone。
+- bibtex/netrc: entries(+macros)空でNone(バイト空白のみはSome維持)。
+- 全13モジュールに `rejects_unrecognized_garbage` 回帰テスト追加。
+
+### 残課題
+- imap/irc/nntp/smtp: parse_line がフォールバックで任意行を受理 —
+  RFCコマンドセットによる検証が必要(次ラウンド候補)。
+- 衝突で除外した22件(debconf/log4j/netlifyconf等)は対象PRマージ後に同契約を適用。
+- Vec<Entry>系(cpio/csv/mailcap)の空Vec曖昧性、非Option 103件の
+  棄却不能は Option化のAPI破壊が必要で別ラウンド。
+
+## 第405次 — 監査(失敗の表現力/パーサの検証性) + crontab・udevrules
+
+### 角度
+「parseは形式の検証器として機能しているか」— 全1,225パーサにごみ入力
+4種(散文/バイナリ/英文/数字)を投入し、何でも受理するパーサを洗い出し。
+
+### 計測結果
+- 76/1,225パーサがごみを受理。3分類:
+  (a) 仕様上正当 — バイナリフレーム(ethernet/esp/rip/tcp等:マジックを
+      持たず構造的に任意バイトが有効)、自由文書(roff/rst/org/pod/adoc等)、
+      mml(全アルファベットが音符)、csv(1列CSVは任意テキスト);
+  (b) `Some(全ゼロ)`を返すカンサス系(debconf/kconfig/platformio/
+      sdkconfig/netrc等) — `Option`が実質非utf8以外でNoneを返せず、
+      「認識した/できた」ではなく「走査に成功した」を意味する;
+  (c) 実害 — crontab(英字5語をスケジュール受理)、udevrules
+      (ペアを含まない裸行もルール計数)。
+
+### 対応
+- crontab: 5フィールドの各アトムをcron文法(`*`/数字/`?`/`L`/`W`/`#`/
+  範囲・リスト/月曜名)で検証 — 散文を拒否しつつ`MON-FRI`/`jan`は受理。
+- udevrules: `KEY op "value"`ペアを1つ以上含む行のみをルールとして計数
+  (udev仕様: ペアを持たない裸行はルールでない)。
+
+### 残課題
+- `Some(全ゼロ)`型パーサ(~40件): 「認識0件でNone」を返すべきかの
+  契約未決 — 空設定ファイルはSome(ゼロ)が自然で、入力非空かつ
+  認識ゼロでのNone化が妥当だが40モジュール規模の修正。
+- フレーム系はdetectの存在が契約の前提 — parse単体では検証不可。
+- ごみ受理76件のうち判別不能な例外リストの文書化未了。
+
 ## 第410次：CRLF行末の横断耐性 — nickel検出修正 + 恒久契約テスト
 
 切り口:入力符号化の堅牢性。DETECTORSレジストリを使い、各モジュールの
@@ -7017,3 +7182,322 @@ nickelの修正:`t.contains(" in ")|contains(" in\n")` → 既存のwords()
 
 残課題:UTF-16/UTF-32入力の扱い(全検出器が対象外か、先頭BOMで復号するか方針決定要)、
 Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture要求。
+
+## 第411次
+
+- 観点: モジュール形状の契約 — レジストリ登録漏れ・孤立パーサーの機械計測。
+- 測定: `pub fn parse` を持つが `PARSERS` 未登録のモジュールは 665 件 — ただし全て `impl Type` の関連関数(`pub struct X` に対する `X::parse`)であり、レジストリdoc「フリー関数のみ対象」との齟齬はなかったが、**横断panic-freeテストの対象外という実害**は存在した。
+- 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
+- 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
+
+## 第416次：検出器相互偽陽性 — 固有語彙ゲートとヒット・ラチェット
+
+切り口: 「`k=v`/`key:`/`verb` 形の汎用構造だけで検出する検出器は、
+他形式のfixtureに片っ端から命中しないか」。全538fixture×全1,344検出器の
+相互汚染マトリクス(zz_probe流)を計測し、前回までに残った中位帯を精査。
+
+### 修正(20モジュール、固有語彙ゲートの追加)
+
+- `airbyteconf`/`fivetranconf`/`webmanifest`/`extmanifest`: 汎用キー(name/host/
+  path…)に `t == k` の裸語一致や `key:` 一致だけで hits>=3 → 外来JSON/YAMLを
+  一括誤検出。形式固有キーのEXCLUSIVE集合を新設し `hits>=3 && exclusive>=1` に。
+  bare-word一致アームは削除(t=="name" の行だけでヒットになっていた)。
+- `cirrus`: `*_task:` サフィックス・`*_script`/汎用キーのみで hits>=2 →
+  `_task`/`_pipe`/`_template` サフィックスまたは Cirrus 固有キー(only_if/
+  compute_engine_instance/gke_container等)を1件必須化。
+- `corefile`: 任意の `x {` ブロック行 + 汎用プラグイン語(forward/proxy/log/
+  errors…)= スコア3 → `server {`/`location {`/`x {` の nginx/HAProxy 系を
+  誤検出。ブロック先頭行をゾーン形(`example.org`/`x:53`/`localhost`/`.`)に限定。
+- `namedconf`: `key {`/`server {`/`http {`/`tls {`/`view {` で+2 →
+  BIND 固有キーワード(zone "x"/type master/masters/trusted-keys/dnssec-policy
+  等)を1件必須化。
+- `dhclientconf`: `interface`/`zone`/`key`/`script`/`option`/`send`/`request`
+  語頭は named.conf と共通 → `supersede`/`failover`/`lease`/`ddns-*`/`reboot`/
+  `option … code … =` 等の DHCP 固有ステートメントを1件必須化。
+- `limine`: `/`-先頭のパス行だけでブートエントリ計数 → fstab を誤検出。
+  `:Entry` 名付きエントリ/BOOT_KEYS/GLOBAL_KEYS ベースに限定。
+- `meltano`: `name:`/`config:`/`settings:` のリーフキーだけで hits>=4 →
+  Meltano 固有トップキー(default_environment/send_anonymous_usage_stats/
+  venv_backend…)または plugins: 配下の種別キー(extractors/loaders…)必須化。
+- `travisci`: `env:`/`script:`/`install:`/`jobs:`/`cache:` の汎用CIキーで
+  hits>=2 → language/dist/matrix/addons/before_*/after_* 等の Travis 固有キー必須化。
+- `sievescript`: `if`/`elsif`/`require`/`header`/`size`/`set`/`stop`/`keep`
+  語頭で other>=2 → コード/散文を誤検出。fileinto/vacation/redirect/reject/
+  discard/notify/envelope 等の Sieve 固有動詞1件必須化。`require(` は JS と
+  区別するため `require `+空白のみを宣言とみなす。
+- `cmdbat`: `echo`/`set`/`if`/`for`/`exit`/`cd`/`dir`/`type` 行で hits>=2 →
+  シェルスクリプトを誤検出。`@echo`/`%~`/`%X%`/`errorlevel`/`if exist`/
+  `set /a`/`call :`/cmd固有コマンド(setx/schtasks/netsh/icacls 等)必須化。
+- `tmuxconf`: `set`/`bind`/`send`/`source`/`display`/`run`/`bind` 語頭で
+  cmds>=1 → `set x` 行だけのファイルを誤検出。tmux 固有動詞(bind-key/setw/
+  send-keys/…)または `set -g` 形のフラグ付き代入必須化。
+- `ipxescript`: `set`/`echo`/`menu`/`kernel`/`boot`/`route`/`dns`/`ping` 語頭で
+  entries-misc>=3 → シェル系を誤検出。dhcp/chain/sanboot/img*/pxebs/
+  net0 等の iPXE 固有動詞1件必須化(shebang `#!ipxe` は既存どおり即検出)。
+- `monero`: `k.contains('-')` のダッシュ入りキーで hits>=2 → dashed-key設定を
+  誤検出。KNOWN キーのみに限定。
+- `sysctlconf`: `a.b.c=v` ドットキーで hits>=2 → Java properties 系を誤検出。
+  kernel/vm/net/fs/dev/debug/abi/user/sunrpc の既知サブツリー1件必須化。
+- `hgignore`: `*/`/`x/` 形だけで hits>=2 → .gitignore 系を誤検出。
+  `syntax:`/`glob:`/`path:`/`rootglob:`/`re:` 等の Mercurial 固有宣言1件必須化。
+- `sendmail`: `V`先頭行(`Version:`/`VAR` 等)を `v` 証拠に → `V<digit>`
+  (`V10/Berkeley`) に限定。
+
+### 恒久化: 外来ヒット・ラチェット
+
+`tests/foreign_fixture_hits.rs` を新設: 全fixtureを全DETECTORSに通し、
+検出器ごとの外来ヒット数が記録済み上限(CEILINGS)以下であることをassert。
+新規検出器には DEFAULT_CEILING=6 が適用される。上限は下げる方向のみ更新。
+`tests/zz_probe.rs` (暫定census) は役割を移して削除。
+
+### 残置判断(本質的曖昧性)
+
+- `mml`/`haresources`/`requirements`/`lucene`/`creole`/`mediawiki`/`dockerignore`/
+  `gitignore`/`justfile`/`xpath`/`unbound`/`sudoers`/`openssl`/`pppdconf`/
+  `txt2tags`/`gitconfig`/`pgpass`/`memcachedconf`/`rsyslogd`/`autofs`/`inputrc`/
+  `kubemq`/`mpd`: PR #434/#435 で対応済み(未マージ) — このブランチはその上限を
+  スナップショット記録している。マージ後は新たな実測値に締め直す。
+- `crockford`/`base32`/`nanoid`: 文字集合の定義上曖昧(制限アルファベットの
+  トークンは UUID/hex/word に必然適合)。形式を区別する語彙が存在しない
+  構造的限界として残置。
+- `gradle`/`edn`: 既存の strong/weak ゲートで中位(14/10件)。更なる引き締め余地。
+
+## 第415次：残存ini/config族の外来ヒット分類・精密化(相互偽陽性スイープ第2弾)
+
+切り口:第414次P0残課題 — 全538fixture×全1,344検出器の外来ヒット上位に
+残った「[x]+k=v」「k:v」「トークン集合」系を「形式の本質的曖昧性」と
+「検出器設計の欠陥」に分類し、欠陥側を修正(検出精度をフォーマット語彙・
+フィールド位置・語彙へ移管)。
+
+分類結果:
+- 本質的曖昧(残置): crockford 30件(制限アルファベットのトークンという
+  形式定義上、全crockford文字のトークンは合法なので区別不能)、
+  lucene 83件(YAML `k:v`と構造的に同一)
+- 設計欠陥(修正): 全て「汎用語彙の部分一致/無条件カウント」に起因
+
+修正と外来ヒット数(修正前→後):
+- openssl 66→0: `[x]`+`k=v`スコアだけでなくX.509v3/req語彙(VOCAB+oid接頭辞
+  語、android/voidを拒否)≥1を要求
+- pppdconf 65→6: 三層欠陥を修正 — (a)`key = "v"`行をsecretsと誤認
+  (`=`含有行を排除+全フィールドをword文字集合化)、(b)hook語
+  (`file`/`set`/`options`等の汎用語)をエントリ証拠から外し
+  OPTION_KEYS門のoptions/flags/negations ≥2 + proto ≥1化、(c)`no*`/
+  `refuse-*`/`require-*`/`allow-*`のnegationsをOPTION_KEYS限定化、
+  proto腕の`chap`/`pap`プレフィックスを語境界化(chapter/paperを拒否)
+- txt2tags 59→8: `- `箇条書き等の素カウントでSome → `%!`directive/
+  `=x=`見出し/`|row|`/`+`番号/**・//スパン+構造要素を要求
+- gitconfig 45→5: `[x]`+`=`行は全ini一致 → 既知gitセクション名
+  (case-insensitive、`:`接尾辞はbase一致) or `[name "sub"]`引用形式を要求
+- pgpass 40→2: 5フィールド任意行 → 2番目フィールドがポート形状
+  (全数字or`*`)を要求
+- memcachedconf 37→0: `- `先頭行をオプションとして全markdown列挙に
+  合致 → `-x`/`--long`接着形式を要求(空白は箇条書き)
+- rsyslogd 34→0: セレクタ判定が`=`,`,`,`*`等の文字集合のみ →
+  RFC 5424 facility集合+priority文法(fac[.pri]の`,`/`;`列)を要求
+- autofs 31→1: 先頭語全受け+2語目全受け → マウントは`/`絶対/`*`/`+`/`-`、
+  マップは`-x`/`type:`/`/`/`auto.*`形状を要求
+- inputrc 28→8: `": `部分一致がJSONに合致 → `set var`のdashed変数
+  (`-e`等の`-`先頭はシェルオプションとして拒否)+`$if`/`\"\\e..\"`型
+  バインド等の強/弱スコアリング(strong≥1 or soft≥3 or soft≥2+escape≥1)
+- kubemq 27→0: apiVersion/kind/metadata等の汎用K8sキーだけで合致 →
+  KubeMQ固有キー(grpcPort/eventsStore/license…)または文中kubemq言及を要求
+- mpd 26→0: `port`/`user`等汎用キーのcontains → キーが行頭+空白区切りで
+  現れること(ブロックは`name {`形式)を要求
+
+回帰: `rejects_other`系既存テストは全緑。`detect=false⇒parse=None`契約維持。
+残課題: crockford/base32/nanoid等の単一トークン形式は定義上fixtureと
+区別不能(除外要検討)、airbyteconf 25/cirrus 24/base32 23は次ラウンド候補、
+段階的閾値ラチェットテストの検討。
+
+## 第419次：panic経路の静的棚卸 — 失敗機構の構造的担保
+
+切り口: 失敗の機構設計。`detect_never_panics`/`parse_never_panics`はfuzzの
+行動面証明だが「到達しない経路」を証明できないため、panic-capableプリミティブの
+本番存在を静的棚卸:
+
+- 本番`.unwrap()`/`.unwrap_err()`/`.expect(`/`.expect_err(`/`panic!(`/
+  `todo!`/`unimplemented!`: **0件**(2,400モジュール)
+- `assert!`: 8件 — 全て構築時契約(netinput×3/rollback×2/timestep×2/identify×1)
+  でcaller bug限定、入力経路ではない
+- `unreachable!`: 2件(replay.rs) — `tick<max(len)`で構造的死亡
+- `debug_assert!`: 2件(fov/wallet) — リリース除去の不変式再検証
+- スライス切出し:900+件 — 全件目視監査は未了だが、切出しは先行lenゲート/
+  `shape_ok`(全行>=75)等で構造的安全化が主流
+
+対応: `tests/panic_free_production.rs`新設。laziness族は本番全面禁止(0件assert)、
+invariant族(assert!/debug_assert!/unreachable!)はallowlist+件数+理由で固定。
+wkt.rsの`expect`メソッドを`want`へ改名し`Option::expect`との同名衝突を解消。
+
+残課題: `at+N`型オフセット加算の32bit overflow、`assert!`vs`Result`の使い分け
+基準のCONVENTIONS化、`detect`失敗理由の可視化API、境界±1バイトfuzz。
+
+## 第418次：エンジン側の決定性境界 — 順序なしコンテナの宣言強制
+
+切り口: これまで検出器中心だった監査を `izanagi` エンジン側に拡大。
+FLOAT_FREE(リプレイ可能と宣言された8モジュール: assets/ecs/error/event/
+log/save/scene/state)が float 以外の非決定性源を持たないか全行監査。
+
+### 計測所見(実害なし、検証済みクリーン)
+
+- `ecs::columns: HashMap<TypeId, Box<dyn Column>>` — 反復は `despawn` の
+  `values_mut()` による順序不変の remove のみ。コンポーネント走査は
+  `Column.data: BTreeMap` 経由で昇順確定(既にコメント明記)。
+- `assets::{bytes,names}: HashMap` — get/insert/len のlookup専用。
+- `gamepad/input` の `HashSet<Button>` — `contains` のみ(かつ両者は
+  FLOAT_FREE境界外)。
+- `save` — LEエンコード・u32::MAX切詰対策済・バイト決定的。
+- `event/state/scene/tilemap` — Vec/VecDeque で挿入順確定。
+- `time::wall_clock_seconds` — 明示的な壁時計(仕様、sim状態非流入)。
+- 順序づけプリミティブ(sort/partial_cmp/max_by等) — エンジン全域0件
+  (既存の空 ORDERING_ALLOWED が継続担保)。
+
+### 恒久化
+
+`izanagi/tests/float_boundary.rs` に2テスト追加:
+
+- `float_free_modules_declare_their_unordered_containers`: FLOAT_FREE
+  モジュールで `HashMap`/`HashSet` が現れたら allowlist宣言を強制
+  (ORDERING_ALLOWED と同型の「理由を書かせる」ゲート)。
+- `declared_unordered_containers_stay_lookup_only`: 宣言フィールド
+  (`bytes`/`names`/`columns`)に対する `iter`/`values`/`keys`/`drain`/
+  `into_iter` 呼出を検出して「lookup専用」宣言の陳腐化を捕捉。
+  ecs の `columns.values_mut()`(despawn掃討)のみ例外的に免除。
+
+### 残課題
+
+- FLOAT_FREE外モジュールのHashSet/HashMapが「public APIのイテレータ経由で
+  順序を漏洩」するパターンは静的テキストスキャンでは追えない(現時点で
+  漏洩箇所なし — `contains`のみ)。
+- `Time::alpha`/accumulator等のf32経路は境界外として意図どおり。
+
+## 第414次：検出器間相互偽陽性 — 全fixture×全DETECTORS掃引と上位13件の精密化
+
+切り口:foreign-fixture hits(他モジュールのfixtureを誤検出する件数)。
+538 fixture × 1,344 detector の相互汚染マトリクスを計測し、最悪の汎用
+検出器を「形式排他アンカー」で精密化した。
+
+修正前→後(外来ヒット数):
+
+| detector | before | after | 原因→修正 |
+|---|---|---|---|
+| mml | 477 | 0 | 音名文字集合のみ受理 → 純MMLトークンストリーム必須(directive≥1 & notes≥3 & others==0) |
+| haresources | 404 | 0 | `key: r1 r2` 1行で受理 → 複合閾値(entries≥1 & resources≥2 & colon_agents≥1 & 通信語彙≥1) |
+| requirements | 247 | 0 | `name>=v` 1行で受理 → is_spec_line文法+内容行過半数ゲート |
+| lucene | 212 | 83 | `:` 全域でfield計数 → field_terms(英文字識別子+非引用+次が空白/:/=でない)、`://`早期棄却 |
+| creole | 161 | 21 | 1ファミリのみで受理 → 異種マークアップ≥2ファミリ必須 |
+| mediawiki | 150 | 0 | 同上 |
+| dockerignore | 123 | <14 | 1行globで受理 → 全内容行パターン形状+marker≥1+patterns≥2 |
+| dotenv | 92 | 28 | `k=v` 1行で受理 → `[section]`棄却+内容行過半数が代入式 |
+| gitignore | 91 | <14 | `.`&非空白で受理 → dockerignoreと同規則 |
+| xpath | 82 | <14 | `//`/`@`/`::`広OR → 式形状(≤3行)+排他マーカー(`//name`,`[@`,axis::,fn() |
+| justfile | 82 | 20 | `name:`+indent=YAML同型 → just排他構文(:=,set,@,!,{{,引数default)≥1必須 |
+| unbound | 71 | <14 | `k: v`スコア≥4 → SECTIONS名付きセクション≥1必須 |
+| sudoers | 70 | <14 | `nth(1)=='='`(ini `k = v`の`=`自体)に命中 → `host=`が識別子のみであることを要求+汎用TAGS除去 |
+
+残存上位(本質的に不可分の ini/config 族曖昧性): openssl 66, pppdconf 65,
+txt2tags 59, gitconfig 45, pgpass 40, memcachedconf 37, rsyslogd 34 — 
+`k=v`/`k: v` 系は一意アンカーを持たないため「正しい曖昧性」として記録。
+lucene 83 の残りも `word:value` ×2行の YAML との構造同一性。
+
+設計パターンとして抽出した判定ルール:
+- 純度ゲート(受理文字集合のみで構成、混入即棄却)
+- 必須語彙(形式固有セクション/ディレクティブ名≥1)
+- 多数派ゲート(内容行の過半数がその形式の行型)
+- 全行パターン化(ignore系:全行がpattern-shaped)
+- 式形状(行数上限+言語排他マーカー)
+- トークン検証(単純substringではなくトークン構造を検査)
+
+## 第417次：証拠の深さ — 汎用スニペット誤検出と検出コミット行数
+
+切り口: 「検出器は何行の証拠で結論を出すか」。全fixtureを行頭prefixに縮小し
+最小検出行数を測定 + 形式固有語彙を持たない汎用スニペット12種
+(`name = value`, `set foo bar`, `import foo\nprint(1)` 等)を全DETECTORSに投入。
+
+### 計測所見
+
+- 412モジュールの最小検出行数: 63件が1行(うち大半はXML方言/マジック/1行形式
+  で正当 — fixture自体が1行)、残りは2-3行で確定。大半はfixture先頭が
+  固有マーカー(正しい設計)だが、汎用語彙で確定する検出器が残存。
+- 汎用スニペット命中: `mml`/`haresources`/`dotenv`/`creole`/`mediawiki`/
+  `lucene`/`requirements`/`gitconfig`/`namedconf`/`tmuxconf` は #434–#436 で
+  対応済み(未マージ)。新規実害は以下2件。
+
+### 修正
+
+- `gn`: `print(`/`assert(`/`error(`/`warning(`(DIAG)単独で検出 → Python/JSを
+  誤検出(`import foo\nprint(1)`)。TARGETS呼出・`deps =`/`sources =`等の
+  代入・`import("…gn/.gni")` 引用付きインポートのみを証拠化。
+- `base32`: 空白除去後「英字8文字以上」だけで検出 → 散文の連結("foobarbaz")
+  を誤検出。`=`パディングまたは数字(2–7/0–9)を1文字必須化 — RFC的には
+  数字なしBase32も存在するが、現実のエンコード出力では稀で、散文との
+  構造的区別が不能なため精度を優先(RESEARCH 記録)。
+
+### 恒久化
+
+`tests/generic_snippets_stay_precise.rs` 新設: 汎用スニペット12種それぞれの
+ヒット数がスナップショット上限以下であることをassert(fixtureラチェット
+`foreign_fixture_hits.rs` と相補的 — あちらは実fixture起点、こちらは
+最小合成入力起点)。
+
+### 残置(構造的曖昧性、再確認)
+
+- `nanoid`/`crockford`: アルファベットが英数字全域をカバーするため
+  「妥当なトークン」と「散文断片」に固有の区別信号が存在しない。
+  base32と違い数字要求でも切れない(nanoidは記号なし・数字なしも正当)。
+
+## 第420–421次：リソース境界 — 入力由来割当のキャップ
+
+切り口: `panic`不能の次の敵は `with_capacity`/`vec!`/`repeat` の
+入力由来サイズ — 数バイト入力が数十GB要求を引き起こし、allocator
+abort(強制終了、panicですら捕捉不能)を招く。
+
+全837件の割当サイトを計測。キャップ規約(.min(1<<N))は既に20モジュールに
+存在する一方、ヘッダのu32/テキストのusizeを検証前に容量ヒントへ渡す
+実害が8モジュールに存在:
+
+- tzif: timecnt/typecnt(u32) — 残りバイト数/(レコードサイズ)でキャップ
+- off: nv/nf/n(テキスト) — data.len()由来キャップ
+- xyz: count(テキスト) — 同上
+- ply: list_count(u32系) — 残りバイト数/要素サイズでキャップ
+- rans/lzss/pcx/gif: 宣言出力長 — ヒントを1<<22にキャップ
+  (with_capacityはヒントでありpushの正当拡張を殺さない)
+
+安全確認済み: hll(clamp<=16), ttc/woff/pcf(上限値検査),
+stl/grp/shp/vox/bson(サイズ一致・チェック済み), dbf(u16), otf(u16)
+
+残課題: `1usize << n` のshift overflow経路(meetmid/sosdp/magic —
+アルゴリズムAPI、caller責任だが要ドキュメント)、全割当サイトの機械的分類、
+`Vec::push`ループ自体の入力比例OOM(逐次拡張ではなく飽和対応)。
+
+## 第422次：シフト量オーバーフロー — `1 << n` の域外 n
+
+切り口: `1u64 << k` で `k >= 64` は debug で panic、release では
+masked-shift(`k & 63`)で `1u64 << 0` に折り返し — panic 回避で済まない
+「静かに違う答え」経路を全モジュールで機械計測。
+
+修正(9ファイル):
+- huffman: `decode` の canonical rebuild が wire 由来 `len=32` で
+  `u32 << 32` panic(実害、到達可能) → `cur` を u64 化+`checked_shl`。
+  `encode` は `len > 32` を事前拒否、packer の `acc` も u64 化
+  (`acc << 32` は `len=32` で debug panic)。
+- qcow2/f2fs: `pub` フィールド書換で parse 時の範囲検査を迂回可能 →
+  `cluster_size`/`block_size`/`incompat` を `checked_shl`・範囲判定で
+  飽和・偽固定に。
+- wfc: `count_tiles(tile >= 64)` → `0` (release では tile-0 の個数を
+  誤返していた)。
+- cyk/meetmid/sosdp/bdd: 表現域超過は契約違反として `assert!`
+  (黙って丸めるのは嘘を返すより悪い)。
+- magic: `subsets` の with_capacity ヒント `1usize << count_ones` →
+  `.min(22)` キャップ(既存規約に合流、防御的 — mask は実際 ≤~12bit)。
+
+分類軸: Option API → 偽の区別は assert、述語/カウント → 正しい有界値
+(0/saturating)、契約不変 → assert、割当ヒント → `.min(cap)`。
+
+安全確認済み(到達不能 or 既ガード): christofides/postman(DP_LIMIT<=20),
+bech32(shift<=15), xid/base32(i<=63), xorbasis(rank==64), veb3(x+1>=64),
+zorder(bits.min(16)), bitap(m<=64), veb(lo%64), avro(shift>63ガード),
+aiff(shift>60ガード), arch::with_capacity(ヒントAPI), 全 #[cfg(test)]
+oracle(steiner/knapsack/circulation/catalan/arborescence/automaton)。
+
+残課題: `1 << n` 以外の算術オーバーフロー(`n * m`/`n + m` の積和)の
+同種監査、usize::BITS 非依存の 128bit 域の棚卸。

@@ -38,6 +38,9 @@ pub struct Inputrc {
     /// `#` comment lines.
     pub comments: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect inputrc content.
 #[must_use]
@@ -46,18 +49,57 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
-    let mut hits = 0usize;
+    let t = strip_bom(t);
+    let mut strong = 0usize;
+    let mut soft = 0usize;
+    let mut escaped = 0usize;
     for line in t.lines() {
         let s = line.trim();
-        if s.starts_with("set ")
-            || s.starts_with('$')
-            || (s.starts_with('"') && s.contains("\": "))
-            || s.contains("\": ")
+        if s.is_empty() || s.starts_with('#') {
+            continue;
+        }
+        // `$if`/`$endif`/`$else`/`$include` conditionals
+        if s.starts_with('$') {
+            strong += 1;
+            continue;
+        }
+        // `set var value` — readline variable names carry `-` or are
+        // one of the well-known single words
+        if let Some(rest) = s.strip_prefix("set ") {
+            let var = rest.split_whitespace().next().unwrap_or("");
+            // readline variable names are `dashed-words` (or `keymap`);
+            // a leading-`-` word is a shell option (`set -e`), not a var
+            if !var.starts_with('-') && (var.contains('-') || var == "keymap") {
+                strong += 1;
+            } else if !var.is_empty()
+                && !var.starts_with('-')
+                && var.chars().all(|c| c.is_ascii_lowercase() || c == '-')
+            {
+                soft += 1;
+            }
+            continue;
+        }
+        // `"key": fn` / `"key": "macro"` bindings — `\\`-escaped keys
+        // (`\\e[`, `\\C-`) are readline-exclusive
+        if s.starts_with('"')
+            && s.contains("\": ")
+            && s.chars().all(|c| !matches!(c, '{' | '}' | '[' | ']'))
         {
-            hits += 1;
+            let key = &s[1..s.find("\": ").unwrap_or(1)];
+            let rest = s[s.find("\": ").unwrap_or(s.len()) + 3..].trim();
+            let fnish = !rest.is_empty()
+                && rest
+                    .chars()
+                    .all(|c| c.is_ascii_lowercase() || matches!(c, '-' | '_' | '"'));
+            if key.contains('\\') {
+                escaped += 1;
+                strong += 1;
+            } else if fnish {
+                soft += 1;
+            }
         }
     }
-    hits >= 2
+    strong >= 1 || (soft >= 2 && escaped >= 1) || soft >= 3
 }
 
 impl Inputrc {
@@ -68,6 +110,7 @@ impl Inputrc {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             sets: 0,
             ifs: 0,
@@ -157,5 +200,11 @@ mod tests {
         assert_eq!(c.bindings, 8);
         assert_eq!(c.includes, 1);
         assert_eq!(c.comments, 1);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -75,6 +75,9 @@ fn tuple_dep(line: &str) -> bool {
     let s = line.trim();
     s.starts_with("{:") || s.contains("{:")
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect a `mix.exs` file.
 #[must_use]
@@ -83,6 +86,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     // `use Mix.Project`/`MixProject`/`defp deps`/`app:`/`elixir:`
     // are mix-exclusive markers.
     let mut n = 0usize;
@@ -106,6 +110,7 @@ impl Mix {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             directives: 0,
             deps: 0,
@@ -156,5 +161,11 @@ mod tests {
     fn rejects_others() {
         assert!(!detect(b"x = 1\ny = 2\n"));
         assert!(!detect(b"# use Mix.Project\n# defp deps\nx = 1\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -67,6 +67,9 @@ fn has_key(t: &str, key: &str) -> bool {
     }
     false
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `.textlintrc` らしさを判定する(`rules`/`filters` トップキー必須)。
 ///
@@ -76,6 +79,7 @@ pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_bom(text);
     let mut joined = String::with_capacity(text.len());
     for line in text.lines() {
         let t = line.trim();
@@ -94,6 +98,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         options: 0,
         comments: 0,
@@ -145,5 +150,11 @@ mod tests {
         ));
         // Whitespace between key and colon still counts.
         assert!(detect(b"{\"rules\" : {\"no-todo\": true}}\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -43,6 +43,9 @@ pub struct Gomod {
     /// `//` comment lines.
     pub comments: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like go.mod.
 #[must_use]
@@ -50,6 +53,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines().any(|l| l.trim_start().starts_with("module "))
         && (t
             .lines()
@@ -64,6 +68,7 @@ impl Gomod {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             module: 0,
             go: 0,
@@ -156,5 +161,11 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"require (\n  x v1\n)\n"));
         assert!(Gomod::parse(b"x").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

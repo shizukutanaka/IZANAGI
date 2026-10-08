@@ -41,7 +41,10 @@ fn fields(line: &str) -> Vec<&str> {
     line.trim_end_matches('/').split(',').collect()
 }
 
-/// First line `01,` plus a `99,` file trailer identifies BAI2.
+/// First line `01,` plus at least one further BAI2 record (`02,`/`03,`/`16,`/
+/// `49,`/`88,`/`98,`/`99,`) identifies BAI2 — a truncated file without its
+/// `99,` file trailer is still recognizably BAI2, so the trailer itself is
+/// not required.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let s = match core::str::from_utf8(b) {
@@ -54,7 +57,14 @@ pub fn detect(b: &[u8]) -> bool {
         Some(l) => l.trim(),
         None => return false,
     };
-    first.starts_with("01,") && s.lines().any(|l| l.trim_start().starts_with("99,"))
+    first.starts_with("01,")
+        && s.lines().any(|l| {
+            let t = l.trim_start();
+            matches!(
+                t.get(..3),
+                Some("02," | "03," | "16," | "49," | "88," | "98," | "99,")
+            )
+        })
 }
 
 /// Parses the report; `None` without an `01` file header.
@@ -119,6 +129,12 @@ mod tests {
         assert!(detect(FIXTURE));
         assert!(!detect(b"01,only-header/"));
         assert!(!detect(b"account,report"));
+        // A truncated file (header + records, no `99,` trailer) is still BAI2.
+        let truncated = &FIXTURE[..FIXTURE.len() - 20];
+        assert!(detect(truncated));
+        assert!(parse(truncated).is_some());
+        // Unrelated numeric records do not qualify.
+        assert!(!detect(b"01,a,b\n42,x,y\n"));
     }
 
     #[test]

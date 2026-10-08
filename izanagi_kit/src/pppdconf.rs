@@ -12,7 +12,9 @@
 //!             mru 1492\n\
 //!             defaultroute\n\
 //!             usepeerdns\n\
-//!             persist\n";
+//!             persist\n\
+//!             lcp-echo-interval 30\n\
+//!             require-chap\n";
 //! assert!(izanagi_kit::pppdconf::detect(cfg));
 //! let c = izanagi_kit::pppdconf::parse(cfg).unwrap();
 //! assert!(c.flags >= 4);
@@ -273,18 +275,26 @@ const OPTION_KEYS: &[&str] = &[
 
 /// secrets 欄パターン判定用 — `client server "secret" ip` 型 4 欄行。
 fn is_secret_line(line: &str) -> bool {
-    let mut parts = line.split_whitespace();
-    let a = parts.next();
-    let b = parts.next();
-    let c = parts.next();
-    match (a, b, c) {
-        (Some(_), Some(_), Some(_)) => {
-            // 3 番目以降が `"` か `*`、または第 4 欄がある
-            let third = line.split_whitespace().nth(2).unwrap_or("");
-            third.starts_with('"') || third == "*"
-        }
-        _ => false,
+    // `client server "secret" [ip]` — pap/chap-secrets rows never carry
+    // `=`; the third whitespace field is the quoted secret (or `*`).
+    // A `key = "value"` line is not a secret.
+    if line.contains('=') {
+        return false;
     }
+    let mut parts = line.split_whitespace();
+    let (Some(_), Some(_), Some(third)) = (parts.next(), parts.next(), parts.next()) else {
+        return false;
+    };
+    if !(third.starts_with('"') || third == "*") {
+        return false;
+    }
+    // every field must be word-ish (`client`, `isp.example`, `*`) —
+    // `zone "x" {` or `key "v" }` lines with punctuation are not secrets
+    line.split_whitespace().all(|f| {
+        f.chars().all(|c| {
+            c.is_ascii_alphanumeric() || matches!(c, '"' | '.' | '-' | '_' | '*' | '@' | '/' | ':')
+        })
+    })
 }
 
 /// カウント結果。
@@ -311,7 +321,18 @@ pub struct Counts {
 /// `b` が pppd オプション/secrets 形式かどうか。
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
-    parse(b).is_some_and(|c| c.entries - c.misc >= 3 || c.secrets >= 1)
+    // OPTION_KEYS alone contains generic words (`user`, `name`, `lock`,
+    // `debug`, `mtu`) that appear in many config formats; a pppd file is
+    // only recognisable once protocol-specific keys (`lcp-*`, `pap*`,
+    // `chap*`, `require*`/`refuse*`/`no*`) or a chap-style secret line
+    // appear — hook words (`file`, `set`, `options`, …) are too common
+    // to count as evidence on their own.
+    parse(b).is_some_and(|c| {
+        // `options`/`flags`/`negations` are the only buckets gated on
+        // OPTION_KEYS — hook words (`file`, `set`, `options`, `record`)
+        // appear in many formats, so they must not count as evidence
+        (c.options + c.flags + c.negations) >= 2 && c.proto >= 1 || c.secrets >= 1
+    })
 }
 
 /// `b` を pppd 設定ファイルとして解析する。
@@ -354,10 +375,14 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
                 .split_whitespace()
                 .nth(1)
                 .is_some_and(|v| !v.starts_with('#'));
-        if (head.starts_with("no") && OPTION_KEYS.contains(&head))
-            || head.starts_with("refuse-")
-            || head.starts_with("require-")
-            || head.starts_with("allow-")
+        // `no*`/`refuse-*`/`require-*`/`allow-*` must still be real pppd
+        // keys — a foreign config's `allow-override` or `require-ssl`
+        // is not a pppd negation
+        if OPTION_KEYS.contains(&head)
+            && (head.starts_with("no")
+                || head.starts_with("refuse-")
+                || head.starts_with("require-")
+                || head.starts_with("allow-"))
         {
             c.negations += 1;
         } else if head.starts_with("lcp-")
@@ -366,8 +391,12 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             || head.starts_with("ipv6")
             || head.starts_with("ipx")
             || head.starts_with("eap-")
-            || head.starts_with("chap")
-            || head.starts_with("pap")
+            || head == "chap"
+            || head.starts_with("chap-")
+            || head.starts_with("chapms")
+            || head == "pap"
+            || head == "papcrypt"
+            || head.starts_with("pap-")
             || head.starts_with("bsdcomp")
             || head.starts_with("deflate")
             || head.starts_with("mppe")

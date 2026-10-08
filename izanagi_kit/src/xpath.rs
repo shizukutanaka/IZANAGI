@@ -77,24 +77,105 @@ const FN: &[&str] = &[
     "substring-before(",
     "substring-after(",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
-/// Detects XPath: a `/` step or `//` or `@` or `axis::`.
+/// Detects XPath: an *expression-shaped* input — at most a few
+/// non-empty lines — carrying an XPath-exclusive marker (`//step`,
+/// `[@`, a `name::` axis or a `name(` function) or an absolute
+/// `/step/step` path. Any `/` or `@` inside a longer document is not
+/// a query.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let t = t.trim();
-    (t.contains("//") || t.starts_with('/') || t.contains('@') || t.contains("::"))
-        && t.bytes().all(|c| c.is_ascii())
-        && !t.contains("http")
-        && !t.contains("<?xml")
+    if t.is_empty()
+        || !t.bytes().all(|c| c.is_ascii())
+        || t.contains("http")
+        || t.contains("<?xml")
+        || t.lines().filter(|l| !l.trim().is_empty()).count() > 3
+    {
+        return false;
+    }
+    // `//` followed by a node-test start (`//book`, `//*`, `//@`,
+    // `//.`, `//[`). `// comment` prose and `a // b` division miss.
+    let mut hits = 0usize;
+    {
+        let bb = t.as_bytes();
+        let mut i = 0;
+        while let Some(p) = t[i..].find("//") {
+            let at = i + p;
+            match bb.get(at + 2) {
+                Some(&c)
+                    if c.is_ascii_alphabetic() || matches!(c, b'*' | b'@' | b'.' | b'[' | b'(') =>
+                {
+                    hits += 1;
+                }
+                _ => {}
+            }
+            i = at + 2;
+        }
+    }
+    hits += t.matches("[@").count();
+    for name in FN {
+        if t.contains(name) {
+            hits += 1;
+        }
+    }
+    for axis in [
+        "ancestor::",
+        "attribute::",
+        "child::",
+        "descendant::",
+        "following-sibling::",
+        "following::",
+        "namespace::",
+        "parent::",
+        "preceding-sibling::",
+        "preceding::",
+        "self::",
+    ] {
+        if t.contains(axis) {
+            hits += 1;
+        }
+    }
+    // absolute location path `/a/b` — all steps name-ish
+    let path = t.starts_with('/')
+        && t.len() > 1
+        && t[1..].split('/').all(|s| {
+            !s.is_empty()
+                && s.chars().all(|c| {
+                    c.is_ascii_alphanumeric()
+                        || matches!(
+                            c,
+                            '_' | '-'
+                                | '.'
+                                | '*'
+                                | '@'
+                                | '('
+                                | ')'
+                                | '['
+                                | ']'
+                                | '\''
+                                | '"'
+                                | '='
+                                | ' '
+                                | ':'
+                        )
+                })
+        });
+    hits >= 1 || path
 }
 
 /// Parses an XPath expression; `None` on non-UTF-8 or missing steps.
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Xpath> {
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     if !detect(b) {
         return None;
     }
@@ -205,5 +286,17 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"just text").is_none());
+        // `@` inside prose is not an attribute axis
+        assert!(!detect(b"contact a@b.com or c@d.net\n"));
+        // `//` inside a longer document is not a query
+        assert!(!detect(
+            b"line one\nsee //x/y docs\nline three\nline four\n"
+        ));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

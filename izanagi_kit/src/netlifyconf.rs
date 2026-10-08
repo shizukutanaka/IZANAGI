@@ -46,6 +46,9 @@ const FEATURE_ARRAYS: &[&str] = &[
     "functions",
     "images",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `netlify.toml` らしさを返す。
 #[must_use]
@@ -53,6 +56,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     for l in t.lines() {
         let s = l.trim();
@@ -78,6 +82,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut c = Counts {
         assigns: 0,
         tables: 0,
@@ -163,5 +168,11 @@ mod tests {
         let c = parse(b"[build]\n  command = \"x\"\n[[redirects]]\n  from = \"a\"\n").unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

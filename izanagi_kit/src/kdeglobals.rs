@@ -75,10 +75,14 @@ fn is_section(t: &str) -> bool {
         || t.starts_with("[Colors:")
         || t.starts_with("[ColorEffects:")
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が kdeglobals に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let mut secs = 0usize;
     let mut keys = 0usize;
     for l in t.lines() {
@@ -112,6 +116,7 @@ pub struct Kdeglobals {
 /// `b` を kdeglobals として統計する。
 pub fn parse(b: &[u8]) -> Kdeglobals {
     let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let mut c = Kdeglobals::default();
     for l in t.lines() {
         let tr = l.trim();
@@ -165,5 +170,11 @@ mod tests {
         assert!(!detect(&[0xff, 0xfe, 0x00, 0x01, 0x90]));
         let c = parse(b"");
         assert_eq!(c.sections, 0);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

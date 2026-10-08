@@ -54,6 +54,11 @@ impl Cyk {
     /// Build the recognizer; rules may repeat and order never
     /// matters — the grammar is a set.
     pub fn new(nt: usize, rules: &[Rule]) -> Self {
+        // `u64` bitmasks over the nonterminals — at most 64 exist.
+        assert!(
+            nt <= 64,
+            "cyk: {nt} nonterminals exceed the u64 mask domain"
+        );
         let mut bin = vec![vec![0u64; nt]; nt];
         let mut term = [0u64; 256];
         for &r in rules {
@@ -279,5 +284,14 @@ mod tests {
         assert!(!g.accepts(b"xx"));
         assert_eq!(g.cell(b"x", 0, 0), 0);
         assert_eq!(g.cell(b"", 0, 0), 0);
+    }
+
+    #[test]
+    #[should_panic(expected = "u64 mask domain")]
+    fn grammar_beyond_the_mask_domain_is_rejected() {
+        // Nonterminal masks are u64 — a grammar over ≥ 65 nonterminals
+        // can't be represented; `1u64 << lhs` previously wrapped to
+        // `lhs & 63` and corrupted the grammar. Assert the contract.
+        Cyk::new(65, &[Rule::Term(0, b'a')]);
     }
 }

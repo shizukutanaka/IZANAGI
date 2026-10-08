@@ -85,7 +85,7 @@ pub struct Qcow {
 impl Qcow {
     /// Bytes per cluster.
     pub fn cluster_size(&self) -> u64 {
-        1u64 << self.cluster_bits
+        1u64.checked_shl(self.cluster_bits).unwrap_or(u64::MAX)
     }
     /// L2 entries per cluster (all entries are 8 bytes).
     pub fn l2_entries(&self) -> u64 {
@@ -100,7 +100,7 @@ impl Qcow {
     }
     /// `true` when bit `b` of the incompatible mask is set.
     pub fn incompat(&self, b: u32) -> bool {
-        self.incompat & (1u64 << b) != 0
+        b < 64 && (self.incompat & (1u64 << b)) != 0
     }
 }
 
@@ -248,5 +248,17 @@ mod tests {
         let mut h4 = hdr(2);
         h4[40..48].copy_from_slice(&be64(u64::MAX)); // L1 way past EOF
         assert!(parse(&h4).is_none());
+    }
+
+    #[test]
+    fn pub_fields_bypass_shift_bounds() {
+        // `cluster_bits`/`incompat` are `pub` — a struct mutated past the
+        // parse-time range check must not wrap `1u64 << n` to bit 0.
+        let mut q = parse(&hdr(2)).unwrap();
+        q.cluster_bits = 64;
+        assert_eq!(q.cluster_size(), u64::MAX); // was `1u64 << 64` → wrapped to 1
+        q.incompat = 1;
+        assert!(!q.incompat(64)); // was `incompat & (1 << 0)` — bit 0's value
+        assert!(q.incompat(0));
     }
 }

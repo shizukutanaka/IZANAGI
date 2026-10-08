@@ -73,6 +73,9 @@ const ATTR_KEYS: &[&str] = &[
     "classification",
     "uuid",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `west.yml` らしさを返す。`manifest:` と `remotes:`/`projects:` の組合せ。
 #[must_use]
@@ -80,6 +83,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     for l in t.lines() {
         let s = l.trim();
@@ -123,6 +127,7 @@ fn line_key(s: &str) -> Option<&str> {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut c = Counts {
         keys: 0,
         sections: 0,
@@ -216,5 +221,11 @@ mod tests {
         let c = parse(b"manifest:\n    remotes:\n        - name: a\n").unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

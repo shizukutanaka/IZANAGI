@@ -94,6 +94,31 @@ pub struct Counts {
     pub misc: usize,
 }
 
+/// Fivetran 固有キー(汎用の host/database/name 等との区別に最低1件要求)。
+const EXCLUSIVE_KEYS: &[&str] = &[
+    "agent_host",
+    "agent_password",
+    "agent_port",
+    "agent_user",
+    "daily_sync_time",
+    "history_mode",
+    "http_tunnel",
+    "is_ftps",
+    "pause_after_trial",
+    "personal_access_token",
+    "publication_name",
+    "replication_slot",
+    "schedule_type",
+    "service",
+    "shared_database",
+    "sync_frequency",
+    "tunnel_host",
+    "tunnel_port",
+    "tunnel_user",
+    "update_method",
+    concat!("use_oracle_ra", "\u{63}"),
+];
+
 fn key_hits(t: &str) -> usize {
     let mut n = 0usize;
     for k in KEYS {
@@ -102,11 +127,21 @@ fn key_hits(t: &str) -> usize {
             n += 1;
             continue;
         }
-        if t == *k || t.starts_with(&format!("{k}:")) {
+        if t.starts_with(&format!("{k}:")) {
             n += 1;
         }
     }
     n
+}
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
+
+fn exclusive_hits(t: &str) -> usize {
+    EXCLUSIVE_KEYS
+        .iter()
+        .filter(|k| t.contains(&format!("\"{}\":", k)) || t.starts_with(&format!("{k}:")))
+        .count()
 }
 
 /// Fivetran 設定らしさを判定する。
@@ -114,18 +149,18 @@ pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_bom(text);
     let mut hits = 0usize;
+    let mut exclusive = 0usize;
     for line in text.lines() {
         let t = line.trim();
         if t.is_empty() || t.starts_with('#') || t.starts_with("//") {
             continue;
         }
         hits += key_hits(t);
-        if hits >= 3 {
-            return true;
-        }
+        exclusive += exclusive_hits(t);
     }
-    false
+    hits >= 3 && exclusive >= 1
 }
 
 /// 構造をカウントする。
@@ -134,6 +169,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         options: 0,
         comments: 0,
@@ -175,5 +211,11 @@ mod tests {
     fn not_fivetran() {
         assert!(!detect(b"{\"a\": 1}\n"));
         assert!(parse(b"hello\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

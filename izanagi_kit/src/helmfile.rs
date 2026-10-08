@@ -61,6 +61,9 @@ const TOP_KEYS: &[&str] = &[
     "helmVersion",
     "helmArgs",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect helmfile.yaml content.
 #[must_use]
@@ -69,6 +72,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut releases = false;
     let mut tops = 0usize;
     for line in t.lines() {
@@ -97,6 +101,7 @@ impl Helmfile {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             releases: 0,
             repositories: 0,
@@ -207,5 +212,11 @@ mod tests {
         assert!(c.sections >= 4);
         assert!(c.items >= 8);
         assert_eq!(c.comments, 1);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -49,12 +49,30 @@ fn section_body<'a>(t: &'a str, name: &str) -> Option<&'a str> {
     Some(&body[..j])
 }
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Detects a `.csd` file: `<CsoundSynthesizer>` root + a known section.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_comments(t);
     t.contains("<CsoundSynthesizer>") && SECTIONS.iter().any(|s| t.contains(&format!("<{s}>")))
 }
 
@@ -64,18 +82,18 @@ pub fn parse(b: &[u8]) -> Option<Csd> {
     if !detect(b) {
         return None;
     }
-    let t = std::str::from_utf8(b).ok()?;
+    let t = strip_comments(std::str::from_utf8(b).ok()?);
     let mut s = Csd {
         instruments: 0,
         score_events: 0,
         options: 0,
-        has_license: section_body(t, "CsLicense").is_some(),
-        has_version: section_body(t, "CsVersion").is_some(),
+        has_license: section_body(&t, "CsLicense").is_some(),
+        has_version: section_body(&t, "CsVersion").is_some(),
         opcodes: 0,
         stray_tags: 0,
         comment_lines: 0,
     };
-    if let Some(inst) = section_body(t, "CsInstruments") {
+    if let Some(inst) = section_body(&t, "CsInstruments") {
         for line in inst.lines() {
             let l = line.trim();
             if l.starts_with(';') || l.starts_with("//") {
@@ -89,14 +107,14 @@ pub fn parse(b: &[u8]) -> Option<Csd> {
             }
         }
     }
-    if let Some(score) = section_body(t, "CsScore") {
+    if let Some(score) = section_body(&t, "CsScore") {
         s.score_events = score
             .lines()
             .map(|l| l.trim())
             .filter(|l| !l.is_empty() && !l.starts_with(';'))
             .count();
     }
-    if let Some(opts) = section_body(t, "CsOptions") {
+    if let Some(opts) = section_body(&t, "CsOptions") {
         s.options = opts
             .lines()
             .map(|l| l.trim())
@@ -156,5 +174,16 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"<CsoundSynthesizer/>").is_none());
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

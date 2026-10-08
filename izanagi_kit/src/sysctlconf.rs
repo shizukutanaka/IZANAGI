@@ -42,6 +42,7 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut dotted = 0usize;
+    let mut sysctl_root = 0usize;
     for l in t.lines() {
         let s = l.trim();
         let Some(eq) = s.find('=') else {
@@ -55,9 +56,18 @@ pub fn detect(b: &[u8]) -> bool {
             })
         {
             dotted += 1;
+            // `a.b.c=v` は Java properties 等他形式でも現れる — 先頭要素が
+            // sysctl の既知サブツリーであることを要求する。
+            let root = k.split('.').next().unwrap_or("");
+            if matches!(
+                root,
+                "kernel" | "vm" | "net" | "fs" | "dev" | "debug" | "abi" | "user" | "sunrpc"
+            ) {
+                sysctl_root += 1;
+            }
         }
     }
-    dotted >= 2
+    dotted >= 2 && sysctl_root >= 1
 }
 
 /// ファイル全体を走査して [`Counts`] を返す。

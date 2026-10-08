@@ -73,6 +73,9 @@ const CONFIG_KEYS: &[&str] = &[
     "snapshot",
     "updateInternalDependencies",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が Changesets 関連ファイルに見えるかを判定する。
 ///
@@ -81,6 +84,7 @@ const CONFIG_KEYS: &[&str] = &[
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     if jkey(t, "changelog") && jkey(t, "baseBranch") {
         return true;
     }
@@ -95,6 +99,7 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         return None;
     }
     let t = core::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let mut c = Counts {
         config_keys: 0,
         semver_entries: 0,
@@ -157,5 +162,11 @@ mod tests {
         assert_eq!(c.semver_entries, 2);
         assert_eq!(c.fences, 2);
         assert!(parse(b"plain markdown\n---\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

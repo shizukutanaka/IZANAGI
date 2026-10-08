@@ -77,7 +77,12 @@ pub fn parse(d: &[u8]) -> Option<Junit> {
     let head = loop {
         let s = text[pos..].find('<')? + pos;
         if text[s..].starts_with("<?") || text[s..].starts_with("<!--") {
-            let e = text[s..].find('>')? + s;
+            let e = if text[s..].starts_with("<!--") {
+                // `<!--` コメントは `-->` まで読み飛ばす(コメント内の `>` で誤終了しない)。
+                text[s..].find("-->")? + s + 2
+            } else {
+                text[s..].find('>')? + s
+            };
             pos = e + 1;
             continue;
         }

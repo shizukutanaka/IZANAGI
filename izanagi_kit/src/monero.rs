@@ -161,7 +161,7 @@ pub fn detect(b: &[u8]) -> bool {
     t.lines()
         .filter(|l| {
             let s = l.trim();
-            key_of(s).is_some_and(|k| KNOWN.contains(&k) || k.contains('-'))
+            key_of(s).is_some_and(|k| KNOWN.contains(&k))
         })
         .count()
         >= 2
