@@ -51,12 +51,30 @@ const IDENTITY_ATTRS: &[&str] = &[
     "docker-enabled",
 ];
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Detects controller-info.xml.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = core::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_comments(t);
     t.contains("<controller-info")
         || (t.contains("controller-host") && t.contains("<property "))
         || (t.contains("appdynamics") && t.contains('<'))
@@ -73,6 +91,7 @@ impl Appdynamics {
         let Ok(t) = core::str::from_utf8(b) else {
             return None;
         };
+        let t = strip_comments(t);
         let mut c = Self {
             attributes: 0,
             properties: 0,
@@ -140,5 +159,16 @@ mod tests {
     #[test]
     fn rejects() {
         assert!(Appdynamics::parse(b"plain").is_none());
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

@@ -6916,6 +6916,29 @@ bare_cvar_names_do_not_count)。
 - 432モジュールの深いパース経路を新規カバー
   (共有fodderがdetect閾値を通らず early-return していた領域)。
 - 抽出器の劣化を防ぐ `covered >= 400` の下限 assert 付き。
+## 第394次
+
+全量監査(長所50/短所50)に基づき、XML系検出器の複数行
+`<!-- -->` コメント内記述がアクティブな設定として計数・
+合致する欠陥クラスを一括修正。
+
+- 修正した構造:各行で `tr.starts_with("<!--")` を見るだけ
+  だったため、複数行コメントの2行目以降に書かれたタグ/要素が
+  有効行として採用されていた。
+- strip_comments ヘルパー(String返却、`<!--`〜`-->`を
+  複数行対応で除去、未終了コメントは末尾まで除去)を
+  43モジュールへ導入し decode 直後に適用。
+- `comments` 統計フィールドを持つ11モジュール(clickhouse,
+  gtksrclang, jellyfin, katesyntax, ketl, ossecconf,
+  solrconfig, solrschema, sonarr, sysmonconf, xacml)は
+  detectのみstrip、parseはコメント計数の仕様維持。
+- autoyast(comments意図計数), dita/docbook/icecast/verilog
+  (自前処理済), sevendtdxml(前回修正済)は据置。
+- junitのヘッドスキャンは `<!--` 内の `>` で誤終了していた
+  ので `-->` まで読み飛ばすよう修正。
+- 回帰テスト xml_comments_are_stripped を42モジュールに追加。
+||||||| 2fe94df
+||||||| 756a77a
 ## 第395次
 
 監査(長所50/短所50、第2回)に基づき、UTF-8 BOM (U+FEFF) 付き
