@@ -22,6 +22,7 @@
 //! ```
 
 /// Parsed MAC descriptor + APE header fields.
+#[derive(Debug)]
 pub struct Ape {
     /// Version number ×1000-ish (e.g. 3998 = 3.998).
     pub version: u16,

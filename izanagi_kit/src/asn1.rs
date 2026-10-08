@@ -16,6 +16,7 @@
 //! ```
 
 /// A censused ASN.1 module.
+#[derive(Debug)]
 pub struct Asn1 {
     /// Module name before `DEFINITIONS`.
     pub module: String,

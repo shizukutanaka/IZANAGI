@@ -16,6 +16,7 @@
 //! ```
 
 /// A censused GraphQL SDL document.
+#[derive(Debug)]
 pub struct Graphql {
     /// `type X` object-type declarations.
     pub types: u32,

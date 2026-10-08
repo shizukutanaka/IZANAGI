@@ -47,6 +47,7 @@ pub struct ZplCmd {
 }
 
 /// A full ZPL label (`^XA` ... `^XZ`).
+#[derive(Debug)]
 pub struct Zpl {
     /// Commands in order.
     pub cmds: Vec<ZplCmd>,

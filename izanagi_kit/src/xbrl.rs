@@ -16,6 +16,7 @@
 //! ```
 
 /// A censused XBRL instance document.
+#[derive(Debug)]
 pub struct Xbrl {
     /// `context` resources with an `id` attribute.
     pub contexts: u32,

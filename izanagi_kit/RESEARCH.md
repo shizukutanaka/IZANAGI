@@ -7009,6 +7009,29 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
 
+## 第403次 — 監査(パース出力の検査可能性) + 契約テスト
+
+### 角度
+「parse=Someでも中身が空なら情報価値ゼロ」— パース結果の意味忠実度と検査可能性を測定。
+
+### 計測結果
+- 全1225 PARSERSに対し「`parse`結果がDebugで表示可能か」を静的検査: 40件がDebug未導出(Afp, Ape, Asn1, Au, Bacnet, Bai2, Bufr, Camt, Ccsds, Datagram(ethercat), Dsf, EscPos, Excellon, Fidl, Fixml, Fpml, Gerber, Graphql, Idl, KnxIp, midi::Ev/Track, Midi, Mp3, Mseed<'_>, OpenApi, Pain, Pcl, Pds<'_>, Rf64, S7, Sac, Segy, Smithy, Su, SwiftMt, Tta, Wsdl, Wv, Xbrl, Zpl, mbus::Frame/Short/Long)。
+- 自fixture→typed parseプローブ(418 fixture): NOPARSE=60(全てMAGIC/SIG等の断片const — 意図的), EMPTY=2(断片入力に対する正当な空結果), informative=356 → パース出力の忠実度は健全。
+- PARSERS返り値シグネチャ分類: `Option<T>`=1104, 非Option(`Vec<Entry>`, `bool`(snappy), `Result<Json,Error>`, 裸`*Conf` struct)=103, ライフタイム借用(`Option<T<'_>>`)=18。
+- DETECTORS(1344)/PARSERS(1225)の非対称: detect-only=663, parse-only=544, 共通=681。implメソッド形式`X::parse`(663件)はPARSERSの`mod::parse`規約に合わずレジストリ未到達。
+- parseを持つが名前が`mod::parse`でない亜種: parse_tcp/parse_xml/parse_str/parse_multiline/parse_line/parse_tree等。
+
+### 対応
+- `#[derive(Debug)]` を欠落していた40型(37ファイル)に追加。
+- 新規テスト `tests/parsers_are_debug.rs`: 全1225登録パーサの返り値に対し `assert_debug` をコンパイル時適用 — Debug欠落の再発を型レベルで防止。
+
+### 残課題
+- 非Option返り値103件は「失敗の表現不能」— `snappy::parse -> bool`はそもそもparseではなくpredicate。裸`Conf`返り値は入力無検証(常に成功)でdetectと等価の情報しか返さない。
+- implメソッド形式のparse 663件はcensus APIから到達不能。
+- ライフタイム借用18件は所有権契約が他と非対称(入力の生存期間に制約)。
+- detect-only/parse-onlyの分割が恣意的かどうかの整理(共通681が真のcensus対象)。
+
+
 ## 第404次 — 監査(detect⇔parse双方向契約) + bai2切詰耐性
 
 ### 角度

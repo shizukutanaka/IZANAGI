@@ -15,6 +15,7 @@
 //! ```
 
 /// A censused ISO 20022 camt message.
+#[derive(Debug)]
 pub struct Camt {
     /// 3-digit message suffix from the namespace (`052`/`053`/`054`/`060`…).
     pub camt_code: String,

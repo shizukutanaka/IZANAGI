@@ -19,6 +19,7 @@
 //! ```
 
 /// Short frame (control) body.
+#[derive(Debug)]
 pub struct Short {
     /// C-field (function code).
     pub ctrl: u8,
@@ -27,6 +28,7 @@ pub struct Short {
 }
 
 /// Long frame (control/data) body.
+#[derive(Debug)]
 pub struct Long {
     /// L-field: byte count between the two `0x68` delimiters exclusive of them — i.e. C..data.
     pub len: u8,
@@ -43,6 +45,7 @@ pub struct Long {
 }
 
 /// A parsed M-Bus frame.
+#[derive(Debug)]
 pub enum Frame {
     /// Single-byte acknowledgement `0xE5`.
     Ack,

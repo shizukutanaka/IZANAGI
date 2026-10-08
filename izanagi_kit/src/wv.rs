@@ -18,6 +18,7 @@
 //! ```
 
 /// Parsed WavPack block header.
+#[derive(Debug)]
 pub struct Wv {
     /// Declared block byte size (header included); must not exceed input.
     pub block_size: u32,

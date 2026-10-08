@@ -42,6 +42,7 @@ pub enum Op {
 }
 
 /// Scanned ESC/POS stream.
+#[derive(Debug)]
 pub struct EscPos {
     /// Operations in order.
     pub ops: Vec<Op>,

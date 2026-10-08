@@ -15,6 +15,7 @@
 //! ```
 
 /// A censused FIDL file.
+#[derive(Debug)]
 pub struct Fidl {
     /// `library a.b.c;` name.
     pub library: String,
