@@ -88,7 +88,7 @@ fn u64le(d: &[u8], off: usize) -> u64 {
 impl F2fs {
     /// Block size in bytes (`1 << log_block_size`).
     pub fn block_size(&self) -> u64 {
-        1u64 << self.log_block_size
+        1u64.checked_shl(self.log_block_size).unwrap_or(u64::MAX)
     }
 }
 
@@ -189,5 +189,14 @@ mod tests {
     fn detect_works() {
         assert!(detect(&f2fs()));
         assert!(!detect(b"mkfs"));
+    }
+
+    #[test]
+    fn pub_fields_bypass_shift_bounds() {
+        // `log_block_size` is `pub` — mutate it past the parse-time
+        // `10..=16` check and `block_size` must saturate, not wrap.
+        let mut x = parse(&f2fs()).unwrap();
+        x.log_block_size = 64;
+        assert_eq!(x.block_size(), u64::MAX); // was `1u64 << 64` → wrapped to 1
     }
 }

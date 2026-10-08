@@ -80,6 +80,9 @@ pub struct Chef {
     /// `lazy`/`sensitive`/`ignore_failure`/`retries` properties.
     pub extras: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a Chef recipe.
 #[must_use]
@@ -87,6 +90,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut res = false;
     for l in t.lines() {
         let s = l.trim();
@@ -108,6 +112,7 @@ impl Chef {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             resources: 0,
             blocks: 0,
@@ -205,5 +210,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Chef::parse(b"puts 'hi'").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

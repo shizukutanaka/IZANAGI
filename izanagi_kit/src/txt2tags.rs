@@ -103,7 +103,19 @@ pub fn parse(d: &[u8]) -> Option<Txt2tags> {
 
 /// `true` if the buffer looks like a txt2tags document.
 pub fn detect(d: &[u8]) -> bool {
-    parse(d).is_some()
+    let Some(c) = parse(d) else {
+        return false;
+    };
+    // `- ` bullets and `* ` lists alone match every markdown-ish file;
+    // txt2tags needs a distinctive family: `%!` directives, `= title =`
+    // headings, `|a|b|` table rows, `+ ` numbered items, or `**`/`//`
+    // spans that markdown does not use
+    c.directives >= 1
+        || c.headings >= 1
+        || c.table_rows >= 1
+        || c.numbered >= 1
+        || ((c.bold_spans + c.italic_spans) >= 1
+            && (c.bullets + c.numbered + c.headings + c.table_rows) >= 1)
 }
 
 #[cfg(test)]

@@ -85,6 +85,9 @@ fn array_entries(t: &str, key: &str) -> (usize, usize) {
     }
     (objs + strings, objs)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like vcpkg.json.
 #[must_use]
@@ -92,6 +95,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.trim_start().starts_with('{')
         && t.contains("\"name\"")
         && (t.contains("\"dependencies\"")
@@ -108,6 +112,7 @@ impl Vcpkg {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let (deps, objs) = array_entries(t, "dependencies");
         let (overrides, _) = array_entries(t, "overrides");
         let (features, _) = array_entries(t, "features");
@@ -180,5 +185,11 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"{}"));
         assert!(Vcpkg::parse(b"x").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

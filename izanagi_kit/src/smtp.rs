@@ -35,8 +35,21 @@ pub enum Msg {
     },
 }
 
+/// Command verbs: the RFC 5321 core set plus widely deployed ESMTP
+/// extensions and the RFC 821 legacy verbs. `X`-prefixed vendor verbs
+/// (e.g. Postfix `XCLIENT`) are also accepted.
+const COMMAND_VERBS: &[&str] = &[
+    "AUTH", "BDAT", "DATA", "EHLO", "ETRN", "EXPN", "HELO", "HELP", "MAIL", "NOOP", "QUIT", "RCPT",
+    "RSET", "SAML", "SEND", "SOML", "STARTTLS", "TURN", "VRFY",
+];
+
+fn known_verb(verb: &str) -> bool {
+    verb.get(..1).is_some_and(|c| c.eq_ignore_ascii_case("X"))
+        || COMMAND_VERBS.iter().any(|v| v.eq_ignore_ascii_case(verb))
+}
+
 /// Parse one SMTP line (no trailing CR/LF); `None` on empty or
-/// malformed input.
+/// malformed input or a command verb outside the RFC 5321 set.
 pub fn parse_line(line: &[u8]) -> Option<Msg> {
     let s = std::str::from_utf8(line)
         .ok()?
@@ -67,6 +80,9 @@ pub fn parse_line(line: &[u8]) -> Option<Msg> {
         return None;
     }
     let verb = &s[..verb_end];
+    if !known_verb(verb) {
+        return None;
+    }
     let rest = s.get(verb_end..)?;
     let arg = if rest.is_empty() {
         ""
@@ -171,6 +187,11 @@ mod tests {
         assert!(parse_line(b"").is_none());
         assert!(parse_line(b"25X bad").is_none());
         assert!(parse_line(b"!!!").is_none());
+        assert!(parse_line(b"FROBNICATE x").is_none()); // not an SMTP command
+        assert!(parse_line(b"hello world").is_none());
+        assert!(parse(b"the quick brown fox jumps over\n").is_none());
+        // `X…` vendor verbs stay accepted.
+        assert!(parse_line(b"XCLIENT NAME=x").is_some());
     }
 
     #[test]

@@ -149,6 +149,9 @@ const CMDS: &[&str] = &[
     "snippingtool",
     "cmd",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// cmd 固有の信号: `set /a`,`%~`,`%X%` 変数,`errorlevel`,`nul` リダイレクト,
 /// `if exist`,`call :label`,`::` ラベル行…は他言語では出ない。
@@ -229,6 +232,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     let mut exclusive = 0usize;
     for l in t.lines() {
@@ -257,6 +261,7 @@ impl Cmdbat {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             commands: 0,
             sets: 0,
@@ -327,5 +332,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Cmdbat::parse(b"hello\nworld\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

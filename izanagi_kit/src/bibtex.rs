@@ -164,6 +164,9 @@ pub fn parse(d: &[u8]) -> Option<Bib> {
             fields,
         });
     }
+    if entries.is_empty() && d.iter().any(|&b| !b.is_ascii_whitespace()) {
+        return None;
+    }
     Some(Bib { entries })
 }
 
@@ -185,5 +188,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"@article").is_none());
         assert!(parse(b"@x{k, f = {unclosed\n").is_none());
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

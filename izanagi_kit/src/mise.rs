@@ -92,11 +92,15 @@ pub struct Counts {
     /// その他の行数。
     pub misc: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が `mise.toml` に見えるかを判定する。
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = core::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let mut in_tools = false;
     let mut has_tools_section = false;
     let mut has_known_tool = false;
@@ -129,6 +133,7 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         return None;
     }
     let t = core::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let mut c = Counts {
         tools: 0,
         sections: 0,
@@ -189,5 +194,11 @@ mod tests {
         assert_eq!(c.tools, 2);
         assert_eq!(c.sections, 3);
         assert!(parse(b"[package]\nname = \"x\"\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

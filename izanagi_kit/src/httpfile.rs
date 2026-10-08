@@ -40,6 +40,9 @@ fn is_request(l: &str) -> bool {
     let mut it = l.split_whitespace();
     it.next().is_some_and(|m| METHODS.contains(&m)) && it.next().is_some()
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` when the text looks like a `.http` file.
 #[must_use]
@@ -47,6 +50,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines().filter(|l| is_request(l.trim())).count() >= 1
         && (t.contains("###")
             || t.lines()
@@ -59,6 +63,7 @@ impl Httpfile {
     /// Parses `b` into `Httpfile`.
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = from_utf8(b).ok()?;
+        let t = strip_bom(t);
         if !detect(b) {
             return None;
         }
@@ -164,5 +169,11 @@ mod tests {
         assert_eq!(h.queries, 1);
         assert_eq!(h.method_kinds, 2);
         assert!(Httpfile::parse(b"").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

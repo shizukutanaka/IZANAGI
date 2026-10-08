@@ -35,8 +35,48 @@ pub enum Msg {
     },
 }
 
+/// Command verbs: the RFC 3977 core set plus common reader/feeder
+/// extensions. `X`-prefixed vendor verbs are also accepted.
+const COMMAND_VERBS: &[&str] = &[
+    "ARTICLE",
+    "AUTHINFO",
+    "BODY",
+    "CAPABILITIES",
+    "CHECK",
+    "DATE",
+    "GROUP",
+    "HDR",
+    "HEAD",
+    "HELP",
+    "IHAVE",
+    "LAST",
+    "LIST",
+    "LISTGROUP",
+    "MODE",
+    "NEWGROUPS",
+    "NEWNEWS",
+    "NEXT",
+    "OVER",
+    "POST",
+    "QUIT",
+    "SLAVE",
+    "STAT",
+    "STARTTLS",
+    "TAKETHIS",
+    "XFEATURE",
+    "XGTITLE",
+    "XHDR",
+    "XOVER",
+    "XPAT",
+];
+
+fn known_verb(verb: &str) -> bool {
+    verb.get(..1).is_some_and(|c| c.eq_ignore_ascii_case("X"))
+        || COMMAND_VERBS.iter().any(|v| v.eq_ignore_ascii_case(verb))
+}
+
 /// Parse one NNTP line (no trailing CR/LF); `None` on empty/malformed
-/// input.
+/// input or a command verb outside the RFC 3977 set.
 pub fn parse_line(line: &[u8]) -> Option<Msg> {
     let s = std::str::from_utf8(line)
         .ok()?
@@ -67,6 +107,9 @@ pub fn parse_line(line: &[u8]) -> Option<Msg> {
         return None;
     }
     let verb = &s[..verb_end];
+    if !known_verb(verb) {
+        return None;
+    }
     let rest = s.get(verb_end..)?;
     let arg = if rest.is_empty() {
         ""
@@ -150,6 +193,11 @@ mod tests {
         assert!(parse_line(b"123abc").is_none());
         assert!(parse_line(b"!cmd").is_none());
         assert!(parse_line(b"").is_none());
+        assert!(parse_line(b"FROBNICATE x").is_none()); // not an NNTP command
+        assert!(parse_line(b"hello world").is_none());
+        assert!(parse(b"the quick brown fox jumps over\n").is_none());
+        // `X…` vendor verbs stay accepted.
+        assert!(parse_line(b"xgtitle alt.test").is_some());
     }
 
     #[test]

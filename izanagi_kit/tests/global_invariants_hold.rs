@@ -600,6 +600,40 @@ fn panicking_macro_allowlist() -> BTreeMap<&'static str, (usize, &'static str)> 
         ),
     );
     m.insert(
+        "izanagi_kit/cyk.rs",
+        (
+            1,
+            "nonterminal masks are u64 — a grammar over > 64 nonterminals \
+             cannot be represented; silently wrapping `1u64 << lhs` to \
+             `lhs & 63` corrupted the grammar",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/meetmid.rs",
+        (
+            1,
+            "subset_sums enumerates 2^len subsets — len >= usize::BITS can \
+             never fit; release's masked shift produced a hint of 1 and a \
+             silently truncated enumeration",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/sosdp.rs",
+        (
+            1,
+            "table(bits) allocates 2^bits entries — bits >= usize::BITS \
+             wrapped to a one-element table in release",
+        ),
+    );
+    m.insert(
+        "izanagi_kit/bdd.rs",
+        (
+            1,
+            "count_sat multiplies by 2^nvars — nvars >= 128 wrapped the \
+             u128 shift to `nvars & 127` and returned the wrong count",
+        ),
+    );
+    m.insert(
         "izanagi/tilemap.rs",
         (
             1,

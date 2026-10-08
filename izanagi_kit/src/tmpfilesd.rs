@@ -127,6 +127,14 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         if i >= bs.len() || !TYPE_CHARS.contains(&(bs[i] as char)) {
             continue;
         }
+        // 型トークンは型文字1字+修飾子のみ — "the"/"hello" のような
+        // 単語先頭の型文字偶然一致を弾く (tmpfiles.d(5) の行文法)。
+        if !bs[i + 1..]
+            .iter()
+            .all(|b| MOD_CHARS.contains(&(*b as char)))
+        {
+            continue;
+        }
         let ty = bs[i] as char;
         c.entries += 1;
         if modded {
@@ -151,6 +159,22 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         if f.len() >= 7 {
             c.with_arg += 1;
         }
+    }
+    if !t.trim().is_empty()
+        && c.entries
+            + c.dirs
+            + c.files
+            + c.links
+            + c.removes
+            + c.adjusts
+            + c.modified
+            + c.with_mode
+            + c.with_age
+            + c.with_arg
+            + c.comments
+            == 0
+    {
+        return None;
     }
     Some(c)
 }
@@ -191,5 +215,11 @@ mod tests {
         let c = parse(b"d /x 0755 u g -\n").unwrap();
         let d = c;
         assert_eq!(c, d);
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

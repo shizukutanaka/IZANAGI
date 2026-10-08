@@ -76,10 +76,14 @@ fn is_directive(t: &str) -> bool {
     let w = w.trim_start_matches('!');
     DIRECTIVES.contains(&w) || DIRECTIVES.contains(&w.to_ascii_lowercase().as_str())
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が ledger ジャーナルに見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let mut txns = 0usize;
     let mut posts = 0usize;
     let mut dirs = 0usize;
@@ -114,6 +118,7 @@ pub struct LedgerJournal {
 /// `b` を ledger ジャーナルとして統計する。
 pub fn parse(b: &[u8]) -> LedgerJournal {
     let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let mut c = LedgerJournal::default();
     for l in t.lines() {
         let tr = l.trim_start();
@@ -169,5 +174,11 @@ mod tests {
         assert!(!detect(&[0xff, 0xfe, 0x00, 0x01, 0x90]));
         let c = parse(b"");
         assert_eq!(c.transactions, 0);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

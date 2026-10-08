@@ -51,6 +51,9 @@ fn logic_name(t: &str) -> Option<usize> {
         .unwrap_or(rest.len());
     Some(end)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` on a `(set-logic|check-sat|assert|declare-` command.
 #[must_use]
@@ -59,6 +62,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     s.lines().any(|l| {
         let t = l.trim_start();
         t.starts_with("(set-logic") || t.starts_with("(check-sat") || t.starts_with("(declare-")
@@ -72,6 +76,7 @@ pub fn parse(b: &[u8]) -> Option<Smt2> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let mut r = Smt2::default();
     for line in s.lines() {
         let line = line.split(';').next().unwrap_or("");
@@ -130,5 +135,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"; only comments\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

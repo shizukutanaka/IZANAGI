@@ -53,6 +53,9 @@ fn word_count(s: &str, word: &str) -> u32 {
 fn count(s: &str, pat: &str) -> u32 {
     u32::try_from(s.matches(pat).count()).unwrap_or(u32::MAX)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `library a.b;` at line start + one declaration keyword.
 #[must_use]
@@ -61,6 +64,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     s.lines().any(|l| {
         let t = l.trim_start();
         t.starts_with("library ") && t.contains(';')
@@ -71,6 +75,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Fidl> {
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let library = s.lines().find_map(|l| {
         let t = l.trim_start();
         t.strip_prefix("library ")
@@ -160,5 +165,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"no library here").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -50,6 +50,9 @@ fn board_ok(s: &str) -> bool {
     }
     squares == 64
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detects an EPD line: valid 8-row board + side `w`/`b` + opcode `;` fields.
 #[must_use]
@@ -57,6 +60,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut fields = t.split(|c: char| c.is_ascii_whitespace());
     let Some(board) = fields.next() else {
         return false;
@@ -77,6 +81,7 @@ pub fn parse(b: &[u8]) -> Option<Epd> {
         return None;
     }
     let t = std::str::from_utf8(b).ok()?;
+    let t = strip_bom(t);
     let mut fields = t.split_whitespace();
     let board = fields.next()?;
     let mut pieces = 0usize;
@@ -171,5 +176,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"r1bq/pppp w - -").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }
