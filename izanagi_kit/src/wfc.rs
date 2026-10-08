@@ -237,6 +237,9 @@ impl WfcGrid {
 
     /// Count how many fully-collapsed cells have the given `tile` type.
     pub fn count_tiles(&self, tile: u8) -> usize {
+        if tile >= 64 {
+            return 0;
+        }
         let mask = 1u64 << tile;
         self.cells.iter().filter(|&&v| v == mask).count()
     }
@@ -1772,5 +1775,20 @@ mod tests {
         assert_eq!(DIRS, [(0, -1), (1, 0), (0, 1), (-1, 0)]);
         assert_eq!(opposite(0), 2);
         assert_eq!(opposite(1), 3);
+    }
+
+    #[test]
+    fn count_tiles_out_of_domain_is_zero() {
+        // `count_tiles(64)` was `1u64 << 64` — release wrapped the shift
+        // to `1u64 << 0` and counted tile-0 cells. A tile ≥ 64 can't
+        // exist in a u64 mask, so the honest count is 0.
+        let g = WfcGrid {
+            width: 2,
+            height: 1,
+            cells: vec![1, 1],
+        };
+        assert_eq!(g.count_tiles(0), 2); // two collapsed tile-0 cells
+        assert_eq!(g.count_tiles(64), 0);
+        assert_eq!(g.count_tiles(255), 0);
     }
 }

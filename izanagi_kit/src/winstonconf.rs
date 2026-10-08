@@ -127,6 +127,16 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
     if !saw_any {
         return None;
     }
+    if !s.trim().is_empty()
+        && counts.constructors
+            + counts.transports
+            + counts.formats
+            + counts.options
+            + counts.add_remove
+            == 0
+    {
+        return None;
+    }
     Some(counts)
 }
 
@@ -187,5 +197,11 @@ winston.add(logger);
     fn rejects_other_text() {
         assert!(!detect(b"hello world"));
         assert!(!detect(b"const x = 1;"));
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a config file at all\n").is_none());
     }
 }

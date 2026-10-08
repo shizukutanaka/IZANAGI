@@ -99,7 +99,8 @@ pub fn decompress(data: &[u8]) -> Option<Vec<u8>> {
     if want > (1 << 32) {
         return None; // absurd claim; also keeps the alloc bounded
     }
-    let mut out: Vec<u8> = Vec::with_capacity(want as usize);
+    // reservation hint capped — push grows to the real `want`
+    let mut out: Vec<u8> = Vec::with_capacity(want.min(1 << 22) as usize);
     while (out.len() as u64) < want {
         if !r.read_bool().ok()? {
             let b = r.read_bits(8).ok()?;
@@ -207,5 +208,14 @@ mod tests {
         let mut rng = SplitMix64::new(0xFEED);
         let data: Vec<u8> = (0..1500).map(|_| (rng.next_u64() % 5) as u8).collect();
         assert_eq!(compress(&data), compress(&data));
+    }
+
+    #[test]
+    fn a_max_claimed_size_does_not_abort() {
+        // want <= 1<<32 passes the sanity gate — the reserve hint itself
+        // must still be capped so a 1-byte claim can't abort
+        let mut d = (0xFFFF_FFFFu64).to_be_bytes().to_vec();
+        d.extend_from_slice(&[0xFF; 64]);
+        let _ = decompress(&d);
     }
 }

@@ -139,8 +139,11 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             c.comments += 1;
             continue;
         }
-        c.rules += 1;
         // カンマ分割。引用符内のカンマは考慮しない(udev は引用符内 `,` 稀)。
+        // 行をルールとして数えるのは、少なくとも1つの `KEY op "value"` ペアを
+        // 含む場合のみ — ペアを含まない行は「値なしの裸行」であり udev は
+        // それをルールとして受理しない。
+        let pairs_before = c.pairs;
         for seg in s.split(',') {
             let seg = seg.trim();
             if seg.is_empty() {
@@ -175,6 +178,9 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
                     c.flow_keys += 1;
                 }
             }
+        }
+        if c.pairs > pairs_before {
+            c.rules += 1;
         }
     }
     Some(c)

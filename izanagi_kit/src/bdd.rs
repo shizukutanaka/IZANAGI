@@ -212,6 +212,10 @@ impl Bdd {
     /// Number of satisfying assignments over `nvars` variables —
     /// exact `u128` count, so output is order- and structure-free.
     pub fn count_sat(&self, f: u32, nvars: u32) -> u128 {
+        assert!(
+            nvars < 128,
+            "count_sat: 2^{nvars} does not fit a u128 count"
+        );
         // Memo-free exponential walk is fine for verified sizes; each
         // node skips levels, contributing 2^(gap) paths.
         fn walk(bdd: &Bdd, n: u32, level: u32, nvars: u32) -> u128 {
@@ -397,5 +401,15 @@ mod tests {
                 4,
             );
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "does not fit a u128")]
+    fn count_sat_beyond_u128_is_rejected() {
+        // `1u128 << nvars` wraps to `1u128 << (nvars & 127)` in release —
+        // `count_sat(f, 128)` silently returned the count for 0 vars.
+        let mut b = Bdd::new();
+        let f = b.mk(0, FALSE, TRUE);
+        b.count_sat(f, 128);
     }
 }

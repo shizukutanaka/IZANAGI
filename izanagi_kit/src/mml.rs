@@ -48,7 +48,12 @@ fn is_note(c: char) -> bool {
     matches!(c, 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g')
 }
 
-/// Detects MML: `t` tempo or `o`/`l` directives plus note letters.
+/// Detects MML: a *pure* MML-token stream — `t`/`o`/`l`/`v`+digit
+/// directives, `cdefgab` notes, `r`/`p` rests, `>`/`<` shifts, `[`/`]`
+/// loops, `&`/`^` ties, `+`/`#`/`-` accidentals and digits — with no
+/// foreign characters at all (letters outside the music alphabet,
+/// punctuation, markup or braces reject). A bare note run without a
+/// directive is not MML: `cdefg` is just a word.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
@@ -57,6 +62,7 @@ pub fn detect(b: &[u8]) -> bool {
     let toks = tokens(t);
     let mut directives = 0;
     let mut notes = 0;
+    let mut others = 0;
     let mut i = 0;
     while i < toks.len() {
         match toks[i] {
@@ -64,11 +70,12 @@ pub fn detect(b: &[u8]) -> bool {
                 directives += 1;
             }
             c if is_note(c) => notes += 1,
-            _ => {}
+            'r' | 'p' | '>' | '<' | '[' | ']' | '&' | '^' | '+' | '#' | '-' | '0'..='9' => {}
+            _ => others += 1,
         }
         i += 1;
     }
-    directives >= 1 && notes >= 1 || notes >= 4
+    directives >= 1 && notes >= 3 && others == 0
 }
 
 /// Parses MML text; `None` on non-UTF-8 or no notes/directives.
@@ -150,9 +157,13 @@ mod tests {
     fn detect_works() {
         assert!(detect(D));
         assert!(detect(b"t90 cdef"));
-        assert!(detect(b"cdefg"));
+        // a bare note run is not MML — could be any word
+        assert!(!detect(b"cdefg"));
         assert!(!detect(b"12345"));
         assert!(!detect(b""));
+        // foreign characters (braces, `=`, prose letters) reject
+        assert!(!detect(b"t120 o4 {\"json\": true}"));
+        assert!(!detect(b"v1.2.3 abcdefg"));
     }
 
     #[test]
