@@ -368,6 +368,114 @@ fn no_engine_module_imposes_an_order_without_saying_what_it_compares() {
     );
 }
 
+/// Float-free modules may hold replayable state, so an unordered container
+/// inside one is a determinism hazard the float scan cannot see: `HashMap`/
+/// `HashSet` iteration order is seeded per process. The containers that exist
+/// today were audited line by line — each is lookup/`contains`-only, plus one
+/// order-independent removal sweep — and are declared here with that reason.
+/// Adding an unordered container to a replayable module is a determinism-
+/// relevant change; it must arrive with a sentence explaining why its
+/// iteration order (or absence of iteration) cannot leak into game state.
+/// Each entry names the file, the unordered-container *fields* it declares,
+/// and why their iteration order cannot leak into game state.
+const UNORDERED_CONTAINERS_ALLOWED: &[(&str, &[&str], &str)] = &[
+    (
+        "assets.rs",
+        &["bytes", "names"],
+        "lookup-only caches — get/insert/len, never iterated",
+    ),
+    (
+        "ecs.rs",
+        &["columns"],
+        "keyed lookup plus an order-independent remove in despawn; \
+         per-component iteration goes through BTreeMap-backed Column.data",
+    ),
+];
+
+/// The unordered-container types this scan watches for.
+const UNORDERED_TYPES: &[&str] = &["HashMap", "HashSet"];
+
+#[test]
+fn float_free_modules_declare_their_unordered_containers() {
+    let mut found: Vec<String> = Vec::new();
+    for entry in fs::read_dir(engine_src()).expect("engine src directory") {
+        let path = entry.expect("readable entry").path();
+        let name = path
+            .file_name()
+            .and_then(|s| s.to_str())
+            .expect("utf-8 file name")
+            .to_string();
+        let stem = name.trim_end_matches(".rs");
+        if !FLOAT_FREE.contains(&stem) {
+            // Modules carrying floats are outside the replayable boundary;
+            // their containers are free to be unordered — but anything they
+            // leak iteration order through a public API still deserves a look.
+            continue;
+        }
+        if UNORDERED_CONTAINERS_ALLOWED
+            .iter()
+            .any(|(m, _, _)| *m == name)
+        {
+            continue;
+        }
+        let code = production_code(&path);
+        for t in UNORDERED_TYPES {
+            if count_token(&code, t) > 0 {
+                found.push(format!("{name}: contains {t}"));
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "a replayable (float-free) module uses an unordered container: {found:#?}\n\
+         HashMap/HashSet iteration order is seeded per process. If the container \
+         is lookup/contains-only or iterated only for order-independent side \
+         effects, add the module to UNORDERED_CONTAINERS_ALLOWED with that reason; \
+         otherwise switch to BTreeMap/BTreeSet/Vec like the rest of the boundary."
+    );
+}
+
+#[test]
+fn declared_unordered_containers_stay_lookup_only() {
+    // The allowlist entries above claim 'no iteration leaks'. A
+    // `.iter()`/`.values()`/`.keys()`/`.drain()` on the *declared field*
+    // makes the claim stale — so the scan watches those receivers only
+    // (BTreeMap/Vec iteration elsewhere in the file is legitimate).
+    let mut leaked: Vec<String> = Vec::new();
+    for (name, fields, reason) in UNORDERED_CONTAINERS_ALLOWED {
+        let path = engine_src().join(name);
+        let code = production_code(&path);
+        for field in *fields {
+            for m in [
+                "iter",
+                "iter_mut",
+                "values(",
+                "values_mut(",
+                "keys()",
+                "drain(",
+                "into_iter",
+            ] {
+                let needle = format!("{field}.{m}");
+                // `columns.values_mut()` is exempt ONLY for ecs'
+                // order-independent remove-in-despawn sweep, documented in
+                // the entry itself.
+                if *name == "ecs.rs" && needle == "columns.values_mut(" {
+                    continue;
+                }
+                if count_token(&code, &needle) > 0 {
+                    leaked.push(format!("{name} ({reason}): {needle} iterates the container"));
+                }
+            }
+        }
+    }
+    assert!(
+        leaked.is_empty(),
+        "a declared lookup-only container is iterated: {leaked:#?}\n\
+         Either the module must leave the replayable boundary, or the \
+         iteration must go through an ordered view."
+    );
+}
+
 #[test]
 fn the_ordering_scanner_fires_and_stays_silent_in_the_right_places() {
     // Both directions. A scanner only ever tested on code that trips it will
