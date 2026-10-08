@@ -8,7 +8,7 @@
 //!
 //! ```
 //! use izanagi_kit::mailcap;
-//! let m = mailcap::parse(b"text/html; lynx %s; needsterminal\ntext/*; less %s\n");
+//! let m = mailcap::parse(b"text/html; lynx %s; needsterminal\ntext/*; less %s\n").unwrap();
 //! assert_eq!(m.len(), 2);
 //! assert!(m[1].subtype_wildcard);
 //! ```
@@ -42,8 +42,10 @@ fn trim(s: &[u8]) -> &[u8] {
     &s[a..b]
 }
 
-/// Parses a whole mailcap file; comment and malformed lines are skipped.
-pub fn parse(d: &[u8]) -> Vec<Entry> {
+/// Parses a whole mailcap file; comment and malformed lines are
+/// skipped. `None` when a non-empty input has no non-comment content
+/// line — an all-comment or empty file yields `Some(vec![])`.
+pub fn parse(d: &[u8]) -> Option<Vec<Entry>> {
     // Join `\`-continued physical lines into logical lines first.
     let mut logical: Vec<u8> = Vec::with_capacity(d.len());
     let mut i = 0;
@@ -57,11 +59,13 @@ pub fn parse(d: &[u8]) -> Vec<Entry> {
         i += 1;
     }
     let mut out = Vec::new();
+    let mut content_seen = false;
     for raw in logical.split(|&b| b == b'\n') {
         let line = trim(raw);
         if line.is_empty() || line[0] == b'#' {
             continue;
         }
+        content_seen = true;
         let mut it = line.split(|&b| b == b';');
         let mt = match it.next() {
             Some(t) => trim(t),
@@ -98,7 +102,11 @@ pub fn parse(d: &[u8]) -> Vec<Entry> {
             fields,
         });
     }
-    out
+    if out.is_empty() && content_seen {
+        None
+    } else {
+        Some(out)
+    }
 }
 
 /// First entry matching `mime_type` (e.g. `b"text/html"`); wildcard
@@ -130,7 +138,8 @@ mod tests {
     #[test]
     fn fields_and_flags() {
         let e =
-            parse(b"image/png; display %s; test=test -n %f; needsterminal; description=PNG img\n");
+            parse(b"image/png; display %s; test=test -n %f; needsterminal; description=PNG img\n")
+                .unwrap();
         assert_eq!(e.len(), 1);
         assert_eq!(e[0].flags, vec![b"needsterminal".to_vec()]);
         assert_eq!(e[0].fields.len(), 2);
@@ -140,14 +149,14 @@ mod tests {
 
     #[test]
     fn comments_blank_and_continuation() {
-        let m = parse(b"# c\n\ntext/plain; less \\\n %s\n");
+        let m = parse(b"# c\n\ntext/plain; less \\\n %s\n").unwrap();
         assert_eq!(m.len(), 1);
         assert_eq!(m[0].view, b"less  %s".to_vec());
     }
 
     #[test]
     fn wildcard_lookup() {
-        let m = parse(b"text/*; less %s\nimage/png; display %s\n");
+        let m = parse(b"text/*; less %s\nimage/png; display %s\n").unwrap();
         assert_eq!(
             lookup(&m, b"text/html").unwrap().mime_type,
             b"text/*".to_vec()
@@ -157,5 +166,14 @@ mod tests {
             b"display %s".to_vec()
         );
         assert!(lookup(&m, b"audio/ogg").is_none());
+    }
+
+    #[test]
+    fn rejects_unrecognized_garbage() {
+        assert!(parse(b"the quick brown fox jumps over the lazy dog\n").is_none());
+        assert!(parse(b"hello world this is not a mailcap file\n").is_none());
+        // Empty and comment-only inputs are still valid files.
+        assert_eq!(parse(b""), Some(Vec::new()));
+        assert_eq!(parse(b"# just a comment\n"), Some(Vec::new()));
     }
 }
