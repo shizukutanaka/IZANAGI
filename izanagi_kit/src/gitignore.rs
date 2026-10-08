@@ -25,6 +25,9 @@ pub struct Gitignore {
     /// Anchored patterns (`/` at start or middle).
     pub anchored: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// One ignore-file pattern line: non-empty, no whitespace, and none of
 /// the characters that would make it an assignment, URL, markup or
@@ -48,6 +51,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut patterns = 0usize;
     let mut markers = 0usize;
     let mut bad = 0usize;
@@ -82,6 +86,7 @@ impl Gitignore {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             patterns: 0,
             negations: 0,
@@ -152,5 +157,11 @@ mod tests {
     fn rejects_other() {
         assert!(Gitignore::parse(b"hello\nworld\n").is_none());
         assert!(!detect(b"key = value\n*.o\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -97,6 +97,9 @@ fn yaml_key(t: &str) -> Option<&str> {
         Some(k)
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Keys (or inline mentions) that appear only in KubeMQ resources —
 /// `apiVersion`/`kind`/`metadata` alone are shared with every
@@ -118,6 +121,7 @@ const EXCLUSIVE_KEYS: &[&str] = &[
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
+    let text = strip_bom(text);
     let mut hits = 0;
     let mut exclusive = 0;
     for line in text.lines() {
@@ -141,6 +145,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = core::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         sections: 0,
         options: 0,
@@ -191,5 +196,11 @@ mod tests {
     fn not_kubemq() {
         assert!(!detect(b"key: value\nother: thing\n"));
         assert!(!detect(b"apiVersion: v1\nkind: Pod\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

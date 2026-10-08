@@ -6916,6 +6916,21 @@ bare_cvar_names_do_not_count)。
 - 432モジュールの深いパース経路を新規カバー
   (共有fodderがdetect閾値を通らず early-return していた領域)。
 - 抽出器の劣化を防ぐ `covered >= 400` の下限 assert 付き。
+## 第395次
+
+監査(長所50/短所50、第2回)に基づき、UTF-8 BOM (U+FEFF) 付き
+ファイルを不検出にしていた「先頭行アンカー」検出器を一括修正。
+
+- 修正した構造:`lines().next()`/`trim_start().starts_with()`/
+  `split().next()` で先頭内容を必須とする検出器が、BOM1文字を
+  理由に全体を不検出にしていた。Windows系エディタ生成の
+  UTF-8 BOM 付き設定ファイルで実害。
+- `strip_bom(&str) -> &str` ヘルパー(無確保、prefixのみ除去)を
+  222モジュールへ導入し decode 直後に適用(detect+parse 両方)。
+- `from_utf8_lossy` を使う ldif は `strip_bom(&t)` で適用。
+- 回帰テスト `utf8_bom_is_tolerated` を各モジュールに追加。
+- 第345次の6モジュール修正を全量クラスとして一般化したもの。
+||||||| 2fe94df
 
 ## 第398次 検出の再現率(recall)契約 — own_fixture_detected
 

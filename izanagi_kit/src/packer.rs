@@ -53,6 +53,9 @@ fn count_kv_entries(t: &str, key: &str) -> usize {
         0
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a Packer template.
 #[must_use]
@@ -60,6 +63,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     (t.contains("\"builders\"") || t.contains("\"provisioners\""))
         && t.trim_start().starts_with('{')
         || t.contains("source \"")
@@ -74,6 +78,7 @@ impl Packer {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             builders: 0,
             provisioners: 0,
@@ -190,5 +195,11 @@ locals {
     fn rejects_other() {
         assert!(!detect(b"{}"));
         assert!(Packer::parse(b"x").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

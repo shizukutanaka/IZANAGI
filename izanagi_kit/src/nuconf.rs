@@ -70,6 +70,9 @@ const OTHER_HEADS: &[&str] = &[
     "null",
     "const",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect config.nu content.
 #[must_use]
@@ -78,6 +81,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     for line in t.lines() {
         let s = line.trim();
@@ -100,6 +104,7 @@ impl Nuconf {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             envvars: 0,
             defs: 0,
@@ -233,5 +238,11 @@ mod tests {
         assert_eq!(c.sources, 2);
         assert!(c.named >= 1);
         assert_eq!(c.comments, 1);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

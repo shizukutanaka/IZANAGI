@@ -54,6 +54,9 @@ const SECTIONS: &[&str] = &[
     "subnet",
     "responses",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like unbound.conf.
 #[must_use]
@@ -61,6 +64,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut score = 0usize;
     let mut sections = 0usize;
     for l in t.lines() {
@@ -97,6 +101,7 @@ impl Unbound {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             sections: 0,
             settings: 0,
@@ -176,5 +181,11 @@ mod tests {
         // bare `key: value` config without a named section is not unbound
         assert!(!detect(b"alpha: 1\nbeta: 2\ngamma: 3\ndelta: 4\n"));
         assert!(Unbound::parse(b"x").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

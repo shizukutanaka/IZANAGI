@@ -63,6 +63,9 @@ fn rec_type(tr: &str) -> Option<u8> {
     let t: u8 = tr[..colon].parse().ok()?;
     ((1..=4).contains(&t)).then_some(t)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer starts with a Paraver trace header.
 #[must_use]
@@ -70,6 +73,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.lines()
         .find(|l| !l.trim().is_empty())
         .is_some_and(|l| l.trim_start().starts_with("#Paraver ("))
@@ -83,6 +87,7 @@ impl Paraver {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             duration: header_duration(t).unwrap_or(0),
             applications: header_apps(t),
@@ -147,5 +152,11 @@ mod tests {
         assert!(!detect(b"2:0:1:1:1:0:1:9\n"));
         assert!(!detect(b"#Paraver"));
         assert!(Paraver::parse(b"hello").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }
