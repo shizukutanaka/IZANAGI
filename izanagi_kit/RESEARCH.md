@@ -7002,6 +7002,46 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
 
+## 第418次：エンジン側の決定性境界 — 順序なしコンテナの宣言強制
+
+切り口: これまで検出器中心だった監査を `izanagi` エンジン側に拡大。
+FLOAT_FREE(リプレイ可能と宣言された8モジュール: assets/ecs/error/event/
+log/save/scene/state)が float 以外の非決定性源を持たないか全行監査。
+
+### 計測所見(実害なし、検証済みクリーン)
+
+- `ecs::columns: HashMap<TypeId, Box<dyn Column>>` — 反復は `despawn` の
+  `values_mut()` による順序不変の remove のみ。コンポーネント走査は
+  `Column.data: BTreeMap` 経由で昇順確定(既にコメント明記)。
+- `assets::{bytes,names}: HashMap` — get/insert/len のlookup専用。
+- `gamepad/input` の `HashSet<Button>` — `contains` のみ(かつ両者は
+  FLOAT_FREE境界外)。
+- `save` — LEエンコード・u32::MAX切詰対策済・バイト決定的。
+- `event/state/scene/tilemap` — Vec/VecDeque で挿入順確定。
+- `time::wall_clock_seconds` — 明示的な壁時計(仕様、sim状態非流入)。
+- 順序づけプリミティブ(sort/partial_cmp/max_by等) — エンジン全域0件
+  (既存の空 ORDERING_ALLOWED が継続担保)。
+
+### 恒久化
+
+`izanagi/tests/float_boundary.rs` に2テスト追加:
+
+- `float_free_modules_declare_their_unordered_containers`: FLOAT_FREE
+  モジュールで `HashMap`/`HashSet` が現れたら allowlist宣言を強制
+  (ORDERING_ALLOWED と同型の「理由を書かせる」ゲート)。
+- `declared_unordered_containers_stay_lookup_only`: 宣言フィールド
+  (`bytes`/`names`/`columns`)に対する `iter`/`values`/`keys`/`drain`/
+  `into_iter` 呼出を検出して「lookup専用」宣言の陳腐化を捕捉。
+  ecs の `columns.values_mut()`(despawn掃討)のみ例外的に免除。
+
+### 残課題
+
+- FLOAT_FREE外モジュールのHashSet/HashMapが「public APIのイテレータ経由で
+  順序を漏洩」するパターンは静的テキストスキャンでは追えない(現時点で
+  漏洩箇所なし — `contains`のみ)。
+- `Time::alpha`/accumulator等のf32経路は境界外として意図どおり。
+||||||| 56a2e9a
+
 ## 第414次：検出器間相互偽陽性 — 全fixture×全DETECTORS掃引と上位13件の精密化
 
 切り口:foreign-fixture hits(他モジュールのfixtureを誤検出する件数)。
