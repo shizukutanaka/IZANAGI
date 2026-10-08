@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::shellcheckrc::detect(b"disable=SC2086\ncheck-sourced\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知ディレクティブキー。
 const KEYS: &[&str] = &[
     "allow-nul",
@@ -73,9 +74,6 @@ fn sc_codes_in(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .shellcheckrc かどうか。

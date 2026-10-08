@@ -22,6 +22,7 @@
 //! assert_eq!(c.key_values, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed dnsmasq.conf summary.
 #[derive(Debug, Clone)]
 pub struct Dnsmasq {
@@ -200,9 +201,6 @@ const KV_KEYS: &[&str] = &[
     "pxe-prompt",
     "ra-param",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like dnsmasq.conf.
 #[must_use]

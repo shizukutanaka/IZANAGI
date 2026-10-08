@@ -13,6 +13,7 @@
 //! assert_eq!(c.settings, 5);
 //! ```
 
+use crate::textutil::strip_bom;
 /// wireguard conf census.
 #[derive(Debug, Clone)]
 pub struct Wireguard {
@@ -58,9 +59,6 @@ const KEYS: &[&str] = &[
     "H3",
     "H4",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect wireguard conf content.
 #[must_use]

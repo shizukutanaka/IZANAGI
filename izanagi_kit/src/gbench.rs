@@ -18,6 +18,7 @@
 //! assert_eq!(c.iteration_runs, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Google Benchmark document summary.
 #[derive(Debug, Clone)]
 pub struct Gbench {
@@ -56,9 +57,6 @@ fn int_after(t: &str, key: &str) -> Option<u64> {
         return None;
     }
     rest[..digits].parse().ok()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Google Benchmark JSON document.

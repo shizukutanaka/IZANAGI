@@ -25,6 +25,7 @@
 //! assert_eq!(c.indirect, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed go.mod summary.
 #[derive(Debug, Clone)]
 pub struct Gomod {
@@ -42,9 +43,6 @@ pub struct Gomod {
     pub exclude: usize,
     /// `//` comment lines.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like go.mod.

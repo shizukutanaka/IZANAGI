@@ -16,6 +16,7 @@
 //! assert_eq!(c.service_keys, 4); // http_service + concurrency + services + services.ports
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -43,9 +44,6 @@ const SERVICE_TABLES: &[&str] = &[
     "mounts",
     "vm",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// `fly.toml` らしさを返す。`app =`/`primary_region` と `[http_service]`/
 /// `[services]`/`[[services.ports]]` 等の組合せで判定。

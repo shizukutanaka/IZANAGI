@@ -12,6 +12,7 @@
 //! assert_eq!(c.commands, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// cmus command-file census.
 #[derive(Debug, Clone)]
 pub struct Cmus {
@@ -53,9 +54,6 @@ const CMDS: &[&str] = &[
     "pl-export",
     "live-filter",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a cmus autosave/rc file.
 #[must_use]

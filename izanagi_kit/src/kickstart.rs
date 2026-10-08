@@ -24,6 +24,7 @@
 //! assert_eq!(c.packages, 3); // @core/vim-enhanced/-git
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -149,9 +150,6 @@ const SECTION_HEADS: &[&str] = &[
 
 fn section_tag(s: &str) -> Option<&str> {
     SECTION_HEADS.iter().find(|h| s.starts_with(*h)).copied()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Kickstart らしさを返す。既知コマンド行 ≥2、または `%packages`。

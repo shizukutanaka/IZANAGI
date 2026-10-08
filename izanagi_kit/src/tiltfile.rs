@@ -29,6 +29,7 @@
 //! assert_eq!(c.calls, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Tiltfile census.
 #[derive(Debug, Clone)]
 pub struct Tiltfile {
@@ -129,9 +130,6 @@ const RESOURCE_FUNCS: &[&str] = &[
     "helm_resource",
     "k8s_custom_deploy",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect Tiltfile content.
 #[must_use]

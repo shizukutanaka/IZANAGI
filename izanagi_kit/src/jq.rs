@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::jq::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census of a jq filter program.
 #[derive(Debug, Clone)]
 pub struct Jq {
@@ -150,9 +151,6 @@ fn word(t: &str, k: &str) -> usize {
         from = a + k.len();
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects a jq program: a `.` start plus `|`/`[`/`]`/`{`/fn call.

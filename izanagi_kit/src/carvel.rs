@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::carvel::detect(k));
 //! ```
 
+use crate::textutil::{kind_val, value_of};
 /// Carvel manifest census.
 #[derive(Debug, Clone)]
 pub struct Carvel {
@@ -54,13 +55,6 @@ fn key_of(s: &str) -> &str {
     }
 }
 
-fn value_of(s: &str) -> &str {
-    match s.find(':') {
-        Some(i) => s[i + 1..].trim().trim_matches('"').trim_matches('\''),
-        None => "",
-    }
-}
-
 fn group_ok(t: &str) -> bool {
     t.lines().any(|l| {
         let s = l.trim();
@@ -69,21 +63,6 @@ fn group_ok(t: &str) -> bool {
         }
         let v = value_of(s);
         GROUPS.iter().any(|g| v.starts_with(g))
-    })
-}
-
-fn kind_val(t: &str) -> Option<String> {
-    t.lines().find_map(|l| {
-        let s = l.trim();
-        if s.starts_with('#') || !s.starts_with("kind") {
-            return None;
-        }
-        let v = value_of(s);
-        if v.is_empty() {
-            None
-        } else {
-            Some(v.to_string())
-        }
     })
 }
 

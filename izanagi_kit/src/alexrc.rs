@@ -11,6 +11,7 @@
 //!     b"allow:\n  - her-his\nprofanitySureness: 1\nnoBinary: true\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// alex 既知設定キー。
 const KEYS: &[&str] = &["allow", "deny", "noBinary", "profanitySureness"];
 
@@ -38,9 +39,6 @@ fn key_hits(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `.alexrc` らしさを判定する。

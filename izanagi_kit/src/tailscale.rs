@@ -14,6 +14,7 @@
 //! assert_eq!(c.acls, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// tailscale acl census.
 #[derive(Debug, Clone)]
 pub struct Tailscale {
@@ -50,9 +51,6 @@ const TOP_KEYS: &[&str] = &[
     "exitNode",
     "appConnectors",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect tailscale acl content.
 #[must_use]

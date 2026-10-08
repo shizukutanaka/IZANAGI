@@ -14,6 +14,7 @@
 //! assert_eq!(t.lemmas, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census fields.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Isabelle {
@@ -112,9 +113,6 @@ fn census(s: &str, t: &mut Isabelle) {
             }
         }
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` on a `theory … imports …` + `begin`/`end` skeleton.

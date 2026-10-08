@@ -12,6 +12,7 @@
 //!     b"{\"name\": \"a\", \"start_url\": \"/\", \"display\": \"standalone\"}\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Web App Manifest 既知キー。
 const KEYS: &[&str] = &[
     "apparent_orientation",
@@ -96,9 +97,6 @@ fn key_hits(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 fn exclusive_hits(t: &str) -> usize {

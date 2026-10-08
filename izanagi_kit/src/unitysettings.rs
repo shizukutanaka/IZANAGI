@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::unitysettings::detect(b"%TAG !u! tag:unity3d.com,2011:\n--- !u!129 &1\nPlayerSettings:\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知 Unity ルートキー(*Settings/*Manager 等)。
 const ROOTS: &[&str] = &[
     "Activity",
@@ -119,9 +120,6 @@ pub struct Counts {
     pub comments: usize,
     /// 分類不能行。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が Unity ProjectSettings アセットかどうか。

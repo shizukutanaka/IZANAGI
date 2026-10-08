@@ -15,6 +15,7 @@
 //! assert_eq!(c.keys, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Jekyll `_config.yml` census.
 #[derive(Debug, Clone)]
 pub struct Jekyll {
@@ -76,9 +77,6 @@ const KEYS: &[&str] = &[
     "safe",
     "serve",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a Jekyll config.
 #[must_use]

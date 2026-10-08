@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::ldif::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census of an LDIF stream.
 #[derive(Debug, Clone)]
 pub struct Ldif {
@@ -38,9 +39,6 @@ pub struct Ldif {
 }
 
 const CHANGE_TYPES: &[&str] = &["add", "modify", "delete", "moddn", "modrdn"];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detects LDIF: a `dn:` line plus at least one `attr:` line.
 #[must_use]

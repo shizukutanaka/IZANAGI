@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::tomcat::detect(k));
 //! ```
 
+use crate::textutil::strip_xml_comments;
 /// Tomcat `server.xml` census.
 #[derive(Debug, Clone)]
 pub struct Tomcat {
@@ -64,23 +65,6 @@ fn code_line(line: &str) -> &str {
     s
 }
 
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 /// Detect a Tomcat `server.xml`.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -88,7 +72,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
-    let t = strip_comments(t);
+    let t = strip_xml_comments(t);
     // `<Server>` is the Tomcat-only root; `<Service>/<Connector>/
     // <Engine>/<Host>` children corroborate.
     let mut server = 0usize;
@@ -118,7 +102,7 @@ impl Tomcat {
         if !detect(b) {
             return None;
         }
-        let t = strip_comments(std::str::from_utf8(b).ok()?);
+        let t = strip_xml_comments(std::str::from_utf8(b).ok()?);
         let mut c = Self {
             elements: 0,
             attributes: 0,
@@ -173,12 +157,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

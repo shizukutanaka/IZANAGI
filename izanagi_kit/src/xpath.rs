@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::xpath::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census of an XPath expression.
 #[derive(Debug, Clone)]
 pub struct Xpath {
@@ -77,9 +78,6 @@ const FN: &[&str] = &[
     "substring-before(",
     "substring-after(",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detects XPath: an *expression-shaped* input — at most a few
 /// non-empty lines — carrying an XPath-exclusive marker (`//step`,

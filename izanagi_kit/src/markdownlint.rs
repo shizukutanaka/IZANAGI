@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::markdownlint::detect(b"MD013: false\ndefault: true\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知ルールエイリアス名。
 const ALIASES: &[&str] = &[
     "blanks-around-fences",
@@ -134,9 +135,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が markdownlint 設定かどうか。

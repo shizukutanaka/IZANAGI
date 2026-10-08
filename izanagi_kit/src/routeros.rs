@@ -31,6 +31,7 @@
 //! assert_eq!(c.sets, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// RouterOS export census.
 #[derive(Debug, Clone)]
 pub struct Routeros {
@@ -50,9 +51,6 @@ pub struct Routeros {
     pub disabled: usize,
     /// `[ find` selectors.
     pub find_selectors: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a RouterOS export.

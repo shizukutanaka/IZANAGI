@@ -9,6 +9,7 @@
 //! assert!(izanagi_kit::epd::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// A parsed `.epd` record census.
 #[derive(Debug, Clone)]
 pub struct Epd {
@@ -49,9 +50,6 @@ fn board_ok(s: &str) -> bool {
         }
     }
     squares == 64
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects an EPD line: valid 8-row board + side `w`/`b` + opcode `;` fields.

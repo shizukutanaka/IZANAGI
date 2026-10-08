@@ -14,6 +14,7 @@
 //!     b"---\n\"my-pkg\": patch\n---\n\nFix the bug.\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `"key"` が値位置ではなくキー位置(直後が `:`)にあるかを確認。
 fn jkey(t: &str, key: &str) -> bool {
     let pat = format!("\"{key}\"");
@@ -73,9 +74,6 @@ const CONFIG_KEYS: &[&str] = &[
     "snapshot",
     "updateInternalDependencies",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// `b` が Changesets 関連ファイルに見えるかを判定する。
 ///

@@ -27,6 +27,7 @@
 //! assert_eq!(c.sections, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 const KEYS: &[&str] = &[
     "activeFont",
     "accent",
@@ -74,9 +75,6 @@ fn is_section(t: &str) -> bool {
         || t == "[Settings]"
         || t.starts_with("[Colors:")
         || t.starts_with("[ColorEffects:")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が kdeglobals に見えるかを返す。

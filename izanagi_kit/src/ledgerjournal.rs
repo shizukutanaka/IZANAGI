@@ -14,6 +14,7 @@
 //! assert_eq!(c.transactions, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 const DIRECTIVES: &[&str] = &[
     "account",
     "apply",
@@ -75,9 +76,6 @@ fn is_directive(t: &str) -> bool {
     let w = t.split_whitespace().next().unwrap_or("");
     let w = w.trim_start_matches('!');
     DIRECTIVES.contains(&w) || DIRECTIVES.contains(&w.to_ascii_lowercase().as_str())
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が ledger ジャーナルに見えるかを返す。

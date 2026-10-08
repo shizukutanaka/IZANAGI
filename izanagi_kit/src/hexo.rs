@@ -22,6 +22,7 @@
 //! assert_eq!(c.known, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Hexo `_config.yml` census.
 #[derive(Debug, Clone)]
 pub struct Hexo {
@@ -105,9 +106,6 @@ const GENS: &[&str] = &[
     "tag_generator",
     "archive_generator",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a Hexo `_config.yml`.
 #[must_use]

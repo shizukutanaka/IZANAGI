@@ -1,5 +1,6 @@
 //! RAML 0.8 / 1.0 REST API definitions — `#%RAML <version>` YAML.
 
+use crate::textutil::strip_bom;
 use core::str::from_utf8;
 
 const METHODS: [&str; 7] = ["get", "put", "post", "delete", "patch", "head", "options"];
@@ -83,9 +84,6 @@ fn child_keys(t: &str, key: &str) -> usize {
         }
     }
     out
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` when the text has a `#%RAML` marker.

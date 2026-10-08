@@ -79,6 +79,7 @@
 //! assert_eq!(c.inline_blocks, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// openvpn config census.
 #[derive(Debug, Clone)]
 pub struct Openvpn {
@@ -297,9 +298,6 @@ const BLOCK_TAGS: &[&str] = &[
     "secret",
     "connection",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect openvpn config content.
 #[must_use]

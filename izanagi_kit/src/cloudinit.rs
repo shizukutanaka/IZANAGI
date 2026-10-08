@@ -49,6 +49,7 @@
 //! assert_eq!(c.items, 5);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed cloud-config summary.
 #[derive(Debug, Clone)]
 pub struct Cloudinit {
@@ -150,9 +151,6 @@ const TOP_KW: &[&str] = &[
     "ca-certs",
     "apt-configure",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like cloud-config.
 #[must_use]

@@ -13,6 +13,7 @@
 //! assert!(izanagi_kit::buildkite::detect(b"steps:\n  - command: make\n    label: build\n  - wait\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルキー。
 const TOP_KEYS: &[&str] = &["agents", "env", "image", "notify", "steps"];
 
@@ -81,9 +82,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が Buildkite パイプラインかどうか。

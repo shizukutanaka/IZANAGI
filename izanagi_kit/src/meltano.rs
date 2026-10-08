@@ -14,6 +14,7 @@
 //!     b"plugins:\n  extractors:\n  - name: tap-x\n    pip_url: x\n    namespace: tap_x\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// トップレベル既知キー。
 const TOP_KEYS: &[&str] = &[
     "auto_install",
@@ -113,9 +114,6 @@ fn line_kind(t: &str, in_plugins: bool) -> u8 {
     } else {
         3
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Meltano 固有のトップキー(`plugins:`/`environments:`/`version:`/

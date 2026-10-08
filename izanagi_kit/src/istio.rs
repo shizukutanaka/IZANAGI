@@ -51,6 +51,7 @@
 //! assert!(c.traffic_keys >= 4);
 //! ```
 
+use crate::textutil::yaml_val;
 /// Parsed Istio manifest summary.
 #[derive(Debug, Clone)]
 pub struct Istio {
@@ -262,15 +263,6 @@ fn code_has(t: &str, needle: &str) -> bool {
     // `#` コメント行内の言及は証拠にしない。
     t.lines()
         .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
-}
-fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
-    let l = line.trim_start_matches(['"', '\'']);
-    let r = l
-        .strip_prefix(key)?
-        .trim_start_matches(['"', '\''])
-        .trim_start();
-    r.strip_prefix(':')
-        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
 }
 
 fn has_kv(t: &str, key: &str, val: &str) -> bool {

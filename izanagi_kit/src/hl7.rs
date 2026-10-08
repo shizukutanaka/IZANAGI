@@ -15,6 +15,7 @@
 //! assert_eq!(h.message_types, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed census of an HL7 v2 message.
 #[derive(Debug, Clone)]
 pub struct Hl7 {
@@ -71,9 +72,6 @@ const KNOWN: &[&str] = &[
     "PR1", "SCH", "RXE", "RXD", "CTI", "SPC", "TQ1", "TXA", "FT1", "GT1", "PD1", "QRD", "QRF",
     "ERR", "BHS", "BTS", "FHS", "FTS", "BLG", "IAM", "ACC", "UB1", "UB2", "DSC", "DSP", "MRG",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Reports whether `b` looks like an HL7 v2 message.
 #[must_use]

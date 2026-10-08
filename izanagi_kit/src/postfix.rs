@@ -57,6 +57,7 @@
 //! assert_eq!(c.settings, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// main.cf/master.cf census.
 #[derive(Debug, Clone)]
 pub struct Postfix {
@@ -165,9 +166,6 @@ const KEYS: &[&str] = &[
 ];
 
 const MASTER_TYPES: &[&str] = &["inet", "unix", "unix-dgram", "fifo", "pass"];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect Postfix `main.cf`/`master.cf` content.
 #[must_use]

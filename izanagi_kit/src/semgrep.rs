@@ -17,6 +17,7 @@
 //! assert_eq!(c.errors, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Semgrep JSON output summary.
 #[derive(Debug, Clone)]
 pub struct Semgrep {
@@ -45,9 +46,6 @@ fn count_key(t: &str, key: &str) -> usize {
         off += i + key.len();
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Semgrep JSON document.

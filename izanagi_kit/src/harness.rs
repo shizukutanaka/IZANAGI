@@ -14,6 +14,7 @@
 //! assert!(izanagi_kit::harness::detect(b"pipeline:\n  name: ci\n  identifier: ci\n  stages: []\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// ルートコンテナキー(直下に構造を持つ)。
 const ROOT_KEYS: &[&str] = &[
     "pipeline",
@@ -92,9 +93,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が Harness パイプラインかどうか。

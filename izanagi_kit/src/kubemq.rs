@@ -13,6 +13,7 @@
 //! assert!(izanagi_kit::kubemq::detect(b"config:\n  address: kubemq-grpc:50000\n  store: queues\n  license: xyz\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// コンテナ/構造キー。
 const TOP_KEYS: &[&str] = &[
     "apiVersion",
@@ -96,9 +97,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Keys (or inline mentions) that appear only in KubeMQ resources —

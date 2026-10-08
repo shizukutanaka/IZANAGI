@@ -19,6 +19,7 @@
 //! assert_eq!(c.keys, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Zola `config.toml` census.
 #[derive(Debug, Clone)]
 pub struct Zola {
@@ -91,9 +92,6 @@ const SECTIONS: &[&str] = &[
     "languages",
     "output_formats",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a Zola `config.toml`.
 #[must_use]

@@ -16,6 +16,7 @@
 //! ```
 #![forbid(unsafe_code)]
 
+use crate::textutil::strip_bom;
 /// metaflow config.json census.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Metaflow {
@@ -29,9 +30,6 @@ pub struct Metaflow {
     pub service: usize,
     /// `METAFLOW_DATASTORE_*`/`METAFLOW_ARTIFACT_*` keys.
     pub datastore: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// True if `b` looks like metaflowconfig/config.json.

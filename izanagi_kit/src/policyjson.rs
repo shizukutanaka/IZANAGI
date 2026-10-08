@@ -15,6 +15,7 @@
 //! ```
 #![forbid(unsafe_code)]
 
+use crate::textutil::strip_bom;
 /// policy.json census.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PolicyJson {
@@ -45,9 +46,6 @@ const TRANSPORTS: &[&str] = &[
     "\"oci\"",
     "\"tarball\"",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// True if `b` looks like policy.json.
 #[must_use]

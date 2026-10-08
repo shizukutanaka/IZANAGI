@@ -19,6 +19,7 @@
 //! assert_eq!(c.top_levels, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Junos configuration census.
 #[derive(Debug, Clone)]
 pub struct Junos {
@@ -34,9 +35,6 @@ pub struct Junos {
     pub blocks: usize,
     /// `/* ... */` or `#` comment lines.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Junos configuration.

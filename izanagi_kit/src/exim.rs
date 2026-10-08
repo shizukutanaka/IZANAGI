@@ -48,6 +48,7 @@
 //! assert_eq!(c.sections, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// exim configure census.
 #[derive(Debug, Clone)]
 pub struct Exim {
@@ -250,9 +251,6 @@ const KEYS: &[&str] = &[
     "server_xoauth2_server",
     "wildcard",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect exim configure content.
 #[must_use]

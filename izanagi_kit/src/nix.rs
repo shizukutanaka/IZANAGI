@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::nix::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// A parsed Nix expression summary.
 #[derive(Debug, Clone)]
 pub struct Nix {
@@ -58,9 +59,6 @@ fn count_kw(t: &str, kw: &str) -> usize {
         off = j;
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects Nix: `let … in`, `mkDerivation`/`stdenv`/`<nixpkgs>`, or a `{…}:` lambda head.

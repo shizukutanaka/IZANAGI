@@ -18,6 +18,7 @@
 //! assert_eq!(c.option_kv, 3); // debug=1, InterruptThrottleRate=1, ieee80211_regdom=JP
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -39,9 +40,6 @@ pub struct Counts {
     pub continuations: usize,
     /// `#` コメント行の個数。
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// modprobe.d らしさを返す。alias/options/blacklist 等が複数あること。

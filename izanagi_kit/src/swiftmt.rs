@@ -17,6 +17,7 @@
 //! assert!(izanagi_kit::swiftmt::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// A parsed SWIFT MT message.
 #[derive(Debug)]
 pub struct SwiftMt {
@@ -44,9 +45,6 @@ impl SwiftMt {
             .find(|(t, _)| t == tag)
             .map(|(_, v)| v.as_str())
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// A `{1:…}` / `{4:…}`-block stream starts a SWIFT MT message.

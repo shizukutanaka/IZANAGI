@@ -20,6 +20,7 @@
 //! assert!(c.string_vals > 0 && c.header_banner > 0);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -39,9 +40,6 @@ pub struct Counts {
     pub header_banner: usize,
     /// その他の `#` コメント行(セクション見出し等)の個数。
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `sdkconfig` らしさを返す。`CONFIG_` 代入と `is not set` の組合せで判定。

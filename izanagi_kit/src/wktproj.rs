@@ -20,6 +20,7 @@
 //! assert!(c.keywords >= 6);
 //! ```
 
+use crate::textutil::strip_bom;
 const KEYWORDS: &[&str] = &[
     "ANGLEUNIT",
     "AREAUNIT",
@@ -74,9 +75,6 @@ fn kw_count(t: &str) -> usize {
         .iter()
         .filter(|k| t.contains(&format!("{k}[")))
         .count()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が WKT CRS 定義に見えるかを返す。

@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::bazel::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// A parsed Bazel BUILD-file summary.
 #[derive(Debug, Clone)]
 pub struct Bazel {
@@ -49,9 +50,6 @@ fn is_rule_name(s: &str) -> bool {
         && s.chars()
             .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
         && s.chars().next().is_some_and(|c| c.is_ascii_alphabetic())
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects a Bazel BUILD file: `load(…)` or a known rule call.

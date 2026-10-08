@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::bundlerconf::detect(b"BUNDLE_FROZEN: true\nBUNDLE_RETRY: 3\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `BUNDLE_` 接頭辞なしで参照される既定名(bundle config set 名)。
 const KEYS: &[&str] = &[
     "allow_multisource",
@@ -84,9 +85,6 @@ fn is_bundle_key(k: &str) -> bool {
     k.starts_with("BUNDLE_")
         || KEYS.contains(&k)
         || k.strip_prefix("bundle.").is_some_and(|s| KEYS.contains(&s))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .bundle/config かどうか。

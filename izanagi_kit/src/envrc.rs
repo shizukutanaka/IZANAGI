@@ -18,6 +18,7 @@
 //! assert_eq!(c.uses, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// .envrc census.
 #[derive(Debug, Clone)]
 pub struct Envrc {
@@ -76,9 +77,6 @@ const HELPER_HEADS: &[&str] = &[
     "guix",
     "direnv_layout_dir",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect .envrc content.
 #[must_use]

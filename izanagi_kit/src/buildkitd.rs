@@ -14,6 +14,7 @@
 //!     b"[worker.oci]\nenabled = true\nplatforms = [\"linux/amd64\"]\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// テーブルプレフィックス(先頭照合)。
 const TABLES: &[&str] = &[
     "buildkitd",
@@ -104,9 +105,6 @@ fn table_of(t: &str) -> &str {
 fn known_key(t: &str) -> bool {
     let Some(eq) = t.find('=') else { return false };
     KEYS.contains(&t[..eq].trim())
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `buildkitd.toml` らしさを判定する。

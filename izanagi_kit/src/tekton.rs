@@ -13,6 +13,7 @@
 //! assert_eq!(c.steps, 1);
 //! ```
 
+use crate::textutil::yaml_val;
 fn is_key(tr: &str, key: &str) -> bool {
     let k = tr.trim_start_matches(['"', '\'']);
     k.strip_prefix(key)
@@ -22,17 +23,6 @@ fn is_key(tr: &str, key: &str) -> bool {
 /// `- key:` リストアイテム形でも `key:` か。
 fn is_item(tr: &str, key: &str) -> bool {
     is_key(tr.trim_start_matches('-').trim_start(), key)
-}
-
-/// `key` の値を `key: value` 行から取り出す。
-fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
-    let l = line.trim_start_matches(['"', '\'']);
-    let r = l
-        .strip_prefix(key)?
-        .trim_start_matches(['"', '\''])
-        .trim_start();
-    r.strip_prefix(':')
-        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
 }
 
 /// `kind:` の値が Tekton リソース種別かどうか。

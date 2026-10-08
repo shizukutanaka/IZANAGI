@@ -26,6 +26,7 @@
 //! assert_eq!(c.settings, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// dovecot.conf census.
 #[derive(Debug, Clone)]
 pub struct Dovecot {
@@ -229,9 +230,6 @@ const KEYS: &[&str] = &[
     "group",
     "mode",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect dovecot.conf content.
 #[must_use]

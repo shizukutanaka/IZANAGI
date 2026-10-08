@@ -20,6 +20,7 @@
 //! assert!(izanagi_kit::mix::detect(k));
 //! ```
 
+use crate::textutil::strip_bom;
 /// mix.exs census.
 #[derive(Debug, Clone)]
 pub struct Mix {
@@ -74,9 +75,6 @@ const MARKERS: &[&str] = &[
 fn tuple_dep(line: &str) -> bool {
     let s = line.trim();
     s.starts_with("{:") || s.contains("{:")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect a `mix.exs` file.

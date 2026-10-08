@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::vernemq::detect(b"listener.tcp.default = 127.0.0.1:1883\nallow_anonymous = on\nvmq_acl.acl_file = /etc/vernemq/vmq.acl\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知キー接頭辞(`<prefix>` または `<prefix><何か>` 完全一致系含む)。
 const PREFIXES: &[&str] = &[
     "allow_anonymous",
@@ -97,9 +98,6 @@ fn known_key(k: &str) -> bool {
             k == *p || k.starts_with(*p) && k.as_bytes().get(p.len()) == Some(&b'.')
         }
     })
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が vernemq.conf かどうか。

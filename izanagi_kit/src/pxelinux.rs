@@ -19,6 +19,7 @@
 //! assert_eq!(c.global_opts, 5); // DEFAULT/PROMPT/TIMEOUT/ONTIMEOUT/LOCALBOOT
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -86,9 +87,6 @@ const GLOBAL: &[&str] = &[
 
 fn head(s: &str) -> &str {
     s.split_whitespace().next().unwrap_or("")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// pxelinux らしさを返す。`LABEL`+カーネル系、または `MENU` 系 + `DEFAULT`。

@@ -24,6 +24,7 @@
 //! assert_eq!(c.items, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 const SECTIONS: &[&str] = &[
     "homeassistant",
     "automation",
@@ -193,9 +194,6 @@ pub struct Homeassistant {
     pub includes: usize,
     /// `customize:`/`packages:` keys.
     pub customizes: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Home Assistant YAML config.

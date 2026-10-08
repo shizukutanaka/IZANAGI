@@ -14,6 +14,7 @@
 //! assert_eq!(c.tools, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// TOML セクションヘッダ `[name]`(配列表 `[[name]]` は別扱い)。
 fn section_of(tr: &str) -> Option<&str> {
     tr.strip_prefix('[')?
@@ -91,9 +92,6 @@ pub struct Counts {
     pub comments: usize,
     /// その他の行数。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が `mise.toml` に見えるかを判定する。

@@ -14,6 +14,7 @@
 //! assert_eq!(l.constraints, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed LP-file census.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Lp {
@@ -39,9 +40,6 @@ pub struct Lp {
     pub has_end: bool,
     /// `\` comment lines.
     pub comments: u32,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` on `max`/`min` + `subject to`-style skeleton.

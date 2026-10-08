@@ -11,6 +11,7 @@
 //!     b"config:kernel=yes\nskip-test=AUTH-9328\ntest:FILE-6310\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `key=value` 形で使われる既定キー(プレフィックス含む)。
 const KEYS: &[&str] = &[
     "allow-syslog-remote-logging",
@@ -64,9 +65,6 @@ fn known_line(t: &str) -> bool {
     let Some(eq) = t.find('=') else { return false };
     let k = t[..eq].trim();
     KEYS.contains(&k) || k.starts_with("config:") || k.starts_with("test:")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `custom.prf` らしさを判定する。

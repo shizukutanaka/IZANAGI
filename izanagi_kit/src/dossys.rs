@@ -12,6 +12,7 @@
 //! assert_eq!(c.directives, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// DOS system-file census.
 #[derive(Debug, Clone)]
 pub struct Dossys {
@@ -55,9 +56,6 @@ const CMDS: &[&str] = &[
     "MOUSE", "SHARE", "CLS", "PAUSE", "FOR", "IN", "DO", "START", "WIN", "TYPE", "COPY", "XCOPY",
     "CHKDSK", "SCANDISK", "MSCDEX", "SHSUCDX", "LOADFIX", "RUN",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a DOS system file.
 #[must_use]

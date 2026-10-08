@@ -19,6 +19,7 @@
 //! assert_eq!(c.provisioners, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Packer template summary.
 #[derive(Debug, Clone)]
 pub struct Packer {
@@ -52,9 +53,6 @@ fn count_kv_entries(t: &str, key: &str) -> usize {
     } else {
         0
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Packer template.

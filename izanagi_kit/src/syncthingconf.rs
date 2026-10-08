@@ -17,6 +17,7 @@
 //! ```
 #![forbid(unsafe_code)]
 
+use crate::textutil::strip_xml_comments;
 /// syncthing config.xml census.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SyncthingConf {
@@ -71,30 +72,13 @@ const LEAVES: &[&str] = &[
     "insecureAllowOldTLSVersions",
 ];
 
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 /// True if `b` looks like a syncthing config.xml.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let t = strip_comments(t);
+    let t = strip_xml_comments(t);
     t.contains("<configuration") && (t.contains("<folder id") || t.contains("<device id"))
 }
 
@@ -102,7 +86,7 @@ impl SyncthingConf {
     /// Parse config.xml into census counts.
     #[must_use]
     pub fn parse(b: &[u8]) -> Option<Self> {
-        let t = strip_comments(std::str::from_utf8(b).ok()?);
+        let t = strip_xml_comments(std::str::from_utf8(b).ok()?);
         let mut c = Self {
             folders: 0,
             devices: 0,
@@ -191,12 +175,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

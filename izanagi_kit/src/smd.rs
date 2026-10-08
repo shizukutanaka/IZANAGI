@@ -14,6 +14,7 @@
 //! assert!(izanagi_kit::smd::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census of an `.smd` file.
 #[derive(Debug, Clone)]
 pub struct Smd {
@@ -37,9 +38,6 @@ enum Sec {
     Nodes,
     Skeleton,
     Triangles,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects `.smd`: `version` header plus a `nodes`/`skeleton`/`triangles` block.

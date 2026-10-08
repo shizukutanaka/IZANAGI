@@ -11,6 +11,7 @@
 //! assert_eq!(c.settings, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `.clang-format` census.
 #[derive(Debug, Clone)]
 pub struct ClangFormat {
@@ -107,9 +108,6 @@ const KEYS: &[&str] = &[
 
 fn is_key(k: &str) -> bool {
     KEYS.iter().any(|x| k.starts_with(x))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a `.clang-format` file.

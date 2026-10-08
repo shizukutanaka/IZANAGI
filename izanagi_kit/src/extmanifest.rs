@@ -13,6 +13,7 @@
 //!     b"{\"manifest_version\": 3, \"permissions\": [\"tabs\"], \"background\": {}}\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 拡張マニフェスト既知キー。
 const KEYS: &[&str] = &[
     "action",
@@ -119,9 +120,6 @@ fn key_hits(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 fn exclusive_hits(t: &str) -> usize {

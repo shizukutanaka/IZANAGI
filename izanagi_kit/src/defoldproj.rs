@@ -9,6 +9,7 @@
 //! assert!(izanagi_kit::defoldproj::detect(b"[project]\ntitle = x\n[display]\nwidth = 1\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知 Defold セクション。
 const SECTIONS: &[&str] = &[
     "bootstrap",
@@ -134,9 +135,6 @@ pub struct Counts {
     pub comments: usize,
     /// 分類不能行。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が Defold game.project かどうか。

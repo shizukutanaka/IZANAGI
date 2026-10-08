@@ -11,6 +11,7 @@
 //!     b"ALLOW_SSH_ROOT_USER=no\nDISABLE_TESTS=apps\nENABLE_TESTS=all\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// rkhunter.conf 既知キー。
 const KEYS: &[&str] = &[
     "ALLOWDEVFILE",
@@ -104,9 +105,6 @@ fn known_key(t: &str) -> bool {
         .unwrap_or(t.len());
     let k = t[..end].trim();
     KEYS.contains(&k) || k.ends_with("_WHITELIST")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `rkhunter.conf` らしさを判定する。

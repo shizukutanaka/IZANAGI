@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::paseto::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// A PASETO token census.
 #[derive(Debug, Clone)]
 pub struct Paseto {
@@ -29,9 +30,6 @@ fn seg_ok(s: &str) -> bool {
     !s.is_empty()
         && s.bytes()
             .all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_' || c == b'=')
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects a PASETO: `vN.purpose.` with purpose `local`/`public`.

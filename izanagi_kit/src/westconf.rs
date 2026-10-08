@@ -16,6 +16,7 @@
 //! assert_eq!(c.keys, 22);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -73,9 +74,6 @@ const ATTR_KEYS: &[&str] = &[
     "classification",
     "uuid",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// `west.yml` らしさを返す。`manifest:` と `remotes:`/`projects:` の組合せ。
 #[must_use]

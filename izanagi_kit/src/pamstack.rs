@@ -22,6 +22,7 @@
 //! assert!(c.includes >= 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -48,9 +49,6 @@ pub struct Counts {
 const TYPES: &[&str] = &["account", "auth", "password", "session"];
 
 const CONTROLS: &[&str] = &["required", "requisite", "sufficient", "optional", "binding"];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// pam.conf/pam.d らしさを返す。type+control+pam モジュールの行が複数。
 #[must_use]

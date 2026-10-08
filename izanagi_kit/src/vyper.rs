@@ -13,6 +13,7 @@
 //! assert_eq!(v.externals, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed census of a Vyper source file.
 #[derive(Debug, Clone)]
 pub struct Vyper {
@@ -51,9 +52,6 @@ fn code_has(t: &str, needle: &str) -> bool {
     // `#` コメント行内の言及は証拠にしない。
     t.lines()
         .any(|l| !l.trim_start().starts_with('#') && l.contains(needle))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Returns `true` when `b` looks like Vyper source.

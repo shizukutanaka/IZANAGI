@@ -18,6 +18,7 @@
 //! assert_eq!(c.list_items, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -79,9 +80,6 @@ fn is_key(s: &str, key: &str) -> bool {
     // `key :` (コロン前の空白)も YAML では合法。
     s.strip_prefix(key)
         .is_some_and(|r| r.trim_start().starts_with(':'))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `amplify.yml` らしさを返す。`version:` と `frontend:`/`backend:`/`phases:`

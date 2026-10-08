@@ -13,29 +13,13 @@
 //! assert_eq!(c.entries, 3);
 //! ```
 
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
+use crate::textutil::strip_xml_comments;
 /// `b` が Readarr config.xml に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let t = strip_comments(t);
+    let t = strip_xml_comments(t);
     t.contains("<Config>")
         && (t.contains("<InstanceName>Readarr")
             || t.contains("<Port>8787")
@@ -55,7 +39,7 @@ pub struct Readarr {
 
 /// `b` を Readarr config.xml として統計する。
 pub fn parse(b: &[u8]) -> Readarr {
-    let t = strip_comments(std::str::from_utf8(b).unwrap_or(""));
+    let t = strip_xml_comments(std::str::from_utf8(b).unwrap_or(""));
     let mut c = Readarr {
         comments: t.matches("<!--").count(),
         ..Readarr::default()
@@ -132,12 +116,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

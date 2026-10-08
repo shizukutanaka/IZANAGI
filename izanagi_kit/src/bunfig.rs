@@ -13,6 +13,7 @@
 //! assert_eq!(c.sections, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `bunfig.toml` census.
 #[derive(Debug, Clone)]
 pub struct Bunfig {
@@ -80,9 +81,6 @@ const BUNKEYS: &[&str] = &[
     "define",
     "saveText",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a bunfig.toml file.
 #[must_use]

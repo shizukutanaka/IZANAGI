@@ -13,6 +13,7 @@
 //!     b"<ossec_config><syscheck><disabled>no</disabled></syscheck></ossec_config>\n"));
 //! ```
 
+use crate::textutil::strip_xml_comments;
 /// 設定ブロック(コンテナ)タグ。
 const BLOCKS: &[&str] = &[
     "active-response",
@@ -73,29 +74,13 @@ fn tags_in_line(t: &str, f: &mut dyn FnMut(&str)) {
         }
     }
 }
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
 
 /// `ossec.conf` らしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
-    let text = strip_comments(text);
+    let text = strip_xml_comments(text);
     let mut root = false;
     let mut hits = 0usize;
     for line in text.lines() {
@@ -187,12 +172,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

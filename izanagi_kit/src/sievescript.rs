@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::sievescript::detect(b"require \"reject\";"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知 Sieve テスト名。
 const TESTS: &[&str] = &[
     "address",
@@ -74,9 +75,6 @@ pub struct Counts {
     pub comments: usize,
     /// 分類不能行。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Sieve 固有の動詞(`if`/`elsif`/`set`/`stop`/`keep`/`header` 等は

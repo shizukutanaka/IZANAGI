@@ -9,6 +9,7 @@
 //! assert!(izanagi_kit::waypoint::detect(k));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Waypoint config census.
 #[derive(Debug, Clone)]
 pub struct Waypoint {
@@ -42,9 +43,6 @@ fn is_labelled(s: &str) -> bool {
         }
     }
     false
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect a waypoint.hcl config.

@@ -26,6 +26,7 @@
 //! assert_eq!(c2.recipes, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 const RESOURCES: &[&str] = &[
     "package",
     "service",
@@ -79,9 +80,6 @@ pub struct Chef {
     pub recipes: usize,
     /// `lazy`/`sensitive`/`ignore_failure`/`retries` properties.
     pub extras: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Chef recipe.

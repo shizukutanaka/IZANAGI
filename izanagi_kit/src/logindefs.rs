@@ -17,6 +17,7 @@
 //! assert_eq!(c.paths, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -33,9 +34,6 @@ pub struct Counts {
     pub numbers: usize,
     /// `#` コメント行の個数。
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// login.defs らしさを返す。ALL-CAPS + 値の行が複数あり、典型キーを含む。

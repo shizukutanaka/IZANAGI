@@ -12,6 +12,7 @@
 //!     b"cpu: 2\ndisk: 20\nautoActivate: true\nvmType: vz\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Colima 既知設定キー(トップ + kubernetes/network ネスト)。
 const KEYS: &[&str] = &[
     "address",
@@ -87,9 +88,6 @@ fn key_of(t: &str) -> &str {
 
 fn known_key(t: &str) -> bool {
     KEYS.contains(&key_of(t))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `colima.yaml` らしさを判定する。

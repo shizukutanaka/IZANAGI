@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::npmrc::detect(b"engine-strict=true\npackage-lock=false\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知 npm 設定キー(抜粋)。
 const KEYS: &[&str] = &[
     "access",
@@ -163,9 +164,6 @@ fn kv_key(t: &str) -> Option<&str> {
 /// スコープ設定キーか(`//…/:` または `@scope:`)。
 fn is_scoped_key(k: &str) -> bool {
     (k.starts_with("//") && k.contains("/:")) || (k.starts_with('@') && k.contains(':'))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .npmrc かどうか。

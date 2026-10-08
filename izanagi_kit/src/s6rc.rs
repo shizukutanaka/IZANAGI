@@ -14,6 +14,7 @@
 //! ```
 #![forbid(unsafe_code)]
 
+use crate::textutil::strip_bom;
 /// s6-rc/execline script census.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct S6rc {
@@ -56,9 +57,6 @@ const VAR_OPS: &[&str] = &[
 
 /// Action builtin names.
 const ACTIONS: &[&str] = &["exec", "cd", "exit", "wait", "execve", "loopwhilex"];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// True if `b` looks like an s6-rc/execline script.
 #[must_use]

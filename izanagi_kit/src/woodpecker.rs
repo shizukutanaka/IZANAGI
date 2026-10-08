@@ -13,6 +13,7 @@
 //! assert!(izanagi_kit::woodpecker::detect(b"steps:\n  test:\n    image: rust\n    commands: cargo test\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルキー。
 const TOP_KEYS: &[&str] = &[
     "base",
@@ -89,9 +90,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .woodpecker.yml かどうか。

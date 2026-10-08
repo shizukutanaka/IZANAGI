@@ -13,6 +13,7 @@
 //! assert_eq!(c.keys, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Hugo config census.
 #[derive(Debug, Clone)]
 pub struct Hugoconf {
@@ -108,9 +109,6 @@ const SECTIONS: &[&str] = &[
     "related",
     "related.indices",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a Hugo site config.
 #[must_use]

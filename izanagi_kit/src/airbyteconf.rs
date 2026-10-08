@@ -12,6 +12,7 @@
 //!     b"connectionConfiguration:\n  host: h\n  database: d\nsync_mode: incremental\ncursor_field: ts\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Airbyte 既知設定キー。
 const KEYS: &[&str] = &[
     "airbyte_secret",
@@ -118,9 +119,6 @@ fn key_hits(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 fn exclusive_hits(t: &str) -> usize {

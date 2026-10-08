@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::pypirc::detect(b"[pypi]\nusername = me\npassword = x\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知セクション名。
 const SECTIONS: &[&str] = &["distutils", "pypi", "testpypi", "server-login"];
 
@@ -62,9 +63,6 @@ fn kv_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .pypirc かどうか。

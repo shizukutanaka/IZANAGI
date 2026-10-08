@@ -14,6 +14,7 @@
 //! assert_eq!(c.patterns, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `.hgignore` census.
 #[derive(Debug, Clone)]
 pub struct Hgignore {
@@ -45,9 +46,6 @@ const PREFIXES: &[&str] = &[
     "subinclude:",
     "subtree:",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a `.hgignore`.
 #[must_use]

@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::cirrus::detect(b"test_task:\n  container:\n    image: rust\n  script: cargo test\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// サフィックスでタスク/特殊ブロックを判定する語。
 const TASK_SUFFIXES: &[&str] = &["_task", "_pipe", "_pipe_template", "_template"];
 
@@ -114,9 +115,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .cirrus.yml かどうか。

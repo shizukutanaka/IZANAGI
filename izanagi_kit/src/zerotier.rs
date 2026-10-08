@@ -21,6 +21,7 @@
 //! assert_eq!(c.settings, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// zerotier local.conf census.
 #[derive(Debug, Clone)]
 pub struct Zerotier {
@@ -76,9 +77,6 @@ const KEYS: &[&str] = &[
     "roots",
     "controllers",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect zerotier local.conf content.
 #[must_use]

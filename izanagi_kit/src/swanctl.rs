@@ -34,6 +34,7 @@
 //! assert_eq!(c.connections, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// swanctl.conf census.
 #[derive(Debug, Clone)]
 pub struct Swanctl {
@@ -154,9 +155,6 @@ const KEYS: &[&str] = &[
     "esp",
     "ah",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect swanctl.conf content.
 #[must_use]

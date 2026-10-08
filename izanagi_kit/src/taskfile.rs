@@ -12,6 +12,7 @@
 //!     b"version: '3'\ntasks:\n  a:\n    cmds:\n      - x\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// トップレベル既知キー。
 const TOP_KEYS: &[&str] = &[
     "dotenv", "env", "includes", "output", "run", "silent", "tasks", "vars", "version",
@@ -70,9 +71,6 @@ fn task_key(t: &str) -> Option<&str> {
     let k = t.split(':').next()?;
     let k = k.trim();
     TASK_KEYS.contains(&k).then_some(k)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Taskfile らしさを判定する。

@@ -19,6 +19,7 @@
 //! assert_eq!(c.entries, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// quartz.properties census.
 #[derive(Debug, Clone)]
 pub struct Quartz {
@@ -44,9 +45,6 @@ const SCOPES: &[&str] = &[
 
 fn key_of(s: &str) -> &str {
     s.split(['=', ':']).next().unwrap_or("").trim_end()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like quartz.properties.

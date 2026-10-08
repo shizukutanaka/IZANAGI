@@ -26,6 +26,7 @@
 //! assert_eq!(c.repos, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// apk config census.
 #[derive(Debug, Clone)]
 pub struct Apk {
@@ -37,9 +38,6 @@ pub struct Apk {
     pub specs: usize,
     /// `apk.conf`-style `key = value`/`key: value`/`key=value` entries.
     pub confs: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like an apk repositories/world/config file.

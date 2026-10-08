@@ -17,6 +17,7 @@
 //! assert_eq!(c.failed, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Checkov JSON report summary.
 #[derive(Debug, Clone)]
 pub struct Checkov {
@@ -70,9 +71,6 @@ fn entries_in(t: &str, key: &str) -> usize {
         }
     }
     count_key(&seg[open..end], "\"check_id\"") + count_key(&seg[open..end], "\"resource_id\"")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Checkov JSON report.

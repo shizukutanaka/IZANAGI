@@ -18,6 +18,7 @@
 //! assert_eq!(c.programs, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// supervisord.conf census.
 #[derive(Debug, Clone)]
 pub struct Supervisor {
@@ -51,9 +52,6 @@ const PREFIXES: &[&str] = &[
 
 fn section_name(s: &str) -> &str {
     s.trim_start_matches('[').split(']').next().unwrap_or("")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like supervisord.conf.

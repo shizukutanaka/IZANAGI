@@ -12,6 +12,7 @@
 //!     b"{\"version\": \"0.2\", \"words\": [\"x\"], \"dictionaries\": []}\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// cSpell 設定既知キー。
 const KEYS: &[&str] = &[
     "allowCompoundWords",
@@ -75,9 +76,6 @@ fn key_hits(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `cspell.json` らしさを判定する。

@@ -11,6 +11,7 @@
 //!     b"{\"checks\": {\"weasel_words.very\": false, \"typography.symbols\": true}}\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// チェックキーの既知カテゴリプレフィックス。
 const CATEGORIES: &[&str] = &[
     "airlinese",
@@ -70,9 +71,6 @@ fn key_hits(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `.proselintrc` らしさを判定する(`checks` + カテゴリチェック)。

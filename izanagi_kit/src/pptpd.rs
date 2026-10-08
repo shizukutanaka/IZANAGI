@@ -50,6 +50,7 @@
 //! assert_eq!(c.settings, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// pptpd.conf census.
 #[derive(Debug, Clone)]
 pub struct Pptpd {
@@ -208,9 +209,6 @@ const KEYS: &[&str] = &[
     "unit",
     "child-timeout",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect pptpd.conf/options content.
 #[must_use]

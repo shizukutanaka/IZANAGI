@@ -22,6 +22,7 @@
 //! assert_eq!(c.entries, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// motion.conf census.
 #[derive(Debug, Clone)]
 pub struct Motionconf {
@@ -146,9 +147,6 @@ const KEYS: &[&str] = &[
 
 fn key_of(s: &str) -> &str {
     s.split([' ', '=', '\t']).next().unwrap_or("")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a motion.conf.

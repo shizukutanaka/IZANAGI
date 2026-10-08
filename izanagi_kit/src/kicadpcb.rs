@@ -13,6 +13,7 @@
 //! assert_eq!(c.footprints, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// カウント結果。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -30,9 +31,6 @@ pub struct Counts {
     pub nets: usize,
     /// `gr_*`/`fp_line`/`fp_circle`/`fp_arc`/`fp_text`/`fp_poly`/`fp_rect`/`dimension`/`target`/`stroke`/`fill`/`pts`/`xy`/`xyz`/`at`/`size`/`layers`/`layer` 図形・補助数。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が `.kicad_pcb` かどうか。

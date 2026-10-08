@@ -9,6 +9,7 @@
 //! assert_eq!(c.patterns, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `.gitignore`-style pattern census.
 #[derive(Debug, Clone)]
 pub struct Gitignore {
@@ -24,9 +25,6 @@ pub struct Gitignore {
     pub globs: usize,
     /// Anchored patterns (`/` at start or middle).
     pub anchored: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// One ignore-file pattern line: non-empty, no whitespace, and none of

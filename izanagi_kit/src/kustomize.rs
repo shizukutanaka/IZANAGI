@@ -17,6 +17,7 @@
 //! assert_eq!(c.resources, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// kustomization census.
 #[derive(Debug, Clone)]
 pub struct Kustomize {
@@ -85,9 +86,6 @@ const PATCH_KEYS: &[&str] = &[
     "replicas",
     "vars",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect kustomization.yaml content.
 #[must_use]

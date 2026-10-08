@@ -30,6 +30,7 @@
 //! assert_eq!(c.settings, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// opendmarc.conf census.
 #[derive(Debug, Clone)]
 pub struct Opendmarc {
@@ -104,9 +105,6 @@ const KEYS: &[&str] = &[
     "SkipTEMPDIRFAIL",
     "SMFIs",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect opendmarc.conf content.
 #[must_use]

@@ -16,6 +16,7 @@
 //! assert_eq!(c.sets, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// config.fish census.
 #[derive(Debug, Clone)]
 pub struct Fishconf {
@@ -100,9 +101,6 @@ const OTHER_HEADS: &[&str] = &[
     "export",
     "shift",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect config.fish content.
 #[must_use]

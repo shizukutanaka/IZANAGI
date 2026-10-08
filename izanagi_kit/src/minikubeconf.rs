@@ -13,6 +13,7 @@
 //!     b"{\"driver\": \"docker\", \"cpus\": 2, \"memory\": 2048}\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Minikube 設定キー。
 const KEYS: &[&str] = &[
     "addons",
@@ -119,9 +120,6 @@ fn has_key(t: &str, key: &str) -> bool {
 
 fn key_hits(t: &str) -> usize {
     KEYS.iter().filter(|k| has_key(t, k)).count()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `config.json` らしさを判定する。

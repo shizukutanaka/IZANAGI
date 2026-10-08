@@ -15,6 +15,7 @@
 //! assert_eq!(t.directives, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed census of an IPAC table.
 #[derive(Debug, Clone)]
 pub struct Ipac {
@@ -56,9 +57,6 @@ fn cells(l: &str) -> Vec<&str> {
         .map(|c| c.trim())
         .filter(|c| !c.is_empty())
         .collect()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Reports whether `b` looks like an IPAC table.

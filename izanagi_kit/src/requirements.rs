@@ -12,6 +12,7 @@
 //! assert_eq!(c.pinned, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// requirements.txt census.
 #[derive(Debug, Clone)]
 pub struct Requirements {
@@ -31,9 +32,6 @@ pub struct Requirements {
     pub markers: usize,
     /// `#` comment lines.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a requirements.txt.

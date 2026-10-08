@@ -12,6 +12,7 @@
 //!     b"rules_file: /etc/falco/falco_rules.yaml\njson_output: true\nlog_level: info\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Falco 既知設定キー(トップレベル + 深くネストした既定名)。
 const KEYS: &[&str] = &[
     "append_output",
@@ -77,9 +78,6 @@ fn key_of(t: &str) -> &str {
 
 fn known_key(t: &str) -> bool {
     KEYS.contains(&key_of(t))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `falco.yaml` らしさを判定する。

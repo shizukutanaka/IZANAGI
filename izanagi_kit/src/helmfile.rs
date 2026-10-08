@@ -17,6 +17,7 @@
 //! assert_eq!(c.repositories, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// helmfile.yaml census.
 #[derive(Debug, Clone)]
 pub struct Helmfile {
@@ -61,9 +62,6 @@ const TOP_KEYS: &[&str] = &[
     "helmVersion",
     "helmArgs",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect helmfile.yaml content.
 #[must_use]

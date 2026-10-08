@@ -9,6 +9,7 @@
 //! assert!(izanagi_kit::procmailrc::detect(b":0:\n* ^Subject: x\n{ }\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知 procmail 変数名。
 const VARS: &[&str] = &[
     "COMSAT",
@@ -73,9 +74,6 @@ fn is_assign(t: &str) -> bool {
     !key.is_empty()
         && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
         && !key.contains(' ')
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .procmailrc かどうか。

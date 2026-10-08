@@ -22,6 +22,7 @@
 //! assert_eq!(c.sections, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed unbound.conf summary.
 #[derive(Debug, Clone)]
 pub struct Unbound {
@@ -54,9 +55,6 @@ const SECTIONS: &[&str] = &[
     "subnet",
     "responses",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like unbound.conf.
 #[must_use]

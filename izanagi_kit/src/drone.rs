@@ -13,6 +13,7 @@
 //! assert_eq!(d.images, 1);
 //! ```
 
+use crate::textutil::yaml_val;
 /// Parsed `.drone.yml` summary.
 #[derive(Debug, Clone)]
 pub struct Drone {
@@ -124,15 +125,6 @@ fn val_after<'a>(t: &'a str, key: &str) -> Option<&'a str> {
         }
     }
     None
-}
-fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
-    let l = line.trim_start_matches(['"', '\'']);
-    let r = l
-        .strip_prefix(key)?
-        .trim_start_matches(['"', '\''])
-        .trim_start();
-    r.strip_prefix(':')
-        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
 }
 
 fn has_kv(t: &str, key: &str, val: &str) -> bool {

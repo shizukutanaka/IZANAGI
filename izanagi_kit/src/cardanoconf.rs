@@ -21,6 +21,7 @@
 //! assert_eq!(c.array_values, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -137,9 +138,6 @@ fn top_entries(t: &str) -> std::vec::Vec<(std::string::String, char)> {
         }
     }
     out
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Cardano node config らしさを返す。JSON オブジェクト + 既知キー ≥2。

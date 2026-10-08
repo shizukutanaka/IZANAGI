@@ -20,6 +20,7 @@
 //! assert_eq!(c.checks, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// monitrc census.
 #[derive(Debug, Clone)]
 pub struct Monit {
@@ -51,9 +52,6 @@ const CHECK_TYPES: &[&str] = &[
 
 fn first_word(s: &str) -> &str {
     s.split_whitespace().next().unwrap_or("")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like monitrc.

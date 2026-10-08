@@ -13,6 +13,7 @@
 //!     b"namespace = \"k8s.io\"\nsnapshotter = \"stargz\"\ncgroup_manager = \"systemd\"\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// nerdctl.toml 既知キー。
 const KEYS: &[&str] = &[
     "address",
@@ -58,9 +59,6 @@ pub struct Counts {
 fn known_key(t: &str) -> bool {
     let Some(eq) = t.find('=') else { return false };
     KEYS.contains(&t[..eq].trim())
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `nerdctl.toml` らしさを判定する。

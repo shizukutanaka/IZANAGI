@@ -13,6 +13,7 @@
 //! assert!(izanagi_kit::travisci::detect(b"language: rust\nscript: cargo test\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルキー。
 const TOP_KEYS: &[&str] = &[
     "addons",
@@ -108,9 +109,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Travis 固有のトップキー(`env`/`script`/`install`/`cache`/`jobs`/

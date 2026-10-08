@@ -16,6 +16,7 @@
 //! ```
 #![forbid(unsafe_code)]
 
+use crate::textutil::strip_bom;
 /// seccomp profile census.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Seccomp {
@@ -29,9 +30,6 @@ pub struct Seccomp {
     pub arches: usize,
     /// `args` condition entries.
     pub args: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// True if `b` looks like a seccomp profile.

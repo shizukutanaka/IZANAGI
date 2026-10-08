@@ -17,6 +17,7 @@
 //! assert_eq!(c.known_sections, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -83,9 +84,6 @@ fn key_of(s: &str) -> Option<&str> {
         return None;
     }
     Some(k)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `lnd.conf` らしさを返す。`Application Options`/`Bitcoin`/`Btcd`/`Neutrino`/`Litecoin`

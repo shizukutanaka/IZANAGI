@@ -12,6 +12,7 @@
 //! assert_eq!(c.commands, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `.bat`/`.cmd` census.
 #[derive(Debug, Clone)]
 pub struct Cmdbat {
@@ -149,9 +150,6 @@ const CMDS: &[&str] = &[
     "snippingtool",
     "cmd",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// cmd 固有の信号: `set /a`,`%~`,`%X%` 変数,`errorlevel`,`nul` リダイレクト,
 /// `if exist`,`call :label`,`::` ラベル行…は他言語では出ない。
