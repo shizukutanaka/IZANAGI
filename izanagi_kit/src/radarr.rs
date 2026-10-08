@@ -23,12 +23,30 @@ pub struct Radarr {
     pub comments: usize,
 }
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Whether the buffer looks like a Radarr config.xml.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_comments(t);
     t.contains("<Config>")
         && (t.contains("<InstanceName>Radarr") || t.contains("<Port>7878") || t.contains("<Radarr"))
 }
@@ -40,7 +58,7 @@ impl Radarr {
         if !detect(b) {
             return None;
         }
-        let t = std::str::from_utf8(b).ok()?;
+        let t = strip_comments(std::str::from_utf8(b).ok()?);
         let mut c = Self {
             entries: 0,
             booleans: 0,
@@ -108,5 +126,16 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Radarr::parse(b"<Config><InstanceName>Sonarr</InstanceName></Config>").is_none());
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

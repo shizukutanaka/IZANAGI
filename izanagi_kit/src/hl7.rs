@@ -71,6 +71,9 @@ const KNOWN: &[&str] = &[
     "PR1", "SCH", "RXE", "RXD", "CTI", "SPC", "TQ1", "TXA", "FT1", "GT1", "PD1", "QRD", "QRF",
     "ERR", "BHS", "BTS", "FHS", "FTS", "BLG", "IAM", "ACC", "UB1", "UB2", "DSC", "DSP", "MRG",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Reports whether `b` looks like an HL7 v2 message.
 #[must_use]
@@ -78,6 +81,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = core::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     t.starts_with("MSH|") && (t.contains("|^~\\&|") || t.contains("MSH|^"))
 }
 
@@ -86,6 +90,7 @@ impl Hl7 {
     #[must_use]
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = core::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         if !detect(b) {
             return None;
         }
@@ -178,5 +183,11 @@ mod tests {
     fn rejects_non_hl7() {
         assert!(!detect(b"PID|1||x"));
         assert!(Hl7::parse(b"").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

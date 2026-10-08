@@ -15,6 +15,7 @@
 //! ```
 
 /// A censused FpML document.
+#[derive(Debug)]
 pub struct Fpml {
     /// `version` attribute (`"5-10"` style).
     pub version: String,

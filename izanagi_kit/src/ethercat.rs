@@ -20,6 +20,7 @@
 //! ```
 
 /// One EtherCAT datagram header.
+#[derive(Debug)]
 pub struct Datagram {
     /// Command byte (APR D/WR, LRW, ...).
     pub cmd: u8,
@@ -40,6 +41,7 @@ pub struct Datagram {
 }
 
 /// Parsed EtherCAT header of an Ethernet frame.
+#[derive(Debug)]
 pub struct EtherCat {
     /// Byte offset of the first datagram.
     pub datagrams_at: usize,

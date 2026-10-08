@@ -73,6 +73,9 @@ fn strip(s: &str) -> String {
     }
     out
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` on `import`+decl shape or `#check`/`theorem`/`namespace`.
 #[must_use]
@@ -81,6 +84,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     let mut marks = 0u8;
     for line in s.lines() {
         let t = line.trim_start();
@@ -102,6 +106,7 @@ pub fn parse(b: &[u8]) -> Option<Lean> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let clean = strip(s);
     let mut l = Lean::default();
     for line in clean.lines() {
@@ -168,5 +173,11 @@ instance : Inhabited C := sorry\nexample : True := trivial\n#check t\nsorry\nend
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"hello world\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

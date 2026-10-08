@@ -18,6 +18,7 @@
 //! ```
 
 /// Parsed DSF file header.
+#[derive(Debug)]
 pub struct Dsf {
     /// Declared total file size (0 when unset).
     pub file_size: u64,

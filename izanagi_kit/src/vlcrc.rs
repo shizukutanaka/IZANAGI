@@ -90,6 +90,9 @@ const KEYS: &[&str] = &[
 fn key_of(s: &str) -> &str {
     s.split('=').next().unwrap_or("").trim()
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a vlcrc.
 #[must_use]
@@ -97,6 +100,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     let mut comments = 0usize;
     for l in t.lines() {
@@ -120,6 +124,7 @@ impl Vlcrc {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             entries: 0,
             named: 0,
@@ -187,5 +192,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Vlcrc::parse(b"a=1\nb=2\nc=3\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -25,6 +25,7 @@ pub enum Op {
 }
 
 /// Parsed Gerber summary.
+#[derive(Debug)]
 pub struct Gerber {
     /// Units are millimetres (`%MOMM*%`) vs inches (`%MOIN*%`); required.
     pub metric: bool,

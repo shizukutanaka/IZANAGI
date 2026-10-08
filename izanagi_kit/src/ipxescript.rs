@@ -155,10 +155,64 @@ pub struct Counts {
     pub misc: usize,
 }
 
+/// iPXE 固有のネットブート動詞(`set`/`echo`/`menu`/`kernel`/`boot` 等は
+/// 他のスクリプトでも現れるため弱い証拠)。
+const STRONG_HEADS: &[&str] = &[
+    "dhcp",
+    "chain",
+    "chainldr",
+    "imgfree",
+    "imgload",
+    "imgfetch",
+    "imgexec",
+    "imgstat",
+    "imgverify",
+    "imgchoose",
+    "imgtrust",
+    "sanboot",
+    "sanhook",
+    "sanunhook",
+    "aoe",
+    "nbd",
+    "pxebs",
+    "pxebsconf",
+    "ipconfig",
+    "autoboot",
+    "ifopen",
+    "ifclose",
+    "ifstat",
+    "ifconf",
+    "net0",
+    "netX",
+    "initrd",
+    "iseq",
+    "iseqi",
+    "isge",
+    "isgt",
+    "isle",
+    "islt",
+];
+
 /// `b` が iPXE スクリプト形式かどうか。
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
-    parse(b).is_some_and(|c| c.shebang >= 1 || c.entries - c.misc >= 3)
+    let Some(c) = parse(b) else {
+        return false;
+    };
+    if c.shebang >= 1 {
+        return true;
+    }
+    let strong = core::str::from_utf8(b)
+        .unwrap_or("")
+        .lines()
+        .filter(|l| {
+            let tr = l.trim();
+            !tr.is_empty()
+                && !tr.starts_with('#')
+                && STRONG_HEADS.contains(&tr.split([' ', '\t']).next().unwrap_or(""))
+        })
+        .count();
+    strong >= 1 && c.entries - c.misc >= 3
 }
 
 /// `b` を iPXE スクリプトとして解析する。

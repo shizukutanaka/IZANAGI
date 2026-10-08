@@ -107,17 +107,35 @@ fn key_present(t: &str, k: &str) -> bool {
     t.contains(k)
 }
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// Detect a Vespa services.xml.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_comments(t);
     let hits = CONTAINER_KEYS
         .iter()
         .chain(CONTENT_KEYS.iter())
         .chain(OTHER_KEYS.iter())
-        .filter(|k| key_present(t, k))
+        .filter(|k| key_present(&t, k))
         .count();
     hits >= 2 && t.contains("<services")
 }
@@ -130,7 +148,7 @@ impl Vespa {
         if !detect(b) {
             return None;
         }
-        let t = std::str::from_utf8(b).ok()?;
+        let t = strip_comments(std::str::from_utf8(b).ok()?);
         let mut c = Self {
             keys: 0,
             container_keys: 0,
@@ -180,5 +198,16 @@ mod tests {
     fn rejects_xml() {
         assert!(!detect(b"<foo><bar/></foo>\n"));
         assert!(Vespa::parse(b"").is_none());
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

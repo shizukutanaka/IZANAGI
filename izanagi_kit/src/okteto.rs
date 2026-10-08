@@ -68,6 +68,9 @@ fn top_key(line: &str) -> Option<&str> {
         None => None,
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect okteto.yaml content.
 #[must_use]
@@ -76,6 +79,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut tops = 0usize;
     let mut dev_hints = 0usize;
     let mut in_dev = false;
@@ -111,6 +115,7 @@ impl Okteto {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             devs: 0,
             mounts: 0,
@@ -191,5 +196,11 @@ mod tests {
     fn rejects_other_yaml() {
         assert!(!detect(b"version: '3'\nservices:\n  web: {}\n"));
         assert!(!detect(b"dev: true\nkey: v\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

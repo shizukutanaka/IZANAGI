@@ -63,10 +63,14 @@ fn kv_key(t: &str) -> Option<&str> {
         Some(k)
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// b が .pypirc かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
+    let text = strip_bom(text);
     let mut hits = 0;
     for line in text.lines() {
         let t = line.trim();
@@ -86,6 +90,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = core::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         sections: 0,
         custom_sections: 0,
@@ -142,5 +147,11 @@ mod tests {
     fn not_pypirc() {
         assert!(!detect(b"[package]\nname = x\n"));
         assert!(!detect(b"key = value\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

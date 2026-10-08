@@ -10,7 +10,7 @@
 //! ```
 //! use izanagi_kit::cpio;
 //! let arc = cpio::emit(&[cpio::Entry::file("hello.txt", b"hi\n")]);
-//! let es = cpio::parse(&arc);
+//! let es = cpio::parse(&arc).unwrap();
 //! assert_eq!(es[0].name, "hello.txt");
 //! assert_eq!(es[0].data, b"hi\n");
 //! ```
@@ -56,15 +56,18 @@ fn hex8(s: &[u8]) -> Option<u64> {
 
 /// Parse all members until `TRAILER!!!` (or EOF); malformed records
 /// stop the scan and return what was collected — never panic.
-pub fn parse(d: &[u8]) -> Vec<Entry> {
+/// `None` when no record header decodes on a non-empty input (the
+/// input is not a newc archive); an empty input is `Some(vec![])`.
+pub fn parse(d: &[u8]) -> Option<Vec<Entry>> {
     let mut out = Vec::new();
+    let mut recognized = false;
     let mut at = 0usize;
     loop {
         if at + 110 > d.len() {
-            return out;
+            break;
         }
         if &d[at..at + 6] != b"070701" && &d[at..at + 6] != b"070702" {
-            return out;
+            break;
         }
         let mut f = [0u64; 13];
         let mut ok = true;
@@ -78,15 +81,17 @@ pub fn parse(d: &[u8]) -> Vec<Entry> {
             }
         }
         if !ok {
-            return out;
+            break;
         }
         let (ino, mode, _uid, _gid, _nlink, mtime, filesize, namesize) =
             (f[0], f[1] as u32, f[2], f[3], f[4], f[5], f[6], f[11]);
         let name_at = at + 110;
         let name_end = name_at.checked_add(namesize as usize).unwrap_or(d.len());
         if name_end > d.len() {
-            return out;
+            break;
         }
+        // A full record header (magic + fields + name) decoded.
+        recognized = true;
         let name_raw = &d[name_at..name_end];
         let name = name_raw
             .split(|&c| c == 0)
@@ -95,11 +100,11 @@ pub fn parse(d: &[u8]) -> Vec<Entry> {
             .unwrap_or_default();
         let data_at = (name_end + 3) & !3;
         if name == "TRAILER!!!" {
-            return out;
+            break;
         }
         let data_end = match data_at.checked_add(filesize as usize) {
             Some(v) if v <= d.len() => v,
-            _ => return out,
+            _ => break,
         };
         out.push(Entry {
             name,
@@ -109,6 +114,11 @@ pub fn parse(d: &[u8]) -> Vec<Entry> {
             data: d[data_at..data_end].to_vec(),
         });
         at = (data_end + 3) & !3;
+    }
+    if !recognized && !d.is_empty() {
+        None
+    } else {
+        Some(out)
     }
 }
 
@@ -178,7 +188,7 @@ mod tests {
         ];
         let arc = emit(&es);
         assert_eq!(&arc[..6], b"070701");
-        let back = parse(&arc);
+        let back = parse(&arc).unwrap();
         assert_eq!(back, es);
         assert_eq!(find(&back, "dir/b").unwrap().data, b"b");
         assert!(find(&back, "nope").is_none());
@@ -190,7 +200,7 @@ mod tests {
         for n in 1..8usize {
             let name = "x".repeat(n);
             let arc = emit(&[Entry::file(&name, b"d")]);
-            let back = parse(&arc);
+            let back = parse(&arc).unwrap();
             assert_eq!(back.len(), 1);
             assert_eq!(back[0].name, name);
             assert_eq!(back[0].data, b"d");
@@ -199,18 +209,20 @@ mod tests {
 
     #[test]
     fn malformed_degrades() {
-        assert!(parse(b"").is_empty());
-        assert!(parse(b"garbage").is_empty());
+        // empty input is a valid (empty) archive
+        assert_eq!(parse(b""), Some(Vec::new()));
+        // non-archive input: no record header decodes → None
+        assert!(parse(b"garbage").is_none());
         let mut arc = emit(&[Entry::file("a", b"1")]);
         arc.truncate(arc.len() - 40); // clip trailer + tail
-        let got = parse(&arc);
+        let got = parse(&arc).unwrap();
         assert_eq!(got.len(), 1); // first record still recovered
         let mut bad = emit(&[Entry::file("a", b"1")]);
         bad[20] = b'z'; // invalid hex digit in a field
-        assert!(parse(&bad).is_empty());
-        // truncated data → drop, not panic
+        assert!(parse(&bad).is_none());
+        // truncated data → header decoded but no entry survives
         let mut t = emit(&[Entry::file("a", b"12345678")]);
         t.truncate(110 + 8);
-        assert!(parse(&t).is_empty());
+        assert_eq!(parse(&t), Some(Vec::new()));
     }
 }

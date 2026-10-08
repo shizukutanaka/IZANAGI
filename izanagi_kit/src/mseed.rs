@@ -29,6 +29,7 @@
 //! ```
 
 /// Parsed miniSEED fixed header.
+#[derive(Debug)]
 pub struct Mseed<'a> {
     /// Sequence number (6 ASCII digits).
     pub seq: &'a [u8],

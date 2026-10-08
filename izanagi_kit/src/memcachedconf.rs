@@ -57,7 +57,9 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             continue;
         }
         any_line = true;
-        if t.starts_with('-') {
+        // flag form is `-x`/`--long` glued to the flag name; `- item`
+        // (markdown bullet) is not an option
+        if t.starts_with('-') && !t[1..].starts_with(char::is_whitespace) {
             c.options += 1;
             let fch = t
                 .strip_prefix('-')

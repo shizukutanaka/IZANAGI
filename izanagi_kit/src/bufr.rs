@@ -19,6 +19,7 @@
 //! ```
 
 /// Parsed BUFR envelope.
+#[derive(Debug)]
 pub struct Bufr {
     /// Declared total message length (must equal `d.len()`).
     pub total_len: usize,

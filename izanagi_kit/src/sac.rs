@@ -18,6 +18,7 @@
 //! ```
 
 /// Parsed SAC header summary.
+#[derive(Debug)]
 pub struct Sac {
     /// True when the file is little-endian (x86 style; many SACs are).
     pub little_endian: bool,

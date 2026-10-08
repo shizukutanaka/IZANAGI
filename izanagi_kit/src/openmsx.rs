@@ -60,9 +60,26 @@ fn setting_id(t: &str) -> Option<&str> {
     Some(&t[a..a + e])
 }
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// `b` が openMSX settings.xml に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
-    let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_comments(std::str::from_utf8(b).unwrap_or(""));
     let mut root = 0usize;
     let mut known = 0usize;
     for l in t.lines() {
@@ -95,7 +112,7 @@ pub struct OpenmsxConf {
 
 /// `b` を openMSX settings.xml として統計する。
 pub fn parse(b: &[u8]) -> OpenmsxConf {
-    let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_comments(std::str::from_utf8(b).unwrap_or(""));
     let mut c = OpenmsxConf::default();
     for l in t.lines() {
         let tr = l.trim();
@@ -159,5 +176,16 @@ mod tests {
         assert!(!detect(&[0xff, 0xfe, 0x00, 0x01, 0x90]));
         let c = parse(b"");
         assert_eq!(c.settings, 0);
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

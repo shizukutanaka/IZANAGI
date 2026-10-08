@@ -66,6 +66,7 @@ impl Service {
 }
 
 /// Parsed KNXnet/IP header.
+#[derive(Debug)]
 pub struct KnxIp {
     /// Service identifier (classified).
     pub service: Service,

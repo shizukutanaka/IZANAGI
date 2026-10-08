@@ -84,6 +84,9 @@ fn key_of(s: &str) -> Option<&str> {
     }
     Some(k)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `lnd.conf` らしさを返す。`Application Options`/`Bitcoin`/`Btcd`/`Neutrino`/`Litecoin`
 /// 系セクション、またはドットキー代入。
@@ -92,6 +95,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut strong = 0usize;
     let mut dots = 0usize;
     for line in t.lines() {
@@ -134,6 +138,7 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
     let Ok(t) = std::str::from_utf8(b) else {
         return None;
     };
+    let t = strip_bom(t);
     let mut c = Counts {
         sections: 0,
         known_sections: 0,
@@ -199,5 +204,11 @@ mod tests {
     #[test]
     fn rejects_plain_ini() {
         assert!(parse(b"[server]\nhost=x\nport=1\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

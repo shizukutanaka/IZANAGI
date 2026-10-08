@@ -31,6 +31,9 @@ fn strip_line_comment(s: &str) -> &str {
         None => s,
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect a Magefile.
 #[must_use]
@@ -39,6 +42,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut has_tag = false;
     let mut has_mg = false;
     let mut has_main = false;
@@ -65,6 +69,7 @@ impl Magefile {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             funcs: 0,
             mg_calls: 0,
@@ -127,5 +132,11 @@ mod tests {
         assert!(!detect(b"package main\n\nfunc main() {}\n"));
         assert!(!detect(b"//go:build linux\n\npackage main\n"));
         assert!(!detect(b"package lib\n\n//go:build mage\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

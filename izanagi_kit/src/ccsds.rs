@@ -38,6 +38,7 @@ pub enum SeqFlag {
 }
 
 /// A parsed CCSDS packet header.
+#[derive(Debug)]
 pub struct Ccsds {
     /// TM/TC bit.
     pub kind: Kind,

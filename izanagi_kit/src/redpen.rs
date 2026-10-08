@@ -47,12 +47,29 @@ fn tags_in_line(t: &str, f: &mut dyn FnMut(&str)) {
         }
     }
 }
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
 
 /// `redpen-conf.xml` らしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_comments(text);
     let mut root = false;
     let mut hits = 0usize;
     for line in text.lines() {
@@ -80,7 +97,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
     if !detect(input) {
         return None;
     }
-    let text = std::str::from_utf8(input).ok()?;
+    let text = strip_comments(std::str::from_utf8(input).ok()?);
     let mut c = Counts {
         sections: 0,
         entries: 0,
@@ -135,5 +152,16 @@ mod tests {
     fn not_redpen() {
         assert!(!detect(b"<root><a/></root>\n"));
         assert!(parse(b"text\n").is_none());
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

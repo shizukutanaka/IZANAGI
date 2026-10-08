@@ -102,9 +102,26 @@ fn attrs_in(t: &str) -> usize {
     n
 }
 
+fn strip_comments(t: &str) -> String {
+    let mut out = String::with_capacity(t.len());
+    let mut rest = t;
+    while let Some(start) = rest.find("<!--") {
+        out.push_str(&rest[..start]);
+        match rest[start + 4..].find("-->") {
+            Some(end) => rest = &rest[start + 4 + end + 3..],
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
+}
+
 /// b が nuget.config かどうか。
 pub fn detect(b: &[u8]) -> bool {
-    let text = core::str::from_utf8(b).unwrap_or("");
+    let text = strip_comments(core::str::from_utf8(b).unwrap_or(""));
     let mut hits = 0;
     for line in text.lines() {
         let t = line.trim();
@@ -121,7 +138,7 @@ pub fn detect(b: &[u8]) -> bool {
 /// 構造を数える。
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
-    let text = core::str::from_utf8(b).ok()?;
+    let text = strip_comments(core::str::from_utf8(b).ok()?);
     let mut c = Counts {
         elements: 0,
         entries: 0,
@@ -183,5 +200,16 @@ mod tests {
     fn not_nuget() {
         assert!(!detect(b"<project><name>x</name></project>\n"));
         assert!(!detect(b"key=value\n"));
+    }
+
+    #[test]
+    fn xml_comments_are_stripped() {
+        let t = strip_comments(
+            "<a><!-- hidden
+<config -->x</a>",
+        );
+        assert_eq!(t, "<a>x</a>");
+        let u = strip_comments("<a><!-- unterminated");
+        assert_eq!(u, "<a>");
     }
 }

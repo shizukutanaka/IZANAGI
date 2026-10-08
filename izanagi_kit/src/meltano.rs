@@ -114,13 +114,34 @@ fn line_kind(t: &str, in_plugins: bool) -> u8 {
         3
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
+
+/// Meltano 固有のトップキー(`plugins:`/`environments:`/`version:`/
+/// `jobs:`/`schedules:` は他の YAML でも現れるため除外)。最低1件要求。
+const EXCLUSIVE_TOP_KEYS: &[&str] = &[
+    "auto_install",
+    "database_uri",
+    "default_environment",
+    "elt",
+    "env_aliases",
+    "hub_url",
+    "project_id",
+    "project_readonly",
+    "send_anonymous_usage_stats",
+    "state_backend",
+    "venv_backend",
+];
 
 /// `meltano.yml` らしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_bom(text);
     let mut hits = 0usize;
+    let mut exclusive = 0usize;
     let mut in_plugins = false;
     for line in text.lines() {
         let t = line.trim();
@@ -129,15 +150,18 @@ pub fn detect(input: &[u8]) -> bool {
         }
         in_plugins = t == "plugins:" || (in_plugins && line.starts_with(' '));
         match line_kind(t, in_plugins) {
-            1 => hits += 2,
+            1 => {
+                hits += 2;
+                let k = yaml_key(t).unwrap_or("");
+                if EXCLUSIVE_TOP_KEYS.contains(&k) || (in_plugins && PLUGIN_KINDS.contains(&k)) {
+                    exclusive += 1;
+                }
+            }
             2 => hits += 1,
             _ => {}
         }
-        if hits >= 6 {
-            return true;
-        }
     }
-    hits >= 4
+    hits >= 4 && exclusive >= 1
 }
 
 /// 構造をカウントする。
@@ -146,6 +170,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         sections: 0,
         options: 0,
@@ -191,5 +216,11 @@ mod tests {
     fn not_meltano() {
         assert!(!detect(b"name: x\nversion: 1\n"));
         assert!(parse(b"just: text\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

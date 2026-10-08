@@ -49,6 +49,7 @@ pub enum Group {
 }
 
 /// Parsed PCL stream.
+#[derive(Debug)]
 pub struct Pcl {
     /// Escape sequences in order.
     pub cmds: Vec<PclCmd>,

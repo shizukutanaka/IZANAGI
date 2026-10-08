@@ -28,6 +28,7 @@ pub struct Object<'a> {
 }
 
 /// Parsed PDS3 label.
+#[derive(Debug)]
 pub struct Pds<'a> {
     /// All top-level and nested assignments, in order.
     pub assigns: Vec<Assign<'a>>,

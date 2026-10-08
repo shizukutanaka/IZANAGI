@@ -98,6 +98,9 @@ fn forms_of(s: &str) -> impl Iterator<Item = &str> {
             .unwrap_or("")
     })
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `true` when a recognizable `(NAME` form leads the file.
 #[must_use]
@@ -106,6 +109,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     let t = s.trim_start();
     t.starts_with('(')
         && forms_of(t)
@@ -129,6 +133,7 @@ pub fn parse(b: &[u8]) -> Option<Pl> {
         return None;
     }
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let mut p = Pl {
         forms: 0,
         characters: 0,
@@ -282,5 +287,11 @@ mod tests {
     fn rejects() {
         assert!(parse(b"cmr10").is_none());
         assert!(parse(b"").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

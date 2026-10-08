@@ -282,7 +282,9 @@ pub fn cell(d: &[u8], ply: &Ply, ei: usize, row: usize, j: usize) -> Option<PlyV
                 PlyVal::U(v) => v as usize,
                 _ => return None,
             };
-            let mut vals = Vec::with_capacity(count);
+            // bound the hint by the bytes remaining after the count field
+            let cap = count.min(d.len().saturating_sub(at + cn) / p.ty.size().max(1));
+            let mut vals = Vec::with_capacity(cap);
             for i in 0..count {
                 vals.push(int_at(d, p.ty, at + cn + i * p.ty.size(), big)?);
             }
@@ -406,5 +408,18 @@ mod tests {
         d.extend_from_slice(&[1, 2]); // short
         let p = parse(&d).unwrap();
         assert!(cell(&d, &p, 0, 0, 0).is_none());
+    }
+
+    #[test]
+    fn a_huge_list_count_does_not_reserve_that_much() {
+        // binary list count is a raw u32: cap the reservation hint by the
+        // bytes actually present, or a small file aborts the allocator
+        let mut d = Vec::new();
+        d.extend_from_slice(
+            b"ply\nformat binary_little_endian 1.0\nelement vertex 0\nelement face 1\nproperty list uint int verts\nend_header\n",
+        );
+        d.extend_from_slice(&u32::MAX.to_le_bytes());
+        let p = parse(&d).unwrap();
+        assert!(cell(&d, &p, 1, 0, 0).is_none());
     }
 }
