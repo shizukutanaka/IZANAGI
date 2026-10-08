@@ -105,12 +105,16 @@ fn is_path_rule(t: &str) -> bool {
         Some(r) => rule_only(r.trim().split(' ').next().unwrap_or("")),
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `aide.conf` らしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
+    let text = strip_bom(text);
     let mut keys = 0usize;
     let mut rules = 0usize;
     let mut dirs = 0usize;
@@ -144,6 +148,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         return None;
     }
     let text = std::str::from_utf8(input).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         sections: 0,
         entries: 0,
@@ -197,5 +202,11 @@ mod tests {
     fn not_aideconf() {
         assert!(!detect(b"key = value\n"));
         assert!(parse(b"text\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

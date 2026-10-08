@@ -38,11 +38,15 @@ pub struct Ldif {
 }
 
 const CHANGE_TYPES: &[&str] = &["add", "modify", "delete", "moddn", "modrdn"];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detects LDIF: a `dn:` line plus at least one `attr:` line.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let t = String::from_utf8_lossy(b);
+    let t = strip_bom(&t);
     t.lines()
         .any(|l| l.starts_with("dn:") || l.starts_with("dn::"))
         && t.lines()
@@ -56,6 +60,7 @@ pub fn parse(b: &[u8]) -> Option<Ldif> {
         return None;
     }
     let t = String::from_utf8_lossy(b);
+    let t = strip_bom(&t);
     let mut l = Ldif {
         entries: 0,
         version: false,
@@ -156,5 +161,11 @@ mod tests {
     #[test]
     fn rejects() {
         assert!(parse(b"").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

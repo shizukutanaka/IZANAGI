@@ -27,6 +27,9 @@ pub struct Sudoers {
 
 const ALIASES: &[&str] = &["User_Alias", "Runas_Alias", "Host_Alias", "Cmnd_Alias"];
 
+// Only the tags that are sudoers-exclusive — `MAIL:`/`TYPE=`/`CWD:`-style
+// markers also appear in unrelated config formats and were the top source
+// of foreign-document false positives.
 const TAGS: &[&str] = &[
     "NOPASSWD:",
     "PASSWD:",
@@ -34,18 +37,6 @@ const TAGS: &[&str] = &[
     "EXEC:",
     "SETENV:",
     "NOSETENV:",
-    "LOG_INPUT:",
-    "LOG_OUTPUT:",
-    "MAIL:",
-    "NOMAIL:",
-    "FOLLOW:",
-    "NOFOLLOW:",
-    "INTERCEPT:",
-    "NOINTERCEPT:",
-    "CHROOT:",
-    "CWD:",
-    "ROLE=",
-    "TYPE=",
 ];
 
 fn is_include(s: &str) -> bool {
@@ -67,11 +58,16 @@ fn marker(line: &str) -> usize {
     if TAGS.iter().any(|t| s.contains(t)) {
         n += 1;
     }
-    // `who where=(runas) command` spec: `x ALL=(` or `x host=(`
-    if s.split([' ', '\t'])
-        .nth(1)
-        .is_some_and(|h| h.ends_with('='))
-        || s.contains("=(")
+    // `who where=(runas) command` spec: `x ALL=(` or `x host=`. The
+    // `where=` token must be a hostname glued to `=` — a bare `=` (the
+    // `key = value` separator of ini-style files) is not a spec.
+    if s.split([' ', '\t']).nth(1).is_some_and(|h| {
+        h.len() > 1
+            && h.ends_with('=')
+            && h[..h.len() - 1]
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_' | '%' | ','))
+    }) || s.contains("=(")
         || s.starts_with("ALL=(")
     {
         n += 1;
@@ -154,5 +150,8 @@ mod tests {
     fn rejects_others() {
         assert!(!detect(b"root:x:0:0:root:/root:/bin/sh\n"));
         assert!(!detect(b"# Defaults env_reset\n# root ALL=(ALL) ALL\n"));
+        // ini-style `key = value` — the bare `=` separator is not a spec
+        assert!(!detect(b"[section]\nkey = value\nother = x\n"));
+        assert!(!detect(b"key = value\nother = x\n"));
     }
 }

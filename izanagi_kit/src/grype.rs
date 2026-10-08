@@ -46,6 +46,9 @@ fn count_key(t: &str, key: &str) -> usize {
     }
     n
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a Grype JSON report.
 #[must_use]
@@ -53,6 +56,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     if !t.trim_start().starts_with('{') {
         return false;
     }
@@ -69,6 +73,7 @@ impl Grype {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut types: Vec<String> = Vec::new();
         let mut off = 0;
         while let Some(i) = t[off..].find("\"type\"") {
@@ -130,5 +135,11 @@ mod tests {
         assert!(!detect(b"{\"matches\": []}"));
         assert!(!detect(b"{\"vulnerability\": {}}"));
         assert!(Grype::parse(b"{}").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

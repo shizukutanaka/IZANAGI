@@ -151,6 +151,10 @@ pub fn xor_convolve(f: &[i64], g: &[i64]) -> Option<Vec<i64>> {
 /// Convenience: an all-zero table of size `2^bits` (start point for
 /// incremental transforms).
 pub fn table(bits: u32) -> Vec<i64> {
+    assert!(
+        bits < usize::BITS,
+        "sosdp::table: a 2^{bits} table does not fit usize"
+    );
     vec![0i64; 1usize << bits]
 }
 
@@ -248,5 +252,13 @@ mod tests {
         for (a, b) in f.iter().zip(&back) {
             assert_eq!(a * 4, *b);
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "does not fit")]
+    fn table_beyond_usize_is_rejected() {
+        // `1usize << 64` wraps to `1usize << 0` in release —
+        // `table(64)` silently produced a one-element table.
+        table(64);
     }
 }

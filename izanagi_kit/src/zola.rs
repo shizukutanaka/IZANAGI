@@ -91,6 +91,9 @@ const SECTIONS: &[&str] = &[
     "languages",
     "output_formats",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like a Zola `config.toml`.
 #[must_use]
@@ -98,6 +101,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     if !t.lines().any(|l| l.trim_start().starts_with("base_url")) {
         return false;
     }
@@ -122,6 +126,7 @@ impl Zola {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             keys: 0,
             known: 0,
@@ -190,5 +195,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Zola::parse(b"[package]\nname = \"x\"\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

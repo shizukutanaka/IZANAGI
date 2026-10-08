@@ -52,6 +52,9 @@ const PREFIXES: &[&str] = &[
 fn section_name(s: &str) -> &str {
     s.trim_start_matches('[').split(']').next().unwrap_or("")
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Whether the buffer looks like supervisord.conf.
 #[must_use]
@@ -59,6 +62,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     (t.contains("[supervisord]")
         || t.contains("[program:")
         || t.contains("[unix_http_server]")
@@ -78,6 +82,7 @@ impl Supervisor {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             sections: 0,
             entries: 0,
@@ -145,5 +150,11 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Supervisor::parse(b"[a]\nx=1\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -139,10 +139,14 @@ fn known_table(t: &str) -> bool {
             || t.starts_with(*p) && t.as_bytes().get(p.len()) == Some(&b'.')
     }) || TABLE_PREFIXES.contains(&root)
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// b が .cargo/config.toml かどうか。
 pub fn detect(b: &[u8]) -> bool {
     let text = core::str::from_utf8(b).unwrap_or("");
+    let text = strip_bom(text);
     let mut hits = 0;
     for line in text.lines() {
         let t = line.trim();
@@ -162,6 +166,7 @@ pub fn detect(b: &[u8]) -> bool {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
     let text = core::str::from_utf8(b).ok()?;
+    let text = strip_bom(text);
     let mut c = Counts {
         tables: 0,
         options: 0,
@@ -221,5 +226,11 @@ mod tests {
     fn not_cargoconf() {
         assert!(!detect(b"[package]\nname = \"x\"\nversion = \"1\"\n"));
         assert!(!detect(b"foo = 1\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

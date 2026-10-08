@@ -102,6 +102,9 @@ const KEYS: &[&str] = &[
     "load-module",
     "stateful",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect xl2tpd.conf content.
 #[must_use]
@@ -110,6 +113,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     for line in t.lines() {
         let s = line.trim();
@@ -144,6 +148,7 @@ impl Xl2tpd {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             sections: 0,
             settings: 0,
@@ -226,5 +231,11 @@ mod tests {
         assert_eq!(c.settings, 21);
         assert!(c.named >= 20);
         assert_eq!(c.comments, 1);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

@@ -80,7 +80,10 @@ fn corpus() -> Vec<Vec<u8>> {
 #[test]
 fn no_parser_panics_on_malformed_input() {
     let corpus = corpus();
-    for &(name, parse) in izanagi_kit::PARSERS {
+    let registries = izanagi_kit::PARSERS
+        .iter()
+        .chain(izanagi_kit::METHOD_PARSERS.iter());
+    for &(name, parse) in registries {
         for input in &corpus {
             let result = catch_unwind(AssertUnwindSafe(|| parse(input)));
             assert!(
@@ -133,6 +136,49 @@ fn parsers_registry_covers_every_module_with_parse() {
     assert!(
         extra.is_empty(),
         "PARSERS entries without a matching `pub fn parse(_: &[u8])` module: {extra:?}"
+    );
+}
+
+#[test]
+fn method_parsers_registry_covers_every_impl_parse() {
+    let src = Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let mut expected: BTreeSet<String> = BTreeSet::new();
+    for entry in fs::read_dir(&src).unwrap() {
+        let path = entry.unwrap().path();
+        if path.extension() != Some(OsStr::new("rs"))
+            || path.file_name() == Some(OsStr::new("lib.rs"))
+        {
+            continue;
+        }
+        let text = fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
+        // Method parsers only: an *indented* `pub fn parse` (inside `impl T`)
+        // whose FIRST parameter is `&[u8]`. Column-0 declarations are free
+        // functions covered by PARSERS instead.
+        let has_method_parse = text.lines().any(|l| {
+            let t = l.trim_start();
+            t.starts_with("pub fn parse(")
+                && l != t
+                && t.find(": &[u8])")
+                    .is_some_and(|p| !t["pub fn parse(".len()..p].contains(','))
+        });
+        if has_method_parse {
+            expected.insert(path.file_stem().unwrap().to_str().unwrap().to_string());
+        }
+    }
+    let registered: BTreeSet<String> = izanagi_kit::METHOD_PARSERS
+        .iter()
+        .map(|(n, _)| (*n).to_string())
+        .collect();
+    let missing: Vec<&String> = expected.difference(&registered).collect();
+    assert!(
+        missing.is_empty(),
+        "modules with an `impl` `pub fn parse(_: &[u8])` missing from METHOD_PARSERS: {missing:?}"
+    );
+    let extra: Vec<&String> = registered.difference(&expected).collect();
+    assert!(
+        extra.is_empty(),
+        "METHOD_PARSERS entries without a matching `impl` parse method: {extra:?}"
     );
 }
 
@@ -253,7 +299,10 @@ fn no_parser_panics_on_own_fixture_family() {
         }
     }
     let mut covered = 0usize;
-    for &(name, parse) in izanagi_kit::PARSERS {
+    let registries = izanagi_kit::PARSERS
+        .iter()
+        .chain(izanagi_kit::METHOD_PARSERS.iter());
+    for &(name, parse) in registries {
         let Some(fixtures) = fixture_map.get(name) else {
             continue;
         };

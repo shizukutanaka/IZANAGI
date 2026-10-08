@@ -66,7 +66,8 @@ pub fn parse(data: &[u8]) -> Option<Off> {
     if c.next().is_some() {
         return None;
     }
-    let mut vertices = Vec::with_capacity(nv);
+    // capacity hints bounded by file size (a vertex line is >= 6 bytes)
+    let mut vertices = Vec::with_capacity(nv.min(data.len() / 6 + 1));
     for _ in 0..nv {
         let l = it.next()?;
         let mut w = l.split_whitespace();
@@ -76,7 +77,7 @@ pub fn parse(data: &[u8]) -> Option<Off> {
         // STOFF may carry extra colour words — tolerate them
         vertices.push([x, y, z]);
     }
-    let mut faces = Vec::with_capacity(nf);
+    let mut faces = Vec::with_capacity(nf.min(data.len() / 7 + 1));
     for _ in 0..nf {
         let l = it.next()?;
         let mut w = l.split_whitespace();
@@ -84,7 +85,8 @@ pub fn parse(data: &[u8]) -> Option<Off> {
         if n < 3 {
             return None;
         }
-        let mut idx = Vec::with_capacity(n);
+        // each index needs >= 2 chars on the face line
+        let mut idx = Vec::with_capacity(n.min(l.len() / 2 + 1));
         for _ in 0..n {
             let i: u64 = w.next()?.parse().ok()?;
             if i >= nv as u64 {
@@ -129,5 +131,10 @@ mod tests {
         assert!(parse(b"OFF\n3 1 0\n0 0 0\n").is_none()); // short vertex list
         assert!(parse(b"OFF\n1 1 0\n0 0 0\n3 0 5 2\n").is_none()); // oob index
         assert!(parse(b"OFF\n1 1 0\n0 0 0\n2 0 1\n").is_none()); // edge < 3
+    }
+
+    #[test]
+    fn a_huge_declared_count_does_not_reserve_that_much() {
+        assert!(parse(b"OFF\n999999999999999 1 0\n").is_none());
     }
 }

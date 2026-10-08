@@ -75,10 +75,14 @@ fn kw_count(t: &str) -> usize {
         .filter(|k| t.contains(&format!("{k}[")))
         .count()
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// `b` が WKT CRS 定義に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     let n = kw_count(t);
     let anchored = t.trim_start().starts_with("PROJCS[")
         || t.trim_start().starts_with("GEOGCS[")
@@ -103,6 +107,7 @@ pub struct WktProj {
 /// `b` を WKT CRS 定義として統計する。
 pub fn parse(b: &[u8]) -> WktProj {
     let t = std::str::from_utf8(b).unwrap_or("");
+    let t = strip_bom(t);
     WktProj {
         keywords: kw_count(t),
         brackets: t.matches('[').count(),
@@ -146,5 +151,11 @@ mod tests {
         assert!(!detect(&[0xff, 0xfe, 0x00, 0x01, 0x90]));
         let c = parse(b"");
         assert_eq!(c.keywords, 0);
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

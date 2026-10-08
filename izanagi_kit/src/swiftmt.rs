@@ -44,6 +44,9 @@ impl SwiftMt {
             .map(|(_, v)| v.as_str())
     }
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// A `{1:…}` / `{4:…}`-block stream starts a SWIFT MT message.
 #[must_use]
@@ -52,6 +55,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(s) => s,
         Err(_) => return false,
     };
+    let s = strip_bom(s);
     let s = s.trim_start();
     s.starts_with("{1:") && s.contains("{4:")
 }
@@ -66,6 +70,7 @@ fn block<'a>(s: &'a str, open: &str, close: &str) -> Option<&'a str> {
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<SwiftMt> {
     let s = core::str::from_utf8(b).ok()?;
+    let s = strip_bom(s);
     let basic = block(s, "{1:", "}")?;
     // F01 + 12-char LT + 4 session + 6 sequence
     let sender_lt = basic.get(3..15).map(str::to_string);
@@ -163,5 +168,11 @@ mod tests {
     fn handles_multibyte_fixed_offsets() {
         let _ = parse("{1:\u{1d11e}F0000000000}".as_bytes());
         let _ = parse("{1:FFééééééé}{2:I103BANKDEFFXXXXN}{4:\r\n:20:X\r\n-}".as_bytes());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

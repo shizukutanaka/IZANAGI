@@ -32,6 +32,9 @@ pub struct Instana {
     /// `#` comment lines.
     pub comments: usize,
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detects instana configuration.
 #[must_use]
@@ -39,6 +42,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = core::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let mut hits = 0usize;
     for l in t.lines() {
         let s = l.trim();
@@ -72,6 +76,7 @@ impl Instana {
         let Ok(t) = core::str::from_utf8(b) else {
             return None;
         };
+        let t = strip_bom(t);
         let mut c = Self {
             keys: 0,
             plugin_sections: 0,
@@ -145,5 +150,11 @@ mod tests {
     #[test]
     fn rejects() {
         assert!(Instana::parse(b"nada\n").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

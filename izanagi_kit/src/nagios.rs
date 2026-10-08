@@ -190,6 +190,9 @@ const CFG_KEYS: &[&str] = &[
     "max_service_check_spread",
     "max_host_check_spread",
 ];
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Returns `true` when the bytes look like a Nagios config.
 #[must_use]
@@ -197,6 +200,7 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
+    let t = strip_bom(t);
     let sig = t.lines().any(|l| {
         l.trim_start().starts_with("define ")
             || l.trim_start().starts_with("cfg_file=")
@@ -210,6 +214,7 @@ impl Nagios {
     #[must_use]
     pub fn parse(b: &[u8]) -> Option<Self> {
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         if !detect(b) {
             return None;
         }
@@ -282,5 +287,11 @@ mod tests {
     fn rejects_non_nagios() {
         assert!(!detect(b"key=value\nother=thing"));
         assert!(Nagios::parse(b"x").is_none());
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

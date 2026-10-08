@@ -43,6 +43,9 @@ fn is_labelled(s: &str) -> bool {
     }
     false
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect a waypoint.hcl config.
 #[must_use]
@@ -51,6 +54,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let mut has_app = false;
     let mut has_inner = false;
     for line in t.lines() {
@@ -87,6 +91,7 @@ impl Waypoint {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             assignments: 0,
             blocks: 0,
@@ -133,5 +138,11 @@ mod tests {
         assert!(!detect(b"app \"web\" {\n}\n"));
         assert!(!detect(b"# app \"web\" {\n#   build {\n#   }\n# }\n"));
         assert!(!detect(b"resource \"x\" {\n  build {\n  }\n}\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }

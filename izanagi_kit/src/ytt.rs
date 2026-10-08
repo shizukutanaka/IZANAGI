@@ -42,6 +42,9 @@ fn has_strong_marker(t: &str) -> bool {
             || s.contains("@ytt:")
     })
 }
+fn strip_bom(t: &str) -> &str {
+    t.strip_prefix('\u{feff}').unwrap_or(t)
+}
 
 /// Detect ytt-annotated content.
 #[must_use]
@@ -50,6 +53,7 @@ pub fn detect(b: &[u8]) -> bool {
         Ok(t) => t,
         Err(_) => return false,
     };
+    let t = strip_bom(t);
     let directives = t
         .lines()
         .filter(|l| {
@@ -68,6 +72,7 @@ impl Ytt {
             return None;
         }
         let t = std::str::from_utf8(b).ok()?;
+        let t = strip_bom(t);
         let mut c = Self {
             directives: 0,
             values: 0,
@@ -135,5 +140,11 @@ mod tests {
         assert!(!detect(b"key: value\nlist:\n- a\n"));
         // A single stray '#@' comment with no marker.
         assert!(!detect(b"#@ note\nkey: value\n"));
+    }
+
+    #[test]
+    fn utf8_bom_is_tolerated() {
+        assert_eq!(strip_bom("\u{feff}x"), "x");
+        assert_eq!(strip_bom("x"), "x");
     }
 }
