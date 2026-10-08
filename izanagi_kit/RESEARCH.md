@@ -7009,6 +7009,41 @@ harakaconf/zonemtaconf は全実ファイルでヒット消滅。
 (#416帯、変更はユーザー判断待ち)、vimrc→nix FP(`let`+`in`がvimscriptと衝突)、
 detect⇒parse契約assert、zone 587KB実zoneファイルのコーパス追加(現状サイズで除外)。
 
+## 第406次 — 監査(決定論の網羅監査) + DijkstraMap順序読出しAPI
+
+### 角度
+「コアの約束である決定論が全公開APIで保たれているか」— HashMap/HashSet
+使用箇所26ファイル、時刻/環境/乱数依存、プラットフォーム依存値を網羅監査。
+
+### 計測結果
+- HashMap/HashSet使用26ファイルの全反復箇所を検査 — 順序漏洩はゼロ:
+  farthest_cell(row-majorタイブレーク)、descend(固定コンパス順)、
+  flee_map(keys収集→sort)、combine_maps(セル毎純粋演算)、
+  spatial_hash(BTreeMap移行済み・過去bugfixの記述あり)、
+  explore::Archive(lookup専用・文書化済み)、
+  world_hash::hash_unordered(順序非依存canonical化) が全て防御済み。
+- カンサス系2,442モジュールでHashMap/HashSet使用ゼロ(BTree系206ファイル)。
+- SystemTime/Instant/env::var/thread/random等の環境依存ゼロ(テスト除く)。
+- **残る露呈は1件**: `pub type DijkstraMap = HashMap<(i32,i32),i32>` —
+  公開型のままHashMap反復順を露出。内部利用は全て防御済みだが、
+  利用者が`.iter()`すると順序はプロセス毎に変化。文書警告のみで
+  型レベルの防御はなかった。
+
+### 対応
+- `cells_row_major(&DijkstraMap) -> Vec<((i32,i32),i32)>` 追加 —
+  farthest_cellと同じ(y,x)昇順での決定的全走査を公開APIとして提供、
+  型のdocに反復順警告を明記、lib.rsに再エクスポート登録。
+- 回帰テスト: 異なる挿入順で同じマップ→同一row-major読出し、
+  argmaxタイブレークとの整合をassert。APIピン 18857→18858。
+
+### 残課題
+- `descend(&HashMap)`シグネチャが具体型を露出(DijkstraMapエイリアス
+  経由にすると型可読性向上 — 同一型のため非破壊だが文書の整合のみ)。
+- BTreeMap化は検討したが内部検索O(1)性を棄損するため採用せず
+  (契約は「キー参照+順序付きview」の組合せで充足)。
+- `Some(全ゼロ)`カンサス系(~40件)のOption意味論統一は第405次残課題のまま。
+
+
 ## 第409次：パース契約の最終外れ値 — cpio/mailcap を Option<Vec<Entry>> 化
 
 切り口:テストの検証強度。全1,185モジュール(Debug導出済み)の自fixtureを

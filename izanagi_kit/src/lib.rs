@@ -2902,9 +2902,10 @@ pub use observe::{ComponentEvent, Observed};
 pub use parser::{error_count, parse, warning_count};
 pub use passability::PassabilityGrid;
 pub use pathfinding::{
-    astar, auto_explore, combine_maps, descend, dijkstra_map, farthest_cell, flee_map, flood_fill,
-    is_path_clear, is_reachable, jps, jps4, nearest_reachable, octile_distance, path_cost,
-    path_to_direction_vec, smooth_path, step_toward, weighted_astar, ConnectivityMap, DijkstraMap,
+    astar, auto_explore, cells_row_major, combine_maps, descend, dijkstra_map, farthest_cell,
+    flee_map, flood_fill, is_path_clear, is_reachable, jps, jps4, nearest_reachable,
+    octile_distance, path_cost, path_to_direction_vec, smooth_path, step_toward, weighted_astar,
+    ConnectivityMap, DijkstraMap,
 };
 pub use plan::plan_inputs;
 pub use pool::Pool;
