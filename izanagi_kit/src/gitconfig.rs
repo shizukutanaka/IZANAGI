@@ -41,6 +41,100 @@ pub struct Gitconfig {
     pub comments: usize,
 }
 
+/// Git-specific section names — a bare `[x]` + `k = v` shape is shared
+/// with every ini file and proves nothing on its own. Case-insensitive
+/// per the gitconfig spec; `path:` variants (e.g. `[gitflow:prefix]`)
+/// are matched on their base name.
+const KNOWN_SECTIONS: &[&str] = &[
+    "advice",
+    "alias",
+    "apply",
+    "blame",
+    "branch",
+    "bundle",
+    "checkout",
+    "clean",
+    "clone",
+    "color",
+    "commit",
+    "commitgraph",
+    "core",
+    "credential",
+    "delta",
+    "diff",
+    "difftool",
+    "extensions",
+    "feature",
+    "fetch",
+    "filter",
+    "format",
+    "fsck",
+    "gc",
+    "gpg",
+    "grep",
+    "gui",
+    "help",
+    "hook",
+    "i18n",
+    "imap",
+    "include",
+    "includeif",
+    "index",
+    "init",
+    "instaweb",
+    "interactive",
+    "log",
+    "lsrefs",
+    "mailinfo",
+    "mailmap",
+    "maintenance",
+    "man",
+    "merge",
+    "mergetool",
+    "notes",
+    "pack",
+    "pager",
+    "pretty",
+    "promisor",
+    "pull",
+    "push",
+    "rebase",
+    "receive",
+    "remote",
+    "repack",
+    "rerere",
+    "sendemail",
+    "sendpack",
+    "sequence",
+    "show",
+    "showbranch",
+    "sparse",
+    "splitindex",
+    "ssh",
+    "stash",
+    "status",
+    "submodule",
+    "tag",
+    "tar",
+    "transfer",
+    "uploadarchive",
+    "uploadpack",
+    "url",
+    "user",
+    "versionsort",
+    "worktree",
+];
+
+fn section_is_git(inner: &str) -> bool {
+    // `[name]` or `[name "subsection"]`; `name` may carry a `:` suffix
+    let head = inner.split('"').next().unwrap_or("").trim();
+    let base = head.split(':').next().unwrap_or("").trim();
+    if inner.contains('"') {
+        return true;
+    }
+    KNOWN_SECTIONS.iter().any(|s| s.eq_ignore_ascii_case(base))
+}
+
 /// Whether the buffer looks like a gitconfig.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -48,13 +142,18 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let mut sections = 0usize;
+    let mut known = 0usize;
     for l in t.lines() {
         let tr = l.trim();
         if tr.starts_with('[') && tr.ends_with(']') && tr.len() > 2 {
             sections += 1;
+            if section_is_git(&tr[1..tr.len() - 1]) {
+                known += 1;
+            }
         }
     }
-    sections >= 1
+    known >= 1
+        && sections >= 1
         && t.lines().any(|l| {
             let tr = l.trim();
             !tr.starts_with('[') && tr.contains('=') && !tr.is_empty()

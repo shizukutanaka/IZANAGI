@@ -7069,6 +7069,54 @@ Latin-1等の非UTF-8テキスト、`mod tests`不在モジュールのfixture�
 - 対応: `METHOD_PARSERS: &[(&str, ParserFn)]` を新設し 665 エントリ(`let _ = <mod>::<Type>::parse(b)`)を登録。`parse_never_panics` の共有コーパス・自fixture変異スイープを両レジストリへ拡大し、`method_parsers_registry_covers_every_impl_parse` で今後の登録漏れを静的検出。
 - 非対象(残留): `impl Trait for X` 由来のparse呼出し、`parse(&str)` 等の非バイト列引数を持つパーサー(約50件)。
 
+## 第415次：残存ini/config族の外来ヒット分類・精密化(相互偽陽性スイープ第2弾)
+
+切り口:第414次P0残課題 — 全538fixture×全1,344検出器の外来ヒット上位に
+残った「[x]+k=v」「k:v」「トークン集合」系を「形式の本質的曖昧性」と
+「検出器設計の欠陥」に分類し、欠陥側を修正(検出精度をフォーマット語彙・
+フィールド位置・語彙へ移管)。
+
+分類結果:
+- 本質的曖昧(残置): crockford 30件(制限アルファベットのトークンという
+  形式定義上、全crockford文字のトークンは合法なので区別不能)、
+  lucene 83件(YAML `k:v`と構造的に同一)
+- 設計欠陥(修正): 全て「汎用語彙の部分一致/無条件カウント」に起因
+
+修正と外来ヒット数(修正前→後):
+- openssl 66→0: `[x]`+`k=v`スコアだけでなくX.509v3/req語彙(VOCAB+oid接頭辞
+  語、android/voidを拒否)≥1を要求
+- pppdconf 65→6: 三層欠陥を修正 — (a)`key = "v"`行をsecretsと誤認
+  (`=`含有行を排除+全フィールドをword文字集合化)、(b)hook語
+  (`file`/`set`/`options`等の汎用語)をエントリ証拠から外し
+  OPTION_KEYS門のoptions/flags/negations ≥2 + proto ≥1化、(c)`no*`/
+  `refuse-*`/`require-*`/`allow-*`のnegationsをOPTION_KEYS限定化、
+  proto腕の`chap`/`pap`プレフィックスを語境界化(chapter/paperを拒否)
+- txt2tags 59→8: `- `箇条書き等の素カウントでSome → `%!`directive/
+  `=x=`見出し/`|row|`/`+`番号/**・//スパン+構造要素を要求
+- gitconfig 45→5: `[x]`+`=`行は全ini一致 → 既知gitセクション名
+  (case-insensitive、`:`接尾辞はbase一致) or `[name "sub"]`引用形式を要求
+- pgpass 40→2: 5フィールド任意行 → 2番目フィールドがポート形状
+  (全数字or`*`)を要求
+- memcachedconf 37→0: `- `先頭行をオプションとして全markdown列挙に
+  合致 → `-x`/`--long`接着形式を要求(空白は箇条書き)
+- rsyslogd 34→0: セレクタ判定が`=`,`,`,`*`等の文字集合のみ →
+  RFC 5424 facility集合+priority文法(fac[.pri]の`,`/`;`列)を要求
+- autofs 31→1: 先頭語全受け+2語目全受け → マウントは`/`絶対/`*`/`+`/`-`、
+  マップは`-x`/`type:`/`/`/`auto.*`形状を要求
+- inputrc 28→8: `": `部分一致がJSONに合致 → `set var`のdashed変数
+  (`-e`等の`-`先頭はシェルオプションとして拒否)+`$if`/`\"\\e..\"`型
+  バインド等の強/弱スコアリング(strong≥1 or soft≥3 or soft≥2+escape≥1)
+- kubemq 27→0: apiVersion/kind/metadata等の汎用K8sキーだけで合致 →
+  KubeMQ固有キー(grpcPort/eventsStore/license…)または文中kubemq言及を要求
+- mpd 26→0: `port`/`user`等汎用キーのcontains → キーが行頭+空白区切りで
+  現れること(ブロックは`name {`形式)を要求
+
+回帰: `rejects_other`系既存テストは全緑。`detect=false⇒parse=None`契約維持。
+残課題: crockford/base32/nanoid等の単一トークン形式は定義上fixtureと
+区別不能(除外要検討)、airbyteconf 25/cirrus 24/base32 23は次ラウンド候補、
+段階的閾値ラチェットテストの検討。
+||||||| 56a2e9a
+
 ## 第419次：panic経路の静的棚卸 — 失敗機構の構造的担保
 
 切り口: 失敗の機構設計。`detect_never_panics`/`parse_never_panics`はfuzzの
