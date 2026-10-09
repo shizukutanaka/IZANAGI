@@ -23,6 +23,7 @@
 //! assert_eq!(c.credential_keys, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed AWS credentials/config summary.
 #[derive(Debug, Clone)]
 pub struct Awscredentials {
@@ -60,9 +61,6 @@ const ASSUME_KEYS: &[&str] = &[
     "web_identity_token_file",
     "credential_process",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like AWS credentials/config.
 #[must_use]

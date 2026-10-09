@@ -27,6 +27,7 @@
 //! assert_eq!(c.defines, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Nagios config summary.
 #[derive(Debug, Clone)]
 pub struct Nagios {
@@ -190,9 +191,6 @@ const CFG_KEYS: &[&str] = &[
     "max_service_check_spread",
     "max_host_check_spread",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Returns `true` when the bytes look like a Nagios config.
 #[must_use]

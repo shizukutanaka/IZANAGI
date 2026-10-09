@@ -16,6 +16,7 @@
 //! assert_eq!(c.benchmarks, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed asv result document summary.
 #[derive(Debug, Clone)]
 pub struct Asv {
@@ -41,9 +42,6 @@ fn count_key(t: &str, key: &str) -> usize {
         off += i + key.len();
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like an asv result document.

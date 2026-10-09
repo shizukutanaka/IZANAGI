@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::csd::detect(d));
 //! ```
 
+use crate::textutil::strip_xml_comments;
 /// A parsed Csound `.csd` file.
 #[derive(Debug, Clone)]
 pub struct Csd {
@@ -49,30 +50,13 @@ fn section_body<'a>(t: &'a str, name: &str) -> Option<&'a str> {
     Some(&body[..j])
 }
 
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 /// Detects a `.csd` file: `<CsoundSynthesizer>` root + a known section.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let t = strip_comments(t);
+    let t = strip_xml_comments(t);
     t.contains("<CsoundSynthesizer>") && SECTIONS.iter().any(|s| t.contains(&format!("<{s}>")))
 }
 
@@ -82,7 +66,7 @@ pub fn parse(b: &[u8]) -> Option<Csd> {
     if !detect(b) {
         return None;
     }
-    let t = strip_comments(std::str::from_utf8(b).ok()?);
+    let t = strip_xml_comments(std::str::from_utf8(b).ok()?);
     let mut s = Csd {
         instruments: 0,
         score_events: 0,
@@ -178,12 +162,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

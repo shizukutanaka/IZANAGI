@@ -12,6 +12,7 @@
 //!     b"defmodule X.MixProject do\n  def project, do: []\nend\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `def`/`defp` ブロック名(一般化せず既知名のみ別カウントは行わない)。
 /// プロジェクト既知アトムキー。
 const ATOM_KEYS: &[&str] = &[
@@ -70,9 +71,6 @@ fn is_dep_tuple(t: &str) -> bool {
 
 fn atom_hits(t: &str) -> usize {
     ATOM_KEYS.iter().filter(|k| t.contains(**k)).count()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `mix.exs` らしさを判定する。

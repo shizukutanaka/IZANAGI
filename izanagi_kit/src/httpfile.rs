@@ -1,6 +1,7 @@
 //! REST Client `.http` / `.rest` request files —
 //! `###`-separated `METHOD url` blocks with `@var =` variables and headers.
 
+use crate::textutil::strip_bom;
 use core::str::from_utf8;
 
 const METHODS: [&str; 8] = [
@@ -39,9 +40,6 @@ pub struct Httpfile {
 fn is_request(l: &str) -> bool {
     let mut it = l.split_whitespace();
     it.next().is_some_and(|m| METHODS.contains(&m)) && it.next().is_some()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` when the text looks like a `.http` file.

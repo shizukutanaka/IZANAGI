@@ -14,6 +14,7 @@
 //! assert_eq!(c.rules, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `.gitattributes` census.
 #[derive(Debug, Clone)]
 pub struct Gitattributes {
@@ -68,9 +69,6 @@ const ATTRS: &[&str] = &[
     "word-diff",
     "ignorediff",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like `.gitattributes`.
 #[must_use]

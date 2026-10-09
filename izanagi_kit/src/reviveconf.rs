@@ -13,6 +13,7 @@
 //! assert!(izanagi_kit::reviveconf::detect(b"enableAllRules = true\n[rule.exported]\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルスカラキー。
 const TOP_KEYS: &[&str] = &[
     "confidence",
@@ -143,9 +144,6 @@ fn rule_table(t: &str) -> Option<&str> {
     } else {
         Some(name)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が revive.toml かどうか。

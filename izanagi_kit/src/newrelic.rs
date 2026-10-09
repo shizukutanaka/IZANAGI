@@ -19,6 +19,7 @@
 //! assert_eq!(c.keys, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed newrelic conf summary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Newrelic {
@@ -79,9 +80,6 @@ fn key_of(s: &str) -> &str {
             .unwrap_or(""),
         None => "",
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects newrelic yaml.

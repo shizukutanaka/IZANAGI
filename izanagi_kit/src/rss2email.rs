@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::rss2email::detect(b"[feed.https://x/rss]\nactive = True\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知 rss2email オプション。
 const KEYS: &[&str] = &[
     "active",
@@ -78,9 +79,6 @@ pub struct Counts {
     pub comments: usize,
     /// 分類不能行。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が rss2email 設定かどうか。

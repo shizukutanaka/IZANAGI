@@ -20,6 +20,7 @@
 //! assert_eq!(c.elements, 2);
 //! ```
 
+use crate::textutil::strip_xml_comments;
 const ELEMS: &[&str] = &[
     "<server",
     "<ui",
@@ -82,29 +83,12 @@ const ELEMS: &[&str] = &[
     "<update-check",
 ];
 
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 /// `b` が gerbera config.xml に見えるかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    let t = strip_comments(t);
+    let t = strip_xml_comments(t);
     let n = ELEMS.iter().filter(|e| t.contains(**e)).count();
     t.contains("<config") && t.contains("<server") && n >= 3
 }
@@ -120,7 +104,7 @@ pub struct Gerbera {
 
 /// `b` を gerbera config.xml として統計する。
 pub fn parse(b: &[u8]) -> Gerbera {
-    let t = strip_comments(std::str::from_utf8(b).unwrap_or(""));
+    let t = strip_xml_comments(std::str::from_utf8(b).unwrap_or(""));
     let mut c = Gerbera {
         comments: t.matches("<!--").count(),
         ..Gerbera::default()
@@ -173,12 +157,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

@@ -18,6 +18,7 @@
 //! assert_eq!(c.owners, 4); // locales/tzdata/keyboard-configuration/console-setup
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -59,9 +60,6 @@ fn fields(s: &str) -> Option<(&str, &str, &str)> {
     let q = it.next()?;
     let ty = it.next()?;
     Some((owner, q, ty))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// debconf selections らしさを返す。非 `d-i` owner の型付き行が複数。

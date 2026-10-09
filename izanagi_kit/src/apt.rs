@@ -21,6 +21,7 @@
 //! assert_eq!(c.sources, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// APT source list census.
 #[derive(Debug, Clone)]
 pub struct Apt {
@@ -32,9 +33,6 @@ pub struct Apt {
     pub stanzas: usize,
     /// `Acquire::`/`APT::`/`Dir::`/`DPkg::`/`Unattended-Upgrade::`/`RPM::`/`Binary-*::`/`Debug::`/`apt-key::`/`Machine`/`login`/`password`/`netrc`/`Blind*`/`Key*` apt.conf/auth keys.
     pub confs: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like an APT sources/auth file.

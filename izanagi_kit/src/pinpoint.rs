@@ -19,6 +19,7 @@
 //! assert!(c.profiler_keys >= 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed pinpoint.config summary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pinpoint {
@@ -32,9 +33,6 @@ pub struct Pinpoint {
     pub toggles: usize,
     /// `#` comment lines.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects pinpoint-style config.

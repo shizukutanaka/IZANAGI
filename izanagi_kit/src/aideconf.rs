@@ -12,6 +12,7 @@
 //!     b"database_in = file:/x/aide.db\n/etc p+i+n+g\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `@@` ディレクティブ(一致は先頭走査)。
 const DIRECTIVES: &[&str] = &[
     "define", "endif", "groupadd", "ifhost", "ifnhost", "ifdef", "ifndef",
@@ -104,9 +105,6 @@ fn is_path_rule(t: &str) -> bool {
         None => true, // `!/path` 単体
         Some(r) => rule_only(r.trim().split(' ').next().unwrap_or("")),
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `aide.conf` らしさを判定する。

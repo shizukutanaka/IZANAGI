@@ -14,6 +14,7 @@
 //! assert!(izanagi_kit::fidl::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// A censused FIDL file.
 #[derive(Debug)]
 pub struct Fidl {
@@ -53,9 +54,6 @@ fn word_count(s: &str, word: &str) -> u32 {
 
 fn count(s: &str, pat: &str) -> u32 {
     u32::try_from(s.matches(pat).count()).unwrap_or(u32::MAX)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `library a.b;` at line start + one declaration keyword.

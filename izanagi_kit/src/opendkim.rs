@@ -42,6 +42,7 @@
 //! assert_eq!(c.settings, 5);
 //! ```
 
+use crate::textutil::strip_bom;
 /// opendkim.conf census.
 #[derive(Debug, Clone)]
 pub struct Opendkim {
@@ -146,9 +147,6 @@ const KEYS: &[&str] = &[
     "X-Header",
     "zfilterFlags",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect opendkim.conf content.
 #[must_use]

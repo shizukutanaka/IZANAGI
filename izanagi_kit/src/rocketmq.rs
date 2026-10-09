@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::rocketmq::detect(b"brokerName=broker-a\nbrokerRole=ASYNC_MASTER\nflushDiskType=ASYNC_FLUSH\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知プロパティキー。
 const KEYS: &[&str] = &[
     "aclEnable",
@@ -170,9 +171,6 @@ fn kv_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が broker.conf かどうか。

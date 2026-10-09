@@ -14,6 +14,7 @@
 //! assert_eq!(l.theorems, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census fields.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Lean {
@@ -72,9 +73,6 @@ fn strip(s: &str) -> String {
         i += 1;
     }
     out
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` on `import`+decl shape or `#check`/`theorem`/`namespace`.

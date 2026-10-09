@@ -21,6 +21,7 @@
 //! assert_eq!(c.board_keys, 4); // additional_urls + data + downloads + user
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -99,9 +100,6 @@ const LIBRARY_KEYS: &[&str] = &[
     "crc32",
     "size",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// `arduino-cli.yaml`/`sketch.json`/`library.properties` らしさを返す。
 #[must_use]

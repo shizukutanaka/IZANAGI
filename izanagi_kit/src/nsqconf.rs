@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::nsqconf::detect(b"data-path = \"/x\"\nmem-queue-size = 1\nbroadcast-address = \"h\"\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知キー。
 const KEYS: &[&str] = &[
     "auth-http-address",
@@ -93,9 +94,6 @@ fn kv_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が nsqd.cfg 系かどうか。

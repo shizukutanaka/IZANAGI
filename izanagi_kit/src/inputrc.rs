@@ -24,6 +24,7 @@
 //! assert_eq!(c.sets, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// inputrc census.
 #[derive(Debug, Clone)]
 pub struct Inputrc {
@@ -37,9 +38,6 @@ pub struct Inputrc {
     pub includes: usize,
     /// `#` comment lines.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect inputrc content.

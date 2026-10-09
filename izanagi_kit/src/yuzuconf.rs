@@ -18,6 +18,7 @@
 //! assert_eq!(c.bool_assigns, 4);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -62,9 +63,6 @@ const SECTIONS: &[&str] = &[
     "Player",
     "Services",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// `qt-config.ini` らしさを返す。既知セクション + 小文字 bool 代入 ≥2。
 #[must_use]

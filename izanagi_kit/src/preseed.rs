@@ -19,6 +19,7 @@
 //! assert_eq!(c.owners, 1); // 全て d-i
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -53,9 +54,6 @@ const TYPES: &[&str] = &[
     "error",
     "seen",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// preseed らしさを返す。`d-i <q> <type> …` 行が複数あること。
 #[must_use]

@@ -26,6 +26,7 @@
 //! assert_eq!(c.primitives, 1);
 //! ```
 
+use crate::textutil::strip_xml_comments;
 /// CIB XML の集計。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -47,23 +48,6 @@ pub struct Counts {
     pub attribute_blocks: usize,
 }
 
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 /// `b` が CIB XML らしいかを返す。
 pub fn detect(b: &[u8]) -> bool {
     let c = match parse(b) {
@@ -80,7 +64,7 @@ fn count_tag(line: &str, tag: &str) -> usize {
 /// CIB XML を解析して `Counts` を返す。
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
-    let s = strip_comments(std::str::from_utf8(b).ok()?);
+    let s = strip_xml_comments(std::str::from_utf8(b).ok()?);
     let mut counts = Counts {
         cib: 0,
         primitives: 0,
@@ -202,12 +186,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

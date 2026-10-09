@@ -7624,3 +7624,36 @@ wrap 可能だが入力メモリで先に尽きる。
 `with_capacity` ヒントの usize キャップ規約の新規サイト適用検出、
 `n+m` 3項以上 len 和の機械分類、`empty 縮退`/`None`/`expect`
 三択規約の語彙統一。
+
+## 第424次：削除→統合(第一原理最適化) — 複製ヘルパーの一元化
+
+切り口: 機能追加ではなく「同じものが何枚コピーされているか」の価値密度監査。
+本体正規化(空白除去)で全 fn をクラスタリング → 完全同一コピー 412 件を
+`textutil`(`mod` private・pub(crate) のみ)に統合。
+
+### 削除した複製(全て行動不変・byte-等価)
+- `strip_bom` ×222 → `textutil::strip_bom`
+- `value_of` ×64 → `textutil::value_of` (YAML `k: v` スカラー抽出)
+- `kind_val` ×64 → `textutil::kind_val` (K8s 系 manifest の kind 抽出)
+- `strip_comments`(XML `<!-- -->` 除去) ×43 → `textutil::strip_xml_comments`
+  (意味明確化のためリネーム)
+- `yaml_val` ×19 → `textutil::yaml_val`
+
+計348ファイル・-3121/+503行。公開 API 不変(pub(crate))・DETECTORS/
+PARSERS 不変・決定性ハッシュ不変。
+
+### 発見したが今回は残置(分類)
+- `api_ok` 3バリアント: 旧世代 x21 は `v.starts_with(g)` のみ、新世代
+  x33+x8 は `x.group` 風サブドメイングループ一致を追加 — 精緻化が
+  旧世代へ未伝播。統合すると21モジュールがより寛容になる行動変更のため
+  このPRでは残置(別ラウンドで仕様確認して統一候補)。
+- `key_present`×73/`is_key`×60/`top_key`×28/`count_key`×25:
+  同名異体が9-18バリアント — 意味差の精査なしに統合不能。
+- エンディアンリーダー(le32/u32le/u16le/le16/be16/be32)計313定義・
+  署名(Option返し/直接panic戻り値/u32↔usize型差)がバラバラ。
+  `from_le_bytes` 一本化は型整合が必要で別ラウンド。
+- `kind_val` 残13(gatekeeperの`K8s`接頭辞等仕様相違)は正当な差異として残置。
+
+残課題: api_ok 21旧世代への精緻化伝播判断、k8s CRD 共通
+`api_version_in_groups(t, GROUPS)` への引数化統合、エンディアン
+リーダー署名統一、同名異体ファミリー(key_present/is_key)の意味分類。

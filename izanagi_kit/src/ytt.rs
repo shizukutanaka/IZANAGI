@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::ytt::detect(k));
 //! ```
 
+use crate::textutil::strip_bom;
 /// ytt template census.
 #[derive(Debug, Clone)]
 pub struct Ytt {
@@ -41,9 +42,6 @@ fn has_strong_marker(t: &str) -> bool {
                 || s.contains("text/")))
             || s.contains("@ytt:")
     })
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect ytt-annotated content.

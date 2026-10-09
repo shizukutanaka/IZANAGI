@@ -14,6 +14,7 @@
 //! ```
 #![forbid(unsafe_code)]
 
+use crate::textutil::strip_bom;
 /// runit script census.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Runit {
@@ -39,9 +40,6 @@ const WRAPPERS: &[&str] = &[
     "fghack",
     "setsid",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// True if `b` looks like a runit run script.
 #[must_use]

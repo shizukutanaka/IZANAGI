@@ -16,6 +16,7 @@
 //! assert_eq!(c.sets, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// nanorc census.
 #[derive(Debug, Clone)]
 pub struct Nanorc {
@@ -70,9 +71,6 @@ const OTHER_HEADS: &[&str] = &[
     "punct",
     "quotestr",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect nanorc content.
 #[must_use]

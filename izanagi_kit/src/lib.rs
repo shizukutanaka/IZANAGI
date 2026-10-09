@@ -2481,6 +2481,7 @@ pub mod textile;
 pub mod textlayout;
 pub mod textlint;
 pub mod textmategram;
+mod textutil;
 pub mod tflint;
 pub mod tflite;
 pub mod tfm;

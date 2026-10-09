@@ -12,6 +12,7 @@
 //!     b"{deps, []}.\n{relx, []}.\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知タームキー。
 const KEYS: &[&str] = &[
     "alias",
@@ -79,9 +80,6 @@ fn term_key(t: &str) -> Option<&str> {
     let end = inner.find(|c: char| c == ',' || c.is_whitespace())?;
     let k = &inner[..end];
     KEYS.contains(&k).then_some(k)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `rebar.config` らしさを判定する。

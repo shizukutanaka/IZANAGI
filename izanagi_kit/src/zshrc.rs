@@ -24,6 +24,7 @@
 //! assert_eq!(c.setopts, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// zshrc census.
 #[derive(Debug, Clone)]
 pub struct Zshrc {
@@ -127,9 +128,6 @@ const OTHER_HEADS: &[&str] = &[
     "sysread",
     "syswrite",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect zshrc content.
 #[must_use]

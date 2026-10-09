@@ -16,6 +16,7 @@
 //! assert_eq!(c.temperature_entries, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知の PrusaSlicer キー。
 const KNOWN_KEYS: &[&str] = &[
     "layer_height",
@@ -229,9 +230,6 @@ pub struct Counts {
     pub inherits_entries: usize,
     /// `#`/`;` コメント行数 (generated ヘッダ含む)。
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が PrusaSlicer `*.ini` 形式かどうか。

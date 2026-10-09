@@ -27,6 +27,7 @@
 //! assert_eq!(c.machines, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 const CLAUSES: &[&str] = &[
     "MACHINE",
     "REFINEMENT",
@@ -81,9 +82,6 @@ pub struct Mch {
     pub assigns: usize,
     /// `:`/`<:`/`<<:`/`=`/`/=`/`<=>`/`=>`/`/\`/`\/`/`not` predicates + `NAT`/`INT`/`BOOL`/`POW`/`SEQ`/`NATURAL`/`INTEGER`/`STRING`/`FIN`/`INTER`/`UNION`/`SIGMA`/`PI` type atoms.
     pub logic: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a B/Event-B machine.

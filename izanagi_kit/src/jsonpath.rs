@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::jsonpath::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census of a JSONPath expression.
 #[derive(Debug, Clone)]
 pub struct Jsonpath {
@@ -42,9 +43,6 @@ pub struct Jsonpath {
     pub funcs: usize,
     /// `,` union members in brackets.
     pub unions: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects a JSONPath: `$.`/`$[`/`..` start or `[?(`/`[(` bracket form.

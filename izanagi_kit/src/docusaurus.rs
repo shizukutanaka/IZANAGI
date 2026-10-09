@@ -16,6 +16,7 @@
 //! assert_eq!(c.keys, 5);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `docusaurus.config.js` census.
 #[derive(Debug, Clone)]
 pub struct Docusaurus {
@@ -78,9 +79,6 @@ const THEME_KEYS: &[&str] = &[
     "livecodeblock",
     "respectpreferscolorscheme",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a Docusaurus config.
 #[must_use]

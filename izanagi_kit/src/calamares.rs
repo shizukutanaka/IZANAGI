@@ -20,6 +20,7 @@
 //! assert_eq!(c.bools, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -55,9 +56,6 @@ const TOP_KEYS: &[&str] = &[
     "window-show",
     "chroot",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Calamares らしさを返す。`sequence:`+`- show:`/`- exec:` か
 /// `branding:`+calamares キー。

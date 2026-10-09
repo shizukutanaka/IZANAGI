@@ -12,6 +12,7 @@
 //!     b"StylesPath = s\n[*.md]\nBasedOnStyles = Vale\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// グローバル(セクション無し)既知キー。
 const GLOBAL_KEYS: &[&str] = &[
     "MinAlertLevel",
@@ -65,9 +66,6 @@ fn known_key(t: &str) -> bool {
     let Some(eq) = t.find('=') else { return false };
     let key = t[..eq].trim();
     GLOBAL_KEYS.contains(&key) || SECTION_KEYS.contains(&key)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `.vale.ini` らしさを判定する。

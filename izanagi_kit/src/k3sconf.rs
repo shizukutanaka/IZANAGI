@@ -14,6 +14,7 @@
 //!     b"server: https://x:6443\ntoken: s\nnode-name: n1\nflannel-backend: wireguard-native\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// k3s 設定キー(server/agent 共通 + サブコンポーネント引数族)。
 const KEYS: &[&str] = &[
     "agent-token",
@@ -102,9 +103,6 @@ fn key_of(t: &str) -> &str {
 
 fn known_key(t: &str) -> bool {
     KEYS.contains(&key_of(t))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `config.yaml` らしさを判定する。

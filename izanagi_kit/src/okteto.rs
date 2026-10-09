@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::okteto::detect(k));
 //! ```
 
+use crate::textutil::strip_bom;
 /// okteto.yaml census.
 #[derive(Debug, Clone)]
 pub struct Okteto {
@@ -67,9 +68,6 @@ fn top_key(line: &str) -> Option<&str> {
         Some(i) => Some(s[..i].trim()),
         None => None,
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect okteto.yaml content.

@@ -19,6 +19,7 @@
 //! assert_eq!(c.states, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Paraver `.prv` summary.
 #[derive(Debug, Clone)]
 pub struct Paraver {
@@ -62,9 +63,6 @@ fn rec_type(tr: &str) -> Option<u8> {
     let colon = tr.find(':')?;
     let t: u8 = tr[..colon].parse().ok()?;
     ((1..=4).contains(&t)).then_some(t)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer starts with a Paraver trace header.

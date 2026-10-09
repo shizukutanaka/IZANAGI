@@ -19,6 +19,7 @@
 //!
 //! Commented-out defaults are counted as `documented`, not entries.
 
+use crate::textutil::strip_bom;
 /// vlcrc census.
 #[derive(Debug, Clone)]
 pub struct Vlcrc {
@@ -89,9 +90,6 @@ const KEYS: &[&str] = &[
 
 fn key_of(s: &str) -> &str {
     s.split('=').next().unwrap_or("").trim()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a vlcrc.

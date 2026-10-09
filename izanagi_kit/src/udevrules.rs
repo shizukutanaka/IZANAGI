@@ -16,6 +16,7 @@
 //! assert!(c.attr_refs > 0 && c.env_refs > 0);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -38,9 +39,6 @@ pub struct Counts {
 }
 
 const FLOW: &[&str] = &["RUN", "PROGRAM", "GOTO", "LABEL", "IMPORT"];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// `.rules` らしさを返す。`==`/`+=`/`=` ペアが存在し udev 系キーを含む。
 #[must_use]

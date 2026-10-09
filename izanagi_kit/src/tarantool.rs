@@ -8,6 +8,7 @@
 //! assert_eq!(c.net, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// レプリケーション・選出系キー。
 const REPL: &[&str] = &[
     "replication",
@@ -150,9 +151,6 @@ pub struct Counts {
     pub sys: usize,
     /// その他行数。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が Tarantool box.cfg かどうか。

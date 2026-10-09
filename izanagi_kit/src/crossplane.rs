@@ -12,21 +12,11 @@
 //! assert_eq!(c.kind.as_str(), "CompositeResourceDefinition");
 //! ```
 
+use crate::textutil::yaml_val;
 fn is_key(tr: &str, key: &str) -> bool {
     let k = tr.trim_start_matches(['"', '\'']);
     k.strip_prefix(key)
         .is_some_and(|r| r.starts_with(':') || r.starts_with("\":") || r.starts_with("':"))
-}
-
-/// `key` の値を `key: value` 行から取り出す。
-fn yaml_val<'a>(line: &'a str, key: &str) -> Option<&'a str> {
-    let l = line.trim_start_matches(['"', '\'']);
-    let r = l
-        .strip_prefix(key)?
-        .trim_start_matches(['"', '\''])
-        .trim_start();
-    r.strip_prefix(':')
-        .map(|v| v.trim().trim_matches('"').trim_matches('\''))
 }
 
 /// `kind:` の値が Crossplane リソース種別かどうか。

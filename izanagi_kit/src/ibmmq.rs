@@ -14,6 +14,7 @@
 //! assert!(izanagi_kit::ibmmq::detect(b"TCP:\n   Port=1414\n   IPAddress=0.0.0.0\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知スタンザ名(行が `Name:` で終わる)。
 const STANZAS: &[&str] = &[
     "AllQueueManagers",
@@ -141,9 +142,6 @@ fn kv_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が qm.ini/mqs.ini かどうか。

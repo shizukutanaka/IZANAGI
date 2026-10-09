@@ -29,6 +29,7 @@
 //! assert_eq!(c.settings, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Fossil settings census.
 #[derive(Debug, Clone)]
 pub struct Fossilconf {
@@ -116,9 +117,6 @@ const KEYS: &[&str] = &[
     "multiple-threads",
     "project-code",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like Fossil settings output.
 #[must_use]

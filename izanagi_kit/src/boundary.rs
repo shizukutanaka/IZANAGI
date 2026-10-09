@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::boundary::detect(k));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Boundary config census.
 #[derive(Debug, Clone)]
 pub struct Boundary {
@@ -30,9 +31,6 @@ fn code_line(s: &str) -> &str {
         return "";
     }
     s
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect a Boundary `boundary.hcl`.

@@ -13,6 +13,7 @@
 //! assert_eq!(l.words, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Lingvo DSL census.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Dsl {
@@ -44,9 +45,6 @@ fn directive<'a>(s: &'a str, key: &str) -> Option<&'a str> {
         }
     }
     None
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` on a `#NAME`/`#INDEX_LANGUAGE` directive header + body lines.

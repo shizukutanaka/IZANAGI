@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::justfile::detect(b"@run:\n    echo hi\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 先頭ディレクティブ。
 const DIRECTIVES: &[&str] = &[
     "alias",
@@ -76,9 +77,6 @@ fn recipe_header(t: &str) -> bool {
                 || matches!(c, '-' | '_' | '*' | '+' | '$' | '=' | '\'' | '"' | '/')
         })
     })
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// justfile らしさを判定する。

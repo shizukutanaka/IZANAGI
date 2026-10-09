@@ -1,6 +1,7 @@
 //! `Gemfile.lock` — `GEM`/`PATH`/`GIT` sections, `remote:`/`specs:`,
 //! `name (version)` spec lines, `PLATFORMS`, `DEPENDENCIES`, `BUNDLED WITH`.
 
+use crate::textutil::strip_bom;
 use core::str::from_utf8;
 
 #[derive(Debug, Clone)]
@@ -55,9 +56,6 @@ fn version_after<'a>(t: &'a str, name: &str) -> Option<&'a str> {
         let tr = l.trim();
         (!tr.is_empty()).then_some(tr)
     })
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` when the text looks like Gemfile.lock.

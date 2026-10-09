@@ -16,6 +16,7 @@
 //! assert_eq!(c.nameservers, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed resolv.conf summary.
 #[derive(Debug, Clone)]
 pub struct Resolv {
@@ -35,9 +36,6 @@ pub struct Resolv {
     pub legacy: usize,
     /// `#`/`;` comment lines.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like resolv.conf.

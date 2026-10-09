@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::magefile::detect(k));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Magefile census.
 #[derive(Debug, Clone)]
 pub struct Magefile {
@@ -30,9 +31,6 @@ fn strip_line_comment(s: &str) -> &str {
         Some(i) => s[..i].trim_end(),
         None => s,
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect a Magefile.

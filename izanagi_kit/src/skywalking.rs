@@ -16,6 +16,7 @@
 //! assert_eq!(c.named_groups, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed skywalking agent.config summary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Skywalking {
@@ -48,9 +49,6 @@ const GROUPS: &[&str] = &[
     "SW",
     "sw",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detects skywalking-style properties.
 #[must_use]

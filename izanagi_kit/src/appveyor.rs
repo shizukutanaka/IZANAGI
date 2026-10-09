@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::appveyor::detect(b"image: VS2022\nbuild_script:\n  - cargo build\ntest_script:\n  - cargo test\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルキー。
 const TOP_KEYS: &[&str] = &[
     "after_build",
@@ -108,9 +109,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が appveyor.yml かどうか。

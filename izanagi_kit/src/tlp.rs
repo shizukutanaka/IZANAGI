@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::tlp::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// A parsed Tulip `.tlp` census.
 #[derive(Debug, Clone)]
 pub struct Tlp {
@@ -35,9 +36,6 @@ pub struct Tlp {
     pub max_depth: usize,
     /// `;;` comments.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects a Tulip file: begins with `(tlp`.

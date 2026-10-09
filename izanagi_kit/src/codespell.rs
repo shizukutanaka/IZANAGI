@@ -12,6 +12,7 @@
 //!     b"[codespell]\nskip = .git\nquiet-level = 3\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// codespell 既知オプション。
 const KEYS: &[&str] = &[
     "builtin",
@@ -60,9 +61,6 @@ fn known_key(t: &str) -> bool {
     let Some(eq) = t.find('=') else { return false };
     let k = t[..eq].trim();
     KEYS.contains(&k)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `.codespellrc` らしさを判定する。

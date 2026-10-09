@@ -24,6 +24,7 @@
 //! assert_eq!(c.node_defs, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// slurm.conf census.
 #[derive(Debug, Clone)]
 pub struct Slurm {
@@ -159,9 +160,6 @@ const KEYS: &[&str] = &[
 
 fn key_of(s: &str) -> &str {
     s.split('=').next().unwrap_or("").trim()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like slurm.conf.

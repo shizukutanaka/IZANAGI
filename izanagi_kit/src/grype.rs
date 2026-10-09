@@ -16,6 +16,7 @@
 //! assert_eq!(c.fixed, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Grype JSON report summary.
 #[derive(Debug, Clone)]
 pub struct Grype {
@@ -45,9 +46,6 @@ fn count_key(t: &str, key: &str) -> usize {
         off += i + key.len();
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Grype JSON report.

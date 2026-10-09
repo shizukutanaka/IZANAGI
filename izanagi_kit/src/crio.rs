@@ -13,6 +13,7 @@
 //!     b"[crio.image]\npause_image = \"registry.k8s.io/pause:3.9\"\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// テーブル(先頭 `crio` プレフィックス)。
 const TABLES: &[&str] = &["crio"];
 
@@ -134,9 +135,6 @@ fn is_crio_table(t: &str) -> bool {
 fn known_key(t: &str) -> bool {
     let Some(eq) = t.find('=') else { return false };
     KEYS.contains(&t[..eq].trim())
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `crio.conf` らしさを判定する。

@@ -26,6 +26,7 @@
 //! assert_eq!(c.scores, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// SpamAssassin cf census.
 #[derive(Debug, Clone)]
 pub struct Spamassassin {
@@ -154,9 +155,6 @@ const KEYS: &[&str] = &[
     "channel_timeout",
     "gpg_binary",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect SpamAssassin cf content.
 #[must_use]

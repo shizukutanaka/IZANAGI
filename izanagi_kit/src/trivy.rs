@@ -16,6 +16,7 @@
 //! assert_eq!(c.vulnerabilities, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Trivy JSON report summary.
 #[derive(Debug, Clone)]
 pub struct Trivy {
@@ -47,9 +48,6 @@ fn count_key(t: &str, key: &str) -> usize {
         off += i + key.len();
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Trivy JSON report.

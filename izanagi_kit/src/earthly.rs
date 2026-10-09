@@ -12,6 +12,7 @@
 //!     b"VERSION 0.7\nFROM scratch\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Earthfile コマンド(行頭語)。複数語は `|` 連結しない。
 const CMDS: &[&str] = &[
     "ARG",
@@ -77,9 +78,6 @@ fn is_target(t: &str) -> bool {
         && t[..t.len() - 1]
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '/'))
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Earthfile らしさを判定する。

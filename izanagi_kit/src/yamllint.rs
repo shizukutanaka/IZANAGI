@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::yamllint::detect(b"rules:\n  truthy: disable\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルキー。
 const TOP_KEYS: &[&str] = &[
     "extends",
@@ -78,9 +79,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が yamllint 設定かどうか。

@@ -12,6 +12,7 @@
 //! assert!(izanagi_kit::hadolintconf::detect(b"ignored:\n  - DL3008\nformat: tty\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルキー。
 const TOP_KEYS: &[&str] = &[
     "disable-ignore-pragma",
@@ -71,9 +72,6 @@ fn codes_in(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が hadolint 設定かどうか。

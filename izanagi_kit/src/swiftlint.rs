@@ -13,6 +13,7 @@
 //! assert_eq!(c.listitems, 3);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `.swiftlint.yml` census.
 #[derive(Debug, Clone)]
 pub struct Swiftlint {
@@ -58,9 +59,6 @@ const DETECT_KEYS: &[&str] = &[
     "reporter",
     "use_nested_configs",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a `.swiftlint.yml` file.
 #[must_use]

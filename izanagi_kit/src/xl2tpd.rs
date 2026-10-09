@@ -24,6 +24,7 @@
 //! assert_eq!(c.sections, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// xl2tpd.conf census.
 #[derive(Debug, Clone)]
 pub struct Xl2tpd {
@@ -102,9 +103,6 @@ const KEYS: &[&str] = &[
     "load-module",
     "stateful",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect xl2tpd.conf content.
 #[must_use]

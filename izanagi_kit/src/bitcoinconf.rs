@@ -16,6 +16,7 @@
 //! assert_eq!(c.bool_entries, 1); // server=1
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -175,9 +176,6 @@ fn key_of(s: &str) -> Option<&str> {
         return None;
     }
     Some(k)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `bitcoin.conf` らしさを返す。既知オプション行 ≥2。

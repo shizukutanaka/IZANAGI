@@ -17,6 +17,7 @@
 //! assert_eq!(c.path_entries, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// mediamtx.yml census.
 #[derive(Debug, Clone)]
 pub struct Mediamtx {
@@ -106,9 +107,6 @@ const KEYS: &[&str] = &[
     "authJWTClaimKey",
     "paths",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like mediamtx.yml.
 #[must_use]

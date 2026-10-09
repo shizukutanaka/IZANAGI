@@ -22,6 +22,7 @@
 //! assert_eq!(c.route_keys, 6); // Route 3 + DHCPv4 3(RouteMetric含む)
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -170,9 +171,6 @@ const ROUTE_SECTIONS: &[&str] = &[
     "IPv6RoutePrefix",
     "SRv6",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// `.network`/`.netdev`/`.link` らしさを返す。
 #[must_use]

@@ -13,6 +13,7 @@
 //! assert!(izanagi_kit::gemrc::detect(b"gem: --no-document\n:backtrace: true\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `:` プレフィックスの既知シンボルキー。
 const SYMBOL_KEYS: &[&str] = &[
     ":backtrace",
@@ -86,9 +87,6 @@ fn yaml_key(t: &str) -> Option<&str> {
     } else {
         Some(k)
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .gemrc かどうか。

@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::maildrop::detect(b"to \"$DEFAULT\"\nxfilter \"reformail\"\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 制御キーワード。
 const CONTROLS: &[&str] = &["if", "elsif", "else"];
 /// ループキーワード。
@@ -69,9 +70,6 @@ fn is_assign(t: &str) -> bool {
     !key.is_empty()
         && key.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_')
         && !key.contains(' ')
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が maildrop スクリプトかどうか。

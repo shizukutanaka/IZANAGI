@@ -16,6 +16,7 @@
 //! assert_eq!(c.plugin_sections, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed instana conf summary.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Instana {
@@ -31,9 +32,6 @@ pub struct Instana {
     pub list_items: usize,
     /// `#` comment lines.
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detects instana configuration.

@@ -10,6 +10,7 @@
 //! assert_eq!(c.settings, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `CPPLINT.cfg` census.
 #[derive(Debug, Clone)]
 pub struct Cpplint {
@@ -39,9 +40,6 @@ const KEYS: &[&str] = &[
     "output_format",
     "quiet_files",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like a `CPPLINT.cfg` file.
 #[must_use]

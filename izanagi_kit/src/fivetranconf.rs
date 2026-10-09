@@ -12,6 +12,7 @@
 //!     b"service: postgres\nsync_frequency: 60\nconfig:\n  host: db\n  database: app\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Fivetran 既知設定キー。
 const KEYS: &[&str] = &[
     "access_token",
@@ -132,9 +133,6 @@ fn key_hits(t: &str) -> usize {
         }
     }
     n
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 fn exclusive_hits(t: &str) -> usize {

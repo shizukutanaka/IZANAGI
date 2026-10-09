@@ -19,6 +19,7 @@
 //! `input.conf` shares the same `key=value`-ish layout plus
 //! `KEY command` bindings; only the option-file shape is counted here.
 
+use crate::textutil::strip_bom;
 /// mpv.conf census.
 #[derive(Debug, Clone)]
 pub struct Mpv {
@@ -115,9 +116,6 @@ const KEYS: &[&str] = &[
     "audio-exclusive",
     "audio-channels",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Whether the buffer looks like an mpv.conf.
 #[must_use]

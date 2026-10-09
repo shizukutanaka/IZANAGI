@@ -16,6 +16,7 @@
 //! assert_eq!(c.high, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed Snyk JSON report summary.
 #[derive(Debug, Clone)]
 pub struct Snyk {
@@ -62,9 +63,6 @@ fn int_after(t: &str, key: &str) -> u64 {
         return 0;
     }
     rest[..digits].parse().unwrap_or(0)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a Snyk JSON report.

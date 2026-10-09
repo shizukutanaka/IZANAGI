@@ -14,6 +14,7 @@
 //!     b"{\"options\": {\"host_identifier\": \"hostname\"}, \"schedule\": {\"a\": {}}}\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// トップレベル既知キー。
 const TOP_KEYS: &[&str] = &[
     "auto_table_construction",
@@ -89,9 +90,6 @@ pub struct Counts {
     pub comments: usize,
     /// その他の行数。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `osquery.conf`/`osquery.flags` らしさを判定する。

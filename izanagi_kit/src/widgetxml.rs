@@ -12,6 +12,7 @@
 //!     b"<widget xmlns=\"http://www.w3.org/ns/widgets\"><name>x</name><content src=\"i.html\"/></widget>"));
 //! ```
 
+use crate::textutil::strip_xml_comments;
 /// コンテナ要素。
 const CONTAINERS: &[&str] = &["widget"];
 
@@ -87,29 +88,13 @@ fn tags_in_line(t: &str, f: &mut dyn FnMut(&str)) {
 fn attrs_in(t: &str) -> usize {
     ATTRS.iter().map(|a| t.matches(a).count()).sum()
 }
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
 
 /// `config.xml`(W3C widget)らしさを判定する。
 pub fn detect(input: &[u8]) -> bool {
     let Ok(text) = std::str::from_utf8(input) else {
         return false;
     };
-    let text = strip_comments(text);
+    let text = strip_xml_comments(text);
     let mut hits = 0usize;
     let mut root = false;
     for line in text.lines() {
@@ -140,7 +125,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
     if !detect(input) {
         return None;
     }
-    let text = strip_comments(std::str::from_utf8(input).ok()?);
+    let text = strip_xml_comments(std::str::from_utf8(input).ok()?);
     let mut c = Counts {
         sections: 0,
         entries: 0,
@@ -202,12 +187,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

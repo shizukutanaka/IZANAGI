@@ -17,6 +17,7 @@
 //! assert_eq!(c.maps, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// vimrc census.
 #[derive(Debug, Clone)]
 pub struct Vimrc {
@@ -84,9 +85,6 @@ const OTHER_HEADS: &[&str] = &[
     "runtime",
     "finish",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect vimrc content.
 #[must_use]

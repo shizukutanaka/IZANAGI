@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::garden::detect(k));
 //! ```
 
+use crate::textutil::{kind_val, value_of};
 /// Garden.io config census.
 #[derive(Debug, Clone)]
 pub struct Garden {
@@ -40,32 +41,10 @@ const KINDS: &[&str] = &[
     "Provider",
 ];
 
-fn value_of(s: &str) -> &str {
-    match s.find(':') {
-        Some(i) => s[i + 1..].trim().trim_matches('"').trim_matches('\''),
-        None => "",
-    }
-}
-
 fn api_ok(t: &str) -> bool {
     t.lines().any(|l| {
         let s = l.trim();
         !s.starts_with('#') && s.starts_with("apiVersion") && value_of(s).starts_with("garden.io/")
-    })
-}
-
-fn kind_val(t: &str) -> Option<String> {
-    t.lines().find_map(|l| {
-        let s = l.trim();
-        if s.starts_with('#') || !s.starts_with("kind") {
-            return None;
-        }
-        let v = value_of(s);
-        if v.is_empty() {
-            None
-        } else {
-            Some(v.to_string())
-        }
     })
 }
 

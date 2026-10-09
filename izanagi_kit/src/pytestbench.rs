@@ -17,6 +17,7 @@
 //! assert_eq!(c.rounds_total, 10);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed pytest-benchmark JSON document summary.
 #[derive(Debug, Clone)]
 pub struct Pytestbench {
@@ -74,9 +75,6 @@ fn sum_ints(t: &str, key: &str) -> u64 {
         off += i + key.len();
     }
     sum
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a pytest-benchmark JSON document.

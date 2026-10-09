@@ -14,6 +14,7 @@
 //! assert!(izanagi_kit::activemq::detect(b"<broker>\n  <transportConnectors>\n    <transportConnector uri=\"tcp://x:61616\"/>\n  </transportConnectors>\n</broker>\n"));
 //! ```
 
+use crate::textutil::strip_xml_comments;
 /// 既知コンテナ要素。
 const CONTAINERS: &[&str] = &[
     "beans",
@@ -139,26 +140,9 @@ fn attrs_in(t: &str) -> usize {
     ATTRS.iter().filter(|a| t.contains(**a)).count()
 }
 
-fn strip_comments(t: &str) -> String {
-    let mut out = String::with_capacity(t.len());
-    let mut rest = t;
-    while let Some(start) = rest.find("<!--") {
-        out.push_str(&rest[..start]);
-        match rest[start + 4..].find("-->") {
-            Some(end) => rest = &rest[start + 4 + end + 3..],
-            None => {
-                rest = "";
-                break;
-            }
-        }
-    }
-    out.push_str(rest);
-    out
-}
-
 /// b が activemq.xml かどうか。
 pub fn detect(b: &[u8]) -> bool {
-    let text = strip_comments(core::str::from_utf8(b).unwrap_or(""));
+    let text = strip_xml_comments(core::str::from_utf8(b).unwrap_or(""));
     let mut hits = 0;
     for line in text.lines() {
         let t = line.trim();
@@ -178,7 +162,7 @@ pub fn detect(b: &[u8]) -> bool {
 /// 構造を数える。
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
-    let text = strip_comments(core::str::from_utf8(b).ok()?);
+    let text = strip_xml_comments(core::str::from_utf8(b).ok()?);
     let mut c = Counts {
         sections: 0,
         entries: 0,
@@ -244,12 +228,12 @@ mod tests {
 
     #[test]
     fn xml_comments_are_stripped() {
-        let t = strip_comments(
+        let t = strip_xml_comments(
             "<a><!-- hidden
 <config -->x</a>",
         );
         assert_eq!(t, "<a>x</a>");
-        let u = strip_comments("<a><!-- unterminated");
+        let u = strip_xml_comments("<a><!-- unterminated");
         assert_eq!(u, "<a>");
     }
 }

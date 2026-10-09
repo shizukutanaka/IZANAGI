@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::slrnconf::detect(b"set sorting_method 9\nset display_score 0\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `set`/`unset` に使える既知変数。
 const VARS: &[&str] = &[
     "abort_unmodified_edits",
@@ -174,9 +175,6 @@ pub struct Counts {
     pub comments: usize,
     /// 分類不能行。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .slrnrc かどうか。

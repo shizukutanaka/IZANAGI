@@ -20,6 +20,7 @@
 //! assert_eq!(c.exports, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// bashrc census.
 #[derive(Debug, Clone)]
 pub struct Bashrc {
@@ -109,9 +110,6 @@ const OTHER_HEADS: &[&str] = &[
     "let",
     "exec",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect bashrc content.
 #[must_use]

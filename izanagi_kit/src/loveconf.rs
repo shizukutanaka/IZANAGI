@@ -10,6 +10,7 @@
 //! assert!(izanagi_kit::loveconf::detect(b"function love.conf(t)\nend\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `t.<group>` の既知グループ。
 const GROUPS: &[&str] = &[
     "accelerometerjoystick",
@@ -122,9 +123,6 @@ pub struct Counts {
     pub comments: usize,
     /// 分類不能行。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が LÖVE conf/main かどうか。

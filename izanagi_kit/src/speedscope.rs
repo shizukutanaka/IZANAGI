@@ -17,6 +17,7 @@
 //! assert_eq!(c.frames, 2);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed speedscope document summary.
 #[derive(Debug, Clone)]
 pub struct Speedscope {
@@ -54,9 +55,6 @@ fn type_of(seg: &str) -> Option<&str> {
     let c1 = rest.find('"')?;
     let c2 = rest[c1 + 1..].find('"')? + c1 + 1;
     Some(&rest[c1 + 1..c2])
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a speedscope document.

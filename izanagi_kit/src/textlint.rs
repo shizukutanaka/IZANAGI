@@ -11,6 +11,7 @@
 //!     b"{\"rules\": {\"no-todo\": true, \"no-dead-link\": true}}\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// トップレベル既知キー。
 const TOP_KEYS: &[&str] = &[
     "filters",
@@ -66,9 +67,6 @@ fn has_key(t: &str, key: &str) -> bool {
         rest = &rest[i + 1..];
     }
     false
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `.textlintrc` らしさを判定する(`rules`/`filters` トップキー必須)。

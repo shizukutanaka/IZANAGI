@@ -17,6 +17,7 @@
 //! assert_eq!(c.keys, 20);
 //! ```
 
+use crate::textutil::strip_bom;
 /// [`parse`] が返す計数。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -36,9 +37,6 @@ pub struct Counts {
     pub list_items: usize,
     /// `#` コメント行の個数。
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `render.yaml` らしさを返す。

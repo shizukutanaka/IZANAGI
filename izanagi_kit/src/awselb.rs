@@ -8,6 +8,7 @@
 //! assert!(izanagi_kit::awselb::detect(k));
 //! ```
 
+use crate::textutil::{kind_val, value_of};
 /// AWS Load Balancer Controller census.
 #[derive(Debug, Clone)]
 pub struct Awselb {
@@ -31,13 +32,6 @@ const KINDS: &[&str] = &[
     "SecurityGroupPolicy",
 ];
 
-fn value_of(s: &str) -> &str {
-    match s.find(':') {
-        Some(i) => s[i + 1..].trim().trim_matches('"').trim_matches('\''),
-        None => "",
-    }
-}
-
 fn api_ok(t: &str) -> bool {
     t.lines().any(|l| {
         let s = l.trim();
@@ -53,21 +47,6 @@ fn api_ok(t: &str) -> bool {
                     .strip_suffix(*g)
                     .is_some_and(|p| p.is_empty() || p.ends_with('.'))
         })
-    })
-}
-
-fn kind_val(t: &str) -> Option<String> {
-    t.lines().find_map(|l| {
-        let s = l.trim();
-        if s.starts_with('#') || !s.starts_with("kind") {
-            return None;
-        }
-        let v = value_of(s);
-        if v.is_empty() {
-            None
-        } else {
-            Some(v.to_string())
-        }
     })
 }
 

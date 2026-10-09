@@ -14,6 +14,7 @@
 //! assert_eq!(c.wires, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// カウント結果。
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Counts {
@@ -31,9 +32,6 @@ pub struct Counts {
     pub properties: usize,
     /// 図形・その他名前付き S式数。
     pub misc: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `b` が `.kicad_sch` かどうか。

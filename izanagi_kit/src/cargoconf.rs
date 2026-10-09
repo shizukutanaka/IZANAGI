@@ -13,6 +13,7 @@
 //! assert!(izanagi_kit::cargoconf::detect(b"[net]\noffline = true\n[term]\nquiet = false\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知テーブル名(接頭辞一致; `target.`/`source.`/`registries.`/`credential-alias.`)。
 const TABLE_PREFIXES: &[&str] = &[
     "alias",
@@ -138,9 +139,6 @@ fn known_table(t: &str) -> bool {
             || (p.ends_with('-') && t.starts_with(*p))
             || t.starts_with(*p) && t.as_bytes().get(p.len()) == Some(&b'.')
     }) || TABLE_PREFIXES.contains(&root)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が .cargo/config.toml かどうか。

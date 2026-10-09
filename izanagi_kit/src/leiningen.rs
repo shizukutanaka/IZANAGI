@@ -12,6 +12,7 @@
 //!     b"(defproject a \"1\" :description \"x\" :main a.core)\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `defproject` 内既知キーワード。
 const KEYWORDS: &[&str] = &[
     ":aot",
@@ -96,9 +97,6 @@ fn kw_hits(t: &str) -> usize {
                 || t.contains(&format!("{})", k))
         })
         .count()
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `project.clj` らしさを判定する。

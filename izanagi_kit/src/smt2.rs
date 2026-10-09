@@ -13,6 +13,7 @@
 //! assert_eq!(s.asserts, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census fields.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Smt2 {
@@ -50,9 +51,6 @@ fn logic_name(t: &str) -> Option<usize> {
         .find(|c: char| c == ')' || c.is_ascii_whitespace())
         .unwrap_or(rest.len());
     Some(end)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` on a `(set-logic|check-sat|assert|declare-` command.

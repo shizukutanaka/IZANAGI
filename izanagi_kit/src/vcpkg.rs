@@ -25,6 +25,7 @@
 //! assert_eq!(c.overrides, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// Parsed vcpkg.json summary.
 #[derive(Debug, Clone)]
 pub struct Vcpkg {
@@ -84,9 +85,6 @@ fn array_entries(t: &str, key: &str) -> (usize, usize) {
         }
     }
     (objs + strings, objs)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like vcpkg.json.

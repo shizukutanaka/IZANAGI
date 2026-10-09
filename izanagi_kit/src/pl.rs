@@ -17,6 +17,7 @@
 //! assert!(izanagi_kit::pl::detect(d));
 //! ```
 
+use crate::textutil::strip_bom;
 /// Census of a PL file.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Pl {
@@ -97,9 +98,6 @@ fn forms_of(s: &str) -> impl Iterator<Item = &str> {
             .next()
             .unwrap_or("")
     })
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// `true` when a recognizable `(NAME` form leads the file.

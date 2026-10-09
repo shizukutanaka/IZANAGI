@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::actionlint::detect(b"paths:\n  '.github/workflows/ci.yaml':\n    ignore-errors:\n      - '.*'\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// 既知トップレベルキー。
 const TOP_KEYS: &[&str] = &["config-variables", "paths", "self-hosted-runner"];
 
@@ -41,9 +42,6 @@ fn yaml_key(t: &str) -> Option<&str> {
         return None;
     }
     Some(k)
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// b が actionlint 設定かどうか。

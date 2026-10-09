@@ -14,6 +14,7 @@
 //! assert_eq!(c.defs, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// config.nu census.
 #[derive(Debug, Clone)]
 pub struct Nuconf {
@@ -70,9 +71,6 @@ const OTHER_HEADS: &[&str] = &[
     "null",
     "const",
 ];
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
-}
 
 /// Detect config.nu content.
 #[must_use]

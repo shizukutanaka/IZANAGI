@@ -12,6 +12,7 @@
 //! assert_eq!(c.checks_disabled, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// `.clang-tidy` census.
 #[derive(Debug, Clone)]
 pub struct ClangTidy {
@@ -56,9 +57,6 @@ fn count_globs(v: &str, c: &mut ClangTidy) {
             c.checks_enabled += 1;
         }
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a `.clang-tidy` file.

@@ -19,6 +19,7 @@
 //! assert_eq!(c.named, 1);
 //! ```
 
+use crate::textutil::strip_bom;
 /// UCI configuration census.
 #[derive(Debug, Clone)]
 pub struct Uci {
@@ -36,9 +37,6 @@ pub struct Uci {
     pub section_types: usize,
     /// Comments (`#`).
     pub comments: usize,
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Whether the buffer looks like a UCI config file.

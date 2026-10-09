@@ -12,6 +12,7 @@
 //!     b"task :a\n task :b => [:a]\n"));
 //! ```
 
+use crate::textutil::strip_bom;
 /// `task` 系ディレクティブ(タスク数として計上)。
 const TASK_FORMS: &[&str] = &[
     concat!("des", "\u{63}"),
@@ -55,9 +56,6 @@ fn head(t: &str) -> &str {
     t.split(|c: char| c.is_whitespace() || c == '(')
         .next()
         .unwrap_or("")
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Rakefile らしさを判定する。

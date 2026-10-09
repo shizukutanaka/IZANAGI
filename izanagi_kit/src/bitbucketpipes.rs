@@ -11,6 +11,7 @@
 //! assert!(izanagi_kit::bitbucketpipes::detect(k));
 //! ```
 
+use crate::textutil::strip_bom;
 /// bitbucket-pipelines.yml census.
 #[derive(Debug, Clone)]
 pub struct BitbucketPipes {
@@ -44,9 +45,6 @@ fn key_of(s: &str) -> &str {
         Some(i) => s[..i].trim(),
         None => s.trim(),
     }
-}
-fn strip_bom(t: &str) -> &str {
-    t.strip_prefix('\u{feff}').unwrap_or(t)
 }
 
 /// Detect bitbucket-pipelines.yml content.
