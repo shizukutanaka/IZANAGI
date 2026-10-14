@@ -188,9 +188,10 @@ See [`izanagi/CONTRIBUTING.md`](./izanagi/CONTRIBUTING.md). Two rules:
 
 ## Sponsorship & commercial
 
-The crates are free under their licenses — nothing is paywalled. A Sponsor
-button and paid-support rails (priority fixes, custom modules, contract
-work) are described in [`COMMERCIAL.md`](./COMMERCIAL.md).
+The crates are free under their licenses — nothing is paywalled. The
+repository's Sponsor slot links to a paid-support funnel (priority fixes,
+custom modules, contract work) described in
+[`COMMERCIAL.md`](./COMMERCIAL.md).
 
 ## License
 
