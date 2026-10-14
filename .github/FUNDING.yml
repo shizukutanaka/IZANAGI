@@ -1,7 +1,8 @@
-# Funding configuration — renders a Sponsor button on the repository page.
-# Keep the github entry first; it is the lowest-friction rail for users.
-github: [shizukutanaka]
+# Funding configuration — the maintainer is not enrolled in GitHub
+# Sponsors, so `github:` is intentionally absent. The `custom:` link is the
+# revenue rail: it opens the commercial-support issue form, where paid
+# requests (priority fixes, custom modules, contract work) are scoped.
+custom: ["https://github.com/shizukutanaka/IZANAGI/issues/new?template=commercial_support.yml"]
 # Other rails can be enabled once the corresponding accounts exist:
 # ko_fi: <handle>
 # open_collective: <handle>
-# custom: ["https://<donation-url>"]

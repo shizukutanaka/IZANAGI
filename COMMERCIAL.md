@@ -10,8 +10,8 @@ time is not.
 
 | Channel | What it buys | Where |
 | --- | --- | --- |
-| GitHub Sponsors | Ongoing maintenance of both crates — the Sponsor button on this repository is enabled via [`.github/FUNDING.yml`](./.github/FUNDING.yml) | Sponsor button |
-| Commercial support | Priority fixes, integration help for `izanagi`/`izanagi_kit`, custom detector or format modules, determinism-review of a shipping simulation | Open an issue titled `[commercial] …` |
+| Paid-support funnel | Ongoing maintenance of both crates — the link in the repository's Sponsor slot (set by [`.github/FUNDING.yml`](./.github/FUNDING.yml)) opens the commercial-support issue form | [Open a commercial-support request](https://github.com/shizukutanaka/IZANAGI/issues/new?template=commercial_support.yml) |
+| Commercial support | Priority fixes, integration help for `izanagi`/`izanagi_kit`, custom detector or format modules, determinism-review of a shipping simulation | The issue form — or any issue titled `[commercial] …` |
 | Contract development | Scoped work beyond open-source maintenance (new modules, engine-side features, migration help) | Same — describe scope in the issue |
 
 ## Rules of engagement
@@ -24,8 +24,9 @@ time is not.
   for free is guaranteed response time and custom work — that is the paid
   surface.
 - **No telemetry, ads, or nagging.** The crates make no network calls and
-  never will for monetization purposes; the only revenue surface is this
-  document and the Sponsor button.
+  never will for monetization purposes; the only revenue surfaces are this
+  document, the FUNDING.yml link, and the issue form. Payment is confirmed
+  manually out-of-band — nothing in the repository processes money.
 
 ## For companies evaluating IZANAGI
 

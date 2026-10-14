@@ -1,0 +1,27 @@
+name: Commercial support / contract work
+description: Paid support, custom modules, or contract development for IZANAGI
+title: "[commercial] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Both crates are free and open source under their licenses — see
+        [`COMMERCIAL.md`](../COMMERCIAL.md). Paid work buys the maintainer's
+        *time*: priority fixes, custom detector or format modules,
+        integration help, contract development — never exclusive features.
+        Anything that benefits the product lands upstream for everyone.
+  - type: textarea
+    id: request
+    attributes:
+      label: What do you need?
+      description: Scope, deliverable, deadline. Name the crate (`izanagi` / `izanagi_kit`) and module if relevant.
+      placeholder: "e.g. custom detector for <format>, determinism review of <simulation>, help shipping <game>"
+    validations:
+      required: true
+  - type: textarea
+    id: budget
+    attributes:
+      label: Budget and how to reach you
+      description: A rough budget range and a contact channel (email, X, etc.). The maintainer replies on this issue to scope the work and confirm payment out-of-band — no card details here.
+    validations:
+      required: true
