@@ -1,0 +1,7 @@
+# Funding configuration — renders a Sponsor button on the repository page.
+# Keep the github entry first; it is the lowest-friction rail for users.
+github: [shizukutanaka]
+# Other rails can be enabled once the corresponding accounts exist:
+# ko_fi: <handle>
+# open_collective: <handle>
+# custom: ["https://<donation-url>"]

@@ -186,6 +186,12 @@ See [`izanagi/CONTRIBUTING.md`](./izanagi/CONTRIBUTING.md). Two rules:
 - New code adds tests.
 - New code adds no dependencies.
 
+## Sponsorship & commercial
+
+The crates are free under their licenses — nothing is paywalled. A Sponsor
+button and paid-support rails (priority fixes, custom modules, contract
+work) are described in [`COMMERCIAL.md`](./COMMERCIAL.md).
+
 ## License
 
 `izanagi`: MIT — see [`izanagi/LICENSE`](./izanagi/LICENSE).
