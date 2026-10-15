@@ -7657,3 +7657,23 @@ PARSERS 不変・決定性ハッシュ不変。
 残課題: api_ok 21旧世代への精緻化伝播判断、k8s CRD 共通
 `api_version_in_groups(t, GROUPS)` への引数化統合、エンディアン
 リーダー署名統一、同名異体ファミリー(key_present/is_key)の意味分類。
+
+## 第425次：算術安全の細分化 — 減算アンダーフロー(a−b)と右シフト(>>)
+
+第422次(<<)、第423次(n*m/n+m)に続く算術wrap族の残メンバーを機械計測。
+
+計測:
+- `- b'0'` 数字パース減算 132サイト → 全件がdetect/match腕/all(is_ascii_digit)等で
+  先行検証済み(うち11件を関数単位で再検証)。唯一の例外 xapi::statement の
+  小数部ループ — `split_once('.')` の f が未検証で `c - b'0'` を回し、
+  "0.x" で静かに誤ppm、"0.!" で u8 アンダーフロー panic の実害を確認。
+  → f の全バイトを is_ascii_digit 検証して非数字は score_ppm=None に修正。
+- `.len() - k` の index/slice 用途 791サイトのうち未ガード候補160件を
+  文脈検査 → starts_with+ends_with ペア、`l.last()==Some(..)`、
+  `rest.first()` 等の暗黙非空ガードで全て安全。
+- `>>` 変数シフト量 82サイト → elias(lb≤63)/patricia(bit内部不変)/
+  fixed(FRAC_BITS定数) 等、全て表現域内。
+- 判定: 本クラスの残存リスクはほぼ皆無 — 修正は xapi 1件のみ。
+
+副次修正: PR #445 Devin Review 指摘 — Issueフォーム内の相対リンク
+`../COMMERCIAL.md` が /issues/new 起点で404 → 絶対URL化。

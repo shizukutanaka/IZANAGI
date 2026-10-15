@@ -6,7 +6,7 @@ body:
     attributes:
       value: |
         Both crates are free and open source under their licenses — see
-        [`COMMERCIAL.md`](../COMMERCIAL.md). Paid work buys the maintainer's
+        [`COMMERCIAL.md`](https://github.com/shizukutanaka/IZANAGI/blob/main/COMMERCIAL.md). Paid work buys the maintainer's
         *time*: priority fixes, custom detector or format modules,
         integration help, contract development — never exclusive features.
         Anything that benefits the product lands upstream for everyone.

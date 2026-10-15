@@ -85,6 +85,9 @@ fn statement(m: &std::collections::BTreeMap<String, Json>) -> Statement {
                 let neg = t.starts_with('-');
                 let t = t.trim_start_matches(['-', '+']);
                 let (i, f) = t.split_once('.').unwrap_or((t, ""));
+                if !f.bytes().all(|c| c.is_ascii_digit()) {
+                    return None;
+                }
                 let int: i64 = i.parse().ok()?;
                 let mut ppm = int.saturating_mul(1_000_000);
                 let mut scale = 100_000i64;
@@ -163,5 +166,32 @@ mod tests {
         assert!(parse(b"{}").is_none());
         assert!(parse(b"[1]").is_none());
         assert!(parse(b"not json").is_none());
+    }
+
+    #[test]
+    fn non_digit_score_fraction_is_none_not_panic() {
+        // "0.x" — previously the `c - b'0'` loop ran on unvalidated
+        // fraction bytes (garbage ppm, or u8 underflow panic on bytes
+        // below '0' such as '!'). An unparseable score must yield None.
+        let st = parse(
+            br#"{"actor":{},"verb":{},"object":{},
+            "result":{"score":{"scaled":"0.x"}}}"#,
+        )
+        .unwrap();
+        assert_eq!(st.len(), 1);
+        assert_eq!(st[0].score_ppm, None);
+        let st = parse(
+            br#"{"actor":{},"verb":{},"object":{},
+            "result":{"score":{"scaled":"0.!"}}}"#,
+        )
+        .unwrap();
+        assert_eq!(st[0].score_ppm, None);
+        // Digits still work.
+        let st = parse(
+            br#"{"actor":{},"verb":{},"object":{},
+            "result":{"score":{"scaled":"0.25"}}}"#,
+        )
+        .unwrap();
+        assert_eq!(st[0].score_ppm, Some(250_000));
     }
 }
