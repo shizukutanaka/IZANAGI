@@ -123,20 +123,44 @@ pub fn detect(b: &[u8]) -> bool {
             let tr = l.trim();
             let mut it = tr.split_whitespace();
             let k = it.next().unwrap_or("");
-            it.next().is_some()
-                && (COLOR_KEYS.contains(&k)
-                    || TOGGLE_KEYS.contains(&k)
-                    || MOUSE_KEYS.contains(&k)
-                    || STARTUP_KEYS.contains(&k)
-                    || INC_KEYS.contains(&k)
-                    || k == "map"
-                    || k == "symbol_map"
-                    || k == "font_features"
-                    || k.starts_with("color")
-                    || k.starts_with("font_"))
+            let v = it.next().unwrap_or("");
+            // kitty is `key value` — `key = v`/`key: v` separators are
+            // TOML/INI/YAML (`background = "#000"`)
+            if v.is_empty() || v.starts_with('=') || v.starts_with(':') {
+                return false;
+            }
+            // `map`/`symbol_map` take a key chord or codepoint —
+            // `map to guest` (samba) is not a kitty binding
+            if matches!(k, "map" | "symbol_map") {
+                return v.contains('+')
+                    || v.len() == 1
+                    || (v.starts_with('f')
+                        && v[1..].bytes().all(|b| b.is_ascii_digit())
+                        && v.len() > 1)
+                    || v.starts_with("ctrl")
+                    || v.starts_with("shift")
+                    || v.starts_with("alt")
+                    || v.starts_with("super")
+                    || v.starts_with("cmd")
+                    || v.starts_with("kitty_mod");
+            }
+            COLOR_KEYS.contains(&k)
+                || TOGGLE_KEYS.contains(&k)
+                || MOUSE_KEYS.contains(&k)
+                || STARTUP_KEYS.contains(&k)
+                || INC_KEYS.contains(&k)
+                || k == "font_features"
+                // `color0`–`color255`; `color <name> …` (newsboat,
+                // slrnrc) is not a kitty color index
+                || (k.len() > 5
+                    && k.starts_with("color")
+                    && k[5..].bytes().all(|b| b.is_ascii_digit()))
+                || k.starts_with("font_")
         })
         .count();
-    known >= 1
+    // one stray kitty-looking line (`editor no`, `include x`) is a
+    // common config word; a kitty.conf carries several
+    known >= 2
 }
 
 impl Kittyconf {
@@ -220,5 +244,15 @@ mod tests {
     fn rejects_non_kittyconf() {
         assert!(!detect(b"[section]\nkey=value"));
         assert!(Kittyconf::parse(b"x").is_none());
+        // `key = v` separators are TOML/INI, not kitty `key value`
+        assert!(!detect(b"background = \"#000\"\nforeground = \"#fff\"\n"));
+        // `color <name>` and `map to guest` are newsboat/samba syntax
+        assert!(!detect(
+            b"color info default default reverse\ncolor a blue black\n"
+        ));
+        assert!(!detect(b"map to guest = Bad User\nmap to other = no\n"));
+        // a single `editor no`-style line is a common config word
+        assert!(!detect(b"timeout 3\neditor no\n"));
+        assert!(detect(b"font_family Fira\nfont_size 12\nmap ctrl+c copy\n"));
     }
 }
