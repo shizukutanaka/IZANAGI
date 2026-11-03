@@ -208,6 +208,67 @@ const KEYS: &[&str] = &[
     "socket",
     "unit",
     "child-timeout",
+    "lock",
+];
+
+// Keys that mean nothing outside ppp/daemon configs in general: a hit on
+// these alone (wezterm `local`, unbound `domain`, distcc `listen` …) is
+// not pptpd evidence
+const WEAK_KEYS: &[&str] = &[
+    "option",
+    "debug",
+    "listen",
+    "pidfile",
+    "speed",
+    "name",
+    "connections",
+    "freebind",
+    "noipparam",
+    "mtu",
+    "mru",
+    "idle",
+    "holdoff",
+    "plugin",
+    "mp",
+    "endpoint",
+    "logfile",
+    "logfd",
+    "domain",
+    "local",
+    "netmask",
+    "ipv6",
+    "persist",
+    "demand",
+    "maxfail",
+    "connect-delay",
+    "auth",
+    "noauth",
+    "pap",
+    "chap",
+    "eap",
+    "mschap",
+    "mschap-v2",
+    "sync",
+    "passive",
+    "silent",
+    "dtr",
+    "detach",
+    "nodetach",
+    "updetach",
+    "init",
+    "welcome",
+    "pty",
+    "notty",
+    "record",
+    "ifname",
+    "dump",
+    "dryrun",
+    "hide-password",
+    "passwordfd",
+    "socket",
+    "unit",
+    "child-timeout",
+    "lock",
 ];
 
 /// Detect pptpd.conf/options content.
@@ -219,6 +280,8 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let t = strip_bom(t);
     let mut hits = 0usize;
+    let mut strong = 0usize;
+
     for line in t.lines() {
         let s = line.trim();
         if s.is_empty() || s.starts_with('#') {
@@ -227,9 +290,14 @@ pub fn detect(b: &[u8]) -> bool {
         let head = s.split_whitespace().next().unwrap_or("");
         if KEYS.contains(&head) {
             hits += 1;
+            if !WEAK_KEYS.contains(&head) {
+                strong += 1;
+            }
         }
     }
-    hits >= 2
+    // A pptpd.conf still needs a pptpd-specific directive — `option`,
+    // `debug`, `listen`, `name` etc. appear in every other daemon config
+    hits >= 2 && strong >= 1
 }
 
 impl Pptpd {
@@ -282,6 +350,11 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"[x]\ny=1\n"));
         assert!(!detect(b""));
+        // only generic directive names -> not pptpd evidence
+        assert!(!detect(b"option /etc/ppp/options\ndebug\nlock\n"));
+        assert!(!detect(
+            b"listen 0.0.0.0:179\npidfile /run/bird.pid\nname bird\n"
+        ));
     }
 
     #[test]
