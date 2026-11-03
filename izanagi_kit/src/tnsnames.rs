@@ -86,11 +86,23 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let u = t.to_uppercase();
+    // keyword tokens need a boundary — `SID` inside `SSID=` or
+    // `SERVICE_NAME` inside `SERVICE_NAME_…` is foreign config
+    let has_kw = |kw: &str| {
+        u.match_indices(kw).any(|(i, _)| {
+            let before = i == 0
+                || !u.as_bytes()[i - 1].is_ascii_alphanumeric() && u.as_bytes()[i - 1] != b'_';
+            // tnsnames keywords are `KEY =` assignments; a bare
+            // `sid "001"` value is UnrealIRCd-style config
+            let after = u[i + kw.len()..].trim_start().starts_with('=');
+            before && after
+        })
+    };
     u.contains("(DESCRIPTION")
         || u.contains("(ADDRESS")
-        || u.contains("CONNECT_DATA")
-        || u.contains("SERVICE_NAME")
-        || u.contains("SID")
+        || has_kw("CONNECT_DATA")
+        || has_kw("SERVICE_NAME")
+        || has_kw("SID")
 }
 
 impl Tnsnames {
@@ -180,5 +192,17 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Tnsnames::parse(b"foo = 1").is_none());
+        // `SSID`/`sid` values are wireless/IRC config, not the tnsnames
+        // `(SID = …)` keyword
+        assert!(!detect(b"ssid=mynet\npsk=abc123\n"));
+        assert!(!detect(b"me {\n  sid \"001\";\n}\n"));
+        // keywords are `KEY =` assignments with a token boundary
+        assert!(!detect(b"SERVICE_NAME_SUFFIX=x\nCONNECT_DATA_2=y\n"));
+        assert!(detect(
+            b"X =\n (DESCRIPTION =\n  (ADDRESS = (PROTOCOL = TCP)(HOST = h)(PORT = 1))\n )\n"
+        ));
+        assert!(detect(
+            b"X =\n (DESCRIPTION =\n  (CONNECT_DATA = (SID = orcl))\n )\n"
+        ));
     }
 }

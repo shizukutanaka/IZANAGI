@@ -39,6 +39,26 @@ fn hex32(c: u8) -> bool {
 /// Detects Base32: ≥8 alphabet chars, `=` only trailing, padding legal.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
+    // Per-line shape first: every non-empty line must be a canonical
+    // uppercase Base32 run (`[A-Z2-7=]`). Structured fixtures (phylip,
+    // aiger, dimacs, lab) carry spaces or lowercase tokens per line;
+    // hex/alphanumeric magic (`uuid`, `uri`, `geohash`, `otp`, `bsdiff`)
+    // mixes case or digits outside 2-7.
+    let mut non_empty = false;
+    for l in b.split(|&c| c == b'\n') {
+        let l = l.strip_suffix(b"\r").unwrap_or(l);
+        if l.is_empty() {
+            continue;
+        }
+        non_empty = true;
+        let body_end = l.iter().position(|&c| c == b'=').unwrap_or(l.len());
+        if !l[..body_end].iter().all(|&c| std32(c)) || !l[body_end..].iter().all(|&c| c == b'=') {
+            return false;
+        }
+    }
+    if !non_empty {
+        return false;
+    }
     let t: Vec<u8> = b
         .iter()
         .copied()
@@ -65,10 +85,40 @@ pub fn detect(b: &[u8]) -> bool {
             .all(|c| std32(c.to_ascii_uppercase()) || hex32(c.to_ascii_uppercase()))
 }
 
+/// Base32hex fallback for `parse` (kept out of `detect`: all-uppercase
+/// hex-shaped strings like magic constants would score otherwise).
+/// Requires ≥16 chars and a letter past `F` so plain hex is excluded.
+fn looks_base32hex(b: &[u8]) -> bool {
+    let t: Vec<u8> = b
+        .iter()
+        .copied()
+        .filter(|c| !c.is_ascii_whitespace())
+        .collect();
+    if t.len() < 16 {
+        return false;
+    }
+    let pad = t.iter().rev().take_while(|c| **c == b'=').count();
+    if ![0, 1, 3, 4, 6].contains(&pad) {
+        return false;
+    }
+    let data = &t[..t.len() - pad];
+    let mut past_f = false;
+    for &c in data {
+        if !c.is_ascii_uppercase() && !c.is_ascii_digit() {
+            return false;
+        }
+        if !hex32(c) {
+            return false;
+        }
+        past_f |= matches!(c, b'G'..=b'V');
+    }
+    past_f && (pad == 0 || t.len() % 8 == 0)
+}
+
 /// Parses a Base32 string; `None` on bad alphabet/padding.
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Base32> {
-    if !detect(b) {
+    if !(detect(b) || looks_base32hex(b)) {
         return None;
     }
     let t: Vec<u8> = b
@@ -160,5 +210,23 @@ mod tests {
     fn rejects() {
         assert!(parse(b"").is_none());
         assert!(parse(b"MZXW6YTBOI=======").is_none());
+    }
+
+    #[test]
+    fn rejects_structured_and_magic() {
+        // multi-line structured files
+        assert!(!detect(
+            b"3 10\nAlpha     ACGTACGTAC\nBeta      ACGTACGTAC\n"
+        ));
+        assert!(!detect(b"aag 3 1 1 1 1\n2\n4 0\n6\n6 2 4\nc\n"));
+        assert!(!detect(b"p edge 4 3\ne 1 2\ne 2 3\ne 3 4\n"));
+        // digit-only / hex / lowercase magic blobs
+        assert!(!detect(b"12345678901234567890"));
+        assert!(!detect(b"0123456789abcdef"));
+        assert!(!detect(b"0123456789ABCDEF"));
+        assert!(!detect(b"0123456789bcdefghjkmnpqrstuvwxyz"));
+        assert!(!detect(b"BSDIFF40"));
+        // multi-line wrapped Base32 still detects
+        assert!(detect(b"MFRGGZDF\nMZTWQ2LK\n"));
     }
 }
