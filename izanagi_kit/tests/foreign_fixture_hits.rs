@@ -116,7 +116,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("nanoid", 12),
     ("base32", 1),
     ("gradle", 1),
-    ("pppdconf", 8),
     ("vimrc", 3),
     ("ubootenv", 7),
     ("sendmail", 1),
