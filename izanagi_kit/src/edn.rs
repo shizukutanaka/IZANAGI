@@ -99,10 +99,21 @@ pub fn detect(b: &[u8]) -> bool {
             while i < sb.len() && ident_char(sb[i]) {
                 i += 1;
             }
-            while i < sb.len() && sb[i].is_ascii_whitespace() {
-                i += 1;
+            let tag_end = i;
+            // whitespace, commas and `;` comments may sit between the
+            // tag and its form
+            loop {
+                while i < sb.len() && (sb[i].is_ascii_whitespace() || sb[i] == b',') {
+                    i += 1;
+                }
+                if sb.get(i) != Some(&b';') {
+                    break;
+                }
+                while i < sb.len() && sb[i] != b'\n' {
+                    i += 1;
+                }
             }
-            i > 2 && matches!(sb.get(i), Some(b'{') | Some(b'[') | Some(b'(') | Some(b'"'))
+            tag_end > 1 && matches!(sb.get(i), Some(b'{') | Some(b'[') | Some(b'(') | Some(b'"'))
         }
         _ => false,
     }
@@ -238,6 +249,8 @@ mod tests {
         assert!(!detect(b"#!ipxe\nset base http://x\n"));
         assert!(!detect(b"#NEXUS\nbegin taxa;\nend;\n"));
         assert!(detect(b"#inst \"2020-01-01\"\n"));
+        assert!(detect(b"#x [1 2]\n"));
+        assert!(detect(b"#inst ; note\n\"2020-01-01\"\n"));
         assert!(detect(b"#{:a :b}\n"));
         // `:=` is Coq/Lean/AMPL assignment, not an EDN keyword
         assert!(!detect(b"(* header *)\nDefinition d := 0.\n"));
