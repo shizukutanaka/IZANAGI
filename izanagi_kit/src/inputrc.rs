@@ -40,6 +40,52 @@ pub struct Inputrc {
     pub comments: usize,
 }
 
+/// GNU readline variable names (`man inputrc` / bash `bind -v`).
+const READLINE_VARS: &[&str] = &[
+    "bell-style",
+    "bind-tty-special-chars",
+    "blink-matching-paren",
+    "colored-completion-prefix",
+    "colored-stats",
+    "comment-begin",
+    "completion-display-width",
+    "completion-ignore-case",
+    "completion-map-case",
+    "completion-prefix-display-length",
+    "completion-query-items",
+    "convert-meta",
+    "disable-completion",
+    "echo-control-characters",
+    "editing-mode",
+    "emacs-mode-string",
+    "enable-active-region",
+    "enable-bracketed-paste",
+    "enable-keypad",
+    "expand-tilde",
+    "history-preserve-point",
+    "history-size",
+    "horizontal-scroll-mode",
+    "input-meta",
+    "isearch-terminators",
+    "keymap",
+    "mark-directories",
+    "mark-modified-lines",
+    "mark-symlinked-directories",
+    "match-hidden-files",
+    "menu-complete-display-prefix",
+    "output-meta",
+    "page-completions",
+    "print-completions-horizontally",
+    "revert-all-at-newline",
+    "show-all-if-ambiguous",
+    "show-all-if-unmodified",
+    "show-mode-in-prompt",
+    "skip-completed-text",
+    "vi-cmd-mode-string",
+    "vi-ins-mode-string",
+    "visible-stats",
+];
+
 /// Detect inputrc content.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -56,24 +102,24 @@ pub fn detect(b: &[u8]) -> bool {
         if s.is_empty() || s.starts_with('#') {
             continue;
         }
-        // `$if`/`$endif`/`$else`/`$include` conditionals
-        if s.starts_with('$') {
-            strong += 1;
+        // `$if`/`$endif`/`$else`/`$include` conditionals — other
+        // `$`-led lines are shell/VCD/jsonpath variables
+        if let Some(d) = s.strip_prefix('$') {
+            if matches!(
+                d.split_whitespace().next().unwrap_or(""),
+                "if" | "endif" | "else" | "include"
+            ) {
+                strong += 1;
+            }
             continue;
         }
-        // `set var value` — readline variable names carry `-` or are
-        // one of the well-known single words
+        // `set var value` — the variable must be a real readline
+        // variable; `set username`/`set dns`/`set dotenv-load` are
+        // slrnrc/iPXE/justfile variables
         if let Some(rest) = s.strip_prefix("set ") {
             let var = rest.split_whitespace().next().unwrap_or("");
-            // readline variable names are `dashed-words` (or `keymap`);
-            // a leading-`-` word is a shell option (`set -e`), not a var
-            if !var.starts_with('-') && (var.contains('-') || var == "keymap") {
+            if READLINE_VARS.contains(&var) {
                 strong += 1;
-            } else if !var.is_empty()
-                && !var.starts_with('-')
-                && var.chars().all(|c| c.is_ascii_lowercase() || c == '-')
-            {
-                soft += 1;
             }
             continue;
         }
@@ -159,6 +205,22 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"[x]\ny=1\n"));
         assert!(!detect(b""));
+        // `$`-led lines are readline conditionals only for the four
+        // directive names — VCD/jsonpath/shell variables are not
+        assert!(!detect(b"$version: \"2\"\n$var wire 1 x\n$end\n"));
+        // `set` must name a real readline variable — iPXE/slrnrc/
+        // justfile settings are not
+        assert!(!detect(b"set dns 8.8.8.8\nset filename x\nset dhcp on\n"));
+        assert!(!detect(
+            b"set username \"joe\"\nset hostname \"h\"\nset signature s\n"
+        ));
+        assert!(!detect(b"set dotenv-load := true\nset quiet\n"));
+        // real readline lines still count
+        assert!(detect(b"set editing-mode vi\n"));
+        assert!(detect(b"$if mode=emacs\n$endif\n"));
+        assert!(detect(
+            b"\"\\e[A\": previous-history\n\"\\C-x\": kill-word\n"
+        ));
     }
 
     #[test]
