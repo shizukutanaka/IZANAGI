@@ -83,13 +83,30 @@ fn field_terms(t: &str) -> usize {
         }
         // a quoted name is dict-shaped (`{"key":v}`), not a query field
         let unquoted = j == 0 || !matches!(b[j - 1], b'"' | b'\'');
-        let prev_ok = j < i && unquoted && (b[j].is_ascii_alphabetic() || b[j] == b'_');
+        // a `:` right before the field name means this is the middle of a
+        // `a:b:c` chain (URN/namespace); `<`/`/` before it means an XML
+        // element prefix (`<x:xmpmeta`, `</x:xmpmeta`), not a fielded term
+        let chained = j > 0 && matches!(b[j - 1], b':' | b'<' | b'/');
+        let prev_ok = j < i && unquoted && !chained && (b[j].is_ascii_alphabetic() || b[j] == b'_');
         // the value must start on the same line — `key:` at end of line
         // is a YAML block mapping, not a query field term
         let next_ok = b
             .get(i + 1)
             .is_some_and(|&c| !c.is_ascii_whitespace() && c != b':' && c != b'=');
-        if prev_ok && next_ok {
+        // a value token that itself contains `:` is a URN/namespace
+        // chain (`adobe:ns:meta/`, `urn:oasis:names:tc:SAML`), and a value
+        // starting with `.` is a regex fragment (`/^From:.*/`), not a
+        // query term
+        let mut tok_end = i + 1;
+        while tok_end < b.len() && !b[tok_end].is_ascii_whitespace() {
+            tok_end += 1;
+        }
+        // tokens carrying `<`/`>` are XML/markup (`rdf:RDF/>`), not terms
+        let value_ok = !b[i + 1..tok_end].contains(&b':')
+            && !b[i + 1..tok_end].contains(&b'<')
+            && !b[i + 1..tok_end].contains(&b'>')
+            && b.get(i + 1) != Some(&b'.');
+        if prev_ok && next_ok && value_ok {
             n += 1;
         }
     }
@@ -106,7 +123,9 @@ pub fn detect(b: &[u8]) -> bool {
         return false;
     };
     let t = t.trim();
-    if t.contains("://") {
+    // A Lucene query is a single expression; multi-line `key: value`
+    // files are configs, not queries.
+    if t.lines().nth(1).is_some() || t.contains("://") {
         return false;
     }
     let fields = field_terms(t);
@@ -212,6 +231,16 @@ mod tests {
         assert!(!detect(b""));
         // `key:` at end of line is a YAML block mapping, not field:value
         assert!(!detect(b"env:\n  A: 1\ntask:\n  script: cargo test\n"));
+        // multi-line `key: value` files are configs, not a query
+        assert!(!detect(
+            b"root = \"/x\"\nrunroot = \"/y\"\nimage: rust:latest\n"
+        ));
+        // namespaced XML / URN colon chains are not field terms
+        assert!(!detect(
+            b"<x:xmpmeta xmlns:x=\"adobe:ns:meta/\"><rdf:RDF/></x:xmpmeta>"
+        ));
+        // a `.*`-led regex fragment is not a term value
+        assert!(!detect(b"if (/^From:.*boss/) { to \"mail/work\" }"));
     }
 
     #[test]
