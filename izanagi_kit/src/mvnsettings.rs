@@ -33,6 +33,32 @@ const CONTAINERS: &[&str] = &[
     "settings",
 ];
 
+/// Field tags distinctive enough to count as detection evidence on their
+/// own. Generic names (`id`, `name`, `host`, `port`, `protocol`, `url`,
+/// `value`, credentials) appear in every other XML config (hadoop,
+/// hivemq, pidgin, atom, kettle), so they are excluded — they still
+/// count toward the parse census in `FIELDS`.
+const DETECT_FIELDS: &[&str] = &[
+    "activation",
+    "activeByDefault",
+    "checksumPolicy",
+    "interactiveMode",
+    "jdk",
+    "layout",
+    "localRepository",
+    "mirrorOf",
+    "nonProxyHosts",
+    "offline",
+    "pluginRepositories",
+    "pluginRepository",
+    "releases",
+    "repositories",
+    "repository",
+    "snapshots",
+    "updatePolicy",
+    "usePluginRegistry",
+];
+
 /// フィールド要素名(単純値 + ネスト設定タグ)。
 const FIELDS: &[&str] = &[
     "activation",
@@ -112,7 +138,7 @@ pub fn detect(b: &[u8]) -> bool {
         tags_in_line(line.trim(), &mut tags);
         hits += tags
             .iter()
-            .filter(|k| CONTAINERS.contains(k) || FIELDS.contains(k))
+            .filter(|k| CONTAINERS.contains(k) || DETECT_FIELDS.contains(k))
             .count();
     }
     hits >= 3
@@ -180,6 +206,16 @@ mod tests {
     fn not_settings() {
         assert!(!detect(b"<project><name>x</name></project>\n"));
         assert!(!detect(b"key=value\n"));
+        // generic XML tags alone (`name`/`id`/`host`/`port`/`protocol`)
+        // are not settings.xml evidence
+        assert!(!detect(
+            b"<configuration><property><name>fs.defaultFS</name><value>hdfs://h</value></property><property><name>x</name></property></configuration>\n"
+        ));
+        assert!(!detect(
+            b"<account version='1.0'><protocol>prpl-irc</protocol><name>n</name><host>h</host></account>\n"
+        ));
+        // Maven-specific tags still detect
+        assert!(detect(b"<settings><localRepository>/r</localRepository><offline>true</offline><mirrors><mirror/></mirrors></settings>\n"));
     }
 
     #[test]

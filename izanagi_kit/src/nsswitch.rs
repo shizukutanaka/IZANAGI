@@ -97,7 +97,18 @@ pub fn detect(b: &[u8]) -> bool {
         }
         if let Some(colon) = tr.find(':') {
             let db = tr[..colon].trim();
-            if DBS.contains(&db) {
+            // nsswitch entries carry a source list on the same line
+            // and every token is a known source or a `[x=y]`
+            // criterion (`passwd: files [NOTFOUND=return] dns`);
+            // `group: example.org` or `hosts: ["e1"]` are foreign
+            // config values
+            let rest = tr[colon + 1..].trim();
+            let known = !rest.is_empty()
+                && rest.split_whitespace().all(|tok| {
+                    SOURCES.contains(&tok)
+                        || (tok.starts_with('[') && tok.ends_with(']') && tok.contains('='))
+                });
+            if DBS.contains(&db) && known {
                 score += 2;
             }
         }
@@ -178,5 +189,13 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"foo: bar\nbaz: qux\n"));
         assert!(Nsswitch::parse(b"x").is_none());
+        // YAML mapping keys with foreign values — no source list
+        // or tokens that are not nsswitch sources
+        assert!(!detect(b"services:\n  web:\n    image: nginx\nnetworks:\n"));
+        assert!(!detect(b"group: example.org\nhosts: [\"e1\", \"e2\"]\n"));
+        assert!(!detect(b"aliases: aliases()\ngroup: check\n"));
+        // real source lists still count
+        assert!(detect(b"passwd: files\nhosts: files dns\n"));
+        assert!(detect(b"hosts: files [NOTFOUND=return] dns\n"));
     }
 }

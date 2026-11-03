@@ -53,6 +53,18 @@ pub fn detect(b: &[u8]) -> bool {
     let mut hits = 0usize;
     let mut v = false;
     for line in t.lines() {
+        // `KEY=VALUE` / `KEY:VALUE` / `KEY KEY=VALUE` lines (`.ini`,
+        // `.properties`, CCSDS labels, iCal) are assignment syntax, not
+        // sendmail.cf rule/op lines; a `:`/`=` behind word chars and
+        // spaces only marks an assignment (`Dsmtp:`/`R$+ $:` are kept)
+        let assignment = line.find(['=', ':']).is_some_and(|k| {
+            line[..k]
+                .bytes()
+                .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'_' | b'.' | b'-' | b' '))
+        });
+        if assignment {
+            continue;
+        }
         match line.as_bytes().first().copied().unwrap_or(0) {
             // `V10/Berkeley` — `Version:`/`VAR` 行では送信用はない。
             b'V' => {
@@ -142,6 +154,16 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"[x]\ny=1\n"));
         assert!(!detect(b""));
+        // `KEY=VALUE` / `KEY:VALUE` assignment lines are not cf rule lines
+        assert!(!detect(
+            b"ROTATE_MIRRORS=1\nUPDATE_MIRRORS=1\nMIRRORS_MODE=0\nWEB_CMD=\"x\"\n"
+        ));
+        assert!(!detect(
+            b"BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//x//EN\nMETHOD:REQUEST\n"
+        ));
+        assert!(!detect(
+            b"CCSDS_OEM_VERS = 2.0\nOBJECT_NAME = SAT\nOBJECT_ID = 2026-001A\nORBIT_NAME = LEO\n"
+        ));
     }
 
     #[test]
