@@ -119,7 +119,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("pkl", 9),
     ("pppdconf", 8),
     ("vimrc", 3),
-    ("ubootenv", 7),
     ("sendmail", 1),
     ("requirements", 7),
     ("pptpd", 1),
