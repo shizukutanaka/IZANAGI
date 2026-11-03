@@ -61,7 +61,10 @@ fn ident_char(c: u8) -> bool {
 
 fn has_keyword(b: &[u8]) -> bool {
     for i in 0..b.len().saturating_sub(1) {
+        // `:=` (Coq/Lean/AMPL assignment) is not a keyword: a ':' whose
+        // next byte is '=' belongs to the operator, not EDN
         if b[i] == b':'
+            && b[i + 1] != b'='
             && ident_start(b[i + 1])
             && (i == 0
                 || matches!(
@@ -86,8 +89,20 @@ pub fn detect(b: &[u8]) -> bool {
     match sb.first() {
         Some(b'{') | Some(b'[') | Some(b'(') | Some(b':') => has_keyword(sb),
         Some(b'#') => {
-            matches!(sb.get(1), Some(b'{') | Some(b'_'))
-                || sb.get(1).is_some_and(|c| ident_start(*c))
+            if matches!(sb.get(1), Some(b'{') | Some(b'_')) {
+                return true;
+            }
+            // `#tag …` only counts when the tag is followed by a
+            // collection or string form — a bare `#word` line is a
+            // comment/magic marker in countless other formats
+            let mut i = 1;
+            while i < sb.len() && ident_char(sb[i]) {
+                i += 1;
+            }
+            while i < sb.len() && sb[i].is_ascii_whitespace() {
+                i += 1;
+            }
+            i > 2 && matches!(sb.get(i), Some(b'{') | Some(b'[') | Some(b'(') | Some(b'"'))
         }
         _ => false,
     }
@@ -216,6 +231,16 @@ mod tests {
         assert!(!detect(b"{\"a\": 1}"));
         assert!(!detect(b"hello world"));
         assert!(!detect(b""));
+        // a bare `#word` line is a magic/comment marker in countless
+        // formats — only `#{`, `#_` and `#tag <form>` are EDN
+        assert!(!detect(b"#version 330 core\nvoid main() {}\n"));
+        assert!(!detect(b"#include <windows.h>\n1 ICON \"a.ico\"\n"));
+        assert!(!detect(b"#!ipxe\nset base http://x\n"));
+        assert!(!detect(b"#NEXUS\nbegin taxa;\nend;\n"));
+        assert!(detect(b"#inst \"2020-01-01\"\n"));
+        assert!(detect(b"#{:a :b}\n"));
+        // `:=` is Coq/Lean/AMPL assignment, not an EDN keyword
+        assert!(!detect(b"(* header *)\nDefinition d := 0.\n"));
     }
 
     #[test]
