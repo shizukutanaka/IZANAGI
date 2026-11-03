@@ -119,7 +119,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("pkl", 9),
     ("txt2tags", 8),
     ("pppdconf", 8),
-    ("nsswitch", 8),
     ("inputrc", 8),
     ("appdaemon", 8),
     ("vimrc", 7),
