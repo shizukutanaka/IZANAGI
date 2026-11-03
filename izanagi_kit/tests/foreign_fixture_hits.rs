@@ -127,7 +127,7 @@ const CEILINGS: &[(&str, usize)] = &[
     ("kittyconf", 8),
     ("inputrc", 8),
     ("appdaemon", 8),
-    ("vimrc", 7),
+    ("vimrc", 3),
     ("ubootenv", 7),
     ("sendmail", 7),
     ("requirements", 7),
