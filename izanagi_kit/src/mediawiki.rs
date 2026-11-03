@@ -76,7 +76,10 @@ pub fn parse(d: &[u8]) -> Option<Mediawiki> {
             headings += 1;
             continue;
         }
-        if l.starts_with('*') || l.starts_with('#') || l.starts_with(':') {
+        // `#`-led lines are excluded: `# comment`, `### heading` and
+        // `#10 = …` (STEP) all share that shape. `*` bullets and
+        // `:` indents are the wikitext lists that survive.
+        if l.starts_with('*') || l.starts_with(':') {
             list_items += 1;
             continue;
         }
@@ -84,7 +87,26 @@ pub fn parse(d: &[u8]) -> Option<Mediawiki> {
             rules += 1;
         }
     }
-    let internal_links = pairs(text, "[[", "]]");
+    // `[[x]]` alone is TOML's array-of-tables / Clojure's nested
+    // vector — a real wikilink carries `|` (alias), `:` (namespace)
+    // or `#` (anchor)
+    let internal_links = {
+        let mut n = 0;
+        let mut rest = text;
+        while let Some(i) = rest.find("[[") {
+            rest = &rest[i + 2..];
+            match rest.find("]]") {
+                Some(j) => {
+                    if rest[..j].chars().any(|c| matches!(c, '|' | ':' | '#')) {
+                        n += 1;
+                    }
+                    rest = &rest[j + 2..];
+                }
+                None => break,
+            }
+        }
+        n
+    };
     let categories = text.matches("[[Category:").count();
     let media = text.matches("[[File:").count() + text.matches("[[Image:").count();
     let external_links = {
@@ -181,5 +203,16 @@ mod tests {
     fn detect_works() {
         assert!(detect(DOC));
         assert!(!detect(b"hi"));
+        // `#`-led lines are comments/headers in TOML-ish formats and
+        // `#10 =` lines in STEP — not wikitext numbered lists
+        assert!(!detect(b"# comment\n[[package]]\nname = \"x\"\n"));
+        assert!(!detect(b"### list\nGET {{host}}/users\n"));
+        assert!(!detect(
+            b"#10 = CARTESIAN_POINT('A', (0., 0., 0.));\n''x''\n"
+        ));
+        // bare `[[x]]` is TOML's array-of-tables, not a wikilink —
+        // links need `|`, `:` or `#` inside
+        assert!(!detect(b"[[package]]\nname = \"x\"\n* item\n"));
+        assert!(detect(b"* item\n[[Page|link]]\n"));
     }
 }
