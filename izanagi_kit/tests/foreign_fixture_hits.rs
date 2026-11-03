@@ -118,7 +118,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("gradle", 1),
     ("pkl", 9),
     ("pppdconf", 8),
-    ("inputrc", 8),
     ("vimrc", 3),
     ("ubootenv", 7),
     ("sendmail", 1),
