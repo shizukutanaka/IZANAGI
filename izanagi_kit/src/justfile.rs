@@ -13,20 +13,20 @@
 //! ```
 
 use crate::textutil::strip_bom;
-/// 先頭ディレクティブ。
-const DIRECTIVES: &[&str] = &[
-    "alias",
+/// `set` に続く設定名。`set` 自体は AMPL 等の宣言語でもあるため、
+/// just の設定名を伴う場合だけディレクティブとみなす。
+const SETTINGS: &[&str] = &[
+    "allow",
+    "allow-duplicate-recipes",
     "dotenv-filename",
     "dotenv-load",
     "dotenv-path",
     "dotenv-required",
-    "export",
     "fallback",
-    "import",
-    "mod",
+    "ignore-comments",
     "positional-arguments",
+    "quiet",
     "script-interpreter",
-    "set",
     "shell",
     "tempdir",
     "unstable",
@@ -79,6 +79,48 @@ fn recipe_header(t: &str) -> bool {
     })
 }
 
+/// `name := expr` or `export name := expr` — a just assignment.
+/// `:=` alone is not just-exclusive: Coq (`Definition x := …`), Lean,
+/// Pascal/Ada and AMPL assign with `:=` too, so the left-hand side must
+/// be exactly one identifier (optionally preceded by `export`).
+fn is_assignment(t: &str) -> bool {
+    if !t.contains(":=") {
+        return false;
+    }
+    let lhs = t.split(":=").next().unwrap_or("").trim_end();
+    let mut it = lhs.split_whitespace();
+    let name = match (it.next(), it.next(), it.next()) {
+        (Some(n), None, None) => n,
+        (Some("export"), Some(n), None) | (Some("alias"), Some(n), None) => n,
+        _ => return false,
+    };
+    !name.is_empty()
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+}
+
+/// A just directive line. The keyword alone is not evidence: `set`,
+/// `import`, `mod`, `export` and `alias` are ordinary words in AMPL,
+/// Coq/Lean, ASN.1 and shell configs — each must carry just-shaped
+/// arguments.
+fn is_directive(t: &str) -> bool {
+    let mut it = t.split_whitespace();
+    let kw = it.next();
+    let arg = it.next().unwrap_or("");
+    match kw {
+        // `set <known-setting>` — a bare `set x :=` is AMPL, not just
+        Some("set") => {
+            let name = arg.split('=').next().unwrap_or("");
+            SETTINGS.contains(&name.trim_end_matches(":=").trim_end())
+        }
+        // `import 'path'` / `import "path"` — unquoted imports are
+        // Lean/Rust module statements, not just
+        Some("import") | Some("mod") => arg.starts_with('\'') || arg.starts_with('"'),
+        _ => false,
+    }
+}
+
 /// justfile らしさを判定する。
 ///
 /// `name: value` 行は YAML と同形なので、レシピ本体(次行のインデント)または
@@ -112,25 +154,15 @@ pub fn detect(input: &[u8]) -> bool {
         if recipe_header(t) {
             recipes += 1;
             last_was_recipe = true;
-            // `@name:`/`!name:` private/silent recipes and
-            // `name arg="x":` parameter defaults don't exist in YAML
+            // `@name:`/`!name:` private/silent recipes are just-only;
+            // `name arg:` params are not — `key word:` is an ordinary
+            // shape in YAML lists, schema langs and Dockerfiles alike
             if t.starts_with('@') || t.starts_with('!') {
                 distinctive += 1;
-            } else {
-                let head = t.strip_prefix('@').unwrap_or(t);
-                if let Some(c) = head.find(':') {
-                    if head[..c].split_whitespace().nth(1).is_some() {
-                        distinctive += 1;
-                    }
-                }
             }
         } else {
             last_was_recipe = false;
-            if t.contains(":=")
-                || DIRECTIVES
-                    .iter()
-                    .any(|d| t == *d || t.starts_with(&format!("{d} ")))
-            {
+            if is_assignment(t) || is_directive(t) {
                 just_syntax += 1;
             }
         }
@@ -168,11 +200,7 @@ pub fn parse(input: &[u8]) -> Option<Counts> {
         }
         if recipe_header(t) {
             c.sections += 1;
-        } else if t.contains(":=")
-            || DIRECTIVES
-                .iter()
-                .any(|d| t == *d || t.starts_with(&format!("{d} ")))
-        {
+        } else if is_assignment(t) || is_directive(t) {
             c.options += 1;
         } else {
             c.misc += 1;
@@ -202,6 +230,16 @@ mod tests {
         // `name:` + indented body is the YAML mapping shape — no
         // just-exclusive syntax means not a justfile
         assert!(!detect(b"build:\n  cargo build\n"));
+        // generic keyword lines and `name arg:` headers are not just —
+        // YAML list items, schema declarations, AMPL/Coq `set`/`:=`
+        // statements and unquoted `import`/`mod` must not count
+        assert!(!detect(b"plugins:\n- name: tap-gitlab\n  variant: m\n"));
+        assert!(!detect(b"schema Person:\n  name: str\n  age: int = 0\n"));
+        assert!(!detect(b"set DIM := 1..3\nparam p{DIM} >= 0\n"));
+        assert!(!detect(b"Cert ::= SEQUENCE {\n  version INTEGER\n}\n"));
+        assert!(!detect(
+            b"import Mathlib.Tactic\ntheorem t : True := by\n  trivial\n"
+        ));
         assert!(parse(b"text\n").is_none());
     }
 
