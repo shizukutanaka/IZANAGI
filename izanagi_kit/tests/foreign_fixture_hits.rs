@@ -119,7 +119,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("pkl", 9),
     ("openhab", 9),
     ("mediawiki", 9),
-    ("zeekscript", 8),
     ("txt2tags", 8),
     ("tnsnames", 8),
     ("pppdconf", 8),
