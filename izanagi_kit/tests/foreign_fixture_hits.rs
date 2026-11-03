@@ -116,7 +116,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("nanoid", 19),
     ("base32", 15),
     ("gradle", 14),
-    ("justfile", 13),
     ("edn", 10),
     ("pkl", 9),
     ("openhab", 9),
