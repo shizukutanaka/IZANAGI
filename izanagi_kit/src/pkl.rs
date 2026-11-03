@@ -97,7 +97,7 @@ pub fn detect(b: &[u8]) -> bool {
             // Pkl imports are URIs (`"pkl:json"`, `"./x.pkl"`, `"@p/a"`);
             // a bare `"name"` is another language's import/require
             "import" | "import*" => {
-                let rest = &l["import*".len().min(l.len())..];
+                let rest = l.strip_prefix("import").unwrap_or("");
                 if let Some(s) = rest.trim_start_matches('*').trim_start().strip_prefix('"') {
                     let inner = s.split('"').next().unwrap_or("");
                     // URI-shaped (`pkl:json`, `./x.pkl`, `@p/a`) or a
@@ -208,6 +208,8 @@ mod tests {
         assert!(!detect(b"import \"generic-service\"\nx = 1\n"));
         assert!(!detect(b"declare v := 1\nimport module \"m\"\n"));
         assert!(detect(b"import \"settings\"\nvalue = settings.value\n"));
+        // a multi-byte whitespace after `import` must not split a char
+        assert!(detect("import\u{3000}\"settings\"\n".as_bytes()));
         // `local` + `=` is Lua/jsonnet; Pkl locals also bind scalars,
         // so the object-member or `new` shape is what counts
         assert!(!detect(b"local x = 1\nconfig.keys = {}\nreturn x\n"));
