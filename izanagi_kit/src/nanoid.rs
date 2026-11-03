@@ -39,6 +39,12 @@ pub fn detect(b: &[u8]) -> bool {
     (8..=64).contains(&b.len())
         && b.iter().all(|c| in_default(*c))
         && b.iter().any(|c| c.is_ascii_alphanumeric())
+        // A pure-letter blob is a word, not evidence of an ID
+        // (`farbfeld`, `LARCHIVE`, `conectix`, `KenSilverman`); real NanoIDs
+        // carry digits or `-`/`_`
+        && b.iter().any(|c| c.is_ascii_digit() || *c == b'_' || *c == b'-')
+        // A digits-only blob is a number (`otp` keys); require a letter too
+        && b.iter().any(|c| c.is_ascii_alphabetic())
 }
 
 /// Parses a candidate Nano ID; `None` on invalid chars/length.
@@ -103,7 +109,10 @@ mod tests {
         assert!(detect(b"V1StGXR8_Z5jdHi6B-myT"));
         assert!(!detect(b"short"));
         assert!(!detect(b"with space in it"));
-        assert!(detect(b"alllowercaseletters"));
+        // an all-letter blob is a word, not ID evidence
+        assert!(!detect(b"alllowercaseletters"));
+        assert!(!detect(b"farbfeld"));
+        assert!(!detect(b"12345678901234567890"));
         assert!(!detect(b""));
     }
 
