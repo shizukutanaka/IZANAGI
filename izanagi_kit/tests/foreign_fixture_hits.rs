@@ -113,7 +113,7 @@ const CEILINGS: &[(&str, usize)] = &[
     ("crockford", 11),
     ("dotenv", 28),
     ("creole", 6),
-    ("nanoid", 19),
+    ("nanoid", 12),
     ("base32", 1),
     ("gradle", 1),
     ("pkl", 9),
