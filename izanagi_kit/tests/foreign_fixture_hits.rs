@@ -129,7 +129,7 @@ const CEILINGS: &[(&str, usize)] = &[
     ("appdaemon", 8),
     ("vimrc", 7),
     ("ubootenv", 7),
-    ("sendmail", 7),
+    ("sendmail", 1),
     ("requirements", 7),
     ("pptpd", 7),
     ("ledgerjournal", 7),
