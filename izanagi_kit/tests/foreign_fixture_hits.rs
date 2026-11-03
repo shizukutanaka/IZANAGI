@@ -110,7 +110,7 @@ fn extract_fixtures(text: &str) -> Vec<(String, Vec<u8>)> {
 /// snapshot of the measured matrix — they may only be tightened.
 const CEILINGS: &[(&str, usize)] = &[
     ("lucene", 33),
-    ("crockford", 30),
+    ("crockford", 11),
     ("dotenv", 28),
     ("creole", 6),
     ("nanoid", 19),
