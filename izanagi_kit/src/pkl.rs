@@ -50,6 +50,22 @@ fn words(t: &str) -> impl Iterator<Item = &str> {
         .filter(|w| !w.is_empty())
 }
 
+/// `true` when some `{…}` pair in `t` holds an `=` member.
+fn brace_has_member(t: &str) -> bool {
+    let b = t.as_bytes();
+    let mut depth = 0usize;
+    let mut has_member = false;
+    for &c in b {
+        match c {
+            b'{' => depth += 1,
+            b'}' => depth = depth.saturating_sub(1),
+            b'=' if depth > 0 => has_member = true,
+            _ => {}
+        }
+    }
+    has_member
+}
+
 /// Returns `true` when `b` looks like Pkl source.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -61,14 +77,48 @@ pub fn detect(b: &[u8]) -> bool {
         let l = line.trim_start();
         let first = l.split_whitespace().next().unwrap_or("");
         match first {
-            "amends" | "extends" | "module" | "typealias" | "abstract" | "open" => {
+            "amends" | "extends" | "typealias" | "abstract" | "open" => {
                 return true;
             }
-            "import" | "import*" if l.contains('"') => return true,
+            // `module foo` in Pkl is exactly a dotted identifier on its
+            // own line — `module X { … }` (IDL/Verilog/Zeek/Move) is not
+            "module" => {
+                // a `//` comment may follow the module name
+                let rest = l["module".len()..].split("//").next().unwrap_or("").trim();
+                if !rest.is_empty()
+                    && rest
+                        .chars()
+                        .all(|c| c.is_alphanumeric() || c == '_' || c == '.')
+                    && rest.chars().next().is_some_and(|c| c.is_alphabetic())
+                {
+                    return true;
+                }
+            }
+            // Pkl imports are URIs (`"pkl:json"`, `"./x.pkl"`, `"@p/a"`);
+            // a bare `"name"` is another language's import/require
+            "import" | "import*" => {
+                let rest = &l["import*".len().min(l.len())..];
+                if let Some(s) = rest.trim_start_matches('*').trim_start().strip_prefix('"') {
+                    let inner = s.split('"').next().unwrap_or("");
+                    // URI-shaped (`pkl:json`, `./x.pkl`, `@p/a`) or a
+                    // plain relative name — not a hyphenated foreign
+                    // token like `"generic-service"`
+                    if !inner.is_empty()
+                        && (inner.chars().any(|c| matches!(c, ':' | '/' | '.' | '@'))
+                            || inner.chars().all(|c| c.is_alphanumeric() || c == '_'))
+                    {
+                        return true;
+                    }
+                }
+            }
             _ => {}
         }
     }
-    t.contains("local ") && t.contains(" = ") && t.contains('{')
+    // `local x = …` plus an object body — a `{…}` pair holding `=`
+    // members or `new` instantiation is the Pkl part; Lua/jsonnet
+    // bindings and empty `{}` tables are not
+    t.contains("local ") && t.contains(" = ") && t.contains("new ")
+        || (t.contains("local ") && t.contains(" = ") && brace_has_member(t))
 }
 
 impl Pkl {
@@ -144,6 +194,27 @@ mod tests {
         assert!(detect(b"typealias Name = String"));
         assert!(!detect(b"x = 1\ny = 2"));
         assert!(!detect(b""));
+        // `module X {`/`module X (`/`module X;` is IDL/Verilog/Zeek,
+        // not Pkl — a Pkl module clause is a lone dotted identifier
+        assert!(!detect(b"module Bank {\n  interface A {}\n};\n"));
+        assert!(!detect(b"module top(input clk);\nendmodule\n"));
+        assert!(!detect(b"module Site;\nexport {}\n"));
+        assert!(!detect(b"module 0x1::coin {\n}\n"));
+        assert!(detect(b"module app.x\nx = 1\n"));
+        assert!(detect(b"module app // trailing comment\nx = 1\n"));
+        // `import "name"` without a URI-shaped target is another
+        // language's import/require — Pkl imports are URIs or
+        // plain identifier-shaped relative names
+        assert!(!detect(b"import \"generic-service\"\nx = 1\n"));
+        assert!(!detect(b"declare v := 1\nimport module \"m\"\n"));
+        assert!(detect(b"import \"settings\"\nvalue = settings.value\n"));
+        // `local` + `=` is Lua/jsonnet; Pkl locals also bind scalars,
+        // so the object-member or `new` shape is what counts
+        assert!(!detect(b"local x = 1\nconfig.keys = {}\nreturn x\n"));
+        assert!(detect(b"local cfg = new { a = 1 }\n"));
+        assert!(detect(
+            b"local greeting = \"hi\"\noutput { message = greeting }\n"
+        ));
     }
 
     #[test]
