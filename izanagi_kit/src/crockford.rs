@@ -67,7 +67,10 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let digits = body.iter().filter(|c| val(**c).is_some()).count();
     let hyphens = body.iter().filter(|c| **c == b'-').count();
-    digits >= 1 && digits + hyphens == body.len() && hyphens <= digits
+    // An all-letter blob is a magic word (`LARCHIVE`, `farbfeld`,
+    // `KenSilverman`), not an encoded number: require a literal `0-9`.
+    let literal_digits = body.iter().filter(|c| c.is_ascii_digit()).count();
+    digits >= 1 && literal_digits >= 1 && digits + hyphens == body.len() && hyphens <= digits
 }
 
 /// Parses a Crockford string; `None` on invalid chars.
@@ -149,6 +152,11 @@ mod tests {
         assert!(detect(b"0"));
         assert!(!detect(b"!!!"));
         assert!(!detect(b""));
+        // all-letter blobs are magic words, not encoded numbers
+        assert!(!detect(b"LARCHIVE"));
+        assert!(!detect(b"farbfeld"));
+        assert!(!detect(b"KenSilverman"));
+        assert!(!detect(b"PACK"));
     }
 
     #[test]
