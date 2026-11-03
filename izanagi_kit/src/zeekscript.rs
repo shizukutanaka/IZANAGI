@@ -92,9 +92,33 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
         if t.is_empty() || t.starts_with('#') {
             continue;
         }
-        if t.starts_with('@') {
-            c.at_directives += 1;
-            continue;
+        if let Some(d) = t.strip_prefix('@') {
+            // a Zeek directive is `@name` from the known set —
+            // decorators/annotations (@vertex, @readonly,
+            // @-moz-document, @cert-authority, …) are not
+            let name = d
+                .split(|c: char| c.is_whitespace() || c == '(')
+                .next()
+                .unwrap_or("");
+            let known = matches!(
+                name,
+                "if" | "ifdef"
+                    | "ifndef"
+                    | "else"
+                    | "endif"
+                    | "unload"
+                    | "prefixes"
+                    | "DEBUG"
+                    | "deprecated"
+                    | "remove-file"
+                    | "signature-file"
+                    | "pragma"
+            ) || name.starts_with("load")
+                || name.starts_with("prefixes");
+            if known {
+                c.at_directives += 1;
+                continue;
+            }
         }
         let Some(first) = t.split([' ', '(', ';', '{', '\t']).next() else {
             continue;
@@ -137,5 +161,18 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"#!/bin/sh\nls -la\n"));
         assert!(!detect(b"int main() { return 0; }\n"));
+        // `@`-led lines are Zeek directives only for the known names;
+        // decorators and annotations are not
+        assert!(!detect(b"@vertex\nfn main() {}\n@fragment\nfn f() {}\n"));
+        assert!(!detect(b"@readonly\nstructure S { id: String }\n"));
+        assert!(!detect(b"@cert-authority *.example.com ssh-rsa AAAA\n"));
+        assert!(!detect(
+            b"@-moz-document domain(x) {\nbody { color: red }\n}\n"
+        ));
+        assert!(!detect(b"@define PATTERN **\n@x_include y\n"));
+        assert!(detect(
+            b"@load base/frameworks/notice\n@ifdef ( F )\n@endif\n"
+        ));
+        assert!(detect(b"@load-sigs x.sig\n@DEBUG foo\n"));
     }
 }
