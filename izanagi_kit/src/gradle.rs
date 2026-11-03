@@ -113,15 +113,49 @@ const WEAK: &[&str] = &[
     "buildDir",
 ];
 
+/// `k` appears in `s` as a configuration token: it is bounded by
+/// non-identifier characters on both sides (`api 'g:a:v'` matches,
+/// `apiVersion:` does not), and it is not immediately followed by `:` —
+/// `api:`/`dependencies:` are YAML/dict keys, never Gradle calls.
+fn contains_token(s: &str, k: &str) -> bool {
+    let id = |c: u8| c.is_ascii_alphanumeric() || c == b'_';
+    let mut rest = s;
+    while let Some(i) = rest.find(k) {
+        let a = i + k.len();
+        let left_ok = i == 0 || !id(rest.as_bytes()[i - 1]);
+        let right = rest.as_bytes().get(a);
+        let right_ok = right.map_or(true, |&c| !id(c) && c != b':');
+        if left_ok && right_ok {
+            return true;
+        }
+        rest = &rest[i + 1..];
+    }
+    false
+}
+
+/// The trimmed line starts with `k` used as a configuration token —
+/// `name = "x"` and `version '1.0'` qualify, `names:`/`versions:`/
+/// `versionCatalogs` do not (see `contains_token` for the boundary rule).
+fn starts_with_token(s: &str, k: &str) -> bool {
+    if !s.starts_with(k) {
+        return false;
+    }
+    let id = |c: u8| c.is_ascii_alphanumeric() || c == b'_';
+    match s.as_bytes().get(k.len()) {
+        None => true,
+        Some(&c) => !id(c) && c != b':',
+    }
+}
+
 fn marker(line: &str) -> Option<&str> {
     let s = line.trim();
     if s.is_empty() || s.starts_with("//") || s.starts_with('#') || s.starts_with('*') {
         return None;
     }
-    if let Some(k) = STRONG.iter().find(|&&k| s.contains(k)) {
+    if let Some(k) = STRONG.iter().find(|&&k| contains_token(s, k)) {
         return Some(k);
     }
-    WEAK.iter().find(|&&k| s.starts_with(k)).copied()
+    WEAK.iter().find(|&&k| starts_with_token(s, k)).copied()
 }
 
 fn is_strong(m: &str) -> bool {
@@ -204,6 +238,18 @@ mod tests {
         assert!(!detect(b"x = 1\ny = 2\n"));
         assert!(!detect(
             b"// mavenCentral()\n// implementation 'x'\nplugins {\n}\n"
+        ));
+    }
+
+    #[test]
+    fn rejects_yaml_token_lookalikes() {
+        // `apiVersion` contains `api` but is not a Gradle call
+        assert!(!detect(
+            b"apiVersion: v1\nkind: Config\nmetadata:\n  name: x\n  names:\n  versions:\n"
+        ));
+        // `dependencies:`/`plugins:`/`include:` are YAML keys, not calls
+        assert!(!detect(
+            b"plugins:\n  - a\ndependencies:\n  - b\ninclude:\n  - c\n"
         ));
     }
 }
