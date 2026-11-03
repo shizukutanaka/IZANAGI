@@ -86,6 +86,31 @@ const OTHER_HEADS: &[&str] = &[
     "finish",
 ];
 
+/// `true` when every argument of a `set` line is a valid Vim option
+/// argument: `opt`, `noopt`, `invopt`, `opt?` or `opt` joined to a
+/// value by `=`/`+=`/`-=`/`^=`. tmux `set -g`, slrn
+/// `set username "joe"` and ipxe `set base <url>` do not qualify.
+fn set_args_vim_shaped(line: &str) -> bool {
+    let mut args = line.split_whitespace().skip(1).peekable();
+    if args.peek().is_none() {
+        return false;
+    }
+    args.all(|a| {
+        let a = a
+            .strip_prefix("no")
+            .or_else(|| a.strip_prefix("inv"))
+            .unwrap_or(a);
+        // `opt+=v`/`opt-=v`/`opt^=v`: strip the operator's sign char
+        let head = a.split(['=', '?']).next().unwrap_or("");
+        let name = head.trim_end_matches(['+', '-', '^']);
+        !name.is_empty()
+            && name
+                .chars()
+                .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+            && name.chars().next().is_some_and(|c| c.is_ascii_lowercase())
+    })
+}
+
 /// Detect vimrc content.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
@@ -98,7 +123,7 @@ pub fn detect(b: &[u8]) -> bool {
     for line in t.lines() {
         let s = line.trim();
         let head = s.split(' ').next().unwrap_or("");
-        if head == "set" || head == "let" || MAP_HEADS.contains(&head) {
+        if (head == "set" && set_args_vim_shaped(s)) || head == "let" || MAP_HEADS.contains(&head) {
             hits += 1;
         }
     }
@@ -178,6 +203,19 @@ mod tests {
     fn rejects_other() {
         assert!(!detect(b"[x]\ny=1\n"));
         assert!(!detect(b""));
+        // tmux/slrn/ipxe `set` args are not Vim option arguments
+        assert!(!detect(
+            b"set -g prefix C-a\nset -g mouse on\nsetw -g mode-keys vi\n"
+        ));
+        assert!(!detect(
+            b"set username \"joe\"\nset hostname \"example.com\"\n"
+        ));
+        assert!(!detect(b"set base http://x/img\nset boot-url http://x\n"));
+        assert!(!detect(
+            b"set dotenv-load\nset shell := [\"bash\", \"-c\"]\n"
+        ));
+        // `opt+=v` / `noopt` / `invopt` are still Vim
+        assert!(detect(b"set dir+=/tmp\nset invnumber\nset nonumber\n"));
     }
 
     #[test]
