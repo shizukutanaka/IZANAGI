@@ -330,8 +330,13 @@ pub fn detect(b: &[u8]) -> bool {
     parse(b).is_some_and(|c| {
         // `options`/`flags`/`negations` are the only buckets gated on
         // OPTION_KEYS — hook words (`file`, `set`, `options`, `record`)
-        // appear in many formats, so they must not count as evidence
-        (c.options + c.flags + c.negations) >= 2 && c.proto >= 1 || c.secrets >= 1
+        // appear in many formats, so they must not count as evidence.
+        // A secrets file is homogeneous — every non-comment line is a
+        // `client server "secret" [ip]` row; `w x "y"` lines inside
+        // other configs (`Screen 0 "s0"`, `set user "joe"`, `P5 * *`)
+        // are not pap/chap secrets
+        (c.options + c.flags + c.negations) >= 2 && c.proto >= 1
+            || (c.secrets == c.entries && c.secrets >= 2)
     })
 }
 
@@ -504,5 +509,18 @@ mod tests {
     fn rejects_other_conf() {
         assert!(!detect(b"foo=bar\nbaz=qux\n"));
         assert!(!detect(b"debug\nlock\n"));
+        // sparse `x y "z"`/`x y *` lines inside foreign configs are
+        // not a homogeneous pap/chap-secrets file
+        assert!(!detect(
+            b"Section \"Device\"\n  Screen 0 \"screen0\"\n  Option \"T\" \"on\"\nEndSection\n"
+        ));
+        assert!(!detect(
+            b"set username \"joe\"\nset hostname \"h\"\ncolor a blue black\n"
+        ));
+        assert!(!detect(
+            b"P5 * * * * * * * * *\nP6 * * * * * * * * *\nT10\n"
+        ));
+        // a homogeneous secrets file still detects
+        assert!(detect(b"\"c1\" * \"s1\" 10.0.0.0/24\n\"c2\" * \"s2\"\n"));
     }
 }
