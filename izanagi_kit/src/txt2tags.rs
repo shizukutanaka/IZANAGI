@@ -52,6 +52,27 @@ fn pairs(text: &str, open: &str) -> usize {
     n
 }
 
+/// Paired `//x//` italic spans on one line; `//` following `:` is a
+/// URL scheme (`http://…`), not markup.
+fn italic_pairs(text: &str) -> usize {
+    let mut n = 0;
+    for line in text.lines() {
+        let b = line.as_bytes();
+        let mut marks = 0usize;
+        let mut i = 0;
+        while i + 1 < b.len() {
+            if b[i] == b'/' && b[i + 1] == b'/' && (i == 0 || b[i - 1] != b':') {
+                marks += 1;
+                i += 2;
+            } else {
+                i += 1;
+            }
+        }
+        n += marks / 2;
+    }
+    n
+}
+
 /// Parse a txt2tags document; `None` when no txt2tags marker exists.
 pub fn parse(d: &[u8]) -> Option<Txt2tags> {
     let text = core::str::from_utf8(d).ok()?;
@@ -60,6 +81,10 @@ pub fn parse(d: &[u8]) -> Option<Txt2tags> {
     let mut bullets = 0;
     let mut numbered = 0;
     let mut table_rows = 0;
+    // txt2tags headings are `= x =`; a file already using `#`
+    // markdown headings is not txt2tags, so its `+ ` lines are a
+    // foreign list style (APIB `+ Response 200`, asciidoc, …)
+    let md_headings = text.lines().any(|l| l.starts_with('#'));
     for line in text.lines() {
         let l = line.trim();
         if l.starts_with("%!") && l.contains(':') {
@@ -67,11 +92,9 @@ pub fn parse(d: &[u8]) -> Option<Txt2tags> {
             continue;
         }
         let eq = l.bytes().take_while(|&b| b == b'=').count();
-        if (1..=3).contains(&eq)
-            && l.len() > eq * 2
-            && l.ends_with(&"=".repeat(eq))
-            && l[eq..].starts_with(' ')
-        {
+        // `= title =` is the txt2tags title/heading; `== x ==` is
+        // MediaWiki/Creole territory
+        if eq == 1 && l.len() > eq * 2 && l.ends_with(&"=".repeat(eq)) && l[eq..].starts_with(' ') {
             headings += 1;
             continue;
         }
@@ -80,10 +103,14 @@ pub fn parse(d: &[u8]) -> Option<Txt2tags> {
             continue;
         }
         if l.starts_with("+ ") {
-            numbered += 1;
+            if !md_headings {
+                numbered += 1;
+            }
             continue;
         }
-        if l.starts_with('|') && l.ends_with('|') && l.len() > 2 {
+        // a table row needs at least two cells (`|a|b|`); a lone
+        // `|x|` is delimited data (LEDA `|{}|`, NWC `|Bar|`)
+        if l.starts_with('|') && l.ends_with('|') && l.len() > 2 && l.matches('|').count() >= 3 {
             table_rows += 1;
         }
     }
@@ -97,7 +124,7 @@ pub fn parse(d: &[u8]) -> Option<Txt2tags> {
         numbered,
         table_rows,
         bold_spans: pairs(text, "**"),
-        italic_spans: pairs(text, "//"),
+        italic_spans: italic_pairs(text),
     })
 }
 
@@ -142,6 +169,18 @@ mod tests {
         assert!(parse(b"").is_none());
         assert!(parse(b"plain text\nno markers\n").is_none());
         assert!(parse(&[0xff]).is_none());
+        // `+ ` lines in a file with `#` markdown headings are a
+        // foreign list style (APIB `+ Response`), not numbered items
+        assert!(parse(b"# Shop\n## Group\n+ Response 200\n+ Request\n").is_none());
+        // `|x|` delimited data and `== x ==` wiki headings are not
+        // txt2tags tables/headings
+        assert!(parse(b"|{}|\n|Bar|\n|Note|\n").is_none());
+        assert!(parse(b"== Section ==\n* item\n").is_none());
+        // `http://` URL slashes are not italic spans
+        assert!(!detect(b"- name: x\n  url: http://a\n  url2: http://b\n"));
+        // positive shapes still count
+        assert!(detect(b"%!target: html\n= T =\n+ one\n+ two\n"));
+        assert!(detect(b"|a|b|\n|c|d|\n"));
     }
 
     #[test]
