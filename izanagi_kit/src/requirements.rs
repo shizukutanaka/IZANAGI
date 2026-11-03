@@ -42,6 +42,7 @@ pub fn detect(b: &[u8]) -> bool {
     };
     let t = strip_bom(t);
     let mut specs = 0;
+    let mut strong = 0;
     let mut opts = 0;
     let mut content = 0;
     for l in t.lines() {
@@ -56,11 +57,21 @@ pub fn detect(b: &[u8]) -> bool {
         }
         if is_spec_line(s) {
             specs += 1;
+            if is_strong_spec(s) {
+                strong += 1;
+            }
         }
     }
     // requirements files are *mostly* spec/option lines — a stray pair
-    // of bare words inside an unrelated file does not qualify
-    specs + opts >= 2 && (specs >= 1 || opts >= 2) && (specs + opts) * 2 >= content
+    // of bare words inside an unrelated file does not qualify — and at
+    // least one line carries format-exclusive evidence: a version
+    // constraint, `[extras]`, a `;` marker, a `name @ url` direct
+    // reference or a `-`/`--` pip option. A file of bare names alone is
+    // a word list (sudoku, gml, aiger, …), not a dependency manifest.
+    specs + opts >= 2
+        && (specs >= 1 || opts >= 2)
+        && (specs + opts) * 2 >= content
+        && strong + opts >= 1
 }
 
 /// A requirement spec line: `name`, `name[extras]`, `name op version`
@@ -85,6 +96,18 @@ fn is_spec_line(s: &str) -> bool {
         || ["==", ">=", "<=", "~=", "!=", ">", "<", "==="]
             .iter()
             .any(|op| rest.starts_with(op))
+}
+
+/// Whether a spec line carries requirements-exclusive evidence — anything
+/// beyond a bare name: `[extras]`, a `;` marker, a `@` direct reference
+/// or a version constraint operator.
+fn is_strong_spec(s: &str) -> bool {
+    let b = s.as_bytes();
+    let mut i = 0;
+    while i < b.len() && (b[i].is_ascii_alphanumeric() || matches!(b[i], b'-' | b'_' | b'.')) {
+        i += 1;
+    }
+    !s[i..].trim_start().is_empty()
 }
 
 impl Requirements {
@@ -182,6 +205,17 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Requirements::parse(b"hello world").is_none());
+    }
+
+    #[test]
+    fn rejects_bare_word_lists() {
+        // A column of bare names carries no requirements-specific
+        // evidence — it is a word list, not a dependency manifest.
+        assert!(!detect(b"apple\nbanana\ncherry\ndurian\n"));
+        assert!(Requirements::parse(b"apple\nbanana\ncherry\ndurian\n").is_none());
+        // One constrained spec (or a pip option) is enough evidence.
+        assert!(detect(b"apple\nbanana\ncherry==1.0\ndurian\n"));
+        assert!(detect(b"apple\nbanana\n-e .\ndurian\n"));
     }
 
     #[test]
