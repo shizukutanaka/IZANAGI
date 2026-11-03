@@ -109,7 +109,7 @@ fn extract_fixtures(text: &str) -> Vec<(String, Vec<u8>)> {
 /// Per-detector ceiling for foreign-fixture hits. The numbers are a
 /// snapshot of the measured matrix — they may only be tightened.
 const CEILINGS: &[(&str, usize)] = &[
-    ("lucene", 83),
+    ("lucene", 33),
     ("crockford", 30),
     ("dotenv", 28),
     ("creole", 21),

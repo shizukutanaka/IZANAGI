@@ -84,9 +84,11 @@ fn field_terms(t: &str) -> usize {
         // a quoted name is dict-shaped (`{"key":v}`), not a query field
         let unquoted = j == 0 || !matches!(b[j - 1], b'"' | b'\'');
         let prev_ok = j < i && unquoted && (b[j].is_ascii_alphabetic() || b[j] == b'_');
+        // the value must start on the same line — `key:` at end of line
+        // is a YAML block mapping, not a query field term
         let next_ok = b
             .get(i + 1)
-            .is_some_and(|&c| !matches!(c, b' ' | b'\t' | b':' | b'='));
+            .is_some_and(|&c| !c.is_ascii_whitespace() && c != b':' && c != b'=');
         if prev_ok && next_ok {
             n += 1;
         }
@@ -208,6 +210,8 @@ mod tests {
         assert!(!detect(b"x AND y"));
         assert!(!detect(b"http://x"));
         assert!(!detect(b""));
+        // `key:` at end of line is a YAML block mapping, not field:value
+        assert!(!detect(b"env:\n  A: 1\ntask:\n  script: cargo test\n"));
     }
 
     #[test]
