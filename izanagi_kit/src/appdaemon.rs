@@ -191,10 +191,13 @@ pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    t.lines().any(|l| {
-        let s = l.trim();
-        is_key(s, "appdaemon") || is_key(s, "hadashboard") || is_key(s, "plugins")
-    }) || (has_key(t, "module") && has_key(t, "class"))
+    // `plugins:` alone is a generic YAML/JS config key (capacitor,
+    // serverless, webpack, pmacct); AppDaemon evidence is the
+    // `appdaemon:`/`hadashboard:` sections or the apps.yaml
+    // `module:`+`class:` pair
+    t.lines()
+        .any(|l| is_key(l.trim(), "appdaemon") || is_key(l.trim(), "hadashboard"))
+        || (has_key(t, "module") && has_key(t, "class"))
 }
 
 impl Appdaemon {
@@ -358,5 +361,24 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Appdaemon::parse(b"foo = 1").is_none());
+    }
+
+    #[test]
+    fn rejects_generic_plugins_key() {
+        // pmacctconf shape
+        assert!(!detect(
+            b"daemonize: true\nsyslog: daemon\ninterface: eth0\nplugins: print\naggregate: src\n"
+        ));
+        // serverless-webpack shape
+        assert!(!detect(
+            b"service: api\nprovider:\n  name: aws\nplugins:\n  - webpack\n"
+        ));
+        assert!(!detect(
+            b"const config: CapacitorConfig = {\n  plugins: {\n    SplashScreen: {}\n  }\n}\n"
+        ));
+        // AppDaemon apps.yaml still detects
+        assert!(detect(
+            b"hello_world:\n  module: hello\n  class: HelloWorld\n"
+        ));
     }
 }
