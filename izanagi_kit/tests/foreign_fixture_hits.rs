@@ -124,7 +124,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("sendmail", 7),
     ("requirements", 7),
     ("pptpd", 1),
-    ("mvnsettings", 7),
     ("ledgerjournal", 7),
     ("junos", 7),
     ("grubconf", 7),
