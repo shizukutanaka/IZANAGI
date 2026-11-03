@@ -73,8 +73,38 @@ pub fn parse(d: &[u8]) -> Option<Creole> {
         }
     }
     let bold_spans = pairs(text, "**", "**");
-    let italic_spans = pairs(text, "//", "//");
-    let links = pairs(text, "[[", "]]");
+    // Italic `//…//` is inline emphasis: the pair must sit on one line,
+    // have non-empty content (`////` is nothing), and not be part of a
+    // `scheme://` URL. Two `//` on different lines — e.g. two `//`-style
+    // comments — used to pair across the whole file.
+    let mut italic_spans = 0;
+    for l in text.lines() {
+        let mut rest = l;
+        while let Some(i) = rest.find("//") {
+            if i > 0 && rest.as_bytes()[i - 1] == b':' {
+                rest = &rest[i + 2..];
+                continue;
+            }
+            rest = &rest[i + 2..];
+            match rest.find("//") {
+                Some(j) if j > 0 => {
+                    italic_spans += 1;
+                    rest = &rest[j + 2..];
+                }
+                _ => break,
+            }
+        }
+    }
+    // A `[[…]]` spanning a whole trimmed line is a TOML array-of-tables
+    // header, not an inline link.
+    let mut links = 0;
+    for l in text.lines() {
+        let t = l.trim();
+        if t.starts_with("[[") && t.ends_with("]]") && !t[2..t.len() - 2].contains("[[") {
+            continue;
+        }
+        links += pairs(l, "[[", "]]");
+    }
     let images = pairs(text, "{{", "}}");
     if headings + list_items + rules + bold_spans + italic_spans + links + images == 0 {
         return None;
@@ -138,5 +168,13 @@ mod tests {
     fn detect_works() {
         assert!(detect(DOC));
         assert!(!detect(b"hello"));
+        // `//` on separate lines is not an italic pair
+        assert!(!detect(b"# cfg\n// first comment\n// second comment\n"));
+        // a URL scheme is not italic markup
+        let c = parse(b"# cfg\nsee https://a//b\n").unwrap();
+        assert_eq!(c.italic_spans, 0);
+        // `[[x]]` alone on a line is a TOML array-of-tables, not a link
+        let c = parse(b"# pkg\n[[package]]\nname = \"a\"\n[[package]]\nname = \"b\"\n").unwrap();
+        assert_eq!(c.links, 0);
     }
 }
