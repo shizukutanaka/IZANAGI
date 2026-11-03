@@ -85,18 +85,58 @@ pub struct Openhab {
     pub scripting: usize,
 }
 
+/// `true` when `tok` is an openHAB item type (`Switch`, `Number:Temperature`, …).
+fn is_item_head(tok: &str) -> bool {
+    ITEMS
+        .iter()
+        .any(|k| tok == *k || tok.strip_prefix(k).is_some_and(|r| r.starts_with(':')))
+}
+
 /// Whether the buffer looks like an openHAB config.
 #[must_use]
 pub fn detect(b: &[u8]) -> bool {
     let Ok(t) = std::str::from_utf8(b) else {
         return false;
     };
-    ITEMS.iter().any(|k| t.contains(&format!("{k} ")))
-        || t.contains("Thing ")
-        || t.contains("rule \"")
-        || t.contains("sitemap ")
-        || t.contains("Bridge ")
-        || t.contains("{channel=")
+    if t.contains("rule \"") || t.contains("{channel=") {
+        return true;
+    }
+    // item/block names must lead a line — `String ` / `Number ` /
+    // `Group ` are ordinary words everywhere else (GraphQL fields,
+    // config keys, headings); an openHAB item line is
+    // `<Type> <name>` with the rest empty or label/icon/group/bind
+    // markup
+    t.lines().any(|l| {
+        let s = l.trim_start();
+        if s.is_empty() || s.starts_with("//") || s.starts_with('#') {
+            return false;
+        }
+        let mut parts = s.splitn(2, char::is_whitespace);
+        let head = parts.next().unwrap_or("");
+        if matches!(head, "Thing" | "Bridge" | "bridge" | "sitemap" | "Sitemap") {
+            return true;
+        }
+        if !is_item_head(head) {
+            return false;
+        }
+        let rest = parts.next().unwrap_or("").trim_start();
+        let name = rest.split_whitespace().next().unwrap_or("");
+        let ident = |w: &str| {
+            w.chars()
+                .next()
+                .is_some_and(|c| c.is_alphabetic() || c == '_')
+                && w.chars()
+                    .all(|c| c.is_alphanumeric() || matches!(c, '_' | '.' | '-'))
+        };
+        if name.is_empty() {
+            return false;
+        }
+        if !ident(name) {
+            return false;
+        }
+        let tail = rest[name.len()..].trim_start();
+        tail.is_empty() || tail.starts_with(['"', '<', '(', '[', '{'])
+    })
 }
 
 impl Openhab {
@@ -245,5 +285,25 @@ mod tests {
     #[test]
     fn rejects_other() {
         assert!(Openhab::parse(b"foo = 1").is_none());
+        // `String`/`Group`/`Color:` as mid-line words are GraphQL
+        // fields, config keys, headings — not item declarations
+        assert!(!detect(
+            b"type User { name: String }\ninput F { x: String }\n"
+        ));
+        assert!(!detect(
+            b"structure In { id: String }\nservice S { version: \"1\" }\n"
+        ));
+        assert!(!detect(
+            b"backgroundColor: '#fff'\nstorageLocation: default\n"
+        ));
+        assert!(!detect(b"## Group Users\n### List [GET /u]\n"));
+        assert!(!detect(b"Number of atoms I 3\nCharge I 0\n"));
+        assert!(!detect(b"<Image condition=\"image\">init.exe</Image>\n"));
+        // an item name is required — a lone type word is not enough
+        assert!(!detect(b"Switch\nDimmer\n"));
+        // still accepts the openHAB item line shapes
+        assert!(detect(b"Switch Lamp \"Lamp\"\n"));
+        assert!(detect(b"Number:Temperature T1 \"T\" <temperature>\n"));
+        assert!(detect(b"Thing hue:bridge:1 \"Hub\"\n"));
     }
 }
