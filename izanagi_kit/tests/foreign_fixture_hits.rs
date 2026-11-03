@@ -117,7 +117,6 @@ const CEILINGS: &[(&str, usize)] = &[
     ("base32", 1),
     ("gradle", 1),
     ("pkl", 9),
-    ("openhab", 9),
     ("zeekscript", 8),
     ("txt2tags", 8),
     ("pppdconf", 8),
