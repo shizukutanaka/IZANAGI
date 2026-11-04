@@ -258,6 +258,15 @@ const COMMAND_KEYS: &[&str] = &[
     "hush",
 ];
 
+// Shell-grammar/generic words also present in COMMAND_KEYS for parsing; a
+// head matching only these is not U-Boot evidence
+const WEAK_COMMANDS: &[&str] = &[
+    "env", "echo", "test", "if", "then", "else", "elif", "fi", "for", "do", "done", "while",
+    "until", "source", "md", "mw", "cp", "cmp", "expr", "usb", "dhcp", "tftp", "nfs", "ping",
+    "dcache", "icache", "reset", "sleep", "usleep", "version", "help", "true", "false", "ls",
+    "unzip", "pause", "dns", "go", "load", "date", "time",
+];
+
 /// `b` を U-Boot 環境/スクリプトとして解析する。
 #[must_use]
 pub fn parse(b: &[u8]) -> Option<Counts> {
@@ -293,7 +302,9 @@ pub fn parse(b: &[u8]) -> Option<Counts> {
             }
         }
         let head = line.split([' ', '\t', ';']).next().unwrap_or("");
-        if COMMAND_KEYS.contains(&head) {
+        // `if`/`echo`/`test`/`cp` … are generic shell words found in every
+        // script; only heads specific to the U-Boot console are evidence
+        if COMMAND_KEYS.contains(&head) && !WEAK_COMMANDS.contains(&head) {
             c.commands += 1;
             known += 1;
         } else {
@@ -346,12 +357,15 @@ mod tests {
         assert!(detect(SAMPLE_SCRIPT));
         let c = parse(SAMPLE_SCRIPT).unwrap();
         assert_eq!(c.entries, 7);
-        assert_eq!(c.commands, 7);
+        // `if`/`else`/`fi` are shell grammar, not U-Boot-specific commands
+        assert_eq!(c.commands, 4);
     }
 
     #[test]
     fn rejects_other() {
         assert!(!detect(b"FOO=1\nBAR=2\n"));
+        // generic shell words alone are not U-Boot evidence
+        assert!(!detect(b"if test -n $x; then\n    echo ok\nfi\n"));
         assert!(!detect(b"bootdelay=3\n"));
     }
 }
