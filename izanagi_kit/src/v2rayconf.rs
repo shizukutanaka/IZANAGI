@@ -64,7 +64,14 @@ pub fn detect(b: &[u8]) -> bool {
             }
         }
     }
-    (hints >= 2 && keys >= 2) || keys >= 3 || hints >= 1 && keys >= 3
+    detected(hints, keys)
+}
+
+/// 検出述語の本体。`keys >= 3` が3番目の節
+/// (`hints >= 1 && keys >= 3`) を包含するため、その節は冗長で
+/// 落とせる。真理値表はテスト `detect_truth_table` が固定する。
+fn detected(hints: usize, keys: usize) -> bool {
+    keys >= 3 || (hints >= 2 && keys >= 2)
 }
 
 /// V2Ray/Xray config.json の統計。
@@ -108,6 +115,33 @@ mod tests {
         let c = parse(b);
         assert_eq!(c.keys, 2);
         assert_eq!(c.inout, 2);
+    }
+
+    #[test]
+    fn detect_truth_table() {
+        // Oracle: the pre-simplification expression, verbatim. The
+        // third clause is subsumed by `keys >= 3`; the table pins
+        // every boundary combination so the simplification cannot
+        // silently change a verdict. Pairs with keys < hints are
+        // unreachable through `detect` (every hint line is also a
+        // key line) but are pinned anyway: the predicate is total.
+        fn original(hints: usize, keys: usize) -> bool {
+            // The pre-simplification expression, evaluated clause by
+            // clause so the oracle itself stays lint-clean.
+            let both = hints >= 2 && keys >= 2;
+            let many_keys = keys >= 3;
+            let hint_and_many = hints >= 1 && keys >= 3;
+            both || many_keys || hint_and_many
+        }
+        for hints in 0..=3usize {
+            for keys in 0..=4usize {
+                assert_eq!(
+                    detected(hints, keys),
+                    original(hints, keys),
+                    "hints={hints} keys={keys}"
+                );
+            }
+        }
     }
 
     #[test]
