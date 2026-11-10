@@ -150,8 +150,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("actionlint.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::actionlint::detect(&fx)
-                && izanagi_kit::actionlint::parse(&fx).is_none()
+            if izanagi_kit::actionlint::detect(&fx) && izanagi_kit::actionlint::parse(&fx).is_none()
             {
                 let key = format!("actionlint::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -165,8 +164,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("activemq.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::activemq::detect(&fx) && izanagi_kit::activemq::parse(&fx).is_none()
-            {
+            if izanagi_kit::activemq::detect(&fx) && izanagi_kit::activemq::parse(&fx).is_none() {
                 let key = format!("activemq::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -179,8 +177,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("aercconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::aercconf::detect(&fx) && izanagi_kit::aercconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::aercconf::detect(&fx) && izanagi_kit::aercconf::parse(&fx).is_none() {
                 let key = format!("aercconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -193,9 +190,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("aerospike.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::aerospike::detect(&fx)
-                && izanagi_kit::aerospike::parse(&fx).is_none()
-            {
+            if izanagi_kit::aerospike::detect(&fx) && izanagi_kit::aerospike::parse(&fx).is_none() {
                 let key = format!("aerospike::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -208,8 +203,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("aideconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::aideconf::detect(&fx) && izanagi_kit::aideconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::aideconf::detect(&fx) && izanagi_kit::aideconf::parse(&fx).is_none() {
                 let key = format!("aideconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -407,8 +401,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("appcache.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::appcache::detect(&fx) && izanagi_kit::appcache::parse(&fx).is_none()
-            {
+            if izanagi_kit::appcache::detect(&fx) && izanagi_kit::appcache::parse(&fx).is_none() {
                 let key = format!("appcache::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -421,8 +414,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("appveyor.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::appveyor::detect(&fx) && izanagi_kit::appveyor::parse(&fx).is_none()
-            {
+            if izanagi_kit::appveyor::detect(&fx) && izanagi_kit::appveyor::parse(&fx).is_none() {
                 let key = format!("appveyor::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -505,9 +497,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("argusconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::argusconf::detect(&fx)
-                && izanagi_kit::argusconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::argusconf::detect(&fx) && izanagi_kit::argusconf::parse(&fx).is_none() {
                 let key = format!("argusconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -520,8 +510,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("arkimeconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::arkimeconf::detect(&fx)
-                && izanagi_kit::arkimeconf::parse(&fx).is_none()
+            if izanagi_kit::arkimeconf::detect(&fx) && izanagi_kit::arkimeconf::parse(&fx).is_none()
             {
                 let key = format!("arkimeconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -560,9 +549,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("asciicast.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::asciicast::detect(&fx)
-                && izanagi_kit::asciicast::parse(&fx).is_none()
-            {
+            if izanagi_kit::asciicast::detect(&fx) && izanagi_kit::asciicast::parse(&fx).is_none() {
                 let key = format!("asciicast::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -614,8 +601,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("audacity.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::audacity::detect(&fx) && izanagi_kit::audacity::parse(&fx).is_none()
-            {
+            if izanagi_kit::audacity::detect(&fx) && izanagi_kit::audacity::parse(&fx).is_none() {
                 let key = format!("audacity::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -628,8 +614,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("auditdconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::auditdconf::detect(&fx)
-                && izanagi_kit::auditdconf::parse(&fx).is_none()
+            if izanagi_kit::auditdconf::detect(&fx) && izanagi_kit::auditdconf::parse(&fx).is_none()
             {
                 let key = format!("auditdconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -643,9 +628,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("auditrule.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::auditrule::detect(&fx)
-                && izanagi_kit::auditrule::parse(&fx).is_none()
-            {
+            if izanagi_kit::auditrule::detect(&fx) && izanagi_kit::auditrule::parse(&fx).is_none() {
                 let key = format!("auditrule::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -671,8 +654,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("autoyast.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::autoyast::detect(&fx) && izanagi_kit::autoyast::parse(&fx).is_none()
-            {
+            if izanagi_kit::autoyast::detect(&fx) && izanagi_kit::autoyast::parse(&fx).is_none() {
                 let key = format!("autoyast::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -697,9 +679,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("backstage.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::backstage::detect(&fx)
-                && izanagi_kit::backstage::parse(&fx).is_none()
-            {
+            if izanagi_kit::backstage::detect(&fx) && izanagi_kit::backstage::parse(&fx).is_none() {
                 let key = format!("backstage::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -817,8 +797,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("bogofilter.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::bogofilter::detect(&fx)
-                && izanagi_kit::bogofilter::parse(&fx).is_none()
+            if izanagi_kit::bogofilter::detect(&fx) && izanagi_kit::bogofilter::parse(&fx).is_none()
             {
                 let key = format!("bogofilter::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -885,9 +864,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("buildkitd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::buildkitd::detect(&fx)
-                && izanagi_kit::buildkitd::parse(&fx).is_none()
-            {
+            if izanagi_kit::buildkitd::detect(&fx) && izanagi_kit::buildkitd::parse(&fx).is_none() {
                 let key = format!("buildkitd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -900,9 +877,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("buildkite.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::buildkite::detect(&fx)
-                && izanagi_kit::buildkite::parse(&fx).is_none()
-            {
+            if izanagi_kit::buildkite::detect(&fx) && izanagi_kit::buildkite::parse(&fx).is_none() {
                 let key = format!("buildkite::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -943,9 +918,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("calamares.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::calamares::detect(&fx)
-                && izanagi_kit::calamares::parse(&fx).is_none()
-            {
+            if izanagi_kit::calamares::detect(&fx) && izanagi_kit::calamares::parse(&fx).is_none() {
                 let key = format!("calamares::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -999,9 +972,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("cargoconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cargoconf::detect(&fx)
-                && izanagi_kit::cargoconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::cargoconf::detect(&fx) && izanagi_kit::cargoconf::parse(&fx).is_none() {
                 let key = format!("cargoconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1039,8 +1010,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("cephconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cephconf::detect(&fx) && izanagi_kit::cephconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::cephconf::detect(&fx) && izanagi_kit::cephconf::parse(&fx).is_none() {
                 let key = format!("cephconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1053,8 +1023,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("changesets.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::changesets::detect(&fx)
-                && izanagi_kit::changesets::parse(&fx).is_none()
+            if izanagi_kit::changesets::detect(&fx) && izanagi_kit::changesets::parse(&fx).is_none()
             {
                 let key = format!("changesets::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -1068,9 +1037,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("chaosmesh.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::chaosmesh::detect(&fx)
-                && izanagi_kit::chaosmesh::parse(&fx).is_none()
-            {
+            if izanagi_kit::chaosmesh::detect(&fx) && izanagi_kit::chaosmesh::parse(&fx).is_none() {
                 let key = format!("chaosmesh::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1095,8 +1062,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("chronyconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::chronyconf::detect(&fx)
-                && izanagi_kit::chronyconf::parse(&fx).is_none()
+            if izanagi_kit::chronyconf::detect(&fx) && izanagi_kit::chronyconf::parse(&fx).is_none()
             {
                 let key = format!("chronyconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -1202,9 +1168,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("cocosproj.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cocosproj::detect(&fx)
-                && izanagi_kit::cocosproj::parse(&fx).is_none()
-            {
+            if izanagi_kit::cocosproj::detect(&fx) && izanagi_kit::cocosproj::parse(&fx).is_none() {
                 let key = format!("cocosproj::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1245,9 +1209,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("codespell.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::codespell::detect(&fx)
-                && izanagi_kit::codespell::parse(&fx).is_none()
-            {
+            if izanagi_kit::codespell::detect(&fx) && izanagi_kit::codespell::parse(&fx).is_none() {
                 let key = format!("codespell::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1273,8 +1235,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("commitlint.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::commitlint::detect(&fx)
-                && izanagi_kit::commitlint::parse(&fx).is_none()
+            if izanagi_kit::commitlint::detect(&fx) && izanagi_kit::commitlint::parse(&fx).is_none()
             {
                 let key = format!("commitlint::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -1303,9 +1264,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("cookiejar.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cookiejar::detect(&fx)
-                && izanagi_kit::cookiejar::parse(&fx).is_none()
-            {
+            if izanagi_kit::cookiejar::detect(&fx) && izanagi_kit::cookiejar::parse(&fx).is_none() {
                 let key = format!("cookiejar::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1331,8 +1290,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("corosync.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::corosync::detect(&fx) && izanagi_kit::corosync::parse(&fx).is_none()
-            {
+            if izanagi_kit::corosync::detect(&fx) && izanagi_kit::corosync::parse(&fx).is_none() {
                 let key = format!("corosync::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1345,9 +1303,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("coveralls.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::coveralls::detect(&fx)
-                && izanagi_kit::coveralls::parse(&fx).is_none()
-            {
+            if izanagi_kit::coveralls::detect(&fx) && izanagi_kit::coveralls::parse(&fx).is_none() {
                 let key = format!("coveralls::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1360,8 +1316,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("cpanfile.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cpanfile::detect(&fx) && izanagi_kit::cpanfile::parse(&fx).is_none()
-            {
+            if izanagi_kit::cpanfile::detect(&fx) && izanagi_kit::cpanfile::parse(&fx).is_none() {
                 let key = format!("cpanfile::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1426,9 +1381,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("crockford.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::crockford::detect(&fx)
-                && izanagi_kit::crockford::parse(&fx).is_none()
-            {
+            if izanagi_kit::crockford::detect(&fx) && izanagi_kit::crockford::parse(&fx).is_none() {
                 let key = format!("crockford::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1453,8 +1406,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("crossplane.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::crossplane::detect(&fx)
-                && izanagi_kit::crossplane::parse(&fx).is_none()
+            if izanagi_kit::crossplane::detect(&fx) && izanagi_kit::crossplane::parse(&fx).is_none()
             {
                 let key = format!("crossplane::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -1544,8 +1496,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("curaconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::curaconf::detect(&fx) && izanagi_kit::curaconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::curaconf::detect(&fx) && izanagi_kit::curaconf::parse(&fx).is_none() {
                 let key = format!("curaconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1623,9 +1574,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("defconfig.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::defconfig::detect(&fx)
-                && izanagi_kit::defconfig::parse(&fx).is_none()
-            {
+            if izanagi_kit::defconfig::detect(&fx) && izanagi_kit::defconfig::parse(&fx).is_none() {
                 let key = format!("defconfig::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1638,8 +1587,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("defoldproj.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::defoldproj::detect(&fx)
-                && izanagi_kit::defoldproj::parse(&fx).is_none()
+            if izanagi_kit::defoldproj::detect(&fx) && izanagi_kit::defoldproj::parse(&fx).is_none()
             {
                 let key = format!("defoldproj::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -1665,8 +1613,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("dependabot.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::dependabot::detect(&fx)
-                && izanagi_kit::dependabot::parse(&fx).is_none()
+            if izanagi_kit::dependabot::detect(&fx) && izanagi_kit::dependabot::parse(&fx).is_none()
             {
                 let key = format!("dependabot::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -1708,8 +1655,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("dhcpcdconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::dhcpcdconf::detect(&fx)
-                && izanagi_kit::dhcpcdconf::parse(&fx).is_none()
+            if izanagi_kit::dhcpcdconf::detect(&fx) && izanagi_kit::dhcpcdconf::parse(&fx).is_none()
             {
                 let key = format!("dhcpcdconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -1799,9 +1745,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("discourse.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::discourse::detect(&fx)
-                && izanagi_kit::discourse::parse(&fx).is_none()
-            {
+            if izanagi_kit::discourse::detect(&fx) && izanagi_kit::discourse::parse(&fx).is_none() {
                 let key = format!("discourse::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -1908,8 +1852,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("drbdconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::drbdconf::detect(&fx) && izanagi_kit::drbdconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::drbdconf::detect(&fx) && izanagi_kit::drbdconf::parse(&fx).is_none() {
                 let key = format!("drbdconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2000,8 +1943,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("eaglexml.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::eaglexml::detect(&fx) && izanagi_kit::eaglexml::parse(&fx).is_none()
-            {
+            if izanagi_kit::eaglexml::detect(&fx) && izanagi_kit::eaglexml::parse(&fx).is_none() {
                 let key = format!("eaglexml::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2053,8 +1995,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("ejabberd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ejabberd::detect(&fx) && izanagi_kit::ejabberd::parse(&fx).is_none()
-            {
+            if izanagi_kit::ejabberd::detect(&fx) && izanagi_kit::ejabberd::parse(&fx).is_none() {
                 let key = format!("ejabberd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2146,8 +2087,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("fail2ban.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::fail2ban::detect(&fx) && izanagi_kit::fail2ban::parse(&fx).is_none()
-            {
+            if izanagi_kit::fail2ban::detect(&fx) && izanagi_kit::fail2ban::parse(&fx).is_none() {
                 let key = format!("fail2ban::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2172,9 +2112,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("falcoconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::falcoconf::detect(&fx)
-                && izanagi_kit::falcoconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::falcoconf::detect(&fx) && izanagi_kit::falcoconf::parse(&fx).is_none() {
                 let key = format!("falcoconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2383,8 +2321,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("footconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::footconf::detect(&fx) && izanagi_kit::footconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::footconf::detect(&fx) && izanagi_kit::footconf::parse(&fx).is_none() {
                 let key = format!("footconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2448,8 +2385,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("garnetconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::garnetconf::detect(&fx)
-                && izanagi_kit::garnetconf::parse(&fx).is_none()
+            if izanagi_kit::garnetconf::detect(&fx) && izanagi_kit::garnetconf::parse(&fx).is_none()
             {
                 let key = format!("garnetconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -2463,8 +2399,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("gatekeeper.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::gatekeeper::detect(&fx)
-                && izanagi_kit::gatekeeper::parse(&fx).is_none()
+            if izanagi_kit::gatekeeper::detect(&fx) && izanagi_kit::gatekeeper::parse(&fx).is_none()
             {
                 let key = format!("gatekeeper::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -2478,8 +2413,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("gbstudio.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::gbstudio::detect(&fx) && izanagi_kit::gbstudio::parse(&fx).is_none()
-            {
+            if izanagi_kit::gbstudio::detect(&fx) && izanagi_kit::gbstudio::parse(&fx).is_none() {
                 let key = format!("gbstudio::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2556,8 +2490,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("gethconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::gethconf::detect(&fx) && izanagi_kit::gethconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::gethconf::detect(&fx) && izanagi_kit::gethconf::parse(&fx).is_none() {
                 let key = format!("gethconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2664,9 +2597,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("glusterfs.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::glusterfs::detect(&fx)
-                && izanagi_kit::glusterfs::parse(&fx).is_none()
-            {
+            if izanagi_kit::glusterfs::detect(&fx) && izanagi_kit::glusterfs::parse(&fx).is_none() {
                 let key = format!("glusterfs::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2717,8 +2648,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("goreleaser.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::goreleaser::detect(&fx)
-                && izanagi_kit::goreleaser::parse(&fx).is_none()
+            if izanagi_kit::goreleaser::detect(&fx) && izanagi_kit::goreleaser::parse(&fx).is_none()
             {
                 let key = format!("goreleaser::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -2832,8 +2762,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("grubconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::grubconf::detect(&fx) && izanagi_kit::grubconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::grubconf::detect(&fx) && izanagi_kit::grubconf::parse(&fx).is_none() {
                 let key = format!("grubconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -2887,8 +2816,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("hadoopconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::hadoopconf::detect(&fx)
-                && izanagi_kit::hadoopconf::parse(&fx).is_none()
+            if izanagi_kit::hadoopconf::detect(&fx) && izanagi_kit::hadoopconf::parse(&fx).is_none()
             {
                 let key = format!("hadoopconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -3059,8 +2987,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("hydrogen.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::hydrogen::detect(&fx) && izanagi_kit::hydrogen::parse(&fx).is_none()
-            {
+            if izanagi_kit::hydrogen::detect(&fx) && izanagi_kit::hydrogen::parse(&fx).is_none() {
                 let key = format!("hydrogen::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3204,8 +3131,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("ipxescript.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ipxescript::detect(&fx)
-                && izanagi_kit::ipxescript::parse(&fx).is_none()
+            if izanagi_kit::ipxescript::detect(&fx) && izanagi_kit::ipxescript::parse(&fx).is_none()
             {
                 let key = format!("ipxescript::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -3245,8 +3171,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("isabelle.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::isabelle::detect(&fx) && izanagi_kit::isabelle::parse(&fx).is_none()
-            {
+            if izanagi_kit::isabelle::detect(&fx) && izanagi_kit::isabelle::parse(&fx).is_none() {
                 let key = format!("isabelle::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3337,8 +3262,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("itermdyn.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::itermdyn::detect(&fx) && izanagi_kit::itermdyn::parse(&fx).is_none()
-            {
+            if izanagi_kit::itermdyn::detect(&fx) && izanagi_kit::itermdyn::parse(&fx).is_none() {
                 let key = format!("itermdyn::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3483,8 +3407,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("jsonpath.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::jsonpath::detect(&fx) && izanagi_kit::jsonpath::parse(&fx).is_none()
-            {
+            if izanagi_kit::jsonpath::detect(&fx) && izanagi_kit::jsonpath::parse(&fx).is_none() {
                 let key = format!("jsonpath::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3497,8 +3420,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("justfile.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::justfile::detect(&fx) && izanagi_kit::justfile::parse(&fx).is_none()
-            {
+            if izanagi_kit::justfile::detect(&fx) && izanagi_kit::justfile::parse(&fx).is_none() {
                 let key = format!("justfile::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3664,9 +3586,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("keydbconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::keydbconf::detect(&fx)
-                && izanagi_kit::keydbconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::keydbconf::detect(&fx) && izanagi_kit::keydbconf::parse(&fx).is_none() {
                 let key = format!("keydbconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3692,8 +3612,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("kicadpcb.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::kicadpcb::detect(&fx) && izanagi_kit::kicadpcb::parse(&fx).is_none()
-            {
+            if izanagi_kit::kicadpcb::detect(&fx) && izanagi_kit::kicadpcb::parse(&fx).is_none() {
                 let key = format!("kicadpcb::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3706,8 +3625,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("kicadpro.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::kicadpro::detect(&fx) && izanagi_kit::kicadpro::parse(&fx).is_none()
-            {
+            if izanagi_kit::kicadpro::detect(&fx) && izanagi_kit::kicadpro::parse(&fx).is_none() {
                 let key = format!("kicadpro::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3720,8 +3638,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("kicadsch.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::kicadsch::detect(&fx) && izanagi_kit::kicadsch::parse(&fx).is_none()
-            {
+            if izanagi_kit::kicadsch::detect(&fx) && izanagi_kit::kicadsch::parse(&fx).is_none() {
                 let key = format!("kicadsch::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3734,9 +3651,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("kickstart.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::kickstart::detect(&fx)
-                && izanagi_kit::kickstart::parse(&fx).is_none()
-            {
+            if izanagi_kit::kickstart::detect(&fx) && izanagi_kit::kickstart::parse(&fx).is_none() {
                 let key = format!("kickstart::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3762,8 +3677,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("kittyimg.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::kittyimg::detect(&fx) && izanagi_kit::kittyimg::parse(&fx).is_none()
-            {
+            if izanagi_kit::kittyimg::detect(&fx) && izanagi_kit::kittyimg::parse(&fx).is_none() {
                 let key = format!("kittyimg::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3804,8 +3718,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("knexfile.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::knexfile::detect(&fx) && izanagi_kit::knexfile::parse(&fx).is_none()
-            {
+            if izanagi_kit::knexfile::detect(&fx) && izanagi_kit::knexfile::parse(&fx).is_none() {
                 let key = format!("knexfile::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3831,8 +3744,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("krb5conf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::krb5conf::detect(&fx) && izanagi_kit::krb5conf::parse(&fx).is_none()
-            {
+            if izanagi_kit::krb5conf::detect(&fx) && izanagi_kit::krb5conf::parse(&fx).is_none() {
                 let key = format!("krb5conf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3884,8 +3796,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("ldirectord.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ldirectord::detect(&fx)
-                && izanagi_kit::ldirectord::parse(&fx).is_none()
+            if izanagi_kit::ldirectord::detect(&fx) && izanagi_kit::ldirectord::parse(&fx).is_none()
             {
                 let key = format!("ldirectord::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -3950,8 +3861,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("lefthook.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::lefthook::detect(&fx) && izanagi_kit::lefthook::parse(&fx).is_none()
-            {
+            if izanagi_kit::lefthook::detect(&fx) && izanagi_kit::lefthook::parse(&fx).is_none() {
                 let key = format!("lefthook::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -3964,9 +3874,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("leiningen.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::leiningen::detect(&fx)
-                && izanagi_kit::leiningen::parse(&fx).is_none()
-            {
+            if izanagi_kit::leiningen::detect(&fx) && izanagi_kit::leiningen::parse(&fx).is_none() {
                 let key = format!("leiningen::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4005,8 +3913,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("lintstaged.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::lintstaged::detect(&fx)
-                && izanagi_kit::lintstaged::parse(&fx).is_none()
+            if izanagi_kit::lintstaged::detect(&fx) && izanagi_kit::lintstaged::parse(&fx).is_none()
             {
                 let key = format!("lintstaged::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -4020,9 +3927,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("liquibase.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::liquibase::detect(&fx)
-                && izanagi_kit::liquibase::parse(&fx).is_none()
-            {
+            if izanagi_kit::liquibase::detect(&fx) && izanagi_kit::liquibase::parse(&fx).is_none() {
                 let key = format!("liquibase::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4099,8 +4004,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("log4perl.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::log4perl::detect(&fx) && izanagi_kit::log4perl::parse(&fx).is_none()
-            {
+            if izanagi_kit::log4perl::detect(&fx) && izanagi_kit::log4perl::parse(&fx).is_none() {
                 let key = format!("log4perl::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4126,9 +4030,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("logindefs.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::logindefs::detect(&fx)
-                && izanagi_kit::logindefs::parse(&fx).is_none()
-            {
+            if izanagi_kit::logindefs::detect(&fx) && izanagi_kit::logindefs::parse(&fx).is_none() {
                 let key = format!("logindefs::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4141,9 +4043,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("logrotate.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::logrotate::detect(&fx)
-                && izanagi_kit::logrotate::parse(&fx).is_none()
-            {
+            if izanagi_kit::logrotate::detect(&fx) && izanagi_kit::logrotate::parse(&fx).is_none() {
                 let key = format!("logrotate::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4169,8 +4069,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("loveconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::loveconf::detect(&fx) && izanagi_kit::loveconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::loveconf::detect(&fx) && izanagi_kit::loveconf::parse(&fx).is_none() {
                 let key = format!("loveconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4299,9 +4198,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("lynisconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::lynisconf::detect(&fx)
-                && izanagi_kit::lynisconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::lynisconf::detect(&fx) && izanagi_kit::lynisconf::parse(&fx).is_none() {
                 let key = format!("lynisconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4340,8 +4237,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("macaroon.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::macaroon::detect(&fx) && izanagi_kit::macaroon::parse(&fx).is_none()
-            {
+            if izanagi_kit::macaroon::detect(&fx) && izanagi_kit::macaroon::parse(&fx).is_none() {
                 let key = format!("macaroon::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4367,8 +4263,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("maildrop.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::maildrop::detect(&fx) && izanagi_kit::maildrop::parse(&fx).is_none()
-            {
+            if izanagi_kit::maildrop::detect(&fx) && izanagi_kit::maildrop::parse(&fx).is_none() {
                 let key = format!("maildrop::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4381,8 +4276,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("mameconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mameconf::detect(&fx) && izanagi_kit::mameconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::mameconf::detect(&fx) && izanagi_kit::mameconf::parse(&fx).is_none() {
                 let key = format!("mameconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4408,9 +4302,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("mapnikxml.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mapnikxml::detect(&fx)
-                && izanagi_kit::mapnikxml::parse(&fx).is_none()
-            {
+            if izanagi_kit::mapnikxml::detect(&fx) && izanagi_kit::mapnikxml::parse(&fx).is_none() {
                 let key = format!("mapnikxml::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4466,8 +4358,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("marlinconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::marlinconf::detect(&fx)
-                && izanagi_kit::marlinconf::parse(&fx).is_none()
+            if izanagi_kit::marlinconf::detect(&fx) && izanagi_kit::marlinconf::parse(&fx).is_none()
             {
                 let key = format!("marlinconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -4508,8 +4399,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("mattermost.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mattermost::detect(&fx)
-                && izanagi_kit::mattermost::parse(&fx).is_none()
+            if izanagi_kit::mattermost::detect(&fx) && izanagi_kit::mattermost::parse(&fx).is_none()
             {
                 let key = format!("mattermost::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -4549,8 +4439,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("mbsyncrc.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mbsyncrc::detect(&fx) && izanagi_kit::mbsyncrc::parse(&fx).is_none()
-            {
+            if izanagi_kit::mbsyncrc::detect(&fx) && izanagi_kit::mbsyncrc::parse(&fx).is_none() {
                 let key = format!("mbsyncrc::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4614,9 +4503,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("mediawiki.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mediawiki::detect(&fx)
-                && izanagi_kit::mediawiki::parse(&fx).is_none()
-            {
+            if izanagi_kit::mediawiki::detect(&fx) && izanagi_kit::mediawiki::parse(&fx).is_none() {
                 let key = format!("mediawiki::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4720,8 +4607,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("metallib.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::metallib::detect(&fx) && izanagi_kit::metallib::parse(&fx).is_none()
-            {
+            if izanagi_kit::metallib::detect(&fx) && izanagi_kit::metallib::parse(&fx).is_none() {
                 let key = format!("metallib::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -4747,9 +4633,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("mimirconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mimirconf::detect(&fx)
-                && izanagi_kit::mimirconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::mimirconf::detect(&fx) && izanagi_kit::mimirconf::parse(&fx).is_none() {
                 let key = format!("mimirconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5023,8 +4907,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("musicxml.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::musicxml::detect(&fx) && izanagi_kit::musicxml::parse(&fx).is_none()
-            {
+            if izanagi_kit::musicxml::detect(&fx) && izanagi_kit::musicxml::parse(&fx).is_none() {
                 let key = format!("musicxml::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5172,8 +5055,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("networkd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::networkd::detect(&fx) && izanagi_kit::networkd::parse(&fx).is_none()
-            {
+            if izanagi_kit::networkd::detect(&fx) && izanagi_kit::networkd::parse(&fx).is_none() {
                 let key = format!("networkd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5186,8 +5068,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("newsboat.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::newsboat::detect(&fx) && izanagi_kit::newsboat::parse(&fx).is_none()
-            {
+            if izanagi_kit::newsboat::detect(&fx) && izanagi_kit::newsboat::parse(&fx).is_none() {
                 let key = format!("newsboat::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5200,9 +5081,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("newsyslog.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::newsyslog::detect(&fx)
-                && izanagi_kit::newsyslog::parse(&fx).is_none()
-            {
+            if izanagi_kit::newsyslog::detect(&fx) && izanagi_kit::newsyslog::parse(&fx).is_none() {
                 let key = format!("newsyslog::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5253,8 +5132,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("nfsexports.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nfsexports::detect(&fx)
-                && izanagi_kit::nfsexports::parse(&fx).is_none()
+            if izanagi_kit::nfsexports::detect(&fx) && izanagi_kit::nfsexports::parse(&fx).is_none()
             {
                 let key = format!("nfsexports::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -5307,8 +5185,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("nififlow.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nififlow::detect(&fx) && izanagi_kit::nififlow::parse(&fx).is_none()
-            {
+            if izanagi_kit::nififlow::detect(&fx) && izanagi_kit::nififlow::parse(&fx).is_none() {
                 let key = format!("nififlow::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5360,8 +5237,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("nlogconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nlogconf::detect(&fx) && izanagi_kit::nlogconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::nlogconf::detect(&fx) && izanagi_kit::nlogconf::parse(&fx).is_none() {
                 let key = format!("nlogconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5414,9 +5290,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("nslcdconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nslcdconf::detect(&fx)
-                && izanagi_kit::nslcdconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::nslcdconf::detect(&fx) && izanagi_kit::nslcdconf::parse(&fx).is_none() {
                 let key = format!("nslcdconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5545,9 +5419,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("octoprint.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::octoprint::detect(&fx)
-                && izanagi_kit::octoprint::parse(&fx).is_none()
-            {
+            if izanagi_kit::octoprint::detect(&fx) && izanagi_kit::octoprint::parse(&fx).is_none() {
                 let key = format!("octoprint::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5677,8 +5549,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("openntpd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::openntpd::detect(&fx) && izanagi_kit::openntpd::parse(&fx).is_none()
-            {
+            if izanagi_kit::openntpd::detect(&fx) && izanagi_kit::openntpd::parse(&fx).is_none() {
                 let key = format!("openntpd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5691,8 +5562,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("orcaslicer.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::orcaslicer::detect(&fx)
-                && izanagi_kit::orcaslicer::parse(&fx).is_none()
+            if izanagi_kit::orcaslicer::detect(&fx) && izanagi_kit::orcaslicer::parse(&fx).is_none()
             {
                 let key = format!("orcaslicer::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -5775,9 +5645,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("ossecconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ossecconf::detect(&fx)
-                && izanagi_kit::ossecconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::ossecconf::detect(&fx) && izanagi_kit::ossecconf::parse(&fx).is_none() {
                 let key = format!("ossecconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5853,8 +5721,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("pamstack.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pamstack::detect(&fx) && izanagi_kit::pamstack::parse(&fx).is_none()
-            {
+            if izanagi_kit::pamstack::detect(&fx) && izanagi_kit::pamstack::parse(&fx).is_none() {
                 let key = format!("pamstack::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5880,8 +5747,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("parityconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::parityconf::detect(&fx)
-                && izanagi_kit::parityconf::parse(&fx).is_none()
+            if izanagi_kit::parityconf::detect(&fx) && izanagi_kit::parityconf::parse(&fx).is_none()
             {
                 let key = format!("parityconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -5908,9 +5774,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("pcsx2conf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pcsx2conf::detect(&fx)
-                && izanagi_kit::pcsx2conf::parse(&fx).is_none()
-            {
+            if izanagi_kit::pcsx2conf::detect(&fx) && izanagi_kit::pcsx2conf::parse(&fx).is_none() {
                 let key = format!("pcsx2conf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -5949,8 +5813,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("pidginconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pidginconf::detect(&fx)
-                && izanagi_kit::pidginconf::parse(&fx).is_none()
+            if izanagi_kit::pidginconf::detect(&fx) && izanagi_kit::pidginconf::parse(&fx).is_none()
             {
                 let key = format!("pidginconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6030,8 +5893,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("platformio.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::platformio::detect(&fx)
-                && izanagi_kit::platformio::parse(&fx).is_none()
+            if izanagi_kit::platformio::detect(&fx) && izanagi_kit::platformio::parse(&fx).is_none()
             {
                 let key = format!("platformio::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6045,8 +5907,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("platformsh.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::platformsh::detect(&fx)
-                && izanagi_kit::platformsh::parse(&fx).is_none()
+            if izanagi_kit::platformsh::detect(&fx) && izanagi_kit::platformsh::parse(&fx).is_none()
             {
                 let key = format!("platformsh::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6060,8 +5921,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("pmacctconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pmacctconf::detect(&fx)
-                && izanagi_kit::pmacctconf::parse(&fx).is_none()
+            if izanagi_kit::pmacctconf::detect(&fx) && izanagi_kit::pmacctconf::parse(&fx).is_none()
             {
                 let key = format!("pmacctconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6087,8 +5947,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("pppdconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pppdconf::detect(&fx) && izanagi_kit::pppdconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::pppdconf::detect(&fx) && izanagi_kit::pppdconf::parse(&fx).is_none() {
                 let key = format!("pppdconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6101,8 +5960,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("ppssppconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ppssppconf::detect(&fx)
-                && izanagi_kit::ppssppconf::parse(&fx).is_none()
+            if izanagi_kit::ppssppconf::detect(&fx) && izanagi_kit::ppssppconf::parse(&fx).is_none()
             {
                 let key = format!("ppssppconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6116,9 +5974,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("precommit.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::precommit::detect(&fx)
-                && izanagi_kit::precommit::parse(&fx).is_none()
-            {
+            if izanagi_kit::precommit::detect(&fx) && izanagi_kit::precommit::parse(&fx).is_none() {
                 let key = format!("precommit::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6144,8 +6000,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("procmailrc.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::procmailrc::detect(&fx)
-                && izanagi_kit::procmailrc::parse(&fx).is_none()
+            if izanagi_kit::procmailrc::detect(&fx) && izanagi_kit::procmailrc::parse(&fx).is_none()
             {
                 let key = format!("procmailrc::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6186,9 +6041,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("proselint.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::proselint::detect(&fx)
-                && izanagi_kit::proselint::parse(&fx).is_none()
-            {
+            if izanagi_kit::proselint::detect(&fx) && izanagi_kit::proselint::parse(&fx).is_none() {
                 let key = format!("proselint::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6294,8 +6147,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("pxelinux.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pxelinux::detect(&fx) && izanagi_kit::pxelinux::parse(&fx).is_none()
-            {
+            if izanagi_kit::pxelinux::detect(&fx) && izanagi_kit::pxelinux::parse(&fx).is_none() {
                 let key = format!("pxelinux::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6321,8 +6173,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("pyroconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pyroconf::detect(&fx) && izanagi_kit::pyroconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::pyroconf::detect(&fx) && izanagi_kit::pyroconf::parse(&fx).is_none() {
                 let key = format!("pyroconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6463,8 +6314,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("rakefile.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rakefile::detect(&fx) && izanagi_kit::rakefile::parse(&fx).is_none()
-            {
+            if izanagi_kit::rakefile::detect(&fx) && izanagi_kit::rakefile::parse(&fx).is_none() {
                 let key = format!("rakefile::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6581,8 +6431,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("reiserfs.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::reiserfs::detect(&fx) && izanagi_kit::reiserfs::parse(&fx).is_none()
-            {
+            if izanagi_kit::reiserfs::detect(&fx) && izanagi_kit::reiserfs::parse(&fx).is_none() {
                 let key = format!("reiserfs::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6623,9 +6472,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("releaserc.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::releaserc::detect(&fx)
-                && izanagi_kit::releaserc::parse(&fx).is_none()
-            {
+            if izanagi_kit::releaserc::detect(&fx) && izanagi_kit::releaserc::parse(&fx).is_none() {
                 let key = format!("releaserc::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6653,8 +6500,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("renderconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::renderconf::detect(&fx)
-                && izanagi_kit::renderconf::parse(&fx).is_none()
+            if izanagi_kit::renderconf::detect(&fx) && izanagi_kit::renderconf::parse(&fx).is_none()
             {
                 let key = format!("renderconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6668,8 +6514,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("renovate.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::renovate::detect(&fx) && izanagi_kit::renovate::parse(&fx).is_none()
-            {
+            if izanagi_kit::renovate::detect(&fx) && izanagi_kit::renovate::parse(&fx).is_none() {
                 let key = format!("renovate::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6707,9 +6552,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("retroarch.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::retroarch::detect(&fx)
-                && izanagi_kit::retroarch::parse(&fx).is_none()
-            {
+            if izanagi_kit::retroarch::detect(&fx) && izanagi_kit::retroarch::parse(&fx).is_none() {
                 let key = format!("retroarch::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6722,8 +6565,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("reviveconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::reviveconf::detect(&fx)
-                && izanagi_kit::reviveconf::parse(&fx).is_none()
+            if izanagi_kit::reviveconf::detect(&fx) && izanagi_kit::reviveconf::parse(&fx).is_none()
             {
                 let key = format!("reviveconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -6763,8 +6605,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("rkhunter.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rkhunter::detect(&fx) && izanagi_kit::rkhunter::parse(&fx).is_none()
-            {
+            if izanagi_kit::rkhunter::detect(&fx) && izanagi_kit::rkhunter::parse(&fx).is_none() {
                 let key = format!("rkhunter::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6790,8 +6631,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("rocketmq.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rocketmq::detect(&fx) && izanagi_kit::rocketmq::parse(&fx).is_none()
-            {
+            if izanagi_kit::rocketmq::detect(&fx) && izanagi_kit::rocketmq::parse(&fx).is_none() {
                 let key = format!("rocketmq::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6804,8 +6644,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("rockspec.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rockspec::detect(&fx) && izanagi_kit::rockspec::parse(&fx).is_none()
-            {
+            if izanagi_kit::rockspec::detect(&fx) && izanagi_kit::rockspec::parse(&fx).is_none() {
                 let key = format!("rockspec::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6818,9 +6657,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("rpcs3conf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rpcs3conf::detect(&fx)
-                && izanagi_kit::rpcs3conf::parse(&fx).is_none()
-            {
+            if izanagi_kit::rpcs3conf::detect(&fx) && izanagi_kit::rpcs3conf::parse(&fx).is_none() {
                 let key = format!("rpcs3conf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6860,9 +6697,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("rss2email.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rss2email::detect(&fx)
-                && izanagi_kit::rss2email::parse(&fx).is_none()
-            {
+            if izanagi_kit::rss2email::detect(&fx) && izanagi_kit::rss2email::parse(&fx).is_none() {
                 let key = format!("rss2email::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -6875,8 +6710,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("rsyslogd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rsyslogd::detect(&fx) && izanagi_kit::rsyslogd::parse(&fx).is_none()
-            {
+            if izanagi_kit::rsyslogd::detect(&fx) && izanagi_kit::rsyslogd::parse(&fx).is_none() {
                 let key = format!("rsyslogd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7004,8 +6838,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("scandata.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::scandata::detect(&fx) && izanagi_kit::scandata::parse(&fx).is_none()
-            {
+            if izanagi_kit::scandata::detect(&fx) && izanagi_kit::scandata::parse(&fx).is_none() {
                 let key = format!("scandata::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7082,8 +6915,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("sddmconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sddmconf::detect(&fx) && izanagi_kit::sddmconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::sddmconf::detect(&fx) && izanagi_kit::sddmconf::parse(&fx).is_none() {
                 let key = format!("sddmconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7096,9 +6928,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("sdkconfig.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sdkconfig::detect(&fx)
-                && izanagi_kit::sdkconfig::parse(&fx).is_none()
-            {
+            if izanagi_kit::sdkconfig::detect(&fx) && izanagi_kit::sdkconfig::parse(&fx).is_none() {
                 let key = format!("sdkconfig::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7241,9 +7071,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("shorewall.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::shorewall::detect(&fx)
-                && izanagi_kit::shorewall::parse(&fx).is_none()
-            {
+            if izanagi_kit::shorewall::detect(&fx) && izanagi_kit::shorewall::parse(&fx).is_none() {
                 let key = format!("shorewall::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7284,8 +7112,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("singerconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::singerconf::detect(&fx)
-                && izanagi_kit::singerconf::parse(&fx).is_none()
+            if izanagi_kit::singerconf::detect(&fx) && izanagi_kit::singerconf::parse(&fx).is_none()
             {
                 let key = format!("singerconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -7325,8 +7152,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("slrnconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::slrnconf::detect(&fx) && izanagi_kit::slrnconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::slrnconf::detect(&fx) && izanagi_kit::slrnconf::parse(&fx).is_none() {
                 let key = format!("slrnconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7442,8 +7268,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("spicenet.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::spicenet::detect(&fx) && izanagi_kit::spicenet::parse(&fx).is_none()
-            {
+            if izanagi_kit::spicenet::detect(&fx) && izanagi_kit::spicenet::parse(&fx).is_none() {
                 let key = format!("spicenet::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7469,8 +7294,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("sqitchconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sqitchconf::detect(&fx)
-                && izanagi_kit::sqitchconf::parse(&fx).is_none()
+            if izanagi_kit::sqitchconf::detect(&fx) && izanagi_kit::sqitchconf::parse(&fx).is_none()
             {
                 let key = format!("sqitchconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -7508,8 +7332,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("sssdconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sssdconf::detect(&fx) && izanagi_kit::sssdconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::sssdconf::detect(&fx) && izanagi_kit::sssdconf::parse(&fx).is_none() {
                 let key = format!("sssdconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7522,8 +7345,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("stardict.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::stardict::detect(&fx) && izanagi_kit::stardict::parse(&fx).is_none()
-            {
+            if izanagi_kit::stardict::detect(&fx) && izanagi_kit::stardict::parse(&fx).is_none() {
                 let key = format!("stardict::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7615,8 +7437,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("suricata.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::suricata::detect(&fx) && izanagi_kit::suricata::parse(&fx).is_none()
-            {
+            if izanagi_kit::suricata::detect(&fx) && izanagi_kit::suricata::parse(&fx).is_none() {
                 let key = format!("suricata::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7681,8 +7502,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("sysctlconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sysctlconf::detect(&fx)
-                && izanagi_kit::sysctlconf::parse(&fx).is_none()
+            if izanagi_kit::sysctlconf::detect(&fx) && izanagi_kit::sysctlconf::parse(&fx).is_none()
             {
                 let key = format!("sysctlconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -7696,8 +7516,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("sysmonconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sysmonconf::detect(&fx)
-                && izanagi_kit::sysmonconf::parse(&fx).is_none()
+            if izanagi_kit::sysmonconf::detect(&fx) && izanagi_kit::sysmonconf::parse(&fx).is_none()
             {
                 let key = format!("sysmonconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -7765,9 +7584,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("tabbyconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::tabbyconf::detect(&fx)
-                && izanagi_kit::tabbyconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::tabbyconf::detect(&fx) && izanagi_kit::tabbyconf::parse(&fx).is_none() {
                 let key = format!("tabbyconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7780,9 +7597,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("tarantool.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::tarantool::detect(&fx)
-                && izanagi_kit::tarantool::parse(&fx).is_none()
-            {
+            if izanagi_kit::tarantool::detect(&fx) && izanagi_kit::tarantool::parse(&fx).is_none() {
                 let key = format!("tarantool::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7795,8 +7610,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("taskfile.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::taskfile::detect(&fx) && izanagi_kit::taskfile::parse(&fx).is_none()
-            {
+            if izanagi_kit::taskfile::detect(&fx) && izanagi_kit::taskfile::parse(&fx).is_none() {
                 let key = format!("taskfile::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7861,9 +7675,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("tempoconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::tempoconf::detect(&fx)
-                && izanagi_kit::tempoconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::tempoconf::detect(&fx) && izanagi_kit::tempoconf::parse(&fx).is_none() {
                 let key = format!("tempoconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7876,8 +7688,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("terminfo.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::terminfo::detect(&fx) && izanagi_kit::terminfo::parse(&fx).is_none()
-            {
+            if izanagi_kit::terminfo::detect(&fx) && izanagi_kit::terminfo::parse(&fx).is_none() {
                 let key = format!("terminfo::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7915,8 +7726,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("textlint.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::textlint::detect(&fx) && izanagi_kit::textlint::parse(&fx).is_none()
-            {
+            if izanagi_kit::textlint::detect(&fx) && izanagi_kit::textlint::parse(&fx).is_none() {
                 let key = format!("textlint::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -7942,8 +7752,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("thanosconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::thanosconf::detect(&fx)
-                && izanagi_kit::thanosconf::parse(&fx).is_none()
+            if izanagi_kit::thanosconf::detect(&fx) && izanagi_kit::thanosconf::parse(&fx).is_none()
             {
                 let key = format!("thanosconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -7984,9 +7793,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("timesyncd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::timesyncd::detect(&fx)
-                && izanagi_kit::timesyncd::parse(&fx).is_none()
-            {
+            if izanagi_kit::timesyncd::detect(&fx) && izanagi_kit::timesyncd::parse(&fx).is_none() {
                 let key = format!("timesyncd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8012,9 +7819,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("tmpfilesd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::tmpfilesd::detect(&fx)
-                && izanagi_kit::tmpfilesd::parse(&fx).is_none()
-            {
+            if izanagi_kit::tmpfilesd::detect(&fx) && izanagi_kit::tmpfilesd::parse(&fx).is_none() {
                 let key = format!("tmpfilesd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8065,8 +7870,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("travisci.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::travisci::detect(&fx) && izanagi_kit::travisci::parse(&fx).is_none()
-            {
+            if izanagi_kit::travisci::detect(&fx) && izanagi_kit::travisci::parse(&fx).is_none() {
                 let key = format!("travisci::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8153,8 +7957,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("txt2tags.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::txt2tags::detect(&fx) && izanagi_kit::txt2tags::parse(&fx).is_none()
-            {
+            if izanagi_kit::txt2tags::detect(&fx) && izanagi_kit::txt2tags::parse(&fx).is_none() {
                 let key = format!("txt2tags::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8195,8 +7998,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("ubootenv.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ubootenv::detect(&fx) && izanagi_kit::ubootenv::parse(&fx).is_none()
-            {
+            if izanagi_kit::ubootenv::detect(&fx) && izanagi_kit::ubootenv::parse(&fx).is_none() {
                 let key = format!("ubootenv::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8221,9 +8023,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("udevrules.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::udevrules::detect(&fx)
-                && izanagi_kit::udevrules::parse(&fx).is_none()
-            {
+            if izanagi_kit::udevrules::detect(&fx) && izanagi_kit::udevrules::parse(&fx).is_none() {
                 let key = format!("udevrules::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8236,8 +8036,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("ufwrules.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ufwrules::detect(&fx) && izanagi_kit::ufwrules::parse(&fx).is_none()
-            {
+            if izanagi_kit::ufwrules::detect(&fx) && izanagi_kit::ufwrules::parse(&fx).is_none() {
                 let key = format!("ufwrules::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8293,8 +8092,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("unrealircd.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::unrealircd::detect(&fx)
-                && izanagi_kit::unrealircd::parse(&fx).is_none()
+            if izanagi_kit::unrealircd::detect(&fx) && izanagi_kit::unrealircd::parse(&fx).is_none()
             {
                 let key = format!("unrealircd::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -8347,8 +8145,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("userscript.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::userscript::detect(&fx)
-                && izanagi_kit::userscript::parse(&fx).is_none()
+            if izanagi_kit::userscript::detect(&fx) && izanagi_kit::userscript::parse(&fx).is_none()
             {
                 let key = format!("userscript::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -8400,8 +8197,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("valkeyconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::valkeyconf::detect(&fx)
-                && izanagi_kit::valkeyconf::parse(&fx).is_none()
+            if izanagi_kit::valkeyconf::detect(&fx) && izanagi_kit::valkeyconf::parse(&fx).is_none()
             {
                 let key = format!("valkeyconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -8454,8 +8250,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("vercelconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::vercelconf::detect(&fx)
-                && izanagi_kit::vercelconf::parse(&fx).is_none()
+            if izanagi_kit::vercelconf::detect(&fx) && izanagi_kit::vercelconf::parse(&fx).is_none()
             {
                 let key = format!("vercelconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -8601,8 +8396,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("westconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::westconf::detect(&fx) && izanagi_kit::westconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::westconf::detect(&fx) && izanagi_kit::westconf::parse(&fx).is_none() {
                 let key = format!("westconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8615,8 +8409,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("westonconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::westonconf::detect(&fx)
-                && izanagi_kit::westonconf::parse(&fx).is_none()
+            if izanagi_kit::westonconf::detect(&fx) && izanagi_kit::westonconf::parse(&fx).is_none()
             {
                 let key = format!("westonconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -8658,9 +8451,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("widgetxml.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::widgetxml::detect(&fx)
-                && izanagi_kit::widgetxml::parse(&fx).is_none()
-            {
+            if izanagi_kit::widgetxml::detect(&fx) && izanagi_kit::widgetxml::parse(&fx).is_none() {
                 let key = format!("widgetxml::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8743,8 +8534,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("woodpecker.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::woodpecker::detect(&fx)
-                && izanagi_kit::woodpecker::parse(&fx).is_none()
+            if izanagi_kit::woodpecker::detect(&fx) && izanagi_kit::woodpecker::parse(&fx).is_none()
             {
                 let key = format!("woodpecker::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -8927,8 +8717,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("xorgconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::xorgconf::detect(&fx) && izanagi_kit::xorgconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::xorgconf::detect(&fx) && izanagi_kit::xorgconf::parse(&fx).is_none() {
                 let key = format!("xorgconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8980,8 +8769,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("xrdpconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::xrdpconf::detect(&fx) && izanagi_kit::xrdpconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::xrdpconf::detect(&fx) && izanagi_kit::xrdpconf::parse(&fx).is_none() {
                 let key = format!("xrdpconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -8994,8 +8782,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("xresources.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::xresources::detect(&fx)
-                && izanagi_kit::xresources::parse(&fx).is_none()
+            if izanagi_kit::xresources::detect(&fx) && izanagi_kit::xresources::parse(&fx).is_none()
             {
                 let key = format!("xresources::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -9061,8 +8848,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("yamllint.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::yamllint::detect(&fx) && izanagi_kit::yamllint::parse(&fx).is_none()
-            {
+            if izanagi_kit::yamllint::detect(&fx) && izanagi_kit::yamllint::parse(&fx).is_none() {
                 let key = format!("yamllint::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -9112,8 +8898,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("yuzuconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::yuzuconf::detect(&fx) && izanagi_kit::yuzuconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::yuzuconf::detect(&fx) && izanagi_kit::yuzuconf::parse(&fx).is_none() {
                 let key = format!("yuzuconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
@@ -9176,8 +8961,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("zeekscript.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::zeekscript::detect(&fx)
-                && izanagi_kit::zeekscript::parse(&fx).is_none()
+            if izanagi_kit::zeekscript::detect(&fx) && izanagi_kit::zeekscript::parse(&fx).is_none()
             {
                 let key = format!("zeekscript::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
@@ -9243,9 +9027,7 @@ fn detect_implies_parse_on_complete_fixtures() {
     {
         let text = fs::read_to_string(src.join("zulipconf.rs")).unwrap_or_default();
         for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::zulipconf::detect(&fx)
-                && izanagi_kit::zulipconf::parse(&fx).is_none()
-            {
+            if izanagi_kit::zulipconf::detect(&fx) && izanagi_kit::zulipconf::parse(&fx).is_none() {
                 let key = format!("zulipconf::{cn}");
                 if KNOWN_FRAGMENTS.contains(&key.as_str()) {
                     seen_fragments.insert(key);
