@@ -314,14 +314,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("amandaconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::amandaconf::detect(&fx) && !(true) {
-                let key = format!("amandaconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::amandaconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::amandaconf::parse(&fx);
             }
         }
     }
@@ -435,14 +434,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("aprxconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::aprxconf::detect(&fx) && !(true) {
-                let key = format!("aprxconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::aprxconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::aprxconf::parse(&fx);
             }
         }
     }
@@ -536,14 +534,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("arma3conf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::arma3conf::detect(&fx) && !(true) {
-                let key = format!("arma3conf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::arma3conf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::arma3conf::parse(&fx);
             }
         }
     }
@@ -687,14 +684,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("axports.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::axports::detect(&fx) && !(true) {
-                let key = format!("axports::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::axports::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::axports::parse(&fx);
             }
         }
     }
@@ -715,14 +711,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("baculadir.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::baculadir::detect(&fx) && !(true) {
-                let key = format!("baculadir::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::baculadir::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::baculadir::parse(&fx);
             }
         }
     }
@@ -851,14 +846,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("bsnes.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::bsnes::detect(&fx) && !(true) {
-                let key = format!("bsnes::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::bsnes::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::bsnes::parse(&fx);
             }
         }
     }
@@ -1032,14 +1026,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("cartocss.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cartocss::detect(&fx) && !(true) {
-                let key = format!("cartocss::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::cartocss::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::cartocss::parse(&fx);
             }
         }
     }
@@ -1089,14 +1082,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("chirpcsv.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::chirpcsv::detect(&fx) && !(true) {
-                let key = format!("chirpcsv::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::chirpcsv::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::chirpcsv::parse(&fx);
             }
         }
     }
@@ -1143,14 +1135,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("citraconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::citraconf::detect(&fx) && !(true) {
-                let key = format!("citraconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::citraconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::citraconf::parse(&fx);
             }
         }
     }
@@ -1449,14 +1440,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("cromwell.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cromwell::detect(&fx) && !(true) {
-                let key = format!("cromwell::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::cromwell::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::cromwell::parse(&fx);
             }
         }
     }
@@ -1477,14 +1467,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("crowdsec.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::crowdsec::detect(&fx) && !(true) {
-                let key = format!("crowdsec::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::crowdsec::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::crowdsec::parse(&fx);
             }
         }
     }
@@ -1542,14 +1531,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("cupsconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::cupsconf::detect(&fx) && !(true) {
-                let key = format!("cupsconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::cupsconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::cupsconf::parse(&fx);
             }
         }
     }
@@ -1664,14 +1652,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("denyhosts.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::denyhosts::detect(&fx) && !(true) {
-                let key = format!("denyhosts::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::denyhosts::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::denyhosts::parse(&fx);
             }
         }
     }
@@ -1774,14 +1761,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("digikamrc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::digikamrc::detect(&fx) && !(true) {
-                let key = format!("digikamrc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::digikamrc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::digikamrc::parse(&fx);
             }
         }
     }
@@ -1800,14 +1786,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("direwolfconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::direwolfconf::detect(&fx) && !(true) {
-                let key = format!("direwolfconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::direwolfconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::direwolfconf::parse(&fx);
             }
         }
     }
@@ -1882,14 +1867,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("dosboxconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::dosboxconf::detect(&fx) && !(true) {
-                let key = format!("dosboxconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::dosboxconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::dosboxconf::parse(&fx);
             }
         }
     }
@@ -2149,14 +2133,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("factoriosettings.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::factoriosettings::detect(&fx) && !(true) {
-                let key = format!("factoriosettings::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::factoriosettings::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::factoriosettings::parse(&fx);
             }
         }
     }
@@ -2176,14 +2159,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("fail2banconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::fail2banconf::detect(&fx) && !(true) {
-                let key = format!("fail2banconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::fail2banconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::fail2banconf::parse(&fx);
             }
         }
     }
@@ -2217,14 +2199,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("fceux.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::fceux::detect(&fx) && !(true) {
-                let key = format!("fceux::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::fceux::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::fceux::parse(&fx);
             }
         }
     }
@@ -2284,14 +2265,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("firejailprof.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::firejailprof::detect(&fx) && !(true) {
-                let key = format!("firejailprof::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::firejailprof::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::firejailprof::parse(&fx);
             }
         }
     }
@@ -2338,14 +2318,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("fldigiconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::fldigiconf::detect(&fx) && !(true) {
-                let key = format!("fldigiconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::fldigiconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::fldigiconf::parse(&fx);
             }
         }
     }
@@ -2430,14 +2409,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("fusesoc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::fusesoc::detect(&fx) && !(true) {
-                let key = format!("fusesoc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::fusesoc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::fusesoc::parse(&fx);
             }
         }
     }
@@ -2565,14 +2543,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("gerbera.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::gerbera::detect(&fx) && !(true) {
-                let key = format!("gerbera::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::gerbera::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::gerbera::parse(&fx);
             }
         }
     }
@@ -2592,14 +2569,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("getmailrc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::getmailrc::detect(&fx) && !(true) {
-                let key = format!("getmailrc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::getmailrc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::getmailrc::parse(&fx);
             }
         }
     }
@@ -2728,14 +2704,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("gnuplot.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::gnuplot::detect(&fx) && !(true) {
-                let key = format!("gnuplot::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::gnuplot::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::gnuplot::parse(&fx);
             }
         }
     }
@@ -2756,14 +2731,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("gostconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::gostconf::detect(&fx) && !(true) {
-                let key = format!("gostconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::gostconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::gostconf::parse(&fx);
             }
         }
     }
@@ -2795,14 +2769,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("gqrxconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::gqrxconf::detect(&fx) && !(true) {
-                let key = format!("gqrxconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::gqrxconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::gqrxconf::parse(&fx);
             }
         }
     }
@@ -2834,27 +2807,25 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("greetd.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::greetd::detect(&fx) && !(true) {
-                let key = format!("greetd::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::greetd::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::greetd::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("grubcfg.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::grubcfg::detect(&fx) && !(true) {
-                let key = format!("grubcfg::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::grubcfg::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::grubcfg::parse(&fx);
             }
         }
     }
@@ -3010,14 +2981,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("himalayaconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::himalayaconf::detect(&fx) && !(true) {
-                let key = format!("himalayaconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::himalayaconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::himalayaconf::parse(&fx);
             }
         }
     }
@@ -3102,14 +3072,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("hysteriaconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::hysteriaconf::detect(&fx) && !(true) {
-                let key = format!("hysteriaconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::hysteriaconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::hysteriaconf::parse(&fx);
             }
         }
     }
@@ -3606,14 +3575,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("kanata.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::kanata::detect(&fx) && !(true) {
-                let key = format!("kanata::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::kanata::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::kanata::parse(&fx);
             }
         }
     }
@@ -3645,14 +3613,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("kdeglobals.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::kdeglobals::detect(&fx) && !(true) {
-                let key = format!("kdeglobals::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::kdeglobals::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::kdeglobals::parse(&fx);
             }
         }
     }
@@ -3684,14 +3651,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("keyd.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::keyd::detect(&fx) && !(true) {
-                let key = format!("keyd::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::keyd::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::keyd::parse(&fx);
             }
         }
     }
@@ -3971,14 +3937,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("ledgerjournal.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ledgerjournal::detect(&fx) && !(true) {
-                let key = format!("ledgerjournal::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::ledgerjournal::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::ledgerjournal::parse(&fx);
             }
         }
     }
@@ -4108,14 +4073,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("locxml.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::locxml::detect(&fx) && !(true) {
-                let key = format!("locxml::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::locxml::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::locxml::parse(&fx);
             }
         }
     }
@@ -4283,14 +4247,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("luigi.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::luigi::detect(&fx) && !(true) {
-                let key = format!("luigi::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::luigi::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::luigi::parse(&fx);
             }
         }
     }
@@ -4517,14 +4480,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("matplotlibrc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::matplotlibrc::detect(&fx) && !(true) {
-                let key = format!("matplotlibrc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::matplotlibrc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::matplotlibrc::parse(&fx);
             }
         }
     }
@@ -4600,14 +4562,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("mcserverprops.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mcserverprops::detect(&fx) && !(true) {
-                let key = format!("mcserverprops::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::mcserverprops::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::mcserverprops::parse(&fx);
             }
         }
     }
@@ -4667,14 +4628,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("mednafen.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mednafen::detect(&fx) && !(true) {
-                let key = format!("mednafen::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::mednafen::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::mednafen::parse(&fx);
             }
         }
     }
@@ -4693,14 +4653,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("melonds.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::melonds::detect(&fx) && !(true) {
-                let key = format!("melonds::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::melonds::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::melonds::parse(&fx);
             }
         }
     }
@@ -4802,14 +4761,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("minidlna.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::minidlna::detect(&fx) && !(true) {
-                let key = format!("minidlna::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::minidlna::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::minidlna::parse(&fx);
             }
         }
     }
@@ -4895,27 +4853,25 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("mmlstyle.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mmlstyle::detect(&fx) && !(true) {
-                let key = format!("mmlstyle::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::mmlstyle::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::mmlstyle::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("modeldo.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::modeldo::detect(&fx) && !(true) {
-                let key = format!("modeldo::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::modeldo::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::modeldo::parse(&fx);
             }
         }
     }
@@ -4936,14 +4892,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("modsecurity.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::modsecurity::detect(&fx) && !(true) {
-                let key = format!("modsecurity::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::modsecurity::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::modsecurity::parse(&fx);
             }
         }
     }
@@ -5003,14 +4958,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("mpvconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::mpvconf::detect(&fx) && !(true) {
-                let key = format!("mpvconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::mpvconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::mpvconf::parse(&fx);
             }
         }
     }
@@ -5136,14 +5090,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("naxsiconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::naxsiconf::detect(&fx) && !(true) {
-                let key = format!("naxsiconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::naxsiconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::naxsiconf::parse(&fx);
             }
         }
     }
@@ -5261,14 +5214,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("nextflow.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nextflow::detect(&fx) && !(true) {
-                let key = format!("nextflow::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::nextflow::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::nextflow::parse(&fx);
             }
         }
     }
@@ -5449,14 +5401,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("nsjailcfg.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nsjailcfg::detect(&fx) && !(true) {
-                let key = format!("nsjailcfg::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::nsjailcfg::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::nsjailcfg::parse(&fx);
             }
         }
     }
@@ -5531,14 +5482,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("nullmailerconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nullmailerconf::detect(&fx) && !(true) {
-                let key = format!("nullmailerconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::nullmailerconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::nullmailerconf::parse(&fx);
             }
         }
     }
@@ -5557,14 +5507,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("nzbget.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::nzbget::detect(&fx) && !(true) {
-                let key = format!("nzbget::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::nzbget::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::nzbget::parse(&fx);
             }
         }
     }
@@ -5583,14 +5532,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("octaverc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::octaverc::detect(&fx) && !(true) {
-                let key = format!("octaverc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::octaverc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::octaverc::parse(&fx);
             }
         }
     }
@@ -5704,27 +5652,25 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("openlane.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::openlane::detect(&fx) && !(true) {
-                let key = format!("openlane::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::openlane::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::openlane::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("openmsx.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::openmsx::detect(&fx) && !(true) {
-                let key = format!("openmsx::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::openmsx::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::openmsx::parse(&fx);
             }
         }
     }
@@ -5843,27 +5789,25 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("overpass.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::overpass::detect(&fx) && !(true) {
-                let key = format!("overpass::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::overpass::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::overpass::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("pacemaker.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pacemaker::detect(&fx) && !(true) {
-                let key = format!("pacemaker::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::pacemaker::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::pacemaker::parse(&fx);
             }
         }
     }
@@ -6032,14 +5976,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("pinerc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pinerc::detect(&fx) && !(true) {
-                let key = format!("pinerc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::pinerc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::pinerc::parse(&fx);
             }
         }
     }
@@ -6131,14 +6074,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("postsrsdconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::postsrsdconf::detect(&fx) && !(true) {
-                let key = format!("postsrsdconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::postsrsdconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::postsrsdconf::parse(&fx);
             }
         }
     }
@@ -6216,14 +6158,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("projjson.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::projjson::detect(&fx) && !(true) {
-                let key = format!("projjson::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::projjson::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::projjson::parse(&fx);
             }
         }
     }
@@ -6393,14 +6334,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("pzserver.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::pzserver::detect(&fx) && !(true) {
-                let key = format!("pzserver::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::pzserver::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::pzserver::parse(&fx);
             }
         }
     }
@@ -6445,40 +6385,37 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("qpf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::qpf::detect(&fx) && !(true) {
-                let key = format!("qpf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::qpf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::qpf::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("qsf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::qsf::detect(&fx) && !(true) {
-                let key = format!("qsf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::qsf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::qsf::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("qt5ctconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::qt5ctconf::detect(&fx) && !(true) {
-                let key = format!("qt5ctconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::qt5ctconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::qt5ctconf::parse(&fx);
             }
         }
     }
@@ -6539,14 +6476,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("razorconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::razorconf::detect(&fx) && !(true) {
-                let key = format!("razorconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::razorconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::razorconf::parse(&fx);
             }
         }
     }
@@ -6578,14 +6514,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("readarr.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::readarr::detect(&fx) && !(true) {
-                let key = format!("readarr::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::readarr::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::readarr::parse(&fx);
             }
         }
     }
@@ -6746,14 +6681,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("renviron.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::renviron::detect(&fx) && !(true) {
-                let key = format!("renviron::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::renviron::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::renviron::parse(&fx);
             }
         }
     }
@@ -6913,14 +6847,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("rprofile.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::rprofile::detect(&fx) && !(true) {
-                let key = format!("rprofile::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::rprofile::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::rprofile::parse(&fx);
             }
         }
     }
@@ -6981,14 +6914,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("sabnzbd.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sabnzbd::detect(&fx) && !(true) {
-                let key = format!("sabnzbd::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::sabnzbd::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::sabnzbd::parse(&fx);
             }
         }
     }
@@ -7020,14 +6952,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("samhainconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::samhainconf::detect(&fx) && !(true) {
-                let key = format!("samhainconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::samhainconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::samhainconf::parse(&fx);
             }
         }
     }
@@ -7125,14 +7056,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("scummvm.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::scummvm::detect(&fx) && !(true) {
-                let key = format!("scummvm::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::scummvm::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::scummvm::parse(&fx);
             }
         }
     }
@@ -7180,40 +7110,37 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("sdrppconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sdrppconf::detect(&fx) && !(true) {
-                let key = format!("sdrppconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::sdrppconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::sdrppconf::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("selinuxfc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::selinuxfc::detect(&fx) && !(true) {
-                let key = format!("selinuxfc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::selinuxfc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::selinuxfc::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("selinuxte.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::selinuxte::detect(&fx) && !(true) {
-                let key = format!("selinuxte::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::selinuxte::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::selinuxte::parse(&fx);
             }
         }
     }
@@ -7247,14 +7174,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("sevendtdxml.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::sevendtdxml::detect(&fx) && !(true) {
-                let key = format!("sevendtdxml::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::sevendtdxml::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::sevendtdxml::parse(&fx);
             }
         }
     }
@@ -7451,14 +7377,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("smtpdconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::smtpdconf::detect(&fx) && !(true) {
-                let key = format!("smtpdconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::smtpdconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::smtpdconf::parse(&fx);
             }
         }
     }
@@ -7558,27 +7483,25 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("srcdscfg.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::srcdscfg::detect(&fx) && !(true) {
-                let key = format!("srcdscfg::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::srcdscfg::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::srcdscfg::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("ssmtpconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ssmtpconf::detect(&fx) && !(true) {
-                let key = format!("ssmtpconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::ssmtpconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::ssmtpconf::parse(&fx);
             }
         }
     }
@@ -7653,14 +7576,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("strongswanconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::strongswanconf::detect(&fx) && !(true) {
-                let key = format!("strongswanconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::strongswanconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::strongswanconf::parse(&fx);
             }
         }
     }
@@ -7967,14 +7889,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("terrariaconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::terrariaconf::detect(&fx) && !(true) {
-                let key = format!("terrariaconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::terrariaconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::terrariaconf::parse(&fx);
             }
         }
     }
@@ -8050,14 +7971,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("tilestacheconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::tilestacheconf::detect(&fx) && !(true) {
-                let key = format!("tilestacheconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::tilestacheconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::tilestacheconf::parse(&fx);
             }
         }
     }
@@ -8119,14 +8039,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("torrc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::torrc::detect(&fx) && !(true) {
-                let key = format!("torrc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::torrc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::torrc::parse(&fx);
             }
         }
     }
@@ -8159,40 +8078,37 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("tripwireconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::tripwireconf::detect(&fx) && !(true) {
-                let key = format!("tripwireconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::tripwireconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::tripwireconf::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("trojanconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::trojanconf::detect(&fx) && !(true) {
-                let key = format!("trojanconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::trojanconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::trojanconf::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("ts3serverini.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ts3serverini::detect(&fx) && !(true) {
-                let key = format!("ts3serverini::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::ts3serverini::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::ts3serverini::parse(&fx);
             }
         }
     }
@@ -8224,14 +8140,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("tuicconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::tuicconf::detect(&fx) && !(true) {
-                let key = format!("tuicconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::tuicconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::tuicconf::parse(&fx);
             }
         }
     }
@@ -8293,14 +8208,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("ucf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::ucf::detect(&fx) && !(true) {
-                let key = format!("ucf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::ucf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::ucf::parse(&fx);
             }
         }
     }
@@ -8460,14 +8374,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("v2rayconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::v2rayconf::detect(&fx) && !(true) {
-                let key = format!("v2rayconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::v2rayconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::v2rayconf::parse(&fx);
             }
         }
     }
@@ -8594,14 +8507,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("vlt.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::vlt::detect(&fx) && !(true) {
-                let key = format!("vlt::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::vlt::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::vlt::parse(&fx);
             }
         }
     }
@@ -8622,14 +8534,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("vrtgdal.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::vrtgdal::detect(&fx) && !(true) {
-                let key = format!("vrtgdal::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::vrtgdal::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::vrtgdal::parse(&fx);
             }
         }
     }
@@ -8819,14 +8730,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("wktproj.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::wktproj::detect(&fx) && !(true) {
-                let key = format!("wktproj::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::wktproj::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::wktproj::parse(&fx);
             }
         }
     }
@@ -8901,14 +8811,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("wsjtxconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::wsjtxconf::detect(&fx) && !(true) {
-                let key = format!("wsjtxconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::wsjtxconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::wsjtxconf::parse(&fx);
             }
         }
     }
@@ -8966,14 +8875,13 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("xinetdconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::xinetdconf::detect(&fx) && !(true) {
-                let key = format!("xinetdconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::xinetdconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::xinetdconf::parse(&fx);
             }
         }
     }
@@ -9179,27 +9087,25 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("yggdrasil.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::yggdrasil::detect(&fx) && !(true) {
-                let key = format!("yggdrasil::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::yggdrasil::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::yggdrasil::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("yosys.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::yosys::detect(&fx) && !(true) {
-                let key = format!("yosys::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::yosys::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::yosys::parse(&fx);
             }
         }
     }
@@ -9232,27 +9138,25 @@ fn detect_implies_parse_on_complete_fixtures() {
     }
     {
         let text = fs::read_to_string(src.join("zathurarc.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::zathurarc::detect(&fx) && !(true) {
-                let key = format!("zathurarc::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::zathurarc::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::zathurarc::parse(&fx);
             }
         }
     }
     {
         let text = fs::read_to_string(src.join("zeekconf.rs")).unwrap_or_default();
-        for (cn, fx) in extract_fixtures(&text) {
-            if izanagi_kit::zeekconf::detect(&fx) && !(true) {
-                let key = format!("zeekconf::{cn}");
-                if KNOWN_FRAGMENTS.contains(&key.as_str()) {
-                    seen_fragments.insert(key);
-                } else {
-                    violations.push(key);
-                }
+        for (_cn, fx) in extract_fixtures(&text) {
+            if izanagi_kit::zeekconf::detect(&fx) {
+                // `parse` is infallible for this module (it returns a
+                // summary struct, not an Option), so it cannot reject a
+                // fixture `detect` accepted: the implication holds by
+                // construction and there is nothing to record.
+                let _parse_summary = izanagi_kit::zeekconf::parse(&fx);
             }
         }
     }
