@@ -53,7 +53,7 @@ pub fn detect(b: &[u8]) -> bool {
         .lines()
         .any(|l| l.trim().starts_with("exec ") || l.trim() == "exec 2>&1");
     let wrapper = WRAPPERS.iter().any(|w| t.contains(w)) || t.contains("svlogd");
-    (shebang && exec) || (exec && wrapper)
+    exec && (shebang || wrapper)
 }
 
 impl Runit {
