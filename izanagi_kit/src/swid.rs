@@ -79,7 +79,7 @@ pub fn parse(s: &str) -> Option<Swid> {
     let root = *ids.first()?;
     // An optional `<?xml …?>` prolog may precede the root; nothing else.
     let head = s[..s.find(root)?].trim();
-    if !head.is_empty() && !(head.starts_with("<?xml") && head.ends_with("?>")) {
+    if !(head.is_empty() || (head.starts_with("<?xml") && head.ends_with("?>"))) {
         return None;
     }
     let name = attr(root, "name")?;
