@@ -85,7 +85,7 @@ pub fn detect(b: &[u8]) -> bool {
         }
     }
     // `packages:` with glob entries, or `packages:` plus a pnpm-only key.
-    (has_packages && glob_items >= 1) || (has_packages && extras >= 1)
+    has_packages && (glob_items >= 1 || extras >= 1)
 }
 
 impl PnpmWorkspace {

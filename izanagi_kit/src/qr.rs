@@ -316,8 +316,7 @@ fn function_layer(version: usize) -> Vec<Option<bool>> {
     let centres = alignment_centres(version);
     for &cy in centres {
         for &cx in centres {
-            let overlaps =
-                (cx == 6 && cy == 6) || (cx == 6 && cy == size - 7) || (cx == size - 7 && cy == 6);
+            let overlaps = (cx == 6 && (cy == 6 || cy == size - 7)) || (cx == size - 7 && cy == 6);
             if overlaps {
                 continue;
             }

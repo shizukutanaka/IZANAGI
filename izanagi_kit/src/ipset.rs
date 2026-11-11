@@ -65,7 +65,7 @@ pub fn detect(b: &[u8]) -> bool {
         Some(c) => c,
         None => return false,
     };
-    (c.creates >= 1 && c.typed_sets >= 1) || (c.creates >= 1 && c.adds >= 2)
+    c.creates >= 1 && (c.typed_sets >= 1 || c.adds >= 2)
 }
 
 /// ipset 設定を解析して `Counts` を返す。

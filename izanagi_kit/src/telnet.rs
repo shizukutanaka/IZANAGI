@@ -149,7 +149,12 @@ mod tests {
         let f = parse(b"a\xff\xffb\xff").unwrap();
         assert_eq!(f.escapes, 1);
         assert!(f.truncated);
-        assert!(parse(b"\xff\xfb").is_none() || true); // truncated ok
+        // Truncated negotiation (IAC WILL with no option byte) must
+        // not panic: it parses, flagged truncated, counting nothing.
+        let f = parse(b"\xff\xfb").unwrap();
+        assert!(f.truncated);
+        assert_eq!(f.will_wont_do_dont, 0);
+        assert!(f.options.is_empty());
         assert!(parse(b"").is_none());
         assert!(parse(b"hello").is_none());
     }
