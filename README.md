@@ -186,13 +186,6 @@ See [`izanagi/CONTRIBUTING.md`](./izanagi/CONTRIBUTING.md). Two rules:
 - New code adds tests.
 - New code adds no dependencies.
 
-## Sponsorship
-
-The crates are free under their licenses — nothing is paywalled, and there
-is no paid support or commercial tier. If IZANAGI saves you time, voluntary
-support is accepted through
-[GitHub Sponsors](https://github.com/sponsors/shizukutanaka).
-
 ## License
 
 `izanagi`: MIT — see [`izanagi/LICENSE`](./izanagi/LICENSE).
