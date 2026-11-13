@@ -1,0 +1,4 @@
+# Build artifacts of the playground crate itself. The root .gitignore's
+# `/target` covers only the workspace root, so the playground ignores its
+# own output here; its Cargo.lock is already covered by the root rules.
+/target
