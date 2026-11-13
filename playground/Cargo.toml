@@ -1,0 +1,23 @@
+# IZANAGI Playground — a terminal launcher for the workspace's examples.
+#
+# This crate is deliberately NOT a member of the root workspace: the
+# workspace's zero-dependency rule is verified against the root Cargo.lock
+# resolving exactly two crates (izanagi and izanagi_kit), and a third member
+# would break that invariant. Its own `[workspace]` table below keeps it a
+# separate, self-contained tool that only depends on the standard library.
+# It drives the examples through the `cargo` binary and the freshly built
+# example binaries, exactly like tools/gate.sh's example stage does, so the
+# library crates themselves stay untouched.
+
+[workspace]
+
+[package]
+name = "izanagi-playground"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT OR Apache-2.0"
+description = "A terminal launcher that discovers, builds and runs the IZANAGI workspace's examples as a playable playground."
+publish = false
+
+[dependencies]
