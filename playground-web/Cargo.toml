@@ -1,0 +1,29 @@
+# IZANAGI Playground (web) — runs real izanagi_kit samples in the browser.
+#
+# This crate is deliberately NOT a member of the root workspace, for the
+# same reason as ../playground: the workspace's zero-dependency rule is
+# verified against the root Cargo.lock resolving exactly the two library
+# crates, and a third member would break that invariant. Its own
+# `[workspace]` table keeps it a separate, self-contained crate. Unlike
+# ../playground (which drives the examples through the `cargo` binary and
+# therefore needs no dependencies at all), this crate must *link* the kit
+# to run it inside a WebAssembly module, so it depends on izanagi_kit by
+# path. That dependency lives entirely inside this crate's own lockfile;
+# the root workspace's manifests and lockfile are untouched.
+
+[workspace]
+
+[package]
+name = "izanagi-playground-web"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT OR Apache-2.0"
+description = "A browser playground that runs real izanagi_kit samples (terrain, WFC, dungeon) compiled to WebAssembly."
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+izanagi_kit = { path = "../izanagi_kit" }

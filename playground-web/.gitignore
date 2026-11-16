@@ -1,0 +1,7 @@
+# Build artifacts of the playground-web crate itself. The root .gitignore's
+# `/target` covers only the workspace root, so this crate ignores its own
+# output here; its Cargo.lock is already covered by the root rules. The
+# .wasm copied into web/ by build.sh is a build artifact too — the static
+# site is reproduced from source, never committed as a binary.
+/target
+/web/*.wasm

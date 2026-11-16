@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IZANAGI Playground — real samples in your browser</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 1.5rem;
+    background: #0b0b10; color: #d8d8e0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 62rem; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  p.lede { color: #9a9ab0; margin: 0 0 1rem; line-height: 1.5; }
+  p.lede code { color: #c8e6c8; }
+  .controls {
+    display: flex; flex-wrap: wrap; gap: .6rem; align-items: end;
+    margin-bottom: 1rem;
+  }
+  .controls label { display: flex; flex-direction: column; gap: .25rem; font-size: .8rem; color: #9a9ab0; }
+  select, input, button {
+    background: #17171f; color: #e8e8f0; border: 1px solid #34343f;
+    border-radius: .375rem; padding: .45rem .6rem; font-size: .95rem;
+  }
+  button { cursor: pointer; background: #1f3a24; border-color: #2f5a37; }
+  button:hover { background: #285030; }
+  #status { font-family: ui-monospace, monospace; font-size: .9rem; color: #a8d8a8; min-height: 1.2em; margin-bottom: .5rem; }
+  #screen {
+    background: #000; border: 1px solid #34343f; border-radius: .5rem;
+    padding: .6rem; overflow-x: auto;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    font-size: 13px; line-height: 1.15; white-space: pre;
+  }
+  #screen .row { display: block; }
+  #error { color: #ff9a9a; font-family: ui-monospace, monospace; white-space: pre-wrap; }
+  footer { margin-top: 1rem; color: #77778c; font-size: .85rem; line-height: 1.5; }
+</style>
+</head>
+<body>
+<main>
+  <h1>IZANAGI Playground</h1>
+  <p class="lede">
+    The real <code>izanagi_kit</code> — the deterministic simulation kit from the
+    IZANAGI workspace — compiled to WebAssembly and running entirely in this
+    page. No server, no port, no reimplementation: the same integer-only code
+    that ships as a Rust crate, driven by the seed you give it. Change the seed
+    and the world changes; keep it and the result is bit-identical, on any
+    machine. The dungeon sample prints its world hash so you can check that
+    claim against a native run.
+  </p>
+
+  <div class="controls">
+    <label>Sample
+      <select id="sample">
+        <option value="0">Noise terrain (fbm value noise)</option>
+        <option value="1">Wave-function collapse</option>
+        <option value="2">Dungeon + A* + FOV (world hash)</option>
+      </select>
+    </label>
+    <label>Seed (decimal or 0x…)
+      <input id="seed" type="text" size="22" spellcheck="false">
+    </label>
+    <button id="run" type="button">Run</button>
+  </div>
+
+  <div id="status" role="status"></div>
+  <div id="screen" aria-label="Sample output"></div>
+  <div id="error" role="alert"></div>
+
+  <footer>
+    Samples mirror the kit's own terminal demos
+    (<code>noise_terrain_demo</code>, <code>wfc_demo</code>, and the simulation
+    half of <code>kit_bridge</code>). Built with <code>./build.sh</code> from
+    the <code>playground-web/</code> crate — see its README for the frame
+    format and design notes.
+  </footer>
+</main>
+<script src="playground.js"></script>
+</body>
+</html>
