@@ -21,6 +21,18 @@
 //! // Two-component iteration (entities with BOTH T and U).
 //! w.for_each2::<u32, &str>(|_e, n, s| println!("{n} {s}"));
 //! ```
+//!
+//! ## Generation exhaustion
+//!
+//! Generations are `u32`, bumped by [`World::despawn`] (and for every
+//! slot at once by [`World::clear`]). The bump wraps: a slot whose
+//! counter is bumped at `u32::MAX` returns to generation 0, and a stale
+//! handle from that slot's first life then compares equal again — it is
+//! accepted by [`World::alive`] and sees the new entity's components.
+//! There is no wrap counter here, so the event is silent. Reaching it
+//! takes 2^32 despawns of one slot (or 2^32 `clear` calls), far beyond
+//! any bounded session; the boundary behaviour is pinned by tests so
+//! that changing this policy is always a deliberate act.
 
 use std::any::{Any, TypeId};
 use std::collections::{BTreeMap, HashMap};
@@ -132,6 +144,10 @@ impl World {
 
     /// Despawn an entity, removing all its components.
     /// Returns `false` if the handle was already invalid.
+    ///
+    /// The slot's generation is bumped with wrapping arithmetic; see the
+    /// module-level "Generation exhaustion" section for what 2^32
+    /// despawns of one slot would mean.
     pub fn despawn(&mut self, e: Entity) -> bool {
         if !self.alive(e) {
             return false;
@@ -162,6 +178,9 @@ impl World {
 
     /// Despawn every entity and remove every component column.
     /// Generations roll forward so previously-issued handles stay invalid.
+    /// The roll is a wrapping bump per slot: a slot sitting at `u32::MAX`
+    /// wraps to 0, the one case where a generation-0 handle issued before
+    /// the `clear` compares equal again (see "Generation exhaustion").
     pub fn clear(&mut self) {
         for g in self.generations.iter_mut() {
             *g = g.wrapping_add(1);
@@ -576,6 +595,53 @@ mod tests {
         assert_eq!(w.remove::<Hp>(e1), None);
         assert_eq!(w.get_mut::<Hp>(e1).map(|h| h.0), None);
         assert_eq!(w.get::<Hp>(e2), Some(&Hp(50)));
+    }
+
+    #[test]
+    fn despawn_at_generation_max_wraps_and_first_handle_aliases() {
+        // Pinned boundary behaviour (module docs, "Generation
+        // exhaustion"): the generation bump in `despawn` wraps at
+        // u32::MAX, so once the slot is recycled the first-life
+        // generation-0 handle compares equal to the fresh handle and is
+        // accepted again. Reaching this state for real takes 2^32
+        // despawns of one slot; the test constructs the boundary state
+        // directly instead of looping.
+        let mut w = World::new();
+        let e0 = w.spawn();
+        w.insert(e0, Hp(100));
+        w.generations[e0.index as usize] = u32::MAX;
+        let e_max = Entity {
+            index: e0.index,
+            gen: u32::MAX,
+        };
+        assert!(w.alive(e_max));
+        assert!(w.despawn(e_max));
+        assert_eq!(w.generations[e0.index as usize], 0, "generation wrapped");
+        let fresh = w.spawn();
+        assert_eq!(fresh, e0, "wrapped slot reissues the generation-0 handle");
+        w.insert(fresh, Hp(50));
+        assert!(w.alive(e0), "the first-life handle aliases after the wrap");
+        assert_eq!(w.get::<Hp>(e0), Some(&Hp(50)));
+    }
+
+    #[test]
+    fn clear_at_generation_max_wraps_the_slot() {
+        // `clear` bumps every generation with the same wrapping
+        // arithmetic, so a slot at u32::MAX wraps to 0 and its
+        // generation-0 handle — invalidated by every ordinary clear —
+        // compares equal again. The MAX handle itself stays invalid.
+        let mut w = World::new();
+        let e0 = w.spawn();
+        w.insert(e0, Hp(10));
+        w.generations[e0.index as usize] = u32::MAX;
+        w.clear();
+        assert_eq!(w.generations[e0.index as usize], 0);
+        assert!(w.alive(e0), "documented wrap hazard of clear()");
+        let e_max = Entity {
+            index: e0.index,
+            gen: u32::MAX,
+        };
+        assert!(!w.alive(e_max));
     }
 
     #[test]
