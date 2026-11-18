@@ -2304,6 +2304,7 @@ pub mod sieve;
 pub mod sievescript;
 pub mod sigma;
 pub mod sim;
+pub mod sim_emulator;
 pub mod simhash;
 pub mod simplex;
 pub mod singboxconf;
