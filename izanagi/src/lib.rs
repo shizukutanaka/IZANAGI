@@ -43,8 +43,8 @@
 //! `sim::Simulation` and `world_hash::DetHash` provide.
 //!
 //! **Everything else carries floats** — `render`, `math`, `ease`,
-//! `tween`, `collide`, `camera`, `time`, `input`, `audio` and the
-//! rest — and belongs to presentation, not simulation. Read from simulation
+//! `tween`, `collide`, `physics`, `camera`, `time`, `input`, `audio`
+//! and the rest — and belongs to presentation, not simulation. Read from simulation
 //! state to drive them; never let a value flow back.
 //!
 //! **`rng` is split.** Its integer half (`Rng::u64`, `Rng::u32`,
@@ -85,6 +85,7 @@ pub mod collide;
 pub mod ease;
 pub mod error;
 pub mod math;
+pub mod physics;
 pub mod rng;
 pub mod save;
 pub mod scene;
@@ -106,6 +107,7 @@ pub use ecs::{Entity, World};
 pub use error::{Error, Result};
 pub use input::{Input, Key};
 pub use math::{Mat3, Rect, Vec2, Vec3};
+pub use physics::{Body, Physics};
 pub use render::{Color, Draw, Render};
 pub use rng::Rng;
 pub use scene::{Node, Scene};

@@ -94,7 +94,7 @@ cargo run -p izanagi --example kit_bridge  # izanagi_kit sim rendered through En
 The terminal backend renders 24-bit colored half-blocks (`▀`) with ANSI escape
 sequences. No window system required.
 
-### Modules (24 total)
+### Modules (25 total)
 
 | Module | Purpose |
 | --- | --- |
@@ -115,6 +115,7 @@ sequences. No window system required.
 | `event` | typed event bus |
 | `math` | `Vec2`, `Vec3`, `Mat3`, `Rect` with operator overloads |
 | `collide` | AABB, swept AABB, ray, circle |
+| `physics` | `Body`, `Physics` — gravity, rigid-body-lite AABB response |
 | `ease` | linear, quad, cubic, back, elastic, bounce, smoothstep |
 | `rng` | xorshift64, deterministic |
 | `save` | versioned binary save format |

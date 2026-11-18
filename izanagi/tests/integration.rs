@@ -305,3 +305,50 @@ fn property_collision_swept_aabb_200() {
         }
     }
 }
+
+#[test]
+fn physics_composes_with_time_and_the_ecs_mirror_pattern() {
+    // The composition the physics module docs prescribe: `Time`'s
+    // fixed-step accumulator drives `Physics`, and a game keeps its ECS
+    // as the render-facing mirror — each entity stores its body id, and
+    // the stepped `Rect` is written back through `World::get_mut`.
+    use izanagi::physics::{Body, Physics};
+    use izanagi::{Rect, Time, World};
+
+    let mut world = World::new();
+    let mut physics = Physics::new();
+    physics.add(Body::fixed(Rect::new(-100.0, 100.0, 300.0, 20.0)));
+
+    let entity = world.spawn();
+    let ball = physics.add(Body::new(Rect::new(0.0, 0.0, 10.0, 10.0)));
+    world.insert(entity, ball);
+    world.insert(entity, Rect::new(0.0, 0.0, 10.0, 10.0));
+
+    let mut time = Time::new();
+    // advance() clamps 1.0s to 0.25s (15 steps' worth), and the
+    // accumulator drains at most 8 steps per frame — the
+    // spiral-of-death cap `time` documents. So 8 steps run.
+    time.advance(1.0);
+    let mut steps = 0;
+    while time.fixed_step() {
+        physics.step(time.fixed_dt());
+        steps += 1;
+    }
+    assert_eq!(steps, 8);
+
+    let id = *world.get::<usize>(entity).unwrap();
+    let stepped = physics.body(id).unwrap().rect;
+    if let Some(rect) = world.get_mut::<Rect>(entity) {
+        *rect = stepped;
+    }
+    let mirrored = *world.get::<Rect>(entity).unwrap();
+    assert_eq!(mirrored, stepped);
+    // 8 semi-implicit steps from rest: g*dt^2 * 8*9/2 = 9.8 units,
+    // still well short of the floor (resting y = 90), so not grounded.
+    assert!(
+        (mirrored.y - 9.8).abs() < 0.5,
+        "the ball should have fallen ≈9.8 units: y = {}",
+        mirrored.y
+    );
+    assert!(!physics.body(id).unwrap().grounded);
+}
