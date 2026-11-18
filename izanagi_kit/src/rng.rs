@@ -5,6 +5,8 @@
 //! non-determinism source (arxiv/Bevy determinism audit). Never seed from wall
 //! clock or thread-local state in code that must replay.
 
+use crate::fixed::Fixed;
+
 /// Deterministic 64-bit generator. `Clone` to snapshot/restore a stream.
 #[derive(Clone, Debug)]
 pub struct SplitMix64 {
@@ -359,6 +361,80 @@ impl SplitMix64 {
         // sum ∈ [0, 4*spread], mean = 2*spread
         // sum/2 − spread ∈ [−spread, spread], mean = 0
         (center as i64 + sum / 2 - spread as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32
+    }
+
+    /// Uniform [`Fixed`] in `[0, 1)` at full Q16.16 resolution — the
+    /// fixed-point counterpart of drawing a unit-interval float, with no
+    /// float involved. Every raw value `0..2^16` is equally likely, so the
+    /// result is always a valid probability / blend factor for
+    /// [`Fixed::lerp`]. Consumes exactly one draw.
+    #[inline]
+    pub fn next_fixed01(&mut self) -> Fixed {
+        Fixed::from_raw(self.below(1 << 16) as i32)
+    }
+
+    /// Uniform [`Fixed`] in `[min, max)` on the raw Q16.16 grid — the
+    /// fixed-point counterpart of [`range`](Self::range). An empty or
+    /// inverted range (`min >= max`) returns `min` **without** drawing,
+    /// mirroring `range` so the draw count stays a deterministic function
+    /// of the arguments. Otherwise consumes exactly one draw (the same
+    /// single [`below`](Self::below) draw over the raw span), so results
+    /// are uniform over the `max − min` representable values in the range,
+    /// including spans covering the whole `Fixed` domain.
+    #[inline]
+    pub fn range_fixed(&mut self, min: Fixed, max: Fixed) -> Fixed {
+        if min >= max {
+            return min;
+        }
+        // Span of the raw values: ∈ [1, 2^32 − 1], always fits a u32.
+        let span = (max.raw() as i64 - min.raw() as i64) as u32;
+        Fixed::from_raw((min.raw() as i64 + self.below(span) as i64) as i32)
+    }
+
+    /// Bell-shaped [`Fixed`] sample centred on `center` — the fixed-point
+    /// counterpart of [`gaussian_approx`](Self::gaussian_approx), computed
+    /// on the raw Q16.16 values so it consumes the identical 4 draws and
+    /// returns the identical distribution in `Fixed` clothing.
+    ///
+    /// The shape is the Bates distribution (the mean of 4 uniform variates;
+    /// Irwin 1927 / Hall 1947 for the sum form, Bates 1959 for the mean
+    /// form): output lies in `[center − spread, center + spread]`, peaks at
+    /// `center`, and saturates at the `Fixed` extremes rather than wrapping
+    /// when `center ± spread` leaves the representable range. A
+    /// non-positive `spread` returns `center` **without** drawing.
+    #[inline]
+    pub fn gaussian_fixed(&mut self, center: Fixed, spread: Fixed) -> Fixed {
+        if spread <= Fixed::ZERO {
+            return center;
+        }
+        Fixed::from_raw(self.gaussian_approx(center.raw(), spread.raw() as u32))
+    }
+
+    /// Pick an index in `0..weights.len()` with probability proportional
+    /// to its [`Fixed`] weight — the fixed-point counterpart of
+    /// [`weighted_index`](Self::weighted_index), for loot/spawn tables
+    /// whose weights are already `Fixed` (e.g. drop rates scaled by a
+    /// difficulty modifier). Negative weights are treated as zero, so
+    /// entries with `weight <= 0` are never chosen. Returns `None` —
+    /// without drawing — for an empty slice or when no weight is positive.
+    /// Uses a single low-bias draw; the weight sum is accumulated in `u64`
+    /// from the raw values, so many large weights cannot overflow.
+    pub fn weighted_index_fixed(&mut self, weights: &[Fixed]) -> Option<usize> {
+        let total: u64 = weights.iter().map(|w| w.raw().max(0) as u64).sum();
+        if total == 0 {
+            return None;
+        }
+        // Wide-multiply pick in [0, total), the u64 analogue of `below`.
+        let mut pick = ((self.next_u64() as u128 * total as u128) >> 64) as u64;
+        for (i, w) in weights.iter().enumerate() {
+            let w = w.raw().max(0) as u64;
+            if pick < w {
+                return Some(i);
+            }
+            pick -= w;
+        }
+        // Rounding can't normally reach here; fall back to the last real entry.
+        weights.iter().rposition(|&w| w > Fixed::ZERO)
     }
 }
 
@@ -1155,7 +1231,339 @@ mod tests {
         no_draw!("sample_n(empty)", r.sample_n(&[] as &[u32], 3));
         no_draw!("sample_n(n==0)", r.sample_n(&[1u32, 2, 3], 0));
         no_draw!("gaussian_approx(spread==0)", r.gaussian_approx(10, 0));
+        no_draw!(
+            "range_fixed(min==max)",
+            r.range_fixed(Fixed::from_int(2), Fixed::from_int(2))
+        );
+        no_draw!(
+            "range_fixed(min>max)",
+            r.range_fixed(Fixed::from_int(3), Fixed::from_int(1))
+        );
+        no_draw!(
+            "gaussian_fixed(spread==0)",
+            r.gaussian_fixed(Fixed::from_int(1), Fixed::ZERO)
+        );
+        no_draw!(
+            "gaussian_fixed(spread<0)",
+            r.gaussian_fixed(Fixed::from_int(1), Fixed::from_int(-1))
+        );
+        no_draw!("weighted_index_fixed(empty)", r.weighted_index_fixed(&[]));
+        no_draw!(
+            "weighted_index_fixed(all-zero)",
+            r.weighted_index_fixed(&[Fixed::ZERO, Fixed::ZERO])
+        );
+        no_draw!(
+            "weighted_index_fixed(all-negative)",
+            r.weighted_index_fixed(&[Fixed::from_int(-1), Fixed::from_int(-2)])
+        );
         no_draw!("skip(0)", r.skip(0));
+    }
+
+    // --- fixed-point distributions --------------------------------------
+    //
+    // The `Fixed` helpers are thin, stream-compatible wrappers over the
+    // integer primitives: each oracle below pins a new method to the exact
+    // draw(s) of the primitive it wraps, so the fixed-point surface can
+    // never silently drift from the stream the integer surface consumes.
+
+    #[test]
+    fn test_next_fixed01_stays_in_unit_interval() {
+        let mut r = SplitMix64::new(42);
+        for _ in 0..10_000 {
+            let v = r.next_fixed01();
+            assert!(
+                v >= Fixed::ZERO && v < Fixed::ONE,
+                "out of [0, 1): raw={}",
+                v.raw()
+            );
+        }
+    }
+
+    #[test]
+    fn test_next_fixed01_is_below_draw_in_fixed_clothing() {
+        // Stream oracle: next_fixed01 consumes exactly the draw of
+        // below(1 << 16) and returns it as a raw Q16.16 value.
+        let mut a = SplitMix64::new(0xF17E_D);
+        let mut b = SplitMix64::new(0xF17E_D);
+        for _ in 0..100 {
+            assert_eq!(a.next_fixed01().raw(), b.below(1 << 16) as i32);
+        }
+        assert_eq!(a.state(), b.state());
+    }
+
+    #[test]
+    fn test_next_fixed01_drives_lerp_within_segment() {
+        // Integration: the unit-interval draw is the intended `t` source
+        // for Fixed::lerp, and lerp must stay on the segment for every draw.
+        let mut r = SplitMix64::new(31);
+        let a = Fixed::from_int(-2);
+        let b = Fixed::from_int(6);
+        for _ in 0..1000 {
+            let v = Fixed::lerp(a, b, r.next_fixed01());
+            assert!(v >= a && v <= b, "lerp escaped the segment: {v:?}");
+        }
+    }
+
+    #[test]
+    fn test_range_fixed_stays_within_bounds() {
+        let mut r = SplitMix64::new(7);
+        let lo = Fixed::from_ratio(-3, 2);
+        let hi = Fixed::from_ratio(5, 2);
+        for _ in 0..1000 {
+            let v = r.range_fixed(lo, hi);
+            assert!(v >= lo && v < hi, "out of [min, max): raw={}", v.raw());
+        }
+    }
+
+    #[test]
+    fn test_range_fixed_degenerate_returns_min() {
+        let mut r = SplitMix64::new(7);
+        let x = Fixed::from_ratio(3, 2);
+        assert_eq!(r.range_fixed(x, x), x);
+        assert_eq!(
+            r.range_fixed(Fixed::from_int(9), Fixed::from_int(2)),
+            Fixed::from_int(9)
+        );
+        // A unit raw range is always its single value.
+        let unit_hi = Fixed::from_raw(x.raw() + 1);
+        assert_eq!(r.range_fixed(x, unit_hi), x);
+    }
+
+    #[test]
+    fn test_range_fixed_is_below_draw_on_raw_grid() {
+        // Stream oracle: range_fixed(min, max) is one below(span) draw
+        // offset by min — same pick, same stream position as the manual form.
+        let mut a = SplitMix64::new(99);
+        let mut b = SplitMix64::new(99);
+        let min = Fixed::from_int(-2);
+        let max = Fixed::from_int(3);
+        let span = (max.raw() as i64 - min.raw() as i64) as u32;
+        for _ in 0..100 {
+            let va = a.range_fixed(min, max);
+            let vb = Fixed::from_raw((min.raw() as i64 + b.below(span) as i64) as i32);
+            assert_eq!(va, vb);
+        }
+        assert_eq!(a.state(), b.state());
+    }
+
+    #[test]
+    fn test_range_fixed_full_domain_draws_and_covers() {
+        // Fixed::MIN..Fixed::MAX has raw span 2^32 − 1 — the widest span
+        // range_fixed can be asked for. It must draw, stay in [MIN, MAX),
+        // and produce both signs.
+        let mut r = SplitMix64::new(0xFEED);
+        let s0 = r.state();
+        let v = r.range_fixed(Fixed::MIN, Fixed::MAX);
+        assert_ne!(r.state(), s0, "full-domain range_fixed must consume a draw");
+        assert!(v >= Fixed::MIN && v < Fixed::MAX);
+        let mut saw_neg = v < Fixed::ZERO;
+        let mut saw_pos = v >= Fixed::ZERO;
+        for _ in 0..100 {
+            let v = r.range_fixed(Fixed::MIN, Fixed::MAX);
+            if v < Fixed::ZERO {
+                saw_neg = true;
+            }
+            if v >= Fixed::ZERO {
+                saw_pos = true;
+            }
+        }
+        assert!(saw_neg, "full domain must sometimes return negative");
+        assert!(saw_pos, "full domain must sometimes return non-negative");
+    }
+
+    #[test]
+    fn test_gaussian_fixed_matches_gaussian_approx_on_raw_values() {
+        // Stream oracle: gaussian_fixed is gaussian_approx over the raw
+        // values — identical draws consumed, identical result.
+        let mut a = SplitMix64::new(4242);
+        let mut b = SplitMix64::new(4242);
+        let center = Fixed::from_ratio(7, 2);
+        let spread = Fixed::from_ratio(3, 2);
+        for _ in 0..100 {
+            assert_eq!(
+                a.gaussian_fixed(center, spread).raw(),
+                b.gaussian_approx(center.raw(), spread.raw() as u32)
+            );
+        }
+        assert_eq!(a.state(), b.state());
+    }
+
+    #[test]
+    fn test_gaussian_fixed_stays_within_center_plus_minus_spread() {
+        let mut r = SplitMix64::new(1234);
+        let center = Fixed::from_int(5);
+        let spread = Fixed::from_int(2);
+        for _ in 0..1000 {
+            let v = r.gaussian_fixed(center, spread);
+            assert!(
+                v >= center - spread && v <= center + spread,
+                "out of center ± spread: raw={}",
+                v.raw()
+            );
+        }
+    }
+
+    #[test]
+    fn test_gaussian_fixed_is_bell_shaped() {
+        // Bates(4) theoretical masses for the offset in units of spread,
+        // bucketed as [−1,−½) [−½,0) [0,½) [½,1], are ≈ (0.042, 0.458,
+        // 0.458, 0.042) — the Irwin–Hall CDF at the quarter points: each
+        // centre bucket must dominate either tail bucket by a wide margin,
+        // and the sample mean must sit at centre.
+        let mut r = SplitMix64::new(0x6A55);
+        let center = Fixed::from_int(10);
+        let spread = Fixed::from_int(4);
+        let n = 40_000;
+        let mut buckets = [0u64; 4];
+        let mut sum = 0.0f64;
+        for _ in 0..n {
+            let v = r.gaussian_fixed(center, spread);
+            let off = (v.raw() as i64 - center.raw() as i64) as f64 / spread.raw() as f64;
+            sum += off;
+            let idx = if off < -0.5 {
+                0
+            } else if off < 0.0 {
+                1
+            } else if off < 0.5 {
+                2
+            } else {
+                3
+            };
+            buckets[idx] += 1;
+        }
+        assert!(
+            buckets[1] > 3 * buckets[0],
+            "left centre bucket must dominate the left tail: {buckets:?}"
+        );
+        assert!(
+            buckets[2] > 3 * buckets[3],
+            "right centre bucket must dominate the right tail: {buckets:?}"
+        );
+        let mean = sum / n as f64;
+        assert!(mean.abs() < 0.02, "gaussian_fixed mean drifted: {mean}");
+    }
+
+    #[test]
+    fn test_weighted_index_fixed_empty_zero_and_negative_return_none() {
+        let mut r = SplitMix64::new(42);
+        assert_eq!(r.weighted_index_fixed(&[]), None);
+        assert_eq!(r.weighted_index_fixed(&[Fixed::ZERO, Fixed::ZERO]), None);
+        assert_eq!(
+            r.weighted_index_fixed(&[Fixed::from_int(-1), Fixed::ZERO]),
+            None
+        );
+    }
+
+    #[test]
+    fn test_weighted_index_fixed_single_positive_always_chosen() {
+        // Negative weights count as zero: only index 2 can ever win.
+        let mut r = SplitMix64::new(99);
+        let weights = [
+            Fixed::from_int(-3),
+            Fixed::ZERO,
+            Fixed::from_ratio(1, 2),
+            Fixed::from_int(-1),
+        ];
+        for _ in 0..50 {
+            assert_eq!(r.weighted_index_fixed(&weights), Some(2));
+        }
+    }
+
+    #[test]
+    fn test_weighted_index_fixed_proportional_distribution() {
+        let mut r = SplitMix64::new(0xABCD);
+        let mut counts = [0u32; 3];
+        // 0.5 : 1 : 3.5 = 10% / 20% / 70%, the fixed-point form of the
+        // weighted_index distribution test's weights.
+        let weights = [Fixed::from_ratio(1, 2), Fixed::ONE, Fixed::from_ratio(7, 2)];
+        for _ in 0..1000 {
+            counts[r.weighted_index_fixed(&weights).unwrap()] += 1;
+        }
+        // Allow generous slack (±15%) — correctness, not statistics.
+        assert!(
+            (50..200).contains(&counts[0]),
+            "weight-0.5 bucket: {}",
+            counts[0]
+        );
+        assert!(
+            (100..350).contains(&counts[1]),
+            "weight-1 bucket: {}",
+            counts[1]
+        );
+        assert!(
+            (550..850).contains(&counts[2]),
+            "weight-3.5 bucket: {}",
+            counts[2]
+        );
+    }
+
+    #[test]
+    fn test_weighted_index_fixed_is_deterministic_and_consumes_one_draw() {
+        let mut a = SplitMix64::new(2024);
+        let mut b = SplitMix64::new(2024);
+        let weights = [Fixed::ONE, Fixed::from_int(2), Fixed::from_int(3)];
+        for _ in 0..100 {
+            assert_eq!(
+                a.weighted_index_fixed(&weights),
+                b.weighted_index_fixed(&weights)
+            );
+        }
+        // Exactly one draw per pick: the stream position matches a stream
+        // advanced by 100 raw draws.
+        let mut c = SplitMix64::new(2024);
+        c.skip(100);
+        assert_eq!(a.state(), c.state());
+    }
+
+    #[test]
+    fn test_next_fixed01_is_chi_square_uniform() {
+        // 64_000 draws bucketed by the top 4 raw bits (16 buckets of width
+        // 1/16) → ~4 000 per bucket. chi² df = 15; the stream is
+        // deterministic so the statistic has one exact value (≈13.8) — a
+        // bias regression in the raw draw inflates it well past the bound.
+        let mut r = SplitMix64::new(0xC0FF_EE);
+        let mut counts = [0u64; 16];
+        for _ in 0..64_000 {
+            counts[(r.next_fixed01().raw() >> 12) as usize] += 1;
+        }
+        let e = 4_000.0f64;
+        let chi2: f64 = counts
+            .iter()
+            .map(|&c| {
+                let d = c as f64 - e;
+                d * d / e
+            })
+            .sum();
+        assert!(
+            chi2 < 40.0,
+            "next_fixed01 distribution implausibly skewed: counts={counts:?} chi2={chi2}"
+        );
+    }
+
+    #[test]
+    fn test_range_fixed_is_chi_square_uniform() {
+        // [0, 4) split into 8 buckets of width 0.5 (raw >> 15) over 80_000
+        // draws → ~10 000 per bucket. chi² df = 7; deterministic stream,
+        // one exact statistic (≈4.27) — a span or offset regression
+        // inflates it well past the bound.
+        let mut r = SplitMix64::new(0xBADA_55);
+        let mut counts = [0u64; 8];
+        for _ in 0..80_000 {
+            let v = r.range_fixed(Fixed::ZERO, Fixed::from_int(4));
+            counts[(v.raw() >> 15) as usize] += 1;
+        }
+        let e = 10_000.0f64;
+        let chi2: f64 = counts
+            .iter()
+            .map(|&c| {
+                let d = c as f64 - e;
+                d * d / e
+            })
+            .sum();
+        assert!(
+            chi2 < 25.0,
+            "range_fixed distribution implausibly skewed: counts={counts:?} chi2={chi2}"
+        );
     }
 
     // --- statistical quality (C3-3) -------------------------------------
