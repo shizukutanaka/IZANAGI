@@ -7,6 +7,12 @@
 //! slot whose generation wraps `u32::MAX` is permanently retired
 //! rather than allowed to alias.
 //!
+//! Generation exhaustion, quantified: a slot retires only after its
+//! handle has been removed 2^32 times (generations 0..=`u32::MAX`, each
+//! issued and removed once), so retirement costs one slot per 2^32
+//! recycles of that slot and the map as a whole keeps allocating —
+//! from the retired slot's neighbours or from fresh slots.
+//!
 //! Iteration is in slot order — canonical, insertion-order
 //! independent. The engine-side analogue of
 //! [`crate::sparse_set`] for pure data.
@@ -215,6 +221,40 @@ mod tests {
         });
         assert_eq!(s.entries().len(), live.len());
         assert!(!s.is_empty() || live.is_empty());
+    }
+
+    #[test]
+    fn generation_max_handle_resolves_and_retires_on_remove() {
+        // Boundary state constructed directly: removing one slot 2^32
+        // times in a test is not an option, so the stored generation is
+        // driven to u32::MAX and the matching handle is packed by hand.
+        let mut s = Slotmap::new();
+        let h0 = s.insert(77).unwrap();
+        let slot = h0 >> 32;
+        s.slots[slot as usize].gen = u32::MAX;
+        let h_max = (slot << 32) | u64::from(u32::MAX);
+        // The boundary handle resolves while its entry is live.
+        assert_eq!(s.get(h_max), Some(77));
+        assert!(s.contains(h_max));
+        // The pre-boundary handle is stale by now and stays rejected.
+        assert_eq!(s.get(h0), None);
+        assert!(!s.set(h0, 9));
+        // Removing at the boundary retires the slot instead of
+        // recycling it: the next insert grows a fresh slot.
+        assert_eq!(s.remove(h_max), Some(77));
+        let h_next = s.insert(88).unwrap();
+        assert_ne!(h_next >> 32, slot, "retired slot must not recycle");
+        assert_eq!(s.get(h_next), Some(88));
+        // Later churn never resurrects the retired slot, and the
+        // retired handle stays rejected.
+        let h_next2 = s.insert(99).unwrap();
+        assert_ne!(h_next2 >> 32, slot);
+        assert_eq!(s.remove(h_next), Some(88));
+        let h_next3 = s.insert(111).unwrap();
+        assert_ne!(h_next3 >> 32, slot, "retired slot stays retired");
+        assert_eq!(s.get(h_max), None);
+        assert!(!s.contains(h_max));
+        assert_eq!(s.remove(h_max), None);
     }
 
     #[test]

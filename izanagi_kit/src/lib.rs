@@ -2920,9 +2920,10 @@ pub use recipe::{Ingredient, Recipe};
 pub use recovery::{restart_test, restart_test_bytes, restart_test_sim, RestartFailure};
 pub use relations::Relations;
 pub use replay::{
-    check_trace, count_divergences, desync_report, desync_report_labeled, first_divergence,
-    first_divergence_labeled, record_trace, resimulate, DesyncPolicy, DesyncReport, Divergence,
-    LabeledDivergence,
+    check_trace, count_divergences, decode_trace, desync_report, desync_report_labeled,
+    encode_trace, first_divergence, first_divergence_labeled, record_trace, resimulate,
+    DesyncPolicy, DesyncReport, Divergence, LabeledDivergence, ReplayTrace, TraceError,
+    TRACE_FORMAT_VERSION,
 };
 pub use rng::SplitMix64;
 pub use rng_xoshiro::Xoshiro256pp;
