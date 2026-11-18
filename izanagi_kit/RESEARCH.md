@@ -41,7 +41,7 @@ query DSL は未実装。
 1. ✅**実装済み** — **multi-component query / iteration API**（`sparse_set::join`/`join_mut`、最小集合走査・canonical 昇順）+ **archetype storage**（`src/arch.rs` の `ArchTable`、opt-in。N18 の実測で「kit core の既定 storage にはしない」と確定）。出典: entt group/view, legion query。🟢 replay-safe（canonical 順序）。
 2. ~~**archetype storage の optional 化**~~ — **実装済み（N18）**: `arch::ArchTable` が opt-in primitive として存在。core の既定 storage 化は実測で不採用（point get で 4.3x 劣後、join 差は frame の 0.1%）。出典: bevy hybrid storage, EG 比較論文。
 3. **bitset によるコンポーネント有無の高速判定**（query 高速化）。出典: specs bitset filter。🟢 replay-safe。
-4. **generation 枯渇（u32 wrap）時の handle 再利用ポリシー明文化**。出典: hecs generational index 解説。🟢 replay-safe（テスト追加のみ）。
+4. ✅**実装済み** — **generation 枯渇（u32 wrap）時の handle 再利用ポリシー明文化**（3実装を実測し各モジュールの "Generation exhaustion" 節に明記: kit `entity` は wrap＋`generation_wrap_count` に記録、kit `slotmap` は `u32::MAX` で永久退役、engine `ecs` は無記録で wrap。境界状態を直接構築する境界テスト5件で固定。あわせて `entity::EntityAllocator::free` の doc が主張していたが実在しなかった `debug_assert` の記述を是正。実装コミット `aa31be0`）。出典: hecs generational index 解説。🟢 replay-safe（テスト追加のみ）。
 5. **ZST（タグコンポーネント）最適化**（storage を確保しない marker component）。出典: entt/bevy tag。🟢 replay-safe。
 6. **コンポーネント登録のコンパイル時 ID 化**（`TypeId` ランタイム比較の削減）。🟢 replay-safe。
 
