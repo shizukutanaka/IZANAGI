@@ -18,6 +18,7 @@ src/
   tween.rs     — Tween, Timer (f32 animation)
   math.rs      — Vec2, Vec3, Mat3, Rect
   collide.rs   — swept_aabb, ray, circle
+  physics.rs   — Body, Physics (gravity, AABB response)
   ease.rs      — easing curves
   rng.rs       — xorshift64 RNG (integer core is replay-safe; f32 helpers are not)
   save.rs      — binary save format

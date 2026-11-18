@@ -128,6 +128,7 @@ src/
 ├── event.rs      # event bus
 ├── math.rs       # Vec2/Vec3/Mat3/Rect, ops
 ├── collide.rs    # aabb_vs_aabb, swept_aabb, ray
+├── physics.rs    # Body, Physics, gravity + AABB response
 ├── ease.rs       # linear/quad/cubic/back/elastic/bounce
 ├── tween.rs      # Tween, Timer
 ├── rng.rs        # Rng, xorshift64
