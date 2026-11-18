@@ -244,7 +244,7 @@ span ベースの高機能診断は限定的。
 
 **現状（izanagi_kit）**: `src/validator.rs`（重複名・未定義参照・範囲外 spawn・寸法不整合を short-circuit せず全収集）、
 `src/loader.rs`（検証済み content → sparse-set ECS の `LoadedLevel` 化）、`src/bin/gamec.rs`（CI 用 content checker、
-`--fmt` で canonical 整形、エラー時非ゼロ終了）。診断の見栄え・出力フォーマット（JSON 等）は最小限。
+`--fmt` で canonical 整形、エラー時非ゼロ終了。`--verify` でバンドル決定性監査）。診断の見栄え・出力フォーマット（JSON 等）は最小限。
 
 **参考情報**
 - GitHub: [zkat/miette](https://github.com/zkat/miette) — リッチな診断レポート（source span / help / 関連ラベル）。**同種の診断 UX 参照**。
@@ -265,6 +265,7 @@ span ベースの高機能診断は限定的。
 4. **validator ルールの拡張**（到達不能タイル・孤立部屋・spawn 重なり等の意味検査）。🟢 replay-safe。
 5. ~~**修正提案（quick-fix）**~~ — **実装済み (459f2fc)**: validator の未定義 spawn 参照と extends の missing base に `(did you mean 'X'?)` を付加 — char 単位 Levenshtein を宣言順に走査し同距離は先出宣言が勝つので診断集合が決定的（整数のみ、rustc の suggestion 半径に倣い長い方の名の1/3で打切り）。出典: rustc suggestions。🟢 replay-safe。
 6. ~~**loader の決定性テスト**~~ — **実装済み**: `determinism.rs` が allocator の free list と `live` 順序まで pin、loader は spawn 順の entity 割当を文書化+テスト済み。C1/C4 連携。🟢 replay-safe。
+7. ~~**SyncTest の製品化（標準検証コマンド）**~~ — **実装済み (596cd66)**: `bundle_verify` モジュール + `gamec --verify`。GGRS の SyncTestSession は rollback 実務で「最も価値がある」と評価されながら panic する開発セッション止まりで、CI に組み込む手順まで含めて提供するエンジンは存在しなかった（競合調査 2026-11-18）。ロード済みワールドへの正準 seeded soak を、独立2回ロードの初期ハッシュ比較・二重実行・全フレーム rollback 再シミュレーション（`sim::audit`）で監査し、乖離時は最初の乖離 tick と両ハッシュを含む報告書を返して終了コード（0=決定的 / 1=検証エラー・乖離 / 2=使い方・読取失敗）で落とす。利用者向け CI 手順（GitHub Actions の YAML 例）は kit README の gamec 節に文書として同梱（本 repo の `.github/workflows/` には触れていない）。出典: ggrs `SyncTestSession`。🟢 replay-safe。
 
 ---
 
