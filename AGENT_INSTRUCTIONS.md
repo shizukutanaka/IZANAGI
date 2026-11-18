@@ -125,10 +125,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    モデルと実装の一致を示すが、**それは標本であって精緻化の証明ではない**。
    両者の連携は doc と demo に明記済み(`RealRoom` が INCONCLUSIVE、モデルが PROVED)。
    これ以上を主張しないことが正しく、過大主張は道具の信頼を壊す。
-4. **[小] example が印字する数値は誰も検算していない** — 29本中、assert を持つのは
+4. **[小] example が印字する数値は誰も検算していない** — 31本中、assert を持つのは
    `verify_pipeline_demo`・`kit_bridge`・`menu_textlayout_demo`・`replay_demo`・
-   `savefile_demo` の5本だけで、残りの**24本は assert をひとつも持たない**。
-   gate は全29本について「headless 完走・非空出力・2回実行でバイト一致」を強制するので、
+   `savefile_demo`・`arena` の6本だけで、残りの**25本は assert をひとつも持たない**。
+   gate は全31本について「headless 完走・非空出力・2回実行でバイト一致」を強制するので、
    panic・ハング・沈黙・非決定性は落ちる。**しかし「安定して間違っている」出力は通る。**
    個々の値の正しさは 3,600+ の単体テスト側で担保されており、example ごとに golden
    ファイルを置けば今度はそれが腐る(本セッションで正確な数値を4度削除した理由と同じ)。
