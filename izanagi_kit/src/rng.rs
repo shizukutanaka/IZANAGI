@@ -1283,8 +1283,8 @@ mod tests {
     fn test_next_fixed01_is_below_draw_in_fixed_clothing() {
         // Stream oracle: next_fixed01 consumes exactly the draw of
         // below(1 << 16) and returns it as a raw Q16.16 value.
-        let mut a = SplitMix64::new(0xF17E_D);
-        let mut b = SplitMix64::new(0xF17E_D);
+        let mut a = SplitMix64::new(0x000F_17ED);
+        let mut b = SplitMix64::new(0x000F_17ED);
         for _ in 0..100 {
             assert_eq!(a.next_fixed01().raw(), b.below(1 << 16) as i32);
         }
@@ -1521,7 +1521,7 @@ mod tests {
         // 1/16) → ~4 000 per bucket. chi² df = 15; the stream is
         // deterministic so the statistic has one exact value (≈13.8) — a
         // bias regression in the raw draw inflates it well past the bound.
-        let mut r = SplitMix64::new(0xC0FF_EE);
+        let mut r = SplitMix64::new(0x00C0_FFEE);
         let mut counts = [0u64; 16];
         for _ in 0..64_000 {
             counts[(r.next_fixed01().raw() >> 12) as usize] += 1;
@@ -1546,7 +1546,7 @@ mod tests {
         // draws → ~10 000 per bucket. chi² df = 7; deterministic stream,
         // one exact statistic (≈4.27) — a span or offset regression
         // inflates it well past the bound.
-        let mut r = SplitMix64::new(0xBADA_55);
+        let mut r = SplitMix64::new(0x00BA_DA55);
         let mut counts = [0u64; 8];
         for _ in 0..80_000 {
             let v = r.range_fixed(Fixed::ZERO, Fixed::from_int(4));
