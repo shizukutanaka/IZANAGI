@@ -96,7 +96,7 @@ query DSL は未実装。
 1. ~~**modulo bias の除去**~~ — **実装済み**: `below(n)` は既に Lemire の乗算シフト法（`u128` 積の上位64bit）。出典: Lemire, rand crate。
 2. ~~**複数の名前付きストリーム**~~ — **実装済み**: `SplitMix64::split(stream_id)` がサブシステム毎の独立ストリームを純関数で分岐（親を消費しない）。出典: SplitMix64 split, xoshiro jump。
 3. ~~**PRNG 品質の自動テスト**~~ — **実装済み (f51f55f)**: `rng.rs` テスト群 — seed0 の公式参照ベクタ8連・`below(6)` 60k 回 chi-square 上界・全64ビット反転の avalanche 帯・連続出力の serial correlation 上界（全て固定 seed の機械オラクル）。出典: PractRand/TestU01 文献。🟢 replay-safe。
-4. **`f`-range・gaussian・weighted choice 等の分布ヘルパ**（fixed-point 連携）。🟢 replay-safe（新 API）。
+4. ~~**`f`-range・gaussian・weighted choice 等の分布ヘルパ**~~ — **実装済み (4525326)**: `rng.rs` に `next_fixed01`（[0,1) 一様 Fixed、below の 1 draw を raw Q16.16 化）・`range_fixed`（[min, max) 一様 Fixed、raw span への below 1 draw と等価、縮退時は無 draw）・`gaussian_fixed`（Bates 分布 — Irwin 1927 / Hall 1947 / Bates 1959、gaussian_approx と消費 draw・分布が bit 一致）・`weighted_index_fixed`（Fixed 重み、負は 0 扱い、空/全非正は無 draw で None）を追加。検証は各 API と「包む基本 API の draw 列・state 一致」のストリームオラクル＋固定 seed の chi-square 上界（next_fixed01: chi2≈13.8/df15、range_fixed: chi2≈4.27/df7）。🟢 replay-safe（新 API）。
 5. **seed の文書化（wall-clock seed 禁止の明文化）**と replay seed の永続化。出典: lockstep 文献（C6）。🟢 replay-safe。
 6. ~~**xoshiro256++ への移行検討**~~ — **実装済み（opt-in）**: `src/rng_xoshiro.rs` の `Xoshiro256pp` が別 generator として存在（既定は SplitMix64 のまま、pinned hash 不変）。出典: arXiv:1805.01407。
 
