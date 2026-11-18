@@ -9,6 +9,10 @@
 //!   sequence (the "replay trace").
 //! - [`check_trace`] re-runs against a recorded trace and reports the **first**
 //!   diverging tick — the starting point for any desync hunt.
+//! - [`encode_trace`] / [`decode_trace`] persist a recorded trace — seed,
+//!   per-tick input frames, and expected hashes — as canonical bytes, so a
+//!   run can be stored, diffed, and re-verified by [`check_trace`] in a
+//!   later process or on another machine.
 //! - [`first_divergence`] compares two traces directly (e.g. from two peers).
 //! - [`resimulate`] clones a snapshot and replays inputs onto it — the basis of
 //!   rollback netcode (snapshot a known-good tick, re-run newer inputs).
@@ -17,7 +21,7 @@
 //! is engine-agnostic. State is hashed via [`DetHash`], so any state built from
 //! the kit's value types is replay-checkable for free.
 
-use crate::world_hash::{hash_state, DetHash};
+use crate::world_hash::{hash_state, DetHash, Fnv1a};
 
 /// Where two replay traces first disagree. `tick` is the 0-based step index;
 /// `expected`/`actual` are the state hashes there (0 if that trace was shorter).
@@ -421,6 +425,300 @@ impl core::fmt::Display for DesyncPolicy {
         })
     }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// Persistent trace format
+// ─────────────────────────────────────────────────────────────────────────
+
+/// Magic bytes identifying a persistent replay trace written by
+/// [`encode_trace`]: ASCII `IZTR`. Deliberately distinct from the save-file
+/// magic (`b"IZNG"`, see [`crate::savefile`]) — the two formats share a
+/// header layout, but a trace must never be loadable as a game save or vice
+/// versa.
+const TRACE_MAGIC: &[u8; 4] = b"IZTR";
+
+/// Header size of the persistent trace format: magic(4) + version(4) +
+/// checksum(8) + payload length(4). The same framing layout as
+/// [`crate::savefile`], so the two decoders fail in the same ways.
+const TRACE_HEADER_LEN: usize = 20;
+
+/// Version of the persistent replay-trace format written by [`encode_trace`]
+/// and required by [`decode_trace`]. Bump this — never silently change the
+/// layout — when the payload schema changes; [`decode_trace`] reports the
+/// stored version via [`TraceError::UnsupportedVersion`], so a caller can
+/// distinguish "written by a newer build" from "corrupt".
+pub const TRACE_FORMAT_VERSION: u32 = 1;
+
+/// A replay trace in **persistent** form: everything needed to re-verify a
+/// recorded run later, in another process, or on another machine.
+///
+/// - `seed` — the run's identity: typically the world seed the simulation
+///   was constructed from (the same value [`DesyncReport`] echoes).
+/// - `inputs` — one opaque byte frame per tick. The kit cannot know a
+///   game's input type, so each input is stored as the bytes the game
+///   encodes it to; turning frames back into inputs is the caller's half of
+///   the contract — the same split [`crate::savefile`] uses for save
+///   payloads.
+/// - `expected` — the per-tick state hashes [`record_trace`] produced for
+///   those inputs: input *i* produced hash *i*, in tick order.
+///
+/// `inputs` and `expected` normally have the same length. The format stores
+/// the two counts independently, so a mismatched pair round-trips as-is —
+/// [`check_trace`] already reads a length mismatch as a divergence at the
+/// first missing tick, which is the honest interpretation of such a file.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ReplayTrace {
+    /// The run's seed, echoed verbatim.
+    pub seed: u64,
+    /// One opaque input frame per tick, in tick order.
+    pub inputs: Vec<Vec<u8>>,
+    /// The expected per-tick state hashes, in tick order.
+    pub expected: Vec<u64>,
+}
+
+/// Encode a [`ReplayTrace`] into its canonical byte form.
+///
+/// The encoding is a pure function of the trace value: the same trace
+/// always produces the same bytes, on every platform. All integers are
+/// little-endian (never native-endian — the rule SPEC.md G10 states for
+/// world hashes applies to bytes that outlive the process too), and the
+/// payload is FNV-1a checksummed so truncation or corruption is caught by
+/// [`decode_trace`] before any of it is trusted.
+///
+/// Layout:
+///
+/// ```text
+/// ┌──────────────────────────────────────────────────────────────────┐
+/// │ magic[4] │ version[4LE] │ checksum[8LE] │ payload_len[4LE] │     │
+/// ├──────────────────────────────────────────────────────────────────┤
+/// │ seed[8LE] │ input_count[4LE] │ per input: len[4LE] + bytes │     │
+/// │ hash_count[4LE] │ per hash: hash[8LE]                            │
+/// └──────────────────────────────────────────────────────────────────┘
+/// ```
+///
+/// This function only produces bytes; writing them to a file (or anywhere
+/// else) is the caller's job — the kit reads no ambient input itself.
+pub fn encode_trace(trace: &ReplayTrace) -> Vec<u8> {
+    let mut payload = Vec::new();
+    payload.extend_from_slice(&trace.seed.to_le_bytes());
+    payload.extend_from_slice(&(trace.inputs.len() as u32).to_le_bytes());
+    for frame in &trace.inputs {
+        payload.extend_from_slice(&(frame.len() as u32).to_le_bytes());
+        payload.extend_from_slice(frame);
+    }
+    payload.extend_from_slice(&(trace.expected.len() as u32).to_le_bytes());
+    for hash in &trace.expected {
+        payload.extend_from_slice(&hash.to_le_bytes());
+    }
+    let mut hasher = Fnv1a::new();
+    hasher.write_bytes(&payload);
+    let checksum = hasher.finish();
+    let mut out = Vec::with_capacity(TRACE_HEADER_LEN + payload.len());
+    out.extend_from_slice(TRACE_MAGIC);
+    out.extend_from_slice(&TRACE_FORMAT_VERSION.to_le_bytes());
+    out.extend_from_slice(&checksum.to_le_bytes());
+    out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+    out.extend_from_slice(&payload);
+    out
+}
+
+/// Decode a [`ReplayTrace`] previously written by [`encode_trace`].
+///
+/// The decoder is total: truncated buffers, hostile declared lengths, and
+/// arbitrary garbage all produce a [`TraceError`], never a panic and never
+/// an allocation sized by an unvalidated count (each declared count is
+/// first bounded by the bytes actually present). Only the payload slice
+/// named by the header is parsed; bytes after it in `data` are ignored,
+/// matching [`crate::savefile::load_bytes`].
+pub fn decode_trace(data: &[u8]) -> Result<ReplayTrace, TraceError> {
+    if data.len() < TRACE_HEADER_LEN {
+        return Err(TraceError::TooShort);
+    }
+    if &data[0..4] != TRACE_MAGIC {
+        return Err(TraceError::BadMagic);
+    }
+    let version = u32::from_le_bytes([data[4], data[5], data[6], data[7]]);
+    if version != TRACE_FORMAT_VERSION {
+        return Err(TraceError::UnsupportedVersion(version));
+    }
+    let checksum = u64::from_le_bytes([
+        data[8], data[9], data[10], data[11], data[12], data[13], data[14], data[15],
+    ]);
+    let payload_len = u32::from_le_bytes([data[16], data[17], data[18], data[19]]) as usize;
+    // `data.len() >= TRACE_HEADER_LEN` is guaranteed above, so the
+    // subtraction cannot underflow. Comparing this way — rather than
+    // `data.len() < TRACE_HEADER_LEN + payload_len` — avoids overflowing
+    // the addition when a hostile header declares a `payload_len` near
+    // `usize::MAX` on 32-bit targets (the same reasoning as `savefile`).
+    if payload_len > data.len() - TRACE_HEADER_LEN {
+        return Err(TraceError::TooShort);
+    }
+    let payload = &data[TRACE_HEADER_LEN..TRACE_HEADER_LEN + payload_len];
+    let mut hasher = Fnv1a::new();
+    hasher.write_bytes(payload);
+    if hasher.finish() != checksum {
+        return Err(TraceError::ChecksumMismatch);
+    }
+    parse_trace_payload(payload)
+}
+
+/// Parse the (already checksum-validated) payload of a trace file. Every
+/// read is preceded by a bounds check against the bytes remaining, so a
+/// structurally broken payload yields [`TraceError::TooShort`] rather than
+/// a panic.
+fn parse_trace_payload(payload: &[u8]) -> Result<ReplayTrace, TraceError> {
+    // seed(8) + input count(4) is the minimum payload prefix.
+    if payload.len() < 12 {
+        return Err(TraceError::TooShort);
+    }
+    let seed = u64::from_le_bytes([
+        payload[0], payload[1], payload[2], payload[3], payload[4], payload[5], payload[6],
+        payload[7],
+    ]);
+    let input_count =
+        u32::from_le_bytes([payload[8], payload[9], payload[10], payload[11]]) as usize;
+    let mut pos = 12usize;
+    // Every frame costs at least its 4-byte length prefix, so a count larger
+    // than `remaining / 4` names frames this buffer cannot contain. Checking
+    // before `with_capacity` is what keeps a hostile count from forcing an
+    // allocation the input never backed (the count may still be a lie about
+    // the frames' *contents* — the per-frame checks below catch that).
+    if input_count as u64 * 4 > (payload.len() - pos) as u64 {
+        return Err(TraceError::TooShort);
+    }
+    let mut inputs = Vec::with_capacity(input_count);
+    for _ in 0..input_count {
+        if payload.len() - pos < 4 {
+            return Err(TraceError::TooShort);
+        }
+        let frame_len = u32::from_le_bytes([
+            payload[pos],
+            payload[pos + 1],
+            payload[pos + 2],
+            payload[pos + 3],
+        ]) as usize;
+        pos += 4;
+        if frame_len > payload.len() - pos {
+            return Err(TraceError::TooShort);
+        }
+        inputs.push(payload[pos..pos + frame_len].to_vec());
+        pos += frame_len;
+    }
+    if payload.len() - pos < 4 {
+        return Err(TraceError::TooShort);
+    }
+    let hash_count = u32::from_le_bytes([
+        payload[pos],
+        payload[pos + 1],
+        payload[pos + 2],
+        payload[pos + 3],
+    ]) as usize;
+    pos += 4;
+    // Hashes are fixed-size, so this bound is exact: a count that does not
+    // fit the remaining bytes is rejected before any of it is read.
+    if hash_count as u64 * 8 > (payload.len() - pos) as u64 {
+        return Err(TraceError::TooShort);
+    }
+    let mut expected = Vec::with_capacity(hash_count);
+    for _ in 0..hash_count {
+        expected.push(u64::from_le_bytes([
+            payload[pos],
+            payload[pos + 1],
+            payload[pos + 2],
+            payload[pos + 3],
+            payload[pos + 4],
+            payload[pos + 5],
+            payload[pos + 6],
+            payload[pos + 7],
+        ]));
+        pos += 8;
+    }
+    if pos != payload.len() {
+        return Err(TraceError::TrailingBytes);
+    }
+    Ok(ReplayTrace {
+        seed,
+        inputs,
+        expected,
+    })
+}
+
+/// Errors returned by [`decode_trace`].
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TraceError {
+    /// The buffer is shorter than the header, the declared payload length
+    /// exceeds the buffer, or a declared count/length inside the payload
+    /// exceeds the bytes remaining.
+    TooShort,
+    /// The first four bytes do not match the trace magic `b"IZTR"` — the
+    /// buffer is not a replay trace at all.
+    BadMagic,
+    /// The file's format version is not the version this build reads
+    /// ([`TRACE_FORMAT_VERSION`]). The stored version is carried so the
+    /// caller can report or migrate it.
+    UnsupportedVersion(u32),
+    /// The payload's FNV-1a hash does not match the stored checksum.
+    ChecksumMismatch,
+    /// The payload has bytes left over after the last declared hash — it
+    /// was not produced by [`encode_trace`].
+    TrailingBytes,
+}
+
+impl TraceError {
+    /// Returns `true` when the error indicates a wrong-file condition
+    /// rather than data corruption — i.e. the slot should be treated as
+    /// empty rather than damaged. Only [`BadMagic`](Self::BadMagic)
+    /// qualifies, mirroring [`crate::savefile::LoadError::is_recoverable`].
+    #[inline]
+    pub fn is_recoverable(&self) -> bool {
+        matches!(self, TraceError::BadMagic)
+    }
+
+    /// A short human-readable description of the error, suitable for
+    /// logging. Does not allocate; returns a `'static str`.
+    #[inline]
+    pub fn message(&self) -> &'static str {
+        match self {
+            TraceError::TooShort => "replay trace too short",
+            TraceError::BadMagic => "not a replay trace (bad magic)",
+            TraceError::UnsupportedVersion(_) => "unsupported replay trace format version",
+            TraceError::ChecksumMismatch => "replay trace corrupted (checksum mismatch)",
+            TraceError::TrailingBytes => "replay trace has trailing bytes",
+        }
+    }
+}
+
+impl core::fmt::Display for TraceError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            TraceError::TooShort => write!(
+                f,
+                "replay trace too short or a declared length exceeds the buffer"
+            ),
+            TraceError::BadMagic => {
+                write!(f, "replay trace magic mismatch (expected b\"IZTR\")")
+            }
+            TraceError::UnsupportedVersion(v) => {
+                write!(
+                    f,
+                    "unsupported replay trace format version {v} (this build reads version {})",
+                    TRACE_FORMAT_VERSION
+                )
+            }
+            TraceError::ChecksumMismatch => {
+                write!(
+                    f,
+                    "replay trace checksum mismatch: payload may be corrupted"
+                )
+            }
+            TraceError::TrailingBytes => {
+                write!(f, "replay trace payload has trailing bytes")
+            }
+        }
+    }
+}
+
+impl std::error::Error for TraceError {}
 
 #[cfg(test)]
 mod tests {
@@ -843,5 +1141,342 @@ mod tests {
         }
         let replayed = resimulate(&snapshot, &report.recent_inputs, step);
         assert_eq!(hash_state(&replayed), report.divergence.actual);
+    }
+
+    // --- Persistent trace format ---
+
+    fn sample_trace() -> ReplayTrace {
+        ReplayTrace {
+            seed: 0x0102_0304_0506_0708,
+            inputs: vec![vec![0xAA, 0xBB], Vec::new(), vec![1, 2, 3]],
+            expected: vec![
+                0x1111_2222_3333_4444,
+                0x5555_6666_7777_8888,
+                0x9999_AAAA_BBBB_CCCC,
+            ],
+        }
+    }
+
+    #[test]
+    fn test_encode_trace_is_deterministic() {
+        let trace = sample_trace();
+        assert_eq!(encode_trace(&trace), encode_trace(&trace));
+    }
+
+    #[test]
+    fn test_trace_roundtrip_empty() {
+        let trace = ReplayTrace {
+            seed: 42,
+            inputs: Vec::new(),
+            expected: Vec::new(),
+        };
+        let decoded = decode_trace(&encode_trace(&trace)).unwrap();
+        assert_eq!(decoded, trace);
+    }
+
+    #[test]
+    fn test_trace_roundtrip_with_frames() {
+        let trace = sample_trace();
+        let decoded = decode_trace(&encode_trace(&trace)).unwrap();
+        assert_eq!(decoded, trace);
+    }
+
+    #[test]
+    fn test_trace_roundtrip_mismatched_counts_roundtrip_as_is() {
+        // The format stores the input count and the hash count independently:
+        // a trace whose two columns disagree (a truncated recording, say)
+        // must survive the round-trip unchanged — `check_trace` is the layer
+        // that reads the mismatch as a divergence.
+        let trace = ReplayTrace {
+            seed: 7,
+            inputs: vec![vec![1], vec![2]],
+            expected: vec![0xFEED],
+        };
+        let decoded = decode_trace(&encode_trace(&trace)).unwrap();
+        assert_eq!(decoded, trace);
+    }
+
+    #[test]
+    fn test_decode_trace_too_short() {
+        assert_eq!(decode_trace(&[]), Err(TraceError::TooShort));
+        assert_eq!(decode_trace(&[0u8; 19]), Err(TraceError::TooShort));
+    }
+
+    #[test]
+    fn test_decode_trace_bad_magic() {
+        let mut data = encode_trace(&sample_trace());
+        data[0] = 0xFF;
+        assert_eq!(decode_trace(&data), Err(TraceError::BadMagic));
+    }
+
+    #[test]
+    fn test_decode_trace_unsupported_version_reports_stored_version() {
+        let mut data = encode_trace(&sample_trace());
+        data[4..8].copy_from_slice(&99u32.to_le_bytes());
+        assert_eq!(decode_trace(&data), Err(TraceError::UnsupportedVersion(99)));
+    }
+
+    #[test]
+    fn test_decode_trace_checksum_mismatch_on_payload_corruption() {
+        let mut data = encode_trace(&sample_trace());
+        *data.last_mut().unwrap() ^= 0xFF;
+        assert_eq!(decode_trace(&data), Err(TraceError::ChecksumMismatch));
+    }
+
+    #[test]
+    fn test_decode_trace_declared_payload_len_u32_max_is_too_short() {
+        // A hostile header declaring the maximum payload length must fail
+        // cleanly, never panic (the subtraction-based check cannot wrap).
+        let mut data = encode_trace(&sample_trace());
+        data[16..20].copy_from_slice(&u32::MAX.to_le_bytes());
+        assert_eq!(decode_trace(&data), Err(TraceError::TooShort));
+    }
+
+    /// Reframe a hand-built payload with a correct header (magic, current
+    /// version, real checksum), so payload-level guards can be tested
+    /// without the checksum rejecting the buffer first.
+    fn frame_payload(payload: &[u8]) -> Vec<u8> {
+        let mut hasher = Fnv1a::new();
+        hasher.write_bytes(payload);
+        let mut out = Vec::new();
+        out.extend_from_slice(TRACE_MAGIC);
+        out.extend_from_slice(&TRACE_FORMAT_VERSION.to_le_bytes());
+        out.extend_from_slice(&hasher.finish().to_le_bytes());
+        out.extend_from_slice(&(payload.len() as u32).to_le_bytes());
+        out.extend_from_slice(payload);
+        out
+    }
+
+    #[test]
+    fn test_decode_trace_hostile_input_count_is_too_short_not_huge_allocation() {
+        // Declares u32::MAX input frames in a 12-byte payload. The count is
+        // bounded by the bytes present before any allocation, so this
+        // returns TooShort instead of trying to reserve room for 4 billion
+        // frames.
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&1u64.to_le_bytes());
+        payload.extend_from_slice(&u32::MAX.to_le_bytes());
+        assert_eq!(
+            decode_trace(&frame_payload(&payload)),
+            Err(TraceError::TooShort)
+        );
+    }
+
+    #[test]
+    fn test_decode_trace_hostile_hash_count_is_too_short() {
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&1u64.to_le_bytes());
+        payload.extend_from_slice(&0u32.to_le_bytes()); // no inputs
+        payload.extend_from_slice(&u32::MAX.to_le_bytes()); // absurd hash count
+        assert_eq!(
+            decode_trace(&frame_payload(&payload)),
+            Err(TraceError::TooShort)
+        );
+    }
+
+    #[test]
+    fn test_decode_trace_frame_len_beyond_payload_is_too_short() {
+        // One frame declared, and its length prefix names more bytes than
+        // the payload holds after it.
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&1u64.to_le_bytes());
+        payload.extend_from_slice(&1u32.to_le_bytes()); // one input
+        payload.extend_from_slice(&1000u32.to_le_bytes()); // frame len 1000
+        payload.extend_from_slice(&0u32.to_le_bytes()); // hash count 0
+        assert_eq!(
+            decode_trace(&frame_payload(&payload)),
+            Err(TraceError::TooShort)
+        );
+    }
+
+    #[test]
+    fn test_decode_trace_trailing_bytes_rejected() {
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&1u64.to_le_bytes());
+        payload.extend_from_slice(&0u32.to_le_bytes());
+        payload.extend_from_slice(&0u32.to_le_bytes());
+        payload.push(0xEE); // not part of any declared section
+        assert_eq!(
+            decode_trace(&frame_payload(&payload)),
+            Err(TraceError::TrailingBytes)
+        );
+    }
+
+    #[test]
+    fn decode_trace_never_panics_on_any_truncation_or_single_byte_corruption() {
+        // The same discipline the save-file decoder is held to: every prefix
+        // and every single-byte corruption of a valid file must yield a
+        // value or an Err — never a panic.
+        let full = encode_trace(&sample_trace());
+        for n in 0..=full.len() {
+            let _ = decode_trace(&full[..n]);
+        }
+        for i in 0..full.len() {
+            let mut d = full.clone();
+            d[i] ^= 0xFF;
+            let _ = decode_trace(&d);
+        }
+        // Arbitrary garbage, deterministic and dependency-free.
+        let mut g = vec![0xAAu8; 96];
+        for seed in 0..512u32 {
+            for (i, b) in g.iter_mut().enumerate() {
+                *b = seed.wrapping_mul(31).wrapping_add(i as u32) as u8;
+            }
+            let _ = decode_trace(&g);
+        }
+    }
+
+    #[test]
+    fn test_trace_error_display_and_message_are_non_empty() {
+        for e in [
+            TraceError::TooShort,
+            TraceError::BadMagic,
+            TraceError::UnsupportedVersion(9),
+            TraceError::ChecksumMismatch,
+            TraceError::TrailingBytes,
+        ] {
+            assert!(!e.to_string().is_empty());
+            assert!(!e.message().is_empty());
+        }
+        assert!(TraceError::UnsupportedVersion(9).to_string().contains('9'));
+    }
+
+    #[test]
+    fn test_trace_error_is_std_error() {
+        fn assert_error<E: std::error::Error>(_: &E) {}
+        assert_error(&TraceError::TooShort);
+    }
+
+    #[test]
+    fn test_trace_error_only_bad_magic_is_recoverable() {
+        assert!(TraceError::BadMagic.is_recoverable());
+        assert!(!TraceError::TooShort.is_recoverable());
+        assert!(!TraceError::ChecksumMismatch.is_recoverable());
+        assert!(!TraceError::UnsupportedVersion(2).is_recoverable());
+        assert!(!TraceError::TrailingBytes.is_recoverable());
+    }
+
+    #[test]
+    fn test_decoded_trace_verifies_with_check_trace() {
+        // The point of the format: record once, persist, decode later, and
+        // the decoded columns drive `check_trace` exactly as the in-memory
+        // ones did.
+        let inputs: Vec<i32> = vec![3, -1, 4, 1, 5, -9, 2, 6];
+        let expected = record_trace(&mut new_sim(), &inputs, step);
+        let stored = ReplayTrace {
+            seed: 0x1234,
+            inputs: inputs.iter().map(|i| i.to_le_bytes().to_vec()).collect(),
+            expected,
+        };
+        let decoded = decode_trace(&encode_trace(&stored)).unwrap();
+        assert_eq!(decoded.seed, 0x1234);
+        let decoded_inputs: Vec<i32> = decoded
+            .inputs
+            .iter()
+            .map(|f| i32::from_le_bytes([f[0], f[1], f[2], f[3]]))
+            .collect();
+        assert_eq!(decoded_inputs, inputs);
+        assert_eq!(
+            check_trace(&mut new_sim(), &decoded_inputs, &decoded.expected, step),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn test_decoded_trace_with_tampered_hash_diverges_at_that_tick() {
+        let inputs: Vec<i32> = vec![1, 2, 3, 4];
+        let mut stored = ReplayTrace {
+            seed: 0x1234,
+            inputs: inputs.iter().map(|i| i.to_le_bytes().to_vec()).collect(),
+            expected: record_trace(&mut new_sim(), &inputs, step),
+        };
+        stored.expected[2] ^= 0xFFFF;
+        let decoded = decode_trace(&encode_trace(&stored)).unwrap();
+        let decoded_inputs: Vec<i32> = decoded
+            .inputs
+            .iter()
+            .map(|f| i32::from_le_bytes([f[0], f[1], f[2], f[3]]))
+            .collect();
+        match check_trace(&mut new_sim(), &decoded_inputs, &decoded.expected, step) {
+            Err(d) => assert_eq!(d.tick, 2),
+            Ok(()) => panic!("expected a divergence at tick 2"),
+        }
+    }
+
+    // --- Golden encoding (the on-disk bytes are the format) ---
+
+    /// The trace whose exact encoding is pinned in `GOLDEN_TRACE`.
+    fn golden_trace() -> ReplayTrace {
+        ReplayTrace {
+            seed: 0x0102_0304_0506_0708,
+            inputs: vec![vec![0xAA, 0xBB], Vec::new()],
+            expected: vec![0x1111_2222_3333_4444, 0x5555_6666_7777_8888],
+        }
+    }
+
+    /// The exact bytes [`encode_trace`] writes for `golden_trace()`:
+    /// header (magic `IZTR` | version 1 LE | FNV-1a checksum LE | payload
+    /// len LE) then payload (seed LE | 2 inputs | 2 hashes). A diff here
+    /// means the on-disk trace format changed — regenerate **only**
+    /// alongside a deliberate `TRACE_FORMAT_VERSION` bump, never to "make
+    /// the test pass". Regenerate via `print_golden_trace` (ignored).
+    const GOLDEN_TRACE: &[u8] = &[
+        0x49, 0x5a, 0x54, 0x52, 0x01, 0x00, 0x00, 0x00, 0x70, 0xac, 0xe4, 0x48, //
+        0x8f, 0x03, 0x88, 0x2f, 0x2a, 0x00, 0x00, 0x00, 0x08, 0x07, 0x06, 0x05, //
+        0x04, 0x03, 0x02, 0x01, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, //
+        0xaa, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x44, 0x44, //
+        0x33, 0x33, 0x22, 0x22, 0x11, 0x11, 0x88, 0x88, 0x77, 0x77, 0x66, 0x66, //
+        0x55, 0x55,
+    ];
+
+    #[test]
+    fn test_encode_trace_matches_golden_encoding() {
+        let data = encode_trace(&golden_trace());
+        assert_eq!(
+            data.as_slice(),
+            GOLDEN_TRACE,
+            "trace framing changed — stored traces would break. Regenerate \
+             GOLDEN_TRACE only with a deliberate TRACE_FORMAT_VERSION bump."
+        );
+    }
+
+    #[test]
+    fn test_decode_trace_reads_golden_bytes() {
+        // A build must read the exact bytes a prior build wrote, not merely
+        // bytes it just produced itself.
+        let decoded = decode_trace(GOLDEN_TRACE).unwrap();
+        assert_eq!(decoded, golden_trace());
+    }
+
+    #[test]
+    fn test_golden_trace_layout_offsets() {
+        assert_eq!(&GOLDEN_TRACE[0..4], b"IZTR", "magic offset/value");
+        assert_eq!(
+            u32::from_le_bytes(GOLDEN_TRACE[4..8].try_into().unwrap()),
+            TRACE_FORMAT_VERSION,
+            "version offset/endianness"
+        );
+        assert_eq!(
+            u64::from_le_bytes(GOLDEN_TRACE[20..28].try_into().unwrap()),
+            0x0102_0304_0506_0708,
+            "seed offset/endianness"
+        );
+    }
+
+    /// Prints the current encoding of the golden fixture for pasting into
+    /// `GOLDEN_TRACE`. Ignored by default; run only when intentionally
+    /// bumping the trace format version.
+    #[test]
+    #[ignore]
+    fn print_golden_trace() {
+        let data = encode_trace(&golden_trace());
+        print!("const GOLDEN_TRACE: &[u8] = &[");
+        for (i, b) in data.iter().enumerate() {
+            if i % 12 == 0 {
+                print!("\n    ");
+            }
+            print!("0x{b:02x}, ");
+        }
+        println!("\n];");
     }
 }

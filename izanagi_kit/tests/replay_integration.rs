@@ -23,8 +23,8 @@
 
 use izanagi_kit::turn::ACTION_COST;
 use izanagi_kit::{
-    check_trace, first_divergence, hash_state, record_trace, resimulate, DetHash, Fnv1a, Scheduler,
-    SplitMix64,
+    check_trace, decode_trace, encode_trace, first_divergence, hash_state, record_trace,
+    resimulate, DetHash, Fnv1a, ReplayTrace, Scheduler, SplitMix64,
 };
 
 const SEED: u64 = 0xD4CE_0501;
@@ -326,5 +326,99 @@ fn resimulate_fidelity_holds_over_random_snapshot_ticks() {
             hash_state(&inline),
             "resimulate must match inline continuation (seed={seed:#x}, snap_at={snap_at})"
         );
+    }
+}
+
+// ── Persistent trace format ─────────────────────────────────────────────
+//
+// The format's reason to exist: a trace recorded in one run must still
+// verify in another. These tests close the loop against the real
+// `Scheduler` sim — record, encode each `TickInput` to its byte frame,
+// persist to bytes, decode, rebuild the inputs from the frames alone, and
+// let `check_trace` judge the result. The frame codec below is the
+// caller's half of the format contract (the kit stores opaque frames).
+
+/// Encode one `TickInput` to its persistent frame: tag 0 = `Tick`;
+/// tag 1 = `SetSpeed`, followed by `id` and `speed` as LE `u32`/`i32`.
+fn encode_input(input: &TickInput) -> Vec<u8> {
+    match input {
+        TickInput::Tick => vec![0],
+        TickInput::SetSpeed { id, speed } => {
+            let mut frame = vec![1];
+            frame.extend_from_slice(&id.to_le_bytes());
+            frame.extend_from_slice(&speed.to_le_bytes());
+            frame
+        }
+    }
+}
+
+/// Inverse of [`encode_input`]; test-only, so a malformed frame is a panic
+/// here rather than a format error.
+fn decode_input(frame: &[u8]) -> TickInput {
+    match frame[0] {
+        0 => TickInput::Tick,
+        1 => TickInput::SetSpeed {
+            id: u32::from_le_bytes(frame[1..5].try_into().unwrap()),
+            speed: i32::from_le_bytes(frame[5..9].try_into().unwrap()),
+        },
+        tag => panic!("unknown input frame tag {tag}"),
+    }
+}
+
+/// Claim 4 (persistence): a recorded trace that goes through
+/// `encode_trace` → bytes → `decode_trace` still verifies with
+/// `check_trace`, driven only by the decoded seed, frames, and hashes.
+#[test]
+fn persisted_trace_verifies_after_roundtrip_through_bytes() {
+    let inputs = mixed_inputs(120);
+    let expected = record_trace(&mut TickSim::new(SEED), &inputs, step);
+    let stored = ReplayTrace {
+        seed: SEED,
+        inputs: inputs.iter().map(encode_input).collect(),
+        expected,
+    };
+
+    let bytes = encode_trace(&stored);
+    let decoded = decode_trace(&bytes).expect("a trace we wrote must decode");
+    assert_eq!(decoded, stored, "the stored trace must round-trip exactly");
+
+    let rebuilt: Vec<TickInput> = decoded.inputs.iter().map(|f| decode_input(f)).collect();
+    assert_eq!(
+        check_trace(
+            &mut TickSim::new(decoded.seed),
+            &rebuilt,
+            &decoded.expected,
+            step
+        ),
+        Ok(()),
+        "check_trace must accept a replay driven only by the persisted trace"
+    );
+}
+
+/// Claim 5 (persistence keeps its teeth): corrupting one expected hash in
+/// the *stored* trace makes `check_trace` report a divergence at exactly
+/// that tick after the byte round-trip — the persisted form localizes a
+/// desync just as precisely as the in-memory one.
+#[test]
+fn persisted_trace_with_tampered_hash_diverges_at_that_tick() {
+    let inputs = mixed_inputs(60);
+    let expected = record_trace(&mut TickSim::new(SEED), &inputs, step);
+    let mut stored = ReplayTrace {
+        seed: SEED,
+        inputs: inputs.iter().map(encode_input).collect(),
+        expected,
+    };
+    stored.expected[25] ^= 0xFFFF;
+
+    let decoded = decode_trace(&encode_trace(&stored)).expect("tampered trace still decodes");
+    let rebuilt: Vec<TickInput> = decoded.inputs.iter().map(|f| decode_input(f)).collect();
+    match check_trace(
+        &mut TickSim::new(decoded.seed),
+        &rebuilt,
+        &decoded.expected,
+        step,
+    ) {
+        Err(d) => assert_eq!(d.tick, 25, "divergence must be at the tampered tick"),
+        Ok(()) => panic!("check_trace accepted a persisted trace with a tampered hash"),
     }
 }

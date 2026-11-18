@@ -124,7 +124,7 @@ query DSL は未実装。
 2. **order-independent な集合ハッシュ**（commutative combine）で sort コスト削減。出典: order-independent hashing。🔴 breaking（hash 値が変わる）→ 別 API。
 3. ~~**desync 二分探索ツール**~~ — **実装済み（N12）**: `replay::first_divergence`/`all_divergences` + `DesyncReport`(分岐 tick・サブシステム局所化・seed・入力窓を含む再現バンドル)。出典: Bugnet, Gaffer。
 4. **xxHash/FxHash オプション**（per-frame hash の高速化）。出典: xxHash。🟡 gated（hash 関数変更で値が変わる→ feature 隔離）。
-5. **replay trace の永続化フォーマット**（seed + inputs + 期待 hash 列）。出典: Deterministic Replay Survey。🟢 replay-safe。
+5. ✅**実装済み** — **replay trace の永続化フォーマット**（`ReplayTrace` + `encode_trace`/`decode_trace`、seed + inputs + 期待 hash 列。magic `IZTR`・版数（`TRACE_FORMAT_VERSION`）・payload の FNV-1a checksum・全整数 little-endian、`src/replay.rs`。実装コミット `4a031b8`）。出典: Deterministic Replay Survey。🟢 replay-safe（新規 API のみで `PINNED_FINAL_HASH` 不変）。
 6. **CI で複数 OS/arch の hash 一致を検証**（matrix で `PINNED_FINAL_HASH` を突き合わせ）。🟢 replay-safe。
 
 ---
