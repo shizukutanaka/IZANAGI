@@ -641,7 +641,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 | R*-tree 矩形検索 | Beckmann 1990 | 永続的な動的 index は `spatial_hash` で十分。pack は packing(配置)であって空間検索ではない |
 | MaxRects packing | Jylänki 2010 | skyline より 2-3% 充填率が上がるが実装複雑度が跳ねる。skyline は「bottom-left + 入力順」で十分実用的、必要になれば後続ラウンドで追加 |
 | Hopcroft-Tarjan 平面性判定 | HT 1974 | Delaunay 配線が既に平面性を保証するので用途が薄い |
-| SAT/separating-axis 衝突 | 一般物理文献 | `aabb`+`passability`+`gridcast` の組合せがこの kit の衝突層。任意凸形状は整数厳密化が高コスト |
+| SAT/separating-axis 衝突 | 一般物理文献 | `aabb`+`passability`+`gridcast` の組合せがこの kit の衝突層。任意凸形状は整数厳密化が高コスト。なお軸平行箱に限った**応答**層(重力・半陰的オイラー・反発/摩擦)は `rigid` として実装済み(第426次、実装コミット `e2ee261`)— 見送るのは任意凸形状の SAT のみ |
 
 ## 出典(第7次、search-index 照合)
 
@@ -1770,6 +1770,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `goap` — Goal-Oriented Action Planning: `Action{name,pre,set,clr,cost}`、pre 充足のビットマスク世界遷移を Dijkstra。`BTreeSet<(cost, seq, state)>` で「同コストはアクション列の辞書順最小」を正準形に — 計画が純関数。深さ≤8 全 DFS oracle で plan ベクタ一致
 - `btree` — 行動木(resume 意味論): arena `Vec<Node>`、Sequence/Selector は Running 子 index を `mem[i]` に保持して次 tick でそこから再開(先頭からの再評価ではない)。Condition の Running は Failure へ写像(葉は Running を返さない規約)。状態なし eager oracle 300 乱択で status+葉訪問数を全照合
 - `verlet` — 整数 Verlet 統合(Q16.16): `x' = x + (x−x_prev)·damping + a` + 距離リンクを iters 回緩和、両端半分の `(len−rest)` 誤差を軸方向へ。**設計値捕捉**: damping=1 は無減衰でエネルギー保存 — リンクが平衡を貫通して持続振動する(両端点が入れ替わる大振動も観測)ため、収束主張には damping < 1 が必須。緩和順は挿入順リストでトレースの一部
+- `rigid` — 決定的 AABB 剛体応答層(Q16.16、第426次で追加): 検出層(`aabb`/`swept`/`sap`/`gjk`/`epa`)と `verlet` の積分だけでは「重なったらどう動くか」が無かった。`World::step` は (1)半陰的オイラー積分 (2)対 Solid 応答(最小貫通軸への押し出し+法線速度の反発+接線摩擦) (3)物体対の力積応答(辞書順ペア・位置補正は逆質量比で分割・反発は min(e_i, e_j))を固定順で実行し、`World` は `DetHash` 実装で world hash に載る。**設計値捕捉**: 静止接触の安定条件は `rest_speed ≥ |重力|·dt` — 下回ると静止体が毎 tick 微小反発を繰り返すリミットサイクルになる(verlet の damping 捕捉と同型の「収束にはパラメータ下限が要る」事例。実測: 重力8・dt 1/8・閾値1/2 では 1/2 で跳ね続け、閾値1で静止)。自由落下が解析解 `g·dt²·n(n+1)/2` と完全一致、反発 8→4→2→1、エネルギー非増、鏡像対称、等質量弾性衝突の速度交換を単体テスト13件で固定
 - `vnoise` — 整数バリューノイズ+fBm: SplitMix64 格子ハッシュ(負 index も bit-mix 吸収)→ 上位16bit を Q16.16 へ、smootherstep `u²(3−2u)` 双線形補間、fbm は amp·freq の mul 更新+正規化。**設計値**: セル床は `raw >> 16` 算術シフト(負座標で二の補数 frac が [0,1) へ)、転置補間 oracle は丸め経路違いで±4量子一致
 
 **継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
@@ -7677,3 +7678,26 @@ PARSERS 不変・決定性ハッシュ不変。
 
 副次修正: PR #445 Devin Review 指摘 — Issueフォーム内の相対リンク
 `../COMMERCIAL.md` が /issues/new 起点で404 → 絶対URL化。
+
+## 第426次：剛体応答層 `rigid` — 検出の上に「応答」を載せる
+
+衝突検出層(aabb/swept/sap/gjk/epa)と積分(verlet/spring)は揃っていたが、
+「重なった物体がどう動くか」を決める応答層が無く、重力落下・反発・静止
+接触は利用者側の手書きに委ねられていた。AABB 限定の薄い剛体応答層
+`rigid`(Body/Solid/World、Q16.16)を追加した(実装コミット `e2ee261`)。
+第7次の見送り判断(SAT、644行)は任意凸形状についてのもので、軸平行箱の
+応答は対象外だったことを同行に明記した。
+
+- 処理順序はトレースの一部として固定: 積分(半陰的オイラー)→対 Solid
+  応答(挿入順)→物体対応答(辞書順ペア)。World は DetHash 実装。
+- 設計値捕捉: 静止接触の安定条件 `rest_speed ≥ |重力|·dt`(第55次 verlet
+  捕捉の隣に記録)。下回ると微小反発のリミットサイクルになる。
+- 限界は module doc に明記: discrete(薄い Solid を貫通しうる)、回転なし、
+  物体対摩擦なし、積み重ねソルバではない。
+- 検証: rigid 単体13件(自由落下の解析解一致・反発ラダー・エネルギー
+  非増・鏡像対称・速度交換)、det_hash_golden に rigid 3ピン追加、
+  公開 API ピン 18868→18898(追加30行・削除0行)。gate 全段 green
+  (workspace テスト 13,712 passed / 0 failed)。ただし gate.sh の一括実行は
+  packageability 段の途中でランタイム再起動により中断されログを喪失した
+  ため、同段は gate 自身のコマンドを同一ツリーで個別に再実行して green
+  を確認した(それ以前の段は中断前の一括実行ログで green を確認済み)。
