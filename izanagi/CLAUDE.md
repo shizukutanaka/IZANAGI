@@ -42,6 +42,8 @@ examples/
   world.rs     — scrolling tilemap + camera + sprite animation, --terminal
   kit_bridge.rs — izanagi_kit sim (mapgen/A*/FOV) rendered via Engine;
                   asserts headless and engine-hosted world-hash traces match
+  arena.rs     — complete arena survival game on the public API only,
+                  script-driven and fully asserted (two runs, save/load)
 
 tests/
   integration.rs — cross-module API contracts
