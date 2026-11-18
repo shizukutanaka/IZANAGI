@@ -2936,7 +2936,7 @@ pub use shop::{Listing, Shop};
 pub use shrink::{is_one_minimal, shrink_inputs, shrink_simulation_inputs};
 pub use shufflebag::ShuffleBag;
 pub use sim::{audit, AuditReport, Simulation};
-pub use sparse_set::{join, join3, join3_mut, join_mut, SparseSet};
+pub use sparse_set::{join, join3, join3_mut, join_mut, join_tagged, SparseSet, TagSet};
 pub use spatial_hash::SpatialHash;
 pub use status::{Effect, StatTarget, StatusSet};
 pub use temporal::{check_run, Monitor, MonitorSet, Verdict};
