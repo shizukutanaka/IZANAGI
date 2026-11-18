@@ -1,6 +1,6 @@
 //! Desync forensics — attributing a replay divergence to its cause.
 //!
-//! [`replay`] answers *where* two runs first disagree: [`first_divergence`]
+//! [`crate::replay`] answers *where* two runs first disagree: [`first_divergence`]
 //! names the tick and the two state hashes. That is the starting point of a
 //! desync hunt, not its end — the question that actually decides the fix is
 //! *whose fault* the divergence is. Two peers can produce different hashes
@@ -24,7 +24,7 @@
 //!
 //! The evidence triple is exactly what the persistent replay-trace format
 //! stores (seed, per-tick input frames, expected hashes — see `ReplayTrace`
-//! and `encode_trace` / `decode_trace` in [`replay`]), so a decoded trace
+//! and `encode_trace` / `decode_trace` in [`crate::replay`]), so a decoded trace
 //! file drops straight into a [`TraceEvidence`] with no conversion.
 //!
 //! **Search strategy.** The first divergence is found by a linear scan over
@@ -41,7 +41,7 @@
 //! simulation; likewise, input evidence only clears the simulation for the
 //! ticks it actually covers. And a "hash" here is the kit's FNV-1a world
 //! hash: equality means the canonical state bytes agreed, subject to that
-//! hash's collision stance (see [`world_hash`]).
+//! hash's collision stance (see [`crate::world_hash`]).
 //!
 //! ```
 //! use izanagi_kit::trace_forensics::{analyze_traces, ForensicsVerdict, TraceEvidence};
