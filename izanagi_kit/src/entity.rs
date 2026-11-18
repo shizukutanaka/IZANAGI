@@ -1,5 +1,21 @@
 //! Generational entity handles. Reused indices carry a bumped generation,
 //! so a stale handle to a despawned-then-respawned slot is rejected.
+//!
+//! ## Generation exhaustion
+//!
+//! Generations are `u32`. A slot's counter advances by one on every
+//! [`EntityAllocator::free`] of its live handle, so exhausting the counter
+//! takes 2^32 frees of the *same* slot. When the counter is freed at
+//! [`u32::MAX`] it wraps to 0: the slot is recycled as usual (it is *not*
+//! retired — contrast [`crate::slotmap::Slotmap`], which retires at the
+//! same boundary), and a stale handle issued at generation 0 becomes
+//! indistinguishable from the fresh handle. The wrap is not silent:
+//! [`EntityAllocator::free`] records it in
+//! [`EntityAllocator::generation_wrap_count`], and callers running
+//! long-lived worlds are expected to audit that counter (with
+//! [`EntityAllocator::highest_generation`] as a proximity gauge). Below
+//! the wrap, every stale generation is rejected — only the exact
+//! wrapped-to generation can alias.
 
 /// Opaque handle. `index` locates storage; `generation` validates liveness.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -64,7 +80,9 @@ impl EntityAllocator {
     /// When the generation counter reaches [`u32::MAX`] and wraps to 0 on the
     /// next free, a stale handle at generation 0 becomes indistinguishable from
     /// a freshly recycled slot. This event is recorded in [`generation_wrap_count`]
-    /// and fires a `debug_assert!` so development builds catch it early.
+    /// so audits can catch it; nothing else marks it, so a non-zero count is
+    /// the signal to act on. See the module-level "Generation exhaustion"
+    /// section for the full policy.
     ///
     /// [`generation_wrap_count`]: EntityAllocator::generation_wrap_count
     pub fn free(&mut self, entity: Entity) {
@@ -524,6 +542,52 @@ mod tests {
             u32::MAX,
             "saturating_add must not overflow past u32::MAX"
         );
+    }
+
+    #[test]
+    fn test_wrap_aliases_the_original_generation_zero_handle() {
+        // The documented cost of wrapping (module docs, "Generation
+        // exhaustion"): once a slot's counter wraps to 0 and the slot is
+        // recycled, the handle originally issued at generation 0 is
+        // indistinguishable from the fresh one. The wrap counter is the
+        // only record that this happened.
+        let mut a = EntityAllocator::new();
+        let e0 = a.allocate(); // slot 0, generation 0 — the handle that will alias
+        a.generations[e0.index() as usize] = u32::MAX;
+        let e_max = Entity {
+            index: e0.index(),
+            generation: u32::MAX,
+        };
+        a.free(e_max); // wraps the stored generation to 0
+        let fresh = a.allocate(); // recycles the slot at generation 0
+        assert_eq!(fresh, e0, "wrapped slot reissues the generation-0 handle");
+        assert!(
+            a.is_alive(e0),
+            "the original stale handle aliases the fresh entity after a wrap"
+        );
+        assert_eq!(a.generation_wrap_count(), 1, "the wrap is on record");
+    }
+
+    #[test]
+    fn test_wrap_rejects_stale_handles_of_other_generations() {
+        // Only the exact wrapped-to generation aliases. A stale handle from
+        // any other generation stays rejected after the same wrap, and the
+        // spent MAX handle itself is rejected too.
+        let mut a = EntityAllocator::new();
+        let e0 = a.allocate();
+        let stale_mid = Entity {
+            index: e0.index(),
+            generation: 7,
+        };
+        a.generations[e0.index() as usize] = u32::MAX;
+        let e_max = Entity {
+            index: e0.index(),
+            generation: u32::MAX,
+        };
+        a.free(e_max);
+        let _fresh = a.allocate();
+        assert!(!a.is_alive(stale_mid));
+        assert!(!a.is_alive(e_max), "the MAX handle itself is spent");
     }
 
     #[test]
