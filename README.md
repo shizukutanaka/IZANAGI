@@ -174,6 +174,9 @@ Both crates live in one Cargo workspace (root `Cargo.toml`).
 - [`izanagi_kit/RESEARCH.md`](./izanagi_kit/RESEARCH.md) — the full record of
   what was researched, implemented (with commit hashes), and deliberately
   deferred, with sources.
+- [`DETERMINISM.md`](./DETERMINISM.md) — the determinism guarantee: exactly
+  what replays bit-identically, what is out of scope, and how the claim is
+  enforced mechanically.
 - `tools/gate.sh` — the whole verification gate as one command: fmt, tests,
   clippy, rustdoc, the pinned determinism hashes, every example run twice and
   required to reproduce, the integration hash, the pipeline demo, and
