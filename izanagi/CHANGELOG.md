@@ -12,6 +12,16 @@ below since its actual content is unknown. Everything below is what
 changed in this session.
 
 ### Added
+- **`physics` module** — gravity and rigid-body-lite AABB physics
+  (`Body`, `Physics`): world and per-body gravity, semi-implicit Euler
+  integration, minimum-translation resolution with restitution and
+  friction, and a `grounded` flag for resting contact. The engine had
+  collision *detection* (`collide`) but nothing that moved;
+  `examples/platformer.rs` hand-rolled this pattern, and the module is
+  that pattern generalised. It is a standalone world, not ECS
+  components — pair resolution needs two bodies mutably at once, which
+  `World::get_mut` cannot lend — and it sits on the float side of the
+  determinism boundary, so it is gameplay state, not replay state.
 - **`# Determinism boundary` section in the crate docs**, naming exactly which
   modules may hold state that has to replay. Measured, not guessed: 8 of 24
   modules contain no `f32`/`f64` in production code (`assets`, `ecs`, `error`,
