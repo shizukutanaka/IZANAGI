@@ -67,7 +67,7 @@ query DSL は未実装。
 **洗い出した改善点**
 1. ✅**実装済み** — **`sqrt()` の追加**（integer bit-by-bit isqrt、`src/fixed.rs`）。距離計算・正規化に必須。負入力は 0 へ飽和。🟢 replay-safe（新規 API、既存演算不変・`PINNED_FINAL_HASH` 不変）。
 2. ✅**実装済み** — **CORDIC による `sin`/`cos`/`sin_cos`/`atan2`**（テーブルではなく反復で決定的、16回・整数定数、`src/fixed.rs`）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
-3. **丸めモードの明示**（truncate / round-half-to-even）。乗除の丸めを文書化し API 化。出典: substrate-fixed の丸め。🟡 gated（既存の演算の丸めを変えると 🔴。新 API として追加なら 🟢）。
+3. ✅**実装済み** — **丸めモードの明示**（`RoundingMode`（`Truncate` / `RoundHalfToEven`）と `Fixed::mul_with_rounding` / `Fixed::div_with_rounding` を新 API として追加、`src/fixed.rs`。`Truncate` は無印演算と bit 一致（乗算=floor・除算=0方向という既存の非対称と 0 除算飽和を含む）をグリッドテストで固定し、`RoundHalfToEven` は独立な i128 oracle と照合。既存演算の丸めは不変で `PINNED_FINAL_HASH` 不変。候補の gated 条件どおり「新 API として追加」の経路で実施。実装コミット `ff6c93c`）。出典: substrate-fixed の丸め。🟢 replay-safe（新規 API のみ）。
 4. ~~**`Vec2`/`Vec3` 等の fixed-point ベクトル型**~~ — **実装済み**: `src/vec.rs` の `Vec2`（`dot`/`length_sq`/`normalize`/`reflect`、全て Q16.16）。出典: FixedMathSharp。
 5. **overflow 検出モード（debug 時 panic / release saturating）**の二層化を文書化。🟢 replay-safe。
 6. ~~**`from_ratio`・`from_int` の property test 拡充**~~ — **実装済み**: 飽和境界テストが存在（`test_sub_saturates_at_min`・`test_from_int_saturates_out_of_range`・`test_from_ratio_div_by_zero_saturates_by_sign` ほか）。🟢 replay-safe。
