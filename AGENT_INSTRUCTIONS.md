@@ -560,7 +560,7 @@ I8 N19 `Fixed` op 行列)は実装で閉じた。詳細は §2 の解消済み�
 > C5-4 dropped_steps 可観測化 / C9-5 did-you-mean 修正提案、いずれも N24 へ記録)。
 > 併せて engine 側の panic 経路を棚卸しし、audio の short-buffer panic + HashMap
 > 混合順・gamepad の disconnect ghost input・tilemap の u32 wrap を3件修正。
-> **C9 の残り(span ベース診断・help 文・quick-fix の lint 側適用)はまだ開いている。**
+> **C9 の span ベース診断・help 描画は実装済み。validator の未定義 spawn / extends base の修正提案も `gamec --rich` で本文と分離した help 行へ接続済み（plain / JSON / SARIF は不変）。残るのは置換範囲を持つ構造化編集・自動適用であり、表示用 help とは別機能。**
 
 **エージェントが着手できる改善案は、もう無い。** 前版に残っていた4行のうち3行は、
 着手ではなく**測定**で閉じた:

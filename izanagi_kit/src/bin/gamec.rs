@@ -47,7 +47,18 @@ const USAGE: &str =
 /// span-based rich form under `--rich`, the one-line form otherwise.
 fn render_diag(mode: &OutputMode, d: &Diagnostic, path: &str, source: &str) -> String {
     if *mode == OutputMode::Rich {
-        RichDiagnostic::from_diagnostic(d).render(path, source)
+        let mut rich = RichDiagnostic::from_diagnostic(d);
+        if let Some((message, suggestion)) = d
+            .message
+            .strip_suffix("?)")
+            .and_then(|message| message.rsplit_once(" (did you mean '"))
+        {
+            if let Some(name) = suggestion.strip_suffix('\'') {
+                rich.message = message.to_string();
+                rich = rich.with_help(format!("did you mean '{name}'?"));
+            }
+        }
+        rich.render(path, source)
     } else {
         d.render(path, source)
     }
@@ -254,4 +265,119 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     }
     ExitCode::SUCCESS
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const SPAWN: &str = "prefab ghost\nglyph g\nlevel a 1x1\nrow .\nspawn ghast 0 0\n";
+    const EXTENDS: &str = "prefab enemy\nglyph e\nprefab boss extends enem\nglyph b\n";
+    const NO_SUGGESTION: &str = "prefab goblin\nglyph g\nlevel a 1x1\nrow .\nspawn zz 0 0\n";
+
+    fn validation_error(source: &str) -> Diagnostic {
+        let (content, parse_diags) = parse(source);
+        assert!(parse_diags.is_empty(), "{parse_diags:?}");
+        let errors: Vec<_> = validate(&content)
+            .into_iter()
+            .filter(|d| d.is_error())
+            .collect();
+        assert_eq!(errors.len(), 1, "{errors:?}");
+        errors[0].clone()
+    }
+
+    #[test]
+    fn rich_spawn_suggestion_is_a_help_line() {
+        let diagnostic = validation_error(SPAWN);
+        let expected = "error: level 'a': spawn references undefined prefab 'ghast'\n  = help: did you mean 'ghost'?";
+        for _ in 0..2 {
+            assert_eq!(
+                render_diag(&OutputMode::Rich, &diagnostic, "test.game", SPAWN),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn rich_extends_suggestion_is_a_help_line() {
+        let diagnostic = validation_error(EXTENDS);
+        let expected =
+            "error: prefab 'boss' extends undefined prefab 'enem'\n  = help: did you mean 'enemy'?";
+        assert_eq!(
+            render_diag(&OutputMode::Rich, &diagnostic, "test.game", EXTENDS),
+            expected
+        );
+    }
+
+    #[test]
+    fn rich_without_a_suggestion_is_unchanged() {
+        let diagnostic = validation_error(NO_SUGGESTION);
+        let expected = "error: level 'a': spawn references undefined prefab 'zz'";
+        assert_eq!(
+            render_diag(&OutputMode::Rich, &diagnostic, "test.game", NO_SUGGESTION),
+            expected
+        );
+        assert_eq!(
+            RichDiagnostic::from_diagnostic(&diagnostic).render("test.game", NO_SUGGESTION),
+            expected
+        );
+    }
+
+    #[test]
+    fn plain_suggestions_and_other_formats_remain_unchanged() {
+        for (source, message) in [
+            (
+                SPAWN,
+                "level 'a': spawn references undefined prefab 'ghast' (did you mean 'ghost'?)",
+            ),
+            (
+                EXTENDS,
+                "prefab 'boss' extends undefined prefab 'enem' (did you mean 'enemy'?)",
+            ),
+            (
+                NO_SUGGESTION,
+                "level 'a': spawn references undefined prefab 'zz'",
+            ),
+        ] {
+            let diagnostic = validation_error(source);
+            let legacy = Diagnostic::error(0, message);
+            let expected = format!("test.game: error: {message}");
+            assert_eq!(
+                render_diag(&OutputMode::Human, &diagnostic, "test.game", source),
+                expected
+            );
+            let _ = render_diag(&OutputMode::Rich, &diagnostic, "test.game", source);
+            assert_eq!(diagnostic.message, message);
+            assert_eq!(diagnostic.severity, Severity::Error);
+            assert_eq!(
+                diag_json("test.game", std::slice::from_ref(&diagnostic)),
+                diag_json("test.game", std::slice::from_ref(&legacy))
+            );
+            assert_eq!(
+                diag_sarif("test.game", &[diagnostic]),
+                diag_sarif("test.game", &[legacy])
+            );
+        }
+    }
+
+    #[test]
+    fn rich_empty_and_incomplete_suggestions_are_unchanged() {
+        for message in [
+            "",
+            "did you mean",
+            "example (did you mean 'ghost'?",
+            "example (did you mean ghost?)",
+            "example (did you mean 'ghost'?) trailing",
+        ] {
+            for diagnostic in [
+                Diagnostic::error(0, message),
+                Diagnostic::warning(0, message),
+            ] {
+                assert_eq!(
+                    render_diag(&OutputMode::Rich, &diagnostic, "test.game", ""),
+                    RichDiagnostic::from_diagnostic(&diagnostic).render("test.game", "")
+                );
+            }
+        }
+    }
 }
