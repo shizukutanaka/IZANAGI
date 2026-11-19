@@ -79,8 +79,10 @@ fn allowed() -> BTreeMap<&'static str, (usize, &'static str)> {
     m.insert(
         "validator.rs",
         (
-            7,
+            8,
             "name/glyph interning and occupancy, all membership queries; \
+             the spatial check's spawn-cell set is membership-only too and \
+             its findings are emitted in row-major region order; \
              diagnostics are emitted in source order from the Content vectors",
         ),
     );
