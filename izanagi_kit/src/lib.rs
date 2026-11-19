@@ -92,6 +92,7 @@
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`) + farthest-cell stair placement (`farthest_cell`), O(1) reachability via precomputed connected components (`ConnectivityMap`), auto-explore.
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
 //! - [`replay`] — replay trace recording, desync detection and rollback, plus production desync repro bundles (`DesyncReport`).
+//! - [`trace_edit`] — version control for persistent `IZTR` replay traces: `truncate` (cut at a tick, checksum recomputed), `fork` (branch at a tick after replay-verifying the prefix) and `diff` (first diverging tick with both hashes).
 //! - [`trace_forensics`] — desync forensics: compares two recorded traces (seed, input frames, per-tick hashes) and attributes the first divergence to its cause — different inputs, a true simulation divergence, a length mismatch, or different runs — as a structured, printable report (`analyze_traces`, `ForensicsReport`).
 //! - [`rollback`] — rollback-netcode building blocks: a bounded snapshot ring (`SnapshotRing`) and a GGRS-style development sync test (`sync_test`) that catches step-function nondeterminism by rolling back and re-simulating every frame.
 //! - [`sim`] — the one canonical `Simulation` trait (deterministic state machine + ordered inputs, cf. Schneider 1990) that every verification tool consumes, plus `audit()`: a single call running double-run and rollback-resimulation checks over your simulation.
@@ -2528,6 +2529,7 @@ pub mod torrent;
 pub mod tournament;
 pub mod toxini;
 pub mod tptp;
+pub mod trace_edit;
 pub mod trace_forensics;
 pub mod traefik;
 pub mod transmission;
