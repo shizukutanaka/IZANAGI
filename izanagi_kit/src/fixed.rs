@@ -33,11 +33,13 @@
 //!
 //! # Rounding
 //!
-//! There is no configurable rounding mode; each operation has one fixed,
-//! deterministic behaviour, documented here so callers can reason about the
-//! last bit. The behaviours differ between multiply and divide because each
-//! uses the cheapest correct integer primitive, and the two primitives round
-//! negatives differently:
+//! The unsuffixed operations have no configurable rounding mode; each has
+//! one fixed, deterministic behaviour, documented here so callers can
+//! reason about the last bit. (An opt-in per-call mode exists — see the end
+//! of this section — but the unsuffixed behaviour itself never changes:
+//! the pinned-hash simulation depends on it.) The behaviours differ
+//! between multiply and divide because each uses the cheapest correct
+//! integer primitive, and the two primitives round negatives differently:
 //!
 //! - [`mul`](Fixed::mul) shifts the 64-bit product right by 16
 //!   (`product >> 16`). An **arithmetic** right shift **floors toward −∞**, so
@@ -57,6 +59,14 @@
 //! only matters for negative values. The exact behaviours are pinned by the
 //! `test_mul_rounds_toward_negative_infinity`, `test_div_truncates_toward_zero`,
 //! and `test_from_ratio_truncates_toward_zero_like_div` regression tests below.
+//!
+//! Callers who need a different last bit can opt in per call with
+//! [`RoundingMode`] via [`mul_with_rounding`](Fixed::mul_with_rounding) and
+//! [`div_with_rounding`](Fixed::div_with_rounding):
+//! [`RoundingMode::Truncate`] reproduces the unsuffixed behaviour above
+//! bit-for-bit, and [`RoundingMode::RoundHalfToEven`] rounds the exact
+//! result to the nearest representable value, exact halves going to the
+//! even neighbour.
 
 const FRAC_BITS: u32 = 16;
 const ONE: i32 = 1 << FRAC_BITS;
@@ -124,9 +134,71 @@ pub(crate) fn isqrt_u64(n: u64) -> u64 {
     root
 }
 
+/// Round the exact rational `n / d` (with `d > 0`) to the nearest integer,
+/// breaking exact halves toward the even neighbour ("banker's rounding").
+///
+/// Floor-based — quotient and remainder come from `div_euclid`/`rem_euclid`,
+/// so the remainder always lies in `[0, d)` and the two candidates are `q`
+/// and `q + 1` regardless of sign. That makes the rule sign-symmetric:
+/// `round(-x) == -round(x)`, halves included (`-0.5 → 0`, `-1.5 → -2`,
+/// `-2.5 → -2`). Shared by the `RoundHalfToEven` paths of
+/// [`Fixed::mul_with_rounding`] and [`Fixed::div_with_rounding`]; both call
+/// sites keep `d ≤ 2³¹`, so `2 * r` (with `r < d`) cannot overflow `i64`,
+/// and `q + 1` stays far inside `i64` because the numerators are bounded by
+/// the argument in the module docs (`|n| ≤ 2⁶²`, divided by `d ≥ 2¹⁶` for
+/// multiply and `|n| ≤ 2⁴⁷` for divide).
+fn round_quotient_half_even(n: i64, d: i64) -> i64 {
+    // No debug_assert on `d > 0` (G7 freezes panicking macros): both call
+    // sites establish it structurally — multiply passes the positive
+    // constant `ONE`, divide normalises the divisor's sign first.
+    let q = n.div_euclid(d);
+    let r = n.rem_euclid(d);
+    if 2 * r > d || (2 * r == d && q & 1 != 0) {
+        q + 1
+    } else {
+        q
+    }
+}
+
 /// Fixed-point number stored as a scaled `i32`.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
 pub struct Fixed(i32);
+
+/// Rounding mode for [`Fixed::mul_with_rounding`] and
+/// [`Fixed::div_with_rounding`].
+///
+/// Strictly opt-in: the unsuffixed [`Fixed::mul`]/[`Fixed::div`] keep the
+/// rounding they have always had — the pinned-hash simulation depends on
+/// it — so selecting a mode here changes the last bit only at call sites
+/// that ask for it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RoundingMode {
+    /// The rounding the corresponding unsuffixed operation has always
+    /// used, so `mul_with_rounding(rhs, RoundingMode::Truncate)` equals
+    /// [`Fixed::mul`] and `div_with_rounding(rhs, RoundingMode::Truncate)`
+    /// equals [`Fixed::div`], bit-for-bit.
+    ///
+    /// **Name caveat**: the two operations inherited different primitives
+    /// (see the module-level "Rounding" section), so this variant is
+    /// truncation toward zero for division but floor toward −∞ for
+    /// multiplication. What the variant guarantees is not one direction
+    /// but *identity with the unsuffixed operation* — passing it is a
+    /// no-op, which is what makes the mode safe to thread through generic
+    /// code that must not disturb existing results.
+    Truncate,
+    /// Round the exact result to the nearest representable value; when
+    /// the discarded fraction is exactly one half, round to the neighbour
+    /// whose raw value is even ("banker's rounding"). Sign-symmetric: the
+    /// rule rounds the value, not the magnitude's direction, so
+    /// `-0.5 → 0`, `-1.5 → -2` and `-2.5 → -2` in raw units.
+    ///
+    /// Prefer this where long multiply/divide chains would otherwise
+    /// accumulate the one-directional bias of the legacy modes (a floored
+    /// product loses on average half a raw unit per step, always in the
+    /// same direction); ties-to-even is the standard bias-free choice
+    /// (substrate-fixed exposes the same mode).
+    RoundHalfToEven,
+}
 
 impl Fixed {
     /// The value `0`.
@@ -336,6 +408,58 @@ impl Fixed {
             None
         } else {
             Some(Fixed(wide as i32))
+        }
+    }
+
+    /// Multiply with an explicit [`RoundingMode`].
+    ///
+    /// [`RoundingMode::Truncate`] is bit-identical to [`Fixed::mul`];
+    /// [`RoundingMode::RoundHalfToEven`] rounds the exact product to the
+    /// nearest representable value, exact halves going to the even
+    /// neighbour. Saturates at [`Fixed::MAX`]/[`Fixed::MIN`] like `mul`,
+    /// in both modes.
+    #[inline]
+    pub fn mul_with_rounding(self, rhs: Fixed, mode: RoundingMode) -> Fixed {
+        let product = (self.0 as i64) * (rhs.0 as i64);
+        match mode {
+            RoundingMode::Truncate => Fixed::from_wide(product >> FRAC_BITS),
+            RoundingMode::RoundHalfToEven => {
+                Fixed::from_wide(round_quotient_half_even(product, ONE as i64))
+            }
+        }
+    }
+
+    /// Division with an explicit [`RoundingMode`].
+    ///
+    /// [`RoundingMode::Truncate`] is bit-identical to [`Fixed::div`],
+    /// including the divide-by-zero saturation toward the dividend's sign;
+    /// [`RoundingMode::RoundHalfToEven`] rounds the exact quotient to the
+    /// nearest representable value, exact halves going to the even
+    /// neighbour. Saturates like `div`, in both modes.
+    #[inline]
+    pub fn div_with_rounding(self, rhs: Fixed, mode: RoundingMode) -> Fixed {
+        if rhs.0 == 0 {
+            return if self.0 >= 0 {
+                Fixed(i32::MAX)
+            } else {
+                Fixed(i32::MIN)
+            };
+        }
+        let numerator = (self.0 as i64) << FRAC_BITS;
+        match mode {
+            RoundingMode::Truncate => Fixed::from_wide(numerator / rhs.0 as i64),
+            RoundingMode::RoundHalfToEven => {
+                // Normalise to a positive divisor so the shared helper can
+                // apply its floor-based rule; `|numerator| ≤ 2⁴⁷`, so the
+                // negation cannot overflow.
+                let divisor = rhs.0 as i64;
+                let (n, d) = if divisor < 0 {
+                    (-numerator, -divisor)
+                } else {
+                    (numerator, divisor)
+                };
+                Fixed::from_wide(round_quotient_half_even(n, d))
+            }
         }
     }
 
@@ -1207,6 +1331,334 @@ mod tests {
         // from_ratio shares div's integer-division path, so it truncates too.
         assert_eq!(Fixed::from_ratio(-1, 3).raw(), -21845);
         assert_eq!(Fixed::from_ratio(1, 3).raw(), 21845);
+    }
+
+    // --- explicit rounding modes (opt-in; the unsuffixed ops above are
+    // unchanged, and Truncate must track them bit-for-bit) ---
+
+    /// Independent oracle for round-half-to-even of the exact rational
+    /// `n / d` (`d != 0`): rounds the *magnitude* with `i128` arithmetic, so
+    /// it shares neither code nor the floor formulation with the
+    /// implementation under test.
+    fn half_even_oracle(n: i128, d: i128) -> i128 {
+        let negative = (n < 0) != (d < 0);
+        let an = if n < 0 { -n } else { n };
+        let ad = if d < 0 { -d } else { d };
+        let q = an / ad;
+        let r = an % ad;
+        let rounded = if 2 * r > ad || (2 * r == ad && q % 2 != 0) {
+            q + 1
+        } else {
+            q
+        };
+        if negative {
+            -rounded
+        } else {
+            rounded
+        }
+    }
+
+    /// The oracle's results are exact rationals; the API saturates, so the
+    /// expected raw value is the oracle clamped to the `i32` raw range.
+    fn clamp_raw(wide: i128) -> i32 {
+        if wide > i32::MAX as i128 {
+            i32::MAX
+        } else if wide < i32::MIN as i128 {
+            i32::MIN
+        } else {
+            wide as i32
+        }
+    }
+
+    #[test]
+    fn test_mul_with_rounding_truncate_matches_mul() {
+        // Truncate must be a no-op relative to mul, across signs, zeros and
+        // the saturation extremes — that identity is the mode's contract.
+        let operands = [
+            0,
+            1,
+            -1,
+            3,
+            -3,
+            65536,
+            -65536,
+            123_456,
+            -987_654,
+            i32::MAX,
+            i32::MIN,
+        ];
+        for &a in &operands {
+            for &b in &operands {
+                assert_eq!(
+                    Fixed(a).mul_with_rounding(Fixed(b), RoundingMode::Truncate),
+                    Fixed(a).mul(Fixed(b)),
+                    "truncate mul must equal mul for {a} * {b}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_div_with_rounding_truncate_matches_div() {
+        // Same identity for division — including the zero divisor, whose
+        // sign saturation Truncate must inherit from div.
+        let operands = [
+            0,
+            1,
+            -1,
+            3,
+            -3,
+            65536,
+            -65536,
+            123_456,
+            -987_654,
+            i32::MAX,
+            i32::MIN,
+        ];
+        for &a in &operands {
+            for &b in &operands {
+                assert_eq!(
+                    Fixed(a).div_with_rounding(Fixed(b), RoundingMode::Truncate),
+                    Fixed(a).div(Fixed(b)),
+                    "truncate div must equal div for {a} / {b}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_div_with_rounding_truncate_matches_from_ratio() {
+        // from_ratio shares div's integer-division path, so Truncate must
+        // reproduce it from integer operands too.
+        for (num, den) in [(1, 3), (-1, 3), (1, -3), (7, 2), (-7, 2), (100, 7)] {
+            assert_eq!(
+                Fixed::from_int(num)
+                    .div_with_rounding(Fixed::from_int(den), RoundingMode::Truncate),
+                Fixed::from_ratio(num, den),
+                "from_ratio({num}, {den})"
+            );
+        }
+    }
+
+    #[test]
+    fn test_mul_round_half_to_even_ties_go_to_even() {
+        // raw a × raw 32768 has the exact raw result a/2, so odd `a` lands
+        // exactly on a half: 0.5 → 0, 1.5 → 2, 2.5 → 2, 3.5 → 4.
+        let half = Fixed(32768);
+        let mode = RoundingMode::RoundHalfToEven;
+        assert_eq!(Fixed(1).mul_with_rounding(half, mode).raw(), 0);
+        assert_eq!(Fixed(3).mul_with_rounding(half, mode).raw(), 2);
+        assert_eq!(Fixed(5).mul_with_rounding(half, mode).raw(), 2);
+        assert_eq!(Fixed(7).mul_with_rounding(half, mode).raw(), 4);
+        // Sign-symmetric: the same ties on negative products.
+        assert_eq!(Fixed(-1).mul_with_rounding(half, mode).raw(), 0);
+        assert_eq!(Fixed(-3).mul_with_rounding(half, mode).raw(), -2);
+        assert_eq!(Fixed(-5).mul_with_rounding(half, mode).raw(), -2);
+        assert_eq!(Fixed(-7).mul_with_rounding(half, mode).raw(), -4);
+        // A negative multiplier must not change the rule either.
+        assert_eq!(Fixed(3).mul_with_rounding(Fixed(-32768), mode).raw(), -2);
+    }
+
+    #[test]
+    fn test_div_round_half_to_even_ties_go_to_even() {
+        // raw a / 2.0 has the exact raw result a/2 — the same tie ladder as
+        // the multiply case, through the division path.
+        let two = Fixed::from_int(2);
+        let mode = RoundingMode::RoundHalfToEven;
+        assert_eq!(Fixed(1).div_with_rounding(two, mode).raw(), 0);
+        assert_eq!(Fixed(3).div_with_rounding(two, mode).raw(), 2);
+        assert_eq!(Fixed(5).div_with_rounding(two, mode).raw(), 2);
+        assert_eq!(Fixed(7).div_with_rounding(two, mode).raw(), 4);
+        assert_eq!(Fixed(-1).div_with_rounding(two, mode).raw(), 0);
+        assert_eq!(Fixed(-3).div_with_rounding(two, mode).raw(), -2);
+        assert_eq!(Fixed(-5).div_with_rounding(two, mode).raw(), -2);
+        assert_eq!(Fixed(-7).div_with_rounding(two, mode).raw(), -4);
+        // A negative divisor flips the sign, not the tie rule.
+        assert_eq!(
+            Fixed(3).div_with_rounding(Fixed::from_int(-2), mode).raw(),
+            -2
+        );
+        assert_eq!(
+            Fixed(-3).div_with_rounding(Fixed::from_int(-2), mode).raw(),
+            2
+        );
+    }
+
+    #[test]
+    fn test_mul_round_half_to_even_rounds_to_nearest_off_tie() {
+        // raw a × raw 16384 has the exact raw result a/4: quarters sit
+        // strictly inside a unit, so nearest decides — 0.25 → 0, 0.75 → 1.
+        let quarter = Fixed(16384);
+        let mode = RoundingMode::RoundHalfToEven;
+        assert_eq!(Fixed(1).mul_with_rounding(quarter, mode).raw(), 0);
+        assert_eq!(Fixed(3).mul_with_rounding(quarter, mode).raw(), 1);
+        assert_eq!(Fixed(-1).mul_with_rounding(quarter, mode).raw(), 0);
+        assert_eq!(Fixed(-3).mul_with_rounding(quarter, mode).raw(), -1);
+    }
+
+    #[test]
+    fn test_div_round_half_to_even_rounds_to_nearest_off_tie() {
+        // 2/3 and 1/6 are the classic cases where nearest and truncation
+        // part ways: raw 43690.67 rounds up to 43691, where div's
+        // truncation keeps 43690.
+        let mode = RoundingMode::RoundHalfToEven;
+        assert_eq!(
+            Fixed::from_int(2)
+                .div_with_rounding(Fixed::from_int(3), mode)
+                .raw(),
+            43691
+        );
+        assert_eq!(
+            Fixed::from_int(-2)
+                .div_with_rounding(Fixed::from_int(3), mode)
+                .raw(),
+            -43691
+        );
+        assert_eq!(
+            Fixed::from_int(1)
+                .div_with_rounding(Fixed::from_int(6), mode)
+                .raw(),
+            10923
+        );
+        // Below the half, nearest still rounds down, agreeing with div.
+        assert_eq!(
+            Fixed::from_int(1).div_with_rounding(Fixed::from_int(3), mode),
+            Fixed::from_int(1).div(Fixed::from_int(3))
+        );
+    }
+
+    #[test]
+    fn test_mul_round_half_to_even_matches_i128_oracle() {
+        // A deterministic grid — small values (dense in exact halves),
+        // power-of-two edges and the i32 extremes — checked against the
+        // independent magnitude-based oracle.
+        let mode = RoundingMode::RoundHalfToEven;
+        let mut values: Vec<i32> = (-64..=64).collect();
+        values.extend([
+            32767,
+            32768,
+            32769,
+            -32768,
+            -32769,
+            65535,
+            65536,
+            1 << 20,
+            -(1 << 20),
+            1 << 30,
+            -(1 << 30),
+            i32::MAX,
+            i32::MIN,
+        ]);
+        for &a in &values {
+            for &b in &values {
+                let exact = (a as i128) * (b as i128);
+                let expected = clamp_raw(half_even_oracle(exact, 65536));
+                assert_eq!(
+                    Fixed(a).mul_with_rounding(Fixed(b), mode).raw(),
+                    expected,
+                    "mul {a} * {b}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_div_round_half_to_even_matches_i128_oracle() {
+        // Same grid through the division path (zero divisors are pinned
+        // separately in test_with_rounding_saturates_and_handles_zero_divisor).
+        let mode = RoundingMode::RoundHalfToEven;
+        let mut values: Vec<i32> = (-64..=64).collect();
+        values.extend([
+            32768,
+            -32768,
+            65536,
+            -65536,
+            1 << 20,
+            -(1 << 20),
+            i32::MAX,
+            i32::MIN,
+        ]);
+        for &a in &values {
+            for &b in &values {
+                if b == 0 {
+                    continue;
+                }
+                let exact_num = (a as i128) << 16;
+                let expected = clamp_raw(half_even_oracle(exact_num, b as i128));
+                assert_eq!(
+                    Fixed(a).div_with_rounding(Fixed(b), mode).raw(),
+                    expected,
+                    "div {a} / {b}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_with_rounding_saturates_and_handles_zero_divisor() {
+        for mode in [RoundingMode::Truncate, RoundingMode::RoundHalfToEven] {
+            // Saturation keeps the sign in both modes (never flips).
+            assert_eq!(
+                Fixed::MAX.mul_with_rounding(Fixed::from_int(2), mode),
+                Fixed::MAX
+            );
+            assert_eq!(
+                Fixed::MIN.mul_with_rounding(Fixed::from_int(2), mode),
+                Fixed::MIN
+            );
+            assert_eq!(Fixed::MAX.div_with_rounding(Fixed(1), mode), Fixed::MAX);
+            assert_eq!(Fixed::MIN.div_with_rounding(Fixed(1), mode), Fixed::MIN);
+            // Zero divisor saturates by the dividend's sign, exactly like div.
+            assert_eq!(
+                Fixed::from_int(5)
+                    .div_with_rounding(Fixed::ZERO, mode)
+                    .raw(),
+                i32::MAX
+            );
+            assert_eq!(
+                Fixed::from_int(-5)
+                    .div_with_rounding(Fixed::ZERO, mode)
+                    .raw(),
+                i32::MIN
+            );
+        }
+    }
+
+    #[test]
+    fn test_with_rounding_exact_results_agree_in_both_modes() {
+        // Where the exact result is representable, rounding has nothing to
+        // discard and both modes — and the unsuffixed ops — must agree.
+        let three = Fixed::from_int(3);
+        let two = Fixed::from_int(2);
+        for mode in [RoundingMode::Truncate, RoundingMode::RoundHalfToEven] {
+            assert_eq!(three.mul_with_rounding(two, mode), Fixed::from_int(6));
+            assert_eq!(Fixed::from_int(6).div_with_rounding(two, mode), three);
+        }
+        assert_eq!(three.mul(two), Fixed::from_int(6));
+        assert_eq!(Fixed::from_int(6).div(two), three);
+    }
+
+    #[test]
+    fn test_with_rounding_is_deterministic() {
+        // Same inputs, same mode, twice: bit-identical outputs. Pure
+        // integer code should make this trivial — the pin exists so a
+        // future "optimisation" through floats fails loudly.
+        let cases = [
+            (Fixed(3), Fixed(32768)),
+            (Fixed(-5), Fixed(123_457)),
+            (Fixed::from_int(2), Fixed::from_int(3)),
+            (Fixed::from_int(-7), Fixed::from_int(6)),
+        ];
+        for mode in [RoundingMode::Truncate, RoundingMode::RoundHalfToEven] {
+            for (a, b) in cases {
+                let first_mul = a.mul_with_rounding(b, mode);
+                let second_mul = a.mul_with_rounding(b, mode);
+                assert_eq!(first_mul, second_mul);
+                let first_div = a.div_with_rounding(b, mode);
+                let second_div = a.div_with_rounding(b, mode);
+                assert_eq!(first_div, second_div);
+            }
+        }
     }
 
     #[test]
