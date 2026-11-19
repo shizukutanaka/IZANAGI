@@ -35,7 +35,7 @@
 - D10 コーパス学習の名付け生成（NPC・地名・アイテム名）✅ `markov::NameGen`（order-k byte-level Markov 連鎖 — BEGIN/END パディング語から cumulative-weight 表を BTreeMap で構築、遷移は `SplitMix64::below` で昇順 byte 走査。同じ (corpus, k, seed) で同じ名が全プラットフォームで再現 = rng stream の純関数。gram 全包含・seed 一致/分岐を検証）
 
 ## E. 決定論・リプレイ (Determinism & Replay)
-- E1 state hashing FNV-1a ✅ `world_hash` / E2 DetHash（値型＋容器）✅ / E3 replay trace・desync 検出 ✅ `replay`
+- E1 state hashing FNV-1a ✅ `world_hash` / E2 DetHash（値型＋容器）✅ / E3 replay trace・desync 検出 ✅ `replay`（+ 証明付き実行 IZPF ✅ `proof` — seed・初期状態・入力・全 tick hash を SHA-256 で束縛し、再実行または IZTR trace との突合で検証）
 - E4 snapshot/rollback 基盤 ✅ `rollback`（`SnapshotRing`: stride 付き有界リング・最古から eviction、`sync_test`: 毎フレーム rollback+再sim で step 関数の非決定性を検出）+ `replay::resimulate`（部分再実行） / E5 `DetHash` derive macro ⬜（zero-dep 方針では手実装維持も可）
 - E6 順序非依存（permutation-invariant）multiset hashing ✅ `world_hash::hash_unordered`（`HashMap` 等の非正準順コンテナをソート不要で安定 hash 化）
 

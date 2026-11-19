@@ -383,6 +383,7 @@ The capability map — with per-feature implementation status — lives in
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
 | `trace_edit` | `truncate` / `fork` / `diff` for persistent `IZTR` replay traces — cut, branch (prefix replay-verified), and locate the first diverging tick. |
 | `trace_forensics` | Desync forensics — compares two recorded traces (seed, inputs, hashes) and attributes the first divergence to its cause (input divergence, simulation divergence, length mismatch, different runs) as a structured report. |
+| `proof` | Proof-carrying execution (IZPF): a SHA-256-bound witness of a run (seed, initial state, inputs, every per-tick hash), verified by re-execution or against a recorded IZTR trace. |
 | `sim` | The one `Simulation` trait every verification tool consumes, plus `audit()` — a single call that double-runs the sim, rollback-resimulates it, and reports the final hash. |
 | `rollback` | Bounded snapshot ring (`SnapshotRing`) and a GGRS-style `sync_test` that rolls back every frame to catch step-function nondeterminism. |
 | `dst` | Deterministic Simulation Testing: seed sweeps with per-tick invariants and one-line `(seed, tick)` failure reproduction. |
