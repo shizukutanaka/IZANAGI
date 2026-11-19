@@ -9,11 +9,12 @@
 //! orientation tracking and steering; expect visible drift only after
 //! long multiplications chains (renormalize every few dozen products).
 //!
-//! There is **no `slerp`**: CORDIC gives `sin`/`cos`/`atan2` but a proper
-//! slerp needs `acos` over a general `Fixed` argument, which the
-//! substrate does not provide. [`Quat::nlerp`] interpolates on the 3-sphere
-//! chord with sign correction — exact at the endpoints, monotone, and
-//! within a few percent of the true great-circle speed for wide angles.
+//! Two interpolators are provided. [`Quat::slerp`] is the true great-circle
+//! interpolation (Shoemake 1985): constant angular velocity, built on the
+//! CORDIC [`Fixed::acos`]/[`Fixed::sin`]. [`Quat::nlerp`] interpolates on
+//! the 3-sphere chord with sign correction — cheaper, exact at the
+//! endpoints and monotone, but its angular speed drifts by a few percent
+//! for wide angles.
 //!
 //! ```
 //! use izanagi_kit::fixed::Fixed;
@@ -210,6 +211,52 @@ impl Quat {
         .normalize()
     }
 
+    /// Spherical linear interpolation (Shoemake 1985): the great-circle arc
+    /// from `self` to `rhs` traversed at constant angular velocity,
+    /// `(sin((1−t)θ)·a + sin(tθ)·b) / sin θ` with `θ = acos(a·b)`.
+    ///
+    /// Both inputs are normalized first and `rhs` is flipped into `self`'s
+    /// hemisphere when `a·b < 0`, so the path is always the short arc.
+    /// `t` is clamped to `[0, 1]`; `t = 0` and `t = 1` return the (normalized)
+    /// endpoints exactly. When the arc is shorter than about 1.8° the
+    /// `1 / sin θ` factor would amplify Q16.16 rounding, so it falls back to
+    /// [`Quat::nlerp`], which agrees with slerp to within an ulp there. Unlike
+    /// `nlerp`, antipodal inputs (`q` and `−q`) are not degenerate — they are
+    /// the same rotation. `None` only when an input is a zero quaternion.
+    pub fn slerp(self, rhs: Quat, t: Fixed) -> Option<Self> {
+        let a = self.normalize()?;
+        let b = rhs.normalize()?;
+        let (b, d) = {
+            let d = a.dot(b);
+            if d < Fixed::ZERO {
+                (b.neg(), -d)
+            } else {
+                (b, d)
+            }
+        };
+        let t = t.clamp01();
+        if t == Fixed::ZERO {
+            return Some(a);
+        }
+        if t == Fixed::ONE {
+            return Some(b);
+        }
+        let theta = d.min(Fixed::ONE).acos();
+        let sin_theta = theta.sin();
+        if sin_theta < Fixed::from_ratio(1, 32) {
+            return a.nlerp(b, t);
+        }
+        let wa = (Fixed::ONE - t).mul(theta).sin().div(sin_theta);
+        let wb = t.mul(theta).sin().div(sin_theta);
+        Quat {
+            x: a.x.mul(wa) + b.x.mul(wb),
+            y: a.y.mul(wa) + b.y.mul(wb),
+            z: a.z.mul(wa) + b.z.mul(wb),
+            w: a.w.mul(wa) + b.w.mul(wb),
+        }
+        .normalize()
+    }
+
     /// Decompose a unit quaternion back into `(axis, angle)`; `None` when
     /// the vector part is ~zero (rotation by ~0 — the axis is undefined).
     /// Non-unit inputs are normalized first.
@@ -390,6 +437,101 @@ mod tests {
             v,
             1
         ));
+    }
+
+    fn z_turn(angle: Fixed) -> Quat {
+        Quat::from_axis_angle(Vec3::new(Fixed::ZERO, Fixed::ZERO, Fixed::ONE), angle).unwrap()
+    }
+
+    #[test]
+    fn slerp_endpoints_are_exact() {
+        let a = z_turn(Fixed::from_ratio(3, 10));
+        let b = z_turn(Fixed::from_ratio(27, 10));
+        assert_eq!(a.slerp(b, Fixed::ZERO), a.normalize());
+        assert_eq!(a.slerp(b, Fixed::ONE), b.normalize());
+        // `t` is clamped.
+        assert_eq!(a.slerp(b, Fixed::from_int(-3)), a.normalize());
+        assert_eq!(a.slerp(b, Fixed::from_int(5)), b.normalize());
+    }
+
+    #[test]
+    fn slerp_has_constant_angular_velocity() {
+        // Oracle: for a turn about one axis, slerp(t) is the turn by t·θ.
+        // A 170° arc is where nlerp's chord parametrisation is furthest off.
+        let theta = Fixed::from_ratio(296, 100); // ≈ 169.6°
+        let a = Quat::IDENTITY;
+        let b = z_turn(theta);
+        let mut worst_slerp = Fixed::ZERO;
+        let mut worst_nlerp = Fixed::ZERO;
+        for k in 1..16 {
+            let t = Fixed::from_ratio(k, 16);
+            let want = t.mul(theta);
+            let s = a.slerp(b, t).unwrap();
+            let n = a.nlerp(b, t).unwrap();
+            let got_s = a.angle_to(s).unwrap();
+            let got_n = a.angle_to(n).unwrap();
+            assert!(
+                near(got_s, want, 1),
+                "slerp t={k}/16: {got_s:?} vs {want:?}"
+            );
+            assert!(
+                near(s.norm(), Fixed::ONE, 1),
+                "slerp leaves the unit sphere"
+            );
+            worst_slerp = worst_slerp.max(got_s.abs_diff(want));
+            worst_nlerp = worst_nlerp.max(got_n.abs_diff(want));
+        }
+        assert!(
+            worst_slerp.mul(Fixed::from_int(10)) < worst_nlerp,
+            "slerp {worst_slerp:?} should beat nlerp {worst_nlerp:?} by 10x"
+        );
+    }
+
+    #[test]
+    fn slerp_takes_the_short_arc_and_tolerates_antipodes() {
+        let a = z_turn(Fixed::ZERO);
+        let b = z_turn(Fixed::PI.div(Fixed::from_int(2)));
+        let mid = a.slerp(b, Fixed::from_ratio(1, 2)).unwrap();
+        let flipped = a.slerp(b.neg(), Fixed::from_ratio(1, 2)).unwrap();
+        let x = Vec3::new(Fixed::ONE, Fixed::ZERO, Fixed::ZERO);
+        assert!(vnear(mid.rotate(x), flipped.rotate(x), 1));
+        assert!(near(
+            a.angle_to(mid).unwrap(),
+            Fixed::PI.div(Fixed::from_int(4)),
+            1
+        ));
+        // q and −q are one rotation: slerp is defined (nlerp is not at t=½).
+        let q = z_turn(Fixed::from_ratio(7, 10));
+        let m = q.slerp(q.neg(), Fixed::from_ratio(1, 2)).unwrap();
+        assert!(near(q.angle_to(m).unwrap(), Fixed::ZERO, 1));
+    }
+
+    #[test]
+    fn slerp_small_arcs_and_degenerate_inputs() {
+        // Below the sin θ guard slerp defers to nlerp — bit for bit.
+        let a = z_turn(Fixed::from_ratio(1, 10));
+        let b = z_turn(Fixed::from_ratio(11, 100));
+        let t = Fixed::from_ratio(1, 3);
+        assert_eq!(a.slerp(b, t), a.nlerp(b, t));
+        assert_eq!(a.slerp(a, t), a.nlerp(a, t));
+        // A zero quaternion has no rotation to interpolate.
+        let zero = Quat::new(Fixed::ZERO, Fixed::ZERO, Fixed::ZERO, Fixed::ZERO);
+        assert!(zero.slerp(a, t).is_none());
+        assert!(a.slerp(zero, t).is_none());
+        // Non-unit inputs are normalized first.
+        let big = Quat::new(
+            a.x.mul(Fixed::from_int(3)),
+            a.y,
+            a.z,
+            a.w.mul(Fixed::from_int(3)),
+        );
+        assert!(near(
+            big.slerp(b, Fixed::ZERO).unwrap().norm(),
+            Fixed::ONE,
+            1
+        ));
+        // Deterministic: same inputs, same bits.
+        assert_eq!(a.slerp(b, t), a.slerp(b, t));
     }
 
     #[test]

@@ -915,6 +915,59 @@ impl Fixed {
         Fixed::from_wide(z)
     }
 
+    /// Arctangent of `self` in radians, in `[-π/2, π/2]`: `atan2(self, 1)`,
+    /// so it shares [`atan2`](Self::atan2)'s CORDIC path and error bound.
+    #[inline]
+    pub fn atan(self) -> Fixed {
+        Fixed::atan2(self, Fixed::ONE)
+    }
+
+    /// Arcsine of `self` in radians, in `[-π/2, π/2]`, as
+    /// `atan2(x, √((1 − x)(1 + x)))`. The factored radicand keeps precision
+    /// near `|x| = 1`, where `1 − x²` would cancel. Inputs outside `[-1, 1]`
+    /// clamp to the nearest endpoint (total, like [`sqrt`](Self::sqrt)'s
+    /// clamp-to-zero); `±1` map exactly to `±π/2`.
+    pub fn asin(self) -> Fixed {
+        let x = self.clamp(-Fixed::ONE, Fixed::ONE);
+        if x == Fixed::ONE {
+            return Fixed(HALF_PI);
+        }
+        if x == -Fixed::ONE {
+            return Fixed(-HALF_PI);
+        }
+        Fixed::atan2(x, Self::unit_cofactor(x))
+    }
+
+    /// Arccosine of `self` in radians, in `[0, π]`, as
+    /// `atan2(√((1 − x)(1 + x)), x)`. Inputs outside `[-1, 1]` clamp to the
+    /// nearest endpoint; `1`, `0` and `−1` map exactly to `0`, `π/2` and `π`.
+    pub fn acos(self) -> Fixed {
+        let x = self.clamp(-Fixed::ONE, Fixed::ONE);
+        if x == Fixed::ONE {
+            return Fixed::ZERO;
+        }
+        if x == -Fixed::ONE {
+            return Fixed(PI);
+        }
+        Fixed::atan2(Self::unit_cofactor(x), x)
+    }
+
+    /// `√(1 − x²)` for `x ∈ (-1, 1)`, computed as `√((1 − x)(1 + x))`.
+    #[inline]
+    fn unit_cofactor(x: Fixed) -> Fixed {
+        (Fixed::ONE - x).mul(Fixed::ONE + x).sqrt()
+    }
+
+    /// Tangent of an angle in radians: `sin / cos` from one
+    /// [`sin_cos`](Self::sin_cos) evaluation. Near the poles `±π/2` the
+    /// quotient grows past the Q16.16 range and saturates to `MAX`/`MIN`
+    /// (a zero cosine follows [`div`](Self::div)'s sign-of-dividend rule) —
+    /// never a panic.
+    pub fn tan(self) -> Fixed {
+        let (s, c) = self.sin_cos();
+        s.div(c)
+    }
+
     /// Sign of `self`: returns `1` if positive, `-1` if negative, `0` if zero.
     /// Deterministic integer-only signum (no branching on sign bits, all paths
     /// identical cost).
@@ -2456,5 +2509,96 @@ mod tests {
             x.powf(Fixed::from_ratio(3, 2)),
             x.powf(Fixed::from_ratio(3, 2))
         );
+    }
+
+    #[test]
+    fn test_inverse_trig_exact_endpoints_and_clamping() {
+        let one = Fixed::ONE;
+        assert_eq!(one.asin(), Fixed(HALF_PI));
+        assert_eq!((-one).asin(), Fixed(-HALF_PI));
+        assert_eq!(one.acos(), Fixed::ZERO);
+        assert_eq!((-one).acos(), Fixed(PI));
+        assert_eq!(Fixed::ZERO.acos(), Fixed(HALF_PI));
+        // Out-of-domain inputs clamp to the nearest endpoint, never panic.
+        assert_eq!(Fixed::from_int(2).asin(), Fixed(HALF_PI));
+        assert_eq!(Fixed::MIN.asin(), Fixed(-HALF_PI));
+        assert_eq!(Fixed::MAX.acos(), Fixed::ZERO);
+        assert_eq!(Fixed::MIN.acos(), Fixed(PI));
+        approx(Fixed::ZERO.asin(), Fixed::ZERO, 4);
+        approx(Fixed::ZERO.atan(), Fixed::ZERO, 4);
+        approx(one.atan(), Fixed(HALF_PI / 2), 64);
+        approx((-one).atan(), Fixed(-HALF_PI / 2), 64);
+    }
+
+    #[test]
+    fn test_inverse_trig_inverts_the_forward_functions() {
+        // Oracle: the forward CORDIC functions. sin(asin x) = x, cos(acos x) = x,
+        // tan(atan x) = x, and asin x + acos x = π/2 over the whole domain.
+        for raw in (-ONE..=ONE).step_by(997) {
+            let x = Fixed(raw);
+            let s = x.asin();
+            let c = x.acos();
+            assert!(s >= Fixed(-HALF_PI) && s <= Fixed(HALF_PI), "asin {raw}");
+            assert!(c >= Fixed::ZERO && c <= Fixed(PI), "acos {raw}");
+            approx(s.sin(), x, 96);
+            approx(c.cos(), x, 96);
+            approx(s + c, Fixed(HALF_PI), 96);
+            // Odd / reflection symmetry.
+            approx((-x).asin(), -s, 8);
+            approx((-x).acos(), Fixed(PI) - c, 8);
+        }
+        for raw in (-8 * ONE..=8 * ONE).step_by(4099) {
+            let x = Fixed(raw);
+            let a = x.atan();
+            assert!(a > Fixed(-HALF_PI) - Fixed(64) && a < Fixed(HALF_PI) + Fixed(64));
+            // tan's slope 1/cos² amplifies the angle error ~ (1 + x²)-fold.
+            let tol = 64 * (1 + (raw / ONE) * (raw / ONE));
+            approx(a.tan(), x, tol);
+        }
+    }
+
+    #[test]
+    fn test_inverse_trig_is_monotone() {
+        // asin and atan increase, acos decreases — sampled densely enough to
+        // catch a CORDIC direction-flip artefact between neighbouring inputs.
+        let mut prev = (Fixed::MIN, Fixed::MAX, Fixed::MIN);
+        for raw in (-ONE..=ONE).step_by(61) {
+            let x = Fixed(raw);
+            let now = (x.asin(), x.acos(), x.atan());
+            assert!(now.0 >= prev.0 - Fixed(2), "asin dipped at {raw}");
+            assert!(now.1 <= prev.1 + Fixed(2), "acos rose at {raw}");
+            assert!(now.2 >= prev.2 - Fixed(2), "atan dipped at {raw}");
+            prev = now;
+        }
+    }
+
+    #[test]
+    fn test_tan_cardinals_and_pole_saturation() {
+        approx(Fixed::ZERO.tan(), Fixed::ZERO, 8);
+        approx(Fixed(HALF_PI / 2).tan(), Fixed::ONE, 96);
+        approx(Fixed(-HALF_PI / 2).tan(), -Fixed::ONE, 96);
+        // π-periodic.
+        approx(
+            (Fixed(PI) + Fixed::from_ratio(1, 3)).tan(),
+            Fixed::from_ratio(1, 3).tan(),
+            96,
+        );
+        // Approaching the pole the value grows large; it never panics or wraps sign.
+        let near_pole = Fixed(HALF_PI - 64).tan();
+        assert!(near_pole > Fixed::from_int(100), "{near_pole:?}");
+        let near_neg_pole = Fixed(-HALF_PI + 64).tan();
+        assert!(near_neg_pole < Fixed::from_int(-100), "{near_neg_pole:?}");
+        let _ = Fixed(HALF_PI).tan();
+        let _ = Fixed::MAX.tan();
+        let _ = Fixed::MIN.tan();
+    }
+
+    #[test]
+    fn test_inverse_trig_deterministic() {
+        let x = Fixed(-23_456);
+        assert_eq!(x.asin(), x.asin());
+        assert_eq!(x.acos(), x.acos());
+        assert_eq!(x.atan(), x.atan());
+        assert_eq!(x.tan(), x.tan());
     }
 }
