@@ -92,6 +92,7 @@
 //! - [`pathfinding`] — deterministic 8-way A*, weighted A* (ε-admissible), Jump Point Search (8-way `jps`, 4-way `jps4`), Dijkstra maps + rescanned flee/safety maps + coefficient blending (`combine_maps`) + farthest-cell stair placement (`farthest_cell`), O(1) reachability via precomputed connected components (`ConnectivityMap`), auto-explore.
 //! - [`plan`] — planning-based test synthesis: BFS search over a deterministic simulation's state space for a shortest input sequence satisfying a goal predicate (`plan_inputs`) — a "can the player reach X" test becomes an executable replay.
 //! - [`replay`] — replay trace recording, desync detection and rollback, plus production desync repro bundles (`DesyncReport`).
+//! - [`trace_edit`] — version control for persistent `IZTR` replay traces: `truncate` (cut at a tick, checksum recomputed), `fork` (branch at a tick after replay-verifying the prefix) and `diff` (first diverging tick with both hashes).
 //! - [`rollback`] — rollback-netcode building blocks: a bounded snapshot ring (`SnapshotRing`) and a GGRS-style development sync test (`sync_test`) that catches step-function nondeterminism by rolling back and re-simulating every frame.
 //! - [`sim`] — the one canonical `Simulation` trait (deterministic state machine + ordered inputs, cf. Schneider 1990) that every verification tool consumes, plus `audit()`: a single call running double-run and rollback-resimulation checks over your simulation.
 //! - [`dst`] — Deterministic Simulation Testing harness: seed sweeps with per-tick invariant checks, double-run nondeterminism detection, swarm testing (per-seed random action subsets, Groce et al. ISSTA 2012), and one-line `(seed, tick)` failure reproduction.
@@ -2522,6 +2523,7 @@ pub mod torrent;
 pub mod tournament;
 pub mod toxini;
 pub mod tptp;
+pub mod trace_edit;
 pub mod traefik;
 pub mod transmission;
 pub mod travisci;

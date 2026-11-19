@@ -21,6 +21,7 @@
 //! Deterministic via `SplitMix64`; seeds use the `0xHHHH_HHHH` four-group
 //! convention adopted across the test suite.
 
+use izanagi_kit::trace_edit::{self, TraceDiff};
 use izanagi_kit::turn::ACTION_COST;
 use izanagi_kit::{
     check_trace, decode_trace, encode_trace, first_divergence, hash_state, record_trace,
@@ -421,4 +422,54 @@ fn persisted_trace_with_tampered_hash_diverges_at_that_tick() {
         Err(d) => assert_eq!(d.tick, 25, "divergence must be at the tampered tick"),
         Ok(()) => panic!("check_trace accepted a persisted trace with a tampered hash"),
     }
+}
+
+/// Claim 6 (trace editing): over the real Scheduler + SplitMix64 sim, a
+/// stored trace can be truncated, forked and diffed through
+/// `trace_edit` — the truncated prefix still verifies with `check_trace`,
+/// a fork that injects a speed change agrees with the original up to the
+/// branch tick, and `diff` names exactly that tick with both hashes.
+#[test]
+fn edited_traces_stay_verifiable_over_the_scheduler_sim() {
+    let inputs = mixed_inputs(80);
+    let expected = record_trace(&mut TickSim::new(SEED), &inputs, step);
+    let bytes = encode_trace(&ReplayTrace {
+        seed: SEED,
+        inputs: inputs.iter().map(encode_input).collect(),
+        expected: expected.clone(),
+    });
+
+    let cut = decode_trace(&trace_edit::truncate(&bytes, 30).expect("valid trace"))
+        .expect("truncate writes a valid trace");
+    let rebuilt: Vec<TickInput> = cut.inputs.iter().map(|f| decode_input(f)).collect();
+    assert_eq!(rebuilt.len(), 30);
+    assert_eq!(
+        check_trace(&mut TickSim::new(cut.seed), &rebuilt, &cut.expected, step),
+        Ok(())
+    );
+
+    let branch = 40;
+    let suffix: Vec<Vec<u8>> = std::iter::once(TickInput::SetSpeed {
+        id: 2,
+        speed: ACTION_COST * 5,
+    })
+    .chain(inputs[branch + 1..].iter().cloned())
+    .map(|i| encode_input(&i))
+    .collect();
+    let forked = trace_edit::fork(&bytes, branch, TickSim::new(SEED), &suffix, |s, f| {
+        step(s, &decode_input(f))
+    })
+    .expect("the recorded prefix replays");
+    let f = decode_trace(&forked).expect("fork writes a valid trace");
+    assert_eq!(f.expected[..branch], expected[..branch]);
+    assert_eq!(f.expected.len(), expected.len());
+    assert_eq!(
+        trace_edit::diff(&bytes, &forked).expect("both decode"),
+        Some(TraceDiff {
+            tick: branch,
+            left: Some(expected[branch]),
+            right: Some(f.expected[branch]),
+        })
+    );
+    assert_eq!(trace_edit::diff(&forked, &forked), Ok(None));
 }
