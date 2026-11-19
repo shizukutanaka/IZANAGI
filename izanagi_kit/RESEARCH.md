@@ -126,6 +126,7 @@ query DSL は未実装。
 4. **xxHash/FxHash オプション**（per-frame hash の高速化）。出典: xxHash。🟡 gated（hash 関数変更で値が変わる→ feature 隔離）。
 5. ✅**実装済み** — **replay trace の永続化フォーマット**（`ReplayTrace` + `encode_trace`/`decode_trace`、seed + inputs + 期待 hash 列。magic `IZTR`・版数（`TRACE_FORMAT_VERSION`）・payload の FNV-1a checksum・全整数 little-endian、`src/replay.rs`。実装コミット `4a031b8`）。出典: Deterministic Replay Survey。🟢 replay-safe（新規 API のみで `PINNED_FINAL_HASH` 不変）。
 6. **CI で複数 OS/arch の hash 一致を検証**（matrix で `PINNED_FINAL_HASH` を突き合わせ）。🟢 replay-safe。
+7. ✅**実装済み** — **replay trace の入力ログ版管理**（`src/trace_edit.rs`: `truncate`（指定 tick 以降を切り捨て checksum 再計算）・`fork`（記録済み prefix を再生して world hash 一致を検証してから suffix を記録、不一致は `PrefixMismatch`）・`diff`（期待 hash 列の最初の乖離 tick と両側 hash、欠損は `None`）。全操作が `decode_trace`/`encode_trace` を経由し IZTR 形式（`TRACE_FORMAT_VERSION = 1`・20 バイトヘッダ・FNV-1a checksum）は不変、IZPF は `BadMagic` で拒否。`diff` は hash のみ比較で、原因帰属（入力不一致・再収束・判定）は `trace_forensics` の担当と doc に明記。実装コミット `e9bb16b`）。🟢 replay-safe（新規 API のみで `PINNED_FINAL_HASH` 不変）。
 
 ---
 
