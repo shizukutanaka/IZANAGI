@@ -7,6 +7,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **`fixed`** — inverse trigonometry and tangent (`Fixed::atan`/`asin`/`acos`/`tan`): `atan` is `atan2(x, 1)`; `asin`/`acos` reduce to the existing CORDIC `atan2` with the cofactor `√((1−x)(1+x))` (factored to avoid cancellation near `|x| = 1`); out-of-domain inputs clamp, and `±1`/`0` map exactly to `±π/2`, `0`, `π/2`, `π`. `tan` is `sin/cos` from one `sin_cos` and saturates at the poles via `div`. Tested against the forward functions (`sin∘asin`, `cos∘acos`, `tan∘atan`, `asin + acos = π/2`), symmetry and monotonicity. No existing path changes, so the pinned hashes are untouched.
 - **`avltree`** — height-balanced AVL tree over `u64` keys (`insert`/`remove`/`contains`/`values`/`min`/`max`/`height`): LL/RR/LR/RL rotations restore `|h(l) - h(r)| <= 1` after every mutation; a `BTreeSet` shadow oracle audits the invariant after every op.
 - **`bandit`** — deterministic multi-armed bandits (`reward`/`mean`/`greedy_pick`/`ucb1_pick`/`eps_greedy_pick`/`best_arm`, `isqrt`, `SCALE`): UCB1 evaluated in Q8 fixed point (`mean·256 + isqrt(2·log2(total)·SCALE²·256/pulls)`), plus a seeded ε-greedy — every pick is a pure function of pull history.
 - **`zobrist`** — incremental Zobrist hashing (`toggle`/`move_piece`/`hash`/`rehash`/`hash_with_side`, `side_key`): `(piece, square)` keys drawn from a seeded `SplitMix64`; XOR toggling gives exact undo, verified against `rehash` every step.
