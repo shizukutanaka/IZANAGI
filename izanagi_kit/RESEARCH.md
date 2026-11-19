@@ -69,7 +69,7 @@ query DSL は未実装。
 2. ✅**実装済み** — **CORDIC による `sin`/`cos`/`sin_cos`/`atan2`**（テーブルではなく反復で決定的、16回・整数定数、`src/fixed.rs`）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
 3. ✅**実装済み** — **丸めモードの明示**（`RoundingMode`（`Truncate` / `RoundHalfToEven`）と `Fixed::mul_with_rounding` / `Fixed::div_with_rounding` を新 API として追加、`src/fixed.rs`。`Truncate` は無印演算と bit 一致（乗算=floor・除算=0方向という既存の非対称と 0 除算飽和を含む）をグリッドテストで固定し、`RoundHalfToEven` は独立な i128 oracle と照合。既存演算の丸めは不変で `PINNED_FINAL_HASH` 不変。候補の gated 条件どおり「新 API として追加」の経路で実施。実装コミット `ff6c93c`）。出典: substrate-fixed の丸め。🟢 replay-safe（新規 API のみ）。
 4. ~~**`Vec2`/`Vec3` 等の fixed-point ベクトル型**~~ — **実装済み**: `src/vec.rs` の `Vec2`（`dot`/`length_sq`/`normalize`/`reflect`、全て Q16.16）。出典: FixedMathSharp。
-5. **overflow 検出モード（debug 時 panic / release saturating）**の二層化を文書化。🟢 replay-safe。
+5. ~~**overflow 検出モード（debug 時 panic / release saturating）**~~ — **不採用**: G7（公開 API は panic しない）・G11（profile による意味論分岐を禁止）に反する（`SPEC.md` §2）。既存の飽和動作は `SPEC.md` §5 の `Fixed` 契約と `src/fixed.rs` の `saturating_add` / `saturating_sub` / `mul` / `div` に文書化済み。debug/release 共通の飽和を維持する。
 6. ~~**`from_ratio`・`from_int` の property test 拡充**~~ — **実装済み**: 飽和境界テストが存在（`test_sub_saturates_at_min`・`test_from_int_saturates_out_of_range`・`test_from_ratio_div_by_zero_saturates_by_sign` ほか）。🟢 replay-safe。
 7. ~~**lerp / clamp / sign 等のユーティリティ**~~ — **実装済み**: `lerp`・`clamp`/`clamp01`・`sign` が `fixed.rs` に存在。🟢 replay-safe。
 
@@ -211,7 +211,7 @@ span ベースの高機能診断は限定的。
 3. ~~**grammar の形式仕様 / BNF 文書化**~~ — **実装済み**: `SPEC.md` §9.1 が `.game` 文法を形式化し、spec↔parser の一致は機械検査済み。🟢 replay-safe。
 4. **fuzz harness（cargo-fuzz）で panic-freedom を継続検証**。出典: C8。🟢 replay-safe。
 5. **インクリメンタル/部分パース**（エディタ統合・大規模コンテンツ向け）。🟢 replay-safe。
-6. **数値・色リテラルの厳密な境界テスト**（UTF-8 マルチバイト色は修正済み → 回帰固定）。🟢 replay-safe。
+6. ✅**実装済み** — **数値・色リテラルの厳密な境界テスト**（`tests/parser_matches_its_specification.rs` の境界オラクル9件: i32 最小・最大と隣接 overflow、u32 最大と隣接 overflow、寸法の両軸 1/256/257、符号・先頭ゼロ・欠落値、色の5/6/7桁・空・大小文字・RGB 両端・UTF-8 マルチバイト回帰を、受理値と拒否診断・同入力2回で固定。Rust 整数 parse が許していた先頭 `+` は §9.1 の文法に合わせて全数値経路で拒否。実装コミット `b440c04`）。🟢 replay-safe（正規文法の入力は不変）。
 
 ---
 

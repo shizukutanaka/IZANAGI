@@ -23,6 +23,7 @@
 //! hostile path had never been exercised. It turns out to be sound; this keeps
 //! it that way.
 
+use izanagi_kit::content::parse_color;
 use izanagi_kit::{content_eq, parse, validate, SplitMix64};
 use std::collections::BTreeSet;
 use std::fs;
@@ -33,6 +34,165 @@ use std::path::PathBuf;
 const KEYWORDS: [&str; 9] = [
     "prefab", "tile", "level", "glyph", "color", "stat", "flag", "row", "spawn",
 ];
+
+fn assert_literal_error(source: &str, line: usize, message: &str) {
+    let (content, diagnostics) = parse(source);
+    assert_eq!(diagnostics.len(), 1, "{source:?}: {diagnostics:?}");
+    let diagnostic = &diagnostics[0];
+    assert!(diagnostic.is_error(), "{source:?}: {diagnostic:?}");
+    assert_eq!(diagnostic.line, line, "{source:?}");
+    assert_eq!(diagnostic.message, message, "{source:?}");
+    assert!(content.prefabs.iter().all(|p| p.stats.is_empty()));
+    assert!(content.levels.iter().all(|l| l.spawns.is_empty()));
+    let (again, repeated) = parse(source);
+    assert!(content_eq(&content, &again));
+    assert_eq!(format!("{diagnostics:?}"), format!("{repeated:?}"));
+}
+
+#[test]
+fn signed_literal_extrema_and_leading_zeros_have_exact_values() {
+    for (token, expected) in [
+        ("-2147483648", i32::MIN),
+        ("2147483647", i32::MAX),
+        ("0", 0),
+        ("-0", 0),
+        ("00017", 17),
+        ("-00017", -17),
+    ] {
+        let source = format!("prefab p\nstat hp {token}");
+        let (content, diagnostics) = parse(&source);
+        assert!(diagnostics.is_empty(), "{token}: {diagnostics:?}");
+        assert_eq!(content.prefabs[0].stats["hp"], expected);
+        assert!(content_eq(&content, &parse(&source).0));
+    }
+}
+
+#[test]
+fn signed_literal_overflow_and_signs_are_rejected() {
+    for token in ["-2147483649", "2147483648", "+1", "+0", "-", "--1", "１２"] {
+        assert_literal_error(
+            &format!("prefab p\nstat hp {token}"),
+            2,
+            &format!("stat 'hp' value not an i32: {token:?}"),
+        );
+    }
+}
+
+#[test]
+fn unsigned_literal_extrema_and_leading_zeros_have_exact_values() {
+    for (token, expected) in [("0", 0), ("4294967295", u32::MAX), ("00017", 17)] {
+        let source = format!("level l 1x1\nspawn p {token} {token}");
+        let (content, diagnostics) = parse(&source);
+        assert!(diagnostics.is_empty(), "{token}: {diagnostics:?}");
+        let spawn = &content.levels[0].spawns[0];
+        assert_eq!((spawn.x, spawn.y), (expected, expected));
+        assert!(content_eq(&content, &parse(&source).0));
+    }
+}
+
+#[test]
+fn unsigned_literal_overflow_and_signs_are_rejected_on_each_axis() {
+    for token in ["4294967296", "-1", "-0", "+1", "+0", "１２"] {
+        for (x, y, axis) in [(token, "0", "x"), ("0", token, "y")] {
+            assert_literal_error(
+                &format!("level l 1x1\nspawn p {x} {y}"),
+                2,
+                &format!("spawn {axis} must be a non-negative integer"),
+            );
+        }
+    }
+}
+
+#[test]
+fn dimension_edges_and_leading_zeros_have_exact_values() {
+    for (token, expected) in [("1", 1), ("256", 256), ("00017", 17)] {
+        for (w, h, dimensions) in [(token, "1", (expected, 1)), ("1", token, (1, expected))] {
+            let source = format!("level l {w}x{h}");
+            let (content, diagnostics) = parse(&source);
+            assert!(diagnostics.is_empty(), "{source}: {diagnostics:?}");
+            assert_eq!(
+                (content.levels[0].width, content.levels[0].height),
+                dimensions
+            );
+            assert!(content_eq(&content, &parse(&source).0));
+        }
+    }
+}
+
+#[test]
+fn dimension_range_overflow_sign_and_empty_halves_are_rejected() {
+    for token in [
+        "0",
+        "257",
+        "4294967295",
+        "4294967296",
+        "-1",
+        "+1",
+        "",
+        "１２",
+    ] {
+        for (w, h, axis) in [(token, "1", "width"), ("1", token, "height")] {
+            let dim = format!("{w}x{h}");
+            let message = if ["0", "257", "4294967295"].contains(&token) {
+                format!("dimension out of range 1..=256: {dim:?}")
+            } else {
+                format!("bad {axis} in {dim:?}")
+            };
+            assert_literal_error(&format!("level l {dim}"), 1, &message);
+        }
+    }
+}
+
+#[test]
+fn missing_literal_operands_have_specific_diagnostics() {
+    for (source, line, message) in [
+        ("prefab p\nstat hp", 2, "malformed 'stat'"),
+        ("level l", 1, "level needs: <name> <W>x<H>"),
+        ("level l 1x1\nspawn p", 2, "spawn needs: <prefab> <x> <y>"),
+        ("level l 1x1\nspawn p 0", 2, "spawn needs: <prefab> <x> <y>"),
+        ("prefab p\ncolor", 2, "malformed 'color'"),
+        ("tile t .", 1, "tile needs: <name> <glyph> <#hex>"),
+    ] {
+        assert_literal_error(source, line, message);
+    }
+}
+
+#[test]
+fn color_extrema_and_hex_case_have_exact_channels() {
+    for (token, rgb) in [
+        ("#000000", (0, 0, 0)),
+        ("#FFFFFF", (255, 255, 255)),
+        ("#abcdef", (171, 205, 239)),
+        ("#ABCDEF", (171, 205, 239)),
+        ("#aBcDeF", (171, 205, 239)),
+    ] {
+        let source = format!("tile t . {token}\nprefab p\ncolor {token}");
+        let (content, diagnostics) = parse(&source);
+        assert!(diagnostics.is_empty(), "{token}: {diagnostics:?}");
+        for color in [content.tiles[0].color, content.prefabs[0].color] {
+            assert_eq!((color.r, color.g, color.b), rgb);
+        }
+        assert!(content_eq(&content, &parse(&source).0));
+    }
+}
+
+#[test]
+fn color_digit_counts_empty_and_multibyte_tokens_are_rejected() {
+    for token in [
+        "", "#", "#FFFFF", "#FFFFFFF", "FFFFFF", "#GG0000", "#aéABC", "#é0000",
+    ] {
+        let message = if token.len() == 7 && token.starts_with('#') {
+            format!("invalid hex in color {token:?}")
+        } else {
+            format!("color must be #RRGGBB, got {token:?}")
+        };
+        assert_eq!(parse_color(token).unwrap_err(), message);
+        if !token.is_empty() {
+            assert_literal_error(&format!("tile t . {token}"), 1, &message);
+            assert_literal_error(&format!("prefab p\ncolor {token}"), 2, &message);
+        }
+    }
+}
 
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
