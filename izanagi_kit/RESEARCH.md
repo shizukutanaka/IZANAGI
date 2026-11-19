@@ -153,7 +153,7 @@ render 補間は `alpha_ratio()`（残量の整数比）として提供済み。
 3. ~~**dt を fixed-point 化**~~ — **実装済み（設計で解消）**: accumulator は整数ナノ秒（`u64`）で float を持たない — 丸め誤差は構造的に存在しない。出典: C2 + semi-fixed 問題。
 4. ~~**death-spiral ガードの可観測化**~~ — **実装済み (c63d9f7)**: `FixedTimestep::dropped_steps()` がクランプ時に捨てたステップ数を累積返却（remainder は数えない）。出典: Gaffer fixed-timestep + 可観測性慣行。🟢 replay-safe。
 5. ~~**rollback 対応フック**~~ — **実装済み**: `rollback::SnapshotRing` + `sync_test` と `replay::resimulate` が巻き戻し再シミュレートを提供（N4）。出典: ggrs。
-6. **可変 tickrate のテスト**（同一 input で render fps を変えても sim hash 不変を property test 化）。🟢 replay-safe。
+6. ✅**実装済み** — **可変 tickrate のテスト**（`tests/variable_tickrate.rs`: pacing 5種［一致・半速・倍速・不規則・不規則逆順］で per-tick hash 列・total_steps・最終 accumulator が完全一致することを固定。前提は「同一の総時間・tick 単位の同一 input 列・death-spiral クランプ不発」で、各実行が `dropped_steps == 0` を assert する。境界の反対側も固定: 6ステップ frame 対 max_steps = 5 ではちょうど1ステップ落ちて1 tick 少なくなること、input 1件の変更で trace がその tick から動く感度テストで非空虚性も担保。実装コミット `f8a815a`）。🟢 replay-safe。
 
 ---
 
