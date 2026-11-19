@@ -42,7 +42,7 @@ query DSL は未実装。
 2. ~~**archetype storage の optional 化**~~ — **実装済み（N18）**: `arch::ArchTable` が opt-in primitive として存在。core の既定 storage 化は実測で不採用（point get で 4.3x 劣後、join 差は frame の 0.1%）。出典: bevy hybrid storage, EG 比較論文。
 3. **bitset によるコンポーネント有無の高速判定**（query 高速化）。出典: specs bitset filter。🟢 replay-safe。
 4. ✅**実装済み** — **generation 枯渇（u32 wrap）時の handle 再利用ポリシー明文化**（3実装を実測し各モジュールの "Generation exhaustion" 節に明記: kit `entity` は wrap＋`generation_wrap_count` に記録、kit `slotmap` は `u32::MAX` で永久退役、engine `ecs` は無記録で wrap。境界状態を直接構築する境界テスト5件で固定。あわせて `entity::EntityAllocator::free` の doc が主張していたが実在しなかった `debug_assert` の記述を是正。実装コミット `aa31be0`）。出典: hecs generational index 解説。🟢 replay-safe（テスト追加のみ）。
-5. **ZST（タグコンポーネント）最適化**（storage を確保しない marker component）。出典: entt/bevy tag。🟢 replay-safe。
+5. ✅**実装済み** — **ZST（タグコンポーネント）最適化**: `sparse_set::TagSet`（sparse index + dense entity list のみで値ストレージを持たない marker 専用ストア。意味論は `SparseSet` と同一 — O(1) insert/lookup/swap-remove・世代安全・canonical 昇順。`det_hash` は長さ＋entity handle のみを畳み `SparseSet<()>` と完全一致するため、marker のストアを差し替えても world hash は不変。`join_tagged` で既存 join 系と合成。実装コミット `2c4e648`）。出典: entt/bevy tag。🟢 replay-safe。
 6. **コンポーネント登録のコンパイル時 ID 化**（`TypeId` ランタイム比較の削減）。🟢 replay-safe。
 
 ---
@@ -67,7 +67,7 @@ query DSL は未実装。
 **洗い出した改善点**
 1. ✅**実装済み** — **`sqrt()` の追加**（integer bit-by-bit isqrt、`src/fixed.rs`）。距離計算・正規化に必須。負入力は 0 へ飽和。🟢 replay-safe（新規 API、既存演算不変・`PINNED_FINAL_HASH` 不変）。
 2. ✅**実装済み** — **CORDIC による `sin`/`cos`/`sin_cos`/`atan2`**（テーブルではなく反復で決定的、16回・整数定数、`src/fixed.rs`）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
-3. **丸めモードの明示**（truncate / round-half-to-even）。乗除の丸めを文書化し API 化。出典: substrate-fixed の丸め。🟡 gated（既存の演算の丸めを変えると 🔴。新 API として追加なら 🟢）。
+3. ✅**実装済み** — **丸めモードの明示**（`RoundingMode`（`Truncate` / `RoundHalfToEven`）と `Fixed::mul_with_rounding` / `Fixed::div_with_rounding` を新 API として追加、`src/fixed.rs`。`Truncate` は無印演算と bit 一致（乗算=floor・除算=0方向という既存の非対称と 0 除算飽和を含む）をグリッドテストで固定し、`RoundHalfToEven` は独立な i128 oracle と照合。既存演算の丸めは不変で `PINNED_FINAL_HASH` 不変。候補の gated 条件どおり「新 API として追加」の経路で実施。実装コミット `ff6c93c`）。出典: substrate-fixed の丸め。🟢 replay-safe（新規 API のみ）。
 4. ~~**`Vec2`/`Vec3` 等の fixed-point ベクトル型**~~ — **実装済み**: `src/vec.rs` の `Vec2`（`dot`/`length_sq`/`normalize`/`reflect`、全て Q16.16）。出典: FixedMathSharp。
 5. **overflow 検出モード（debug 時 panic / release saturating）**の二層化を文書化。🟢 replay-safe。
 6. ~~**`from_ratio`・`from_int` の property test 拡充**~~ — **実装済み**: 飽和境界テストが存在（`test_sub_saturates_at_min`・`test_from_int_saturates_out_of_range`・`test_from_ratio_div_by_zero_saturates_by_sign` ほか）。🟢 replay-safe。
@@ -96,7 +96,7 @@ query DSL は未実装。
 1. ~~**modulo bias の除去**~~ — **実装済み**: `below(n)` は既に Lemire の乗算シフト法（`u128` 積の上位64bit）。出典: Lemire, rand crate。
 2. ~~**複数の名前付きストリーム**~~ — **実装済み**: `SplitMix64::split(stream_id)` がサブシステム毎の独立ストリームを純関数で分岐（親を消費しない）。出典: SplitMix64 split, xoshiro jump。
 3. ~~**PRNG 品質の自動テスト**~~ — **実装済み (f51f55f)**: `rng.rs` テスト群 — seed0 の公式参照ベクタ8連・`below(6)` 60k 回 chi-square 上界・全64ビット反転の avalanche 帯・連続出力の serial correlation 上界（全て固定 seed の機械オラクル）。出典: PractRand/TestU01 文献。🟢 replay-safe。
-4. **`f`-range・gaussian・weighted choice 等の分布ヘルパ**（fixed-point 連携）。🟢 replay-safe（新 API）。
+4. ~~**`f`-range・gaussian・weighted choice 等の分布ヘルパ**~~ — **実装済み (4525326)**: `rng.rs` に `next_fixed01`（[0,1) 一様 Fixed、below の 1 draw を raw Q16.16 化）・`range_fixed`（[min, max) 一様 Fixed、raw span への below 1 draw と等価、縮退時は無 draw）・`gaussian_fixed`（Bates 分布 — Irwin 1927 / Hall 1947 / Bates 1959、gaussian_approx と消費 draw・分布が bit 一致）・`weighted_index_fixed`（Fixed 重み、負は 0 扱い、空/全非正は無 draw で None）を追加。検証は各 API と「包む基本 API の draw 列・state 一致」のストリームオラクル＋固定 seed の chi-square 上界（next_fixed01: chi2≈13.8/df15、range_fixed: chi2≈4.27/df7）。🟢 replay-safe（新 API）。
 5. **seed の文書化（wall-clock seed 禁止の明文化）**と replay seed の永続化。出典: lockstep 文献（C6）。🟢 replay-safe。
 6. ~~**xoshiro256++ への移行検討**~~ — **実装済み（opt-in）**: `src/rng_xoshiro.rs` の `Xoshiro256pp` が別 generator として存在（既定は SplitMix64 のまま、pinned hash 不変）。出典: arXiv:1805.01407。
 
@@ -126,6 +126,7 @@ query DSL は未実装。
 4. **xxHash/FxHash オプション**（per-frame hash の高速化）。出典: xxHash。🟡 gated（hash 関数変更で値が変わる→ feature 隔離）。
 5. ✅**実装済み** — **replay trace の永続化フォーマット**（`ReplayTrace` + `encode_trace`/`decode_trace`、seed + inputs + 期待 hash 列。magic `IZTR`・版数（`TRACE_FORMAT_VERSION`）・payload の FNV-1a checksum・全整数 little-endian、`src/replay.rs`。実装コミット `4a031b8`）。出典: Deterministic Replay Survey。🟢 replay-safe（新規 API のみで `PINNED_FINAL_HASH` 不変）。
 6. **CI で複数 OS/arch の hash 一致を検証**（matrix で `PINNED_FINAL_HASH` を突き合わせ）。🟢 replay-safe。
+7. ~~**desync フォレンジクス（乖離の原因帰属レポート）**~~ — **実装済み (bbfb825)**: `trace_forensics::analyze_traces` が2つの trace（seed・入力フレーム列・tick 毎 hash 列＝項目5の永続形式が格納する三つ組）を比較し、最初の乖離 tick（項目3の `first_divergence` を再利用）に加えて原因帰属を構造化レポート `ForensicsReport` で返す — 入力自体の乖離（InputDivergence）／入力が一致するのに状態が違う真の desync（SimulationDivergence）／片側の打ち切り（LengthMismatch）／seed 不一致（DifferentRuns）を区別し、再収束 tick（過渡か fork か）まで報告する。GGRS の SyncTestSession が checksum 不一致で panic する開発ツール止まりなのに対し、報告書を値で返して CI ログやバグ報告に貼れる形にしたのが差別化点（Factorio の desync レポート自動生成の運用が手本）。入力証拠が無い・乖離 tick に届かない場合は推測で断定せず UnexplainedDivergence と正直に返す。探索は線形走査（二分探索は probe が再シミュレーションのときの技法）。出典: Factorio desync report 運用、Bugnet、Deterministic Replay Survey (10.1145/2790077)。🟢 replay-safe（純粋追加、pinned hash 不変）。
 
 ---
 
@@ -152,7 +153,7 @@ render 補間は `alpha_ratio()`（残量の整数比）として提供済み。
 3. ~~**dt を fixed-point 化**~~ — **実装済み（設計で解消）**: accumulator は整数ナノ秒（`u64`）で float を持たない — 丸め誤差は構造的に存在しない。出典: C2 + semi-fixed 問題。
 4. ~~**death-spiral ガードの可観測化**~~ — **実装済み (c63d9f7)**: `FixedTimestep::dropped_steps()` がクランプ時に捨てたステップ数を累積返却（remainder は数えない）。出典: Gaffer fixed-timestep + 可観測性慣行。🟢 replay-safe。
 5. ~~**rollback 対応フック**~~ — **実装済み**: `rollback::SnapshotRing` + `sync_test` と `replay::resimulate` が巻き戻し再シミュレートを提供（N4）。出典: ggrs。
-6. **可変 tickrate のテスト**（同一 input で render fps を変えても sim hash 不変を property test 化）。🟢 replay-safe。
+6. ✅**実装済み** — **可変 tickrate のテスト**（`tests/variable_tickrate.rs`: pacing 5種［一致・半速・倍速・不規則・不規則逆順］で per-tick hash 列・total_steps・最終 accumulator が完全一致することを固定。前提は「同一の総時間・tick 単位の同一 input 列・death-spiral クランプ不発」で、各実行が `dropped_steps == 0` を assert する。境界の反対側も固定: 6ステップ frame 対 max_steps = 5 ではちょうど1ステップ落ちて1 tick 少なくなること、input 1件の変更で trace がその tick から動く感度テストで非空虚性も担保。実装コミット `f8a815a`）。🟢 replay-safe。
 
 ---
 
@@ -204,7 +205,7 @@ span ベースの高機能診断は限定的。
 
 **洗い出した改善点**
 1. ~~**error recovery（複数エラー一括報告）**~~ — **実装済み**: `parse` は `(Content, Vec<Diagnostic>)` を返し、最初のエラーで止まらず全診断を収集（broken.game fixture で複数診断を実証）。出典: arXiv:1804.07133, chumsky。
-2. **span ベース診断（複数ラベル・related notes）**。出典: rustc, ariadne(C9)。🟢 replay-safe。
+2. ~~**span ベース診断（複数ラベル・related notes）**~~ — **実装済み**: `src/diag_render.rs` の `RichDiagnostic`（`Span`／`Label`／`Note`、複数ラベル・related notes・help 行を持つ rustc 風レンダリング、zero-dep 自前実装。golden テスト15件で形式を固定）。出典: rustc, ariadne(C9)。🟢 replay-safe。
 3. ~~**grammar の形式仕様 / BNF 文書化**~~ — **実装済み**: `SPEC.md` §9.1 が `.game` 文法を形式化し、spec↔parser の一致は機械検査済み。🟢 replay-safe。
 4. **fuzz harness（cargo-fuzz）で panic-freedom を継続検証**。出典: C8。🟢 replay-safe。
 5. **インクリメンタル/部分パース**（エディタ統合・大規模コンテンツ向け）。🟢 replay-safe。
@@ -244,7 +245,7 @@ span ベースの高機能診断は限定的。
 
 **現状（izanagi_kit）**: `src/validator.rs`（重複名・未定義参照・範囲外 spawn・寸法不整合を short-circuit せず全収集）、
 `src/loader.rs`（検証済み content → sparse-set ECS の `LoadedLevel` 化）、`src/bin/gamec.rs`（CI 用 content checker、
-`--fmt` で canonical 整形、エラー時非ゼロ終了）。診断の見栄え・出力フォーマット（JSON 等）は最小限。
+`--fmt` で canonical 整形、エラー時非ゼロ終了。`--verify` でバンドル決定性監査）。診断の見栄え・出力フォーマット（JSON 等）は最小限。
 
 **参考情報**
 - GitHub: [zkat/miette](https://github.com/zkat/miette) — リッチな診断レポート（source span / help / 関連ラベル）。**同種の診断 UX 参照**。
@@ -261,10 +262,11 @@ span ベースの高機能診断は限定的。
 **洗い出した改善点**
 1. ✅**実装済み** — **`--check` モード**（`--fmt` の非破壊版、整形差分があれば非ゼロ終了）。出典: `cargo fmt --check`。🟢 replay-safe。
 2. ~~**機械可読診断出力（JSON / SARIF）**~~ — **実装済み**: `gamec --json`/`--sarif` が機械可読診断を出力（CI アノテーション用）。出典: rustc `--error-format=json`。
-3. **診断 UX 強化**（miette/ariadne 風の span・help・suggestion を自前 zero-dep で導入）。出典: miette, ariadne。🟢 replay-safe。
-4. **validator ルールの拡張**（到達不能タイル・孤立部屋・spawn 重なり等の意味検査）。🟢 replay-safe。
+3. ~~**診断 UX 強化**~~ — **実装済み**: `diag_render` が miette/ariadne 風の span・複数ラベル・related notes・help 行を自前 zero-dep で提供し、`gamec --rich` がその描画で診断を出す（終了コード・判定は従来モードと同一）。出典: miette, ariadne。🟢 replay-safe。
+4. ~~**validator ルールの拡張**~~ — **実装済み (aae1a9b)**: 到達不能な spawn 領域と孤立部屋を警告として追加（loadable は維持）。`.game` 形式に固体概念が無いため、空間検査はバンドルが `wall` tile を宣言した場合のみ有効な opt-in で、宣言が無ければ沈黙する。移動規則は kit 正準の ConnectivityMap（8方向・角切りなし）。なお spawn 重なり検査は本変更以前から実装済みだった（validator.rs の overlapping-spawn 警告）。🟢 replay-safe。
 5. ~~**修正提案（quick-fix）**~~ — **実装済み (459f2fc)**: validator の未定義 spawn 参照と extends の missing base に `(did you mean 'X'?)` を付加 — char 単位 Levenshtein を宣言順に走査し同距離は先出宣言が勝つので診断集合が決定的（整数のみ、rustc の suggestion 半径に倣い長い方の名の1/3で打切り）。出典: rustc suggestions。🟢 replay-safe。
 6. ~~**loader の決定性テスト**~~ — **実装済み**: `determinism.rs` が allocator の free list と `live` 順序まで pin、loader は spawn 順の entity 割当を文書化+テスト済み。C1/C4 連携。🟢 replay-safe。
+7. ~~**SyncTest の製品化（標準検証コマンド）**~~ — **実装済み (596cd66)**: `bundle_verify` モジュール + `gamec --verify`。GGRS の SyncTestSession は rollback 実務で「最も価値がある」と評価されながら panic する開発セッション止まりで、CI に組み込む手順まで含めて提供するエンジンは存在しなかった（競合調査 2026-11-18）。ロード済みワールドへの正準 seeded soak を、独立2回ロードの初期ハッシュ比較・二重実行・全フレーム rollback 再シミュレーション（`sim::audit`）で監査し、乖離時は最初の乖離 tick と両ハッシュを含む報告書を返して終了コード（0=決定的 / 1=検証エラー・乖離 / 2=使い方・読取失敗）で落とす。利用者向け CI 手順（GitHub Actions の YAML 例）は kit README の gamec 節に文書として同梱（本 repo の `.github/workflows/` には触れていない）。出典: ggrs `SyncTestSession`。🟢 replay-safe。
 
 ---
 
@@ -641,7 +643,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 | R*-tree 矩形検索 | Beckmann 1990 | 永続的な動的 index は `spatial_hash` で十分。pack は packing(配置)であって空間検索ではない |
 | MaxRects packing | Jylänki 2010 | skyline より 2-3% 充填率が上がるが実装複雑度が跳ねる。skyline は「bottom-left + 入力順」で十分実用的、必要になれば後続ラウンドで追加 |
 | Hopcroft-Tarjan 平面性判定 | HT 1974 | Delaunay 配線が既に平面性を保証するので用途が薄い |
-| SAT/separating-axis 衝突 | 一般物理文献 | `aabb`+`passability`+`gridcast` の組合せがこの kit の衝突層。任意凸形状は整数厳密化が高コスト |
+| SAT/separating-axis 衝突 | 一般物理文献 | `aabb`+`passability`+`gridcast` の組合せがこの kit の衝突層。任意凸形状は整数厳密化が高コスト。なお軸平行箱に限った**応答**層(重力・半陰的オイラー・反発/摩擦)は `rigid` として実装済み(第426次、実装コミット `e2ee261`)— 見送るのは任意凸形状の SAT のみ |
 
 ## 出典(第7次、search-index 照合)
 
@@ -1770,6 +1772,7 @@ scatter(配置)→ territory(領域)→ connectivity(接続)という手続き�
 - `goap` — Goal-Oriented Action Planning: `Action{name,pre,set,clr,cost}`、pre 充足のビットマスク世界遷移を Dijkstra。`BTreeSet<(cost, seq, state)>` で「同コストはアクション列の辞書順最小」を正準形に — 計画が純関数。深さ≤8 全 DFS oracle で plan ベクタ一致
 - `btree` — 行動木(resume 意味論): arena `Vec<Node>`、Sequence/Selector は Running 子 index を `mem[i]` に保持して次 tick でそこから再開(先頭からの再評価ではない)。Condition の Running は Failure へ写像(葉は Running を返さない規約)。状態なし eager oracle 300 乱択で status+葉訪問数を全照合
 - `verlet` — 整数 Verlet 統合(Q16.16): `x' = x + (x−x_prev)·damping + a` + 距離リンクを iters 回緩和、両端半分の `(len−rest)` 誤差を軸方向へ。**設計値捕捉**: damping=1 は無減衰でエネルギー保存 — リンクが平衡を貫通して持続振動する(両端点が入れ替わる大振動も観測)ため、収束主張には damping < 1 が必須。緩和順は挿入順リストでトレースの一部
+- `rigid` — 決定的 AABB 剛体応答層(Q16.16、第426次で追加): 検出層(`aabb`/`swept`/`sap`/`gjk`/`epa`)と `verlet` の積分だけでは「重なったらどう動くか」が無かった。`World::step` は (1)半陰的オイラー積分 (2)対 Solid 応答(最小貫通軸への押し出し+法線速度の反発+接線摩擦) (3)物体対の力積応答(辞書順ペア・位置補正は逆質量比で分割・反発は min(e_i, e_j))を固定順で実行し、`World` は `DetHash` 実装で world hash に載る。**設計値捕捉**: 静止接触の安定条件は `rest_speed ≥ |重力|·dt` — 下回ると静止体が毎 tick 微小反発を繰り返すリミットサイクルになる(verlet の damping 捕捉と同型の「収束にはパラメータ下限が要る」事例。実測: 重力8・dt 1/8・閾値1/2 では 1/2 で跳ね続け、閾値1で静止)。自由落下が解析解 `g·dt²·n(n+1)/2` と完全一致、反発 8→4→2→1、エネルギー非増、鏡像対称、等質量弾性衝突の速度交換を単体テスト13件で固定
 - `vnoise` — 整数バリューノイズ+fBm: SplitMix64 格子ハッシュ(負 index も bit-mix 吸収)→ 上位16bit を Q16.16 へ、smootherstep `u²(3−2u)` 双線形補間、fbm は amp·freq の mul 更新+正規化。**設計値**: セル床は `raw >> 16` 算術シフト(負座標で二の補数 frac が [0,1) へ)、転置補間 oracle は丸め経路違いで±4量子一致
 
 **継続延期バックログ**: 平面性判定、SwissTable の SIMD 群制御、α-hull の垂線中点パラメータ式。
@@ -7677,3 +7680,26 @@ PARSERS 不変・決定性ハッシュ不変。
 
 副次修正: PR #445 Devin Review 指摘 — Issueフォーム内の相対リンク
 `../COMMERCIAL.md` が /issues/new 起点で404 → 絶対URL化。
+
+## 第426次：剛体応答層 `rigid` — 検出の上に「応答」を載せる
+
+衝突検出層(aabb/swept/sap/gjk/epa)と積分(verlet/spring)は揃っていたが、
+「重なった物体がどう動くか」を決める応答層が無く、重力落下・反発・静止
+接触は利用者側の手書きに委ねられていた。AABB 限定の薄い剛体応答層
+`rigid`(Body/Solid/World、Q16.16)を追加した(実装コミット `e2ee261`)。
+第7次の見送り判断(SAT、644行)は任意凸形状についてのもので、軸平行箱の
+応答は対象外だったことを同行に明記した。
+
+- 処理順序はトレースの一部として固定: 積分(半陰的オイラー)→対 Solid
+  応答(挿入順)→物体対応答(辞書順ペア)。World は DetHash 実装。
+- 設計値捕捉: 静止接触の安定条件 `rest_speed ≥ |重力|·dt`(第55次 verlet
+  捕捉の隣に記録)。下回ると微小反発のリミットサイクルになる。
+- 限界は module doc に明記: discrete(薄い Solid を貫通しうる)、回転なし、
+  物体対摩擦なし、積み重ねソルバではない。
+- 検証: rigid 単体13件(自由落下の解析解一致・反発ラダー・エネルギー
+  非増・鏡像対称・速度交換)、det_hash_golden に rigid 3ピン追加、
+  公開 API ピン 18868→18898(追加30行・削除0行)。gate 全段 green
+  (workspace テスト 13,712 passed / 0 failed)。ただし gate.sh の一括実行は
+  packageability 段の途中でランタイム再起動により中断されログを喪失した
+  ため、同段は gate 自身のコマンドを同一ツリーで個別に再実行して green
+  を確認した(それ以前の段は中断前の一括実行ログで green を確認済み)。

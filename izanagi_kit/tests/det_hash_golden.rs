@@ -525,6 +525,41 @@ fn cases() -> Vec<(&'static str, u64)> {
             s.set_target(izanagi_kit::fixed::Fixed::from_int(9));
             hash_state(&s)
         }),
+        ("rigid::Body(sample)", {
+            let mut b = izanagi_kit::rigid::Body::new(
+                Vec2::new(Fixed::from_int(3), Fixed::from_int(-2)),
+                Vec2::new(Fixed::from_ratio(1, 2), Fixed::from_ratio(1, 4)),
+            );
+            b.vel = Vec2::new(Fixed::from_int(1), Fixed::from_int(-1));
+            b.restitution = Fixed::from_ratio(1, 2);
+            b.friction = Fixed::from_ratio(1, 4);
+            b.inv_mass = Fixed::from_int(2);
+            hash_state(&b)
+        }),
+        (
+            "rigid::Solid(-1,-2,3,5)",
+            hash_state(&izanagi_kit::rigid::Solid::new(
+                Vec2::new(Fixed::from_int(-1), Fixed::from_int(-2)),
+                Vec2::new(Fixed::from_int(3), Fixed::from_int(5)),
+            )),
+        ),
+        ("rigid::World(1body,1solid)", {
+            let mut b = izanagi_kit::rigid::Body::new(
+                Vec2::new(Fixed::from_int(3), Fixed::from_int(-2)),
+                Vec2::new(Fixed::from_ratio(1, 2), Fixed::from_ratio(1, 4)),
+            );
+            b.vel = Vec2::new(Fixed::from_int(1), Fixed::from_int(-1));
+            b.restitution = Fixed::from_ratio(1, 2);
+            b.friction = Fixed::from_ratio(1, 4);
+            b.inv_mass = Fixed::from_int(2);
+            let mut w = izanagi_kit::rigid::World::new(Vec2::new(Fixed::ZERO, Fixed::from_int(-8)));
+            w.add_solid(izanagi_kit::rigid::Solid::new(
+                Vec2::new(Fixed::from_int(-1), Fixed::from_int(-2)),
+                Vec2::new(Fixed::from_int(3), Fixed::from_int(5)),
+            ));
+            w.add_body(b);
+            hash_state(&w)
+        }),
     ]
 }
 
@@ -637,6 +672,9 @@ const EXPECTED: &[(&str, u64)] = &[
     ("Kalman(x=3,P=2)", 0x85579065160639ac),
     ("Pid(kp=1,post-update)", 0x6b38307dcd9d8078),
     ("Spring(x=1,\u{03c9}=2)", 0x7e98ad8506bab7cf),
+    ("rigid::Body(sample)", 0x1a554329d1a3ef71),
+    ("rigid::Solid(-1,-2,3,5)", 0xd92661161270af0e),
+    ("rigid::World(1body,1solid)", 0xde43911ce2d5a877),
 ];
 
 #[test]
