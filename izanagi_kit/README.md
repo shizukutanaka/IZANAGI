@@ -381,6 +381,7 @@ The capability map — with per-feature implementation status — lives in
 | `timestep` | Fixed-timestep accumulator with a death-spiral guard. |
 | `world_hash` | FNV-1a per-frame state checksum for bit-exact replay assertions. |
 | `replay` | Trace recording, desync localisation, and snapshot resimulation (rollback). |
+| `trace_forensics` | Desync forensics — compares two recorded traces (seed, inputs, hashes) and attributes the first divergence to its cause (input divergence, simulation divergence, length mismatch, different runs) as a structured report. |
 | `sim` | The one `Simulation` trait every verification tool consumes, plus `audit()` — a single call that double-runs the sim, rollback-resimulates it, and reports the final hash. |
 | `rollback` | Bounded snapshot ring (`SnapshotRing`) and a GGRS-style `sync_test` that rolls back every frame to catch step-function nondeterminism. |
 | `dst` | Deterministic Simulation Testing: seed sweeps with per-tick invariants and one-line `(seed, tick)` failure reproduction. |
