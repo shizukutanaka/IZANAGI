@@ -251,12 +251,24 @@ pub fn warning_count(diags: &[Diagnostic]) -> usize {
     diags.iter().filter(|d| !d.is_error()).count()
 }
 
+fn parse_decimal<T: core::str::FromStr>(s: &str, signed: bool) -> Result<T, ()> {
+    let digits = if signed {
+        s.strip_prefix('-').unwrap_or(s)
+    } else {
+        s
+    };
+    if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(());
+    }
+    s.parse().map_err(|_| ())
+}
+
 fn parse_dim(s: &str) -> Result<(u32, u32), String> {
     let (w, h) = s
         .split_once('x')
         .ok_or_else(|| format!("dimension must be WxH, got {s:?}"))?;
-    let w: u32 = w.parse().map_err(|_| format!("bad width in {s:?}"))?;
-    let h: u32 = h.parse().map_err(|_| format!("bad height in {s:?}"))?;
+    let w: u32 = parse_decimal(w, false).map_err(|_| format!("bad width in {s:?}"))?;
+    let h: u32 = parse_decimal(h, false).map_err(|_| format!("bad height in {s:?}"))?;
     if w == 0 || h == 0 || w > MAX_DIM || h > MAX_DIM {
         return Err(format!("dimension out of range 1..={MAX_DIM}: {s:?}"));
     }
@@ -327,7 +339,7 @@ fn apply_prefab_attr(
             }
             Err(e) => diags.push(Diagnostic::error_at(line, *cc, e)),
         },
-        ("stat", [(k, _), (v, vc)]) => match v.parse::<i32>() {
+        ("stat", [(k, _), (v, vc)]) => match parse_decimal::<i32>(v, true) {
             Ok(n) => {
                 p.stats.insert((*k).to_string(), n);
             }
@@ -364,7 +376,10 @@ fn apply_level_attr(
             )),
         },
         "spawn" => match args {
-            [(prefab, _), (x, xc), (y, yc)] => match (x.parse::<u32>(), y.parse::<u32>()) {
+            [(prefab, _), (x, xc), (y, yc)] => match (
+                parse_decimal::<u32>(x, false),
+                parse_decimal::<u32>(y, false),
+            ) {
                 (Ok(x), Ok(y)) => lv.spawns.push(Spawn {
                     prefab: (*prefab).to_string(),
                     x,
