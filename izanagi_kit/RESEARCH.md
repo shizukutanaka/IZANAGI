@@ -295,7 +295,7 @@ FOV（`src/fov.rs` symmetric shadowcasting）・pathfinding（`src/pathfinding.r
 1. ✅**実装済み** — **symmetric shadowcasting FOV**（決定的・対称な視界、`src/fov.rs`、Albert Ford 法・整数有理数スロープ）。出典: stuffwithstuff, RogueBasin, libtcod。🟢 replay-safe（整数演算で実装）。
 2. ✅**実装済み** — **A* pathfinding**（8方向・整数 octile・`(f,h,x,y)` 全順序で tie-break 固定・corner-cut 無し）+ **Dijkstra map**（`dijkstra_map` + flee/safety 再スキャン + `combine_maps` 係数合成、N14）、`src/pathfinding.rs`。出典: bracket-pathfinding。🟢 replay-safe（順序確定済み）。
 3. ✅**実装済み** — **決定論的 procedural generation**（seed 駆動 room-corridor、連結保証、`src/mapgen.rs`）。将来 WFC。出典: arXiv:1906.04660（Green et al., FDG'19）, 2308.07307（Nie et al., 2023、決定論的 N-WFC）。🟢 replay-safe（RNG=C3 を単一ストリームで使用）。
-4. **headless 描画スナップショットテスト**（出力セルバッファを golden 比較）。出典: ratatui TestBackend。🟢 replay-safe。
+4. ✅**実装済み** — **headless 描画スナップショットテスト**（`tests/terminal_golden.rs`: 合成画面40セル・画面外へクリップする描画12セルを、手書き golden の glyph / fg / bg と全セル比較。文字列・矩形・枠・線・上書きの合成、UTF-8、0×0 / 0×3 / 4×0 の空バッファ、同入力2回、`present` / `diff` 連携を固定。描画動作の変更なし。実装コミット `9efef0d`）。出典: ratatui TestBackend。🟢 replay-safe。
 5. **JPS による A* 高速化**（grid 限定の最適化）。🟢 replay-safe。
 6. **PCG 品質メトリクス**（連結性・到達可能性の自動検査、validator=C9 と連携）。出典: arXiv:2503.21474。🟢 replay-safe。
 7. **line-of-sight / Bresenham line**（攻撃判定・FOV 補助）。🟢 replay-safe。
