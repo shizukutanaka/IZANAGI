@@ -264,10 +264,10 @@ span ベースの高機能診断は限定的。
 **洗い出した改善点**
 1. ✅**実装済み** — **`--check` モード**（`--fmt` の非破壊版、整形差分があれば非ゼロ終了）。出典: `cargo fmt --check`。🟢 replay-safe。
 2. ~~**機械可読診断出力（JSON / SARIF）**~~ — **実装済み**: `gamec --json`/`--sarif` が機械可読診断を出力（CI アノテーション用）。出典: rustc `--error-format=json`。
-3. ~~**診断 UX 強化**~~ — **実装済み**: `diag_render` が miette/ariadne 風の span・複数ラベル・related notes・help 行を自前 zero-dep で提供し、`gamec --rich` がその描画で診断を出す（終了コード・判定は従来モードと同一）。出典: miette, ariadne。🟢 replay-safe。
+3. ~~**診断 UX 強化**~~ — **実装済み**: `diag_render` が miette/ariadne 風の span・複数ラベル・related notes・help 行を自前 zero-dep で提供し、`gamec --rich` がその描画で診断を出す（終了コード・判定は従来モードと同一）。validator の未定義 spawn / extends base の修正提案は rich 表示だけ本文から構造化 `help` 行へ移し、plain / JSON / SARIF の診断は不変。`src/bin/gamec.rs` の golden で固定。出典: miette, ariadne。🟢 replay-safe。
 4. ~~**validator ルールの拡張**~~ — **実装済み (aae1a9b)**: 到達不能な spawn 領域と孤立部屋を警告として追加（loadable は維持）。`.game` 形式に固体概念が無いため、空間検査はバンドルが `wall` tile を宣言した場合のみ有効な opt-in で、宣言が無ければ沈黙する。移動規則は kit 正準の ConnectivityMap（8方向・角切りなし）。なお spawn 重なり検査は本変更以前から実装済みだった（validator.rs の overlapping-spawn 警告）。🟢 replay-safe。
    - 記録: `.game` 定義側から非決定性を持ち込む経路は実測で存在しなかった（数値トークンは int/uint のみ、seed/random 指令なし）。決定性は検査で弾くのではなく形式の構造として表現できない。
-5. ~~**修正提案（quick-fix）**~~ — **実装済み (459f2fc)**: validator の未定義 spawn 参照と extends の missing base に `(did you mean 'X'?)` を付加 — char 単位 Levenshtein を宣言順に走査し同距離は先出宣言が勝つので診断集合が決定的（整数のみ、rustc の suggestion 半径に倣い長い方の名の1/3で打切り）。出典: rustc suggestions。🟢 replay-safe。
+5. ~~**修正提案（quick-fix）**~~ — **実装済み (459f2fc)**: validator の未定義 spawn 参照と extends の missing base に `(did you mean 'X'?)` を付加 — char 単位 Levenshtein を宣言順に走査し同距離は先出宣言が勝つので診断集合が決定的（整数のみ、rustc の suggestion 半径に倣い長い方の名の1/3で打切り）。`gamec --rich` では提案を重複させず `help: did you mean 'X'?` として描画。置換範囲を持つ構造化編集・自動適用は未実装（表示用 help と区別する）。出典: rustc suggestions。🟢 replay-safe。
 6. ~~**loader の決定性テスト**~~ — **実装済み**: `determinism.rs` が allocator の free list と `live` 順序まで pin、loader は spawn 順の entity 割当を文書化+テスト済み。C1/C4 連携。🟢 replay-safe。
 7. ~~**SyncTest の製品化（標準検証コマンド）**~~ — **実装済み (596cd66)**: `bundle_verify` モジュール + `gamec --verify`。GGRS の SyncTestSession は rollback 実務で「最も価値がある」と評価されながら panic する開発セッション止まりで、CI に組み込む手順まで含めて提供するエンジンは存在しなかった（競合調査 2026-11-18）。ロード済みワールドへの正準 seeded soak を、独立2回ロードの初期ハッシュ比較・二重実行・全フレーム rollback 再シミュレーション（`sim::audit`）で監査し、乖離時は最初の乖離 tick と両ハッシュを含む報告書を返して終了コード（0=決定的 / 1=検証エラー・乖離 / 2=使い方・読取失敗）で落とす。利用者向け CI 手順（GitHub Actions の YAML 例）は kit README の gamec 節に文書として同梱（本 repo の `.github/workflows/` には触れていない）。出典: ggrs `SyncTestSession`。🟢 replay-safe。
 
