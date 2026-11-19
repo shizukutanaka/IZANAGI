@@ -360,7 +360,7 @@ fixed version has no such state at all.
 | `traefik` | Traefik config census |
 | `typesense` | Typesense collection census |
 | **2. Deterministic algorithms** | Where nondeterminism usually sneaks into a game (unordered iteration, float, address dependence) — the vetted versions. | `pathfinding`, `fov`, `geometry`, `gridcast`, `graph`, `pack`, `zorder`, `msquares`, `flow`, `hungarian`, `lsystem`, `poly`, `rdp`, `fenwick`, `ahocor`, `diff`, `trie`, `segtree`, `bipartite`, `tsp`, `rle`, `segment`, `euler`, `rmq`, `closestpair`, `interval`, `mapgen`, `wfc`, `tilemap`, `spatial_hash`, `influence`, `voronoi`, `delaunay`, `hexgrid`, `maze`, `passability`, `autotile`, `turn`, `entity`, `sparse_set`, `observe`, `arch`, `relations`, `multimap` |
-| **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json` |
+| **3. Content pipeline** | Author game data as text, then prove it well-formed before it reaches the sim. | `content`, `parser`, `serializer`, `validator`, `loader`, `diag_json`, `diag_render` |
 | **4. Gameplay conveniences** | Ordinary systems (inventory, shops, quests, UI…) written to be hashable and replay-safe. Nothing in tier 1 depends on them — worked examples you may freely replace. | everything else |
 
 If you adopt one thing, adopt tier 1: implement `sim::Simulation` for your
@@ -393,7 +393,7 @@ The capability map — with per-feature implementation status — lives in
 | `shrink` | Delta debugging (`ddmin`) — reduce a failing input sequence to a 1-minimal one. |
 | `prop` | Property-based testing (QuickCheck) — random sequences, checked property, counterexample returned already shrunk. Plus model-based / differential testing (`forall_model`) — run the real sim in lockstep with a trusted reference model and shrink any diverging command sequence. |
 | `netinput` | Transport-agnostic multi-player input prediction and misprediction detection for rollback netcode (`NetInputBuffer`), plus `AdaptiveDelay` tuning input delay to the measured misprediction rate. |
-| `content` / `parser` / `serializer` / `validator` / `loader` | The text→ECS content pipeline (see below). |
+| `content` / `parser` / `serializer` / `validator` / `loader` / `bundle_verify` | The text→ECS content pipeline (see below), plus the bundle determinism audit. |
 | `mapgen` / `wfc` / `multimap` / `maze` | Procedural dungeons (room-placement, cellular-automata caves, BSP partitions, drunkard's-walk caverns, Bridson Poisson-disc scatter, `carve_corridors` TinyKeep-style weighted tunneling, Wilson's uniform-spanning-tree perfect mazes), Wave Function Collapse, multi-level worlds. |
 | `fov` / `pathfinding` / `influence` / `fsm` / `hfsm` | Symmetric FOV (binary + distance-attenuated), (weighted) A* + `min_cost_path` over arbitrary enter-costs + path smoothing + Dijkstra flow maps + rescanned flee/safety maps + frontier-seeking auto-explore, influence maps, flat and hierarchical (parent-state + wildcard) state machines. |
 | `ability` / `behavior` | Unified skill system (mana/cooldown/range/effect resolution in one call) and hierarchical behavior trees (sequence/selector/invert/repeat leaves) for game AI. |
@@ -1098,7 +1098,48 @@ gamec --fmt <file.game>    # validate and emit canonical text to stdout
 gamec --check <file.game>  # validate formatting only, no output (like `cargo fmt --check`)
 gamec --json <file.game>   # emit all diagnostics as machine-readable JSON to stdout
 gamec --sarif <file.game>  # emit diagnostics as SARIF 2.1.0, for GitHub Code Scanning
+gamec --verify <file.game> # audit bundle determinism; non-zero exit on divergence
 ```
+
+### The determinism gate
+
+`gamec --verify` is the SyncTest as a standard command. For every level in
+the bundle it loads the level twice from scratch, runs a canonical seeded
+soak over the loaded world, and checks the run three ways: the two loads
+must hash identically, two identical runs must produce identical per-tick
+hash traces, and rolling back to resimulate at every frame must reproduce
+the straight-through run. Divergence is reported with the **first
+diverging tick** and both hashes — a report, never a panic. The exit code
+is the contract: `0` when every level is deterministic, `1` on validation
+errors or divergence, `2` on usage errors or unreadable input.
+
+Run it on every commit so a nondeterministic change fails the build the
+day it lands, not the day a replay desyncs:
+
+```yaml
+# .github/workflows/determinism.yml — in *your* repository, against your game
+name: determinism
+on: [push, pull_request]
+jobs:
+  verify-content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build gamec
+        run: cargo build --release --bin gamec
+      - name: Content gate (well-formed and self-consistent)
+        run: ./target/release/gamec content/game.game
+      - name: Determinism gate (loads and replays reproduce bit-for-bit)
+        run: ./target/release/gamec --verify content/game.game
+```
+
+The same check is available as a library call —
+`izanagi_kit::bundle_verify::verify_bundle` — for embedding in your own
+test suite, where the report's `final_hash` can be pinned as a regression
+value. What it does not check: that the content is *good*. The soak is a
+reference workload over the loaded world, not your game's simulation;
+audit that with `izanagi_kit::sim::audit`.
 
 Diagnostics are rustc/clang-style, with the offending source line and a caret:
 

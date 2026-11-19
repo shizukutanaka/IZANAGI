@@ -9,6 +9,10 @@
 //!
 //! Layout: `dense` holds packed `(Entity, T)` for cache-friendly iteration;
 //! `sparse[index] -> position in dense`. Removal is swap-remove (O(1)).
+//!
+//! Marker (tag) components — types that carry no data, where only presence
+//! matters — use [`TagSet`] instead: the same sparse/dense index pair with no
+//! per-element value storage at all.
 
 use crate::entity::Entity;
 
@@ -306,6 +310,165 @@ impl<T: crate::world_hash::DetHash> SparseSet<T> {
     }
 }
 
+/// Presence-only component storage for marker (tag) components.
+///
+/// A tag component carries no data — the component's *type* is the whole
+/// payload, and the only question a system asks is "does this entity have
+/// it?" (examples: `Frozen`, `PlayerControlled`, `PendingDespawn`). Storing
+/// such a component in a [`SparseSet`] would still allocate and maintain a
+/// dense value array whose elements can never differ, so `TagSet` keeps only
+/// the sparse index and the dense entity list: membership is the storage.
+///
+/// The semantics mirror [`SparseSet`] exactly — O(1) insert / lookup /
+/// swap-remove, the same generational safety (a stale handle never aliases a
+/// recycled index), the same canonical ascending-index order for hashing —
+/// so swapping a marker's store from `SparseSet<Marker>` to `TagSet` changes
+/// no observable behaviour, including the world hash: for the same entity
+/// population, [`TagSet::det_hash`] folds exactly what
+/// `SparseSet<Marker>::det_hash` folds for a marker whose own hash contribution
+/// is empty.
+#[derive(Default)]
+pub struct TagSet {
+    sparse: Vec<Option<u32>>,
+    dense_entities: Vec<Entity>,
+}
+
+impl TagSet {
+    /// Create an empty set.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Number of entities currently tagged.
+    pub fn len(&self) -> usize {
+        self.dense_entities.len()
+    }
+
+    /// `true` if no entity is tagged.
+    pub fn is_empty(&self) -> bool {
+        self.dense_entities.is_empty()
+    }
+
+    #[inline]
+    fn slot(&self, entity: Entity) -> Option<u32> {
+        let pos = self
+            .sparse
+            .get(entity.index() as usize)
+            .copied()
+            .flatten()?;
+        // Generational safety, identical to `SparseSet`: reject a handle
+        // whose generation no longer matches the entity occupying the slot,
+        // so a stale handle can never alias a recycled index.
+        if self.dense_entities[pos as usize] == entity {
+            Some(pos)
+        } else {
+            None
+        }
+    }
+
+    /// Tag `entity`. Returns `true` if the tag was newly added, `false` if
+    /// this exact handle was already tagged. O(1) amortised.
+    pub fn insert(&mut self, entity: Entity) -> bool {
+        let idx = entity.index() as usize;
+        if idx >= self.sparse.len() {
+            self.sparse.resize(idx + 1, None);
+        }
+        if let Some(pos) = self.sparse[idx] {
+            // The index is already occupied: refresh the stored handle (the
+            // previous occupant may be a stale generation) and report whether
+            // this exact handle is new to the set.
+            let was_present = self.dense_entities[pos as usize] == entity;
+            self.dense_entities[pos as usize] = entity;
+            return !was_present;
+        }
+        self.sparse[idx] = Some(self.dense_entities.len() as u32);
+        self.dense_entities.push(entity);
+        true
+    }
+
+    /// `true` if `entity` is tagged. A stale handle (generation mismatch)
+    /// reports `false`, exactly as [`SparseSet::contains`].
+    pub fn contains(&self, entity: Entity) -> bool {
+        self.slot(entity).is_some()
+    }
+
+    /// Remove the tag from `entity` via swap-remove, returning `true` if it
+    /// was present. O(1).
+    pub fn remove(&mut self, entity: Entity) -> bool {
+        let pos = match self.slot(entity) {
+            Some(p) => p as usize,
+            None => return false,
+        };
+        let last = self.dense_entities.len() - 1;
+        self.dense_entities.swap(pos, last);
+        let moved = self.dense_entities[pos];
+        self.sparse[moved.index() as usize] = Some(pos as u32);
+        self.sparse[entity.index() as usize] = None;
+        self.dense_entities.pop();
+        true
+    }
+
+    /// Untag every entity for which `pred(entity)` returns `false`. O(n).
+    pub fn retain<F: Fn(Entity) -> bool>(&mut self, pred: F) {
+        let mut i = 0;
+        while i < self.dense_entities.len() {
+            let entity = self.dense_entities[i];
+            if !pred(entity) {
+                self.remove(entity);
+            } else {
+                i += 1;
+            }
+        }
+    }
+
+    /// Remove all tags. The sparse index is also cleared so no stale slots
+    /// remain.
+    pub fn clear(&mut self) {
+        for e in &self.dense_entities {
+            if let Some(slot) = self.sparse.get_mut(e.index() as usize) {
+                *slot = None;
+            }
+        }
+        self.dense_entities.clear();
+    }
+
+    /// Remove all tags and return the tagged entities in dense (insertion)
+    /// order.
+    pub fn drain(&mut self) -> Vec<Entity> {
+        for e in &self.dense_entities {
+            if let Some(slot) = self.sparse.get_mut(e.index() as usize) {
+                *slot = None;
+            }
+        }
+        core::mem::take(&mut self.dense_entities)
+    }
+
+    /// Iterate tagged entities in dense (insertion) order.
+    pub fn entities(&self) -> impl Iterator<Item = Entity> + '_ {
+        self.dense_entities.iter().copied()
+    }
+
+    /// Tagged entities in canonical order: ascending entity index. Removes
+    /// iteration order as a source of non-determinism.
+    pub fn entities_sorted(&self) -> Vec<Entity> {
+        let mut out = self.dense_entities.clone();
+        out.sort_unstable_by_key(|e| e.index());
+        out
+    }
+
+    /// Folds the set into a hasher in **canonical order** (ascending entity
+    /// index), independent of insert/swap history (invariant G6). The length
+    /// is folded first, mirroring [`SparseSet::det_hash`]; a tag has no value
+    /// to fold, so each entry contributes its entity handle only.
+    pub fn det_hash(&self, hasher: &mut crate::world_hash::Fnv1a) {
+        use crate::world_hash::DetHash;
+        hasher.write_u32(self.len() as u32);
+        for entity in self.entities_sorted() {
+            entity.det_hash(hasher);
+        }
+    }
+}
+
 /// Canonical inner join of two component stores: every entity present in
 /// **both**, in ascending-index order, paired with a reference to each
 /// component. This is the basic multi-component query — e.g. "every entity with
@@ -423,6 +586,33 @@ pub fn join3_mut<'a, A, B, C>(
         }
     }
     out.sort_unstable_by_key(|(e, _, _, _)| e.index());
+    out
+}
+
+/// Canonical filter of a component store by a tag set: every entity that has
+/// the component *and* the tag, in ascending-index order, paired with a
+/// reference to the component. This is the tag half of the multi-component
+/// query — e.g. "every `Position` whose entity is `Frozen`".
+///
+/// The smaller side is iterated and the other probed, as in [`join`]; the
+/// result is sorted by entity index so the order is canonical regardless of
+/// either store's insert history (invariant G6).
+pub fn join_tagged<'a, T>(set: &'a SparseSet<T>, tags: &TagSet) -> Vec<(Entity, &'a T)> {
+    let mut out = Vec::new();
+    if set.len() <= tags.len() {
+        for (entity, value) in set.iter() {
+            if tags.contains(entity) {
+                out.push((entity, value));
+            }
+        }
+    } else {
+        for entity in tags.entities() {
+            if let Some(value) = set.get(entity) {
+                out.push((entity, value));
+            }
+        }
+    }
+    out.sort_unstable_by_key(|(e, _)| e.index());
     out
 }
 
@@ -1108,5 +1298,389 @@ mod tests {
         assert_eq!(set.remove(e0), None);
         assert_eq!(set.get(e1), Some(&2), "e1's component survives stale ops");
         assert!(!set.contains(e0));
+    }
+
+    // --- TagSet: presence-only storage for marker components ---
+
+    fn tag_hash(tags: &TagSet) -> u64 {
+        use crate::world_hash::Fnv1a;
+        let mut h = Fnv1a::new();
+        tags.det_hash(&mut h);
+        h.finish()
+    }
+
+    #[test]
+    fn test_tag_insert_then_contains_and_len() {
+        let (_, es) = three();
+        let mut tags = TagSet::new();
+        assert!(tags.is_empty());
+        assert!(tags.insert(es[1]));
+        assert!(tags.contains(es[1]));
+        assert!(!tags.contains(es[0]));
+        assert_eq!(tags.len(), 1);
+        assert!(!tags.is_empty());
+    }
+
+    #[test]
+    fn test_tag_insert_same_handle_twice_is_idempotent() {
+        let (_, es) = three();
+        let mut tags = TagSet::new();
+        assert!(tags.insert(es[0]), "first insert is new");
+        assert!(
+            !tags.insert(es[0]),
+            "second insert of the same handle is not"
+        );
+        assert_eq!(tags.len(), 1);
+    }
+
+    #[test]
+    fn test_tag_default_is_empty() {
+        let tags = TagSet::default();
+        assert!(tags.is_empty());
+        assert_eq!(tags.len(), 0);
+    }
+
+    #[test]
+    fn test_tag_remove_present_and_absent() {
+        let (_, es) = three();
+        let mut tags = TagSet::new();
+        tags.insert(es[0]);
+        tags.insert(es[2]);
+        assert!(tags.remove(es[0]), "present tag removes");
+        assert!(!tags.contains(es[0]));
+        assert!(tags.contains(es[2]), "the other tag survives");
+        assert!(!tags.remove(es[0]), "removing twice reports absence");
+        assert!(!tags.remove(es[1]), "never-tagged entity reports absence");
+        assert_eq!(tags.len(), 1);
+    }
+
+    #[test]
+    fn test_tag_remove_middle_keeps_others_via_swap() {
+        let (_, es) = three();
+        let mut tags = TagSet::new();
+        for &e in &es {
+            tags.insert(e);
+        }
+        // Removing the first entry swap-moves the last into its slot; the
+        // moved entity must still be found through the sparse index.
+        assert!(tags.remove(es[0]));
+        assert_eq!(tags.len(), 2);
+        assert!(tags.contains(es[1]));
+        assert!(tags.contains(es[2]), "swap-moved entity stays reachable");
+        assert!(!tags.contains(es[0]));
+    }
+
+    #[test]
+    fn test_tag_entities_sorted_is_ascending_regardless_of_history() {
+        let (_, es) = three();
+        let mut tags = TagSet::new();
+        tags.insert(es[2]);
+        tags.insert(es[0]);
+        tags.insert(es[1]);
+        let order: Vec<u32> = tags.entities_sorted().iter().map(|e| e.index()).collect();
+        assert_eq!(order, vec![0, 1, 2]);
+        // Dense iteration holds every tagged entity exactly once.
+        let mut dense: Vec<u32> = tags.entities().map(|e| e.index()).collect();
+        dense.sort_unstable();
+        assert_eq!(dense, vec![0, 1, 2]);
+    }
+
+    #[test]
+    fn test_tag_clear_and_drain() {
+        let (_, es) = three();
+        let mut tags = TagSet::new();
+        for &e in &es {
+            tags.insert(e);
+        }
+        let drained = tags.drain();
+        assert_eq!(drained.len(), 3);
+        assert!(tags.is_empty());
+        assert!(!tags.contains(es[0]), "no stale slot survives a drain");
+
+        // Re-tagging after drain, then clear, behaves the same.
+        tags.insert(es[1]);
+        tags.clear();
+        assert!(tags.is_empty());
+        assert!(!tags.contains(es[1]), "no stale slot survives a clear");
+        assert!(tags.insert(es[1]), "set is reusable after clear");
+    }
+
+    #[test]
+    fn test_tag_retain_keeps_matching() {
+        let (_, es) = three();
+        let mut tags = TagSet::new();
+        for &e in &es {
+            tags.insert(e);
+        }
+        tags.retain(|e| e.index() != 1);
+        assert_eq!(tags.len(), 2);
+        assert!(tags.contains(es[0]));
+        assert!(!tags.contains(es[1]));
+        assert!(tags.contains(es[2]));
+        tags.retain(|_| false);
+        assert!(tags.is_empty(), "retain(false) untags everything");
+    }
+
+    #[test]
+    fn test_tag_empty_set_queries() {
+        let mut tags = TagSet::new();
+        let (_, es) = three();
+        assert_eq!(tags.len(), 0);
+        assert!(tags.is_empty());
+        assert!(!tags.contains(es[0]));
+        assert!(!tags.remove(es[0]));
+        assert!(tags.entities_sorted().is_empty());
+        assert!(tags.drain().is_empty());
+        // The empty population hashes to a fixed value: two independently
+        // built empty sets agree.
+        assert_eq!(tag_hash(&tags), tag_hash(&TagSet::new()));
+    }
+
+    #[test]
+    fn test_tag_many_entities_churn() {
+        let mut alloc = EntityAllocator::new();
+        let pool: Vec<Entity> = (0..10_000).map(|_| alloc.allocate()).collect();
+        let mut tags = TagSet::new();
+        for &e in &pool {
+            assert!(tags.insert(e));
+        }
+        assert_eq!(tags.len(), 10_000);
+        // Remove every odd index; swap-remove churn must keep the sparse
+        // index exact for the survivors.
+        for &e in pool.iter().filter(|e| e.index() % 2 == 1) {
+            assert!(tags.remove(e));
+        }
+        assert_eq!(tags.len(), 5_000);
+        for &e in &pool {
+            assert_eq!(
+                tags.contains(e),
+                e.index() % 2 == 0,
+                "membership must be exact after churn at index {}",
+                e.index()
+            );
+        }
+    }
+
+    #[test]
+    fn test_tag_stale_handle_does_not_alias_recycled_index() {
+        let mut alloc = EntityAllocator::new();
+        let mut tags = TagSet::new();
+        let e0 = alloc.allocate(); // idx 0, gen 0
+        tags.insert(e0);
+        alloc.free(e0);
+        let e1 = alloc.allocate(); // idx 0, gen 1 — recycled index
+        assert_eq!(e1.index(), e0.index());
+        assert_ne!(e1.generation(), e0.generation());
+        assert!(
+            !tags.contains(e1),
+            "a fresh entity reusing an index must not inherit the prior tag"
+        );
+        // Until the slot is refreshed, the store still holds e0's tag: the
+        // allocator's `free` is invisible to the store, and `SparseSet`
+        // behaves identically in this state (its slot still yields e0's
+        // component — `test_fresh_handle_at_recycled_index_has_no_component`
+        // asserts only the fresh handle's view). Removal via the stored
+        // handle therefore succeeds here.
+        assert!(tags.contains(e0));
+        assert!(tags.remove(e0), "the stored handle's tag removes normally");
+        assert!(tags.is_empty());
+        // Once the live handle occupies the slot, the stale handle is
+        // rejected for reads and removal alike — the generational guarantee,
+        // mirroring `test_stale_handle_get_mut_and_remove_rejected`.
+        assert!(tags.insert(e1), "tagging the live handle is a new insert");
+        assert!(tags.contains(e1));
+        assert!(
+            !tags.contains(e0),
+            "the stale handle stays rejected after the slot is refreshed"
+        );
+        assert!(
+            !tags.remove(e0),
+            "removal via the stale handle must be rejected"
+        );
+        assert!(tags.remove(e1));
+        assert!(tags.is_empty());
+    }
+
+    #[test]
+    fn test_tag_det_hash_ignores_insert_order_but_tracks_population() {
+        let (_, es) = three();
+        let hash_of = |order: &[Entity]| {
+            let mut tags = TagSet::new();
+            for &e in order {
+                tags.insert(e);
+            }
+            tag_hash(&tags)
+        };
+        let forward = hash_of(&[es[0], es[1], es[2]]);
+        let shuffled = hash_of(&[es[2], es[0], es[1]]);
+        assert_eq!(forward, shuffled, "canonical hash must ignore insert order");
+        let shorter = hash_of(&[es[0], es[1]]);
+        assert_ne!(forward, shorter, "population (length) must be folded in");
+        let different = hash_of(&[es[0], es[2]]);
+        assert_ne!(shorter, different, "membership must be folded in");
+    }
+
+    #[test]
+    fn test_tag_det_hash_matches_sparse_set_of_unit() {
+        // Oracle: `()` folds nothing, so a `SparseSet<()>` over the same
+        // population is the reference behaviour — if TagSet folded anything
+        // more or less (or in a different order), the hashes would diverge.
+        use crate::world_hash::Fnv1a;
+        let mut alloc = EntityAllocator::new();
+        let pool: Vec<Entity> = (0..6).map(|_| alloc.allocate()).collect();
+        let mut tags = TagSet::new();
+        let mut reference: SparseSet<()> = SparseSet::new();
+        // Scrambled insert order, then a removal, on both stores.
+        for &i in &[3usize, 0, 5, 1] {
+            tags.insert(pool[i]);
+            reference.insert(pool[i], ());
+        }
+        tags.remove(pool[0]);
+        reference.remove(pool[0]);
+
+        let mut h = Fnv1a::new();
+        reference.det_hash(&mut h);
+        assert_eq!(
+            tag_hash(&tags),
+            h.finish(),
+            "TagSet must fold exactly what SparseSet<()> folds"
+        );
+    }
+
+    #[test]
+    fn test_tag_same_op_sequence_twice_gives_identical_state() {
+        let build = || {
+            let mut alloc = EntityAllocator::new();
+            let pool: Vec<Entity> = (0..8).map(|_| alloc.allocate()).collect();
+            let mut tags = TagSet::new();
+            for &i in &[5usize, 2, 7, 2, 0] {
+                tags.insert(pool[i]);
+            }
+            tags.remove(pool[5]);
+            tags.insert(pool[5]);
+            tags
+        };
+        let a = build();
+        let b = build();
+        assert_eq!(a.entities_sorted(), b.entities_sorted());
+        assert_eq!(tag_hash(&a), tag_hash(&b), "same input → same hash, twice");
+    }
+
+    #[test]
+    fn test_tag_model_oracle_random_ops() {
+        use crate::rng::SplitMix64;
+        let mut alloc = EntityAllocator::new();
+        let pool: Vec<Entity> = (0..24).map(|_| alloc.allocate()).collect();
+        let mut present = [false; 24];
+        let mut tags = TagSet::new();
+        let mut rng = SplitMix64::new(0x7a65);
+        for step in 0..600 {
+            let i = rng.below(24) as usize;
+            if rng.below(3) == 2 {
+                assert_eq!(
+                    tags.remove(pool[i]),
+                    present[i],
+                    "remove result must match the model at step {step}"
+                );
+                present[i] = false;
+            } else {
+                assert_eq!(
+                    tags.insert(pool[i]),
+                    !present[i],
+                    "insert result must match the model at step {step}"
+                );
+                present[i] = true;
+            }
+            if step % 100 == 0 {
+                assert_eq!(tags.len(), present.iter().filter(|&&p| p).count());
+            }
+        }
+        // Final state must equal the model exactly: membership, canonical
+        // order, and hash (via the SparseSet<()> oracle).
+        let expected: Vec<Entity> = pool
+            .iter()
+            .copied()
+            .filter(|e| present[e.index() as usize])
+            .collect();
+        assert_eq!(tags.entities_sorted(), expected);
+        let mut reference: SparseSet<()> = SparseSet::new();
+        for &e in &expected {
+            reference.insert(e, ());
+        }
+        use crate::world_hash::Fnv1a;
+        let mut h = Fnv1a::new();
+        reference.det_hash(&mut h);
+        assert_eq!(tag_hash(&tags), h.finish());
+    }
+
+    // --- join_tagged: TagSet composed with the existing join API family ---
+
+    #[test]
+    fn test_join_tagged_returns_tagged_subset_canonically() {
+        let mut alloc = EntityAllocator::new();
+        let es: Vec<Entity> = (0..4).map(|_| alloc.allocate()).collect();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        let mut tags = TagSet::new();
+        // Scrambled inserts; es[1] and es[3] have both, es[0] lacks the tag,
+        // es[2] has the tag but no component.
+        pos.insert(es[3], 30);
+        pos.insert(es[0], 0);
+        pos.insert(es[1], 10);
+        tags.insert(es[1]);
+        tags.insert(es[3]);
+        tags.insert(es[2]);
+
+        let joined = join_tagged(&pos, &tags);
+        let ids: Vec<u32> = joined.iter().map(|(e, _)| e.index()).collect();
+        assert_eq!(ids, vec![1, 3], "intersection only, ascending index");
+        assert_eq!(joined[0].1, &10);
+        assert_eq!(joined[1].1, &30);
+    }
+
+    #[test]
+    fn test_join_tagged_empty_when_either_side_empty() {
+        let (_, es) = three();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        pos.insert(es[0], 1);
+        let no_tags = TagSet::new();
+        assert!(join_tagged(&pos, &no_tags).is_empty());
+
+        let empty_set: SparseSet<i32> = SparseSet::new();
+        let mut tags = TagSet::new();
+        tags.insert(es[0]);
+        assert!(join_tagged(&empty_set, &tags).is_empty());
+    }
+
+    #[test]
+    fn test_join_tagged_result_independent_of_which_side_is_smaller() {
+        let mut alloc = EntityAllocator::new();
+        let es: Vec<Entity> = (0..5).map(|_| alloc.allocate()).collect();
+        let mut pos: SparseSet<i32> = SparseSet::new();
+        let mut tags = TagSet::new();
+        // Component store smaller than the tag set (iterates the store).
+        pos.insert(es[4], 40);
+        pos.insert(es[1], 10);
+        for &e in &es {
+            tags.insert(e);
+        }
+        let ids: Vec<u32> = join_tagged(&pos, &tags)
+            .iter()
+            .map(|(e, _)| e.index())
+            .collect();
+        assert_eq!(ids, vec![1, 4]);
+
+        // Tag set smaller than the component store (iterates the tags).
+        let mut pos2: SparseSet<i32> = SparseSet::new();
+        for (i, &e) in es.iter().enumerate() {
+            pos2.insert(e, i as i32);
+        }
+        let mut tags2 = TagSet::new();
+        tags2.insert(es[3]);
+        tags2.insert(es[0]);
+        let ids2: Vec<u32> = join_tagged(&pos2, &tags2)
+            .iter()
+            .map(|(e, _)| e.index())
+            .collect();
+        assert_eq!(ids2, vec![0, 3]);
     }
 }
