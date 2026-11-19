@@ -86,6 +86,20 @@ fn entities() -> Vec<Entity> {
     alloc.batch_alloc(N)
 }
 
+#[test]
+fn bench_presence_contains() {
+    let es = entities();
+    let mut vel = SparseSet::new();
+    for &e in es.iter().take(N_VEL) {
+        vel.insert(e, Vel { x: 1, y: -1 });
+    }
+    bench("contains: SparseSet x10k (60% present)", ITERS, 20, || {
+        let store = std::hint::black_box(&vel);
+        let found = es.iter().filter(|&&e| store.contains(e)).count();
+        std::hint::black_box(found);
+    });
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Single-column iteration
 // ─────────────────────────────────────────────────────────────────

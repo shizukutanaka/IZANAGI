@@ -40,10 +40,10 @@ query DSL は未実装。
 **洗い出した改善点**
 1. ✅**実装済み** — **multi-component query / iteration API**（`sparse_set::join`/`join_mut`、最小集合走査・canonical 昇順）+ **archetype storage**（`src/arch.rs` の `ArchTable`、opt-in。N18 の実測で「kit core の既定 storage にはしない」と確定）。出典: entt group/view, legion query。🟢 replay-safe（canonical 順序）。
 2. ~~**archetype storage の optional 化**~~ — **実装済み（N18）**: `arch::ArchTable` が opt-in primitive として存在。core の既定 storage 化は実測で不採用（point get で 4.3x 劣後、join 差は frame の 0.1%）。出典: bevy hybrid storage, EG 比較論文。
-3. **bitset によるコンポーネント有無の高速判定**（query 高速化）。出典: specs bitset filter。🟢 replay-safe。
+3. **bitset によるコンポーネント有無の高速判定**（query 高速化）— **未実装・現時点では保留（実測）**: 既存の `SparseSet::contains` は世代安全な O(1) lookup（`src/sparse_set.rs:103`）。`tests/bench.rs:90` に presence 計測を追加し、既存 N18 workload（10k entities、Pos=全員 / Vel=6k / Hp=4k）で測定。Apple M4 (Virtual) / arm64、release、warmup 20回・200標本の median: contains 10k件（60% hit）**4.500 µs**、join2 6k件 **18.583 µs**、join3 4k件 **20.542 µs**、join_mut 6k件 **23.625 µs**。各1回/フレームなら合計 **67.250 µs = 60 Hz 予算16,667 µsの約0.40%**。これは harness の合成 workload であり実ゲームの profile ではない。join は sort・値走査も含むため、この全時間は削減可能量の上限であって bitset の予測速度向上ではない（bitset 自体は未計測）。**着手線**: 対象環境の実 workload で presence / join 合計が **1 ms/frame（約6%）以上**になった時に再測定し、世代確認・canonical 順序・更新コストを含む bitset 比較を行う。それまでは既存 sparse lookup を維持。再現: `cargo test -p izanagi_kit --release --test bench -- --nocapture --test-threads=1`。出典: specs bitset filter。🟢 replay-safe。
 4. ✅**実装済み** — **generation 枯渇（u32 wrap）時の handle 再利用ポリシー明文化**（3実装を実測し各モジュールの "Generation exhaustion" 節に明記: kit `entity` は wrap＋`generation_wrap_count` に記録、kit `slotmap` は `u32::MAX` で永久退役、engine `ecs` は無記録で wrap。境界状態を直接構築する境界テスト5件で固定。あわせて `entity::EntityAllocator::free` の doc が主張していたが実在しなかった `debug_assert` の記述を是正。実装コミット `aa31be0`）。出典: hecs generational index 解説。🟢 replay-safe（テスト追加のみ）。
 5. ✅**実装済み** — **ZST（タグコンポーネント）最適化**: `sparse_set::TagSet`（sparse index + dense entity list のみで値ストレージを持たない marker 専用ストア。意味論は `SparseSet` と同一 — O(1) insert/lookup/swap-remove・世代安全・canonical 昇順。`det_hash` は長さ＋entity handle のみを畳み `SparseSet<()>` と完全一致するため、marker のストアを差し替えても world hash は不変。`join_tagged` で既存 join 系と合成。実装コミット `2c4e648`）。出典: entt/bevy tag。🟢 replay-safe。
-6. **コンポーネント登録のコンパイル時 ID 化**（`TypeId` ランタイム比較の削減）。🟢 replay-safe。
+6. ~~**コンポーネント登録のコンパイル時 ID 化**~~ — **対象が存在しない（測定で閉じた）**: `izanagi_kit/src` 全体の `TypeId` 使用は **0件**。`SparseSet<T>`（`src/sparse_set.rs:20`）/ `ArchTable<Row>`（`src/arch.rs:38`）は型付き store で、loader も具体型の列を持つ（`src/loader.rs:112–117`）。削減対象のランタイム `TypeId` 比較は存在しないため、新たな ID 登録機構は導入しない。🟢 replay-safe。
 
 ---
 
@@ -97,7 +97,7 @@ query DSL は未実装。
 2. ~~**複数の名前付きストリーム**~~ — **実装済み**: `SplitMix64::split(stream_id)` がサブシステム毎の独立ストリームを純関数で分岐（親を消費しない）。出典: SplitMix64 split, xoshiro jump。
 3. ~~**PRNG 品質の自動テスト**~~ — **実装済み (f51f55f)**: `rng.rs` テスト群 — seed0 の公式参照ベクタ8連・`below(6)` 60k 回 chi-square 上界・全64ビット反転の avalanche 帯・連続出力の serial correlation 上界（全て固定 seed の機械オラクル）。出典: PractRand/TestU01 文献。🟢 replay-safe。
 4. ~~**`f`-range・gaussian・weighted choice 等の分布ヘルパ**~~ — **実装済み (4525326)**: `rng.rs` に `next_fixed01`（[0,1) 一様 Fixed、below の 1 draw を raw Q16.16 化）・`range_fixed`（[min, max) 一様 Fixed、raw span への below 1 draw と等価、縮退時は無 draw）・`gaussian_fixed`（Bates 分布 — Irwin 1927 / Hall 1947 / Bates 1959、gaussian_approx と消費 draw・分布が bit 一致）・`weighted_index_fixed`（Fixed 重み、負は 0 扱い、空/全非正は無 draw で None）を追加。検証は各 API と「包む基本 API の draw 列・state 一致」のストリームオラクル＋固定 seed の chi-square 上界（next_fixed01: chi2≈13.8/df15、range_fixed: chi2≈4.27/df7）。🟢 replay-safe（新 API）。
-5. **seed の文書化（wall-clock seed 禁止の明文化）**と replay seed の永続化。出典: lockstep 文献（C6）。🟢 replay-safe。
+5. ✅**実装済み** — **seed の文書化（wall-clock seed 禁止の明文化）と replay seed の永続化**: `src/rng.rs:3–6` が wall-clock / thread-local seed を禁止。`src/replay.rs:472` の seed を `encode_trace`（`:503`）/ `decode_trace`（`:574`）で永続化し、round-trip（`:1167`）と decoded seed の値（`:1372`）を検査。出典: lockstep 文献（C6）。🟢 replay-safe。
 6. ~~**xoshiro256++ への移行検討**~~ — **実装済み（opt-in）**: `src/rng_xoshiro.rs` の `Xoshiro256pp` が別 generator として存在（既定は SplitMix64 のまま、pinned hash 不変）。出典: arXiv:1805.01407。
 
 ---
@@ -121,7 +121,7 @@ query DSL は未実装。
 
 **洗い出した改善点**
 1. ✅**実装済み（一部）** — **`DetHash` trait の実装**（基本型 + `Fixed/Entity/Position/Render/Color` + `SparseSet::det_hash` で canonical 順序の容器 hash、`src/world_hash.rs` ほか）。derive macro 化は残。出典: ggrs Config checksum。🟢 replay-safe（FNV 流用で `PINNED_FINAL_HASH` 不変）。
-2. **order-independent な集合ハッシュ**（commutative combine）で sort コスト削減。出典: order-independent hashing。🔴 breaking（hash 値が変わる）→ 別 API。
+2. ✅**実装済み** — **order-independent な集合ハッシュ**: 別 API `hash_unordered`（`src/world_hash.rs:385`）が要素 hash の可換加算と cardinality を使う multiset hash を提供し、sort を不要にする。順列不変・重複・空・既存 `hash_state` 不変をテスト（`:1099–1165`）。既定 hash / pinned 値は変更しない。出典: order-independent hashing。🟢 replay-safe（別 API）。
 3. ~~**desync 二分探索ツール**~~ — **実装済み（N12）**: `replay::first_divergence`/`all_divergences` + `DesyncReport`(分岐 tick・サブシステム局所化・seed・入力窓を含む再現バンドル)。出典: Bugnet, Gaffer。
 4. **xxHash/FxHash オプション**（per-frame hash の高速化）。出典: xxHash。🟡 gated（hash 関数変更で値が変わる→ feature 隔離）。
 5. ✅**実装済み** — **replay trace の永続化フォーマット**（`ReplayTrace` + `encode_trace`/`decode_trace`、seed + inputs + 期待 hash 列。magic `IZTR`・版数（`TRACE_FORMAT_VERSION`）・payload の FNV-1a checksum・全整数 little-endian、`src/replay.rs`。実装コミット `4a031b8`）。出典: Deterministic Replay Survey。🟢 replay-safe（新規 API のみで `PINNED_FINAL_HASH` 不変）。
@@ -296,9 +296,9 @@ FOV（`src/fov.rs` symmetric shadowcasting）・pathfinding（`src/pathfinding.r
 2. ✅**実装済み** — **A* pathfinding**（8方向・整数 octile・`(f,h,x,y)` 全順序で tie-break 固定・corner-cut 無し）+ **Dijkstra map**（`dijkstra_map` + flee/safety 再スキャン + `combine_maps` 係数合成、N14）、`src/pathfinding.rs`。出典: bracket-pathfinding。🟢 replay-safe（順序確定済み）。
 3. ✅**実装済み** — **決定論的 procedural generation**（seed 駆動 room-corridor、連結保証、`src/mapgen.rs`）。将来 WFC。出典: arXiv:1906.04660（Green et al., FDG'19）, 2308.07307（Nie et al., 2023、決定論的 N-WFC）。🟢 replay-safe（RNG=C3 を単一ストリームで使用）。
 4. ✅**実装済み** — **headless 描画スナップショットテスト**（`tests/terminal_golden.rs`: 合成画面40セル・画面外へクリップする描画12セルを、手書き golden の glyph / fg / bg と全セル比較。文字列・矩形・枠・線・上書きの合成、UTF-8、0×0 / 0×3 / 4×0 の空バッファ、同入力2回、`present` / `diff` 連携を固定。描画動作の変更なし。実装コミット `9efef0d`）。出典: ratatui TestBackend。🟢 replay-safe。
-5. **JPS による A* 高速化**（grid 限定の最適化）。🟢 replay-safe。
-6. **PCG 品質メトリクス**（連結性・到達可能性の自動検査、validator=C9 と連携）。出典: arXiv:2503.21474。🟢 replay-safe。
-7. **line-of-sight / Bresenham line**（攻撃判定・FOV 補助）。🟢 replay-safe。
+5. ✅**実装済み** — **JPS による A* 高速化**: `src/pathfinding.rs:485` の `jps`（8方向）と `:641` の `jps4`（4方向）。A* cost / BFS オラクル・到達不能・corner-cut・決定論をテスト（`:2400` 以降）。grid 限定の opt-in 最適化で、既定 A* は不変。🟢 replay-safe。
+6. ✅**実装済み（連結性・到達可能性の範囲）** — **PCG 品質メトリクス**: 生成側は `src/mapgen.rs:1176,1237,1343,1677` で floor 到達性・連結性を検査。validator=C9 は `src/validator.rs:205` から空間検査（`:234`）を呼び、孤立部屋・到達不能 spawn を警告する。`wall` tile 宣言と in-bounds spawn がある level のみ有効な opt-in で、条件外では沈黙する。生成40ケースの独立 BFS オラクル比較（`:1318`）あり。美観などの一般的な品質スコアを実装したという意味ではない。出典: arXiv:2503.21474。🟢 replay-safe。
+7. ✅**実装済み** — **line-of-sight / Bresenham line**: `src/geometry.rs:17` の整数 `line` と `:63` の `line_of_sight`。水平・垂直・対角・同一点・途中の遮蔽・端点の透過をテスト（`:630–685`）。攻撃判定・FOV 補助用の単一 ray（対称 FOV の代替ではない）。🟢 replay-safe。
 
 ---
 
