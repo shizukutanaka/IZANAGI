@@ -204,7 +204,7 @@ span ベースの高機能診断は限定的。
 
 **洗い出した改善点**
 1. ~~**error recovery（複数エラー一括報告）**~~ — **実装済み**: `parse` は `(Content, Vec<Diagnostic>)` を返し、最初のエラーで止まらず全診断を収集（broken.game fixture で複数診断を実証）。出典: arXiv:1804.07133, chumsky。
-2. **span ベース診断（複数ラベル・related notes）**。出典: rustc, ariadne(C9)。🟢 replay-safe。
+2. ~~**span ベース診断（複数ラベル・related notes）**~~ — **実装済み**: `src/diag_render.rs` の `RichDiagnostic`（`Span`／`Label`／`Note`、複数ラベル・related notes・help 行を持つ rustc 風レンダリング、zero-dep 自前実装。golden テスト15件で形式を固定）。出典: rustc, ariadne(C9)。🟢 replay-safe。
 3. ~~**grammar の形式仕様 / BNF 文書化**~~ — **実装済み**: `SPEC.md` §9.1 が `.game` 文法を形式化し、spec↔parser の一致は機械検査済み。🟢 replay-safe。
 4. **fuzz harness（cargo-fuzz）で panic-freedom を継続検証**。出典: C8。🟢 replay-safe。
 5. **インクリメンタル/部分パース**（エディタ統合・大規模コンテンツ向け）。🟢 replay-safe。
@@ -261,7 +261,7 @@ span ベースの高機能診断は限定的。
 **洗い出した改善点**
 1. ✅**実装済み** — **`--check` モード**（`--fmt` の非破壊版、整形差分があれば非ゼロ終了）。出典: `cargo fmt --check`。🟢 replay-safe。
 2. ~~**機械可読診断出力（JSON / SARIF）**~~ — **実装済み**: `gamec --json`/`--sarif` が機械可読診断を出力（CI アノテーション用）。出典: rustc `--error-format=json`。
-3. **診断 UX 強化**（miette/ariadne 風の span・help・suggestion を自前 zero-dep で導入）。出典: miette, ariadne。🟢 replay-safe。
+3. ~~**診断 UX 強化**~~ — **実装済み**: `diag_render` が miette/ariadne 風の span・複数ラベル・related notes・help 行を自前 zero-dep で提供し、`gamec --rich` がその描画で診断を出す（終了コード・判定は従来モードと同一）。出典: miette, ariadne。🟢 replay-safe。
 4. ~~**validator ルールの拡張**~~ — **実装済み (aae1a9b)**: 到達不能な spawn 領域と孤立部屋を警告として追加（loadable は維持）。`.game` 形式に固体概念が無いため、空間検査はバンドルが `wall` tile を宣言した場合のみ有効な opt-in で、宣言が無ければ沈黙する。移動規則は kit 正準の ConnectivityMap（8方向・角切りなし）。なお spawn 重なり検査は本変更以前から実装済みだった（validator.rs の overlapping-spawn 警告）。🟢 replay-safe。
 5. ~~**修正提案（quick-fix）**~~ — **実装済み (459f2fc)**: validator の未定義 spawn 参照と extends の missing base に `(did you mean 'X'?)` を付加 — char 単位 Levenshtein を宣言順に走査し同距離は先出宣言が勝つので診断集合が決定的（整数のみ、rustc の suggestion 半径に倣い長い方の名の1/3で打切り）。出典: rustc suggestions。🟢 replay-safe。
 6. ~~**loader の決定性テスト**~~ — **実装済み**: `determinism.rs` が allocator の free list と `live` 順序まで pin、loader は spawn 順の entity 割当を文書化+テスト済み。C1/C4 連携。🟢 replay-safe。

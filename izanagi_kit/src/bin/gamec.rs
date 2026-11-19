@@ -1,6 +1,6 @@
 //! `gamec` — the game-content checker/compiler.
 //!
-//! Usage: `gamec [--help | --fmt | --json | --sarif | --check | --verify] <file.game>`
+//! Usage: `gamec [--help | --fmt | --json | --sarif | --check | --rich | --verify] <file.game>`
 //!
 //! Parses and validates an authored content file, prints every diagnostic with
 //! its line number, and on success prints a load summary (entity counts per
@@ -18,6 +18,11 @@
 //! content line differs from the canonical serialized form. `//` comments and
 //! blank lines are free-form: the canonical form carries none, so they are
 //! ignored by the comparison (like `cargo fmt --check` tolerating comments).
+//! `--rich` keeps the human-readable flow and exit codes, but renders each
+//! diagnostic through the span-based renderer ([`izanagi_kit::diag_render`]):
+//! a `--> file:line:col` locator, a numbered source block and an underlined
+//! span instead of the one-line form.
+//!
 //! `--verify` runs the bundle determinism audit from the `bundle_verify`
 //! module: every level is loaded
 //! twice, soaked with a canonical seeded workload, and checked for double-run
@@ -28,14 +33,25 @@
 //! check drops straight into CI as a determinism gate.
 
 use izanagi_kit::bundle_verify::{verify_bundle, DEFAULT_TICKS};
-use izanagi_kit::content::Severity;
+use izanagi_kit::content::{Diagnostic, Severity};
 use izanagi_kit::diag_json::{diag_json, diag_sarif};
+use izanagi_kit::diag_render::RichDiagnostic;
 use izanagi_kit::{is_loadable, load_level, parse, validate};
 use std::io::Write;
 use std::process::ExitCode;
 
 const USAGE: &str =
-    "usage: gamec [--help | --fmt | --json | --sarif | --check | --verify] <file.game>";
+    "usage: gamec [--help | --fmt | --json | --sarif | --check | --rich | --verify] <file.game>";
+
+/// Render one diagnostic in the form the selected mode asks for: the
+/// span-based rich form under `--rich`, the one-line form otherwise.
+fn render_diag(mode: &OutputMode, d: &Diagnostic, path: &str, source: &str) -> String {
+    if *mode == OutputMode::Rich {
+        RichDiagnostic::from_diagnostic(d).render(path, source)
+    } else {
+        d.render(path, source)
+    }
+}
 
 /// Writes payload output through a locked stdout so a closed pipe (EPIPE,
 /// e.g. `gamec --json | head -1`) is a clean failure, not a panic.
@@ -51,6 +67,7 @@ enum OutputMode {
     Json,
     Sarif,
     Check,
+    Rich,
     Verify,
 }
 
@@ -61,6 +78,7 @@ fn main() -> ExitCode {
         [flag, p] if flag == "--json" => (OutputMode::Json, p.clone()),
         [flag, p] if flag == "--sarif" => (OutputMode::Sarif, p.clone()),
         [flag, p] if flag == "--check" => (OutputMode::Check, p.clone()),
+        [flag, p] if flag == "--rich" => (OutputMode::Rich, p.clone()),
         [flag, p] if flag == "--verify" => (OutputMode::Verify, p.clone()),
         [flag] if flag == "--help" || flag == "-h" => {
             println!("{USAGE}");
@@ -185,7 +203,7 @@ fn main() -> ExitCode {
             Severity::Error => errors += 1,
             Severity::Warning => warnings += 1,
         }
-        eprintln!("{}", d.render(&path, &source));
+        eprintln!("{}", render_diag(&mode, d, &path, &source));
     }
 
     if !is_loadable(&parse_diags, &validate_diags) {
