@@ -1,6 +1,6 @@
 //! `gamec` — the game-content checker/compiler.
 //!
-//! Usage: `gamec [--help | --fmt | --json | --sarif | --check | --rich] <file.game>`
+//! Usage: `gamec [--help | --fmt | --json | --sarif | --check | --rich | --verify] <file.game>`
 //!
 //! Parses and validates an authored content file, prints every diagnostic with
 //! its line number, and on success prints a load summary (entity counts per
@@ -22,7 +22,17 @@
 //! diagnostic through the span-based renderer ([`izanagi_kit::diag_render`]):
 //! a `--> file:line:col` locator, a numbered source block and an underlined
 //! span instead of the one-line form.
+//!
+//! `--verify` runs the bundle determinism audit from the `bundle_verify`
+//! module: every level is loaded
+//! twice, soaked with a canonical seeded workload, and checked for double-run
+//! and rollback-resimulation divergence. On divergence the report names the
+//! first diverging tick — a report, not a panic. Exit codes follow the other
+//! modes: `0` when every level is deterministic, `1` when validation fails or
+//! any level diverges, `2` for usage errors and unreadable input — so the
+//! check drops straight into CI as a determinism gate.
 
+use izanagi_kit::bundle_verify::{verify_bundle, DEFAULT_TICKS};
 use izanagi_kit::content::{Diagnostic, Severity};
 use izanagi_kit::diag_json::{diag_json, diag_sarif};
 use izanagi_kit::diag_render::RichDiagnostic;
@@ -31,7 +41,7 @@ use std::io::Write;
 use std::process::ExitCode;
 
 const USAGE: &str =
-    "usage: gamec [--help | --fmt | --json | --sarif | --check | --rich] <file.game>";
+    "usage: gamec [--help | --fmt | --json | --sarif | --check | --rich | --verify] <file.game>";
 
 /// Render one diagnostic in the form the selected mode asks for: the
 /// span-based rich form under `--rich`, the one-line form otherwise.
@@ -58,6 +68,7 @@ enum OutputMode {
     Sarif,
     Check,
     Rich,
+    Verify,
 }
 
 fn main() -> ExitCode {
@@ -68,6 +79,7 @@ fn main() -> ExitCode {
         [flag, p] if flag == "--sarif" => (OutputMode::Sarif, p.clone()),
         [flag, p] if flag == "--check" => (OutputMode::Check, p.clone()),
         [flag, p] if flag == "--rich" => (OutputMode::Rich, p.clone()),
+        [flag, p] if flag == "--verify" => (OutputMode::Verify, p.clone()),
         [flag] if flag == "--help" || flag == "-h" => {
             println!("{USAGE}");
             return ExitCode::SUCCESS;
@@ -148,6 +160,40 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
         return ExitCode::SUCCESS;
+    }
+
+    if mode == OutputMode::Verify {
+        let mut errors = 0usize;
+        let mut warnings = 0usize;
+        for d in &all_diags {
+            match d.severity {
+                Severity::Error => errors += 1,
+                Severity::Warning => warnings += 1,
+            }
+            eprintln!("{}", d.render(&path, &source));
+        }
+        if !is_loadable(&parse_diags, &validate_diags) {
+            eprintln!("FAILED: {errors} error(s), {warnings} warning(s)");
+            return ExitCode::FAILURE;
+        }
+        return match verify_bundle(&content, DEFAULT_TICKS) {
+            Ok(report) => {
+                let deterministic = report.is_deterministic();
+                if !emit(&format!("{report}\n")) {
+                    eprintln!("{path}: error: failed to write verification report to stdout");
+                    return ExitCode::FAILURE;
+                }
+                if deterministic {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::FAILURE
+                }
+            }
+            Err(e) => {
+                eprintln!("{path}: error: {e}");
+                ExitCode::FAILURE
+            }
+        };
     }
 
     let mut errors = 0usize;
