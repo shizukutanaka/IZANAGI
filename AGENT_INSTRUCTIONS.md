@@ -25,7 +25,7 @@
 | workspace テスト | **10,000+ passed / 0 failed**(下限。`docs_are_current.rs` が実測値で検査)|
 | clippy 警告(`--workspace --all-targets`) | 0 |
 | rustfmt | clean |
-| kit モジュール数 | **2445**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
+| kit モジュール数 | **2446**(`izanagi_kit/src/*.rs`。`tests/docs_are_current.rs` が検証)|
 | engine モジュール数 | **26**(`izanagi/src/*.rs`。同上)|
 | 決定論 pinned hash | `PINNED_FINAL_HASH=0xd1a9236e96a2c802` / `PINNED_ROGUELIKE_HASH=0x5286d1420200fe66`(不変) |
 | kit_bridge 統合ハッシュ | `353498ec4fbcd160`(headless == engine-hosted) |
@@ -125,10 +125,10 @@ doctest・テスト・example・bin の4ターゲットが緑**で、さらに `
    モデルと実装の一致を示すが、**それは標本であって精緻化の証明ではない**。
    両者の連携は doc と demo に明記済み(`RealRoom` が INCONCLUSIVE、モデルが PROVED)。
    これ以上を主張しないことが正しく、過大主張は道具の信頼を壊す。
-4. **[小] example が印字する数値は誰も検算していない** — 29本中、assert を持つのは
+4. **[小] example が印字する数値は誰も検算していない** — 31本中、assert を持つのは
    `verify_pipeline_demo`・`kit_bridge`・`menu_textlayout_demo`・`replay_demo`・
-   `savefile_demo` の5本だけで、残りの**24本は assert をひとつも持たない**。
-   gate は全29本について「headless 完走・非空出力・2回実行でバイト一致」を強制するので、
+   `savefile_demo`・`arena` の6本だけで、残りの**25本は assert をひとつも持たない**。
+   gate は全31本について「headless 完走・非空出力・2回実行でバイト一致」を強制するので、
    panic・ハング・沈黙・非決定性は落ちる。**しかし「安定して間違っている」出力は通る。**
    個々の値の正しさは 3,600+ の単体テスト側で担保されており、example ごとに golden
    ファイルを置けば今度はそれが腐る(本セッションで正確な数値を4度削除した理由と同じ)。
