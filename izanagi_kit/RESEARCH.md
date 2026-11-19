@@ -42,7 +42,7 @@ query DSL は未実装。
 2. ~~**archetype storage の optional 化**~~ — **実装済み（N18）**: `arch::ArchTable` が opt-in primitive として存在。core の既定 storage 化は実測で不採用（point get で 4.3x 劣後、join 差は frame の 0.1%）。出典: bevy hybrid storage, EG 比較論文。
 3. **bitset によるコンポーネント有無の高速判定**（query 高速化）。出典: specs bitset filter。🟢 replay-safe。
 4. ✅**実装済み** — **generation 枯渇（u32 wrap）時の handle 再利用ポリシー明文化**（3実装を実測し各モジュールの "Generation exhaustion" 節に明記: kit `entity` は wrap＋`generation_wrap_count` に記録、kit `slotmap` は `u32::MAX` で永久退役、engine `ecs` は無記録で wrap。境界状態を直接構築する境界テスト5件で固定。あわせて `entity::EntityAllocator::free` の doc が主張していたが実在しなかった `debug_assert` の記述を是正。実装コミット `aa31be0`）。出典: hecs generational index 解説。🟢 replay-safe（テスト追加のみ）。
-5. **ZST（タグコンポーネント）最適化**（storage を確保しない marker component）。出典: entt/bevy tag。🟢 replay-safe。
+5. ✅**実装済み** — **ZST（タグコンポーネント）最適化**: `sparse_set::TagSet`（sparse index + dense entity list のみで値ストレージを持たない marker 専用ストア。意味論は `SparseSet` と同一 — O(1) insert/lookup/swap-remove・世代安全・canonical 昇順。`det_hash` は長さ＋entity handle のみを畳み `SparseSet<()>` と完全一致するため、marker のストアを差し替えても world hash は不変。`join_tagged` で既存 join 系と合成。実装コミット `2c4e648`）。出典: entt/bevy tag。🟢 replay-safe。
 6. **コンポーネント登録のコンパイル時 ID 化**（`TypeId` ランタイム比較の削減）。🟢 replay-safe。
 
 ---
@@ -67,7 +67,7 @@ query DSL は未実装。
 **洗い出した改善点**
 1. ✅**実装済み** — **`sqrt()` の追加**（integer bit-by-bit isqrt、`src/fixed.rs`）。距離計算・正規化に必須。負入力は 0 へ飽和。🟢 replay-safe（新規 API、既存演算不変・`PINNED_FINAL_HASH` 不変）。
 2. ✅**実装済み** — **CORDIC による `sin`/`cos`/`sin_cos`/`atan2`**（テーブルではなく反復で決定的、16回・整数定数、`src/fixed.rs`）。出典: arXiv:1605.03229（Simmonds et al., 2016）, libfixmath。🟢 replay-safe。
-3. **丸めモードの明示**（truncate / round-half-to-even）。乗除の丸めを文書化し API 化。出典: substrate-fixed の丸め。🟡 gated（既存の演算の丸めを変えると 🔴。新 API として追加なら 🟢）。
+3. ✅**実装済み** — **丸めモードの明示**（`RoundingMode`（`Truncate` / `RoundHalfToEven`）と `Fixed::mul_with_rounding` / `Fixed::div_with_rounding` を新 API として追加、`src/fixed.rs`。`Truncate` は無印演算と bit 一致（乗算=floor・除算=0方向という既存の非対称と 0 除算飽和を含む）をグリッドテストで固定し、`RoundHalfToEven` は独立な i128 oracle と照合。既存演算の丸めは不変で `PINNED_FINAL_HASH` 不変。候補の gated 条件どおり「新 API として追加」の経路で実施。実装コミット `ff6c93c`）。出典: substrate-fixed の丸め。🟢 replay-safe（新規 API のみ）。
 4. ~~**`Vec2`/`Vec3` 等の fixed-point ベクトル型**~~ — **実装済み**: `src/vec.rs` の `Vec2`（`dot`/`length_sq`/`normalize`/`reflect`、全て Q16.16）。出典: FixedMathSharp。
 5. **overflow 検出モード（debug 時 panic / release saturating）**の二層化を文書化。🟢 replay-safe。
 6. ~~**`from_ratio`・`from_int` の property test 拡充**~~ — **実装済み**: 飽和境界テストが存在（`test_sub_saturates_at_min`・`test_from_int_saturates_out_of_range`・`test_from_ratio_div_by_zero_saturates_by_sign` ほか）。🟢 replay-safe。
@@ -205,7 +205,7 @@ span ベースの高機能診断は限定的。
 
 **洗い出した改善点**
 1. ~~**error recovery（複数エラー一括報告）**~~ — **実装済み**: `parse` は `(Content, Vec<Diagnostic>)` を返し、最初のエラーで止まらず全診断を収集（broken.game fixture で複数診断を実証）。出典: arXiv:1804.07133, chumsky。
-2. **span ベース診断（複数ラベル・related notes）**。出典: rustc, ariadne(C9)。🟢 replay-safe。
+2. ~~**span ベース診断（複数ラベル・related notes）**~~ — **実装済み**: `src/diag_render.rs` の `RichDiagnostic`（`Span`／`Label`／`Note`、複数ラベル・related notes・help 行を持つ rustc 風レンダリング、zero-dep 自前実装。golden テスト15件で形式を固定）。出典: rustc, ariadne(C9)。🟢 replay-safe。
 3. ~~**grammar の形式仕様 / BNF 文書化**~~ — **実装済み**: `SPEC.md` §9.1 が `.game` 文法を形式化し、spec↔parser の一致は機械検査済み。🟢 replay-safe。
 4. **fuzz harness（cargo-fuzz）で panic-freedom を継続検証**。出典: C8。🟢 replay-safe。
 5. **インクリメンタル/部分パース**（エディタ統合・大規模コンテンツ向け）。🟢 replay-safe。
@@ -245,7 +245,7 @@ span ベースの高機能診断は限定的。
 
 **現状（izanagi_kit）**: `src/validator.rs`（重複名・未定義参照・範囲外 spawn・寸法不整合を short-circuit せず全収集）、
 `src/loader.rs`（検証済み content → sparse-set ECS の `LoadedLevel` 化）、`src/bin/gamec.rs`（CI 用 content checker、
-`--fmt` で canonical 整形、エラー時非ゼロ終了）。診断の見栄え・出力フォーマット（JSON 等）は最小限。
+`--fmt` で canonical 整形、エラー時非ゼロ終了。`--verify` でバンドル決定性監査）。診断の見栄え・出力フォーマット（JSON 等）は最小限。
 
 **参考情報**
 - GitHub: [zkat/miette](https://github.com/zkat/miette) — リッチな診断レポート（source span / help / 関連ラベル）。**同種の診断 UX 参照**。
@@ -262,10 +262,11 @@ span ベースの高機能診断は限定的。
 **洗い出した改善点**
 1. ✅**実装済み** — **`--check` モード**（`--fmt` の非破壊版、整形差分があれば非ゼロ終了）。出典: `cargo fmt --check`。🟢 replay-safe。
 2. ~~**機械可読診断出力（JSON / SARIF）**~~ — **実装済み**: `gamec --json`/`--sarif` が機械可読診断を出力（CI アノテーション用）。出典: rustc `--error-format=json`。
-3. **診断 UX 強化**（miette/ariadne 風の span・help・suggestion を自前 zero-dep で導入）。出典: miette, ariadne。🟢 replay-safe。
-4. **validator ルールの拡張**（到達不能タイル・孤立部屋・spawn 重なり等の意味検査）。🟢 replay-safe。
+3. ~~**診断 UX 強化**~~ — **実装済み**: `diag_render` が miette/ariadne 風の span・複数ラベル・related notes・help 行を自前 zero-dep で提供し、`gamec --rich` がその描画で診断を出す（終了コード・判定は従来モードと同一）。出典: miette, ariadne。🟢 replay-safe。
+4. ~~**validator ルールの拡張**~~ — **実装済み (aae1a9b)**: 到達不能な spawn 領域と孤立部屋を警告として追加（loadable は維持）。`.game` 形式に固体概念が無いため、空間検査はバンドルが `wall` tile を宣言した場合のみ有効な opt-in で、宣言が無ければ沈黙する。移動規則は kit 正準の ConnectivityMap（8方向・角切りなし）。なお spawn 重なり検査は本変更以前から実装済みだった（validator.rs の overlapping-spawn 警告）。🟢 replay-safe。
 5. ~~**修正提案（quick-fix）**~~ — **実装済み (459f2fc)**: validator の未定義 spawn 参照と extends の missing base に `(did you mean 'X'?)` を付加 — char 単位 Levenshtein を宣言順に走査し同距離は先出宣言が勝つので診断集合が決定的（整数のみ、rustc の suggestion 半径に倣い長い方の名の1/3で打切り）。出典: rustc suggestions。🟢 replay-safe。
 6. ~~**loader の決定性テスト**~~ — **実装済み**: `determinism.rs` が allocator の free list と `live` 順序まで pin、loader は spawn 順の entity 割当を文書化+テスト済み。C1/C4 連携。🟢 replay-safe。
+7. ~~**SyncTest の製品化（標準検証コマンド）**~~ — **実装済み (596cd66)**: `bundle_verify` モジュール + `gamec --verify`。GGRS の SyncTestSession は rollback 実務で「最も価値がある」と評価されながら panic する開発セッション止まりで、CI に組み込む手順まで含めて提供するエンジンは存在しなかった（競合調査 2026-11-18）。ロード済みワールドへの正準 seeded soak を、独立2回ロードの初期ハッシュ比較・二重実行・全フレーム rollback 再シミュレーション（`sim::audit`）で監査し、乖離時は最初の乖離 tick と両ハッシュを含む報告書を返して終了コード（0=決定的 / 1=検証エラー・乖離 / 2=使い方・読取失敗）で落とす。利用者向け CI 手順（GitHub Actions の YAML 例）は kit README の gamec 節に文書として同梱（本 repo の `.github/workflows/` には触れていない）。出典: ggrs `SyncTestSession`。🟢 replay-safe。
 
 ---
 
