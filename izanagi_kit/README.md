@@ -385,6 +385,7 @@ The capability map — with per-feature implementation status — lives in
 | `trace_forensics` | Desync forensics — compares two recorded traces (seed, inputs, hashes) and attributes the first divergence to its cause (input divergence, simulation divergence, length mismatch, different runs) as a structured report. |
 | `proof` | Proof-carrying execution (IZPF): a SHA-256-bound witness of a run (seed, initial state, inputs, every per-tick hash), verified by re-execution or against a recorded IZTR trace. |
 | `sim` | The one `Simulation` trait every verification tool consumes, plus `audit()` — a single call that double-runs the sim, rollback-resimulates it, and reports the final hash. |
+| `sim_emulator` | The unit-test handle on a simulation: own the state, step it one tick at a time, inspect it between ticks, and check each tick's hash as it is produced — `verify` stops on the diverging tick with the diverged state still in hand, where `check_trace` runs to the end first. |
 | `rollback` | Bounded snapshot ring (`SnapshotRing`) and a GGRS-style `sync_test` that rolls back every frame to catch step-function nondeterminism. |
 | `dst` | Deterministic Simulation Testing: seed sweeps with per-tick invariants and one-line `(seed, tick)` failure reproduction. |
 | `plan` | Planning-based test synthesis — BFS over the state space for a shortest input sequence satisfying a goal ("can the player reach X" becomes an executable replay). |
